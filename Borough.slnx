@@ -6,4 +6,8 @@
   <Folder Name="/tests/">
     <Project Path="tests/Borough.Tests/Borough.Tests.csproj" />
   </Folder>
+  <!-- Throwaway. plans/0004 deletes this once the numbers are in docs/spike-results.md. -->
+  <Folder Name="/spikes/">
+    <Project Path="spikes/S4.Kernels/S4.Kernels.csproj" />
+  </Folder>
 </Solution>

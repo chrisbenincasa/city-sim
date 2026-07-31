@@ -492,3 +492,7 @@ godot/.godot/
 # Local run artifacts
 *.citysave
 *.inputlog
+
+# BenchmarkDotNet per-run artefacts under the S4 spike. The recorded numbers live in
+# docs/spike-results.md; these are the raw logs of one run and are noise in a diff.
+spikes/**/results/bdn/

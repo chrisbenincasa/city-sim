@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    S4, the kernel benchmark. plans/0004-s4-kernel-benchmark.md.
+
+    This project references nothing of ours, and must not: there is nothing in Borough.Core yet
+    and the whole point of the spike is that there never needs to be.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- The GC configuration is K6's subject. These are the defaults K0-K5 run under; K6 varies
+         them itself and reports all four. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+  </ItemGroup>
+
+</Project>

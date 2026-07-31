@@ -1,0 +1,26 @@
+<Project>
+
+  <!--
+    Spike code. Everything under spikes/ is throwaway by construction — plans/0004 §Where the
+    code lives, and that it dies deletes it once the numbers are recorded.
+
+    The root props are inherited, so the SDK, language version and determinism settings still
+    apply. Two things are relaxed:
+
+      TreatWarningsAsErrors  BenchmarkDotNet generates and builds a project of its own underneath
+                             bin/, which inherits this file. A generated file failing the repo's
+                             warning policy would stop a measurement for no reason.
+
+      float/double           The arithmetic ban of adr/0003 governs simulation state. A spike whose
+                             entire output is bandwidth in GB/s and percentiles in milliseconds is
+                             not simulation state, and reporting those as integers would be theatre.
+  -->
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>
