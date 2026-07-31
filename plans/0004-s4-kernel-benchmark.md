@@ -39,7 +39,7 @@ Slice 0 only, and weakly — S4 needs somewhere to live and a pinned SDK, both o
 ## Where the code lives, and that it dies
 
 ```
-spikes/S4.Kernels/          console project, added to Borough.sln for convenience
+spikes/S4.Kernels/          console project, added to Borough.slnx for convenience
                             references BenchmarkDotNet, references nothing of ours
 docs/spike-results.md       the numbers. NEW FILE, created by this slice
 ```

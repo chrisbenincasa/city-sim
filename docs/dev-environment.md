@@ -120,7 +120,19 @@ dotnet add tests/Borough.Tests  reference src/Borough.Core
 mkdir -p data/rulesets
 ```
 
-The templates leave a `Class1.cs` and a `UnitTest1.cs` behind. Delete both — an empty project is
+**Two things the SDK does that this guide originally did not predict**, both confirmed on
+SDK 10.0.110:
+
+- `dotnet new sln` emits **`Borough.slnx`**, the XML solution format, not `Borough.sln`. Harmless,
+  and Rider reads it, but the filename appears in the `git add` in A6.
+- The project templates **copy `TargetFramework`, `Nullable` and `ImplicitUsings` into every
+  `.csproj`**, which is exactly the drift `Directory.Build.props` exists to prevent. Strip them from
+  all three so each project carries only what is genuinely its own — `AllowUnsafeBlocks` on `Core`,
+  `OutputType` on `Headless`, `IsPackable` and the packages on `Tests`. The build is identical
+  either way; the point is that in six months there is one place to change the framework rather
+  than four.
+
+The templates also leave a `Class1.cs` and a `UnitTest1.cs` behind. Delete both — an empty project is
 a clearer starting point than a placeholder you will wonder about in three weeks.
 
 ```bash
@@ -393,7 +405,7 @@ milestone from here inherits.
 
 ```bash
 git add CLAUDE.md CONTEXT.md docs plans src tests \
-        Borough.sln global.json Directory.Build.props .editorconfig .gitignore
+        Borough.slnx global.json Directory.Build.props .editorconfig .gitignore
 git commit -m "Scaffold: four-project layout, boundary guards, net10.0"
 ```
 
@@ -508,7 +520,7 @@ shell to the solution has made the headless runner depend on it, the boundary br
 Install via [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/), which handles updates
 and lets you keep versions pinned.
 
-Open `Borough.sln` — Rider picks up all four projects.
+Open `Borough.slnx` — Rider picks up all four projects.
 
 **Godot integration:** install the **Godot** plugin from `Settings → Plugins`. It adds a run
 configuration that launches the editor and attaches the debugger, which is the only comfortable
