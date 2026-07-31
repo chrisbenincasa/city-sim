@@ -4,7 +4,7 @@ Scratch note, not corpus. Lives inside `spikes/S4.Kernels/`, so task 11 deletes 
 everything else. Nothing in here is a decision; decisions go to `docs/spike-results.md`,
 `plans/0002-open-questions.md`, or an ADR.
 
-Written at `2f60637` (S4 task 3), updated after tasks 4, 5 and 8.
+Written at `2f60637` (S4 task 3), updated after tasks 4–8. Only K6, the report and the delete remain.
 
 ---
 
@@ -19,10 +19,10 @@ Written at `2f60637` (S4 task 3), updated after tasks 4, 5 and 8.
 | 3 | K0, the world's footprint | done — settles ledger #29 |
 | 4 | K1 linear scan, `checked` vs `unchecked` | **done** — `adr/0003`'s overflow claim now has arithmetic |
 | 5 | K2 random gather by generational handle | **done** — the Wheel's sparse-wake premise holds |
+| 6 | K3 bulk copy of the K0 footprint | **done** — and it constrains how `Core` allocates its tables |
+| 7 | K4 sorted-array lookup, ≤9 entries | **done** — the no-hash-maps rule is free, and then some |
 | 8 | K5 wheel bucket drain, 8,192 buckets | **done** — the Wheel has a number for the first time |
-| 6 | K3 bulk copy of the K0 footprint | not written — cheap, partly duplicates the baseline |
-| 7 | K4 sorted-array lookup, ≤9 entries | not written — cheap, low risk |
-| 9 | K6 ten-minute GC tail, p99.9, four GC configs (not a BDN job) | not written — **the only one that can surprise** |
+| 9 | K6 ten-minute GC tail, p99.9, four GC configs (not a BDN job) | not written — **the only one left that can surprise** |
 | 10 | The report | — |
 | 11 | Delete `spikes/S4.Kernels/`, record the parent commit | — |
 
@@ -35,10 +35,19 @@ dotnet run -c Release --project spikes/S4.Kernels -- k0
 dotnet run -c Release --project spikes/S4.Kernels -- baseline
 dotnet run -c Release --project spikes/S4.Kernels -- scaling
 
-spikes/S4.Kernels/tools/kernel-run.sh             # K1, K2, K5, pinned and labelled
+spikes/S4.Kernels/tools/kernel-run.sh             # K1-K5, pinned and labelled
 sudo spikes/S4.Kernels/tools/kernel-run.sh        # ...under the canonical performance+turbo
-spikes/S4.Kernels/tools/kernel-run.sh '*K2*'      # one of them
+spikes/S4.Kernels/tools/kernel-run.sh '*K2*'      # one of them; the filter goes in the filename
 ```
+
+The full suite is 26 benchmark cases and takes about eight minutes.
+
+**BenchmarkDotNet will warn that it could not raise the process priority, even under sudo. That is
+expected.** The run deliberately drops back to the invoking user, because BenchmarkDotNet builds a
+generated project of its own and doing that as root would leave root-owned `obj/` and `bin/` behind
+to break every later non-root build. The script takes the scheduling priority as root instead — a
+negative nice value survives the privilege drop — so the warning is cosmetic and the thing it warns
+about has already been handled.
 
 `kernel-run.sh` is the companion to `baseline-sweep.sh` and exists for one reason: a kernel run
 under a different governor than its denominator is a ratio between two machines. It pins to core 2,
@@ -48,12 +57,26 @@ puts the governor and the DIMM rate in the label, and writes `results/kernels-<l
 
 ## The numbers, against `baseline-ddr2133-powersave-turbo.md`
 
-**Captured under `powersave`+turbo, not the canonical `performance`+turbo, because the sudo capture
-needs a password this session could not supply.** The denominators differ by 3% on copy (12.9 vs
-13.3 GB/s) and not at all on read (15.6 vs 15.5 GB/s), so the ratios below are sound and the
-absolute figures are ~3% pessimistic. Re-run with `sudo` for the report.
+**Every table below is `powersave`+turbo**, because that is the one configuration all five kernels
+have been measured under. Denominators used: **25.8 GB/s copy traffic**, **15.6 GB/s read**. GB is 1e9.
 
-Denominators used: **25.8 GB/s copy traffic**, **15.6 GB/s read**. GB is 1e9.
+`results/kernels-ddr2133-performance-turbo.md` is the canonical capture and covers K1, K2 and K5 —
+it was taken before K3 and K4 existed. It confirms the reading below rather than changing it:
+
+| | powersave | performance | ratio under powersave | ratio under performance |
+|---|---:|---:|---:|---:|
+| K1 `SpanUnchecked` | 1.033 ms | 0.992 ms | 1.00 | 1.00 |
+| K1 `SpanChecked` | 1.316 ms | 1.277 ms | 1.27 | **1.29** |
+| K1 `PointerChecked` | 1.733 ms | 1.655 ms | 1.68 | **1.67** |
+| K2 `SoaScattered` | 28.79 µs | 27.31 µs | 1.00 | 1.00 |
+| K2 `AosScattered` | 19.31 µs | 19.17 µs | 0.67 | **0.70** |
+| K5 `Revolution` @4096 | 37.00 ns | 35.99 ns | — | — |
+| K5 `SequentialFloor` @4096 | 10.99 ns | 10.83 ns | 0.30 | **0.30** |
+
+Absolutes improve 1–5%; **not one ratio moves outside its own error bar.** The governor is not a
+variable in any conclusion here, which is what task 1's four-configuration sweep existed to establish.
+**K3 and K4 still owe a canonical capture** — K3 especially, since its result is a 14.3 vs 17.7 ms
+comparison against an asserted 8–15 ms band and 3% of headroom is not nothing there.
 
 ### K1 — linear scan and update, 1M rows, three SoA columns
 
@@ -113,6 +136,74 @@ Ideals are bandwidth ideals: SoA touches three columns, so three cache lines per
    ideal where SoA is 1.14× of its. Interleaving the wake tier into one packed row is *not* worth
    the 33% padding waste and the loss of columnar scans. `05 §3`'s choice stands on measurement now.
 
+### K3 — bulk copy of the K0 footprint, 172.3 MiB
+
+Source and destination are one contiguous block each and the columns are offsets into them, so every
+variant moves the same bytes across the same addresses and only the call structure differs.
+**Ideal 14.0 ms.**
+
+| Variant | Mean | vs ideal | vs single block |
+|---|---:|---:|---:|
+| `SingleBlock` — one call | 14.30 ms | 1.02× | 1.00 |
+| `Chunked` 32 MiB | 14.72 ms | 1.05× | 1.03 |
+| `Chunked` 8 MiB | 14.71 ms | 1.05× | 1.03 |
+| `PerColumn` — 104 calls | 17.70 ms | 1.26× | 1.24 |
+| `Chunked` 1 MiB | 19.49 ms | 1.39× | 1.36 |
+| `Chunked` 64 KiB | 19.48 ms | 1.39× | 1.36 |
+
+**Ledger #29's answer is conditional on a decision slice 4 has not made yet, and that is the result.**
+The copy is not one number. It is 14.3 ms if the world is one arena and 17.7 ms if it is copied
+column by column, and `adr/0037` asserts an **8–15 ms band**. Only the arena copy is inside it.
+
+The mechanism was measured rather than assumed, which is why `Chunked` exists: a 3.4 ms gap across
+~104 calls would have to be 33 µs per call to be call overhead, which is absurd. The chunk sweep
+shows a **clean step between 1 MiB and 8 MiB, worth 33%**, and the arithmetic identifies it. At
+14.30 ms the copy moves 361 MB — two streams, source read and destination written, at 25.3 GB/s
+against the baseline's measured 25.8 GB/s copy traffic. At 19.49 ms it moves ~542 MB: three streams,
+because below the threshold the copy stops using non-temporal stores and starts reading the
+destination for ownership before overwriting it. `PerColumn` sits between the two because the
+columns straddle the threshold — a few are tens of MB, most are one or two.
+
+**So this is a constraint on `Borough.Core`'s allocator, not on its copy.** If each column is its
+own allocation the save cannot make one call and pays 24%. If the tables are arena-allocated from
+one contiguous region it can, and the saving is free. That is worth knowing before slice 4 writes
+the tables rather than after.
+
+It also raises the stakes on the XMP re-sweep. These DIMMs are rated 3200 and are running at 2133;
+at their rated speed every row above falls inside `adr/0037`'s band and the constraint softens
+considerably. **The band is currently being judged against a machine that is misconfigured.**
+
+### K4 — many lookups into small sorted arrays, 200,000 ResourceMaps, ≤9 entries
+
+2,000 scattered lookups per batch. A row is 81 bytes at a stride of 81, so it always straddles two
+cache lines: 2,000 × 2 × 64 B = 256 KiB. **Ideal 16.8 µs.**
+
+| Variant | Mean | ns/lookup | vs ideal | vs interleaved |
+|---|---:|---:|---:|---:|
+| `KeysThenValuesVector` | 35.66 µs | 17.8 | 2.12× | 0.61 |
+| `KeysThenValues` | 55.07 µs | 27.5 | 3.28× | 0.94 |
+| `EntryInterleaved` | 58.56 µs | 29.3 | 3.49× | 1.00 |
+| `DictionaryLookup` | 109.01 µs | 54.5 | — | 1.86 |
+
+1. **The no-hash-maps rule costs nothing — it pays 86%.** The banned shape is the slowest thing in
+   the kernel by a wide margin. The rule was argued on determinism; it turns out not to need the
+   argument.
+2. **The plan said this would be cache behaviour and it is not — it is branch behaviour.** Moving
+   the nine keys to the front of the row, which is the pure layout change, buys 6%. Removing the
+   data-dependent branch by comparing all nine keys in one 128-bit operation buys **39%**. The scan
+   is short enough that the mispredict, not the line, is what costs.
+3. **The current schema shape is the slowest of the three that are allowed.** `WorldSchema`'s
+   `bins[9]` is entry-interleaved; keys-then-values within the same 81 bytes is strictly better and
+   costs nothing to adopt, because it is the same memory in a different order.
+
+**`EntryInterleaved` at 3.49× is inside the tripwire's ~3–4× band, and that is a judgement the
+report has to make rather than one this note should quietly make for it.** The argument for not
+firing: the tripwire's remedy is to write the kernel in a second language, the measured cause is
+branch misprediction, and branch misprediction is not a property of the language — the C# vector
+form recovers it to 2.12× without leaving C#. The argument for firing anyway: the wire was written
+before the numbers arrived specifically so it could not be reasoned around afterwards. Both belong
+in `docs/spike-results.md`; this note is not the place to settle it.
+
 ### K5 — wheel bucket drain and reschedule, 8,192 buckets, 1,560,000 scheduled entities
 
 Reported per woken entity (`OperationsPerInvoke`), so the figures compare across wake rates.
@@ -159,30 +250,38 @@ design plausibly wants. The Tick is not bandwidth-bound and it is not wheel-boun
 ## Against the tripwire
 
 `plans/0004`'s table: *any kernel worse than ~3–4× off its hand-computed ideal* triggers writing that
-kernel in a second language. **Nothing is close.** Worst ratio in the suite is K2's `AosScattered` at
-2.30×, and that is the variant the design does not use. Every shape the design actually commits to —
-columnar scan, columnar gather, intrusive-list drain — is between 1.06× and 1.42× of ideal.
+kernel in a second language.
 
-The one row that can still fire is **K6's p99.9 against 15.6 ms**, and it is unwritten.
+**One row is inside the band: K4's `EntryInterleaved`, at 3.49×.** It is argued above, and the
+argument is the report's to accept or reject, not this note's. Everything else is clear — the next
+worst is K2's `AosScattered` at 2.30×, and that is a variant the design does not use. Every shape the
+design actually commits to is between 1.02× and 1.42× of ideal, except the ResourceMap scan.
+
+The one row that can still fire outright is **K6's p99.9 against 15.6 ms**, and it is unwritten.
 
 ## What to do next
 
-**K6 (task 9) is the priority, and it is now the only kernel that can change a decision.** It is
-`adr/0036`'s named revisit trigger, it is not a BenchmarkDotNet job, and it needs K1/K2/K5 to exist —
-which they now do. Hold the K0 heap live, run the three in a loop for ten minutes, histogram the
-per-iteration time, report p99.9 under all four `ServerGarbageCollection` × `ConcurrentGarbageCollection`
-configurations.
+**K6 (task 9) is the priority, and it is now the only kernel that can change the language decision.**
+It is `adr/0036`'s named revisit trigger, it is not a BenchmarkDotNet job, and it needs K1–K5 to
+exist — which they now all do. Hold the K0 heap live, run the kernels in a loop for ten minutes,
+histogram the per-iteration time, report **p99.9** under all four `ServerGarbageCollection` ×
+`ConcurrentGarbageCollection` configurations. BenchmarkDotNet's warmup-and-discard model is exactly
+wrong for it, so it needs its own command in `Program.cs` beside `k0`, not a `[Benchmark]`.
 
-K3 (task 6) and K4 (task 7) are both cheap and neither can surprise. Backfill them alongside K6 or
-immediately after; they are half a session together.
+After K6, tasks 10 and 11: write `docs/spike-results.md` and delete `spikes/S4.Kernels/`.
 
 ## Open items carried forward
 
 **Measurement owed:**
-- **Re-run `sudo spikes/S4.Kernels/tools/kernel-run.sh`** under `performance`+turbo, so the kernels
-  and their denominator share a configuration. Ratios will not move; absolutes should improve ~3%.
-- XMP re-sweep after a reboot: `sudo spikes/S4.Kernels/tools/baseline-sweep.sh`. Labels carry the
-  configured MT/s automatically, so it cannot overwrite the DDR-2133 results.
+- **Re-run `sudo spikes/S4.Kernels/tools/kernel-run.sh`** now that K3 and K4 exist. The existing
+  canonical capture predates them and covers K1, K2 and K5 only. Ratios will not move — they did not
+  move for the first three — but K3's absolutes are judged against a 7 ms band and want the good
+  configuration.
+- **XMP re-sweep after a reboot**, and K3 has raised its priority: `sudo
+  spikes/S4.Kernels/tools/baseline-sweep.sh`, then `sudo tools/kernel-run.sh`. Labels carry the
+  configured MT/s automatically, so it cannot overwrite the DDR-2133 results. These DIMMs are rated
+  3200 and are running at 2133; `adr/0037`'s save-copy band is currently being judged against a
+  misconfigured machine, and at the rated speed the judgement may well reverse.
 - **K0 on the Mac** — still not run. Thirty seconds:
   ```bash
   dotnet run -c Release --project spikes/S4.Kernels -- k0 --label apple-m4-pro \
@@ -205,6 +304,12 @@ immediately after; they are half a session together.
   address arithmetic; the fix is to walk pointers or use spans, and it is worth 34 points.
 - **New, from K5:** the mean wake interval is an unratified input with a 32× range and it drives the
   Wheel's entire cost. It belongs in `plans/0002` alongside the other task-2 guesses.
+- **New, from K3:** `adr/0037`'s 8–15 ms band for the async save's copy holds only if `Borough.Core`
+  arena-allocates its table columns from one contiguous region. Per-column allocation puts the copy
+  at 17.7 ms, outside the band. That is a slice-4 constraint and it should be written down before
+  slice 4 starts, not discovered by it.
+- **New, from K4:** `WorldSchema`'s `bins[9]` is entry-interleaved and keys-then-values is strictly
+  better for the same 81 bytes. `05 §3` should say which, since it is the document that owns layout.
 
 **Unratified inputs the schema currently guesses at** — all flagged in
 `plans/0002-open-questions.md` under "From slice 1, running S4 task 2":

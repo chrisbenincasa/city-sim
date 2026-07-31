@@ -27,6 +27,13 @@ internal static class CounterHash
         K2Generation = 4,
         K5InitialBucket = 5,
         K5RescheduleDelay = 6,
+
+        // Appended rather than slotted in beside their siblings. A purpose tag is an input to the
+        // hash, so renumbering an existing one changes which values that kernel draws and quietly
+        // invalidates every figure already recorded against it.
+        K4MapShape = 7,
+        K4BinAmount = 8,
+        K4Permutation = 9,
     }
 
     public static ulong Of(ulong entity, ulong tick, Purpose purpose) =>

@@ -85,7 +85,26 @@ run_as_invoker dotnet build -c Release "${PROJECT}/S4.Kernels.csproj" --nologo -
 
 rm -f "${BDN}"/*-report-github.md
 echo "=== kernels ${FILTER} [${LABEL}] ===" >&2
-run_as_invoker taskset -c "${CORE}" "${BINARY}" bench --filter "${FILTER}"
+
+# BenchmarkDotNet will warn that it could not raise the process priority, even under sudo, and the
+# warning is expected rather than a misconfiguration. The benchmark deliberately runs as the invoking
+# user: BenchmarkDotNet generates and builds a project of its own, and doing that as root would leave
+# root-owned obj/ and bin/ behind to break every later non-root build. Privileges are dropped before
+# the run, so the .NET call to raise priority fails.
+#
+# What the warning is about is still worth having, so it is taken here instead. A negative nice value
+# set by root is inherited across the privilege drop, which BenchmarkDotNet cannot undo and does not
+# need to. -10 rather than -20: the run is pinned to one core of twelve, so anything else the machine
+# wants to do can migrate, and there is no reason to make the box unresponsive to buy the last
+# increment of a scheduling advantage that core pinning has already provided.
+# nice has to run *before* the privilege drop, not inside it: an unprivileged process cannot lower
+# its own nice value, so `sudo -u user nice -n -10` would fail where `nice -n -10 sudo -u user`
+# succeeds. The nice value survives both the exec and the setuid.
+if [[ "${EUID}" -eq 0 && -n "${SUDO_USER:-}" ]]; then
+    nice -n -10 sudo -u "${SUDO_USER}" -H taskset -c "${CORE}" "${BINARY}" bench --filter "${FILTER}"
+else
+    taskset -c "${CORE}" "${BINARY}" bench --filter "${FILTER}"
+fi
 
 # BenchmarkDotNet's own artifacts directory is gitignored, and a `--disasm` export is evidence
 # rather than an artifact: K1's result is a claim about which instructions the JIT emitted, and a
