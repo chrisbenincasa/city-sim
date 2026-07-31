@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Framework, nullability and analyser settings live in Directory.Build.props. -->
+
+  <PropertyGroup>
+    <!-- Span<T>, stackalloc and the pointer work adr/0036 commits to. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+</Project>

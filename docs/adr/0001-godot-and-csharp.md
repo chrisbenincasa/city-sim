@@ -1,0 +1,49 @@
+# The game is built on Godot 4.7 with C#
+
+**Godot 4.7 is the host. The simulation is a standalone, engine-agnostic library that Godot renders and puts a UI on.** The engine is chosen for two properties only — data-dense UI ergonomics and cheap instanced rendering — because those are the only two things the architecture actually asks of it. See [`0002`](0002-simulation-is-an-engine-agnostic-library.md) for the boundary that makes this true.
+
+> **Scope corrected by [`0036`](0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md).** This ADR was titled *"Godot 4.7 with C#"* and made **three** decisions while arguing one. Every argument below — `Control` nodes, `MultiMeshInstance3D`, `RenderingServer`, licence, vendor risk — is about the **shell**, and so is every entry in *Rejected*. Nothing in it addresses `Borough.Core`, yet the core's **language** and its **runtime** were settled here by inheritance, and the runtime was never named at all. `0036` separates them and argues the core's language on its own merits; it lands on C# anyway, which is why nothing downstream moved. **This ADR now decides the host only.** The general form is `0034`'s: *a constant welded to two decisions is governed by whichever of them is louder* — here it was a decision welded to two others, and `05 §4`'s State Hash rule is what separates them, since the host is hash-preserving by construction and the core's language is not. The filename is left alone because twenty documents link to it.
+
+## Why
+
+The framing that decides this is that **engine choice is low-stakes precisely because the architecture makes it swappable**. If the simulation held engine types, the engine would be the most consequential decision in the project and would deserve months of evaluation. It doesn't, so the question shrinks to: which host is least painful to build a rendering-and-UI shell in, over several years, alone? "Simulation power" is not a selection criterion, because none of the candidates would be running the simulation.
+
+**A city sim is roughly 60% data-dense UI** — inspectors, budget panels, layer overlays, the Evidence drill-down that `LEGIBLE CAUSE` depends on. Godot's own editor, with its inspectors, dockable panels, tree views and graph editors, is built entirely from the same `Control` nodes the game gets. That is an existence proof of the exact class of interface this project needs, shipping, in the engine, for free. No other candidate offers one.
+
+**Instanced rendering is the other requirement, and it comes with a real caveat.** `MultiMeshInstance3D` draws thousands of low-poly Buildings in a handful of draw calls. But every instance in one MultiMesh shares a **single AABB** for culling, so a city-wide MultiMesh is either always drawn or never drawn. The city must therefore be split into a grid of per-Chunk MultiMeshes. This is real work, not a footnote — though it costs less here than elsewhere, because the Chunk is already the project's universal partition and one more responsibility on it is a reuse rather than a new axis.
+
+Below the node layer, **`RenderingServer` can be driven directly**, bypassing nodes entirely on the hot path. That escape hatch matters more than raw benchmark numbers: it means the renderer's ceiling is set by the GPU rather than by scene-tree overhead.
+
+Godot is **free, MIT, with no revenue share and no vendor risk** over a multi-year solo project. Licence terms that can be changed unilaterally by a vendor are a tail risk with no upside, and the project has no budget line that a per-seat or per-install fee would fit into.
+
+Finally, **GDExtension is a genuine escape hatch, not a theoretical one.** If profiling ever shows the core's language cannot reach the target Citizen count after struct-of-arrays layout, `Span<T>`, and amortised ticking via the Event Wheel, the *simulation core alone* can be rewritten and dropped in behind the same API. Because that API is `step(inputs)` and `visible_agents(aabb, alpha)` and nothing else, this is a contained change rather than a rewrite of the game.
+
+> **Now owned by [`0036`](0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md), which also says to assume it is never used.** A solo developer three years in with a large core does not rewrite it. The hatch is a genuine backstop and it is not a plan, and the consequence is that investment goes into the discipline that makes the chosen language succeed rather than into speculative portability — which costs nothing, because they are the same investment.
+
+## Rejected
+
+> **This rejects Bevy, and it was filed under *Rust*. Corrected by [`0036`](0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md).** All four arguments below are **shell** arguments, and three of them dissolve entirely against the configuration this ADR never considered — **Godot shell with a Rust core via GDExtension**: Godot is still the editor, `Control` is still the UI toolkit, and the pre-1.0 migration tax was Bevy's rather than Rust's. Only compile times survive, and weakly, since `0015` makes the balance loop recompile nothing. `0036` rejects the Rust core on its own grounds — two toolchains, `gdext` as community-maintained vendor risk, an FFI wall on the per-frame `visible_agents` call, and the fluency condition below not being met.
+
+**Bevy (Rust)** is the runner-up and would take first place if the developer were already a fluent Rust developer — two real city builders are in development on it, and its data layout is the one this simulation wants anyway. It is held back by circumstance rather than by design: no editor, a UI toolkit that only gained a text input widget in mid-2026, long compile times, and a permanent migration tax while it remains pre-1.0. Long compile times are the disqualifier that generalises, because they attack `FAST ITERATION` — the same failure that took Citybound's 60–120-second warm rebuild and turned it into a simulation nobody tuned.
+
+**Unreal 5** is optimised for the one thing this project does not need — photoreal rendering of a small, art-directed scene — and has the worst-in-class UI story for data-dense panels. Paying its complexity budget to get Nanite and Lumen for a low-poly city is backwards.
+
+**A custom engine** would take an estimated 2–4 years to reach parity with what Godot provides on day one. For a solo multi-year project, that is the entire budget spent before the first Citizen moves.
+
+**Unity DOTS** is rejected specifically — not Unity, but DOTS. DOTS would weld the simulation to Unity's runtime, which directly contradicts the engine-agnostic requirement and would forfeit the headless runner, the reversibility, and the GDExtension escape hatch in one move. Note also [`0007`](0007-stress-driven-simulation-detail.md) and Finding 6: an ECS is probably the wrong tool for this simulation regardless of which engine hosts it, since the hot loops are Lane queues and Event Wheel buckets rather than wide component joins.
+
+## Consequences
+
+- **The Chunk gains a rendering responsibility.** Per-Chunk MultiMeshes must be built, streamed, and invalidated when Buildings change. This is on the critical path, not deferrable.
+- **C# performance is a bet, and it is hedged rather than assumed.** Integer and fixed-point maths, dense arrays indexed by generational handles, and no `Dictionary` iteration in simulation code are already required for determinism; they happen also to be what keeps C# viable. If they prove insufficient, GDExtension is the answer, not an engine migration.
+
+    > **Argued properly in [`0036`](0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md), where the bet is sized.** The arithmetic says ~10× headroom against a 1.2–2× language penalty, so the bet is not close — but it is downstream of the **Microscopic Cap**, which is still unset. `0036` adds a sixth CI lint (*no reference types in simulation state*), the rule that every variable-length collection is an intrusive index list, and spike **S4**, whose **K6** kernel is the named revisit trigger. It also records that the three structures most at risk from the GC were never the tables — they are the per-Bin wait lists, the cached Parking Sheds, and the wheel buckets.
+- **Two toolchains, one repository.** The .NET library and the Godot project build separately, and the headless runner must never require Godot to be installed.
+- **The choice is reversible only while the boundary holds.** Everything above is contingent on [`0002`](0002-simulation-is-an-engine-agnostic-library.md) being enforced mechanically. A single `using Godot;` in `Borough.Core` converts this ADR from a low-stakes decision into a permanent one.
+
+## What would trigger revisiting
+
+- ~~**C# failing to reach the target Citizen count after the documented optimisations.**~~ **Moved to [`0036`](0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md)**, which owns the core's language and states the trigger precisely: spike **S4**'s **K6** kernel showing a p99.9 pause beyond 15.6 ms with the hot tables already pure unmanaged structs. It fires *before the core is written*. The response is still GDExtension for the core, and only if that also fails does the engine come back into question — but note that a slow core is an argument about ledger **#29**, the Cap, and routing long before it is an argument about the language.
+- **Godot's `Control` UI failing on a genuinely large dataset** — a table of hundreds of thousands of rows, or an Evidence drill-down that cannot be made responsive. This is the load-bearing reason for the choice, so it failing is the strongest possible trigger.
+- **Bevy reaching 1.0 with a mature editor and UI toolkit, while the developer has become fluent in Rust.** Both conditions, not either; the Rust fluency is the binding one.
+- **Godot's licence or governance changing.** The zero-vendor-risk argument is factual today and would simply stop being true.
