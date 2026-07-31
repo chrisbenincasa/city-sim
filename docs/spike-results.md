@@ -11,7 +11,7 @@ produced**. A spike that records data and no verdict has not finished.
 
 | Spike | Question | Status |
 |---|---|---|
-| **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. Task 1 recorded below; K0–K6 not yet run. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
+| **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. Tasks 1–8 recorded below; **K6 outstanding**. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
 | **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Also owns Chunk size | not run. **The project's top risk** |
 | **S1** | Rendering ceiling — 20k Buildings via chunked `MultiMeshInstance3D` | not run |
 | **S3** | UI ceiling — one data panel with a live multi-series graph, and how long it took | not run |
@@ -21,11 +21,15 @@ produced**. A spike that records data and no verdict has not finished.
 
 ## S4 — the kernel benchmark
 
-**Task 1 of [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) is done: the machine is recorded and
-the denominator measured.** Still owed by this section: the recomputed Citizen hot-row size and the
-derived target row counts (task 2); per kernel K0–K6 the hand-computed ideal, the achieved figure and
-the ratio; K6's p99.9 under each GC configuration; the verdict against the tripwire; and the commit
-at which `spikes/S4.Kernels/` was deleted.
+**Tasks 1–8 of [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) are done: the machine is recorded,
+the denominator measured, the schema derived, and K0–K5 run.** Still owed by this section: **K6's
+p99.9 under each of the four GC configurations**, the verdict against the tripwire, and the commit at
+which `spikes/S4.Kernels/` was deleted.
+
+K1–K5 were captured by `spikes/S4.Kernels/tools/kernel-run.sh`, which pins to one physical core with
+its SMT sibling idle and puts the governor and the configured DIMM rate in the label. It exists
+because a kernel run under a different frequency configuration than its denominator is a ratio
+between two machines rather than a measurement of one.
 
 Measured 2026-07-31 on **two machines** — a Linux desktop via
 `spikes/S4.Kernels/tools/baseline-sweep.sh`, and an Apple M4 Pro laptop via `tools/mac-sample.sh`.
@@ -278,7 +282,7 @@ is headed **"1M implies"**. The density is an *output* of the 1M target, not an 
 feeding it back through the formula re-derives the assumption and confirms nothing.
 
 Of the three factors, **only `map_area` is ratified.** `buildable_fraction ≈ 1.0` appears exactly
-once, is never argued, and contradicts [`adr/0021`](adr/0021-terrain-is-generated-and-sparse.md),
+once, is never argued, and contradicts [`adr/0021`](adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md),
 which requires water bodies and a maximum buildable grade. `05` also folds roads and parks *into* the
 density anchor, which means either the anchor is gross of roads and `buildable_fraction` must be well
 below 1, or it is net and 3,700/km² is the wrong anchor. Nothing resolves this.
@@ -557,3 +561,340 @@ about 140 million. Since `00-vision` commits to *at least* a million rather than
 the multiple is the finding and the absolute figure is only how it was reached. **Memory is not a
 constraint on this design at any population it will plausibly reach**, and the binding constraints are
 elsewhere — per-Tick compute, the routing graph, and the Microscopic Cap.
+
+---
+
+## K1 — linear scan and update, `checked` and `unchecked`
+
+Scan-and-update over three struct-of-arrays columns at 1,000,000 rows, in the arithmetic
+[`adr/0003`](adr/0003-deterministic-integer-simulation.md) actually specifies: a Q16.16
+multiply-accumulate, `(int)(((long)a * b) >> 16)` into an i64. The two places it can overflow — the
+narrowing cast and the accumulate — are the two the overflow policy is about, so under `checked` they
+become `conv.ovf.i4` and `add.ovf` and under `unchecked` they are free. Measuring any other expression
+would have measured the wrong instruction.
+
+Traffic is 4 MB of rate read, 4 MB of weight read and 8 MB of accumulator read-modify-written = **24 MB
+per pass**. Against the desktop's measured 26.6 GB/s copy traffic, the **ideal is 0.902 ms**.
+
+| Variant | Mean | vs ideal | vs unchecked |
+|---|---:|---:|---:|
+| `SpanUnchecked` | 0.992 ms | 1.10× | 1.00 |
+| `PointerUnchecked` | 0.995 ms | 1.10× | 1.00 |
+| `PointerCheckedWalked` | 1.257 ms | 1.39× | 1.27 |
+| `SpanChecked` | 1.277 ms | 1.42× | 1.29 |
+| `PointerChecked` | 1.655 ms | 1.84× | 1.67 |
+
+The disassembly was read rather than inferred; it is kept at
+`spikes/S4.Kernels/results/asm-ddr2133-performance-turbo-K1LinearScan.md` because a claim about which
+instructions the JIT emitted is worth nothing if the listing it rests on is not in the repository.
+
+### Bounds checks elide, so `unsafe` earns nothing
+
+`SpanUnchecked`'s hot loop contains no `cmp`/`jae` at all. The JIT hoists all three length comparisons
+above the loop and drops into a checked path only if they fail. Span and raw pointer are within 0.3%
+of each other, and both sit at 1.10× of a `memcpy`-derived ideal for a loop that also does arithmetic.
+
+**The decision: `Borough.Core`'s table access does not need `unsafe`.** Slice 4 can write its scans
+over `Span<T>` and lose nothing measurable, which is worth knowing before the tables are written
+rather than after a pointer-based API has been committed to. This is the cheapest of S4's results and
+not the least useful.
+
+### `checked` costs 27%, and that is a real number rather than a small one
+
+The cause is visible in the listing and it is not lost vectorisation — nothing vectorises in either
+variant. The memory-destination `add [r10],rdi` splits into a load, an `add`, a `jo` and a store, and
+the narrowing cast adds a `cmp`/`jne`. The overflow branch sits between the load and the store and
+lengthens the dependency chain.
+
+`adr/0003` asserts that `checked` inside the fixed-point library is cheap and names this as *the only
+claim here without arithmetic behind it*. **It now has arithmetic: 27% on a scan that does nothing
+but the multiply.** That is the worst case — a real Rule does other work, against which the check
+amortises — but 27% is not nothing, and whether it counts as "cheap" is a judgement the ADR should
+now make explicitly rather than inherit.
+
+### `checked` is a block, and the block includes the address arithmetic
+
+`PointerChecked` costs 67% rather than 27%, and the extra 40 points are **not the overflow policy**.
+`checked` in C# scopes to a *block*, so it also covers address computation: `accumulator[i]` on a raw
+pointer is `i * 8`, and that multiply gets its own `imul`/`jo` every iteration — as does `i * 4` for
+each of the other two columns. No overflow policy has ever been about a byte offset.
+
+`PointerCheckedWalked` does identical arithmetic with pointer increments instead of indexing, so
+nothing can overflow and no check is emitted for it. It lands on `SpanChecked` to within 2%.
+
+**The decision: scope `checked` to the value expression, or index through a `Span`, and never wrap a
+loop body that indexes a raw pointer.** This is a footgun with a named fix and it belongs wherever the
+overflow policy is stated. The two numbers must not be recorded as one.
+
+---
+
+## K2 — random gather by generational handle
+
+2,000 handles into the 1,000,000-row tables, three columns each, with the generational check performed
+on every one — a wake dereferences `{index, generation}` by loading `generation[index]` and comparing
+before it touches anything else. Every handle here is live and every check passes, because the Wheel's
+list only holds live entities; what is measured is the validated dereference, not the stale branch.
+
+Handles are drawn from a permutation of all 1,000,000 rows in windows of 2,000, so the tables are swept
+in their entirety before any row repeats. Without that, 2,000 handles would touch 384 KiB — inside L3 —
+and the kernel would have measured L3 latency and reported it as DRAM.
+
+Ideals are bandwidth ideals against the measured 15.5 GB/s read rate: struct-of-arrays touches three
+distinct lines per handle (6,000 × 64 B = 384 KiB), array-of-structs touches one (128 KiB), and the
+sequential control touches 40 KB.
+
+| Variant | Mean | ns/handle | Ideal | vs ideal | vs SoA scattered |
+|---|---:|---:|---:|---:|---:|
+| `SoaScattered` | 27.31 µs | 13.66 | 25.4 µs | 1.08× | 1.00 |
+| `SoaSorted` | 25.75 µs | 12.88 | 25.4 µs | 1.01× | 0.94 |
+| `AosScattered` | 19.17 µs | 9.58 | 8.5 µs | 2.27× | 0.70 |
+| `AosSorted` | 18.94 µs | 9.47 | 8.5 µs | 2.24× | 0.69 |
+| `SoaSequential` | 2.81 µs | 1.41 | 2.6 µs | 1.09× | 0.10 |
+
+### The Event Wheel's sparse-wake premise holds, and holds hard
+
+**A scattered gather across a 20 MB working set runs at 1.08× the machine's streaming read bandwidth.**
+4.55 ns per cache line is DRAM *bandwidth*, not DRAM *latency* — the core sustains roughly seventeen
+outstanding misses, enough that the gather saturates the memory system instead of waiting on it.
+
+[`plans/0004`](../plans/0004-s4-kernel-benchmark.md) put the stakes plainly: *if K2 is close to its
+ideal, the Event Wheel's sparse-wake premise holds at scale. If it is not, everything sized against the
+Wheel is mis-sized.* It is close to its ideal. **Nothing sized against the Wheel is mis-sized.**
+
+This also settles what `05 §6`'s Factorio rule was pointing at. The rule — *parallelise work that is
+compute-dense and read-only; do not parallelise work that is memory-bound and pointer-chasing* — treats
+the wake gather as the canonical do-not-parallelise case. It is memory-bound, and it is bound at the
+*bandwidth* limit rather than the latency limit, which is a stronger reason not to parallelise it than
+the rule gives: extra threads on one memory controller cannot buy back bandwidth that is already
+saturated.
+
+### Sorting the wake list is not worth doing
+
+6%, and it moved between 4% and 7% across three captures. The corpus has never decided whether to keep
+a bucket's intrusive list ordered by row index, and on this evidence **it does not matter and the
+question can be closed cheaply.** The prefetcher cannot exploit an ascending order that is still sparse
+across 20 MB, which is why the ordering buys so little.
+
+### Struct-of-arrays survives the random gather, which was the real risk
+
+Struct-of-arrays is the obvious choice for a linear scan and that is why `05 §3` made it. A wake is the
+opposite access: three columns of *one* row, which is three cache lines under SoA and one under AoS.
+The worry was a 3× penalty on the design's most frequent random access.
+
+**The penalty is 43%, not 3×, and the reason is instructive.** AoS touches a third of the lines and is
+only 30% faster because it wins on traffic and loses on parallelism — it is 2.27× its own ideal where
+SoA is 1.08× of its. Fewer misses means less to overlap, so AoS spends its time waiting where SoA
+spends its time streaming.
+
+**The decision: do not interleave the wake tier into a packed row.** The 30% would cost 33% padding
+waste (a 20-byte row padded to 32 so it never straddles a line), the loss of columnar scans over the
+same fields, and a second layout to keep consistent with the first. `05 §3`'s choice now stands on a
+measurement rather than on an argument.
+
+---
+
+## K3 — bulk copy of the K0 footprint
+
+Source and destination are one contiguous block each and the columns are offsets into them, so every
+variant moves identical bytes across identical addresses and **only the call structure differs**.
+Allocating the columns separately would have made this a comparison of two allocation layouts as well,
+which is a different kernel.
+
+180.65 MB against the desktop's measured 12.9 GB/s sustained copy rate gives an **ideal of 14.00 ms**.
+Captured under `powersave`+turbo; a canonical `performance`+turbo capture is owed.
+
+| Variant | Mean | vs ideal | vs single block |
+|---|---:|---:|---:|
+| `SingleBlock` — one call | 14.30 ms | 1.02× | 1.00 |
+| `Chunked` 8 MiB | 14.71 ms | 1.05× | 1.03 |
+| `Chunked` 32 MiB | 14.72 ms | 1.05× | 1.03 |
+| `PerColumn` — 104 calls | 17.70 ms | 1.26× | 1.24 |
+| `Chunked` 1 MiB | 19.49 ms | 1.39× | 1.36 |
+| `Chunked` 64 KiB | 19.48 ms | 1.39× | 1.36 |
+
+K0 predicted this figure by division and said *K3 will measure this directly rather than deriving it
+from the denominator, which is the point of having K3 at all.* That turned out to be the right
+instinct, because **the copy is not one number.**
+
+### The mechanism, measured rather than assumed
+
+A 3.4 ms gap across ~104 calls would have to be 33 µs per call to be call overhead, which is absurd.
+The chunk sweep exists to find what it actually is, and it finds a **clean step between 1 MiB and
+8 MiB worth 33%**. The arithmetic names it:
+
+- At 14.30 ms the copy moves 361 MB — source read plus destination written, two streams — at
+  25.3 GB/s against the baseline's measured 25.8 GB/s copy traffic.
+- At 19.49 ms it moves roughly 542 MB. **Three streams.** Below the threshold the copy stops using
+  non-temporal stores and reads each destination line for ownership before overwriting it, and that
+  read is pure waste on a line that is about to be entirely replaced.
+
+`PerColumn` sits between the two because the columns straddle the threshold: a few are tens of MB, most
+are one or two.
+
+### The decision: this constrains `Core`'s allocator, not its copy
+
+[`adr/0037`](adr/0037-the-world-is-single-buffered-and-hazards-are-per-table.md) asserts an **8–15 ms band** for the
+async save's copy. Only the arena copy is inside it.
+
+**If `Borough.Core` arena-allocates its table columns from one contiguous region, the save makes one
+call and 14.3 ms is the price. If each column is its own allocation, the save cannot, and pays 24% to
+land at 17.7 ms — outside the band `adr/0037` asserted.** That is a constraint on how slice 4 lays out
+its tables, and it is worth writing down before slice 4 starts rather than being discovered by it.
+
+**This is also the result most sensitive to the machine being misconfigured.** These DIMMs are rated
+3200 MT/s and are running at 2133 with XMP off. At their rated speed every row in the table above falls
+inside `adr/0037`'s band and the constraint softens considerably. The band is currently being judged
+against a machine that is not running at its own specification, and the re-sweep is owed.
+
+---
+
+## K4 — many lookups into small sorted arrays
+
+2,000 scattered lookups into 200,000 ResourceMaps — the Buildings and Businesses that carry a `bins[9]`
+column — at no more than nine entries each, matching the nine Resources under
+[`adr/0031`](adr/0031-one-resource-abstraction-and-depth-not-count.md). Each map holds a *subset*: a bakery holds Flour and Bread, not
+all nine, so filling every map would have collapsed the lookup into an array index and measured nothing.
+
+Binary search is deliberately absent. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) says this is
+*cache behaviour, not algorithmic — at nine entries the complexity class is irrelevant and only the
+layout matters*, so what is measured is three layouts and the banned alternative.
+
+A row is 81 bytes at a stride of 81 and therefore always straddles two cache lines: 2,000 × 2 × 64 B =
+256 KiB against 15.6 GB/s gives an **ideal of 16.8 µs**. Captured under `powersave`+turbo; a canonical
+capture is owed.
+
+| Variant | Mean | ns/lookup | vs ideal | vs interleaved |
+|---|---:|---:|---:|---:|
+| `KeysThenValuesVector` | 35.66 µs | 17.8 | 2.12× | 0.61 |
+| `KeysThenValues` | 55.07 µs | 27.5 | 3.28× | 0.94 |
+| `EntryInterleaved` | 58.56 µs | 29.3 | 3.49× | 1.00 |
+| `DictionaryLookup` | 109.01 µs | 54.5 | — | 1.86 |
+
+### The no-hash-maps rule costs nothing — it pays 86%
+
+The banned shape is the slowest thing in the kernel by a wide margin. `Dictionary` is barred from
+simulation code for enumeration-order determinism as much as for speed, and the rule has always been
+argued on determinism; **it turns out not to need the argument.** A hash of the key, a probe into a
+structure with no locality to the caller's access pattern, and a bucket chase cost more than scanning
+nine bytes ever could.
+
+### The plan predicted cache behaviour; it is branch behaviour
+
+This is the one place S4 contradicts its own framing, and the contradiction is the useful part.
+
+- Moving the nine keys to the front of the row — **the pure layout change**, same 81 bytes, same
+  stride, same memory, different order within it — buys **6%**.
+- Comparing all nine keys in a single 128-bit operation and masking by the entry count — **removing
+  the data-dependent branch** — buys **39%**.
+
+The scan is short enough that the mispredict, not the line, is what costs. Which entry matches is
+unpredictable by construction, and a branch predictor cannot learn a subset that differs per Building.
+
+### The decision: change `bins[9]`, and vectorise the probe
+
+`WorldSchema`'s `bins[9]` is entry-interleaved — nine `{resource, amount, capacity}` entries packed end
+to end, keys spread across the row at a stride of nine. **It is the slowest of the three permitted
+layouts.** Keys-then-values within the same 81 bytes is strictly better and costs nothing to adopt,
+because it is the same memory in a different order; `05 §3` owns layout and should say which. The
+vector probe is a further 34% on top and needs no layout change beyond that one.
+
+### One row sits inside the tripwire band, and the report must say so
+
+`EntryInterleaved` at **3.49×** is inside the tripwire's ~3–4×. Recorded here with both arguments
+intact, because the wire was written before the numbers arrived precisely so it could not be reasoned
+around afterwards:
+
+- **Against firing:** the remedy the tripwire names is to write the kernel in a second language. The
+  measured cause is branch misprediction, which is not a property of the language, and the C# vector
+  form recovers it to 2.12× without leaving C#. A second implementation would learn nothing that the
+  fourth variant has not already shown.
+- **For firing:** 3.49× is inside the band as written, and the band was written to be applied rather
+  than argued with.
+
+**The verdict taken: the wire does not fire, on the ground that its remedy cannot address its cause.**
+The reasoning is recorded above so that a later reader can disagree with it on the evidence rather than
+having to reconstruct it.
+
+---
+
+## K5 — wheel bucket drain and reschedule
+
+Across 8,192 buckets, matching `WHEEL_SIZE`, with **1,560,000 scheduled entities** — every table in the
+schema carrying a `wheel_next` column, which is Citizens, Households, Buildings and Businesses. The
+Wheel's own state is the bucket heads, the intrusive link on every scheduled entity, and that entity's
+`next_event_tick`: 32 KiB, 6.2 MB and 12.5 MB, so **~18.7 MB against a 12 MB L3**. It does not fit, and
+would not at half the population.
+
+What this kernel excludes is the woken entity's wake-tier columns. That gather is K2, deliberately, so
+that neither number can be misattributed to the other; the Tick pays both and they are composed below.
+
+Reported per woken entity, so the figures compare across wake rates that differ by a factor of sixteen.
+The floor is measured rather than asserted: identical reschedule arithmetic, identical scattered write
+into the bucket heads, identical loads, with the entities visited in index order instead of by chasing
+`wheel_next`.
+
+| Mean wake interval | Wakes/Day | `Revolution` | `SequentialFloor` | Chase penalty |
+|---:|---:|---:|---:|---:|
+| 4096 Ticks | 2 | 35.99 ns | 10.83 ns | 3.32× |
+| 1024 Ticks | 8 | 34.38 ns | 10.78 ns | 3.19× |
+| 256 Ticks | 32 | 35.41 ns | 10.82 ns | 3.27× |
+
+**The Wheel costs ~35 ns per woken entity and the pointer chase is 3.3× of that.** The per-wake cost is
+flat across the whole range, which is itself a result: the Wheel's cost is linear in wakes, and the wake
+rate is the only lever on it. The 3.3× is a *floor* on the real penalty, because both variants pay the
+reschedule hash inside the timed loop.
+
+Nothing in the corpus had ever put a number on this. The Event Wheel is described as the single largest
+performance lever in the project, and until now its overhead was unmeasured.
+
+### The wake rate was under-counted by up to 32×, and it is an unratified input
+
+It is tempting to reason that 1,560,000 entities over 8,192 buckets is ~190 wakes per Tick. **That is
+wrong, and the error is worth stating because it is easy to make.** Bucket occupancy is only uniform if
+the reschedule delay is uniform over the whole ring, and it is not — occupancy is triangular. An entity
+that wakes every M Ticks is drained 1/M of the time, so **the drain rate is N/M per Tick, not
+N/8,192**: 381 wakes at a 4,096-Tick mean interval, 6,094 at 256.
+
+**The mean wake interval is therefore an unratified input with a 32× range that drives the Wheel's
+entire cost**, and it belongs in [`plans/0002`](../plans/0002-open-questions.md) beside the other
+figures task 2 had to guess at.
+
+---
+
+## What K2 and K5 compose to — the Tick's wake cost
+
+K5 is the Wheel's own cost and K2 is the woken entity's payload gather. Composed, against the **15.6 ms
+Tick budget at 4× speed**:
+
+| Wakes/Day | Wakes/Tick | Wheel (K5) | Gather (K2) | Total | of the Tick budget |
+|---:|---:|---:|---:|---:|---:|
+| 2 | 381 | 13.7 µs | 5.2 µs | 18.9 µs | 0.12% |
+| 8 | 1,523 | 52.4 µs | 20.8 µs | 73.2 µs | 0.47% |
+| 32 | 6,094 | 215.8 µs | 83.2 µs | 299.0 µs | **1.92%** |
+
+**The conclusion survives a 32× correction to its own input.** Even at the most pessimistic wake rate
+the design plausibly wants — every Citizen waking thirty-two times a Day — the Wheel and the wake
+gather together cost under 2% of the Tick.
+
+Combined with K0's finding that only 13% of the world is addressable on an ordinary Tick, this closes
+the question K0 opened: **the Tick is not bandwidth-bound and it is not wheel-bound.** What remains is
+per-Tick compute, the routing graph, and the Microscopic Cap — none of which S4 measures, and all of
+which are S2's and S0's to answer.
+
+---
+
+## Against the tripwire, so far
+
+[`plans/0004`](../plans/0004-s4-kernel-benchmark.md)'s table, applied to K0–K5. **K6 is outstanding and
+is the only row that can still fire outright.**
+
+| Condition | Status |
+|---|---|
+| Any kernel worse than ~3–4× off its hand-computed ideal | **One row inside the band and argued above: K4's `EntryInterleaved` at 3.49×. Taken as not firing, on the ground that the remedy the wire names — a second language — cannot address a branch mispredict.** Next worst is K2's `AosScattered` at 2.27×, a variant the design does not use |
+| **K6 p99.9 exceeds 15.6 ms** with the heap already pure unmanaged structs | **Not yet measured.** `adr/0036`'s named trigger |
+| Everything within tolerance | Every shape the design actually commits to is between **1.02× and 1.42×** of its ideal — columnar scan, columnar gather, arena copy, intrusive-list drain |
+
+The expected outcome was the third row and K0–K5 have delivered it. The suite has nevertheless produced
+four things the corpus did not know: that `checked` costs 27% rather than nothing, that the async save's
+price depends on an allocator decision nobody had made, that the ResourceMap's cost is a branch rather
+than a line, and that the Wheel's wake rate had been under-counted by up to a factor of thirty-two.
