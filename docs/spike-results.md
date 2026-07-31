@@ -260,3 +260,201 @@ column wobbles by ±4% with no trend, which is the measurement's noise and not s
 the dip at four threads as an effect. The conclusions drawn from it are 1.0× against 1.83× against
 6×, differences far larger than that noise, and none of them would survive being restated to two
 significant figures.
+
+---
+
+## S4 task 2 — the row schema and the target row counts
+
+**The task was to derive these rather than inherit them. The first finding is that the derivation the
+plan names cannot be performed as written**, and the second is that the figure it was meant to replace
+was never well-defined in the first place. Both are recorded before the numbers, because they change
+what the numbers are worth.
+
+### The derivation in `05` is circular
+
+`05 §the budget` gives `target = map_area × mature_density × buildable_fraction`, and
+[`0002`](../plans/0002-open-questions.md) §1 shows where `~3,700/km²` came from: the column it sits in
+is headed **"1M implies"**. The density is an *output* of the 1M target, not an input to it, so
+feeding it back through the formula re-derives the assumption and confirms nothing.
+
+Of the three factors, **only `map_area` is ratified.** `buildable_fraction ≈ 1.0` appears exactly
+once, is never argued, and contradicts [`adr/0021`](adr/0021-terrain-is-generated-and-sparse.md),
+which requires water bodies and a maximum buildable grade. `05` also folds roads and parks *into* the
+density anchor, which means either the anchor is gross of roads and `buildable_fraction` must be well
+below 1, or it is net and 3,700/km² is the wrong anchor. Nothing resolves this.
+
+**What the formula is good for is a consistency check, not a derivation**, and every count below is
+therefore built up from the mechanisms that create rows — who lives where, who works, what generates
+a Trip — with each assumption named. That is slower and it is the only honest form available.
+
+### The rule that settles who owns a field
+
+Citizen-versus-Household ownership was contradictory across the corpus: `03 §4` invariant 1 puts
+*"Money, goods, health, and employment"* on the Citizen record, while `CONTEXT.md`'s Household entry
+holds *"Needs, money, and a Provider List"*. It is a 1M-row against 400k-row difference and it had to
+be settled before anything could be counted.
+
+**It is settled by a rule the corpus already contains**, stated for Buildings and generalised here:
+
+> `CONTEXT.md` on Buildings: *"If a field would differ between two Occupants, it lives on the
+> Occupant."* Generally: **a field lives at the level at which it can differ.**
+
+That gives a clean split, and `03 §4` invariant 1 turns out not to be wrong so much as mis-grouped —
+its own next clause (*"the moving entity is a view onto it, not the owner"*) shows the contrast it is
+actually drawing is persistent record versus **embodiment**. It is forbidding money on the Traveller,
+not on the Household.
+
+| Owner | Fields | Why |
+|---|---|---|
+| **Household** | money, savings, goods, Needs, Provider List, Life Stage, Taste, car ownership, Schooling accumulator, dwelling, failed-attempt counter, refusal reason | None can differ between members of a group defined as *"sharing a dwelling and finances"* |
+| **Citizen** | health, age, Skill Tier, experience, employment, workplace, current activity, `next_event_tick` | All differ between two adults of one Household |
+
+**Two consequences.** The Citizen loses `home` — a dwelling cannot differ between members, so it is
+the Household's — which `CONTEXT.md`'s Citizen entry currently lists. And **`Unemployment` stops being
+a field and becomes a derived readout**: *"a Household where no contained Citizen holds a job"*,
+against `CONTEXT.md`'s current *"A Household with no workplace"*. If a profile later wants a cached
+bit, it is declared `(derived AND rebuilt)` under `adr/0003`'s field rule, never saved, never hashed,
+with a debug invariant asserting it matches the walk — a stale bit is a Household that believes it is
+employed and never seeks work, which is silent and hash-bearing. Because it is derived, deferring it
+costs no save migration.
+
+### The Citizen row, recomputed — and the 40 bytes was never one number
+
+`05 §3` and `03 §2.1` both say *"on the order of 40 bytes hot"*, and `03 §2.1` flags it stale because
+session five added a schooling accumulator, experience and car ownership. **Recomputing it surfaces a
+worse problem than staleness: "hot" was never given a definition, and the two available definitions
+are 4× apart.**
+
+**Structure-of-arrays removes per-row padding from the question.** Each field is its own contiguous
+array, so a row's cost is the sum of its column widths with no alignment waste — which is why the
+figures below are sums and not rounded up to a boundary. Widths are `05 §3`'s: Money and accumulators
+`i64`, counts `i32`, Ticks `u64`, handles `{u32, u32}` = 8 B.
+
+| Column | Width | Touched when |
+|---|---|---|
+| `next_event_tick` | 8 | every Tick — it is the Wheel bucket key |
+| wheel bucket `next` | 4 | every Tick — the intrusive list link |
+| current activity | 1 | every Tick — what the wake mutates |
+| **Per-Tick subtotal** | **13 B** | |
+| `entity_id` (monotonic) | 4 | on every draw the Citizen makes |
+| `generation` | 4 | whenever the row is addressed |
+| Household handle | 8 | on wake |
+| workplace handle | 8 | on wake |
+| experience (`i64` accumulator) | 8 | on production evaluation |
+| Skill Tier | 1 | on wake |
+| employment | 1 | on wake |
+| occupant-list `next` | 4 | on wake |
+| **Wake working set** | **51 B** | |
+| age, health | ~5 | inspection only |
+| **Cold** | **~5 B** | |
+
+**So the Citizen row is 13 bytes under one reading of "hot" and 51 under the other, and the 40-byte
+figure matches neither.** The per-Tick figure is the one the Event Wheel argument implies — the whole
+point of the Wheel is that a sleeping Citizen is touched only through its bucket — while 51 B is what
+a *woken* Citizen costs. `plans/0004` asks whether the recomputed row is "closer to 40 bytes or to
+80"; the answer is that the question needs splitting before it can be answered, and **K0 must report
+both, because the two drive different things**: the per-Tick figure sizes the Wheel drain (K5) and
+the wake gather (K2), and the working-set figure sizes the world (K0) and the save copy (K3).
+
+At 1M Citizens: **13 MB per-Tick hot, 51 MB working set, ~56 MB including cold.** Against `03 §2.1`'s
+*"roughly 40 MB"*, the total is ~40% larger and the genuinely per-Tick part is a third of what was
+claimed.
+
+### Row counts, derived from the generators
+
+Every figure below names its assumption. **Those marked provisional are unratified and are recorded
+in [`0002`](../plans/0002-open-questions.md) as such.**
+
+**Households — 400k survives, and now has an argument.** `adr/0011` gives five Life Stages over a life
+of *"on the order of a thousand Days"*, with compositions but no stage shares. Taking equal stage
+durations and the ADR's own compositions — Young 2, Family 2+2, Mature Family 2+2, Childless 2, Empty
+Nest 2 — gives a mean of **2.8 Citizens per Household** and **~357,000 Households** at 1M. The
+asserted ~400k implies 2.5. The two agree within 12%, which moves 400k from *asserted* to *asserted
+and corroborated* — the first time that figure has had anything behind it. Use **~360k**, derived.
+
+*Provenance, since it was asked and the answer is instructive.* The 400k figure appears in exactly two
+places: `adr/0003`'s overflow-headroom sum and `adr/0011`'s decision-volume sum. **Both are arguments
+that survive being wrong by 2×**, which is why neither derives the figure and neither states a
+household size — it was never load-bearing where it was written. It became load-bearing later, by
+being repeated. Note also that `adr/0011` asserts 400k in its *Cost* section and then specifies, further
+down the same document, a stage model implying 357k. And **400,000 is already the corpus's most-repeated
+number for something else entirely** — Citybound's individually-simulated cars, in `adr/0007` twice,
+`adr/0016`, `adr/0018` and `06` — as well as being the Trips/Day figure. Three unrelated quantities,
+one number. Each has an innocent explanation and contamination is unproven, but the shape is the same
+as the 10k incident and it is recorded rather than assumed away.
+
+**Workers — ~500k, and the employment rate is the missing input.** 360k Households × 2 adults = ~715k
+adults, leaving ~285k children. Removing Empty Nest adults as retired and applying a modest
+unemployment rate gives **~500,000 employed Citizens, 50% of population**. *Provisional: the corpus
+contains no employment rate anywhere*, and this is the single largest assumption in the count.
+
+**Trips — ~1.9M per Day, against the corpus's 400k.**
+
+| Generator | Derivation | Trips/Day |
+|---|---|---|
+| Commute | 500k workers × 2, there and back | 1,000,000 |
+| School | ~250k children in education × 2 | 500,000 |
+| Shopping and services | ~1 round trip per Household every other Day | 360,000 |
+| Freight Shipments | inter-District only, provisional | ~50,000 |
+| **Total** | | **~1.9M** |
+
+**The school row independently corroborates the method**: 500k against a 1M commute base is +50%,
+which is exactly what [`0002`](../plans/0002-open-questions.md) states school adds to the peak,
+arrived at here from child counts rather than copied. That agreement is the main reason to trust the
+rest of the column.
+
+`05 §35`'s **~400k Trips/Day is 0.4 per Citizen and is very close to the Household count** — it reads
+as one Trip per Household per Day, the outbound commute with the journey home never counted. At 1.9M
+the rate is 1.9 Trips per Citizen per Day, still conservative against real travel surveys at 3–4.
+
+**Trips in flight — ~56,000.** In-flight count is `Trips/Day × mean duration ÷ TICKS_PER_DAY`. The
+corpus gives only 480 Ticks, and `02 §1.2` defines that as **cross-town**, not typical. At a mean of
+240 Ticks — half of cross-town, *provisional* — 1.9M × 240 ÷ 8192 ≈ **56,000**. The sensitivity is
+worth stating plainly, because it is the whole disagreement:
+
+| Mean Trip duration | In flight |
+|---|---|
+| 160 Ticks (⅓ cross-town) | 37,000 |
+| **240 Ticks (½, provisional)** | **56,000** |
+| 480 Ticks (all cross-town) | 111,000 |
+
+This resolves the corpus's 5× contradiction by explaining both ends. **`adr/0037`'s ~23,000 is not
+independent evidence** — it is exactly `400k × 480 ÷ 8192`, the same unratified figure restated, and
+it is too low because it omits the return journey. **`adr/0019`'s ~12% (≈120,000) is too high**
+because it prices every journey at cross-town. The derived figure sits between them, which is where
+it should be.
+
+**Legs — ~140,000 in flight.** `adr/0008` requires a car commute to be *"never fewer than three
+Legs — `walk → drive → walk`"*, and says the Trip count *"roughly triples"*. At a mean 2.5 Legs per
+Trip against walk-only journeys, ~2.5 × 56,000.
+
+**Vehicles — cannot be derived, and the reason is a decision, not a gap.** A Vehicle exists only on a
+Microscopic Segment, and the **Microscopic Cap is unset**. The Vehicle and Lane tables are therefore
+sized *by that constant* rather than by population, and `05` notes that at 1M *"most of the city is
+permanently Statistical"*. **K0 must take the Cap as a parameter and report the footprint as a
+function of it** rather than picking a number — which also makes K0 the natural place to inform what
+the Cap should be.
+
+| Table | Count | Basis |
+|---|---|---|
+| Citizens | 1,000,000 | ratified target |
+| Households | ~360,000 | derived from `adr/0011` stage compositions |
+| Trips in flight | ~56,000 | derived; provisional mean duration |
+| Legs in flight | ~140,000 | `adr/0008`'s 2.5–3 Legs per Trip |
+| Buildings | ~150,000 | provisional — no Households-per-Building figure exists |
+| Businesses | ~50,000 | provisional — no workers-per-Business figure exists |
+| Lots | ~225,000 | provisional — Buildings plus vacancy |
+| Segments | ~30,000 | provisional — road density against 268 km² |
+| Lanes, Vehicles | **parameterised** | bounded by the unset Microscopic Cap |
+
+### What task 2 changed, and what it owes
+
+**Changed:** the Citizen row is two numbers rather than one, and neither is 40. The ownership rule is
+settled and `03 §4` invariant 1 needs a wording pass. `Unemployment` becomes derived. The 400k
+Household figure is corroborated for the first time. The Trip count is 4.75× the corpus's figure, and
+`adr/0037`'s 23,000 is identified as a restatement rather than a second source.
+
+**Owed, and blocking nothing in slice 1:** an employment rate, a mean Trip duration, a
+Households-per-Building figure, a workers-per-Business figure, and the Microscopic Cap. Also a
+`buildable_fraction` that survives `adr/0021`, and a decision on whether labour is a Household↔Business
+relationship or an input Bin — the latter changes the Business row and is already queued for slice 7.

@@ -600,6 +600,72 @@ which is what rule 6 predicted would happen.
     is no headroom for adaptive machinery to recover, and building it before the first table exists
     is the failure `adr/0018` names by example.
 
+**From slice 1, running S4 task 2** — the row schema and the row counts. Full working in
+[`spike-results.md`](../docs/spike-results.md).
+
+- **A field lives at the level at which it can differ — SETTLED, by generalising a rule already in
+  the corpus.** `CONTEXT.md` on Buildings — *"If a field would differ between two Occupants, it lives
+  on the Occupant"* — decides the Citizen-versus-Household contradiction that `03 §4` invariant 1 and
+  `CONTEXT.md`'s Household entry had left open, and it was a 1M-against-400k-row fork. Money, goods,
+  Needs, Provider List, Life Stage, Taste, car ownership and Schooling are **Household**; health, age,
+  Skill Tier, experience, employment, workplace and `next_event_tick` are **Citizen**. Three edits
+  owed and none of them design changes: `03 §4` invariant 1 is mis-grouped rather than wrong (its own
+  next clause shows the contrast it draws is against the *embodiment*, not the Household);
+  `CONTEXT.md`'s Citizen entry lists `home`, which cannot differ between members and is therefore the
+  Household's dwelling; and **`Unemployment` stops being a field**, becoming *"a Household where no
+  contained Citizen holds a job"*. A cached bit for it, if a profile ever wants one, is
+  `(derived AND rebuilt)` with a debug invariant against the walk — a stale bit is a Household that
+  believes it is employed and never seeks work, which is silent and hash-bearing.
+- **"40 bytes hot" was never one number, which is worse than being stale.** Recomputed, the Citizen
+  row is **13 B touched per Tick** and **51 B in the wake working set** — 4× apart, and the 40-byte
+  figure matches neither. The per-Tick figure is what the Event Wheel argument implies; the working
+  set is what a woken Citizen costs. **K0 must report both**, because they size different things: the
+  Wheel drain and the wake gather against the first, the world footprint and the save copy against
+  the second. At 1M that is 13 MB against 51 MB, versus `03 §2.1`'s *"roughly 40 MB"*. Note also that
+  structure-of-arrays removes per-row padding from the question entirely — a row costs the sum of its
+  column widths.
+- **Two chosen numbers with nothing behind them, and they are the largest assumptions in the count.**
+  An **employment rate of ~50%** of population — the corpus contains no employment rate anywhere — and
+  a **mean Trip duration of 240 Ticks**, half of the only figure the corpus gives, which `02 §1.2`
+  defines as *cross-town* rather than typical. Every Trip, Leg and Vehicle count moves linearly with
+  the second one; the in-flight figure ranges 37k–111k across a plausible band.
+- **Trips per Day is ~1.9M, not ~400k, and `adr/0037`'s ~23,000 travellers is not a second source.**
+  It is exactly `400k × 480 ÷ 8192` — the same unratified figure restated. The 400k reads as one Trip
+  per Household per Day, i.e. the outbound commute with the journey home never counted. Derived from
+  the generators instead — commutes, school, shopping, freight — the figure is ~1.9M/Day and **~56,000
+  Trips in flight**, which sits between `adr/0037`'s 23k (too low, omits the return) and `adr/0019`'s
+  12% ≈ 120k (too high, prices every journey as cross-town). **S2 must be sized against the derived
+  figure**, because a routing design that passes at 400k/Day and fails at 1.9M is the exact failure
+  that spike exists to catch. `adr/0037`'s *conclusion* survives — 5× more traveller writes is still
+  trivial against the 150 MB it deleted — but its stated number does not.
+- **~400k Households is corroborated for the first time, and its provenance is worth recording.** It
+  appears in exactly two places — `adr/0003`'s overflow-headroom sum and `adr/0011`'s decision-volume
+  sum — and **both are arguments robust to being wrong by 2×**, which is why neither derives it and
+  neither states a household size. It implies 2.5, close to real-world average household size, so the
+  innocent reading is a borrowed real figure. Equal stage durations against `adr/0011`'s *own*
+  compositions give 2.8 and **~360,000 Households**, within 12% — so the ADR asserts one number in its
+  Cost section and specifies a model implying another further down, and nobody has run the two
+  against each other until now. **Also worth an audit rather than an assumption: 400,000 is already
+  *the* number in this corpus** — it is Citybound's individually-simulated-car count in `adr/0007`
+  (twice), `adr/0016`, `adr/0018` and `06`, and it is separately the Trips/Day figure. Three unrelated
+  quantities, one number, none derived. Contamination is unproven and each has an innocent
+  explanation, but this is the exact shape of the 10k incident, and `0002`'s own standing instruction
+  is to audit for it.
+- **`05`'s population derivation is circular and cannot be used as one.** `mature_density` at
+  ~3,700/km² is an *output* of the 1M target — [`0002`](0002-open-questions.md) §1's column is headed
+  *"1M implies"* — so feeding it back confirms nothing. `buildable_fraction ≈ 1.0` appears once, is
+  never argued, and contradicts `adr/0021`'s mandatory water bodies and maximum buildable grade.
+  `05` also folds roads and parks into the density anchor, so either the anchor is gross and the
+  fraction must fall well below 1, or it is net and the anchor is wrong. **Only `map_area` is
+  ratified.** The formula is a consistency check, not a derivation.
+- **Buildings, Businesses, Lots and Segments have no derivable counts** — ~150k, ~50k, ~225k and ~30k
+  are placeholders resting on a Households-per-Building figure, a workers-per-Business figure and a
+  road-density figure, none of which exist anywhere in the corpus.
+- **The Lane and Vehicle tables are sized by the Microscopic Cap, which is unset**, so K0 must take it
+  as a parameter and report footprint as a function of it. That also makes K0 the natural place to
+  inform what the Cap should be, which is currently a fixed world constant with no value and no
+  derivation.
+
 ---
 
 ## Superseded — session seven's opening brief
