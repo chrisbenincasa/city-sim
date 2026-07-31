@@ -556,17 +556,20 @@ which is what rule 6 predicted would happen.
   the highest median — but **every K0–K6 figure divides by it**, so it belongs here rather than in a
   commit message. A re-sweep with XMP enabled is owed; until it lands the DRAM-bound figures describe
   this configuration and not this machine.
-- **The threading payoff for memory-bound work is now a measured number, and `05 §6` has not been
-  grilled yet.** Six cores return **1.0×** on read-write streaming and **1.83×** on read-only
-  streaming; SMT returns nothing; the per-core share falls 3.3×. `05 §6`'s Factorio rule is confirmed
-  and is sharper than its prose — *do not parallelise memory-bound work* turns out to mean the
-  speedup is one, not that it is disappointing. **Read this before `05 §6` is opened in Phase 2**,
-  because it settles part of what that section was going to argue: permission granted to a
-  memory-bound phase in `02 §1.1`'s table is permission worth nothing, and the phases hardest to make
-  thread-count-equivalent are the ones that would gain least from being parallel. The stated
-  crossover — **~55 cycles of arithmetic per cache line touched** before six threads beat one by more
-  than the memory system concedes for free — is a rule of thumb from one desktop, not a ratified
-  figure, and random access is still unmeasured until K2.
+- **The threading payoff for memory-bound work is now measured on two machines, and they disagree —
+  which is the finding.** `05 §6`'s Factorio rule is **confirmed in its direction and refuted in its
+  magnitude.** Read-only streaming gains **1.83×** on a six-core desktop and **3.75×** on an M4 Pro;
+  read-write streaming gains **1.0×** on the desktop and **1.87×** on the M4 Pro. The mechanism is
+  visible in the single-core share of the memory ceiling — 45% on the desktop against 25% on the
+  M4 Pro — so a bandwidth-starved machine has nothing left for a second core and a generous one has
+  plenty. **Had only the desktop been measured, the corpus would have recorded "memory-bound work
+  does not parallelise" as a fact about the design when it is a fact about a DDR4-2133 desktop.**
+  Read this before `05 §6` is opened in Phase 2: it settles that **the parallelisation decision is a
+  runtime one made from measurement, not a rule written into source**, which is exactly the
+  host-adaptive case the next entry admits. The crossover — **~55 cycles per 64-byte line** on the
+  desktop against **~23 per 128-byte line** on the M4 Pro, a factor of five per byte — is two rules
+  of thumb, neither ratified. Random access is still unmeasured until K2, and will be worse than
+  either curve on both machines.
 - **Host-adaptive parameters have no policy, and the first one arrives in slice 4.** Two machines
   differing (64-byte cache lines against 128, 34 GB/s against several times that) makes *let the code
   fit the machine* an obvious instinct, and it is half right in a way that hides the dangerous half.
@@ -583,10 +586,16 @@ which is what rule 6 predicted would happen.
     both extremes of the knob, identical State Hash sequences, in CI. This is invariant 4 generalised
     from threads to any knob, and it makes the unsafe version fail on the day it is written rather
     than a year later when a save will not load.
-  - **Cache line size is not adaptive; it is two constants.** Pack table rows against **64** — a
-    layout dense at 64 is correct at 128, two rows to a line and never a straddle — and pad anything
-    two threads write to at **128** unconditionally, because that is where false sharing actually
-    lives and the wasted bytes are a rounding error. Slice 4's row schema is the first consumer.
+  - **Cache line size is not adaptive; it is two constants**, and the second machine confirmed the
+    64/128 split rather than leaving it assumed. Pack table rows against **64** — a layout dense at
+    64 is correct at 128, two rows to a line and never a straddle — and pad anything two threads
+    write to at **128** unconditionally, because that is where false sharing actually lives and the
+    wasted bytes are a rounding error. Slice 4's row schema is the first consumer.
+  - **A layout tuned to "fit in L2" is worth nothing on one of the two machines.** The M4 Pro streams
+    at 54–64 GB/s at every size from 512 KiB to 256 MiB — its DRAM is fractionally *faster* than its
+    L2, and only L1 residency buys anything — while the desktop falls from 31.8 GB/s to 12.8 across
+    the same range. Sizing a structure to a cache level is therefore a machine-specific optimisation
+    wearing the clothes of a layout decision, and slice 4 should not take it.
   - **Build none of it yet.** Sequential code already reaches 78% of the measured ceiling, so there
     is no headroom for adaptive machinery to recover, and building it before the first table exists
     is the failure `adr/0018` names by example.

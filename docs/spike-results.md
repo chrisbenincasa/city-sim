@@ -27,11 +27,14 @@ derived target row counts (task 2); per kernel K0–K6 the hand-computed ideal, 
 the ratio; K6's p99.9 under each GC configuration; the verdict against the tripwire; and the commit
 at which `spikes/S4.Kernels/` was deleted.
 
-Measured 2026-07-31 with `spikes/S4.Kernels/tools/baseline-sweep.sh`. Raw per-configuration captures
-are in `spikes/S4.Kernels/results/`, and are recoverable from the deleting commit recorded at the end
-of this section once task 11 runs.
+Measured 2026-07-31 on **two machines** — a Linux desktop via
+`spikes/S4.Kernels/tools/baseline-sweep.sh`, and an Apple M4 Pro laptop via `tools/mac-sample.sh`.
+The second exists because a single sample cannot tell a property of the design from a property of
+the box it was measured on, and on this evidence it could not: one of the conclusions below reverses
+between them. Raw captures are in `spikes/S4.Kernels/results/`, recoverable from the deleting commit
+recorded at the end of this section once task 11 runs.
 
-### The machine
+### The machine — Linux desktop
 
 | Field | Value |
 |---|---|
@@ -139,28 +142,82 @@ on a core already streaming finds no bandwidth the first one left behind; it onl
 falls from 15.8 GB/s alone to 4.8 GB/s each across six cores — every thread gets 3.3× less memory
 than it would have had to itself.
 
+### The second machine — Apple M4 Pro
+
+A deliberately unlike sample, and it earns its place by disagreeing. 10 performance cores + 4
+efficiency, 128 KiB L1d per performance core, a 16 MiB cluster-shared L2, **128-byte cache lines**,
+24 GiB unified memory, macOS 26.5.2, .NET 10.0.2 on arm64. Apple **publishes** 273 GB/s for this
+part; that figure is not measured here and is used only to state percentages.
+
+| | Desktop (i5-10400) | MacBook Pro (M4 Pro) |
+|---|---|---|
+| Cache line | 64 B | **128 B** |
+| Single-thread copy | 13.2 GB/s (26.5 traffic) | **63.2 GB/s** (126.5 traffic) |
+| Single-thread read | 15.8 GB/s | **66.6 GB/s** |
+| One core's share of the ceiling | copy 78%, read 45% | copy 46%, read **25%** |
+| Copy, best aggregate | 13.7 GB/s at 2 threads, **1.03×** | 118.8 GB/s at 5 threads, **1.87×** |
+| Read, best aggregate | 28.9 GB/s at 6 cores, **1.83×** | 251.8 GB/s at 12 threads, **3.75×** |
+| Read aggregate vs ceiling | 85% | 92% |
+
+**The read curve does keep climbing, and the caveat written above it was the right caveat.** Read
+scales to 3.75× where the desktop stops at 1.83×, and the mechanism is visible in the single-core
+share: one M4 Pro core takes only 25% of its machine's read ceiling against the desktop core's 45%,
+so there is far more left for the others to have. **"Memory-bound work does not parallelise" is a
+statement about bandwidth-starved desktops, not a general truth**, and anything built against the
+stronger reading would have been built against a machine-specific accident.
+
+**Three things do generalise, and they are the ones worth keeping.** Streaming *writes* saturate
+early on both — one core on the desktop, about four on the M4 Pro — and adding cores past that point
+does nothing on either. Extra hardware threads past the real core count contribute nothing on either
+(SMT siblings there, efficiency cores here). And the per-core share collapses on both: it is 3.3×
+down at six threads on the desktop and 2.7× down at ten on the M4 Pro.
+
+**The cache hierarchy is nearly flat for streaming on the M4 Pro, which the desktop's is not.** Its
+burst sweep reads 98.7 GB/s at 64 KiB, then **54–64 GB/s at every size from 512 KiB to 256 MiB** —
+DRAM is fractionally *faster* than L2-resident. Only L1 residency buys anything. The desktop falls
+off a cliff instead, from 31.8 GB/s at 512 KiB to 12.8 at 256 MiB. **A layout tuned to "fit in L2"
+would be worth a great deal on one machine and nothing at all on the other**, which is worth knowing
+before slice 4 chooses a table layout for that reason.
+
+**Absolute single-threaded speed differs by 4.8×**, which makes the 15.6 ms Tick budget at 4× speed
+meaningless unless it names a machine. It has to be validated on the slowest target, not the fastest
+one to hand.
+
 ### What the curve settles, and what it hands to `05 §6`
 
 `05 §6`'s Factorio rule — *parallelise work that is compute-dense and read-only; do not parallelise
-work that is memory-bound and pointer-chasing* — is **confirmed, and it is sharper than the prose
-suggests.** "Do not parallelise memory-bound work" does not mean the speedup disappoints. On this
-machine it means **the speedup is 1.0×** for read-write streaming and caps at 1.83× for pure reads,
-no matter how many cores are thrown at it.
+work that is memory-bound and pointer-chasing* — is **confirmed in its direction and refuted in its
+magnitude.** The rule's shape holds on both machines. Its strength does not travel: read-only
+streaming gains 1.83× on the desktop and 3.75× on the M4 Pro, and read-write streaming gains
+essentially nothing on the desktop and 1.87× on the M4 Pro. **The rule is right; any constant
+attached to it is a property of the machine and must not be hard-coded.**
 
-That yields a crossover worth stating in cycles, since it is the form a Tick phase can be judged
-against. At six-thread saturation each core gets a 64-byte line every 13.3 ns; alone it gets one
-every 4.1 ns. So **a phase needs roughly 55 cycles of arithmetic per cache line touched before six
-threads beat one by more than the 1.83× the memory system concedes for free**, and only well past
-that does scaling approach linear. This assumes compute and memory overlap perfectly, which is
-optimistic, so treat 55 cycles as a floor rather than a target.
+The crossover is worth stating in cycles, since that is the form a Tick phase can be judged against —
+and it must be stated per machine, which is itself the finding:
 
-Three consequences, none of which `05 §6` currently states:
+| | Line every, saturated | Line every, alone | Crossover |
+|---|---|---|---|
+| Desktop | 13.3 ns / 64 B | 4.1 ns | ~55 cycles per 64-byte line |
+| M4 Pro | 5.2 ns / 128 B | 1.9 ns | ~23 cycles per 128-byte line |
 
-- **A memory-bound phase should stay single-threaded**, and this is a performance argument arriving
-  at the same place the determinism argument does. Thread-count equivalence
+Per byte touched that is 0.86 cycles against 0.18 — **the M4 Pro needs roughly five times less
+arithmetic per byte before threading pays.** Both assume compute and memory overlap perfectly, which
+is optimistic, so both are floors rather than targets.
+
+Four consequences, none of which `05 §6` currently states:
+
+- **The parallelisation decision is a runtime one, not a source-code one.** A phase worth threading
+  on the M4 Pro is not worth threading on the desktop, and the difference is 2× on reads. This is
+  precisely the case the host-adaptive policy in [`0002`](../plans/0002-open-questions.md) admits:
+  thread count and whether a phase is parallelised at all sit inside the guarantee invariant 4
+  already makes, so they may be chosen from measurement at startup. Nothing else on this page has
+  earned that.
+- **A memory-bound phase should still default to single-threaded**, and this is a performance
+  argument arriving at the same place the determinism argument does. Thread-count equivalence
   (`run(log, threads=1).hash() == run(log, threads=8).hash()`) is cheapest to hold where there are no
   threads, and the phases hardest to make equivalent — cross-partition writes, the Wheel's random
-  reschedules — are precisely the memory-bound ones that would gain nothing anyway.
+  reschedules — are precisely the memory-bound ones that gain least on the desktop and are latency-
+  rather than bandwidth-bound on both.
 - **`02 §1.1`'s parallel-phase permissions cost less than they appear to.** The contradiction flagged
   in [`0002`](../plans/0002-open-questions.md) — the phase table states permission, `§6` states
   implementation, and neither says so — can be resolved knowing that permission granted to a
@@ -168,19 +225,11 @@ Three consequences, none of which `05 §6` currently states:
 - **The figure to compare a phase against is the per-core share, not the aggregate.** A phase sized
   against 28.9 GB/s when it will run on one of six threads is mis-sized by 6×.
 
-**This is one desktop, and the ratios are not universal.** Two channels of DDR4-2133 is the low end
-of the target class; more channels or faster DIMMs move the crossover down and give the read curve
-further to run. What generalises is the shape — copy saturating at one core, read saturating at the
-core count, SMT contributing nothing — not the constants. **Nothing here has been measured for random
-access**, which is K2's subject and which will be worse than either curve.
-
-**A second machine is owed and is the honest test of the paragraph above.** An M4 MacBook Pro is a
-deliberately unlike second sample: unified LPDDR5 with several times this machine's bandwidth,
-heterogeneous cores, and **128-byte cache lines** rather than 64 — which is the finding most likely to
-matter, because it halves the number of table rows that share a line and task 2's row schema is
-derived against exactly that figure. If the read curve there runs to 4× where this one stops at 1.83×,
-then "memory-bound work does not parallelise" is a statement about bandwidth-starved desktops rather
-than about the design, and `05 §6` needs to hear it that way.
+**The constants are not universal and the second machine proved it** — two channels of DDR4-2133 is
+the low end of the target class, and the M4 Pro doubles the read scaling. What generalises is the
+shape: writes saturating early, extra hardware threads past the core count contributing nothing, the
+per-core share collapsing. **Nothing here has been measured for random access**, which is K2's
+subject and which will be worse than either curve on both machines.
 
 ### Three caveats on the numbers above
 
@@ -194,6 +243,17 @@ Anything K1–K5 reports at an L3-resident size needs an idle machine and a stat
 **The 16 KiB burst figure is the least stable number here**, and the two turbo rows disagree by 16%
 in the wrong direction. It is a best-of-64 over samples a few microseconds long; treat it as an order
 of magnitude for L1 and nothing finer.
+
+**The M4 Pro curve was measured with no control over thread placement whatsoever.** macOS cannot pin
+a thread, and the fallback — asking for the user-interactive quality-of-service class, which prefers
+a performance core — was **refused for all 162 threads**, almost certainly because .NET sets an
+explicit scheduling policy on the threads it creates and `pthread_set_qos_class_self_np` returns
+`EPERM` for those. The harness counted the refusals rather than assuming the hint took, which is the
+only reason this is known. So every M4 Pro thread was placed by the scheduler with no input from us
+and could land on an efficiency core; the non-monotonic jump in its read column between three and
+four threads is the visible symptom. Read that curve as a shape. Fixing it would mean creating
+threads natively rather than through .NET, which is not worth doing for a spike — but it is worth
+knowing before anyone measures a *real* threaded Tick phase on Apple Silicon and believes the result.
 
 **The scaling curve is five seconds per point on a machine that was not verified idle.** The copy
 column wobbles by ±4% with no trend, which is the measurement's noise and not structure — do not read
