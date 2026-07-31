@@ -4,7 +4,67 @@ Scratch note, not corpus. Lives inside `spikes/S4.Kernels/`, so task 11 deletes 
 everything else. Nothing in here is a decision; decisions go to `docs/spike-results.md`,
 `plans/0002-open-questions.md`, or an ADR.
 
-Written at `2f60637` (S4 task 3), updated after tasks 4–8. Only K6, the report and the delete remain.
+Written at `2f60637` (S4 task 3), updated after tasks 4–9.
+
+**The findings now live in [`docs/spike-results.md`](../../docs/spike-results.md), which is corpus and
+survives task 11.** This note is session state only. If the two disagree, the corpus is right.
+
+---
+
+## Start here — the three things left
+
+**1. K6's results are on disk and nobody has read them.** The eight-run sweep was launched at
+`0331701` and left running; it writes `results/k6-ddr2133-powersave-turbo.md` incrementally, one
+section per run. Check it completed — eight `### K6` headings — and if it was interrupted, re-run
+`tools/k6-run.sh` rather than trusting a partial file.
+
+**2. Write task 10's verdict** into `docs/spike-results.md`, where K0–K5 are already recorded in the
+form the plan asks for. K6 needs: the p99.9 per GC configuration (all four, both arms), the verdict
+against the tripwire table, and the note in
+[`adr/0036`](../../docs/adr/0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md) that
+its K6 trigger has been evaluated — **whichever way it went**, which task 11 requires explicitly.
+
+**3. Then task 11:** delete `spikes/S4.Kernels/`, record the deleting commit's parent in
+`docs/spike-results.md`, and confirm `dotnet build` and `dotnet test` are green with the spike gone.
+
+### What to expect from K6, and the two things to check before believing it
+
+The one-minute smoke, under `server=off concurrent=on`:
+
+| Arm | gen0 | gen1 | gen2 | p99.9 | max | Over 15.6 ms |
+|---|---:|---:|---:|---:|---:|---:|
+| unmanaged | 527 | 121 | 40 | 2.50 ms | 3.89 ms | 0 of 42,180 |
+| managed objects | 498 | 82 | 1 | 2.49 ms | **34.20 ms** | 2 of 43,100 |
+
+**`adr/0036`'s trigger is a p99.9 beyond 15.6 ms and on this evidence it does not fire** — the
+unmanaged arm's p99.9 is 2.5 ms and its worst iteration in a minute was 3.9 ms, with forty gen2
+collections. Confirm that holds across all four GC configurations over ten minutes and the language
+decision is settled by argument, with S4 having confirmed the argument rather than replaced it.
+
+Two things to check before writing that down:
+
+**The metric is wrong and the report should say so.** Those two 34 ms spikes sit at p99.995, not
+p99.9. **The statistic `adr/0036` names would have missed the exact event it exists to catch.** Over
+ten minutes there will be ~10 gen2 collections against ~430,000 iterations, so they will land around
+p99.998 and p99.9 will look clean in *both* arms. Read `max`, the over-budget count and the total GC
+pause — K6 reports all three beside the percentiles for this reason. If the verdict is "the trigger
+did not fire", it should be accompanied by "and the trigger is measuring the wrong quantile".
+
+**Check the pause total before attributing any tail to the GC.** A long tail can be the collector,
+the OS, or thermals, and a histogram cannot tell them apart. `GC.GetTotalPauseDuration()` is reported
+per run; if the tail is long and the pause total is near zero, the tail is not the collector's and
+the trigger has not fired however bad the number looks.
+
+### Caveats on the K6 capture, both of which are recorded in the file itself
+
+- **`powersave`+turbo, not canonical.** Same as K3 and K4. K1/K2/K5 showed the governor moves no
+  ratio, and K6 is about pauses rather than bandwidth, so this matters less here than anywhere — but
+  it is not the canonical capture.
+- **The churn rate is a guess: ~50 MB/s, one object in sixteen promoted.** It models the shell, the
+  UI and the per-frame snapshot, and nothing in the corpus states what that should be. The report
+  prints the achieved MB/s so the assumption is arguable; `--churn-kb` changes it. **This is the
+  single most challengeable number in K6** and the write-up should say so rather than let a reader
+  discover it.
 
 ---
 
@@ -22,8 +82,8 @@ Written at `2f60637` (S4 task 3), updated after tasks 4–8. Only K6, the report
 | 6 | K3 bulk copy of the K0 footprint | **done** — and it constrains how `Core` allocates its tables |
 | 7 | K4 sorted-array lookup, ≤9 entries | **done** — the no-hash-maps rule is free, and then some |
 | 8 | K5 wheel bucket drain, 8,192 buckets | **done** — the Wheel has a number for the first time |
-| 9 | K6 ten-minute GC tail, p99.9, four GC configs (not a BDN job) | not written — **the only one left that can surprise** |
-| 10 | The report | — |
+| 9 | K6 ten-minute GC tail, p99.9, four GC configs (not a BDN job) | **written and swept; results unread** |
+| 10 | The report | K0–K5 written into `docs/spike-results.md`. **K6 and the verdict owed** |
 | 11 | Delete `spikes/S4.Kernels/`, record the parent commit | — |
 
 ## What can actually be run today
@@ -38,7 +98,14 @@ dotnet run -c Release --project spikes/S4.Kernels -- scaling
 spikes/S4.Kernels/tools/kernel-run.sh             # K1-K5, pinned and labelled
 sudo spikes/S4.Kernels/tools/kernel-run.sh        # ...under the canonical performance+turbo
 spikes/S4.Kernels/tools/kernel-run.sh '*K2*'      # one of them; the filter goes in the filename
+
+spikes/S4.Kernels/tools/k6-run.sh                 # K6: 4 GC configs x 2 arms, 10m each = 80m
+S4_MINUTES=1 spikes/S4.Kernels/tools/k6-run.sh    # ...as a smoke run, 8 minutes total
 ```
+
+**`k6-run.sh` launches the binary once per run, so do not rebuild while it is going** — runs 2–8
+would execute a different binary than run 1. To compile-check mid-sweep without touching `bin/`:
+`dotnet build spikes/S4.Kernels/S4.Kernels.csproj -c Release --artifacts-path /tmp/check`.
 
 The full suite is 26 benchmark cases and takes about eight minutes.
 
