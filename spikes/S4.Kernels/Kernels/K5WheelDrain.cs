@@ -157,6 +157,13 @@ public unsafe class K5WheelDrain
         return sink;
     }
 
+    /// <summary>
+    /// The same drain at a caller-chosen size, so K6 can run this kernel at a Tick's scale rather than
+    /// at the million-wake batch <c>OperationsPerInvoke</c> needs. Not a benchmark method: it exists so
+    /// that K6 loops over the real kernel instead of over a second copy of it that could drift.
+    /// </summary>
+    internal int DrainWakes(int targetWakes) => Drain(targetWakes);
+
     private int Drain(int targetWakes)
     {
         var head = _head;

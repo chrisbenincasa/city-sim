@@ -10,15 +10,16 @@ using S4.Kernels.Kernels;
 //   baseline [--seconds N] [--label TAG] [--out PATH]   task 1: the machine and the denominator
 //   scaling  [--seconds N] [--label TAG] [--out PATH]   task 1: aggregate bandwidth vs thread count
 //   k0       [--citizens N] [--label TAG] [--out PATH]  task 3: the world's actual footprint
+//   k6       [--minutes N] [--managed] [--churn-kb N]   task 9: the GC tail
 //   bench    [BDN arguments]                            tasks 4-8: K1-K5 under BenchmarkDotNet
 //
-// Written so far: K1 (linear scan, checked and unchecked), K2 (random gather by generational handle),
-// K5 (wheel bucket drain). K3 and K4 are owed and are the cheap ones.
+// All seven kernels are written. K1-K5 run under BenchmarkDotNet; K6 does not, because task 1 is
+// explicit that BDN's warmup-and-discard model is exactly wrong for a kernel whose whole subject is
+// the tail. K6's GC configuration is fixed when the runtime starts and cannot be a flag, so
+// tools/k6-run.sh launches it once per configuration.
 //
-//   dotnet run -c Release --project spikes/S4.Kernels -- bench --filter '*K1*'
-//
-// K6 will be none of these; it is a ten-minute sustained loop with a histogram and it gets its own
-// command when task 9 arrives.
+//   spikes/S4.Kernels/tools/kernel-run.sh              K1-K5, pinned and labelled
+//   spikes/S4.Kernels/tools/k6-run.sh                  K6, four GC configurations x two heap arms
 
 var command = args.Length > 0 ? args[0] : "help";
 var rest = args.Skip(1).ToArray();
@@ -34,15 +35,21 @@ switch (command)
     case "k0":
         return K0(rest);
 
+    case "k6":
+        return K6(rest);
+
     case "bench":
         BenchmarkSwitcher.FromAssembly(typeof(K1LinearScan).Assembly).Run(rest, new S4Config());
         return 0;
 
     default:
-        Console.Error.WriteLine("usage: S4.Kernels <baseline|scaling|k0|bench> [options]");
+        Console.Error.WriteLine("usage: S4.Kernels <baseline|scaling|k0|k6|bench> [options]");
         Console.Error.WriteLine("  baseline [--seconds N] [--label TAG] [--out PATH]");
         Console.Error.WriteLine("  scaling  [--seconds N] [--label TAG] [--out PATH]   (must not run under taskset)");
         Console.Error.WriteLine("  k0       [--citizens N] [--label TAG] [--out PATH]");
+        Console.Error.WriteLine("  k6       [--minutes N] [--managed] [--churn-kb N] [--label TAG] [--out PATH]");
+        Console.Error.WriteLine("           GC mode comes from DOTNET_gcServer / DOTNET_gcConcurrent, not from a flag —");
+        Console.Error.WriteLine("           it is fixed at process start. Use tools/k6-run.sh to sweep all four.");
         Console.Error.WriteLine("  bench    [--filter '*'] and any other BenchmarkDotNet argument");
         return command == "help" ? 0 : 2;
 }
@@ -123,6 +130,60 @@ static int K0(string[] args)
     sb.AppendLine("### The schema this was allocated against");
     sb.AppendLine();
     sb.Append(WorldSchema.ToMarkdown());
+
+    return Emit(sb.ToString(), outPath);
+}
+
+static int K6(string[] args)
+{
+    var minutes = 10;
+    var managed = false;
+
+    // ~53 MB/s at this iteration rate, modelling the shell, the UI and the per-frame snapshot. A guess,
+    // which is why it is a flag and why the report prints the rate it produced.
+    var churnKilobytes = 64;
+    string? label = null;
+    string? outPath = null;
+
+    for (var i = 0; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--minutes" when i + 1 < args.Length:
+                minutes = int.Parse(args[++i], CultureInfo.InvariantCulture);
+                break;
+            case "--managed":
+                managed = true;
+                break;
+            case "--churn-kb" when i + 1 < args.Length:
+                churnKilobytes = int.Parse(args[++i], CultureInfo.InvariantCulture);
+                break;
+            case "--label" when i + 1 < args.Length:
+                label = args[++i];
+                break;
+            case "--out" when i + 1 < args.Length:
+                outPath = args[++i];
+                break;
+            default:
+                Console.Error.WriteLine($"unrecognised option: {args[i]}");
+                return 2;
+        }
+    }
+
+    label ??= MachineDescription.ConfigurationTag();
+    var arm = managed ? "managed objects" : "unmanaged";
+    Console.Error.WriteLine($"K6 [{label}]: {arm}, {minutes} minutes. This does not print until it finishes.");
+
+    var report = K6GcTail.Run(minutes, managed, churnKilobytes);
+
+    var sb = new StringBuilder();
+    var recorded = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+    sb.AppendLine(CultureInfo.InvariantCulture, $"## S4 K6 — the GC tail — `{label}`");
+    sb.AppendLine();
+    sb.AppendLine(CultureInfo.InvariantCulture,
+        $"Recorded {recorded} UTC. Not a BenchmarkDotNet job: warmup-and-discard is exactly wrong for a tail.");
+    sb.AppendLine();
+    sb.Append(report.ToMarkdown());
 
     return Emit(sb.ToString(), outPath);
 }

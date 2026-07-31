@@ -34,6 +34,7 @@ internal static class CounterHash
         K4MapShape = 7,
         K4BinAmount = 8,
         K4Permutation = 9,
+        K6ManagedLink = 10,
     }
 
     public static ulong Of(ulong entity, ulong tick, Purpose purpose) =>
