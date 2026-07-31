@@ -447,6 +447,24 @@ the Cap should be.
 | Segments | ~30,000 | provisional — road density against 268 km² |
 | Lanes, Vehicles | **parameterised** | bounded by the unset Microscopic Cap |
 
+**1M is a floor, not a cap — so the counts above are the wrong form and these are the right one.**
+`00-vision`'s scope commitment is *at least* a million, and [`0002`](../plans/0002-open-questions.md)
+already states the principle: *"Sizing is a derivation, not a constant."* Every row count here is
+linear in population, so it is recorded per 1,000 Citizens and stays correct at 2M or at 250k:
+
+| Per 1,000 Citizens | Rows |
+|---|---|
+| Households | 360 |
+| Trips in flight | 56 |
+| Legs in flight | 140 |
+| Trips per Day | 1,900 |
+| Buildings / Businesses / Lots | ~150 / ~50 / ~225, all provisional |
+
+**This also fixes how K0's result must be read.** A footprint that merely *fits* at 1M is a failure,
+not a pass: the design claims to handle at least a million, so the question K0 answers is how much
+headroom exists above the floor, not whether the floor is reachable. Report the footprint and the
+multiple of 1M the machine could hold.
+
 ### What task 2 changed, and what it owes
 
 **Changed:** the Citizen row is two numbers rather than one, and neither is 40. The ownership rule is
@@ -458,3 +476,84 @@ Household figure is corroborated for the first time. The Trip count is 4.75× th
 Households-per-Building figure, a workers-per-Business figure, and the Microscopic Cap. Also a
 `buildable_fraction` that survives `adr/0021`, and a decision on whether labour is a Household↔Business
 relationship or an input Bin — the latter changes the Business row and is already queued for slice 7.
+
+---
+
+## K0 — the world's actual footprint
+
+Allocated for real against task 2's schema and first-touched page by page, not computed — a sum cannot
+see what the allocator and the operating system actually charge. Both figures are reported and the
+gap between them is the only part of this kernel that could have surprised.
+
+| Table | Rows | Per-Tick | Wake | Cold | Total |
+|---|---:|---:|---:|---:|---:|
+| Citizens | 1,000,000 | 12.4 MiB | 36.2 MiB | 4.8 MiB | 53.4 MiB |
+| **Households** | 360,000 | 4.1 MiB | 58.0 MiB | 13.0 MiB | **75.2 MiB** |
+| Buildings | 150,000 | 1.7 MiB | 16.2 MiB | 3.7 MiB | 21.6 MiB |
+| Lots | 225,000 | — | 3.0 MiB | 4.5 MiB | 7.5 MiB |
+| Businesses | 50,000 | 0.6 MiB | 6.0 MiB | 0.6 MiB | 7.1 MiB |
+| Legs in flight | 140,000 | 1.6 MiB | 1.7 MiB | — | 3.3 MiB |
+| Trips in flight | 56,000 | 1.3 MiB | 1.5 MiB | 0.1 MiB | 2.9 MiB |
+| Segments | 30,000 | 0.1 MiB | 0.6 MiB | 0.6 MiB | 1.3 MiB |
+| **Total** | | **21.8 MiB** | **123.3 MiB** | **27.3 MiB** | **172.3 MiB** |
+
+The process working set grew by **174.2 MiB against 172.3 MiB requested — 1.1% overhead**, allocated
+and touched in 52 ms. The allocator charges essentially nothing beyond the request, which is what
+structure-of-arrays over native memory should do and is worth having confirmed rather than assumed.
+
+### `adr/0037` is vindicated, with a number it never had
+
+`05 §3` says the full-world copy `adr/0037` deleted was *"~150 MB per Tick against ~1 MB of actual
+writes — 8–15 ms, memory-bandwidth bound"*. Both halves of that now have measurements behind them:
+
+- **The world is 172.3 MiB (180.7 MB), against the asserted ~150 MB.** The estimate was low by 20%
+  and was the right order — unusually good for a figure nobody had allocated.
+- **At this machine's measured 13.3 GB/s copy rate, that copy costs 13.6 ms.** `adr/0037` asserted
+  8–15 ms. The measurement lands inside its own band.
+
+**That is ledger #29 answered.** A 13.6 ms copy against the **15.6 ms Tick budget at 4× speed** would
+have consumed 87% of the Tick to move data that was 99% unchanged. `adr/0037` deleted it on an
+argument; the argument was right, and it was closer to the cliff than the ADR knew. On the M4 Pro the
+same copy is 2.9 ms — so the decision was correct on the fast machine too, just less obviously.
+
+The copy has not gone away, it has moved: the **async save** takes one real copy at save time, and
+13.6 ms is its price. That is fine for something that happens on a save rather than on a Tick, and it
+is the figure the save's threading design should be built against. **K3 will measure this directly
+rather than deriving it from the denominator**, which is the point of having K3 at all.
+
+### Three things the footprint says that the corpus does not
+
+**Households are the largest table in the world, and it is not close.** 75.2 MiB against the Citizens'
+53.4 MiB, from 2.8× *fewer* rows — a 219-byte Household row against a 56-byte Citizen. The driver is
+the **Provider List at 104 bytes, 47% of the Household row and roughly 21% of the entire world**. Two
+consequences worth stating plainly: the design's memory is dominated by *what Households know*, not by
+how many Citizens exist; and `adr/0017` makes the list length **a Ruleset constant**, which means a
+tuning knob controls a fifth of the world's footprint. The 8 entries used here are provisional — the
+corpus states no length — and every entry is ~4.5 MiB at 1M.
+
+**Only 13% of the world is touched on an ordinary Tick.** 21.8 MiB of 172.3 MiB, and that is the
+*addressable* per-Tick set rather than the traffic — the Wheel drains one bucket of 8,192, so real
+per-Tick traffic is far smaller again. This is the Event Wheel's premise made arithmetic: the
+overwhelming majority of the world is untouched on any given Tick, which is exactly why `adr/0037`'s
+copy was indefensible and why K2's sparse-gather pattern is the one that matters.
+
+**The Microscopic Cap is not memory-bound, so memory must not be what sets it.**
+
+| Microscopic Segments | Lanes | Vehicles at jam | Footprint |
+|---:|---:|---:|---:|
+| 1,000 | 4,000 | 128,000 | 3.0 MiB |
+| 5,000 | 20,000 | 640,000 | 15.0 MiB |
+| 10,000 | 40,000 | 1,280,000 | 30.1 MiB |
+| 30,000 (the whole network) | 120,000 | 3,840,000 | 90.3 MiB |
+
+Making the *entire* road network Microscopic costs 90 MiB — half the world again, on a machine with
+64 GiB. The Cap is a compute and behavioural constant, not a memory one, and any future argument that
+sizes it against footprint is arguing from the wrong quantity.
+
+### Headroom, which is the actual result
+
+**372×.** This desktop could hold roughly 372 million Citizens' worth of rows; the 24 GiB M4 Pro holds
+about 140 million. Since `00-vision` commits to *at least* a million rather than exactly a million,
+the multiple is the finding and the absolute figure is only how it was reached. **Memory is not a
+constraint on this design at any population it will plausibly reach**, and the binding constraints are
+elsewhere — per-Tick compute, the routing graph, and the Microscopic Cap.
