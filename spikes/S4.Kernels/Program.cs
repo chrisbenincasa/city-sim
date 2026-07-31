@@ -9,8 +9,13 @@ using S4.Kernels.Kernels;
 //
 //   baseline [--seconds N] [--label TAG] [--out PATH]   task 1: the machine and the denominator
 //   scaling  [--seconds N] [--label TAG] [--out PATH]   task 1: aggregate bandwidth vs thread count
-//   k0       [--citizens N] [--label TAG] [--out PATH]     task 3: the world's actual footprint
+//   k0       [--citizens N] [--label TAG] [--out PATH]  task 3: the world's actual footprint
 //   bench    [BDN arguments]                            tasks 4-8: K1-K5 under BenchmarkDotNet
+//
+// Written so far: K1 (linear scan, checked and unchecked), K2 (random gather by generational handle),
+// K5 (wheel bucket drain). K3 and K4 are owed and are the cheap ones.
+//
+//   dotnet run -c Release --project spikes/S4.Kernels -- bench --filter '*K1*'
 //
 // K6 will be none of these; it is a ten-minute sustained loop with a histogram and it gets its own
 // command when task 9 arrives.
@@ -30,7 +35,7 @@ switch (command)
         return K0(rest);
 
     case "bench":
-        BenchmarkSwitcher.FromAssembly(typeof(HarnessSmoke).Assembly).Run(rest, new S4Config());
+        BenchmarkSwitcher.FromAssembly(typeof(K1LinearScan).Assembly).Run(rest, new S4Config());
         return 0;
 
     default:
