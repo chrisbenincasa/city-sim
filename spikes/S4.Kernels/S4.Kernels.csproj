@@ -11,10 +11,19 @@
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <!-- The GC configuration is K6's subject. These are the defaults K0-K5 run under; K6 varies
-         them itself and reports all four. -->
-    <ServerGarbageCollection>false</ServerGarbageCollection>
-    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <!--
+      The GC configuration is K6's subject, and it is deliberately NOT set here.
+
+      These two properties bake values into runtimeconfig.json, and runtimeconfig.json is not
+      uniformly overridable from the environment: DOTNET_gcServer wins over it, DOTNET_gcConcurrent
+      does not. Setting them cost K6 half its matrix once already — the first sweep asked for four
+      configurations, silently ran two, and only the report's printback of the *effective* settings
+      revealed it.
+
+      Absent, the runtime defaults are workstation GC with background collection on, which is what
+      these lines specified anyway. K0-K5 are therefore unaffected, and K6 can now vary both
+      dimensions from the environment as tools/k6-run.sh intends.
+    -->
   </PropertyGroup>
 
   <ItemGroup>

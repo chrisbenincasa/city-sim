@@ -13,47 +13,50 @@ survives task 11.** This note is session state only. If the two disagree, the co
 
 ## Start here — the three things left
 
-**1. K6's results are on disk and nobody has read them.** The eight-run sweep was launched at
-`0331701` and left running; it writes `results/k6-ddr2133-powersave-turbo.md` incrementally, one
-section per run. Check it completed — eight `### K6` headings — and if it was interrupted, re-run
-`tools/k6-run.sh` rather than trusting a partial file.
+**1. A corrected K6 sweep is running and nobody has read it.** It was relaunched detached; it writes
+`results/k6-ddr2133-powersave-turbo.md` incrementally, one section per run, ~80 minutes for eight.
+Check it completed and that **all four GC labels appear** — `server=off/on` × `concurrent=off/on`. If
+only two distinct labels appear, the fix did not take and the sweep is worthless; see below.
 
-**2. Write task 10's verdict** into `docs/spike-results.md`, where K0–K5 are already recorded in the
-form the plan asks for. K6 needs: the p99.9 per GC configuration (all four, both arms), the verdict
-against the tripwire table, and the note in
+The first sweep's results were **discarded, not kept**. It asked for four configurations and ran two,
+because `DOTNET_gcServer` overrides `runtimeconfig.json` and `DOTNET_gcConcurrent` does not, and the
+csproj was baking `ConcurrentGarbageCollection`. Both faults are fixed and verified. The findings that
+did survive it are in `docs/spike-results.md` under K6, marked provisional.
+
+**2. Finish task 10's verdict.** K0–K5 are complete in `docs/spike-results.md`, and K6 is written but
+**provisional** — it needs the background-collection-*off* rows folded in, its "what went wrong"
+section trimmed to past tense, and the provisional banner removed. Then note in
 [`adr/0036`](../../docs/adr/0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md) that
 its K6 trigger has been evaluated — **whichever way it went**, which task 11 requires explicitly.
 
 **3. Then task 11:** delete `spikes/S4.Kernels/`, record the deleting commit's parent in
 `docs/spike-results.md`, and confirm `dotnet build` and `dotnet test` are green with the spike gone.
 
-### What to expect from K6, and the two things to check before believing it
+### What K6 already says, and the prediction to test
 
-The one-minute smoke, under `server=off concurrent=on`:
+From the half-matrix that did land — background collection on, both server modes, both arms:
 
-| Arm | gen0 | gen1 | gen2 | p99.9 | max | Over 15.6 ms |
-|---|---:|---:|---:|---:|---:|---:|
-| unmanaged | 527 | 121 | 40 | 2.50 ms | 3.89 ms | 0 of 42,180 |
-| managed objects | 498 | 82 | 1 | 2.49 ms | **34.20 ms** | 2 of 43,100 |
+**`adr/0036`'s trigger does not fire.** The unmanaged arm never exceeded the Tick budget once across
+1.73M iterations; p99.9 between 2.30 and 2.49 ms against 15.6 ms, worst single iteration 8.48 ms. The
+managed-objects arm, same churn, hit **35 ms** on a single gen2 — so the discipline is doing the work
+rather than the machine, which is exactly what the second arm exists to show.
 
-**`adr/0036`'s trigger is a p99.9 beyond 15.6 ms and on this evidence it does not fire** — the
-unmanaged arm's p99.9 is 2.5 ms and its worst iteration in a minute was 3.9 ms, with forty gen2
-collections. Confirm that holds across all four GC configurations over ten minutes and the language
-decision is settled by argument, with S4 having confirmed the argument rather than replaced it.
+**The trigger measures the wrong quantile, and that is the more useful finding.** The managed arm's
+p99.9 is 2.32 ms while its max is 35.30 ms; ~11 gen2 events in ~430,000 iterations sit at p99.997, so
+p99.9 averages over 430 samples of which 419 are ordinary. **`adr/0036` should restate its trigger as
+a maximum or an over-budget count, not a quantile.** Read `max`, the over-budget count and the total
+pause — K6 reports all three beside the percentiles for this reason.
 
-Two things to check before writing that down:
+**The prediction to test:** background collection *off* should hurt the managed arm materially — a
+non-concurrent gen2 is fully blocking, so the 35 ms worst case should get worse — and should barely
+move the unmanaged arm, which has almost nothing to mark. If the unmanaged arm's max stays under
+15.6 ms with background collection off, the trigger is settled under every configuration the plan
+asked for.
 
-**The metric is wrong and the report should say so.** Those two 34 ms spikes sit at p99.995, not
-p99.9. **The statistic `adr/0036` names would have missed the exact event it exists to catch.** Over
-ten minutes there will be ~10 gen2 collections against ~430,000 iterations, so they will land around
-p99.998 and p99.9 will look clean in *both* arms. Read `max`, the over-budget count and the total GC
-pause — K6 reports all three beside the percentiles for this reason. If the verdict is "the trigger
-did not fire", it should be accompanied by "and the trigger is measuring the wrong quantile".
-
-**Check the pause total before attributing any tail to the GC.** A long tail can be the collector,
-the OS, or thermals, and a histogram cannot tell them apart. `GC.GetTotalPauseDuration()` is reported
-per run; if the tail is long and the pause total is near zero, the tail is not the collector's and
-the trigger has not fired however bad the number looks.
+**Server GC is a real lever and `05 §6` still states no GC configuration.** It cut the managed arm's
+worst case from ~35 ms to ~16 ms and total pause by 61%, while costing the unmanaged arm almost
+nothing. The decision that supports is narrow: the shell may want server GC, the core is indifferent —
+and the core's indifference is itself evidence the discipline is working.
 
 ### Caveats on the K6 capture, both of which are recorded in the file itself
 

@@ -318,10 +318,29 @@ internal static unsafe class K6GcTail
             allocated,
             sampleBufferFull,
             GCSettings.IsServerGC,
-            AppContext.TryGetSwitch("System.GC.Concurrent", out var concurrent) ? concurrent : null,
+            EffectiveConcurrentGc(),
             GCSettings.LatencyMode,
             CountOver(sorted, TickBudgetMs));
     }
+
+    /// <summary>
+    /// The **effective** background-GC setting, not the configured one.
+    ///
+    /// The first sweep read this from <c>AppContext.TryGetSwitch("System.GC.Concurrent")</c>, which
+    /// reports what `runtimeconfig.json` asked for — and the csproj bakes `ConcurrentGarbageCollection`
+    /// into that file, so it answered "on" in all eight runs whatever `DOTNET_gcConcurrent` was set to.
+    /// Four configurations went in and two labels came out, which is precisely the failure the script's
+    /// own comment says the printback exists to catch. It caught it; the printback was the thing at
+    /// fault.
+    ///
+    /// <c>GC.GetConfigurationVariables()</c> — key <c>ConcurrentGC</c> — reports what the collector is actually running with, which
+    /// is the only value worth putting in a report. <c>GCSettings.IsServerGC</c> was already a genuine
+    /// runtime query, which is why the server dimension came through correctly and this one did not.
+    /// </summary>
+    private static bool? EffectiveConcurrentGc() =>
+        GC.GetConfigurationVariables().TryGetValue("ConcurrentGC", out var value) && value is bool concurrent
+            ? concurrent
+            : null;
 
     private static long Percentile(long[] sorted, double q)
     {

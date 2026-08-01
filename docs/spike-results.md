@@ -11,7 +11,7 @@ produced**. A spike that records data and no verdict has not finished.
 
 | Spike | Question | Status |
 |---|---|---|
-| **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. Tasks 1–8 recorded below; **K6 outstanding**. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
+| **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. K0–K6 recorded below; **K6 provisional, awaiting a corrected sweep**. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
 | **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Also owns Chunk size | not run. **The project's top risk** |
 | **S1** | Rendering ceiling — 20k Buildings via chunked `MultiMeshInstance3D` | not run |
 | **S3** | UI ceiling — one data panel with a live multi-series graph, and how long it took | not run |
@@ -21,10 +21,10 @@ produced**. A spike that records data and no verdict has not finished.
 
 ## S4 — the kernel benchmark
 
-**Tasks 1–8 of [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) are done: the machine is recorded,
-the denominator measured, the schema derived, and K0–K5 run.** Still owed by this section: **K6's
-p99.9 under each of the four GC configurations**, the verdict against the tripwire, and the commit at
-which `spikes/S4.Kernels/` was deleted.
+**Tasks 1–9 of [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) are done: the machine is recorded,
+the denominator measured, the schema derived, and K0–K6 run.** Still owed by this section: **K6 under
+background collection *off*** — the first sweep asked for four GC configurations and silently ran two,
+which the K6 section explains — and the commit at which `spikes/S4.Kernels/` was deleted.
 
 K1–K5 were captured by `spikes/S4.Kernels/tools/kernel-run.sh`, which pins to one physical core with
 its SMT sibling idle and puts the governor and the configured DIMM rate in the label. It exists
@@ -898,3 +898,98 @@ The expected outcome was the third row and K0–K5 have delivered it. The suite 
 four things the corpus did not know: that `checked` costs 27% rather than nothing, that the async save's
 price depends on an allocator decision nobody had made, that the ResourceMap's cost is a branch rather
 than a line, and that the Wheel's wake rate had been under-counted by up to a factor of thirty-two.
+
+---
+
+## K6 — the GC tail
+
+**Provisional. The verdict below rests on a sweep that covered half its matrix, and the corrected
+sweep is running.** What that means, and why the half that landed is still worth recording, is set out
+under *What went wrong* below. Nothing here should be promoted to a decision until the second sweep is
+read.
+
+Ten minutes per run, ~430,000 iterations each, at ~50 MB/s of short-lived managed allocation. One
+iteration is K1's scan, K2's 2,000-handle gather, K4's 2,000 lookups and K5's 2,000-wake drain — about
+1.4 ms, dominated by K1. Not pinned: server GC places a heap and a collection thread per core, and
+pinning would have measured a server GC that was never allowed to be one.
+
+**Two arms, differing in nothing but the live set.** `unmanaged` is the design as `adr/0036` specifies
+it — the 172.3 MiB world in native memory. `managed objects` is the counterfactual `adr/0004` and
+`adr/0036` rejected: 1.56M linked class instances, the shape that makes a gen2 mark expensive. Both
+take identical churn.
+
+| GC | Arm | p99.9 | p99.99 | max | gen2 | Total pause | Over 15.6 ms |
+|---|---|---:|---:|---:|---:|---:|---:|
+| workstation, background | unmanaged | 2.30 ms | 3.28 ms | 6.27 ms | 428 | 2,792 ms | **0** of 444,703 |
+| workstation, background | managed | 2.32 ms | 3.54 ms | **35.30 ms** | 11 | 2,519 ms | 2 of 428,262 |
+| workstation, background | unmanaged | 2.30 ms | 2.88 ms | 4.12 ms | 413 | 2,742 ms | **0** of 429,648 |
+| workstation, background | managed | 2.30 ms | 3.56 ms | **34.95 ms** | 11 | 2,507 ms | 2 of 431,455 |
+| server, background | unmanaged | 2.48 ms | 3.09 ms | 8.48 ms | 537 | 3,006 ms | **0** of 429,096 |
+| server, background | managed | 2.70 ms | 3.05 ms | **17.04 ms** | 4 | 976 ms | 1 of 432,596 |
+| server, background | unmanaged | 2.49 ms | 3.11 ms | 6.76 ms | 537 | 3,063 ms | **0** of 428,811 |
+| server, background | managed | 2.70 ms | 2.95 ms | **15.55 ms** | 4 | 973 ms | **0** of 432,612 |
+
+### `adr/0036`'s trigger does not fire
+
+**The unmanaged arm never exceeded the Tick budget once, in any configuration, across 1.73 million
+iterations.** Its p99.9 sits between 2.30 and 2.49 ms — **6.3× inside** the 15.6 ms the trigger names —
+and its worst single iteration in forty minutes of running was 8.48 ms, still comfortably under.
+
+`adr/0036` chose C# for the core partly on the assertion that GC pauses are manageable once the hot
+tables are unmanaged structs. **That assertion holds, and the second arm is what makes it a
+measurement rather than an absence of evidence.** Hold the same 172 MiB as 1.56M linked objects
+instead, take identical allocation churn, and a single gen2 collection reaches **35 ms — 2.3× past the
+budget**. The discipline is doing the work, not the machine.
+
+### The trigger measures the wrong quantile, and this is the more useful finding
+
+`adr/0036` names **p99.9**. Look at what p99.9 does to the managed arm: **2.32 ms**, indistinguishable
+from the unmanaged arm's 2.30 ms — while that same run's worst iteration is **35.30 ms**. Even p99.99
+reads 3.54 ms and hides it.
+
+The reason is arithmetic. A ten-minute run is ~430,000 iterations and produces ~11 gen2 collections.
+Eleven events in 430,000 samples sit at **p99.997**. A quantile at p99.9 is averaging over 430 samples
+of which 419 are ordinary — **the statistic cannot see the event it was chosen to detect.**
+
+**Recommendation for `adr/0036`: restate the revisit trigger as a maximum, or as a count of Ticks
+exceeding budget over a stated window, not as p99.9.** A GC pause is a rare, large, correlated event,
+and rare-large-correlated is precisely what a high quantile smooths away. This report deliberately
+records max, the over-budget count and the total pause beside the percentiles for that reason.
+
+### Server GC is a real lever on the tail, and it is free here
+
+Comparing the two managed rows against the two workstation ones: **worst case falls from ~35 ms to
+~16 ms, gen2 collections from 11 to 4, and total pause from ~2,510 ms to ~975 ms — a 61% reduction.**
+The unmanaged arm pays a slight cost for it (p99.9 2.30 → 2.49 ms, more gen2s at lower individual
+cost), which is the expected trade: more heaps, more frequent cheaper collections.
+
+**`05 §6` states no GC configuration and this slice was flagged as owing one.** On this evidence server
+GC is the better default for anything holding a large managed live set — but the core is not supposed
+to hold one, and for the unmanaged arm the choice is close to immaterial. The decision this actually
+supports is narrower and more useful: *the shell may want server GC; the core is indifferent, which is
+itself a sign the discipline is working.*
+
+### What went wrong, and why the table above is only half a matrix
+
+Every row above says **background collection on**. The plan requires all four combinations of
+`ServerGarbageCollection` × `ConcurrentGarbageCollection`, and the sweep asked for four — but
+`DOTNET_gcServer` overrides `runtimeconfig.json` and **`DOTNET_gcConcurrent` does not**. The csproj
+baked `<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>`, so four configurations went
+in and two came out, each run twice.
+
+**It was caught because the report prints the *effective* GC settings rather than the requested ones**
+— and then only partly, because the first implementation read `AppContext.TryGetSwitch`, which reports
+what `runtimeconfig.json` asked for and not what the collector is running. The honest version is
+`GC.GetConfigurationVariables()`, key `ConcurrentGC`. Both faults are fixed: the csproj no longer sets
+either property (absent, the defaults are identical), and the printback now reports the effective
+value, verified across all four combinations before relaunching.
+
+**What is unmeasured is therefore background collection *off*, in both arms.** Expect it to matter more
+for the managed arm than the unmanaged one — a non-concurrent gen2 is fully blocking, so the 35 ms
+worst case should get worse, while the unmanaged arm has almost nothing to mark and should barely
+move. **That is a prediction, not a result, and the corrected sweep will confirm or refute it.**
+
+The general lesson is worth keeping past this spike: **a configuration sweep must report the
+configuration the system actually adopted, not the one it was asked for.** Had the label simply echoed
+the environment variable, this would have been recorded as four configurations agreeing closely — a
+tidy and completely false result.
