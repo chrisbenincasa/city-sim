@@ -11,63 +11,62 @@ survives task 11.** This note is session state only. If the two disagree, the co
 
 ---
 
-## Start here — the three things left
+## Start here — task 10 is done, task 11 is deliberately held
 
-**1. A corrected K6 sweep is running and nobody has read it.** It was relaunched detached; it writes
-`results/k6-ddr2133-powersave-turbo.md` incrementally, one section per run, ~80 minutes for eight.
-Check it completed and that **all four GC labels appear** — `server=off/on` × `concurrent=off/on`. If
-only two distinct labels appear, the fix did not take and the sweep is worthless; see below.
+**Tasks 9 and 10 are complete.** The corrected K6 sweep landed all eight runs with four distinct GC
+labels, the full matrix is written into `docs/spike-results.md`, the provisional banner is gone, the
+tripwire table closes with a verdict, and `adr/0036` records that its K6 trigger was evaluated **and
+restates it**. Nothing is owed on the write-up.
 
-The first sweep's results were **discarded, not kept**. It asked for four configurations and ran two,
-because `DOTNET_gcServer` overrides `runtimeconfig.json` and `DOTNET_gcConcurrent` does not, and the
-csproj was baking `ConcurrentGarbageCollection`. Both faults are fixed and verified. The findings that
-did survive it are in `docs/spike-results.md` under K6, marked provisional.
+**Task 11 is held on purpose, and this is the only reason this note still exists.** Deleting
+`spikes/S4.Kernels/` forfeits every measurement below, because the harness goes with it. The decision
+taken was to **run the canonical `performance`+turbo capture first**:
 
-**2. Finish task 10's verdict.** K0–K5 are complete in `docs/spike-results.md`, and K6 is written but
-**provisional** — it needs the background-collection-*off* rows folded in, its "what went wrong"
-section trimmed to past tense, and the provisional banner removed. Then note in
-[`adr/0036`](../../docs/adr/0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md) that
-its K6 trigger has been evaluated — **whichever way it went**, which task 11 requires explicitly.
+```bash
+sudo spikes/S4.Kernels/tools/kernel-run.sh          # ~8 min, 26 cases
+```
 
-**3. Then task 11:** delete `spikes/S4.Kernels/`, record the deleting commit's parent in
-`docs/spike-results.md`, and confirm `dotnet build` and `dotnet test` are green with the spike gone.
+That closes the largest gap: K3 and K4 have never been captured under the canonical governor, and K3's
+verdict — 14.3 ms arena copy vs 17.7 ms per-column, against `adr/0037`'s 8–15 ms band — sits about 3%
+from a band edge. **When that capture lands, fold it into K3's and K4's sections and then do task 11:**
+delete `spikes/S4.Kernels/`, record the deleting commit's parent in `docs/spike-results.md`, confirm
+`dotnet build` and `dotnet test` are green with the spike gone.
 
-### What K6 already says, and the prediction to test
+**Before deleting, move anything still owed from this file into `plans/0002-open-questions.md`** — this
+note dies with the directory and the owed measurements listed at the bottom would go silently with it.
 
-From the half-matrix that did land — background collection on, both server modes, both arms:
+### What K6 concluded
 
-**`adr/0036`'s trigger does not fire.** The unmanaged arm never exceeded the Tick budget once across
-1.73M iterations; p99.9 between 2.30 and 2.49 ms against 15.6 ms, worst single iteration 8.48 ms. The
-managed-objects arm, same churn, hit **35 ms** on a single gen2 — so the discipline is doing the work
-rather than the machine, which is exactly what the second arm exists to show.
+Full detail is in `docs/spike-results.md`; this is the short form.
 
-**The trigger measures the wrong quantile, and that is the more useful finding.** The managed arm's
-p99.9 is 2.32 ms while its max is 35.30 ms; ~11 gen2 events in ~430,000 iterations sit at p99.997, so
-p99.9 averages over 430 samples of which 419 are ordinary. **`adr/0036` should restate its trigger as
-a maximum or an over-budget count, not a quantile.** Read `max`, the over-budget count and the total
-pause — K6 reports all three beside the percentiles for this reason.
+**`adr/0036`'s trigger does not fire, in any of the four GC configurations.** The unmanaged arm exceeded
+the budget zero times across **1,744,889 iterations**; worst single iteration **6.984 ms** against
+15.6 ms. The counterfactual arm — same data as ~1.56M linked objects, identical churn — reached
+**100.200 ms**. The discipline is doing the work, not the machine.
 
-**The prediction to test:** background collection *off* should hurt the managed arm materially — a
-non-concurrent gen2 is fully blocking, so the 35 ms worst case should get worse — and should barely
-move the unmanaged arm, which has almost nothing to mark. If the unmanaged arm's max stays under
-15.6 ms with background collection off, the trigger is settled under every configuration the plan
-asked for.
+**The prediction held, and larger than predicted.** Background collection off cost the managed arm
+2.9× (workstation, 34.4 → 100.2 ms) and 4.6× (server, 15.6 → 71.7 ms), and moved the unmanaged arm by
+under 2% in both directions — inside noise. `<ConcurrentGarbageCollection>false</...>` is now recorded
+as the one unambiguously wrong setting, which `05 §6` should state as a prohibition.
 
-**Server GC is a real lever and `05 §6` still states no GC configuration.** It cut the managed arm's
-worst case from ~35 ms to ~16 ms and total pause by 61%, while costing the unmanaged arm almost
-nothing. The decision that supports is narrow: the shell may want server GC, the core is indifferent —
-and the core's indifference is itself evidence the discipline is working.
+**The headline finding is about the trigger, not the arms.** p99.9 cannot see a GC stall: the run whose
+max was 100.200 ms read **2.462 ms** at p99.9 and 2.757 ms at p99.99. In **two of four** configurations
+p99.9 ranked the *rejected* design above the chosen one. Conversely the matrix's worst p99.9 (5.664 ms)
+belongs to an *unmanaged* run with 1,070 small blocking gen2s and a max of 6.854 ms. p99.9 detects
+frequent-and-small; the ADR was worried about rare-and-large. **`adr/0036`'s trigger has been restated
+as a max / over-budget count accordingly.**
 
-### Caveats on the K6 capture, both of which are recorded in the file itself
+**Server GC's cost to the core is conditional**, which corrects the provisional reading. It is cheap
+with background collection on (+11% total pause) and expensive with it off (2.8× pause, gen2 1 → 1,070).
+`05 §6` should adopt **server + background**.
 
-- **`powersave`+turbo, not canonical.** Same as K3 and K4. K1/K2/K5 showed the governor moves no
-  ratio, and K6 is about pauses rather than bandwidth, so this matters less here than anywhere — but
-  it is not the canonical capture.
-- **The churn rate is a guess: ~50 MB/s, one object in sixteen promoted.** It models the shell, the
-  UI and the per-frame snapshot, and nothing in the corpus states what that should be. The report
-  prints the achieved MB/s so the assumption is arguable; `--churn-kb` changes it. **This is the
-  single most challengeable number in K6** and the write-up should say so rather than let a reader
-  discover it.
+### Caveats on the K6 capture, both recorded in the report itself
+
+- **`powersave`+turbo, not canonical.** Same as K3 and K4.
+- **The churn rate is a guess: 44–52 MB/s, one object in sixteen promoted.** Nothing in the corpus
+  states what it should be, and without churn there is no collection at all — so this one number sets
+  the scale of every K6 result. `--churn-kb` changes it. **The single most challengeable number in K6**,
+  and the report now says so up front rather than letting a reader discover it.
 
 ---
 
@@ -85,9 +84,9 @@ and the core's indifference is itself evidence the discipline is working.
 | 6 | K3 bulk copy of the K0 footprint | **done** — and it constrains how `Core` allocates its tables |
 | 7 | K4 sorted-array lookup, ≤9 entries | **done** — the no-hash-maps rule is free, and then some |
 | 8 | K5 wheel bucket drain, 8,192 buckets | **done** — the Wheel has a number for the first time |
-| 9 | K6 ten-minute GC tail, p99.9, four GC configs (not a BDN job) | **written and swept; results unread** |
-| 10 | The report | K0–K5 written into `docs/spike-results.md`. **K6 and the verdict owed** |
-| 11 | Delete `spikes/S4.Kernels/`, record the parent commit | — |
+| 9 | K6 ten-minute GC tail, four GC configs (not a BDN job) | **done** — full 4×2 matrix; the trigger does not fire, and the trigger itself was wrong |
+| 10 | The report | **done** — K0–K6 and the verdict in `docs/spike-results.md`; `adr/0036` amended |
+| 11 | Delete `spikes/S4.Kernels/`, record the parent commit | **held** — pending the canonical K3/K4 capture |
 
 ## What can actually be run today
 
@@ -327,18 +326,21 @@ argument is the report's to accept or reject, not this note's. Everything else i
 worst is K2's `AosScattered` at 2.30×, and that is a variant the design does not use. Every shape the
 design actually commits to is between 1.02× and 1.42× of ideal, except the ResourceMap scan.
 
-The one row that can still fire outright is **K6's p99.9 against 15.6 ms**, and it is unwritten.
+**K6's row is now measured and does not fire** — worst unmanaged iteration 6.984 ms against 15.6 ms
+across 1.74M iterations and four GC configurations. No row in the tripwire table fires.
 
 ## What to do next
 
-**K6 (task 9) is the priority, and it is now the only kernel that can change the language decision.**
-It is `adr/0036`'s named revisit trigger, it is not a BenchmarkDotNet job, and it needs K1–K5 to
-exist — which they now all do. Hold the K0 heap live, run the kernels in a loop for ten minutes,
-histogram the per-iteration time, report **p99.9** under all four `ServerGarbageCollection` ×
-`ConcurrentGarbageCollection` configurations. BenchmarkDotNet's warmup-and-discard model is exactly
-wrong for it, so it needs its own command in `Program.cs` beside `k0`, not a `[Benchmark]`.
+**Run the canonical capture, then task 11.**
 
-After K6, tasks 10 and 11: write `docs/spike-results.md` and delete `spikes/S4.Kernels/`.
+```bash
+sudo spikes/S4.Kernels/tools/kernel-run.sh
+```
+
+Fold the result into K3's and K4's sections in `docs/spike-results.md` — ratios will not move, they did
+not move for K1/K2/K5, but K3's absolutes are judged against a 7 ms band with 3% of headroom and want the
+good configuration. Then migrate whatever remains owed below into `plans/0002-open-questions.md`, and
+delete the spike.
 
 ## Open items carried forward
 
@@ -380,6 +382,12 @@ After K6, tasks 10 and 11: write `docs/spike-results.md` and delete `spikes/S4.K
   slice 4 starts, not discovered by it.
 - **New, from K4:** `WorldSchema`'s `bins[9]` is entry-interleaved and keys-then-values is strictly
   better for the same 81 bytes. `05 §3` should say which, since it is the document that owns layout.
+- **New, from K6:** `05 §6` states no GC configuration and now has evidence for one — **server GC with
+  background collection on**, and `<ConcurrentGarbageCollection>false</...>` stated as a *prohibition*
+  rather than a preference, since it costs the shell 3–4.6× at the tail and buys the core nothing.
+- **New, from K6:** the churn rate that sets the scale of every K6 result (44–52 MB/s) is an unratified
+  guess at what the shell, the UI and the per-frame snapshot allocate. It belongs in `plans/0002`
+  alongside the other task-2 guesses.
 
 **Unratified inputs the schema currently guesses at** — all flagged in
 `plans/0002-open-questions.md` under "From slice 1, running S4 task 2":
