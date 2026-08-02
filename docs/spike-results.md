@@ -699,17 +699,22 @@ variant moves identical bytes across identical addresses and **only the call str
 Allocating the columns separately would have made this a comparison of two allocation layouts as well,
 which is a different kernel.
 
-180.65 MB against the desktop's measured 12.9 GB/s sustained copy rate gives an **ideal of 14.00 ms**.
-Captured under `powersave`+turbo; a canonical `performance`+turbo capture is owed.
+**Captured under the canonical `performance`+turbo**, with the `powersave` capture retained beside it.
+The ideal is governor-specific because the denominator is: 180.65 MB against 13.3 GB/s sustained copy
+gives **13.58 ms** under `performance`, and against 12.9 GB/s gives **14.00 ms** under `powersave`.
 
-| Variant | Mean | vs ideal | vs single block |
-|---|---:|---:|---:|
-| `SingleBlock` — one call | 14.30 ms | 1.02× | 1.00 |
-| `Chunked` 8 MiB | 14.71 ms | 1.05× | 1.03 |
-| `Chunked` 32 MiB | 14.72 ms | 1.05× | 1.03 |
-| `PerColumn` — 104 calls | 17.70 ms | 1.26× | 1.24 |
-| `Chunked` 1 MiB | 19.49 ms | 1.39× | 1.36 |
-| `Chunked` 64 KiB | 19.48 ms | 1.39× | 1.36 |
+| Variant | Mean (canonical) | vs ideal | Mean (`powersave`) | vs ideal | vs single block |
+|---|---:|---:|---:|---:|---:|
+| `SingleBlock` — one call | **13.90 ms** | 1.02× | 14.30 ms | 1.02× | 1.00 |
+| `Chunked` 8 MiB | 14.16 ms | 1.04× | 14.71 ms | 1.05× | 1.02 |
+| `Chunked` 32 MiB | 14.29 ms | 1.05× | 14.72 ms | 1.05× | 1.03 |
+| `PerColumn` — 104 calls | **17.18 ms** | 1.27× | 17.70 ms | 1.26× | 1.24 |
+| `Chunked` 1 MiB | 18.97 ms | 1.40× | 19.49 ms | 1.39× | 1.36 |
+| `Chunked` 64 KiB | 19.06 ms | 1.40× | 19.48 ms | 1.39× | 1.37 |
+
+**Absolutes improve 2–3% and not one ratio moves** — the same result the governor sweep produced for
+K1, K2 and K5, now confirmed for the kernel that most needed it, since K3 is the only kernel whose
+verdict is an absolute judged against an asserted band rather than a ratio.
 
 K0 predicted this figure by division and said *K3 will measure this directly rather than deriving it
 from the denominator, which is the point of having K3 at all.* That turned out to be the right
@@ -721,9 +726,9 @@ A 3.4 ms gap across ~104 calls would have to be 33 µs per call to be call overh
 The chunk sweep exists to find what it actually is, and it finds a **clean step between 1 MiB and
 8 MiB worth 33%**. The arithmetic names it:
 
-- At 14.30 ms the copy moves 361 MB — source read plus destination written, two streams — at
-  25.3 GB/s against the baseline's measured 25.8 GB/s copy traffic.
-- At 19.49 ms it moves roughly 542 MB. **Three streams.** Below the threshold the copy stops using
+- At 13.90 ms the copy moves 361 MB — source read plus destination written, two streams — at
+  26.0 GB/s against the baseline's measured 26.6 GB/s copy traffic.
+- At 19.06 ms it moves roughly 542 MB. **Three streams.** Below the threshold the copy stops using
   non-temporal stores and reads each destination line for ownership before overwriting it, and that
   read is pure waste on a line that is about to be entirely replaced.
 
@@ -736,9 +741,15 @@ are one or two.
 async save's copy. Only the arena copy is inside it.
 
 **If `Borough.Core` arena-allocates its table columns from one contiguous region, the save makes one
-call and 14.3 ms is the price. If each column is its own allocation, the save cannot, and pays 24% to
-land at 17.7 ms — outside the band `adr/0037` asserted.** That is a constraint on how slice 4 lays out
+call and 13.9 ms is the price. If each column is its own allocation, the save cannot, and pays 24% to
+land at 17.2 ms — outside the band `adr/0037` asserted.** That is a constraint on how slice 4 lays out
 its tables, and it is worth writing down before slice 4 starts rather than being discovered by it.
+
+**The canonical capture was taken specifically because this verdict sat close to a band edge, and it
+holds with more room than before.** Under `powersave` the arena copy cleared the 15 ms ceiling by 4.7%;
+under the canonical configuration it clears it by **7.3%**. The per-column copy remains outside the band
+under both. The margin is larger, the conclusion is unchanged, and it is no longer resting on the wrong
+governor.
 
 **This is also the result most sensitive to the machine being misconfigured.** These DIMMs are rated
 3200 MT/s and are running at 2133 with XMP off. At their rated speed every row in the table above falls
@@ -759,17 +770,19 @@ Binary search is deliberately absent. [`plans/0004`](../plans/0004-s4-kernel-ben
 layout matters*, so what is measured is three layouts and the banned alternative.
 
 A row is 81 bytes at a stride of 81 and therefore always straddles two cache lines: 2,000 × 2 × 64 B =
-256 KiB against 15.6 GB/s gives an **ideal of 16.8 µs**. Captured under `powersave`+turbo; a canonical
-capture is owed.
+256 KiB against 15.5 GB/s gives an **ideal of 16.9 µs**. **Captured under the canonical
+`performance`+turbo**, with `powersave` retained beside it. Read bandwidth is the one denominator the
+governor barely touches — 15.5 against 15.6 GB/s — so K4's ideal is effectively governor-independent
+and the absolutes improve 3–8% on their own.
 
-| Variant | Mean | ns/lookup | vs ideal | vs interleaved |
-|---|---:|---:|---:|---:|
-| `KeysThenValuesVector` | 35.66 µs | 17.8 | 2.12× | 0.61 |
-| `KeysThenValues` | 55.07 µs | 27.5 | 3.28× | 0.94 |
-| `EntryInterleaved` | 58.56 µs | 29.3 | 3.49× | 1.00 |
-| `DictionaryLookup` | 109.01 µs | 54.5 | — | 1.86 |
+| Variant | Mean (canonical) | ns/lookup | vs ideal | Mean (`powersave`) | vs interleaved |
+|---|---:|---:|---:|---:|---:|
+| `KeysThenValuesVector` | **34.76 µs** | 17.4 | 2.06× | 35.66 µs | 0.62 |
+| `KeysThenValues` | 53.87 µs | 26.9 | 3.19× | 55.07 µs | 0.95 |
+| `EntryInterleaved` | **56.52 µs** | 28.3 | **3.34×** | 58.56 µs | 1.00 |
+| `DictionaryLookup` | 100.77 µs | 50.4 | — | 109.01 µs | 1.78 |
 
-### The no-hash-maps rule costs nothing — it pays 86%
+### The no-hash-maps rule costs nothing — it pays 78%
 
 The banned shape is the slowest thing in the kernel by a wide margin. `Dictionary` is barred from
 simulation code for enumeration-order determinism as much as for speed, and the rule has always been
@@ -782,9 +795,9 @@ nine bytes ever could.
 This is the one place S4 contradicts its own framing, and the contradiction is the useful part.
 
 - Moving the nine keys to the front of the row — **the pure layout change**, same 81 bytes, same
-  stride, same memory, different order within it — buys **6%**.
+  stride, same memory, different order within it — buys **5%**.
 - Comparing all nine keys in a single 128-bit operation and masking by the entry count — **removing
-  the data-dependent branch** — buys **39%**.
+  the data-dependent branch** — buys **38%**.
 
 The scan is short enough that the mispredict, not the line, is what costs. Which entry matches is
 unpredictable by construction, and a branch predictor cannot learn a subset that differs per Building.
@@ -795,19 +808,19 @@ unpredictable by construction, and a branch predictor cannot learn a subset that
 to end, keys spread across the row at a stride of nine. **It is the slowest of the three permitted
 layouts.** Keys-then-values within the same 81 bytes is strictly better and costs nothing to adopt,
 because it is the same memory in a different order; `05 §3` owns layout and should say which. The
-vector probe is a further 34% on top and needs no layout change beyond that one.
+vector probe is a further 35% on top and needs no layout change beyond that one.
 
 ### One row sits inside the tripwire band, and the report must say so
 
-`EntryInterleaved` at **3.49×** is inside the tripwire's ~3–4×. Recorded here with both arguments
+`EntryInterleaved` at **3.34×** is inside the tripwire's ~3–4×. Recorded here with both arguments
 intact, because the wire was written before the numbers arrived precisely so it could not be reasoned
 around afterwards:
 
 - **Against firing:** the remedy the tripwire names is to write the kernel in a second language. The
   measured cause is branch misprediction, which is not a property of the language, and the C# vector
-  form recovers it to 2.12× without leaving C#. A second implementation would learn nothing that the
+  form recovers it to 2.06× without leaving C#. A second implementation would learn nothing that the
   fourth variant has not already shown.
-- **For firing:** 3.49× is inside the band as written, and the band was written to be applied rather
+- **For firing:** 3.34× is inside the band as written, and the band was written to be applied rather
   than argued with.
 
 **The verdict taken: the wire does not fire, on the ground that its remedy cannot address its cause.**
@@ -834,14 +847,23 @@ into the bucket heads, identical loads, with the entities visited in index order
 
 | Mean wake interval | Wakes/Day | `Revolution` | `SequentialFloor` | Chase penalty |
 |---:|---:|---:|---:|---:|
-| 4096 Ticks | 2 | 35.99 ns | 10.83 ns | 3.32× |
-| 1024 Ticks | 8 | 34.38 ns | 10.78 ns | 3.19× |
-| 256 Ticks | 32 | 35.41 ns | 10.82 ns | 3.27× |
+| 4096 Ticks | 2 | 32.61 ns | 10.61 ns | 3.07× |
+| 1024 Ticks | 8 | 32.94 ns | 10.63 ns | 3.10× |
+| 256 Ticks | 32 | 32.37 ns | 10.58 ns | 3.06× |
 
-**The Wheel costs ~35 ns per woken entity and the pointer chase is 3.3× of that.** The per-wake cost is
-flat across the whole range, which is itself a result: the Wheel's cost is linear in wakes, and the wake
-rate is the only lever on it. The 3.3× is a *floor* on the real penalty, because both variants pay the
-reschedule hash inside the timed loop.
+**The Wheel costs ~32.6 ns per woken entity and the pointer chase is 3.1× of that.** The per-wake cost
+is flat across the whole range, which is itself a result: the Wheel's cost is linear in wakes, and the
+wake rate is the only lever on it. The 3.1× is a *floor* on the real penalty, because both variants pay
+the reschedule hash inside the timed loop.
+
+**These figures replace an earlier capture of the same configuration that read ~35 ns, and the
+replacement is a small lesson in reading error bars.** `Revolution` moved 9% between two runs of the
+identical `performance`+turbo configuration while `SequentialFloor` moved under 2% — and the earlier
+capture carried a standard deviation up to **1.77 ns on `Revolution` against 0.10 ns on the floor**,
+where this one is inside 0.66 ns throughout. The chase is latency-bound and therefore the noisier of the
+two by construction; the tighter capture is the one to trust, and the earlier 3.3× was an artefact of
+the noisy numerator rather than a real difference. **No conclusion moves** — the cost is flat across
+wake rates, the chase dominates the floor by ~3×, and the composed Tick cost below stays under 2%.
 
 Nothing in the corpus had ever put a number on this. The Event Wheel is described as the single largest
 performance lever in the project, and until now its overhead was unmeasured.
@@ -867,9 +889,9 @@ Tick budget at 4× speed**:
 
 | Wakes/Day | Wakes/Tick | Wheel (K5) | Gather (K2) | Total | of the Tick budget |
 |---:|---:|---:|---:|---:|---:|
-| 2 | 381 | 13.7 µs | 5.2 µs | 18.9 µs | 0.12% |
-| 8 | 1,523 | 52.4 µs | 20.8 µs | 73.2 µs | 0.47% |
-| 32 | 6,094 | 215.8 µs | 83.2 µs | 299.0 µs | **1.92%** |
+| 2 | 381 | 12.4 µs | 5.3 µs | 17.7 µs | 0.11% |
+| 8 | 1,523 | 50.2 µs | 21.0 µs | 71.2 µs | 0.46% |
+| 32 | 6,094 | 197.3 µs | 84.2 µs | 281.5 µs | **1.80%** |
 
 **The conclusion survives a 32× correction to its own input.** Even at the most pessimistic wake rate
 the design plausibly wants — every Citizen waking thirty-two times a Day — the Wheel and the wake
@@ -889,7 +911,7 @@ measured and no row fires.**
 
 | Condition | Status |
 |---|---|
-| Any kernel worse than ~3–4× off its hand-computed ideal | **One row inside the band and argued above: K4's `EntryInterleaved` at 3.49×. Taken as not firing, on the ground that the remedy the wire names — a second language — cannot address a branch mispredict.** Next worst is K2's `AosScattered` at 2.27×, a variant the design does not use |
+| Any kernel worse than ~3–4× off its hand-computed ideal | **One row inside the band and argued above: K4's `EntryInterleaved` at 3.34×. Taken as not firing, on the ground that the remedy the wire names — a second language — cannot address a branch mispredict.** Next worst is K2's `AosScattered` at 2.27×, a variant the design does not use |
 | **K6 p99.9 exceeds 15.6 ms** with the heap already pure unmanaged structs | **Does not fire, in any of the four GC configurations.** Worst unmanaged p99.9 is 5.664 ms and worst single iteration is 6.984 ms, across 1,744,889 iterations with **zero** over budget. **The trigger's statistic is itself unsound and `adr/0036` should restate it** — see K6 |
 | Everything within tolerance | Every shape the design actually commits to is between **1.02× and 1.42×** of its ideal — columnar scan, columnar gather, arena copy, intrusive-list drain |
 
@@ -902,7 +924,7 @@ not already know. This one produced six such things:
 2. `checked` is a *block*, so on a raw pointer it silently prices the address arithmetic too — a further
    34 points, and a footgun the overflow policy should name (K1).
 3. The async save's 8–15 ms band holds **only if `Core` arena-allocates its columns**; per-column
-   allocation puts it at 17.7 ms, outside `adr/0037`'s band. A slice-4 constraint discovered before
+   allocation puts it at 17.2 ms, outside `adr/0037`'s band. A slice-4 constraint discovered before
    slice 4 (K3).
 4. The ResourceMap's cost is a **branch mispredict, not a cache line** — so the fix is vectorising the
    probe, not relayouting, and `WorldSchema`'s `bins[9]` is the slowest legal shape (K4).

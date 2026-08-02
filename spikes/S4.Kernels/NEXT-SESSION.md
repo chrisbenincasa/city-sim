@@ -11,29 +11,31 @@ survives task 11.** This note is session state only. If the two disagree, the co
 
 ---
 
-## Start here — task 10 is done, task 11 is deliberately held
+## Start here — tasks 9 and 10 are done, task 11 is all that remains
 
 **Tasks 9 and 10 are complete.** The corrected K6 sweep landed all eight runs with four distinct GC
 labels, the full matrix is written into `docs/spike-results.md`, the provisional banner is gone, the
 tripwire table closes with a verdict, and `adr/0036` records that its K6 trigger was evaluated **and
 restates it**. Nothing is owed on the write-up.
 
-**Task 11 is held on purpose, and this is the only reason this note still exists.** Deleting
-`spikes/S4.Kernels/` forfeits every measurement below, because the harness goes with it. The decision
-taken was to **run the canonical `performance`+turbo capture first**:
+**The canonical `performance`+turbo capture has landed and is folded in.** K1–K5 are now all recorded
+against the governor their denominator was measured under. It changed no conclusion and three numbers:
+K3's arena copy is **13.90 ms** (clearing `adr/0037`'s 15 ms ceiling by 7.3% rather than 4.7%), K4's
+`EntryInterleaved` is **3.34×** of ideal rather than 3.49×, and K5's chase penalty is **3.1×** rather
+than 3.3× — the last because the *earlier* canonical capture was noisy on `Revolution`, not because the
+machine changed. All three are written up in `docs/spike-results.md`.
 
-```bash
-sudo spikes/S4.Kernels/tools/kernel-run.sh          # ~8 min, 26 cases
-```
+**Task 11 is therefore unblocked and is the only thing left:**
 
-That closes the largest gap: K3 and K4 have never been captured under the canonical governor, and K3's
-verdict — 14.3 ms arena copy vs 17.7 ms per-column, against `adr/0037`'s 8–15 ms band — sits about 3%
-from a band edge. **When that capture lands, fold it into K3's and K4's sections and then do task 11:**
-delete `spikes/S4.Kernels/`, record the deleting commit's parent in `docs/spike-results.md`, confirm
-`dotnet build` and `dotnet test` are green with the spike gone.
+1. **Move everything still owed from this file into `plans/0002-open-questions.md`** — this note dies
+   with the directory, and the owed measurements and corpus edits listed at the bottom would go
+   silently with it. That is the step most likely to be skipped and the one that costs most.
+2. Delete `spikes/S4.Kernels/`.
+3. Record the deleting commit's **parent** in `docs/spike-results.md`, so the harness stays recoverable.
+4. Confirm `dotnet build` and `dotnet test` are green with the spike gone.
 
-**Before deleting, move anything still owed from this file into `plans/0002-open-questions.md`** — this
-note dies with the directory and the owed measurements listed at the bottom would go silently with it.
+The XMP re-sweep needs a reboot and is **not** blocking — but note that it dies with the harness too, so
+if it is ever going to happen it happens before step 2. See the open items at the bottom.
 
 ### What K6 concluded
 
@@ -62,7 +64,9 @@ with background collection on (+11% total pause) and expensive with it off (2.8�
 
 ### Caveats on the K6 capture, both recorded in the report itself
 
-- **`powersave`+turbo, not canonical.** Same as K3 and K4.
+- **`powersave`+turbo, not canonical.** K6 is now the *only* kernel not captured under the canonical
+  configuration, since K3 and K4 have since been re-run. It is also the kernel where it matters least:
+  K1/K2/K5 showed the governor moves no ratio, and K6 measures pauses rather than bandwidth.
 - **The churn rate is a guess: 44–52 MB/s, one object in sixteen promoted.** Nothing in the corpus
   states what it should be, and without churn there is no collection at all — so this one number sets
   the scale of every K6 result. `--churn-kb` changes it. **The single most challengeable number in K6**,
@@ -86,7 +90,7 @@ with background collection on (+11% total pause) and expensive with it off (2.8�
 | 8 | K5 wheel bucket drain, 8,192 buckets | **done** — the Wheel has a number for the first time |
 | 9 | K6 ten-minute GC tail, four GC configs (not a BDN job) | **done** — full 4×2 matrix; the trigger does not fire, and the trigger itself was wrong |
 | 10 | The report | **done** — K0–K6 and the verdict in `docs/spike-results.md`; `adr/0036` amended |
-| 11 | Delete `spikes/S4.Kernels/`, record the parent commit | **held** — pending the canonical K3/K4 capture |
+| 11 | Delete `spikes/S4.Kernels/`, record the parent commit | **unblocked** — canonical capture landed and folded in |
 
 ## What can actually be run today
 
@@ -126,26 +130,33 @@ puts the governor and the DIMM rate in the label, and writes `results/kernels-<l
 
 ## The numbers, against `baseline-ddr2133-powersave-turbo.md`
 
-**Every table below is `powersave`+turbo**, because that is the one configuration all five kernels
-have been measured under. Denominators used: **25.8 GB/s copy traffic**, **15.6 GB/s read**. GB is 1e9.
+**All five kernels are now captured under both governors.** `results/kernels-ddr2133-performance-turbo.md`
+is the canonical capture and covers K1–K5. Denominators: **26.6 GB/s copy traffic / 15.5 GB/s read**
+under `performance`, **25.8 / 15.6** under `powersave`. GB is 1e9.
 
-`results/kernels-ddr2133-performance-turbo.md` is the canonical capture and covers K1, K2 and K5 —
-it was taken before K3 and K4 existed. It confirms the reading below rather than changing it:
-
-| | powersave | performance | ratio under powersave | ratio under performance |
+| | powersave | canonical | ratio under powersave | ratio under canonical |
 |---|---:|---:|---:|---:|
-| K1 `SpanUnchecked` | 1.033 ms | 0.992 ms | 1.00 | 1.00 |
-| K1 `SpanChecked` | 1.316 ms | 1.277 ms | 1.27 | **1.29** |
-| K1 `PointerChecked` | 1.733 ms | 1.655 ms | 1.68 | **1.67** |
-| K2 `SoaScattered` | 28.79 µs | 27.31 µs | 1.00 | 1.00 |
-| K2 `AosScattered` | 19.31 µs | 19.17 µs | 0.67 | **0.70** |
-| K5 `Revolution` @4096 | 37.00 ns | 35.99 ns | — | — |
-| K5 `SequentialFloor` @4096 | 10.99 ns | 10.83 ns | 0.30 | **0.30** |
+| K1 `SpanUnchecked` | 1.033 ms | 0.977 ms | 1.00 | 1.00 |
+| K1 `SpanChecked` | 1.316 ms | 1.257 ms | 1.27 | **1.29** |
+| K1 `PointerChecked` | 1.733 ms | 1.633 ms | 1.68 | **1.67** |
+| K2 `SoaScattered` | 28.79 µs | 27.62 µs | 1.00 | 1.00 |
+| K2 `AosScattered` | 19.31 µs | 18.89 µs | 0.67 | **0.68** |
+| K3 `SingleBlock` | 14.30 ms | 13.90 ms | 1.02 | **1.02** |
+| K3 `PerColumn` | 17.70 ms | 17.18 ms | 1.24 | **1.24** |
+| K4 `EntryInterleaved` | 58.56 µs | 56.52 µs | 1.00 | 1.00 |
+| K4 `KeysThenValuesVector` | 35.66 µs | 34.76 µs | 0.61 | **0.62** |
+| K5 `Revolution` @4096 | 37.00 ns | 32.61 ns | — | — |
+| K5 `SequentialFloor` @4096 | 10.99 ns | 10.61 ns | 0.30 | **0.33** |
 
-Absolutes improve 1–5%; **not one ratio moves outside its own error bar.** The governor is not a
-variable in any conclusion here, which is what task 1's four-configuration sweep existed to establish.
-**K3 and K4 still owe a canonical capture** — K3 especially, since its result is a 14.3 vs 17.7 ms
-comparison against an asserted 8–15 ms band and 3% of headroom is not nothing there.
+Absolutes improve 1–5%; **not one ratio moves outside its own error bar**, across all five kernels. The
+governor is not a variable in any conclusion here, which is what task 1's four-configuration sweep
+existed to establish.
+
+**The one row worth a second look is K5's chase penalty**, which reads 3.1× canonically against 3.3×
+under `powersave`. That is not a governor effect: the *earlier* canonical capture of `Revolution` carried
+a standard deviation of 1.77 ns against the floor's 0.10 ns, and the re-run tightened to 0.28 ns. The
+noisy numerator was the 3.3×. `docs/spike-results.md` records this, because a ratio that moves for
+measurement reasons rather than physical ones is exactly the thing a later reader would misattribute.
 
 ### K1 — linear scan and update, 1M rows, three SoA columns
 
@@ -331,24 +342,14 @@ across 1.74M iterations and four GC configurations. No row in the tripwire table
 
 ## What to do next
 
-**Run the canonical capture, then task 11.**
-
-```bash
-sudo spikes/S4.Kernels/tools/kernel-run.sh
-```
-
-Fold the result into K3's and K4's sections in `docs/spike-results.md` — ratios will not move, they did
-not move for K1/K2/K5, but K3's absolutes are judged against a 7 ms band with 3% of headroom and want the
-good configuration. Then migrate whatever remains owed below into `plans/0002-open-questions.md`, and
-delete the spike.
+**Task 11, and nothing else.** Migrate the owed items below into `plans/0002-open-questions.md`, then
+delete `spikes/S4.Kernels/` and record the deleting commit's parent in `docs/spike-results.md`.
 
 ## Open items carried forward
 
 **Measurement owed:**
-- **Re-run `sudo spikes/S4.Kernels/tools/kernel-run.sh`** now that K3 and K4 exist. The existing
-  canonical capture predates them and covers K1, K2 and K5 only. Ratios will not move — they did not
-  move for the first three — but K3's absolutes are judged against a 7 ms band and want the good
-  configuration.
+- ~~Re-run `sudo tools/kernel-run.sh` now that K3 and K4 exist.~~ **Done.** Ratios did not move, as
+  predicted; absolutes improved 2–3%. Folded into `docs/spike-results.md`.
 - **XMP re-sweep after a reboot**, and K3 has raised its priority: `sudo
   spikes/S4.Kernels/tools/baseline-sweep.sh`, then `sudo tools/kernel-run.sh`. Labels carry the
   configured MT/s automatically, so it cannot overwrite the DDR-2133 results. These DIMMs are rated
