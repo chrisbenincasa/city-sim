@@ -98,7 +98,7 @@ become three.
 | # | Slice | Roadmap | Gate | Sittings | Plan |
 |---|---|---|---|---|---|
 | **0** | **Solution scaffolding** — four projects, build config, the three reflection guards, CI | — | none | 1 | [`dev-environment.md` Track A](../docs/dev-environment.md) |
-| **1** | **S4 — the kernel benchmark** | Phase 0 | none | 2 | [`0004`](0004-s4-kernel-benchmark.md) |
+| **1** | **S4 — the kernel benchmark** — **tasks 1–10 done, no tripwire fired; task 11 held for the XMP re-sweep** | Phase 0 | none | 2 | [`0004`](0004-s4-kernel-benchmark.md), results in [`spike-results`](../docs/spike-results.md) |
 | **2** | **The arithmetic substrate** — typed quantities, fixed point, tabulated `exp`/`log`, `draw()`, purpose tags | — | none | 3 | [`0005`](0005-arithmetic-substrate.md) |
 | **3** | **The analysers** — CI lints 2, 3 and 7, plus `purpose_tag` uniqueness | — | none | 2 | [`0006`](0006-analysers-and-lints.md) |
 | **4** | **Typed tables and the field declaration** | **2** | cleared | 3 | [`0007`](0007-typed-tables.md) |

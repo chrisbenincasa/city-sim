@@ -8,7 +8,7 @@ Run `/grill-with-docs` to continue. **Session nine opens on `02 §7` + `adr/0006
 
 **Milestone 1 is now buildable**, and so are the scaffolding, S4, the fixed-point library, typed quantities, milestone 2 and milestone 3c. See *Readiness*. **The most useful thing that can happen next is code, not another session.**
 
-**That work is now decomposed.** [`0003-build-plan.md`](0003-build-plan.md) is the ordered slice ledger for Phase 0 and Phase 1, with a plan document per slice ([`0004`](0004-s4-kernel-benchmark.md) S4, [`0005`](0005-arithmetic-substrate.md) substrate, [`0006`](0006-analysers-and-lints.md) analysers, [`0007`](0007-typed-tables.md) tables, [`0008`](0008-tick-and-replay.md) tick and replay, [`0009`](0009-map-layers.md) Map Layers) and a gate board naming exactly what slices 7–10 are waiting on. **Slice 1 — S4 — has no blockers and is the front of the queue.** The four items below stay owed; they gate the *back* of Phase 1, not the front.
+**That work is now decomposed.** [`0003-build-plan.md`](0003-build-plan.md) is the ordered slice ledger for Phase 0 and Phase 1, with a plan document per slice ([`0004`](0004-s4-kernel-benchmark.md) S4, [`0005`](0005-arithmetic-substrate.md) substrate, [`0006`](0006-analysers-and-lints.md) analysers, [`0007`](0007-typed-tables.md) tables, [`0008`](0008-tick-and-replay.md) tick and replay, [`0009`](0009-map-layers.md) Map Layers) and a gate board naming exactly what slices 7–10 are waiting on. **Slice 1 — S4 — has run**, and no tripwire row fired; only its final task, deleting the harness, is outstanding and held on purpose. The four items below stay owed; they gate the *back* of Phase 1, not the front.
 
 ---
 
@@ -525,7 +525,7 @@ The open question as it stood:
 
 ### Standing debts, carried
 
-- **S4** (new, and it runs first), **S0**, and **S2**, which also owns Chunk size.
+- ~~**S4** (new, and it runs first)~~ — **RUN, and no tripwire row fired.** Tasks 1–10 are complete and recorded in [`docs/spike-results.md`](../docs/spike-results.md); task 11 (deleting the harness) is deliberately held pending the XMP re-sweep. What it handed back is below, under *From slice 1, running S4 tasks 3–10*. **`S0` and `S2` remain**, and S2 also owns Chunk size.
 - ~~**`adr/0036`'s owed enumeration**~~ — **CLOSED same session by `adr/0002`.** Hot/cold *is* the exception rule: the hot path allocates nothing and holds no references, the cold path may do both because it runs on a click. Both candidates were on one axis, which is `adr/0031`'s test for having found the abstraction.
 - ~~**`adr/0002` has never been grilled**~~ and ~~**`adr/0004` + ledger #29**~~ — **both CLOSED same session.** **`adr/0003` (determinism) is now the highest-value 🔴**, and it got more load-bearing rather than less: `0036` rests on its integer-semantics argument, and `0037` made *replay reconstructs any later state* the entire mechanism of crash forensics. It is the one ADR the project cannot route around.
 - **Ledger #29b** — `adr/0004`'s Chunk-partition claim for **mobile** entities. `05 §5` role 3 leans on it.
@@ -665,6 +665,90 @@ which is what rule 6 predicted would happen.
   as a parameter and report footprint as a function of it. That also makes K0 the natural place to
   inform what the Cap should be, which is currently a fixed world constant with no value and no
   derivation.
+
+**From slice 1, running S4 tasks 3–10** — the kernels themselves. Full working in
+[`docs/spike-results.md`](../docs/spike-results.md), which is corpus and survives the spike's deletion.
+**S4 has run and no tripwire row fired**, so `adr/0036`'s language decision now stands on measurement
+rather than on argument alone. What follows is what the running produced *beside* the verdict, which is
+the part a spike is actually for.
+
+**Corpus edits owed, each with the kernel that produced it:**
+
+- **`adr/0003` calls `checked` inside the fixed-point library cheap, and names it the only claim there
+  without arithmetic behind it.** K1 supplied the arithmetic: **27%** on a scan that does nothing but the
+  multiply, which is the worst case. Whether 27% counts as "cheap" is a judgement the ADR should now make
+  explicitly rather than continue to inherit.
+- **The `checked`-block-scope footgun needs a sentence wherever the overflow policy is stated.** `checked`
+  is a *block* in C#, so scoping it to a loop body that indexes a raw pointer silently prices the address
+  arithmetic as well — worth **34 points on top of the 27**. The fix is to walk pointers or use spans. K1
+  measured both forms specifically so that the two costs could not be recorded as one number.
+- **`adr/0037`'s 8–15 ms band for the async save's copy is conditional, and the condition is an allocator
+  decision nobody has made.** K3: one contiguous arena copies in **13.9 ms** and is inside the band;
+  per-column allocation copies in **17.2 ms** and is outside it. **That is a constraint on how slice 4
+  lays out its tables**, and it belongs in writing before slice 4 starts rather than being discovered by
+  it.
+- **`05 §3` owns layout and should state which `bins[9]` shape it means.** K4: `WorldSchema`'s
+  entry-interleaved form is the slowest of the three permitted layouts, and keys-then-values is strictly
+  better for the same 81 bytes — the same memory in a different order, so it costs nothing to adopt.
+- **`05 §6` states no GC configuration and now has evidence for one.** K6: **server GC with background
+  collection on**, and `<ConcurrentGarbageCollection>false</...>` recorded as a **prohibition** rather
+  than a preference. It costs the shell 3–4.6× at the tail and buys the core nothing, and it is precisely
+  the knob a latency-conscious developer reaches for on the reasoning that background collection adds
+  overhead.
+- **`adr/0036`'s revisit trigger has been restated** from a p99.9 to a maximum and an over-budget count,
+  because K6 showed the quantile cannot see the event the trigger exists to detect — the run whose worst
+  iteration was 100.2 ms read 2.462 ms at p99.9, and in half the GC matrix p99.9 ranked the *rejected*
+  design above the chosen one. **Recorded here as a pattern rather than only as an edit:** the standing
+  debt above to audit for *revisit triggers already satisfied on the day they were written* now has a
+  sibling — **audit for revisit triggers whose statistic cannot detect the thing they name.** A trigger
+  that cannot fire is not protecting anything, and `0036`'s is unlikely to be the only one.
+- **A configuration sweep must report the configuration the system actually adopted, not the one it was
+  asked for.** K6's first sweep asked for four GC configurations and silently ran two, because
+  `DOTNET_gcServer` overrides `runtimeconfig.json` and `DOTNET_gcConcurrent` does not. It was caught only
+  because the report printed *effective* settings; had the label echoed the requested value it would have
+  been recorded as four configurations agreeing closely — a tidy and completely false result that would
+  have hidden the largest number in the matrix. **Same shape as the unratified-number failure this file
+  keeps finding: a value never checked against what it claimed to describe.**
+
+Carried and still owed, none of them from S4: `03 §4` invariant 1 wording pass; `CONTEXT.md`'s Citizen
+entry still lists `home`, which task 2 moved to the Household; `CONTEXT.md` has no **Unemployment**
+definition and wants one — *a Household where no Citizen holds a job*; and `CLAUDE.md` still calls Map
+"open" though session six closed it at 4096².
+
+**Two more unratified numbers, in the shape this section keeps finding:**
+
+- **The mean wake interval is unratified, has a 32× range, and drives the Event Wheel's entire cost.** K5
+  found bucket occupancy to be triangular rather than uniform, so an entity waking every M Ticks is
+  drained 1/M of the time and the drain rate is **N/M per Tick, not N/8192** — 381 wakes per Tick at
+  M = 4,096 and 6,094 at M = 256. The corpus has never fixed M. The Wheel's cost is linear in wakes and
+  the wake rate is the only lever on it, so this single input decides whether the Wheel and its wake
+  gather cost **0.11% of a Tick or 1.80%**.
+- **The GC churn rate K6 assumed — 44–52 MB/s, one object in sixteen promoted — is a guess at what the
+  shell, the UI and the per-frame snapshot allocate.** Nothing in the corpus states it. Without churn
+  there is no collection and no pause whatever is held live, so this one number sets the scale of every
+  K6 result **including the one that cleared `adr/0036`'s trigger**.
+
+**Measurement owed, and it dies with the harness.** `spikes/S4.Kernels/` is deliberately **not** deleted
+yet — task 11 is held — because the following need it and reconstructing it from git history would cost
+more than keeping it:
+
+- **The XMP re-sweep, which is the reason the deletion is held.** These DIMMs are rated **3200 MT/s and
+  are running at 2133** with XMP off, so `adr/0037`'s save-copy band is being judged against a machine
+  not running to its own specification. At the rated speed every K3 row falls inside the band and the
+  allocator constraint above softens considerably. Needs a reboot: `sudo tools/baseline-sweep.sh`, then
+  `sudo tools/kernel-run.sh`. Labels carry the configured MT/s automatically, so it cannot overwrite the
+  DDR-2133 results.
+- **K0, and then K1/K2/K5, on the Apple M4 Pro.** The second machine exists because a single sample
+  cannot tell a property of the design from a property of the box it was measured on — and on the
+  baseline evidence it could not, since one conclusion already reverses between them. `kernel-run.sh` is
+  Linux-only (it reads `/sys/devices/system/cpu`); on macOS run the binary under `bench --filter '*'`.
+- **K6 under the canonical governor.** It is now the only kernel never captured under `performance`+turbo,
+  and also the one where it matters least, since it measures pauses rather than bandwidth. Eighty minutes
+  if it is ever worth closing properly.
+
+**Partially discharging the Microscopic Cap bullet above:** K0 does take the Cap as a parameter and
+reports footprint as a curve — **3.0 MiB at 1,000 Segments to 90.3 MiB at 30,000**. The Cap itself
+remains unset, and remains the input `adr/0036`'s headroom argument is downstream of.
 
 ---
 

@@ -11,7 +11,7 @@ survives task 11.** This note is session state only. If the two disagree, the co
 
 ---
 
-## Start here — tasks 9 and 10 are done, task 11 is all that remains
+## Start here — tasks 1–10 are done; task 11 waits on the XMP re-sweep
 
 **Tasks 9 and 10 are complete.** The corrected K6 sweep landed all eight runs with four distinct GC
 labels, the full matrix is written into `docs/spike-results.md`, the provisional banner is gone, the
@@ -25,17 +25,32 @@ K3's arena copy is **13.90 ms** (clearing `adr/0037`'s 15 ms ceiling by 7.3% rat
 than 3.3× — the last because the *earlier* canonical capture was noisy on `Revolution`, not because the
 machine changed. All three are written up in `docs/spike-results.md`.
 
-**Task 11 is therefore unblocked and is the only thing left:**
+**Everything owed has been migrated to [`plans/0002-open-questions.md`](../../plans/0002-open-questions.md)**
+under *From slice 1, running S4 tasks 3–10* — the six corpus edits, the two new unratified numbers, and
+the three outstanding measurements. **The bottom half of this file is now a duplicate, not a source.**
+If it disagrees with `plans/0002` or `docs/spike-results.md`, they are right and this is stale.
 
-1. **Move everything still owed from this file into `plans/0002-open-questions.md`** — this note dies
-   with the directory, and the owed measurements and corpus edits listed at the bottom would go
-   silently with it. That is the step most likely to be skipped and the one that costs most.
-2. Delete `spikes/S4.Kernels/`.
-3. Record the deleting commit's **parent** in `docs/spike-results.md`, so the harness stays recoverable.
-4. Confirm `dotnet build` and `dotnet test` are green with the spike gone.
+**Task 11 is held, deliberately, until the XMP re-sweep can run.** These DIMMs are rated 3200 MT/s and
+are running at **2133** with XMP off, so `adr/0037`'s save-copy band — and therefore K3's constraint on
+`Core`'s allocator — is being judged against a machine not running to its own specification. At the rated
+speed every K3 row falls inside the band and the constraint softens considerably. **That measurement dies
+with the harness**, so it happens first. It needs a reboot to enable XMP in firmware:
 
-The XMP re-sweep needs a reboot and is **not** blocking — but note that it dies with the harness too, so
-if it is ever going to happen it happens before step 2. See the open items at the bottom.
+```bash
+sudo spikes/S4.Kernels/tools/baseline-sweep.sh    # re-measure the denominator at 3200
+sudo spikes/S4.Kernels/tools/kernel-run.sh        # then the kernels against it
+```
+
+Labels carry the configured MT/s automatically, so this cannot overwrite the DDR-2133 results. Fold the
+outcome into K3 (and K0's derived save cost) in `docs/spike-results.md`.
+
+**Worth doing in the same sitting, since they also die with the harness:** K0 and then K1/K2/K5 on the
+Mac, and — if it is ever worth 80 minutes — K6 under the canonical governor, the only kernel never
+captured under `performance`+turbo.
+
+**Then, and only then, task 11:** delete `spikes/S4.Kernels/`, record the deleting commit's **parent** in
+`docs/spike-results.md` so the harness stays recoverable, and confirm `dotnet build` and `dotnet test`
+are green with the spike gone. Nothing needs migrating at that point — it is already done.
 
 ### What K6 concluded
 
@@ -90,7 +105,7 @@ with background collection on (+11% total pause) and expensive with it off (2.8�
 | 8 | K5 wheel bucket drain, 8,192 buckets | **done** — the Wheel has a number for the first time |
 | 9 | K6 ten-minute GC tail, four GC configs (not a BDN job) | **done** — full 4×2 matrix; the trigger does not fire, and the trigger itself was wrong |
 | 10 | The report | **done** — K0–K6 and the verdict in `docs/spike-results.md`; `adr/0036` amended |
-| 11 | Delete `spikes/S4.Kernels/`, record the parent commit | **unblocked** — canonical capture landed and folded in |
+| 11 | Delete `spikes/S4.Kernels/`, record the parent commit | **held** — waits on the XMP re-sweep, which dies with the harness |
 
 ## What can actually be run today
 
@@ -346,6 +361,10 @@ across 1.74M iterations and four GC configurations. No row in the tripwire table
 delete `spikes/S4.Kernels/` and record the deleting commit's parent in `docs/spike-results.md`.
 
 ## Open items carried forward
+
+> **Migrated to [`plans/0002-open-questions.md`](../../plans/0002-open-questions.md)** under *From slice 1,
+> running S4 tasks 3–10*. Retained below only so this note reads standalone until it is deleted. **The
+> ledger is the source; this is a copy.**
 
 **Measurement owed:**
 - ~~Re-run `sudo tools/kernel-run.sh` now that K3 and K4 exist.~~ **Done.** Ratios did not move, as
