@@ -881,6 +881,45 @@ the planning rather than to the running, which is where it caught four of these.
 reports footprint as a curve — **3.0 MiB at 1,000 Segments to 90.3 MiB at 30,000**. The Cap itself
 remains unset, and remains the input `adr/0036`'s headroom argument is downstream of.
 
+**From slice 2, building the arithmetic substrate** — tasks 1, 2, 3 and 7 of
+[`0005`](0005-arithmetic-substrate.md). The first code in `Borough.Core`, and three findings arrived
+within an hour of it existing, which is rule 6's prediction landing rather harder than the planning
+did. Tasks 4, 5 and 6 — tabulated `exp`/`log`, `draw()` and `PurposeTag` — are not started, and the
+`exp`/`log` resolution remains the decision that slice cannot close without.
+
+- **A mechanically-enforced rule was incompatible with the type shape the corpus itself prescribes,
+  and the first file to land under it tripped it.** Slice 0's `Core_returns_no_human_readable_strings`
+  guard rejects any public string-returning method; `0005` prescribes `readonly record struct` for
+  typed quantities; **every record struct generates a public `ToString()`.** The guard has been
+  narrowed to exempt an override of `object.ToString()` specifically, and the exemption is right
+  rather than convenient: **`object.ToString()` is callable on every type whether or not it is
+  overridden**, so banning the override closes no leak — it only trades `Money { Raw = 5 }` for
+  `Borough.Core.Quantities.Money`. What `adr/0002` names as the leak vector is a *bespoke* member
+  written because a panel wanted one, and those are still caught. **The general lesson is the one
+  worth keeping: a guard written before any code exists is a hypothesis about what the code will look
+  like**, and this corpus has now written seven of them against a codebase of one marker class. The
+  other six should be expected to need the same treatment, and needing it is not evidence they were
+  wrong.
+- **`adr/0003`'s justification for leaving ambient arithmetic unchecked does not cover unsigned
+  subtraction, and `Ticks` is unsigned.** The stated reason `checked` is confined to the fixed-point
+  library is that *the width already closes the question*. For `u64` subtraction the width closes
+  nothing: `earlier - later` wraps to roughly **1.8×10¹⁹**, a Tick count so large that every
+  downstream comparison silently succeeds — and unlike a narrowing overflow it needs no large inputs,
+  only two Ticks in the wrong order. Handled without widening the `checked` scope, by giving `Ticks` a
+  `TrySubtract` in the same shape as `Money.TryDebit` and defining no `operator -` at all; the
+  negative-compilation suite asserts `Ticks - Ticks` does not compile. **`adr/0003` should state the
+  exception rather than leave the width argument reading as universal.**
+- **Floor rounding compounds downward, and the corpus has a conservation obligation it interacts
+  with.** Q16.16 has no exact third, so `Ratio.FromFraction(1, 3)` floors and three of them come to
+  **one representable step below one**, not to one. That is nothing for a position — a ten-thousandth
+  of a Tile — and it is asserted as a test rather than avoided, because the loss is always downward
+  and never upward, which is what makes it safe here. **It is not nothing for a Bin.** `CLAUDE.md`'s
+  definition of done requires Goods conserved, and a conserved quantity split three ways by scaling
+  each share independently loses units on every split, silently and identically in both runs — so the
+  State Hash certifies it. **Whatever splits a Bin must reconcile the remainder rather than scale each
+  share**, and that belongs to the Rule engine (slice 7) rather than to the substrate. Recorded now
+  because the arithmetic that causes it is landing now.
+
 ---
 
 ## Superseded — session seven's opening brief

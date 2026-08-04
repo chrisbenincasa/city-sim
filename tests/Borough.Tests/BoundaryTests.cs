@@ -53,6 +53,26 @@ public class BoundaryTests
     /// The real leak vector was never `using Godot;`; it is a method that returns a
     /// formatted string because a panel wanted one.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Overrides of <c>object.ToString()</c> are exempt, and the exemption is narrow on purpose.</b>
+    /// Slice 2 is the first code to land under this guard and it tripped it immediately: every
+    /// `readonly record struct` — the shape plans/0005 prescribes for typed quantities — generates a
+    /// public parameterless `ToString()`.
+    /// </para>
+    /// <para>
+    /// The exemption is right rather than merely convenient. `object.ToString()` is callable on every
+    /// type in .NET whether or not the type declares an override, so banning the override closes no
+    /// leak; it only makes the string less useful, trading `Money { Raw = 5 }` for
+    /// `Borough.Core.Quantities.Money`. Nothing about the boundary changes either way. What adr/0002
+    /// actually names as the leak vector is a *bespoke* member — `GetBuildingName()`, a method that
+    /// exists because a panel wanted one — and the guard below still catches every one of those.
+    /// </para>
+    /// <para>
+    /// Anything wider than this exemption would be a hole. A `ToString(string format)` overload, a
+    /// `Describe()`, or a string-returning property is not covered here and will still fail.
+    /// </para>
+    /// </remarks>
     [Fact]
     public void Core_returns_no_human_readable_strings()
     {
@@ -62,6 +82,7 @@ public class BoundaryTests
                                          | BindingFlags.Static | BindingFlags.DeclaredOnly)
             where method.ReturnType == typeof(string)
             where !method.IsSpecialName            // property getters are checked separately
+            where !IsObjectToStringOverride(method)
             select $"{type.Name}.{method.Name}";
 
         var found = offenders.ToList();
@@ -70,4 +91,13 @@ public class BoundaryTests
             $"Public string-returning members on Borough.Core: {string.Join(", ", found)}. " +
             "adr/0002: the shell owns every string a human reads, resolved through the Ruleset.");
     }
+
+    /// <summary>
+    /// True only for a parameterless <c>ToString()</c> whose base definition is
+    /// <see cref="object.ToString"/> — which is to say, the one the compiler writes for you.
+    /// </summary>
+    private static bool IsObjectToStringOverride(MethodInfo method) =>
+        method.Name == nameof(ToString)
+        && method.GetParameters().Length == 0
+        && method.GetBaseDefinition().DeclaringType == typeof(object);
 }
