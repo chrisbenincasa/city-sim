@@ -808,6 +808,63 @@ more than keeping it:
   and also the one where it matters least, since it measures pauses rather than bandwidth. Eighty minutes
   if it is ever worth closing properly.
 
+**From planning S2** — [`0010-s2-routing.md`](0010-s2-routing.md), written the session slice 1 reported,
+per [`0003`](0003-build-plan.md)'s instruction that S2 be planned the moment it does. Rule 6 applied to
+the planning rather than to the running, which is where it caught four of these.
+
+- **`Segment` has no `CONTEXT.md` entry, and it gates S2.** The word appears twenty times in that file
+  — Fidelity, Stress, the Audit, the Microscopic Cap, Promotion and Demotion, Traveller, the VDF,
+  Upkeep — and is defined nowhere. It is the unit the Cap counts, the unit Fidelity attaches to, the
+  unit the VDF is evaluated on, and the unit `adr/0035` prices Upkeep against. **S2 is the first work
+  that must count Segments**, so it has to choose between a Road Graph edge, a run between Junctions,
+  and a Tile-length edge — **which differ by more than an order of magnitude on the same city**, and
+  which makes the ~30,000 placeholder meaningless until the word is fixed. `CONTEXT.md`'s own first
+  rule is that a term is added there before it is used. One entry, before S2 starts.
+- **The travel-time matrix refresh cadence is filed as tuning and is almost certainly hash-bearing.**
+  `02 §1.2` lists accessibility refresh among the tunable knobs; but cadence decides when a changed
+  travel time becomes visible to the choice loop, so two cadences produce two cities — **a design
+  change under `05 §4`.** This is the **fifth instance of the welding failure** `adr/0034` found in
+  Chunk size, after Map Layer diffusion cadence, and **the second one found by reading `02 §1.2`'s
+  tuning column specifically** — which is now the highest-yield place in the corpus to audit, and
+  should be audited in full rather than one entry at a time. Note the near miss: `05 §4` separately
+  lists *"rebuilding the travel-time matrix rather than saving it"* as hash-preserving, which is a
+  **different and correct** claim — a deterministic rebuild is hash-preserving, a variable cadence is
+  not, and the two sit close enough to be mistaken for each other.
+- **Routing has no stated share of the Tick budget, and S2 needs one to have a tripwire.** `0010`
+  chooses **10% of 15.6 ms on the desktop**, against two anchors: S4 measured the Event Wheel and its
+  wake gather at 1.80% at the most pessimistic wake rate, and `adr/0037` names the order of suspicion
+  for a slow Tick as *the Microscopic Cap, routing, and the Sweep Rule schedule*. Defensible; **not
+  derived**, and recorded here on the day it was chosen.
+- **Does a Statistical Trip need a concrete path, or only an arrival time?** The corpus has never asked
+  this in writing and the two answers give different games. A Traveller on a Statistical Segment is
+  defined as *an origin, a destination, and an arrival Tick* — which needs no path — but Stress is
+  `volume / capacity`, and volume has to be accumulated from something that knows which Segments a Trip
+  traverses. **If volume comes from a periodic assignment over the matrix, per-Trip routing collapses to
+  the Microscopic Cap's scale and the Cap is the constraint rather than the router.** If it does not,
+  the floor is ~232 searches per Tick before cache hits. `0010` task R2 measures the ratio, and it is
+  the number that decides how much of the rest of that spike matters.
+- **The route cache has no eviction policy anywhere in the corpus.** `adr/0012` permits caching keyed by
+  origin-destination pair, `adr/0006` forbids collections that grow and has reversal criteria of
+  *"Nothing."*, and nothing joins the two. `adr/0017` shows the pattern — fixed capacity, least-used
+  eviction. Owed to `adr/0012` as an amendment.
+- **`06`'s S2 specification is stale and should be struck.** *"30k Travellers"* predates the 1M target
+  and the 4096² map; the derived load is ~56,000 Trips and ~140,000 Legs in flight, so the spike as
+  specified is undersized ~2× on Trips and ~5× on Legs. S1's *"20k Buildings"* is stale for the same
+  reason. **And the ~400k Trips/Day figure this ledger already debunked still stands uncorrected in
+  `05` and in item #20** — a figure identified as wrong and left in place is worse than one nobody has
+  checked, because the next reader finds it in the authoritative document rather than in the ledger.
+- **Three filenames use a term `CONTEXT.md` bans outright.** `CONTEXT.md`'s *Terms we deliberately do
+  not use* opens with *"**Agent** — too vague. Say Citizen (the record), Traveller (the embodiment), or
+  Vehicle."* Yet `adr/0012-routing-intent-lives-in-the-agent.md`,
+  `adr/0017-agents-satisfice-they-never-optimise.md` and `docs/03-agent-architecture.md` all carry it,
+  and `03`'s title is *"Agents and Movement"*. **For an ADR this is not cosmetic: `CLAUDE.md` states
+  that the filename *is* the claim**, so `0012`'s claim is stated in vocabulary the corpus forbids —
+  and its actual claim, *routing intent lives in the Traveller*, uses the correct term in its own body.
+  **Whether the ban post-dates the filenames cannot be settled from git** — the entire corpus arrived in
+  one commit (`84240a1`), so there is no history to read, and this is the first time that has cost
+  anything. **The rename is 33 occurrences across 22 files** and is not S2's to do; recorded so it is a
+  decision rather than a drift.
+
 **Partially discharging the Microscopic Cap bullet above:** K0 does take the Cap as a parameter and
 reports footprint as a curve — **3.0 MiB at 1,000 Segments to 90.3 MiB at 30,000**. The Cap itself
 remains unset, and remains the input `adr/0036`'s headroom argument is downstream of.

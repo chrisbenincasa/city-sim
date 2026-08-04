@@ -114,7 +114,7 @@ become three.
 
 | # | Spike | Gate | Note |
 |---|---|---|---|
-| **S2** | Routing — travel-time matrix first, then HPA\* versus DSDV distance-vector | none | **The project's top risk.** Headless, needs no Godot. It decides whether 1M is reachable and it owns Chunk size. Not planned here; it should be planned the moment slice 1 reports |
+| **S2** | Routing — travel-time matrix first, then HPA\* versus DSDV distance-vector | `CONTEXT` → Segment | **The project's top risk.** Headless, needs no Godot. It decides whether 1M is reachable and it owns Chunk size. **Planned in [`0010`](0010-s2-routing.md)** now that slice 1 has reported |
 | **S1** | 20k Buildings via chunked `MultiMeshInstance3D` | none | Track B. Godot only |
 | **S3** | One data panel with a live multi-series graph | none | Track B. Godot only. **The spike most likely to be skipped and most likely to change the decision** |
 | **S0** | Synthetic 1M-Citizen city in `Borough.Headless` | slices 4–6 | Runs after the Phase 1 gate closes. Until it exists, 1M is a hope |
