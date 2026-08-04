@@ -11,7 +11,7 @@ produced**. A spike that records data and no verdict has not finished.
 
 | Spike | Question | Status |
 |---|---|---|
-| **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. **K0–K6 recorded below and the verdict reached.** Owed: the deleting commit. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
+| **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. **K0–K6 recorded below and the verdict reached; K0–K5 on two machines.** Owed: the deleting commit. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
 | **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Also owns Chunk size | not run. **The project's top risk** |
 | **S1** | Rendering ceiling — 20k Buildings via chunked `MultiMeshInstance3D` | not run |
 | **S3** | UI ceiling — one data panel with a live multi-series graph, and how long it took | not run |
@@ -25,6 +25,12 @@ produced**. A spike that records data and no verdict has not finished.
 the denominator measured, the schema derived, K0–K6 run and the verdict reached.** Still owed by this
 section: the commit at which `spikes/S4.Kernels/` was deleted.
 
+**The second-machine capture is what most changed the reading**, and it changed it in the direction the
+two-machine rule was written to catch. Three conclusions were properties of the desktop rather than of
+the design — the threading payoff, the array-of-structs advantage in K2, and the per-column copy penalty
+in K3 — and one methodological defect surfaced only from the disagreement: a ratio against a bandwidth
+ideal stops being a verdict once the loop is no longer bandwidth-bound.
+
 K1–K5 were captured by `spikes/S4.Kernels/tools/kernel-run.sh`, which pins to one physical core with
 its SMT sibling idle and puts the governor and the configured DIMM rate in the label. It exists
 because a kernel run under a different frequency configuration than its denominator is a ratio
@@ -36,6 +42,17 @@ The second exists because a single sample cannot tell a property of the design f
 the box it was measured on, and on this evidence it could not: one of the conclusions below reverses
 between them. Raw captures are in `spikes/S4.Kernels/results/`, recoverable from the deleting commit
 recorded at the end of this section once task 11 runs.
+
+**K0–K5 have since been captured on the M4 Pro as well** (2026-08-03 and 2026-08-04,
+`results/k0-apple-m4-pro.md` and `results/kernels-apple-m4-pro.md`), and each kernel below carries an
+*On the second machine* subsection stating what travelled and what did not. K6 has not been run there
+and is the one kernel resting on a single machine.
+
+**Two things to hold while reading those subsections.** The M4 Pro capture is **not pinned** — macOS
+cannot pin a thread to a core at all — so its absolutes are a shape and its variant ratios are the
+comparable part. And the M4 Pro's L2 is **16 MiB cluster-shared** against the desktop's 12 MB L3,
+which is large enough that two of the kernels are partly cache-resident there and are not measuring
+what their desktop counterparts measure. Where that happens it is stated rather than averaged over.
 
 ### The machine — Linux desktop
 
@@ -555,11 +572,20 @@ sizes it against footprint is arguing from the wrong quantity.
 
 ### Headroom, which is the actual result
 
-**372×.** This desktop could hold roughly 372 million Citizens' worth of rows; the 24 GiB M4 Pro holds
-about 140 million. Since `00-vision` commits to *at least* a million rather than exactly a million,
-the multiple is the finding and the absolute figure is only how it was reached. **Memory is not a
-constraint on this design at any population it will plausibly reach**, and the binding constraints are
-elsewhere — per-Tick compute, the routing graph, and the Microscopic Cap.
+**372×.** This desktop could hold roughly 372 million Citizens' worth of rows; the 24 GiB M4 Pro was
+projected at about 140 million and **has since measured 143×**, which is as close as a projection from
+available memory can be expected to land. Since `00-vision` commits to *at least* a million rather than
+exactly a million, the multiple is the finding and the absolute figure is only how it was reached.
+**Memory is not a constraint on this design at any population it will plausibly reach**, and the binding
+constraints are elsewhere — per-Tick compute, the routing graph, and the Microscopic Cap.
+
+**The footprint itself is identical on both machines at 172.3 MiB**, which is the expected result and
+is worth one line of confirmation: the schema is a sum of column widths with no per-row padding under
+struct-of-arrays, so it cannot vary with cache line size or allocator. What differs is the allocator's
+overhead — **1.0% on the M4 Pro against 1.1% on the desktop** — and the first touch, which takes
+**9 ms there against 52 ms here**. The second figure is the one to remember when world generation is
+built: first-touching the world is a memory-bandwidth operation and it will be roughly six times slower
+on the slow target.
 
 ---
 
@@ -624,6 +650,41 @@ nothing can overflow and no check is emitted for it. It lands on `SpanChecked` t
 **The decision: scope `checked` to the value expression, or index through a `Span`, and never wrap a
 loop body that indexes a raw pointer.** This is a footgun with a named fix and it belongs wherever the
 overflow policy is stated. The two numbers must not be recorded as one.
+
+### On the second machine — every conclusion survives, and two get stronger
+
+24 MB against the M4 Pro's 126.5 GB/s copy traffic gives an **ideal of 0.190 ms**.
+
+| Variant | Mean | vs ideal | vs unchecked | vs unchecked (desktop) |
+|---|---:|---:|---:|---:|
+| `SpanUnchecked` | 377.7 µs | 1.99× | 1.00 | 1.00 |
+| `PointerUnchecked` | 417.9 µs | 2.20× | **1.11** | 1.00 |
+| `SpanChecked` | 486.9 µs | 2.57× | **1.29** | 1.29 |
+| `PointerCheckedWalked` | 503.6 µs | 2.65× | 1.33 | 1.27 |
+| `PointerChecked` | 859.3 µs | 4.53× | **2.28** | 1.67 |
+
+**`checked` costs 29% on arm64 against 27% on x86-64, so the overflow policy's price is a property of
+the arithmetic and not of the ISA.** That is the useful form of the number, and it means the judgement
+`adr/0003` owes — whether 27% counts as "cheap" — can be made once rather than per target.
+
+**The block-scope footgun is more than twice as expensive on arm64.** Indexing a raw pointer inside a
+`checked` block costs **95 points on top of the walked form** here against 40 points on the desktop.
+The mechanism is the same and the fix is the same; only the price differs, and it differs in the
+direction that makes the sentence the overflow policy owes more worth writing, not less.
+
+**`unsafe` does not merely earn nothing on arm64 — it costs 11%.** On the desktop `PointerUnchecked`
+and `SpanUnchecked` were within 0.3%; here the raw pointer is the slower of the two. The decision that
+`Borough.Core`'s table access does not need `unsafe` now has a machine on which taking `unsafe` anyway
+would be a measurable regression.
+
+**The ratio-to-ideal column is not comparable across the two machines, and the reason is worth
+recording.** The ideal is a *bandwidth* ideal. On the desktop this loop achieves 91% of the measured
+copy ceiling and is genuinely bandwidth-bound, so 1.10× means what it looks like. On the M4 Pro the
+same loop achieves **50%** of a ceiling 4.8× higher, which is to say it has stopped being
+bandwidth-bound and is now limited by the multiply-accumulate itself. **A bandwidth ideal measures
+nothing once the loop is not bandwidth-bound**, so K1's arm64 ratios must not be read as a regression
+against the tripwire — see the verdict section, where this is why `PointerChecked`'s 4.53× does not
+fire.
 
 ---
 
@@ -690,6 +751,48 @@ waste (a 20-byte row padded to 32 so it never straddles a line), the loss of col
 same fields, and a second layout to keep consistent with the first. `05 §3`'s choice now stands on a
 measurement rather than on an argument.
 
+### On the second machine — the array-of-structs advantage reverses, and the run is confounded
+
+**This is the kernel where the M4 Pro's 16 MiB L2 does the most damage to comparability, and the
+numbers say so before any argument does.** Ideals are against 66.5 GB/s read with 128-byte lines:
+struct-of-arrays touches 2,000 × 3 × 128 B = 750 KiB, array-of-structs one third of that, and the
+sequential control 40 KB as on the desktop.
+
+| Variant | Mean | ns/handle | vs ideal | vs SoA scattered | vs SoA scattered (desktop) |
+|---|---:|---:|---:|---:|---:|
+| `SoaScattered` | 3.692 µs | 1.85 | **0.32×** | 1.00 | 1.00 |
+| `SoaSorted` | 3.429 µs | 1.71 | 0.30× | 0.93 | 0.94 |
+| `SoaSequential` | 1.124 µs | 0.56 | 1.87× | 0.30 | 0.10 |
+| `AosScattered` | 5.203 µs | 2.60 | 1.35× | **1.41** | 0.70 |
+| `AosSorted` | 5.136 µs | 2.57 | 1.33× | 1.39 | 0.69 |
+
+**`SoaScattered` beats its own bandwidth ideal by 3×, which is not possible for a gather that reaches
+DRAM.** At **0.615 ns per cache line** — roughly 2.8 cycles — this is cache latency, not memory
+latency and certainly not memory bandwidth. The working set is ~20 MB against a 16 MiB cluster-shared
+L2, so most of it is resident. **The M4 Pro run does not measure the thing the desktop run measures**,
+and the sequential control agrees: it is 0.30 of the scattered case here against 0.10 on the desktop,
+because on a machine where the scattered case is already cheap there is far less for sequentiality to
+win back.
+
+**So the Event Wheel's sparse-wake premise is *not* independently confirmed here.** That conclusion —
+a scattered gather across a 20 MB working set running at 1.08× the machine's streaming read bandwidth
+— rests on the desktop alone, and it is the more demanding of the two tests. Reproducing it on Apple
+Silicon would need a working set several times the L2, which is a different kernel and is not worth
+building for a spike that has already answered the question on the machine where the answer is
+harder.
+
+**Array-of-structs reverses cleanly, and it is the one conclusion in S4 that does.** AoS is 30%
+*faster* on the desktop and **41% slower** here. The cause is the same mechanism read from the other
+end: AoS wins on traffic and loses on memory-level parallelism, and a machine where traffic is nearly
+free collects only the loss. **The decision is unaffected and is better supported than before** —
+`05 §3`'s struct-of-arrays choice was at risk only from the desktop's AoS advantage, that advantage is
+the strongest case AoS makes anywhere in S4, and it does not survive a change of machine. Interleaving
+the wake tier into a packed row would have bought 30% on one target and cost 41% on the other, on top
+of the padding waste and the second layout.
+
+**Sorting the wake list is worth 7% on both machines**, which is the tightest agreement in this
+section and closes that question on two samples rather than one.
+
 ---
 
 ## K3 — bulk copy of the K0 footprint
@@ -738,7 +841,7 @@ are one or two.
 ### The decision: this constrains `Core`'s allocator, not its copy
 
 [`adr/0037`](adr/0037-the-world-is-single-buffered-and-hazards-are-per-table.md) asserts an **8–15 ms band** for the
-async save's copy. Only the arena copy is inside it.
+async save's copy. On this machine, only the arena copy is inside it.
 
 **If `Borough.Core` arena-allocates its table columns from one contiguous region, the save makes one
 call and 13.9 ms is the price. If each column is its own allocation, the save cannot, and pays 24% to
@@ -751,10 +854,73 @@ under the canonical configuration it clears it by **7.3%**. The per-column copy 
 under both. The margin is larger, the conclusion is unchanged, and it is no longer resting on the wrong
 governor.
 
-**This is also the result most sensitive to the machine being misconfigured.** These DIMMs are rated
-3200 MT/s and are running at 2133 with XMP off. At their rated speed every row in the table above falls
-inside `adr/0037`'s band and the constraint softens considerably. The band is currently being judged
-against a machine that is not running at its own specification, and the re-sweep is owed.
+### On the second machine — the 24% penalty is a property of this desktop, not of the design
+
+**This is the kernel the second machine changed most, and it is cleanly measured on both.** 180.65 MB
+against the M4 Pro's 63.3 GB/s sustained copy gives an **ideal of 2.854 ms**. At `SingleBlock` the run
+moves 361.3 MB of traffic in 3.077 ms — **117.4 GB/s against a measured 126.5 GB/s ceiling, 93%** — so
+unlike K2 this is genuinely memory-bound on both machines and the comparison is honest.
+
+| Variant | Mean | vs ideal | vs single block | vs single block (desktop) |
+|---|---:|---:|---:|---:|
+| `SingleBlock` — one call | 3.077 ms | 1.08× | 1.00 | 1.00 |
+| `Chunked` 32 MiB | 3.078 ms | 1.08× | 1.00 | 1.03 |
+| `Chunked` 8 MiB | 3.079 ms | 1.08× | 1.00 | 1.02 |
+| `PerColumn` — 104 calls | 3.105 ms | 1.09× | **1.01** | **1.24** |
+| `Chunked` 1 MiB | 3.119 ms | 1.09× | 1.01 | 1.36 |
+| `Chunked` 64 KiB | 3.868 ms | 1.36× | 1.26 | 1.37 |
+
+**The per-column penalty is 24% on the desktop and 1% here.** The threshold that causes it exists on
+both machines — the 64 KiB row loses 26% here, which is nearly the desktop's 37% — but it **sits at a
+different size**: between 1 MiB and 8 MiB on the desktop, and somewhere below 1 MiB on the M4 Pro.
+`PerColumn` is not a fixed cost. It is a bet on where the host's threshold falls relative to the
+column sizes, and the K0 schema's columns — a few tens of MB, most one or two — straddle the desktop's
+threshold and clear the M4 Pro's.
+
+**The mechanism does not transfer, and it is more honest to say so than to assume it.** On the desktop
+the three-stream arithmetic closes exactly: 542 MB at 19.06 ms is 28.4 GB/s against a 26.6 GB/s
+ceiling. Applying the same reading here gives 542 MB in 3.868 ms = 140 GB/s, which is **above** the
+machine's measured ceiling and therefore cannot be what is happening. Something else costs the M4 Pro
+26% at 64 KiB — per-call overhead at ~287 ns across 2,757 calls would account for it, but that was not
+measured and is not asserted here. **The M4 Pro's small-copy penalty is observed and its cause is
+unidentified.**
+
+**The revised decision: arena-allocate, and take the argument from portability rather than from 24%.**
+The 24% is real on the machine it was measured on and absent on the other, so quoting it as *the* cost
+of per-column allocation would be recording a fact about a DDR4-2133 desktop as a fact about the
+design — the exact failure the two-machine rule exists to catch, and the second time S4 has caught it.
+What survives on both machines is the shape: **one contiguous arena makes the save's cost independent
+of where the host's copy threshold sits, and per-column allocation makes it a host-dependent number
+between 1% and 24%.** That is a better reason to arena-allocate than the penalty was, because it does
+not expire when the target hardware changes.
+
+**What this does to the constraint on slice 4:** it softens from a precondition to a strong default.
+`adr/0037`'s band is met with a single block on both machines and missed with per-column allocation on
+one, so slice 4 should arena-allocate — but a slice-4 design that finds arena allocation genuinely
+expensive to build is no longer choosing between compliance and non-compliance, it is choosing to make
+the save cost host-dependent. That is a decision someone can now take knowingly.
+
+**One thing `adr/0037`'s band does not survive intact.** Both M4 Pro figures are ~3 ms, well *below*
+the band's 8 ms lower bound. The band was stated without naming a machine, which is the same defect
+already recorded above for the 15.6 ms Tick budget: a range meant as *acceptable* reads as *expected*,
+and a fast host simply beats it. The ADR should say which machine class the 8–15 ms describes.
+
+### The XMP re-sweep is now a refinement, not a gate
+
+The deletion of `spikes/S4.Kernels/` was held for one stated reason: these DIMMs are rated 3200 MT/s
+and are running at **2133** with XMP off, so `adr/0037`'s band — and the allocator constraint above —
+were being judged against a machine not running to its own specification.
+
+**The second machine has answered the question the re-sweep was being held for.** The question was
+whether the per-column penalty is a property of the design or of this box; it is a property of this
+box. A re-sweep at 3200 would move the desktop's threshold and shrink its penalty, which is the same
+conclusion by a weaker route.
+
+**What it would still buy, and why it is worth doing eventually:** the desktop is the more
+representative target — a player's machine is x86 with DIMMs, not an M4 Pro — so knowing whether *it*
+meets the band at its own rated speed has value the M4 Pro cannot supply. The arithmetic predicts
+~9.5 ms and ~11.7 ms at 1.5× the bandwidth, both inside the band, which would soften the constraint
+further. **That is a prediction and not a measurement, and it is recorded here as a prediction.**
 
 ---
 
@@ -806,9 +972,13 @@ unpredictable by construction, and a branch predictor cannot learn a subset that
 
 `WorldSchema`'s `bins[9]` is entry-interleaved — nine `{resource, amount, capacity}` entries packed end
 to end, keys spread across the row at a stride of nine. **It is the slowest of the three permitted
-layouts.** Keys-then-values within the same 81 bytes is strictly better and costs nothing to adopt,
-because it is the same memory in a different order; `05 §3` owns layout and should say which. The
-vector probe is a further 35% on top and needs no layout change beyond that one.
+layouts.** Keys-then-values within the same 81 bytes is never worse and costs nothing to adopt, because
+it is the same memory in a different order; `05 §3` owns layout and should say which. The vector probe
+is a further 35% on top and needs no layout change beyond that one.
+
+**The layout change is worth 5% on x86-64 and nothing at all on arm64** (see below), so the reason to
+adopt it is that it is free and that the vector probe wants the keys contiguous anyway — not the 5%.
+**The vector probe is the finding here; the relayout is what makes it expressible.**
 
 ### One row sits inside the tripwire band, and the report must say so
 
@@ -826,6 +996,47 @@ around afterwards:
 **The verdict taken: the wire does not fire, on the ground that its remedy cannot address its cause.**
 The reasoning is recorded above so that a later reader can disagree with it on the evidence rather than
 having to reconstruct it.
+
+### On the second machine — the tripwire row reproduces, and so does the argument against firing
+
+The straddle arithmetic differs by machine and has to be redone rather than carried over. An 81-byte
+row at a stride of 81 **always** crosses a 64-byte line, but crosses a 128-byte line only when its
+offset exceeds 47 — 80 cases in 128, so **1.625 lines per lookup** rather than 2. That gives
+2,000 × 1.625 × 128 B = 406 KiB against 66.5 GB/s, an **ideal of 6.26 µs**.
+
+| Variant | Mean | ns/lookup | vs ideal | vs ideal (desktop) | vs interleaved |
+|---|---:|---:|---:|---:|---:|
+| `KeysThenValuesVector` | 12.87 µs | 6.4 | **2.06×** | **2.06×** | 0.58 |
+| `KeysThenValues` | 22.10 µs | 11.1 | 3.53× | 3.19× | **1.00** |
+| `EntryInterleaved` | 22.12 µs | 11.1 | **3.54×** | **3.34×** | 1.00 |
+| `DictionaryLookup` | 33.72 µs | 16.9 | 5.39× | — | 1.52 |
+
+**The vector form lands on 2.06× of ideal on both machines, to three significant figures.** That is
+the closest agreement anywhere in S4 and it is the number the tripwire argument rests on, so the
+argument now rests on two ISAs rather than on one.
+
+**`EntryInterleaved` sits inside the tripwire band on both machines — 3.34× and 3.54× — which is the
+outcome that most strengthens the verdict taken above.** Had the row been a property of Comet Lake's
+branch predictor it would have moved; it did not. A mispredict costs what a mispredict costs, the
+remedy the wire names is a second *language*, and the second *machine* has now confirmed that the
+cause is not one a language change addresses. The wire still does not fire, and the reason it does not
+fire has been tested rather than argued.
+
+**The pure layout change buys nothing on arm64.** `KeysThenValues` and `EntryInterleaved` are 22.10
+and 22.12 µs — a 0.1% difference inside the error bars, against 5% on the desktop. **"Strictly better"
+was too strong and has been corrected above**: it is better on x86-64, neutral on arm64, and worse
+nowhere, which is still enough to adopt it but is not the reason to.
+
+**The no-hash-maps rule pays 52% here against 78% on the desktop.** The margin narrows and the
+ordering does not: `Dictionary` remains the slowest thing in the kernel on both machines, at 5.39× of
+ideal where the shape the design commits to is at 2.06×.
+
+**One caveat, stated because K2's was not obvious either.** The 200,000 ResourceMaps are 16.2 MB
+against a 16 MiB cluster-shared L2, so residency here is marginal in a way it is not on the desktop.
+That would inflate cache-driven differences and deflate none of them — and the measured result is that
+the layout difference vanished while the branch difference held, which is the opposite of what
+residency would manufacture. **The finding is robust to the caveat**, which is why it is recorded as a
+caveat rather than as a confound.
 
 ---
 
@@ -880,6 +1091,35 @@ N/8,192**: 381 wakes at a 4,096-Tick mean interval, 6,094 at 256.
 entire cost**, and it belongs in [`plans/0002`](../plans/0002-open-questions.md) beside the other
 figures task 2 had to guess at.
 
+### On the second machine — flatness travels, and the chase costs slightly more
+
+| Mean wake interval | `Revolution` | `SequentialFloor` | Chase penalty | Penalty (desktop) |
+|---:|---:|---:|---:|---:|
+| 4096 Ticks | 8.458 ns | 2.361 ns | 3.58× | 3.07× |
+| 1024 Ticks | 8.425 ns | 2.366 ns | 3.56× | 3.10× |
+| 256 Ticks | 8.624 ns | 2.367 ns | 3.64× | 3.06× |
+
+**The result K5 exists to establish reproduces exactly: the per-wake cost is flat across a 16× range
+of wake rates on both machines.** The Wheel's cost is linear in wakes and the wake rate is the only
+lever on it — that is now a two-machine finding, and it is the one the design leans on, because it is
+what makes the unratified mean wake interval a *scalar* on the Wheel's cost rather than a shape
+change.
+
+**The chase penalty is 3.6× here against 3.1× on the desktop**, so the corpus should carry it as
+**~3–3.6×** rather than as 3.1×. It moves in the direction the mechanism predicts: the chase is
+latency-bound, the M4 Pro's advantage is overwhelmingly in bandwidth rather than in dependent-load
+latency, so the floor speeds up more than the chase does. **Pointer chasing is the one thing the
+faster machine is not much better at**, which is worth knowing about a structure the corpus calls its
+single largest performance lever.
+
+**The Wheel is 3.8× cheaper per wake in absolute terms** — 8.5 ns against 32.6 ns — and this run is
+the most stable in S4, with `SequentialFloor` inside 0.003 ns across all three rates.
+
+**The same residency caveat applies and matters less here.** The Wheel's own state is ~18.7 MB against
+a 16 MiB L2, so the M4 Pro figures are partly cache-served. But both variants traverse the *same*
+working set with the same reschedule arithmetic, and the penalty is a ratio between them, so
+residency inflates both numerators equally. The 3.6× is the comparable part; the 8.5 ns is not.
+
 ---
 
 ## What K2 and K5 compose to — the Tick's wake cost
@@ -902,6 +1142,13 @@ the question K0 opened: **the Tick is not bandwidth-bound and it is not wheel-bo
 per-Tick compute, the routing graph, and the Microscopic Cap — none of which S4 measures, and all of
 which are S2's and S0's to answer.
 
+**On the M4 Pro the same composition gives 0.03%, 0.10% and 0.40%** — 8.5 ns per wake against 1.85 ns
+of gather. That is recorded for completeness and **carries no weight in the conclusion**, because both
+of its inputs are partly cache-served on that machine and the figure is therefore an optimistic bound
+rather than a measurement. **The desktop's 1.80% is the number to design against**: it is the slower
+machine, both of its inputs are honestly DRAM-bound, and a budget validated on the fastest box to hand
+is the failure this section has already recorded twice.
+
 ---
 
 ## Against the tripwire — the verdict
@@ -911,30 +1158,37 @@ measured and no row fires.**
 
 | Condition | Status |
 |---|---|
-| Any kernel worse than ~3–4× off its hand-computed ideal | **One row inside the band and argued above: K4's `EntryInterleaved` at 3.34×. Taken as not firing, on the ground that the remedy the wire names — a second language — cannot address a branch mispredict.** Next worst is K2's `AosScattered` at 2.27×, a variant the design does not use |
+| Any kernel worse than ~3–4× off its hand-computed ideal | **One row inside the band and argued above: K4's `EntryInterleaved`, at 3.34× on the desktop and 3.54× on the M4 Pro. Taken as not firing, on the ground that the remedy the wire names — a second language — cannot address a branch mispredict, and the second machine has now tested that ground rather than leaving it argued.** Next worst among shapes the design uses is K1's `SpanChecked` at 2.57× on the M4 Pro. Two rows exceed the band and neither is a candidate: K1's `PointerChecked` at 4.53× on arm64 is the footgun variant the overflow policy exists to forbid, and K4's `DictionaryLookup` at 5.39× is banned outright |
 | **K6 p99.9 exceeds 15.6 ms** with the heap already pure unmanaged structs | **Does not fire, in any of the four GC configurations.** Worst unmanaged p99.9 is 5.664 ms and worst single iteration is 6.984 ms, across 1,744,889 iterations with **zero** over budget. **The trigger's statistic is itself unsound and `adr/0036` should restate it** — see K6 |
-| Everything within tolerance | Every shape the design actually commits to is between **1.02× and 1.42×** of its ideal — columnar scan, columnar gather, arena copy, intrusive-list drain |
+| Everything within tolerance | On the desktop, every shape the design actually commits to is between **1.02× and 1.42×** of its ideal — columnar scan, columnar gather, arena copy, intrusive-list drain. On the M4 Pro the same shapes run **1.08× to 2.57×**, and the widening is a property of the *ideal* rather than of the code: a bandwidth ideal stops meaning anything once a 4.8× faster memory system leaves the loop compute-bound, which K1 shows directly |
 
-**The verdict on S4: the design's shapes are within tolerance on this machine, and `adr/0036`'s language
+**The verdict on S4: the design's shapes are within tolerance on both machines, and `adr/0036`'s language
 decision stands on measurement rather than on argument alone.** That was the expected outcome, and a
 spike whose expected outcome arrives is still worth its cost only if it produced something the corpus did
-not already know. This one produced six such things:
+not already know. This one produced seven such things:
 
 1. `checked` costs **27%**, not nothing — `adr/0003` asserted cheap without arithmetic (K1).
 2. `checked` is a *block*, so on a raw pointer it silently prices the address arithmetic too — a further
    34 points, and a footgun the overflow policy should name (K1).
-3. The async save's 8–15 ms band holds **only if `Core` arena-allocates its columns**; per-column
-   allocation puts it at 17.2 ms, outside `adr/0037`'s band. A slice-4 constraint discovered before
-   slice 4 (K3).
+3. The async save's cost under per-column allocation is **host-dependent between 1% and 24%**, not a
+   fixed 24%; `adr/0037`'s band is missed on the desktop and cleared on the M4 Pro. The reason to
+   arena-allocate is that it removes the host dependence, not that it buys a number (K3).
 4. The ResourceMap's cost is a **branch mispredict, not a cache line** — so the fix is vectorising the
    probe, not relayouting, and `WorldSchema`'s `bins[9]` is the slowest legal shape (K4).
 5. The Wheel's wake rate had been under-counted by up to **32×**, and the corrected rate is an unratified
    input driving the Wheel's entire cost (K5).
 6. `adr/0036`'s own revisit trigger **cannot detect the failure it names** — p99.9 ranks the rejected
    design above the chosen one in half the GC matrix (K6).
+7. **A ratio against a hand-computed ideal is only a verdict while the ideal binds.** K1 is 91% of the
+   desktop's copy ceiling and 50% of the M4 Pro's, so the same loop is bandwidth-bound on one machine
+   and not on the other, and its ratio-to-ideal degrades from 1.10× to 1.99× without the code changing.
+   The tripwire is written in those ratios. **It needs to name the machine class it applies to**, or it
+   will fire on a fast host for the same reason it stays quiet on a slow one (K1, K2, K3).
 
-The last is the one worth dwelling on: a tripwire that would not have tripped is a tripwire that was
-never protecting anything, and it took running it to find that out.
+The last two are the ones worth dwelling on, and they are the same failure at two scales: a tripwire
+that would not have tripped is a tripwire that was never protecting anything, and a tripwire whose
+threshold moves with the host is one that will trip for the wrong reason. It took running S4 on two
+machines to find either.
 
 ---
 

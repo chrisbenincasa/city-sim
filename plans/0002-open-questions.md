@@ -677,19 +677,39 @@ the part a spike is actually for.
 - **`adr/0003` calls `checked` inside the fixed-point library cheap, and names it the only claim there
   without arithmetic behind it.** K1 supplied the arithmetic: **27%** on a scan that does nothing but the
   multiply, which is the worst case. Whether 27% counts as "cheap" is a judgement the ADR should now make
-  explicitly rather than continue to inherit.
+  explicitly rather than continue to inherit. **The second machine makes that judgement cheaper to take
+  once rather than per target: it is 29% on arm64 against 27% on x86-64**, so the overflow policy's price
+  is a property of the arithmetic and not of the ISA.
 - **The `checked`-block-scope footgun needs a sentence wherever the overflow policy is stated.** `checked`
   is a *block* in C#, so scoping it to a loop body that indexes a raw pointer silently prices the address
-  arithmetic as well — worth **34 points on top of the 27**. The fix is to walk pointers or use spans. K1
-  measured both forms specifically so that the two costs could not be recorded as one number.
-- **`adr/0037`'s 8–15 ms band for the async save's copy is conditional, and the condition is an allocator
-  decision nobody has made.** K3: one contiguous arena copies in **13.9 ms** and is inside the band;
-  per-column allocation copies in **17.2 ms** and is outside it. **That is a constraint on how slice 4
-  lays out its tables**, and it belongs in writing before slice 4 starts rather than being discovered by
-  it.
+  arithmetic as well — worth **40 points on top of the 27** on x86-64 and **95 points on arm64**, where
+  the same footgun costs 2.28× against unchecked rather than 1.67×. The fix is to walk pointers or use
+  spans. K1 measured both forms specifically so that the two costs could not be recorded as one number.
+- **`unsafe` earns nothing on x86-64 and *costs* 11% on arm64.** Bounds checks elide completely on both,
+  so `Borough.Core`'s table access does not need `unsafe` — and on one of the two targets taking it
+  anyway is a measurable regression rather than a wash. Slice 4 should write its scans over `Span<T>`.
+- **`adr/0037`'s 8–15 ms band for the async save's copy is conditional — and the second machine changed
+  what it is conditional *on*.** K3 on the desktop: one contiguous arena copies in **13.9 ms** and is
+  inside the band; per-column allocation copies in **17.2 ms** and is outside it. **On the M4 Pro the
+  same comparison is 3.077 ms against 3.105 ms — a 1% penalty rather than 24%**, because the non-temporal
+  store threshold that causes it sits below 1 MiB there and between 1 and 8 MiB on the desktop, and the
+  K0 schema's columns straddle one and clear the other. **So the 24% is a fact about a DDR4-2133 desktop,
+  not about the design**, and quoting it as the cost of per-column allocation would be the exact error the
+  two-machine rule exists to catch. **The constraint on slice 4 softens from a precondition to a strong
+  default:** arena-allocate, because it makes the save's cost independent of where the host's threshold
+  falls — *that* is the durable argument, and unlike the 24% it does not expire when the target hardware
+  changes. A slice 4 that finds arena allocation genuinely expensive is no longer choosing between
+  compliance and non-compliance; it is choosing to make the save cost host-dependent between 1% and 24%.
+- **`adr/0037`'s band names no machine, and both M4 Pro figures fall *below* its 8 ms floor.** Same defect
+  already recorded for the 15.6 ms Tick budget: a range meant as *acceptable* reads as *expected*, and a
+  fast host simply beats it. The ADR should say which machine class 8–15 ms describes.
 - **`05 §3` owns layout and should state which `bins[9]` shape it means.** K4: `WorldSchema`'s
-  entry-interleaved form is the slowest of the three permitted layouts, and keys-then-values is strictly
-  better for the same 81 bytes — the same memory in a different order, so it costs nothing to adopt.
+  entry-interleaved form is the slowest of the three permitted layouts, and keys-then-values is never
+  worse for the same 81 bytes — the same memory in a different order, so it costs nothing to adopt.
+  **"Strictly better" was too strong**: the relayout is worth 5% on x86-64 and **0.1% on arm64**, inside
+  the error bars. Adopt it because it is free and because the vector probe wants the keys contiguous —
+  **the vector probe is the finding, worth 38–42% on both machines; the relayout is what makes it
+  expressible.**
 - **`05 §6` states no GC configuration and now has evidence for one.** K6: **server GC with background
   collection on**, and `<ConcurrentGarbageCollection>false</...>` recorded as a **prohibition** rather
   than a preference. It costs the shell 3–4.6× at the tail and buys the core nothing, and it is precisely
@@ -709,6 +729,16 @@ the part a spike is actually for.
   been recorded as four configurations agreeing closely — a tidy and completely false result that would
   have hidden the largest number in the matrix. **Same shape as the unratified-number failure this file
   keeps finding: a value never checked against what it claimed to describe.**
+- **A ratio against a hand-computed ideal is only a verdict while the ideal binds — and `plans/0004`'s
+  tripwire is written entirely in those ratios.** K1 runs at 91% of the desktop's copy ceiling and 50% of
+  the M4 Pro's, so the same loop is bandwidth-bound on one machine and compute-bound on the other, and its
+  ratio-to-ideal degrades from **1.10× to 1.99× without the code changing**. On a fast enough host the
+  footgun variant reaches 4.53× and would fire a wire it does not deserve to fire; on a slow enough host a
+  genuinely bad kernel hides inside a bandwidth ceiling it cannot exceed. **Recorded as a pattern, and it
+  is the third member of a family this file keeps finding** — beside *revisit triggers already satisfied
+  when written* and *revisit triggers whose statistic cannot detect what they name*, now **thresholds
+  whose meaning depends on an unstated machine.** A tripwire must name the machine class it applies to,
+  as must `adr/0037`'s 8–15 ms band and the 15.6 ms Tick budget, neither of which does.
 
 Carried and still owed, none of them from S4: `03 §4` invariant 1 wording pass; `CONTEXT.md`'s Citizen
 entry still lists `home`, which task 2 moved to the Household; `CONTEXT.md` has no **Unemployment**
@@ -732,16 +762,29 @@ definition and wants one — *a Household where no Citizen holds a job*; and `CL
 yet — task 11 is held — because the following need it and reconstructing it from git history would cost
 more than keeping it:
 
-- **The XMP re-sweep, which is the reason the deletion is held.** These DIMMs are rated **3200 MT/s and
-  are running at 2133** with XMP off, so `adr/0037`'s save-copy band is being judged against a machine
-  not running to its own specification. At the rated speed every K3 row falls inside the band and the
-  allocator constraint above softens considerably. Needs a reboot: `sudo tools/baseline-sweep.sh`, then
-  `sudo tools/kernel-run.sh`. Labels carry the configured MT/s automatically, so it cannot overwrite the
-  DDR-2133 results.
-- **K0, and then K1/K2/K5, on the Apple M4 Pro.** The second machine exists because a single sample
-  cannot tell a property of the design from a property of the box it was measured on — and on the
-  baseline evidence it could not, since one conclusion already reverses between them. `kernel-run.sh` is
-  Linux-only (it reads `/sys/devices/system/cpu`); on macOS run the binary under `bench --filter '*'`.
+- ~~**K0, and then K1/K2/K5, on the Apple M4 Pro.**~~ **DONE**, and it earned its cost — see
+  [`spike-results.md`](../docs/spike-results.md), where every kernel now carries an *On the second
+  machine* subsection. **Three conclusions turned out to be properties of the desktop rather than of the
+  design** (the threading payoff, K2's array-of-structs advantage, K3's per-column copy penalty), and one
+  methodological defect surfaced only from the disagreement, recorded as a pattern below.
+- **The XMP re-sweep — downgraded from the reason the deletion is held to a refinement.** These DIMMs are
+  rated **3200 MT/s and are running at 2133** with XMP off. The deletion was held because `adr/0037`'s
+  save-copy band was being judged against a machine not running to its own specification — but **the
+  second machine has since answered the question the re-sweep was being held for**: the per-column
+  penalty is a property of this box, and a re-sweep at 3200 would reach the same conclusion by a weaker
+  route. What it would still buy is whether *this desktop* meets the band at its own rated speed, which
+  has value the M4 Pro cannot supply because the desktop is the more representative target — a player's
+  machine is x86 with DIMMs. The arithmetic predicts ~9.5 ms and ~11.7 ms at 1.5× the bandwidth, both
+  inside the band; **that is a prediction and not a measurement.** Needs a reboot: `sudo
+  tools/baseline-sweep.sh`, then `sudo tools/kernel-run.sh`. Labels carry the configured MT/s
+  automatically, so it cannot overwrite the DDR-2133 results.
+- **K6 has never run on the M4 Pro and is the one kernel resting on a single machine.** Every other
+  kernel now has two, and K6 is the one carrying the GC verdict that `05 §6` is about to adopt.
+- **K2's sparse-wake premise is confirmed on one machine only, and cannot be confirmed on the other as
+  written.** The M4 Pro's 16 MiB cluster-shared L2 holds most of the 20 MB working set, so that run beats
+  its own bandwidth ideal by 3× and measures cache rather than DRAM. Reproducing the desktop's finding on
+  Apple Silicon needs a working set several times the L2 — a different kernel, and not worth building,
+  since the claim is already established on the machine where it is harder to establish.
 - **K6 under the canonical governor.** It is now the only kernel never captured under `performance`+turbo,
   and also the one where it matters least, since it measures pauses rather than bandwidth. Eighty minutes
   if it is ever worth closing properly.

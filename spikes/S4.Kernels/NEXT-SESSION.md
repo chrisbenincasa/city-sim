@@ -11,7 +11,19 @@ survives task 11.** This note is session state only. If the two disagree, the co
 
 ---
 
-## Start here — tasks 1–10 are done; task 11 waits on the XMP re-sweep
+## Start here — tasks 1–10 are done on two machines; task 11 is unblocked
+
+> **Updated after the M4 Pro capture (`cdbf493`).** K0–K5 have now run on the second machine and are
+> folded into `docs/spike-results.md`, where each kernel carries an *On the second machine* subsection.
+> **Task 11 is no longer blocked.** The XMP re-sweep was held because K3's allocator constraint was being
+> judged on a misconfigured machine; the M4 Pro answered that question directly — the 24% per-column
+> penalty is a property of this desktop, not of the design — so the re-sweep is now a refinement worth
+> doing when a reboot is convenient, not a gate. **What is still owed and still dies with the harness:
+> K6 on the Mac (the only kernel on one machine), K6 under the canonical governor, and the XMP re-sweep
+> itself.** Everything below this banner predates the M4 capture; where it disagrees with
+> `docs/spike-results.md` or `plans/0002`, they are right.
+
+## Superseded — the state before the M4 Pro capture
 
 **Tasks 9 and 10 are complete.** The corrected K6 sweep landed all eight runs with four distinct GC
 labels, the full matrix is written into `docs/spike-results.md`, the provisional banner is gone, the
