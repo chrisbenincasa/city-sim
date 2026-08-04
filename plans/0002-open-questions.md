@@ -729,6 +729,16 @@ the part a spike is actually for.
   been recorded as four configurations agreeing closely — a tidy and completely false result that would
   have hidden the largest number in the matrix. **Same shape as the unratified-number failure this file
   keeps finding: a value never checked against what it claimed to describe.**
+- **A capture must state its own provenance truthfully, and the M4 Pro capture did not.**
+  `results/kernels-apple-m4-pro.md` asserts its denominator was *"measured in the same sitting"*; the two
+  timestamps are 42 h 44 min apart. **Third instance of the pattern above**, and the most instructive,
+  because the desktop capture got it right in the same words: it claims *"measured under the same
+  **configuration**"* — 59 hours earlier, but pinned, at a set governor and a labelled DIMM rate, all
+  re-established for the run. One file claims a controlled *configuration* and can show it; the other
+  claims a shared *moment* and cannot, on the machine that has no controls to fall back on. **The lesson
+  is not "co-measure" — it is that a provenance line is a claim like any other and gets checked like
+  one.** A capture harness should emit the denominator's own timestamp beside the figure it divides by,
+  so the gap is visible without anyone thinking to look for it.
 - **A ratio against a hand-computed ideal is only a verdict while the ideal binds — and `plans/0004`'s
   tripwire is written entirely in those ratios.** K1 runs at 91% of the desktop's copy ceiling and 50% of
   the M4 Pro's, so the same loop is bandwidth-bound on one machine and compute-bound on the other, and its
@@ -780,6 +790,15 @@ more than keeping it:
   automatically, so it cannot overwrite the DDR-2133 results.
 - **K6 has never run on the M4 Pro and is the one kernel resting on a single machine.** Every other
   kernel now has two, and K6 is the one carrying the GC verdict that `05 §6` is about to adopt.
+- **Re-measure the M4 Pro baseline on a machine confirmed quiet, and re-derive every M4 *vs ideal*
+  figure from it.** `results/kernels-apple-m4-pro.md` claims its denominator was *"measured in the same
+  sitting"*; the timestamps are **42 h 44 min apart** (2026-08-03 00:42 against 2026-08-04 19:26), on
+  the one machine with no governor control, no turbo switch, no thread pinning and an unrecorded
+  background load. **This is cheap to fix — a ten-second window, about a minute of wall clock** — and
+  until it is fixed every ratio-to-ideal in the M4 subsections is provisional. **The conclusions are
+  not**: they are within-process variant ratios and are immune to the denominator, which is why the
+  fold-in survives the defect. Do it in the same sitting as K6, on a quiet machine, before the harness
+  is deleted.
 - **K2's sparse-wake premise is confirmed on one machine only, and cannot be confirmed on the other as
   written.** The M4 Pro's 16 MiB cluster-shared L2 holds most of the 20 MB working set, so that run beats
   its own bandwidth ideal by 3× and measures cache rather than DRAM. Reproducing the desktop's finding on

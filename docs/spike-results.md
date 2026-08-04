@@ -48,11 +48,36 @@ recorded at the end of this section once task 11 runs.
 *On the second machine* subsection stating what travelled and what did not. K6 has not been run there
 and is the one kernel resting on a single machine.
 
-**Two things to hold while reading those subsections.** The M4 Pro capture is **not pinned** — macOS
+**Three things to hold while reading those subsections.** The M4 Pro capture is **not pinned** — macOS
 cannot pin a thread to a core at all — so its absolutes are a shape and its variant ratios are the
-comparable part. And the M4 Pro's L2 is **16 MiB cluster-shared** against the desktop's 12 MB L3,
-which is large enough that two of the kernels are partly cache-resident there and are not measuring
-what their desktop counterparts measure. Where that happens it is stated rather than averaged over.
+comparable part. The M4 Pro's L2 is **16 MiB cluster-shared** against the desktop's 12 MB L3, which is
+large enough that two of the kernels are partly cache-resident there and are not measuring what their
+desktop counterparts measure. And the third is a defect in the capture itself:
+
+> **The M4 Pro kernels do not share a sitting with their own denominator, and the capture says they
+> do.** `results/kernels-apple-m4-pro.md` states *"Divide against `baseline-apple-m4-pro.md`, measured
+> in the same sitting"*. The baseline is stamped **2026-08-03 00:42 UTC** and the kernels
+> **2026-08-04 19:26 UTC** — **42 hours 44 minutes apart**, on a machine with no governor control, no
+> turbo switch, no thread pinning, and an unrecorded background load. **Every *vs ideal* figure in the
+> M4 Pro subsections divides by that stale denominator and is provisional until the baseline is
+> re-measured.** The *vs variant* columns do not: they are ratios within a single BenchmarkDotNet
+> process and are unaffected.
+>
+> The desktop does not carry this defect, and the difference in wording is exactly where it shows.
+> `results/kernels-ddr2133-performance-turbo.md` claims its baseline was *"measured under the same
+> **configuration**"* — 59 hours earlier, but pinned to one core, under a set governor, at a labelled
+> DIMM rate, all of which are recorded and were re-established for the run. That is a defensible claim
+> about a controlled machine. *"Same sitting"* is a claim about a moment, it was not true, and it was
+> made about the one machine that has no configuration controls to fall back on.
+>
+> **This is the third instance of the pattern this corpus keeps finding — a value never checked
+> against what it claimed to describe** — after the GC sweep that reported the configuration it asked
+> for rather than the one it got, and `adr/0036`'s trigger whose statistic could not detect its own
+> event. Recorded in [`plans/0002`](../plans/0002-open-questions.md) with the other two.
+
+**What survives this and what does not** is separated explicitly in each subsection below, because the
+division is not intuitive: almost every *conclusion* drawn from the M4 Pro is a within-run variant
+ratio and is untouched, while almost every *headline number* is a ratio to ideal and is provisional.
 
 ### The machine — Linux desktop
 
@@ -686,6 +711,13 @@ nothing once the loop is not bandwidth-bound**, so K1's arm64 ratios must not be
 against the tripwire — see the verdict section, where this is why `PointerChecked`'s 4.53× does not
 fire.
 
+**This particular figure divides by the stale denominator and survives it**, which is worth stating
+since most of the others do not. Erasing a 91%-against-50% gap would need the M4 Pro baseline to be
+overstated by roughly 1.8×, and the baseline is a sustained 256 MiB `memcpy` measured over a ten-second
+window — the most robust number in the whole capture and the one least able to be inflated by
+background load, which drags a throughput figure *down*. If the baseline is wrong it is wrong low, and
+the gap is then wider than stated rather than narrower.
+
 ---
 
 ## K2 — random gather by generational handle
@@ -856,10 +888,12 @@ governor.
 
 ### On the second machine — the 24% penalty is a property of this desktop, not of the design
 
-**This is the kernel the second machine changed most, and it is cleanly measured on both.** 180.65 MB
-against the M4 Pro's 63.3 GB/s sustained copy gives an **ideal of 2.854 ms**. At `SingleBlock` the run
-moves 361.3 MB of traffic in 3.077 ms — **117.4 GB/s against a measured 126.5 GB/s ceiling, 93%** — so
-unlike K2 this is genuinely memory-bound on both machines and the comparison is honest.
+**This is the kernel the second machine changed most, and its central finding is denominator-free.**
+180.65 MB against the M4 Pro's 63.3 GB/s sustained copy gives an **ideal of 2.854 ms**. At
+`SingleBlock` the run moves 361.3 MB of traffic in 3.077 ms — **117.4 GB/s against a 126.5 GB/s
+ceiling, 93%** — which says this is genuinely memory-bound rather than cache-served as K2 was.
+**That 93% is provisional on the stale denominator**; the finding below is not, because it is a ratio
+between two variants in the same process.
 
 | Variant | Mean | vs ideal | vs single block | vs single block (desktop) |
 |---|---:|---:|---:|---:|
@@ -1011,9 +1045,13 @@ offset exceeds 47 — 80 cases in 128, so **1.625 lines per lookup** rather than
 | `EntryInterleaved` | 22.12 µs | 11.1 | **3.54×** | **3.34×** | 1.00 |
 | `DictionaryLookup` | 33.72 µs | 16.9 | 5.39× | — | 1.52 |
 
-**The vector form lands on 2.06× of ideal on both machines, to three significant figures.** That is
-the closest agreement anywhere in S4 and it is the number the tripwire argument rests on, so the
-argument now rests on two ISAs rather than on one.
+**The vector form lands on 2.06× of ideal on both machines — and that agreement should be distrusted
+rather than celebrated.** It is the closest agreement anywhere in S4, it divides by a denominator
+measured 43 hours earlier on an uncontrolled machine, and a figure that lands on three matching
+significant figures through that much noise is more likely to be a coincidence than a measurement.
+**The claim to make instead is the denominator-free one:** the vector probe recovers `EntryInterleaved`
+by a factor of **1.72 here against 1.63 on the desktop**, both within a single process, and that is
+what puts the tripwire argument on two ISAs rather than one.
 
 **`EntryInterleaved` sits inside the tripwire band on both machines — 3.34× and 3.54× — which is the
 outcome that most strengthens the verdict taken above.** Had the row been a property of Comet Lake's
