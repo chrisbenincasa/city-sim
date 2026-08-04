@@ -11,7 +11,7 @@ produced**. A spike that records data and no verdict has not finished.
 
 | Spike | Question | Status |
 |---|---|---|
-| **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. **K0–K6 recorded below and the verdict reached; K0–K5 on two machines.** Owed: the deleting commit. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
+| **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. **K0–K6 recorded below and the verdict reached, all seven on two machines.** Owed: the deleting commit. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
 | **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Also owns Chunk size | not run. **The project's top risk** |
 | **S1** | Rendering ceiling — 20k Buildings via chunked `MultiMeshInstance3D` | not run |
 | **S3** | UI ceiling — one data panel with a live multi-series graph, and how long it took | not run |
@@ -26,10 +26,11 @@ the denominator measured, the schema derived, K0–K6 run and the verdict reache
 section: the commit at which `spikes/S4.Kernels/` was deleted.
 
 **The second-machine capture is what most changed the reading**, and it changed it in the direction the
-two-machine rule was written to catch. Three conclusions were properties of the desktop rather than of
-the design — the threading payoff, the array-of-structs advantage in K2, and the per-column copy penalty
-in K3 — and one methodological defect surfaced only from the disagreement: a ratio against a bandwidth
-ideal stops being a verdict once the loop is no longer bandwidth-bound.
+two-machine rule was written to catch. Four conclusions were properties of the desktop rather than of
+the design — the threading payoff, the array-of-structs advantage in K2, the per-column copy penalty
+in K3, and the sign of server GC's effect on the unmanaged arm in K6 — and one methodological defect
+surfaced only from the disagreement: a ratio against a bandwidth ideal stops being a verdict once the
+loop is no longer bandwidth-bound.
 
 K1–K5 were captured by `spikes/S4.Kernels/tools/kernel-run.sh`, which pins to one physical core with
 its SMT sibling idle and puts the governor and the configured DIMM rate in the label. It exists
@@ -43,10 +44,12 @@ the box it was measured on, and on this evidence it could not: one of the conclu
 between them. Raw captures are in `spikes/S4.Kernels/results/`, recoverable from the deleting commit
 recorded at the end of this section once task 11 runs.
 
-**K0–K5 have since been captured on the M4 Pro as well** (2026-08-03 and 2026-08-04,
+**K0–K6 have since been captured on the M4 Pro as well** (2026-08-03 and 2026-08-04,
 `results/k0-apple-m4-pro.md` and `results/kernels-apple-m4-pro.md`), and each kernel below carries an
-*On the second machine* subsection stating what travelled and what did not. K6 has not been run there
-and is the one kernel resting on a single machine.
+*On the second machine* subsection stating what travelled and what did not. **Every kernel now rests on
+two machines.** K6's second capture went to the terminal rather than to a file — the invoking command
+omitted the redirection `tools/k6-run.sh` performs — and its eight reports were recovered from
+scrollback rather than from `results/`.
 
 **Three things to hold while reading those subsections.** The M4 Pro capture is **not pinned** — macOS
 cannot pin a thread to a core at all — so its absolutes are a shape and its variant ratios are the
@@ -1197,13 +1200,13 @@ measured and no row fires.**
 | Condition | Status |
 |---|---|
 | Any kernel worse than ~3–4× off its hand-computed ideal | **One row inside the band and argued above: K4's `EntryInterleaved`, at 3.34× on the desktop and 3.54× on the M4 Pro. Taken as not firing, on the ground that the remedy the wire names — a second language — cannot address a branch mispredict, and the second machine has now tested that ground rather than leaving it argued.** Next worst among shapes the design uses is K1's `SpanChecked` at 2.57× on the M4 Pro. Two rows exceed the band and neither is a candidate: K1's `PointerChecked` at 4.53× on arm64 is the footgun variant the overflow policy exists to forbid, and K4's `DictionaryLookup` at 5.39× is banned outright |
-| **K6 p99.9 exceeds 15.6 ms** with the heap already pure unmanaged structs | **Does not fire, in any of the four GC configurations.** Worst unmanaged p99.9 is 5.664 ms and worst single iteration is 6.984 ms, across 1,744,889 iterations with **zero** over budget. **The trigger's statistic is itself unsound and `adr/0036` should restate it** — see K6 |
+| **K6 p99.9 exceeds 15.6 ms** with the heap already pure unmanaged structs | **Does not fire, in any of the four GC configurations, on either machine.** Worst unmanaged p99.9 is 5.664 ms (desktop) and 1.108 ms (M4 Pro); worst single iteration is 6.984 ms and 5.626 ms. Across **6,062,762** unmanaged iterations on two machines, **zero** over budget. **The trigger's statistic is itself unsound and `adr/0036` should restate it** — see K6 |
 | Everything within tolerance | On the desktop, every shape the design actually commits to is between **1.02× and 1.42×** of its ideal — columnar scan, columnar gather, arena copy, intrusive-list drain. On the M4 Pro the same shapes run **1.08× to 2.57×**, and the widening is a property of the *ideal* rather than of the code: a bandwidth ideal stops meaning anything once a 4.8× faster memory system leaves the loop compute-bound, which K1 shows directly |
 
 **The verdict on S4: the design's shapes are within tolerance on both machines, and `adr/0036`'s language
 decision stands on measurement rather than on argument alone.** That was the expected outcome, and a
 spike whose expected outcome arrives is still worth its cost only if it produced something the corpus did
-not already know. This one produced seven such things:
+not already know. This one produced eight such things:
 
 1. `checked` costs **27%**, not nothing — `adr/0003` asserted cheap without arithmetic (K1).
 2. `checked` is a *block*, so on a raw pointer it silently prices the address arithmetic too — a further
@@ -1216,17 +1219,28 @@ not already know. This one produced seven such things:
 5. The Wheel's wake rate had been under-counted by up to **32×**, and the corrected rate is an unratified
    input driving the Wheel's entire cost (K5).
 6. `adr/0036`'s own revisit trigger **cannot detect the failure it names** — p99.9 ranks the rejected
-   design above the chosen one in half the GC matrix (K6).
+   design above the chosen one in half the desktop's GC matrix, and on the M4 Pro separates the two arms
+   by at most **2.3%** while max separates them by up to **36.8×** (K6).
 7. **A ratio against a hand-computed ideal is only a verdict while the ideal binds.** K1 is 91% of the
    desktop's copy ceiling and 50% of the M4 Pro's, so the same loop is bandwidth-bound on one machine
    and not on the other, and its ratio-to-ideal degrades from 1.10× to 1.99× without the code changing.
    The tripwire is written in those ratios. **It needs to name the machine class it applies to**, or it
    will fire on a fast host for the same reason it stays quiet on a slow one (K1, K2, K3).
+8. **Server GC's effect on the core reverses between hosts** — 2.8× worse on the desktop, 5.1× better on
+   the M4 Pro — so `05 §6` can adopt only half of the GC recommendation as a constant. Background
+   collection on is prohibition-grade on both machines; server versus workstation is a host setting
+   worth up to 6.7× in either direction (K6).
 
-The last two are the ones worth dwelling on, and they are the same failure at two scales: a tripwire
+Findings 6 and 7 are the ones worth dwelling on, and they are the same failure at two scales: a tripwire
 that would not have tripped is a tripwire that was never protecting anything, and a tripwire whose
 threshold moves with the host is one that will trip for the wrong reason. It took running S4 on two
 machines to find either.
+
+**Findings 3 and 8 are also the same finding twice**, and the repeat is what makes it a pattern rather
+than an anecdote: on both occasions the single-machine reading named a winner, the second machine
+reversed it, and the decision that survived was the one that *removes* the host dependence rather than
+the one that picks a side. That is now the default posture for any S4 number that a configuration knob
+can move.
 
 ---
 
@@ -1379,3 +1393,144 @@ The general lesson outlives the spike: **a configuration sweep must report the c
 actually adopted, not the one it was asked for.** Had the label simply echoed the environment variable,
 this would have been recorded as four configurations agreeing closely — a tidy and completely false
 result, and one that would have hidden the largest number in the matrix.
+
+### On the second machine
+
+Eight runs of ten minutes on the M4 Pro, 2026-08-04 19:59–21:09 UTC, same matrix and same harness.
+**1,072,000 iterations per run against the desktop's ~435,000** — the iteration is 2.4× faster
+(p50 0.55 ms against 1.36 ms), consistently across all eight cells.
+
+| GC | Arm | p99.9 | p99.99 | max | gen2 | Total pause | Over 15.6 ms |
+|---|---|---:|---:|---:|---:|---:|---:|
+| workstation, non-concurrent | unmanaged | 1.108 ms | 1.150 ms | 3.915 ms | 1 | 2,227 ms | **0** of 1,092,233 |
+| workstation, non-concurrent | managed | 1.104 ms | 1.154 ms | **112.652 ms** | 1 | 2,354 ms | 2 of 1,062,301 |
+| workstation, background | unmanaged | 0.972 ms | 1.021 ms | 1.659 ms | 1,163 | 2,999 ms | **0** of 1,074,920 |
+| workstation, background | managed | 0.950 ms | 3.661 ms | **22.756 ms** | 54 | 2,886 ms | 2 of 1,083,780 |
+| server, non-concurrent | unmanaged | 0.693 ms | 2.045 ms | 5.626 ms | 1 | 434 ms | **0** of 1,077,247 |
+| server, non-concurrent | managed | 0.707 ms | 2.049 ms | **206.977 ms** | 1 | 638 ms | 2 of 1,063,321 |
+| server, background | unmanaged | 0.696 ms | 2.099 ms | 3.590 ms | 1 | 450 ms | **0** of 1,073,473 |
+| server, background | managed | 0.705 ms | 2.088 ms | **55.425 ms** | 1 | 480 ms | 2 of 1,072,727 |
+
+**The M4 Pro is running a harder test, not an easier one.** Churn is per *iteration*, so a 2.4× faster
+iteration is 2.5× more allocation pressure per second — **122–126 MB/s against the desktop's 44–52 MB/s**.
+Every M4 Pro number below is produced under more GC load per unit wall clock than its desktop
+counterpart, which is the direction that makes the better results mean something rather than less.
+
+#### The verdict travels, and the margin widens
+
+**Zero over-budget iterations in the unmanaged arm, again, across all four configurations.** Worst
+single iteration in eighty minutes: **5.626 ms, 2.8× inside** the budget, against the desktop's 6.984 ms
+and 2.2×. Combined across both machines the unmanaged arm now stands at **zero over-budget iterations in
+6,062,762**, and the managed arm at **18 in 6,021,639**. `adr/0036`'s trigger does not fire on either
+host, and the positive control fires on both.
+
+The separation between the arms is *larger* here, not smaller:
+
+| GC | unmanaged max | managed max | ratio | desktop ratio |
+|---|---:|---:|---:|---:|
+| workstation, non-concurrent | 3.915 ms | 112.652 ms | **28.8×** | 19.7× |
+| workstation, background | 1.659 ms | 22.756 ms | **13.7×** | 6.8× |
+| server, non-concurrent | 5.626 ms | 206.977 ms | **36.8×** | 10.5× |
+| server, background | 3.590 ms | 55.425 ms | **15.4×** | 2.2× |
+
+The worst managed stall on this machine is **206.977 ms — 13.3× past budget**, against the desktop's
+100.200 ms and 6.4×. The intrusive-index-list rule is buying more on the faster machine than on the
+slower one, which is the opposite of the usual shape and follows directly from the churn rate: the
+collector is asked to run more often against the same 1.56M-object graph.
+
+#### The quantile finding strengthens, but its *demonstration* does not reproduce
+
+On the desktop, p99.9 was **anti-correlated** with the thing being measured — it ranked the rejected
+design above the chosen one in two of four configurations, by as much as 2.1×. On the M4 Pro it is
+simply **blind**:
+
+| GC | unmanaged p99.9 | managed p99.9 | p99.9 says | max says |
+|---|---:|---:|---|---|
+| workstation, non-concurrent | 1.108 ms | 1.104 ms | a tie, 0.4% | managed **28.8×** worse |
+| workstation, background | 0.972 ms | 0.950 ms | managed better by 2.3% | managed **13.7×** worse |
+| server, non-concurrent | 0.693 ms | 0.707 ms | managed worse by 2.0% | managed **36.8×** worse |
+| server, background | 0.696 ms | 0.705 ms | managed worse by 1.3% | managed **15.4×** worse |
+
+**The statistic moves by at most 2.3% in either direction while the quantity it exists to detect moves by
+up to 36.8×.** That is a cleaner statement of the defect than the desktop produced, and `adr/0036`'s
+restated trigger — any single Tick over budget, with max and over-budget count reported — is now carried
+by two machines.
+
+**But one supporting claim in the desktop reading is host-specific and should be read as such.** The
+desktop's argument that *p99.9 detects frequent-and-small* rested on a concrete converse: an *unmanaged*
+run with an elevated p99.9 of 5.664 ms, driven by 1,070 gen2 collections under server GC with background
+off. **That run has no counterpart here** — the same configuration on the M4 Pro produces **1** gen2
+collection and a p99.9 of 0.693 ms, the lowest in the matrix. The mechanism described is real and was
+observed; it is not a property of the design or of server GC generally, and the sentence should not be
+read as predicting it on any host.
+
+#### Background collection off is worse here than the desktop showed
+
+The prohibition holds and gains a second argument. On the managed arm, background off costs **4.95×** on
+worst pause under workstation GC (22.756 → 112.652 ms) and **3.73×** under server GC (55.425 → 206.977
+ms). On the desktop those were 2.9× and 4.6×.
+
+**And on this machine it costs the unmanaged arm too**, where the desktop recorded it as neutral: worst
+pause 1.659 → 3.915 ms under workstation GC (**2.36×**) and 3.590 → 5.626 ms under server GC (1.57×).
+Small in absolute terms and nowhere near budget, but consistent in direction across both configurations,
+where the desktop's two deltas were ±2% and in opposite directions. **There is now no cell on either
+machine, in either arm, where background collection off is better than on.**
+
+#### The server GC axis reverses between the two machines
+
+**This is the conclusion that did not travel, and it is the fourth such finding in S4.** On the desktop,
+turning on server GC *cost* the unmanaged arm: total pause 2,127 → 5,990 ms non-concurrent (**2.8×
+worse**) and 2,767 → 3,078 ms with background on (+11%). Here it *saves* it, decisively:
+
+| Concurrency | Machine | workstation | server | Effect |
+|---|---|---:|---:|---|
+| non-concurrent | desktop | 2,127 ms | 5,990 ms | **2.82× worse** |
+| non-concurrent | M4 Pro | 2,227 ms | 434 ms | **5.13× better** |
+| background | desktop | 2,767 ms | 3,078 ms | 1.11× worse |
+| background | M4 Pro | 2,999 ms | 450 ms | **6.67× better** |
+
+The two hosts also disagree about which cell is *best* for the managed arm's worst pause: the desktop
+says server plus background (15.574 ms), the M4 Pro says workstation plus background (22.756 ms).
+
+**So `05 §6` should adopt the half of the recommendation that is portable and treat the other half as a
+host setting.** Background collection on is a prohibition-grade finding on two machines. Server versus
+workstation is worth up to 6.7× in either direction depending on the box, which makes it exactly the kind
+of thing that must be a startup configuration read from the host rather than a constant compiled in.
+This is the same shape as K3's per-column copy penalty: **the durable decision is the one that removes
+the host dependence, not the one that picks the winner on the machine that happened to be to hand.**
+
+#### Two caveats on this capture
+
+**The machine's quietness was not verified, and max is the statistic most exposed to that.** A 207 ms
+outlier is equally consistent with a blocking gen2 and with a background process. Three things argue it
+is the collector. The arms **alternated** run by run at ten-minute spacing, so no drift or single burst
+can sort itself by arm — yet all four managed maxima exceed all four unmanaged maxima, which under
+random assignment is 1 in 70. The over-budget counts are **0, 0, 0, 0 against 2, 2, 2, 2**, split the
+same way. And the 206.977 ms run's own total pause is 638 ms, so the outlier is a third of all collector
+time in that run, which is what one expensive blocking gen2 over a 1.56M-object graph looks like. The
+mechanism is not in doubt; the exact figures are provisional in the same way the M4 Pro's other
+absolutes are.
+
+**The over-budget count is exactly 2 in all four managed runs, and that is not explained.** The graph is
+built before the clock starts and eight warmup iterations precede it, so it is not construction. The
+desktop's counts were 3, 2, 5 and 0 under the same code, so it is not structural either. With counts this
+small the useful statement is the sign — nonzero on managed, zero on unmanaged, on both machines — and
+not the value.
+
+#### A reporting defect in the harness, found while reading these numbers
+
+The report line *"plus 325.2 MiB of managed objects"* is `GC.GetTotalMemory(precise: false)` — **the whole
+managed heap at the end of the run, not the live graph.** The graph is fixed at 1.56M `ManagedEntity`
+instances of 40 bytes plus an 11.9 MiB reference array — **about 71 MiB, identical on both machines and in
+every cell.** The rest is the 18.3 MiB sample buffer, the kernel setup allocations, and uncollected churn,
+which is why the printed figure tracks allocation rate (M4 Pro 233–325 MiB against the desktop's
+175–194 MiB) rather than the graph, which does not vary at all.
+
+**The unmanaged arm prints no managed figure whatsoever**, because the harness suppresses it when the
+graph is null — so it silently omits that arm's own sample buffer and kernel allocations. The two arms'
+live-set lines are therefore not comparable, and neither is a measurement of the thing the arm varies.
+
+No conclusion above moves: what makes the managed arm expensive is 1.56M objects to trace, and that is
+what the arm sets and what the gen2 costs reflect. But the figure is stated in a way that invites a reader
+to attribute the difference to a live set 3–5× larger than it is. **Recorded rather than fixed — the
+harness is scheduled for deletion in task 11, and the raw captures are what survive.**

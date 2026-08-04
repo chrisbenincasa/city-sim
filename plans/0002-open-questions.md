@@ -712,11 +712,20 @@ the part a spike is actually for.
   the error bars. Adopt it because it is free and because the vector probe wants the keys contiguous —
   **the vector probe is the finding, worth 38–42% on both machines; the relayout is what makes it
   expressible.**
-- **`05 §6` states no GC configuration and now has evidence for one.** K6: **server GC with background
-  collection on**, and `<ConcurrentGarbageCollection>false</...>` recorded as a **prohibition** rather
-  than a preference. It costs the shell 3–4.6× at the tail and buys the core nothing, and it is precisely
-  the knob a latency-conscious developer reaches for on the reasoning that background collection adds
-  overhead.
+- **`05 §6` states no GC configuration and now has evidence for half of one.** ~~K6: server GC with
+  background collection on.~~ **The second machine split this recommendation in two, and only one half is
+  portable.**
+  - **Background collection on is prohibition-grade, and firmer than the desktop alone showed.**
+    `<ConcurrentGarbageCollection>false</...>` costs the shell **2.9–4.95×** at the tail across both
+    machines, and on the M4 Pro it costs the *core* 1.57–2.36× as well, where the desktop recorded it as
+    neutral. **There is no cell on either machine, in either arm, where off beats on.** It is precisely
+    the knob a latency-conscious developer reaches for on the reasoning that background collection adds
+    overhead, so `05 §6` should state it as a prohibition rather than a preference.
+  - **Server versus workstation is a host setting, not a constant.** Its effect on the *unmanaged* arm
+    reverses between machines — **2.8× worse** on the desktop, **5.1× better** on the M4 Pro — and the two
+    hosts disagree about which cell minimises the managed arm's worst pause. `05 §6` should make it a
+    startup configuration read from the host, and should not compile in a winner. See the pattern entry
+    below.
 - **`adr/0036`'s revisit trigger has been restated** from a p99.9 to a maximum and an over-budget count,
   because K6 showed the quantile cannot see the event the trigger exists to detect — the run whose worst
   iteration was 100.2 ms read 2.462 ms at p99.9, and in half the GC matrix p99.9 ranked the *rejected*
@@ -724,6 +733,14 @@ the part a spike is actually for.
   debt above to audit for *revisit triggers already satisfied on the day they were written* now has a
   sibling — **audit for revisit triggers whose statistic cannot detect the thing they name.** A trigger
   that cannot fire is not protecting anything, and `0036`'s is unlikely to be the only one.
+- **When a number reverses between hosts, the durable decision is the one that removes the host
+  dependence — not the one that picks the winner on the machine to hand.** This has now happened twice
+  in S4 and the second time is what makes it a rule. K3: the per-column copy penalty is 24% on the
+  desktop and 1% on the M4 Pro, so the argument for arena allocation is that it makes the figure stop
+  varying, not that it buys 24%. K6: server GC is 2.8× worse for the core on the desktop and 5.1× better
+  on the M4 Pro, so `05 §6` gets a host-read startup setting rather than a compiled-in choice. **The
+  standing instruction: before recording any S4 number as a decision, ask whether a configuration knob
+  or a host could move it, and if so record the knob rather than the number.**
 - **A configuration sweep must report the configuration the system actually adopted, not the one it was
   asked for.** K6's first sweep asked for four GC configurations and silently ran two, because
   `DOTNET_gcServer` overrides `runtimeconfig.json` and `DOTNET_gcConcurrent` does not. It was caught only
@@ -765,10 +782,14 @@ definition and wants one — *a Household where no Citizen holds a job*; and `CL
   M = 4,096 and 6,094 at M = 256. The corpus has never fixed M. The Wheel's cost is linear in wakes and
   the wake rate is the only lever on it, so this single input decides whether the Wheel and its wake
   gather cost **0.11% of a Tick or 1.80%**.
-- **The GC churn rate K6 assumed — 44–52 MB/s, one object in sixteen promoted — is a guess at what the
-  shell, the UI and the per-frame snapshot allocate.** Nothing in the corpus states it. Without churn
-  there is no collection and no pause whatever is held live, so this one number sets the scale of every
-  K6 result **including the one that cleared `adr/0036`'s trigger**.
+- **The GC churn rate K6 assumed — one object in sixteen promoted — is a guess at what the shell, the UI
+  and the per-frame snapshot allocate.** Nothing in the corpus states it. Without churn there is no
+  collection and no pause whatever is held live, so this one number sets the scale of every K6 result
+  **including the one that cleared `adr/0036`'s trigger**. **The second machine supplies an accidental
+  sensitivity check and it is reassuring rather than conclusive**: churn is per *iteration*, so the M4
+  Pro's 2.4× faster iteration ran the same matrix at **122–126 MB/s against the desktop's 44–52** —
+  2.5× the pressure — and the unmanaged arm still recorded zero over-budget iterations. That is one
+  factor of 2.5 in one direction, not a curve, and the number is still owed.
 
 **Measurement owed, and it dies with the harness.** `spikes/S4.Kernels/` is deliberately **not** deleted
 yet — task 11 is held — because the following need it and reconstructing it from git history would cost
@@ -776,9 +797,10 @@ more than keeping it:
 
 - ~~**K0, and then K1/K2/K5, on the Apple M4 Pro.**~~ **DONE**, and it earned its cost — see
   [`spike-results.md`](../docs/spike-results.md), where every kernel now carries an *On the second
-  machine* subsection. **Three conclusions turned out to be properties of the desktop rather than of the
-  design** (the threading payoff, K2's array-of-structs advantage, K3's per-column copy penalty), and one
-  methodological defect surfaced only from the disagreement, recorded as a pattern below.
+  machine* subsection. **Four conclusions turned out to be properties of the desktop rather than of the
+  design** (the threading payoff, K2's array-of-structs advantage, K3's per-column copy penalty, and —
+  once K6 ran there too — the sign of server GC's effect on the unmanaged arm), and one methodological
+  defect surfaced only from the disagreement, recorded as a pattern below.
 - **The XMP re-sweep — downgraded from the reason the deletion is held to a refinement.** These DIMMs are
   rated **3200 MT/s and are running at 2133** with XMP off. The deletion was held because `adr/0037`'s
   save-copy band was being judged against a machine not running to its own specification — but **the
@@ -790,8 +812,14 @@ more than keeping it:
   inside the band; **that is a prediction and not a measurement.** Needs a reboot: `sudo
   tools/baseline-sweep.sh`, then `sudo tools/kernel-run.sh`. Labels carry the configured MT/s
   automatically, so it cannot overwrite the DDR-2133 results.
-- **K6 has never run on the M4 Pro and is the one kernel resting on a single machine.** Every other
-  kernel now has two, and K6 is the one carrying the GC verdict that `05 §6` is about to adopt.
+- ~~**K6 has never run on the M4 Pro and is the one kernel resting on a single machine.**~~ **DONE**,
+  2026-08-04, and it was worth the eighty minutes: `adr/0036`'s trigger clears on both machines
+  (**zero** over-budget unmanaged iterations in 6,062,762), the arm separation widens to **36.8×**, the
+  quantile finding strengthens — but **the server GC recommendation `05 §6` was about to adopt reversed**.
+  Two defects recorded from the capture: the invoking command dropped the redirection `tools/k6-run.sh`
+  performs, so the reports were recovered from terminal scrollback rather than written to `results/`;
+  and the harness's *"plus N MiB of managed objects"* line reports the whole managed heap rather than
+  the ~71 MiB live graph, so it tracks allocation rate instead of the thing the arm varies.
 - **Re-measure the M4 Pro baseline on a machine confirmed quiet, and re-derive every M4 *vs ideal*
   figure from it.** `results/kernels-apple-m4-pro.md` claims its denominator was *"measured in the same
   sitting"*; the timestamps are **42 h 44 min apart** (2026-08-03 00:42 against 2026-08-04 19:26), on
