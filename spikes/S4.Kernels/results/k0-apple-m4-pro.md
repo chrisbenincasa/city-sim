@@ -1,0 +1,50 @@
+## S4 K0 — the world's footprint — `apple-m4-pro`
+
+Recorded 2026-08-03 00:45 UTC. Schema and row counts from S4 task 2.
+
+### K0 — the world at 1,000k Citizens
+
+Allocated for real and first-touched, not computed. Per-Tick is what an ordinary Tick
+touches; wake is what a woken entity costs; cold is transactions and inspection.
+
+| Table | Rows | Per-Tick | Wake | Cold | Total |
+|---|---:|---:|---:|---:|---:|
+| Citizens | 1,000,000 | 12.4 MiB | 36.2 MiB | 4.8 MiB | 53.4 MiB |
+| Households | 360,000 | 4.1 MiB | 58.0 MiB | 13.0 MiB | 75.2 MiB |
+| Buildings | 150,000 | 1.7 MiB | 16.2 MiB | 3.7 MiB | 21.6 MiB |
+| Businesses | 50,000 | 586 KiB | 6.0 MiB | 586 KiB | 7.1 MiB |
+| Lots | 225,000 | 0 KiB | 3.0 MiB | 4.5 MiB | 7.5 MiB |
+| Trips in flight | 56,000 | 1.3 MiB | 1.5 MiB | 55 KiB | 2.9 MiB |
+| Legs in flight | 140,000 | 1.6 MiB | 1.7 MiB | 0 KiB | 3.3 MiB |
+| Segments | 30,000 | 117 KiB | 615 KiB | 615 KiB | 1.3 MiB |
+| **Total** | | **21.8 MiB** | **123.3 MiB** | **27.3 MiB** | **172.3 MiB** |
+
+Process working set grew by **174.0 MiB** against 172.3 MiB requested — an overhead of 1.0%. Allocated and touched in 9 ms.
+
+### What the Microscopic Cap costs
+
+Lanes and Vehicles are sized by the Cap, not by population. A Statistical Segment has no
+Lanes at all, so this is the whole of what the microscopic tier charges in memory.
+
+| Microscopic Segments | Lanes | Vehicles at jam | Footprint |
+|---:|---:|---:|---:|
+| 1,000 | 4,000 | 128,000 | 3.0 MiB |
+| 2,000 | 8,000 | 256,000 | 6.0 MiB |
+| 5,000 | 20,000 | 640,000 | 15.0 MiB |
+| 10,000 | 40,000 | 1,280,000 | 30.1 MiB |
+| 30,000 | 120,000 | 3,840,000 | 90.3 MiB |
+
+**Headroom: 143x.** This machine reports 24576.0 MiB available, so it could hold roughly 143 million Citizens' worth of world. 1M is a floor rather than a cap, so that multiple is the result and the absolute figure is only how it was reached.
+
+### The schema this was allocated against
+
+| Table | Rows / 1,000 Citizens | Per-Tick B/row | Wake B/row | Cold B/row | Total B/row |
+|---|---:|---:|---:|---:|---:|
+| Citizens | 1000 | 13 | 38 | 5 | 56 |
+| Households | 360 | 12 | 169 | 38 | 219 |
+| Buildings | 150 | 12 | 113 | 26 | 151 |
+| Businesses | 50 | 12 | 125 | 12 | 149 |
+| Lots | 225 | 0 | 14 | 21 | 35 |
+| Trips in flight | 56 | 24 | 29 | 1 | 54 |
+| Legs in flight | 140 | 12 | 13 | 0 | 25 |
+| Segments | 30 | 4 | 21 | 21 | 46 |

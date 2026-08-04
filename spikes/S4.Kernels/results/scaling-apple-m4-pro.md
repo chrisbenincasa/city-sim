@@ -1,6 +1,6 @@
 ## S4 scaling curve — `apple-m4-pro`
 
-Recorded 2026-07-31 13:08 UTC. Window 5s. GB means 1e9 bytes. Copy rate is bytes delivered; traffic counts the read as well.
+Recorded 2026-08-03 00:44 UTC. Window 5s. GB means 1e9 bytes. Copy rate is bytes delivered; traffic counts the read as well.
 
 ### Aggregate bandwidth against thread count
 
@@ -10,15 +10,15 @@ Recorded 2026-07-31 13:08 UTC. Window 5s. GB means 1e9 bytes. Copy rate is bytes
 
 | Threads | Placement | Copy aggregate | Copy traffic | Copy per-core | vs 1 thread | Read aggregate | Read per-core | vs 1 thread |
 |---|---|---|---|---|---|---|---|---|
-| 1 | 1 threads, OS-placed, 10 performance cores available | 63.5 GB/s | 126.9 GB/s | 63.5 GB/s | 1.00x | 67.1 GB/s | 67.1 GB/s | 1.00x |
-| 2 | 2 threads, OS-placed, 10 performance cores available | 99.8 GB/s | 199.6 GB/s | 49.9 GB/s | 1.57x | 129.1 GB/s | 64.6 GB/s | 1.92x |
-| 3 | 3 threads, OS-placed, 10 performance cores available | 110.9 GB/s | 221.8 GB/s | 37.0 GB/s | 1.75x | 155.7 GB/s | 51.9 GB/s | 2.32x |
-| 4 | 4 threads, OS-placed, 10 performance cores available | 118.3 GB/s | 236.7 GB/s | 29.6 GB/s | 1.87x | 239.8 GB/s | 60.0 GB/s | 3.57x |
-| 5 | 5 threads, OS-placed, 10 performance cores available | 118.8 GB/s | 237.7 GB/s | 23.8 GB/s | 1.87x | 245.3 GB/s | 49.1 GB/s | 3.65x |
-| 6 | 6 threads, OS-placed, 10 performance cores available | 118.3 GB/s | 236.6 GB/s | 19.7 GB/s | 1.86x | 248.8 GB/s | 41.5 GB/s | 3.71x |
-| 7 | 7 threads, OS-placed, 10 performance cores available | 117.9 GB/s | 235.8 GB/s | 16.8 GB/s | 1.86x | 247.7 GB/s | 35.4 GB/s | 3.69x |
-| 8 | 8 threads, OS-placed, 10 performance cores available | 118.5 GB/s | 237.0 GB/s | 14.8 GB/s | 1.87x | 245.3 GB/s | 30.7 GB/s | 3.65x |
-| 9 | 9 threads, OS-placed, 10 performance cores available | 118.4 GB/s | 236.7 GB/s | 13.2 GB/s | 1.87x | 245.7 GB/s | 27.3 GB/s | 3.66x |
-| 10 | 10 threads, OS-placed, 10 performance cores available | 118.1 GB/s | 236.3 GB/s | 11.8 GB/s | 1.86x | 245.3 GB/s | 24.5 GB/s | 3.65x |
-| 12 | 12 threads, OS-placed, past the 10 performance cores | 116.4 GB/s | 232.7 GB/s | 9.7 GB/s | 1.83x | 251.8 GB/s | 21.0 GB/s | 3.75x |
-| 14 | 14 threads, OS-placed, past the 10 performance cores | 115.7 GB/s | 231.4 GB/s | 8.3 GB/s | 1.82x | 249.8 GB/s | 17.8 GB/s | 3.72x |
+| 1 | 1 threads, OS-placed, 10 performance cores available | 64.5 GB/s | 129.0 GB/s | 64.5 GB/s | 1.00x | 67.1 GB/s | 67.1 GB/s | 1.00x |
+| 2 | 2 threads, OS-placed, 10 performance cores available | 101.8 GB/s | 203.5 GB/s | 50.9 GB/s | 1.58x | 131.1 GB/s | 65.6 GB/s | 1.95x |
+| 3 | 3 threads, OS-placed, 10 performance cores available | 112.1 GB/s | 224.2 GB/s | 37.4 GB/s | 1.74x | 157.0 GB/s | 52.3 GB/s | 2.34x |
+| 4 | 4 threads, OS-placed, 10 performance cores available | 119.6 GB/s | 239.2 GB/s | 29.9 GB/s | 1.85x | 210.2 GB/s | 52.6 GB/s | 3.13x |
+| 5 | 5 threads, OS-placed, 10 performance cores available | 119.7 GB/s | 239.4 GB/s | 23.9 GB/s | 1.86x | 247.6 GB/s | 49.5 GB/s | 3.69x |
+| 6 | 6 threads, OS-placed, 10 performance cores available | 119.7 GB/s | 239.5 GB/s | 20.0 GB/s | 1.86x | 250.3 GB/s | 41.7 GB/s | 3.73x |
+| 7 | 7 threads, OS-placed, 10 performance cores available | 119.5 GB/s | 239.0 GB/s | 17.1 GB/s | 1.85x | 249.9 GB/s | 35.7 GB/s | 3.72x |
+| 8 | 8 threads, OS-placed, 10 performance cores available | 119.4 GB/s | 238.9 GB/s | 14.9 GB/s | 1.85x | 248.4 GB/s | 31.0 GB/s | 3.70x |
+| 9 | 9 threads, OS-placed, 10 performance cores available | 119.2 GB/s | 238.5 GB/s | 13.2 GB/s | 1.85x | 247.4 GB/s | 27.5 GB/s | 3.69x |
+| 10 | 10 threads, OS-placed, 10 performance cores available | 119.3 GB/s | 238.6 GB/s | 11.9 GB/s | 1.85x | 247.1 GB/s | 24.7 GB/s | 3.68x |
+| 12 | 12 threads, OS-placed, past the 10 performance cores | 117.3 GB/s | 234.6 GB/s | 9.8 GB/s | 1.82x | 252.1 GB/s | 21.0 GB/s | 3.76x |
+| 14 | 14 threads, OS-placed, past the 10 performance cores | 116.6 GB/s | 233.2 GB/s | 8.3 GB/s | 1.81x | 253.9 GB/s | 18.1 GB/s | 3.78x |
