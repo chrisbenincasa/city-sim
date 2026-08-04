@@ -812,14 +812,26 @@ more than keeping it:
 per [`0003`](0003-build-plan.md)'s instruction that S2 be planned the moment it does. Rule 6 applied to
 the planning rather than to the running, which is where it caught four of these.
 
-- **`Segment` has no `CONTEXT.md` entry, and it gates S2.** The word appears twenty times in that file
-  — Fidelity, Stress, the Audit, the Microscopic Cap, Promotion and Demotion, Traveller, the VDF,
-  Upkeep — and is defined nowhere. It is the unit the Cap counts, the unit Fidelity attaches to, the
-  unit the VDF is evaluated on, and the unit `adr/0035` prices Upkeep against. **S2 is the first work
-  that must count Segments**, so it has to choose between a Road Graph edge, a run between Junctions,
-  and a Tile-length edge — **which differ by more than an order of magnitude on the same city**, and
-  which makes the ~30,000 placeholder meaningless until the word is fixed. `CONTEXT.md`'s own first
-  rule is that a term is added there before it is used. One entry, before S2 starts.
+- ~~**`Segment` has no `CONTEXT.md` entry, and it gates S2.**~~ **CLOSED same session.** The word
+  appeared twenty times in that file — Fidelity, Stress, the Audit, the Microscopic Cap, Promotion and
+  Demotion, Traveller, the VDF, Upkeep — and was defined nowhere, while being the unit the Cap counts,
+  the unit Fidelity attaches to, the unit the VDF is evaluated on and the unit `adr/0035` prices Upkeep
+  against. **Now defined as the Road Graph edge** — one run of road between two adjacent nodes, carrying
+  capacity, free-flow speed, mode mask, volume and Fidelity, and owning Lanes when Microscopic. **The
+  entry recovers a meaning rather than choosing one**, and the arithmetic is what pins it: a Tile-length
+  edge puts millions on a 4096² map and a run between authored Junctions puts almost none on a city that
+  is mostly Streets, while K0's ~30,000 Segments at about four Lanes each is only consistent with the
+  middle reading. The ~30,000 itself still rests on a road-density figure that exists nowhere, and
+  remains S2's to replace.
+- **Whether `volume / capacity` is per Segment or per direction is unsettled, and the Segment entry
+  deliberately did not settle it.** Lanes are directional queues and a Segment carries about four of
+  them, so **a Segment jammed inbound at the morning peak reads roughly half-loaded if the two
+  directions are summed** — Stress would understate exactly where it matters and promotion to
+  Microscopic would fire late, which is the failure `adr/0007` leans on *errors self-correct toward
+  detection* to prevent. The VDF entry says *"one Segment's own `volume / capacity`"*, singular, which
+  reads as per-Segment and is probably just imprecision rather than a decision. Real traffic engineering
+  is per-direction. `0010` task R0 parameterises it; **it must not be assumed by whoever writes the
+  first Segment row.**
 - **The travel-time matrix refresh cadence is filed as tuning and is almost certainly hash-bearing.**
   `02 §1.2` lists accessibility refresh among the tunable knobs; but cadence decides when a changed
   travel time becomes visible to the choice loop, so two cadences produce two cities — **a design

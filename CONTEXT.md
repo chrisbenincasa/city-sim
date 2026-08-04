@@ -608,6 +608,15 @@ The routing abstraction: nodes and edges, uniform regardless of how a road was d
 
 **One graph, with mode masks.** Pedestrian and vehicle edges are the same structure, tagged by which modes may traverse them — not two parallel networks. This gives one Epoch covering both, one revalidation path, and a multi-Leg Trip routed by a single mode-aware search rather than stitched across two structures. It is also what makes **Severance** emergent: nobody deletes a pedestrian route, the mask simply never granted one.
 
+**Segment**
+**An edge of the Road Graph: one run of road between two adjacent nodes.** For Streets the nodes are intersections and both fall out of the Tile grid directly; for Arterials they are the authored Junction pieces. A Segment carries the attributes every other system reads off it — capacity, free-flow speed, mode mask, current volume, and its **Fidelity**.
+
+It is the unit almost everything about movement is counted in, which is why it needs stating precisely. **Fidelity is a property of the Segment**, not of the Traveller on it; the **Microscopic Cap** counts Segments; the **VDF** is evaluated on one Segment's own `volume / capacity`; **Stress** is that ratio times a complexity factor; and `adr/0035` prices **Upkeep** against capacity and free-flow speed, which are Segment attributes. A Microscopic Segment owns **Lanes**; a Statistical one has none at all.
+
+**It is not a Tile and it is not a whole road.** A Tile-length edge would put millions of them on a 4096² map, and a run between authored Junctions would put almost none on a city that is mostly Streets — both by more than an order of magnitude. The working figure is **~30,000 Segments at 1,000,000 Citizens, about four Lanes each**, which puts a Segment at roughly a block-length link. That figure rests on a road-density assumption nothing in this corpus has yet argued, and it is spike **S2**'s to replace.
+
+_Avoid_: "road", "link", "edge" as loose synonyms — the first two are ambiguous between the Segment and the whole street a player drew, and "edge" is the graph-theoretic word for the same object and is fine in `05` but not in design prose.
+
 **Volume-Delay Function** (VDF)
 The formula that estimates a Segment's travel time from how busy it is — the standard being BPR, `free_flow × (1 + α(volume/capacity)^β)`. Cheap, and the mechanism behind every Statistical Segment.
 

@@ -52,22 +52,28 @@ unnecessary. A spike that answers a question the design stopped asking has not s
 
 ## Gate
 
-**One, and it is cheap.** Not a design argument — a missing definition.
+**Cleared.** It was one item and it was a missing definition rather than a design argument.
 
-**`Segment` has no entry in [`CONTEXT.md`](../CONTEXT.md), and S2 cannot proceed without one.** The
-word is used twenty times in that file — in Fidelity, Stress, the Audit, the Microscopic Cap,
-Promotion and Demotion, Traveller, the VDF and Upkeep — and defined nowhere. It is the unit the
-Microscopic Cap counts, the unit Fidelity attaches to, the unit the VDF is evaluated on, and the unit
+**`Segment` had no entry in [`CONTEXT.md`](../CONTEXT.md)**, though the word appeared twenty times in
+that file — in Fidelity, Stress, the Audit, the Microscopic Cap, Promotion and Demotion, Traveller,
+the VDF and Upkeep. It is the unit the Cap counts, the unit Fidelity attaches to, the unit the VDF is
+evaluated on, and the unit
 [`adr/0035`](../docs/adr/0035-infrastructure-is-priced-by-what-it-consumes.md) prices Upkeep against.
-`CONTEXT.md`'s own first rule is that a term is added there before it is used.
+S2 is the first work that must *count* Segments, so it would have had to pick between a Road Graph
+edge, a run between Junctions and a Tile-length edge — **which differ by more than an order of
+magnitude on the same city.** Picking it silently inside a spike is how a definition gets welded in by
+a benchmark.
 
-S2 is the first work that must *count* Segments, and it therefore has to pick a meaning: a Road Graph
-edge, a run between Junctions, or a Tile-length edge. **Those differ by more than an order of
-magnitude on the same city**, which makes the ~30,000-Segment placeholder meaningless until the word
-is fixed. Picking it silently inside a spike is how a definition gets welded in by a benchmark.
+**Now defined, as the Road Graph edge**: one run of road between two adjacent nodes, carrying
+capacity, free-flow speed, mode mask, volume and Fidelity, and owning Lanes when Microscopic. The
+entry recovers the meaning the rest of the corpus already implied rather than choosing a new one — the
+K0 schema's ~30,000 Segments at about four Lanes each is only consistent with the middle reading.
 
-*Handling: one `CONTEXT.md` entry, before task R0. It is not an ADR — it is a word the corpus already
-uses and already means something by.*
+**What the definition did not settle, and S2 must not settle silently:** whether `volume / capacity` is
+per Segment or per direction. Lanes are directional queues and a Segment carries about four of them,
+so a Segment jammed inbound at the morning peak reads roughly half-loaded if the two directions are
+summed — which would make Stress understate exactly when it matters and promote to Microscopic late.
+Recorded in [`0002`](0002-open-questions.md); **R0 must parameterise it rather than assume it.**
 
 **Not a gate, but a parameterisation requirement.** Whether Districts are player-drawn or automatic is
 open and [`06`](../docs/06-roadmap.md) says it blocks milestone 5c. It does not block S2, because a
