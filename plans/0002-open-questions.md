@@ -820,15 +820,26 @@ more than keeping it:
   performs, so the reports were recovered from terminal scrollback rather than written to `results/`;
   and the harness's *"plus N MiB of managed objects"* line reports the whole managed heap rather than
   the ~71 MiB live graph, so it tracks allocation rate instead of the thing the arm varies.
-- **Re-measure the M4 Pro baseline on a machine confirmed quiet, and re-derive every M4 *vs ideal*
-  figure from it.** `results/kernels-apple-m4-pro.md` claims its denominator was *"measured in the same
-  sitting"*; the timestamps are **42 h 44 min apart** (2026-08-03 00:42 against 2026-08-04 19:26), on
-  the one machine with no governor control, no turbo switch, no thread pinning and an unrecorded
-  background load. **This is cheap to fix — a ten-second window, about a minute of wall clock** — and
-  until it is fixed every ratio-to-ideal in the M4 subsections is provisional. **The conclusions are
-  not**: they are within-process variant ratios and are immune to the denominator, which is why the
-  fold-in survives the defect. Do it in the same sitting as K6, on a quiet machine, before the harness
+- **Re-measure the M4 Pro baseline and re-derive every M4 *vs ideal* figure from it.**
+  `results/kernels-apple-m4-pro.md` claims its denominator was *"measured in the same sitting"*; the
+  timestamps are **42 h 44 min apart** (2026-08-03 00:42 against 2026-08-04 19:26), on the one machine
+  with no governor control, no turbo switch and no thread pinning. **This is cheap to fix — a
+  ten-second window, about a minute of wall clock** — and until it is fixed every ratio-to-ideal in the
+  M4 subsections is provisional. **The conclusions are not**: they are within-process variant ratios and
+  are immune to the denominator, which is why the fold-in survives the defect. Do it before the harness
   is deleted.
+- **The two machines carry different defects and neither is the clean one — corrected 2026-08-04, having
+  been recorded backwards first.** The **desktop was running other work during its captures**; the **M4
+  Pro was quiet during its own**. The M4 Pro's defect is the stale denominator above; the desktop's is
+  contention. `kernel-run.sh` pins the desktop to one physical core with the SMT sibling idle, so
+  another process must land on that core to steal cycles — **but pinning is no protection against DRAM
+  bandwidth contention, and K1, K2 and K3 are bandwidth-bound.** The desktop's absolutes and its
+  ratios-to-ideal therefore carry an unquantified error bar; its within-process variant ratios, which is
+  where the conclusions are, do not. Argued in full in [`spike-results`](../docs/spike-results.md) under
+  *What the desktop's background load can and cannot have moved*. **The lesson is the filing error rather
+  than the load:** the capture that got the caveat is the one that did not need it, because the caveat
+  was attached from a memory of which concern was raised rather than from a record of which machine was
+  measured. Neither harness records host load, and nothing in `results/` could have settled it.
 - **K2's sparse-wake premise is confirmed on one machine only, and cannot be confirmed on the other as
   written.** The M4 Pro's 16 MiB cluster-shared L2 holds most of the 20 MB working set, so that run beats
   its own bandwidth ideal by 3× and measures cache rather than DRAM. Reproducing the desktop's finding on

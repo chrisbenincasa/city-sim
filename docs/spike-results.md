@@ -61,10 +61,9 @@ desktop counterparts measure. And the third is a defect in the capture itself:
 > do.** `results/kernels-apple-m4-pro.md` states *"Divide against `baseline-apple-m4-pro.md`, measured
 > in the same sitting"*. The baseline is stamped **2026-08-03 00:42 UTC** and the kernels
 > **2026-08-04 19:26 UTC** — **42 hours 44 minutes apart**, on a machine with no governor control, no
-> turbo switch, no thread pinning, and an unrecorded background load. **Every *vs ideal* figure in the
-> M4 Pro subsections divides by that stale denominator and is provisional until the baseline is
-> re-measured.** The *vs variant* columns do not: they are ratios within a single BenchmarkDotNet
-> process and are unaffected.
+> turbo switch and no thread pinning. **Every *vs ideal* figure in the M4 Pro subsections divides by
+> that stale denominator and is provisional until the baseline is re-measured.** The *vs variant*
+> columns do not: they are ratios within a single BenchmarkDotNet process and are unaffected.
 >
 > The desktop does not carry this defect, and the difference in wording is exactly where it shows.
 > `results/kernels-ddr2133-performance-turbo.md` claims its baseline was *"measured under the same
@@ -72,6 +71,14 @@ desktop counterparts measure. And the third is a defect in the capture itself:
 > DIMM rate, all of which are recorded and were re-established for the run. That is a defensible claim
 > about a controlled machine. *"Same sitting"* is a claim about a moment, it was not true, and it was
 > made about the one machine that has no configuration controls to fall back on.
+>
+> **The two machines carry different defects, and it is worth being exact about which is which.** The
+> **desktop was running other work during its captures**; the **M4 Pro was quiet during its own**. So
+> the desktop's exposure is contention and the M4 Pro's is a stale denominator, and neither machine is
+> the clean one. What limits the desktop's exposure is that `kernel-run.sh` pins to one physical core
+> with the SMT sibling idle, so another process must be scheduled onto that core to interfere —
+> **except through DRAM bandwidth, which pinning does not protect and which K1, K2 and K3 are bound
+> by.** See *What the desktop's background load can and cannot have moved*, below.
 >
 > **This is the third instance of the pattern this corpus keeps finding — a value never checked
 > against what it claimed to describe** — after the GC sweep that reported the configuration it asked
@@ -81,6 +88,34 @@ desktop counterparts measure. And the third is a defect in the capture itself:
 **What survives this and what does not** is separated explicitly in each subsection below, because the
 division is not intuitive: almost every *conclusion* drawn from the M4 Pro is a within-run variant
 ratio and is untouched, while almost every *headline number* is a ratio to ideal and is provisional.
+
+#### What the desktop's background load can and cannot have moved
+
+**Immune.** Every *vs variant* ratio, which is where almost all of the conclusions live — two variants
+in one BenchmarkDotNet process, minutes apart, under whatever load was present for both. And all of
+K6's collector figures: `GC.GetTotalPauseDuration()` and the generation counts are reported by the
+runtime, not inferred from wall clock, and no other process creates gen2 collections in this one.
+
+**Exposed, and by how much is unknown.** Absolute ns/op, and every ratio to ideal — because the
+desktop's baseline and its kernels are 59 hours apart, so they need not have shared a load even though
+they shared a configuration. Pinning to one physical core with the SMT sibling idle means another
+process must be scheduled onto that core to steal cycles, which is real protection. **It is no
+protection at all against DRAM bandwidth contention, and K1, K2 and K3 are bandwidth-bound** — that is
+the desktop's actual exposure, and it is the same kernels whose ratios-to-ideal matter most.
+
+**The direction that would be dangerous is the one the evidence argues against.** A loaded *baseline*
+reads low, which makes the hand-computed ideal too easy and flatters every kernel — the direction that
+could hide a tripwire. Against that: K1 achieves **91% of the desktop's measured copy ceiling**, a
+plausible fraction for a read-only scan against a copy, and nowhere near the ≥100% that an understated
+ceiling produces. On the M4 Pro the same loop reaches only 50% of a ceiling measured on a quiet machine.
+**If the desktop ceiling were badly understated, K1 would be pressed against it or through it, and it is
+not.** That is an argument, not a measurement, and the honest position is that the desktop's absolutes
+carry an unquantified error bar in an unknown direction while its comparisons do not.
+
+**K6 is the desktop capture most exposed**, because it is deliberately unpinned — server GC wants every
+core. Its arm-separation conclusion survives anyway, by the same argument that carries it on the M4 Pro:
+the arms alternated run by run, and all four managed maxima exceed all four unmanaged maxima, which no
+drift or single burst can produce.
 
 ### The machine — Linux desktop
 
@@ -1499,17 +1534,21 @@ of thing that must be a startup configuration read from the host rather than a c
 This is the same shape as K3's per-column copy penalty: **the durable decision is the one that removes
 the host dependence, not the one that picks the winner on the machine that happened to be to hand.**
 
-#### Two caveats on this capture
+#### Conditions, and one thing left unexplained
 
-**The machine's quietness was not verified, and max is the statistic most exposed to that.** A 207 ms
-outlier is equally consistent with a blocking gen2 and with a background process. Three things argue it
-is the collector. The arms **alternated** run by run at ten-minute spacing, so no drift or single burst
-can sort itself by arm — yet all four managed maxima exceed all four unmanaged maxima, which under
-random assignment is 1 in 70. The over-budget counts are **0, 0, 0, 0 against 2, 2, 2, 2**, split the
-same way. And the 206.977 ms run's own total pause is 638 ms, so the outlier is a third of all collector
-time in that run, which is what one expensive blocking gen2 over a 1.56M-object graph looks like. The
-mechanism is not in doubt; the exact figures are provisional in the same way the M4 Pro's other
-absolutes are.
+**This is the quieter of the two captures, which is the opposite of what the M4 Pro's other defects
+would suggest.** The M4 Pro was idle for these eighty minutes; **the desktop was running other work
+during its own K6 sweep**, and K6 is the one kernel captured unpinned on both machines. So where the
+two disagree, the M4 Pro numbers are the better-conditioned ones — and the stale-denominator defect
+that makes the M4 Pro's other kernels provisional does not touch K6 at all, because K6 divides by
+nothing. **It reports milliseconds against a fixed 15.6 ms budget.**
+
+The 206.977 ms outlier is a collector event rather than an interruption, on three counts. The arms
+**alternated** run by run at ten-minute spacing, so no drift or single burst can sort itself by arm —
+yet all four managed maxima exceed all four unmanaged maxima, which under random assignment is 1 in 70.
+The over-budget counts are **0, 0, 0, 0 against 2, 2, 2, 2**, split the same way. And that run's own
+total pause is 638 ms, so the outlier is a third of all collector time in it, which is what one
+expensive blocking gen2 over a 1.56M-object graph looks like.
 
 **The over-budget count is exactly 2 in all four managed runs, and that is not explained.** The graph is
 built before the clock starts and eight warmup iterations precede it, so it is not construction. The

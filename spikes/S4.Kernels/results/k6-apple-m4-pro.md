@@ -6,8 +6,9 @@ server GC wants every core, and macOS cannot pin a thread to a core at all.
 **Provenance: recovered from terminal scrollback, not written by the harness.** The invoking
 command omitted both `--out` and the shell redirection that `tools/k6-run.sh` performs, so the
 eight reports went to stdout only. The text below is those reports verbatim, reassembled in the
-order they were produced. Machine quietness was not verified for this capture; see the *Two
-caveats on this capture* subsection in `docs/spike-results.md`.
+order they were produced. **The machine was otherwise idle for these eighty minutes**, which the
+desktop's own K6 sweep was not; see the caveats subsection under *On the second machine* in
+`docs/spike-results.md`.
 
 
 Recorded 2026-08-04 19:59 UTC. Not a BenchmarkDotNet job: warmup-and-discard is exactly wrong for a tail.
