@@ -7,4 +7,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!--
+      The committed exp/log tables are verified against a double-precision oracle the core is not
+      allowed to contain, so the test assembly has to be able to read them. adr/0038.
+    -->
+    <InternalsVisibleTo Include="Borough.Tests" />
+  </ItemGroup>
+
 </Project>

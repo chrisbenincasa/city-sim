@@ -184,18 +184,18 @@ a policy expressed in types rather than a test.
 
 ## Decisions owed by this slice
 
-**The `exp`/`log` table resolution is unratified and this slice cannot finish without a number.**
-`adr/0003` requires it to be *a stated figure, validated against the herding behaviour `adr/0005`
-describes* — and `adr/0005` is 🔴, never grilled. The honest handling, in order:
+~~**The `exp`/`log` table resolution is unratified and this slice cannot finish without a number.**~~
+**SETTLED in [`adr/0038`](../docs/adr/0038-the-transcendental-tables-are-sized-by-the-representation.md)
+— 256 entries per table, rounded linear interpolation, base-2 range reduction.** It did not need a
+provisional figure after all, because the question had a stopping rule rather than a range: *the table
+must not be the thing limiting the answer*, and one entry count satisfies that where 128 does not and
+512 over-buys. It is hash-bearing and world-creation-fixed as expected.
 
-1. Build the generator with resolution as an explicit parameter, so the figure is a value and not a
-   property of the code.
-2. Pick a provisional figure and **record it in [`0002`](0002-open-questions.md) as unratified**,
-   with the validation owed. Do not let it be repeated until it reads as settled — that is the exact
-   mechanism by which an unratified 10k silently sized five decisions.
-3. Note that it is **hash-bearing and therefore a world-creation constant** by the `05 §4` test:
-   changing it changes every choice the model makes. It cannot be quietly tuned later, which is why
-   ratifying it is owed rather than optional.
+**Two things came out of settling it, both in [`0002`](0002-open-questions.md).** `adr/0003`'s owed
+validation was two debts filed as one, and the half that needs no running city — a differential test
+against a double-precision oracle on selection probabilities — was runnable from the day the ADR was
+written. And the choice model has a **hard horizon at ~11.1 utility units that moves as `1/μ`**, which
+means `02 §5.4`'s *free design knob* also decides where options stop existing.
 
 Second, smaller: **whether `Ratio` and `SubTiles` should be one type or two.** They share a
 representation and differ in what may be done to them, which is the argument for two. Recorded here
