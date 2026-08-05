@@ -38,12 +38,35 @@ mix(z):                                        // SplitMix64 finalizer
 
 GOLDEN = 0x9E3779B97F4A7C15
 
-draw(seed, entity, tick, purpose):
-    h = mix(seed   + GOLDEN + entity)
-    h = mix(h      + GOLDEN + tick)
-    h = mix(h      + GOLDEN + purpose)
+world_key(seed):                               // once, at world creation
+    return mix(seed + GOLDEN)
+
+draw(world_key, entity, tick, purpose):
+    h = mix(world_key + GOLDEN + entity)
+    h = mix(h         + GOLDEN + tick)
+    h = mix(h         + GOLDEN + purpose)
     return h
 ```
+
+> **Amended 2026-08-04, before the first Input Log existed.** As originally written the first round
+> was `h = mix(seed + GOLDEN + entity)`, which **added two externally chosen coordinates together, so
+> only their sum reached the hash.** `draw(seed=1000, entity=1)` and `draw(seed=1001, entity=0)` were
+> bit-identical for every tick and every purpose: **rerolling the world seed by one produced the same
+> world shifted by one entity rather than a new world.** Within a single world it was harmless, the
+> seed being constant and `seed + entity` therefore injective in entity; the damage was across worlds.
+> It was found by writing this function's first known-answer vectors, when two vectors differing only
+> in which coordinate held the `1` produced the same value.
+>
+> **The fix folds the seed in its own round**, restoring four coordinates to four. It is free on the
+> hot path: `world_key` depends on nothing that varies during a run, so it is computed once at world
+> creation and stored, leaving `draw` at the same three mixes it always had.
+>
+> **What this does and does not buy, stated precisely.** It does not make the coordinates
+> algebraically independent — two worlds still satisfy `draw_A(e) == draw_B(e + d)` for the constant
+> `d = world_key(A) − world_key(B)`. What changes is that `d` is now a pseudorandom 64-bit value
+> instead of the seed difference itself. With entity ids bounded around 2²⁴, the chance that two given
+> worlds overlap anywhere is about **2⁻³⁹**, against a certainty before. The tick and purpose rounds
+> never had this defect, because `h` is a hash output by the time they fold in.
 
 It is chosen for four properties, in order: it is a **bijection**, so it has no collisions over the counter domain; it is **published and stable**, unlike `System.Random`; it has **no dependency**, which this ADR's own revisit trigger requires of anything in the core; and it is ~15 instructions, which is cheap enough not to matter beside the decision it seeds. *If profiling ever demands fewer rounds, that is a format change requiring a deliberate re-baseline, not a free optimisation.*
 

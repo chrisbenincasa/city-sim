@@ -26,8 +26,12 @@ lose.
 multiplication rule, typed quantities, the normative `draw()` definition, and the `purpose_tag` rule.
 `02 §8`'s rule list and `02 §10`'s testing strategy were grilled alongside it.
 
-**One thing inside the gate is not actually settled** — see *Decisions owed* below. The `exp`/`log`
-table's **resolution** is required by `adr/0003` to be a stated figure and appears in no document.
+~~**One thing inside the gate is not actually settled** — the `exp`/`log` table's **resolution**.~~
+**Settled during the slice, in [`adr/0038`](../docs/adr/0038-the-transcendental-tables-are-sized-by-the-representation.md).**
+
+**Status: all seven tasks done.** The slice produced two decisions rather than the one it was gated on —
+`adr/0038` for the table resolution, and an **amendment to `adr/0003`'s normative hash**, which had a
+structural defect that writing its first known-answer vectors exposed. See *Decisions owed* below.
 
 ## Prerequisites
 
@@ -200,6 +204,23 @@ means `02 §5.4`'s *free design knob* also decides where options stop existing.
 Second, smaller: **whether `Ratio` and `SubTiles` should be one type or two.** They share a
 representation and differ in what may be done to them, which is the argument for two. Recorded here
 because it will look like duplication to a future reader and the reason should be findable.
+
+**Third, and it was not owed by this slice so much as found by it: `adr/0003`'s normative `draw()` had
+a structural defect, and writing the first known-answer vectors is what exposed it.** The opening round
+was `mix(seed + GOLDEN + entity)` — two externally chosen coordinates added together, so only their sum
+reached the hash. `draw(seed=1000, entity=1)` equalled `draw(seed=1001, entity=0)` bit for bit, at every
+Tick and for every purpose: **rerolling the world seed produced the same world shifted by one entity.**
+The ADR is amended, the seed now has its own round, and the round is loop-invariant so the hot path is
+unchanged — see `WorldKey`. **It cost nothing because no Input Log, State Hash baseline or save exists
+yet**, which is the entire argument for `adr/0003`'s instruction that this be the first thing built.
+
+**The independence property task 5 names is not tested and remains owed.** The stated property is that
+*two people can implement this from the document and get the same city*; both implementations in
+`RandomnessTests` were written by one author in one sitting, so a misreading of the ADR would appear in
+both. What the second implementation does close is narrower and worth having: it reduces mod 2⁶⁴
+explicitly in `BigInteger`, so it does not inherit C#'s `unchecked` semantics and would catch a wrapping
+error, which is the most likely way to get this function wrong. Closing the real property needs a reader
+who has not seen this code.
 
 ## What this slice deliberately does not do
 

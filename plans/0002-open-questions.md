@@ -922,11 +922,53 @@ the planning rather than to the running, which is where it caught four of these.
 reports footprint as a curve — **3.0 MiB at 1,000 Segments to 90.3 MiB at 30,000**. The Cap itself
 remains unset, and remains the input `adr/0036`'s headroom argument is downstream of.
 
-**From slice 2, building the arithmetic substrate** — tasks 1, 2, 3 and 7 of
-[`0005`](0005-arithmetic-substrate.md). The first code in `Borough.Core`, and three findings arrived
-within an hour of it existing, which is rule 6's prediction landing rather harder than the planning
-did. Tasks 4, 5 and 6 — tabulated `exp`/`log`, `draw()` and `PurposeTag` — are not started, and the
-`exp`/`log` resolution remains the decision that slice cannot close without.
+**From slice 2, building the arithmetic substrate** — [`0005`](0005-arithmetic-substrate.md),
+**now complete, all seven tasks.** The first code in `Borough.Core`, and three findings arrived within
+an hour of it existing, which is rule 6's prediction landing rather harder than the planning did. The
+slice was gated on one decision — the `exp`/`log` resolution, settled in `adr/0038` — and produced a
+second nobody had scheduled: **an amendment to `adr/0003`'s normative hash.**
+
+- **The normative `draw()` collapsed two of its four coordinates, and writing its first known-answer
+  vectors is what exposed it.** `adr/0003`'s opening round was `mix(seed + GOLDEN + entity)` — the world
+  seed and the entity id **added together**, so only their sum reached the hash. `draw(seed=1000,
+  entity=1)` and `draw(seed=1001, entity=0)` were bit-identical at every Tick and for every purpose:
+  **rerolling the world seed by one produced the same world shifted by one entity rather than a new
+  one.** Within a single world it was harmless, the seed being constant; the damage was across worlds,
+  and it is the failure `05 §4` names — *correlates two decisions invisibly* — one level up, correlating
+  two cities. The ADR is amended to give the seed its own round; the round is loop-invariant, so it is
+  paid once at world creation in `WorldKey` and the hot path is the same three mixes it always was.
+  **Three things worth keeping from it:**
+  - **The cost curve is the whole argument for doing this early.** This is a format-class change by the
+    ADR's own terms. Today it cost a table of test vectors. After the first Input Log, State Hash
+    baseline or save exists it invalidates all of them. `adr/0003` says integer discipline is *the first
+    thing built*; this is the same argument applied to the hash, and it is the second time this corpus
+    has been paid by acting before there was anything to break.
+  - **The defect was in a document that had been reviewed repeatedly and was invisible in prose.**
+    `hash(world_seed, entity_id, tick, purpose_tag)` reads as four coordinates and the pseudocode says
+    so too; only evaluating it reveals that the first line takes two of them and adds them. **A
+    specification that is only ever read is only ever checked for plausibility.** The generalisation for
+    the audit list: **anything normative in this corpus that has never been executed should be executed
+    once, cheaply, before it acquires dependents** — the Q16.16 range assertions and `WHEEL_SIZE`'s
+    interaction with routine sleep lengths are the nearest candidates.
+  - **The fix is honest about what it does not buy.** It does not make the coordinates algebraically
+    independent: two worlds still satisfy `draw_A(e) == draw_B(e + d)` for a constant `d`. What changes
+    is that `d` is now a pseudorandom 64-bit value rather than the seed difference itself, which takes
+    the overlap probability between two given worlds from a certainty to about 2⁻³⁹.
+- **The one property task 5 actually names is still not tested, and the test that claims to test it
+  cannot.** `0005` asks for *a second, independent implementation written from the ADR text alone*,
+  because the stated property is that two people can implement this and get the same city. Both
+  implementations in `RandomnessTests` were written by one author in one sitting, so a misreading of the
+  ADR appears in both — the test is a check on transcription, not on the document. **It is recorded as
+  a limitation in the test file itself rather than left to look like coverage.** What it does close: the
+  second implementation reduces mod 2⁶⁴ explicitly in `BigInteger` and so inherits none of C#'s
+  `unchecked` semantics, which is the most likely way to get this function wrong. **The real check is a
+  reader who has not seen the code, and it stays owed.**
+- **`PurposeTag` ships nearly empty, deliberately, and its uniqueness check is a stopgap that must be
+  deleted.** `adr/0003` and `02 §10` both require uniqueness to be a **build-time** check; a unit test
+  is not one, since it catches a duplicate only when someone runs the suite. `PurposeTagTests` holds the
+  window until slice 3's analyser lands, and says so in its own summary. Tags are added when a mechanism
+  that draws is built rather than in advance, because a tag with no caller cannot be checked against the
+  draw it is meant to name.
 
 - **A mechanically-enforced rule was incompatible with the type shape the corpus itself prescribes,
   and the first file to land under it tripped it.** Slice 0's `Core_returns_no_human_readable_strings`
