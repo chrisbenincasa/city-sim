@@ -18,10 +18,16 @@ using Borough.Core.Tables;
 /// which is the Event Wheel's premise made arithmetic.
 /// </para>
 /// <para>
-/// <b><c>wheel_next</c> is declared here and used in slice 9.</b> It is the intrusive link into an
-/// Event Wheel bucket, and it is <see cref="Disposition.Derived"/> because the bucket a Citizen sits
-/// in is a pure function of <c>next_event_tick</c> — the Wheel is an index over saved state, not
-/// state. Declaring it now costs nothing and keeps the per-Tick width honest from the first row.
+/// <b><c>wheel_next</c> is declared here and used in slice 9, and its disposition is provisional.</b>
+/// It is the intrusive link into an Event Wheel bucket, and it is <see cref="Disposition.Derived"/>
+/// because the bucket a Citizen sits in is a pure function of <c>next_event_tick</c> — the Wheel is
+/// an index over saved state, not state. <b>That is true of membership and is unproven of order.</b>
+/// Under the rule <c>05 §3</c> now states — a list may be derived only if its <em>order</em> is
+/// recoverable, not merely its membership — this holds only if nothing observable depends on the
+/// order Citizens are woken in within one Tick. Phase 2 is read-only so Decide cannot be
+/// order-dependent, and <c>02 §8</c> rule 5 settles contested outcomes by shuffle rather than by
+/// arrival; slice 9 has to make that claim explicitly rather than inherit it, and if it fails this
+/// column becomes <see cref="Disposition.Saved"/> exactly as the Bin wait list did.
 /// </para>
 /// </remarks>
 [Table]
