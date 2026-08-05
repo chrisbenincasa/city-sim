@@ -24,6 +24,60 @@ wherever it fit.
 
 ---
 
+## Progress
+
+**Tasks 1–3 are done.** Tick this table as tasks land; [`0003`](0003-build-plan.md)'s ledger records
+the slice as a whole and should not be updated until the slice closes.
+
+| Task | State | Where it landed |
+|---|---|---|
+| 1. `step(inputs)` and the phase skeleton | **done** | `Simulation.cs`, `TickPhase.cs`, `TickInput.cs` |
+| 2. The command model and the Input Log | **done, less the codec** | `Core/Input/` — `Command`, `InputLog`, `InputLogBuilder`, `WorldConfiguration` |
+| 3. Replay | **done** | `Core/Input/Replay.cs` |
+| 4. The golden-hash baseline | pending | — |
+| 5. The headless runner | pending | **also carries the text codec deferred from task 2** |
+| 6. The invariant tiers | pending | — |
+| 7. The long-run test | pending | — |
+| 8. The crash artifact | pending | — |
+
+### Decided while building tasks 1–3
+
+**The Input Log's on-disk encoding is line-oriented text**, which the *Decisions owed* section below
+left open. Weighed against binary records and against binary-with-a-dump-tool. The deciding
+arguments were that the log is *attached* to a bug report far more often than it is diffed, so
+**legible without tooling** beats *diffable*; that the crash artifact is emitted at the moment
+tooling is least trustworthy; and that binary's usual advantage is size, which the task 2 sizing
+check — *a ten-hour session is kilobytes* — deletes. Binary's real win, no locale exposure, is
+answered by `InvariantGlobalization` and explicit invariant parsing. Sketch:
+
+```
+borough-log 1
+seed 0x0B07000000000001
+citizens 64
+ruleset 0x0000000000000000
+--
+0 zone 0 0 1
+1 zone 1 1 1
+```
+
+**Two things the codec still owes an answer on, both deferred to task 5 rather than guessed:**
+
+- **Where it lives.** `Borough.Core` has no filesystem (`02 §1`) and does not own strings a human
+  reads (`adr/0002`), which argues for the shell — but then `Borough.Godot` needs its own copy, since
+  it must write a log while the player plays. The three ways out are a codec in `Core` arguing that a
+  serialisation token is not a Readout, a codec duplicated in two shells, and a fifth project, which
+  `05 §1` forecloses without an ADR. **Unresolved.**
+- **The file extension.** `.gitignore` line 494 ignores `*.inputlog`, inherited from the .NET
+  template. The golden baseline in task 4 is a committed log, so it must not use that extension —
+  or the ignore rule goes.
+
+**Also found: `.gitignore` line 35 ignores `[Ll]og/`.** The first home for these types was
+`src/Borough.Core/Log/`, which git would have silently refused to track. Named here because the
+failure is invisible — the build succeeds, the tests pass, and the files are simply not in the
+commit.
+
+---
+
 ## Gate
 
 **Cleared, session eight.** `adr/0003` is closed: the hash function is normative with literal

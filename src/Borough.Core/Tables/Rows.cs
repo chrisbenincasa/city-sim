@@ -186,6 +186,34 @@ public abstract class Rows
         hash = h;
     }
 
+    /// <summary>
+    /// Folds <em>every</em> column, derived ones included, plus the allocator's scalars.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is not the State Hash and must never be used as one.</b> <see cref="Fold"/> folds saved
+    /// state, which is the declaration's whole point; this folds storage. It exists for the one
+    /// question the State Hash cannot answer — <em>did anything at all change?</em> — which is what
+    /// <c>Simulation.VerifyDecideWritesNothing</c> asks around Phase 2. A guard built on the State Hash
+    /// would wave through a write to a derived column, and a derived column is precisely where a Rule
+    /// evaluating in Decide would cache something.
+    /// </remarks>
+    internal void FoldAll(ref ulong hash)
+    {
+        ulong h = hash;
+
+        h = Randomness.Mix(h + (ulong)(long)_slotCount);
+        h = Randomness.Mix(h + (ulong)(long)_liveCount);
+        h = Randomness.Mix(h + (ulong)(long)_freeHead);
+        h = Randomness.Mix(h + _nextId);
+
+        foreach (Column column in _columns)
+        {
+            column.Fold(ref h, _slotCount);
+        }
+
+        hash = h;
+    }
+
     /// <summary>True while the slot holds a live row. Live generations are odd; free ones are even.</summary>
     public bool IsLive(int slot) => (uint)slot < (uint)_slotCount && (_generation[slot] & 1u) == 1u;
 
