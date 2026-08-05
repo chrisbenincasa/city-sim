@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Framework, nullability and analyser settings live in Directory.Build.props. -->
+
+  <!--
+    The fifth runtime project. adr/0039: the artefacts that spell things in words — the Input Log
+    codec and, from task 8, the crash artifact that wraps it.
+
+    It references Borough.Core and is referenced by both shells, which may never parse or emit a log
+    themselves. It does NOT own the save: 05 §7 makes a save an array dump generated from the field
+    declaration, and the declaration is in the core, so the save serialiser stays where the thing it
+    is generated from lives. The line that keeps this project a boundary rather than a bag is
+    *does a human read the tokens*.
+
+    Borough.Analysers is deliberately absent. This project's whole job is to write strings a human
+    reads, which is the thing lint 7 forbids in the core — pointing the core's analysers at it would
+    fail the build for doing what it exists to do.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Borough.Core\Borough.Core.csproj" />
+  </ItemGroup>
+
+</Project>

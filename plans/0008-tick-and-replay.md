@@ -26,16 +26,16 @@ wherever it fit.
 
 ## Progress
 
-**Tasks 1–4 are done.** Tick this table as tasks land; [`0003`](0003-build-plan.md)'s ledger records
+**Tasks 1–5 are done.** Tick this table as tasks land; [`0003`](0003-build-plan.md)'s ledger records
 the slice as a whole and should not be updated until the slice closes.
 
 | Task | State | Where it landed |
 |---|---|---|
 | 1. `step(inputs)` and the phase skeleton | **done** | `Simulation.cs`, `TickPhase.cs`, `TickInput.cs` |
-| 2. The command model and the Input Log | **done, less the codec** | `Core/Input/` — `Command`, `InputLog`, `InputLogBuilder`, `WorldConfiguration` |
+| 2. The command model and the Input Log | **done** | `Core/Input/` — `Command`, `InputLog`, `InputLogBuilder`, `WorldConfiguration`; the codec landed in task 5 |
 | 3. Replay | **done** | `Core/Input/Replay.cs` |
 | 4. The golden-hash baseline | **done** | `tests/Borough.Tests/Golden/` — the fixtures, two baselines, and the procedure |
-| 5. The headless runner | pending | **also carries the text codec deferred from task 2** |
+| 5. The headless runner | **done** | `Borough.Formats/` — the codec, the trace format, the Ruleset hash; `Borough.Headless/` — `Options`, `Session`, `RulesetCheck`, `Report` |
 | 6. The invariant tiers | pending | — |
 | 7. The long-run test | pending | — |
 | 8. The crash artifact | pending | — |
@@ -103,6 +103,58 @@ the files, because it is read at the moment a build has just gone red.
 the change entered and tells you to re-run at `hash-every 1` to name the Tick — claiming the exact
 Tick would be a precision the sampling does not have, and the first person to trust it loses an
 afternoon in the wrong Tick.
+
+### Decided while building task 5
+
+**`--strict` is inverted: refusal is the default and `--force-ruleset` is the escape.** The flag list
+above lists `--strict` as an opt-in, which implies a lenient default — and `05 §7` denies there is
+one, mapping the two policies onto the two shells explicitly: *`Borough.Godot` is play mode and
+lenient, `Borough.Headless` is replay mode and strict.* An opt-in flag would have made the corpus's
+strict runner lenient by default and the flag a lie. There is still a real question on the other side
+of the refusal — *how far does this Ruleset change move the city* — so the escape exists; what it must
+not do is produce numbers that look comparable, so the trace it writes carries a `hash-broken` line,
+in the spirit of `05 §7`'s permanent mark on a save loaded across an unaccounted mismatch.
+
+**A log naming a Ruleset nobody supplied is refused too, and this is the case worth getting right.**
+It is not a mismatch — it is a match nothing can confirm, which from the far side is the same thing:
+the run either was or was not against the right Rules and the runner cannot say which. `05 §7`'s word
+is *unaccounted*, and this is the shape of it that arrives first. Nothing triggers it before slice 8,
+because until a Ruleset has content every log in the repository names the empty one.
+
+**`series(metric, window)` is deferred to task 7, not skipped.** `05 §2` puts it on the cold API for
+panels *and this runner*, and task 5's text says the runner dumps aggregate series. But task 7 needs a
+per-N-Tick census of every variable-length structure's length, which is the same mechanism — and there
+is nothing to aggregate yet beyond four row counts. A cold API shaped by one caller is usually shaped
+wrong; building it now and rebuilding it in task 7 is churn. The runner prints the hash trace, and
+task 7 gives `series` a second caller and something to say.
+
+**The trace format is `Borough.Formats`', and the golden baseline is now the runner's output.** The
+runner's `--out` and the committed baseline are the same artefact read by the same code, so
+re-baselining the session is a command whose diff is reviewed rather than a transcription between two
+shapes. `world-hash.txt` keeps the copy-from-the-failure-message route because it is a hand-built
+world rather than a session the runner can play — an asymmetry that disappears when slice 7 lets the
+player raise a Building and the fixture is deleted.
+
+**The Ruleset content hash needed a home before the Ruleset does.** `05 §7` says a Ruleset is
+identified by a content hash and never says how. The split: `Borough.Core.Determinism.ContentHash`
+folds bytes through the project's one normative mix — reaching for a cryptographic digest would have
+been the reflex and wrong twice, since this defends against accident rather than adversary and a
+second hash function is a second thing that can drift — and `Borough.Formats.RulesetFile` decides what
+counts as the same content. **Line endings are normalised and nothing else is.** A Ruleset is text in
+a repository cloned on Windows and on Linux; without normalising, the same file carries two hashes by
+machine and `--strict` refuses to replay a log against the very Ruleset it was recorded against, a
+failure invisible in a diff that would be blamed on the log. Normalising further means parsing, which
+is slice 8's.
+
+**The slice-4 table report is kept as a mode rather than superseded.** A replayed session contains a
+handful of Lots and three empty tables until slice 7, so a report printed at the end of a run would
+show nothing. Two modes, dispatched on whether a session flag was given; the no-argument behaviour
+`CLAUDE.md` documents is unchanged.
+
+**The option parser is hand-rolled, and `adr/0018` is satisfied rather than waived.** Nine flags, no
+subcommands, no completion — below the threshold the ADR aims at, and a dependency is worth least in
+the one project whose job is to prove it builds with nothing installed. If the surface grows
+subcommands, take the library.
 
 ---
 
@@ -275,9 +327,11 @@ the Input Log, which the project already has.
   down with it.
 - **Whether hot-path results need generation tagging** — `adr/0002`'s rules table leaves the row
   explicitly open and it is a threading question, not a hot/cold one. Not needed in Phase 1.
-- **The Input Log's on-disk encoding.** Nothing states one. It should be trivially diffable and
-  append-only, and it should carry a format version from the first byte, because it is the artefact a
-  bug report is made of.
+- ~~**The Input Log's on-disk encoding.**~~ **Settled.** Line-oriented text in a `.borough` file,
+  carrying `borough-log 1` on its first line; the reasoning is in *Decided while building tasks 1–3*
+  above and the project it lives in is `adr/0039`'s. It is append-only because the reader builds
+  through `InputLogBuilder`, so a hand-edited log whose Ticks run backwards is refused by the same
+  code that refuses it in memory.
 
 ## What this slice deliberately does not do
 

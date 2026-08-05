@@ -1,9 +1,9 @@
-# Borough golden session trace -- format 1
-# Recorded from GoldenFixtures.Session(). Regenerating this file is a deliberate,
-# signed act: follow the procedure in README.md beside it.
+# Borough State Hash trace. Diff this against a trace from another run;
+# the first differing sample names the window the change entered in.
 seed 0x0B07000000000EA1
 citizens 1000
 ruleset 0x0000000000000000
+commands 11
 ticks 256
 hash-every 8
 --

@@ -5,8 +5,8 @@ It is a *view*, not a source: [`0003`](0003-build-plan.md) owns the slice order 
 [`0002`](0002-open-questions.md) owns the reasoning, `docs/adr/` owns the decisions. When they
 disagree, they win. Update this file whenever a task lands.
 
-**Where the project is:** Phase 1, slice 5, tasks 1–4 done. `dotnet run --project src/Borough.Headless`
-prints a table report and a hash, and **the State Hash now has a committed baseline under it**.
+**Where the project is:** Phase 1, slice 5, tasks 1–5 done. The State Hash has a committed baseline
+under it, and `Borough.Headless` replays a `.borough` log and prints a diffable hash trace.
 
 ---
 
@@ -14,13 +14,13 @@ prints a table report and a hash, and **the State Hash now has a committed basel
 
 | | Task | Where | Why this one |
 |---|---|---|---|
-| **1** | **Slice 5 task 5 — the headless runner** | [`0008`](0008-tick-and-replay.md) | **Carries the text codec deferred from task 2**, and task 4 left it a free codec test: the committed `.borough` must reproduce the already-committed trace |
-| **2** | **S2 R0 — the synthetic Road Graph and the denominator** | [`0010`](0010-s2-routing.md) | Parallel track, blocks nothing and is blocked by nothing. The project's **top risk**, and the best-specified work in the repository after the session of 0010's grilling |
-| **3** | **Slice 5 task 6 — the invariant tiers** | [`0008`](0008-tick-and-replay.md) | The three registries. Task 4's golden world is deliberately coherent so it can be the suite's reference city |
+| **1** | **S2 R0 — the synthetic Road Graph and the denominator** | [`0010`](0010-s2-routing.md) | Parallel track, blocks nothing and is blocked by nothing. The project's **top risk**, and the best-specified work in the repository. The net it wanted under it now exists |
+| **2** | **Slice 5 task 6 — the invariant tiers** | [`0008`](0008-tick-and-replay.md) | The three registries. Task 4's golden world is deliberately coherent so it can be the suite's reference city |
+| **3** | **Slice 5 task 7 — the long-run test** | [`0008`](0008-tick-and-replay.md) | Needs the census hook, which is also where **`series(metric, window)` lands**, deferred here from task 5 |
 
-*Why the runner before S2, given S2 is the top risk:* S2 runs for several sittings and produces
-throwaway code. If it turns up something that changes `Core`, the golden baseline — which now
-exists — says what moved, and the runner is what a person actually uses to look.
+*Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
+throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
+what moved. The remaining slice-5 tasks are no longer in front of it.
 
 ---
 
@@ -45,6 +45,11 @@ exists — says what moved, and the runner is what a person actually uses to loo
 - [x] **Slice 5 task 4** — the golden-hash baseline. A committed session trace *and* a committed world
       hash, because the session reaches one table in four until the player has verbs; the re-baselining
       procedure sits beside them
+- [x] **Slice 5 task 5** — the headless runner, and **`Borough.Formats`, the fifth project**
+      (`adr/0039`): the `.borough` codec, the hash-trace format the runner and the baseline share, and
+      the Ruleset content hash. `--strict` inverted to a default refusal with `--force-ruleset` as the
+      escape, per `05 §7`. `series(metric, window)` deferred to task 7, where the census gives it a
+      second caller
 
 ### Planning and design
 
@@ -60,9 +65,8 @@ exists — says what moved, and the runner is what a person actually uses to loo
 
 ### Main track
 
-- [ ] Slice 5 task 5 — the headless runner *(carries the text codec)*
 - [ ] Slice 5 task 6 — the invariant tiers
-- [ ] Slice 5 task 7 — the long-run test
+- [ ] Slice 5 task 7 — the long-run test *(carries `series(metric, window)`)*
 - [ ] Slice 5 task 8 — the crash artifact
 - [ ] **Slice 6 — Map Layers** — [`0009`](0009-map-layers.md). Gate cleared
 - [ ] *the Phase 1 gate closes here*

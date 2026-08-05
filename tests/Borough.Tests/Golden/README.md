@@ -12,7 +12,8 @@ are the only thing that can notice a change nobody was looking for.
 
 | File | What it is | Recorded from |
 |---|---|---|
-| `session-trace.txt` | Thirty-two State Hash samples from a 256-Tick session | `GoldenFixtures.Session()` |
+| `session.borough` | The session itself, as the Input Log the runner replays | hand-written; checked against `GoldenFixtures.Session()` |
+| `session-trace.txt` | Thirty-two State Hash samples from that 256-Tick session | `Borough.Headless --out` |
 | `world-hash.txt` | One State Hash over a hand-built city, with its row counts | `GoldenFixtures.Build()` |
 
 **Two artefacts, because one of them cannot see three tables.** The session drives the simulation
@@ -23,11 +24,17 @@ creates a Lot; Buildings, Households and Citizens are reachable only through the
 and the baseline would be claiming coverage it does not have. When later slices give the player
 verbs that build a city, the session absorbs the world fixture's job and this file can go.
 
-The session is a code fixture rather than a `.borough` file because the codec is task 5's
-([`adr/0039`](../../../docs/adr/0039-the-text-formats-are-a-fifth-project-not-a-core-exception.md)).
-Writing a second reader here to load one today would have created the two implementations that ADR
-exists to prevent. When task 5 lands, the session is committed as a file and this fixture becomes
-what the codec is checked against.
+**The session exists twice, and that is the codec's test rather than a duplication.** `session.borough`
+is the artefact; `GoldenFixtures.Session()` is the same session built in C#. One test asserts they are
+the same log and that the *parsed file* reproduces the committed trace — which is a stronger check
+than any round trip the codec can run against its own output, because nothing writes the file first.
+A codec checked only against what it just wrote agrees with itself by construction. This one is
+checked against a file that was on disk before the run started, which is the situation a bug report
+actually creates, and it is the property
+[`adr/0039`](../../../docs/adr/0039-the-text-formats-are-a-fifth-project-not-a-core-exception.md)
+bought a fifth project to guarantee.
+
+If you change one, change the other. The test will tell you which line you missed.
 
 ## Re-baselining
 
@@ -38,10 +45,23 @@ A failure here is a question — *did you mean to do that?* — and the answer i
    design change otherwise, however it was motivated.* **If you believed you were writing an
    optimisation, this test has just told you that you were not.** That is the whole reason it exists;
    stop and find out what moved before regenerating anything.
-2. **Copy the new file out of the failure message.** Both tests print the exact file they would
-   commit. There is deliberately no `--update-baselines` switch and no environment variable: a
-   baseline that can rewrite itself is one CI misconfiguration away from approving every change it
-   sees, which is a baseline that has stopped being one.
+2. **Regenerate.** For the session, run the runner and commit the diff:
+
+   ```
+   dotnet run --project src/Borough.Headless -- \
+     --log tests/Borough.Tests/Golden/session.borough \
+     --ticks 256 --hash-every 8 \
+     --out tests/Borough.Tests/Golden/session-trace.txt
+   ```
+
+   The runner writes exactly the committed format, so this is a re-record rather than a
+   transcription. For `world-hash.txt`, which is a hand-built world rather than a session the runner
+   can play, copy the file out of the failure message — the test prints it in full.
+
+   **There is deliberately no `--update-baselines` switch and no environment variable.** A baseline
+   that can rewrite itself is one CI misconfiguration away from approving every change it sees, which
+   is a baseline that has stopped being one. Regenerating is a command a person runs, and the review
+   happens on the diff.
 3. **If the *fold itself* changed, bump the version byte** in `World.HashSeed`. A change to the fold,
    to the composition order or to `Randomness.Mix` moves every hash in the project at once, and the
    signed seed is what distinguishes that from a regression. A change to the simulation's *behaviour*
@@ -64,6 +84,8 @@ authorises it.*
 
 ## Editing the fixtures
 
-`GoldenFixtures.cs` is data that happens to be written in C#. Every number in it is load-bearing and
-tidying it is a re-baseline. If you need a wider session — a new verb, more Ticks, a different
-cadence — that is a deliberate change under the procedure above, not a refactor.
+`GoldenFixtures.cs` and `session.borough` are data that happen to be written in C# and in the log
+format. Every number in either is load-bearing and tidying it is a re-baseline. If you need a wider
+session — a new verb, more Ticks, a different cadence — that is a deliberate change under the
+procedure above, not a refactor, and the cadence and Tick count are named in three places: the
+fixture's constants, the trace header, and the command in step 2.

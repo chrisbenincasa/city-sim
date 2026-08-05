@@ -25,10 +25,13 @@
   -->
   <ItemGroup>
     <None Include="Golden\*.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Golden\*.borough" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Borough.Core\Borough.Core.csproj" />
+    <ProjectReference Include="..\..\src\Borough.Formats\Borough.Formats.csproj" />
+    <ProjectReference Include="..\..\src\Borough.Headless\Borough.Headless.csproj" />
 
     <!--
       A plain reference, deliberately. Borough.Core consumes this as an analyser; the tests consume

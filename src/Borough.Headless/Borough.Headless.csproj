@@ -7,7 +7,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--
+      The runner's option parsing and its Ruleset policy are testable units, and they are the two
+      places a mistake is silent: a misparsed flag runs the wrong session, and a lenient check
+      produces numbers that look comparable and are not. Neither is worth making public API of an
+      executable to test.
+    -->
+    <InternalsVisibleTo Include="Borough.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Borough.Core\Borough.Core.csproj" />
+
+    <!--
+      adr/0039: neither shell may parse or emit a log itself. That this is a project reference
+      rather than a review convention is the point — a shell that hand-rolls a log line has to
+      reimplement the codec to do it, in a project that already has one.
+    -->
+    <ProjectReference Include="..\Borough.Formats\Borough.Formats.csproj" />
   </ItemGroup>
 
 </Project>

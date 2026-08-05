@@ -3,12 +3,13 @@ using System.Reflection;
 namespace Borough.Tests;
 
 /// <summary>
-/// The three checks from docs/05 §4 that are enforceable by reflection alone.
+/// The checks from docs/05 §4 and adr/0039 that are enforceable by reflection alone.
 /// The remainder are Roslyn analysers in Borough.Analysers — see src/Borough.Analysers/Diagnostics.cs.
 /// </summary>
 public class BoundaryTests
 {
     private static readonly Assembly Core = typeof(Borough.Core.AssemblyMarker).Assembly;
+    private static readonly Assembly Formats = typeof(Borough.Formats.InputLogCodec).Assembly;
 
     /// <summary>Lint 1 — no Godot reference from Borough.Core, transitively. adr/0002</summary>
     [Fact]
@@ -100,4 +101,54 @@ public class BoundaryTests
         method.Name == nameof(ToString)
         && method.GetParameters().Length == 0
         && method.GetBaseDefinition().DeclaringType == typeof(object);
+
+    /// <summary>
+    /// adr/0039's layering: Core &lt;- Formats &lt;- the shells, and the arrows point one way.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>What this protects is the core's freedom from the filesystem</b> (<c>02 §1</c>) and from
+    /// the strings a human reads (<c>adr/0002</c>). Borough.Formats exists to write both; a core that
+    /// could name it would have acquired both by reference, and the reason the ADR gives for the
+    /// fifth project — that nothing in it can reach the running simulation, because the simulation
+    /// cannot name it — would stop being true.
+    /// </para>
+    /// <para>
+    /// It is a cheap test for a failure that arrives by autocomplete rather than by decision. Nobody
+    /// will argue for this reference; somebody will add it while reaching for a type.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Core_does_not_reference_Formats()
+    {
+        var offenders = Core.GetReferencedAssemblies()
+            .Where(a => a.Name!.StartsWith("Borough.Formats", StringComparison.Ordinal))
+            .Select(a => a.Name!)
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            "Borough.Core references Borough.Formats. adr/0039: the arrow points the other way, " +
+            "and it is what keeps the core free of the filesystem and of human-readable strings.");
+    }
+
+    /// <summary>
+    /// Borough.Formats is engine-agnostic too, and for a sharper reason than the core is.
+    /// </summary>
+    /// <remarks>
+    /// The format's entire purpose is that a log written by Borough.Godot replays in
+    /// Borough.Headless. A Formats that referenced Godot could not be loaded by the headless runner
+    /// at all, which would defeat the property in the most direct way available.
+    /// </remarks>
+    [Fact]
+    public void Formats_does_not_reference_Godot()
+    {
+        var offenders = Formats.GetReferencedAssemblies()
+            .Where(a => a.Name!.StartsWith("Godot", StringComparison.Ordinal))
+            .Select(a => a.Name!)
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            $"Borough.Formats references {string.Join(", ", offenders)}. adr/0039: a log written " +
+            "by the game must replay in the headless runner, which cannot load Godot.");
+    }
 }

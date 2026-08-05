@@ -106,6 +106,16 @@ public sealed class InputLog
         return _commands.AsSpan(first, last - first);
     }
 
+    /// <summary>The <paramref name="index"/>-th command, and the Tick it was issued on.</summary>
+    /// <remarks>
+    /// <b>Log order, which is issue order, and is not the same question <see cref="At"/> answers.</b>
+    /// Replay walks Ticks and asks what happened on each; a codec walks the log and writes it down.
+    /// The second cannot be built from the first, because a log that skips a thousand idle Ticks
+    /// between two commands would have to be searched rather than read.
+    /// </remarks>
+    public (Ticks Tick, Command Command) Entry(int index) =>
+        (new Ticks(_ticks[index]), _commands[index]);
+
     /// <summary>
     /// The Ruleset in force on one Tick.
     /// </summary>

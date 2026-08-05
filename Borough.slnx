@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Borough.Analysers/Borough.Analysers.csproj" />
     <Project Path="src/Borough.Core/Borough.Core.csproj" />
+    <Project Path="src/Borough.Formats/Borough.Formats.csproj" />
     <Project Path="src/Borough.Headless/Borough.Headless.csproj" />
   </Folder>
   <Folder Name="/tests/">

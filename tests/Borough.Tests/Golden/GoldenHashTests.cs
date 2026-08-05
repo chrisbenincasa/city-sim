@@ -1,8 +1,7 @@
-using System.Globalization;
-using System.Text;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
+using Borough.Formats;
 
 namespace Borough.Tests.Golden;
 
@@ -15,25 +14,33 @@ namespace Borough.Tests.Golden;
 /// <b>The point is not that the hash never moves. It is that it never moves without somebody saying
 /// so.</b> Every other determinism test in this project is a closed loop — it runs something twice
 /// and checks the two agree, which stays true no matter how far the simulation drifts from what it
-/// used to compute. These two tests are the only ones anchored to a number recorded on a previous
-/// day, and so the only ones that can notice a change nobody was looking for.
+/// used to compute. These are the only tests anchored to a number recorded on a previous day, and so
+/// the only ones that can notice a change nobody was looking for.
 /// </para>
 /// <para>
 /// <b>A failure here is not a bug report.</b> It is a question: <em>did you mean to do that?</em>
 /// The answer is often yes, and the procedure for saying so is in <c>README.md</c> in this
-/// directory. What the procedure is defending against is the silent case — the refactor that looked
+/// directory. What the procedure defends against is the silent case — the refactor that looked
 /// hash-preserving, the reordered fold, the column that quietly changed width.
 /// </para>
 /// <para>
-/// <b>The files are compared as parsed structures, never as bytes.</b> Line endings differ between
-/// the machines this repository is checked out on and a baseline that failed on a checkout setting
-/// would be a baseline people learn to ignore.
+/// <b>The files are read through <see cref="HashTrace"/>, which is also what the runner writes.</b>
+/// One format and one reader, so a re-baseline is a command whose output is committed rather than a
+/// transcription between two shapes — and comparison is over parsed structure rather than bytes,
+/// because line endings differ between the machines this repository is checked out on.
 /// </para>
 /// </remarks>
 public sealed class GoldenHashTests
 {
     private const string TraceFile = "session-trace.txt";
     private const string WorldFile = "world-hash.txt";
+    private const string SessionFile = "session.borough";
+
+    /// <summary>The command that regenerates <c>session-trace.txt</c>. Named by the failure message.</summary>
+    private const string Regenerate =
+        "dotnet run --project src/Borough.Headless -- "
+        + "--log tests/Borough.Tests/Golden/session.borough --ticks 256 --hash-every 8 "
+        + "--out tests/Borough.Tests/Golden/session-trace.txt";
 
     /// <summary>
     /// The committed session still produces the committed trace, sample for sample.
@@ -41,8 +48,8 @@ public sealed class GoldenHashTests
     [Fact]
     public void The_golden_session_reproduces_its_committed_trace()
     {
-        Baseline baseline = Baseline.Read(TraceFile);
-        ulong[] recorded = baseline.Samples;
+        HashTrace baseline = Read(TraceFile);
+        ulong[] recorded = baseline.Hashes();
         ulong[] observed = Replay.Run(
             GoldenFixtures.Session(),
             new Ticks(GoldenFixtures.Ticks),
@@ -50,7 +57,10 @@ public sealed class GoldenHashTests
 
         if (!observed.AsSpan().SequenceEqual(recorded))
         {
-            Assert.Fail(Divergence(recorded, observed) + "\n\n" + FormatTrace(observed));
+            Assert.Fail(
+                Divergence(recorded, observed)
+                + $"\n\nIf you meant it, re-baseline with:\n\n  {Regenerate}\n\n"
+                + "and say why in the commit message. README.md beside this file has the rest.");
         }
     }
 
@@ -66,15 +76,63 @@ public sealed class GoldenHashTests
     [Fact]
     public void The_committed_trace_still_describes_the_fixture_session()
     {
-        Baseline baseline = Baseline.Read(TraceFile);
+        HashTrace baseline = Read(TraceFile);
         InputLog session = GoldenFixtures.Session();
 
         Assert.Equal(session.Seed, baseline.Number("seed"));
         Assert.Equal((ulong)session.Configuration.Citizens, baseline.Number("citizens"));
         Assert.Equal(session.RulesetHash, baseline.Number("ruleset"));
+        Assert.Equal((ulong)session.Count, baseline.Number("commands"));
         Assert.Equal((ulong)GoldenFixtures.Ticks, baseline.Number("ticks"));
         Assert.Equal((ulong)GoldenFixtures.HashEvery, baseline.Number("hash-every"));
-        Assert.Equal(GoldenFixtures.Ticks / GoldenFixtures.HashEvery, baseline.Samples.Length);
+        Assert.Equal(GoldenFixtures.Ticks / GoldenFixtures.HashEvery, baseline.Samples.Count);
+    }
+
+    /// <summary>
+    /// <b>The committed <c>.borough</c> file is the session the fixture builds</b> — the codec test
+    /// task 4 set up for task 5 to inherit.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the round trip that matters, and it is stronger than <c>InputLogCodecTests</c>'
+    /// because nothing here writes the file first. A codec checked only against its own output
+    /// agrees with itself by construction; this one is checked against a file that was on disk
+    /// before the run started, which is the situation a bug report actually creates.
+    /// </para>
+    /// <para>
+    /// It also closes <c>adr/0039</c>'s loop from the other end. The whole argument for a fifth
+    /// project was that a log written by one shell must replay in another; the evidence for that
+    /// property is a file, parsed by the one codec, reproducing a hash sequence recorded
+    /// independently of it.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_committed_session_file_parses_to_the_fixture_and_reproduces_the_trace()
+    {
+        using var reader = new StreamReader(Path(SessionFile));
+        InputLog parsed = InputLogCodec.Read(reader);
+        InputLog fixture = GoldenFixtures.Session();
+
+        Assert.Equal(fixture.Seed, parsed.Seed);
+        Assert.Equal(fixture.Configuration.Citizens, parsed.Configuration.Citizens);
+        Assert.Equal(fixture.RulesetHash, parsed.RulesetHash);
+        Assert.Equal(fixture.Count, parsed.Count);
+
+        for (int i = 0; i < fixture.Count; i++)
+        {
+            (Ticks tick, Command command) = fixture.Entry(i);
+            (Ticks parsedTick, Command parsedCommand) = parsed.Entry(i);
+
+            Assert.Equal(tick, parsedTick);
+            Assert.Equal(command.Kind, parsedCommand.Kind);
+            Assert.Equal(command.East, parsedCommand.East);
+            Assert.Equal(command.North, parsedCommand.North);
+            Assert.Equal(command.Zone, parsedCommand.Zone);
+        }
+
+        Assert.Equal(
+            Read(TraceFile).Hashes(),
+            Replay.Run(parsed, new Ticks(GoldenFixtures.Ticks), GoldenFixtures.HashEvery));
     }
 
     /// <summary>
@@ -88,7 +146,7 @@ public sealed class GoldenHashTests
     [Fact]
     public void The_golden_world_reproduces_its_committed_hash()
     {
-        Baseline baseline = Baseline.Read(WorldFile);
+        HashTrace baseline = Read(WorldFile);
         World world = GoldenFixtures.Build();
         ulong observed = world.HashState();
 
@@ -104,7 +162,7 @@ public sealed class GoldenHashTests
 
         if (complaints.Length > 0)
         {
-            Assert.Fail(string.Join('\n', complaints) + "\n\n" + FormatWorld(world, observed));
+            Assert.Fail(string.Join('\n', complaints) + "\n\n" + Regenerated(world, observed));
         }
     }
 
@@ -116,7 +174,7 @@ public sealed class GoldenHashTests
     /// informative one — <em>the hash moved and so did the Citizen count</em> is a diagnosis, and
     /// stopping at the count would have withheld half of it.
     /// </remarks>
-    private static string[] Differs(string key, ulong observed, Baseline baseline)
+    private static string[] Differs(string key, ulong observed, HashTrace baseline)
     {
         ulong recorded = baseline.Number(key);
 
@@ -151,7 +209,7 @@ public sealed class GoldenHashTests
                 return $"sample {i}, the state after {after} Ticks: "
                      + $"0x{observed[i]:X16} observed, 0x{recorded[i]:X16} committed.\n"
                      + $"The change entered somewhere in Ticks {from}..{after}. "
-                     + "Re-run this session at hash-every 1 to name the Tick exactly.";
+                     + "Re-run this session at --hash-every 1 to name the Tick exactly.";
             }
         }
 
@@ -159,138 +217,46 @@ public sealed class GoldenHashTests
     }
 
     /// <summary>
-    /// Renders the observed trace as the file it would be committed as, so a deliberate re-baseline
-    /// is a copy from the failure message rather than a script nobody reviews.
+    /// Renders the world baseline as the file it would be committed as.
     /// </summary>
     /// <remarks>
-    /// <b>There is deliberately no self-regenerating switch.</b> An environment variable that
-    /// rewrites the baseline is one CI misconfiguration away from a baseline that approves every
-    /// change it sees, which is a baseline that has stopped being one.
+    /// <b>The session's baseline is regenerated by the runner and this one is not</b>, because the
+    /// runner runs sessions and this world is built by hand rather than played. It is an asymmetry
+    /// that goes away by itself: once slice 7 gives the player verbs that raise Buildings, the
+    /// session covers what this fixture covers and the fixture is deleted.
     /// </remarks>
-    private static string FormatTrace(ulong[] observed)
+    private static string Regenerated(World world, ulong observed)
     {
-        InputLog session = GoldenFixtures.Session();
-        var text = new StringBuilder();
+        string text = HashTrace.Create()
+            .With("population", (ulong)GoldenFixtures.Population)
+            .With("lots", (ulong)world.Lots.Rows.LiveCount)
+            .With("buildings", (ulong)world.Buildings.Rows.LiveCount)
+            .With("households", (ulong)world.Households.Rows.LiveCount)
+            .With("citizens", (ulong)world.Citizens.Rows.LiveCount)
+            .With("hash", observed)
+            .ToText(
+                "Borough golden world hash. Recorded from GoldenFixtures.Build().",
+                "Regenerating this file is a deliberate, signed act: follow the",
+                "procedure in README.md beside it.");
 
-        text.Append(Header("session trace", "GoldenFixtures.Session()"));
-        text.Append(CultureInfo.InvariantCulture, $"seed 0x{session.Seed:X16}\n");
-        text.Append(CultureInfo.InvariantCulture, $"citizens {session.Configuration.Citizens}\n");
-        text.Append(CultureInfo.InvariantCulture, $"ruleset 0x{session.RulesetHash:X16}\n");
-        text.Append(CultureInfo.InvariantCulture, $"ticks {GoldenFixtures.Ticks}\n");
-        text.Append(CultureInfo.InvariantCulture, $"hash-every {GoldenFixtures.HashEvery}\n");
-        text.Append("--\n");
-
-        for (int i = 0; i < observed.Length; i++)
-        {
-            int tick = (i + 1) * GoldenFixtures.HashEvery;
-            text.Append(CultureInfo.InvariantCulture, $"{tick} 0x{observed[i]:X16}\n");
-        }
-
-        return $"to re-baseline deliberately, {TraceFile} becomes:\n\n{text}";
+        return $"If you meant it, {WorldFile} becomes:\n\n{text}";
     }
 
-    /// <inheritdoc cref="FormatTrace"/>
-    private static string FormatWorld(World world, ulong observed)
+    private static HashTrace Read(string name)
     {
-        var text = new StringBuilder();
-
-        text.Append(Header("world hash", "GoldenFixtures.Build()"));
-        text.Append(CultureInfo.InvariantCulture, $"population {GoldenFixtures.Population}\n");
-        text.Append(CultureInfo.InvariantCulture, $"lots {world.Lots.Rows.LiveCount}\n");
-        text.Append(CultureInfo.InvariantCulture, $"buildings {world.Buildings.Rows.LiveCount}\n");
-        text.Append(CultureInfo.InvariantCulture, $"households {world.Households.Rows.LiveCount}\n");
-        text.Append(CultureInfo.InvariantCulture, $"citizens {world.Citizens.Rows.LiveCount}\n");
-        text.Append(CultureInfo.InvariantCulture, $"hash 0x{observed:X16}\n");
-
-        return $"to re-baseline deliberately, {WorldFile} becomes:\n\n{text}";
+        using var reader = new StreamReader(Path(name));
+        return HashTrace.Read(reader);
     }
 
-    private static string Header(string what, string source) =>
-        $"# Borough golden {what} -- format 1\n"
-        + $"# Recorded from {source}. Regenerating this file is a deliberate,\n"
-        + "# signed act: follow the procedure in README.md beside it.\n";
-
-    /// <summary>
-    /// A committed baseline file: named header values, and an optional body of samples.
-    /// </summary>
-    /// <remarks>
-    /// <b>Line-oriented text, legible without tooling</b> — the same argument <c>adr/0039</c> made
-    /// for the Input Log, and for the same reason. A baseline is read at the moment a build has just
-    /// gone red, which is the moment least worth needing a tool for.
-    /// </remarks>
-    private sealed class Baseline
+    private static string Path(string name)
     {
-        private readonly Dictionary<string, ulong> _header;
+        string path = System.IO.Path.Combine(AppContext.BaseDirectory, "Golden", name);
 
-        private Baseline(Dictionary<string, ulong> header, ulong[] samples)
-        {
-            _header = header;
-            Samples = samples;
-        }
-
-        /// <summary>The body, in file order. Empty for a file that is all header.</summary>
-        public ulong[] Samples { get; }
-
-        public static Baseline Read(string name)
-        {
-            string path = Path.Combine(AppContext.BaseDirectory, "Golden", name);
-
-            if (!File.Exists(path))
-            {
-                throw new FileNotFoundException(
-                    $"the golden baseline {name} is missing. It is committed, not generated: "
-                    + "a run that cannot find it has a build problem, not a hash problem.",
-                    path);
-            }
-
-            var header = new Dictionary<string, ulong>(StringComparer.Ordinal);
-            var samples = new List<ulong>();
-            bool body = false;
-
-            foreach (string raw in File.ReadAllLines(path))
-            {
-                string line = raw.Trim();
-
-                if (line.Length == 0 || line.StartsWith('#'))
-                {
-                    continue;
-                }
-
-                if (line == "--")
-                {
-                    body = true;
-                    continue;
-                }
-
-                string[] fields = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                if (fields.Length != 2)
-                {
-                    throw new FormatException($"{name}: '{line}' is not a pair.");
-                }
-
-                if (body)
-                {
-                    samples.Add(Parse(fields[1]));
-                }
-                else
-                {
-                    header[fields[0]] = Parse(fields[1]);
-                }
-            }
-
-            return new Baseline(header, [.. samples]);
-        }
-
-        /// <summary>The header value under <paramref name="key"/>.</summary>
-        public ulong Number(string key) =>
-            _header.TryGetValue(key, out ulong value)
-                ? value
-                : throw new KeyNotFoundException($"the baseline has no '{key}' line.");
-
-        private static ulong Parse(string value) =>
-            value.StartsWith("0x", StringComparison.Ordinal)
-                ? ulong.Parse(value.AsSpan(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture)
-                : ulong.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture);
+        return File.Exists(path)
+            ? path
+            : throw new FileNotFoundException(
+                $"the golden baseline {name} is missing. It is committed, not generated: "
+                + "a run that cannot find it has a build problem, not a hash problem.",
+                path);
     }
 }
