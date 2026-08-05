@@ -17,8 +17,10 @@ eight phases, the command model and the Input Log, and replay.
 **Slice 5 tasks 4–8 are next, and `plans/0008` carries a progress table** — the golden-hash
 baseline, the runner's flags, the invariant tiers, the long-run test and the crash artifact.
 
-`plans/0003-build-plan.md` is where to start when picking the *code* up cold;
-`plans/0002-open-questions.md` when picking up the *design*. Slices 7 onward are gated and must
+**`plans/0000-board.md` is the first thing to read on any cold start** — a flat view of what is done,
+what to do next and what is blocked. It is a *view*: `plans/0003-build-plan.md` owns the slice order
+and its gates when picking the *code* up cold, and `plans/0002-open-questions.md` owns the reasoning
+when picking up the *design*. When the board disagrees with either, they win. Slices 7 onward are gated and must
 not be started before their gate clears. The corpus is still being grilled and several decisions
 on the critical path are open, so do not write implementation code beyond the current slice
 unless asked.
@@ -38,7 +40,8 @@ unless asked.
 | `docs/adr/` | 39 numbered decision records |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
-| `plans/0002-open-questions.md` | The live ledger of design questions. **Start here when picking the project up cold** |
+| `plans/0000-board.md` | **The board. Read this first on any cold start** — done, next, unblocked, owed, blocked. A view over `0002` and `0003`, never a source |
+| `plans/0002-open-questions.md` | The live ledger of design questions, and where the *reasoning* lives |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
 | `plans/0004`–`0009` | One plan document per unblocked slice: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. Empty until S4 runs |
