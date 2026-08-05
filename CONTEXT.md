@@ -648,7 +648,9 @@ The default is not the slowest setting. The slowest, **Study**, is the speed at 
 The bucket structure that lets idle entities cost nothing. Every Citizen carries a `next_event_tick`; buckets are keyed by that value. A Citizen at work for a third of a Day sits in exactly one bucket and is touched once. This converts cost from *number of Citizens* to *number of Citizens with something happening right now*.
 
 **Input Log**
-The record of `(world seed, configuration, inputs per Tick)` that fully determines a session. Small enough to attach to a bug report. Everything that affects simulation state must enter through it.
+The record of `(world seed, configuration, Ruleset content hash, inputs per Tick)` that fully determines a session. Small enough to attach to a bug report. Everything that affects simulation state must enter through it.
+
+**The Ruleset content hash is a fourth member rather than part of the configuration**, and the distinction is the whole reason it is named separately: configuration is set at world creation and baked into the save, while the Ruleset is hot-reloadable, so it can change *within* a run. A reload therefore appears in the log as a transition carrying **both** hashes — a replay needs the Rules' content, not the news that they changed. It is the **content** and never the name or the path: a replay run against a different Ruleset is a different simulation and will diverge, which is arithmetic rather than a bug, so the headless runner refuses it outright instead of reporting a divergence it caused itself.
 
 Note what this implies about Fidelity: nothing about the camera appears here, and nothing needs to. Fidelity is *derived* from simulation state the Log already determines, so a replay reproduces the same Microscopic Segments without ever recording which ones they were. An earlier design made the focus point an input precisely so it could be replayed; making fidelity a consequence of the simulation rather than of observation removed the input altogether.
 

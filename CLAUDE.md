@@ -8,11 +8,14 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: Phase 1, through slice 4.** The repository is ~7,000 lines of design documents
-and 38 ADRs, plus the first four slices of `plans/0003-build-plan.md`: the scaffolding, spike S4,
-the arithmetic substrate, the analysers, and the typed tables with the per-field declaration and
-the State Hash. `dotnet run --project src/Borough.Headless` prints a table report and a hash.
-**Slice 5 — the Tick, the Input Log and replay — is next.**
+**Current state: Phase 1, through slice 5 task 3.** The repository is ~7,000 lines of design
+documents and 39 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
+spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
+declaration and the State Hash — and the first three tasks of slice 5: `step(inputs)` with the
+eight phases, the command model and the Input Log, and replay.
+`dotnet run --project src/Borough.Headless` prints a table report and a hash.
+**Slice 5 tasks 4–8 are next, and `plans/0008` carries a progress table** — the golden-hash
+baseline, the runner's flags, the invariant tiers, the long-run test and the crash artifact.
 
 `plans/0003-build-plan.md` is where to start when picking the *code* up cold;
 `plans/0002-open-questions.md` when picking up the *design*. Slices 7 onward are gated and must
@@ -32,7 +35,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | Phases and milestones, in dependency order. No dates |
-| `docs/adr/` | 37 numbered decision records |
+| `docs/adr/` | 39 numbered decision records |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0002-open-questions.md` | The live ledger of design questions. **Start here when picking the project up cold** |
@@ -122,15 +125,16 @@ however it was motivated. This is the test that decides whether something may be
 
 ## Project layout
 
-Four projects, one repository, two toolchains. The split is the architectural decision. A fifth,
+Five projects, one repository, two toolchains. The split is the architectural decision. A sixth,
 `Borough.Analysers`, is a build-time input rather than part of the runtime architecture and is
-deliberately not counted among the four (`05 §1`).
+deliberately not counted among the five (`05 §1`) — the test being that it does not ship.
 
 | Project | Contents |
 |---|---|
 | `Borough.Core` | Pure C# library, zero Godot references. Typed tables, integer maths, Event Wheel, Ruleset interpreter, `step(inputs)`. **This is the game** |
 | `Borough.Tests` | xUnit and BenchmarkDotNet. Determinism, invariants, save/reload, allocation benchmarks |
 | `Borough.Headless` | Console runner. Loads a Ruleset and an Input Log, fast-forwards, dumps State Hashes |
+| `Borough.Formats` | The artefacts that spell things in words: the Input Log codec (`.borough`), and the crash artifact that wraps it. References `Core`; referenced by both shells, which may never parse or emit a log themselves (`adr/0039`). Not the save — that is an array dump generated from the field declaration and stays in `Core` |
 | `Borough.Godot` | Thin shell. Per-Chunk `MultiMeshInstance3D`, `Control` UI, per-frame snapshot |
 | `Borough.Analysers` | `netstandard2.0` Roslyn analysers for `05 §4`'s lints 2, 3 and 7 and the `purpose_tag` check. Referenced by `Borough.Core` as an **analyser**, never as a dependency, so nothing in it reaches the running sim |
 

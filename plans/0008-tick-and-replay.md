@@ -60,16 +60,16 @@ ruleset 0x0000000000000000
 1 zone 1 1 1
 ```
 
-**Two things the codec still owes an answer on, both deferred to task 5 rather than guessed:**
+**Both of the codec's open questions are now settled, in [`adr/0039`](../docs/adr/0039-the-text-formats-are-a-fifth-project-not-a-core-exception.md):**
 
-- **Where it lives.** `Borough.Core` has no filesystem (`02 §1`) and does not own strings a human
-  reads (`adr/0002`), which argues for the shell — but then `Borough.Godot` needs its own copy, since
-  it must write a log while the player plays. The three ways out are a codec in `Core` arguing that a
-  serialisation token is not a Readout, a codec duplicated in two shells, and a fifth project, which
-  `05 §1` forecloses without an ADR. **Unresolved.**
-- **The file extension.** `.gitignore` line 494 ignores `*.inputlog`, inherited from the .NET
-  template. The golden baseline in task 4 is a committed log, so it must not use that extension —
-  or the ignore rule goes.
+- **It lives in `Borough.Formats`, a fifth runtime project.** `Borough.Core` has no filesystem
+  (`02 §1`) and does not own strings a human reads (`adr/0002`); a copy in each shell was rejected
+  because a log written by `Borough.Godot` must replay in `Borough.Headless`, so two implementations
+  sit behind the one property the format exists to guarantee. `05 §1` and `CLAUDE.md` now state five
+  projects, with `Borough.Analysers` a sixth excluded on the test that it does not ship. **Task 5
+  creates the project along with the codec** — an empty project ahead of its first file is churn.
+- **The extension is `.borough`.** `.gitignore` ignores `*.inputlog` (line 494) and `*.log` (line
+  100), both inherited from the .NET template, and the golden baseline is a *committed* log.
 
 **Also found: `.gitignore` line 35 ignores `[Ll]og/`.** The first home for these types was
 `src/Borough.Core/Log/`, which git would have silently refused to track. Named here because the
