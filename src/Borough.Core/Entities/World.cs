@@ -1,6 +1,7 @@
 namespace Borough.Core.Entities;
 
 using Borough.Core.Arithmetic;
+using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Tables;
 
@@ -60,6 +61,9 @@ public sealed class World
         Citizens = new CitizenTable(citizens, Households, Buildings);
 
         _tables = [Lots.Rows, Buildings.Rows, Households.Rows, Citizens.Rows];
+
+        Invariants = new InvariantRegistry();
+        WorldInvariants.RegisterAll(Invariants);
     }
 
     /// <summary>Parcels of land.</summary>
@@ -76,6 +80,17 @@ public sealed class World
 
     /// <summary>Every table, in the declaration order the hash folds them in.</summary>
     public ReadOnlySpan<Rows> Tables => _tables;
+
+    /// <summary>
+    /// The three tiers of <c>02 §10</c>, and the channel the write sites below report through.
+    /// </summary>
+    /// <remarks>
+    /// <b>Owned here rather than by the Simulation, because the claims are about this world.</b> The
+    /// Simulation drives the tiers — when a slice runs is a Tick concern — but a world built by hand
+    /// for a test has the same invariants as one a session played, and it would be able to violate
+    /// them silently if the registry arrived with the Tick loop.
+    /// </remarks>
+    public InvariantRegistry Invariants { get; }
 
     /// <summary>
     /// The State Hash: every saved column of every table, folded through slice 2's <c>mix</c>.
@@ -98,6 +113,7 @@ public sealed class World
     }
 
     /// <summary>Adds a Household to a Building, linking it into the Building's occupant list.</summary>
+    /// <summary>Adds a Household to a Building, linking it into the Building's occupant list.</summary>
     public Handle<Household> CreateHousehold(Handle<Building> dwelling, byte lifeStage)
     {
         int buildingSlot = Buildings.Rows.Resolve(dwelling);
@@ -108,11 +124,18 @@ public sealed class World
         Households.Dwelling[slot] = dwelling;
         Households.LifeStage[slot] = lifeStage;
 
+        Invariants.Require(
+            !Lists(Occupants, buildingSlot, slot),
+            Invariant.HouseholdIsNotAlreadyInThisBuilding,
+            slot,
+            buildingSlot);
+
         Occupants.InsertOrdered(buildingSlot, slot);
 
         return handle;
     }
 
+    /// <summary>Adds a Citizen to a Household, linking it into the Household's member list.</summary>
     /// <summary>Adds a Citizen to a Household, linking it into the Household's member list.</summary>
     public Handle<Citizen> CreateCitizen(Handle<Household> household, Ticks nextEventTick)
     {
@@ -124,9 +147,32 @@ public sealed class World
         Citizens.HouseholdOf[slot] = household;
         Citizens.NextEventTick[slot] = nextEventTick;
 
+        // 02 §10's per-Tick tier: O(changed), at the write site. A member list is small by
+        // construction, so this is the cheap half of *no Citizen in two places* — complete within
+        // one Household and blind across two, which is what the end-of-run walk is for.
+        Invariants.Require(
+            !Lists(Members, householdSlot, slot),
+            Invariant.CitizenIsNotAlreadyInThisHousehold,
+            slot,
+            householdSlot);
+
         Members.InsertOrdered(householdSlot, slot);
 
         return handle;
+    }
+
+    /// <summary>Whether <paramref name="node"/> is already in <paramref name="owner"/>'s list.</summary>
+    private static bool Lists(IndexList list, int owner, int node)
+    {
+        foreach (int element in list.Walk(owner))
+        {
+            if (element == node)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Retires a Citizen, unlinking it from its Household first.</summary>

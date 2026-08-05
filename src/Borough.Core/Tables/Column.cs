@@ -53,6 +53,18 @@ public abstract class Column
     internal abstract void Clear(int slot);
 
     internal abstract void Fold(ref ulong hash, int slotCount);
+
+    /// <summary>
+    /// Whether this column holds a handle at <paramref name="slot"/> whose target row is gone.
+    /// </summary>
+    /// <remarks>
+    /// <b>Asked of every column so that the invariant walk needs no schema.</b> Referential integrity
+    /// is ours to maintain (<c>adr/0004</c>) and the check that maintains it must find every handle
+    /// column, including ones added after it was written. A walk driven by a list of columns somebody
+    /// remembered has the same blind spot as the bug it looks for. Columns that hold no handle answer
+    /// false and cost a virtual call once per column per walk, which happens once a run.
+    /// </remarks>
+    internal virtual bool IsDangling(int slot) => false;
 }
 
 /// <summary>
@@ -184,6 +196,19 @@ public sealed class HandleColumn<TTarget> : Column<Handle<TTarget>>
 
     /// <summary>The table this column's handles address.</summary>
     public Rows<TTarget> Target => _target;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The unset handle is not dangling. A column is allowed to point at nothing — a Citizen with no
+    /// Workplace is unemployed rather than corrupt — and a walk that could not tell those apart would
+    /// report every empty field in the city.
+    /// </remarks>
+    internal override bool IsDangling(int slot)
+    {
+        Handle<TTarget> handle = this[slot];
+
+        return !handle.IsNone && !_target.IsValid(handle);
+    }
 
     internal override void Fold(ref ulong hash, int slotCount)
     {

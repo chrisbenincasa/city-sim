@@ -26,7 +26,7 @@ wherever it fit.
 
 ## Progress
 
-**Tasks 1–5 are done.** Tick this table as tasks land; [`0003`](0003-build-plan.md)'s ledger records
+**Tasks 1–6 are done.** Tick this table as tasks land; [`0003`](0003-build-plan.md)'s ledger records
 the slice as a whole and should not be updated until the slice closes.
 
 | Task | State | Where it landed |
@@ -36,7 +36,7 @@ the slice as a whole and should not be updated until the slice closes.
 | 3. Replay | **done** | `Core/Input/Replay.cs` |
 | 4. The golden-hash baseline | **done** | `tests/Borough.Tests/Golden/` — the fixtures, two baselines, and the procedure |
 | 5. The headless runner | **done** | `Borough.Formats/` — the codec, the trace format, the Ruleset hash; `Borough.Headless/` — `Options`, `Session`, `RulesetCheck`, `Report` |
-| 6. The invariant tiers | pending | — |
+| 6. The invariant tiers | **done** | `Core/Invariants/` — `InvariantRegistry`, `Invariant`, `Violation`, `WorldInvariants` |
 | 7. The long-run test | pending | — |
 | 8. The crash artifact | pending | — |
 
@@ -155,6 +155,56 @@ show nothing. Two modes, dispatched on whether a session flag was given; the no-
 subcommands, no completion — below the threshold the ADR aims at, and a dependency is worth least in
 the one project whose job is to prove it builds with nothing installed. If the surface grows
 subcommands, take the library.
+
+### Decided while building task 6
+
+**The per-Tick tier is not a registry, and the other two are.** `02 §10` puts the cheap checks *at
+the write site*, which is what keeps them `O(changed)` and what makes the resulting failure point at
+the code that caused it rather than at whatever ran next. So there is nothing to register in that
+tier: a write site calls `Require` and the registry either throws or records. Building all three as
+identical lists of swept delegates would have been tidier and would have quietly moved the per-Tick
+checks off the write site, which is the one property that tier has.
+
+**A violation throws by default, and `Collect` is the switch.** Throwing is what composes with task
+8: the artifact catches at the Tick boundary and emits the log plus the panic Tick, so you replay to
+the Tick before and single-step in. Collecting exists for the balance run, which is millions of Ticks
+long and would rather finish and report than die on the first bad Household — a different question,
+*what is wrong with this city* rather than *where did this go wrong*, whose answers after the first
+violation are worth less in the way compiler errors after the first are. A runtime switch rather than
+a build configuration, for `02 §10`'s own reason.
+
+**The end-of-run tier runs on every headless run, not behind a flag.** It is `O(world)` once, so it
+costs nothing against a run of any length, and a check that is off by default is a check that is off.
+The trace is written before it runs, so a violation does not cost the numbers the run was for.
+
+**Where a corpus invariant splits across two tiers, neither half is complete alone, and that is the
+tiering working rather than a compromise.** *No Citizen in two places* becomes an `O(changed)` check
+at the write site — complete within one Household, blind across two — plus a whole-world count at the
+end of the run, which is complete and unaffordable per Tick. The write-site half fires on a genuinely
+realistic bug: a row freed without being unlinked stays in its owner's list, the next allocation
+recycles that slot, and the recycled row is inserted into a list it is already in.
+
+**The handle walk is driven by the columns, not by a list of fields.** Every `Column` answers whether
+it dangles; non-handle columns answer false. A walk naming the fields it knew about would share its
+blind spot with the bug it exists to find — the same argument the per-field declaration makes about
+the State Hash, one level up.
+
+**`Slices`, the stagger period, is a property with a default and lives outside the Ruleset.** The
+no-`const` rule aims at numbers a designer would want to change; this is not one. `05 §4`'s test
+settles it: invariants only read, so no setting of it can move the State Hash, so it is an
+optimisation rather than a design change. There is a test asserting the trace is identical at
+`Slices = 1` and `Slices = 997`, because that argument is worth checking rather than asserting.
+
+**What is *not* checked, and why, is most of `02 §10`'s list.** Goods conserved needs Bins, no Trip
+without a Fate needs Trips, parking occupancy conserved needs parking — all slice 7 or later. Money
+conservation needs a treasury and transactions; what is checkable today is `adr/0003`'s overflow
+detector, which is the visible end of the same bug. The plan predicted this: *most tiers will be
+nearly empty after this slice and that is correct.*
+
+**Cost is measured on an empty world and therefore not yet measured.** 100,000 Ticks went from 3.68s
+to 3.85s with the staggered tier live, but a replayed session holds a handful of Lots — the per-row
+cost is untested until there is a populated world stepping, which is task 7's long-run test and S0's
+synthetic city.
 
 ---
 

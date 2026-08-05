@@ -42,7 +42,12 @@ internal static class Session
 
         Replay.Trace(simulation, log, new Ticks(options.Ticks), options.HashEvery, hashes);
 
+        // 02 §10's end-of-run tier, on every run rather than behind a flag. It is O(world) once, so
+        // it costs nothing against a run of any length, and a check that is off by default is a
+        // check that is off. The trace is written first so a violation does not cost the numbers.
         Write(options, log, hashes, check.HashBroken);
+        simulation.CheckEndOfRun();
+
         return 0;
     }
 

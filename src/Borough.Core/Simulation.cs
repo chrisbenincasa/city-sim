@@ -268,9 +268,30 @@ public sealed class Simulation
     /// </remarks>
     private void Commit(Ticks tick)
     {
-        _ = tick;
         _phase = TickPhase.Commit;
+
+        // 02 §10's staggered tier. Last in the Tick because it asserts about a settled world: run
+        // before Growth and it would report a city mid-edit, which is a check that fires on correct
+        // code and is therefore a check somebody eventually deletes.
+        _world.Invariants.RunStaggered(_world, tick);
     }
+
+    /// <summary>
+    /// Runs <c>02 §10</c>'s end-of-run tier: the expensive whole-world walks.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Called once, after the last Tick, by whoever owns the run.</b> It is <c>O(world)</c> and
+    /// affordable precisely because there is one of it per run however long the run was — which is
+    /// <c>adr/0033</c>'s shape, quoted by <c>02 §10</c>: <em>unaffordable per Tick and trivial at the
+    /// end of a headless run.</em>
+    /// </para>
+    /// <para>
+    /// <b>It is not called from <see cref="Step"/>, and that is the whole point of the tier.</b> A
+    /// check that ran every Tick would have to be cheap, and these are the ones that are not.
+    /// </para>
+    /// </remarks>
+    public void CheckEndOfRun() => _world.Invariants.RunEndOfRun(_world, new Ticks(_tick));
 
     /// <summary>
     /// Folds every column of every table — derived ones included — for the Decide guard.
