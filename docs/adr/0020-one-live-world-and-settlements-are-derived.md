@@ -25,6 +25,8 @@ Worth noting that SC4 froze its neighbours because a 2003 machine could not simu
 
 A **Settlement** is a connected component of the District graph, where an edge exists between two Districts if the travel-time matrix puts them within the Commute Budget of each other. It is recomputed when the matrix rebuilds — a union-find over data already being maintained, at effectively no cost.
 
+> **Exposure, recorded while grilling [`plans/0010`](../../plans/0010-s2-routing.md) and before any numbers exist.** This paragraph says **connected component** and **union-find**; `CONTEXT.md` → Settlement says *"mutually reachable"*. **Union-find computes weak connectivity and mutual reachability is strong connectivity**, and the two coincide only when the travel-time matrix is **symmetric**. If `volume / capacity` turns out to be per *direction* — still open, and `0010` R0 parameterises it — the matrix is asymmetric, and the headline case is the ordinary one: **inbound within Commute Budget at the morning peak, outbound not.** Union-find would then merge two Districts into a Settlement that is not mutually reachable, so Settlements would appear and merge for a reason the definition excludes. The fix is strongly connected components — Tarjan, still cheap, but not the claim made here. **`0010` R1 reports the distribution of `|matrix[i][j] − matrix[j][i]|` at peak and settles it either way**: negligible asymmetry means this paragraph survives on evidence rather than on an assumption nobody had noticed making.
+
 Nothing about it is authored. Settlements **appear, merge, and split** as consequences:
 
 | Event | Cause | What the player sees |

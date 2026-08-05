@@ -6,10 +6,11 @@
 > [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md),
 > [`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md),
 > [`adr/0020`](../docs/adr/0020-one-live-world-and-settlements-are-derived.md),
-> [`adr/0034`](../docs/adr/0034-fields-are-sorted-by-source-geometry.md).
+> [`adr/0034`](../docs/adr/0034-fields-are-sorted-by-source-geometry.md),
+> [`adr/0040`](../docs/adr/0040-the-pathfinding-cluster-is-a-multiple-of-the-chunk-not-the-chunk.md).
 
 **S2 is the project's top risk and it is the only one argument cannot close.** It decides whether the
-4096² map survives, it owns the Chunk's real size, and it produces the router that milestone 5c
+4096² map survives, it owns the pathfinding cluster's size, and it produces the router that milestone 5c
 takes as given. [`0002`](0002-open-questions.md) puts it plainly: routing and scale are on the short
 list of things *validated early or not at all*.
 
@@ -75,11 +76,38 @@ so a Segment jammed inbound at the morning peak reads roughly half-loaded if the
 summed — which would make Stress understate exactly when it matters and promote to Microscopic late.
 Recorded in [`0002`](0002-open-questions.md); **R0 must parameterise it rather than assume it.**
 
-**Not a gate, but a parameterisation requirement.** Whether Districts are player-drawn or automatic is
-open and [`06`](../docs/06-roadmap.md) says it blocks milestone 5c. It does not block S2, because a
-District is *the granularity of the travel-time matrix* and S2 can take the zone count as a parameter
-and report a curve — which is exactly what K0 did with the unset Microscopic Cap, and the precedent is
-good. **S2 must not choose a zone count. It must report against a swept one.**
+**That framing is the milestone-6 half of it, and it is not why S2 cares.** The **VDF** is the
+travel-time function and is *"evaluated on one Segment's own `volume / capacity`"* (`CONTEXT.md` → VDF),
+so this choice sets **the cost function S2 routes on**. Three structural consequences, all of which must
+be right from R0's first line because none is a local retrofit:
+
+- **The graph is directed** — `cost(A→B) ≠ cost(B→A)` on one Segment.
+- **The route cache key is an *ordered* node pair.** Under R6's key a cache treating `{u,v}` as
+  unordered returns the wrong route for half its hits, silently.
+- **The travel-time matrix is asymmetric**, so nothing may halve it by symmetry and R1's resident-size
+  figures stand at the full *n²* either way.
+
+**And it exposes [`adr/0020`](../docs/adr/0020-one-live-world-and-settlements-are-derived.md).** That
+ADR computes a Settlement as *"a **connected component** of the District graph… **a union-find** over
+data already being maintained, at effectively no cost"*, while `CONTEXT.md` → Settlement defines one as
+*"a maximal set of Districts **mutually** reachable within the Commute Budget."* **Union-find computes
+weak connectivity; "mutually reachable" is strong connectivity, and the two coincide only on a
+symmetric matrix.** The divergence's headline case is the same one cited above — inbound within budget
+at the morning peak, outbound not — so union-find would merge two Districts into a Settlement that is
+not mutually reachable at all. Strongly connected components is Tarjan: still cheap, but not
+`adr/0020`'s claim. **Recorded before the numbers arrive, so it cannot be reasoned around afterwards.**
+**Not a gate, but a parameterisation requirement.** A District is *the granularity of the travel-time
+matrix*, so S2 takes the zone count as a parameter and reports a curve — exactly what K0 did with the
+unset Microscopic Cap, and the precedent is good. **S2 must not choose a zone count. It must report
+against a swept one.**
+
+*Corrected during grilling.* This paragraph previously said *"whether Districts are player-drawn or
+automatic is open and `06` says it blocks milestone 5c."* **It is not open**: `02 §2.1` settles it as
+***both*** — automatic by default, player-adjustable as an advanced action — and adds the finding that
+matters more here, that **District extent is bounded by the pooling abstraction's own validity**, so
+*"the count is physics rather than a design choice."* `06:42` still carries the closed question and is
+stale. `CONTEXT.md` → District now records the working anchor — **128 Cells, 2.10 km²** — and S2's sweep
+should bracket it rather than range freely.
 
 ## Prerequisites
 
@@ -104,12 +132,59 @@ target and the 4096² map. S4 task 2 derived the load from the generators instea
 | Trips per Day | **~1,900,000** | derived from commutes, school, shopping, freight |
 | Trips in flight | **~56,000** | derived; band 37k–111k on mean Trip duration |
 | **Legs in flight** | **~140,000** | derived, 2.5 Legs/Trip under `adr/0008` |
-| Trips started per Tick | **~232** | 1.9M ÷ 8,192 |
-| Segments | ~30,000 | **placeholder** — no road-density figure exists in the corpus |
+| Trips started per Tick | **~232** | 1.9M ÷ 8,192 — **a Day-average, and the Day has a rush hour** |
+| **Leg routes wanted per Tick** | **~580** — ~232 drive, ~464 walk | 232 × 2.5 Legs/Trip under `adr/0008`. Also a Day-average |
+| Segments | ~30,000 | **placeholder** — no road-density figure exists in the corpus. Road edges; walking adds none, being a mask bit |
+
+**The router is handed Legs, not Trips, and the majority of them are walks.** Every figure in this plan
+that reads *"~232 searches per Tick"* is a floor on the **drive** half only. A car commute is never
+fewer than three Legs (`CONTEXT.md` → Leg), and a walk Leg needs a route for two reasons that are not
+about travel time: `distance / speed` is exact only over a **network** distance, which is a search; and
+whether a walk route *exists* is the whole of **Severance**, which `CONTEXT.md` calls *"the clearest
+payoff of treating walking as real."* **A spike that never routes a walk cannot see the design's
+flagship emergent behaviour.**
+
+The two classes are measured separately throughout, because their cost profiles are nothing alike —
+walks are short searches over a dense local subgraph at high count, drives are long searches over a
+sparse global one at lower count. And walk routing is owed a **failure-mode** measurement as well as a
+cost one: whether the router can distinguish **severed** from **merely far**. Those are different Trip
+Fates (*no route found* against *exceeded commute budget*) and different player-facing diagnoses, and a
+search-radius bound chosen for performance would silently collapse them into one — a `LEGIBLE CAUSE`
+failure introduced by an optimisation.
 
 **S2 is sized against the derived figures, and the ledger says why:** *a routing design that passes at
 400k/Day and fails at 1.9M is the exact failure that spike exists to catch.* Against `06`'s 30k the
 spike is undersized roughly 2× on Trips and 5× on Legs.
+
+### The peak, which every figure above averages away
+
+**Every load figure in the derivation is a flat mean over the Day, and the design has a rush hour.**
+`02 §1.2` and `01 §7` give the sun arc five named phases — *dawn, morning peak, midday, evening peak,
+night* — and the generator mix is overwhelmingly peak-bound: **79% of Trips are commutes and school
+runs**, which are peak-bound by definition, against 410,000 shopping and freight Trips that are
+genuinely spread. Outbound commute plus outbound school is ~750,000 Trips landing in one phase; at a
+fifth of a Day that is ~458 Trips/Tick and at an eighth — and peaks are normally the narrow phases —
+it is ~732. **So the real ask at peak is 2–3× every figure above**, or something like **1,200–2,300 Leg
+routes per Tick** against a plan that said 232.
+
+- **The peaking factor is swept, not chosen.** It is nearly derivable already — the generator mix says
+  which Trips are peak-bound — and the only missing input is the **phase widths on the sun arc, which
+  the corpus names and never sizes.** Same precedent as zone count and the Microscopic Cap: report a
+  curve, do not pick a number.
+- **Every S2 figure is reported at peak, with the mean as a secondary column.**
+- **The 37k–111k in-flight band conflates two axes and must be re-derived on both.** It is presented as
+  sensitivity to *mean Trip duration*, but 56,000 × a 2–3× peaking factor is 110,000–170,000 — so the
+  top of that band is roughly the **provisional** duration figure at peak rather than the pessimistic
+  duration at mean. Two independent uncertainties are wearing one range, and the range understates the
+  combination. **`spike-results` is owed the correction**, because a figure known to be wrong and left
+  standing in the authoritative document is the exact failure this corpus already names about the ~400k
+  Trips/Day figure.
+- **R2a's crossover is evaluated across the peaking sweep**, because only one side of it moves — direct
+  attribution scales with vehicles in flight and is peak-sensitive; aggregate scales with
+  `zone count² × route length` and is not. **Report the peaking factor at which the crossover inverts.**
+  That single number decides more than either scheme's absolute cost, and the crossover already landed
+  near a ~100-Tick congestion cycle on mean figures, so a 2–3× shift on one axis is likely to reverse it
+  rather than refine it.
 
 **The ~400k Trips/Day figure still stands uncorrected in [`05`](../docs/05-technical-architecture.md)
 and in this ledger's item #20.** It is one Trip per Household per Day — the outbound commute with the
@@ -150,72 +225,222 @@ to divide by.
 - Parameterise Segment count and report footprint as a curve, as K0 did for the Microscopic Cap. The
   ~30,000 figure is a placeholder and S2 is the first thing able to say what road density a 268 km²
   city at 1M actually implies.
-- **The denominator: one uncached point-to-point search** — A\* with a Euclidean heuristic, integer
-  costs, no hierarchy and no cache — over the O-D distribution R1 derives. Every later figure is
-  reported against this, never against a Tick budget.
+- **The denominator: one uncached point-to-point search** — A\*, integer costs, no hierarchy and no
+  cache — over the O-D distribution R1 derives. Every later figure is reported against this, never
+  against a Tick budget.
+- **The cost function is time, and R0 states it rather than leaving it silent.** `02 §5.9`: *"the cost
+  function used for routing must be the same quantity used to judge trip failure, and the same quantity
+  shown to the player. SC4 routed on distance while the player was scored on time, and the traffic
+  system became unlearnable as a result."* The **Commute Budget** is drawn as a wedge on the sun arc
+  (`01 §7`), so the quantity is time. **A denominator that routes on distance is measuring the SC4
+  failure with a stopwatch.**
+- **The heuristic is a swept ladder, not a choice — and it needs no square root.** The plan previously
+  said *Euclidean*, which the substrate cannot express: `Borough.Core.Arithmetic` has `Abs`,
+  `FloorDiv`, `CeilDiv`, `RoundDiv`, the shifts, `Fixed.Mul`/`Div`/`Lerp` and the tabulated
+  `exp`/`log`, and **no `Sqrt` anywhere**. It does not need one: admissibility requires only a *lower
+  bound* on the true distance, so an underestimating integer approximation suffices and it lives in the
+  spike, which dies. **Nothing enters the substrate.**
+
+  A distance heuristic on a **time**-cost graph is admissible only when divided by the map's maximum
+  free-flow speed — and since Arterials are the fast edges on a network that is mostly slow Streets,
+  that division makes the tightest-looking heuristic nearly uninformative where most of the graph is.
+  Worse, the tight grid metrics are not safely admissible at all:
+
+  | Heuristic | Admissible on | Needs sqrt |
+  |---|---|---|
+  | **Chebyshev** `max(\|dx\|,\|dy\|)` | any graph — a lower bound on Euclidean by construction | no |
+  | **Euclidean, underestimating integer approximation** | any graph | no |
+  | **Octile** | 8-connected only — a freeform Arterial breaks it | no |
+  | **Manhattan** | 4-connected only — a freeform Arterial breaks it | no |
+
+  `adr/0014` snaps Streets to the Tile grid, so Manhattan is exact there; **Arterials are freeform
+  splines at arbitrary angles, so a diagonal Arterial makes the true distance shorter than Manhattan,
+  the heuristic overestimates, and A\* silently returns a non-optimal path.** `CONTEXT.md` → Arterial
+  calls them *"deliberately rare"*, which makes the tight metrics admissible *almost* always — and
+  *almost always* is the trap, because **a non-optimal path is a different Trip and therefore a
+  different city.**
+
+  Measure all four, and report per rung: nodes expanded, path cost, and — **the column that decides** —
+  **how often the returned path is not optimal against Dijkstra ground truth on the same query.** The
+  verdict S2 owes is **the Arterial density at which admissibility breaks**, which is a decision
+  argument cannot reach and one function swap can.
+- **Report the denominator's own quality, because every ratio in this spike divides by it.** Nodes
+  expanded against final path length, and the ratio against plain Dijkstra on the same query. If A\*
+  expands within a few percent of Dijkstra, **S2 says so beside every ratio it publishes** — a weak
+  denominator flatters HPA\*'s speedup, the cache's value and R2's crossover alike. S4's lesson was
+  that a denominator must state its machine and its moment truthfully; this is the same lesson one
+  level up, about its *quality*.
+- **If the heuristic proves too weak, the fix is not to make it inadmissible.** An inadmissible
+  heuristic returns a different path, and under `05 §4`'s test a changed result is a **design change**,
+  never a tuning knob. Written here so it cannot be reasoned around once the numbers are inconvenient.
+- **The denominator's query shape is `(Segment, offset) → (Segment, offset)`, not node to node**
+  (`CONTEXT.md` → Access Point). An Access Point is an offset along a Segment because five Buildings
+  share one at the working figures, and promoting them to nodes would put the graph at 150,000–300,000
+  edges rather than ~30,000. So the search seeds its open set with **both endpoints of the origin
+  Segment** at their partial costs and terminates on either endpoint of the goal Segment plus the
+  offset remainder. **Report the bootstrap and termination cost separately from the search**, so later
+  tasks can tell fixed overhead from work — a node-to-node denominator measures a query the game never
+  issues, and every figure in this spike divides by it.
 - Record machine, SDK, governor and the denominator's own timestamp.
 
 ### R1. The travel-time matrix — the prescribed first measurement
 
 - Build the zone-to-zone matrix. **Sweep zone count** rather than choosing one; the corpus's only
   figure is ~100–400 zones from [`plans/0001`](0001-foundational-design.md), which predates the 1M
-  target and cannot be carried forward unexamined.
+  target and cannot be carried forward unexamined. Bracket `CONTEXT.md` → District's working anchor of
+  128 Cells rather than ranging freely.
+- **Sweep the matrix's time resolution, which is a second unstated axis.** A single Day-average matrix
+  cannot represent the peak that every other figure in this spike is now measured at — morning inbound
+  and evening outbound cancel, and the asymmetry the directed graph exists to carry vanishes into the
+  mean. A per-phase matrix (the sun arc's five phases) multiplies resident size by five and gives the
+  choice loop a travel time that matches the moment being asked about. **Report cost and size against
+  both**, because the answer interacts with the peaking factor and with the `adr/0020` exposure below.
+- **Report the matrix's asymmetry as a measured quantity** — the distribution of
+  `|matrix[i][j] − matrix[j][i]|` at peak. **This is what settles the `adr/0020` exposure**: if the
+  asymmetry is negligible, that ADR's union-find survives on evidence rather than on assumption; if it
+  is not, Settlements need strongly connected components and `adr/0020` is owed an amendment.
 - Measure four things separately, because they size different decisions: **cold build cost**,
   **incremental rebuild against a dirty region**, **resident size**, and **the O(1) read** the choice
   loop performs.
+- **Resident size is measured twice** — once for the scalar matrix the choice loop reads, and once for
+  the **cached District-pair routes** `03 §3.3` distributes volume along. They differ by more than a
+  constant factor: *n²* integers against *n²* variable-length Segment sequences.
 - The read is the one that matters most. `02 §5.8` makes *never resolve a route inside the choice
   loop* a rule, named as the one thing UrbanSim gets architecturally right that this design must not
-  violate. **If the matrix read is not genuinely O(1) and cheap, that rule is unenforceable** and the
-  finding is larger than S2.
+  violate. **If the matrix read is not cheap, that rule is unenforceable** and the finding is larger
+  than S2.
+- **The risk is cache, not complexity, and the tripwire row was rewritten to say so.** A lookup into an
+  *n*×*n* array is O(1) by construction, so the original wire — *"not O(1) and cheap"* — could not fire
+  on any plausible implementation, which is the same effect as a wire reasoned around, arrived at
+  earlier. What actually binds is where the matrix lives:
+
+  | Zones | Entries | At 4 B | Where it lives |
+  |---:|---:|---:|---|
+  | 100 | 10,000 | 40 KB | L2 |
+  | 400 | 160,000 | 640 KB | L2/L3 |
+  | 2,000 | 4,000,000 | 16 MB | **DRAM — every read is a miss** |
+
+  **So zone count has a hard ceiling set by L3 rather than by memory**, and `plans/0001`'s only figure —
+  100–400 zones — sits near its edge. **Report the zone count at which the matrix leaves L3.** That
+  figure is the practical ceiling on District count and it reaches past S2: a player drawing thousands
+  of Districts would be drawing a performance cliff, which makes District count not a free UI decision.
+- **Measure the read in both access patterns, because the corpus uses both phrasings for one
+  operation.** `references.md §2` describes the choice loop as *"what is the commute from this
+  candidate dwelling to any job?"* — one origin, many destinations, a **row scan**, sequential and
+  largely immune to the table above — and in the same sentence as *"many-to-many, evaluated tens of
+  thousands of times per cycle"*, which reads as scattered. **The two differ by an order of magnitude at
+  2,000 zones and are indistinguishable at 100.** Report them separately, so which one the choice loop
+  performs becomes a design question with a priced answer rather than a detail settled by whoever writes
+  the loop.
 
 *Decides:* whether the matrix can carry the choice loop, and therefore whether R4 is worth running.
 
-### R2. What work is actually left — and the question nobody has asked
+### R2. Two axes, not one — and the crossover nobody has looked for
 
-**This is the task the prescribed order exists to reach, and it contains a question the corpus has
-never put in writing.**
+**This is the task the prescribed order exists to reach, and grilling found that the corpus had
+already answered it twice, differently, in the same document.**
 
-A Traveller on a Statistical Segment is defined as *an origin, a destination, and an arrival Tick*
-(`CONTEXT.md` → Traveller). If the matrix supplies the arrival Tick, **that Traveller may never need a
-concrete path at all** — and the routing load collapses by orders of magnitude.
+Stress is `volume / capacity` (`CONTEXT.md` → Stress), so every Segment needs a volume, and something
+must decide which Segments a Trip deposits volume on. `03 §3.3` answers one way —
+`in_flight[origin_District][dest_District]`, *"distributed onto segments along cached District-pair
+routes each congestion cycle"*. `03 §3.6` answers another — a Traveller *"animated from its trip,
+position interpolated along its route"*. **Those are two different routes per Trip, and nothing in the
+corpus reconciles them.**
 
-But Stress is `volume / capacity` (`CONTEXT.md` → Stress), and volume has to be accumulated from
-somewhere. Something must know which Segments a Trip traverses, or no Segment ever has a volume, the
-VDF has no input, and Fidelity has no trigger.
+> **The attribution axis is now settled by
+> [`adr/0041`](../docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md) —
+> direct, by the Traveller.** R2 no longer chooses between the two; it **prices** the one that was
+> chosen, and R2a's crossover is what says how much correctness cost. The **path source** axis below is
+> still fully open and is what R2 decides.
 
-**So R2 asks: does a Statistical Trip need a concrete path, or only an arrival time and an
-assignment?** The two answers give different spikes and a different game:
+**The mistake in the original framing of this task was treating it as one choice. It is two, and they
+are independent:**
 
-- **Arrival time plus an assignment** — volume comes from a periodic traffic assignment over the
-  matrix, and per-Trip pathfinding is needed only for Travellers that become Microscopic. Routing load
-  falls to the Microscopic Cap's scale, and the Cap is the constraint rather than the router.
-- **Concrete path per Trip** — ~232 searches per Tick minimum, before cache hits, and the router is
-  the constraint.
+| | **Path source** — where a Trip's Segment sequence comes from | **Attribution** — how a Segment gets its volume |
+|---|---|---|
+| Options | **searched** per Trip, or **shared** per O-D pair and cached | **direct** — the Traveller increments each Segment it enters and decrements on exit — or **aggregate** — counts smeared along cached routes once per congestion cycle |
+| Cost scales with | Trips started per Tick (~232), less cache hits | direct: **vehicles in flight**. aggregate: **zone count² × route length** |
 
-Measure both. **Report the ratio between them, because it is the number that decides how much of the
-rest of this spike matters.**
+`03 §3.3` picks *(shared, aggregate)*. The **hybrid *(shared, direct)* has never been considered and may
+dominate both**: one cached route per O-D pair keeps routing cheap, while the Traveller traversing it
+increments the Segments it actually drives, which makes volume exact every Tick.
 
-*Decides:* the real per-Tick routing load, and whether R3 and R4 are answering a live question.
+#### R2a. The crossover
 
-### R3. HPA\*, and the Chunk size it owns
+The two attribution schemes scale on **independent axes**, so there is a crossover and S2 can find it
+rather than assume it. First-cut arithmetic, which the spike replaces with measurement:
+
+- **Direct** — a Tick is ~10.5 in-world seconds and a Segment is roughly a block, so a vehicle crosses
+  **about one Segment per Tick**: order 80,000 increment/decrement pairs per Tick into a 30,000-entry
+  array of 120 KB, which sits in L2. **Independent of zone count.**
+- **Aggregate** — at 400 Districts, 160,000 pairs × ~50 Segments per route ≈ **8M writes per congestion
+  cycle**. **Independent of population.**
+
+Equal at a congestion cycle of roughly 100 Ticks — which is close enough to the design's plausible
+operating point that neither scheme is obviously the cheap one.
+
+- **Sweep zone count jointly with R1**, and sweep vehicles in flight across the derived band
+  (37k–111k). Report the surface and mark where the design actually sits.
+- **S4's K2 is a head start.** Random gather by generational handle is the direct scheme's inner loop
+  and it is already measured on two machines.
+
+#### R2b. The attribution error, which is a correctness axis and not a speed one
+
+`03 §3.3` confesses the aggregate scheme's defect in its own text:
+
+> *"a jam propagates backward at roughly 15 km/h — faster than any cycle worth running — so a
+> cycle-driven region always lags the jam during exactly the event it exists to capture."*
+
+That admission is why `03 §3.3` had to invent a **second trigger** — force-promotion on downstream
+blocking — as compensation. **Under direct attribution volume is exact every Tick and the lag has
+nowhere to live**, which raises the possibility that a whole mechanism exists to patch a compression
+nobody priced.
+
+- Drive a jam through the synthetic graph and report **the lag** — Ticks between a Segment's true
+  `volume/capacity` crossing `T_high` and the scheme reporting it — for both schemes.
+- Report **peak Segment volume** under each on the same O-D distribution. A scheme that understates the
+  peak promotes late, and `adr/0007` demotes on a *lower* threshold, so an understated peak also
+  demotes early.
+- **A scheme that cannot report a jam within the cycle it happens in has failed a design commitment**,
+  in the same way a candidate needing a global flush has — regardless of its throughput.
+
+*Decides:* the real per-Tick routing load, whether R3 and R4 are answering a live question, and three
+things that are not S2's but which S2 is the only thing able to price:
+
+- whether **force-promotion** (`03 §3.3`) is a necessary trigger or a patch on the aggregate scheme;
+- whether `03 §3.4`'s self-correcting circularity — *"the load-bearing assumption of the whole
+  scheme"* — holds, since under *(·, aggregate)* a Traveller experiences congestion on one route and
+  contributes it to another, and the failure stops feeding the detector;
+- whether **a player-drawn District can change the State Hash**. Under `03 §3.3` the District pair keys
+  both the counter and the cached route, so redrawing a boundary changes Fidelity and therefore the
+  city — the defect class `03 §3.9` rejects for the Microscopic Cap in words that transfer unchanged.
+  Under direct attribution the District stops being a routing object and the defect cannot arise.
+
+### R3. HPA\*, and the cluster size it owns
 
 [`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md) makes a claim S2 must test rather than
 inherit: the Road Graph *"arrives pre-partitioned, because the Chunk grid is already the pathfinding
 cluster, which is most of what HPA\* wants handed to it."* If true, HPA\*'s usual preprocessing cost
 is largely already paid.
 
-- Build HPA\* over the Chunk grid. **Sweep Chunk size** — this is where S2 discharges its ownership of
-  it, and `05 §5`'s role table says pathfinding wants *larger, and loudly* at 32×32, where a cluster
-  is 128 m on a map whose commutes cross tens of kilometres.
+- Build HPA\* over the cluster grid. **Sweep cluster size**, expressed as a whole number of Chunks per
+  [`adr/0040`](../docs/adr/0040-the-pathfinding-cluster-is-a-multiple-of-the-chunk-not-the-chunk.md).
+  `05 §5`'s role table says pathfinding wants *larger, and loudly* at 32×32, where a cluster is 128 m on
+  a map whose commutes cross tens of kilometres.
 - Measure per size: preprocessing cost, per-query cost against R0's denominator, resident size, and
   **invalidation cost on a single edit** — the abstract graph's repair, not a rebuild.
-- Report the render-streaming side of the Chunk trade as *not measured here*. `05 §5` says that role
-  is two-sided with a bottom to find, and S2 can only see one side of it. **A Chunk size chosen from
-  pathfinding alone is a recommendation, not a decision**, and the plan says so now rather than
-  letting the spike's silence imply otherwise.
+- **A same-Segment and adjacent-Segment bypass is mandatory, not an optimisation.** With five Buildings
+  on a Segment, a meaningful share of the ~464 walk Leg routes per Tick never leave their own Segment or
+  its neighbour, and routing those through the abstract graph costs more than the answer. Measure the
+  share that takes the bypass — it is also the first real figure on how local walk Legs actually are.
+- Report the render-streaming side of the Chunk trade as *not measured here*, and note that under
+  `adr/0040` this **no longer matters**. S2 decides the cluster and only informs the Chunk, so it never
+  needed the side of the trade it cannot see.
 
-*Decides:* Chunk size, on the pathfinding axis. Still on the *cannot be retrofitted* list — cheap now,
-pinned by the save format from milestone 10.
+*Decides:* **cluster size, outright.** It is `(derived AND rebuilt)`, never written to a save, and
+therefore **free to change forever** — which is the whole of `adr/0040`. Chunk size is *informed*, not
+decided, and stays on the *cannot be retrofitted* list for the reasons that are genuinely its own:
+rendering, saves and work partitioning.
 
 ### R4. DSDV distance-vector, if R2 leaves it live
 
@@ -251,13 +476,44 @@ The measurement that separates a routing design that works from one that works o
   were computed under and revalidate lazily on next use, **never a global flush**
   (`CONTEXT.md` → Epoch). A candidate that needs a global flush on edit has failed a stated design
   commitment regardless of its throughput.
+- **But the Epoch as written is a single counter on the whole Road Graph, and that makes the commitment
+  half true.** A counter carries no location, so a route computed at Epoch 5 and used at Epoch 6 cannot
+  tell whether the edit touched it — leaving only *treat it as stale* (a total invalidation, merely paid
+  lazily) or *re-walk its Segments to check* (O(path length) on every hit). **`Lazy` describes when you
+  pay, not what survives**, and the corpus's phrase conflates the two. It bites hardest here for the
+  reason this plan already gives about DSDV: *in a city builder link deletion is the core verb*, so the
+  Epoch moves every few seconds of play.
+- **Measure a three-rung ladder, because all three are conservative and the State Hash is unchanged
+  across them** — which makes this an optimisation under `05 §4`'s own test, and optimisations are
+  settled by measurement rather than argument. A revalidated route is recomputed deterministically over
+  the same graph and comes back identical; the rungs differ only in how often they say *might be stale*,
+  so over-invalidation costs work and never correctness.
+
+  | Rung | Revalidation test | Cost |
+  |---|---|---|
+  | **Global** — as written today | one counter moved → assume stale | O(1) check; hit rate collapses on any edit |
+  | **Per-cluster** — riding `adr/0040`'s partition | any cluster the route crosses moved | O(clusters crossed); over-invalidates near misses; composes with HPA\*'s own per-cluster repair |
+  | **Per-Segment** | max version among the route's own Segments | O(path length); exact |
+
+  Storage decides nothing — a version word per Segment is 30,000 × 4 B ≈ **120 KB**. The comparison is
+  hit rate against revalidation cost, which the edit storm already drives.
+- **Report cache hit rate as a function of edit rate, not just throughput.** That curve is the actual
+  finding. Under the global rung, hit rate is not a property of the O-D distribution at all — it is a
+  property of how recently the player touched anything — so an edit-storm throughput figure could be
+  reported with a cache that had silently stopped working.
+- **Two things the benchmark cannot settle, and they are not deferred to it.** `CONTEXT.md` → Epoch
+  needs the *when you pay* / *what survives* distinction written in regardless of the numbers; and R1
+  must state **whether the travel-time matrix carries an Epoch at all**, because R1 currently
+  invalidates it by *dirty region* — a spatial mechanism — while routes invalidate by a scalar. **Two
+  invalidation mechanisms are in the corpus and nothing relates them**, so the matrix and the cache can
+  disagree about what the network currently is.
 - Record the worst single-Tick cost, not the mean. S4's K6 established that the quantile hides the
   event: a run whose worst iteration was 100.2 ms read 2.462 ms at p99.9.
 
 *Decides:* whether either router survives the core verb, and it is the task most likely to reverse
 R3's and R4's ranking.
 
-### R6. The route cache, and `adr/0006`
+### R6. The two caches, and `adr/0006`
 
 [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md) permits route caching **keyed
 by origin-destination pair, never by agent**, invalidated lazily against the Epoch. That is exactly
@@ -269,8 +525,42 @@ fixed capacity, least-used eviction — and nobody has written it down for route
 
 - Fixed-capacity, O-D keyed, Epoch-invalidated. Measure hit rate against R1's real O-D distribution
   rather than a uniform one, which would flatter it.
+- **The key is the node pair the search spans, never the Access Point pair.** `adr/0012` says only
+  *"keyed by origin-destination pair"*, and that phrase is ambiguous now that an Access Point is known
+  to be a `(Segment, offset)`: keyed on those, the space is Buildings² ≈ 2.25 × 10¹⁰ and the hit rate is
+  approximately zero. Keyed on the **endpoints of the origin and destination Segments**, with the
+  offsets applied as an arithmetic correction afterwards, the space collapses to nodes² and the five
+  Buildings sharing a Segment share one entry instead of minting five. **Hit rate is a property of the
+  key before it is a property of the distribution**, and R6 must state the key beside every figure.
+- **The trade the key makes must be measured, not assumed.** Two Buildings at opposite ends of a long
+  Segment share a route that is wrong for one of them by up to a Segment length. Report the induced
+  error against the **Commute Budget**, which is the only thing that consumes it — if the Budget is
+  never decided at a granularity finer than a block, the error is free and the key is strictly better.
 - Run long enough to demonstrate **no collection and no magnitude trending upward at steady state**,
   per the definition of done. A cache that grows is not a cache.
+
+**There is a second cache and this plan did not know about it.** `05 §3` declares *"cached Parking Shed
+membership per Building — `(derived AND rebuilt)`. The ordered set of parking Bins within walking
+distance of a pedestrian Access Point, **invalidated by the Road Graph Epoch**."* It is the Epoch
+consumer that scales with **Buildings** rather than with routes, and it is the one R5's ladder is most
+likely to be decided by.
+
+- **Under a global Epoch, one road edit invalidates all ~150,000 sheds at once.** `adr/0009` promises
+  arrival is *"a handful of lookups, never a search"* — a promise that holds only while the shed is
+  warm. After any edit, every arriving vehicle in the city pays a rebuild first, and it pays it **on
+  arrival**, which is the moment a Trip is trying to finish. That is a stampede triggered by the
+  player's most common action.
+- **It ranks the ladder differently from routes, which is why it must be measured beside them.** A shed
+  is *a set of Bins reachable within a walk*, not a path — so a **per-Segment** Epoch does not obviously
+  help, because the Segments it is versioned against are its whole reachable neighbourhood rather than a
+  route. A **per-cluster** Epoch fits it far better than it fits routes: a shed is inherently local, and
+  *"did anything change in my cluster"* is close to the right question already.
+- **Measure both caches against the same edit storm**, and report **rebuild cost at the moment of edit**
+  alongside steady-state hit rate. A ladder chosen on routes alone would be chosen on the cheaper of the
+  two consumers.
+- **`05 §3` is owed the same correction `CONTEXT.md` → Epoch just took** — *invalidated by the Road
+  Graph Epoch* is a statement about when the rebuild is paid, not about how much survives, and under one
+  counter the answer is *none of it*.
 
 *Decides:* the eviction policy, which is owed to `adr/0012` as an amendment.
 
@@ -291,9 +581,10 @@ meaning depends on an unstated machine is not a threshold** — so each row name
 
 | Condition | Response |
 |---|---|
-| Routing exceeds **10% of the 15.6 ms Tick budget** at 1M on the *desktop* (i5-10400, DDR4-2133), sustained, with matrix refresh amortised | The map falls back to **2048²**, which `05` already documents as the fallback |
-| The travel-time matrix read is **not O(1) and cheap** | Larger than S2. `02 §5.8`'s rule is unenforceable and the choice loop's design reopens |
+| Routing exceeds **10% of the 15.6 ms Tick budget** at 1M on the *desktop* (i5-10400, DDR4-2133), **at the morning peak**, with matrix refresh amortised | The map falls back to **2048²**, which `05` already documents as the fallback |
+| The travel-time matrix read costs **more than S4's K2 random gather**, at the zone count the design needs, on the *desktop* (i5-10400, DDR4-2133) | Larger than S2. `02 §5.8`'s rule is unenforceable and the choice loop's design reopens |
 | Either router needs a **global flush** on a Road Graph edit | That candidate is out on a design commitment, not on a number |
+| An attribution scheme **cannot report a jam within the congestion cycle it happens in** (R2b) | That scheme is out on a design commitment, not on a number. `03 §3.4`'s self-correcting circularity is the load-bearing assumption of the fidelity model and a lagging detector breaks it |
 | The route cache **grows at steady state** with no bound | `adr/0006` violated. Fix the cache, not the ADR |
 | DSDV's routing tables exceed the **whole world's 172.3 MiB footprint** | Distance-vector is out on memory alone |
 
@@ -304,6 +595,36 @@ Tick at the most pessimistic wake rate, and
 order of suspicion for a slow Tick as *the Microscopic Cap, routing, and the Sweep Rule schedule*.
 Routing being allowed five times the Wheel and still leaving 90% is defensible; it is not derived.
 **It is recorded as unratified in [`0002`](0002-open-questions.md) on the day it was chosen.**
+
+**It stays a stated guess, and grilling established that it *cannot* be ratified yet rather than merely
+that nobody has.** Two reasons, and both are worth keeping visible so the figure is not mistaken for a
+derivation later:
+
+- **The denominator does not exist.** 15.6 ms is the whole Tick at 4× speed. The Tick at 1M also
+  contains Rules, Map Layers, the Sweep schedule and the Microscopic tier, and **only the Event Wheel
+  has been measured** — S4's 1.80%. A share is a claim about a whole that is ~90% unpriced. *This is the
+  denominator lesson a third time: S4 established that a denominator needs its machine and its moment,
+  R0 adds that it needs its quality stated, and this adds that it needs to exist.*
+- **The symptom it fires on is one the design elsewhere calls harmless.** `CONTEXT.md` → Speed makes
+  tick rate *"purely a host concern — the simulation cannot observe it"*, and `03 §3.9` absorbs hardware
+  limits by **a slow machine advancing fewer Ticks per second**. So blowing the Tick budget is not a
+  correctness failure: nothing breaks and the city is identical, the player simply does not get 4×.
+  What the row is really protecting is **the point at which the top speed setting stops being
+  deliverable**, which matters under `01 §7`'s rule that a number must not be caught contradicting what
+  the player is watching — a control labelled 4× that delivers 1.5× is exactly that.
+
+**And the response is under-argued as well as the threshold.** 2048² is `05`'s documented fallback, but
+nothing establishes that **map size** is the right lever for a routing cost rather than a coarser matrix
+cadence or a lower top speed setting. Falling back to 2048² changes the *world* in answer to a *pacing*
+symptom, in a design that has an explicit home for pacing and it is not the map. **S2 should report the
+absolute per-Tick figure at peak on the named machine regardless of where the 10% lands**, so the
+fallback decision can be taken on evidence once the Tick's other consumers are priced.
+
+**The first row said *sustained* and now says *at the morning peak*, which is a correction rather than a
+tightening.** *Sustained* reads as excluding transients, but a peak is hundreds of Ticks and is
+sustained under any reading — so against a Day-average load the row fired on a condition the game never
+experiences and stayed silent on the one it does. This is S4's K6 lesson in its own words: *a run whose
+worst iteration was 100.2 ms read 2.462 ms at p99.9.*
 
 ---
 
@@ -326,11 +647,29 @@ correct — a deterministic rebuild is hash-preserving; a variable cadence is no
 
 **3. The routing Tick budget share** — the 10% above.
 
+**3a. ~~How a Segment gets its volume.~~ DISCHARGED —
+[`adr/0041`](../docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md): the
+Traveller attributes it, not the District pair.** Decided rather than measured, because the two schemes
+produce **different cities** and `05 §4`'s rule says that is not a benchmark's decision to make. What
+remains for S2 is the **price**, not the choice: R2a's crossover now measures what direct attribution
+costs. `03 §3.3`, `§3.4` and `§3.6` are owed a joint rewrite, and force-promotion loses the lag argument
+that justified it.
+
 **4. Zone count for the matrix, and road density.** Both swept rather than chosen, both owed a figure
 once S2 reports. Road density is the input the ~30,000-Segment placeholder rests on and it exists
 nowhere in the corpus.
 
-**5. The route cache eviction policy** — owed to `adr/0012` as an amendment, per R6.
+**5. The route cache eviction policy, and its key** — both owed to `adr/0012` as an amendment, per R6.
+The key is the newer half: `adr/0012`'s *"keyed by origin-destination pair"* was written before anyone
+knew an Access Point is a `(Segment, offset)`, and the phrase is ambiguous between a key space of
+nodes² and one of Buildings².
+
+**5a. The sun arc's phase widths, which the corpus names and never sizes.** *Dawn, morning peak,
+midday, evening peak, night* appear in `02 §1.2` and `01 §7` with no durations, so **no peaking factor
+exists anywhere** and every load figure in the corpus is a Day-average of a Day that has a rush hour.
+S2 sweeps it and reports a curve; it does not choose. But the widths are almost certainly
+**hash-bearing** for the same reason the matrix refresh cadence is — they decide how concentrated
+demand is, and two peak widths produce two cities. Filed alongside decision 2.
 
 **6. `06`'s S2 specification is stale and should be struck.** "30k Travellers" predates the 1M target;
 S1's "20k Buildings" is stale for the same reason and is not S2's to fix.

@@ -38,6 +38,12 @@ _Avoid_: Chunk (a purely technical partition, defined in `docs/05-technical-arch
 **District**
 A contiguous named region, either player-drawn or automatically derived. A District is the boundary within which Goods pool without physical transport, and the granularity of the travel-time matrix. Typically hundreds of Cells.
 
+**A contiguous set of Cells, never of Chunks.** The Cell is frozen and the Chunk is tunable (`05 §4` lists Chunk size as hash-preserving), so boundaries made of Chunks would let a profiler move what a District *is* — and District extent decides Goods pooling and matrix granularity, which is a change to the city. Cell alignment costs nothing, the Cell being a strict divisor of the Chunk.
+
+**Its maximum extent is bounded by the pooling abstraction's own validity** (`02 §2.1`): a District can only be as large as the area within which *ignoring transport* is a defensible simplification, because a District large enough to span a genuine delivery has deleted the Shipment that delivery should have been — the collapse `adr/0022` warns of. **Working anchor: 128 Cells — 2.10 km², ~1.45 km across.** A starting point rather than a derivation: *what actually pools convincingly is a playtesting question*, and the number should be expected to move once there is a city to feel it in.
+
+The count is therefore **physics rather than a design choice**: the early city has one District because the city *is* one neighbourhood, and more appear as it outgrows the pooling radius.
+
 **Zone**
 A **permission set over land**: it lists the uses allowed there and forbids every other. A Zone never places a Building and never causes one — zoning Residential does not build houses, it forbids everything that is not housing. Density is the intensity cap *within* a permission, not a separate concept. Mixed use needs no machinery: it is a permission set with more than one entry.
 
@@ -572,6 +578,8 @@ Where a Building meets a network. Every Building has a **pedestrian** access poi
 
 The distinction is load-bearing rather than pedantic: a car's real access point is **wherever it managed to park**, which is generally not its destination. The gap between the two is the walk Leg, and its length is the whole of what parking scarcity does to the player.
 
+**An Access Point is an offset along a Segment, never a node.** A Segment's nodes are intersections, and an Access Point is not one. The arithmetic makes this structural rather than a matter of taste: five Buildings share a Segment at the working figures, so promoting Access Points to nodes would split every Segment five ways and put the Road Graph at 150,000–300,000 edges instead of ~30,000. A routing query is therefore `(Segment, offset) → (Segment, offset)` rather than node-to-node, which is the query shape everything downstream must be measured on.
+
 **Parking Shed**
 The set of parking Bins within acceptable walking distance of a destination's pedestrian Access Point. On arrival it is queried **nearest-first**, taking the first Bin with free capacity — a handful of lookups, never a search.
 
@@ -615,6 +623,8 @@ It is the unit almost everything about movement is counted in, which is why it n
 
 **It is not a Tile and it is not a whole road.** A Tile-length edge would put millions of them on a 4096² map, and a run between authored Junctions would put almost none on a city that is mostly Streets — both by more than an order of magnitude. The working figure is **~30,000 Segments at 1,000,000 Citizens, about four Lanes each**, which puts a Segment at roughly a block-length link. That figure rests on a road-density assumption nothing in this corpus has yet argued, and it is spike **S2**'s to replace.
 
+**Walking does not add Segments.** The mode mask is *an edge property, not a second edge set* (`03 §3.7`), so a Street's footway is the same Segment with the foot bit set, and the pedestrian network is a **subgraph** rather than an addition. The figure is therefore not inflated by `adr/0008`'s walk Legs. What *is* additional and unsized is the small set of **foot-only Segments** — crossings at authored Junction pieces, paths, pedestrian precincts. They are few and they are the edges **Severance** turns on, so nothing may size the graph by omitting them.
+
 _Avoid_: "road", "link", "edge" as loose synonyms — the first two are ambiguous between the Segment and the whole street a player drew, and "edge" is the graph-theoretic word for the same object and is fine in `05` but not in design prose.
 
 **Volume-Delay Function** (VDF)
@@ -624,6 +634,8 @@ It is **exact when free-flowing and wrong when saturated**, and the reason is st
 
 **Epoch**
 A monotonically increasing version counter on the Road Graph, bumped on any edit. Cached routes record the Epoch they were computed under and revalidate lazily on next use. Never a global flush.
+
+**"Never a global flush" is a claim about *when you pay*, never about *what survives*, and the two must not be read as one.** A single counter for the whole graph carries no location, so a route cannot tell whether an edit touched it — every edit anywhere invalidates everything, merely lazily. Since a Road Graph edit is the player's core verb rather than a rare fault, **the granularity of the Epoch decides whether route caching is worth anything at all.** Whether it is per-graph, per-cluster or per-Segment is a pure optimisation under `05 §4` — every granularity is conservative and recomputation is deterministic, so the State Hash is identical across them — and spike **S2** settles it by measurement.
 
 ---
 

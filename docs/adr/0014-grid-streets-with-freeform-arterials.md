@@ -10,7 +10,9 @@ Fully freeform multi-lane roads do not make road *drawing* hard; they make **int
 
 The hybrid confines the difficulty to a place where it is bounded:
 
-- **Grid-to-grid intersections are trivial**, and the Road Graph falls out of the Tile grid for free — nodes at Tile junctions, edges along Tile edges. It also arrives pre-partitioned, because the Chunk grid is already the pathfinding cluster, which is most of what HPA\* wants handed to it.
+- **Grid-to-grid intersections are trivial**, and the Road Graph falls out of the Tile grid for free — nodes at Tile junctions, edges along Tile edges. It also arrives pre-partitioned, because the Chunk grid is already a regular tiling the pathfinding cluster can align to, which is most of what HPA\* wants handed to it.
+
+  *Amended by [`0040`](0040-the-pathfinding-cluster-is-a-multiple-of-the-chunk-not-the-chunk.md).* This bullet originally read *"the Chunk grid **is** already the pathfinding cluster"*. The useful half — that a regular tiling already exists — stands and is why the alignment costs nothing. The identity was asserted rather than argued, and it is wrong for a reason this ADR had no way to see: **the Chunk is written into the save and the cluster is not**, so unifying them would make a freely-recomputable number as permanent as the save format.
 - **Arterial-to-Arterial junctions are rare.** Rarity is what makes authoring viable: a small library of pieces — cloverleaf, diamond, trumpet — that the **player places**, rather than geometry procedurally generated from arbitrary inputs. A finite set of hand-built pieces is content work with a known end; procedural junction generation is not.
 - **Arterial-to-grid connections happen only at authored on/off-ramp pieces.** The Arterial never merges into the Street network anywhere else, which is both the geometric constraint and, as it turns out, how real limited-access roads behave.
 
