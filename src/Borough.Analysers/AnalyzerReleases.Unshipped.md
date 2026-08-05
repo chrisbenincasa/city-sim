@@ -5,7 +5,9 @@
 ;
 ; Naming: BOR0<r><nn>, where <r> is the CI lint number in docs/05 §4. BOR08xx is the purpose_tag row
 ; of that section's banned-construct table, which is stated as a build-time check but is not one of
-; the seven numbered lints.
+; the seven numbered lints. BOR09xx is adr/0003's per-field declaration, which 05 §4 does not
+; enumerate at all — it is a rule the ADR states and the table layer implements, and it needs a
+; build-time check for the same reason the purpose_tag row does: nothing at runtime can catch it.
 
 ### New Rules
 
@@ -23,3 +25,4 @@ BOR0701 | Borough.SimulationState | Error    | Lint 7 — a struct that does not
 BOR0801 | Borough.Determinism     | Error    | Two PurposeTag members sharing one value
 BOR0802 | Borough.Determinism     | Error    | A PurposeTag member claiming 0, which is reserved for None
 BOR0803 | Borough.Determinism     | Error    | PurposeTag not backed by ulong
+BOR0901 | Borough.SimulationState | Error    | Storage in a [Table] type that is not a declared Column or the table's own Rows

@@ -33,6 +33,18 @@ internal static class CoreConventions
     /// <summary>The central enum whose uniqueness nothing at runtime can check.</summary>
     internal const string PurposeTagEnum = "Borough.Core.Determinism.PurposeTag";
 
+    /// <summary>Marks a hand-written entity table. The hook <c>BOR0901</c> looks for.</summary>
+    internal const string TableAttribute = "Borough.Core.Tables.TableAttribute";
+
+    /// <summary>
+    /// The non-generic base every column shape derives from, so <c>HandleColumn&lt;T&gt;</c> and
+    /// anything added later are recognised without being listed.
+    /// </summary>
+    internal const string ColumnBaseType = "Borough.Core.Tables.Column";
+
+    /// <summary>The non-generic base of a table's slot allocator.</summary>
+    internal const string RowsBaseType = "Borough.Core.Tables.Rows";
+
     /// <summary>
     /// True when the symbol being analysed lives in the arithmetic substrate itself.
     /// </summary>

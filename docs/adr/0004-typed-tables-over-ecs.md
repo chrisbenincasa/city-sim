@@ -36,6 +36,8 @@ Four things a hand-written table buys that are worth more here than composition 
 - **Tables partition naturally along Chunks**, which is the same partition used for dirty tracking, saving and parallel work assignment. Keeping the storage layout and the spatial partition aligned is free here and would be awkward to arrange through an archetype store.
 
     > **True for static entities, unargued for mobile ones — flagged by [`0037`](0037-the-world-is-single-buffered-and-hazards-are-per-table.md), not yet closed.** Buildings, Lots and Lanes have fixed positions and partition cleanly. Grouping **Households or Citizens** by home Chunk means a Household moving house **relocates its row**, and a relocated row is worse than a stale one: `05 §3`'s generation counter detects use-after-free, but it cannot detect *this handle now points at someone else's valid row*. Either rows never move and the Chunk partition is a separate index, or rows move and every handle needs indirection. `05 §5` role 3 (parallel work assignment) leans on this claim and it is owed an answer.
+    >
+    > **Answered for Phase 1 in slice 4: rows never move.** The Chunk partition, when it arrives, is a separate index. It costs an indirection on spatial queries and nothing on the hot path, and it keeps a handle meaning one thing. The answer is structural rather than intended — the table layer has no compaction and no relocation, and `SlotCount` is deliberately not the live count so that nobody adds one to close the gap. **This does not close the question, it defers it with a working answer**: S0 will measure the spatial-query cost whether it means to or not, and `05 §5` role 3 still reads as though rows move.
 
 ## What would trigger revisiting
 

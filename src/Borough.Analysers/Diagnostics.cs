@@ -151,6 +151,24 @@ internal static class Diagnostics
         "collection objects are on the order of a million long-lived traced references at the 1M " +
         "target. S4's K6 measured that difference as 6.984 ms against 100.200 ms.");
 
+    // ---- adr/0003's per-field declaration, which 05 §4 does not number ------------------------
+
+    internal static readonly DiagnosticDescriptor UndeclaredTableField = Error(
+        "BOR0901", SimulationState,
+        "Undeclared storage in a Borough.Core table",
+        "'{0}' is a {1}, not a declared column. adr/0003: every field in a table is declared once as " +
+        "either (saved AND hashed) or (derived AND rebuilt), and both the save serialiser and the " +
+        "State Hash are generated from that one declaration. Declare it — Rows.Saved, Rows.Derived " +
+        "or Rows.SavedHandle — which is also what allocates its storage.",
+        "This closes the last hole in the declaration, and it is the only one left. A column cannot " +
+        "be forgotten by the hash, because declaring it is what creates it; but a bare array beside " +
+        "the columns is storage nothing declared, and the defect it produces has no detector at all. " +
+        "A field that is saved but not hashed is invisible to every tool in the project: two runs " +
+        "diverge on it, the hashes agree, replay reports success, and the save/reload test passes " +
+        "because the field is saved. The oracle certifies a divergence it cannot see. A reference to " +
+        "another table is reported for the same reason — cross-table integrity is World's, and a " +
+        "table holding its neighbour is a relationship nothing declared either.");
+
     // ---- The purpose_tag row of 05 §4's banned-construct table --------------------------------
 
     internal static readonly DiagnosticDescriptor DuplicatePurposeTag = Error(

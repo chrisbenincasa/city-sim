@@ -186,16 +186,73 @@ that S0 will measure this whether it means to or not.
 - **Something to look at:** a headless dump of table row counts and the world's State Hash. It is a
   number and a list, and it is the first time the project has one.
 
-## Decisions owed by this slice
+## Decisions owed by this slice — settled
 
-- **Ledger #29b's Phase 1 answer** — rows never move — recorded in
-  [`0002`](0002-open-questions.md) with the revisit trigger being S0's measurement.
-- **The ratified row schema**, replacing the stale 40-byte Citizen, carried from S4 task 2 into real
-  table definitions.
-- **Chunk size remains unmeasured** and is on the *cannot be retrofitted* list. Phase 1 needs a
-  working value: use **Chunk = Cell** (32×32, a strict multiple of itself) until S2 measures it, and
-  record that as provisional rather than as a decision. The Cell is frozen and hash-bearing; the
-  Chunk is hash-preserving and belongs to the profiler.
+- **Ledger #29b's Phase 1 answer** — rows never move, and the Chunk partition is a separate index.
+  Recorded in [`0002`](0002-open-questions.md), revisit trigger S0's measurement. The code enforces
+  the half that is enforceable: `Rows` has no compaction, no relocation, and `SlotCount` is
+  documented as *not* the live count precisely so that nobody adds one to close the gap.
+- **The row schema is in code** rather than in a table in a document, which is where it stops going
+  stale. The Citizen is **13 B per-Tick, 42 B wake, 7 B cold — 62 B total**, printed by the headless
+  report at whatever population it is run at.
+- **Chunk = Cell** stands as the provisional Phase 1 value and is untouched by this slice, because
+  ledger #29b's answer removed the only reason a table would have had to know about it. There is no
+  Chunk in `Borough.Core` yet, which is the cheapest possible form of *provisional*.
+
+## What it produced
+
+**Twelve files in `Borough.Core`, one analyser, seven test files, and a report.** `dotnet test` is
+green at 241 tests; `dotnet run --project src/Borough.Headless` prints table counts, the footprint
+split three ways, and a State Hash.
+
+**The declaration mechanism is `Declare`-allocates plus one analyser, and the first half does most of
+the work.** `Rows.Saved`, `Rows.Derived` and `Rows.SavedHandle` *are* what allocate a column, so a
+column that was never declared has no storage and cannot exist. That closes adr/0003's field rule
+from the inside, with no reflection, no codegen and no component API — the bound `adr/0004` set on
+this being one deliberate step onto the slope. `BOR0901` closes the one remaining route, a bare array
+written beside the columns, and it is an error rather than a warning for the same reason every other
+diagnostic here is.
+
+**A handle column folds the target's monotonic id, not the slot it addresses.** *Fold values, never
+identity* is only a slogan until a handle column has to be hashed, and folding the raw
+`{index, generation}` would have been cheaper and would have been correct for both uses the hash has
+today — in replay and in save/reload the allocation history is identical, so indices agree. It was
+rejected because it buys that correctness from a coincidence rather than from the definition. The
+cost is one random access per handle per hash and a target table named in the declaration; what it
+buys is a hash that a compacting save could not move by compacting.
+
+**The generation array, the free list and the monotonic id go through the same declaration as
+everything else.** They are the allocator's own state and they decide which slot the next entity
+lands in, so a divergence in them is a divergence in the city — and the hash should report it on the
+Tick it happens rather than ten thousand Ticks later when it finally reaches a Citizen. The
+consequence is stated where it will matter: the save is a verbatim array dump, so slot layout is part
+of the state, and a save that ever *compacts* moves the hash by doing so.
+
+**A test caught the bug that would have made the whole generation scheme a no-op.** `FreeSlot` zeroed
+every column and *then* bumped the generation — but the generation is a column, so the bump was
+applied to zero and produced 1, which is this design's encoding for *live*. Every freed row would
+have read as occupied and every stale handle to it would have resolved. It is exactly the defect the
+generation counter exists to prevent, introduced by the mechanism meant to implement it, and it was
+invisible in every test except the one that asserted a freed slot is not live.
+
+**Intrusive lists encode "empty" as zero rather than as −1, and it is load-bearing.** Slots are
+zero-filled on growth and zeroed again on free, so a `-1` terminator would read a freshly allocated
+owner's head as *slot 0* — a new Building silently owning the first Household in the city. The stored
+form is the slot index plus one.
+
+**A finding that belongs to slice 7 was made here: a list whose order carries meaning cannot be
+`Derived`.** A derived list must be reproducible by a rebuild, and a rebuild has only index order to
+work from — so `Append` (arrival order) and a rebuild disagree the moment the free list recycles a
+slot, and nothing reports it because derived fields are outside the hash by declaration. Hence
+`InsertOrdered` for the derived occupant and member lists, and hence the corollary written down at
+its declaration site: **a Bin's wait list is drained in arrival order, arrival order is not
+recoverable from anything else, so the wait list is `Saved`.**
+
+**Two deviations from this plan, both deliberate.** The allocation check is an xUnit test over
+`GC.GetAllocatedBytesForCurrentThread` rather than a BenchmarkDotNet memory diagnoser: the diagnoser
+*reports* allocation where the test *fails* on it, and the property will be regressed by a stray
+closure in a year rather than today. And `Handle<T>` has no `None` property — the unset handle is
+spelled `default`, which is the point being made rather than a concession to `CA1000`.
 
 ## What this slice deliberately does not do
 

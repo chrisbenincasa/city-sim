@@ -8,12 +8,17 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: design corpus only. There is no code yet.** The repository is ~7,000 lines
-of design documents and 37 ADRs. The next practical step is spike **S4** (see
-`plans/0002-open-questions.md`), which needs no Godot and no engine.
+**Current state: Phase 1, through slice 4.** The repository is ~7,000 lines of design documents
+and 38 ADRs, plus the first four slices of `plans/0003-build-plan.md`: the scaffolding, spike S4,
+the arithmetic substrate, the analysers, and the typed tables with the per-field declaration and
+the State Hash. `dotnet run --project src/Borough.Headless` prints a table report and a hash.
+**Slice 5 — the Tick, the Input Log and replay — is next.**
 
-Do not write implementation code unless asked. The corpus is still being grilled, and
-several decisions on the critical path are open.
+`plans/0003-build-plan.md` is where to start when picking the *code* up cold;
+`plans/0002-open-questions.md` when picking up the *design*. Slices 7 onward are gated and must
+not be started before their gate clears. The corpus is still being grilled and several decisions
+on the critical path are open, so do not write implementation code beyond the current slice
+unless asked.
 
 ## Repository map
 
@@ -84,8 +89,16 @@ These are enforced mechanically because they fail silently. Full list in `docs/0
 **Lints 1–3 and 7 are live.** `Borough.Analysers` reports them as build **errors**, ids `BOR0201`–`BOR0206`
 (floating point, `Math.*`, raw `/`, masked shift counts, wall clock, unstable identity), `BOR0301`–`BOR0302`
 (hash-map enumeration, `System.Random`), `BOR0701` (managed state) and `BOR0801`–`BOR0803` (the
-`purpose_tag` enum). Lints 4, 5 and 6 need machinery that does not exist yet. Every diagnostic has a
-test that writes the violation and watches it fire — do not add one without.
+`purpose_tag` enum). `BOR0901` is `adr/0003`'s per-field declaration — storage in a `[Table]` type
+that is not a declared `Column` or the table's own `Rows`. Neither `BOR08xx` nor `BOR0901` is one of
+the seven lints; the count stays seven. Lints 4, 5 and 6 need machinery that does not exist yet.
+Every diagnostic has a test that writes the violation and watches it fire — do not add one without.
+
+**Every field in a table is declared once** as `(saved AND hashed)` or `(derived AND rebuilt)`, and
+declaring it through `Rows.Saved`/`Rows.Derived`/`Rows.SavedHandle` is what *allocates* it — so the
+State Hash cannot have a coverage hole. The hash folds values, never identity: a handle column folds
+the target row's monotonic never-reused id, not the recycled slot index. Composition order is
+**tables in declaration order, arrays in index order**.
 
 Also banned in the core: `DateTime`, `Stopwatch`, `Environment.TickCount`, `Guid.NewGuid()`,
 default `object.GetHashCode()`, and parallel loops accumulating into shared state.
