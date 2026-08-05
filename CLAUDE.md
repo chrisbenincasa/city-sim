@@ -8,14 +8,14 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: Phase 1, through slice 5 task 3.** The repository is ~7,000 lines of design
-documents and 39 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
+**Current state: Phase 1, through slice 5 task 4.** The repository is ~7,000 lines of design
+documents and 41 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
-declaration and the State Hash — and the first three tasks of slice 5: `step(inputs)` with the
-eight phases, the command model and the Input Log, and replay.
+declaration and the State Hash — and the first four tasks of slice 5: `step(inputs)` with the
+eight phases, the command model and the Input Log, replay, and the golden-hash baseline.
 `dotnet run --project src/Borough.Headless` prints a table report and a hash.
-**Slice 5 tasks 4–8 are next, and `plans/0008` carries a progress table** — the golden-hash
-baseline, the runner's flags, the invariant tiers, the long-run test and the crash artifact.
+**Slice 5 tasks 5–8 are next, and `plans/0008` carries a progress table** — the runner's flags and
+the text codec, the invariant tiers, the long-run test and the crash artifact.
 
 **`plans/0000-board.md` is the first thing to read on any cold start** — a flat view of what is done,
 what to do next and what is blocked. It is a *view*: `plans/0003-build-plan.md` owns the slice order

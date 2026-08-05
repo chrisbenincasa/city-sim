@@ -5,8 +5,8 @@ It is a *view*, not a source: [`0003`](0003-build-plan.md) owns the slice order 
 [`0002`](0002-open-questions.md) owns the reasoning, `docs/adr/` owns the decisions. When they
 disagree, they win. Update this file whenever a task lands.
 
-**Where the project is:** Phase 1, slice 5, tasks 1–3 done. `dotnet run --project src/Borough.Headless`
-prints a table report and a hash.
+**Where the project is:** Phase 1, slice 5, tasks 1–4 done. `dotnet run --project src/Borough.Headless`
+prints a table report and a hash, and **the State Hash now has a committed baseline under it**.
 
 ---
 
@@ -14,13 +14,13 @@ prints a table report and a hash.
 
 | | Task | Where | Why this one |
 |---|---|---|---|
-| **1** | **Slice 5 task 4 — the golden-hash baseline** | [`0008`](0008-tick-and-replay.md) | Four tables, `step()`, the command model and replay all exist with **no regression net under them**. Every commit until this lands accumulates unprotected hash risk |
-| **2** | **Slice 5 task 5 — the headless runner** | [`0008`](0008-tick-and-replay.md) | Pairs with task 4, and **carries the text codec deferred from task 2** |
-| **3** | **S2 R0 — the synthetic Road Graph and the denominator** | [`0010`](0010-s2-routing.md) | Parallel track, blocks nothing and is blocked by nothing. The project's **top risk**, and the best-specified work in the repository after the session of 0010's grilling |
+| **1** | **Slice 5 task 5 — the headless runner** | [`0008`](0008-tick-and-replay.md) | **Carries the text codec deferred from task 2**, and task 4 left it a free codec test: the committed `.borough` must reproduce the already-committed trace |
+| **2** | **S2 R0 — the synthetic Road Graph and the denominator** | [`0010`](0010-s2-routing.md) | Parallel track, blocks nothing and is blocked by nothing. The project's **top risk**, and the best-specified work in the repository after the session of 0010's grilling |
+| **3** | **Slice 5 task 6 — the invariant tiers** | [`0008`](0008-tick-and-replay.md) | The three registries. Task 4's golden world is deliberately coherent so it can be the suite's reference city |
 
-*Why 1 and 2 before 3, given S2 is the top risk:* S2 runs for several sittings and produces throwaway
-code. If it turns up something that changes `Core`, the golden baseline wants to already exist so it can
-say what moved. Retiring the risk is worth more **after** the net exists.
+*Why the runner before S2, given S2 is the top risk:* S2 runs for several sittings and produces
+throwaway code. If it turns up something that changes `Core`, the golden baseline — which now
+exists — says what moved, and the runner is what a person actually uses to look.
 
 ---
 
@@ -42,6 +42,9 @@ say what moved. Retiring the risk is worth more **after** the net exists.
 - [x] **Slice 5 task 1** — `step(inputs)` and the eight-phase skeleton
 - [x] **Slice 5 task 2** — the command model and the Input Log *(less the text codec)*
 - [x] **Slice 5 task 3** — replay
+- [x] **Slice 5 task 4** — the golden-hash baseline. A committed session trace *and* a committed world
+      hash, because the session reaches one table in four until the player has verbs; the re-baselining
+      procedure sits beside them
 
 ### Planning and design
 
@@ -57,7 +60,6 @@ say what moved. Retiring the risk is worth more **after** the net exists.
 
 ### Main track
 
-- [ ] Slice 5 task 4 — the golden-hash baseline
 - [ ] Slice 5 task 5 — the headless runner *(carries the text codec)*
 - [ ] Slice 5 task 6 — the invariant tiers
 - [ ] Slice 5 task 7 — the long-run test

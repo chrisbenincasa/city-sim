@@ -26,7 +26,7 @@ wherever it fit.
 
 ## Progress
 
-**Tasks 1–3 are done.** Tick this table as tasks land; [`0003`](0003-build-plan.md)'s ledger records
+**Tasks 1–4 are done.** Tick this table as tasks land; [`0003`](0003-build-plan.md)'s ledger records
 the slice as a whole and should not be updated until the slice closes.
 
 | Task | State | Where it landed |
@@ -34,7 +34,7 @@ the slice as a whole and should not be updated until the slice closes.
 | 1. `step(inputs)` and the phase skeleton | **done** | `Simulation.cs`, `TickPhase.cs`, `TickInput.cs` |
 | 2. The command model and the Input Log | **done, less the codec** | `Core/Input/` — `Command`, `InputLog`, `InputLogBuilder`, `WorldConfiguration` |
 | 3. Replay | **done** | `Core/Input/Replay.cs` |
-| 4. The golden-hash baseline | pending | — |
+| 4. The golden-hash baseline | **done** | `tests/Borough.Tests/Golden/` — the fixtures, two baselines, and the procedure |
 | 5. The headless runner | pending | **also carries the text codec deferred from task 2** |
 | 6. The invariant tiers | pending | — |
 | 7. The long-run test | pending | — |
@@ -75,6 +75,34 @@ ruleset 0x0000000000000000
 `src/Borough.Core/Log/`, which git would have silently refused to track. Named here because the
 failure is invisible — the build succeeds, the tests pass, and the files are simply not in the
 commit.
+
+### Decided while building task 4
+
+**The baseline is two artefacts, not one.** A committed session trace was the task's whole text, and
+it turns out to cover **one table in four**: the only verb applied before slice 7 is `Zone`, and a
+Zone command creates a Lot. Buildings, Households and Citizens are reachable only through the cold
+API, so three tables' saved columns would have sat under no committed hash at all while the baseline
+claimed to be the project's regression net. A second file — one hash over a hand-built city, with its
+row counts beside it — closes that. **It is expected to be deleted**, not maintained: once the player
+has verbs that build a city, the session absorbs its job.
+
+**The session is a code fixture until task 5, deliberately.** The codec is `Borough.Formats`' and
+task 5's (`adr/0039`); a reader written in the test project to load a text log today would have been
+the second implementation that ADR exists to prevent. The order pays off — **task 5 inherits a free
+and rather strong codec test**: the committed `.borough` must parse to a log that reproduces the
+already-committed trace, which is a round trip through the real artefact rather than through a
+fixture asserting against itself.
+
+**There is no self-regenerating switch, and that is the mechanism rather than an omission.** Both
+tests print the exact file they would commit and stop. An `--update-baselines` flag or an environment
+variable is one CI misconfiguration away from a baseline that approves every change it sees, and a
+baseline that approves everything has stopped being one. The procedure lives in `README.md` beside
+the files, because it is read at the moment a build has just gone red.
+
+**A sampled trace names a window, not a Tick.** The failure message says which cadence-wide window
+the change entered and tells you to re-run at `hash-every 1` to name the Tick — claiming the exact
+Tick would be a precision the sampling does not have, and the first person to trust it loses an
+afternoon in the wrong Tick.
 
 ---
 

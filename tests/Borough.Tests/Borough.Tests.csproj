@@ -18,6 +18,15 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!--
+    The golden-hash baselines. Committed data, copied beside the test assembly so the tests read the
+    same bytes CI does. Note the extensions: .gitignore inherits *.log from the .NET template and
+    [Ll]og/ from it too, so a baseline named for what it is would have been silently untracked.
+  -->
+  <ItemGroup>
+    <None Include="Golden\*.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Borough.Core\Borough.Core.csproj" />
 
