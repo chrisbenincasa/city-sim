@@ -246,7 +246,7 @@ namespace Borough.Tests;
 
 /// <summary>
 /// The three checks from docs/05 §4 that are enforceable by reflection alone.
-/// The remainder need a Roslyn analyser and are listed in the roadmap.
+/// The remainder are Roslyn analysers in Borough.Analysers, as of slice 3.
 /// </summary>
 public class BoundaryTests
 {
@@ -520,7 +520,7 @@ shell to the solution has made the headless runner depend on it, the boundary br
 Install via [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/), which handles updates
 and lets you keep versions pinned.
 
-Open `Borough.slnx` — Rider picks up all four projects.
+Open `Borough.slnx` — Rider picks up all five projects (the four of `05 §1`, plus `Borough.Analysers`).
 
 **Godot integration:** install the **Godot** plugin from `Settings → Plugins`. It adds a run
 configuration that launches the editor and attaches the debugger, which is the only comfortable
@@ -600,6 +600,6 @@ Open items that will need deciding, flagged here so they are not discovered as s
 | Item | Needed by | Note |
 |---|---|---|
 | **TOML parser library** | Milestone 3a | The format is fixed by [`adr/0015`](adr/0015-all-tuning-data-is-hot-reloadable.md) and [`adr/0018`](adr/0018-prefer-off-the-shelf-infrastructure.md); no library is named. `adr/0003` requires any core dependency be argued against it explicitly — a determinism liability needs a written exception |
-| **Roslyn analysers for lints 2, 3 and 7** | Milestone 2 | The reflection guards in A5 cover state but not arithmetic, `Dictionary` enumeration, or the `unmanaged` constraint. These need a real analyser project |
+| ~~**Roslyn analysers for lints 2, 3 and 7**~~ | ~~Milestone 2~~ | **Settled.** Built as slice 3 ([`plans/0006`](../plans/0006-analysers-and-lints.md)): `src/Borough.Analysers`, twelve diagnostics, referenced by `Borough.Core` as an analyser rather than a dependency. The A5 reflection guards below are kept — a transitive reference check is what reflection is good at |
 | **CI runner** | Whenever the guards need to run unattended | Everything above is `dotnet test` on a machine with no GPU, so any runner works |
 | **Chunk size** | Milestone 10 | Open question 3 in [`05 §11`](05-technical-architecture.md). Cheap now, expensive once save files exist |

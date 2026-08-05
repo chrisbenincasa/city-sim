@@ -100,7 +100,7 @@ become three.
 | **0** | **Solution scaffolding** — four projects, build config, the three reflection guards, CI | — | none | 1 | [`dev-environment.md` Track A](../docs/dev-environment.md) |
 | **1** | **S4 — the kernel benchmark** — **tasks 1–10 done, all seven kernels on two machines, no tripwire fired; task 11 unblocked, XMP re-sweep now optional** | Phase 0 | none | 2 | [`0004`](0004-s4-kernel-benchmark.md), results in [`spike-results`](../docs/spike-results.md) |
 | **2** | **The arithmetic substrate** — **all seven tasks done.** Typed quantities, fixed point, tabulated `exp`/`log`, `draw()`, purpose tags. Produced `adr/0038` and an amendment to `adr/0003`'s normative hash | — | none | 3 | [`0005`](0005-arithmetic-substrate.md) |
-| **3** | **The analysers** — CI lints 2, 3 and 7, plus `purpose_tag` uniqueness | — | none | 2 | [`0006`](0006-analysers-and-lints.md) |
+| **3** | **The analysers** — **all six tasks done.** `Borough.Analysers`, twelve diagnostics covering CI lints 2, 3 and 7 and the `purpose_tag` row. Produced the rule-7 exception axis in `adr/0036` and fixed the lint count across three documents | — | none | 2 | [`0006`](0006-analysers-and-lints.md) |
 | **4** | **Typed tables and the field declaration** | **2** | cleared | 3 | [`0007`](0007-typed-tables.md) |
 | **5** | **The Tick, the Input Log and replay** | **1** | cleared | 3 | [`0008`](0008-tick-and-replay.md) |
 | **6** | **Map Layers** | **3c** (Layers half) | cleared | 3 | [`0009`](0009-map-layers.md) |
@@ -196,11 +196,13 @@ rule, not a free knob. This is the same welding failure `adr/0034` found in Chun
 later. *Blocks: slice 6. Recommended handling: reclassify cadence as hash-bearing and Ruleset-authored
 but world-creation-fixed, or produce the argument for why it is not.*
 
-**3. The CI lint count disagrees across three documents.** `05 §4` enumerates seven; `adr/0036`
-calls itself *"a sixth CI lint"* and says *"of the six CI rules this project enforces"*;
-[`0002`](0002-open-questions.md) line 151 calls it the seventh. It is one rule with three counts.
-Cosmetic, but it is exactly the kind of drift that makes a checklist stop being checkable. *Blocks:
-nothing. Fix in `adr/0036` while slice 3 is open.*
+**3. ~~The CI lint count disagrees across three documents.~~ Fixed in slice 3.** `05 §4` enumerates
+seven; `adr/0036` called itself *"a sixth CI lint"* and said *"of the six CI rules this project
+enforces"*; [`0002`](0002-open-questions.md) called it the seventh. One rule, three counts. `05 §4`'s
+seven is now authoritative everywhere, `adr/0036` carries the correction and the reason it mattered —
+*a checklist that cannot agree on its own length has stopped being checked* — and the diagnostic ids
+in `Borough.Analysers` are derived from that numbering, so the count is now load-bearing rather than
+prose.
 
 **4. Spike results have no home.** `06` says *"Record them; delete the code"* and names no file. Four
 spikes will produce numbers that must be re-readable in a year when a performance question resurfaces

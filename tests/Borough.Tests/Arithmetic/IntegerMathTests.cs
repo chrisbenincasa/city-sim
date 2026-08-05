@@ -9,6 +9,26 @@ namespace Borough.Tests.Arithmetic;
 public class IntegerMathTests
 {
     [Theory]
+    [InlineData(0, 0)]
+    [InlineData(7, 7)]
+    [InlineData(-7, 7)]
+    [InlineData(int.MaxValue, int.MaxValue)]
+    [InlineData(-int.MaxValue, int.MaxValue)]
+    public void Abs_returns_magnitude(int value, int expected) =>
+        Assert.Equal(expected, IntegerMath.Abs(value));
+
+    /// <summary>
+    /// The defect BOR0202 surfaced. <c>Tiles.Magnitude</c> called <c>Math.Abs</c>, which throws here,
+    /// and nothing said so. There is no correct answer — two's complement has no positive
+    /// <see cref="int.MinValue"/> — so the rule is the same as <c>ShiftLeft</c>'s: the loud wrong
+    /// answer beats the quiet one, which would be to return <see cref="int.MinValue"/> unchanged and
+    /// let a negative magnitude propagate.
+    /// </summary>
+    [Fact]
+    public void Abs_rejects_the_one_value_with_no_magnitude() =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => IntegerMath.Abs(int.MinValue));
+
+    [Theory]
     // The whole reason the helper exists: C# gives -3 here, and the bias reverses at zero.
     [InlineData(-7, 2, -4)]
     [InlineData(7, 2, 3)]

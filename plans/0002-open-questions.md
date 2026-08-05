@@ -468,7 +468,7 @@ Established session eight by mapping every ungrilled item onto `06-roadmap`'s mi
 
 | | Unblocked by |
 |---|---|
-| **Solution scaffolding** — four projects, CI, both `adr/0002` boundary lints, the `0036` unmanaged-struct analyser | `0001`, `0002`, `0036` |
+| **Solution scaffolding** — four projects, CI, both `adr/0002` boundary lints, the `0036` unmanaged-struct analyser (**built in slice 3**, in a fifth project that is a build-time input rather than part of the runtime four) | `0001`, `0002`, `0036` |
 | **S4**, the kernel benchmark | nothing — it never had a blocker |
 | **The fixed-point library** — mul/div/lerp, tabulated `exp`/`log`, `checked` internally | `adr/0003`'s transcendental and overflow policies, session eight |
 | **Typed quantities** — `Money`, `Ticks`, `Tiles`, `Ratio` | `adr/0003`, `05 §3`. **The item most expensive to retrofit**: it touches every arithmetic site in the core |
@@ -963,12 +963,21 @@ second nobody had scheduled: **an amendment to `adr/0003`'s normative hash.**
   second implementation reduces mod 2⁶⁴ explicitly in `BigInteger` and so inherits none of C#'s
   `unchecked` semantics, which is the most likely way to get this function wrong. **The real check is a
   reader who has not seen the code, and it stays owed.**
-- **`PurposeTag` ships nearly empty, deliberately, and its uniqueness check is a stopgap that must be
-  deleted.** `adr/0003` and `02 §10` both require uniqueness to be a **build-time** check; a unit test
-  is not one, since it catches a duplicate only when someone runs the suite. `PurposeTagTests` holds the
-  window until slice 3's analyser lands, and says so in its own summary. Tags are added when a mechanism
-  that draws is built rather than in advance, because a tag with no caller cannot be checked against the
-  draw it is meant to name.
+- **`PurposeTag` ships nearly empty, deliberately, and its uniqueness check ~~is a stopgap that must be
+  deleted~~ is now the build-time check the corpus asked for.** `adr/0003` and `02 §10` both require
+  uniqueness to be a **build-time** check; a unit test is not one, since it catches a duplicate only
+  when someone runs the suite. `PurposeTagTests` held the window and **slice 3 deleted it**, replacing
+  it with `BOR0801`–`BOR0803`. Tags are still added when a mechanism that draws is built rather than in
+  advance, because a tag with no caller cannot be checked against the draw it is meant to name.
+
+  **Writing the analyser sharpened why a test was the wrong instrument, and it is not the usual
+  argument about tests running late.** Every other rule in `Borough.Analysers` describes a defect that
+  *something* could eventually observe — a float diverges across machines, a walked `Dictionary`
+  reorders, a managed field shows up in a GC trace. A reused `purpose_tag` has **no runtime symptom at
+  all**: it throws nothing, trips no invariant, and produces a city that is entirely plausible, because
+  the two mechanisms sharing the tag simply agree forever and every aggregate over them looks like
+  ordinary variance. There is no observation that distinguishes the correlated world from the
+  uncorrelated one. A test therefore runs at the wrong *kind* of moment, not merely a late one.
 
 - **A mechanically-enforced rule was incompatible with the type shape the corpus itself prescribes,
   and the first file to land under it tripped it.** Slice 0's `Core_returns_no_human_readable_strings`
@@ -1002,6 +1011,67 @@ second nobody had scheduled: **an amendment to `adr/0003`'s normative hash.**
   State Hash certifies it. **Whatever splits a Bin must reconcile the remainder rather than scale each
   share**, and that belongs to the Rule engine (slice 7) rather than to the substrate. Recorded now
   because the arithmetic that causes it is landing now.
+
+### Slice 3 — the analysers
+
+- **An absolute rule was cheaper to obey than to argue with, and obeying it found the bug.** `05 §4`
+  bans *"`Math.Exp` / `Math.Log` and every other `Math.*`"*, and the ban reads over-broad on
+  `Math.Abs(int)`, which is exact integer arithmetic with no intrinsic to vary. The lint fired on
+  `Tiles.Magnitude` anyway. Writing the replacement rather than the exemption surfaced what the call
+  was actually doing: **`Math.Abs(int.MinValue)` throws**, and `Tiles.Magnitude` was propagating an
+  `OverflowException` nobody had written down. `IntegerMath.Abs` now states the edge case in the same
+  shape as `ShiftLeft`. **The general point is worth more than the instance:** the argument for
+  narrowing a mechanical rule to the cases that "really" matter is usually available and usually
+  costs more than obeying it, because the rule is cheap and the audit of whether this instance is
+  safe is not.
+
+- **The analysers found exactly one violation in ~700 lines, which is a weak signal recorded as
+  one.** It is not evidence the lints are unnecessary; it is evidence they landed early enough to
+  shape the code rather than condemn it, which is the stated reason slice 3 sits before the first
+  table. The number to watch is whether the first violation in slice 4's tables is also a real defect
+  or the first false positive.
+
+- **A rule-7 marker attribute would have been the wrong shape, and the reason generalises to every
+  opt-in guard.** The obvious design — check only types carrying `[SimulationState]` — makes a
+  *forgotten* marker a silent exemption that reports nothing anywhere, which is the same failure
+  class as the reused `purpose_tag`: no symptom, no observation that distinguishes it. Opt-out puts
+  the friction on the exception instead, where `adr/0031`'s finding says it belongs. **Prefer
+  opt-out for any guard whose failure mode is silence.**
+
+- **Three of `05 §4`'s seven lints remain unwritten and one of them must stay that way.** Rule 4,
+  thread-count equivalence, would today assert a property against no parallelism and **pass
+  vacuously forever** — a green test that certifies nothing is worse than a missing one, because it
+  is indistinguishable from coverage. Rules 5 and 6 are owed by slice 5 and milestone 10. `05 §4` now
+  records the status of each inline, so the list stops reading as if all seven were live.
+
+- **A guard written against the *spelling* of a rule enforces less than it appears to, and the gap
+  is invisible from inside.** The floating-point lint originally tested whether a type's
+  `SpecialType` was `Single`, `Double` or `Decimal`. Every deliberate-violation test passed, the core
+  built clean, and the rule was open at four doors — `List<double>`, `Func<double, double>`,
+  `double?`, and `Vector2`, which hides two `float` fields inside an `unmanaged` struct and so slipped
+  lint 7 at the same time. **`Vector2` is not a hypothetical**: it is what somebody writing a position
+  reaches for, in a Godot project, and nothing would have reported it. The fix was to make the
+  predicate structural rather than keyword-shaped. *The general form: when a rule is about a
+  behaviour, a guard that matches a name checks the name.* Worth applying to the six other guards
+  before trusting any of them.
+
+- **A rule contradicted itself and the contradiction survived a full test suite.** `BOR0301` exists
+  because .NET randomises string hashing per process — and `string.GetHashCode()`, the direct
+  spelling of that hazard, was unflagged, as was `System.HashCode`, which is seeded from process
+  entropy at start-up. Both now report under `BOR0206`.
+
+- **A diagnostic instructed an action its own rule forbade.** `BOR0301` said *"use a sorted array"*
+  while reporting every route from a hash map to one. The resolution was not to carve out `OrderBy`
+  — sorting only restores determinism when the key is total, which an analyser cannot check and a
+  reader will not notice is missing — but to fix the instruction: **order comes from the ordered
+  source, never from a rescue at the end.** Recorded because a lint whose remedy is illegal is a lint
+  that gets suppressed, which is `adr/0002`'s and `adr/0036`'s shared revisit trigger arriving by
+  accident rather than by decision.
+
+- **No unratified numbers.** Rule 6 of `plans/0003` applies and produced nothing this slice: the only
+  figures chosen were the diagnostic id scheme, which is derived from `05 §4`'s lint numbering rather
+  than picked, and Roslyn's `4.14.0`, which is a floor set by the installed SDK. Recorded explicitly
+  because *no numbers* and *nobody wrote the numbers down* look identical in a ledger a year later.
 
 ---
 

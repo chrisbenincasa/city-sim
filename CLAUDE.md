@@ -71,11 +71,21 @@ These are enforced mechanically because they fail silently. Full list in `docs/0
 
 1. **No Godot reference from `Borough.Core`, transitively** (`adr/0002`)
 2. **No `float`/`double`** in simulation state or arithmetic — integers and Q16.16 only (`adr/0003`)
-3. **No `Dictionary`/`HashSet` enumeration** in simulation code; no `System.Random` anywhere in it
+3. **No `Dictionary`/`HashSet` enumeration** in simulation code; no `System.Random` anywhere in it —
+   build one and look up in it freely, never walk it
 4. **Thread-count equivalence** — `run(log, threads=1).hash() == run(log, threads=8).hash()`
 5. **Replay equivalence** — two runs of one Input Log produce identical State Hash sequences
 6. **Save/reload equivalence** — the Factorio test: run N, save, reload, run M; vs run N+M
-7. **No reference types in simulation state** — every table row type satisfies `unmanaged` (`adr/0036`)
+7. **No reference types in simulation state** — every struct in `Borough.Core` satisfies `unmanaged`
+   (`adr/0036`), unless it carries `[ColdPath("why")]`, which is the hot/cold axis and the only
+   exception: the hot path runs inside `step()` every Tick and holds no references; the cold path
+   runs on a click and may
+
+**Lints 1–3 and 7 are live.** `Borough.Analysers` reports them as build **errors**, ids `BOR0201`–`BOR0206`
+(floating point, `Math.*`, raw `/`, masked shift counts, wall clock, unstable identity), `BOR0301`–`BOR0302`
+(hash-map enumeration, `System.Random`), `BOR0701` (managed state) and `BOR0801`–`BOR0803` (the
+`purpose_tag` enum). Lints 4, 5 and 6 need machinery that does not exist yet. Every diagnostic has a
+test that writes the violation and watches it fire — do not add one without.
 
 Also banned in the core: `DateTime`, `Stopwatch`, `Environment.TickCount`, `Guid.NewGuid()`,
 default `object.GetHashCode()`, and parallel loops accumulating into shared state.
@@ -87,6 +97,9 @@ Every variable-length collection in `Borough.Core` is an **intrusive index list*
 on the owner, a `next` index on the element, both in flat arrays. Never a per-entity collection
 object.
 
+`Borough.Core.Arithmetic` is the one namespace exempt from the raw-`/` and shift lints, because it is
+where their replacements are implemented. There is no `Math.*` anywhere, including there.
+
 **No tuning number is a `const` in simulation source.** Everything the designer would want to
 change lives in the TOML Ruleset and is hot-reloadable (`adr/0015`). A `const` where a Ruleset
 value belongs is a defect, not a shortcut.
@@ -96,7 +109,9 @@ however it was motivated. This is the test that decides whether something may be
 
 ## Project layout
 
-Four projects, one repository, two toolchains. The split is the architectural decision.
+Four projects, one repository, two toolchains. The split is the architectural decision. A fifth,
+`Borough.Analysers`, is a build-time input rather than part of the runtime architecture and is
+deliberately not counted among the four (`05 §1`).
 
 | Project | Contents |
 |---|---|
@@ -104,6 +119,7 @@ Four projects, one repository, two toolchains. The split is the architectural de
 | `Borough.Tests` | xUnit and BenchmarkDotNet. Determinism, invariants, save/reload, allocation benchmarks |
 | `Borough.Headless` | Console runner. Loads a Ruleset and an Input Log, fast-forwards, dumps State Hashes |
 | `Borough.Godot` | Thin shell. Per-Chunk `MultiMeshInstance3D`, `Control` UI, per-frame snapshot |
+| `Borough.Analysers` | `netstandard2.0` Roslyn analysers for `05 §4`'s lints 2, 3 and 7 and the `purpose_tag` check. Referenced by `Borough.Core` as an **analyser**, never as a dependency, so nothing in it reaches the running sim |
 
 **The headless runner must never require Godot to be installed.** That constraint is the
 cheapest continuous check that the boundary still holds.

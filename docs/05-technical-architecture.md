@@ -41,7 +41,7 @@ target = map_area × mature_density × buildable_fraction
 
 ## 1. Project layout
 
-Four projects, and the split between them is the architectural decision. Everything else in this document follows from it.
+Four projects, and the split between them is the architectural decision. Everything else in this document follows from it. A fifth exists and is deliberately not one of the four — see below.
 
 | Project | Contents | What it buys |
 |---|---|---|
@@ -55,6 +55,8 @@ Four projects, and the split between them is the architectural decision. Everyth
 **`Borough.Headless` is the project most likely to be dismissed as a nicety and it is the one that decides whether this simulation ever gets balanced.** Citybound's warm rebuild took 60–120 seconds and its author's own final devblog admits he had been abandoning the simulation in favour of the parts he could iterate on. The headless runner plus a hot-reloadable Ruleset is the direct answer: change a production ratio, run a hundred simulated Days across a dozen seeds, diff the outcomes, keep or discard — with no window, no camera, and no wall-clock waiting. `FAST ITERATION`
 
 **`Borough.Tests` is unusually powerful here because the simulation is a pure function.** Most games cannot assert much about themselves. This one can assert Goods conservation, parking occupancy conservation, Citizen count conservation across Household spawn transitions, bounded collection growth, and bit-identical replay — all headlessly, all in CI, all in seconds. The testing strategy in [`02-simulation-model.md` §10](02-simulation-model.md) is the specification; this project is where it runs.
+
+**`Borough.Analysers` is the fifth project and is deliberately not counted among the four.** It is a `netstandard2.0` Roslyn analyser assembly holding §4's lints 2, 3 and 7 and the `purpose_tag` check, and `Borough.Core` references it with `OutputItemType="Analyzer"` and `ReferenceOutputAssembly="false"`. That is not a formality: it means the analyser is a **build-time input** rather than a dependency, no type declared in it can be named from the core, and nothing it contains reaches the running simulation. [`adr/0003`](adr/0003-deterministic-integer-simulation.md) requires every core *dependency* be argued explicitly because a dependency is a determinism liability that ships inside the sim; this one ships nothing, so the argument it would need does not arise. It is excluded from the four for the same reason: the four are the *runtime* architecture, and adding a build tool to that list would blur what the split is claiming.
 
 Two toolchains, one repository. The .NET solution and the Godot project build separately, and **the headless runner must never require Godot to be installed.** That constraint is the cheapest possible continuous check that the boundary still holds.
 
@@ -161,19 +163,21 @@ Determinism is the highest-leverage investment available to a solo developer on 
 
 **CI lints, not code review.** These rules fail silently and are violated by accident, so they are enforced mechanically:
 
-1. **No Godot reference from `Borough.Core`, transitively.** The boundary check from [`adr/0002`](adr/0002-simulation-is-an-engine-agnostic-library.md).
-2. **No floating-point types** in simulation state or arithmetic — a Roslyn analyser over the `Borough.Core` assembly.
-3. **No `Dictionary`/`HashSet` enumeration** in simulation code, and no `System.Random` anywhere in it.
-4. **Thread-count equivalence:** `run(log, threads=1).hash() == run(log, threads=8).hash()`. If we cannot run single-threaded on demand, we cannot debug determinism at all.
-5. **Replay equivalence:** two runs of the same Input Log produce identical State Hash sequences.
-6. **Save/reload equivalence** — see §7.
-7. **No reference types in simulation state.** A Roslyn analyser asserting that every table row type and every derived structure satisfies the `unmanaged` constraint. Added by [`adr/0036`](adr/0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md), and it is the only one of the seven that is C#-specific — the other six are needed in any candidate language, which is the concrete measure of how little the language is being fought.
+1. **No Godot reference from `Borough.Core`, transitively.** The boundary check from [`adr/0002`](adr/0002-simulation-is-an-engine-agnostic-library.md). *Shipped — a reflection test, which is what a reference check is good at.*
+2. **No floating-point types** in simulation state or arithmetic — a Roslyn analyser over the `Borough.Core` assembly. *Shipped — `BOR0201`, with `BOR0202`–`BOR0206` covering the rest of the banned-construct table above: `Math.*`, raw `/`, masked shift counts, the wall clock, and process-unstable identity.*
+3. **No `Dictionary`/`HashSet` enumeration** in simulation code, and no `System.Random` anywhere in it. *Shipped — `BOR0301` and `BOR0302`. Note the shape the diagnostic has to teach: a hash map may be **built** and **looked up**, and may not be **walked**. A lint that banned the type would be worked around rather than obeyed.*
+4. **Thread-count equivalence:** `run(log, threads=1).hash() == run(log, threads=8).hash()`. If we cannot run single-threaded on demand, we cannot debug determinism at all. *Deliberately unwritten. Phase 1 is single-threaded, so this test today would assert a property against no parallelism and pass vacuously forever; it is written when the first parallel phase lands.*
+5. **Replay equivalence:** two runs of the same Input Log produce identical State Hash sequences. *Owed by slice 5.*
+6. **Save/reload equivalence** — see §7. *Owed by milestone 10.*
+7. **No reference types in simulation state.** A Roslyn analyser asserting that every table row type and every derived structure satisfies the `unmanaged` constraint. Added by [`adr/0036`](adr/0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md), and it is the only one of the seven that is C#-specific — the other six are needed in any candidate language, which is the concrete measure of how little the language is being fought. *Shipped — `BOR0701`.*
 
 **Rule 7 is not primarily a performance rule, and the structures it protects are not the tables.** Arrays of unmanaged structs are opaque to the GC, so the tables were never at risk. The risk is in the three derived, variable-length, per-entity structures this design grew around them — the **wait list per Bin** (§3), the **cached Parking Shed per Building** (§3), and the **Event Wheel buckets** (§9). As per-entity collection objects those are on the order of a million long-lived traced references at the 1M target. Hence the rule that makes rule 7 satisfiable:
 
 > **Every variable-length collection in `Borough.Core` is an intrusive index list — a head index on the owner and a `next` index on the element, both in flat arrays. Never a per-entity collection object.**
 
-It allocates nothing, traces nothing, gives [`adr/0033`](adr/0033-two-rule-families-scheduled-and-swept.md)'s round-robin drain its deterministic order for free, and survives a port unchanged. Exceptions — the Ruleset interpreter and the `Evidence` surface are the candidates — are to be enumerated deliberately before the analyser ships, per `0036`.
+It allocates nothing, traces nothing, gives [`adr/0033`](adr/0033-two-rule-families-scheduled-and-swept.md)'s round-robin drain its deterministic order for free, and survives a port unchanged.
+
+**The exceptions were enumerated in slice 3 and came out as an axis rather than a list** ([`adr/0036`](adr/0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md)). The Ruleset interpreter and the `Evidence` surface are not two special cases; they are one case, and it is the hot/cold split this document already uses in §10: **the hot path runs inside `step()` every Tick and holds no references; the cold path runs on a click, a reload or a save, and may.** A type is entitled to the exception when no code path from `step()` reaches it, and it claims the exception by carrying `[ColdPath("why")]` — at the declaration, with the argument written out, where the next reader is.
 
 **The State Hash is also the boundary of what optimisation is permitted to touch**, and stating that as a general rule closes a gap the project has already had to close twice by hand — the Microscopic Cap as a world constant ([`03 §3.9`](03-agent-architecture.md)), and gridlock's removal as a failure mode:
 

@@ -1,13 +1,14 @@
 namespace Borough.Core.Arithmetic;
 
 /// <summary>
-/// Division and shifts with stated semantics.
+/// Integer arithmetic with stated semantics.
 /// </summary>
 /// <remarks>
 /// <para>
-/// These two constructs are <em>specified rather than banned</em>, because banning them would ban
-/// arithmetic. Raw <c>/</c> and non-constant <c>&lt;&lt;</c> become a lint once slice 3's analyser
-/// exists (plans/0006); until then this type is the convention and the lint is owed.
+/// Division and shifts are <em>specified rather than banned</em>, because banning them would ban
+/// arithmetic. Raw <c>/</c> and non-constant <c>&lt;&lt;</c> are lints as of slice 3
+/// (<c>BOR0203</c>, <c>BOR0204</c>), and this namespace is the one place exempt from them, because
+/// it is where their replacements are implemented.
 /// </para>
 /// <para>
 /// <b>Why division needs a helper.</b> C# truncates toward zero, so <c>-7 / 2 == -3</c> while
@@ -25,6 +26,34 @@ namespace Borough.Core.Arithmetic;
 /// </remarks>
 public static class IntegerMath
 {
+    /// <summary>
+    /// Magnitude, rejecting the one input that has no magnitude in two's complement.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This exists because <c>BOR0202</c> bans <c>Math.Abs</c> and finding the replacement found
+    /// a defect.</b> <c>05 §4</c> bans every <c>Math.*</c> member and the ban reads over-broad here —
+    /// <c>Math.Abs(int)</c> is exact integer arithmetic with no intrinsic to vary. But it also
+    /// throws <see cref="OverflowException"/> on <see cref="int.MinValue"/>, which
+    /// <c>Tiles.Magnitude</c> was propagating without saying so. The absolute rule was cheaper to
+    /// obey than to argue with, and obeying it surfaced the edge case.
+    /// </para>
+    /// <para>
+    /// Throwing rather than saturating follows <see cref="ShiftLeft(int,int)"/>: there is no correct
+    /// answer, so the loud wrong answer beats the quiet one. No quantity in the core can reach
+    /// <see cref="int.MinValue"/> — the map is 4096² Tiles — so this is a guard against a bug
+    /// upstream rather than a case to handle.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="value"/> is <see cref="int.MinValue"/>, whose magnitude is not representable.
+    /// </exception>
+    public static int Abs(int value)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(value, int.MinValue);
+        return value < 0 ? -value : value;
+    }
+
     /// <summary>Divides, rounding toward negative infinity. The default rounding in the core.</summary>
     public static int FloorDiv(int numerator, int denominator)
     {

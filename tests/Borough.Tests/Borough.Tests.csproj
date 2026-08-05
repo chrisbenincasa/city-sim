@@ -20,6 +20,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Borough.Core\Borough.Core.csproj" />
+
+    <!--
+      A plain reference, deliberately. Borough.Core consumes this as an analyser; the tests consume
+      it as a library, because they instantiate each DiagnosticAnalyzer and run it over a probe
+      compilation. Analysing the test assembly itself is not wanted — the tests are ordinary C# by
+      adr/0036's zone table, and half of them exist to write the violations on purpose.
+    -->
+    <ProjectReference Include="..\..\src\Borough.Analysers\Borough.Analysers.csproj" />
   </ItemGroup>
 
 </Project>

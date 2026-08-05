@@ -15,4 +15,19 @@
     <InternalsVisibleTo Include="Borough.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      docs/05 §4's lints 2, 3 and 7, and the purpose_tag uniqueness row of the same section.
+
+      OutputItemType="Analyzer" with ReferenceOutputAssembly="false" is the mechanical form of the
+      distinction adr/0003 cares about: this is a build-time input, loaded by the compiler, and not a
+      *dependency* of the simulation. No type declared in Borough.Analysers can be named from here,
+      and nothing it contains reaches the running core. That is why it needs no written exception
+      under adr/0003's rule on core dependencies.
+    -->
+    <ProjectReference Include="..\Borough.Analysers\Borough.Analysers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
 </Project>

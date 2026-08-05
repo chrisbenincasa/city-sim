@@ -4,7 +4,7 @@ namespace Borough.Tests;
 
 /// <summary>
 /// The three checks from docs/05 §4 that are enforceable by reflection alone.
-/// The remainder need a Roslyn analyser and are listed in plans/0006-analysers-and-lints.md.
+/// The remainder are Roslyn analysers in Borough.Analysers — see src/Borough.Analysers/Diagnostics.cs.
 /// </summary>
 public class BoundaryTests
 {

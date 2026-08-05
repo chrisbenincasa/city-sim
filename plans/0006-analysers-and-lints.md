@@ -141,14 +141,87 @@ generalises. A guard nobody has watched fail is a guard nobody knows is wired up
 - `dotnet test` green, including the deliberate-violation tests.
 - `adr/0036`'s lint count is corrected to agree with `05 §4`.
 
-## Decisions owed by this slice
+## Decisions owed by this slice — settled
 
-- **The rule-7 exception boundary**, written as the hot/cold axis rather than as a type list, and
-  recorded in `adr/0036` — which currently owes exactly this enumeration.
-- **Whether raw `/` is a lint or a warning.** Floor-by-default is stated, but a division whose
-  operands are provably non-negative has no zero crossing to be biased at, and lint fatigue is real.
-  Recommend erroring anyway and letting the helper be the only spelling; recorded because it is a
-  judgement and not a derivation.
+- **The rule-7 exception boundary.** Settled as the **hot/cold axis** and recorded in `adr/0036`,
+  which owed exactly this enumeration. The two candidates it named — the Ruleset interpreter and the
+  `Evidence` surface — are not two special cases but one: *a type is entitled to the exception when
+  no code path from `step()` reaches it*. Encoded as `[ColdPath("why")]` with a **required** reason,
+  at the declaration rather than in a list, because a list is a place to put anything inconvenient
+  and it lives in a file nobody edits while writing the type.
+
+- **The rule is opt-out, not opt-in** — a decision the plan did not anticipate needing. Every struct
+  in `Borough.Core` is checked; the alternative, a `[SimulationState]` marker checked only where
+  applied, makes a forgotten marker a silent exemption that reports nothing anywhere. Opt-out also
+  means the rule bites slice 4's rows the moment they are declared, with nothing to remember, which
+  removes the plan's own reservation that rule 7 "has nothing to check until slice 4".
+
+- **Raw `/` is an error, not a warning.** As recommended, and for the reason recorded rather than the
+  one that motivated the question: a lint that is *sometimes* right gets suppressed at the site where
+  it was right. The helper is only load-bearing if it is the only spelling. The known cost is a
+  `const` that wants a division — `IntegerMath.FloorDiv` is not constant-evaluable, so such a
+  constant must be written as a literal. Nothing in the core needs one today; if that changes, the
+  cheap answer is a constant-folding exemption and it should be argued then rather than pre-granted.
+
+- **Constant shift counts stay legal**, which `05 §4` already implied by banning the *non-constant*
+  `<<` specifically. The hazard is masking, a count written as a literal or a `const` is visible and
+  cannot vary, and `Randomness.Mix` is built out of exactly those.
+
+- **`SortedDictionary` and `SortedSet` are not banned.** Their order comes from a comparer rather
+  than from a hash, so walking one reproduces. The *interfaces* are banned, because an
+  `IDictionary<,>` hides which of the two it is holding.
+
+---
+
+## What it produced
+
+**Twelve diagnostics in `src/Borough.Analysers`, every one an error.** Ids follow `05 §4`'s lint
+numbering — `BOR02xx` is lint 2, `BOR03xx` is lint 3, `BOR07xx` is lint 7, `BOR08xx` is the
+`purpose_tag` row of the same section's banned-construct table, which is stated as build-time but is
+not one of the seven. Roslyn's own release tracking (`AnalyzerReleases.*.md`) keeps the id ledger, so
+renumbering one is visible in a diff.
+
+**It found a real violation in the ~700 lines that already existed**, which is the argument for
+writing analysers before the code rather than after it, made concrete: `Tiles.Magnitude` called
+`Math.Abs`. The ban read over-broad there — `Math.Abs(int)` is exact integer arithmetic with no
+intrinsic to vary — but obeying it rather than arguing with it surfaced the actual defect underneath:
+`Math.Abs(int.MinValue)` throws, and `Tiles.Magnitude` was propagating that without saying so. The
+replacement is `IntegerMath.Abs`, which states the edge case. **The absolute rule was cheaper to obey
+than to argue with, and obeying it paid.**
+
+**Nothing else in the core moved.** `Borough.Core` builds clean under all six analysers, which is a
+weak signal at this size and the right one to record anyway: the lints were written early enough that
+they shape the code instead of condemning it, which was the stated reason for scheduling this slice
+before the first table.
+
+**The stopgap `PurposeTagTests` is deleted**, as `plans/0005` asked. Why a test was not enough is in
+`PurposeTagAnalyser`'s own doc comment, and it is not the usual argument about tests running late:
+every other rule here describes a defect that *something* could eventually observe, and a reused
+`purpose_tag` has no runtime symptom at all — it produces a city that is entirely plausible. A test
+runs at the wrong *kind* of moment, not merely a late one.
+
+**A review pass found the rules half-enforced, and the gap had one shared cause.** The first cut
+asked whether a type's `SpecialType` was `Single`, `Double` or `Decimal` — a check shaped like the
+*keyword* when the rule is about the *arithmetic*. That left four doors open, each easier to walk
+through than writing `double`: `List<double>` and `Func<double, double>` hide it in a type argument,
+`double?` hides it in `Nullable<T>`, and **`Vector2` hides it in two `float` fields while being
+`unmanaged`, so lint 7 waved it through as well.** `Vector2` is the one that would actually have
+happened: it is what somebody writing a position reaches for, and this is a Godot project. The fix is
+one predicate — `CoreConventions.CarriesFloatingPoint`, recursing through arrays, type arguments and
+the fields of a struct, stopping at classes because following a class's fields reaches floating point
+from nearly every type in .NET. Five more holes came out of the same pass: lifted operators
+(`int? / 2` has no `OperatorMethod` *and* no integer `SpecialType`, so it passed both guards),
+`string.GetHashCode` and `System.HashCode` (both seeded per process — **the rule was contradicting
+itself**, since randomised string hashing is the stated reason `BOR0301` exists), `FrozenDictionary`,
+a `Dictionary` subclass, a child namespace inheriting the arithmetic exemption, and a struct nested
+inside a `[ColdPath]` one taking the exemption without arguing for it.
+
+**One diagnostic was instructing an action it forbade.** `BOR0301` said *"use a sorted array"*, and
+every route from a hash map to one — `.Keys`, `.OrderBy(…)`, LINQ — is itself reported. Rather than
+carve out `OrderBy`, which only restores determinism when the sort key is total and an analyser
+cannot check that, the message now says the right thing: **order comes from the ordered source — the
+Ruleset's document order — and the map stays a lookup index.** A lint whose remedy is illegal gets
+suppressed rather than obeyed, which is the failure this slice's own negative tests exist to catch.
 
 ## What this slice deliberately does not do
 

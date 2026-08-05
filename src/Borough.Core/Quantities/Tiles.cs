@@ -1,3 +1,5 @@
+using Borough.Core.Arithmetic;
+
 namespace Borough.Core.Quantities;
 
 /// <summary>
@@ -22,7 +24,7 @@ public readonly record struct Tiles(int Raw) : IComparable<Tiles>
     public static Tiles Zero => new(0);
 
     /// <summary>Distance ignoring direction.</summary>
-    public Tiles Magnitude => new(Math.Abs(Raw));
+    public Tiles Magnitude => new(IntegerMath.Abs(Raw));
 
     /// <inheritdoc/>
     public int CompareTo(Tiles other) => Raw.CompareTo(other.Raw);

@@ -77,36 +77,11 @@ public class NegativeCompilationTests
         var compilation = CSharpCompilation.Create(
             assemblyName: "NegativeCompilationProbe",
             syntaxTrees: [CSharpSyntaxTree.ParseText(source)],
-            references: ReferenceSet,
+            references: TestReferences.WithCore,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         return compilation.GetDiagnostics()
             .Where(d => d.Severity == DiagnosticSeverity.Error)
             .ToImmutableArray();
-    }
-
-    /// <summary>
-    /// Every assembly the test host already trusts, plus Borough.Core. Referencing only
-    /// System.Private.CoreLib is not enough — the type forwards in System.Runtime are what
-    /// `using` resolves against.
-    /// </summary>
-    private static readonly MetadataReference[] ReferenceSet = BuildReferenceSet();
-
-    private static MetadataReference[] BuildReferenceSet()
-    {
-        var platform = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty;
-
-        var paths = platform
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Where(p => p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        string core = typeof(Borough.Core.AssemblyMarker).Assembly.Location;
-        if (!paths.Contains(core, StringComparer.OrdinalIgnoreCase))
-        {
-            paths.Add(core);
-        }
-
-        return [.. paths.Select(p => (MetadataReference)MetadataReference.CreateFromFile(p))];
     }
 }

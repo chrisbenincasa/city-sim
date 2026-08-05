@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A build-time input to Borough.Core, not a dependency of it.
+
+    adr/0003 requires every core *dependency* be argued explicitly, because a dependency is a
+    determinism liability that ships inside the simulation. An analyser ships nothing: it is loaded
+    by the compiler, runs against syntax and symbols, and emits no IL into Borough.Core. The
+    distinction is mechanical rather than asserted — Borough.Core references this project with
+    OutputItemType="Analyzer" and ReferenceOutputAssembly="false", so there is no way for a type
+    declared here to be named from there.
+  -->
+
+  <PropertyGroup>
+    <!--
+      The compiler hosts analysers in its own process, and netstandard2.0 is the contract it loads
+      against. This deliberately overrides Directory.Build.props' net10.0.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Roslyn's own release tracking (RS2008). A diagnostic id is a promise to whoever suppressed it,
+      and this ledger is what makes renumbering one visible in a diff.
+    -->
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      ExcludeAssets="runtime" because the compiler already has Roslyn loaded; shipping a second copy
+      alongside the analyser is how an analyser fails to load. PrivateAssets="all" stops it flowing
+      to anything that references this project.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0"
+                      PrivateAssets="all" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+</Project>

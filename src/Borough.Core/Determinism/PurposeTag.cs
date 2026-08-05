@@ -22,9 +22,12 @@ namespace Borough.Core.Determinism;
 /// siblings.</b>
 /// </para>
 /// <para>
-/// <b>Uniqueness is owed as a build-time check.</b> A duplicate value here is exactly the silent
-/// correlation above, wearing valid syntax. <c>PurposeTagTests</c> is the stopgap; the real detector is
-/// slice 3's analyser (plans/0006), because a test only runs when someone runs it.
+/// <b>Uniqueness is checked at build time, which is the only time it can be.</b> A duplicate value
+/// here is exactly the silent correlation above, wearing valid syntax — <c>BOR0801</c>. Zero is
+/// reserved by <c>BOR0802</c> and the backing type by <c>BOR0803</c>. The stopgap unit test slice 2
+/// left here is gone: it caught a duplicate when somebody happened to run the suite, which can be
+/// after values have been drawn under the wrong tag and after a State Hash baseline was taken over
+/// them.
 /// </para>
 /// <para>
 /// This enum is deliberately near-empty. Tags are added when a mechanism that draws is built, not in
