@@ -1,6 +1,6 @@
 ## S2 R0 — the synthetic Road Graph
 
-- **Captured** 2026-08-06 18:50:53 UTC
+- **Captured** 2026-08-06 18:12:57 UTC
 - **Machine** Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz, 1 logical processors
 - **OS** Ubuntu 24.04.4 LTS, X64
 - **Runtime** .NET 10.0.10
@@ -37,7 +37,7 @@ what `adr/0040` makes free to change forever and what a later optimisation may d
 | 128 Tiles | 2,072 | 61 KiB | 73 KiB | 134 KiB | 66 | 135 KiB |
 | 96 Tiles | 3,539 | 104 KiB | 124 KiB | 229 KiB | 66 | 94 KiB |
 | 64 Tiles | 8,200 | 241 KiB | 288 KiB | 530 KiB | 66 | 300 KiB |
-| 48 Tiles | 14,503 | 426 KiB | 510 KiB | 937 KiB | 66 | 406 KiB |
+| 48 Tiles | 14,503 | 426 KiB | 510 KiB | 937 KiB | 66 | 414 KiB |
 | 32 Tiles | 33,018 | 968 KiB | 1.1 MiB | 2.0 MiB | 66 | 1.1 MiB |
 | 24 Tiles | 58,408 | 1.6 MiB | 2.0 MiB | 3.6 MiB | 66 | 1.5 MiB |
 | 16 Tiles | 132,781 | 3.7 MiB | 4.5 MiB | 8.3 MiB | 65 | 4.6 MiB |
@@ -104,7 +104,7 @@ way `CONTEXT.md` → Severance is observable at all.
 
 ## S2 R0 — the denominator, and the heuristic ladder
 
-- **Captured** 2026-08-06 18:50:53 UTC
+- **Captured** 2026-08-06 18:12:57 UTC
 - **Machine** Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz, 1 logical processors
 - **OS** Ubuntu 24.04.4 LTS, X64
 - **Runtime** .NET 10.0.10
@@ -125,16 +125,16 @@ looser one that does not, and nothing in the plan's ladder would have shown it.
 
 | Query | Heuristic | Mean expanded | Bootstrap | Search | Total | ns per expansion |
 |---|---|---:|---:|---:|---:|---:|
-| drive | `None` | 8,217 | 257 ns | 1,269,484 ns | 1,269,742 ns | 154 ns |
-| drive | `Manhattan` | 2,813 | 390 ns | 434,908 ns | 435,298 ns | 154 ns |
-| drive | `Octile` | 3,506 | 266 ns | 478,532 ns | 478,798 ns | 136 ns |
-| drive | `Chebyshev` | 4,121 | 271 ns | 422,257 ns | 422,528 ns | 102 ns |
-| drive | `EuclideanFloor` | 3,712 | 469 ns | 722,488 ns | 722,957 ns | 194 ns |
-| walk | `None` | 276 | 195 ns | 20,908 ns | 21,103 ns | 75 ns |
-| walk | `Manhattan` | 32 | 220 ns | 3,817 ns | 4,037 ns | 119 ns |
-| walk | `Octile` | 46 | 224 ns | 5,476 ns | 5,701 ns | 119 ns |
-| walk | `Chebyshev` | 58 | 250 ns | 6,309 ns | 6,560 ns | 108 ns |
-| walk | `EuclideanFloor` | 50 | 359 ns | 10,241 ns | 10,600 ns | 204 ns |
+| drive | `None` | 8,217 | 295 ns | 1,240,382 ns | 1,240,677 ns | 150 ns |
+| drive | `Manhattan` | 2,813 | 375 ns | 429,300 ns | 429,676 ns | 152 ns |
+| drive | `Octile` | 3,506 | 256 ns | 474,677 ns | 474,934 ns | 135 ns |
+| drive | `Chebyshev` | 4,121 | 249 ns | 418,260 ns | 418,510 ns | 101 ns |
+| drive | `EuclideanFloor` | 3,712 | 465 ns | 715,282 ns | 715,747 ns | 192 ns |
+| walk | `None` | 276 | 179 ns | 20,391 ns | 20,570 ns | 73 ns |
+| walk | `Manhattan` | 32 | 246 ns | 4,040 ns | 4,286 ns | 126 ns |
+| walk | `Octile` | 46 | 217 ns | 5,261 ns | 5,478 ns | 114 ns |
+| walk | `Chebyshev` | 58 | 221 ns | 6,359 ns | 6,581 ns | 109 ns |
+| walk | `EuclideanFloor` | 50 | 358 ns | 10,320 ns | 10,678 ns | 206 ns |
 
 **Bootstrap is the query shape's fixed overhead** — seeding both origin endpoints and resolving both goal remainders — measured by re-running the same query set with the search loop omitted, rather than by a per-query stopwatch whose own cost would be a visible share of it. The queries are drawn before the clock starts. It is reported separately because a node-to-node denominator would not have paid it at all, and every figure in this spike divides by this one.
 
@@ -245,7 +245,7 @@ count moves. A measurement that has never been observed to fire is not evidence.
 
 ## S2 R1 — the travel-time matrix
 
-- **Captured** 2026-08-06 18:51:19 UTC
+- **Captured** 2026-08-06 18:13:22 UTC
 - **Machine** Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz, 1 logical processors
 - **OS** Ubuntu 24.04.4 LTS, X64
 - **Runtime** .NET 10.0.10
@@ -280,15 +280,15 @@ A cold build is **one forward one-to-all Dijkstra per District**, not one search
 
 | Districts | Searches | Cold build | Per search | Settled | Scalar matrix | Mean route | Route store |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 16 | 16 | 24.07 ms | 1,504,910 ns | 16,685 | 1.00 KiB | 56 Segments | 56.00 KiB |
-| 64 | 64 | 94.59 ms | 1,478,047 ns | 16,685 | 16.00 KiB | 64 Segments | 1.00 MiB |
-| 100 | 100 | 153.09 ms | 1,530,971 ns | 16,685 | 39.06 KiB | 63 Segments | 2.40 MiB |
-| 121 | 121 | 178.19 ms | 1,472,646 ns | 16,685 | 57.19 KiB | 65 Segments | 3.63 MiB |
-| 256 | 256 | 383.53 ms | 1,498,184 ns | 16,685 | 256.00 KiB | 65 Segments | 16.25 MiB |
-| 400 | 400 | 590.50 ms | 1,476,256 ns | 16,685 | 625.00 KiB | 65 Segments | 39.67 MiB |
-| 1,024 | 1,024 | 1556.43 ms | 1,519,955 ns | 16,685 | 4.00 MiB | 70 Segments | 280.00 MiB |
-| 2,025 | 2,025 | 3002.07 ms | 1,482,508 ns | 16,685 | 15.64 MiB | 69 Segments | 1.05 GiB |
-| 4,096 | 4,096 | 6060.97 ms | 1,479,731 ns | 16,685 | 64.00 MiB | 65 Segments | 4.06 GiB |
+| 16 | 16 | 23.08 ms | 1,442,675 ns | 16,685 | 1.00 KiB | 56 Segments | 56.00 KiB |
+| 64 | 64 | 94.67 ms | 1,479,227 ns | 16,685 | 16.00 KiB | 64 Segments | 1.00 MiB |
+| 100 | 100 | 145.92 ms | 1,459,245 ns | 16,685 | 39.06 KiB | 63 Segments | 2.40 MiB |
+| 121 | 121 | 177.20 ms | 1,464,488 ns | 16,685 | 57.19 KiB | 65 Segments | 3.63 MiB |
+| 256 | 256 | 378.37 ms | 1,478,045 ns | 16,685 | 256.00 KiB | 65 Segments | 16.25 MiB |
+| 400 | 400 | 581.92 ms | 1,454,806 ns | 16,685 | 625.00 KiB | 65 Segments | 39.67 MiB |
+| 1,024 | 1,024 | 1502.20 ms | 1,466,999 ns | 16,685 | 4.00 MiB | 70 Segments | 280.00 MiB |
+| 2,025 | 2,025 | 2976.88 ms | 1,470,065 ns | 16,685 | 15.64 MiB | 69 Segments | 1.05 GiB |
+| 4,096 | 4,096 | 6069.97 ms | 1,481,928 ns | 16,685 | 64.00 MiB | 65 Segments | 4.06 GiB |
 
 *Settled* is nodes settled by the last search of the rung — constant across rungs by construction, because a one-to-all has no goal to prune toward. **That is why cold build is linear in District count, and it is also why a departure from linearity is readable as an artefact rather than as a finding.** The whole sweep is walked once untimed before any of it is timed, because four weaker warm-ups each left a per-search cost falling smoothly with District count — the shape a reader would most readily believe, and the process leaving tier 0. `OneToAll.Run` is called once per District, so the early rungs are the ones that call it too few times.
 
@@ -302,15 +302,15 @@ A cold build is **one forward one-to-all Dijkstra per District**, not one search
 
 | Districts | Resident | Row scan | Scattered | Scattered ÷ row | vs K2 |
 |---:|---:|---:|---:|---:|---:|
-| 16 | 1.00 KiB | 0.74 ns | 1.17 ns | 1.57× | 0.08× |
+| 16 | 1.00 KiB | 0.71 ns | 1.13 ns | 1.59× | 0.08× |
 | 64 | 16.00 KiB | 0.50 ns | 1.15 ns | 2.30× | 0.08× |
-| 100 | 39.06 KiB | 0.57 ns | 1.19 ns | 2.05× | 0.08× |
-| 121 | 57.19 KiB | 0.56 ns | 1.18 ns | 2.08× | 0.08× |
-| 256 | 256.00 KiB | 0.53 ns | 1.30 ns | 2.43× | 0.09× |
-| 400 | 625.00 KiB | 0.52 ns | 1.49 ns | 2.83× | 0.10× |
-| 1,024 | 4.00 MiB | 0.56 ns | 1.61 ns | 2.84× | 0.11× |
-| 2,025 | 15.64 MiB | 0.59 ns | 3.26 ns | 5.48× | 0.23× |
-| 4,096 | 64.00 MiB | 0.58 ns | 5.43 ns | 9.30× | 0.39× |
+| 100 | 39.06 KiB | 0.58 ns | 1.23 ns | 2.13× | 0.09× |
+| 121 | 57.19 KiB | 0.56 ns | 1.14 ns | 2.04× | 0.08× |
+| 256 | 256.00 KiB | 0.53 ns | 1.30 ns | 2.44× | 0.09× |
+| 400 | 625.00 KiB | 0.51 ns | 1.52 ns | 2.95× | 0.11× |
+| 1,024 | 4.00 MiB | 0.57 ns | 1.64 ns | 2.88× | 0.12× |
+| 2,025 | 15.64 MiB | 0.58 ns | 2.88 ns | 4.95× | 0.21× |
+| 4,096 | 64.00 MiB | 0.57 ns | 5.00 ns | 8.76× | 0.36× |
 
 **The tripwire, and it is a real threshold rather than a tautology.** `plans/0010` rewrote this wire during grilling for exactly the reason the numbers now show: *"a lookup into an n×n array is O(1) by construction, so the original wire — 'not O(1) and cheap' — could not fire on any plausible implementation."* What binds is where the matrix lives. The wire that replaced it fires if a read costs more than S4's K2 random gather, **13.6 ns per handle** on this machine — the `SoaScattered` figure, which is the closest thing in the corpus to a priced cache miss.
 
@@ -381,12 +381,12 @@ The measurement below is what makes that more than bookkeeping. One District's r
 
 | Edit site | Rung | Rows rebuilt | Cost | Entries missed | Sound |
 |---|---|---:|---:|---:|---|
-| **Centre** | Full rebuild | 121 | 174.50 ms | 0 | yes, by definition |
-| | Dirty region — rows whose District touches it | 1 | 0.19 ms | 309 of 429 | **no** |
-| | Routes crossing it — needs the route store | 121 rows, 430 entries | 176.02 ms | 0 of 429 | yes |
-| **Corner** | Full rebuild | 121 | 174.00 ms | 0 | yes, by definition |
+| **Centre** | Full rebuild | 121 | 177.56 ms | 0 | yes, by definition |
+| | Dirty region — rows whose District touches it | 1 | 0.16 ms | 309 of 429 | **no** |
+| | Routes crossing it — needs the route store | 121 rows, 430 entries | 176.83 ms | 0 of 429 | yes |
+| **Corner** | Full rebuild | 121 | 173.78 ms | 0 | yes, by definition |
 | | Dirty region — rows whose District touches it | 1 | 0.00 ms | 132 of 252 | **no** |
-| | Routes crossing it — needs the route store | 121 rows, 253 entries | 176.75 ms | 0 of 252 | yes |
+| | Routes crossing it — needs the route store | 121 rows, 253 entries | 175.51 ms | 0 of 252 | yes |
 
 The centre edit severs **484 arcs** and moves **429** of the matrix's 14,641 entries; the corner edit severs **552** and moves **252**.
 
@@ -400,13 +400,13 @@ The centre edit severs **484 arcs** and moves **429** of the matrix's 14,641 ent
 
 | Resolution | Build | Resident | Mean asymmetry | p90 | One-way pairs at 40 Ticks |
 |---|---:|---:|---:|---:|---:|
-| Day average, one matrix | 250.93 ms | 57.19 KiB | 0.08 Ticks | 0.23 Ticks | 1 |
+| Day average, one matrix | 252.65 ms | 57.19 KiB | 0.08 Ticks | 0.23 Ticks | 1 |
 | — of which `Dawn` | | 57.19 KiB | 0.00 Ticks | 0.02 Ticks | 0 |
 | — of which `MorningPeak` | | 57.19 KiB | 2.19 Ticks | 6.27 Ticks | 76 |
 | — of which `Midday` | | 57.19 KiB | 0.00 Ticks | 0.00 Ticks | 0 |
 | — of which `EveningPeak` | | 57.19 KiB | 1.79 Ticks | 5.10 Ticks | 64 |
 | — of which `Night` | | 57.19 KiB | 0.00 Ticks | 0.00 Ticks | 0 |
-| **Per phase, five matrices** | 966.06 ms | 285.95 KiB | | | |
+| **Per phase, five matrices** | 970.26 ms | 285.95 KiB | | | |
 
 **The Day-average row is the one to read, and it should be read against the peak rows rather than against the others.** It is the matrix a single-resolution design gives the choice loop, and what it reports about the morning peak is what a Household would be deciding on.
 
@@ -415,189 +415,17 @@ The average is taken over the **cost**, not over the volume. BPR is convex, so t
 **And that is the refresh-cadence decision arriving from a direction nobody expected.** `plans/0010` decision 2 files the matrix refresh cadence as *almost certainly hash-bearing* — two cadences produce two cities, so it is a design change under `05 §4` rather than a free knob. Time *resolution* is the same class of decision and the corpus has not named it at all: a Day-average matrix and a per-phase one give the choice loop different answers to the same question, so they are different cities, and **the choice belongs beside cadence in whatever settles that.**
 
 
-## S2 R2 — the path source, the crossover, and the attribution lag
-
-- **Captured** 2026-08-06 18:52:12 UTC
-- **Machine** Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz, 1 logical processors
-- **OS** Ubuntu 24.04.4 LTS, X64
-- **Runtime** .NET 10.0.10
-- **Governor** performance
-- **Build** Release
-
-**The attribution axis is not open and nothing here reopens it.** `adr/0041` settled it on three correctness grounds and recorded which way that cut against convenience — aggregate is the cheaper scheme and the one `03 §3.3` already wrote down. R2a prices what rejecting it cost. **The path source is open**, and R1 left it carrying the whole of what remains of the DSDV question.
-
-Every figure is at the **morning peak**, on the same synthetic monocentric field R1 used, at `v/c = 1.2` and imbalance 0.50. Travellers advance by each arc's own free-flow traversal time and **nothing feeds back** — a jam does not slow the Travellers in it. That omission is deliberate: a feedback loop would put an unargued shape inside the lag figures R2b exists to measure.
-
-### R2.1 — the path source ladder, and the rung the plan did not have
-
-Three ways a Traveller can be told which Segment to enter next. **The third is not in `plans/0010`** — it follows from `adr/0041`, which makes a Traveller need a *next Segment* every Tick rather than a *path*, and a next-hop table is exactly that and stores no path at all. That is distance-vector's data structure, so measuring only searched-against-shared would have answered a question the design had moved past.
-
-| Rung | Build | Resident | Per Leg at spawn | Per crossing | Detour, mean | p90 |
-|---|---:|---:|---:|---:|---:|---:|
-| **searched** | — | 13.03 MiB | 716,800 ns | 24 ns | 0.00% | 0.00% |
-| **shared** | 195.54 ms | 3.46 MiB | 2,617 ns | 26 ns | 36.01% | 71.39% |
-| **next-hop** | 474.47 ms | 7.70 MiB | 0 ns | 32 ns | 18.52% | 40.70% |
-
-At the anchor, 121 Districts. *Searched* resident is `in-flight × mean route × 4 B` at the derived 56,000, **not** the pool's own footprint — the pool reuses each route across many Travellers and would understate it. The pool is 2,999 routes of 3,000 drawn; the rest found no route and are excluded rather than counted as short ones.
-
-**The detour columns are the finding, and `adr/0041` says they should not exist.** That ADR calls the path source *"a performance axis with no correctness content"*. It has correctness content: two of the three rungs aim a Traveller at a District **representative** rather than at where it is going. A shared route is coarse at both ends — the Traveller must reach the origin representative before the stored route means anything — while a next-hop table is followed from wherever the Traveller actually is, so it is **exact on the origin side and coarse only on the destination side**. 300 Legs sampled, drives drawn across the whole map.
-
-**And there is a second correctness cost that is structural rather than statistical.** Under either coarse rung, *every* Trip bound for a District arrives through that District's one representative node — a shared route ends there and a next-hop column is a tree rooted there. So the arcs into a representative carry the whole of a District's inbound traffic, and R2b measures the consequence: a monocentric surge drives them to a `v/c` an order of magnitude past what the same surge produces under searched routes. **The representative is not a summary of the District under these rungs; it is a hole every Trip is threaded through**, and a fidelity model that promotes on `volume / capacity` would promote there and nowhere else.
-
-Measured at **node granularity**, so both percentages are an **upper bound**: adding the two Access Point remainders leaves each detour unchanged in Ticks and raises the denominator, which lowers every percentage above. Stated because the alternative — quoting them as exact — is the shape of error this spike has already published once.
-
-#### Resident size against District count
-
-**The two coarse rungs scale on different axes and cross.** A route store is `n² × mean route`; a next-hop table is `nodes × n`. The store is quadratic in District count and the table is linear in it, so the rung that is cheaper depends entirely on where District count lands — which R1 left as an open trade rather than a settled number.
-
-| Districts | Route store | Next-hop table | Mean route | vs the world's 172.3 MiB |
-|---:|---:|---:|---:|---|
-| 16 | 58.13 KiB | 1.01 MiB | 60 Segments | both inside it |
-| 64 | 982.89 KiB | 4.07 MiB | 61 Segments | both inside it |
-| 100 | 2.33 MiB | 6.36 MiB | 60 Segments | both inside it |
-| 121 | 3.46 MiB | 7.70 MiB | 61 Segments | both inside it |
-| 256 | 15.15 MiB | 16.30 MiB | 59 Segments | both inside it |
-| 400 | 36.84 MiB | 25.47 MiB | 59 Segments | both inside it |
-
-The sweep stops at the last rung either structure can actually be built at on this machine. R1 already reports the store's arithmetic beyond it — 4.06 GiB at 4,096 Districts — and the table's is `nodes × n × 4 B`, which at 4,096 is 261 MiB. **Neither is a rung anybody should reach**, and that is the point of printing them.
-
-### R2.2 — the crossing rate, which `adr/0041` assumed and S2 can measure
-
-`adr/0041` prices direct attribution from *"a vehicle crosses about one Segment per Tick"*, and names the rate as its own revisit trigger: *"if the Segment turns out much shorter than a block — S2 owns the road-density figure that decides it — the crossing rate rises and this should be re-priced before it is re-argued."* R0 measured the density. This is the rate.
-
-**Reported at free flow and at the peak, because the ADR's estimate is a free-flow one and the simulation is not.** A Segment under BPR at `v/c = 1.2` takes about 1.3× its free-flow time, so congestion *lowers* the crossing rate and lowers direct attribution's cost with it. Quoting only the congested figure would credit the scheme for a saving the jam paid for.
-
-| Path source | Arc costs | Crossings/vehicle/Tick | Arrivals/Tick | Mean route | Volume conserved | Bounded |
-|---|---|---:|---:|---:|---|---:|
-| Searched | free flow | 0.82 | 574 | 58 Segments | yes | 0 |
-| Searched | morning peak | 0.79 | 545 | 58 Segments | yes | 0 |
-| Shared | free flow | 0.83 | 562 | 61 Segments | yes | 0 |
-| Shared | morning peak | 0.79 | 530 | 61 Segments | yes | 0 |
-| NextHop | free flow | 0.83 | 556 | 61 Segments | yes | 0 |
-| NextHop | morning peak | 0.79 | 529 | 61 Segments | yes | 0 |
-
-Fleet of 40,000, warmed 40 Ticks and measured over 60. **Scale the rate, not the fleet**: `adr/0041`'s ~80,000 increment/decrement pairs per Tick is the in-flight count times this column.
-
-**The *volume conserved* column is the one that earned its place.** `adr/0041` requires *"summed Segment volume equals the number of in-flight vehicular Travellers, every Tick"*, and names the failure it catches: *"a Traveller that vanishes without decrementing destroys the reading permanently, which is an `adr/0006`-class defect that presents as a road that looks busy forever."* The next-hop rung was written with exactly that defect — arrival was tested *after* entering the last arc — and the first capture reported a peak `v/c` of **883×** without anything else in the report looking wrong. **The invariant the ADR asked for is what found it**, on the first run it was printed. *Bounded* is the advance loop's crossings-per-Tick guard, and a non-zero figure means a zero-cost arc: a graph defect, not a result.
-
-### R2a — the crossover, priced rather than chosen
-
-The two schemes scale on **independent** axes — direct with vehicles in flight, aggregate with `District count² × route length` — so there is a congestion-cycle length at which they cost the same, and S2 can find it rather than assume it. `adr/0041` has already chosen direct; this is what that choice costs.
-
-#### Direct, against vehicles in flight
-
-| In flight | Crossings/Tick | Attribution/Tick | Per crossing | Standing |
-|---:|---:|---:|---:|---|
-| 37,000 | 25,596 | 138,225 ns | 5,400 ps | band floor |
-| 56,000 | 38,865 | 139,437 ns | 3,587 ps | **the derived Day-average** |
-| 111,000 | 76,823 | 323,195 ns | 4,207 ps | band ceiling / 2× peak |
-| 170,000 | 117,537 | 419,150 ns | 3,566 ps | 3× peak |
-
-Timed over the **real** crossing distribution — the arcs an advancing fleet actually entered and left, captured and replayed — rather than over drawn indices, because whether the volume column sits in L2 is a property of how scattered those indices are and drawing them would have measured the draw.
-
-#### Aggregate, against District count
-
-| Districts | Pairs in flight | Arc writes | Per cycle | Crossover cycle |
-|---:|---:|---:|---:|---:|
-| 16 | 256 | 14,626 | 0.43 ms | 3 Ticks |
-| 64 | 3,919 | 244,728 | 4.23 ms | 30 Ticks |
-| 100 | 9,230 | 584,527 | 10.11 ms | 72 Ticks |
-| 121 | 13,181 | 851,358 | 14.72 ms | 105 Ticks |
-| 256 | 36,050 | 2,309,725 | 41.58 ms | 298 Ticks |
-| 400 | 46,218 | 2,979,576 | 53.91 ms | 386 Ticks |
-
-*Crossover cycle* is the cycle length at which one smear costs what direct attribution costs over the same span, at the derived 56,000 in flight. **Longer than this, aggregate is cheaper; shorter, direct is.** `adr/0041`'s own arithmetic put it near 10 Ticks from an assumed crossing rate; R2.2 measured the rate.
-
-The smear is the **conserving** form — a Traveller on a route of total time `T` contributes `t_s / T` to each Segment, so the shares sum to one and `adr/0041`'s invariant holds. Adding the whole pair count to every Segment would be cheaper per write and would put one vehicle on fifty Segments at once. **A rejected alternative implemented weakly makes the price of rejecting it look smaller than it is.**
-
-#### Where the crossover inverts, across the peaking sweep
-
-`plans/0010`: *"only one side of it moves — direct attribution scales with vehicles in flight and is peak-sensitive; aggregate scales with `zone count² × route length` and is not. **Report the peaking factor at which the crossover inverts.**"* At the anchor's District count:
-
-| Congestion cycle | Aggregate/Tick | Peaking factor that inverts it |
-|---:|---:|---:|
-| 1 Ticks | 14,819,064 ns | 106.27× |
-| 10 Ticks | 1,481,906 ns | 10.62× |
-| 25 Ticks | 592,762 ns | 4.25× |
-| 50 Ticks | 296,381 ns | 2.12× |
-| 100 Ticks | 148,190 ns | 1.06× |
-| 200 Ticks | 74,095 ns | 0.53× |
-
-A factor **below 1.00×** means aggregate is already the cheaper scheme at the Day-average load and no peak is needed to invert it. **Above 3.00× means the inversion is out of reach**, because the corpus's own generator mix caps the peak near 3× — 79% of Trips are commutes and school runs, and `02 §1.2`'s sun arc has five phases. The peaking factor itself is still unsized: decision 5a.
-
-### R2b — the lag, and the peak
-
-`03 §3.3` confesses the aggregate scheme's defect in its own text: *"a jam propagates backward at roughly 15 km/h — faster than any cycle worth running — so a cycle-driven region always lags the jam during exactly the event it exists to capture."* That admission is why `03 §3.3` had to invent **force-promotion on downstream blocking** as compensation. This measures the lag it was compensating for.
-
-The jam is a surge: 40% of a 40,000 fleet redirected to the central District — the monocentric morning peak R1 modelled — **replacing** Travellers rather than adding them, so the surge changes where the fleet is going and not how large it is. Lag is Ticks between the watched Segment's **true** `v/c` crossing the threshold and the scheme's own reading crossing it.
-
-| Path source | Cycle | Direct lag | Aggregate lag | Watched peak, direct | Watched peak, aggregate | Peak, direct | Peak, aggregate | Compression |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Searched | 1 | 0 | **never** | 130.21% | 28.09% | 1074.22% | 676.77% | 0.63x |
-| Searched | 10 | 0 | **never** | 130.21% | 27.54% | 1074.22% | 676.77% | 0.63x |
-| Searched | 25 | 0 | **never** | 130.21% | 27.25% | 1074.22% | 669.22% | 0.62x |
-| Searched | 50 | 0 | **never** | 130.21% | 27.18% | 1074.22% | 663.90% | 0.61x |
-| Searched | 100 | 0 | **never** | 130.21% | 23.76% | 1074.22% | 660.71% | 0.61x |
-| Searched | 200 | 0 | **never** | 130.21% | 23.45% | 1074.22% | 660.71% | 0.61x |
-| Shared | 1 | 0 | **never** | 412.33% | 20.14% | 7779.98% | 1660.76% | 0.21x |
-| Shared | 10 | 0 | **never** | 412.33% | 19.75% | 7779.98% | 1659.66% | 0.21x |
-| Shared | 25 | 0 | **never** | 412.33% | 19.85% | 7779.98% | 1659.66% | 0.21x |
-| Shared | 50 | 0 | **never** | 412.33% | 18.67% | 7779.98% | 1659.66% | 0.21x |
-| Shared | 100 | 0 | **never** | 412.33% | 18.41% | 7779.98% | 1659.66% | 0.21x |
-| Shared | 200 | 0 | **never** | 412.33% | 18.41% | 7779.98% | 1659.66% | 0.21x |
-| NextHop | 1 | 0 | **never** | 108.51% | 0.00% | 2669.28% | 1658.57% | 0.62x |
-| NextHop | 10 | 0 | **never** | 108.51% | 0.00% | 2669.28% | 1658.57% | 0.62x |
-| NextHop | 25 | 0 | **never** | 108.51% | 0.00% | 2669.28% | 1658.57% | 0.62x |
-| NextHop | 50 | 0 | **never** | 108.51% | 0.00% | 2669.28% | 1658.57% | 0.62x |
-| NextHop | 100 | 0 | **never** | 108.51% | 0.00% | 2669.28% | 1658.57% | 0.62x |
-| NextHop | 200 | 0 | **never** | 108.51% | 0.00% | 2669.28% | 1658.57% | 0.62x |
-
-**Direct lag is zero by construction and is printed anyway**, because a column that cannot be anything else is the one worth checking: a non-zero entry would mean the advance loop and the volume column had come apart.
-
-**A column of identical *never*s is the shape of a broken instrument, so the two watched columns are printed to tell the two apart.** They give the highest `v/c` each scheme ever reads on the *same* arc across the window: if aggregate reaches a large number that merely arrived late, the lag is a cadence problem; if it never reaches one, the smear has put the volume **somewhere else** and no cadence recovers it. **The columns say it is the second**, and *never* appears at a one-Tick cycle — where there is no cadence left to blame — which is the same conclusion arrived at from the other side.
-
-That is `adr/0041`'s first argument, measured: *"a Traveller experiences congestion on its own route and deposits congestion on the District pair's route, so the failure feeds a **different** detector, watching different Segments."* The lag was never the whole defect — it is the part that has a number, and the part that does not is worse. It also means **force-promotion loses its remaining bundled justification here** and must stand on `03 §3.3`'s second argument alone, which the board already records as owed.
-
-**Compression is the column `plans/0010` actually asked for** — *"report peak Segment volume under each on the same O-D distribution. A scheme that understates the peak promotes late, and `adr/0007` demotes on a *lower* threshold, so an understated peak also demotes early."* It is aggregate's peak over direct's.
-
-**Read the `v/c` columns comparatively and never as absolute levels.** A Traveller here passes through a Segment regardless of how loaded it is — there is no queue, because `plans/0010` forbids this spike simulating traffic — so `v/c` is unbounded and a monocentric surge drives it far past anything a real Segment reaches. **What is being compared is two readings of one load**, and that comparison is unaffected.
-
-#### Against the threshold, which the corpus does not state
-
-`CONTEXT.md` → Stress gives the mechanism — *"Microscopic above a high threshold and back below a lower one"* — and no numbers, exactly as it gives the Microscopic Cap none. So the threshold is swept and not chosen, at a 50-Tick cycle and the shared path source.
-
-| Threshold | Direct lag | Aggregate lag | Segments over, direct | over, aggregate |
-|---:|---:|---:|---:|---:|
-| 80.00% | 0 | **never** | 2,592 | 2,714 |
-| 100.00% | 0 | **never** | 1,918 | 1,860 |
-| 120.00% | 0 | **never** | 1,422 | 1,412 |
-
-*Segments over* is how many the scheme places above the threshold at the end of the window, and it is the column that decides the **Microscopic Cap**'s exposure: under `adr/0007` those are the Segments competing for slots, and a scheme that names a different set names a different city. S2 does not set the Cap — that needs a built traffic model — but this is the first quantitative thing anyone has been able to say about how many Segments would want one.
-
-### What R2 decides, and what it hands on
-
-**R4's condition has moved and R7 must not apply it as written.** `plans/0010` retires DSDV *"if the matrix carries the choice loop and Statistical Trips need no concrete path"*. R1 settled the first clause — it does. The second was written before `adr/0041`, which requires a vehicular Traveller to increment the Segment it **enters**, every Tick. What that needs is a next Segment, not a path; a next-hop table supplies one and stores no path at all. **So the second clause is false, and it is false for a reason that favours distance-vector rather than merely failing to retire it.**
-
-That is an argument, not a measurement, and R2 does not settle R4 with it — R4's own subject is **convergence after an edit**, which nothing here touches. What R2 changes is that R4 is **live**, and R5's edit storm is where it is decided: a next-hop table's attraction is that it needs no per-route invalidation, and its exposure is that *in a city builder link deletion is the core verb*.
-
-**`adr/0041` is owed a correction, small and worth making.** It calls the path source *"a performance axis with no correctness content"*. R2.1's detour columns are correctness content: a Traveller handed a coarse route drives a different Trip, which under `05 §4`'s test is a different city. The ADR's substantive claim survives intact — experience and contribution stay the same list of Segments under every rung, because a Traveller increments whatever it actually drives — so this amends a sentence and not a decision.
-
-**The crossing rate is now measured and `adr/0041`'s own revisit trigger is the place to record it.** Its cost arithmetic assumes one Segment per Tick; R2.2 reports what the graph actually produces at R0's density. Every figure in R2a scales linearly on that number.
-
-**What R2 does not settle.** The peaking factor is still unsized (decision 5a), so the inversion table is a curve and not a verdict. District count remains R1's open trade, and R2.1 adds a second structure to it — the next-hop table is linear in District count where the route store is quadratic, so the two rungs rank differently at different District counts and neither ranking is a reason to pick one. And nothing here prices **invalidation**, which is R5's.
-
-
 ---
 
 ## The machine's own state during this capture
 
 **The load averages are a point sample and the stall counters are not.** Linux's PSI `total` fields are cumulative microseconds, so the figures below are stall that happened **during this run** — which is the question, where a load average read at the top of the report would have described the minute before it started.
 
-- **Run duration** 106.47 s — from 18:50:53 UTC to 18:52:39 UTC, **which is what makes the duration checkable rather than asserted**
-- **Load average, at start** 0.61 / 1.03 / 1.25 (1 / 5 / 15 min)
-- **Load average, at end** 0.99 / 1.05 / 1.24 (1 / 5 / 15 min)
-- **CPU stall** 872,583 µs over the run — 0.81% of it
+- **Run duration** 77.65 s — from 18:12:57 UTC to 18:14:14 UTC, **which is what makes the duration checkable rather than asserted**
+- **Load average, at start** 1.46 / 1.40 / 1.24 (1 / 5 / 15 min)
+- **Load average, at end** 1.19 / 1.32 / 1.23 (1 / 5 / 15 min)
+- **CPU stall** 591,539 µs over the run — 0.76% of it
 - **Memory stall** 0 µs over the run — 0.00% of it
-- **IO stall** 19,467 µs over the run — 0.01% of it
+- **IO stall** 11,292 µs over the run — 0.01% of it
 
 **A run whose memory stall is a rounding error is a run the pinning actually protected.** Pinning to one physical core stops another process stealing cycles; it does nothing about L3 eviction or DRAM bandwidth, which is S4's recorded finding about this same machine and is the exposure R1.3's absolute nanoseconds live in. This block is what lets a later reader check that rather than reason about it afterwards.

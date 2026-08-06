@@ -415,10 +415,35 @@ verbatim and a corrected quote is a broken one. R1's code and report say Distric
 > lives: if Statistical Trips need no concrete path, the many-to-many case for distance-vector has
 > evaporated and R4 is written up as *not run, and why*.
 
-### R2. Two axes, not one — and the crossover nobody has looked for
+### R2. Two axes, not one — and the crossover nobody has looked for — **DONE**
 
 **This is the task the prescribed order exists to reach, and grilling found that the corpus had
 already answered it twice, differently, in the same document.**
+
+> **Done. Numbers and the decision each produced in [`spike-results`](../docs/spike-results.md) §S2 R2;
+> raw capture in `spikes/S2.Routing/results/`.** Headlines, because three of them change a later task
+> in this plan rather than merely closing this one:
+>
+> - **The path source has three rungs, not two, and the third is R4's router.** `adr/0041` requires a
+>   Traveller to increment the Segment it *enters* every Tick — so what it needs is a **next Segment**,
+>   not a path, and a next-hop table supplies one while storing no path at all. **R4's condition below
+>   is therefore false, and false in DSDV's favour** — see the correction in R4 itself.
+> - **The searched rung is out on arithmetic**: 716,800 ns per Leg against ~550 arrivals per Tick, or
+>   ~400 ms of searching per 15.6 ms Tick. The harness could not afford it either and had to pool.
+> - **`adr/0041`'s *"no correctness content"* is wrong on two counts**, and the second is the larger.
+>   Statistically, a shared route costs **36.01%** mean detour and a next-hop table **18.52%** — the
+>   structural difference between coarse-at-both-ends and coarse-at-one-end is worth almost exactly
+>   half. Structurally, **every Trip into a District arrives through its one representative node**, so
+>   that node's Stress is an artefact of the partition rather than a property of the city.
+> - **Direct attribution is the *cheaper* scheme below a 105-Tick congestion cycle**, an order of
+>   magnitude past `adr/0041`'s estimate of ~10. The ADR's *"we are knowingly paying for correctness"*
+>   understates its own case.
+> - **The aggregate scheme does not lag the jam; it misses it.** *Never* at every cycle including one
+>   Tick, where no cadence is left to blame, and the smear deposits **0.00%** on a Segment direct
+>   reports at 108%. `03 §3.3` filed a *timing* defect and compensated with force-promotion; it is a
+>   **place** defect and no cadence fixes a place.
+> - **The crossing rate is 0.79–0.83 per vehicle per Tick, not 1.0** — `adr/0041`'s own revisit
+>   trigger, discharged in the direction the trigger did not anticipate.
 
 Stress is `volume / capacity` (`CONTEXT.md` → Stress), so every Segment needs a volume, and something
 must decide which Segments a Trip deposits volume on. `03 §3.3` answers one way —
@@ -503,6 +528,18 @@ things that are not S2's but which S2 is the only thing able to price:
   city — the defect class `03 §3.9` rejects for the Microscopic Cap in words that transfer unchanged.
   Under direct attribution the District stops being a routing object and the defect cannot arise.
 
+> **Answered, in order.** The per-Tick routing load is **139,437 ns of attribution at the derived
+> 56,000 in flight** and a path-source read of 24–32 ns per crossing; R3 and R4 are both live and R4
+> more so than before. **Force-promotion is a patch** — its lag argument is gone under `adr/0041` and
+> R2b shows the compression it was compensating for is a *place* error rather than a timing one, so
+> the patch never addressed it. **The circularity holds under direct attribution and is broken under
+> aggregate by construction rather than by degree**, which R2b measured as a smear depositing 0.00% on
+> a Segment carrying 108%. And **the District-changes-the-hash defect cannot arise for volume** —
+> `adr/0041` removed it — **but it reappears through the path source**: a shared route and a next-hop
+> tree are both keyed by District, so redrawing a boundary changes which Segments a Traveller drives,
+> which is a different Trip and therefore a different city. *That is a new finding and it is filed as
+> decision 10 below.*
+
 ### R3. HPA\*, and the cluster size it owns
 
 [`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md) makes a claim S2 must test rather than
@@ -535,11 +572,26 @@ therefore **free to change forever** — which is the whole of `adr/0040`. Chunk
 decided, and stays on the *cannot be retrofitted* list for the reasons that are genuinely its own:
 rendering, saves and work partitioning.
 
-### R4. DSDV distance-vector, if R2 leaves it live
+### R4. DSDV distance-vector, if R2 leaves it live — **LIVE. R2 settled the condition, against it**
 
-**Conditional on R2.** If the matrix carries the choice loop and Statistical Trips need no concrete
+~~**Conditional on R2.** If the matrix carries the choice loop and Statistical Trips need no concrete
 path, the many-to-many argument for distance-vector has evaporated and this task is written up as
-*not run, and why* rather than skipped silently.
+*not run, and why* rather than skipped silently.~~
+
+**The condition has two clauses and they resolved in opposite directions. R7 must not apply it as
+written.** R1 settled the first — the matrix does carry the choice loop. **The second is false**, and
+it was written before
+[`adr/0041`](../docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md): that
+ADR requires a vehicular Traveller to increment the Segment it *enters*, every Tick, so a Statistical
+Trip needs a **next Segment** continuously. A path is one way to supply that; a **next-hop table** is
+another, and it stores no path at all. R2 built and measured that rung — 7.70 MiB at the anchor,
+**18.52%** mean detour against a shared route's 36.01%, 32 ns per crossing — and it is
+distance-vector's data structure arrived at from the attribution side rather than the routing side.
+
+**So the clause does not merely fail to retire R4; it fails in DSDV's favour.** R2 does not settle R4
+with that, because R4's own subject is **convergence after an edit**, which R2 does not touch — and
+R5's edit storm is where the two survivors are actually separated. What R2 changes is that R4 must
+run.
 
 If it is live:
 
@@ -816,6 +868,26 @@ to exist**; and even then it touches every row, because a one-to-all fills a row
 the entry addressed *to* the edited District. **So the matrix's cheap invalidation and its cheap
 storage are the same trade, taken twice**, and `02 §6` is owed a correction regardless of which way it
 is taken.
+
+**10. The path source keys on the District, so redrawing a boundary changes the city — NEW, produced
+by R2.** `adr/0041` removed the District from *volume attribution* and closed that defect explicitly:
+*"redrawing a boundary changes volume attribution → Stress → Fidelity → travel times → the city, and
+therefore the State Hash… `PLAYER GOVERNS` means the player governs the city, not the physics."*
+**Both surviving path-source rungs put it straight back.** A shared route is keyed by District pair; a
+next-hop column is a tree rooted at a District's representative. Under either, moving a boundary moves
+the representative, which changes the Segments a Traveller actually drives — a different Trip, and
+under `05 §4` a different city. Only the **searched** rung is free of it, and R2 priced that rung out.
+*Recommended handling: this is `02 §2.1`'s player-adjustable District meeting `03 §3.9`'s rule for the
+third time, and it belongs with them rather than inside S2. R7 states it; the corpus decides.*
+
+**11. The representative funnel — NEW, produced by R2, and nothing in the corpus addresses it.** Under
+either coarse rung *every* Trip bound for a District arrives through that District's single
+representative node, so the arcs into it carry the whole of a District's inbound traffic: measured,
+**412%** `v/c` against **130%** for the same surge under searched routes. **Stress on those arcs is an
+artefact of the partition, not a property of the city**, and a Microscopic Cap spent promoting them
+would be spent on the abstraction. *Recommended handling: whatever resolves it — multiple access nodes
+per District, a Segment-granular tail on a District-granular route, or the searched rung after all —
+is a design decision about what a District-granular route means, and R2 deliberately does not take it.*
 
 **5a. The sun arc's phase widths, which the corpus names and never sizes.** *Dawn, morning peak,
 midday, evening peak, night* appear in `02 §1.2` and `01 §7` with no durations, so **no peaking factor

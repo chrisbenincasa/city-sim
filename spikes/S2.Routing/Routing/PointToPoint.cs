@@ -83,6 +83,12 @@ internal sealed class PointToPoint
     private int _directCost;
 
     /// <summary>
+    /// The goal endpoint the last <see cref="Expand"/> settled through, or <c>-1</c>. Kept so R2 can
+    /// read out the arc sequence a search found — R0 needed only its length.
+    /// </summary>
+    private int _bestEndpoint = -1;
+
+    /// <summary>
     /// Congested car costs per arc, or <c>null</c> for R0's free-flow graph.
     /// </summary>
     /// <remarks>
@@ -229,6 +235,8 @@ internal sealed class PointToPoint
                 }
             }
         }
+
+        _bestEndpoint = bestEndpoint;
 
         if (best >= Unreachable)
         {
@@ -392,6 +400,45 @@ internal sealed class PointToPoint
         }
 
         return segments;
+    }
+
+    /// <summary>
+    /// Appends the last search's arcs to <paramref name="into"/> in <b>travel order</b> and returns
+    /// how many were added.
+    /// </summary>
+    /// <remarks>
+    /// <b>Arcs, not Segments</b> — the direction is what <c>adr/0041</c>'s attribution indexes, and a
+    /// Segment id has thrown it away. R0 only ever counted the path, so this is R2's addition and it
+    /// changes no figure R0 published: nothing on the timed path calls it.
+    /// </remarks>
+    public int PathArcs(List<int> into)
+    {
+        if (_bestEndpoint < 0)
+        {
+            return 0;
+        }
+
+        int before = into.Count;
+        int node = _bestEndpoint;
+
+        while (_cameFromArc[node] >= 0)
+        {
+            int arc = _cameFromArc[node];
+            into.Add(arc);
+
+            int target = _graph.ArcTarget[arc];
+            int a = _graph.SegmentNodeA[_graph.ArcSegment[arc]];
+            int b = _graph.SegmentNodeB[_graph.ArcSegment[arc]];
+            node = target == a ? b : a;
+
+            if (into.Count - before > _graph.Segments)
+            {
+                break;
+            }
+        }
+
+        into.Reverse(before, into.Count - before);
+        return into.Count - before;
     }
 
     // --- Binary heap. Lazy deletion; a duplicate is cheaper than a decrease-key. -------------------

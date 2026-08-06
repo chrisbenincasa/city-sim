@@ -14,6 +14,7 @@ string? output = null;
 bool graph = false;
 bool denominator = false;
 bool matrix = false;
+bool traffic = false;
 
 for (int i = 0; i < args.Length; i++)
 {
@@ -31,19 +32,23 @@ for (int i = 0; i < args.Length; i++)
         case "--matrix":
             matrix = true;
             break;
+        case "--traffic":
+            traffic = true;
+            break;
         default:
             Console.Error.WriteLine($"Unrecognised argument: {args[i]}");
             Console.Error.WriteLine(
-                "Usage: S2.Routing [--graph] [--denominator] [--matrix] [--out PATH]");
+                "Usage: S2.Routing [--graph] [--denominator] [--matrix] [--traffic] [--out PATH]");
             return 2;
     }
 }
 
-if (!graph && !denominator && !matrix)
+if (!graph && !denominator && !matrix && !traffic)
 {
     graph = true;
     denominator = true;
     matrix = true;
+    traffic = true;
 }
 
 // Read before any work and again after all of it, so the contention block at the foot of the report
@@ -53,7 +58,8 @@ var before = Capture.Read();
 string report =
     (graph ? FootprintReport.Run() + Environment.NewLine : string.Empty)
     + (denominator ? DenominatorReport.Run() + Environment.NewLine : string.Empty)
-    + (matrix ? MatrixReport.Run() : string.Empty);
+    + (matrix ? MatrixReport.Run() + Environment.NewLine : string.Empty)
+    + (traffic ? TrafficReport.Run() : string.Empty);
 
 report += Environment.NewLine + "---" + Environment.NewLine + Environment.NewLine
     + Capture.Contention(before, Capture.Read()) + Environment.NewLine;

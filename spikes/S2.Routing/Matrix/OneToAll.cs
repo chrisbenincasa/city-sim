@@ -151,6 +151,57 @@ internal sealed class OneToAll
     }
 
     /// <summary>
+    /// The arcs on the settled path from the source to <paramref name="node"/>, written into
+    /// <paramref name="into"/> in <b>travel order</b>. Returns the arc count, or <c>-1</c> if the
+    /// buffer is too small.
+    /// </summary>
+    /// <remarks>
+    /// <b>Arcs rather than Segments, and the difference is the whole of <c>adr/0041</c>.</b> A
+    /// Segment id says which run of road a Traveller is on; an arc says which way it is going, and
+    /// under <c>VolumeScope.PerDirection</c> those index different counters. A route stored as
+    /// Segments could not be replayed into a directional volume column at all, so R2 stores arcs and
+    /// resolves the counter through <c>RoadGraph.VolumeIndex</c> — which is also what lets one route
+    /// store serve both scopes without being rebuilt.
+    /// </remarks>
+    public int PathArcs(int node, int[] into)
+    {
+        if (_touched[node] != _generation)
+        {
+            return 0;
+        }
+
+        int count = 0;
+        int at = node;
+        while (_cameFromArc[at] >= 0)
+        {
+            if (count == into.Length)
+            {
+                return -1;
+            }
+
+            int arc = _cameFromArc[at];
+            into[count++] = arc;
+
+            int a = _graph.SegmentNodeA[_graph.ArcSegment[arc]];
+            int b = _graph.SegmentNodeB[_graph.ArcSegment[arc]];
+            at = _graph.ArcTarget[arc] == a ? b : a;
+
+            if (count > _graph.Segments)
+            {
+                return -1;
+            }
+        }
+
+        // Walked backwards from the goal, so travel order is the reverse of what was collected.
+        for (int i = 0, j = count - 1; i < j; i++, j--)
+        {
+            (into[i], into[j]) = (into[j], into[i]);
+        }
+
+        return count;
+    }
+
+    /// <summary>
     /// Whether the settled path back to the source passes through any node the predicate marks.
     /// The sound dirty-region test, and the one that needs the route to exist.
     /// </summary>

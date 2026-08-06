@@ -12,19 +12,33 @@ tiers run in release on every Tick and at the end of every run, `--census` print
 collection did over a run, and a panic writes a crash artifact that replays back into the same panic.
 **Slice 6, Map Layers, is the last slice before the Phase 1 gate closes.**
 
-**The spike track has opened and moved twice.** **S2 R0 and R1 are done** — the synthetic Road Graph,
-the density curve, the uncached denominator on the real `(Segment, offset)` query shape and the
-heuristic verdict; then the travel-time matrix. Numbers and decisions in
-[`spike-results`](../docs/spike-results.md).
+**The spike track has opened and moved three times.** **S2 R0, R1 and R2 are done** — the synthetic
+Road Graph, the density curve, the uncached denominator on the real `(Segment, offset)` query shape and
+the heuristic verdict; then the travel-time matrix; then the path source, the crossover and the
+attribution lag. Numbers and decisions in [`spike-results`](../docs/spike-results.md).
 
 **R1 answered the question the whole spike order was built around, and the answer is yes.** The matrix
 carries the choice loop — **1.14 ns** scattered at the working District count against a tripwire at
-13.66 ns — so `02 §5.8`'s *never resolve a route inside the choice loop* is enforceable and **the
-many-to-many case for DSDV now rests on R2 alone**. It also settled three things nobody had a number
-for: **`adr/0020` is owed an amendment** (union-find returns 6 Settlements where Tarjan returns 8),
-**`02 §6`'s dirty-region rebuild is unsound** (it misses 72% of the entries an edit changes), and the
-**volume-scope question R0 was told not to settle is the same question as the `adr/0020` exposure**.
-**R2 is next.**
+13.66 ns — so `02 §5.8`'s *never resolve a route inside the choice loop* is enforceable. It also
+settled three things nobody had a number for: **`adr/0020` is owed an amendment** (union-find returns
+6 Settlements where Tarjan returns 8), **`02 §6`'s dirty-region rebuild is unsound** (it misses 72% of
+the entries an edit changes), and the **volume-scope question R0 was told not to settle is the same
+question as the `adr/0020` exposure**.
+
+**R2 was supposed to retire DSDV and made it live instead.** The plan retires R4 *"if Statistical Trips
+need no concrete path"* — but that clause predates `adr/0041`, which requires a Traveller to increment
+the Segment it *enters* every Tick. What that needs is a **next Segment**, not a path, and a next-hop
+table supplies one while storing none — which is distance-vector's data structure, reached from the
+attribution side. R2 built it as a third ladder rung and it is the **better** of the two survivors on
+error (**18.52%** mean detour against a shared route's 36.01%). **R3 is next**, and **R5 is where the
+router is actually decided**, because the axis the two survivors differ most on is invalidation.
+
+**R2 also found the aggregate scheme fails worse than its tripwire anticipated.** `03 §3.3` confessed a
+*lag*; the measurement says the smear reports the jam **in the wrong place** — 0.00% deposited on a
+Segment carrying 108%, at every cycle including one Tick, where no cadence is left to blame. The two
+schemes agree on *how many* Segments are stressed and disagree on *which*. **Force-promotion loses its
+last bundled justification**, and `adr/0041`'s *"no correctness content"* about the path source is
+owed a correction on two counts.
 
 **What is in front of the project is mostly argument, not code.** Slices 7–10 and every Phase 2
 milestone are gated on designs written from research and never grilled — twelve sessions, tabulated
@@ -44,14 +58,14 @@ nothing standing between here and Phase 2 is code.**
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | spike | **S2 R2 — the path source, and the crossover** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. **R0 and R1 are done**, and R1 dissolved half the headline question — the matrix carries the choice loop, so what remains of the DSDV case is whether Statistical Trips need a concrete path, which is R2's *path source* axis |
+| **1** | spike | **S2 R3 — HPA\*, and the cluster size it owns** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. **R0, R1 and R2 are done.** R2 left two path-source rungs live and **revived R4**, so R3 now has a third candidate to be measured against rather than two. It must quote **wall-clock, never expansions saved** — R0's amendment |
 | **2** | code | **Slice 6 — Map Layers** | [`0009`](0009-map-layers.md) | Last slice before the Phase 1 gate closes. Settle its **diffusion cadence** inside it — `0003` files that as owed and blocking |
 | **3** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | `06` says it **must not slip behind 3c**, and slice 6 *is* 3c's Layers half. By the corpus's own instruction this session is already due |
 | **4** | argument | **`02 §4` residue** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | The nearest gate on the code path. Slice 7 waits on it and slice 7 is next after 6 |
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
-what moved. Slice 5 is closed and no longer in front of it. **R0 and R1 confirmed the delay cost
+what moved. Slice 5 is closed and no longer in front of it. **R0, R1 and R2 confirmed the delay cost
 nothing** — the spike compiles the arithmetic substrate in by source and can name nothing else of
 `Core`, so it has changed no simulation code at all.
 
@@ -245,9 +259,23 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
       the plan never asked for: the **entry error** against a true query (11.32% at the anchor) and
       **time resolution** as a hash-bearing decision — a Day-average matrix reports 1 one-way District
       pair where the morning peak has 76
-- [ ] **R2 — searched against looked-up path, and the crossover** *(attribution half settled by `adr/0041`)*
-- [ ] R3 — HPA\*, and the cluster size it owns
-- [ ] R4 — DSDV distance-vector *(conditional on R2)*
+- [x] **R2 — searched against looked-up path, and the crossover.** Done, and it **revived the task it
+      was supposed to retire**. The path source has **three** rungs, not two: `adr/0041` needs a *next
+      Segment* every Tick rather than a *path*, so a **next-hop table** — distance-vector's own data
+      structure — is a legitimate rung, and it is the better of the two survivors on error at
+      **18.52%** mean detour against a shared route's **36.01%**. **The searched rung is out on
+      arithmetic**, 716,800 ns per Leg against ~550 arrivals per Tick. **`adr/0041`'s *"no correctness
+      content"* is wrong on two counts** — the detour, and the structural finding that *every* Trip
+      into a District arrives through its one representative node, driving that node to **412%** `v/c`
+      where searched routes give **130%**. **Direct attribution is the cheaper scheme below a 105-Tick
+      cycle**, an order of magnitude past the ADR's estimate of ~10. **The aggregate scheme does not lag
+      the jam, it misses it** — *never* at every cycle including one Tick, 0.00% deposited on a Segment
+      carrying 108%; the two schemes agree on how many Segments are stressed and disagree on which.
+      **The crossing rate is 0.79–0.83, not 1.0.** And a volume-conservation check caught a harness
+      defect that had published a `v/c` of 883× with every other column looking healthy
+- [ ] **R3 — HPA\*, and the cluster size it owns.** Must quote **wall-clock, not expansions saved**
+- [ ] **R4 — DSDV distance-vector.** ~~*(conditional on R2)*~~ **LIVE** — R2 settled the condition
+      against it, and in DSDV's favour
 - [ ] R5 — the edit storm, and the Epoch ladder
 - [ ] R6 — the two caches, and `adr/0006`
 - [ ] R7 — the report, the verdict, and deleting the harness
@@ -270,11 +298,21 @@ roughly an order of magnitude and have been struck; size them from `spike-result
 
 Small, and each one is a place the corpus currently says something known to be wrong.
 
-- [ ] **`03 §3.3`, `§3.4`, `§3.6` — joint rewrite**, owed by `adr/0041`. The District-pair counter goes;
-      the circularity argument becomes structural; **force-promotion must stand on its own second
-      argument or go**
+- [ ] **`03 §3.3`, `§3.4`, `§3.6` — joint rewrite**, owed by `adr/0041` and now carrying R2's
+      evidence. The District-pair counter goes; the circularity argument becomes structural;
+      **force-promotion must stand on its own second argument or go** — and R2 removed the last
+      support for the first: `§3.3` confessed a *lag* and compensated for it, but the defect is that
+      the smear reports the jam **in the wrong place**, which no cadence and no second trigger fixes
 - [ ] **`adr/0012` amendment** — the route cache's **eviction policy** *and* its **key** (`adr/0012`'s
       *"keyed by origin-destination pair"* is ambiguous between nodes² and Buildings²)
+- [ ] **`adr/0041` amendment** — owed by S2 R2, on evidence. *"Searched per Trip or shared per
+      origin-destination pair is a performance axis with **no correctness content**"* is wrong on two
+      counts: a shared route costs **36.01%** mean detour and a next-hop table **18.52%**, and *every*
+      Trip into a District arrives through its **one representative node**, whose Stress is then an
+      artefact of the partition. **The ADR's substantive claim survives untouched** — experience and
+      contribution stay the same list of Segments under every rung — so this amends a sentence, not a
+      decision. Its **revisit trigger is also discharged**: the crossing rate is 0.79–0.83, not the
+      assumed 1.0, and the crossover sits at 105 Ticks rather than ~10
 - [ ] **`adr/0020` amendment** — owed by S2 R1, on evidence. *"A connected component of the District
       graph… a union-find"* is not what `CONTEXT.md` → Settlement defines, and the two disagree about
       the city where the city is fragmenting. Tarjan is still cheap; it is simply not the ADR's claim
@@ -341,6 +379,23 @@ Small, and each one is a place the corpus currently says something known to be w
       **nine searches** and was printed beside rows built from 2,244. Third instance of the corpus's
       recurring shape, after R0.5's *mean cost when found* and R0's dead Arterials. **Any later section
       that samples inside a swept partition must report its sample size per rung**
+- [ ] **An invariant is worth printing on the run where it reads *yes*, because it is worthless on
+      the run where nobody printed it.** R2's next-hop rung tested arrival *after* entering the last
+      arc, so an arriving Traveller was respawned without decrementing — `adr/0041`'s named
+      `adr/0006`-class defect, *"a road that looks busy forever."* It published a peak `v/c` of
+      **883×** while the footprint, the crossing rate, the detour and the crossover columns all looked
+      healthy. The ADR had already specified the invariant that catches it — *summed Segment volume
+      equals in-flight Travellers, every Tick* — and it found the bug on the first run it was printed.
+      **Fourth instance in this spike of R0's *"an argument for reporting a quantity you expect to be
+      boring"*, and the first where the corpus had written the check down in advance and the harness
+      had simply not run it.** R3, R5 and R6 all mutate state a conservation law covers
+- [ ] **Two measurements that agree to the last digit are not two measurements.** R2's shared and
+      next-hop rungs reported **byte-identical** peaks, because the next-hop fleet was being spawned
+      *at* the origin District's representative — which made it walk the shared route. The rung's whole
+      claim is that it is followed from wherever the Traveller actually is, and the experiment had
+      quietly removed the difference it existed to measure. **Nothing but the identical digits gave it
+      away.** R3 compares a hierarchy against a flat search over the same graph and is exposed to the
+      same class
 - [ ] **An error rate that moves with an unrelated optimisation is not evidence.** R0's heuristic
       multiplies by a floored reciprocal rather than dividing, to remove four hardware divisions per
       node. The reciprocal's ~2-in-10,000 slack **partially cancels an overestimating metric's error**:
@@ -363,7 +418,25 @@ Small, and each one is a place the corpus currently says something known to be w
 
 ## Owed — decisions, and who owns them
 
-- [ ] **Volume attribution's price** — S2 R2a. Decided by `adr/0041`; the cost is still unmeasured
+- [x] ~~**Volume attribution's price** — S2 R2a. Decided by `adr/0041`; the cost is still
+      unmeasured~~ **MEASURED by S2 R2a, and it is not a price.** Direct attribution costs
+      **139,437 ns/Tick** at the derived 56,000 in flight, against an aggregate smear whose
+      **crossover is 105 Ticks** at the anchor — so direct is the *cheaper* scheme at any plausible
+      congestion cycle, an order of magnitude past `adr/0041`'s estimate of ~10. The ADR's *"we are
+      knowingly paying for correctness"* understates its own case
+- [ ] **The path source** — S2 R2 left **two** rungs live and deliberately did not choose. Searched is
+      out on arithmetic; shared and next-hop rank differently at different District counts, have
+      different error profiles, and differ most on a property R2 cannot see. **R5 decides it**, because
+      that property is invalidation
+- [ ] **The representative funnel** — **NEW, produced by S2 R2**, and nothing in the corpus addresses
+      it. Under either surviving rung every Trip into a District passes through one node, so its Stress
+      is an artefact of the partition rather than a property of the city. Same defect class `03 §3.9`
+      rejects for the Microscopic Cap and `adr/0041` rejects for volume, arriving a third time by a
+      different door. Filed as `plans/0010` decision 11
+- [ ] **A player-drawn District still changes the city, through the *path source* rather than through
+      volume** — **NEW, produced by S2 R2.** `adr/0041` closed this defect for attribution; both
+      surviving path-source rungs key on the District, so moving a boundary moves a representative and
+      changes the Segments a Traveller drives. `plans/0010` decision 10
 - [x] ~~**The `adr/0020` exposure** — union-find computes weak connectivity, *"mutually reachable"* is
       strong~~ **SETTLED by S2 R1, against the ADR.** At a tight Commute Budget union-find returns
       **6 Settlements where Tarjan returns 8**, largest component 90 against 70 — a fifth of the map
