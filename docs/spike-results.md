@@ -2992,3 +2992,255 @@ of how the weights land; but *the plan's reason for it is not yet evidence.*
   both dead** against a 15.6 ms Tick budget. **R5 must have that cadence as an input before its edit
   storm means anything**, because an edit storm over a cost basis that is already being rebuilt
   continuously is measuring the wrong storm.
+
+---
+
+## S2 R4 — distance-vector, and the table that has to stay current
+
+> `plans/0010-s2-routing.md` R4. Raw capture in
+> `spikes/S2.Routing/results/s2-r4-intel-core-i5-10400-ddr2133-powersave-turbo.md`.
+
+**R4 is not a beauty contest between two routers**, and reading it as one would miss what R3 handed
+it. R3 found that no cluster size fits a per-Trip search into the Tick budget — the best rung breaks
+even at 85 Trip starts — and named R2's next-hop table as *"the rung this arithmetic does not touch…
+a structural advantage over both hierarchies rather than a faster constant, and it is R4's to
+press."* That table asks for **no search at all** when a Trip starts and 32 ns per Segment crossing
+after. At the derived 56,000 Travellers in flight and R2's measured 0.79 crossings each per Tick,
+that is **1.24 ms of a 15.6 ms Tick**. It fits.
+
+**So R4's subject is what that table costs to maintain**, and its answer arrives in two halves that
+point opposite ways: the maintenance question resolves cleanly and in favour of a scheme nobody had
+named, and the **granularity** question — which R2 opened and R4 was not looking at — gets very much
+worse.
+
+### The capture, and what it is not
+
+`powersave`, pinned to one physical core, turbo enabled; 24.18 s, CPU stall 1.35%. **The canonical
+`performance` capture is owed, exactly as R3's is.** Every *count* below is governor-independent and
+**bit-identical across two captures** — relaxations, rounds, wrong-entry counts and arc counts all
+reproduce exactly, and only nanosecond figures move, by 2–5%. No R4 decision rests on an absolute.
+
+### R4.1 — the origin-destination distribution, which S2 had been guessing since R0
+
+R0 drew pairs uniformly and said so, flagging it as a placeholder for the distribution R1 would
+derive. **R1 derived none; R2 and R3 inherited the placeholder unchanged**, and R3 had to publish
+every speedup as an upper bound because of it.
+
+| Shape | Mean | Median | p90 | Mean route | Draws/pair | Exhausted |
+|---|---:|---:|---:|---:|---:|---:|
+| **uniform** | **8.53 km** | 8.38 km | 14.05 km | 71.52 Ticks | 1.00 | 0 |
+| decay L=1024 | 5.24 km | 4.65 km | 10.13 km | 47.26 Ticks | 5.32 | 0 |
+| decay L=512 | 3.30 km | 2.79 km | 6.66 km | 35.04 Ticks | 14.97 | 0 |
+| decay L=256 | 1.83 km | 1.51 km | 3.58 km | 23.22 Ticks | 50.53 | 0 |
+| monocentric L=512 | 7.22 km | 7.06 km | 11.70 km | 61.72 Ticks | 11.14 | 0 |
+
+2,000 pairs per rung; route cost over the first 150. **This does not close the hole; it makes the
+hole an axis.** Nobody can produce the real distribution until Trips exist, and inventing one and
+calling it *the* distribution would bake a guess into every downstream figure while making it look
+like a measurement — which is precisely why R0 drew uniformly and was right to. What is available is
+this plan's own precedent: **report a curve, do not choose a number.**
+
+**Uniform is a rung of the same sampler rather than a separate path**, so a difference between rows
+is the shape and cannot be the machinery. This spike has twice caught an instrument that could not
+move and once caught two rungs that were secretly the same rung; a family whose null case is a member
+of the family is the cheap defence against both.
+
+**The finding is that uniform is not a neutral default — it is the extreme rung.** At 8.53 km mean on
+a 16.4 km map it is the longest-trip distribution available, and R4.8 shows that is exactly where the
+next-hop table looks best.
+
+### R4.2 — the memory wire fires, and it fires on granularity rather than on the protocol
+
+| Destinations | Granularity | Unsequenced | **DSDV** | Against the world |
+|---:|---|---:|---:|---:|
+| 121 | District, 11 a side | 15.41 MiB | **23.12 MiB** | 0.13× |
+| 400 | District, 20 a side | 50.95 MiB | 76.43 MiB | 0.44× |
+| 1,024 | District, 32 a side | 130.44 MiB | 195.66 MiB | 1.13× |
+| 16,697 | **node** | 2.07 GiB | **3.11 GiB** | **18.51×** |
+
+Against K0's 172.27 MiB world. Sequence numbers are a third of the table, so DSDV costs 50% more
+than the bare next-hop table R2 measured at 7.70 MiB.
+
+**At District granularity the wire does not fire.** At node granularity — the destination set an
+actual routing table carries, and the one Citybound's does — it fires by 18.5×, and **sequence
+numbers neither cause that nor would removing them fix it.** So distance-vector in this design can
+only ever address Districts, which is not a footnote about memory: **it is what imports R2's detour
+and the representative funnel**, because a destination the table can afford to name is a District and
+not a place. The correctness cost is *caused by* the memory constraint, and the corpus has discussed
+the two separately everywhere.
+
+### R4.3 — cold start, and the rung that was expected to lose does not
+
+| Build | Whole table | Per column | Relaxations | Worst rounds | Entries wrong |
+|---|---:|---:|---:|---:|---:|
+| backward Dijkstra | 395.30 ms | 3,266,954 ns | — | — | — |
+| vector exchange | **118.79 ms** | 981,804 ns | 14,333,149 | 175 | **0** |
+
+Bellman-Ford with an active set beats a binary-heap Dijkstra on this graph, because a degree-3
+network with well-behaved costs settles nearly in order anyway and the heap is pure overhead. **An
+earlier draft of this paragraph asserted the opposite**, written before the column existed; it is
+recorded because a spike whose prose predicts its own numbers will eventually publish the prediction
+instead of the number.
+
+**This does not show distance-vector is cheap.** Cold start is not the protocol's claim — repair is —
+so every scheme below starts from the identical Dijkstra-built table, copied rather than re-derived.
+
+### R4.4 — one deleted Segment, which is the core verb
+
+| Scheme | Per edit | Against rebuild | Relaxations | Wrong cost | Stranded |
+|---|---:|---:|---:|---:|---:|
+| **rebuild** — every column | 219.73 ms | — | — | — | — |
+| DSDV, sequenced | 475.91 ms | **2.16× slower** | 36,982,307 | 0 | 0 |
+| DSDV, unsequenced | 26.63 ms | 8.24× faster | 2,510,526 | 0 | 0 |
+| **dynamic repair** — affected subtree | **5.78 ms** | **37.99× faster** | 201,014 | **0** | **0** |
+
+8 deleted Segments, each repaired across all 121 columns; 16,162,696 entries audited per scheme
+against a table rebuilt on the edited graph.
+
+**DSDV is slower than the rebuild it exists to avoid, and the reason is structural rather than a
+constant.** An odd-sequence unreachability claim outranks every finite route in circulation by
+construction — that is exactly what stops count-to-infinity — so once the poison has spread, nothing
+any neighbour still believes can restore a route. Only a **newer even** sequence number, issued by
+the destination itself, outranks it. **One broken link therefore obliges the destination to re-flood
+its entire tree**, because every node must at minimum accept the new number. *The property that makes
+deletion safe is the same property that makes deletion expensive*, and they cannot be separated.
+
+**The scheme that wins was not on the ballot.** Invalidating the affected subtree and re-deriving it
+from its own valid boundary is not distance-vector, needs no sequence numbers and no Epoch, and was
+measured only because pricing solely the candidate a plan names is how a spike produces a verdict it
+has not earned.
+
+### R4.5 — a severed destination, and the claim `references.md` had only argued
+
+`references.md` is categorical — *"if we adopt distance-vector routing, we take DSDV's version, not
+Citybound's"* — because Citybound's entries carry no sequence numbers and link deletion
+count-to-infinities. **Under `adr/0043` that is a measurable claim that had never been measured.**
+
+| Scheme | Rounds | Relaxations | Converged | Wrong cost |
+|---|---:|---:|---|---:|
+| DSDV, sequenced | 121 | 133,258 | yes | **0** |
+| DSDV, unsequenced | 4,096 | **215,894,753** | **no** — hit the cap | **16,684 of 16,697** |
+| **dynamic repair** | 0 settles | 130,114 | yes | **0** |
+
+Every arc into and out of one District's representative deleted — a bulldozed cul-de-sac.
+
+**The claim is confirmed, and by a wide margin.** The unsequenced version does **1,620× the work**,
+fails to converge within 4,096 rounds, and leaves all but 13 of 16,697 entries wrong. *Take DSDV's
+version, not Citybound's* is now a finding rather than a reading. **It does not rescue DSDV**, which
+loses R4.4 to a scheme that converges here too, at comparable cost and with nothing wrong.
+
+### R4.6 — congestion drift, the exposure R3 left unpriced
+
+The Epoch bumps on an *edit*; the VDF makes travel time a function of `volume / capacity`;
+`adr/0041` moves volume **every Tick**. **A deleted road is the core verb; a changed travel time is
+every Tick.**
+
+| Arcs moved | Rebuild | DSDV, sequenced | Dynamic repair | Repair vs rebuild |
+|---:|---:|---:|---:|---:|
+| 0.10% (57) | 223.56 ms | 384.14 ms | 37.93 ms | **5.89×** |
+| 1.00% (635) | 274.49 ms | 546.13 ms | 148.68 ms | **1.84×** |
+| 10.00% (6,474) | 245.61 ms | 411.89 ms | 349.97 ms | 0.70× |
+| 100.00% (64,138) | 200.69 ms | **5,327.70 ms** | 377.52 ms | 0.53× |
+
+**The break-even is between 1% and 10% of arcs moved**, and nothing in the corpus says which side the
+design lands on, because the refresh cadence is `plans/0010` decision 2 and still open. Below it,
+incremental repair wins; above it, **a plain rebuild wins and every incremental scheme is doing extra
+work to reach the same table.** So **the cadence chooses the maintenance scheme** — which nobody has
+said, about a decision filed as tuning.
+
+### R4.7 — the rolling refresh, which needs none of this machinery
+
+| Columns per Tick | Cost per Tick | Share of 15.6 ms | Worst staleness |
+|---:|---:|---:|---:|
+| 1 | 1,673,650 ns | **10.72%** | 121 Ticks |
+| 4 | 6,694,600 ns | 42.91% | 31 Ticks |
+| 121 | 202,511,650 ns | 1298.14% | 1 Tick |
+
+**A rebuild is not the fallback anybody feared** — 1.75 ms per column, so a full rotation every 121
+Ticks costs a tenth of one Tick. What it cannot do is answer an *edit* promptly, because a rotation
+is a cadence and an edit is an event. **Drift wants a slow rotation and the core verb does not**, so
+the two consumers need different mechanisms.
+
+### R4.8 — the finding R4 was not looking for, and it is the largest one
+
+R2 measured a next-hop table's mean detour at **18.52%** — on the uniform draw R4.1 has now shown to
+be the longest-trip rung available. Aiming a Traveller at a District **representative** is a roughly
+fixed error in Ticks charged against a shrinking journey, so it should worsen as trips get shorter.
+
+| Shape | Mean O-D | Mean detour | p90 | Worst |
+|---|---:|---:|---:|---:|
+| uniform | 8.53 km | **20.14%** | 45.65% | 815.18% |
+| decay L=1024 | 5.24 km | **36.04%** | 69.24% | 1347.93% |
+| decay L=512 | 3.30 km | **62.02%** | 154.58% | 1835.31% |
+| decay L=256 | 1.83 km | **128.82%** | 241.79% | 5165.15% |
+| monocentric L=512 | 7.22 km | 24.97% | 51.59% | 791.76% |
+
+At the morning peak, ~197 samples per rung. The tail search starts at a Segment incident to the
+representative rather than at the node, which can only make the followed route look cheaper, so
+**these are lower bounds**; R2's, at node granularity, was an upper one, and the two bracket rather
+than contradict.
+
+**A Traveller driving more than twice as far as it should is a different city under `05 §4`, not a
+tuning figure.** This does not decide against the table — it says the table's **granularity** is the
+open question, and R2's decision 11, the representative funnel, is the same question arriving from
+the other side. **The two must be answered once.**
+
+### What R4 decided, and what it did not
+
+**Decided.**
+
+- **Distance-vector is out, on none of the three grounds anybody expected.** Not memory — at District
+  granularity it is 23.12 MiB against a 172.27 MiB world and the wire does not fire. Not correctness
+  — with sequence numbers it converges to exactly the rebuilt table, on a deleted Segment and on a
+  severance alike. **It is out because it costs more than the rebuild it exists to avoid** (2.16×)
+  and 82× more than the scheme this plan never named.
+- **`references.md`'s sequence-number claim is confirmed by measurement**, 1,620× the work and still
+  wrong without them. Under `adr/0043` it had been an argument; it is now a number.
+- **Dynamic subtree repair is the maintenance scheme**, at 5.78 ms against a 219.73 ms rebuild, 0
+  entries wrong, and it converges on a severance too.
+- **A full rebuild is affordable as a rotation** — 10.72% of a Tick for a full pass every 121 Ticks —
+  and unaffordable as an edit response.
+
+**Not decided, and owed.**
+
+- **The next-hop table's error is far worse than R2 measured**, and R4 does not know what to do about
+  it. R4.8 is a granularity question, not a routing one, and it belongs with R2's representative
+  funnel.
+- **The drift break-even sits between 1% and 10% of arcs moved**, so the matrix refresh cadence
+  chooses the maintenance scheme. Filed as tuning; it is not.
+- **The O-D family is an axis, not a measurement.** What would replace it is Trip generation, which
+  does not exist. Every figure in R4.8 — and every speedup R3 published — is a point on a curve
+  nobody can yet locate.
+
+**Four defects in R4's own harness, all caught by instruments rather than by reading.**
+
+- **The sequenced protocol was missing DSDV's acceptance rule** — a node must *reject* an
+  advertisement older than what it already holds, not merely prefer newer ones. Without it a poisoned
+  node kept its odd sequence number while adopting a neighbour's stale finite cost, then advertised
+  that stale cost under the high sequence its own poison had earned. **The first capture read 232
+  seconds per edit and would have published *distance-vector loses by three orders of magnitude*.**
+  With the rule it is 475.91 ms. What flagged it was R2's recorded lesson: the two protocols were
+  reporting near-identical relaxation counts and *identical* wrong-entry counts, and **two
+  measurements that agree that closely are not two measurements.**
+- **The poison phase was a silent no-op**, seeded with the nodes that detect the break rather than
+  the nodes they advertise to. In DSDV the detector *advertises*; the advertisement is the event, not
+  something a node discovers by looking around. It converged in 2 rounds and 24 relaxations while
+  leaving 16,680 of 16,697 entries wrong — **and reported "converged: yes", because a phase that does
+  nothing does it very quickly.**
+- **The audit counted the destination itself as stranded**, one phantom per column, which read as a
+  suspiciously round 121. **A defect that produces a plausible number is worse than one that produces
+  an absurd one.**
+- **The elapsed-time helper overflowed.** `elapsed × 1,000,000,000` passes `long.MaxValue` at ~9.2 s
+  on a nanosecond clock, and the first capture published **−8,267.51 ms** for the rung that then took
+  four minutes. Every earlier S2 section times loops far below that threshold, so the expression has
+  been correct everywhere else in this harness — **a helper is only as safe as the largest quantity
+  anybody has yet asked it to measure.**
+
+### R3's denominator finding reproduces a third time, and it reconciles R2
+
+R4.3 measures 121 backward Dijkstras at **395.30 ms**; R4.4 measures the identical rebuild at
+**219.73 ms** — **1.80× apart in one process**, the earlier one first. That is R3's *a denominator
+measured first has a systematic error* arriving again without being looked for, and it substantially
+explains why R2 published 474.47 ms for the same operation: R2's was also a first-timed measurement.
+**Every R4 ratio is taken in-process against R4's own figure**, per R3's rule, so no conclusion moves
+— but two S2 tasks publishing different absolutes for one operation is R7's to reconcile.

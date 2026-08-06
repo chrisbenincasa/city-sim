@@ -49,6 +49,8 @@ internal static class CounterHash
         TravellerOrigin = 13,
         TravellerDestination = 14,
         SurgeOrigin = 15,
+        OdAccept = 16,
+        EditSegment = 17,
     }
 
     public static ulong Of(ulong seed, ulong entity, ulong counter, Purpose purpose) =>

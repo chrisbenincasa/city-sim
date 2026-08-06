@@ -626,7 +626,62 @@ rendering, saves and work partitioning.
 > inside one block and 1.75% at two, so the plan's claim holds if and only if walk Legs are
 > overwhelmingly single-block — which the corpus has never said and S2 cannot measure.
 
-### R4. DSDV distance-vector, if R2 leaves it live — **LIVE. R2 settled the condition, against it**
+### R4. DSDV distance-vector, if R2 leaves it live — **DONE**
+
+> **Done. Numbers and the decision each produced in [`spike-results`](../docs/spike-results.md) §S2 R4;
+> raw capture in `spikes/S2.Routing/results/s2-r4-*.md`.** Headlines, because four of them change a
+> later task in this plan rather than merely closing this one:
+>
+> - **Distance-vector is out, and on none of the three grounds this plan anticipated.** Not memory —
+>   at District granularity the table is **23.12 MiB** against a 172.27 MiB world and **the tripwire
+>   below does not fire**. Not correctness — with sequence numbers it converges to *exactly* the
+>   rebuilt table, on a deleted Segment and on a severance alike. **It is out because it costs more
+>   than the rebuild it exists to avoid**: 475.91 ms against 219.73 ms for one deleted Segment,
+>   **2.16× slower**, and 82× more than a scheme this plan never named.
+> - **The reason is structural and no tuning recovers it.** An odd-sequence unreachability claim
+>   outranks every finite route in circulation *by construction* — which is exactly what stops
+>   count-to-infinity — so only a **newer even** number from the destination itself can restore a
+>   route. One broken link therefore obliges the destination to **re-flood its whole tree**. *The
+>   property that makes deletion safe is the property that makes deletion expensive.*
+> - **The scheme that wins was not on the ballot: dynamic subtree repair**, at **5.78 ms** against a
+>   219.73 ms rebuild with **0 entries wrong**, and it converges on a severance too. It is not
+>   distance-vector, needs no sequence numbers and no Epoch, and was measured only because pricing
+>   solely the candidate a plan names is how a spike produces a verdict it has not earned.
+>   **R5's ladder is owed this rung.**
+> - **`references.md`'s sequence-number claim is confirmed by measurement** — 1,620× the work and
+>   still 16,684 of 16,697 entries wrong without them. Under `adr/0043` it had been an argument.
+> - **And the finding R4 was not looking for, which is the largest one.** R2's **18.52%** mean detour
+>   was measured on the uniform draw, which R4.1 shows is the **longest-trip distribution available**
+>   at 8.53 km mean on a 16.4 km map. Aiming a Traveller at a District representative is a roughly
+>   fixed error charged against a shrinking journey, so the detour rises to **36.04%**, **62.02%** and
+>   **128.82%** as trips shorten. **A Traveller driving more than twice as far as it should is a
+>   different city under `05 §4`.** This does not decide against the table; it says the table's
+>   **granularity** is the open question, and it is R2's decision 11 arriving from the other side.
+> - **The O-D draw is no longer a silent placeholder.** R4.1 replaces it with a **swept family** —
+>   uniform, distance-decay at three lengths, monocentric — with uniform as a rung of the same
+>   sampler so a difference between rows cannot be the machinery. **R5 and R6 inherit it**, which is
+>   what makes R6 runnable at all.
+> - **Congestion drift is priced and the break-even is between 1% and 10% of arcs moved.** Below it
+>   incremental repair wins; above it a plain **rebuild** wins outright. **So the matrix refresh
+>   cadence chooses the maintenance scheme** — a decision this plan files as tuning, which it is not.
+> - **A full rebuild is affordable as a rotation and not as an edit response**: 10.72% of one Tick for
+>   a full pass every 121 Ticks. *Drift wants a cadence; the core verb is an event.*
+>
+> **Four defects in R4's own harness**, all caught by instruments rather than by reading, and one of
+> them nearly cost a verdict: the sequenced protocol was missing DSDV's **acceptance rule**, and the
+> first capture read **232 seconds** per edit — it would have published *distance-vector loses by
+> three orders of magnitude*. What flagged it was R2's own recorded lesson, that **two measurements
+> agreeing that closely are not two measurements**. Also a poison phase that was a silent no-op and
+> reported *converged: yes*, an audit that counted the destination itself as stranded, and an
+> elapsed-time helper that **overflowed past 9.2 seconds** and published −8,267.51 ms.
+>
+> **R3's denominator finding reproduces a third time and reconciles R2 on the way past.** The same
+> 121 backward Dijkstras read **395.30 ms** measured first in the process and **219.73 ms** measured
+> later — 1.80× — which substantially explains R2's 474.47 ms for the same operation. R7 owes the
+> reconciliation.
+
+#### The task as it was written, before the numbers
+
 
 ~~**Conditional on R2.** If the matrix carries the choice loop and Statistical Trips need no concrete
 path, the many-to-many argument for distance-vector has evaporated and this task is written up as
@@ -665,7 +720,32 @@ clusters assume, and distance-vector without sequence numbers imports a failure 
 game's most common player action. **PRA\* is out** and was rejected structurally — its abstraction is
 derived from connectivity, so a topology edit changes the partition.
 
+> **Both standings are now measured, and the second one held for a reason nobody had checked.**
+> Distance-vector's failure without sequence numbers is real — 1,620× the work and still wrong — but
+> *with* them the protocol is correct and simply too expensive, so the reading was right about the
+> hazard and wrong about which property kills it. **What R4 does not do is decide the router**, and
+> it is worth being explicit that the task's *Decides* line above overstates what it could reach: R4
+> settled **maintenance**, and maintenance turns out to be a separable question from **path source**.
+> Dynamic subtree repair maintains a next-hop table, and it would maintain HPA\*'s abstract graph on
+> the same argument. **R5 and R6 still own the router.**
+
 ### R5. The edit storm — the test the city actually imposes
+
+> **R4 hands R5 four things and one of them changes the ladder below.**
+>
+> - **A fourth rung is owed on the ladder: dynamic subtree repair.** R4 measured it at **5.78 ms**
+>   against a 219.73 ms rebuild on a single deleted Segment, correct, and correct on a severance too.
+>   The three-rung Epoch ladder below is about *what survives an edit*; this is about *what it costs
+>   to make the survivors correct again*, and they compose rather than compete.
+> - **The O-D draw is no longer uniform.** R4.1's swept family is in the harness and R5's storm
+>   should run against it, because hit rate under any invalidation rung is a property of the
+>   distribution and R3's figures were an upper bound for exactly this reason.
+> - **The refresh-cadence input R3 said R5 must have is now priced.** R4.6 puts the incremental /
+>   rebuild break-even between **1% and 10% of arcs moved per refresh**. R5 no longer needs the
+>   cadence as an unknown input to *every* figure — it needs it to know which side of that break-even
+>   the design sits on, which is a narrower and answerable question.
+> - **A drag deleting hundreds of Segments in one gesture is still the open case**, and it is what
+>   R3 deferred cluster size to R5 for. R4 measured single edits only.
 
 The measurement that separates a routing design that works from one that works on a static graph.
 
@@ -720,6 +800,16 @@ R3's and R4's ranking.
 > stops being an optimisation measured after the choice and becomes a condition the choice depends on.
 > It also inherits a partial answer: R3's stored path arena already caches the intra-cluster half, at
 > 223.92 KiB, so R6's remaining question is the O-D half.
+
+> **R4 removes R6's blocker, which was that this task was not runnable as written.** The bullet below
+> says *"measure hit rate against R1's real O-D distribution rather than a uniform one, which would
+> flatter it"* — and R1 produced no such distribution. A hit rate measured on a uniform draw is close
+> to meaningless, because what makes a route cache work is that real Trips **repeat**. **R4.1
+> supplies a swept family instead** — uniform, distance-decay at three lengths, monocentric — so R6's
+> instruction becomes *report hit rate as a curve across the family, naming the rung beside every
+> figure*. Same handling this plan already gives District count, the Microscopic Cap and the peaking
+> factor. **It is still not the real distribution**, which needs Trip generation; R6 must say so
+> beside its numbers rather than let a curve read as a fact.
 
 [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md) permits route caching **keyed
 by origin-destination pair, never by agent**, invalidated lazily against the Epoch. That is exactly
@@ -792,7 +882,7 @@ meaning depends on an unstated machine is not a threshold** — so each row name
 | Either router needs a **global flush** on a Road Graph edit | That candidate is out on a design commitment, not on a number |
 | An attribution scheme **cannot report a jam within the congestion cycle it happens in** (R2b) | That scheme is out on a design commitment, not on a number. `03 §3.4`'s self-correcting circularity is the load-bearing assumption of the fidelity model and a lagging detector breaks it |
 | The route cache **grows at steady state** with no bound | `adr/0006` violated. Fix the cache, not the ADR |
-| DSDV's routing tables exceed the **whole world's 172.3 MiB footprint** | Distance-vector is out on memory alone |
+| ~~DSDV's routing tables exceed the **whole world's 172.3 MiB footprint**~~ **MEASURED by R4, and it does not fire — at the granularity the design can use** | Distance-vector is out on memory alone. **At the 121-District anchor DSDV is 23.12 MiB, 0.13× the world; at node granularity it is 3.11 GiB, 18.51×.** So the wire fires on *granularity* and not on the protocol, and sequence numbers neither cause it nor would removing them fix it. **Distance-vector went out on cost instead** — 2.16× a full rebuild — which no row here anticipated |
 
 **R3 adds a rule about how a wire is stated, and it applies to every row above.** *Gather a tripwire
 as direct data wherever the data exists, and where it does not, invert the derivation until what is
@@ -951,6 +1041,35 @@ the representative, which changes the Segments a Traveller actually drives — a
 under `05 §4` a different city. Only the **searched** rung is free of it, and R2 priced that rung out.
 *Recommended handling: this is `02 §2.1`'s player-adjustable District meeting `03 §3.9`'s rule for the
 third time, and it belongs with them rather than inside S2. R7 states it; the corpus decides.*
+
+**12. The maintenance scheme, and the cadence that chooses it — NEW, produced by R4.** R4 measured
+four ways to keep a precomputed routing structure correct after the graph changes, and the winner —
+**dynamic subtree repair**, 5.78 ms against a 219.73 ms rebuild — is not in this plan anywhere. What
+is owed is not the choice, which is measured, but the observation underneath it: **R4.6 puts the
+incremental-versus-rebuild break-even between 1% and 10% of arcs moved per refresh**, so the
+**travel-time matrix refresh cadence (decision 2) chooses the maintenance scheme.** A decision filed
+as *tuning* turns out to select an algorithm. *Recommended handling: settle it with decisions 2 and
+2a, which are already the same argument about the same object.*
+
+**13. The District-granular route's error is a granularity decision, not a routing one — NEW,
+produced by R4, and it is decision 11 arriving from the other side.** R2 published **18.52%** mean
+detour for a next-hop table and R4 found that figure to be a property of the **draw**: on the uniform
+distribution every S2 task had inherited it is 20.14%, and on a plausible local-trip distribution it
+is **128.82%**. Aiming a Traveller at a District representative is a roughly fixed error in Ticks
+charged against a shrinking journey, so the coarser the destination the worse short trips get — and
+short trips are most trips in most cities. **A Traveller driving more than twice as far as it should
+is a different city under `05 §4`.** The corpus has no position on how coarse a routing destination
+may be. *Recommended handling: answered once, with decision 11 and with decision 8's question about
+what the Commute Budget resolves — all three are the same question about what a District-granular
+answer is allowed to be wrong by.*
+
+**14. The origin-destination distribution — NEW as a *named* debt, though R0 flagged it and four
+tasks inherited it.** R4.1 replaces the silent uniform draw with a swept family and every R4 figure
+names its rung, which is this plan's standing practice. **What it does not do is measure anything**:
+the family is invented, and what would replace it is Trip generation. *Recommended handling: R7
+records the family as a placeholder with a named successor, and no document may cite a figure derived
+from it without naming the rung. The board already carries the general form of this failure — a curve
+reported as a fact is how the ~400k Trips/Day figure survived.*
 
 **11. The representative funnel — NEW, produced by R2, and nothing in the corpus addresses it.** Under
 either coarse rung *every* Trip bound for a District arrives through that District's single

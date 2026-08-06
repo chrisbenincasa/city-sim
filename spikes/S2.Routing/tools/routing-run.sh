@@ -10,6 +10,8 @@
 #
 #     sudo spikes/S2.Routing/tools/routing-run.sh                 every section
 #     sudo spikes/S2.Routing/tools/routing-run.sh --matrix        R1 only
+#     sudo spikes/S2.Routing/tools/routing-run.sh --cluster       R3 only
+#     sudo spikes/S2.Routing/tools/routing-run.sh --vector        R4 only
 #
 # Run as root for the canonical capture, which is `performance` with turbo enabled. It also runs
 # without root, under whatever configuration the machine is already in, and labels the result with
