@@ -12,18 +12,88 @@ tiers run in release on every Tick and at the end of every run, `--census` print
 collection did over a run, and a panic writes a crash artifact that replays back into the same panic.
 **Slice 6, Map Layers, is the last slice before the Phase 1 gate closes.**
 
+**What is in front of the project is mostly argument, not code.** Slices 7–10 and every Phase 2
+milestone are gated on designs written from research and never grilled — eleven sessions, tabulated
+below, none of which touches slice 6 and almost all of which can run beside it. The board used to
+list those gates as 🔴 marks against slices, which read as *wait*; they are work, and they are
+available now.
+
 ---
 
 ## Do these next
 
-| | Task | Where | Why this one |
-|---|---|---|---|
-| **1** | **S2 R0 — the synthetic Road Graph and the denominator** | [`0010`](0010-s2-routing.md) | Parallel track, blocks nothing and is blocked by nothing. The project's **top risk**, and the best-specified work in the repository. The net it wanted under it now exists |
-| **2** | **Slice 6 — Map Layers** | [`0009`](0009-map-layers.md) | The next slice in `0003`'s order, and the first one whose cadence is a hash-changing decision the corpus records as owed |
+**Three tracks, and they do not contend for anything.** The code track is somebody at a keyboard, the
+argument track is a grilling session, the spike track is a machine running unattended. This board has
+only ever ordered the first — which is why Phase 2 has looked further away than it is. **Almost
+nothing standing between here and Phase 2 is code.**
+
+| | Track | Task | Where | Why this one |
+|---|---|---|---|---|
+| **1** | spike | **S2 R0 — the synthetic Road Graph and the denominator** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. Blocked by nothing, blocks nothing |
+| **2** | code | **Slice 6 — Map Layers** | [`0009`](0009-map-layers.md) | Last slice before the Phase 1 gate closes. Settle its **diffusion cadence** inside it — `0003` files that as owed and blocking |
+| **3** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | `06` says it **must not slip behind 3c**, and slice 6 *is* 3c's Layers half. By the corpus's own instruction this session is already due |
+| **4** | argument | **`02 §4` residue** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | The nearest gate on the code path. Slice 7 waits on it and slice 7 is next after 6 |
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
-what moved. The remaining slice-5 tasks are no longer in front of it.
+what moved. Slice 5 is closed and no longer in front of it.
+
+*Why an argument session sits this high for the first time:* every remaining Phase 1 slice and every
+Phase 2 milestone is gated on one, and none of them is gated on code. Running them behind the code
+rather than beside it is what would make the Phase 1 gate a wall instead of a line.
+
+---
+
+## The argument track — what stands between here and Phase 2
+
+**Phase 2 is not blocked by code.** Every milestone in it (`06` 5a–10) waits on a design written from
+research and never argued, on one spike, or on a number nobody has chosen. `0002`'s readiness review
+states the shape plainly: *Phase 2's wall is one large item, not many small ones.*
+
+**None of these touches Map Layers, so all of them run in parallel with slice 6** unless the last
+column says otherwise. Ordered by what they unblock, soonest first. Each is a session, not a task.
+
+*Slices and milestones share numbers and are not the same thing* — slice 8 is hot reload and
+milestone 8 is parking — so the *Unblocks* column always says which.
+
+| | Session | What is actually missing | Unblocks | With slice 6 |
+|---|---|---|---|---|
+| **A** | **`adr/0015`** — hot reload | Never grilled at all. `06` asserts it *must not slip behind 3c* and gives no reasoning for the assertion; it is gated on an argument, not on more code | slice 8 | **yes** |
+| **B** | **`02 §4` residue** | Fallback chain depth and **cycle checking** — `on_fail` chains are the whole diagnostic story and are currently unbounded, and nine Resources plus a Policy layer make them longer. Also whether `mean_workforce_experience` is a legitimate Building Readout, and **what a predicate may read** | slices 7, then 10 | **yes** |
+| **C** | **`02 §7` + `adr/0006`** — Event Wheel | Both never grilled. `02 §7` is partly spoken for by `adr/0033` and must be **read against it rather than fresh** | slice 9 | **yes** |
+| **D** | **`03 §5`** — the traffic model | **The wall.** The most detailed unargued design in the project, now carrying transit vehicles. It is one large item and should be booked as more than one sitting | milestones 5b, 5c, 6, 7a | **partly** — the half that wants S2's numbers waits for R1–R3; the rest does not |
+| **E** | **`adr/0005` + `adr/0007`** — fidelity | One session, not two: `0007` moved Fidelity from person to **place**, and `0005`'s tiers are what it moved. Written from research, not argued | milestones 7a, 7b | **yes** |
+| **F** | **`adr/0008`** — walking is a simulated Leg | Written from research. It is what makes 5b *the irreversible milestone*, so the argument is owed before the Leg model is built rather than after | milestone 5b | **yes** |
+| **G** | **`adr/0016`** — the lane is the entity | Written from research. Carries the order-of-magnitude claim the whole microscopic tier rests on | milestone 6 | **yes** |
+| **H** | **`adr/0009`** — parking is modelled supply | Written from research. Its `adr/0006`-class occupancy leak is already named and needs the invariant specified with it | milestone 8 | **yes** |
+| **I** | **`adr/0012`** — routing intent lives in the agent | Written from research, and already owes an amendment: the route cache's **eviction policy** and its **key** | milestone 5c | **after S2 R6** — the two caches are R6's subject |
+| **J** | **`05 §7` format half**, plus **map size** and **Outside Connection layout** | The three things `06`'s open-decisions table still has blocking save/load, narrowed from the map question that `adr/0020`–`0022` otherwise closed | milestone 10 | **yes** |
+| **K** | **`06-roadmap.md` itself** | 🔴 and *materially out of date: it sequences work that predates conserved Money, Hinterlands, Office, and the labour system.* Ordering to be **re-derived, not patched** | Planning Phase 2 at all | **last** — A–J move what it sequences |
+
+**Not arguable, and it is worth being explicit about why.** The **Microscopic Cap**'s value needs a
+built traffic model; S2 R2 only informs it. **S2** itself is measurement — argument cannot close it,
+which is exactly why it sits at the top of the code-adjacent order rather than in this table.
+
+**Cheap, and due before slice 7 rather than during it:** a **TOML parser library is unnamed**, and
+`adr/0003` requires any core dependency be argued against it explicitly. A determinism liability
+entering the core needs a written exception. `0003` calls this argument cheap and says it should not
+happen mid-slice.
+
+### What must *not* be grilled yet
+
+`0002` names these as playtest questions wearing design-question clothing, and the argument track
+should not drift into them: health (#26), recreation (#27), Service variants (#28), car ownership
+(#3), private capital (#7), and `01-player §1/§3/§4`. The governability problem especially —
+*268 km² of individually-placed service Buildings* — **is not answerable by argument.** Somebody has
+to try placing them.
+
+### Audit these for the shape `adr/0003`'s debt had
+
+`0002` recorded a finding worth acting on before booking any of A–K: `adr/0003`'s owed validation sat
+undischarged because **two separate debts had been filed as one**, and the runnable half was parked
+behind a grilling session it did not actually need. Its own instruction — *worth auditing the other
+🔴-blocked debts for the same shape* — has not been carried out. Doing it first is cheap and may
+move work out of this table and into the code track.
 
 ---
 
@@ -86,12 +156,22 @@ what moved. The remaining slice-5 tasks are no longer in front of it.
 
 ## Unblocked, in order
 
-### Main track
+### Main track — code
 
-- [ ] Slice 5 task 7 — the long-run test *(carries `series(metric, window)`)*
-- [ ] Slice 5 task 8 — the crash artifact
-- [ ] **Slice 6 — Map Layers** — [`0009`](0009-map-layers.md). Gate cleared
+- [ ] **Slice 6 — Map Layers** — [`0009`](0009-map-layers.md). Gate cleared. Settle the diffusion
+      cadence inside the slice
 - [ ] *the Phase 1 gate closes here*
+- [ ] **S0** — the synthetic 1M-Citizen city. Unblocked the moment slice 6 lands, and **the corpus
+      forbids opening Phase 2 content until it has run**
+- [ ] Slices 7–10 — each behind a session in the argument track above, not behind code
+
+### Parallel track — argument ([the table above](#the-argument-track--what-stands-between-here-and-phase-2))
+
+- [ ] **A** — `adr/0015`, hot reload · **B** — `02 §4` residue · **C** — `02 §7` + `adr/0006`
+- [ ] **D** — `03 §5`, the traffic model *(more than one sitting)*
+- [ ] **E**–**I** — the six research-written ADRs *(`0005`, `0007`, `0008`, `0009`, `0012`, `0016`)*
+- [ ] **J** — save/load's three: `05 §7`'s format half, map size, Outside Connection layout
+- [ ] **K** — re-derive `06`'s milestone ordering, last
 
 ### Parallel track — S2, routing ([`0010`](0010-s2-routing.md))
 
@@ -166,11 +246,17 @@ Small, and each one is a place the corpus currently says something known to be w
 
 ## Blocked
 
-| | Blocked on |
-|---|---|
-| **Slice 7** — Rule engine, Bins and Rules | 🔴 `02 §4` residue |
-| **Slice 8** — Rule engine, hot reload | 🔴 `adr/0015` |
-| **Slice 9** — Event Wheel | 🔴 `02 §7`, `adr/0006` |
-| **Slice 10** — Zone Rules | 🔴 depends on slice 7 |
-| **S0** — synthetic 1M-Citizen city | slices 4–6. *Until it exists, 1M is a hope* |
-| **Phase 2 and Phase 3** | unplanned by design, and stay that way until S0 runs |
+**Every row here but one names a session rather than a piece of work**, and that is the point of the
+rework. S0 is the single row waiting on code; everything else is waiting on an argument nobody has
+had, which means none of it has to wait for slice 6.
+
+| | Blocked on | Which is |
+|---|---|---|
+| **Slice 7** — Rule engine, Bins and Rules | 🔴 `02 §4` residue | session **B**, and the TOML dependency exception |
+| **Slice 8** — Rule engine, hot reload | 🔴 `adr/0015` | session **A** — *already* overdue against `06` |
+| **Slice 9** — Event Wheel | 🔴 `02 §7`, `adr/0006` | session **C** |
+| **Slice 10** — Zone Rules | depends on slice 7 | session **B**, transitively |
+| **S0** — synthetic 1M-Citizen city | slice 6. *Until it exists, 1M is a hope* | the only row here blocked on code |
+| **Phase 2 milestones 5a–10** | 🔴 `03 §5` and six research-written ADRs, plus S2 | sessions **D**–**J**, plus a spike |
+| **Planning Phase 2 at all** | S0 must have run, and `06` must be re-derived | session **K** |
+| **Phase 3** | unplanned by design, and stays that way | — |
