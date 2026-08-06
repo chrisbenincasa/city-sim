@@ -1,3 +1,4 @@
+using System.Globalization;
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Input;
@@ -21,6 +22,16 @@ internal static class Session
     /// <summary>The exit code for a replay refused before it started.</summary>
     private const int Refused = 3;
 
+    /// <summary>
+    /// The exit code for a run that started and then panicked.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from <see cref="Refused"/> because the two want opposite responses: a refusal means
+    /// the invocation was wrong and nothing ran, and a panic means the simulation is wrong and there
+    /// is now a file about it.
+    /// </remarks>
+    private const int Panicked = 4;
+
     public static int Run(Options options)
     {
         InputLog log = Load(options);
@@ -42,22 +53,87 @@ internal static class Session
         var hashes = new List<ulong>();
         Census? census = options.Census ? new Census(simulation.World) : null;
 
-        Replay.Trace(simulation, log, new Ticks(options.Ticks), options.HashEvery, hashes, census);
-
-        // 02 §10's end-of-run tier, on every run rather than behind a flag. It is O(world) once, so
-        // it costs nothing against a run of any length, and a check that is off by default is a
-        // check that is off. The trace is written first so a violation does not cost the numbers.
-        Write(options, log, hashes, check.HashBroken);
-
-        if (census is not null)
+        try
         {
-            CensusReport.Print(Console.Out, simulation.World, census, options.Ticks);
-        }
+            Replay.Trace(simulation, log, new Ticks(options.Ticks), options.HashEvery, hashes, census);
 
-        simulation.CheckEndOfRun();
+            // 02 §10's end-of-run tier, on every run rather than behind a flag. It is O(world) once,
+            // so it costs nothing against a run of any length, and a check that is off by default is
+            // a check that is off. The trace is written first so a violation does not cost the
+            // numbers.
+            Write(options, log, hashes, check.HashBroken);
+
+            if (census is not null)
+            {
+                CensusReport.Print(Console.Out, simulation.World, census, options.Ticks);
+            }
+
+            simulation.CheckEndOfRun();
+        }
+        catch (Exception fault) when (fault is not OutOfMemoryException)
+        {
+            // 05 §8: catch at the Tick boundary rather than unwinding the process. Broad on purpose —
+            // this is the handler whose whole job is to turn any panic into a reproduction, and one
+            // that only recognised the failures already thought of would be missing exactly the ones
+            // worth catching. Out of memory is the exception: writing a file needs memory, and
+            // failing there would bury the original.
+            return Panic(options, log, simulation.Tick, check.InForce, fault);
+        }
 
         return 0;
     }
+
+    /// <summary>
+    /// Writes the reproduction and says how to run it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>Simulation.Tick</c> is the Tick that panicked, and that is not an accident.</b>
+    /// <c>Step</c> advances the counter after its phases rather than before, so a phase that throws
+    /// leaves the Tick naming the failure instead of the one after it. An artifact off by one Tick
+    /// would send its reader to a Tick where nothing is yet wrong.
+    /// </para>
+    /// <para>
+    /// <b>The trace is deliberately not written.</b> A run that panicked has a partial one, and a
+    /// partial trace is indistinguishable from a complete one once it is a file — it would be diffed
+    /// against a full run and the missing tail read as a divergence. Nothing is lost by omitting it:
+    /// replaying the artifact regenerates it up to the panic, which is the point of the artifact.
+    /// </para>
+    /// </remarks>
+    private static int Panic(
+        Options options, InputLog log, Ticks tick, ulong rulesetHash, Exception fault)
+    {
+        string path = options.CrashPath
+            ?? string.Create(CultureInfo.InvariantCulture, $"crash-{tick.Raw}{CrashArtifact.Extension}");
+
+        CrashArtifact artifact = CrashArtifact.Of(log, tick, rulesetHash, fault);
+
+        using (var writer = new StreamWriter(path))
+        {
+            CrashArtifact.Write(writer, artifact);
+        }
+
+        // The stack belongs on the console of the run that crashed. What the file carries instead is
+        // the means of producing a live one under a debugger, as many times as it takes.
+        Console.Error.WriteLine(fault);
+        Console.Error.WriteLine();
+        // Two commands rather than one, because they are the two different things somebody wants and
+        // the difference between them is one Tick. 05 §8's whole claim is the first: you arrive at
+        // the Tick *before* the failure with the world intact and step into it under a debugger.
+        const string Runner = "dotnet run --project src/Borough.Headless --";
+
+        Console.Error.WriteLine(F($"Tick {tick.Raw} panicked. Wrote {path}"));
+        Console.Error.WriteLine();
+        Console.Error.WriteLine(F(
+            $"  stop just before it:  {Runner} --log {path} --ticks {tick.Raw}"));
+        Console.Error.WriteLine(F(
+            $"  panic again:          {Runner} --log {path} --ticks {tick.Raw + 1}"));
+
+        return Panicked;
+    }
+
+    /// <summary>Formats with the invariant culture, which adr/0003 requires of every number here.</summary>
+    private static string F(FormattableString value) => value.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// The session to run: a recorded one, or a fresh one that never had a player.
@@ -78,8 +154,14 @@ internal static class Session
                 ContentHash.None).Build();
         }
 
-        using var reader = new StreamReader(options.LogPath);
-        return InputLogCodec.Read(reader);
+        string text = File.ReadAllText(options.LogPath);
+
+        // A crash artifact is handed back here, in the place a log goes, because replaying it is the
+        // only thing anybody wants to do with one. The file says which it is; requiring a flag would
+        // mean the person reproducing a crash has to already know something the file could tell them.
+        return CrashArtifact.IsCrashArtifact(text)
+            ? CrashArtifact.FromText(text).Log
+            : InputLogCodec.FromText(text);
     }
 
     /// <summary>

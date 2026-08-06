@@ -24,15 +24,27 @@ namespace Borough.Headless;
 /// </remarks>
 internal readonly record struct RulesetCheck
 {
-    private RulesetCheck(bool allowed, bool hashBroken, string? refusal)
+    private RulesetCheck(bool allowed, bool hashBroken, string? refusal, ulong inForce)
     {
         Allowed = allowed;
         HashBroken = hashBroken;
         Refusal = refusal;
+        InForce = inForce;
     }
 
     /// <summary>Whether the run may proceed.</summary>
     public bool Allowed { get; }
+
+    /// <summary>
+    /// The content hash of the Ruleset actually loaded, which is not always the one the log names.
+    /// </summary>
+    /// <remarks>
+    /// <b>Always what was supplied, including when nothing was.</b> A run given no <c>--ruleset</c>
+    /// is genuinely running against no Rules, and saying so is more useful than echoing back the hash
+    /// the log wanted. The crash artifact records this rather than the log's, so a reproduction
+    /// attempted later cannot diverge for a reason the crash had nothing to do with.
+    /// </remarks>
+    public ulong InForce { get; }
 
     /// <summary>
     /// Whether the trace must be stamped, because it is not comparable to anything.
@@ -59,7 +71,7 @@ internal readonly record struct RulesetCheck
     {
         if (supplied == recorded)
         {
-            return new RulesetCheck(allowed: true, hashBroken: false, refusal: null);
+            return new RulesetCheck(allowed: true, hashBroken: false, refusal: null, inForce: supplied);
         }
 
         // The unverifiable case, and the one worth getting right. A log naming a Ruleset nobody
@@ -79,10 +91,11 @@ internal readonly record struct RulesetCheck
                    """);
 
         return force
-            ? new RulesetCheck(allowed: true, hashBroken: true, refusal: null)
+            ? new RulesetCheck(allowed: true, hashBroken: true, refusal: null, inForce: supplied)
             : new RulesetCheck(
                 allowed: false,
                 hashBroken: true,
+                inForce: supplied,
                 refusal: why
                     + "\n05 section 7. Refusing rather than producing a trace nobody can trust."
                     + "\nPass --force-ruleset to run anyway; the trace is stamped hash-broken.");

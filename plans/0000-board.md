@@ -5,11 +5,12 @@ It is a *view*, not a source: [`0003`](0003-build-plan.md) owns the slice order 
 [`0002`](0002-open-questions.md) owns the reasoning, `docs/adr/` owns the decisions. When they
 disagree, they win. Update this file whenever a task lands.
 
-**Where the project is:** Phase 1, slice 5, tasks 1–7 done — task 7 minus its assertion, deliberately.
-The State Hash has a committed baseline under it, `Borough.Headless` replays a `.borough` log and
-prints a diffable hash trace, the three invariant tiers run in release on every Tick and at the end of
-every run, and `--census` prints what every collection did over a run. **Task 8, the crash artifact,
-closes the slice.**
+**Where the project is:** Phase 1, **slice 5 closed** — all eight tasks, less task 7's trend assertion,
+which was deliberately not written. The State Hash has a committed baseline under it,
+`Borough.Headless` replays a `.borough` log and prints a diffable hash trace, the three invariant
+tiers run in release on every Tick and at the end of every run, `--census` prints what every
+collection did over a run, and a panic writes a crash artifact that replays back into the same panic.
+**Slice 6, Map Layers, is the last slice before the Phase 1 gate closes.**
 
 ---
 
@@ -18,7 +19,7 @@ closes the slice.**
 | | Task | Where | Why this one |
 |---|---|---|---|
 | **1** | **S2 R0 — the synthetic Road Graph and the denominator** | [`0010`](0010-s2-routing.md) | Parallel track, blocks nothing and is blocked by nothing. The project's **top risk**, and the best-specified work in the repository. The net it wanted under it now exists |
-| **2** | **Slice 5 task 8 — the crash artifact** | [`0008`](0008-tick-and-replay.md) | Closes the slice. Task 6 throws on violation precisely so this can catch at the Tick boundary |
+| **2** | **Slice 6 — Map Layers** | [`0009`](0009-map-layers.md) | The next slice in `0003`'s order, and the first one whose cadence is a hash-changing decision the corpus records as owed |
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
@@ -66,6 +67,12 @@ what moved. The remaining slice-5 tasks are no longer in front of it.
       would be `adr/0006` in the instrument written to catch it — and an outrun window is **marked**
       incomplete rather than silently shortened
   - [ ] *the trend assertion.* Deliberately not written; see *Owed* below
+- [x] **Slice 5 task 8 — the crash artifact.** `05 §8`'s reproduction rather than a dump: the log
+      wrapped verbatim, the Tick that panicked, and the Ruleset actually in force. The runner takes
+      an artifact wherever it takes a log, so **the loop closes** — one fed back panics at the same
+      Tick and emits an identical file. `from` is the checkpoint-shaped field, zero until milestone
+      10, and a reader that meets a non-zero one **refuses** rather than replaying a different city
+- [x] **Slice 5 closed.** All eight tasks, less task 7's assertion
 
 ### Planning and design
 

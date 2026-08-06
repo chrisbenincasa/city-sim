@@ -8,18 +8,20 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: Phase 1, through slice 5 task 7.** The repository is ~7,000 lines of design
+**Current state: Phase 1, slice 5 closed.** The repository is ~7,000 lines of design
 documents and 41 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
-declaration and the State Hash — and the first seven tasks of slice 5: `step(inputs)` with the
+declaration and the State Hash — and all eight tasks of slice 5: `step(inputs)` with the
 eight phases, the command model and the Input Log, replay, the golden-hash baseline, the
-headless runner with `Borough.Formats`, the three invariant tiers, and the Census with
-`series(metric, window)`. `dotnet run --project src/Borough.Headless` prints a table report and a
-hash; `--log PATH --ticks N --hash-every N` replays a session and prints a hash trace; `--census`
-adds what every collection did over the run.
-**Slice 5 task 8, the crash artifact, closes the slice, and `plans/0008` carries a progress table.**
-Task 7 shipped its instrument and **not** its trend assertion — nothing in the world churns yet, so
-the assertion would have been vacuous. It is owed by slice 7; the board's *Owed* section says how.
+headless runner with `Borough.Formats`, the three invariant tiers, the Census with
+`series(metric, window)`, and the crash artifact. `dotnet run --project src/Borough.Headless` prints
+a table report and a hash; `--log PATH --ticks N --hash-every N` replays a session and prints a hash
+trace; `--census` adds what every collection did over the run; a panic writes a crash artifact that
+the runner accepts back wherever it accepts a log.
+**Slice 6, Map Layers ([`plans/0009`](plans/0009-map-layers.md)), is next and is the last slice before
+the Phase 1 gate closes.** Task 7 shipped its instrument and **not** its trend assertion — nothing in
+the world churns yet, so the assertion would have been vacuous. It is owed by slice 7; the board's
+*Owed* section says how.
 
 **`plans/0000-board.md` is the first thing to read on any cold start** — a flat view of what is done,
 what to do next and what is blocked. It is a *view*: `plans/0003-build-plan.md` owns the slice order

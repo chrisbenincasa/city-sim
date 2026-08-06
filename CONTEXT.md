@@ -678,6 +678,15 @@ A periodic reading of every collection's size, kept in a fixed ring, and the his
 
 It belongs to a **run**, never to the World: a world has no history until something steps it, and an instrument sitting in simulation state would be one the State Hash and the save each needed an answer for. A Census never changes the city it measures.
 
+**Crash artifact**
+What a panic produces: the last checkpoint, the Input Log since it, the Ruleset content hash actually in force, and the Tick the panic landed on. **It is a reproduction, not a dump.** A dump lets you inspect the aftermath; this lets you replay to the Tick before and single-step into the failure under a debugger, as many times as you like. Small enough to attach to an issue.
+
+It costs no new machinery, which is `adr/0037`'s doing: crash forensics used to be justified by the Past/Future double buffer — *a Tick that panics while computing the Future leaves the Past intact* — and deleting that buffer made the guarantee **stronger**, because determinism plus the Input Log reproduce the failure rather than merely preserving its corpse.
+
+The file is a header and then a Log, verbatim, so cutting it at the separator yields a replayable one and no tooling is needed to get there — which matters most here, because this is the artefact written at the moment tooling is least trustworthy. The runner accepts it wherever it accepts a Log, since replaying it is the only thing anybody wants to do with one.
+
+Before milestone 10 there are no checkpoints, so the reproduction starts at world creation and the artifact is the seed plus the whole Log — equivalent, and smaller. The field is written anyway, so that milestone fills one in rather than replacing a mechanism.
+
 ---
 
 ## Pressure and difficulty

@@ -113,7 +113,8 @@ public sealed class RunnerTests
     {
         Assert.True(Options.TryParse(
             ["--log", "s.borough", "--ticks", "500", "--hash-every", "25",
-             "--ruleset", "v.toml", "--out", "t.txt", "--force-ruleset", "--census"],
+             "--ruleset", "v.toml", "--out", "t.txt", "--force-ruleset", "--census",
+             "--crash", "c.borough-crash"],
             out Options options,
             out _));
 
@@ -124,6 +125,22 @@ public sealed class RunnerTests
         Assert.Equal(25, options.HashEvery);
         Assert.True(options.ForceRuleset);
         Assert.True(options.Census);
+        Assert.Equal("c.borough-crash", options.CrashPath);
+    }
+
+    /// <summary>
+    /// There is no flag that turns the crash artifact off, and that is the point of it.
+    /// </summary>
+    /// <remarks>
+    /// The mechanism exists so a panic in an unattended run becomes a file somebody can replay. One
+    /// that produced nothing because nobody passed a flag would be failing at the only moment it is
+    /// needed, so <c>--crash</c> names the destination and never whether.
+    /// </remarks>
+    [Fact]
+    public void A_run_that_names_no_crash_path_still_gets_an_artifact()
+    {
+        Assert.True(Options.TryParse(["--ticks", "10"], out Options options, out _));
+        Assert.Null(options.CrashPath);
     }
 
     /// <summary>

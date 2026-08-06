@@ -88,6 +88,17 @@ internal sealed class Options
     public bool Census { get; private init; }
 
     /// <summary>
+    /// Where to write the crash artifact, or null for a name derived from the Tick that panicked.
+    /// </summary>
+    /// <remarks>
+    /// <b>There is no flag to turn the artifact off, and a default path rather than none.</b> The
+    /// mechanism exists so that a panic in an unattended run becomes a file somebody can replay
+    /// (<c>05 §8</c>); a crash that produced nothing because nobody passed a flag is the mechanism
+    /// failing at the only moment it is needed. The flag names the destination, never whether.
+    /// </remarks>
+    public string? CrashPath { get; private init; }
+
+    /// <summary>
     /// Parses the command line, or explains why it could not.
     /// </summary>
     public static bool TryParse(string[] arguments, out Options options, out string? complaint)
@@ -100,6 +111,7 @@ internal sealed class Options
         string? log = null;
         string? ruleset = null;
         string? output = null;
+        string? crash = null;
         ulong seed = 0;
         int citizens = DefaultPopulation;
         ulong ticks = 1_024;
@@ -152,6 +164,10 @@ internal sealed class Options
 
                 case "--out":
                     output = value;
+                    break;
+
+                case "--crash":
+                    crash = value;
                     break;
 
                 case "--seed":
@@ -219,6 +235,7 @@ internal sealed class Options
             HashEvery = hashEvery,
             ForceRuleset = force,
             Census = census,
+            CrashPath = crash,
         };
 
         return true;
@@ -242,6 +259,8 @@ internal sealed class Options
           --out PATH            write the trace to a file instead of standard output
           --census              sample every collection's size on the trace cadence and
                                 print first/last/low/high per collection at the end
+          --crash PATH          where to write the crash artifact if the run panics.
+                                One is always written; this only names where
 
         A replay whose Ruleset does not match refuses to run rather than diverging
         silently: a different Ruleset is a different simulation, and the divergence

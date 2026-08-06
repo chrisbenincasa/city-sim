@@ -38,7 +38,7 @@ the slice as a whole and should not be updated until the slice closes.
 | 5. The headless runner | **done** | `Borough.Formats/` — the codec, the trace format, the Ruleset hash; `Borough.Headless/` — `Options`, `Session`, `RulesetCheck`, `Report` |
 | 6. The invariant tiers | **done** | `Core/Invariants/` — `InvariantRegistry`, `Invariant`, `Violation`, `WorldInvariants` |
 | 7. The long-run test | **part done** — the instrument, not the assertion | `Core/Instruments/` — `Census`, `Metric`, `Series`; `Borough.Headless/CensusReport.cs`; `--census` |
-| 8. The crash artifact | pending | — |
+| 8. The crash artifact | **done** | `Borough.Formats/CrashArtifact.cs`; `Borough.Headless` — the catch in `Session`, `--crash`, `RulesetCheck.InForce` |
 
 ### Decided while building tasks 1–3
 
@@ -303,6 +303,54 @@ run, since the table report is one moment and has no history to take a series ov
 session prints eleven Lots, flat, and three tables of zeroes. That is the correct output and it is
 the argument for deferring the assertion, in a form somebody can run.
 
+### Decided while building task 8
+
+**The artifact wraps the log verbatim, and the runner accepts one wherever it accepts a log.** These
+two are the same decision. `05 §8`'s claim is that a panic becomes *a reproduction* rather than a
+corpse — and a reproduction nobody can run is a corpse with extra steps. So everything after the
+header's separator is exactly what `InputLogCodec` writes, which means cutting the file yields a
+replayable `.borough` with no tooling; and the runner sniffs the magic line rather than taking a
+flag, because the person reproducing a crash should not have to already know something the file can
+tell them. The loop closes: an artifact fed back to `--log` panics at the same Tick and emits an
+identical artifact.
+
+**The Tick an artifact names is the Tick that failed, and that rests on one line of `Simulation`.**
+`Step` advances its counter *after* the phases, so a phase that throws leaves `simulation.Tick`
+naming the failure rather than the one after it. That is why task 3 split `Trace` out of `Run` —
+recorded then as *the crash artifact needs to name the Tick a panic landed on, and it cannot do that
+from a method that owns the loop and returns only on success.* There is now a test pinning it, because
+an artifact off by one Tick sends its reader somewhere nothing is wrong yet and the mistake reads as
+the bug moving.
+
+**`from` is the checkpoint-shaped field and it is zero for the whole of Phase 1** — the plan asked for
+exactly this, so milestone 10 fills a field in rather than replacing a mechanism. The part worth
+stating is what a *reader* does with a non-zero one: it **refuses**. A build with no way to load a
+checkpoint that replayed from Tick zero instead would rebuild a different city and blame the
+difference on the crash, which is the failure mode this slice exists to abolish.
+
+**The catch is deliberately broad, and out-of-memory is the one exception.** A handler whose whole job
+is turning any panic into a reproduction cannot be a list of the failures somebody already thought of
+— those are the ones least in need of it. `OutOfMemoryException` is excluded because writing a file
+needs memory and failing there would bury the original.
+
+**The trace is not written when a run panics.** A partial trace is indistinguishable from a complete
+one once it is a file, and would be diffed against a full run with the missing tail read as a
+divergence — the `hash-broken` reasoning again. Nothing is lost: replaying the artifact regenerates
+the trace up to the panic, which is what the artifact is for.
+
+**The artifact records the Ruleset in force rather than the one the log names**, which needed a new
+`RulesetCheck.InForce`. A run forced across a mismatch is running Rules the log does not describe, and
+a reproduction attempted later against the log's Ruleset would diverge for a reason the crash had
+nothing to do with.
+
+**There is no flag to turn it off.** `--crash` names the destination and never whether. The mechanism
+exists so a panic in an unattended run becomes a file, and one that produced nothing because nobody
+passed a flag would be failing at the only moment it is needed.
+
+**`connect` is what makes this testable today.** The format encodes all four verbs and the simulation
+applies only `Zone`, so a log carrying a `connect` panics on demand without anything being broken to
+arrange it — which is why task 5's *encode every verb, apply one* is worth more than it looked.
+
 ---
 
 ## Gate
@@ -468,6 +516,9 @@ the Input Log, which the project already has.
   world with churn in it to have a steady state to be at, and this one has none.
 - The three invariant tiers run in **release** builds.
 - `dotnet build src/Borough.Headless` succeeds on a machine with no GPU and no Godot.
+- A panic writes a **crash artifact naming the Tick it landed on**, and feeding that artifact back to
+  the runner reproduces the same panic at the same Tick. The loop closing is the acceptance criterion;
+  a file that merely records a crash is the dump `05 §8` rejected.
 - **Something to look at:** the hash trace itself, diffable against a previous run. This is the first
   artefact in the project that can catch a bug nobody was looking for.
 
