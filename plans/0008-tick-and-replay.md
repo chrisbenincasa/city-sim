@@ -201,10 +201,49 @@ conservation needs a treasury and transactions; what is checkable today is `adr/
 detector, which is the visible end of the same bug. The plan predicted this: *most tiers will be
 nearly empty after this slice and that is correct.*
 
-**Cost is measured on an empty world and therefore not yet measured.** 100,000 Ticks went from 3.68s
-to 3.85s with the staggered tier live, but a replayed session holds a handful of Lots — the per-row
-cost is untested until there is a populated world stepping, which is task 7's long-run test and S0's
-synthetic city.
+### Measured, after the fact: what the tiers cost on a world with rows in it
+
+Task 6 shipped with its cost unmeasured, because a replayed session holds a handful of Lots before
+slice 7 and timing that measures dispatch and nothing else. A BenchmarkDotNet job in `Borough.Tests`
+(`Benchmarks/InvariantCostBenchmarks`) answers it against a constructed city at S4 task 2's ratios.
+
+| | 1,000 | 10,000 | 100,000 |
+|---|---|---|---|
+| **Staggered, one slice** — the per-Tick cost | 166 ns | 1.0 µs | 9.1 µs |
+| **Staggered, full sweep** — every row once, over `Slices` Ticks | 11.4 µs | 68.9 µs | 655 µs |
+| **End of run** — the whole-world walks, once | 44 µs | 462 µs | 4.84 ms |
+| *State Hash, for scale* | 31.9 µs | 314 µs | 3.15 ms |
+
+**The staggered tier is affordable and it is not close.** At 100,000 Citizens one slice costs
+**0.06% of the 15.6 ms Tick budget**; the growth is linear, so 1M extrapolates to ~91 µs, or **0.6%
+of a Tick**. The comparison that settles it is the last row: checking *every row in the city once*
+costs about **a fifth of one State Hash**, which is a cost the project already takes on a cadence
+and has never argued about.
+
+**`adr/0033`'s claim now has a number behind it.** *Unaffordable per Tick and trivial at the end of a
+headless run* — the end-of-run walk at 100k is 4.84 ms once, against 655 µs × 64 Ticks if it had been
+swept, or 4.84 ms **per Tick** if it had been done the way `02 §10` originally wrote it. The tiering
+is worth three orders of magnitude at this population.
+
+**One finding the benchmark was not looking for: the end-of-run walk allocates, and at scale it
+allocates on the Large Object Heap.** `Count` takes an `int[]` per element table to count list
+appearances — 544 KB at 100k Citizens, extrapolating to ~5.4 MB at 1M, and the diagnoser shows Gen2
+collections at the top population. It is paid once per run and the runner writes the trace *before*
+calling the tier, so it cannot perturb the numbers a run was for. Recorded rather than fixed: the
+fix is a scratch buffer on the registry, and it is worth doing when S0 puts a real 1M city in front
+of it rather than on an extrapolation. **Revisit trigger:** the long-run test or S0 showing a GC
+pause past `adr/0036`'s 15.6 ms p99.9.
+
+**The benchmark is deliberately not a session, and not a runner flag.** The obvious way to get a
+populated world is to let the runner seed one, and that is precisely what `Replay` forbids — *the
+moment world state can arrive from somewhere the log does not describe, the log stops being a
+complete account of a session and a divergence stops being attributable.* Nothing in the benchmark
+touches a log, a session or a hash trace, so nothing in it can put a number in front of somebody
+that looks reproducible and is not. `SyntheticCity` is small and marked deletable: **S0** is the
+corpus's designated synthetic city and this must not quietly become it.
+
+**Benchmarks are never assertions.** Nothing here fails a build. A timing threshold in CI goes red on
+a busy machine and is then disabled, which leaves neither a benchmark nor a test.
 
 ---
 

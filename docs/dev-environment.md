@@ -581,11 +581,19 @@ pause beyond **15.6 ms**, the 4×-speed Tick budget. That figure is the named re
 [`adr/0036`](adr/0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md) — the
 decision to write the core in C# at all. Finding out early is the entire point.
 
-Add `BenchmarkDotNet` to `Borough.Tests` when you get there:
+`BenchmarkDotNet` is now in `Borough.Tests`, alongside xUnit as `05 §1` prescribes. The two run
+modes do not collide: `dotnet test` loads the assembly through VSTest and never calls `Main`, while
+`dotnet run` calls `Main` and never discovers a test — which is what `<GenerateProgramFile>false</GenerateProgramFile>`
+in the test project buys. Benchmarks take minutes and CI takes seconds, so keeping them apart matters.
 
 ```bash
-dotnet add tests/Borough.Tests package BenchmarkDotNet
+dotnet run --project tests/Borough.Tests -c Release -- --filter '*InvariantCost*'
+dotnet run --project tests/Borough.Tests -c Release -- --list flat   # what is available
 ```
+
+**Benchmarks are never assertions.** Nothing in them fails a build. A timing threshold in CI goes red
+on a busy machine and is then disabled, which leaves neither a benchmark nor a test; what they produce
+is a number for a human to put in a document.
 
 After S4, Phase 0's three Godot-and-routing spikes (S1, S2, S3) and then Milestone 1 — the tick
 and determinism harness. [`06-roadmap.md`](06-roadmap.md) has the ordering and the risk each step

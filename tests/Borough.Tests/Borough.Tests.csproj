@@ -4,9 +4,18 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+
+    <!--
+      Microsoft.NET.Test.Sdk writes its own entry point, and BenchmarkEntryPoint is ours. Turning
+      the generated one off is what lets one assembly answer to both `dotnet test`, which loads it
+      through VSTest and never calls Main, and `dotnet run`, which calls Main and never discovers a
+      test. 05 §1 puts xUnit and BenchmarkDotNet in this project; this is the price of that.
+    -->
+    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
