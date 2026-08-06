@@ -12,10 +12,11 @@ tiers run in release on every Tick and at the end of every run, `--census` print
 collection did over a run, and a panic writes a crash artifact that replays back into the same panic.
 **Slice 6, Map Layers, is the last slice before the Phase 1 gate closes.**
 
-**The spike track has opened and moved three times.** **S2 R0, R1 and R2 are done** — the synthetic
+**The spike track has opened and moved four times.** **S2 R0 through R3 are done** — the synthetic
 Road Graph, the density curve, the uncached denominator on the real `(Segment, offset)` query shape and
 the heuristic verdict; then the travel-time matrix; then the path source, the crossover and the
-attribution lag. Numbers and decisions in [`spike-results`](../docs/spike-results.md).
+attribution lag; then HPA\*, the cluster it owns, and the Tick budget none of them fit into. Numbers
+and decisions in [`spike-results`](../docs/spike-results.md).
 
 **R1 answered the question the whole spike order was built around, and the answer is yes.** The matrix
 carries the choice loop — **1.14 ns** scattered at the working District count against a tripwire at
@@ -30,8 +31,32 @@ need no concrete path"* — but that clause predates `adr/0041`, which requires 
 the Segment it *enters* every Tick. What that needs is a **next Segment**, not a path, and a next-hop
 table supplies one while storing none — which is distance-vector's data structure, reached from the
 attribution side. R2 built it as a third ladder rung and it is the **better** of the two survivors on
-error (**18.52%** mean detour against a shared route's 36.01%). **R3 is next**, and **R5 is where the
+error (**18.52%** mean detour against a shared route's 36.01%). **R4 is next**, and **R5 is where the
 router is actually decided**, because the axis the two survivors differ most on is invalidation.
+
+**R3 was supposed to confirm HPA\* and it weakened it — then found that nothing fits.** The cluster
+narrows to **8 or 16 Chunks a side, the bias on 16** — and **R3 cannot close it**, because the axis
+that separates them is an edit rate **R5** owns. And `adr/0014`'s *"the Chunk grid is already the
+pathfinding cluster"* is measured false by **256× in area**: at one Chunk the abstract graph *is* the
+Road Graph. What the hierarchy buys is **3.08×** on a cost-only query and **2.63×** once it must
+return arcs — and R1 already answers the cost-only question at 1.14 ns, so the larger figure is
+against a customer with a better answer. **The plan's *current standing favours HPA\** no longer has a
+measurement behind it, and R4 runs against an open comparison.** Three things had to be measured
+before that verdict was safe: the **transitive reduction** of the intra-cluster edges is mandatory and
+lossless — degree 40 to 3, double the speedup, 100% optimal — **storing each intra-edge's arcs** is
+mandatory alongside it, worth 1.50× → 2.63× on the refined query for 223.92 KiB — and **Botea's
+transition sampling is out** at 80.49% mean detour. R0's amendment landed twice more, once on the
+hierarchy and once on **the denominator itself**.
+
+**No cluster size fits routing into the Tick budget, and that promotes R6.** The best rung refines a
+route in **181,554 ns**, so **85 Trips may start per Tick** before routing owns the whole 15.6 ms. The
+load is U-shaped in cluster size and pinned at both ends, so this is a floor rather than a rung that
+was missed. The two exits are a **route cache** and **eight cores**, which makes **R6 load-bearing
+rather than a late tidy-up** — whichever router R4 picks will need it. The figure is published as a
+break-even rather than as *6.4× over budget* on a rule R3 states and the plan now carries: **gather a
+tripwire as direct data where the data exists, and where it does not, invert the derivation until what
+is published is measured.** The 550-arrivals denominator is a guess, and a wire built on it fires on
+the guess.
 
 **R2 also found the aggregate scheme fails worse than its tripwire anticipated.** `03 §3.3` confessed a
 *lag*; the measurement says the smear reports the jam **in the wrong place** — 0.00% deposited on a
@@ -58,7 +83,7 @@ nothing standing between here and Phase 2 is code.**
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | spike | **S2 R3 — HPA\*, and the cluster size it owns** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. **R0, R1 and R2 are done.** R2 left two path-source rungs live and **revived R4**, so R3 now has a third candidate to be measured against rather than two. It must quote **wall-clock, never expansions saved** — R0's amendment |
+| **1** | spike | **S2 R4 — DSDV distance-vector** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. **R0–R3 are done.** R3 measured HPA\* at **2.63×** the flat search once arcs are required, so the standing that favoured it is gone and R4 is a real comparison rather than a formality. **Neither candidate fits the Tick budget unaided**, which is R6's promotion. **Sequence numbers are non-negotiable** — link deletion is the core verb |
 | **2** | code | **Slice 6 — Map Layers** | [`0009`](0009-map-layers.md) | Last slice before the Phase 1 gate closes. Settle its **diffusion cadence** inside it — `0003` files that as owed and blocking |
 | **3** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | `06` says it **must not slip behind 3c**, and slice 6 *is* 3c's Layers half. By the corpus's own instruction this session is already due |
 | **4** | argument | **`02 §4` residue** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | The nearest gate on the code path. Slice 7 waits on it and slice 7 is next after 6 |
@@ -97,7 +122,7 @@ milestone 8 is parking — so the *Unblocks* column always says which.
 | **F** | **`adr/0008`** — walking is a simulated Leg | Written from research. It is what makes 5b *the irreversible milestone*, so the argument is owed before the Leg model is built rather than after | milestone 5b | **yes** |
 | **G** | **`adr/0016`** — the lane is the entity | Written from research. Carries the order-of-magnitude claim the whole microscopic tier rests on | milestone 6 | **yes** |
 | **H** | **`adr/0009`** — parking is modelled supply | Written from research. Its `adr/0006`-class occupancy leak is already named and needs the invariant specified with it | milestone 8 | **yes** |
-| **I** | **`adr/0012`** — routing intent lives in the agent | Written from research, and already owes an amendment: the route cache's **eviction policy** and its **key** | milestone 5c | **after S2 R6** — the two caches are R6's subject |
+| **I** | **`adr/0012`** — routing intent lives in the agent | Written from research, and already owes an amendment: the route cache's **eviction policy** and its **key** | milestone 5c | **after S2 R6** — the two caches are R6's subject, and R3 promoted R6 to load-bearing |
 | **J** | **`05 §7` format half**, plus **map size** and **Outside Connection layout** | The three things `06`'s open-decisions table still has blocking save/load, narrowed from the map question that `adr/0020`–`0022` otherwise closed | milestone 10 | **yes** |
 | **K2** | **`06`'s Phase 2 ordering** | The ordering only. **K1 is done** — see *Done* — so what remains is re-deriving the sequence against conserved Money, Hinterlands, Office, the labour system, transit and every Service, and placing the **seventeen mechanisms `06` now lists as having no milestone** | Planning Phase 2 at all | **last** — A–J move what it sequences |
 | **L** | **A presentation design** | **It does not exist.** Every other phase is backed by a design document; rendering has none, and `05 §2`'s sim/render boundary is on the never-argued list while `adr/0002` was re-argued to serve *inspection*. **Write it first, then grill it** — unlike A–K this is not a session against an existing document | Phase 3, and planning it at all | **yes**, but blocked on S1 and S3 |
@@ -118,6 +143,19 @@ should not drift into them: health (#26), recreation (#27), Service variants (#2
 (#3), private capital (#7), and `01-player §1/§3/§4`. The governability problem especially —
 *268 km² of individually-placed service Buildings* — **is not answerable by argument.** Somebody has
 to try placing them.
+
+### Audit these for the shape `adr/0043` names
+
+**Every ADR and every design section is in scope, not only the ungrilled ones.** `adr/0043` requires a
+claim to be typed *arguable* or *measurable*, and nothing in the corpus has ever been typed — including
+the documents `0002` marks 🟢. Two of the five claims S2 measured false sat in green rows. The board
+already names the likeliest remaining suspects: **`adr/0016`** carries the order-of-magnitude claim the
+whole Microscopic tier rests on, and **`adr/0009`** and **`adr/0008`** are the same shape. Each reads
+as decided and none of them has a number.
+
+**`0002`'s blanket rows are part of the defect.** `adr/0010`–`0022` is thirteen ADRs under one green
+mark from two sittings, two of which are now known false. A status whose granularity is coarser than
+the claims it covers cannot be checked; split those rows as each ADR is revisited.
 
 ### Audit these for the shape `adr/0003`'s debt had
 
@@ -187,6 +225,16 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
 
 - [x] **S2 planned** — [`0010`](0010-s2-routing.md), and its gate cleared by defining **Segment** in
       `CONTEXT.md`
+- [x] **`adr/0043` — a claim a measurement could settle must not be settled by argument.** Written
+      after S2 R3, from the observation that **five claims in the corpus have now been measured
+      false** and none of them had ever been *typed*. Every claim a grilling session touches is
+      classified **arguable** or **measurable**; a session may settle the arguable ones and must
+      route the measurable ones to a named spike, naming the number that would refute the claim and
+      the machine that would produce it. The test is *can you name the refuting number and the
+      machine?* **Two of the five sat in 🟢 rows of `0002`**, so the audit this implies is over every
+      document rather than the ungrilled ones — the ADR's own first draft claimed otherwise and was
+      corrected against the ledger before it was registered. It does **not** reduce how many sessions
+      are needed: most of A–L are questions of intent, which have no refuting number
 - [x] **S2 plan grilled before any code.** Thirteen findings; see *Owed* below for what it left behind
 - [x] **S2 R0 — the Road Graph, the denominator, and the heuristic verdict.** `spikes/S2.Routing/`,
       which compile-links the arithmetic substrate by source and can name nothing else of `Core`, with
@@ -273,11 +321,34 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
       carrying 108%; the two schemes agree on how many Segments are stressed and disagree on which.
       **The crossing rate is 0.79–0.83, not 1.0.** And a volume-conservation check caught a harness
       defect that had published a `v/c` of 883× with every other column looking healthy
-- [ ] **R3 — HPA\*, and the cluster size it owns.** Must quote **wall-clock, not expansions saved**
+- [x] **R3 — HPA\*, and the cluster size it owns.** Done, and it **weakened the option it was
+      expected to confirm**. **Cluster size narrows to 8 or 16 Chunks, the bias on 16, and R3
+      cannot close it** — 16 is 1.31× faster on the refined query and costs 0.92 ms more per deleted
+      Segment, a per-Tick cost against a per-click one, and the edit rate that weighs them is R5's.
+      `plans/0010`'s *decides cluster size, outright* is owed the
+      correction — and `adr/0014`'s *"the Chunk grid is already the pathfinding cluster"* is **measured
+      false by 256× in area**, because at one Chunk the abstract graph *is* the Road Graph (16,694
+      portals against 16,697 nodes, expanding exactly the flat search's 4,138). **HPA\* buys 3.08×
+      cost-only and 2.63× with arcs**, against a cost-only customer R1 already serves at 1.14 ns.
+      **The transitive reduction is mandatory and lossless** — 133,816 abstract edges to 11,768,
+      degree 40 to 3, 100% optimal throughout — and skipping it is what made the hierarchy read
+      1.43×. **Storing each intra-edge's arcs is mandatory alongside it**, worth 1.50× → 2.63× on the
+      refined query for 223.92 KiB. **Transition sampling is out** at 80.49% mean detour. **HPA\*
+      wins the correctness column outright**: 100% optimal against R2's 18.52% and 36.01%.
+      Preprocessing is 201 flat searches and a deleted Segment costs **1.30 ms**, because a reduced
+      cluster's edge set must be **decided again rather than re-costed** — measured, not derived.
+      **R0's amendment landed twice more** — once on the hierarchy, once on the denominator,
+      which read 1,401,307 ns measured first and 477,609 ns measured last
 - [ ] **R4 — DSDV distance-vector.** ~~*(conditional on R2)*~~ **LIVE** — R2 settled the condition
-      against it, and in DSDV's favour
+      against it, and in DSDV's favour. **R3 has now removed HPA\*'s standing as well**, so this is
+      an open comparison rather than a formality — and one run knowing **neither candidate fits the
+      Tick budget unaided**
 - [ ] R5 — the edit storm, and the Epoch ladder
-- [ ] R6 — the two caches, and `adr/0006`
+- [ ] **R6 — the two caches, and `adr/0006`. PROMOTED by R3 to load-bearing.** No cluster size fits
+      routing into the Tick budget (85 Trip starts at the best rung), and a cache is one of only two
+      exits — the other being to spend eight cores' whole Tick budget on routing. R6 stops being an
+      optimisation measured after the router choice and becomes a condition that choice depends on.
+      It inherits a partial answer: R3's stored path arena already caches the intra-cluster half
 - [ ] R7 — the report, the verdict, and deleting the harness
 
 ### Parallel track — Godot (Track B, no gate)
@@ -359,7 +430,10 @@ Small, and each one is a place the corpus currently says something known to be w
 
 ## Owed — findings that change a later task
 
-- [ ] **R3 must not quote HPA\* in expansions saved.** R0 measured a case where the currency does not
+- [x] **R3 must not quote HPA\* in expansions saved.** *Discharged, and the warning was load-bearing:*
+      the hierarchy expands **4.7× fewer** nodes and is **1.44×** faster unreduced, because a road
+      network is degree-3 and the complete abstraction is degree-40. Quoted in expansions it would
+      have read as a large win. **R6 still inherits the instruction.** Original wording: R0 measured a case where the currency does not
       convert: `EuclideanFloor` expands **11% fewer** nodes than `Chebyshev` and takes **1.8× as
       long**, and against plain Dijkstra it cuts expansions by 55% while being no faster at all. The
       cost is its exact integer square root, run twice per node pushed. `plans/0010`'s ladder specified
@@ -402,6 +476,55 @@ Small, and each one is a place the corpus currently says something known to be w
       the same change moved walking `Manhattan` from 35 of 300 non-optimal to 4 of 300, worst exactly
       where `adr/0008`'s walk Legs live. **Any later measurement of an error rate — R2b's attribution
       lag, R5's hit rate — should ask what else in the pipeline rounds in the same direction**
+- [ ] **A denominator measured once has no error bar, and a denominator measured first has a
+      systematic one.** R3's first pinned capture read **1,401,307 ns** for the flat search and
+      **477,609 ns** for the same code measured after the sweep — a 193% spread — because the flat
+      loop was the first timed thing in the process and the clock had not ramped. **Every ratio R3
+      publishes divides by that number**, so the artefact would have decorated the whole task rather
+      than one column. The harness now measures it twice and publishes both. **R4, R5 and R6 all
+      divide by the same denominator** and must do the same. Fifth instance in S2 of R0's *"an
+      argument for reporting a quantity you expect to be boring"*, and the first where the boring
+      quantity was the denominator
+- [ ] **A correctness column that cannot move is not evidence that the error is absent.** R3's detour
+      read 0.00% at every cluster rung, which is the shape R2's byte-identical peaks wore. It is real
+      — the abstraction is complete, so it cannot lose a route — but that was established by making
+      the instrument move: **sampling transitions drove the same column to 80.49%**. A zero should be
+      paired with a rung that is expected to be non-zero, or it is indistinguishable from an
+      instrument that is not wired up
+- [ ] **Nothing in the corpus invalidates a route when congestion changes, and R3 is the first task
+      with a large number attached to that.** The Epoch bumps on an *edit*; the VDF makes travel time
+      a function of `volume / capacity`; `adr/0041` moves volume **every Tick**. A flat search reads
+      arc costs at query time and is always current — a structural advantage of the denominator R3
+      never priced — while **every precomputed structure in S2 is stale the Tick after it is built**:
+      HPA\*'s intra-cluster edges, R2's next-hop table, and R1's matrix alike. **Third invalidation
+      mechanism in the corpus and the first with none at all**, after R1.7's dirty region and the
+      scalar Epoch. **R5 must be given the refresh cadence of the routing cost basis before its edit
+      storm means anything**; if that cadence is the time-of-day phase R1.8 found, the exposure
+      evaporates, and if it is per-Tick both surviving routers are dead against a 15.6 ms budget
+- [ ] **A tripwire should be gathered as direct data, and where it cannot be, the derivation should
+      be inverted until what is published is measured.** R3's Tick-budget row was first drafted as
+      *routing is 6.4× over budget*, which multiplies a measured per-route cost by **550 Trip starts
+      per Tick** — a figure resting on a mean Trip duration the corpus calls provisional, in a spike
+      with no Travellers and no Trip generation to improve it. **A wire whose denominator is a guess
+      fires on the guess.** Published the other way round — *routing fits while fewer than 85 Trips
+      start per Tick* — the quantity is a measured cost over a world constant and survives the arrival
+      rate being measured elsewhere. **R4, R5 and R6 each have a row that can be inverted the same
+      way**, and `plans/0010`'s tripwire section now carries the rule
+- [ ] **S2's O-D draw is uniform over the map, and R0 flagged that as a placeholder that was never
+      replaced.** R0 said it could not have the distribution it was supposed to use and would take
+      R1's; R1 produced none, and R3 inherited the uniform draw unchanged. **A uniform draw over 4,096
+      Tiles produces long routes, and long routes are where a hierarchy wins widest** — so R3's
+      speedups are an upper bound. It does not move the optimality counts, which are counts, and it
+      does not move the ranking of the cluster rungs against each other. **R4 inherits the same draw**
+      and a next-hop table's error profile is distance-dependent too, so the comparison is on the same
+      footing but both sides are measured on a distribution nobody has confirmed. **R3.8's bypass
+      table is the only evidence in the spike about the short end**, and it says the cliff is at one
+      block
+- [ ] **The canonical `performance` capture of R3 is owed.** The published figures come from a
+      `powersave` capture — pinned, but not the protocol's configuration, because the canonical run
+      needs root. Every *count* is governor-independent and every ratio is taken within one process,
+      so no R3 decision rests on it; **no absolute nanosecond figure should be quoted outside the
+      section until it exists.** `sudo spikes/S2.Routing/tools/routing-run.sh --cluster`
 - [ ] **The long-run trend assertion is owed by slice 7, and the instrument for it now exists.**
       *Decided:* task 7 shipped the Census and `series(metric, window)` and deliberately did not ship
       the assertion. Nothing in the world grows or shrinks yet — no Event Wheel, no Rules, no Trips —

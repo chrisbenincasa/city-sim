@@ -9,7 +9,7 @@ of Goods that actually move, and when something goes wrong the game can say exac
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
 **Current state: Phase 1, slice 5 closed.** The repository is ~7,000 lines of design
-documents and 41 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
+documents and 42 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
 declaration and the State Hash — and all eight tasks of slice 5: `step(inputs)` with the
 eight phases, the command model and the Input Log, replay, the golden-hash baseline, the
@@ -19,9 +19,12 @@ a table report and a hash; `--log PATH --ticks N --hash-every N` replays a sessi
 trace; `--census` adds what every collection did over the run; a panic writes a crash artifact that
 the runner accepts back wherever it accepts a log.
 **Slice 6, Map Layers ([`plans/0009`](plans/0009-map-layers.md)), is next and is the last slice before
-the Phase 1 gate closes.** On the parallel spike track, **S2 R0 and R1 are done** — the synthetic Road
-Graph and the denominator, then the travel-time matrix, which **carries the choice loop** and leaves
-the DSDV case resting on R2 alone. `spikes/S2.Routing/` compiles the arithmetic substrate in by source
+the Phase 1 gate closes.** On the parallel spike track, **S2 R0 through R3 are done** — the synthetic
+Road Graph and the denominator, the travel-time matrix, which **carries the choice loop**, the path
+source, which **revived the DSDV case rather than retiring it**, and HPA\*, which **narrowed the
+pathfinding cluster to 8 or 16 Chunks a side without closing it, weakened its own standing** to 2.63×
+the flat search once a route has to come back with arcs, and found that **no cluster size fits routing
+into the Tick budget** — which promotes R6's route cache from a tidy-up to load-bearing. `spikes/S2.Routing/` compiles the arithmetic substrate in by source
 and can name nothing else of `Core`, so it has changed no simulation code. Task 7 shipped its instrument and **not** its trend assertion — nothing in
 the world churns yet, so the assertion would have been vacuous. It is owed by slice 7; the board's
 *Owed* section says how.
@@ -46,7 +49,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | 41 decision records, numbered to `0042` — `0028` is reserved and unwritten |
+| `docs/adr/` | 42 decision records, numbered to `0043` — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — done, next, unblocked, owed, blocked. A view over `0002` and `0003`, never a source |
@@ -72,6 +75,13 @@ design has already rejected.
 The structure is: title as a claim, the decision in bold up front, `## Why`, `## Consequences`,
 `## What would trigger revisiting`. That last section is not optional — a decision with no
 revisit trigger is a decision nobody can reopen honestly.
+
+**A claim a measurement could settle must not be settled by argument** (`adr/0043`). Type every claim
+before settling it: *can you name the number that would refute this, and the machine that would produce
+it?* If you can, it is **measurable** — route it to a named spike with that number written down, and do
+not let any document cite it as decided until the number exists. If you cannot, it is **arguable** and
+a session may close it. Five claims in the corpus have been measured false so far and **two of them sat
+in documents `0002` marks fully argued**, so a green mark is not evidence a sentence was examined.
 
 **Every significant decision cites a guiding concept** from `CONTEXT.md`'s tag table —
 `EMERGENCE`, `LEGIBLE CAUSE`, `UNIQUE INDIVIDUALS`, `BOUNDED KNOWLEDGE`,

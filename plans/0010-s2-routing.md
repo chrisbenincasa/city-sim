@@ -540,7 +540,7 @@ things that are not S2's but which S2 is the only thing able to price:
 > which is a different Trip and therefore a different city. *That is a new finding and it is filed as
 > decision 10 below.*
 
-### R3. HPA\*, and the cluster size it owns
+### R3. HPA\*, and the cluster size it owns — **DONE**
 
 [`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md) makes a claim S2 must test rather than
 inherit: the Road Graph *"arrives pre-partitioned, because the Chunk grid is already the pathfinding
@@ -571,6 +571,60 @@ is largely already paid.
 therefore **free to change forever** — which is the whole of `adr/0040`. Chunk size is *informed*, not
 decided, and stays on the *cannot be retrofitted* list for the reasons that are genuinely its own:
 rendering, saves and work partitioning.
+
+> **Answered, one clause of the task's own charter is answered *no*, and a later task is promoted.**
+> **The cluster is 8 or 16 Chunks a side, the bias on 16, and R3 cannot close it** — *Decides: cluster
+> size, outright* above is owed that correction. The axis that separates the two rungs is the **edit
+> rate**, and that is **R5's**. The bias is on 16 because it is **1.31× faster on the refined query**,
+> the column with a customer, and pays for it with **0.92 ms more per deleted Segment** — a per-Tick
+> cost against a per-click one, both under 1.3 ms. A drag that deletes hundreds of Segments in one
+> gesture could still overturn it, which is exactly R5's storm. And `adr/0014`'s *"the Chunk grid is
+> already the pathfinding cluster"* is **measured false by 16× in side and 256× in area**: at one Chunk
+> the abstract graph *is* the Road Graph, 16,694 portals against 16,697 nodes, and the query expands
+> exactly the 4,138 nodes the flat search expands. `05 §5`'s *larger, and loudly* was right.
+>
+> **No cluster size fits routing into the Tick budget, and R6 is promoted because of it.** The
+> recommended rung refines a route in **181,554 ns**, so **85 Trips may start per Tick** before routing
+> owns the whole 15.6 ms — a figure stated as a break-even rather than as *6.4× over budget* precisely
+> because the arrival rate is a guess and S2 cannot measure it. The load is U-shaped in cluster size
+> and pinned at both ends (small → the abstract search approaches flat; large → the *insertion*
+> approaches flat), so **this is a floor rather than a rung that was missed.** The two exits are a
+> **cache** and **eight cores**. **R6 is therefore load-bearing, not a late tidy-up**, and R4's
+> comparison runs knowing whichever router wins will need it.
+>
+> **The plan's *current standing favours HPA\** is weakened rather than confirmed.** HPA\* buys
+> **3.08×** on a cost-only query and **2.63×** when it must return arcs — and R1 already showed the
+> matrix answers the cost-only question at 1.14 ns, so the larger number is against a customer that
+> has a better answer already. **R4 now runs against an open comparison.**
+>
+> **Three findings the plan did not ask for and one it did.** The **transitive reduction of the
+> intra-cluster edges is mandatory and lossless** — 133,816 abstract edges to 11,768, mean degree 40 to
+> 3, double the speedup, 100% optimal throughout — and an implementation that skips it measures a
+> hierarchy barely faster than none. **Storing each intra-edge's arcs is mandatory alongside it**: it
+> turns refinement from a re-run confined search into an array copy, moves the refined query from 1.50×
+> to **2.63×**, and costs **223.92 KiB** because the reduction had already removed 91% of the edges
+> that would have carried arcs — *R6's question answered early for the intra-edge half*. **Botea's
+> transition sampling is out**: one transition per boundary buys 8.53× and returns routes **80.49%**
+> longer on average, which is a different city under `05 §4`. And the reduction **costs repairability**
+> — redundancy is a property of the costs, so a reduced cluster's edge set is **decided again rather
+> than re-costed**, at a measured **1,296,680 ns** per deleted Segment at 16 Chunks. **R5 weighs that,
+> because the weight is the edit rate.**
+>
+> **R0's amendment landed for a second time and in a third place.** The hierarchy expands 4.7× fewer
+> nodes and is 1.43× faster unreduced, because a road network is degree-3 and the complete abstraction
+> is degree-40 — *a hierarchy that saves expansions has not yet saved anything*. And **the denominator
+> itself carried the artefact this time**: measured first in the process it read 1,401,307 ns against
+> 477,609 ns measured last, so the harness now measures it twice and publishes both. **A denominator
+> measured once has no error bar, and a denominator measured first has a systematic one.**
+>
+> **The O-D draw is uniform and R0 flagged that as a placeholder that was never replaced.** R0 said it
+> would take R1's distribution; R1 produced none. A uniform draw over 4,096 Tiles produces long routes,
+> and long routes are where a hierarchy wins widest, so **every speedup above is an upper bound.** It
+> does not move the optimality counts or the ranking of the rungs against each other.
+>
+> **The bypass stays mandatory on cost and its stated reason is unconfirmed.** It is worth 78.28%
+> inside one block and 1.75% at two, so the plan's claim holds if and only if walk Legs are
+> overwhelmingly single-block — which the corpus has never said and S2 cannot measure.
 
 ### R4. DSDV distance-vector, if R2 leaves it live — **LIVE. R2 settled the condition, against it**
 
@@ -658,7 +712,14 @@ The measurement that separates a routing design that works from one that works o
 *Decides:* whether either router survives the core verb, and it is the task most likely to reverse
 R3's and R4's ranking.
 
-### R6. The two caches, and `adr/0006`
+### R6. The two caches, and `adr/0006` — **PROMOTED by R3. Load-bearing, not a tidy-up**
+
+> **R3 promoted this task.** No cluster size fits routing into the Tick budget — the best rung breaks
+> even at **85 Trip starts per Tick** — and a cache is one of only two exits, the other being to spend
+> the whole Tick budget of eight cores on routing. **Whichever router R4 picks will need this**, so R6
+> stops being an optimisation measured after the choice and becomes a condition the choice depends on.
+> It also inherits a partial answer: R3's stored path arena already caches the intra-cluster half, at
+> 223.92 KiB, so R6's remaining question is the O-D half.
 
 [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md) permits route caching **keyed
 by origin-destination pair, never by agent**, invalidated lazily against the Epoch. That is exactly
@@ -732,6 +793,17 @@ meaning depends on an unstated machine is not a threshold** — so each row name
 | An attribution scheme **cannot report a jam within the congestion cycle it happens in** (R2b) | That scheme is out on a design commitment, not on a number. `03 §3.4`'s self-correcting circularity is the load-bearing assumption of the fidelity model and a lagging detector breaks it |
 | The route cache **grows at steady state** with no bound | `adr/0006` violated. Fix the cache, not the ADR |
 | DSDV's routing tables exceed the **whole world's 172.3 MiB footprint** | Distance-vector is out on memory alone |
+
+**R3 adds a rule about how a wire is stated, and it applies to every row above.** *Gather a tripwire
+as direct data wherever the data exists, and where it does not, invert the derivation until what is
+published is measured.* R3's Tick-budget row was first drafted as *routing is 6.4× over budget*, which
+multiplies a measured per-route cost by **550 Trip starts per Tick** — a figure resting on a mean Trip
+duration the corpus records as provisional, in a spike with no Travellers and no Trip generation to
+produce a better one. **A wire whose denominator is a guess fires on the guess.** Stated the other way
+round — *routing fits while fewer than 85 Trips start per Tick* — the published quantity is a measured
+cost divided by a world constant, it contains nothing derived, and it stays true when the arrival rate
+is finally measured somewhere that can measure it. The same inversion is available to the 10% row and
+is the reason its own defence below is so long.
 
 **The 10% figure is chosen here and nobody has ratified it.** The corpus states no routing budget. It
 is offered against two anchors: S4 measured the Event Wheel and its wake gather at **1.80%** of the

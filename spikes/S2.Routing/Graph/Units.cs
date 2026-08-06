@@ -53,6 +53,18 @@ internal static class Units
     /// <summary>Tiles on a side of a Cell. A frozen design constant (<c>CONTEXT.md</c> → Cell).</summary>
     public const int CellTiles = 32;
 
+    /// <summary>
+    /// Tiles on a side of a Chunk. <b>Provisional, and R3 is the task that must not forget it is.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>plans/0002</c> records <i>"Phase 1 proceeds at Chunk = Cell, provisional"</i>, and
+    /// <c>adr/0040</c> is what makes that pin harmless here: the pathfinding cluster is a whole
+    /// number of Chunks and is sized independently, so R3 sweeps <b>Chunks per cluster</b> and the
+    /// Chunk's own value only sets the granularity of the rungs, never the answer. If the Chunk
+    /// later doubles, every rung of this sweep still exists — it is reached at half the multiple.
+    /// </remarks>
+    public const int ChunkTiles = CellTiles;
+
     /// <summary>Ticks in a Day. <c>CLAUDE.md</c>'s constant table.</summary>
     public const int TicksPerDay = 8192;
 

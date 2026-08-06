@@ -57,7 +57,7 @@ internal sealed class PointToPoint
     /// because <c>BOR0203</c> is loaded here and is right to be: a constant-folded division is still
     /// a division whose rounding nobody stated.
     /// </remarks>
-    private const int Unreachable = 1 << 29;
+    private const int Unreachable = SegmentEntry.Unreachable;
 
     private readonly RoadGraph _graph;
 
@@ -122,10 +122,7 @@ internal sealed class PointToPoint
     }
 
     /// <summary>The cost of traversing a whole arc, congested if this search was given costs.</summary>
-    private int ArcCost(int arc) =>
-        _mode == Modes.Foot ? _graph.ArcFootTicks[arc]
-        : _congestedCarTicks is null ? _graph.ArcCarTicks[arc]
-        : _congestedCarTicks[arc];
+    private int ArcCost(int arc) => SegmentEntry.ArcCost(_graph, _congestedCarTicks, _mode, arc);
 
     /// <summary>
     /// Seeds the open set from the origin Access Point and resolves the goal's two remainders.
@@ -252,41 +249,17 @@ internal sealed class PointToPoint
     }
 
     // --- The query shape's own arithmetic ---------------------------------------------------------
+    //
+    // Moved to SegmentEntry by R3 and delegated to from here, so the hierarchy and this search enter
+    // and leave the network through one implementation. Nothing about the arithmetic changed; the
+    // reason for the move is written where the code now lives.
 
     /// <summary>
     /// The cost of the partial run between a Segment's endpoint and a point <paramref name="tiles"/>
     /// along it, travelling <i>away from</i> <paramref name="from"/>.
     /// </summary>
-    private int PartialCost(int segment, int from, int tiles)
-    {
-        int arc = ArcAlong(from, segment);
-        if (arc < 0)
-        {
-            return Unreachable;
-        }
-
-        int step = ArcCost(arc);
-        if (step == RoadGraph.Impassable)
-        {
-            return Unreachable;
-        }
-
-        int free = RoadGraph.TraversalTicks(
-            tiles, _graph.SegmentFreeFlow[segment], _mode, _graph.ArcModes[arc]);
-
-        if (_congestedCarTicks is null || _mode == Modes.Foot || free == 0)
-        {
-            return free;
-        }
-
-        // Congestion applies to the partial run at the same rate as to the whole arc. Taking the
-        // delay from the arc's own two costs rather than re-deriving it from volume keeps the
-        // bootstrap consistent with the search by construction: a partial traversal of a jammed
-        // Segment must not be priced at free flow, or the query shape would understate exactly the
-        // Segments the VDF exists to describe.
-        int whole = _graph.ArcCarTicks[arc];
-        return whole <= 0 ? free : Fixed.Mul(free, Fixed.Div(step, whole));
-    }
+    private int PartialCost(int segment, int from, int tiles) =>
+        SegmentEntry.PartialCost(_graph, _congestedCarTicks, _mode, segment, from, tiles);
 
     /// <summary>
     /// The cost of never leaving the Segment, when origin and goal share one. Not the same-Segment
@@ -294,39 +267,8 @@ internal sealed class PointToPoint
     /// without it a search whose goal is behind its origin on the same run of road would report the
     /// cost of driving round the block.
     /// </summary>
-    private int SameSegmentCost(AccessPoint origin, AccessPoint goal)
-    {
-        if (origin.Segment != goal.Segment)
-        {
-            return Unreachable;
-        }
-
-        if (origin.OffsetTiles == goal.OffsetTiles)
-        {
-            return 0;
-        }
-
-        bool forward = goal.OffsetTiles > origin.OffsetTiles;
-        int from = forward ? _graph.SegmentNodeA[origin.Segment] : _graph.SegmentNodeB[origin.Segment];
-        int tiles = forward
-            ? goal.OffsetTiles - origin.OffsetTiles
-            : origin.OffsetTiles - goal.OffsetTiles;
-
-        return PartialCost(origin.Segment, from, tiles);
-    }
-
-    private int ArcAlong(int node, int segment)
-    {
-        for (int arc = _graph.ArcStart[node]; arc < _graph.ArcStart[node + 1]; arc++)
-        {
-            if (_graph.ArcSegment[arc] == segment)
-            {
-                return arc;
-            }
-        }
-
-        return -1;
-    }
+    private int SameSegmentCost(AccessPoint origin, AccessPoint goal) =>
+        SegmentEntry.SameSegmentCost(_graph, _congestedCarTicks, _mode, origin, goal);
 
     private void Seed(int node, int cost)
     {

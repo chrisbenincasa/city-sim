@@ -2585,3 +2585,410 @@ unaffected.
   node, and Stress on that node is an artefact of the partition rather than a property of the city —
   the same defect class `03 §3.9` rejects for the Microscopic Cap and `adr/0041` rejects for volume
   attribution, arriving a third time by a different door.
+
+## S2 R3 — HPA\*, the cluster it owns, and the reduction that decides it
+
+**Task R3 of [`plans/0010`](../plans/0010-s2-routing.md) is done.** It was written to decide **cluster
+size, outright** — `adr/0040` makes the abstract graph `(derived AND rebuilt)`, so the decision costs a
+recomputation to change and nothing else, forever. It narrows that choice to two rungs and cannot
+separate them. It also produces the figure the plan's *current standing favours HPA\** was resting on,
+and produces a second one the plan did not ask for: **no cluster size fits routing into the Tick
+budget**, which promotes a task that was scheduled as a tidy-up.
+
+Raw capture in `spikes/S2.Routing/results/`; R7 owes this section a rewrite and records the deleting
+commit.
+
+### The capture is `powersave`, and the canonical one is owed
+
+**Stated first because R0's own first capture was rejected for exactly this.** The figures below come
+from `s2-intel-core-i5-10400-ddr2133-powersave-turbo.md` — taken by `tools/routing-run.sh`, so it is
+**pinned to one physical core with its SMT sibling idle**, but the governor is `powersave` because
+the canonical configuration needs root and this sitting did not have it. `docs/dev-environment.md`'s
+protocol is `sudo spikes/S2.Routing/tools/routing-run.sh --cluster`, and it is owed.
+
+**What that does and does not put at risk.** R0 established that every *count* in this spike is
+bit-identical across governors — only nanoseconds and the ratios over them move — and R3's decisions
+rest on portal counts, edge counts, optimality shares and **ratios taken between two figures measured
+in the same process**. The one figure that would be unsafe to quote as an absolute is the flat
+search's 477,609 ns, and R3 quotes it as one in exactly one place: R3.4's Tick-budget arithmetic,
+which is flagged there.
+
+### The denominator moved by 200%, and the instrument that caught it was a second reading
+
+**R3's first pinned capture read 1,240,143 ns for the flat search against 425,803 ns for the same
+code in the same configuration unpinned, while every hierarchical rung stood still.** Every ratio in
+R3 divides by that number, so an artefact living in it decorates the entire task — and it very nearly
+did.
+
+The cause is position rather than pinning: the flat loop was **the first timed thing in the process**,
+and under `powersave` the clock had not ramped. The harness now measures the denominator **twice, on
+either side of the sweep**, and publishes both: first pass **1,401,307 ns**, second **477,609 ns**, a
+spread of **193.40%**. The ratios divide by the second, because every hierarchical rung is measured
+after the warm sweep and shares its process state while the first pass does not. The two passes
+returned **0** differing route costs out of 1,000, printed because it must read zero.
+
+**This is the fifth instance in S2 of R0's *"an argument for reporting a quantity you expect to be
+boring"*, and the first where the boring quantity was the denominator itself.** The four before it
+were R0's dead Arterials, R0.5's mean-cost-when-found, R1's shrinking sample and R2's volume
+conservation. It generalises past this spike: **a denominator measured once has no error bar, and a
+denominator measured first has a systematic one.**
+
+### R3.1 — `adr/0014`'s claim is wrong by a factor of 256 in area
+
+[`adr/0014`](adr/0014-grid-streets-with-freeform-arterials.md) claims the Road Graph *"arrives
+pre-partitioned, because the Chunk grid is already the pathfinding cluster."*
+[`adr/0040`](adr/0040-the-pathfinding-cluster-is-a-multiple-of-the-chunk-not-the-chunk.md) had already
+corrected the *identity* half of that on structural grounds. R3 measures how far off it was.
+
+| Chunks per cluster | Cluster | Clusters | Largest | Portals | Abstract edges | Reduced edges | Reduced resident | + paths |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 32 Tiles | 16,384 | 4 nodes | 16,694 | 64,142 | 64,134 | 1011.22 KiB | 1.47 MiB |
+| 4 | 128 Tiles | 1,024 | 25 nodes | 11,875 | 133,116 | 45,236 | 692.11 KiB | 1.18 MiB |
+| **8** | **256 Tiles** | **256** | **81 nodes** | **6,665** | 151,350 | **24,586** | 406.41 KiB | **765.43 KiB** |
+| **16** | **512 Tiles** | **64** | **291 nodes** | **3,337** | 133,816 | **11,768** | 229.45 KiB | **453.37 KiB** |
+| 64 | 2,048 Tiles | 4 | 4,248 nodes | 518 | 62,126 | 1,678 | 88.95 KiB | 136.07 KiB |
+
+**At one Chunk the abstract graph *is* the Road Graph** — 16,694 portals against 16,697 nodes, and a
+query that expands exactly the 4,138 nodes the flat search expands. That is not a coincidence to be
+explained away; it is `adr/0014`'s claim evaluated, and it says the claim describes a hierarchy that
+abstracts nothing. **`05 §5`'s prediction that the pathfinding role wants *larger, and loudly* is
+right, and the margin is 16× in side and 256× in area.**
+
+**Resident size decides nothing at any rung.** The largest abstract graph in the sweep is **1.84 MiB**
+against a 172.3 MiB world, and the configuration R3 recommends is **453.37 KiB** including the stored
+paths. That last column is the one an earlier draft feared: storing the concrete arcs of every
+intra-cluster edge was estimated at ~1.1 MiB and measured at **223.92 KiB of arcs**, because the
+reduction had already removed 91% of the edges that would have carried them. **It is not an
+`adr/0006` hazard**: the arena is a function of the partition and the road network, both bounded, and
+it is rebuilt rather than appended to.
+
+### R3.2 — preprocessing, priced in flat searches
+
+Priced in flat searches rather than milliseconds alone, because that is the question: preprocessing is
+only affordable if the queries it saves outnumber it. `adr/0040` keeps this out of the save
+deliberately, so it is paid on **every load** and after every change to the cluster size.
+
+| Chunks | Cold build | Nodes settled | In flat searches |
+|---:|---:|---:|---:|
+| 8, reduced | 26.54 ms | 574,207 | 55 |
+| **8, reduced + paths** | **45.03 ms** | 1,148,375 | **94** |
+| 16, reduced | 59.87 ms | 2,014,227 | 125 |
+| **16, reduced + paths** | **96.04 ms** | 4,028,411 | **201** |
+| 32, reduced + paths | 171.91 ms | 19,723,213 | 359 |
+| 64, reduced + paths | 339.67 ms | 135,252,966 | 711 |
+
+**Storing the paths doubles the settled count and roughly doubles the build**, because the arcs are
+recovered by a second confined search per portal rather than retained from the first — an
+implementation choice this spike made for clarity, and one a real implementation would not have to
+make. 201 flat searches is the entry fee at the recommended rung, and it is cheap against a session.
+
+### R3.3 — the query, and the currency that does not convert, a second time
+
+*Cost only* answers *how long does this Trip take*; *+ refine* answers *which arcs*. They are timed
+apart because they have different customers: R1 showed the travel-time matrix already answers the
+first more cheaply than any search can, and `adr/0041` needs the second.
+
+| Chunks | Cost only | vs flat | + refine | vs flat | Settled (abstract + insert) | Relaxed |
+|---|---:|---:|---:|---:|---:|---:|
+| flat A\* | 477,609 ns | 1.00× | — | — | 4,138 | 16,442 |
+| 8 | 461,732 ns | 1.03× | 479,221 ns | 0.99× | 1,708 + 131 | 39,298 + 527 |
+| 8, reduced | 280,603 ns | 1.70× | 303,122 ns | 1.57× | 1,708 + 131 | 6,351 + 527 |
+| **8, reduced + paths** | 215,097 ns | 2.22× | **237,325 ns** | **2.01×** | 1,708 + 131 | 6,351 + 527 |
+| 16 | 332,179 ns | 1.43× | 476,498 ns | 1.00× | 886 + 464 | 36,440 + 1,852 |
+| 16, reduced | 166,010 ns | 2.87× | 316,993 ns | 1.50× | 886 + 464 | 3,143 + 1,852 |
+| **16, reduced + paths** | 154,570 ns | **3.08×** | **181,554 ns** | **2.63×** | 886 + 464 | 3,143 + 1,852 |
+| 32, reduced + paths | 187,765 ns | 2.54× | 210,385 ns | 2.27× | 422 + 1,731 | 1,381 + 6,866 |
+| 64, reduced + paths | 824,441 ns | 0.57× | 746,193 ns | 0.64× | 166 + 8,360 | 544 + 33,095 |
+
+**HPA\* over the complete abstraction expands 4.7× fewer nodes than the flat search and is 1.43×
+faster.** That is R0's finding arriving a second time by a different door, and it is worth stating in
+the general form: **a hierarchy that saves expansions has not yet saved anything.** The mechanism is
+visible in the work columns rather than inferred. The flat graph has a mean degree of **3**; the
+complete abstract graph at 16 Chunks has a mean degree of **40**, and the hierarchical search relaxes
+**36,440** abstract edges where the flat search relaxes **16,442** concrete arcs. It settles a fifth as
+many nodes and examines twice as many edges. **A road network is degree-3 and sparse, which is
+precisely the graph on which an all-pairs abstraction is a bad trade.**
+
+**The two halves of the *Settled* column move in opposite directions, and that is the whole shape of
+the curve.** A larger cluster means fewer portals to search over and a larger insertion at each end;
+at 64 Chunks the insertion alone settles 8,360 nodes — twice the flat search's whole expansion — and
+the hierarchy is slower than no hierarchy at all.
+
+**Storing paths converts the refined column from an upper bound into a measurement.** Without it,
+recovering an intra-cluster edge's arcs re-runs the confined search that produced its cost, and
+refinement costs 151,000 ns at 16 Chunks — more than the abstract search itself. With the arena, it
+costs 27,000 ns. **This is R6's question answered early for the intra-edge half**, and it is why the
+recommendation below is a *reduced + paths* rung rather than a *reduced* one.
+
+### R3.4 — the Tick budget, which is the test R2 already wrote down
+
+**A speedup is not a verdict.** R2 retired the searched path source on arithmetic, and that test
+applies unchanged to **any** per-Trip search, including this one. A route must cost **28,363 ns** to
+consume a whole 15.6 ms Tick on its own.
+
+| Rung | Per refined route | **Break-even Trips/Tick** |
+|---|---:|---:|
+| flat A\* | 477,609 ns | **32** |
+| 4, reduced + paths | 364,380 ns | **42** |
+| 8, reduced + paths | 237,325 ns | **65** |
+| **16, reduced + paths** | **181,554 ns** | **85** |
+| 32, reduced + paths | 210,385 ns | **74** |
+| 64, reduced + paths | 746,193 ns | **20** |
+
+**The break-even column is the finding, and it is stated this way deliberately.** *Break-even
+Trips/Tick* is a measured per-route cost divided by a world constant and contains nothing derived, so
+it stays true when the arrival rate is finally measured. The obvious alternative — multiplying by the
+working figure of ~550 Trip starts per Tick and reporting *6.4× over budget* — **buries a guess inside
+a tripwire**. 550 comes from ~56,000 Trips in flight over a mean Trip duration the corpus records as
+provisional, and S2 has no Travellers, no Trip generation and no Event Wheel to produce a better one.
+**A tripwire whose denominator is a guess is a tripwire that fires on the guess.** The general rule,
+and it outlives this spike: *gather a tripwire as direct data where the data exists, and where it does
+not, invert the derivation until what is published is measured.*
+
+**A route is requested per Trip, not per Tick per Traveller.** An earlier draft of this section said
+"a concrete route every Tick", which is wrong and flatters the problem in the wrong direction: a
+Traveller in flight consults a route it already holds, and the per-Tick per-Traveller cost is
+advancing along it. What costs a search is a Trip *starting*. That is the quantity the break-even
+column is denominated in.
+
+**No cluster size fits, and the shape of the curve says none can.** The load is U-shaped in cluster
+size and both ends are pinned by the same thing R3.3's *Settled* column shows: a small cluster makes
+the abstract search approach the flat search, a large one makes the *insertion* approach it.
+`adr/0040` admits only whole-Chunk clusters that tile the map, so the admissible rungs are the
+divisors of 128 and the minimum sits at one of them with both neighbours worse. **This is a floor,
+not a rung that was missed.**
+
+**Two exits, and neither is free.** A **cache** — `adr/0012` permits one keyed by origin-destination
+pair, and `plans/0010` R6 owns it — would have to serve all but ~85 route requests per Tick at the
+best rung, which at the working arrival figure is roughly a 92% hit rate. **That promotes R6 from a
+late tidy-up to a load-bearing task**, and it is the single largest change R3 makes to the plan. Or
+**threads**: invariant 4 is thread-count equivalence, so the best rung's load spread over eight cores
+fits — by spending the whole Tick budget of eight cores on routing, which is a mortgage rather than a
+solution.
+
+**R2's next-hop table is the rung this arithmetic does not touch**, because it does no per-Trip search
+at all — 0 ns to start a Trip and 32 ns per crossing. That is a structural advantage over both
+hierarchies rather than a faster constant, and it is **R4's** to press.
+
+### R3.5 — the detour reads zero, and it is a property of the design
+
+Every rung: **100% optimal, 0.00% mean detour, 0 routes cheaper than the flat optimum, 0 audit
+failures over 200 refined routes per rung.** Beside R2's 18.52% for a next-hop table and 36.01% for a
+shared District route, that is the column HPA\* wins outright. **The mean is over every query
+compared, optimal ones included at zero**, which is what makes it the same quantity R2 published
+rather than a mean over survivors.
+
+**A zero at every rung is exactly the shape R2 caught a defect wearing**, so it is argued rather than
+asserted. Keeping every crossing as a transition makes the abstraction **complete**: any concrete path
+decomposes into cluster crossings, and between two consecutive crossings the path is confined to one
+cluster and runs portal-to-portal, whose confined optimum is exactly what an intra-edge stores. The
+insertion is lossless for the same reason — a route's first exit from the origin's cluster is a portal
+reachable within it. **The abstraction cannot lose a route, so it cannot return a longer one.**
+
+Botea's ~1% suboptimality comes from **entrance grouping**, which exists because a tile grid's cluster
+boundary is a solid run of hundreds of walkable cells. A road network's boundary is already sparse —
+it is crossed only where a Street or an Arterial crosses it — so the grouping step has nothing to
+group.
+
+**A zero correctness column is not evidence until the instrument is shown to move**, and R3.6 is where
+it moves: the same column reads 80.49% under transition sampling, on the same graph and the same query
+set. **The audit is the other half of that.** It re-walks refined routes and requires the entry
+partial, the arc costs and the exit remainder to sum **exactly** to the cost the query reported, with
+the arcs forming an unbroken chain — an equality rather than a tolerance, because Q16.16 addition is
+exact. It is R2's *"an invariant is worth printing on the run where it reads yes"* applied in advance
+for once, rather than after a harness had published a `v/c` of 883×.
+
+### R3.6 — the sparser abstraction, and what Botea's lever actually costs here
+
+Swept at 16 Chunks, the rung R3.3 makes the best of — chosen from the measurement rather than in
+advance.
+
+| Transitions per boundary | Portals | Edges | Degree | Query | vs flat | Optimal | Mean detour | Worst |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 206 | 552 | 2 | 55,975 ns | 8.53× | 9.48% | 80.49% | 345.62% |
+| 2 | 428 | 2,208 | 5 | 56,495 ns | 8.45× | 13.84% | 65.57% | 609.76% |
+| 4 | 872 | 9,072 | 10 | 104,860 ns | 4.55× | 20.12% | 60.78% | 603.86% |
+| 8 | 1,746 | 36,470 | 20 | 187,363 ns | 2.54× | 26.50% | 36.99% | 239.62% |
+| all | 3,337 | 133,816 | 40 | 339,039 ns | 1.40× | 100.00% | 0.00% | 0.00% |
+| **all, reduced** | **3,337** | **11,768** | **3** | **148,691 ns** | **3.21×** | **100.00%** | **0.00%** | **0.00%** |
+
+**Two findings, and the second is the one that changes the answer.**
+
+**Sampling transitions is catastrophic on this graph.** One transition per boundary buys 8.53× and
+returns a route **80% longer on average**, with a worst case of 3.5×. `05 §4`'s test is not ambiguous
+about what that is: a different route is a different Trip and therefore a different city, so this is
+not a faster router but a wrong one. Whatever HPA\*'s literature speedups are, **they are bought with
+a currency this design does not have.**
+
+**The transitive reduction is lossless, and skipping it is what made HPA\* look weak.** An intra-edge
+is redundant when another portal of the same cluster lies on a route between its ends costing no more.
+Removing those is safe because every arc cost is strictly positive, so both hops of a replacement are
+strictly cheaper than the edge they replace and removals cannot cascade — and **R3.5's optimality
+column is the proof rather than the argument**, reading 100% for every reduced rung. It cuts the
+abstract graph from 133,816 edges to **11,768**, degree 40 to **3** — the flat graph's own degree —
+resident size to 229.45 KiB, and **more than doubles the speedup at zero correctness cost**.
+
+**What it costs is repairability, and that is a finding rather than a caveat.** Redundancy is a
+property of the *costs*, so an edit that lengthens one route can make a removed edge necessary again,
+and no amount of re-costing the remaining slots brings it back. **A reduced cluster's edge set must be
+decided again, not repaired** — which is a cluster-local rebuild, not a whole-graph one, and R3.7
+measures it rather than deriving it.
+
+### R3.7 — invalidation, which is the half of the core verb R3 can price
+
+One Segment deleted. Only the clusters holding that Segment's endpoints can have changed, so only
+their portals' confined searches re-run. *In a city builder link deletion is the core verb*, which is
+this plan's own argument against distance-vector without sequence numbers, and it cuts at a hierarchy
+too.
+
+| Rung | Operation | Cost | Clusters touched | Share of cold build |
+|---|---|---:|---:|---:|
+| 8, reduced | rebuild cluster | 313,478 ns | 1.03 | 1.18% |
+| **8, reduced + paths** | rebuild cluster | **375,723 ns** | 1.03 | 0.83% |
+| 16 | re-cost | 754,767 ns | 1.03 | 1.85% |
+| 16, reduced | rebuild cluster | 753,829 ns | 1.03 | 1.25% |
+| **16, reduced + paths** | rebuild cluster | **1,296,680 ns** | 1.03 | 1.35% |
+| 32, reduced + paths | rebuild cluster | 10,417,111 ns | 1.03 | 6.05% |
+| 64, reduced + paths | rebuild cluster | 77,482,496 ns | 1.00 | 22.81% |
+
+**Two operations, and which one is sound is a property of the rung.** A complete abstract graph keeps
+every intra-edge, so *re-costing* the slots is exact. A reduced one must decide its edge set again, per
+R3.6. An earlier draft of this section derived the reduced figure from the per-cluster build column
+and quoted ≈1.2 ms; the measurement is 1,296,680 ns, so the derivation was close — **and being close is
+not the point.** The rule R3.4 states about tripwires applies to any number a decision rests on:
+measure it where the measurement is available, and this one was three hours of work away.
+
+**Below 8 Chunks the rebuild column is mostly this harness**, and the capture says so in place: a
+rebuilt cluster is spliced back into one global CSR, kept global so the query path measured above is
+the one a real implementation would run, and the splice copies every edge in the graph. At one Chunk
+that is 64,134 edges and most of the 469 µs; at 16 Chunks it is 11,768 and a couple of percent.
+
+**Deletion only, and the limit is structural rather than an omission.** Both operations work over the
+portals the build found, so either may cost an edge out of existence but neither can create a portal
+that did not exist — which is what *drawing* a road across a cluster boundary does. **R5's edit storm
+owns the drawing half**, and it is also the task that weighs these figures, because what weighs them
+is the edit rate.
+
+### R3.8 — the bypass, and a plan assumption that S2 cannot confirm
+
+`plans/0010` makes the same-Segment and adjacent-Segment bypass **mandatory rather than an
+optimisation**, on the argument that with five Buildings on a Segment a meaningful share of the ~464
+walk Leg routes per Tick never leave their own Segment or its neighbour.
+
+**S2 cannot report that share, and reporting one would be a guess wearing a measurement's clothes.**
+The spike has no Leg distribution — R0 said so in its own sampler and bucketed everything instead, so
+whatever distribution arrives later is applied as weights over buckets that already exist. Bucketed,
+over 20,000 drawn walk Legs:
+
+| O-D distance | Legs | Same Segment | Adjacent | Bypassed |
+|---|---:|---:|---:|---:|
+| ≤ 32 Tiles (one block) | 175 | 15.42% | 62.85% | **78.28%** |
+| ≤ 64 | 341 | 0.00% | 1.75% | 1.75% |
+| ≤ 128 and beyond | 19,484 | 0.00% | 0.00% | 0.00% |
+
+**The bypass is worth everything inside one block and nothing outside it**, and the cliff is sharp
+rather than gradual: it is 78% at a block and 1.75% at two. So the plan's claim is **conditional on a
+distribution nobody has measured** — it is true if and only if walk Legs are overwhelmingly
+single-block, and the corpus has never said they are. **What the bypass costs to decide is two Segment
+comparisons and at most four endpoint comparisons**, so it stays mandatory on cost grounds regardless
+of how the weights land; but *the plan's reason for it is not yet evidence.*
+
+### What R3 decided, and what it did not
+
+**Decided.**
+
+- **Cluster size is narrowed to 8 or 16 Chunks a side, with the bias on 16 — and R3 does not close
+  it.** The plan says R3 decides cluster size *outright*; it cannot, and the reason is a measurement
+  rather than a reluctance. The axis that separates the two rungs is the **edit rate**, and **R5**
+  measures it.
+
+  | Rung | Refined query | Break-even Trips/Tick | Cold build | Edit | Resident |
+  |---|---:|---:|---:|---:|---:|
+  | 8, reduced + paths | 237,325 ns (2.01×) | 65 | 45.03 ms | **375,723 ns** | 765 KiB |
+  | **16, reduced + paths** | **181,554 ns (2.63×)** | **85** | 96.04 ms | 1,296,680 ns | **453 KiB** |
+
+  **The bias is on 16 because the query is a per-Tick cost and the edit is a per-click one.** 16 is
+  1.31× faster on the column that has a customer and carries 31% more Trips per Tick before the
+  budget breaks; it pays for that with **0.92 ms more on each deleted Segment**, at an edit rate a
+  human generates by hand. Both figures are under 1.3 ms and a player cannot perceive the difference
+  between them; the query difference is spent every Tick of the session. **What could still overturn
+  it is a drag that deletes hundreds of Segments in one gesture**, which is exactly R5's storm, so
+  the decision defers rather than closes.
+
+  **Two earlier drafts of this bullet got it wrong in opposite directions**, and both are recorded
+  because the error is instructive. The first published 16 outright and justified it on the
+  *cost-only* column — the same column it had just argued the travel-time matrix serves better. The
+  second corrected to 8 on the refined column, before the path store existed; storing paths moved
+  16's refined query from 1.53× to 2.63× and moved the answer back. **A recommendation is only as
+  stable as the configuration it was measured on.**
+
+  Chunk size is *informed and not decided*, per `adr/0040`. At Phase 1's provisional Chunk = Cell
+  this is a cluster **8–16× the Chunk in side**; the Chunk is in the save and the cluster is not, so
+  this decision costs a recomputation to change and nothing else, forever.
+- **The stored path arena is mandatory alongside the reduction.** It converts refinement from a
+  re-run confined search into an array copy, moves the refined query from 1.50× to 2.63× at 16
+  Chunks, and costs **223.92 KiB** — a fifth of the estimate it was feared at, because the reduction
+  had already removed 91% of the edges that would have carried arcs.
+- **`adr/0014`'s *"the Chunk grid is already the pathfinding cluster"* is measured false.** At one
+  Chunk the abstract graph is the Road Graph — 16,694 portals against 16,697 nodes — and the query
+  expands exactly what the flat search expands. `adr/0040` corrected the claim structurally; this is
+  the number.
+- **The transitive reduction is mandatory.** Lossless, 11.4× fewer abstract edges, degree 40 → 3,
+  double the speedup, and R3.5's optimality column proves it. An HPA\* implementation that skips it
+  measures a hierarchy that is barely faster than no hierarchy.
+- **Transition sampling is out.** 80.49% mean detour at one transition per boundary is a different
+  city under `05 §4`'s own test, whatever it buys.
+- **HPA\* is optimal on this graph**, which is the column it wins outright: 100% against R2's 18.52%
+  and 36.01%.
+- **`plans/0010` R6 — the route cache — is promoted from a late optimisation to load-bearing.** No
+  cluster size fits routing into the Tick budget, and the gap is 6.4× at the best rung against the
+  working arrival figure. A cache is one of only two exits and the only one that does not mortgage
+  eight cores. **R6 is now a task the router choice depends on rather than one that tidies up after
+  it**, and R4's comparison should be read knowing that whichever router wins will need it.
+
+**Not decided, and owed.**
+
+- **The router is not chosen, and R3 weakens the standing rather than confirming it.**
+  `plans/0010` records *current standing favours HPA\**. What HPA\* actually buys is **3.08× on a
+  cost-only query and 2.63× when it must return arcs** — and R1 already showed the travel-time matrix
+  answers the cost-only question at 1.14 ns, so the larger figure is against a customer that has a
+  better answer already. R4 must now run against a genuinely open comparison, and it runs it knowing
+  neither candidate fits the budget unaided.
+- **The cluster is not closed, and `plans/0010`'s *decides cluster size, outright* is owed a
+  correction.** R3 narrows it to two rungs and cannot separate them, because the axis that separates
+  them is the edit rate.
+- **The O-D draw is uniform over the map, and R0 flagged that as a placeholder that was never
+  replaced.** R0 said it could not have the distribution it was supposed to use and would take R1's;
+  R1 produced none, and R3 inherited the uniform draw unchanged. **A uniform draw over a 4,096-Tile
+  map produces long routes**, and long routes are where a hierarchy wins by the widest margin — so
+  every speedup in R3.3 is measured on the distribution most favourable to HPA\*. It does not
+  threaten the optimality columns, which are counts, and it does not threaten the *ranking* of the
+  rungs against each other; it does mean **the speedup over flat A\* is an upper bound**, and R3.8's
+  bypass table shows how thin the short end of the real distribution might be.
+- **The canonical `performance` capture is owed**, and until it exists no absolute nanosecond figure
+  in this section should be quoted outside it — including R3.4's, which is the one place R3 divides
+  a measured absolute by a world constant.
+- **The plan's argument for the bypass is unconfirmed.** The bypass stays on cost grounds; the
+  reason given for it needs a walk-Leg distribution the corpus does not have.
+- **The largest exposure in R3 is one it measured around rather than through: the abstract graph is
+  built on free-flow costs, and the simulation routes on congested ones.** `CONTEXT.md` → Epoch bumps
+  on *any edit* — a topology change — and the corpus says nothing anywhere about invalidating anything
+  when **congestion** changes. But the VDF makes a Segment's travel time a function of its
+  `volume / capacity`, `adr/0041` moves volume **every Tick**, and `02 §5.9` requires the router to
+  route on that same quantity. **The flat search has no exposure at all** — it reads arc costs at
+  query time and is always current, which is a structural advantage of the denominator that R3 never
+  priced. **HPA\*'s intra-cluster edges are shortest-path costs *over* those arc costs**, so every one
+  of them goes stale with no Epoch bump to flag it.
+
+  **This is R1.7's finding arriving a third time.** R1 recorded *"two invalidation mechanisms are in
+  the corpus and nothing relates them"* — the matrix by dirty region, routes by scalar Epoch. Cost
+  drift is a third, with **no mechanism at all**, and it is the one carrying 96 ms of rebuild.
+
+  **It does not favour either router**: a next-hop table built over costs is stale by exactly the same
+  argument, so R4 inherits it unchanged. What decides it is the **refresh cadence of the routing cost
+  basis**, which the corpus has never stated. R1.8 found the matrix is built per time-of-day phase; if
+  routing shares that cadence, the abstract graph rebuilds a handful of times a Day at 96 ms and the
+  exposure evaporates. If routing must track volume continuously, **HPA\* and the next-hop table are
+  both dead** against a 15.6 ms Tick budget. **R5 must have that cadence as an input before its edit
+  storm means anything**, because an edit storm over a cost basis that is already being rebuilt
+  continuously is measuring the wrong storm.

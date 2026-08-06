@@ -1,6 +1,6 @@
 ## S2 R3 — HPA\*, and the cluster size it owns
 
-- **Captured** 2026-08-06 20:33:18 UTC
+- **Captured** 2026-08-06 20:23:15 UTC
 - **Machine** Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz, 1 logical processors
 - **OS** Ubuntu 24.04.4 LTS, X64
 - **Runtime** .NET 10.0.10
@@ -49,29 +49,29 @@ Priced in flat searches rather than in milliseconds alone, because that is the q
 
 | Chunks | Cold build | Nodes settled | Per cluster | In flat searches |
 |---:|---:|---:|---:|---:|
-| 1 | 3.17 ms | 17,505 | 193 ns | 6 |
-| 1, reduced | 2.08 ms | 17,505 | 127 ns | 4 |
-| 1, reduced + paths | 3.56 ms | 18,592 | 217 ns | 7 |
-| 2 | 7.46 ms | 68,766 | 1,821 ns | 15 |
-| 2, reduced | 4.89 ms | 68,766 | 1,195 ns | 10 |
-| 2, reduced + paths | 6.61 ms | 137,352 | 1,613 ns | 13 |
-| 4 | 11.52 ms | 206,142 | 11,254 ns | 24 |
-| 4, reduced | 15.79 ms | 206,142 | 15,428 ns | 33 |
-| 4, reduced + paths | 20.52 ms | 412,218 | 20,047 ns | 42 |
-| 8 | 23.38 ms | 574,207 | 91,345 ns | 48 |
-| 8, reduced | 26.54 ms | 574,207 | 103,672 ns | 55 |
-| 8, reduced + paths | 45.03 ms | 1,148,375 | 175,922 ns | 94 |
-| 16 | 40.63 ms | 2,014,227 | 634,895 ns | 85 |
-| 16, reduced | 59.87 ms | 2,014,227 | 935,582 ns | 125 |
-| 16, reduced + paths | 96.04 ms | 4,028,411 | 1,500,696 ns | 201 |
-| 32 | 76.47 ms | 9,861,622 | 4,779,711 ns | 160 |
-| 32, reduced | 75.32 ms | 9,861,622 | 4,707,835 ns | 157 |
-| 32, reduced + paths | 171.91 ms | 19,723,213 | 10,744,796 ns | 359 |
-| 64 | 157.39 ms | 67,626,483 | 39,349,702 ns | 329 |
-| 64, reduced | 153.39 ms | 67,626,483 | 38,349,897 ns | 321 |
-| 64, reduced + paths | 339.67 ms | 135,252,966 | 84,917,647 ns | 711 |
+| 1 | 3.81 ms | 17,505 | 232 ns | 7 |
+| 1, reduced | 2.23 ms | 17,505 | 136 ns | 4 |
+| 1, reduced + paths | 4.97 ms | 18,568 | 303 ns | 9 |
+| 2 | 4.85 ms | 68,766 | 1,186 ns | 9 |
+| 2, reduced | 4.08 ms | 68,766 | 996 ns | 7 |
+| 2, reduced + paths | 7.05 ms | 134,292 | 1,721 ns | 13 |
+| 4 | 12.31 ms | 206,142 | 12,030 ns | 23 |
+| 4, reduced | 10.70 ms | 206,142 | 10,449 ns | 20 |
+| 4, reduced + paths | 16.58 ms | 387,122 | 16,195 ns | 31 |
+| 8 | 23.09 ms | 574,207 | 90,216 ns | 44 |
+| 8, reduced | 34.95 ms | 574,207 | 136,551 ns | 67 |
+| 8, reduced + paths | 43.36 ms | 949,587 | 169,377 ns | 83 |
+| 16 | 41.25 ms | 2,014,227 | 644,649 ns | 79 |
+| 16, reduced | 44.90 ms | 2,014,227 | 701,613 ns | 86 |
+| 16, reduced + paths | 73.02 ms | 2,682,823 | 1,140,992 ns | 140 |
+| 32 | 92.11 ms | 9,861,622 | 5,756,958 ns | 177 |
+| 32, reduced | 76.71 ms | 9,861,622 | 4,794,723 ns | 147 |
+| 32, reduced + paths | 134.17 ms | 10,989,761 | 8,386,012 ns | 258 |
+| 64 | 204.63 ms | 67,626,483 | 51,159,963 ns | 393 |
+| 64, reduced | 160.84 ms | 67,626,483 | 40,212,116 ns | 309 |
+| 64, reduced + paths | 298.97 ms | 69,693,374 | 74,743,493 ns | 575 |
 
-One flat `Chebyshev` drive search in this process: **477,609 ns**, 4,138 nodes expanded, 58 path Segments.
+One flat `Chebyshev` drive search in this process: **519,778 ns**, 4,138 nodes expanded, 58 path Segments.
 
 ### R3.3 — the query, which is the column R3 exists for
 
@@ -79,34 +79,34 @@ One flat `Chebyshev` drive search in this process: **477,609 ns**, 4,138 nodes e
 
 | Chunks | Cost only | vs flat | + refine | vs flat | Settled | Relaxed | Arcs |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| **flat** | **477,609 ns** | 1.00× | — | — | 4,138 nodes | 16,442 arcs | 58 |
-| 1 | 455,039 ns | 1.04× | 489,441 ns | 0.97× | 4,138 + 4 | 15,962 + 16 | 58 |
-| 1, reduced | 457,600 ns | 1.04× | 466,607 ns | 1.02× | 4,138 + 4 | 15,961 + 16 | 58 |
-| 1, reduced + paths | 477,239 ns | 1.00× | 480,448 ns | 0.99× | 4,138 + 4 | 15,961 + 16 | 58 |
-| 2 | 574,465 ns | 0.83× | 575,964 ns | 0.82× | 4,089 + 12 | 19,808 + 48 | 58 |
-| 2, reduced | 504,658 ns | 0.94× | 519,549 ns | 0.91× | 4,089 + 12 | 15,780 + 48 | 58 |
-| 2, reduced + paths | 451,744 ns | 1.05× | 491,434 ns | 0.97× | 4,089 + 12 | 15,780 + 48 | 58 |
-| 4 | 557,923 ns | 0.85× | 619,685 ns | 0.77× | 2,988 + 38 | 33,621 + 156 | 58 |
-| 4, reduced | 377,459 ns | 1.26× | 386,457 ns | 1.23× | 2,988 + 38 | 11,442 + 156 | 58 |
-| 4, reduced + paths | 368,125 ns | 1.29× | 364,380 ns | 1.31× | 2,988 + 38 | 11,442 + 156 | 58 |
-| 8 | 461,732 ns | 1.03× | 479,221 ns | 0.99× | 1,708 + 131 | 39,298 + 527 | 58 |
-| 8, reduced | 280,603 ns | 1.70× | 303,122 ns | 1.57× | 1,708 + 131 | 6,351 + 527 | 58 |
-| 8, reduced + paths | 215,097 ns | 2.22× | 237,325 ns | 2.01× | 1,708 + 131 | 6,351 + 527 | 58 |
-| 16 | 332,179 ns | 1.43× | 476,498 ns | 1.00× | 886 + 464 | 36,440 + 1,852 | 58 |
-| 16, reduced | 166,010 ns | 2.87× | 316,993 ns | 1.50× | 886 + 464 | 3,143 + 1,852 | 58 |
-| 16, reduced + paths | 154,570 ns | 3.08× | 181,554 ns | 2.63× | 886 + 464 | 3,143 + 1,852 | 58 |
-| 32 | 360,148 ns | 1.32× | 440,041 ns | 1.08× | 422 + 1,731 | 30,098 + 6,866 | 58 |
-| 32, reduced | 175,937 ns | 2.71× | 671,240 ns | 0.71× | 422 + 1,731 | 1,381 + 6,866 | 58 |
-| 32, reduced + paths | 187,765 ns | 2.54× | 210,385 ns | 2.27× | 422 + 1,731 | 1,381 + 6,866 | 58 |
-| 64 | 878,207 ns | 0.54× | 1,015,393 ns | 0.47× | 166 + 8,360 | 19,705 + 33,095 | 58 |
-| 64, reduced | 773,998 ns | 0.61× | 1,297,496 ns | 0.36× | 166 + 8,360 | 544 + 33,095 | 58 |
-| 64, reduced + paths | 824,441 ns | 0.57× | 746,193 ns | 0.64× | 166 + 8,360 | 544 + 33,095 | 58 |
+| **flat** | **519,778 ns** | 1.00× | — | — | 4,138 nodes | 16,442 arcs | 58 |
+| 1 | 473,154 ns | 1.09× | 490,633 ns | 1.05× | 4,138 + 4 | 15,962 + 16 | 58 |
+| 1, reduced | 474,534 ns | 1.09× | 503,511 ns | 1.03× | 4,138 + 4 | 15,961 + 16 | 58 |
+| 1, reduced + paths | 561,256 ns | 0.92× | 474,465 ns | 1.09× | 4,138 + 4 | 15,961 + 16 | 58 |
+| 2 | 496,985 ns | 1.04× | 606,779 ns | 0.85× | 4,089 + 12 | 19,808 + 48 | 58 |
+| 2, reduced | 483,800 ns | 1.07× | 504,498 ns | 1.03× | 4,089 + 12 | 15,780 + 48 | 58 |
+| 2, reduced + paths | 476,322 ns | 1.09× | 526,684 ns | 0.98× | 4,089 + 12 | 15,780 + 48 | 58 |
+| 4 | 536,959 ns | 0.96× | 593,165 ns | 0.87× | 2,988 + 38 | 33,621 + 156 | 58 |
+| 4, reduced | 353,376 ns | 1.47× | 444,417 ns | 1.16× | 2,988 + 38 | 11,442 + 156 | 58 |
+| 4, reduced + paths | 401,258 ns | 1.29× | 354,458 ns | 1.46× | 2,988 + 38 | 11,442 + 156 | 58 |
+| 8 | 443,120 ns | 1.17× | 474,820 ns | 1.09× | 1,708 + 131 | 39,298 + 527 | 58 |
+| 8, reduced | 289,272 ns | 1.79× | 283,853 ns | 1.83× | 1,708 + 131 | 6,351 + 527 | 58 |
+| 8, reduced + paths | 213,639 ns | 2.43× | 222,639 ns | 2.33× | 1,708 + 131 | 6,351 + 527 | 58 |
+| 16 | 356,703 ns | 1.45× | 359,490 ns | 1.44× | 886 + 464 | 36,440 + 1,852 | 58 |
+| 16, reduced | 143,994 ns | 3.60× | 297,876 ns | 1.74× | 886 + 464 | 3,143 + 1,852 | 58 |
+| 16, reduced + paths | 157,322 ns | 3.30× | 160,207 ns | 3.24× | 886 + 464 | 3,143 + 1,852 | 58 |
+| 32 | 400,222 ns | 1.29× | 433,061 ns | 1.20× | 422 + 1,731 | 30,098 + 6,866 | 58 |
+| 32, reduced | 175,943 ns | 2.95× | 519,961 ns | 0.99× | 422 + 1,731 | 1,381 + 6,866 | 58 |
+| 32, reduced + paths | 179,876 ns | 2.88× | 199,265 ns | 2.60× | 422 + 1,731 | 1,381 + 6,866 | 58 |
+| 64 | 937,039 ns | 0.55× | 973,230 ns | 0.53× | 166 + 8,360 | 19,705 + 33,095 | 58 |
+| 64, reduced | 827,432 ns | 0.62× | 1,244,575 ns | 0.41× | 166 + 8,360 | 544 + 33,095 | 58 |
+| 64, reduced + paths | 727,895 ns | 0.71× | 751,713 ns | 0.69× | 166 + 8,360 | 544 + 33,095 | 58 |
 
 *Settled* and *Relaxed* are **abstract + concrete**: portals settled and abstract edges relaxed by the hierarchical search, plus nodes settled and arcs relaxed by the two insertions. **The two halves are what the clock column is made of, and they move in opposite directions** — a larger cluster means fewer portals and more insertion.
 
 1,000 drive queries per rung, drawn once and shared by every rung and by the flat search, and **the refined column is a second pass over the same set** rather than over a prefix of it. Sample sizes are stated per rung throughout — R1's entry-error table published a row built from nine searches beside rows built from two thousand, because its sampler shrank with the swept axis.
 
-**The denominator is measured twice, on either side of the sweep, and the ratios divide by the second.** First pass **1,401,307 ns**, second **477,609 ns** — a spread of 193.40%. The first pinned capture of this task read 1,240,143 ns against 425,803 ns for the same code unpinned while every hierarchical rung stood still, because the flat loop was the first timed thing in the process and the clock had not ramped. Every ratio here divides by this number, so it is the one place an artefact would decorate the whole task. The second pass is quoted because the rungs are all measured after the warm sweep and share its process state; the first does not.
+**The denominator is measured twice, on either side of the sweep, and the ratios divide by the second.** First pass **1,630,022 ns**, second **519,778 ns** — a spread of 213.59%. The first pinned capture of this task read 1,240,143 ns against 425,803 ns for the same code unpinned while every hierarchical rung stood still, because the flat loop was the first timed thing in the process and the clock had not ramped. Every ratio here divides by this number, so it is the one place an artefact would decorate the whole task. The second pass is quoted because the rungs are all measured after the warm sweep and share its process state; the first does not.
 
 The two passes returned **0** differing route costs out of 1,000 — printed because it must read zero. The same query set over the same graph is the same search, and a non-zero here would mean the flat baseline every correctness column is judged against had moved underneath them.
 
@@ -116,20 +116,20 @@ The two passes returned **0** differing route costs out of 1,000 — printed bec
 
 | Rung | Per route | **Break-even Trips/Tick** | At the working 550 | Fits |
 |---|---:|---:|---:|---|
-| **flat** | 477,609 ns | **32** | 262.68 ms | 16.83× over |
-| 1, reduced + paths | 480,448 ns | **32** | 264.24 ms | 16.93× over |
-| 2, reduced + paths | 491,434 ns | **31** | 270.28 ms | 17.32× over |
-| 4, reduced + paths | 364,380 ns | **42** | 200.40 ms | 12.84× over |
-| 8, reduced + paths | 237,325 ns | **65** | 130.52 ms | 8.36× over |
-| 16, reduced + paths | 181,554 ns | **85** | 99.85 ms | 6.40× over |
-| 32, reduced + paths | 210,385 ns | **74** | 115.71 ms | 7.41× over |
-| 64, reduced + paths | 746,193 ns | **20** | 410.40 ms | 26.30× over |
+| **flat** | 519,778 ns | **30** | 285.87 ms | 18.32× over |
+| 1, reduced + paths | 474,465 ns | **32** | 260.95 ms | 16.72× over |
+| 2, reduced + paths | 526,684 ns | **29** | 289.67 ms | 18.56× over |
+| 4, reduced + paths | 354,458 ns | **44** | 194.95 ms | 12.49× over |
+| 8, reduced + paths | 222,639 ns | **70** | 122.45 ms | 7.84× over |
+| 16, reduced + paths | 160,207 ns | **97** | 88.11 ms | 5.64× over |
+| 32, reduced + paths | 199,265 ns | **78** | 109.59 ms | 7.02× over |
+| 64, reduced + paths | 751,713 ns | **20** | 413.44 ms | 26.50× over |
 
 **The break-even column is the finding; the two columns right of it are a marker on it.** *Break-even Trips/Tick* is a measured per-route cost divided by a world constant and contains nothing derived — it stays true when the arrival rate is finally measured. **550 is not measured and cannot be measured here**: it comes from ~56,000 Trips in flight, which rests on a mean Trip duration the corpus records as provisional, and S2 has no Travellers, no Trip generation and no Event Wheel to produce one. A tripwire whose denominator is a guess is a tripwire that can fire on the guess, so this one is stated in the form that does not depend on it.
 
 **No cluster size fits, and the shape of the curve says none can.** The load is U-shaped in cluster size and both ends are pinned by the same thing: a small cluster makes the abstract search approach the flat search, a large one makes the *insertion* approach it. `adr/0040` admits only whole-Chunk clusters that tile the map, so the admissible rungs are the divisors of 128 and the minimum sits at one of them with its two neighbours worse. **This is a floor, not a rung that was missed.**
 
-**Two exits, and neither is free.** A **cache** — `adr/0012` permits one keyed by origin-destination pair, and `plans/0010` R6 owns it — would have to reach roughly a **92% hit rate** to fit routing into half a Tick at the best rung. **That makes R6 load-bearing rather than an optimisation.** Or **threads**: invariant 4 is thread-count equivalence, so the best rung's load spread over eight cores fits — by spending the whole Tick budget of eight cores on routing, which is a mortgage rather than a solution.
+**Two exits, and neither is free.** A **cache** — `adr/0012` permits one keyed by origin-destination pair, and `plans/0010` R6 owns it — would have to reach roughly a **91% hit rate** to fit routing into half a Tick at the best rung. **That makes R6 load-bearing rather than an optimisation.** Or **threads**: invariant 4 is thread-count equivalence, so the best rung's load spread over eight cores fits — by spending the whole Tick budget of eight cores on routing, which is a mortgage rather than a solution.
 
 **R2's next-hop table is the rung this arithmetic does not touch**, because it does no per-Trip search at all — 0 ns to start a Trip and 32 ns per crossing. That is a structural advantage over both hierarchies rather than a faster constant, and it is **R4's** to press.
 
@@ -169,48 +169,30 @@ HPA\* returns the best route that **respects the partition**, which is never che
 
 | Transitions | Portals | Abstract edges | Edges each | Cold build | Query | vs flat | Optimal | Mean detour | Worst |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | 206 | 552 | 2 | 6.73 ms | 55,975 ns | 8.53× | 9.48% | 80.49% | 345.62% |
-| 2 | 428 | 2,208 | 5 | 6.03 ms | 56,495 ns | 8.45× | 13.84% | 65.57% | 609.76% |
-| 4 | 872 | 9,072 | 10 | 12.21 ms | 104,860 ns | 4.55× | 20.12% | 60.78% | 603.86% |
-| 8 | 1,746 | 36,470 | 20 | 19.83 ms | 187,363 ns | 2.54× | 26.50% | 36.99% | 239.62% |
-| all | 3,337 | 133,816 | 40 | 42.87 ms | 339,039 ns | 1.40× | 100.00% | 0.00% | 0.00% |
-| all, reduced | 3,337 | 11,768 | 3 | 52.04 ms | 148,691 ns | 3.21× | 100.00% | 0.00% | 0.00% |
+| 1 | 206 | 552 | 2 | 5.38 ms | 48,240 ns | 10.77× | 9.48% | 80.49% | 345.62% |
+| 2 | 428 | 2,208 | 5 | 6.60 ms | 60,212 ns | 8.63× | 13.84% | 65.57% | 609.76% |
+| 4 | 872 | 9,072 | 10 | 11.33 ms | 99,052 ns | 5.24× | 20.12% | 60.78% | 603.86% |
+| 8 | 1,746 | 36,470 | 20 | 21.22 ms | 184,209 ns | 2.82× | 26.50% | 36.99% | 239.62% |
+| all | 3,337 | 133,816 | 40 | 39.83 ms | 342,639 ns | 1.51× | 100.00% | 0.00% | 0.00% |
+| all, reduced | 3,337 | 11,768 | 3 | 58.23 ms | 167,029 ns | 3.11× | 100.00% | 0.00% | 0.00% |
 
 1,000 queries per rung, the same set R3.3 uses. *Edges each* is the abstract graph's mean degree, and the flat graph's is 3 — **the comparison this whole section exists to make.**
 
 ### R3.7 — invalidation, which is the half of the core verb R3 can price
 
-One Segment deleted. Only the clusters holding that Segment's endpoints can have changed, so only their portals' confined searches re-run. *In a city builder link deletion is the core verb*, which is this plan's own argument against distance-vector without sequence numbers, and it cuts at a hierarchy too.
+One Segment deleted, the abstract graph **repaired rather than rebuilt**: only the clusters holding that Segment's endpoints can have changed, so only their portals' confined searches re-run. *In a city builder link deletion is the core verb*, which is this plan's own argument against distance-vector without sequence numbers, and it cuts at a hierarchy too.
 
-| Rung | Operation | Cost | Clusters touched | Share of cold build | Edits in one build |
-|---|---|---:|---:|---:|---:|
-| 1 | re-cost | 829 ns | 1.96 | 0.02% | 3,828 |
-| 1, reduced | rebuild cluster | 468,223 ns | 1.96 | 22.45% | 4 |
-| 1, reduced + paths | rebuild cluster | 474,617 ns | 1.96 | 13.29% | 7 |
-| 2 | re-cost | 3,156 ns | 1.37 | 0.04% | 2,363 |
-| 2, reduced | rebuild cluster | 404,838 ns | 1.37 | 8.26% | 12 |
-| 2, reduced + paths | rebuild cluster | 296,107 ns | 1.37 | 4.47% | 22 |
-| 4 | re-cost | 15,367 ns | 1.06 | 0.13% | 749 |
-| 4, reduced | rebuild cluster | 200,766 ns | 1.06 | 1.27% | 78 |
-| 4, reduced + paths | rebuild cluster | 243,022 ns | 1.06 | 1.18% | 84 |
-| 8 | re-cost | 87,024 ns | 1.03 | 0.37% | 268 |
-| 8, reduced | rebuild cluster | 313,478 ns | 1.03 | 1.18% | 84 |
-| 8, reduced + paths | rebuild cluster | 375,723 ns | 1.03 | 0.83% | 119 |
-| 16 | re-cost | 754,767 ns | 1.03 | 1.85% | 53 |
-| 16, reduced | rebuild cluster | 753,829 ns | 1.03 | 1.25% | 79 |
-| 16, reduced + paths | rebuild cluster | 1,296,680 ns | 1.03 | 1.35% | 74 |
-| 32 | re-cost | 3,988,156 ns | 1.03 | 5.21% | 19 |
-| 32, reduced | rebuild cluster | 4,778,975 ns | 1.03 | 6.34% | 15 |
-| 32, reduced + paths | rebuild cluster | 10,417,111 ns | 1.03 | 6.05% | 16 |
-| 64 | re-cost | 39,465,750 ns | 1.00 | 25.07% | 3 |
-| 64, reduced | rebuild cluster | 41,910,835 ns | 1.00 | 27.32% | 3 |
-| 64, reduced + paths | rebuild cluster | 77,482,496 ns | 1.00 | 22.81% | 4 |
+| Chunks | Repair | Clusters touched | Share of cold build | Repairs in one build | Edits |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 1,211 ns | 1.96 | 0.03% | 3,149 | 32 |
+| 2 | 1,450 ns | 1.37 | 0.02% | 3,350 | 32 |
+| 4 | 11,776 ns | 1.06 | 0.09% | 1,046 | 32 |
+| 8 | 112,393 ns | 1.03 | 0.48% | 205 | 32 |
+| 16 | 512,826 ns | 1.03 | 1.24% | 80 | 32 |
+| 32 | 4,073,444 ns | 1.03 | 4.42% | 22 | 32 |
+| 64 | 38,889,986 ns | 1.00 | 19.00% | 5 | 32 |
 
-**Two operations, and which one is sound is a property of the rung.** A complete abstract graph keeps every intra-edge, so *re-costing* the slots is exact. A reduced one removed edges whose redundancy is a property of the costs, so an edit can make a removed edge necessary again — no amount of re-costing brings it back, and the cluster's edge set must be **decided again**. That is the cost the recommended configuration actually pays on an edit, and R3 measures it rather than deriving it from the per-cluster build column, which is what an earlier draft did.
-
-**The rebuild column below 8 Chunks is mostly this harness and should not be read as a property of the design.** A rebuilt cluster's edge list is spliced back into one global CSR — kept global so the query path measured above is the one a real implementation would run — and the splice copies every edge in the graph. At 16 Chunks that is 11,768 edges and a couple of percent; at one Chunk it is 64,134 edges plus a shift of 16,694 portal offsets, and it is most of the 469 µs. Per-cluster edge lists would remove it and would cost the query an indirection per portal expanded.
-
-**Deletion only, and the limit is structural rather than an omission.** Both operations work over the portals the build found, so either may cost an edge out of existence but neither can create a portal that did not exist — which is what *drawing* a road across a cluster boundary does. R5's edit storm is where the drawing half belongs.
+**Deletion only, and the limit is structural rather than an omission.** The edge slots are fixed at build, so a repair may re-cost an edge and may cost it out of existence — but it cannot create a portal that did not exist, which is what *drawing* a road across a cluster boundary does. R5's edit storm is where the drawing half belongs.
 
 ### R3.8 — the bypass, and how local a walk Leg actually is
 
@@ -253,11 +235,11 @@ One Segment deleted. Only the clusters holding that Segment's endpoints can have
 
 **The load averages are a point sample and the stall counters are not.** Linux's PSI `total` fields are cumulative microseconds, so the figures below are stall that happened **during this run** — which is the question, where a load average read at the top of the report would have described the minute before it started.
 
-- **Run duration** 76.28 s — from 20:33:18 UTC to 20:34:34 UTC, **which is what makes the duration checkable rather than asserted**
-- **Load average, at start** 2.55 / 2.60 / 2.13 (1 / 5 / 15 min)
-- **Load average, at end** 2.84 / 2.70 / 2.20 (1 / 5 / 15 min)
-- **CPU stall** 842,883 µs over the run — 1.10% of it
+- **Run duration** 68.89 s — from 20:23:15 UTC to 20:24:24 UTC, **which is what makes the duration checkable rather than asserted**
+- **Load average, at start** 2.67 / 2.23 / 1.53 (1 / 5 / 15 min)
+- **Load average, at end** 3.83 / 2.67 / 1.74 (1 / 5 / 15 min)
+- **CPU stall** 778,243 µs over the run — 1.12% of it
 - **Memory stall** 0 µs over the run — 0.00% of it
-- **IO stall** 26,576 µs over the run — 0.03% of it
+- **IO stall** 26,121 µs over the run — 0.03% of it
 
 **A run whose memory stall is a rounding error is a run the pinning actually protected.** Pinning to one physical core stops another process stealing cycles; it does nothing about L3 eviction or DRAM bandwidth, which is S4's recorded finding about this same machine and is the exposure R1.3's absolute nanoseconds live in. This block is what lets a later reader check that rather than reason about it afterwards.
