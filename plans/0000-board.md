@@ -5,9 +5,11 @@ It is a *view*, not a source: [`0003`](0003-build-plan.md) owns the slice order 
 [`0002`](0002-open-questions.md) owns the reasoning, `docs/adr/` owns the decisions. When they
 disagree, they win. Update this file whenever a task lands.
 
-**Where the project is:** Phase 1, slice 5, tasks 1–6 done. The State Hash has a committed baseline
-under it, `Borough.Headless` replays a `.borough` log and prints a diffable hash trace, and the three
-invariant tiers run in release on every Tick and at the end of every run.
+**Where the project is:** Phase 1, slice 5, tasks 1–7 done — task 7 minus its assertion, deliberately.
+The State Hash has a committed baseline under it, `Borough.Headless` replays a `.borough` log and
+prints a diffable hash trace, the three invariant tiers run in release on every Tick and at the end of
+every run, and `--census` prints what every collection did over a run. **Task 8, the crash artifact,
+closes the slice.**
 
 ---
 
@@ -16,8 +18,7 @@ invariant tiers run in release on every Tick and at the end of every run.
 | | Task | Where | Why this one |
 |---|---|---|---|
 | **1** | **S2 R0 — the synthetic Road Graph and the denominator** | [`0010`](0010-s2-routing.md) | Parallel track, blocks nothing and is blocked by nothing. The project's **top risk**, and the best-specified work in the repository. The net it wanted under it now exists |
-| **2** | **Slice 5 task 7 — the long-run test** | [`0008`](0008-tick-and-replay.md) | Needs the census hook, which is also where **`series(metric, window)` lands**, deferred from task 5. **Read its note in *Owed* first** — its headline assertion is close to vacuous until something churns |
-| **3** | **Slice 5 task 8 — the crash artifact** | [`0008`](0008-tick-and-replay.md) | Closes the slice. Task 6 throws on violation precisely so this can catch at the Tick boundary |
+| **2** | **Slice 5 task 8 — the crash artifact** | [`0008`](0008-tick-and-replay.md) | Closes the slice. Task 6 throws on violation precisely so this can catch at the Tick boundary |
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
@@ -58,6 +59,13 @@ what moved. The remaining slice-5 tasks are no longer in front of it.
       the staggered tier is **0.06% of a Tick at 100k Citizens**, and a full sweep of every row costs
       **a fifth of one State Hash**. `adr/0033`'s *unaffordable per Tick, trivial at the end of a run*
       is worth three orders of magnitude here. Numbers in [`0008`](0008-tick-and-replay.md)
+- [x] **Slice 5 task 7 — the instrument, not the assertion.** The **Census** (`CONTEXT.md`), the
+      `series(metric, window)` cold API deferred from task 5, and the runner's `--census` report.
+      Three counters per table, because *slots climbing while live is flat* is the leak a row count
+      cannot show. The ring is finite by construction — a census that grew with elapsed game time
+      would be `adr/0006` in the instrument written to catch it — and an outrun window is **marked**
+      incomplete rather than silently shortened
+  - [ ] *the trend assertion.* Deliberately not written; see *Owed* below
 
 ### Planning and design
 
@@ -118,12 +126,15 @@ Small, and each one is a place the corpus currently says something known to be w
 
 ## Owed — findings that change a later task
 
-- [ ] **Task 7's long-run test is nearly vacuous as specified, and it is structural.** Its assertion
-      is *no collection and no magnitude trends upward at steady state* — but nothing in the world
-      grows or shrinks yet: no Event Wheel, no Rules, no Trips. An empty world and a seeded static
-      world fail to exercise it equally. The census hook and `series(metric, window)` are still worth
-      building on their own terms; the **assertion** only becomes real when slice 7+ puts churn in.
-      Decide when the task is picked up whether to build it now against what exists or move it
+- [ ] **The long-run trend assertion is owed by slice 7, and the instrument for it now exists.**
+      *Decided:* task 7 shipped the Census and `series(metric, window)` and deliberately did not ship
+      the assertion. Nothing in the world grows or shrinks yet — no Event Wheel, no Rules, no Trips —
+      so *no collection trends upward at steady state* would pass against an empty world and a static
+      one equally, and an assertion that cannot fail reads as covered. **Switch it on when slice 7
+      gives the world churn**: sample on the trace cadence, take a series per metric over the tail of
+      a 100k-Tick run, and fail on a positive trend in `slots` with `live` flat. The `--census` report
+      prints the numbers today, and printing them is what makes the vacuity checkable rather than
+      argued
 - [ ] **The end-of-run tier allocates on the Large Object Heap at scale** — ~544 KB at 100k Citizens,
       ~5.4 MB extrapolated at 1M, Gen2 collections at the top of the measured range. Once per run,
       after the trace is written, so it perturbs nothing today. Fix is a scratch buffer on the

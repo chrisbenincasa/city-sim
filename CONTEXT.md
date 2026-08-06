@@ -669,6 +669,15 @@ Note what this implies about Fidelity: nothing about the camera appears here, an
 **State Hash**
 A hash of the entire simulation state, taken every N Ticks. Two runs of the same Input Log must produce identical hash sequences. When they diverge, the first differing hash identifies the exact Tick a bug entered.
 
+**Census**
+A periodic reading of every collection's size, kept in a fixed ring, and the history that `series(metric, window)` is answered from. `adr/0006`'s constraint — no collection may grow as a function of elapsed game time — is a claim about a *run* rather than about a moment, so nothing that inspects a single Tick can see it violated. A series can.
+
+**It reads three counters per table, not one, because they fail differently.** Live rows are the city's size and on their own are evidence of nothing; *slots* only ever rise when a create finds the free list empty, so **slots climbing while live is flat** is the leak with the population held constant — invisible in a row count. Capacity is the third because it is the one that costs memory.
+
+**The ring is finite by construction, since the alternative is the defect it detects.** A census that appended a reading per cadence for the length of a run would itself be a collection growing with elapsed game time. The oldest reading is overwritten, and that overwriting is the sink. A window reaching further back than the surviving history is answered over the part that survives and **marked incomplete** — a silently shortened window would let a reader conclude *flat over the whole run* from its tail.
+
+It belongs to a **run**, never to the World: a world has no history until something steps it, and an instrument sitting in simulation state would be one the State Hash and the save each needed an answer for. A Census never changes the city it measures.
+
 ---
 
 ## Pressure and difficulty

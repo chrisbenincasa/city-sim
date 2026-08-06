@@ -37,7 +37,7 @@ the slice as a whole and should not be updated until the slice closes.
 | 4. The golden-hash baseline | **done** | `tests/Borough.Tests/Golden/` — the fixtures, two baselines, and the procedure |
 | 5. The headless runner | **done** | `Borough.Formats/` — the codec, the trace format, the Ruleset hash; `Borough.Headless/` — `Options`, `Session`, `RulesetCheck`, `Report` |
 | 6. The invariant tiers | **done** | `Core/Invariants/` — `InvariantRegistry`, `Invariant`, `Violation`, `WorldInvariants` |
-| 7. The long-run test | pending | — |
+| 7. The long-run test | **part done** — the instrument, not the assertion | `Core/Instruments/` — `Census`, `Metric`, `Series`; `Borough.Headless/CensusReport.cs`; `--census` |
 | 8. The crash artifact | pending | — |
 
 ### Decided while building tasks 1–3
@@ -245,6 +245,64 @@ corpus's designated synthetic city and this must not quietly become it.
 **Benchmarks are never assertions.** Nothing here fails a build. A timing threshold in CI goes red on
 a busy machine and is then disabled, which leaves neither a benchmark nor a test.
 
+### Decided while building task 7
+
+**Task 7 shipped its instrument and deliberately did not ship its assertion.** The task as specified
+is *100,000+ Ticks in CI asserting no collection and no magnitude trends upward at steady state*, and
+that assertion is close to vacuous against the world as it stands. Every Tick phase except Input is
+empty; the only structure that changes size during a run is `Lots`, one per `Zone` command, monotonic
+and with no sink. So a trend assertion over a replayed session either asserts the flatness of
+something already flat, or flags the player zoning as a leak. An empty world and a seeded static
+world fail to exercise it *equally*, which is the tell.
+
+An assertion that cannot fail is worse than no assertion, because it reads as covered. The census
+hook and `series(metric, window)` are worth building on their own terms and were; **the assertion is
+recorded as owed against slice 7**, which is what puts churn in the world.
+
+**The Census is the instrument `adr/0006` has been owed since it was written.** Its constraint is
+about a run rather than a moment, so nothing inspecting one Tick can see it violated. Three counters
+per table rather than one, because they fail differently: live rows are the city's size and prove
+nothing on their own, **slots** rise only when a create finds the free list empty — so *slots
+climbing while live is flat* is the leak with the population held constant — and capacity is the one
+that costs memory. Full entry in `CONTEXT.md`.
+
+**The ring is finite because the alternative would be the defect it detects.** A census appending a
+reading per cadence for the length of a run is a collection growing with elapsed game time —
+`adr/0006` exactly, in the instrument written to catch it. The oldest reading is overwritten and that
+overwriting is the sink. The cost is that a window can outrun the history, which `Series.Complete`
+**reports** rather than hides: a silently shortened window would let a reader conclude *flat over
+100,000 Ticks* from the last 1,000, a claim the data does not support and nothing downstream could
+catch.
+
+**It belongs to the run, not to the World** — the opposite of where the invariant registry sits, and
+for the reason that decided that one. A registry's claims are about *this world* and hold for one
+built by hand in a test; a census is a record of a run, and a world has no history until something
+steps it. Putting it in simulation state would also have made it something the State Hash and the
+save each needed an answer for, and an instrument that changes the hash is an instrument that changes
+the city. There is a test that a census does not move the trace.
+
+**`series(metric, window)` takes an id, never a name.** `adr/0002` gives the core ids and gives the
+shell every string a human reads, and a metric keyed by string would have put the panel's vocabulary
+inside the simulation. `Metric` is `(table index, counter)`, and the table index is declaration order
+— the same order the State Hash folds tables in, so a metric means the same thing to a trace as it
+does to a hash.
+
+**There is no separate collection metric because the intrusive-list pattern removed the need for
+one.** Every variable-length structure in the core is an intrusive index list whose nodes are rows,
+so the total length of every list over a table *is* that table's live row count. A list missing a
+live row is not a magnitude problem but a correctness one, and belongs to the invariant tiers. That
+uniformity is what slice 4 bought, collected here.
+
+**The census prints to standard output and never into the trace.** The hash trace is a committed
+artefact reviewed as a diff; a census folded into it would change the file on every run whose sizes
+moved, which is every interesting run, and would make the golden baseline unreviewable. Two reports,
+because two questions: *did this change*, and *what is it doing*. `--census` is opt-in and implies a
+run, since the table report is one moment and has no history to take a series over.
+
+**What the report shows today is the vacuity, stated honestly.** A 100,000-Tick replay of the golden
+session prints eleven Lots, flat, and three tables of zeroes. That is the correct output and it is
+the argument for deferring the assertion, in a form somebody can run.
+
 ---
 
 ## Gate
@@ -375,6 +433,11 @@ written it twice on paper.
 This needs a **collection-size census hook**: a per-Tick or per-N-Tick sample of every
 variable-length structure's length, which the intrusive-list pattern from slice 4 makes uniform.
 
+> **Built, minus the assertion.** The Census, `series(metric, window)` and the runner's `--census`
+> report shipped; the trend assertion did not, because nothing in the world churns yet and an
+> assertion that cannot fail reads as covering a property it cannot see. See *Decided while building
+> task 7* above, and the owed item on the board. The assertion is slice 7's to switch on.
+
 ### 8. The crash artifact
 
 Catch at the **Tick boundary** and emit the last checkpoint plus the Input Log since it, with the
@@ -399,7 +462,10 @@ the Input Log, which the project already has.
 - A test that mutates one hashed field mid-run and asserts the trace diverges at **exactly** the
   expected Tick — this is the bisection property, and it should be proven rather than assumed.
 - A run with a mismatched Ruleset hash **refuses to start** in `--strict`.
-- The long-run test passes with no collection and no magnitude trending upward at steady state.
+- ~~The long-run test passes with no collection and no magnitude trending upward at steady state.~~
+  **Deferred to slice 7, deliberately.** What this slice can honestly deliver is the instrument: a
+  Census on the trace cadence, `series(metric, window)`, and a runner report. The assertion needs a
+  world with churn in it to have a steady state to be at, and this one has none.
 - The three invariant tiers run in **release** builds.
 - `dotnet build src/Borough.Headless` succeeds on a machine with no GPU and no Godot.
 - **Something to look at:** the hash trace itself, diffable against a previous run. This is the first

@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Input;
+using Borough.Core.Instruments;
 using Borough.Core.Quantities;
 using Borough.Formats;
 
@@ -39,13 +40,20 @@ internal static class Session
 
         Simulation simulation = Replay.Start(log);
         var hashes = new List<ulong>();
+        Census? census = options.Census ? new Census(simulation.World) : null;
 
-        Replay.Trace(simulation, log, new Ticks(options.Ticks), options.HashEvery, hashes);
+        Replay.Trace(simulation, log, new Ticks(options.Ticks), options.HashEvery, hashes, census);
 
         // 02 §10's end-of-run tier, on every run rather than behind a flag. It is O(world) once, so
         // it costs nothing against a run of any length, and a check that is off by default is a
         // check that is off. The trace is written first so a violation does not cost the numbers.
         Write(options, log, hashes, check.HashBroken);
+
+        if (census is not null)
+        {
+            CensusReport.Print(Console.Out, simulation.World, census, options.Ticks);
+        }
+
         simulation.CheckEndOfRun();
 
         return 0;

@@ -113,7 +113,7 @@ public sealed class RunnerTests
     {
         Assert.True(Options.TryParse(
             ["--log", "s.borough", "--ticks", "500", "--hash-every", "25",
-             "--ruleset", "v.toml", "--out", "t.txt", "--force-ruleset"],
+             "--ruleset", "v.toml", "--out", "t.txt", "--force-ruleset", "--census"],
             out Options options,
             out _));
 
@@ -123,6 +123,22 @@ public sealed class RunnerTests
         Assert.Equal(500UL, options.Ticks);
         Assert.Equal(25, options.HashEvery);
         Assert.True(options.ForceRuleset);
+        Assert.True(options.Census);
+    }
+
+    /// <summary>
+    /// A census is a property of a run, so asking for one asks for a run.
+    /// </summary>
+    /// <remarks>
+    /// The table report is a constructed world at one moment and has no history to take a series
+    /// over; <c>--census</c> alone selecting it would have produced an empty report and no complaint.
+    /// </remarks>
+    [Fact]
+    public void Asking_for_a_census_selects_a_run()
+    {
+        Assert.True(Options.TryParse(["--census"], out Options options, out _));
+        Assert.Equal(Mode.Run, options.Mode);
+        Assert.True(options.Census);
     }
 
     /// <summary>

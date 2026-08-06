@@ -77,6 +77,17 @@ internal sealed class Options
     public bool ForceRuleset { get; private init; }
 
     /// <summary>
+    /// Sample every collection's size on the trace cadence and print the series at the end.
+    /// </summary>
+    /// <remarks>
+    /// <b>Opt-in, because it is the one thing here that costs something the run did not ask for.</b>
+    /// The readings are cheap but the ring is not free, and a run whose question is <em>did the hash
+    /// change</em> has no use for it. It is also the flag that will grow an assertion when slice 7
+    /// gives the world churn to reach a steady state with; today it reports and judges nothing.
+    /// </remarks>
+    public bool Census { get; private init; }
+
+    /// <summary>
     /// Parses the command line, or explains why it could not.
     /// </summary>
     public static bool TryParse(string[] arguments, out Options options, out string? complaint)
@@ -94,6 +105,7 @@ internal sealed class Options
         ulong ticks = 1_024;
         int hashEvery = 64;
         bool force = false;
+        bool census = false;
         bool session = false;
         bool citizensGiven = false;
 
@@ -105,6 +117,13 @@ internal sealed class Options
             {
                 case "--force-ruleset":
                     force = true;
+                    continue;
+
+                // A census is a property of a run, so asking for one is asking for a run — the same
+                // reasoning that makes --ticks and --seed imply a session rather than the report.
+                case "--census":
+                    census = true;
+                    session = true;
                     continue;
 
                 case "--help" or "-h":
@@ -199,6 +218,7 @@ internal sealed class Options
             Ticks = ticks,
             HashEvery = hashEvery,
             ForceRuleset = force,
+            Census = census,
         };
 
         return true;
@@ -220,6 +240,8 @@ internal sealed class Options
           --force-ruleset       run against a Ruleset the session does not name, and
                                 stamp the trace hash-broken
           --out PATH            write the trace to a file instead of standard output
+          --census              sample every collection's size on the trace cadence and
+                                print first/last/low/high per collection at the end
 
         A replay whose Ruleset does not match refuses to run rather than diverging
         silently: a different Ruleset is a different simulation, and the divergence

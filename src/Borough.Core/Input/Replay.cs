@@ -1,5 +1,6 @@
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Instruments;
 using Borough.Core.Quantities;
 
 namespace Borough.Core.Input;
@@ -74,16 +75,29 @@ public static class Replay
     /// Advances a running Simulation through a log, appending a State Hash on every cadence boundary.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Separated from <see cref="Run"/> so that the headless runner can own the Simulation it is
     /// stepping — the crash artifact needs to name the Tick a panic landed on, and it cannot do that
     /// from a method that owns the loop and returns only on success.
+    /// </para>
+    /// <para>
+    /// <b>The Census shares the hash's cadence rather than carrying its own.</b> Both answer
+    /// <em>what did this run look like at Tick N</em>, and a reading taken on a different schedule
+    /// from the hash beside it would make the two uncomparable for no gain — the first question asked
+    /// of a diverging trace is what the city was doing at the sample before it.
+    /// </para>
     /// </remarks>
+    /// <param name="census">
+    /// Where to record collection sizes, or null to record none. Optional because the property it
+    /// serves is about the length of a run, and most callers of this method are not one.
+    /// </param>
     public static void Trace(
         Simulation simulation,
         InputLog log,
         Ticks ticks,
         int hashEvery,
-        List<ulong> trace)
+        List<ulong> trace,
+        Census? census = null)
     {
         ArgumentNullException.ThrowIfNull(simulation);
         ArgumentNullException.ThrowIfNull(log);
@@ -102,6 +116,7 @@ public static class Replay
             if (simulation.Tick.Raw % cadence == 0)
             {
                 trace.Add(simulation.World.HashState());
+                census?.Observe(simulation.World, simulation.Tick);
             }
         }
     }
