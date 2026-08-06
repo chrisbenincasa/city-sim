@@ -12,11 +12,19 @@ tiers run in release on every Tick and at the end of every run, `--census` print
 collection did over a run, and a panic writes a crash artifact that replays back into the same panic.
 **Slice 6, Map Layers, is the last slice before the Phase 1 gate closes.**
 
-**The spike track has opened and moved.** **S2 R0 is done** — the synthetic Road Graph, the road
-density a 268 km² city implies, the uncached denominator on the real `(Segment, offset)` query shape,
-and the heuristic verdict. Numbers and decisions in [`spike-results`](../docs/spike-results.md).
-**R1, the travel-time matrix, is the prescribed next measurement** and is the one that decides whether
-R4 is worth running at all.
+**The spike track has opened and moved twice.** **S2 R0 and R1 are done** — the synthetic Road Graph,
+the density curve, the uncached denominator on the real `(Segment, offset)` query shape and the
+heuristic verdict; then the travel-time matrix. Numbers and decisions in
+[`spike-results`](../docs/spike-results.md).
+
+**R1 answered the question the whole spike order was built around, and the answer is yes.** The matrix
+carries the choice loop — **1.14 ns** scattered at the working District count against a tripwire at
+13.66 ns — so `02 §5.8`'s *never resolve a route inside the choice loop* is enforceable and **the
+many-to-many case for DSDV now rests on R2 alone**. It also settled three things nobody had a number
+for: **`adr/0020` is owed an amendment** (union-find returns 6 Settlements where Tarjan returns 8),
+**`02 §6`'s dirty-region rebuild is unsound** (it misses 72% of the entries an edit changes), and the
+**volume-scope question R0 was told not to settle is the same question as the `adr/0020` exposure**.
+**R2 is next.**
 
 **What is in front of the project is mostly argument, not code.** Slices 7–10 and every Phase 2
 milestone are gated on designs written from research and never grilled — twelve sessions, tabulated
@@ -36,16 +44,16 @@ nothing standing between here and Phase 2 is code.**
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | spike | **S2 R1 — the travel-time matrix** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. **R0 is done.** R1 is the *prescribed* first measurement — it may dissolve the HPA\*-versus-DSDV question outright, and running R2–R4 before it prices two routers against a workload the design does not have |
+| **1** | spike | **S2 R2 — the path source, and the crossover** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. **R0 and R1 are done**, and R1 dissolved half the headline question — the matrix carries the choice loop, so what remains of the DSDV case is whether Statistical Trips need a concrete path, which is R2's *path source* axis |
 | **2** | code | **Slice 6 — Map Layers** | [`0009`](0009-map-layers.md) | Last slice before the Phase 1 gate closes. Settle its **diffusion cadence** inside it — `0003` files that as owed and blocking |
 | **3** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | `06` says it **must not slip behind 3c**, and slice 6 *is* 3c's Layers half. By the corpus's own instruction this session is already due |
 | **4** | argument | **`02 §4` residue** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | The nearest gate on the code path. Slice 7 waits on it and slice 7 is next after 6 |
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
-what moved. Slice 5 is closed and no longer in front of it. **R0 confirmed the delay cost nothing** —
-the spike compiles the arithmetic substrate in by source and can name nothing else of `Core`, so it
-changed no simulation code at all.
+what moved. Slice 5 is closed and no longer in front of it. **R0 and R1 confirmed the delay cost
+nothing** — the spike compiles the arithmetic substrate in by source and can name nothing else of
+`Core`, so it has changed no simulation code at all.
 
 *Why an argument session sits this high for the first time:* every remaining Phase 1 slice and every
 Phase 2 milestone is gated on one, and none of them is gated on code. Running them behind the code
@@ -172,7 +180,7 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
       error. Findings: **the ~30,000-Segment placeholder is one Street per Cell boundary**, and at that
       density the mean Segment is 128 m — two statements in `CONTEXT.md` → Segment turn out to be one;
       **the Road Graph is not a memory constraint** at 2.0 MiB against K0's 172.3 MiB; the
-      `(Segment, offset)` query shape costs ~300 ns against a 435 µs search, so **the shape the corpus
+      `(Segment, offset)` query shape costs ~250 ns against a 418 µs search, so **the shape the corpus
       committed to is free**; and **admissibility breaks at the first Arterial** — Manhattan returns a
       different route on 4% of drives with two Arterials on the map, which under `05 §4` is a different
       city. **`Chebyshev` is the heuristic**, beating the tighter `EuclideanFloor` by 1.8× because an
@@ -221,8 +229,23 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
 - [x] **R0 — the synthetic Road Graph, and the denominator.** Done. The density curve, the footprint,
       the `(Segment, offset)` denominator and the admissibility verdict. Numbers in
       [`spike-results`](../docs/spike-results.md)
-- [ ] R1 — the travel-time matrix *(the prescribed first measurement)*
-- [ ] R2 — searched against looked-up path, and the crossover *(attribution half now settled by `adr/0041`)*
+- [x] **R1 — the travel-time matrix.** Done, and it is the task the prescribed order existed to
+      reach. **The matrix carries the choice loop**: 1.14 ns scattered at the 121-District anchor,
+      5.00 ns at 4,096, against a tripwire at S4's K2 gather of 13.66 ns — so the wire does not fire at
+      any District count and `02 §5.8`'s rule is enforceable. **District count's ceiling is not L3**;
+      the cache cliff arrives below the threshold that was supposed to follow from it, and what binds
+      instead is the route store (4.06 GiB at 4,096 against a 172.3 MiB world) against the entry error
+      (24.70% → 3.80% across the same sweep). **`adr/0020` is owed an amendment on evidence** — 6
+      Settlements against Tarjan's 8 at a tight Commute Budget. **The volume-scope axis R0 was
+      forbidden to settle turns out to be the `adr/0020` exposure itself**: per-Segment volume makes
+      the matrix symmetric to the bit, which makes union-find right by construction and Stress blind to
+      a directional peak, for a 5% saving on a structure that is 1.2% of the world. **`02 §6`'s
+      dirty-region rebuild is unsound**, missing 309 of 429 changed entries on a central edit, and the
+      sound alternative collapses into a full rebuild because a one-to-all fills a row. Two findings
+      the plan never asked for: the **entry error** against a true query (11.32% at the anchor) and
+      **time resolution** as a hash-bearing decision — a Day-average matrix reports 1 one-way District
+      pair where the morning peak has 76
+- [ ] **R2 — searched against looked-up path, and the crossover** *(attribution half settled by `adr/0041`)*
 - [ ] R3 — HPA\*, and the cluster size it owns
 - [ ] R4 — DSDV distance-vector *(conditional on R2)*
 - [ ] R5 — the edit storm, and the Epoch ladder
@@ -252,14 +275,40 @@ Small, and each one is a place the corpus currently says something known to be w
       argument or go**
 - [ ] **`adr/0012` amendment** — the route cache's **eviction policy** *and* its **key** (`adr/0012`'s
       *"keyed by origin-destination pair"* is ambiguous between nodes² and Buildings²)
+- [ ] **`adr/0020` amendment** — owed by S2 R1, on evidence. *"A connected component of the District
+      graph… a union-find"* is not what `CONTEXT.md` → Settlement defines, and the two disagree about
+      the city where the city is fragmenting. Tarjan is still cheap; it is simply not the ADR's claim
+- [ ] **`02 §6` correction** — owed by S2 R1. *Slow cadence, dirty regions only* is **unsound**: a
+      spatial test misses the long routes that cross an edit without ending near it — 309 of 429
+      changed entries on a central edit. It is `CONTEXT.md` → Epoch's *when you pay* / *what survives*
+      distinction arriving at the matrix instead of at the cache
+- [ ] **"Zone" is used for the travel-time matrix's granularity, which is the District.** `CONTEXT.md`
+      → Zone is *a permission set over land*; `CONTEXT.md` → District is *"the granularity of the
+      travel-time matrix"*. `05 §422` and `references.md §2` both say *"zone-to-zone travel-time
+      matrix"*, and `plans/0010` quoted the second verbatim — so this is a corpus-wide sweep and not a
+      one-line fix, and a corrected quote is a broken one. Found by S2 R1, which spells it District
 - [ ] **`spike-results`** — the 37k–111k in-flight band conflates duration sensitivity with peaking and
       must be re-derived on both axes
-- [ ] **S2 R0's timing table is owed a re-capture** under `spikes/S4.Kernels/tools/kernel-run.sh`. It
-      ran under the `powersave` governor, unpinned, which is the machine-state defect S4's own protocol
-      exists to prevent. **Only the nanosecond figures are exposed** — every count in the section
-      (Segments, footprint bytes, nodes expanded, non-optimal routes, unreachable walks) is exact and
-      machine-independent, and the heuristic *comparisons* are alternating loops within one process.
-      The harness printed its own governor, which is how this is known rather than assumed
+- [x] ~~**S2's timing tables are owed a canonical re-capture**~~ **DISCHARGED session eleven.**
+      `sudo spikes/S2.Routing/tools/routing-run.sh` took R0 and R1 together under `performance`, turbo
+      enabled, pinned to one physical core; `docs/spike-results.md` now quotes that capture throughout
+      and the `powersave` run is retained beside it. **Captured twice, fourteen minutes apart, under
+      the identical configuration** — so the nanosecond columns now carry a measured error bar rather
+      than a disclaimer: drive-search absolutes reproduce within 2%, and the one DRAM-resident read
+      within 12% — the exposure S4 already named for this machine — while a bootstrap recovered by
+      difference between two loops reaches 29%. **Every count is bit-identical
+      across all three captures**, which is the determinism check nobody had run. The tripwire column
+      reads **0.36×** against a wire at 1.00×
+- [ ] **Why plain Dijkstra's absolute moved 1.64× under pinning — NEW, produced by the re-capture.**
+      Driving `None` went 779,150 ns unpinned → 1,278,071 pinned/`powersave` → 1,237,578 and 1,240,382
+      in the two pinned `performance` runs, so the movement tracks **pinning, not frequency**, and
+      **reproduces to 0.2%** rather than being noise; driving `Chebyshev` moved 0.04% across the same
+      change. R1.2's first rung is likewise its least reproducible, at 5.8% against 3.3% for the rest. Hypothesis: `taskset` leaves one visible logical
+      processor and the tiered-JIT background compilation now shares the measured core, which lands on
+      whatever is timed first. **Check: re-run the ladder in reverse order, or with tiering disabled.**
+      Until then the first-timed row of any S2 table is the least trustworthy number in it. Owed by R7.
+      It already cost one claim — R0's *"`EuclideanFloor` is not faster than Dijkstra at all"* was true
+      of the unpinned capture and is struck
 - [ ] **`05`** — strike the ~400k Trips/Day figure, known wrong and still standing in the authoritative
       document
 - [ ] **`05 §3`** — Parking Shed invalidation needs the *when you pay / what survives* correction
@@ -278,6 +327,20 @@ Small, and each one is a place the corpus currently says something known to be w
       cost is its exact integer square root, run twice per node pushed. `plans/0010`'s ladder specified
       nodes expanded, path cost and optimality; **adding a clock is R0's amendment to the plan**, and
       R3 and R6 inherit it — a hierarchy or a cache that saves expansions has not yet saved anything
+- [ ] **An artefact that varies with the swept axis is not distinguishable from a result.** R1 needed
+      **four** warm-up schemes before its cold-build column stopped falling smoothly with District
+      count — which is precisely the shape a reader hopes a sweep will discover, and was the process
+      leaving tier 0. Ruling out the per-rung explanations is what identified it as per-process:
+      `OneToAll.Run` is called once per District, so the small rungs never call it enough. **R3 and R5
+      sweep cluster size and edit rate and are exposed to the same failure**; only a warm pass over the
+      whole sweep removes it. This is R0's *"the bootstrap column was mostly the sampler"* in its
+      general form, and it is the second time in S2
+- [ ] **A sample that shrinks with the swept axis manufactures a trend out of survivorship.** R1's
+      entry-error section first drew Access Points uniformly and rejected those outside the named
+      District; at 1,024 Districts a hit is one draw in a thousand, so the sample silently collapsed to
+      **nine searches** and was printed beside rows built from 2,244. Third instance of the corpus's
+      recurring shape, after R0.5's *mean cost when found* and R0's dead Arterials. **Any later section
+      that samples inside a swept partition must report its sample size per rung**
 - [ ] **An error rate that moves with an unrelated optimisation is not evidence.** R0's heuristic
       multiplies by a floored reciprocal rather than dividing, to remove four hardware divisions per
       node. The reciprocal's ~2-in-10,000 slack **partially cancels an overestimating metric's error**:
@@ -301,12 +364,28 @@ Small, and each one is a place the corpus currently says something known to be w
 ## Owed — decisions, and who owns them
 
 - [ ] **Volume attribution's price** — S2 R2a. Decided by `adr/0041`; the cost is still unmeasured
-- [ ] **The `adr/0020` exposure** — union-find computes weak connectivity, *"mutually reachable"* is
-      strong. Settled by S2 R1's asymmetry figure
+- [x] ~~**The `adr/0020` exposure** — union-find computes weak connectivity, *"mutually reachable"* is
+      strong~~ **SETTLED by S2 R1, against the ADR.** At a tight Commute Budget union-find returns
+      **6 Settlements where Tarjan returns 8**, largest component 90 against 70 — a fifth of the map
+      assigned to a Settlement it is not mutually reachable within. **`adr/0020` is owed an
+      amendment**; see *Owed — documentation debt*. R1 also found the plan asked for the wrong
+      instrument: an asymmetry distribution is a claim about travel times, and the test is whether the
+      two algorithms disagree about the **city**. And the exposure is a **band, not a threshold** — the
+      one-way pair count rises to 264 and falls back to 47 — so no generous Budget closes it
 - [ ] **The travel-time matrix refresh cadence** — filed as tuning, almost certainly hash-bearing
+- [ ] **The travel-time matrix's *time resolution*** — **NEW, produced by S2 R1**, and the corpus has
+      never named it. A Day-average matrix reports **1** one-way District pair where the morning peak
+      has **76**, so the two give the choice loop different answers to the same question and are
+      therefore two cities under `05 §4`. Same class as the cadence above and should be settled with it
+- [ ] **The Commute Budget's granularity** — **NEW, produced by S2 R1.** A matrix entry is wrong by
+      **11.32%** (6.73 Ticks) against a true query at the working District count, and whether that is
+      free or disqualifying depends on a granularity nothing states. **R6 is owed the same question
+      about its cache key** and the two should be answered once
 - [ ] **The sun arc's phase widths** — named in `02 §1.2` and `01 §7`, never sized, so no peaking factor
       exists anywhere. Probably hash-bearing
-- [ ] **Zone count, cluster size, the Epoch's granularity** — all S2's, all swept. **Road density is
+- [ ] **District count, cluster size, the Epoch's granularity** — all S2's, all swept. **District
+      count is no longer an open sweep but an open trade**: R1 found the L3 ceiling everyone expected is
+      *not* binding, and what binds is the route store against the entry error. **Road density is
       no longer among them**: R0 swept it and reports **16.20 km/km²** at the ~30,000-Segment rung.
       What is owed is not a sweep but a **source** — whether that density describes a real city — and
       `CONTEXT.md` → Segment keeps its disclaimer until somebody checks it

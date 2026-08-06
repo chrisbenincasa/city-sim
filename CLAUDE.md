@@ -19,7 +19,10 @@ a table report and a hash; `--log PATH --ticks N --hash-every N` replays a sessi
 trace; `--census` adds what every collection did over the run; a panic writes a crash artifact that
 the runner accepts back wherever it accepts a log.
 **Slice 6, Map Layers ([`plans/0009`](plans/0009-map-layers.md)), is next and is the last slice before
-the Phase 1 gate closes.** Task 7 shipped its instrument and **not** its trend assertion — nothing in
+the Phase 1 gate closes.** On the parallel spike track, **S2 R0 and R1 are done** — the synthetic Road
+Graph and the denominator, then the travel-time matrix, which **carries the choice loop** and leaves
+the DSDV case resting on R2 alone. `spikes/S2.Routing/` compiles the arithmetic substrate in by source
+and can name nothing else of `Core`, so it has changed no simulation code. Task 7 shipped its instrument and **not** its trend assertion — nothing in
 the world churns yet, so the assertion would have been vacuous. It is owed by slice 7; the board's
 *Owed* section says how.
 

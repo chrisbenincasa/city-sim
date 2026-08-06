@@ -226,7 +226,7 @@ to divide by.
 >   block-length link"* turn out to be the same statement. **The density debt is not discharged**: the
 >   quantity that decides is 16.20 km of road per km², and that needs a source rather than a sweep.
 > - **The Road Graph is not a memory constraint** — 2.0 MiB against K0's 172.3 MiB for the whole world.
-> - **The `(Segment, offset)` query shape is free**: ~300 ns of bootstrap against a 435 µs search. The
+> - **The `(Segment, offset)` query shape is free**: ~250 ns of bootstrap against a 418 µs search. The
 >   plan was right that a node-to-node denominator measures the wrong query; it turns out the right one
 >   costs nothing to measure.
 > - **Admissibility breaks at the *first* Arterial.** This plan anticipated that *"deliberately rare"*
@@ -305,25 +305,74 @@ to divide by.
   issues, and every figure in this spike divides by it.
 - Record machine, SDK, governor and the denominator's own timestamp.
 
-### R1. The travel-time matrix — the prescribed first measurement
+### R1. The travel-time matrix — the prescribed first measurement — **DONE**
 
-- Build the zone-to-zone matrix. **Sweep zone count** rather than choosing one; the corpus's only
+> **Done. Numbers and the decision each produced in [`spike-results`](../docs/spike-results.md) §S2;
+> raw capture in `spikes/S2.Routing/results/`.** Headlines, because four of them change a later task
+> in this plan rather than merely closing this one:
+>
+> - **The matrix carries the choice loop, and the tripwire does not fire at any District count.** The
+>   scattered read tops out at **5.00 ns at 4,096 Districts** against S4's K2 gather at 13.66 ns, and
+>   costs **1.21 ns** at the working anchor. `02 §5.8`'s *never resolve a route inside the choice
+>   loop* is enforceable. **This is the finding R4 was made conditional on** — see R2.
+> - **The volume-scope question and the `adr/0020` exposure are the same question**, which this plan
+>   filed as two. Under per-Segment volume the matrix is symmetric **to the bit** and union-find is
+>   correct by construction; under per-direction it is not. R0 priced the scope at 5% of the graph and
+>   said *"what it buys is not visible until R2 has volume to attribute"* — what it buys is visible
+>   here, and it is the asymmetry itself.
+> - **The `adr/0020` exposure is real and it is a band rather than a threshold.** Union-find and
+>   Tarjan return **6 Settlements against 8** at a tight Commute Budget, and the one-way pair count
+>   rises and then falls — so no generous Budget closes the gap, it only moves past it.
+> - **A dirty-region rebuild is unsound, and the sound version collapses into a full rebuild.** The
+>   spatial test misses **309 of 429** changed entries on a central edit. The route-crossing test
+>   identifies the changed set almost exactly — 430 entries against 429 — but touches **all 121 rows**,
+>   because a one-to-all fills a row and every row holds the entry addressed *to* the edited District.
+> - **Two things this plan did not ask for and should have.** The matrix's own **error** against a
+>   true `(Segment, offset)` query is **11.32%** at the anchor, and **time resolution** is a
+>   hash-bearing decision the corpus has never named — see decisions 8 and 9 below.
+
+**Terminology, corrected by this task.** This section said *zone* and *zone count* throughout, and
+`CONTEXT.md` → Zone is **a permission set over land** — what a player may build there — while
+`CONTEXT.md` → District is what was actually being swept: *"the granularity of the travel-time
+matrix"*. The banned-terms section makes the same assignment from the other side, sending *region* to
+*District for a Goods-pooling region*. **The corpus is inconsistent about this beyond this plan** —
+`05 §422` and `references.md §2` both say *"zone-to-zone travel-time matrix"* — and that is filed as
+documentation debt rather than silently rewritten, because `plans/0010` quotes `references.md`
+verbatim and a corrected quote is a broken one. R1's code and report say District.
+
+- Build the District-to-District matrix. **Sweep District count** rather than choosing one; the corpus's only
   figure is ~100–400 zones from [`plans/0001`](0001-foundational-design.md), which predates the 1M
   target and cannot be carried forward unexamined. Bracket `CONTEXT.md` → District's working anchor of
   128 Cells rather than ranging freely.
+  > **Swept 16 → 4,096 Districts, Cell-aligned.** The anchor lands at 11 a side — 121 Districts, 135
+  > Cells, 2.21 km² — and inside `plans/0001`'s 100–400, which is arithmetic rather than
+  > corroboration.
 - **Sweep the matrix's time resolution, which is a second unstated axis.** A single Day-average matrix
   cannot represent the peak that every other figure in this spike is now measured at — morning inbound
   and evening outbound cancel, and the asymmetry the directed graph exists to carry vanishes into the
   mean. A per-phase matrix (the sun arc's five phases) multiplies resident size by five and gives the
   choice loop a travel time that matches the moment being asked about. **Report cost and size against
   both**, because the answer interacts with the peaking factor and with the `adr/0020` exposure below.
+  > **The Day average reports 1 one-way District pair where the morning peak has 76**, at five times
+  > the resident size and five times the build for the per-phase alternative. The asymmetry does
+  > vanish into the mean exactly as anticipated. **And the axis turns out to be hash-bearing** — see
+  > decision 9.
 - **Report the matrix's asymmetry as a measured quantity** — the distribution of
   `|matrix[i][j] − matrix[j][i]|` at peak. **This is what settles the `adr/0020` exposure**: if the
   asymmetry is negligible, that ADR's union-find survives on evidence rather than on assumption; if it
   is not, Settlements need strongly connected components and `adr/0020` is owed an amendment.
+  > **`adr/0020` is owed the amendment.** At a tight Commute Budget union-find returns **6
+  > Settlements against Tarjan's 8**, largest component 90 against 70. But the distribution alone
+  > would not have settled it, and this bullet asked for the wrong instrument: an asymmetry figure is
+  > a number about travel times, while a Settlement is an object the game is made of. **The count is
+  > the test**, and the one-way pair count beside it is the exposure in one number.
 - Measure four things separately, because they size different decisions: **cold build cost**,
   **incremental rebuild against a dirty region**, **resident size**, and **the O(1) read** the choice
   loop performs.
+  > **All four are about cost and none asks how wrong an entry is**, which R1 added as a fifth — see
+  > decision 8. Cold build is linear in District count by construction, at ~1.47 ms per one-to-all
+  > search; three successive shared warm-ups each made it look sublinear, which is the shape a reader
+  > would most readily believe.
 - **Resident size is measured twice** — once for the scalar matrix the choice loop reads, and once for
   the **cached District-pair routes** `03 §3.3` distributes volume along. They differ by more than a
   constant factor: *n²* integers against *n²* variable-length Segment sequences.
@@ -342,10 +391,15 @@ to divide by.
   | 400 | 160,000 | 640 KB | L2/L3 |
   | 2,000 | 4,000,000 | 16 MB | **DRAM — every read is a miss** |
 
-  **So zone count has a hard ceiling set by L3 rather than by memory**, and `plans/0001`'s only figure —
-  100–400 zones — sits near its edge. **Report the zone count at which the matrix leaves L3.** That
-  figure is the practical ceiling on District count and it reaches past S2: a player drawing thousands
-  of Districts would be drawing a performance cliff, which makes District count not a free UI decision.
+  **So District count has a hard ceiling set by L3 rather than by memory**, and `plans/0001`'s only
+  figure — 100–400 — sits near its edge. **Report the District count at which the matrix leaves L3.**
+  That figure is the practical ceiling on District count and it reaches past S2: a player drawing
+  thousands of Districts would be drawing a performance cliff, which makes District count not a free
+  UI decision.
+  > **The cliff is real, is visible at 2,025 Districts, and never reaches the tripwire.** Scattered
+  > reads go 1.64 ns at 4 MiB → 2.88 at 15.6 MiB → 5.00 at 64 MiB, against K2's 13.66. **So L3 is not
+  > the binding ceiling on District count.** The *route store* is, at 4.06 GiB against the whole
+  > world's 172.3 MiB — and the entry error is what argues the other way.
 - **Measure the read in both access patterns, because the corpus uses both phrasings for one
   operation.** `references.md §2` describes the choice loop as *"what is the commute from this
   candidate dwelling to any job?"* — one origin, many destinations, a **row scan**, sequential and
@@ -356,6 +410,10 @@ to divide by.
   the loop.
 
 *Decides:* whether the matrix can carry the choice loop, and therefore whether R4 is worth running.
+
+> **It can. R4's premise now rests on R2 alone**, which is where the remaining half of the argument
+> lives: if Statistical Trips need no concrete path, the many-to-many case for distance-vector has
+> evaporated and R4 is written up as *not run, and why*.
 
 ### R2. Two axes, not one — and the crossover nobody has looked for
 
@@ -617,7 +675,7 @@ meaning depends on an unstated machine is not a threshold** — so each row name
 | Condition | Response |
 |---|---|
 | Routing exceeds **10% of the 15.6 ms Tick budget** at 1M on the *desktop* (i5-10400, DDR4-2133), **at the morning peak**, with matrix refresh amortised | The map falls back to **2048²**, which `05` already documents as the fallback |
-| The travel-time matrix read costs **more than S4's K2 random gather**, at the zone count the design needs, on the *desktop* (i5-10400, DDR4-2133) | Larger than S2. `02 §5.8`'s rule is unenforceable and the choice loop's design reopens |
+| ~~The travel-time matrix read costs **more than S4's K2 random gather**, at the District count the design needs, on the *desktop* (i5-10400, DDR4-2133)~~ **MEASURED by R1, and it does not fire** | Larger than S2. `02 §5.8`'s rule is unenforceable and the choice loop's design reopens. **The wire fires at 13.66 ns and reads 1.14 ns at the working anchor, 5.00 ns at 4,096 Districts** — approached on the axis the plan named, and not reached. `02 §5.8` is enforceable |
 | Either router needs a **global flush** on a Road Graph edit | That candidate is out on a design commitment, not on a number |
 | An attribution scheme **cannot report a jam within the congestion cycle it happens in** (R2b) | That scheme is out on a design commitment, not on a number. `03 §3.4`'s self-correcting circularity is the load-bearing assumption of the fidelity model and a lagging detector breaks it |
 | The route cache **grows at steady state** with no bound | `adr/0006` violated. Fix the cache, not the ADR |
@@ -680,6 +738,15 @@ world-creation-fixed, or produce the argument for why it is not. `05 §4` lists 
 travel-time matrix rather than saving it" as hash-preserving, which is a different claim and is
 correct — a deterministic rebuild is hash-preserving; a variable cadence is not.*
 
+**2a. The matrix's time resolution — NEW, produced by R1, and it is decision 2's twin.** Decision 2
+files the *refresh cadence* as almost certainly hash-bearing. **Resolution is the same class of
+decision and the corpus has never named it at all.** A Day-average matrix and a per-phase one give
+the choice loop different answers to the same question — measured, 1 one-way District pair against 76
+— so a Household deciding where to live decides differently under each, and under `05 §4`'s test that
+is **two cities**. It costs five times the resident size and five times the build. *Recommended
+handling: settle it wherever cadence is settled, because they are the same argument about the same
+object and separating them is how one of them gets treated as a knob.*
+
 **3. The routing Tick budget share** — the 10% above.
 
 **3a. ~~How a Segment gets its volume.~~ DISCHARGED —
@@ -690,7 +757,17 @@ remains for S2 is the **price**, not the choice: R2a's crossover now measures wh
 costs. `03 §3.3`, `§3.4` and `§3.6` are owed a joint rewrite, and force-promotion loses the lag argument
 that justified it.
 
-**4. Zone count for the matrix, and ~~road density~~.** Zone count is still swept and still owed, by R1.
+**4. ~~Zone count for the matrix~~ District count, and ~~road density~~. PARTLY DISCHARGED by R1, and
+the remainder is not what this plan thought it was.**
+
+R1 swept 16 → 4,096 Districts and the ceiling everybody expected — L3 — **is not the binding one.**
+The scattered read never reaches the tripwire at any rung. What binds instead is a trade this plan did
+not name: **the route store against the entry error.** At the anchor, 121 Districts, the scalar matrix
+is 57 KiB and the route store 3.63 MiB and the mean entry is wrong by 11.32%; at 4,096 the error falls
+to 3.80% and the route store is 4.06 GiB, against a whole world of 172.3 MiB. **The rung that fits is
+the rung whose entries stand for the most ground**, and that is a design question rather than a cache
+one. *What is owed is the Commute Budget's own granularity* — decision 8 — because the error is only
+too large relative to something, and nothing in the corpus says what.
 
 **Road density is PARTLY DISCHARGED by R0**, and the remainder is a different kind of debt. R0 swept
 it and reports **16.20 km of road per km²** at the density that reproduces the ~30,000-Segment
@@ -714,6 +791,32 @@ The key is the newer half: `adr/0012`'s *"keyed by origin-destination pair"* was
 knew an Access Point is a `(Segment, offset)`, and the phrase is ambiguous between a key space of
 nodes² and one of Buildings².
 
+**8. The Commute Budget's granularity — NEW, produced by R1, and it is what decides whether the
+matrix is fit for purpose.** R1 measured what this plan did not ask for: a District-to-District entry
+against the true `(Segment, offset) → (Segment, offset)` search it stands for. **The mean entry is
+wrong by 11.32% at the anchor — 6.73 Ticks — with a p90 of 14.04 and a worst case of 77.62.** That is
+not obviously acceptable and not obviously fatal, and it cannot be judged at all until somebody says
+what the Commute Budget resolves: an error of 6.73 Ticks is free against a Budget read to the nearest
+half hour and disqualifying against one read to the minute. `CONTEXT.md` → Commute Budget gives no
+number and `01 §7` draws it as a wedge on the sun arc, which is a granularity of a kind but not a
+stated one. **This is the same shape as R6's key, which is owed the same question** — that task must
+report *"the induced error against the Commute Budget, which is the only thing that consumes it"* —
+so the two should be answered once. *Owed by R7, and it is the corpus's decision rather than a
+benchmark's.*
+
+**9. Whether the matrix carries an Epoch, and whether a dirty region can invalidate it — NEW,
+produced by R1, and it is a correctness question rather than a performance one.** R5 requires R1 to
+state whether the matrix carries an Epoch. **It does not, and R1 declined to give it one**, because a
+version counter would imply a relationship to the route cache that nobody has argued. What R1 found
+is worse than the ambiguity: **`02 §6`'s *dirty regions only* is unsound.** A spatial test missed 309
+of 429 changed entries on a central edit and 132 of 252 on a corner one, and it missed them silently —
+leaving entries stale rather than merely coarse. The sound test is *which routes crossed the region*,
+which identifies the changed set almost exactly (430 entries against 429) and **needs the route store
+to exist**; and even then it touches every row, because a one-to-all fills a row and every row holds
+the entry addressed *to* the edited District. **So the matrix's cheap invalidation and its cheap
+storage are the same trade, taken twice**, and `02 §6` is owed a correction regardless of which way it
+is taken.
+
 **5a. The sun arc's phase widths, which the corpus names and never sizes.** *Dawn, morning peak,
 midday, evening peak, night* appear in `02 §1.2` and `01 §7` with no durations, so **no peaking factor
 exists anywhere** and every load figure in the corpus is a Day-average of a Day that has a rush hour.
@@ -725,12 +828,21 @@ demand is, and two peak widths produce two cities. Filed alongside decision 2.
 rather than correction, per `adr/0042`: `06` no longer carries spike specifications at all. `0003` and
 `spike-results` own them.
 
-**7. R0's timing table is owed a re-capture — NEW, produced by R0.** It ran under the `powersave`
-governor, unpinned, which is exactly the machine-state defect `spikes/S4.Kernels/tools/kernel-run.sh`
-exists to prevent. **Only the nanosecond figures are exposed** — every count R0 reports is exact and
-machine-independent, and the heuristic comparisons are alternating loops within one process. The
-harness printed its own governor, which is how this is known rather than assumed. *R7 must not publish
-absolutes from the `powersave` capture.*
+**7. R0's timing table is owed a re-capture — NEW, produced by R0. DISCHARGED by R1's sitting.** It
+ran under the `powersave` governor, unpinned, which is exactly the machine-state defect
+`spikes/S4.Kernels/tools/kernel-run.sh` exists to prevent; the harness printed its own governor, which
+is how this was known rather than assumed. `tools/routing-run.sh` now takes R0 and R1 together under
+`performance`, turbo enabled, pinned to one physical core, and `spike-results` quotes that capture
+throughout. **Every count is bit-identical between the two captures**, which is the determinism check
+the debt turned out to buy on the way past.
+
+> **It leaves one thing behind, and R7 owns it.** Driving `None` — the first row the process times —
+> moved **1.64×** between the unpinned and pinned captures while driving `Chebyshev` moved 0.04%, and
+> the two *pinned* captures agree to 0.2%, so the cause is pinning rather than frequency and it is
+> reproducible rather than noisy. The standing
+> hypothesis is tiered-JIT background compilation sharing the one visible logical processor
+> `taskset` leaves. *R7 must not publish a first-timed absolute without re-running the ladder in
+> reverse order or with tiering disabled* — the old instruction, narrowed to the case that survived it.
 
 ---
 

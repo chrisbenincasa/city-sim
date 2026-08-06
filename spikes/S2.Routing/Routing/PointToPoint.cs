@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using S2.Routing.Graph;
 
 namespace S2.Routing.Routing;
@@ -81,9 +82,31 @@ internal sealed class PointToPoint
     private int _remainderB;
     private int _directCost;
 
-    public PointToPoint(RoadGraph graph)
+    /// <summary>
+    /// Congested car costs per arc, or <c>null</c> for R0's free-flow graph.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Added by R1, and it changes no figure R0 published.</b> R0's denominator ran against the
+    /// free-flow graph and still does — this field is null on that path and every branch below reduces
+    /// to what it was. What R1 needs is the same search over the arc costs the matrix was built on,
+    /// because <b>the matrix's error must be measured against the query the game issues on the
+    /// network the matrix describes</b>; comparing a congested matrix entry to a free-flow search
+    /// would report the congestion as the abstraction's error.
+    /// </para>
+    /// <para>
+    /// <b>The heuristic stays admissible without being touched.</b> It is a lower bound on the
+    /// <i>free-flow</i> time, and congestion only ever increases an arc's cost — BPR's multiplier is
+    /// <c>1 + α(v/c)^β ≥ 1</c> — so a bound on the cheaper graph is a bound on this one. R0's
+    /// `Chebyshev` verdict therefore carries over unchanged, and did not need re-deriving.
+    /// </para>
+    /// </remarks>
+    private readonly int[]? _congestedCarTicks;
+
+    public PointToPoint(RoadGraph graph, int[]? congestedCarTicks = null)
     {
         _graph = graph;
+        _congestedCarTicks = congestedCarTicks;
         _cost = new int[graph.Nodes];
         _touched = new int[graph.Nodes];
         _closed = new int[graph.Nodes];
@@ -91,6 +114,12 @@ internal sealed class PointToPoint
         _heapKey = new int[1024];
         _heapNode = new int[1024];
     }
+
+    /// <summary>The cost of traversing a whole arc, congested if this search was given costs.</summary>
+    private int ArcCost(int arc) =>
+        _mode == Modes.Foot ? _graph.ArcFootTicks[arc]
+        : _congestedCarTicks is null ? _graph.ArcCarTicks[arc]
+        : _congestedCarTicks[arc];
 
     /// <summary>
     /// Seeds the open set from the origin Access Point and resolves the goal's two remainders.
@@ -171,7 +200,7 @@ internal sealed class PointToPoint
             {
                 relaxed++;
 
-                int step = _mode == Modes.Foot ? _graph.ArcFootTicks[arc] : _graph.ArcCarTicks[arc];
+                int step = ArcCost(arc);
                 if (step == RoadGraph.Impassable)
                 {
                     continue;
@@ -228,14 +257,27 @@ internal sealed class PointToPoint
             return Unreachable;
         }
 
-        int step = _mode == Modes.Foot ? _graph.ArcFootTicks[arc] : _graph.ArcCarTicks[arc];
+        int step = ArcCost(arc);
         if (step == RoadGraph.Impassable)
         {
             return Unreachable;
         }
 
-        return RoadGraph.TraversalTicks(
+        int free = RoadGraph.TraversalTicks(
             tiles, _graph.SegmentFreeFlow[segment], _mode, _graph.ArcModes[arc]);
+
+        if (_congestedCarTicks is null || _mode == Modes.Foot || free == 0)
+        {
+            return free;
+        }
+
+        // Congestion applies to the partial run at the same rate as to the whole arc. Taking the
+        // delay from the arc's own two costs rather than re-deriving it from volume keeps the
+        // bootstrap consistent with the search by construction: a partial traversal of a jammed
+        // Segment must not be priced at free flow, or the query shape would understate exactly the
+        // Segments the VDF exists to describe.
+        int whole = _graph.ArcCarTicks[arc];
+        return whole <= 0 ? free : Fixed.Mul(free, Fixed.Div(step, whole));
     }
 
     /// <summary>

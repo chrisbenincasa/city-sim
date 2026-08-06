@@ -1047,13 +1047,52 @@ the planning rather than to the running, which is where it caught four of these.
   not `adr/0020`'s stated claim. **`0010` R1 now reports the distribution of
   `|matrix[i][j] − matrix[j][i]|` at peak, which settles it either way** — negligible asymmetry means
   union-find survives on evidence rather than assumption. **Recorded before the numbers arrive.**
+  > **SETTLED by R1, against the ADR, and it needed a different instrument than this entry specified.**
+  > At a tight Commute Budget union-find returns **6 Settlements where Tarjan returns 8**, and the
+  > largest component differs by twenty Districts out of 121. **`adr/0020` is owed an amendment.**
+  >
+  > Three things R1 found that this entry did not anticipate, and each is the more useful half:
+  >
+  > 1. **The asymmetry distribution is the wrong test.** A distribution is a claim about travel times;
+  >    a Settlement is an object the game is made of, and a Building's Trips fail or do not depending
+  >    on which algorithm is right. **Run both algorithms and compare the cities.** A negligible
+  >    distribution would not have proved union-find safe, because the question is whether any pair
+  >    straddles the Budget — not whether the typical pair does.
+  > 2. **The exposure is a band, not a threshold.** A pair is one-way only while the Budget sits
+  >    between its two directions' costs, so the one-way count rises to 264 and falls back to 47.
+  >    **No generous Commute Budget closes the gap** — a Budget generous enough has stopped bounding
+  >    anything, which is the thing `CONTEXT.md` → Commute Budget exists to do.
+  > 3. **It is the same question as the volume-scope entry above, which this ledger filed as two.**
+  >    Under per-Segment volume the matrix is symmetric **to the bit** and union-find is right by
+  >    construction — so `adr/0020` is only exposed if the corpus takes the scope its Lane, Stress and
+  >    Settlement definitions all separately require. **The exposure is the price of three other
+  >    decisions being coherent**, and it costs 5% of a structure that is 1.2% of the world.
 - **The travel-time matrix's time resolution is unstated, and a Day-average matrix cannot represent the
   peak.** Every load figure in `0010` is now measured at the morning peak, but if the matrix is averaged
   over the Day then morning inbound and evening outbound cancel and the asymmetry above vanishes into
   the mean — so the matrix would be answering a question about a different moment than the one being
   asked. A per-phase matrix over the sun arc's five phases multiplies resident size by five and matches
-  the moment. `0010` R1 now sweeps it as a second axis alongside zone count, because it interacts with
-  both the peaking factor and the `adr/0020` exposure.
+  the moment. `0010` R1 now sweeps it as a second axis alongside District count, because it interacts
+  with both the peaking factor and the `adr/0020` exposure.
+  > **MEASURED by R1, and the cancellation is near-total rather than partial.** A Day-average matrix
+  > reports **1** one-way District pair where the morning peak has **76** — the two peaks are opposite
+  > in sign by definition and an unweighted mean of five phases is dominated by the three balanced
+  > ones, so a single-resolution matrix hands the choice loop a city with almost no directional
+  > structure in it at all.
+  >
+  > **And that makes resolution a decision rather than an axis.** A Household reading a Day-average
+  > matrix chooses differently from one reading a per-phase matrix, measurably — so under `05 §4`'s
+  > test they are **two cities**, which is the same argument this ledger already makes about the
+  > refresh *cadence*. **Resolution is not in this ledger anywhere and cadence is**, and they are the
+  > same class of decision about the same object; filed as `0010` decision 2a and owed alongside it.
+  > The price of the honest option is not the deciding factor — five matrices are 286 KiB at the
+  > working District count against 57 KiB, and five times a 188 ms build.
+  >
+  > One methodological note worth keeping. The Day average is taken over the **cost**, not the volume.
+  > BPR is convex, so the delay at the mean volume is strictly less than the mean of the delays:
+  > averaging volumes first would produce a Day-average matrix describing a city **with no rush hour in
+  > it at all** rather than one whose rush hour has been smeared. Neither is right, and the one chosen
+  > is at least wrong in the direction that does not flatter the abstraction under test.
 - **The Epoch is a single counter on the whole Road Graph, so "never a global flush" is true about
   *when you pay* and false about *what survives*.** A counter carries no location, so a cached route
   cannot tell whether an edit touched it: the only options are *treat it as stale* — a total
@@ -1066,6 +1105,20 @@ the planning rather than to the running, which is where it caught four of these.
   measures a three-rung ladder — **global, per-cluster (riding `adr/0040`'s partition), per-Segment** —
   reporting hit rate *as a function of edit rate*. Storage decides nothing: a version word per Segment
   is ~120 KB.
+  > **R1 found the matrix's half of this, and it is worse than the ambiguity.** The matrix carries
+  > **no** Epoch — R1 declined to give it one, because a version counter would imply a relationship to
+  > the route cache that nobody has argued — and it invalidates by *dirty region* instead, per
+  > `02 §6`. **That mechanism is unsound.** A path from District *i* to District *j* can cross the
+  > edited ground without either endpoint being near it, so rebuilding the Districts the region
+  > overlaps missed **309 of 429** changed entries on a central edit and 132 of 252 on a corner one —
+  > silently, leaving entries stale rather than merely coarse.
+  >
+  > The sound test — *which routes crossed the region* — identifies the changed set almost exactly, 430
+  > entries against 429. But it needs the **route store** to exist (4.06 GiB at 4,096 Districts against
+  > a 172.3 MiB world), and it still rebuilds **every row**, because a one-to-all fills a row and every
+  > row holds the entry addressed *to* the edited District. **So the matrix's cheap invalidation and
+  > its cheap storage are the same trade, taken twice**, and `02 §6` is owed a correction whichever way
+  > it is taken.
 
   **Worth recording as method, not just as a finding.** All three rungs are conservative and
   recomputation is deterministic over the same graph, so **the State Hash is identical across them** —

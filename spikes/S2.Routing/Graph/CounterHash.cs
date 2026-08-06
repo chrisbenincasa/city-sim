@@ -42,6 +42,9 @@ internal static class CounterHash
         OriginOffset = 6,
         DestinationSegment = 7,
         DestinationOffset = 8,
+        MatrixReadIndex = 9,
+        MatrixSampleOrigin = 10,
+        MatrixSampleDestination = 11,
     }
 
     public static ulong Of(ulong seed, ulong entity, ulong counter, Purpose purpose) =>
