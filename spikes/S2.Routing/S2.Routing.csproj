@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    S2, the routing ceiling. plans/0010-s2-routing.md.
+
+    Throwaway. Task R7 deletes this directory and records the deleting commit's parent in
+    docs/spike-results.md, exactly as plans/0004 does for S4.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>S2.Routing</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      plans/0010: "references the arithmetic substrate and nothing else of ours", and "It must not
+      reference Borough.Core beyond the substrate."
+
+      Compile-linking the three substrate files rather than taking a ProjectReference on
+      Borough.Core is what makes that sentence mechanical instead of aspirational. Under a project
+      reference "beyond the substrate" is a rule nothing checks and every table, every quantity and
+      Simulation itself become nameable from here; under this, they are not present in the
+      compilation at all. The spike can name Fixed, IntegerMath and Transcendental and can name
+      nothing else of ours, and the day somebody reaches for a Core type they get a build error
+      rather than a habit.
+
+      The substrate is self-contained — Arithmetic/*.cs imports System.Numerics and nothing of
+      ours — so this pulls exactly the substrate and no transitive tail.
+    -->
+    <Compile Include="..\..\src\Borough.Core\Arithmetic\*.cs"
+             Link="Substrate\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The analysers are loaded here deliberately, and it is the substrate decision's other half.
+
+      plans/0010's prerequisites are explicit that the spike "may not use floating point", for the
+      stated reason that a router computing travel times in double measures a thing the simulation
+      will never run. That rule was previously carried by discipline; BOR0201 carries it as a build
+      error. Every other diagnostic comes along with it and every one of them is wanted in Graph/
+      and Routing/ — that code is a model of arithmetic the simulation will actually perform, so
+      raw division, Math.*, masked shifts and System.Random are hazards here for the same reasons
+      they are hazards in Core.
+
+      Harness/ is exempted from three of them, narrowly and by path, in .editorconfig — with the
+      argument written there rather than here.
+
+      Same form as Borough.Core's own reference: a build-time input, never a dependency. Nothing in
+      Borough.Analysers is nameable from this project.
+    -->
+    <ProjectReference Include="..\..\src\Borough.Analysers\Borough.Analysers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

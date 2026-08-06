@@ -1,0 +1,29 @@
+# S2.Routing — analyser scope.
+#
+# The analysers are loaded into this project on purpose (see S2.Routing.csproj), and they are
+# unscoped by compilation: every diagnostic fires on every line here, not just on Borough.Core.
+# That is the intent for Graph/ and Routing/, which model arithmetic the simulation will actually
+# perform. It is not workable for Harness/, and the difference is worth stating rather than
+# papering over with file-level pragmas.
+#
+# Three rules are turned off in Harness/ only. Each is disabled because obeying it would make the
+# harness lie about what it is, not because obeying it is inconvenient:
+#
+#   BOR0205 (wall clock)  — plans/0010 R0 *requires* a timestamp: "Record machine, SDK, governor and
+#                           the denominator's own timestamp." S4's recorded defect was a capture
+#                           claiming a sitting it did not share, and the fix is a real clock read at
+#                           the moment of capture. A harness that cannot read a clock cannot state
+#                           its own moment.
+#   BOR0203 (raw division) — every figure this spike reports is a ratio. Routing FloorDiv through
+#                           the substrate in a report formatter states a determinism property the
+#                           report does not have and does not need.
+#   BOR0301 (hash-map enumeration) — report tables are keyed lookups walked for printing. Iteration
+#                           order affects the order of rows in a markdown file and nothing else.
+#
+# BOR0201 stays an error everywhere, Harness/ included. It is the one the prerequisites name, and a
+# report that computes a percentage in double is one edit away from a cost function that does.
+
+[Harness/**.cs]
+dotnet_diagnostic.BOR0203.severity = none
+dotnet_diagnostic.BOR0205.severity = none
+dotnet_diagnostic.BOR0301.severity = none

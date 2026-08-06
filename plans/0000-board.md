@@ -12,6 +12,12 @@ tiers run in release on every Tick and at the end of every run, `--census` print
 collection did over a run, and a panic writes a crash artifact that replays back into the same panic.
 **Slice 6, Map Layers, is the last slice before the Phase 1 gate closes.**
 
+**The spike track has opened and moved.** **S2 R0 is done** — the synthetic Road Graph, the road
+density a 268 km² city implies, the uncached denominator on the real `(Segment, offset)` query shape,
+and the heuristic verdict. Numbers and decisions in [`spike-results`](../docs/spike-results.md).
+**R1, the travel-time matrix, is the prescribed next measurement** and is the one that decides whether
+R4 is worth running at all.
+
 **What is in front of the project is mostly argument, not code.** Slices 7–10 and every Phase 2
 milestone are gated on designs written from research and never grilled — twelve sessions, tabulated
 below, none of which touches slice 6 and almost all of which can run beside it. The board used to
@@ -30,14 +36,16 @@ nothing standing between here and Phase 2 is code.**
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | spike | **S2 R0 — the synthetic Road Graph and the denominator** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. Blocked by nothing, blocks nothing |
+| **1** | spike | **S2 R1 — the travel-time matrix** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. **R0 is done.** R1 is the *prescribed* first measurement — it may dissolve the HPA\*-versus-DSDV question outright, and running R2–R4 before it prices two routers against a workload the design does not have |
 | **2** | code | **Slice 6 — Map Layers** | [`0009`](0009-map-layers.md) | Last slice before the Phase 1 gate closes. Settle its **diffusion cadence** inside it — `0003` files that as owed and blocking |
 | **3** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | `06` says it **must not slip behind 3c**, and slice 6 *is* 3c's Layers half. By the corpus's own instruction this session is already due |
 | **4** | argument | **`02 §4` residue** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | The nearest gate on the code path. Slice 7 waits on it and slice 7 is next after 6 |
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
-what moved. Slice 5 is closed and no longer in front of it.
+what moved. Slice 5 is closed and no longer in front of it. **R0 confirmed the delay cost nothing** —
+the spike compiles the arithmetic substrate in by source and can name nothing else of `Core`, so it
+changed no simulation code at all.
 
 *Why an argument session sits this high for the first time:* every remaining Phase 1 slice and every
 Phase 2 milestone is gated on one, and none of them is gated on code. Running them behind the code
@@ -158,6 +166,19 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
 - [x] **S2 planned** — [`0010`](0010-s2-routing.md), and its gate cleared by defining **Segment** in
       `CONTEXT.md`
 - [x] **S2 plan grilled before any code.** Thirteen findings; see *Owed* below for what it left behind
+- [x] **S2 R0 — the Road Graph, the denominator, and the heuristic verdict.** `spikes/S2.Routing/`,
+      which compile-links the arithmetic substrate by source and can name nothing else of `Core`, with
+      the analysers loaded so `BOR0201` carries the plan's no-floating-point prerequisite as a build
+      error. Findings: **the ~30,000-Segment placeholder is one Street per Cell boundary**, and at that
+      density the mean Segment is 128 m — two statements in `CONTEXT.md` → Segment turn out to be one;
+      **the Road Graph is not a memory constraint** at 2.0 MiB against K0's 172.3 MiB; the
+      `(Segment, offset)` query shape costs ~300 ns against a 435 µs search, so **the shape the corpus
+      committed to is free**; and **admissibility breaks at the first Arterial** — Manhattan returns a
+      different route on 4% of drives with two Arterials on the map, which under `05 §4` is a different
+      city. **`Chebyshev` is the heuristic**, beating the tighter `EuclideanFloor` by 1.8× because an
+      exact integer square root costs more than the expansions it saves — a case where *nodes expanded*
+      picks the wrong rung, which R3 must not repeat. Three harness defects recorded, one of which hid
+      a graph with no Arterials in it behind four healthy-looking tables
 - [x] **`adr/0040`** — the pathfinding cluster is a multiple of the Chunk, not the Chunk
 - [x] **`adr/0041`** — volume is attributed by the Traveller, not the District pair
 - [x] **Session nine — `06-roadmap.md`, and what a planning document may assert.** Taken **out of the
@@ -197,7 +218,9 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
 
 ### Parallel track — S2, routing ([`0010`](0010-s2-routing.md))
 
-- [ ] R0 — the synthetic Road Graph, and the denominator
+- [x] **R0 — the synthetic Road Graph, and the denominator.** Done. The density curve, the footprint,
+      the `(Segment, offset)` denominator and the admissibility verdict. Numbers in
+      [`spike-results`](../docs/spike-results.md)
 - [ ] R1 — the travel-time matrix *(the prescribed first measurement)*
 - [ ] R2 — searched against looked-up path, and the crossover *(attribution half now settled by `adr/0041`)*
 - [ ] R3 — HPA\*, and the cluster size it owns
@@ -231,6 +254,12 @@ Small, and each one is a place the corpus currently says something known to be w
       *"keyed by origin-destination pair"* is ambiguous between nodes² and Buildings²)
 - [ ] **`spike-results`** — the 37k–111k in-flight band conflates duration sensitivity with peaking and
       must be re-derived on both axes
+- [ ] **S2 R0's timing table is owed a re-capture** under `spikes/S4.Kernels/tools/kernel-run.sh`. It
+      ran under the `powersave` governor, unpinned, which is the machine-state defect S4's own protocol
+      exists to prevent. **Only the nanosecond figures are exposed** — every count in the section
+      (Segments, footprint bytes, nodes expanded, non-optimal routes, unreachable walks) is exact and
+      machine-independent, and the heuristic *comparisons* are alternating loops within one process.
+      The harness printed its own governor, which is how this is known rather than assumed
 - [ ] **`05`** — strike the ~400k Trips/Day figure, known wrong and still standing in the authoritative
       document
 - [ ] **`05 §3`** — Parking Shed invalidation needs the *when you pay / what survives* correction
@@ -243,6 +272,18 @@ Small, and each one is a place the corpus currently says something known to be w
 
 ## Owed — findings that change a later task
 
+- [ ] **R3 must not quote HPA\* in expansions saved.** R0 measured a case where the currency does not
+      convert: `EuclideanFloor` expands **11% fewer** nodes than `Chebyshev` and takes **1.8× as
+      long**, and against plain Dijkstra it cuts expansions by 55% while being no faster at all. The
+      cost is its exact integer square root, run twice per node pushed. `plans/0010`'s ladder specified
+      nodes expanded, path cost and optimality; **adding a clock is R0's amendment to the plan**, and
+      R3 and R6 inherit it — a hierarchy or a cache that saves expansions has not yet saved anything
+- [ ] **An error rate that moves with an unrelated optimisation is not evidence.** R0's heuristic
+      multiplies by a floored reciprocal rather than dividing, to remove four hardware divisions per
+      node. The reciprocal's ~2-in-10,000 slack **partially cancels an overestimating metric's error**:
+      the same change moved walking `Manhattan` from 35 of 300 non-optimal to 4 of 300, worst exactly
+      where `adr/0008`'s walk Legs live. **Any later measurement of an error rate — R2b's attribution
+      lag, R5's hit rate — should ask what else in the pipeline rounds in the same direction**
 - [ ] **The long-run trend assertion is owed by slice 7, and the instrument for it now exists.**
       *Decided:* task 7 shipped the Census and `series(metric, window)` and deliberately did not ship
       the assertion. Nothing in the world grows or shrinks yet — no Event Wheel, no Rules, no Trips —
@@ -265,7 +306,16 @@ Small, and each one is a place the corpus currently says something known to be w
 - [ ] **The travel-time matrix refresh cadence** — filed as tuning, almost certainly hash-bearing
 - [ ] **The sun arc's phase widths** — named in `02 §1.2` and `01 §7`, never sized, so no peaking factor
       exists anywhere. Probably hash-bearing
-- [ ] **Zone count, road density, cluster size, the Epoch's granularity** — all S2's, all swept
+- [ ] **Zone count, cluster size, the Epoch's granularity** — all S2's, all swept. **Road density is
+      no longer among them**: R0 swept it and reports **16.20 km/km²** at the ~30,000-Segment rung.
+      What is owed is not a sweep but a **source** — whether that density describes a real city — and
+      `CONTEXT.md` → Segment keeps its disclaimer until somebody checks it
+- [ ] **The cost unit for routing.** R0 routes in **Q16.16 Ticks**, and had to: a Tick is ~10.5
+      in-world seconds and a vehicle crosses about one Segment per Tick, so whole-Tick costs make A\*
+      minimise **hop count** while appearing to route on time. But `05 §121` says *"Q16.16 is for
+      sub-Tile positions and nothing else"*. The alternative spelling — an integer count of a fixed
+      fraction of a Tick — measures identically, so no number rests on this. **Whether the core
+      acquires a second Q16.16 meaning is the corpus's decision, not a benchmark's.** Owed by R7
 - [ ] **The routing Tick budget share** — 10% is a stated guess and **cannot** be ratified until the
       Tick's other consumers are priced
 - [ ] **A save migration path for a Chunk size change.** Chunk size is on the *cannot be retrofitted*

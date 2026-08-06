@@ -11,5 +11,6 @@
   <!-- Throwaway. plans/0004 deletes this once the numbers are in docs/spike-results.md. -->
   <Folder Name="/spikes/">
     <Project Path="spikes/S4.Kernels/S4.Kernels.csproj" />
+    <Project Path="spikes/S2.Routing/S2.Routing.csproj" />
   </Folder>
 </Solution>

@@ -212,10 +212,32 @@ denominator's own timestamp beside the figure. S2's harness prints it.
 
 ## Tasks
 
-### R0. The synthetic Road Graph, and the denominator
+### R0. The synthetic Road Graph, and the denominator — **DONE**
 
 No routing number means anything without a graph that resembles the real one and a plain-search cost
 to divide by.
+
+> **Done. Numbers and the decision each produced in [`spike-results`](../docs/spike-results.md) §S2;
+> raw capture in `spikes/S2.Routing/results/r0-i5-10400.md`.** Headlines, because three of them change
+> a later task in this plan rather than merely closing this one:
+>
+> - **The ~30,000-Segment placeholder is one Street per Cell boundary**, and at that density the mean
+>   Segment is 128 m — so `CONTEXT.md` → Segment's *"~30,000 Segments"* and its *"roughly a
+>   block-length link"* turn out to be the same statement. **The density debt is not discharged**: the
+>   quantity that decides is 16.20 km of road per km², and that needs a source rather than a sweep.
+> - **The Road Graph is not a memory constraint** — 2.0 MiB against K0's 172.3 MiB for the whole world.
+> - **The `(Segment, offset)` query shape is free**: ~300 ns of bootstrap against a 435 µs search. The
+>   plan was right that a node-to-node denominator measures the wrong query; it turns out the right one
+>   costs nothing to measure.
+> - **Admissibility breaks at the *first* Arterial.** This plan anticipated that *"deliberately rare"*
+>   would make the tight metrics safe *almost* always and called that the trap. It is worse: there is no
+>   low-Arterial regime in which Manhattan is safe, only one in which it is wrong less often — 4% of
+>   drives with two Arterials on the map. Octile fails too, an order of magnitude less often, which is
+>   the worst property a defect can have.
+> - **`Chebyshev` is the heuristic and the denominator.** Not the tightest safe rung — see R3 below for
+>   why that matters to this plan and not just to R0.
+> - **The graph is directed, mode masks are on the arc, and volume scope is a parameter**, all as the
+>   gate section requires. Per-direction volume costs 5% of the graph at every rung.
 
 - Generate a 4096² graph: grid-snapped Streets falling out of the Tile grid, freeform Arterials with
   authored Junction pieces, **one graph with mode masks** rather than two networks
@@ -403,6 +425,13 @@ nobody priced.
   demotes early.
 - **A scheme that cannot report a jam within the cycle it happens in has failed a design commitment**,
   in the same way a candidate needing a global flush has — regardless of its throughput.
+- **Ask what else in the pipeline rounds in the same direction as the error being measured.** R0 found
+  this the expensive way: its heuristic multiplies by a floored reciprocal rather than dividing, to
+  remove four hardware divisions per node, and that optimisation's ~2-in-10,000 slack **partially
+  cancels an overestimating metric's error** — moving walking `Manhattan` from 35 of 300 non-optimal to
+  4 of 300 while leaving driving at 13. An implementation detail chosen purely for speed made an unsafe
+  result look safer. R2b's lag and R5's hit rate are both error rates measured through a pipeline, and
+  **a rate that moves with an unrelated optimisation is not evidence.**
 
 *Decides:* the real per-Tick routing load, whether R3 and R4 are answering a live question, and three
 things that are not S2's but which S2 is the only thing able to price:
@@ -429,6 +458,12 @@ is largely already paid.
   a map whose commutes cross tens of kilometres.
 - Measure per size: preprocessing cost, per-query cost against R0's denominator, resident size, and
   **invalidation cost on a single edit** — the abstract graph's repair, not a rebuild.
+- **Report wall-clock, not expansions saved. R0 measured a case where the two disagree**, and it is an
+  amendment to this plan rather than a note on R0: `EuclideanFloor` expands 11% fewer nodes than
+  `Chebyshev` and takes 1.8× as long, and against plain Dijkstra it cuts expansions by 55% while being
+  no faster at all — the exact integer square root costs more than the expansions it saves. **A
+  hierarchy that saves expansions has not yet saved anything**, and *nodes expanded* is the currency
+  HPA\* results are conventionally quoted in. R6's cache inherits the same instruction.
 - **A same-Segment and adjacent-Segment bypass is mandatory, not an optimisation.** With five Buildings
   on a Segment, a meaningful share of the ~464 walk Leg routes per Tick never leave their own Segment or
   its neighbour, and routing those through the abstract graph costs more than the answer. Measure the
@@ -655,9 +690,24 @@ remains for S2 is the **price**, not the choice: R2a's crossover now measures wh
 costs. `03 §3.3`, `§3.4` and `§3.6` are owed a joint rewrite, and force-promotion loses the lag argument
 that justified it.
 
-**4. Zone count for the matrix, and road density.** Both swept rather than chosen, both owed a figure
-once S2 reports. Road density is the input the ~30,000-Segment placeholder rests on and it exists
-nowhere in the corpus.
+**4. Zone count for the matrix, and ~~road density~~.** Zone count is still swept and still owed, by R1.
+
+**Road density is PARTLY DISCHARGED by R0**, and the remainder is a different kind of debt. R0 swept
+it and reports **16.20 km of road per km²** at the density that reproduces the ~30,000-Segment
+placeholder — which also turns out to be one Street on every Cell boundary, with a mean Segment of
+128 m. So the input *"exists nowhere in the corpus"* is no longer true. **What is owed is not a sweep
+but a source**: whether 16.20 km/km² describes a real city, against a target the corpus justifies by
+citing Los Angeles. `CONTEXT.md` → Segment keeps its disclaimer until somebody checks it, and R7 must
+not record the debt as closed on a curve alone.
+
+**4a. The cost unit for routing — NEW, produced by R0.** R0 routes in **Q16.16 Ticks** and had to: a
+Tick is ~10.5 in-world seconds and R2a's own arithmetic puts a vehicle at about one Segment per Tick,
+so a cost accumulated in whole Ticks gives nearly every Segment a cost of 1 and A\* silently minimises
+**hop count** while appearing to route on time. But `05 §121` says *"Q16.16 is for sub-Tile positions
+and nothing else"*, and sub-Tick time is not a sub-Tile position. The alternative spelling — an integer
+count of a fixed fraction of a Tick — measures identically, so **no number in this spike rests on the
+answer.** What rests on it is whether the core acquires a second Q16.16 meaning. *Owed by R7, and it is
+the corpus's decision rather than a benchmark's.*
 
 **5. The route cache eviction policy, and its key** — both owed to `adr/0012` as an amendment, per R6.
 The key is the newer half: `adr/0012`'s *"keyed by origin-destination pair"* was written before anyone
@@ -671,8 +721,16 @@ S2 sweeps it and reports a curve; it does not choose. But the widths are almost 
 **hash-bearing** for the same reason the matrix refresh cadence is — they decide how concentrated
 demand is, and two peak widths produce two cities. Filed alongside decision 2.
 
-**6. `06`'s S2 specification is stale and should be struck.** "30k Travellers" predates the 1M target;
-S1's "20k Buildings" is stale for the same reason and is not S2's to fix.
+**6. ~~`06`'s S2 specification is stale and should be struck.~~ DISCHARGED, session nine**, by deletion
+rather than correction, per `adr/0042`: `06` no longer carries spike specifications at all. `0003` and
+`spike-results` own them.
+
+**7. R0's timing table is owed a re-capture — NEW, produced by R0.** It ran under the `powersave`
+governor, unpinned, which is exactly the machine-state defect `spikes/S4.Kernels/tools/kernel-run.sh`
+exists to prevent. **Only the nanosecond figures are exposed** — every count R0 reports is exact and
+machine-independent, and the heuristic comparisons are alternating loops within one process. The
+harness printed its own governor, which is how this is known rather than assumed. *R7 must not publish
+absolutes from the `powersave` capture.*
 
 ---
 

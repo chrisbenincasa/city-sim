@@ -12,7 +12,7 @@ produced**. A spike that records data and no verdict has not finished.
 | Spike | Question | Status |
 |---|---|---|
 | **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. **K0–K6 recorded below and the verdict reached, all seven on two machines.** Owed: the deleting commit. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
-| **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Also owns Chunk size | not run. **The project's top risk** |
+| **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Owns the pathfinding cluster; *informs* Chunk size (`adr/0040`) | in progress. **R0 done** — the graph, the density curve, the denominator and the heuristic verdict. Raw capture in `spikes/S2.Routing/results/`; this section is owed by R7. R1 next. [`plans/0010`](../plans/0010-s2-routing.md) |
 | **S1** | Rendering ceiling — 20k Buildings via chunked `MultiMeshInstance3D` | not run |
 | **S3** | UI ceiling — one data panel with a live multi-series graph, and how long it took | not run |
 | **S0** | Synthetic 1M-Citizen city in `Borough.Headless` | not run. Gated on the Phase 1 slices |
@@ -1573,3 +1573,281 @@ No conclusion above moves: what makes the managed arm expensive is 1.56M objects
 what the arm sets and what the gen2 costs reflect. But the figure is stated in a way that invites a reader
 to attribute the difference to a live set 3–5× larger than it is. **Recorded rather than fixed — the
 harness is scheduled for deletion in task 11, and the raw captures are what survive.**
+
+---
+
+## S2 — the routing ceiling
+
+**Task R0 of [`plans/0010`](../plans/0010-s2-routing.md) is done: the synthetic Road Graph, the road
+density a 268 km² city implies, the uncached point-to-point denominator, and the heuristic ladder's
+verdict on admissibility.** R1 — the travel-time matrix, the prescribed first measurement — is next.
+Raw capture in `spikes/S2.Routing/results/r0-i5-10400.md`; this section is owed a rewrite by R7, which
+also records the deleting commit.
+
+S2 is the project's top risk and the only one argument cannot close. `adr/0020` makes route
+computation the binding constraint on world size — *"the map-size question is the routing question in
+disguise"* — and until R0 the corpus had never measured any part of it.
+
+### The machine, and a capture defect stated up front
+
+Measured **2026-08-06** on the Linux desktop: Intel i5-10400, Ubuntu 24.04.4, .NET 10.0.10, Release.
+
+> **The capture ran under the `powersave` governor, unpinned, and S4's own protocol says not to.**
+> `spikes/S4.Kernels/tools/kernel-run.sh` exists precisely for this: it pins to one physical core with
+> the SMT sibling idle, sets `performance`, disables turbo variation and puts the configuration in the
+> label, because *a kernel run under a different frequency configuration than its denominator is a
+> ratio between two machines rather than a measurement of one.* R0's harness prints its governor —
+> which is how this is known rather than assumed — and prints `powersave`.
+>
+> **What this touches and what it does not.** Every **count** in this section is exact and
+> machine-independent: Segment and node counts, footprint bytes, nodes expanded, non-optimal route
+> counts, unreachable walk counts. Those are the load-bearing figures and they carry no error bar at
+> all. Every **nanosecond** figure carries an unquantified one. The *comparisons* between heuristics
+> are the least exposed, being alternating loops within one process minutes apart — the same argument
+> that carries S4's *vs variant* columns — but the absolutes are provisional.
+>
+> **This is the third capture in this corpus to carry a machine-state defect**, after the desktop's
+> background load and the M4 Pro's stale denominator, and it is the first one caught by the harness
+> before anybody drew a conclusion from it. **The timing table is owed a re-capture under
+> `kernel-run.sh`.** Nothing else in this section is.
+
+### R0.1 — the road density nobody had argued
+
+`CONTEXT.md` → Segment states the working figure and immediately disowns its basis: *"~30,000 Segments
+at 1,000,000 Citizens… That figure rests on a road-density assumption nothing in this corpus has yet
+argued, and it is spike S2's to replace."* R0 sweeps the block size and reports what each density
+implies on a 4096² map, at 4 m per Tile.
+
+| Block | Segments | Nodes | Arcs | Segments/km² | km road/km² | Mean Segment |
+|---:|---:|---:|---:|---:|---:|---:|
+| 128 Tiles | 2,072 | 1,145 | 4,144 | 7 | 4.19 | 135 Tiles |
+| 96 Tiles | 3,539 | 1,905 | 7,078 | 13 | 5.35 | 101 Tiles |
+| 64 Tiles | 8,200 | 4,281 | 16,400 | 30 | 8.17 | 66 Tiles |
+| 48 Tiles | 14,503 | 7,452 | 29,006 | 54 | 10.76 | 49 Tiles |
+| **32 Tiles** | **33,018** | **16,697** | **66,036** | **123** | **16.20** | **32 Tiles** |
+| 24 Tiles | 58,408 | 29,297 | 116,816 | 217 | 21.38 | 24 Tiles |
+| 16 Tiles | 132,781 | 66,105 | 265,562 | 494 | 32.24 | 16 Tiles |
+
+**The placeholder was never arbitrary, and nobody had noticed why.** ~30,000 Segments is what falls out
+of **one Street on every Cell boundary** — the 32-Tile rung — and at that density the mean Segment is
+32 Tiles, or 128 m, which is exactly the *"roughly a block-length link"* the definition claims for it.
+Two independent statements in `CONTEXT.md` → Segment turn out to be the same statement.
+
+**What R0 does *not* do is discharge the debt.** The quantity that decides whether the density is right
+is **16.20 km of road per km²**, and that is a claim about a real city that a benchmark cannot check.
+It is on the high side for a target the corpus justifies by citing Los Angeles sprawl at 3,700
+people/km². **`CONTEXT.md` → Segment keeps its disclaimer until somebody sources the figure**; what
+has changed is that there is now a number to source against, and a curve either side of it.
+
+### R0.2 — the footprint, and what it settles
+
+| Block | Segments | `(saved AND hashed)` | `(derived AND rebuilt)` | Total | Bytes/Segment |
+|---:|---:|---:|---:|---:|---:|
+| 32 Tiles | 33,018 | 968 KiB | 1.1 MiB | **2.0 MiB** | 66 |
+| 16 Tiles | 132,781 | 3.7 MiB | 4.5 MiB | 8.3 MiB | 65 |
+
+**The Road Graph is not a memory problem and this closes the question.** 2.0 MiB at the working
+density against K0's **172.3 MiB** for the entire world at 1M Citizens — 1.2% of it. Even at four times
+the road density it is 8.3 MiB. Bytes per Segment is flat across the whole sweep, so the structure has
+no size-dependent overhead to discover later.
+
+**Slightly over half of it is `(derived AND rebuilt)`** — the CSR offsets, the arc arrays and the
+cached per-mode traversal times. Under `adr/0040` that half is free to change forever and is never
+written to a save, which is worth separating because it is the half a later optimisation is allowed to
+delete outright.
+
+**Per-direction `volume / capacity` costs 5% of the graph, at every rung.** `plans/0010` forbids R0
+from settling the per-Segment-versus-per-direction question and requires it parameterised; this is the
+price, and it is small enough that the decision should be taken on Stress's behaviour rather than on
+storage. What it *buys* is not visible until R2 has volume to attribute.
+
+### R0.3 — the denominator, and the query shape it had to have
+
+The query is `(Segment, offset) → (Segment, offset)`, seeded from **both** endpoints of the origin
+Segment at their partial costs and terminated on **either** endpoint of the goal Segment plus the
+offset remainder. `plans/0010` is explicit that a node-to-node denominator *"measures a query the game
+never issues, and every figure in this spike divides by it."*
+
+Cost is **time** — `02 §5.9`'s SC4 argument — in **Q16.16 Ticks**; see below for why not whole Ticks.
+2,000 queries per row, drawn before the clock starts.
+
+| Query | Heuristic | Mean expanded | Bootstrap | Search | ns/expansion |
+|---|---|---:|---:|---:|---:|
+| drive | `None` (Dijkstra) | 8,217 | 294 ns | 779,150 ns | 94 |
+| drive | `Manhattan` | 2,813 | 318 ns | 301,887 ns | 107 |
+| drive | `Octile` | 3,506 | 327 ns | 395,581 ns | 112 |
+| drive | **`Chebyshev`** | **4,121** | **320 ns** | **435,503 ns** | **105** |
+| drive | `EuclideanFloor` | 3,712 | 521 ns | 794,940 ns | 214 |
+| walk | `None` (Dijkstra) | 276 | 254 ns | 21,754 ns | 78 |
+| walk | `Manhattan` | 32 | 288 ns | 4,124 ns | 128 |
+| walk | `Octile` | 46 | 263 ns | 5,769 ns | 125 |
+| walk | **`Chebyshev`** | **58** | **292 ns** | **7,001 ns** | **120** |
+| walk | `EuclideanFloor` | 50 | 391 ns | 11,045 ns | 220 |
+
+**Bootstrap is ~300 ns and it is fixed overhead the design chose.** It is the price of Access Points
+being offsets rather than nodes, and `CONTEXT.md` makes that choice structural — promoting them to
+nodes would put the graph at 150,000–300,000 edges instead of ~30,000. Against a drive search of
+435 µs it is 0.07%, so **the query shape the corpus committed to costs essentially nothing**, which is
+the first evidence either way.
+
+**The denominator's own quality, which `plans/0010` requires stated beside every ratio built on it:**
+`Chebyshev` expands **48%** of Dijkstra's nodes driving and **23%** walking, at 68 and 7 expansions per
+Segment of returned path. That is a real but not a strong heuristic, and the reason is structural
+rather than fixable: a distance heuristic on a time-cost graph must divide by the map's maximum
+free-flow speed, so a car search is divided by the Arterial's 90 km/h while nearly every edge it
+expands is a 50 km/h Street — loose by 1.8× almost everywhere. **Every speedup S2 later reports against
+this denominator is a speedup against a router with that much slack still in it, and should be read
+that way.**
+
+#### The result that reverses the obvious choice
+
+**`EuclideanFloor` expands 11% fewer nodes than `Chebyshev` and takes 1.8× as long. Against plain
+Dijkstra it cuts expansions by 55% and is not faster at all.** Its exact integer square root is a
+sixteen-iteration loop, run twice for every node pushed, and it costs more than the expansions it
+saves: 214 ns per expansion against `Chebyshev`'s 105.
+
+**`plans/0010`'s ladder specified nodes expanded, path cost and optimality — and expansions alone pick
+the wrong rung.** Adding a clock to the ladder is R0's own amendment to the plan, and it is the finding
+most likely to matter to R3: HPA\*'s speedup will be quoted in expansions saved, and this is a measured
+case where that currency does not convert.
+
+#### What routing on time costs in the inner loop
+
+Converting a distance to a time is a division, the search evaluates the heuristic against **both** goal
+endpoints for every node it pushes, and `Fixed.Div` routes through `IntegerMath.FloorDiv`, which costs
+a `/` and a `%`. That is **four 64-bit hardware divisions per node**. Inverting once per query — a
+floored reciprocal, multiplied — removes all four and cost the drive search 872 → 776 µs before the
+heuristic rung was even chosen.
+
+**This is the first price anyone has put on `02 §5.9`'s commitment**, and the answer is *nothing, if you
+invert once per query, and a great deal if you do not.* It belongs with the design rather than with the
+spike, because the obvious implementation is the slow one.
+
+### R0.4 — the verdict: the Arterial density at which admissibility breaks
+
+Non-optimal routes returned, against Dijkstra ground truth **on the same query through the same loop**,
+by number of freeform Arterials. Driving only — an Arterial carries no pedestrian edges.
+
+| Arterials | Streets severed | `Manhattan` | `Octile` | `Chebyshev` | `EuclideanFloor` |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 0 | 0 of 300 | 0 of 300 | 0 of 300 | 0 of 300 |
+| 2 | 281 | **7 of 300** | 1 of 300 | 0 of 300 | 0 of 300 |
+| 4 | 476 | 19 of 300 | 3 of 300 | 0 of 300 | 0 of 300 |
+| 8 | 795 | 13 of 300 | 2 of 300 | 0 of 300 | 0 of 300 |
+| 16 | 1,401 | 22 of 294 | 5 of 294 | 0 of 294 | 0 of 294 |
+| 32 | 2,760 | 36 of 267 | 4 of 267 | 0 of 267 | 0 of 267 |
+
+**The answer is one. Admissibility breaks at the first Arterial.** `plans/0010` anticipated that
+`CONTEXT.md` → Arterial's *"deliberately rare"* would make the tight metrics admissible *almost*
+always, and named that as the trap. It is worse than the framing suggested: there is no low-Arterial
+regime in which Manhattan is safe, only a regime in which it is wrong less often. At the working rung
+it returns a different route on **4% of drives**, and under `05 §4`'s test a different route is a
+different Trip and therefore **a different city** — a design change, never a tuning knob.
+
+**Octile is not a middle ground.** It fails at two Arterials as well, merely an order of magnitude less
+often, which is the worst property a defect can have.
+
+> **The rates are a lower bound, and the reason generalises.** The heuristic converts Tiles to Ticks by
+> multiplying by a **floored reciprocal**, which leaves roughly two parts in ten thousand of slack —
+> and that slack *partially cancels an overestimating metric's error.* Measured directly: replacing the
+> exact division with the reciprocal moved walking `Manhattan` from **35 of 300 to 4 of 300**, while
+> leaving driving at 13. Short walks are where the two errors are comparable in size.
+>
+> So **an optimisation chosen purely for speed made an unsafe heuristic look safer, and did it worst
+> exactly where the design cares most** — `adr/0008`'s walk Legs. The verdict above does not rest on
+> the rate: Manhattan and Octile overestimate on this graph by construction, and a rate that moves with
+> an unrelated optimisation is not the evidence. **A future measurement of an error rate should ask
+> what else in the pipeline rounds in the same direction.**
+
+**Decision: `Chebyshev` is the heuristic, and the denominator every later S2 figure divides by.**
+Admissible on any graph, no square root, and 1.8× faster than the tightest safe metric. `05 §4`'s rule
+that an inadmissible heuristic is a design change rather than a tuning knob is what makes this a
+one-line choice rather than a trade-off.
+
+### R0.5 — Severance, and an instrument that was not evidence until it fired
+
+The generator's Arterials genuinely occupy the ground they cross: every Street an Arterial runs over is
+deleted, or kept as a designated foot crossing. Walk searches have **no radius bound**, so *no route
+found* is Severance rather than an artefact of a cutoff — which is the distinction `plans/0010` requires,
+since *severed* and *merely far* are different Trip Fates and different player-facing diagnoses.
+
+| Arterials | Foot crossing every | Crossings | No route found | Mean cost when found |
+|---:|---|---:|---:|---:|
+| 8 | every severed Street | 1,059 | 0 of 300 | 732.31 Ticks |
+| 8 | 4th | 264 | 0 of 300 | 732.30 Ticks |
+| 8 | 16th | 66 | 0 of 300 | 750.82 Ticks |
+| 8 | never | 0 | 0 of 300 | 837.92 Ticks |
+| 32 | 4th | 920 | 0 of 300 | 752.67 Ticks |
+| 32 | 16th | 230 | 9 of 300 | 932.18 Ticks |
+| 32 | never | 0 | **230 of 300** | 722.71 Ticks |
+
+**The first capture reported zero unreachable walks, and this table exists because zero was not
+evidence.** A count that has never been observed to move is equally consistent with *this city is well
+connected* and with *this instrument cannot see the thing it is named after* — the same vacuity the
+Census's trend assertion was deliberately not written to avoid (`plans/0000` → *Owed*). Sweeping the
+crossing density until the count moves is what converts the working rung's zero into a finding.
+
+**Severance is a property of crossing density, not of Arterial count.** Eight Arterials with no
+crossings at all sever nothing; thirty-two with none sever almost everything. The parameter that
+decides is the one a player controls when they choose whether to build a bridge, which is the right
+place for it to live and is an argument for `adr/0008` rather than a measurement of it.
+
+**One column reads backwards and it is not an error.** *Mean cost when found* falls at 32 Arterials with
+no crossings — 722 Ticks, below the 932 of the rung above — because by then only nearby pairs are
+reachable at all. Survivorship: the long walks did not get slower, they left the sample. **A mean
+conditioned on success cannot be printed beside a failure count without saying so.**
+
+### Three defects found in R0's own harness
+
+Recorded because the corpus keeps finding the same shape — *a value never checked against what it
+claimed to describe* — and this is the fourth, fifth and sixth instance.
+
+1. **Every Arterial died in one step, and four tables looked healthy while it happened.**
+   `CounterHash.Below` is multiply-high, so it consumes the **top** bits of the word; three call sites
+   drew a second value from one hash by pre-shifting it, and `Below(h >> 32, 2001)` reads bits that are
+   now zero and returns 0 every time. Every Arterial therefore drew the same cross-heading, entered the
+   map at a corner pointing straight back off it, and left immediately. The density curve, the
+   footprint curve, the per-column table and the volume-scope table were all unaffected and all
+   correct, **because a graph with no Arterials in it is still a graph.** What caught it was a
+   severance count that should obviously have been large and read 3. *`Below` now re-mixes, so a caller
+   cannot destroy entropy it does not know the function depends on; the call sites draw with distinct
+   counters.* **The lesson is to report a quantity you expect to be boring.**
+
+2. **The bootstrap column was mostly the sampler.** O-D pairs were drawn inside both timed loops, and
+   the walk sampler rejection-samples up to 256 times to land inside its radius — which read as a
+   3,956 ns "bootstrap" against a drive's 619 ns. The *search* column was never affected, being a
+   difference of two loops that both paid it. Queries are now drawn before the clock starts, and the
+   figure is 292 ns.
+
+3. **The exact square root spent most of its time warming up.** `SqrtFloor` located its starting power
+   of four by searching down from `1L << 62`, which is ~30 iterations before any work on the small
+   distances that dominate. `BitOperations.Log2` gives the exponent outright. **A denominator that
+   spends its time in a helper's warm-up is measuring the helper** — and the fix, worth 940 → 872 µs,
+   was still not enough to save `EuclideanFloor`, which is how R0 learned that the square root itself
+   was the cost rather than its preamble.
+
+### What R0 decided, and what it did not
+
+**Decided.**
+
+- **The heuristic is `Chebyshev`**, and the ladder's other three rungs are out — two on admissibility,
+  one on cost. This also settles that R3's HPA\* must be quoted against `Chebyshev` and not against
+  whichever metric flatters it.
+- **The Road Graph is not a memory constraint.** 2.0 MiB at the working density, 1.2% of the world.
+- **The `(Segment, offset)` query shape is free.** ~300 ns of bootstrap against a 435 µs search.
+- **Per-direction volume costs 5%** of the graph, so that decision is not a storage decision.
+
+**Not decided, and owed.**
+
+- **The cost unit.** R0 routes in **Q16.16 Ticks**, and it had to: a Tick is ~10.5 in-world seconds and
+  a vehicle crosses about one Segment per Tick, so a cost accumulated in whole Ticks gives nearly every
+  Segment a cost of 1 and A\* silently minimises **hop count** rather than time — while appearing to
+  route on time. But `05 §121` says *"Q16.16 is for sub-Tile positions and nothing else"*, and sub-Tick
+  time is not a sub-Tile position. The alternative spelling — an integer count of a fixed fraction of a
+  Tick — measures identically, so nothing here rests on it. **What is owed is whether the core acquires
+  a second Q16.16 meaning, and that is the corpus's decision rather than a benchmark's.**
+- **Road density.** 16.20 km/km² at the placeholder rung is a number to check against a real city, not
+  a replacement for the assumption. `CONTEXT.md` → Segment keeps its disclaimer.
+- **The timing re-capture** under `tools/kernel-run.sh`, per the defect stated above.
+- Zone count (R1), cluster size (R3), the routing Tick-budget share, and the Microscopic Cap are all
+  untouched by R0 and remain where `plans/0010` puts them.
