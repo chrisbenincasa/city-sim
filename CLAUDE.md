@@ -42,8 +42,8 @@ unless asked.
 | `docs/03-agent-architecture.md` | Movement, fidelity tiers, Trips and Legs |
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
-| `docs/06-roadmap.md` | Phases and milestones, in dependency order. No dates |
-| `docs/adr/` | 39 numbered decision records |
+| `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
+| `docs/adr/` | 41 decision records, numbered to `0042` — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — done, next, unblocked, owed, blocked. A view over `0002` and `0003`, never a source |
@@ -176,13 +176,15 @@ dotnet run --project src/Borough.Headless
 
 ## Definition of done for any milestone
 
-From `docs/06-roadmap.md`. These are cumulative obligations, not milestones of their own.
+This list is owned here; `docs/06-roadmap.md` rule 2 requires it and cites it. Cumulative obligations,
+not milestones of their own. Refined per slice by `plans/0003 §Definition of done`.
 
 - `dotnet build` succeeds and `dotnet test` is green, on a machine with no GPU and no Godot
-- Debug invariant assertions pass: Goods conserved, no Bin negative or over capacity, no Citizen
-  in two places, every Household's home a Building that lists them as an occupant
-- The long-run test passes — 100k+ Ticks with no collection trending upward at steady state
-  (`adr/0006`)
+- The invariants pass. **Sorted by frequency, never gated on build configuration** (`02 §10`) —
+  `O(1)` at the write site per Tick, `O(n)` staggered, whole-world at end of run. The runs that
+  surface these bugs are the million-Tick headless balance runs, and those are release builds
+- The long-run test passes — 100k+ Ticks with **no collection and no magnitude** trending upward at
+  steady state (`adr/0006`, and `adr/0003`'s extension of it to quantities)
 - There is something to *look at* showing the milestone doing its job
 
 Every milestone names the specific risk it retires. A milestone that cannot name one is either

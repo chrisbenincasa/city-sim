@@ -4,6 +4,10 @@ Ideas explored, found interesting, and deliberately **not built yet**. Distinct 
 
 Each entry records what the idea is, why it's parked, **what would trigger revisiting it**, and **what it costs to add later**. That last field matters most: some deferrals are free to reverse and some are not, and knowing which is the difference between a deferral and a mistake.
 
+**Entries that get built leave a line behind, never a silent deletion.** A record with a hole in it is worse than no record, because the absence is indistinguishable from the idea never having been considered.
+
+- ~~**Public transit.**~~ **BUILT** — [`adr/0029`](adr/0029-transit-is-in-and-right-of-way-is-the-only-axis.md), session five. Transit ships, and right-of-way is its only axis. It was admitted not on genre convention but because five mechanisms already in the design — Density, Destitution, Parking, Office, Settlements — each had a cost with no counter-force. Worth remembering as the sharpest instance of this file's own lesson: **a deferral's retrofit cost is not fixed**, and [`adr/0008`](adr/0008-walking-is-a-simulated-leg.md) had already collapsed this one from *irreversible* to *incremental* for entirely unrelated reasons.
+
 ---
 
 ## Gravity-fed sewage

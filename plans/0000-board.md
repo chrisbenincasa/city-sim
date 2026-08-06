@@ -13,10 +13,11 @@ collection did over a run, and a panic writes a crash artifact that replays back
 **Slice 6, Map Layers, is the last slice before the Phase 1 gate closes.**
 
 **What is in front of the project is mostly argument, not code.** Slices 7–10 and every Phase 2
-milestone are gated on designs written from research and never grilled — eleven sessions, tabulated
+milestone are gated on designs written from research and never grilled — twelve sessions, tabulated
 below, none of which touches slice 6 and almost all of which can run beside it. The board used to
 list those gates as 🔴 marks against slices, which read as *wait*; they are work, and they are
-available now.
+available now. **One of the twelve, `06` itself, turned out to be two** — see session nine in *Done*,
+and the audit note below it, which now has a diagnostic rather than just a suspicion.
 
 ---
 
@@ -68,7 +69,8 @@ milestone 8 is parking — so the *Unblocks* column always says which.
 | **H** | **`adr/0009`** — parking is modelled supply | Written from research. Its `adr/0006`-class occupancy leak is already named and needs the invariant specified with it | milestone 8 | **yes** |
 | **I** | **`adr/0012`** — routing intent lives in the agent | Written from research, and already owes an amendment: the route cache's **eviction policy** and its **key** | milestone 5c | **after S2 R6** — the two caches are R6's subject |
 | **J** | **`05 §7` format half**, plus **map size** and **Outside Connection layout** | The three things `06`'s open-decisions table still has blocking save/load, narrowed from the map question that `adr/0020`–`0022` otherwise closed | milestone 10 | **yes** |
-| **K** | **`06-roadmap.md` itself** | 🔴 and *materially out of date: it sequences work that predates conserved Money, Hinterlands, Office, and the labour system.* Ordering to be **re-derived, not patched** | Planning Phase 2 at all | **last** — A–J move what it sequences |
+| **K2** | **`06`'s Phase 2 ordering** | The ordering only. **K1 is done** — see *Done* — so what remains is re-deriving the sequence against conserved Money, Hinterlands, Office, the labour system, transit and every Service, and placing the **seventeen mechanisms `06` now lists as having no milestone** | Planning Phase 2 at all | **last** — A–J move what it sequences |
+| **L** | **A presentation design** | **It does not exist.** Every other phase is backed by a design document; rendering has none, and `05 §2`'s sim/render boundary is on the never-argued list while `adr/0002` was re-argued to serve *inspection*. **Write it first, then grill it** — unlike A–K this is not a session against an existing document | Phase 3, and planning it at all | **yes**, but blocked on S1 and S3 |
 
 **Not arguable, and it is worth being explicit about why.** The **Microscopic Cap**'s value needs a
 built traffic model; S2 R2 only informs it. **S2** itself is measurement — argument cannot close it,
@@ -94,6 +96,13 @@ undischarged because **two separate debts had been filed as one**, and the runna
 behind a grilling session it did not actually need. Its own instruction — *worth auditing the other
 🔴-blocked debts for the same shape* — has not been carried out. Doing it first is cheap and may
 move work out of this table and into the code track.
+
+**There are now two data points, not one.** Session nine found `06` to be the same shape by accident:
+K was scheduled last because *"A–J move what it sequences"*, and that argument binds only the
+**ordering**. Correcting claims that settled decisions falsify — K1 — depended on nothing, and ran in
+one sitting. **The tell in both cases is a gate whose stated reason covers only part of what it
+blocks.** The audit is still owed and now has a diagnostic to apply: for each 🔴 row, ask what the
+gate's reason *does not* cover, and check whether that remainder is runnable today.
 
 ---
 
@@ -151,6 +160,18 @@ move work out of this table and into the code track.
 - [x] **S2 plan grilled before any code.** Thirteen findings; see *Owed* below for what it left behind
 - [x] **`adr/0040`** — the pathfinding cluster is a multiple of the Chunk, not the Chunk
 - [x] **`adr/0041`** — volume is attributed by the Traveller, not the District pair
+- [x] **Session nine — `06-roadmap.md`, and what a planning document may assert.** Taken **out of the
+      board's order**, and legitimately: K was one blocked half and one runnable half filed as one.
+      **K1 is done** — every claim a settled decision falsified is struck, not corrected. `06` lost its
+      contents column entirely and its milestone rows are now **name plus risk retired**; Phase 0/1
+      order points at `0003`, status at this board, mechanism at the design documents. It gained a
+      table of **seventeen mechanisms with no milestone** — Money, Hinterlands, Office and the labour
+      system, Density, Services, Crime, the nine Resources, Upkeep, Policy and the Sweep Rule family,
+      transit, Taste, and more — and a short list of **instructions ADRs addressed to it and nobody
+      executed**. Phase 2's *"the city is alive"* is replaced by what those ten milestones would
+      actually produce: a transport and housing simulation with **no money in it, nobody employed, and
+      no way for anyone to arrive**. Produced **`adr/0042`** — a planning document cites, a design
+      document owns. **K2, the ordering, remains and stays last**
 
 ---
 
@@ -171,7 +192,8 @@ move work out of this table and into the code track.
 - [ ] **D** — `03 §5`, the traffic model *(more than one sitting)*
 - [ ] **E**–**I** — the six research-written ADRs *(`0005`, `0007`, `0008`, `0009`, `0012`, `0016`)*
 - [ ] **J** — save/load's three: `05 §7`'s format half, map size, Outside Connection layout
-- [ ] **K** — re-derive `06`'s milestone ordering, last
+- [ ] **L** — write a presentation design, then grill it. Blocked on S1 and S3
+- [ ] **K2** — re-derive `06`'s Phase 2 ordering, last. *(K1 done — session nine)*
 
 ### Parallel track — S2, routing ([`0010`](0010-s2-routing.md))
 
@@ -186,9 +208,15 @@ move work out of this table and into the code track.
 
 ### Parallel track — Godot (Track B, no gate)
 
-- [ ] **S1** — 20k Buildings via chunked `MultiMeshInstance3D`
-- [ ] **S3** — one data panel with a live multi-series graph. *The spike most likely to be skipped and
-      most likely to change the decision*
+**These two have a job again.** `06` framed them as gating a commitment to Godot; `adr/0036` took the
+core's language out of `adr/0001` and session eight confirmed the host argument, so there is no
+decision left for them to gate. They are the **empirical inputs to session L** — a rendering ceiling
+and a UI-cost figure — and L is what unblocks Phase 3. Their specifications in `06` were stale by
+roughly an order of magnitude and have been struck; size them from `spike-results` and the 1M target.
+
+- [ ] **S1** — chunked `MultiMeshInstance3D` at city scale. *Feeds L*
+- [ ] **S3** — one data panel with a live multi-series graph. *Feeds L, and it is **the spike most
+      likely to be skipped and most likely to change the decision***
 
 ---
 
@@ -207,7 +235,9 @@ Small, and each one is a place the corpus currently says something known to be w
       document
 - [ ] **`05 §3`** — Parking Shed invalidation needs the *when you pay / what survives* correction
       `CONTEXT.md` → Epoch has taken
-- [ ] **`06`** — the S2 specification (*"30k Travellers"*) and S1's (*"20k Buildings"*) are stale
+- [x] ~~**`06`** — the S2 specification (*"30k Travellers"*) and S1's (*"20k Buildings"*) are stale~~
+      **DISCHARGED session nine** by deletion rather than correction, per `adr/0042`: `06` no longer
+      carries spike specifications at all. `0003` and `spike-results` own them
 - [ ] **`adr/0012`, and two other filenames, use "Agent"** — banned outright by `CONTEXT.md`. 33
       occurrences across 22 files
 
@@ -258,5 +288,14 @@ had, which means none of it has to wait for slice 6.
 | **Slice 10** — Zone Rules | depends on slice 7 | session **B**, transitively |
 | **S0** — synthetic 1M-Citizen city | slice 6. *Until it exists, 1M is a hope* | the only row here blocked on code |
 | **Phase 2 milestones 5a–10** | 🔴 `03 §5` and six research-written ADRs, plus S2 | sessions **D**–**J**, plus a spike |
-| **Planning Phase 2 at all** | S0 must have run, and `06` must be re-derived | session **K** |
-| **Phase 3** | unplanned by design, and stays that way | — |
+| **Planning Phase 2 at all** | S0 must have run, and `06`'s ordering must be re-derived | session **K2** |
+| **Phase 3** | 🔴 **a presentation design that does not exist** | session **L**, itself blocked on **S1** and **S3** |
+
+**The Phase 3 row used to read *"unplanned by design, and stays that way"*, and that was wrong** — it
+described a choice where the truth is an absence. Phase 3 is unplanned because rendering has never
+been designed, never been argued, and has no document to argue: every other phase is backed by `02`,
+`03`, `04` or `05`, and there is no equivalent for presentation. Worse, the interface it would build
+on was **re-argued to serve something else** — `adr/0002` was rebuilt around hot and cold query
+flavours on the finding that it had *"assumed a renderer because rendering is what an engine boundary
+is usually for"*, when the actual consumer is an inspector. The chain is written down now, in `06` and
+here: **S1 + S3 → L → Phase 3 is plannable.**
