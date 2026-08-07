@@ -9,7 +9,7 @@ of Goods that actually move, and when something goes wrong the game can say exac
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
 **Current state: Phase 1, slice 5 closed.** The repository is ~7,000 lines of design
-documents and 42 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
+documents and 43 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
 declaration and the State Hash — and all eight tasks of slice 5: `step(inputs)` with the
 eight phases, the command model and the Input Log, replay, the golden-hash baseline, the
@@ -18,13 +18,33 @@ headless runner with `Borough.Formats`, the three invariant tiers, the Census wi
 a table report and a hash; `--log PATH --ticks N --hash-every N` replays a session and prints a hash
 trace; `--census` adds what every collection did over the run; a panic writes a crash artifact that
 the runner accepts back wherever it accepts a log.
-**Slice 6, Map Layers ([`plans/0009`](plans/0009-map-layers.md)), is next and is the last slice before
-the Phase 1 gate closes.** On the parallel spike track, **S2 R0 through R3 are done** — the synthetic
+**Slice 6, Map Layers ([`plans/0009`](plans/0009-map-layers.md)), is closed — all ten tasks — so
+nothing in the code column stands in front of the Phase 1 gate.** `Borough.Core.Space` has the Cell
+grid with the Cell and the Chunk as **two types**, the sparse `LayerCellTable` — the project's **first
+`Buffering.TwoCopies`**, which made slice 4's declared-but-unimplemented double buffer real — the
+separable integer convolution, the staggered schedule as a table, incremental re-diffusion that is
+**bit-identical** to a full recompute, the three real Layers, **named holes that throw** where
+Fertility, Desirability and the line-source queries will go, and `layer_cells(aabb, layer)`, the
+project's first hot query — allocation-free and string-free, both checked. **Superposition is exact
+over twenty sources and the in-place variant is kept in the suite watching itself fail.**
+`dotnet run --project src/Borough.Headless -- --layer pollution` prints a field, which is the first
+thing here that is not a number. The slice's owed decision is settled *by measurement*: `adr/0044`
+makes the diffusion cadence **hash-bearing**, the **sixth claim in the corpus measured false and the
+first outside S2**. **That ADR then got its own second half wrong by argument** — it filed the cadence
+as world-creation-fixed while citing `adr/0015` without running the membership test `adr/0015` states,
+which the cadence fails and the kernel radius passes. Withdrawn and recorded rather than amended away;
+**citing an ADR is not applying it**. On the parallel spike track, **S2 R0 through R4 are done** — the synthetic
 Road Graph and the denominator, the travel-time matrix, which **carries the choice loop**, the path
-source, which **revived the DSDV case rather than retiring it**, and HPA\*, which **narrowed the
+source, which **revived the DSDV case rather than retiring it**, HPA\*, which **narrowed the
 pathfinding cluster to 8 or 16 Chunks a side without closing it, weakened its own standing** to 2.63×
 the flat search once a route has to come back with arcs, and found that **no cluster size fits routing
-into the Tick budget** — which promotes R6's route cache from a tidy-up to load-bearing. `spikes/S2.Routing/` compiles the arithmetic substrate in by source
+into the Tick budget** — which promotes R6's route cache from a tidy-up to load-bearing — and then
+distance-vector, which is **out because it costs 2.13× the rebuild it exists to avoid** and is beaten
+by a scheme the plan never named (dynamic subtree repair, **4.71 ms** against **234.74 ms**). R4 also
+found that **S2's uniform origin-destination draw had been hiding a conclusion**: it is the
+longest-trip distribution available, and on a local-trip draw a District-granular route's detour goes
+from R2's 18.52% to **128.82%**, which under `05 §4` is a different city. The draw is now a swept
+family, which is what makes R6 runnable at all. `spikes/S2.Routing/` compiles the arithmetic substrate in by source
 and can name nothing else of `Core`, so it has changed no simulation code. Task 7 shipped its instrument and **not** its trend assertion — nothing in
 the world churns yet, so the assertion would have been vacuous. It is owed by slice 7; the board's
 *Owed* section says how.
@@ -49,7 +69,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | 42 decision records, numbered to `0043` — `0028` is reserved and unwritten |
+| `docs/adr/` | 43 decision records, numbered to `0044` — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — done, next, unblocked, owed, blocked. A view over `0002` and `0003`, never a source |
@@ -181,7 +201,9 @@ dotnet run --project src/Borough.Headless
 | `WHEEL_SIZE` | 8192 Ticks | world-creation. Set by the longest routine sleep |
 | Reference tick rate | 16 Ticks/s → a Day is 8m32s | host-side, runtime only |
 | Cell | 32×32 Tiles (≈128 m) | **design constant, never tuned** — it changes the State Hash |
-| Chunk | a multiple of the Cell, ≥32×32 | tuning, hash-preserving, unvalidated |
+| Chunk | a multiple of the Cell, ≥32×32 | tuning, hash-preserving, unvalidated. **Provisionally 1:1 with the Cell** |
+| Map Layer cadence | pollution every 64 Ticks at offset 0; land value every 256 at offset 16 | tuning, hot-reloadable, **hash-bearing** — the designer's number and not the profiler's, measured in `adr/0044` |
+| Industrial pollution kernel | separable tent, 1,024 m (8 Cells) | world-creation. **UNRATIFIED** — the 1–10 km band is 10× wide and wants a source |
 | Map | 4096² Tiles, 2048² documented fallback | open |
 | Target population | 10,000 first hour / 1,000,000 late game | sizing |
 | Tick budget | 15.6 ms at 4× speed | |

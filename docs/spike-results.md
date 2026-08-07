@@ -2998,7 +2998,8 @@ of how the weights land; but *the plan's reason for it is not yet evidence.*
 ## S2 R4 — distance-vector, and the table that has to stay current
 
 > `plans/0010-s2-routing.md` R4. Raw capture in
-> `spikes/S2.Routing/results/s2-r4-intel-core-i5-10400-ddr2133-powersave-turbo.md`.
+> `spikes/S2.Routing/results/s2-r4-intel-core-i5-10400-ddr2133-performance-turbo.md`; the `powersave`
+> capture it is checked against is beside it as `…-powersave-turbo.md`.
 
 **R4 is not a beauty contest between two routers**, and reading it as one would miss what R3 handed
 it. R3 found that no cluster size fits a per-Trip search into the Tick budget — the best rung breaks
@@ -3015,10 +3016,15 @@ worse.
 
 ### The capture, and what it is not
 
-`powersave`, pinned to one physical core, turbo enabled; 24.18 s, CPU stall 1.35%. **The canonical
-`performance` capture is owed, exactly as R3's is.** Every *count* below is governor-independent and
-**bit-identical across two captures** — relaxations, rounds, wrong-entry counts and arc counts all
-reproduce exactly, and only nanosecond figures move, by 2–5%. No R4 decision rests on an absolute.
+**Canonical.** `performance` governor, turbo enabled, pinned to one physical core, run as root via
+`spikes/S2.Routing/tools/routing-run.sh --vector`; 23.69 s, CPU stall 1.41%, memory stall 0.00%.
+Every figure below is from that capture.
+
+**The determinism check is the strongest this spike has produced.** Against the `powersave` capture
+taken twelve minutes earlier, **every non-timing row is bit-identical** — relaxations, rounds,
+wrong-entry counts, stranded counts, arc counts, detour percentages, footprints and the whole O-D
+distribution table. Only nanosecond columns move, and they move by 2–7%. **A governor change moved
+nothing that R4 concludes from**, which is what a capture protocol is for.
 
 ### R4.1 — the origin-destination distribution, which S2 had been guessing since R0
 
@@ -3073,8 +3079,8 @@ the two separately everywhere.
 
 | Build | Whole table | Per column | Relaxations | Worst rounds | Entries wrong |
 |---|---:|---:|---:|---:|---:|
-| backward Dijkstra | 395.30 ms | 3,266,954 ns | — | — | — |
-| vector exchange | **118.79 ms** | 981,804 ns | 14,333,149 | 175 | **0** |
+| backward Dijkstra | 423.47 ms | 3,499,760 ns | — | — | — |
+| vector exchange | **109.52 ms** | 905,163 ns | 14,333,149 | 175 | **0** |
 
 Bellman-Ford with an active set beats a binary-heap Dijkstra on this graph, because a degree-3
 network with well-behaved costs settles nearly in order anyway and the heap is pure overhead. **An
@@ -3089,10 +3095,10 @@ so every scheme below starts from the identical Dijkstra-built table, copied rat
 
 | Scheme | Per edit | Against rebuild | Relaxations | Wrong cost | Stranded |
 |---|---:|---:|---:|---:|---:|
-| **rebuild** — every column | 219.73 ms | — | — | — | — |
-| DSDV, sequenced | 475.91 ms | **2.16× slower** | 36,982,307 | 0 | 0 |
-| DSDV, unsequenced | 26.63 ms | 8.24× faster | 2,510,526 | 0 | 0 |
-| **dynamic repair** — affected subtree | **5.78 ms** | **37.99× faster** | 201,014 | **0** | **0** |
+| **rebuild** — every column | 234.74 ms | — | — | — | — |
+| DSDV, sequenced | 500.69 ms | **2.13× slower** | 36,982,307 | 0 | 0 |
+| DSDV, unsequenced | 32.74 ms | 7.16× faster | 2,510,526 | 0 | 0 |
+| **dynamic repair** — affected subtree | **4.71 ms** | **49.76× faster** | 201,014 | **0** | **0** |
 
 8 deleted Segments, each repaired across all 121 columns; 16,162,696 entries audited per scheme
 against a table rebuilt on the edited graph.
@@ -3137,10 +3143,14 @@ every Tick.**
 
 | Arcs moved | Rebuild | DSDV, sequenced | Dynamic repair | Repair vs rebuild |
 |---:|---:|---:|---:|---:|
-| 0.10% (57) | 223.56 ms | 384.14 ms | 37.93 ms | **5.89×** |
-| 1.00% (635) | 274.49 ms | 546.13 ms | 148.68 ms | **1.84×** |
-| 10.00% (6,474) | 245.61 ms | 411.89 ms | 349.97 ms | 0.70× |
-| 100.00% (64,138) | 200.69 ms | **5,327.70 ms** | 377.52 ms | 0.53× |
+| 0.10% (57) | 213.80 ms | 378.13 ms | 44.00 ms | **4.85×** |
+| 1.00% (635) | 225.87 ms | 376.60 ms | 125.16 ms | **1.80×** |
+| 10.00% (6,474) | 248.49 ms | 479.18 ms | 393.53 ms | 0.63× |
+| 100.00% (64,138) | 236.62 ms | **5,059.97 ms** | 357.74 ms | 0.66× |
+
+The 10% and 100% repair columns differ by less than the spread between the two captures, so **the
+curve flattens past the break-even rather than continuing to fall**: once the affected subtree is
+most of the graph, re-deriving it *is* a rebuild with bookkeeping attached.
 
 **The break-even is between 1% and 10% of arcs moved**, and nothing in the corpus says which side the
 design lands on, because the refresh cadence is `plans/0010` decision 2 and still open. Below it,
@@ -3152,11 +3162,11 @@ said, about a decision filed as tuning.
 
 | Columns per Tick | Cost per Tick | Share of 15.6 ms | Worst staleness |
 |---:|---:|---:|---:|
-| 1 | 1,673,650 ns | **10.72%** | 121 Ticks |
-| 4 | 6,694,600 ns | 42.91% | 31 Ticks |
-| 121 | 202,511,650 ns | 1298.14% | 1 Tick |
+| 1 | 1,682,673 ns | **10.78%** | 121 Ticks |
+| 4 | 6,730,692 ns | 43.14% | 31 Ticks |
+| 121 | 203,603,433 ns | 1305.14% | 1 Tick |
 
-**A rebuild is not the fallback anybody feared** — 1.75 ms per column, so a full rotation every 121
+**A rebuild is not the fallback anybody feared** — 1.68 ms per column, so a full rotation every 121
 Ticks costs a tenth of one Tick. What it cannot do is answer an *edit* promptly, because a rotation
 is a cadence and an edit is an event. **Drift wants a slow rotation and the core verb does not**, so
 the two consumers need different mechanisms.
@@ -3192,13 +3202,13 @@ the other side. **The two must be answered once.**
 - **Distance-vector is out, on none of the three grounds anybody expected.** Not memory — at District
   granularity it is 23.12 MiB against a 172.27 MiB world and the wire does not fire. Not correctness
   — with sequence numbers it converges to exactly the rebuilt table, on a deleted Segment and on a
-  severance alike. **It is out because it costs more than the rebuild it exists to avoid** (2.16×)
-  and 82× more than the scheme this plan never named.
+  severance alike. **It is out because it costs more than the rebuild it exists to avoid** (2.13×)
+  and 106× more than the scheme this plan never named.
 - **`references.md`'s sequence-number claim is confirmed by measurement**, 1,620× the work and still
   wrong without them. Under `adr/0043` it had been an argument; it is now a number.
-- **Dynamic subtree repair is the maintenance scheme**, at 5.78 ms against a 219.73 ms rebuild, 0
+- **Dynamic subtree repair is the maintenance scheme**, at 4.71 ms against a 234.74 ms rebuild, 0
   entries wrong, and it converges on a severance too.
-- **A full rebuild is affordable as a rotation** — 10.72% of a Tick for a full pass every 121 Ticks —
+- **A full rebuild is affordable as a rotation** — 10.78% of a Tick for a full pass every 121 Ticks —
   and unaffordable as an edit response.
 
 **Not decided, and owed.**
@@ -3219,7 +3229,7 @@ the other side. **The two must be answered once.**
   node kept its odd sequence number while adopting a neighbour's stale finite cost, then advertised
   that stale cost under the high sequence its own poison had earned. **The first capture read 232
   seconds per edit and would have published *distance-vector loses by three orders of magnitude*.**
-  With the rule it is 475.91 ms. What flagged it was R2's recorded lesson: the two protocols were
+  With the rule it is 500.69 ms. What flagged it was R2's recorded lesson: the two protocols were
   reporting near-identical relaxation counts and *identical* wrong-entry counts, and **two
   measurements that agree that closely are not two measurements.**
 - **The poison phase was a silent no-op**, seeded with the nodes that detect the break rather than
@@ -3238,8 +3248,8 @@ the other side. **The two must be answered once.**
 
 ### R3's denominator finding reproduces a third time, and it reconciles R2
 
-R4.3 measures 121 backward Dijkstras at **395.30 ms**; R4.4 measures the identical rebuild at
-**219.73 ms** — **1.80× apart in one process**, the earlier one first. That is R3's *a denominator
+R4.3 measures 121 backward Dijkstras at **423.47 ms**; R4.4 measures the identical rebuild at
+**234.74 ms** — **1.80× apart in one process**, the earlier one first. That is R3's *a denominator
 measured first has a systematic error* arriving again without being looked for, and it substantially
 explains why R2 published 474.47 ms for the same operation: R2's was also a first-timed measurement.
 **Every R4 ratio is taken in-process against R4's own figure**, per R3's rule, so no conclusion moves

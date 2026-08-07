@@ -636,15 +636,15 @@ rendering, saves and work partitioning.
 >   at District granularity the table is **23.12 MiB** against a 172.27 MiB world and **the tripwire
 >   below does not fire**. Not correctness — with sequence numbers it converges to *exactly* the
 >   rebuilt table, on a deleted Segment and on a severance alike. **It is out because it costs more
->   than the rebuild it exists to avoid**: 475.91 ms against 219.73 ms for one deleted Segment,
->   **2.16× slower**, and 82× more than a scheme this plan never named.
+>   than the rebuild it exists to avoid**: 500.69 ms against 234.74 ms for one deleted Segment,
+>   **2.13× slower**, and 106× more than a scheme this plan never named.
 > - **The reason is structural and no tuning recovers it.** An odd-sequence unreachability claim
 >   outranks every finite route in circulation *by construction* — which is exactly what stops
 >   count-to-infinity — so only a **newer even** number from the destination itself can restore a
 >   route. One broken link therefore obliges the destination to **re-flood its whole tree**. *The
 >   property that makes deletion safe is the property that makes deletion expensive.*
-> - **The scheme that wins was not on the ballot: dynamic subtree repair**, at **5.78 ms** against a
->   219.73 ms rebuild with **0 entries wrong**, and it converges on a severance too. It is not
+> - **The scheme that wins was not on the ballot: dynamic subtree repair**, at **4.71 ms** against a
+>   234.74 ms rebuild with **0 entries wrong**, and it converges on a severance too. It is not
 >   distance-vector, needs no sequence numbers and no Epoch, and was measured only because pricing
 >   solely the candidate a plan names is how a spike produces a verdict it has not earned.
 >   **R5's ladder is owed this rung.**
@@ -664,7 +664,7 @@ rendering, saves and work partitioning.
 > - **Congestion drift is priced and the break-even is between 1% and 10% of arcs moved.** Below it
 >   incremental repair wins; above it a plain **rebuild** wins outright. **So the matrix refresh
 >   cadence chooses the maintenance scheme** — a decision this plan files as tuning, which it is not.
-> - **A full rebuild is affordable as a rotation and not as an edit response**: 10.72% of one Tick for
+> - **A full rebuild is affordable as a rotation and not as an edit response**: 10.78% of one Tick for
 >   a full pass every 121 Ticks. *Drift wants a cadence; the core verb is an event.*
 >
 > **Four defects in R4's own harness**, all caught by instruments rather than by reading, and one of
@@ -676,7 +676,7 @@ rendering, saves and work partitioning.
 > elapsed-time helper that **overflowed past 9.2 seconds** and published −8,267.51 ms.
 >
 > **R3's denominator finding reproduces a third time and reconciles R2 on the way past.** The same
-> 121 backward Dijkstras read **395.30 ms** measured first in the process and **219.73 ms** measured
+> 121 backward Dijkstras read **423.47 ms** measured first in the process and **234.74 ms** measured
 > later — 1.80× — which substantially explains R2's 474.47 ms for the same operation. R7 owes the
 > reconciliation.
 
@@ -733,8 +733,8 @@ derived from connectivity, so a topology edit changes the partition.
 
 > **R4 hands R5 four things and one of them changes the ladder below.**
 >
-> - **A fourth rung is owed on the ladder: dynamic subtree repair.** R4 measured it at **5.78 ms**
->   against a 219.73 ms rebuild on a single deleted Segment, correct, and correct on a severance too.
+> - **A fourth rung is owed on the ladder: dynamic subtree repair.** R4 measured it at **4.71 ms**
+>   against a 234.74 ms rebuild on a single deleted Segment, correct, and correct on a severance too.
 >   The three-rung Epoch ladder below is about *what survives an edit*; this is about *what it costs
 >   to make the survivors correct again*, and they compose rather than compete.
 > - **The O-D draw is no longer uniform.** R4.1's swept family is in the harness and R5's storm
@@ -882,7 +882,7 @@ meaning depends on an unstated machine is not a threshold** — so each row name
 | Either router needs a **global flush** on a Road Graph edit | That candidate is out on a design commitment, not on a number |
 | An attribution scheme **cannot report a jam within the congestion cycle it happens in** (R2b) | That scheme is out on a design commitment, not on a number. `03 §3.4`'s self-correcting circularity is the load-bearing assumption of the fidelity model and a lagging detector breaks it |
 | The route cache **grows at steady state** with no bound | `adr/0006` violated. Fix the cache, not the ADR |
-| ~~DSDV's routing tables exceed the **whole world's 172.3 MiB footprint**~~ **MEASURED by R4, and it does not fire — at the granularity the design can use** | Distance-vector is out on memory alone. **At the 121-District anchor DSDV is 23.12 MiB, 0.13× the world; at node granularity it is 3.11 GiB, 18.51×.** So the wire fires on *granularity* and not on the protocol, and sequence numbers neither cause it nor would removing them fix it. **Distance-vector went out on cost instead** — 2.16× a full rebuild — which no row here anticipated |
+| ~~DSDV's routing tables exceed the **whole world's 172.3 MiB footprint**~~ **MEASURED by R4, and it does not fire — at the granularity the design can use** | Distance-vector is out on memory alone. **At the 121-District anchor DSDV is 23.12 MiB, 0.13× the world; at node granularity it is 3.11 GiB, 18.51×.** So the wire fires on *granularity* and not on the protocol, and sequence numbers neither cause it nor would removing them fix it. **Distance-vector went out on cost instead** — 2.13× a full rebuild — which no row here anticipated |
 
 **R3 adds a rule about how a wire is stated, and it applies to every row above.** *Gather a tripwire
 as direct data wherever the data exists, and where it does not, invert the derivation until what is
@@ -1044,7 +1044,7 @@ third time, and it belongs with them rather than inside S2. R7 states it; the co
 
 **12. The maintenance scheme, and the cadence that chooses it — NEW, produced by R4.** R4 measured
 four ways to keep a precomputed routing structure correct after the graph changes, and the winner —
-**dynamic subtree repair**, 5.78 ms against a 219.73 ms rebuild — is not in this plan anywhere. What
+**dynamic subtree repair**, 4.71 ms against a 234.74 ms rebuild — is not in this plan anywhere. What
 is owed is not the choice, which is measured, but the observation underneath it: **R4.6 puts the
 incremental-versus-rebuild break-even between 1% and 10% of arcs moved per refresh**, so the
 **travel-time matrix refresh cadence (decision 2) chooses the maintenance scheme.** A decision filed
