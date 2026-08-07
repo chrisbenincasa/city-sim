@@ -1437,8 +1437,11 @@ the entry addressed *to* the edited District. **So the matrix's cheap invalidati
 storage are the same trade, taken twice**, and `02 §6` is owed a correction regardless of which way it
 is taken.
 
-**10. The path source keys on the District, so redrawing a boundary changes the city — NEW, produced
-by R2.** `adr/0041` removed the District from *volume attribution* and closed that defect explicitly:
+**10. ~~The path source keys on the District, so redrawing a boundary changes the city.~~ CLOSED by
+[`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md), together with 11, 13 and 15 —
+routing never keys on the District, and the next-hop table is out.** Original entry follows.
+
+**10. NEW, produced by R2.** `adr/0041` removed the District from *volume attribution* and closed that defect explicitly:
 *"redrawing a boundary changes volume attribution → Stress → Fidelity → travel times → the city, and
 therefore the State Hash… `PLAYER GOVERNS` means the player governs the city, not the physics."*
 **Both surviving path-source rungs put it straight back.** A shared route is keyed by District pair; a
@@ -1457,8 +1460,11 @@ incremental-versus-rebuild break-even between 1% and 10% of arcs moved per refre
 as *tuning* turns out to select an algorithm. *Recommended handling: settle it with decisions 2 and
 2a, which are already the same argument about the same object.*
 
-**13. The District-granular route's error is a granularity decision, not a routing one — NEW,
-produced by R4, and it is decision 11 arriving from the other side.** R2 published **18.52%** mean
+**13. ~~The District-granular route's error is a granularity decision.~~ CLOSED by `adr/0047`** — the
+route is `(Segment, offset)` granular from the cache, so the error has no source. Original entry
+follows.
+
+**13. NEW, produced by R4, and it is decision 11 arriving from the other side.** R2 published **18.52%** mean
 detour for a next-hop table and R4 found that figure to be a property of the **draw**: on the uniform
 distribution every S2 task had inherited it is 20.14%, and on a plausible local-trip distribution it
 is **128.82%**. Aiming a Traveller at a District representative is a roughly fixed error in Ticks
@@ -1477,7 +1483,11 @@ records the family as a placeholder with a named successor, and no document may 
 from it without naming the rung. The board already carries the general form of this failure — a curve
 reported as a fact is how the ~400k Trips/Day figure survived.*
 
-**11. The representative funnel — NEW, produced by R2, and nothing in the corpus addresses it.** Under
+**11. ~~The representative funnel.~~ CLOSED by `adr/0047`, and R8 moved the axis before it closed:
+the funnel does not bind — the tree upstream of it does, so more access nodes per District was the
+wrong fix.** Original entry follows.
+
+**11. NEW, produced by R2, and nothing in the corpus addresses it.** Under
 either coarse rung *every* Trip bound for a District arrives through that District's single
 representative node, so the arcs into it carry the whole of a District's inbound traffic: measured,
 **412%** `v/c` against **130%** for the same surge under searched routes. **Stress on those arcs is an
@@ -1486,8 +1496,10 @@ would be spent on the abstraction. *Recommended handling: whatever resolves it �
 per District, a Segment-granular tail on a District-granular route, or the searched rung after all —
 is a design decision about what a District-granular route means, and R2 deliberately does not take it.*
 
-**15. A District-granular free-flow tree concentrates the city onto a skeleton, and it is decision 11
-arriving from a third side — NEW, produced by R8.** R2 found the **representative funnel** at the
+**15. ~~A District-granular free-flow tree concentrates the city onto a skeleton.~~ CLOSED by
+`adr/0047`** — it is the fourth of the four grounds the table went out on. Original entry follows.
+
+**15. NEW, produced by R8.** R2 found the **representative funnel** at the
 destination node and priced it at 412% `v/c`. R8 went looking for it in a closed loop and **could not
 make it bind**: excluding the one-hop funnel and excluding a four-hop convergence zone give readings
 identical to the printed digit, because only *destinations* converge — origins are scattered real

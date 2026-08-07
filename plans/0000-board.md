@@ -183,19 +183,32 @@ and the audit note below it, which now has a diagnostic rather than just a suspi
 
 ## Do these next
 
-**Three tracks, and they do not contend for anything.** The code track is somebody at a keyboard, the
-argument track is a grilling session, the spike track is a machine running unattended. This board has
-only ever ordered the first — which is why Phase 2 has looked further away than it is. **Almost
-nothing standing between here and Phase 2 is code.**
+**Build. The argument track is not the constraint any more, and treating it as one is how this
+project starts going in circles.**
+
+That is a correction to what this section used to say, and it is written here because the failure was
+observed rather than predicted. The board had ordered *argument first* on the reasoning that nothing
+is gated on code. True, and it produced a session in which **every decision generated two or three
+more** — `adr/0046` alone spawned four unratified numbers, `adr/0047` found defects in two other ADRs
+on its way past, and three separate findings arrived labelled *the third instance of a pattern*.
+**The design was generating design.** There are 47 ADRs and the game is at slice 6.
+
+**S2's job was to retire one risk** — *"pathfinding is slow at a load nobody measured, on a map
+already committed to"* — and **that risk is retired.** The map survives, the budget is known, the path
+source is chosen, and R8 measured the congestion loop closing. Everything after that is refinement,
+and refinement has no stopping condition, so it needs an external one. This is it.
+
+**The rule from here: an argument session runs when something concrete is blocked on it, and not
+because it is available.** The three tracks still do not contend — the code track is somebody at a
+keyboard, the argument track is a grilling session, the spike track is a machine running unattended —
+but the code track leads.
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | argument | **The tree, and what a routing destination may be** — decision 11 on a **different axis** | [`0010`](0010-s2-routing.md) §Decisions owed 15 | **NEW, produced by R8, and it outranks everything else the spike found.** At 13% of this network's holding capacity, **87.25% of all traffic sits on the busiest 1% of the road and 90.87% of it carries nothing** — with capacity confirmed *realistic* (3,600 veh/h a Street reduces to a two-second saturation headway). **The network runs out of routes, not road.** One free-flow shortest-path tree per District means there is exactly **one route per (node, District) pair in the entire model**, and no amount of empty parallel carriageway can be reached from it. **R2's representative funnel does not bind** — R8 widened the definition once, printed both, and the columns are identical to the printed digit — so decision 11 has been argued as *how many access nodes a District exposes* and that is the wrong axis: a District with a hundred access nodes still has one tree per destination. It is also why **no rung of R8.0's load sweep is both congested and resolvable**, and why session M has a **fourth** defect in the same column as structural error, temporal error and diversion cost — *and it is not a cost, it is a spatial distribution*: the table's error is **correlated across the whole fleet**, not distributed over it |
-| **1b** | argument | **M — the route cache's invalidation contract** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | **R5.5 is done and it hands M everything it was waiting for**, and R8 is about to hand it one thing more. **Under Sight, a mid-journey diversion stops being exceptional and becomes routine** — and it is *free* under a next-hop table (read the table from wherever you now are) and costs a **fresh search** under a stored route. That is a per-Tick bill that scales with how congested the city is, and no version of M argued before this week knew it existed. **The standing brief is unchanged**: no Epoch rung is both affordable and correct across the whole core verb — per-Segment is exact under deletion and declares **100.00%** of the cache valid under *addition*, where it structurally cannot notice. **Five candidate mechanisms are tabulated** in [`spike-results`](../docs/spike-results.md) → R5.4, **two of them questions of intent rather than of cost**, so `adr/0043` types those *arguable* and a session may close them. **It gates R6**, which R3 promoted to load-bearing, and it is owed to `adr/0012` as the amendment that ADR has carried since R2. *Take M after R8.6 prices the third axis.* The path source turns out not to be one choice: a maintained next-hop table and a route cache are wrong in **different currencies** — the table's error is structural, fixed and visible (**16.58%** uniform, **149.73%** local, unmoved by a storm that deletes 1,021 Segments); the cache's is temporal, near-zero while it lasts, and under addition **permanent**. Neither is a rung on the other's ladder, so **which the city should have is `05 §4`'s question and not a benchmark's**. And R5.5.4 measured the way out: **a TTL rotation at 0.40 forced refreshes per Tick takes the wrongly-valid count 38 → 0 within one rotation while retaining 97.08% of the cache**, against a control that plateaus at 23 and never moves again. That is option **C** measured and it is what makes option **B** a design position rather than a defect — `BOUNDED KNOWLEDGE` permits ignorance of a new road **if it is modelled with a stated learning rate**, and a rotation period is exactly that |
-| **1c** | spike | **S2 R5.6 — the Parking Shed** | [`0010`](0010-s2-routing.md) | The second Epoch consumer, and the last open section of R5. It scales with **Buildings** and is a *neighbourhood* rather than a *path*, so per-Segment has no obvious meaning for it and per-cluster fits it far better. **`CONTEXT.md` → Epoch must not be updated until it runs**, because a rung chosen on routes alone is chosen on the cheaper of the two consumers |
-| **3** | code | **S0 — the synthetic 1M-Citizen city** | [`0003`](0003-build-plan.md) | **Slice 6 is done, so the Phase 1 gate closes here and this is what is behind it.** The corpus forbids opening Phase 2 content until S0 has run. Slices 7–10 are each behind a session in the argument track below, not behind code — so this is the only *code* task left that nothing else gates |
-| **4** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | **Slice 7's whole gate now runs through it.** `02 §4` residue is **closed** ([`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md)) and closing it handed A **two named refusals** — the `on_fail` cycle check and the `fills` check — which are load-time Ruleset validation on this ADR's own error surface. Fold the **TOML dependency exception** in: a parser is what runs those refusals |
-| **5** | argument | **`02 §7` + `adr/0006`** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | Slice 9. And `02 §4` now leans on the Wheel harder than it did: a chain is walked **once on entry into shortage**, which is a wake rather than a poll |
+| **1** | **code** | **S0 — the synthetic 1M-Citizen city** | [`0003`](0003-build-plan.md) | **The Phase 1 gate, and the only code task nothing gates.** Slice 6 is closed, so this is what is behind it, and the corpus forbids opening Phase 2 content until it has run. **Nothing owed by S2 blocks it** — every routing debt below lands on milestone 5c, which is Phase 2. This is the row that stops the circling |
+| **2** | spike | **S2 R6 — the two caches** | [`0010`](0010-s2-routing.md) | **Promoted, and its stakes went up.** R3 called a cache *"one of only two exits"*; [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) has now removed the third option nobody had noticed was in reserve, so **R6 is the only exit.** It owns the two numbers routing still has open: the cache's **key granularity** — a different number with a different error from the matrix's — and the **eviction policy**, which R5 measured as the bigger lever below the highest edit rates (28–31% of lookups missing on direct-mapped collisions before a road is touched). It inherits R3's stored path arena and a `HpaSearch` pristine-seeding defect R5.5 found. *Runs unattended; does not contend with row 1* |
+| **3** | spike | **S2 R5.6 — the Parking Shed**, then **R7 — the report** | [`0010`](0010-s2-routing.md) | The second Epoch consumer, and the last section of R5. It scales with **Buildings** and is a *neighbourhood* rather than a *path*, so per-Segment has no obvious meaning for it. **`CONTEXT.md` → Epoch must not be updated until it runs.** R7 then closes S2 and deletes the harness — and owes a re-capture of R0/R1/R3/R4, all of which carry the one-processor artefact |
+| **4** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | **The one argument session with something concrete behind it.** Slice 7's whole gate runs through it, and [`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md) handed it two named refusals — the `on_fail` cycle check and the `fills` check. Fold in the **TOML dependency exception**: a parser is what runs them. *Run it when slice 7 is next, not before* |
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
@@ -203,9 +216,10 @@ what moved. Slice 5 is closed and no longer in front of it. **R0, R1 and R2 conf
 nothing** — the spike compiles the arithmetic substrate in by source and can name nothing else of
 `Core`, so it has changed no simulation code at all.
 
-*Why an argument session sits this high for the first time:* every remaining Phase 1 slice and every
-Phase 2 milestone is gated on one, and none of them is gated on code. Running them behind the code
-rather than beside it is what would make the Phase 1 gate a wall instead of a line.
+*Why the argument sessions dropped down the board:* ~~every remaining Phase 1 slice and every Phase 2
+milestone is gated on one, and none of them is gated on code~~ — still true, and it turned out to be
+the wrong reason to run them first. **Availability is not priority.** The table below is a menu, not a
+queue; take from it when something concrete is waiting, and leave it alone otherwise.
 
 ---
 

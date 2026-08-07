@@ -36,7 +36,9 @@ The Cell is a **design constant and is never available for tuning.** Its size *i
 _Avoid_: Chunk (a purely technical partition, defined in `docs/05-technical-architecture.md` §5), grid square, layer cell.
 
 **District**
-A contiguous named region, either player-drawn or automatically derived. A District is the boundary within which Goods pool without physical transport, and the granularity of the travel-time matrix. Typically hundreds of Cells.
+A contiguous named region, either player-drawn or automatically derived. A District is the boundary within which Goods pool without physical transport, and the scope a Policy may be overridden per. Typically hundreds of Cells.
+
+**It is not the granularity of the travel-time matrix, and it is not where routing happens** (`adr/0047`). That role was welded on, sized by a Goods playtest, and is now the routing partition's — so redrawing a boundary changes what pools, never what a Traveller drives.
 
 **A contiguous set of Cells, never of Chunks.** The Cell is frozen and the Chunk is tunable (`05 §4` lists Chunk size as hash-preserving), so boundaries made of Chunks would let a profiler move what a District *is* — and District extent decides Goods pooling and matrix granularity, which is a change to the city. Cell alignment costs nothing, the Cell being a strict divisor of the Chunk.
 

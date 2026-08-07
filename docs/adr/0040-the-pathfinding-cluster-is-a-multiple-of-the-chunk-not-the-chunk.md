@@ -5,6 +5,8 @@ It is not the Chunk.** The Chunk keeps the six roles [`05 §5`](../05-technical-
 it; the cluster becomes a seventh partition that aligns with the Chunk grid by construction and is
 sized independently of it. `FAST ITERATION`
 
+> **Corrected on one point by [`adr/0047`](0047-routing-never-keys-on-the-district.md): the cluster's size is expressed in *Cells*, not in Chunks.** This ADR split the cluster from the Chunk on a **permanence** axis and never ran the **hash** test on the dependency that leaves behind. The Chunk is declared *tuning, hash-preserving*; a cluster sized as *k* Chunks moves when that knob turns, and HPA\*'s routes depend on cluster size — so turning a hash-preserving knob changes the city. **The defect is live today and `adr/0047` did not create it.** The repair keeps everything below intact: the size is a multiple of the frozen Cell, Chunk size is constrained to **divide** it, and the alignment check lands exactly where this ADR already puts it — with the world-creation constants.
+
 ## Why
 
 **One of the two is in the save and the other is not, and nobody had noticed the asymmetry.**
