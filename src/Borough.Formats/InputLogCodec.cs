@@ -49,9 +49,18 @@ public static class InputLogCodec
     /// The format version, which <c>adr/0039</c> makes this project's to bump.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Bump it whenever a field is added to <see cref="Command"/>, to <see cref="WorldConfiguration"/>
     /// or to the header. A log outlives the build that wrote it, and a reader that guesses is a reader
     /// that reproduces the wrong city.
+    /// </para>
+    /// <para>
+    /// <b>A new verb is not one of those, and <c>populate</c> did not bump it.</b> The line shape is
+    /// unchanged, so an old reader meeting one refuses by name — <em>'populate' is not a verb this
+    /// format knows</em>, with the line number — which is strictly better than the version refusal it
+    /// would get instead. Bumping on a verb would also make every log written before it unreadable to
+    /// answer a question no reader was going to get wrong.
+    /// </para>
     /// </remarks>
     private const int Version = 1;
 
@@ -181,6 +190,7 @@ public static class InputLogCodec
             "connect" => CommandKind.Connect,
             "service" => CommandKind.Service,
             "govern" => CommandKind.Govern,
+            "populate" => CommandKind.Populate,
             _ => throw lines.Complain($"'{fields[1]}' is not a verb this format knows."),
         };
 
@@ -197,6 +207,7 @@ public static class InputLogCodec
         CommandKind.Connect => "connect",
         CommandKind.Service => "service",
         CommandKind.Govern => "govern",
+        CommandKind.Populate => "populate",
         _ => throw new ArgumentOutOfRangeException(
             nameof(kind), kind, "a command with no verb cannot be written."),
     };

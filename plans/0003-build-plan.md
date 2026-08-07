@@ -117,7 +117,8 @@ become three.
 | **S2** | Routing — travel-time matrix first, then HPA\* versus DSDV distance-vector | cleared | **The project's top risk.** Headless, needs no Godot. It decides whether 1M is reachable and it owns the **pathfinding cluster** size — which `adr/0040` decoupled from Chunk size, since the cluster is derived and rebuilt while the Chunk is in the save. **Planned in [`0010`](0010-s2-routing.md)** now that slice 1 has reported |
 | **S1** | 20k Buildings via chunked `MultiMeshInstance3D` | none | Track B. Godot only |
 | **S3** | One data panel with a live multi-series graph | none | Track B. Godot only. **The spike most likely to be skipped and most likely to change the decision** |
-| **S0** | Synthetic 1M-Citizen city in `Borough.Headless` | slices 4–6 | Runs after the Phase 1 gate closes. Until it exists, 1M is a hope |
+| **S0a** | The world at target size — 1M Citizens in `Borough.Headless` | cleared | **DONE.** The tables hold 1M in 86 MiB with an order of magnitude spare, and 100,000 Ticks at the target run in 11.75 s. It found that **run mode had never had a city in it** — capacity, zero rows — so every Tick figure before it was taken over an empty world. Numbers and six findings in [`spike-results`](../docs/spike-results.md) → *S0a* |
+| **S0b** | The Tick with work in it — Event Wheel, Bin Rules with wait lists, a Sweep Rule pass, a routing load | 🔴 slices **7**, **9**, **10** | **Not run, and not runnable.** [`0002`](0002-open-questions.md) specifies S0 as four clauses and only the first is reachable today. **This is the half that carries `06`'s stated risk** — the sizing question is closed and the Tick-budget question is not |
 
 ---
 
@@ -263,6 +264,15 @@ project, now carrying transit vehicles under a Microscopic Cap whose value is un
 🔴 ADRs and S2. Planning it now would be writing task lists against decisions that a grilling
 session will move. The instruction the corpus gives itself is *do not open Phase 2 content until S0
 has run*, and S0 is slice 11.
+
+**S0 has since split, and the instruction needs reading against the split.** **S0a is done** and it
+closes the *sizing* half — 1M rows fit, with an order of magnitude spare, and nothing trends over
+100,000 Ticks. **S0b is not runnable**, because the Event Wheel, Bin Rules and a Sweep Rule pass are
+slices 9, 7 and 10. So the instruction cannot be read as *Phase 2 planning is now open*: what was
+validated is that the tables hold the target, and what `06` actually names as the risk — that every
+system **sized** against 1M rests on an unvalidated assumption — is closed for row counts and open for
+the Tick. **The honest position is that K2 is unblocked on sizing and still blocked on the Tick
+budget**, and the only spike with a number in that column is S2.
 
 **The Godot shell.** [`dev-environment.md`](../docs/dev-environment.md) Track B stands up the
 project and proves the boundary; S1 and S3 measure the ceilings. Nothing else in `Borough.Godot` is

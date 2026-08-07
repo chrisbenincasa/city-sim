@@ -8,7 +8,7 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: Phase 1, slice 5 closed.** The repository is ~7,000 lines of design
+**Current state: Phase 1 gate closed; S0a run; slice 7 is next and is gated on session A.** The repository is ~7,000 lines of design
 documents and 43 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
 declaration and the State Hash — and all eight tasks of slice 5: `step(inputs)` with the
@@ -65,6 +65,23 @@ free-flow tree per District means one route per (node, District) pair in the who
 and can name nothing else of `Core`, so it has changed no simulation code. Task 7 shipped its instrument and **not** its trend assertion — nothing in
 the world churns yet, so the assertion would have been vacuous. It is owed by slice 7; the board's
 *Owed* section says how.
+
+**S0a is done and the Phase 1 gate is closed.** `CommandKind.Populate` fills a world through **Phase 0**,
+so the population is in the Input Log and replay reproduces it by construction; `Borough.Core.Entities.SyntheticCity`
+is the one populator, replacing two drifted copies that lived in the shells and were therefore outside
+the arithmetic lints — moving it into `Core` made `BOR0203` fire three times. **The spike's largest
+finding is what it was not looking for: run mode had never had a city in it.** `--citizens 1000000`
+allocated capacity and stepped an empty world, so **every Tick figure in the corpus, slice 6's
+100,000-Tick acceptance run included, was taken over nothing.** The numbers at 1M: **85.98 MiB** of
+tables and ~94 MiB resident, linear to 343.91 MiB at 4M; an empty Tick is **0.112 ms**; **one State
+Hash is 32.47 ms — 2.08 Tick budgets**, against a `05 §9` that does not mention it and that records
+`adr/0037` deleting the full-world double buffer for costing *less*; and 100,000 Ticks run in **11.75 s**
+with nothing trending. **The Decide guard was `O(world)`, on by default and had no runner switch** —
+76.4 ms per Tick, 95% of a run — so `--no-decide-guard` now exists with the correctness check still the
+default. **S0 also split while being run**: `plans/0002` names four clauses and three of them are slices
+9, 7 and 10, so **S0b — the Tick with work in it — is not runnable, and it is the half carrying `06`'s
+stated risk.** 1M is a spec for **row counts** and still a hope for **the Tick**. The capture is
+`powersave` and owes a re-take, which is stamped rather than hidden.
 
 **`plans/0000-board.md` is the first thing to read on any cold start** — a flat view of what is done,
 what to do next and what is blocked. It is a *view*: `plans/0003-build-plan.md` owns the slice order

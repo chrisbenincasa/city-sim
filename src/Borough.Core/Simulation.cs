@@ -146,6 +146,13 @@ public sealed class Simulation
                 _world.Lots.Create(command.East, command.North, (byte)command.Zone);
                 break;
 
+            case CommandKind.Populate:
+                // Spike S0's verb, and the only one here that is an instrument rather than a player's.
+                // It is applied like any other because that is the point of it: a population that
+                // arrived any other way would be outside the log that claims to describe the session.
+                SyntheticCity.PopulateInto(_world);
+                break;
+
             case CommandKind.None:
             case CommandKind.Connect:
             case CommandKind.Service:

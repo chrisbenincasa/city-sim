@@ -43,7 +43,11 @@ public class InvariantCostBenchmarks
     public int Population { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _world = SyntheticCity.Of(Population);
+    public void Setup()
+    {
+        _world = new World(Population);
+        SyntheticCity.PopulateInto(_world);
+    }
 
     /// <summary>
     /// One Tick's worth of the staggered tier: one slice of the world, at the default cadence.

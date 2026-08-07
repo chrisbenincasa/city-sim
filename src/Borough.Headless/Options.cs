@@ -109,6 +109,19 @@ internal sealed class Options
     /// </remarks>
     public string? CrashPath { get; private init; }
 
+    /// <summary>
+    /// Prove every Tick that Phase 2 wrote nothing (<c>adr/0037</c>). On unless turned off.
+    /// </summary>
+    /// <remarks>
+    /// <b>The switch exists because the guard is <c>O(world)</c> and the runs that need it turned off
+    /// are the ones this runner is for.</b> <c>Simulation.VerifyDecideWritesNothing</c> folds every
+    /// column of every table twice per Tick, and its own documentation says to turn it off for the
+    /// 100,000-Tick test — which was not possible from the command line until spike <c>S0</c> tried to
+    /// run one at the 1M target and found the guard was the whole Tick. The polarity is deliberate:
+    /// the correctness check is the default and the fast run is the thing you ask for by name.
+    /// </remarks>
+    public bool DecideGuard { get; private init; } = true;
+
     /// <summary>Which Map Layer to dump, in <see cref="Mode.Layer"/>.</summary>
     public Layer Layer { get; private init; }
 
@@ -144,6 +157,7 @@ internal sealed class Options
         bool session = false;
         bool citizensGiven = false;
         bool csv = false;
+        bool decideGuard = true;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -165,6 +179,13 @@ internal sealed class Options
 
                 case "--csv":
                     csv = true;
+                    continue;
+
+                // A run, for the same reason --census is: the guard is a property of stepping a world,
+                // and the report never steps one.
+                case "--no-decide-guard":
+                    decideGuard = false;
+                    session = true;
                     continue;
 
                 case "--help" or "-h":
@@ -286,6 +307,7 @@ internal sealed class Options
             ForceRuleset = force,
             Census = census,
             CrashPath = crash,
+            DecideGuard = decideGuard,
         };
 
         return true;
@@ -311,6 +333,9 @@ internal sealed class Options
                                 print first/last/low/high per collection at the end
           --crash PATH          where to write the crash artifact if the run panics.
                                 One is always written; this only names where
+          --no-decide-guard     stop proving every Tick that Phase 2 wrote nothing.
+                                The proof is O(world) per Tick; turn it off for a
+                                long run at scale and leave it on everywhere else
           --layer NAME          dump a Map Layer's Cell grid before and after a source
                                 change, with the halo that was recomputed. NAME is
                                 pollution, land-value or sealing

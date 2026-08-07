@@ -1471,6 +1471,9 @@ second nobody had scheduled: **an amendment to `adr/0003`'s normative hash.**
   documented as deliberately not the live count so that nobody adds one to close the gap.
   **Revisit trigger: S0's measurement**, which will exercise this whether it means to or not, and
   `05 §5` role 3, which still leans on the other answer and needs a wording pass.
+  **S0a has now fired that trigger and the answer holds**: 100,000 Ticks over 1.6M rows at the target,
+  no relocation, no compaction, nothing trending. **`05 §5` role 3's wording pass is still owed** —
+  the measurement did not touch the document.
 
 - **The Citizen row is 62 bytes, against S4 task 2's recomputed 56 and `05 §3`'s stale 40**, and the
   two extra columns are both the table layer's rather than the design's: the monotonic id is a `u64`
@@ -1549,7 +1552,7 @@ Note the second is not really a seventh grid if it is a strict multiple — whic
 
 ### Standing debts this session created
 
-- **S0, the synthetic-scale spike** — see *work that must be scheduled*. Until it runs, 1M is a hope.
+- ~~**S0, the synthetic-scale spike**~~ — **S0a done, S0b not runnable.** See *work that must be scheduled*. 1M is a spec for **row counts** and a hope for **the Tick**, and only the second was ever the risk `06` names.
 - **Audit the corpus for other unratified numbers.** The 10k figure was never decided by anyone and silently sized five decisions. It will not be the only one.
 - **`01-player §4` has never been grilled**, and the 1M target creates a governability problem there: placing individual service Buildings across 268 km² is a player-experience question with no current answer.
 - **`06-roadmap` must be re-derived**, with S0 and S2 at the front.
@@ -1838,6 +1841,8 @@ Unresolved: how many; where on the edge; placed by the generator or built by the
 ## Not a fork — work that must be scheduled
 
 - **S0 — the synthetic-scale spike. Highest priority, and it validates the whole of `05`.** Generate a **1M-Citizen city in `Borough.Headless`** and measure the Tick: tables at target size, the Event Wheel, Bin Rules with wait lists, a Sweep Rule pass, and a routing load. No renderer, no gameplay, no content. Until this exists, **1M is a hope rather than a spec**, and every system built on top of it is built on an unvalidated assumption. It is cheap now and it is never cheaper.
+
+    **PARTLY DISCHARGED, and running it found that this entry is four clauses wearing one name.** Only the first — *tables at target size* — was ever reachable without the Rule engine; the Event Wheel is slice 9, Bin Rules with wait lists is slice 7, and a Sweep Rule pass is slice 10. **This is the third instance of the shape the board tells itself to audit for**, after `adr/0003`'s owed validation and `06`'s K1/K2: a single item whose stated blocker covers only part of what it names. Split into **S0a** (done — [`spike-results`](../docs/spike-results.md), [`0003`](0003-build-plan.md)) and **S0b** (not runnable). **S0a closes the sizing half outright**: 86 MiB of tables at 1M, linear to 4M, 100,000 Ticks in 11.75 s with nothing trending — so *1M is a hope* is retired for **row counts** and stands for **the Tick**, which is what `06` actually names as the risk. **Two claims it measured that nobody had typed**: one State Hash costs **2.08 Tick budgets** at the target, and the Decide guard costs **4.9**, against a `05 §9` that mentions neither and that records `adr/0037` deleting the double buffer for costing less than either.
 
     Its companion is **S2 — routing (HPA\* versus distance-vector, `05` open question 1)**, which stopped being an optimisation choice when the map closed at 4096²: it decides whether the target is reachable, and 2048² is the fallback if it comes back badly.
 

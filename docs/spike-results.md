@@ -15,7 +15,8 @@ produced**. A spike that records data and no verdict has not finished.
 | **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Owns the pathfinding cluster; *informs* Chunk size (`adr/0040`) | in progress. **R0 and R1 done** — the graph and the denominator, then the matrix, which **carries the choice loop** and leaves R4 resting on R2 alone. Raw captures in `spikes/S2.Routing/results/`; both sections owed a rewrite by R7. R2 next. [`plans/0010`](../plans/0010-s2-routing.md) |
 | **S1** | Rendering ceiling — 20k Buildings via chunked `MultiMeshInstance3D` | not run |
 | **S3** | UI ceiling — one data panel with a live multi-series graph, and how long it took | not run |
-| **S0** | Synthetic 1M-Citizen city in `Borough.Headless` | not run. Gated on the Phase 1 slices |
+| **S0a** | The world at target size — 1M Citizens in `Borough.Headless`, footprint and the empty Tick | **done, and it found the runs had never had a city in them.** The tables hold 1M with an order of magnitude spare; **one State Hash costs 2.08 Tick budgets** and the Decide guard costs 4.9. Capture is `powersave` and owes a re-take. Recorded below |
+| **S0b** | The Tick with work in it — Event Wheel, Bin Rules with wait lists, a Sweep Rule pass, a routing load | **not run, and not runnable.** Three of the four are slices 9, 7 and 10. This is the half that carries `06`'s stated risk |
 
 ---
 
@@ -4202,3 +4203,127 @@ the transition first.
 - **Owed: four Ruleset numbers remain unset** — Sight Horizon above its floor, base Temperament
   threshold, base/jitter blend weight, Habit refresh cadence (provisionally infinite, and R8.5 is why).
   **R8 reports curves and chooses none of them**, exactly as R1 did for the District count.
+
+---
+
+## S0a — the world at target size
+
+**S0 turned out to be two spikes filed as one, and only one of them was runnable.**
+[`plans/0002`](../plans/0002-open-questions.md) specifies S0 as *"generate a 1M-Citizen city in
+`Borough.Headless` and measure the Tick: tables at target size, the Event Wheel, Bin Rules with wait
+lists, a Sweep Rule pass, and a routing load."* Three of those four are slices 9, 7 and 10, every one
+of them gated on a grilling session. **What is measurable today is the first clause and nothing
+else**, and calling that the whole spike would have retired a risk it does not touch. This section is
+**S0a — the world at target size**; **S0b — the Tick with work in it** is recorded as not run, and
+`plans/0003` now carries both rows.
+
+**The finding that made the spike possible at all is that a run had never had a city in it.** Report
+mode built a synthetic city and printed its footprint; run mode allocated capacity and stepped an
+**empty world**. `--citizens 1000000 --ticks 512` reported four identical State Hashes and a census of
+zeroes, which reads as a stable city and was nothing at all. **Every Tick figure this project holds
+was taken over an empty world**, slice 6's 100,000-Tick acceptance run included. Populating now goes
+through Phase 0 as `CommandKind.Populate`, so it is in the Input Log and replays by construction —
+see *What building it found*, finding 1, for why that shape was chosen over the two cheaper ones.
+
+### The machine, and what is wrong with the capture
+
+Measured 2026-08-07 on the Linux desktop — **Intel i5-10400, 6 cores / 12 threads, 12 MiB L3, 62 GiB
+RAM, .NET 10.0.110**, release build, `taskset -c 2,8` (one physical core plus its SMT sibling, which
+is S2 R5.3's correction), three repeats per figure.
+
+> **The governor is `powersave`, not `performance`, and this capture is therefore not comparable to
+> S4's or S2's absolutes.** Setting it needs root and this session did not have it. **Stamped rather
+> than hidden**, per R5.3, which found that a mis-stated machine state had silently reversed a verdict.
+> What survives it: every **ratio** below is taken within one machine state, and `powersave`
+> *understates* the machine — so each absolute is an **upper bound**, and the one verdict that leans on
+> an absolute (the State Hash against the Tick budget) would need the machine to be **2.08× faster**
+> under `performance` to change. A canonical re-capture is owed and is cheap.
+
+Repeat spread is negligible and is quoted rather than asserted: the 2,048-Tick hashing run read
+**67.30 / 67.37 / 67.23 s** across three captures, giving a per-hash figure of **32.44–32.51 ms**.
+
+### The numbers
+
+At 1,000,000 Citizens — 120,001 Lots, 120,001 Buildings, 360,000 Households.
+
+| | Cost | Share of the 15.6 ms Tick budget |
+|---|---|---|
+| Table footprint | **85.98 MiB** (12.70 per-Tick, 57.11 wake, 14.46 cold) | — |
+| Resident set | **94–101 MiB** | — |
+| Build the city, JIT and walk the end-of-run invariants | **0.59 s**, once per run | — |
+| **An empty Tick** | **0.112 ms** | **0.72%** |
+| **One State Hash** | **32.47 ms** | **208%** |
+| **A Tick with the Decide guard on** | **76.4 ms** | **490%** |
+| 100,000 Ticks, hashing every 20,000 | **11.75 s** | — |
+
+The empty Tick is a two-point slope over 2,048 / 16,384 / 65,536 Ticks — 0.82 / 2.44 / 7.92 s — which
+is linear to three digits and leaves a fixed cost of 0.59 s. It is the phase skeleton, the staggered
+invariant tier and the Layer schedule, and nothing else: seven of the eight phases are stubs.
+
+**The footprint scales linearly and 1M is nowhere near a ceiling.** 8.60 MiB of tables at 100k, 85.98
+at 1M, 343.91 at 4M, the last of these resident in 283 MiB and built in 0.61 s. `05`'s data layout
+holds at the target with an order of magnitude to spare, and **ledger #29b's *rows never move* was
+exercised rather than merely asserted** — a 100,000-Tick run over 1.6M rows moved none.
+
+### What building it found
+
+1. **A population must enter through Phase 0, and that decided the design.** `Simulation.ApplyInput`
+   states that it is *"the only door into the simulation"* and that a mechanism reaching in from
+   outside a Tick *"is a state change no replay can reproduce and no State Hash divergence can
+   explain."* Populating from the shell — the cheap option, and the one both existing populators
+   already were — would have made replay equivalence a claim somebody has to keep true instead of a
+   construction. `CommandKind.Populate` is a verb no player will ever have and it is **expected to be
+   deleted** when Zone Rules can grow a city instead of declaring one. It carries **no payload**: the
+   size is `WorldConfiguration.Citizens`, which the log already states, and a count on the command as
+   well would let one log assert two populations.
+
+2. **The State Hash costs two Tick budgets at the target, and nothing in the corpus said so.**
+   3.37 ms at 100k and 32.47 ms at 1M — linear, 9.65× for 10×. For comparison, `05 §9` item 1b records
+   that the full-world double buffer was deleted by [`adr/0037`](adr/0037-the-world-is-single-buffered-and-hazards-are-per-table.md)
+   for costing *"~150 MB copied against ~1 MB written, 8–15 ms at 1M — 50–100% of the budget at 4×
+   speed."* **One State Hash is 2–4× worse than the thing that was deleted for being unaffordable.**
+   It is *sampled* rather than per-Tick, so this is not a defect — but it makes `--hash-every` a cost
+   decision at scale rather than a free knob, and the golden-baseline and bisection workflows are all
+   downstream of it. **A per-Tick hash is not available at 1M**, and no document had noticed.
+
+3. **The Decide guard is `O(world)` per Tick, was on by default, and had no switch in the runner.**
+   `Simulation.VerifyDecideWritesNothing` folds every column of every table **twice** per Tick to prove
+   Phase 2 wrote nothing. Its own remarks say *"turn it off for the 100,000-Tick test and leave it on
+   everywhere else"* — and `Borough.Headless` had no flag that could. Measured at 1M it is **76.4 ms per
+   Tick, 95% of the run**: 512 Ticks took **42.66 s** with it and **2.63 s** without, to an identical
+   hash. **The guard that justifies deleting the double buffer costs five times what the double buffer
+   did.** Fixed with `--no-decide-guard`; the polarity is deliberate, so the correctness check stays the
+   default and the fast run is the thing asked for by name.
+
+4. **Moving the populator into `Borough.Core` put it under the arithmetic lints for the first time,
+   and it failed them.** `BOR0203` fired three times on raw `/`. Both previous copies lived in
+   `Borough.Headless` and `Borough.Tests` — outside the analysers' reach — so thirty lines of
+   simulation-shaped arithmetic had been running with `05 §4`'s rounding rule unenforced. **The lint
+   boundary is the project boundary**, which is correct and worth knowing: fixture code that will one
+   day be measured against is fixture code that should be built like the core.
+
+5. **The populator existed twice and had already drifted.** `Report.Populate` and
+   `Borough.Tests.Benchmarks.SyntheticCity.Of` were the same thirty lines except that the test copy
+   assigned `Workplace` and the runner's did not — so the footprint report and the invariant benchmarks
+   had been describing **two different cities** while both being called the synthetic city. One
+   populator now, in `Core`, and both copies are deleted.
+
+6. **The Household table is provisioned to exactly the synthetic population.** `World` sizes it at 360
+   per 1,000 Citizens and the fixture creates exactly that, so `live == capacity == 360,000` with zero
+   headroom: the first Household the simulation itself ever creates reallocates the table. Lots and
+   Buildings are the other way — the fixture builds **120** of each per 1,000 against sizing of 225 and
+   150, so those two are over-provisioned by 1.87× and 1.25×. **The fixture and the sizing derivation
+   disagree and nothing checks that they agree.** Recorded for slice 7 rather than fixed here, because
+   the right ratio is a design question and the fixture is not the place to settle it.
+
+### The verdict
+
+**1M is a spec rather than a hope, for everything S0a can see — and S0a can see less than S0 was
+written to.** The tables hold it with an order of magnitude of headroom, the row count is not what
+binds, and a 100,000-Tick run at the target completes in 11.75 s with no collection and no magnitude
+trending. **What is not answered is the Tick itself**, because seven of its eight phases are empty: the
+0.112 ms floor is the cost of a skeleton, not of a simulation. **S0b — the Event Wheel, Bin Rules with
+wait lists, a Sweep Rule pass and a routing load — remains unrun and remains the risk `06` names.**
+The corpus's instruction *"do not open Phase 2 content until S0 has run"* is discharged by S0a only to
+the extent that it was about **sizing**; the part that was about the **Tick budget** is still owed, and
+S2 is currently the only spike with a number in that column.

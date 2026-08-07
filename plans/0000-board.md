@@ -172,6 +172,17 @@ row 1 of *Do these next*** and it is a design question rather than a spike's.
 
 ---
 
+**S0a is done, and it is the first thing in this project measured over a city rather than over a
+schema.** It closed the Phase 1 gate's sizing question — 1M rows fit in 86 MiB with an order of
+magnitude spare — and it found three things nobody was looking for: **run mode had never had a
+population in it**, so every Tick figure in the corpus was taken over an empty world; **one State Hash
+costs 2.08 Tick budgets at the target**, which makes `--hash-every` a cost decision and which no
+document had noticed; and **the Decide guard was `O(world)`, on by default, with no way to turn it
+off** despite its own docstring telling the reader to. **It also split S0 in half.** `plans/0002`
+specifies four clauses and three are gated slices, so **S0b — the Tick with work in it — is not
+runnable**, and it is the half that carries the risk `06` names. Numbers in
+[`spike-results`](../docs/spike-results.md) → *S0a*.
+
 **What is in front of the project is mostly argument, not code.** Slices 7–10 and every Phase 2
 milestone are gated on designs written from research and never grilled — **eleven** sessions, tabulated
 below, none of which touches slice 6 and almost all of which can run beside it. The board used to
@@ -205,10 +216,10 @@ but the code track leads.
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | **code** | **S0 — the synthetic 1M-Citizen city** | [`0003`](0003-build-plan.md) | **The Phase 1 gate, and the only code task nothing gates.** Slice 6 is closed, so this is what is behind it, and the corpus forbids opening Phase 2 content until it has run. **Nothing owed by S2 blocks it** — every routing debt below lands on milestone 5c, which is Phase 2. This is the row that stops the circling |
+| **1** | **code** | ~~**S0 — the synthetic 1M-Citizen city**~~ → **slice 7, once session A clears it** | [`0003`](0003-build-plan.md) | **S0a is DONE** — see *Done*. It also found that **S0 was two spikes filed as one**: `0002` specifies four clauses and three of them are slices 7, 9 and 10, so **S0b is not runnable and it is the half carrying `06`'s risk**. The code column's next real item is therefore **slice 7**, which is gated on session **A** — row 4, and it has just become the thing something concrete is blocked on |
 | **2** | spike | **S2 R6 — the two caches** | [`0010`](0010-s2-routing.md) | **Promoted, and its stakes went up.** R3 called a cache *"one of only two exits"*; [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) has now removed the third option nobody had noticed was in reserve, so **R6 is the only exit.** It owns the two numbers routing still has open: the cache's **key granularity** — a different number with a different error from the matrix's — and the **eviction policy**, which R5 measured as the bigger lever below the highest edit rates (28–31% of lookups missing on direct-mapped collisions before a road is touched). It inherits R3's stored path arena and a `HpaSearch` pristine-seeding defect R5.5 found. *Runs unattended; does not contend with row 1* |
 | **3** | spike | **S2 R5.6 — the Parking Shed**, then **R7 — the report** | [`0010`](0010-s2-routing.md) | The second Epoch consumer, and the last section of R5. It scales with **Buildings** and is a *neighbourhood* rather than a *path*, so per-Segment has no obvious meaning for it. **`CONTEXT.md` → Epoch must not be updated until it runs.** R7 then closes S2 and deletes the harness — and owes a re-capture of R0/R1/R3/R4, all of which carry the one-processor artefact |
-| **4** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | **The one argument session with something concrete behind it.** Slice 7's whole gate runs through it, and [`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md) handed it two named refusals — the `on_fail` cycle check and the `fills` check. Fold in the **TOML dependency exception**: a parser is what runs them. *Run it when slice 7 is next, not before* |
+| **4** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | **Promoted, because slice 7 is now what the code column is waiting on.** Slice 7's whole gate runs through it, and [`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md) handed it two named refusals — the `on_fail` cycle check and the `fills` check. Fold in the **TOML dependency exception**: a parser is what runs them. Its own rule — *run an argument session when something concrete is blocked on it* — now selects this one |
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
@@ -386,6 +397,29 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
       the test it states was run against the case. Cost: one document, because no code depended on the
       wrong half
 
+- [x] **S0a — the world at target size, and the runs that had never had a city in them.**
+      `CommandKind.Populate` and `Borough.Core.Entities.SyntheticCity`: the population enters through
+      **Phase 0** like every other input, so it is in the Input Log and **replay reproduces it by
+      construction** rather than by a claim somebody has to keep true. **The finding that made the
+      spike worth running is the one it was not looking for** — report mode built a city, run mode
+      allocated capacity and stepped an **empty world**, so `--citizens 1000000 --ticks 512` printed
+      four identical hashes and a census of zeroes and looked like a stable city. **Every Tick figure
+      this project held was taken over nothing**, slice 6's 100,000-Tick acceptance run included.
+      **The numbers**: 85.98 MiB of tables and ~94 MiB resident at 1M, linear to 343.91 MiB at 4M;
+      an empty Tick is **0.112 ms**, 0.72% of budget; **one State Hash is 32.47 ms — 2.08 Tick
+      budgets**, against `05 §9`'s note that the full-world double buffer was *deleted* by `adr/0037`
+      for costing 8–15 ms; and 100,000 Ticks at the target run in **11.75 s** with nothing trending.
+      **The Decide guard was `O(world)`, on by default, and had no switch** — 76.4 ms per Tick, 95% of
+      the run, against its own docstring telling the reader to turn it off for exactly this test;
+      `--no-decide-guard` now exists, with the correctness check still the default. **Moving the
+      populator into `Core` put it under the arithmetic lints for the first time and `BOR0203` fired
+      three times** — thirty lines of simulation-shaped arithmetic had been running outside `05 §4`'s
+      rounding rule because both copies lived in shells. **And there were two copies, already
+      drifted**, so the footprint report and the invariant benchmarks had been describing different
+      cities. **S0 split while being run**: `0002` specifies four clauses, three of them slices 9, 7
+      and 10, so **S0b is not runnable and it is the half that carries `06`'s risk.** Six findings and
+      the capture's `powersave` defect in [`spike-results`](../docs/spike-results.md) → *S0a*
+
 ### Planning and design
 
 - [x] **S2 planned** — [`0010`](0010-s2-routing.md), and its gate cleared by defining **Segment** in
@@ -456,10 +490,12 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
 ### Main track — code
 
 - [x] ~~**Slice 6 — Map Layers**~~ — [`0009`](0009-map-layers.md). **Closed.** See *Done*
-- [ ] *the Phase 1 gate closes here* — **nothing in the code column stands in front of it**
-- [ ] **S0** — the synthetic 1M-Citizen city. Unblocked the moment slice 6 lands, and **the corpus
-      forbids opening Phase 2 content until it has run**
-- [ ] Slices 7–10 — each behind a session in the argument track above, not behind code
+- [x] *the Phase 1 gate closes here* — **nothing in the code column stood in front of it**
+- [x] ~~**S0a** — the world at target size~~. **Done.** See *Done*
+- [ ] **S0b** — the Tick with work in it. **Blocked on slices 7, 9 and 10**, and it is the half that
+      carries `06`'s stated risk. Do not read S0a as having discharged it
+- [ ] Slices 7–10 — each behind a session in the argument track above, not behind code. **Slice 7 is
+      now the code column's next item**, so its gate (session **A**) is the live one
 
 ### Parallel track — argument ([the table above](#the-argument-track--what-stands-between-here-and-phase-2))
 
@@ -612,6 +648,25 @@ roughly an order of magnitude and have been struck; size them from `spike-result
 
 Small, and each one is a place the corpus currently says something known to be wrong.
 
+- [ ] **S0a's capture is `powersave`, not `performance`** — setting the governor needs root and the
+      session did not have it. **Every absolute in that section is an upper bound** and every ratio is
+      unaffected, since ratios are taken within one machine state. The one verdict leaning on an
+      absolute — the State Hash at 2.08 Tick budgets — would need the machine **2.08× faster** to move.
+      The re-capture is cheap and should ride along with R7's, which owes the same thing for R0/R1/R3/R4
+- [ ] **`05 §9` is owed the State Hash's cost**, on evidence from S0a. Item 1b records the full-world
+      double buffer being deleted at *"8–15 ms at 1M — 50–100% of the budget"*; **one State Hash is
+      32.47 ms, 2–4× worse**, and the performance strategy does not mention it at all. It is *sampled*
+      rather than per-Tick so nothing is broken — what is missing is the statement that **a per-Tick
+      hash is not available at the target**, which every golden-baseline and bisection workflow is
+      downstream of
+- [ ] **The synthetic fixture and `World`'s sizing derivation disagree, and nothing checks that they
+      agree.** `World` allocates 225 Lots and 150 Buildings per 1,000 Citizens; `SyntheticCity` builds
+      **120** of each, so both are over-provisioned — while **Households land at exactly capacity**,
+      leaving zero headroom, so the first Household the simulation itself creates reallocates the
+      table. Slice 7's, because the right ratio is a design question and a fixture is not where it
+      gets settled
+- [ ] **`plans/0002 §1840`'s S0 specification** — it names four clauses as one spike. Now split into
+      S0a and S0b across `0003` and this board; the ledger entry itself still reads as one item
 - [ ] **`03 §3.3`, `§3.4`, `§3.6` — joint rewrite**, owed by `adr/0041` and now carrying R2's
       evidence. The District-pair counter goes; the circularity argument becomes structural;
       **force-promotion must stand on its own second argument or go** — and R2 removed the last

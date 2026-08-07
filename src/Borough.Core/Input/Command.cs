@@ -39,6 +39,21 @@ public enum CommandKind : ushort
 
     /// <summary>Set taxes, funding, transfers, constraints. Every Policy is a Rule.</summary>
     Govern = 4,
+
+    /// <summary>
+    /// Fill the world with a synthetic city sized to its configuration. Spike <c>S0</c>'s verb, and
+    /// not one of <c>01 §2</c>'s five.
+    /// </summary>
+    /// <remarks>
+    /// <b>A verb no player has, and it is here rather than in the runner on purpose.</b> Until Zone
+    /// Rules land in slice 10 there is no way to make a Citizen through a verb, so a run at the 1M
+    /// target either enters through this door or through none — and a population that entered through
+    /// none is a state change no replay reproduces and no hash divergence explains, which is exactly
+    /// what <c>Simulation</c>'s single door exists to prevent. It carries no payload: the size is
+    /// <see cref="WorldConfiguration.Citizens"/>, which the log already states.
+    /// <b>It is expected to be deleted</b> when the player can grow a city instead of declaring one.
+    /// </remarks>
+    Populate = 5,
 }
 
 /// <summary>

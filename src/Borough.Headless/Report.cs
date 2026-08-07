@@ -23,12 +23,10 @@ namespace Borough.Headless;
 /// </remarks>
 internal static class Report
 {
-    /// <summary>Households per Building in the synthetic city. Provisional; the corpus states none.</summary>
-    private const int HouseholdsPerBuilding = 3;
-
     public static int Print(int population)
     {
-        World world = Populate(population);
+        var world = new World(population);
+        SyntheticCity.PopulateInto(world);
 
         Write($"Borough — table report at {population:N0} Citizens");
         Console.WriteLine();
@@ -41,43 +39,6 @@ internal static class Report
         Write($"State Hash  0x{world.HashState():X16}");
 
         return 0;
-    }
-
-    /// <summary>
-    /// A city built by construction rather than by rule, because there are no Rules yet.
-    /// </summary>
-    /// <remarks>
-    /// The ratios are S4 task 2's, stated per 1,000 Citizens so they stay correct at any population:
-    /// 360 Households, ~150 Buildings, ~225 Lots. Sizing is a derivation, not a constant.
-    /// </remarks>
-    private static World Populate(int population)
-    {
-        var world = new World(population);
-
-        int households = (population * 360) / 1_000;
-        int buildings = (households / HouseholdsPerBuilding) + 1;
-
-        var dwellings = new Handle<Building>[buildings];
-
-        for (int i = 0; i < buildings; i++)
-        {
-            Handle<Lot> lot = world.Lots.Create(new Tiles(i % 64), new Tiles(i / 64), zone: 1);
-            dwellings[i] = world.Buildings.Create(lot, kind: 1);
-        }
-
-        var homes = new Handle<Household>[households];
-
-        for (int i = 0; i < households; i++)
-        {
-            homes[i] = world.CreateHousehold(dwellings[i % buildings], lifeStage: (byte)(i % 5));
-        }
-
-        for (int i = 0; i < population; i++)
-        {
-            world.CreateCitizen(homes[i % households], new Ticks((ulong)i % 8192));
-        }
-
-        return world;
     }
 
     private static void WriteTables(World world)

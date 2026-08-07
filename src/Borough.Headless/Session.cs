@@ -50,6 +50,8 @@ internal static class Session
         }
 
         Simulation simulation = Replay.Start(log);
+        simulation.VerifyDecideWritesNothing = options.DecideGuard;
+
         var hashes = new List<ulong>();
         Census? census = options.Census ? new Census(simulation.World) : null;
 
@@ -148,10 +150,18 @@ internal static class Session
     {
         if (options.LogPath is null)
         {
-            return new InputLogBuilder(
-                options.Seed,
-                new WorldConfiguration(options.Citizens),
-                ContentHash.None).Build();
+            // A fresh session is populated, and it was not before. A run whose world had capacity for
+            // a million Citizens and no rows in it reported a State Hash that never moved and a census
+            // of zeroes, which read as a stable city and was an empty one — so every Tick figure this
+            // project holds, slice 6's 100,000-Tick acceptance run included, was taken over nothing.
+            // The command goes in the log rather than into the world, so the trace stays reproducible
+            // from the file alone.
+            InputLogBuilder builder = new(
+                options.Seed, new WorldConfiguration(options.Citizens), ContentHash.None);
+
+            builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
+
+            return builder.Build();
         }
 
         string text = File.ReadAllText(options.LogPath);
