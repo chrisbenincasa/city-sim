@@ -729,7 +729,56 @@ derived from connectivity, so a topology edit changes the partition.
 > Dynamic subtree repair maintains a next-hop table, and it would maintain HPA\*'s abstract graph on
 > the same argument. **R5 and R6 still own the router.**
 
-### R5. The edit storm — the test the city actually imposes
+### R5. The edit storm — the test the city actually imposes — **R5.1–R5.4 DONE, R5.5–R5.6 open**
+
+> **What is done, and what it moved.** R5.1 measured the *gesture* rather than the edit — the unit R3
+> and R4 both said they could not reach. R5.2 priced repairing one, and R5.3 ran the Epoch ladder.
+> Numbers in [`spike-results`](../docs/spike-results.md) → *S2 R5*.
+>
+> - **The tripwire fires.** *Either router needs a global flush on a Road Graph edit → out on a
+>   design commitment.* A single counter **is** a global flush, and it now has a number too: against
+>   a no-edit ceiling of 71.63%, **per-Segment retains 96% of it under a continuous storm and global
+>   retains 9%.**
+> - **The ladder's framing was wrong and that is a finding.** This plan frames it as *hit rate
+>   against revalidation cost*. Per-Segment costs **42 words a lookup against global's 0.71 and has a
+>   lower mean Tick at every edit rate**, because the searches its precision avoids cost far more
+>   than the words it reads. **No rung here trades accuracy for speed.**
+> - **Cluster size closes against R3's bias.** 8 Chunks is ~2× cheaper than 16 on a coalesced
+>   256-Segment drag and 4× on the naive worst case. **R3's *current standing favours 16* is
+>   withdrawn**, conditional on R5.5.
+> - **The repair loop R3 and R4 both wrote is a catastrophe on a gesture.** Repairing per Segment
+>   rather than per touched cluster costs **21.25×** at 16 Chunks — a worst case of **219.50 ms, or
+>   fourteen Tick budgets, from one player gesture**. The two spellings are identical at a gesture of
+>   one, which is the only size either earlier task measured.
+> - **Repair loses to rebuild above ~63 clusters touched** — a scattered 256-Segment gesture at 16
+>   Chunks costs **107% of a full rebuild**. R4.6's break-even arriving at the abstract graph.
+> - **No rung is both affordable and correct across the whole core verb — R5.4, and it is a section
+>   this plan did not have.** Deletion is monotone-worsening, so per-Segment is exact. Addition is
+>   monotone-improving, and a route computed before a road existed **cannot contain it** — so
+>   per-Segment declares **100.00%** of the cache valid and structurally cannot notice, and
+>   **per-cluster fails identically**. **Only global is sound under addition**, and R5.3 measured
+>   global as unusable. Sized: **4 restored Arterial Segments, ~512 m**, leave **9.22%** of entries
+>   stale at a mean **16.71%** detour, worst **62.65%** — **a floor, and it never heals**, because
+>   only eviction removes it and `adr/0012` keys by O-D rather than by agent. **Five ways out in
+>   [`spike-results`](../docs/spike-results.md) → R5.4**; two are the corpus's call, not a
+>   benchmark's.
+> - **Addition is measurable, which R3 had concluded it was not.** Build the abstract graph on the
+>   **full** graph so every portal slot is reserved, then delete a set of Segments and restore them —
+>   restoration is addition and needs no new portal. **R6 inherits the technique.**
+>
+> **Still open: R5.5, the path source** — R2 left shared-route and next-hop live and this is the task
+> that was to choose between them. **And R5.6, the Parking Shed**, which this plan calls the consumer
+> the ladder is most likely to be decided by. **`CONTEXT.md` → Epoch must not be updated until R5.6
+> runs**, because a shed is a neighbourhood rather than a path and per-Segment has no obvious meaning
+> for it.
+>
+> **The numbering shifted and this note is why.** R5.4 was *the path source* when this plan was
+> written. The addition measurement was not a section at all — it exists because R5.3's recommended
+> rung turned out to have a hole only a measurement could size — and it took R5.4 because that is
+> the order the work ran in. The path source and the Parking Shed are now **R5.5** and **R5.6**.
+>
+> **Owed: the canonical pinned `performance` capture**, as R3's still is. Every count is
+> governor-independent and bit-identical across two captures; no absolute should leave the section.
 
 > **R4 hands R5 four things and one of them changes the ladder below.**
 >
@@ -776,6 +825,13 @@ The measurement that separates a routing design that works from one that works o
 
   Storage decides nothing — a version word per Segment is 30,000 × 4 B ≈ **120 KB**. The comparison is
   hit rate against revalidation cost, which the edit storm already drives.
+
+  **MEASURED, and the comparison this bullet names turns out to be a comparison between a rung that
+  is better on both axes and two that are worse on both.** Per-Segment costs 42 revalidation words a
+  lookup against global's 0.71 and still has the **lower mean Tick at every edit rate**, because a
+  revalidation word is arithmetic and the thing it avoids is a search. Storage indeed decided
+  nothing — 129 KiB measured — but neither did revalidation cost. **The rung table above should be
+  read as three *precisions*, not as a ladder with a price at each step.**
 - **Report cache hit rate as a function of edit rate, not just throughput.** That curve is the actual
   finding. Under the global rung, hit rate is not a property of the O-D distribution at all — it is a
   property of how recently the player touched anything — so an edit-storm throughput figure could be
@@ -788,6 +844,13 @@ The measurement that separates a routing design that works from one that works o
   disagree about what the network currently is.
 - Record the worst single-Tick cost, not the mean. S4's K6 established that the quantile hides the
   event: a run whose worst iteration was 100.2 ms read 2.462 ms at p99.9.
+
+- **A gesture needs a coalesced repair and a rebuild fallback, and a per-edit API invites neither.**
+  NEW, produced by R5.2. A cluster's edge set is a function of its arcs, so it must be decided once
+  however many Segments inside it were deleted — but `RebuildFor(segment)` is the natural shape and
+  looping it over a drag costs up to **21.25×** what coalescing costs. Above ~63 clusters touched the
+  coalesced repair loses to a **full rebuild** outright. So the repair path has two thresholds, not
+  none, and both are properties of *clusters touched* rather than of Segments deleted.
 
 *Decides:* whether either router survives the core verb, and it is the task most likely to reverse
 R3's and R4's ranking.

@@ -3254,3 +3254,301 @@ measured first has a systematic error* arriving again without being looked for, 
 explains why R2 published 474.47 ms for the same operation: R2's was also a first-timed measurement.
 **Every R4 ratio is taken in-process against R4's own figure**, per R3's rule, so no conclusion moves
 — but two S2 tasks publishing different absolutes for one operation is R7's to reconcile.
+
+---
+
+## S2 R5 — the edit storm, the gesture, and the Epoch that has to carry a location
+
+> `plans/0010-s2-routing.md` R5. Raw capture in
+> `spikes/S2.Routing/results/s2-r5-intel-core-i5-10400-ddr2133-powersave-turbo.md`.
+> **Four of R5's sections.** The path source and the Parking Shed cache are **not run**, and the plan
+> says the second of those is the one most likely to move the verdict below. R5.4 here is *the
+> addition*, which was not in the plan at all — it exists because R5.3's recommended rung turned out
+> to have a hole that only a measurement could size.
+
+**R5 is where the two earlier tasks' unit turns out to have been wrong.** R3 priced one deleted
+Segment and R4 priced one deleted Segment, and both said in their own words that the case they could
+not reach was hundreds of Segments in a single gesture. **A player does not delete a Segment; a
+player drags.** Everything below follows from measuring the gesture instead of the edit.
+
+### The capture, and what it is not
+
+**Not canonical.** `powersave` governor, unpinned, not run through
+`spikes/S2.Routing/tools/routing-run.sh`. Every *count* below is governor-independent and every ratio
+is taken within one process, so no decision here rests on the configuration — but **no absolute
+nanosecond or millisecond figure in this section should be quoted outside it until the canonical
+pinned `performance` capture exists.** The canonical capture is owed, exactly as R3's still is.
+
+**The determinism check passes across two captures fourteen minutes apart.** Every count, share and
+percentage in R5.3 is **bit-identical** between them — hit, stale, miss and unroutable shares,
+gesture collection counts, clusters touched, revalidation words. Only nanosecond columns move.
+
+### R5.1 — the gesture, which is the unit R3 and R4 could not reach
+
+A drag follows the road network from a drawn Segment, preferring to continue straight. A scattered
+gesture draws the same count uniformly over the map and is a **control, not a scenario** — nobody
+drags scattered; the row exists so the drag's locality has something to be locality *against*.
+
+| Gesture | Asked | Collected | Arcs | Clusters @8 | Worst @8 | Clusters @16 | Worst @16 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| drag | 1 | 1.00 | 2.00 | 1.00 | 1 | 1.00 | 1 |
+| drag | 16 | 16.00 | 32.00 | 2.75 | 3 | 2.12 | 3 |
+| drag | 64 | 64.00 | 128.00 | 8.00 | 11 | 4.50 | 7 |
+| **drag** | **256** | **173.12** | 346.25 | 15.87 | 23 | **7.00** | 11 |
+| scattered | 16 | 16.00 | 32.00 | 17.25 | 18 | 14.50 | 16 |
+| scattered | 64 | 64.00 | 128.00 | 62.37 | 64 | 41.25 | 45 |
+| **scattered** | **256** | **256.00** | 512.00 | 172.12 | 178 | **63.12** | 64 |
+
+8 gestures per row. The partition is 256 clusters at 8 Chunks and **64** at 16.
+
+**A drag saturates at 173 of 256.** It runs into road it has already deleted and stops; the shortfall
+is reported rather than topped up from a fresh start elsewhere, because topping up would silently
+turn one gesture into several and flatter every locality figure that follows.
+
+**Locality is large and it is the whole finding.** A 256-Segment drag touches **7 clusters of 64** at
+16 Chunks; the same count scattered touches **63 of 64** — which is to say a scattered gesture is a
+full rebuild wearing a repair's name. Every cost in R5.2 is a function of this column and nothing
+else.
+
+### R5.2 — what a gesture costs to repair, and the loop that must not be written
+
+The rebuild is the denominator, measured on both sides of the sweep **and at both cluster rungs**.
+
+- Full abstract-graph build at **8 Chunks**: 44.24 ms first, 44.59 ms last — 0.99× apart.
+- Full abstract-graph build at **16 Chunks**: 74.85 ms first, 81.04 ms last — 0.92× apart.
+
+| Cluster | Gesture | Got | Clusters | Coalesced | Worst | Naive | Worst | Naive ÷ coalesced | % of rebuild |
+|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 8 | drag 1 | 1 | 1 | 0.29 ms | 0.45 ms | 0.37 ms | 0.80 ms | 1.28× | 0.66% |
+| 8 | drag 64 | 64 | 8 | 1.78 ms | 2.68 ms | 11.85 ms | 15.20 ms | 6.65× | 3.99% |
+| **8** | **drag 256** | 173 | 15 | **3.79 ms** | **5.15 ms** | 31.76 ms | 52.96 ms | 8.36× | 8.54% |
+| 8 | scattered 256 | 256 | 172 | 43.39 ms | 46.67 ms | 64.84 ms | 74.39 ms | 1.49× | 88.09% |
+| 16 | drag 1 | 1 | 1 | 1.03 ms | 1.56 ms | 1.11 ms | 1.82 ms | 1.07× | 1.36% |
+| 16 | drag 64 | 64 | 4 | 5.62 ms | 9.34 ms | 70.45 ms | 92.55 ms | 12.51× | 7.42% |
+| **16** | **drag 256** | 173 | 7 | **7.61 ms** | **12.60 ms** | **161.79 ms** | **219.50 ms** | **21.25×** | 10.05% |
+| 16 | scattered 256 | 256 | 63 | 79.23 ms | 85.45 ms | 334.10 ms | 349.41 ms | 4.21× | **107.09%** |
+
+**The naive per-Segment repair loop is the spelling R3 and R4 both measured, and on a drag it is a
+catastrophe.** A cluster's edge set is a function of its arcs, so it must be decided **once** however
+many Segments inside it were deleted; repairing per Segment re-decides the same few clusters dozens
+of times. At 16 Chunks the two spellings differ by **21.25×**, and the naive worst case is
+**219.50 ms — fourteen times the entire 15.6 ms Tick budget, from one player gesture.** The two
+spellings are *identical at a gesture of one*, which is the only size either earlier task measured,
+so this cost was structurally invisible to both. **It is not an implementation note. A per-edit
+repair API invites the loop that produces it**, which is why the coalescing now lives on
+`AbstractGraph` rather than in the harness.
+
+**Repair loses to rebuild, and the crossover is on the map.** A scattered 256-Segment gesture at 16
+Chunks costs **107% of a full rebuild** — repairing is strictly worse than starting again. This is
+R4.6's incremental/rebuild break-even arriving at the abstract graph rather than at the matrix, and
+it lands where a gesture stops being local. **A production repair path needs the rebuild as its own
+fallback**, chosen on clusters touched.
+
+#### R3's cluster size closes, and it closes against R3's bias
+
+R3 narrowed cluster size to 8 or 16 Chunks a side, **put the bias on 16** on a 1.31× faster refined
+query, and said explicitly that it could not close it because the axis separating them is an edit
+rate R5 owns. R5 owns it, and it points the other way:
+
+| | Cluster 8 | Cluster 16 |
+|---|---:|---:|
+| 256-Segment drag, coalesced | **3.79 ms** | 7.61 ms |
+| …worst gesture | **5.15 ms** | 12.60 ms |
+| …naive worst | **52.96 ms** | 219.50 ms |
+| Full rebuild | **44.24 ms** | 74.85 ms |
+
+**8 is cheaper on every edit row measured**, by roughly 2× on the coalesced drag and 4× on the naive
+worst case. R3's own framing was that 16 costs 0.92 ms more per deleted Segment — *a per-Tick cost
+against a per-click one* — and left the weighing to the edit rate. The weighing now has both sides,
+and the query advantage 16 holds is 1.31× against an edit penalty of 2×. **The recommendation is 8**,
+and R3's *current standing favours 16* is withdrawn.
+
+**This is not yet the whole trade.** R5.4 and R5.5 are unrun, and a Parking Shed is inherently local
+in a way that may favour a coarser cluster. The verdict is recorded as *R5.2 decides it against 16 on
+the edit axis*, not as *cluster size is closed*.
+
+### R5.3 — the Epoch ladder, and the tripwire it fires
+
+`CONTEXT.md` → Epoch already carries the distinction this task needed — *"never a global flush" is a
+claim about **when you pay**, never about **what survives**"* — and already states that **S2 settles
+the granularity by measurement**. This is that measurement, for the route consumer.
+
+The workload is 256 Ticks × 16 Trip starts, drawn with repetition from a pool of 512 distinct
+origin-destination pairs into a fixed-capacity cache of 1,024 entries at 8 Chunks per cluster, with
+16-Segment drags applied at a swept rate and **never reverted**. Uniform draw shown; the other two
+O-D rungs agree on every ranking.
+
+| Epoch | Edit every | Deleted | Hit | Stale | Revalidation words | Mean Tick | Worst Tick |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| global | never | 0 | 71.63% | 0.00% | 0.71 | 1,120.62 µs | 5,397.97 µs |
+| per-cluster | never | 0 | 71.63% | 0.00% | 7.56 | 1,023.65 µs | 3,738.46 µs |
+| per-Segment | never | 0 | 71.63% | 0.00% | 41.97 | 1,044.75 µs | 5,726.70 µs |
+| global | 64 Ticks | 64 | 49.36% | 22.26% | 0.71 | 1,826.60 µs | 4,868.22 µs |
+| per-cluster | 64 Ticks | 64 | 70.62% | 1.00% | 7.56 | 1,121.70 µs | 4,915.40 µs |
+| per-Segment | 64 Ticks | 64 | 71.60% | 0.02% | 41.97 | 1,062.36 µs | 4,183.90 µs |
+| global | 16 Ticks | 256 | 20.87% | 50.75% | 0.71 | 3,047.58 µs | 6,294.14 µs |
+| per-cluster | 16 Ticks | 256 | 66.25% | 5.37% | 7.60 | 1,392.04 µs | 4,630.25 µs |
+| per-Segment | 16 Ticks | 256 | 70.19% | 1.44% | 42.79 | 1,217.81 µs | 5,525.74 µs |
+| **global** | **4 Ticks** | 1,021 | **6.59%** | 65.03% | 0.71 | 3,659.98 µs | 7,640.03 µs |
+| **per-cluster** | **4 Ticks** | 1,021 | 57.49% | 14.13% | 7.64 | 2,003.38 µs | 4,979.86 µs |
+| **per-Segment** | **4 Ticks** | 1,021 | **68.99%** | 2.63% | 42.80 | 1,426.43 µs | 4,570.06 µs |
+
+**Ladder monotonicity: 12 triples checked, 0 violations.** Each rung is strictly less conservative
+than the one above — *anything moved* implies *a crossed cluster moved* implies *an own Segment
+moved* — so hit rate must be non-decreasing down the ladder everywhere. It is printed on the run
+where it reads zero because that is the only run on which it is worth anything.
+
+**The tripwire fires on the Epoch as the corpus writes it.** `plans/0010`: *either router needs a
+global flush on a Road Graph edit → that candidate is out on a design commitment, not on a number.*
+A single counter **is** a global flush; the ceiling with no edits at all is 71.63%, and under a
+continuous storm **per-Segment retains 96% of that ceiling and global retains 9%.** The design
+commitment and the number now agree.
+
+**The trade this section was written to find does not exist, and that is the finding.** `plans/0010`
+frames the ladder as *hit rate against revalidation cost*, on the reasonable expectation that
+O(path length) is what per-Segment charges for its precision. It charges **42 words a lookup against
+global's 0.71 — and its mean Tick is lower at every edit rate measured**, because the searches the
+precision avoids cost orders of magnitude more than the words it reads. There is no rung on this
+ladder that trades accuracy for speed. **Per-Segment is cheaper *and* more precise**, storage is
+129 KiB of version words against a 172.3 MiB world, and the plan's own framing was the thing that
+needed measuring.
+
+**Per-Segment is exact under deletion and unsound under addition, and the asymmetry is structural.**
+Removing road elsewhere can make a route invalid or slower but never *better*, so a route whose own
+Segments are untouched is still the route the search would return. **A newly drawn road can shorten a
+cached route without touching a single Segment that route uses**, and no version on that route would
+ever move. R5 measures deletion only — inherited from R3, where adding a road creates a portal the
+abstract graph's build reserved no slot for — so *exact* must never be quoted about this rung without
+the verb attached. **A production per-Segment Epoch needs a second mechanism for addition**, and
+nothing in the corpus has one.
+
+### R5.4 — the addition, and the fact that only one rung is sound
+
+R5.3 recommends per-Segment. **This section is the argument against it, and it is a measurement
+rather than an argument because the corpus requires that** (`adr/0043`).
+
+**The asymmetry is a property of shortest paths, not of this implementation.** Deletion is
+monotone-**worsening**: remove an arc that is not on route `R` and `R`'s cost is unchanged while
+every alternative can only rise, so `R` stays optimal — a rung watching only `R`'s own Segments
+misses nothing, which is why per-Segment reads as exact in R5.3. Addition is
+monotone-**improving**, and that inverts it: a new arc can create a cheaper path bearing no relation
+to `R` at all. **A route computed before a road existed cannot contain that road**, so no version the
+per-Segment rung watches can ever move. **Per-cluster fails for the same reason** — a new fast link
+in a cluster the route never enters still beats it. **Only the global rung is sound under addition,
+and R5.3 measured that rung as unusable.**
+
+**Addition turns out to be measurable, and the trick is the contribution.** R3 deferred it because
+drawing a road across a boundary creates a portal the abstract graph's build reserved no slot for.
+So: **build the abstract graph on the full graph — reserving every portal — then delete a set of
+Segments, cache routes, and restore them.** Restoration *is* addition and needs no new portal.
+`RebuildCluster` re-derives its crossing arcs from the cost array and re-applies the reduction, so a
+restored arc genuinely comes back rather than being re-costed into a frozen edge set.
+
+| Added | Got | Epoch | Resident | Improvable | Declared valid | **Wrongly valid** | Mean detour | Worst |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| street drag | 16 | global | 412 | 0.00% | 0.00% | **0.00%** | — | — |
+| street drag | 16 | per-cluster | 412 | 0.00% | 83.73% | **0.00%** | — | — |
+| street drag | 16 | per-Segment | 412 | 0.00% | 100.00% | **0.00%** | — | — |
+| street drag | 126 | global | 412 | 0.00% | 0.00% | **0.00%** | — | — |
+| street drag | 126 | per-cluster | 412 | 0.00% | 75.48% | **0.00%** | — | — |
+| street drag | 126 | per-Segment | 412 | 0.00% | 100.00% | **0.00%** | — | — |
+| **arterial** | **4** | global | 412 | 9.22% | 0.00% | **0.00%** | — | — |
+| **arterial** | **4** | per-cluster | 412 | 9.22% | 88.10% | **3.64%** | 6.04% | 25.48% |
+| **arterial** | **4** | **per-Segment** | 412 | 9.22% | 100.00% | **9.22%** | **16.71%** | **62.65%** |
+
+512 uniform O-D pairs cached on the damaged graph, then priced against a fresh search once the
+Segments are restored. **The *Improvable* column is the instrument check** — ground truth,
+rung-independent, and identical across all three rungs of a gesture as it must be. Had it read zero
+everywhere, every *wrongly valid* column would read zero too and prove nothing, which is the shape
+R3's 0.00% detour wore until sampling transitions drove it to 80.49%.
+
+**The prediction holds exactly.** Global is sound (0.00% wrongly valid, at the price of declaring
+nothing valid). Per-cluster catches **60%** of the improvable entries. **Per-Segment catches none of
+them — 9.22% improvable, 9.22% wrongly valid**, because it declares 100.00% of the cache valid and
+structurally cannot do otherwise.
+
+**Restoring ordinary Street improves nothing, and that is this graph rather than a fact about
+cities.** One Street per Cell boundary at a uniform speed means very many *equal-cost* shortest
+paths; deleting a line leaves an equal-cost alternative one block over, so the cached cost never
+moved and restoring gives the search nothing to find. **The zero is real and does not generalise** —
+a real network has heterogeneous speeds and far fewer ties, and `CONTEXT.md` → Segment still carries
+R0's disclaimer that nobody has checked this graph against a real city. **Read the Arterial row.**
+
+**The Arterial gesture collects 4 Segments and the smallness strengthens the conclusion.** That is
+~512 m of new fast road, the smallest addition worth drawing. If half a kilometre of Arterial leaves
+a per-Segment Epoch serving stale routes on 9.22% of entries at a mean **16.71%** detour and a worst
+of **62.65%**, a larger addition cannot do better. **The figure is a floor.** For scale, R2's
+next-hop table was treated as a serious correctness finding at 18.52%, and `05 §4` holds that a
+different route is a different city.
+
+**Unlike every other error in this spike, it does not heal.** A stale entry under per-Segment has no
+mechanism that will ever notice it: the road it should be using is one the route does not contain, so
+no version it watches will move again. The only thing that removes it is **eviction** — and
+`adr/0012` keys the cache by origin-destination pair **rather than by agent**, so the entry is not one
+driver's habit but every driver's route, and **a hot pair is the least likely to be evicted precisely
+because it is hot**. The error is permanent and concentrated on the busiest pairs in the city.
+
+#### The five ways out, none of them free
+
+| | Option | Sound? | Cost |
+|---|---|---|---|
+| **A** | Global bump on addition, per-Segment on deletion | yes | every road *drawn* flushes the cache — R5.3's 9% rung for half the core verb |
+| **B** | Weaken the contract to *feasibility, not optimality* | yes, for feasibility | free, but the error lands exactly as described above |
+| **C** | Rolling refresh — invalidate a slice every N Ticks | bounded, not exact | amortised; **R4.7 already measured a rolling refresh** |
+| **D** | Geometric bound — invalidate routes whose detour ellipse contains the new arc | yes, given admissible bounds | a spatial index; R1's matrix supplies bounds at 11.32% error, so it needs slack |
+| **E** | R1's matrix as an O(1) detector — cached cost against the matrix entry | large improvements only | nearly free, reuses an existing structure |
+
+**Option B deserves naming rather than dismissing**, because it has a real design fit: `BOUNDED
+KNOWLEDGE` says drivers are not omniscient, and not knowing about a new road is plausible ignorance.
+**The question the corpus has to answer is whether that ignorance is modelled or accidental** — a
+stated learning rate is a design decision, and a cache artefact concentrated on the busiest pairs is
+not. **Option E is also the argument R1 declined to have**: R1 refused the matrix an Epoch because
+*"a version counter would imply a relationship to the route cache that nobody has argued"*, and E is
+that relationship arriving from the other side.
+
+### What R5 found that it was not looking for
+
+- **The miss column is the eviction policy's bill, not staleness.** It sits at 28–31% and does not
+  move with edit rate at all — the tell that it is collisions rather than invalidation. **A
+  direct-mapped cache at 2× over-provisioning loses about three lookups in ten before a single road
+  is touched.** That gives `adr/0017`'s fixed-capacity least-used pattern a number for the first
+  time, and the decision belongs to **R6**, which owns eviction. Reported here because the figure
+  fell out and a reader would otherwise read it as the Epoch's doing.
+- **The worst Tick is far worse than R3's framing implies.** R3 published *routing fits while fewer
+  than 85 Trips start per Tick*, from a mean. At **16** Trip starts the worst Tick already reaches
+  **13.26 ms** on monocentric/global against a 15.6 ms budget. A mean per-route cost multiplied by an
+  arrival rate does not bound a Tick, and S4's K6 said so first: a run whose worst iteration was
+  100.2 ms read 2.462 ms at p99.9.
+- **R3's denominator finding arrives a fourth time, in a form it had not taken.** R5's first draft
+  measured the rebuild at 8 Chunks and divided the **16**-Chunk repair figures by it — not measured
+  once instead of twice, but **measured on the wrong rung**. A rebuild at 16 Chunks is a different
+  amount of work. Caught before publication; the table now carries a per-rung denominator.
+- **The gesture generator needed a control before it needed a result.** A contiguous drag touches few
+  clusters *by construction*, so a ladder rung keyed on clusters is flattered by the generator rather
+  than by the design. The scattered row exists so that the drag's locality is a measurement rather
+  than a definition — this spike's own rule about an instrument that cannot move, applied before the
+  numbers rather than after.
+- **A Segment→arc index had to exist first.** R3 and R4 apply an edit by scanning all 66,036 arcs and
+  comparing, which is invisible when one edit sits outside the clock. R5 deletes hundreds inside the
+  timed span, where the same spelling would have put ~17 million comparisons in the measurement and
+  published them as the cost of the edit.
+
+### Decisions R5 has produced, and the ones it has not
+
+- **Cluster size: 8 Chunks a side**, against R3's bias on 16, on the edit axis. `plans/0010`'s
+  *current standing favours 16* is withdrawn. **Conditional on R5.5**, which the plan says is the
+  section most likely to rank the ladder differently.
+- **The Epoch must carry a location.** The single counter is out on the design commitment it fails
+  and on a hit rate of 9% of ceiling.
+- **But no rung on this ladder is both affordable and correct across the whole core verb**, and R5.4
+  measured that rather than arguing it. Per-Segment is the recommendation **for deletion**, where it
+  is exact and cheapest; **under addition it is the worst rung available**, declaring 100% of the
+  cache valid and serving stale routes on 9.22% of entries at a mean 16.71% detour that never heals.
+  **The recommendation is therefore conditional and a second mechanism is required**, chosen from
+  R5.4's five options. Naming a rung without naming that mechanism would ship the hole.
+- **`CONTEXT.md` → Epoch's *"spike S2 settles it by measurement"* is discharged for the route
+  consumer and not for the Parking Shed**, which is the second Epoch consumer, scales with Buildings
+  rather than with routes, and is inherently a *neighbourhood* rather than a *path* — so per-Segment
+  has no obvious meaning for it. **The vocabulary entry must not be updated until R5.5 runs.**
+- **Not settled: the path source.** R2 left shared-route and next-hop live and R5.4 is unrun.
+- **Owed: the canonical pinned `performance` capture**, as R3's still is.

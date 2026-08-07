@@ -722,6 +722,57 @@ internal sealed class AbstractGraph
     }
 
     /// <summary>
+    /// Re-decides every cluster touched by a whole gesture, each one <b>once</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>R5's addition, and the reason it is a method here rather than a loop in the harness.</b>
+    /// R3 and R4 measured single edits, where <see cref="RebuildFor"/> is the whole story. A drag
+    /// deletes hundreds of Segments and a contiguous drag deletes most of them inside the same few
+    /// clusters, so calling <see cref="RebuildFor"/> per Segment re-decides one cluster's edge set
+    /// dozens of times over and publishes the repetition as the cost of the gesture.
+    /// </para>
+    /// <para>
+    /// The coalescing belongs with the structure rather than with the measurement because it is a
+    /// statement about the invariant: a cluster's edge set is a function of its arcs, so the number
+    /// of Segments deleted inside it does not change how many times it has to be decided. <b>The
+    /// per-Segment loop is retained in R5 as a rung</b> — the naive spelling is what a first
+    /// implementation would do, and the gap between the two is a finding rather than a detail to be
+    /// silently optimised away.
+    /// </para>
+    /// </remarks>
+    /// <returns>Clusters re-decided, which is the work the gesture actually implies.</returns>
+    public int RebuildForAll(ReadOnlySpan<int> segments, bool[] touched, List<int> scratch)
+    {
+        scratch.Clear();
+
+        foreach (int segment in segments)
+        {
+            Mark(_clusters.OfNode[_graph.SegmentNodeA[segment]], touched, scratch);
+            Mark(_clusters.OfNode[_graph.SegmentNodeB[segment]], touched, scratch);
+        }
+
+        foreach (int cluster in scratch)
+        {
+            touched[cluster] = false;
+            RebuildCluster(cluster);
+        }
+
+        return scratch.Count;
+
+        static void Mark(int cluster, bool[] touched, List<int> scratch)
+        {
+            if (touched[cluster])
+            {
+                return;
+            }
+
+            touched[cluster] = true;
+            scratch.Add(cluster);
+        }
+    }
+
+    /// <summary>
     /// Repairs the abstract graph after one Segment's costs changed, in place.
     /// </summary>
     /// <remarks>

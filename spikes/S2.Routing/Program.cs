@@ -17,6 +17,7 @@ bool matrix = false;
 bool traffic = false;
 bool cluster = false;
 bool vector = false;
+bool storm = false;
 
 for (int i = 0; i < args.Length; i++)
 {
@@ -43,17 +44,20 @@ for (int i = 0; i < args.Length; i++)
         case "--vector":
             vector = true;
             break;
+        case "--storm":
+            storm = true;
+            break;
         default:
             Console.Error.WriteLine($"Unrecognised argument: {args[i]}");
             Console.Error.WriteLine(
                 "Usage: S2.Routing [--graph] [--denominator] [--matrix] [--traffic] [--cluster] "
-                + "[--vector] "
+                + "[--vector] [--storm] "
                 + "[--out PATH]");
             return 2;
     }
 }
 
-if (!graph && !denominator && !matrix && !traffic && !cluster && !vector)
+if (!graph && !denominator && !matrix && !traffic && !cluster && !vector && !storm)
 {
     graph = true;
     denominator = true;
@@ -61,6 +65,7 @@ if (!graph && !denominator && !matrix && !traffic && !cluster && !vector)
     traffic = true;
     cluster = true;
     vector = true;
+    storm = true;
 }
 
 // Read before any work and again after all of it, so the contention block at the foot of the report
@@ -73,7 +78,8 @@ string report =
     + (matrix ? MatrixReport.Run() + Environment.NewLine : string.Empty)
     + (traffic ? TrafficReport.Run() + Environment.NewLine : string.Empty)
     + (cluster ? ClusterReport.Run() + Environment.NewLine : string.Empty)
-    + (vector ? VectorReport.Run() : string.Empty);
+    + (vector ? VectorReport.Run() + Environment.NewLine : string.Empty)
+    + (storm ? StormReport.Run() : string.Empty);
 
 report += Environment.NewLine + "---" + Environment.NewLine + Environment.NewLine
     + Capture.Contention(before, Capture.Read()) + Environment.NewLine;

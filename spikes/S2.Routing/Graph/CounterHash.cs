@@ -51,6 +51,7 @@ internal static class CounterHash
         SurgeOrigin = 15,
         OdAccept = 16,
         EditSegment = 17,
+        GestureOrigin = 18,
     }
 
     public static ulong Of(ulong seed, ulong entity, ulong counter, Purpose purpose) =>

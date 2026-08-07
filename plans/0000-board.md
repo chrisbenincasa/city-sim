@@ -21,12 +21,26 @@ first time `adr/0043` has been applied outside the routing spike — and the cla
 then got its own second half wrong by argument and had to withdraw it**, which is recorded rather
 than amended away; see `0009` → *What building it found*, finding 6.
 
-**The spike track has opened and moved five times.** **S2 R0 through R4 are done** — the synthetic
-Road Graph, the density curve, the uncached denominator on the real `(Segment, offset)` query shape and
-the heuristic verdict; then the travel-time matrix; then the path source, the crossover and the
-attribution lag; then HPA\*, the cluster it owns, and the Tick budget none of them fit into; then
-distance-vector, which lost to a scheme nobody had named. Numbers and decisions in
+**The spike track has opened and moved six times.** **S2 R0 through R4 are done, and R5 is three
+sections in** — the synthetic Road Graph, the density curve, the uncached denominator on the real
+`(Segment, offset)` query shape and the heuristic verdict; then the travel-time matrix; then the path
+source, the crossover and the attribution lag; then HPA\*, the cluster it owns, and the Tick budget
+none of them fit into; then distance-vector, which lost to a scheme nobody had named; and now the
+**edit storm**, which changed the unit. Numbers and decisions in
 [`spike-results`](../docs/spike-results.md).
+
+**R5 measured the gesture rather than the edit, and that is why it moved things two tasks could not.**
+R3 and R4 each priced *one deleted Segment* and each said the case they could not reach was hundreds
+in a single drag. **A player does not delete a Segment; a player drags.** Measuring the drag **fired
+the global-flush tripwire** — `plans/0010` says a candidate needing one is *"out on a design
+commitment, not on a number"*, and a single-counter Epoch **is** a global flush: against a no-edit
+ceiling of **71.63%**, per-Segment keeps **96%** of it under a continuous storm and global keeps
+**9%**. It **closed cluster size against R3's own bias** — 8 Chunks, not 16 — and it found that **the
+per-Segment repair loop both earlier tasks wrote costs 21.25× the coalesced one**, with a worst case
+of **219.50 ms from one gesture, fourteen Tick budgets**, invisible to both because the two spellings
+are identical at a gesture of one. **The ladder's framing was also wrong**: this plan priced it as
+*hit rate against revalidation cost* and there is no such trade — per-Segment is cheaper *and* more
+precise at every edit rate, because a revalidation word is arithmetic and what it avoids is a search.
 
 **R4 retired distance-vector and found something larger on the way past.** DSDV is out — not on
 memory (**23.12 MiB** at the anchor, the tripwire does not fire) and not on correctness (with
@@ -94,6 +108,38 @@ schemes agree on *how many* Segments are stressed and disagree on *which*. **For
 last bundled justification**, and `adr/0041`'s *"no correctness content"* about the path source is
 owed a correction on two counts.
 
+### Picking up from here — the state R5 left, and what it owes a decision
+
+**R5.1–R5.4 are done and written up; R5.5 and R5.6 are not started.** The harness is
+`spikes/S2.Routing/Storm/` plus `Harness/StormReport.cs`, run with `--storm`. Numbers in
+[`spike-results`](../docs/spike-results.md) → *S2 R5*; raw capture in
+`spikes/S2.Routing/results/s2-r5-…-powersave-turbo.md`.
+
+**One thing to do before trusting any absolute: the canonical capture.**
+`sudo spikes/S2.Routing/tools/routing-run.sh --storm`. Everything published is `powersave` and
+**unpinned**. Every *count* is bit-identical across two captures and every ratio is in-process, so no
+conclusion moves — but the millisecond figures (219.50 ms, 3.79 ms, 13.26 ms) are the ones a canonical
+run can shift, and **they are the only ones it can shift**.
+
+**Four findings are recorded as debts and three of them still want a decision, not just a record.**
+They are listed individually under *Owed* below; what follows is the shape of the argument each one
+needs, because a debt that is filed but never typed is how this corpus has twice let a measured-false
+claim sit in a 🟢 row.
+
+| | The finding | What it wants | Where |
+|---|---|---|---|
+| **1** | **No Epoch rung is affordable *and* correct across the whole core verb.** Per-Segment declares **100.00%** of the cache valid under addition and cannot ever notice; only global is sound, and global keeps 9% of the hit rate | **Session M** — five candidates, two *arguable* and three *measurable*. This one is booked | *Do these next*, row 2 |
+| **2** | **A mean per-route cost times an arrival rate does not bound a Tick.** R3's *fits below 85 Trip starts* is a mean; at **16** starts R5 measures a worst Tick of **13.26 ms** of 15.6 ms | **Reopens the routing Tick budget share**, which `0002` already records as an unratified guess. The 10% row and R3's 85 need restating as a *worst*-case wire, not a mean one | *Owed — decisions* |
+| **3** | **A per-edit repair API invites the loop that destroys it** — 21.25×, a **219.50 ms** worst gesture — and above ~63 clusters touched the coalesced repair loses to a full rebuild outright | **A shape decision, not a number**: anything the player can do to hundreds of objects at once needs its API shaped for the *gesture*. It generalises past routing and should be settled where the Chunk/Cell edit surface is | *Owed — findings* |
+| **4** | **The eviction policy is a bigger lever than the Epoch below the highest edit rates** — 28–31% of lookups miss on direct-mapped collisions before a road is touched | **R6 owns it**, with `adr/0017`'s fixed-capacity least-used pattern as the candidate. R5 supplies the evidence that it is worth arguing | *Owed — findings* |
+
+**And two caveats that must travel with any figure quoted out of R5**: the hit-rate *levels* rest on
+an **invented pool** standing in for Trip repetition, and the Street half of R5.4 reads 0.00% because
+**the synthetic grid is degenerate** — one Street per Cell boundary at a uniform speed gives very many
+equal-cost shortest paths. Both are filed under *Owed*.
+
+---
+
 **What is in front of the project is mostly argument, not code.** Slices 7–10 and every Phase 2
 milestone are gated on designs written from research and never grilled — **eleven** sessions, tabulated
 below, none of which touches slice 6 and almost all of which can run beside it. The board used to
@@ -112,10 +158,11 @@ nothing standing between here and Phase 2 is code.**
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | spike | **S2 R5 — the edit storm, and the Epoch ladder** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. **R0–R4 are done.** R4 retired distance-vector and settled *maintenance* — dynamic subtree repair, **4.71 ms** against a **234.74 ms** rebuild — but **maintenance turned out to be separable from path source**, so **R5 and R6 still own the router**. R5 gains a **fourth ladder rung** (that repair), a **non-uniform O-D family**, and the drift break-even R3 said it needed. The open case is a **drag deleting hundreds of Segments in one gesture**, which is also what R3 deferred cluster size to R5 for |
-| **2** | code | **S0 — the synthetic 1M-Citizen city** | [`0003`](0003-build-plan.md) | **Slice 6 is done, so the Phase 1 gate closes here and this is what is behind it.** The corpus forbids opening Phase 2 content until S0 has run. Slices 7–10 are each behind a session in the argument track below, not behind code — so this is the only *code* task left that nothing else gates |
-| **3** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | **Slice 7's whole gate now runs through it.** `02 §4` residue is **closed** ([`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md)) and closing it handed A **two named refusals** — the `on_fail` cycle check and the `fills` check — which are load-time Ruleset validation on this ADR's own error surface. Fold the **TOML dependency exception** in: a parser is what runs those refusals |
-| **4** | argument | **`02 §7` + `adr/0006`** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | Slice 9. And `02 §4` now leans on the Wheel harder than it did: a chain is walked **once on entry into shortage**, which is a wake rather than a poll |
+| **1** | spike | **S2 R5.5 and R5.6 — the path source, and the Parking Shed** | [`0010`](0010-s2-routing.md) | The project's **top risk**, and the one blocker argument cannot close. **R0–R4 done; R5.1–R5.4 done.** R5 measured the **gesture** rather than the edit and **fired the global-flush tripwire** — a single-counter Epoch keeps **9%** of the achievable hit rate under a storm where per-Segment keeps **96%**. It also **closed cluster size against R3's bias** (8, not 16) and found the **21.25× repair loop** both earlier tasks had written. **R5.4 then measured the addition** and found **no rung is both affordable and correct across the whole core verb** — per-Segment declares 100% of the cache valid under addition and cannot ever notice. What remains is the two sections that decide the router: **R5.5, the path source** R2 left live, and **R5.6, the Parking Shed** — the second Epoch consumer, which scales with **Buildings** and is a *neighbourhood* rather than a *path*, so per-Segment has no obvious meaning for it. **`CONTEXT.md` → Epoch must not be updated until R5.6 runs** |
+| **2** | argument | **M — the route cache's invalidation contract** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | **NEW, forced by S2 R5.4, and it is the one decision R5 cannot take for itself.** No Epoch rung is both affordable and correct across the whole core verb: per-Segment is exact under deletion and declares **100.00%** of the cache valid under *addition*, where it cannot ever notice. **Five candidate mechanisms are tabulated** in [`spike-results`](../docs/spike-results.md) → R5.4, and **two of them are questions of intent rather than of cost** — so `adr/0043` types them *arguable* and a session may close them. **It gates R6**, which R3 already promoted to load-bearing, and it is owed to `adr/0012` as the amendment that ADR has been carrying since R2 |
+| **3** | code | **S0 — the synthetic 1M-Citizen city** | [`0003`](0003-build-plan.md) | **Slice 6 is done, so the Phase 1 gate closes here and this is what is behind it.** The corpus forbids opening Phase 2 content until S0 has run. Slices 7–10 are each behind a session in the argument track below, not behind code — so this is the only *code* task left that nothing else gates |
+| **4** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | **Slice 7's whole gate now runs through it.** `02 §4` residue is **closed** ([`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md)) and closing it handed A **two named refusals** — the `on_fail` cycle check and the `fills` check — which are load-time Ruleset validation on this ADR's own error surface. Fold the **TOML dependency exception** in: a parser is what runs those refusals |
+| **5** | argument | **`02 §7` + `adr/0006`** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | Slice 9. And `02 §4` now leans on the Wheel harder than it did: a chain is walked **once on entry into shortage**, which is a wake rather than a poll |
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
@@ -154,6 +201,7 @@ milestone 8 is parking — so the *Unblocks* column always says which.
 | **I** | **`adr/0012`** — routing intent lives in the agent | Written from research, and already owes an amendment: the route cache's **eviction policy** and its **key** | milestone 5c | **after S2 R6** — the two caches are R6's subject, and R3 promoted R6 to load-bearing |
 | **J** | **`05 §7` format half**, plus **map size** and **Outside Connection layout** | The three things `06`'s open-decisions table still has blocking save/load, narrowed from the map question that `adr/0020`–`0022` otherwise closed | milestone 10 | **yes** |
 | **K2** | **`06`'s Phase 2 ordering** | The ordering only. **K1 is done** — see *Done* — so what remains is re-deriving the sequence against conserved Money, Hinterlands, Office, the labour system, transit and every Service, and placing the **seventeen mechanisms `06` now lists as having no milestone** | Planning Phase 2 at all | **last** — A–J move what it sequences |
+| **M** | **The route cache's invalidation contract** — what a cached route is allowed to be wrong about | **NEW, and forced by measurement rather than noticed by reading.** S2 R5.4 found **no Epoch rung that is both affordable and correct across the whole core verb**: only the global rung is sound under *addition*, and R5.3 measured global as keeping 9% of the achievable hit rate. Five candidates in [`spike-results`](../docs/spike-results.md) → R5.4. **`adr/0043` types them, and they split cleanly.** *Arguable, and this session may close them:* **B**, weaken the contract to *feasibility, not optimality* — which fits `BOUNDED KNOWLEDGE` **if** the ignorance is modelled with a stated learning rate, and is a defect if it is an accident of eviction; and **E**, use R1's matrix as an O(1) detector — **the relationship R1 explicitly declined to argue**, arriving from the other side. *Measurable, and must be routed to R6 with its refuting number named:* **A** (global bump on addition), **C** (rolling refresh — **R4.7 already priced one**), **D** (the detour ellipse). **Also settle whether the cache's contract is one contract**: `05 §3`'s Parking Shed is the second consumer and is a *neighbourhood* rather than a *path* | **R6**, and `adr/0012`'s owed amendment | **yes** |
 | **L** | **A presentation design** | **It does not exist.** Every other phase is backed by a design document; rendering has none, and `05 §2`'s sim/render boundary is on the never-argued list while `adr/0002` was re-argued to serve *inspection*. **Write it first, then grill it** — unlike A–K this is not a session against an existing document | Phase 3, and planning it at all | **yes**, but blocked on S1 and S3 |
 
 **Not arguable, and it is worth being explicit about why.** The **Microscopic Cap**'s value needs a
@@ -374,6 +422,9 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
 - [ ] **E**–**I** — the six research-written ADRs *(`0005`, `0007`, `0008`, `0009`, `0012`, `0016`)*
 - [ ] **J** — save/load's three: `05 §7`'s format half, map size, Outside Connection layout
 - [ ] **L** — write a presentation design, then grill it. Blocked on S1 and S3
+- [ ] **M** — the route cache's invalidation contract. **NEW, forced by S2 R5.4**, gates **R6**, and
+      carries `adr/0012`'s owed amendment. Two of its five candidates are *arguable* and three are
+      *measurable* and belong to R6
 - [ ] **K2** — re-derive `06`'s Phase 2 ordering, last. *(K1 done — session nine)*
 
 ### Parallel track — S2, routing ([`0010`](0010-s2-routing.md))
@@ -447,10 +498,24 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
       scheme*. Four harness defects, one of which read **232 s** per edit and would have published
       *distance-vector loses by three orders of magnitude* — caught by R2's *two measurements that
       agree that closely are not two measurements*
-- [ ] **R5 — the edit storm, and the Epoch ladder. NEXT.** Gains a fourth rung (R4's dynamic
-      subtree repair), R4.1's non-uniform O-D family, and the drift break-even R3 required as an
-      input. **R5 and R6 now own the router**, because R4 settled maintenance and maintenance is
-      separable from path source
+- [~] **R5 — the edit storm, and the Epoch ladder. R5.1–R5.4 DONE; R5.5 and R5.6 open.** It measured
+      the **gesture** rather than the edit — the unit R3 and R4 both said they could not reach — and
+      **fired a tripwire**: a single-counter Epoch *is* a global flush, which is *"out on a design
+      commitment, not on a number"*, and it has the number too — against a no-edit ceiling of 71.63%,
+      **per-Segment retains 96% under a continuous storm and global retains 9%**. **The ladder's own
+      framing was wrong**: this plan priced it as *hit rate against revalidation cost* and per-Segment
+      is cheaper *and* more precise at every edit rate, because a revalidation word is arithmetic and
+      what it avoids is a search — **no rung on it trades accuracy for speed**. **Cluster size closes
+      against R3's bias**: 8 Chunks is ~2× cheaper than 16 on a coalesced 256-Segment drag, so R3's
+      *current standing favours 16* is withdrawn. **The repair loop R3 and R4 both wrote is a
+      catastrophe on a gesture** — per-Segment rather than per touched cluster costs **21.25×**, a
+      worst case of **219.50 ms, fourteen Tick budgets, from one drag** — and the two spellings are
+      identical at a gesture of one, which is the only size either measured. **Repair loses to a full
+      rebuild** above ~63 clusters touched. **R5.4 measured the *addition* — a section the plan did
+      not have — and found no rung both affordable and correct across the whole core verb.**
+      **Still open: R5.5, the path source** (the choice R2 left
+      live), and **R5.6, the Parking Shed**, which this plan calls the consumer the ladder is most
+      likely to be decided by. **Owed: the canonical pinned capture**
 - [ ] **R6 — the two caches, and `adr/0006`. PROMOTED by R3 to load-bearing.** No cluster size fits
       routing into the Tick budget (85 Trip starts at the best rung), and a cache is one of only two
       exits — the other being to spend eight cores' whole Tick budget on routing. R6 stops being an
@@ -653,6 +718,78 @@ Small, and each one is a place the corpus currently says something known to be w
       and only nanosecond columns move, by 2–7%. **The governor moved nothing R4 concludes from.**
       The scheme ranking, the sign of every comparison and the break-even band are all unchanged;
       dynamic repair's margin over a rebuild on one deletion widened from 37.99× to **49.76×**
+- [ ] **`plans/0010` R3's *current standing favours HPA\* at 16 Chunks* is withdrawn — NEW, produced
+      by S2 R5.2**, and it is a correction R3 asked for in advance. R3 narrowed cluster size to 8 or
+      16, put the bias on 16 on a 1.31× faster refined query, and said the axis that separates them
+      is an edit rate R5 owns. **8 is ~2× cheaper on a coalesced 256-Segment drag, 4× on the naive
+      worst case, and its full rebuild is 44.24 ms against 74.85 ms.** A 1.31× query advantage
+      against a 2× edit penalty picks 8. **Conditional on R5.6**, which may rank a Parking Shed
+      differently, so the sweep is not deleted
+- [ ] **A per-edit repair API invites the loop that destroys it — NEW, produced by S2 R5.2**, and it
+      is a shape rather than a number. `RebuildFor(segment)` is the natural signature and looping it
+      over a drag re-decides the same few clusters dozens of times, for **21.25×** the coalesced cost
+      and a worst case of **219.50 ms**. The two spellings are **identical at a gesture of one**,
+      which is the only size R3 and R4 ever measured, so no earlier task could have caught it.
+      **Anything the player can do to hundreds of objects at once needs its API shaped for the
+      gesture**, not for the object — and above ~63 clusters touched the repair loses to a **full
+      rebuild** outright, so the path has two thresholds rather than none
+- [ ] **No Epoch rung is both affordable and correct across the whole core verb — NEW, MEASURED by
+      S2 R5.4**, which was not a task the plan had. Deletion is monotone-**worsening**, so a rung
+      watching a route's own Segments misses nothing and per-Segment is exact. Addition is
+      monotone-**improving**, and **a route computed before a road existed cannot contain it**, so
+      per-Segment declares **100.00%** of the cache valid and structurally cannot notice — and
+      **per-cluster fails the same way**, since a new fast link in a cluster the route never enters
+      still beats it. **Only global is sound under addition, and R5.3 measured global as unusable.**
+      Sized rather than argued: restoring **4 Arterial Segments — ~512 m, the smallest addition worth
+      drawing** — leaves per-Segment serving stale routes on **9.22%** of resident entries at a mean
+      **16.71%** detour and a worst of **62.65%**, against R2's 18.52% which the corpus treats as a
+      serious correctness finding. **It is a floor, and unlike every other error in this spike it
+      does not heal**: nothing the rung watches will ever move again, so only **eviction** removes
+      it — and `adr/0012` keys by O-D **rather than by agent**, so it is every driver's route and a
+      hot pair is the *least* likely to be evicted. **Five ways out are tabulated in
+      [`spike-results`](../docs/spike-results.md) → R5.4**, and two of them are corpus decisions
+      rather than engineering: **B** (weaken the contract to feasibility — which fits `BOUNDED
+      KNOWLEDGE` if the ignorance is *modelled* and is a defect if it is *accidental*), and **E**
+      (R1's matrix as an O(1) detector — **the relationship R1 explicitly declined to argue**,
+      arriving from the other side). **Addition is measurable after all**, which R3 had thought it
+      was not: build the abstract graph on the full graph so every portal slot is reserved, then
+      delete a set and restore it
+- [ ] **The synthetic grid cannot answer the Street half of that question — NEW, produced by S2 R5.4.**
+      Restoring ordinary Street improved **0.00%** of cached routes at every size up to 126 Segments,
+      because one Street per Cell boundary at a uniform speed gives very many *equal-cost* shortest
+      paths: deleting a line leaves an equal-cost alternative one block over, so the cached cost never
+      moved. **The zero is real and does not generalise** — a real network has heterogeneous speeds
+      and far fewer ties. It is the same debt `CONTEXT.md` → Segment already carries from R0: **road
+      density has a curve and no source**, and now so does road *homogeneity*. **The Arterial side is
+      thin for the same reason**: the graph holds **8 Arterials and 104 Arterial Segments**, and an
+      Arterial-only drag saturates at **4** — which is why R5.4 publishes one Arterial rung rather
+      than a sweep, and why its 16.71% is stated as a **floor** rather than a curve
+- [ ] **R5's cache hit rates rest on an invented pool, and no document may quote the level — NEW,
+      produced by S2 R5.3.** A route cache works because real Trips **repeat**, and nothing in S2 can
+      produce that recurrence because it needs Trip generation. R5 substitutes a fixed pool of 512
+      O-D pairs sampled with repetition; drawing fresh pairs every Tick would report ~0% for every
+      rung and compare nothing. **So every absolute hit rate in R5.3 is a property of the pool
+      size.** What the pool cannot distort is the *ratio between rungs under the same pool*, which is
+      what the ladder is for. **Exactly the handling R4.1's O-D family already has** — and that debt
+      is discharged as an *axis* rather than closed, so this one should be too: **R6 must sweep pool
+      reuse rate the way R4.1 swept trip length**, or its hit-rate curve is one guess wearing a
+      measurement's clothes
+- [ ] **`adr/0017`'s eviction pattern has a number for the first time — NEW, produced by S2 R5.3 and
+      not looked for.** R5's miss column sits at **28–31% and does not move with edit rate at all**,
+      which is the tell that it is collisions rather than staleness: **a direct-mapped route cache at
+      2× over-provisioning loses about three lookups in ten before a single road is touched.** The
+      decision belongs to **R6**, which owns eviction and the key; what R5 supplies is evidence that
+      the policy is worth more than the Epoch rung below the highest edit rates
+- [ ] **A mean per-route cost times an arrival rate does not bound a Tick — NEW, produced by S2 R5.3.**
+      R3 published *routing fits while fewer than 85 Trips start per Tick*, derived from a mean. At
+      **16** Trip starts R5 already measures a worst Tick of **13.26 ms** against a 15.6 ms budget.
+      **S4's K6 said it first** — a run whose worst iteration was 100.2 ms read 2.462 ms at p99.9 —
+      and R6 inherits the instruction along with R3's
+- [ ] **The canonical `performance` capture of R5 is owed**, on the same terms as R3's below. The
+      published figures are `powersave` and **unpinned**. Every *count* is governor-independent and
+      **bit-identical across two captures fourteen minutes apart**, and every ratio is taken within
+      one process, so no R5 decision rests on it; **no absolute millisecond figure should be quoted
+      outside the section until it exists.** `sudo spikes/S2.Routing/tools/routing-run.sh --storm`
 - [ ] **The canonical `performance` capture of R3 is owed.** The published figures come from a
       `powersave` capture — pinned, but not the protocol's configuration, because the canonical run
       needs root. Every *count* is governor-independent and every ratio is taken within one process,
@@ -705,6 +842,26 @@ Small, and each one is a place the corpus currently says something known to be w
       **crossover is 105 Ticks** at the anchor — so direct is the *cheaper* scheme at any plausible
       congestion cycle, an order of magnitude past `adr/0041`'s estimate of ~10. The ADR's *"we are
       knowingly paying for correctness"* understates its own case
+- [~] **The Epoch's granularity — PARTLY SETTLED by S2 R5.3, for the route consumer only.**
+      `CONTEXT.md` → Epoch already carries the *when you pay / what survives* distinction and already
+      says **S2 settles the granularity by measurement**. It is now measured for routes and the
+      answer is **per-Segment**: against a no-edit ceiling of 71.63% it retains **96%** under a
+      continuous storm where the single counter retains **9%**, and it does so while being *cheaper*
+      — 42 revalidation words a lookup against 0.71, and a lower mean Tick at every edit rate,
+      because a revalidation word is arithmetic and what it avoids is a search. **Two things stop
+      this closing.** First, per-Segment is exact under *deletion* and **R5.4 has since measured what
+      it is under addition, which is worse than "unsound" — it is the worst rung available there**:
+      100.00% of the cache declared valid, **9.22%** of entries stale at a mean **16.71%** detour
+      from ~512 m of new Arterial, and permanently, because only eviction removes it and `adr/0012`
+      keys by O-D rather than by agent. **Per-cluster fails identically; only global is sound, and
+      global is the rung R5.3 measured as unusable.** So the answer for routes is *per-Segment plus a
+      second mechanism*, and **five candidates are tabulated in
+      [`spike-results`](../docs/spike-results.md) → R5.4** — two of which (**B**, weaken the contract
+      to feasibility; **E**, R1's matrix as an O(1) detector) are the corpus's decision rather than a
+      benchmark's. Second, **the Parking Shed is the other Epoch consumer** — it scales with Buildings
+      rather than routes and is a *neighbourhood* rather than a *path*, so per-Segment has no obvious
+      meaning for it and per-cluster fits it far better. **`CONTEXT.md` must not be updated until R5.6
+      runs**, and a rung chosen on routes alone would be chosen on the cheaper of the two consumers
 - [ ] **The path source** — S2 R2 left **two** rungs live and deliberately did not choose. Searched is
       out on arithmetic; shared and next-hop rank differently at different District counts, have
       different error profiles, and differ most on a property R2 cannot see. **R5 decides it**, because
@@ -764,7 +921,13 @@ Small, and each one is a place the corpus currently says something known to be w
       fraction of a Tick — measures identically, so no number rests on this. **Whether the core
       acquires a second Q16.16 meaning is the corpus's decision, not a benchmark's.** Owed by R7
 - [ ] **The routing Tick budget share** — 10% is a stated guess and **cannot** be ratified until the
-      Tick's other consumers are priced
+      Tick's other consumers are priced. **S2 R5.3 sharpened what the wire has to be stated over,
+      and it is not what R3 published.** R3's *routing fits while fewer than 85 Trips start per Tick*
+      is derived from a **mean** per-route cost; at **16** Trip starts R5 measures a worst Tick of
+      **13.26 ms** against a 15.6 ms budget. **A mean times an arrival rate does not bound a Tick** —
+      S4's K6 said it first, where a run whose worst iteration was 100.2 ms read 2.462 ms at p99.9.
+      So both the 10% row and R3's 85 are owed a restatement **over the worst Tick rather than the
+      mean one**, and that is a change to what the tripwire measures rather than to its threshold
 - [ ] **`LayerRuleset` is not yet read from the Ruleset** — owed by **slice 8**, not by slice 6, and
       this replaces an item that said `WorldConfiguration` and a log-format bump. `adr/0044`'s first
       draft owed both; on the corrected classification the cadence is **ordinary hot-reloadable
