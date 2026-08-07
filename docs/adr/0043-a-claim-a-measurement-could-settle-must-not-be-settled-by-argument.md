@@ -2,6 +2,8 @@
 
 **Every claim a grilling session touches is classified as *arguable* or *measurable*. A session may settle the arguable ones. A measurable one it must leave open and route to a named spike — naming the number that would refute the claim and the machine that would produce it — and until that number exists, no document may cite the claim as settled.** The test for the split is a single question: *can you name the number that would refute this, and the machine that would produce it?* If you can, the claim is measurable and argument is the wrong instrument. If you cannot, it is arguable and no spike will help.
 
+**Extended by S2 R8: name the *shape* you expect, not only the number.** A refuting number is not enough, because a number read off the wrong statistic is not evidence. R8 produced **three instances in one task** — a maximum over 33,018 volume indices, an unconditioned p99, and a monotonicity test — each chosen before anyone knew the distribution it would summarise, and each surviving into a published wire because nothing in the process asked. **A wire must be re-derived once the first measurement shows what the response looks like, and the re-derivation stated and scored separately rather than swapped in.** See [`spike-results`](../spike-results.md) → *S2 R8*.
+
 `SOLVE THE ACTUAL PROBLEM` `HONEST DEGRADATION` `FAST ITERATION`
 
 ## Why

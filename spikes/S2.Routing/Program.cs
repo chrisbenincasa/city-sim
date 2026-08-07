@@ -18,6 +18,7 @@ bool traffic = false;
 bool cluster = false;
 bool vector = false;
 bool storm = false;
+bool loop = false;
 
 // R5.5 alone. It is the longest section in the spike and the last one open, so it gets a flag of
 // its own — but it is also *part of* R5, so `--storm` runs it too and passing both runs it twice.
@@ -54,11 +55,14 @@ for (int i = 0; i < args.Length; i++)
         case "--path-source":
             pathSource = true;
             break;
+        case "--loop":
+            loop = true;
+            break;
         default:
             Console.Error.WriteLine($"Unrecognised argument: {args[i]}");
             Console.Error.WriteLine(
                 "Usage: S2.Routing [--graph] [--denominator] [--matrix] [--traffic] [--cluster] "
-                + "[--vector] [--storm] [--path-source] "
+                + "[--vector] [--storm] [--path-source] [--loop] "
                 + "[--out PATH]");
             return 2;
     }
@@ -66,7 +70,11 @@ for (int i = 0; i < args.Length; i++)
 
 // `pathSource` is deliberately absent from the whole-run default: `--storm` already contains R5.5,
 // and adding it here would print the section twice in every capture that names no section at all.
-if (!graph && !denominator && !matrix && !traffic && !cluster && !vector && !storm && !pathSource)
+// `loop` IS in it, and the asymmetry with `pathSource` is the point: R5.5 is contained by --storm
+// and R8 is contained by nothing, so leaving it out of the default would make a whole-run capture
+// silently missing a section rather than printing one twice.
+if (!graph && !denominator && !matrix && !traffic && !cluster && !vector && !storm && !pathSource
+    && !loop)
 {
     graph = true;
     denominator = true;
@@ -75,6 +83,7 @@ if (!graph && !denominator && !matrix && !traffic && !cluster && !vector && !sto
     cluster = true;
     vector = true;
     storm = true;
+    loop = true;
 }
 
 // Read before any work and again after all of it, so the contention block at the foot of the report
@@ -89,6 +98,7 @@ string report =
     + (cluster ? ClusterReport.Run() + Environment.NewLine : string.Empty)
     + (vector ? VectorReport.Run() + Environment.NewLine : string.Empty)
     + (storm ? StormReport.Run() + Environment.NewLine : string.Empty)
+    + (loop ? LoopReport.Run() + Environment.NewLine : string.Empty)
     + (pathSource ? StormReport.RunPathSource() : string.Empty);
 
 report += Environment.NewLine + "---" + Environment.NewLine + Environment.NewLine

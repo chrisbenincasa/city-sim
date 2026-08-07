@@ -156,6 +156,110 @@ internal static class Congestion
     }
 
     /// <summary>
+    /// <c>volume / capacity</c> for one arc against a <b>caller-supplied live</b> volume column, with
+    /// no ceiling applied. This is <b><c>Aggregate.Ratio</c>'s quantity</b>, unclamped.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The denominator is <c>capacity × free-flow time</c> and not the bare capacity</b>, because
+    /// a live volume column counts Travellers <i>present</i> while capacity is a flow. That makes
+    /// this the same <c>v/c</c> R2b published a threshold crossing on, which is the point: two
+    /// numbers that share a name must share a definition.
+    /// </para>
+    /// <para>
+    /// <b>Additive, and it deliberately does not share an implementation with <see cref="Ratio"/>.</b>
+    /// R1's asymmetry figures and R2's crossover are computed through that method against the
+    /// synthetic demand field and are already recorded in <c>docs/spike-results.md</c>; folding R8's
+    /// fleet into the same code path is how a published number moves without anyone deciding it
+    /// should. The capacity arithmetic is repeated here rather than extracted for exactly that
+    /// reason, and the duplication is the cheaper mistake.
+    /// </para>
+    /// <para>
+    /// <b>The ceiling is off because R8's oscillation metric is taken over precisely the arcs most
+    /// likely to be sitting on it.</b> A clamped reading on a saturated arc is constant by
+    /// construction, so an amplitude computed over the busiest volume indices would read zero whether
+    /// the network was still or thrashing — an instrument that cannot move, which this spike has
+    /// already shipped three times. <see cref="LiveRatio"/> puts the ceiling back for the arcs that
+    /// feed BPR, which is the one place it means something.
+    /// </para>
+    /// <para>
+    /// Divided through <c>IntegerMath.FloorDiv</c> in <c>long</c> rather than through
+    /// <c>Fixed.Div</c>. Same quotient, and it does not throw when a jam puts the ratio past
+    /// Q16.16's ±32,768 — a harness that dies on the reading it exists to take reports nothing at all.
+    /// </para>
+    /// </remarks>
+    public static int LiveRatioUnclamped(RoadGraph graph, int arc, int[] volume)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+        ArgumentNullException.ThrowIfNull(volume);
+
+        // Capacity is a FLOW and this volume column is a COUNT, so the two need reconciling before
+        // they may be divided — `Aggregate.Ratio`'s argument, arrived at here for the same reason.
+        // Vehicles that can be *present* is the flow times how long a vehicle stays, and that
+        // product is the denominator. An earlier draft of this divided by the bare flow because the
+        // private `Ratio` does, which is correct there — that method reads a demand field deposited
+        // as a share of capacity, not a count of Travellers — and wrong here by the free-flow factor.
+        // Two figures sharing the name `v/c` and differing by 13% is how a corpus acquires a
+        // contradiction nobody can find later.
+        int free = graph.ArcCarTicks[arc];
+        if (free == RoadGraph.Impassable || free <= 0)
+        {
+            return 0;
+        }
+
+        int flow = graph.SegmentCapacity[graph.ArcSegment[arc]];
+        if (graph.Parameters.VolumeScope == VolumeScope.PerDirection)
+        {
+            flow = IntegerMath.ShiftRight(flow, 1);
+        }
+
+        // Free-flow traversal time, never the congested one. A congested denominator grows as the
+        // Segment jams — more vehicles fit because each stays longer — so a jam would partly hide
+        // itself in the very reading built to detect it.
+        int capacity = Fixed.Mul(flow, free);
+        if (capacity <= 0)
+        {
+            return 0;
+        }
+
+        long ratio = IntegerMath.FloorDiv(
+            IntegerMath.ShiftLeft((long)volume[graph.VolumeIndex(arc)], Fixed.FractionalBits),
+            capacity);
+
+        return ratio > int.MaxValue ? int.MaxValue : (int)ratio;
+    }
+
+    /// <summary>
+    /// <see cref="LiveRatioUnclamped"/> under <see cref="MaximumVolumeCapacity"/>'s ceiling — the
+    /// ratio <see cref="Delay"/> is entitled to read.
+    /// </summary>
+    public static int LiveRatio(RoadGraph graph, int arc, int[] volume)
+    {
+        int ratio = LiveRatioUnclamped(graph, arc, volume);
+        return ratio > MaximumVolumeCapacity ? MaximumVolumeCapacity : ratio;
+    }
+
+    /// <summary>
+    /// One arc's congested traversal time against a live volume column, Q16.16 Ticks, or
+    /// <see cref="RoadGraph.Impassable"/>.
+    /// </summary>
+    /// <remarks>
+    /// The body of <see cref="CarTicks"/>'s loop, reading a volume column somebody else is writing
+    /// rather than one this class deposited. That is the whole of what R8 changes about the cost
+    /// basis: <b>the array the router reads is the array the fleet is filling in</b>, which is the
+    /// closed loop every earlier task in this spike deferred.
+    /// </remarks>
+    public static int LiveCarTicks(RoadGraph graph, int arc, int[] volume, int alpha)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+
+        int free = graph.ArcCarTicks[arc];
+        return free == RoadGraph.Impassable
+            ? RoadGraph.Impassable
+            : Fixed.Mul(free, Delay(LiveRatio(graph, arc, volume), alpha));
+    }
+
+    /// <summary>
     /// Deposits the demand field into a volume column, <b>accumulating</b> rather than assigning.
     /// </summary>
     /// <remarks>

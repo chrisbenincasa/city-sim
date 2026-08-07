@@ -96,6 +96,7 @@ for arg in "$@"; do
         --vector)  SECTIONS="${SECTIONS}+r4" ;;
         --storm)   SECTIONS="${SECTIONS}+r5" ;;
         --path-source) SECTIONS="${SECTIONS}+r55" ;;
+        --loop)    SECTIONS="${SECTIONS}+r8" ;;
     esac
 done
 SECTIONS="${SECTIONS:-+all}"

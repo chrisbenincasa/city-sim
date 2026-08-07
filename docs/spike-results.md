@@ -3811,3 +3811,394 @@ otherwise read as contradictory.
   capture and a later one displaced it in turn. **A published absolute with no artefact behind it is
   not a measurement**, and the corpus was carrying six of them. The harness now names every capture
   by section, CPU set and capture time, and never overwrites.
+
+---
+
+## S2 R8 — the congestion loop, and the finding that outranks it
+
+> `plans/0010-s2-routing.md` R8. Raw capture in
+> `spikes/S2.Routing/results/s2-r8-…-performance-turbo-cpu2+8-20260807T204634Z.md`.
+> **All seven sections, R8.0 through R8.6.** The structure under test is
+> [`adr/0046`](adr/0046-a-driver-routes-on-habit-sight-and-temperament-never-on-current-cost.md),
+> written the same session and settling **no parameter** — R8 produces the five numbers it names.
+> **Two sections were not in the plan**: R8.0, *the load this network carries*, exists because the
+> first build inherited R2's fleet size and measured a gridlocked network; and R8.4's second half,
+> *is the herd killed by the threshold or by the variation*, exists because the first answer was a
+> siting artefact.
+
+**Every figure S2 published before this ran on a frozen cost basis.** R1's matrix, R2's ladder, R3's
+hierarchy, R4's protocols and R5's storm all route over an arc-cost array computed once and never
+moved. The storm invalidates a route because a road was **bulldozed**; nothing in this spike had ever
+invalidated one because a road got **busy** — and under `adr/0041` the volume column moves every
+Tick. R8 closes the loop on both sides: fleet volume → live BPR cost → *both* the Sight decision at
+each crossing *and* the traversal time the Traveller is charged → volume.
+
+### The finding, before anything else — the network runs out of routes, not road
+
+**At 12.98% of this network's holding capacity, 87.25% of all traffic is on the busiest one per cent
+of its road and 90.87% of it is carrying nothing.** The median volume index reads 0.00 and so does the
+ninetieth percentile.
+
+**Capacity is not the culprit, and the derivation says so cleanly.** A Street is 3,600 veh/h
+whole-Segment — 1,800 per direction — which at 50 km/h free-flow puts 9.21 vehicles on a 128 m Segment
+at `v/c = 1`, one every ~28 m, a **two-second headway**. That is the textbook saturation headway for
+an urban lane. The network holds **308,016 vehicles** at `v/c = 1` everywhere and turns over at
+40,000, which is **71.42%** of S4's derived 56,000-vehicle Day average and 23.52% of the top of the
+peaking band.
+
+**So it is neither of the two answers the question was framed around.** The network does not run out
+of road; it runs out of **routes**. `Habit` is a single shortest-path tree on free-flow costs, one per
+District, so every Traveller bound for a District follows the same tree into the same representative.
+**There is exactly one route per (node, District) pair in the entire model**, and no amount of empty
+parallel carriageway can be reached from it.
+
+Three consequences, and each lands somewhere different.
+
+**It is decision 11 arriving from a third side, and it moves the axis.** R2 measured the representative
+**funnel** at 412% `v/c`. R8 went looking for it inside a closed loop and **could not make it bind**:
+excluding the one-hop funnel, and then a four-Segment convergence zone, gives readings identical to
+the printed digit at every rung of the load sweep — `v/c` p99 of 1.18, 1.18 and 1.29, maxima of 64.34,
+64.34 and 64.34. The reason is arithmetic and it is the honest one: **only destinations converge**
+under this O-D model, origins are scattered real nodes, and arrivals divide across every non-empty
+District. R2's 412% was measured with **both** endpoints pinned, which is a harsher query shape.
+**The binding term is not the node where routes converge, it is the tree upstream of it** — and
+decision 11 has been argued as a question about *how many access nodes a District exposes*. A District
+with a hundred access nodes still has one shortest-path tree per destination. **That is a different
+fix from the one the question has been asking for.**
+
+**It is why there may be no good operating load, and the sweep answers that rather than leaving it to
+be inferred.** Two terms, given numbers before the sweep ran: *congested* is p99 over occupied indices
+reaching free-flow saturation (1.00); *resolvable* is fewer than 10% of top-64 readings past the BPR
+clamp. **No rung is both.** The largest resolvable rung is 5,000, where p99-occupied is 0.42 — not
+congested in any sense the statistic can see. The smallest congested rung is 20,000, where 78.12% of
+top-64 readings are already past the clamp. **Under a District-granular free-flow tree there is no
+load at which this network is both congested and resolvable**, and the concentration is what closes
+the gap: the traffic is on one per cent of the road, so the busiest arcs pass the clamp long before
+the network as a whole has anything worth calling congestion on it.
+
+**It is a fourth defect for session M, and it is not a cost.** M has been choosing between a maintained
+next-hop table and a cached route on structural error and temporal error, with R8.6 adding diversion
+cost as a third. This is the fourth and it is in the same column as the first three: **a maintained
+free-flow table does not merely go stale, it concentrates.** The table's error is not distributed over
+the fleet, it is **correlated across all of it**, and the correlation presents as a saturated skeleton
+beside an empty network. A route cache does not get this for free either — it depends on what seeded
+the routes — but a scheme that gives a Traveller more than one candidate route to begin with is the
+only kind that can.
+
+**Two limits on how far this travels**, both stated in the capture. It is a **synthetic grid** whose
+Arterials were placed to be severable rather than to carry a city, and it runs **one Traveller per
+Trip with no departure-time spread**, so the whole fleet is on the road at once. Both make
+concentration worse than a real city's. **Neither is capable of making an empty network look full**:
+the zero-volume share is a direct reading and depends on neither.
+
+### R8.1 — the actionable-junction distance, and it needs no traffic
+
+`adr/0046` makes this the one routing parameter whose lower bound is **derivable rather than tuned**,
+so it is derived before any behavioural argument runs. For every arrival — a node *and* the arc
+arrived by, because whether a node is a choice depends on how you reached it — the distance to the
+nearest node with at least two onward car arcs once the way back is discounted.
+
+| Distribution over | Count | At distance 0 | p50 | p90 | max |
+|---|---:|---:|---:|---:|---:|
+| arrivals, Segments | 64,103 | **98.02%** | 0 | 0 | 5 |
+| arrivals, free-flow Ticks | 64,103 | 98.02% | 0.00 | 0.00 | 10.60 |
+| nodes, worst arrival, Segments | 16,660 | 96.24% | 0 | 0 | 3 |
+
+**The floor is 1 Segment**, taken at the p90 of the arrival distribution rather than the median —
+a horizon set at the median is structurally useless to half the crossings in the city. `adr/0046`'s
+claim that *a Sight Horizon of one is actionable* is **not refuted at either quantile.**
+
+**This is the graph's answer and not the driver's**, and it weights a cul-de-sac nobody uses as
+heavily as the arterial ramp the whole city crosses. R8.3's *no-alternative* column is the same
+finding weighted by where drivers actually are — **2.41% of crossings at N = 1** — and neither may be
+published without the other.
+
+### R8.0 — the load, and the criterion that had to be stated before the sweep
+
+**The first build inherited R2's 40,000 Travellers on the grounds that figures should be comparable,
+and that was the wrong reason**: R2 was pricing attribution and did not care whether the network was
+gridlocked. With live residuals and BPR at `β = 4`, an arc at the clamp costs **39.4×** free-flow, so
+its Travellers dwell 39× longer, so its volume rises further. That is positive feedback and it pins at
+the clamp from any load high enough to reach it.
+
+Nine rungs at Horizon 0 — no routing response at all, so what is measured is the network and the
+physics and nothing else.
+
+| Travellers | v/c p99 | p99 occupied | max | Zero-volume | Mean v/c, top-64 | Past the clamp | Arrivals/Tick | Mean journey |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1,000 | 0.09 | 0.20 | 0.62 | 97.89% | 0.04 | 0.00% | 13.86 | 71.74 |
+| 3,500 | 0.12 | 0.42 | 1.25 | 93.83% | 0.15 | 0.00% | 48.07 | 71.72 |
+| 5,000 | 0.20 | 0.42 | 25.39 | 92.67% | 1.30 | 6.25% | 59.35 | 83.40 |
+| 10,000 | 0.20 | 0.85 | 41.77 | 91.00% | 7.21 | 39.06% | 83.11 | 113.90 |
+| 20,000 | 0.42 | 18.00 | 52.51 | 91.12% | 14.01 | 78.12% | 95.96 | 144.28 |
+| **40,000** | **1.18** | **25.17** | 64.34 | 90.87% | 18.30 | 81.25% | 119.38 | 162.75 |
+| 80,000 | 10.07 | 31.89 | 82.14 | 90.40% | 24.01 | 84.43% | 145.19 | 175.06 |
+
+**The loop converges. It does not run away, at any load, including 80,000** — every rung reaches
+steady state on the two-window test. The system is closed, so dwell-time feedback redistributes rather
+than diverges, and **throughput self-limits**: 80× the load buys 10.5× the arrivals while mean journey
+time goes 71.74 → 175.06 Ticks. That is the dwell-time feedback doing exactly what it should.
+
+**The two criteria disagreed, and the capture reports at both loads rather than at the one that
+suits it.** The stated p99 criterion selects **40,000**; the retired clamp-share criterion selects
+**5,000**. The stated one governs, as written — and then the capture records its defect where it
+happened rather than retuning it: **p99 is taken over every car-carrying index and 90.87% of them are
+empty**, so it looks *past* the jam and selects a load at which 81.25% of top-64 readings are past the
+clamp, which is the exact condition R8.0 exists to prevent. R8.3's Horizon sweep is therefore repeated
+in full at 5,000. **The answer is the same at both loads**, which is the more comfortable of the two
+outcomes and the less interesting one: R8.0's disagreement changed what the section reports and not
+what it concludes.
+
+### R8.3 — the Sight sweep, and the column that is more persuasive than the tripwire
+
+Temperament spread 0, uniform rung, 40,000 Travellers.
+
+| N | v/c p99 | p99 occupied | Mean v/c, top-64 | **Past the clamp** | Diversions/Tick | No alternative | Refresh ns/Tick | Sight ns/Tick | of 15.6 ms |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 0.96 | 23.43 | 22.96 | **92.18%** | 0.00 | — | 1,551,234 | — | — |
+| 1 | 1.73 | 16.48 | 15.64 | 83.30% | 1,269.51 | 2.41% | 1,487,143 | 881,328 | 5.64% |
+| 2 | 3.14 | 13.01 | 10.34 | 51.95% | 4,887.31 | 1.82% | 1,487,378 | 2,011,637 | 12.89% |
+| 8 | 3.35 | 6.93 | 5.82 | **40.56%** | 6,722.03 | 1.69% | 1,521,764 | 4,504,834 | 28.87% |
+| 32 | 2.48 | 5.75 | 5.46 | 50.99% | 7,313.80 | 0.94% | 1,522,492 | 12,233,900 | 78.42% |
+
+**The most persuasive number here is not the one the tripwire reads.** The share of readings past the
+BPR clamp falls **92.18% → 40.56%**. Past that ceiling the delay multiplier is constant and the router
+cannot tell a bad jam from a catastrophic one, so **Sight is pulling the busiest arcs out of the region
+the congestion model is structurally blind inside** — more than halving it. That is `adr/0046`'s middle
+layer doing exactly what is claimed for it, measured on the one column that cannot be argued about.
+**It is not substituted for the wire**: the wire says p99 and p99 is what it is scored on.
+
+**`Refresh` is a finding on its own and at this load it is the dominant one.** Recomputing the live
+cost array is `O(arcs)`, costs **more than the entire traveller loop at every Horizon below 8**, and is
+**flat in fleet size** — so it does not get better at 1M, it only gets relatively cheaper against work
+that grows. **The conclusion is not that the sweep is expensive; it is that a sweep is the wrong
+shape.** Under `adr/0041` volume is written by Travellers entering and leaving arcs, so the set of arcs
+whose cost moved in a Tick is exactly the set somebody crossed — a few hundred, not 66,036 — and it is
+already enumerated by the loop that caused it. A per-Tick VDF sweep recomputes a number that did not
+change for roughly ninety-nine arcs in a hundred, which is the same shape of mistake as diffusing a Map
+Layer nothing has touched. **Whatever ships must update the arcs the Tick wrote and leave the rest
+alone.** A staggered cadence would bound the cost and would also make a driver's Sight depend on which
+stagger bucket the arc in front of him fell into — `adr/0044`'s hash-bearing problem arriving in the
+routing layer.
+
+**`v/c` does not fall monotonically in `N`, on either the conditioned or the unconditioned ladder**,
+so the explanation is not an artefact of the statistic. BPR at `β = 4`, `α = 0.15`, clamped at 4.00
+makes one saturated arc **39.4×** its free-flow time — a Street that runs in 0.87 Ticks runs in 34,
+against a mean journey of order 80. **So a lookahead of even two arcs can put more live cost in front
+of a driver than the free-flow remainder behind it**, the detour is charged at free-flow and looks
+cheap, and `N` stops behaving like a monotone knob. That is what a live-versus-lagged comparison does
+when the live half is bounded only by the clamp and the lagged half is not bounded at all, and it is a
+constraint on the base threshold that **nothing in `adr/0046` anticipates.**
+
+### R8.4 — what a threshold is a threshold *on*
+
+**78.35% of decisions are offered an improvement of exactly zero** — an alternative existed, was
+scored, and lost. Not small: **zero**, and the explanation is structural. Habit is a shortest-path tree
+on free-flow costs, so at every node the habit arc is **optimal by construction and was optimal before
+any Traveller moved**. An alternative is by definition off the tree and pays a free-flow penalty
+immediately and in full. Both branch scores carry a free-flow remainder computed from that same tree,
+so **an alternative can only win when live congestion on the first `N` arcs exceeds the penalty of
+leaving the tree.** Below that the comparison is decided by arithmetic congestion never enters.
+
+Cross-checked against a different column: only **2.41%** of crossings had *no surviving alternative at
+all*. *Nowhere to go* and *nowhere better to go* are different things with different consequences, and
+both are printed.
+
+**The consequence is the useful part: Sight fires rarely, and that is what makes it affordable.**
+243,747 diversions from 1,730,568 crossings — **14.08%**, against a 21.64% ceiling. **R8.6's per-Tick
+bill must multiply the cost of one re-search by the diversion rate and not by the crossing rate**; a
+reader who assumes every crossing re-plans overstates Sight by more than an order of magnitude.
+
+**And there is a sting in it.** The same structure that makes Sight cheap is the structure R8.0 found
+concentrating the fleet: **one free-flow tree per District is both why alternatives rarely win and why
+there is congestion for them to win against.** Sight is relieving a jam its own null hypothesis
+created, using a score that null hypothesis anchors. That is not an argument against `adr/0046` — it is
+why Habit is named a *layer* and not a *baseline* — but the ~21.64% fire rate is a property of
+District-granular routing and must not be carried to any scheme that gives a Traveller more than one
+candidate route.
+
+#### Is the herd killed by the threshold, or by the variation?
+
+**Temperament read REFUTED twice before it read true, and both refutations were siting artefacts.**
+The positive control herds at 7.51 and every swept rung sat two orders below it — **a switch, not a
+gradient** — which raises a question the sweep as sited could not answer: *where did it happen?*
+
+| Base threshold | Quantile | Oscillation | Synchrony | Diversions/Tick |
+|---:|---|---:|---:|---:|
+| 0.000000 *(positive control)* | — | **7.51** | 8.02% | 9,337.50 |
+| 0.000976 | p10 | **6.41** | 7.46% | 7,879.46 |
+| 0.031250 | p25 | **9.87** | 10.08% | 4,841.93 |
+| 0.125000 | p50 | **0.55** | 4.72% | 1,193.21 |
+| 0.500000 | p90 | 0.46 | 3.05% | 885.15 |
+
+**A threshold damps** — 9.87 → 0.46, a factor of **21.22×** against a bar of four stated beforehand.
+**And the transition is inside the ladder, not at its first step**: the smallest non-zero base still
+reads 6.41, the same order as the positive control. The herd survives a small threshold and dies at a
+larger one.
+
+**The spread ladder had been sited at the improvement distribution's median — which is past the
+transition.** It swept Temperament through a regime where the base threshold had already killed the
+herd, and read flat for that reason. Re-sited at the non-zero base with the *highest* measured
+oscillation, blend held at 0.50:
+
+| Spread, of base | Oscillation | Synchrony | Effective arcs | Diversions/Tick |
+|---:|---:|---:|---:|---:|
+| 0.00 | **9.87** | 10.08% | 25.60 | 4,841.93 |
+| 0.06 | **0.63** | 5.29% | 49.31 | 3,991.98 |
+| 0.12 | 0.65 | 7.96% | 37.89 | 3,687.55 |
+| 0.25 | *5.71* | *15.38%* | *17.00* | *6,051.57* |
+| 0.50 | **0.76** | 6.61% | 53.46 | 2,651.13 |
+
+**Per-Citizen variation damps where there is something to damp**: 9.87 → 0.76, **92.28%** against a
+25.00% bar. `adr/0046`'s third layer is **not refuted**, its mechanical justification survives, and it
+does not collapse to a single Ruleset number.
+
+**The 0.25 rung was tested rather than shrugged at**, because three independent columns moved together
+on it — synchrony highest in the report, effective arcs lowest, diversions up — which is the signature
+of a real herd rather than a noisy amplitude. The rule was stated before reading: a property of the
+*spread* must survive a change of *blend*. Re-measured at the two blend weights the ladder did not use,
+it returned 0.86 and 0.65. **It survived 0 of 2**, so it is one noisy rung and the net-fall reading is
+the honest one. It is recorded rather than removed.
+
+**The wire is scored as written and REFUTED.** `plans/0010` states it on **monotonicity**; the first
+three rungs read 9.87, 0.63, 0.65 and that is non-monotone. It is not softened and the net fall is not
+offered in its place. **Beside it, an argument that does not depend on how the ladder fell**: the two
+blend rows above were measured at *one* spread with nothing else changed and returned 0.86 and 0.65 —
+**a 0.20 floor on what this instrument resolves between adjacent rungs**, established by a measurement
+taken for another purpose. The step that breaks the wire is **0.02**. *A monotonicity test over values
+the instrument cannot separate is not a test*, and that holds whichever way they had fallen.
+
+### R8.5 — `03 §3.4`'s loop closes, and it is the claim `adr/0046` is most exposed on
+
+**The version that ran in the previous build could not answer the question, and the reason was in the
+harness.** It retargeted 40% of the fleet at one District and watched the network recover — and it
+recovered, five times of five, at Horizon 0 as reliably as under Sight. This fleet respawns a Traveller
+the instant it arrives, so a one-off retarget is **a pulse with a half-life of one journey**, and any
+system at all recovers from a pulse it stops receiving. **Control and Sight settling identically was
+not a null result; it was no result.**
+
+**Sustained now**: 40% of every respawn for the whole 640-Tick window, which is R1's monocentric
+morning peak as it actually behaves — people keep leaving for the centre for hours. **And that changes
+the shape of the question**: not *does it recover* but **does it reach a bounded steady state, and at
+what level.** The rule was stated before the run and not touched after, on p99 over *occupied* indices,
+across five destination Districts.
+
+| Rung | Bounded | Settling level, min | median | max | Median over pre-surge |
+|---|---:|---:|---:|---:|---:|
+| control, N=0 | **5 / 5** | 24.70 | **27.62** | 39.48 | **+16.83%** |
+| Sight, N=1 | **5 / 5** | 15.01 | **15.84** | 17.45 | **−26.50%** |
+
+**Both bound, and Sight settles 42.62% below the control against a 5.00% bar.** The control settles
+*above* its own pre-surge level and Sight settles *below* it. **`03 §3.4`'s self-correction closes with
+only the local layers reading the VDF** — tested under a demand asymmetry that does not go away,
+against a control carrying identical physics and no ability to respond. **So static Habit survives as
+the null hypothesis**, and with it the whole maintenance question stays shut: no refresh cadence, no
+hash-bearing number, and R4.6's incremental-versus-rebuild break-even does not select an algorithm.
+
+**The caveat runs in the safe direction, which is unusual enough to state.** 4 of 5 control runs and 0
+of 5 Sight runs reached their highest sample inside the last quarter of the window, so the control may
+still be climbing and its settling level is a **lower bound** — which *understates* the control's
+plateau and therefore Sight's advantage. A longer window widens the gap rather than closing it.
+
+**One limit, stated because it bounds the conclusion either way.** The surge is sustained on the
+**destination only** — everybody heading for one District rather than everybody leaving one place for
+it. A real morning peak is asymmetric at both ends, and R2's 412% was the both-ends shape. This is the
+milder one and its result is a lower bound on how hard a real peak would press.
+
+### R8.6 — what a diversion costs, by path source
+
+At N = 1, uniform, 40,000 Travellers, **1,269.51 diversions per Tick** measured in R8.3. 512 of 512
+re-searches found a route. It does **not** go through `HpaSearch`, whose pristine-seeding defect R5.5
+found and R6 owns.
+
+| Path source | Per diversion | × diversions/Tick | of 15.6 ms |
+|---|---:|---:|---:|
+| next-hop table read | **391 ns** | 496,380 ns | **3.18%** |
+| flat A\* over live costs | **485,507 ns** | 616.35 ms | **3,951%** |
+
+**This is the third axis session M is owed** — structural error, temporal error, and now diversion
+cost. Sight makes a mid-journey re-decision **routine rather than exceptional**, so a path source's
+diversion cost stops being a footnote and becomes a per-Tick bill that scales with how congested the
+city is. R7 states the verdict; R8 decides nothing on its own.
+
+### The tripwires, and each one's verdict
+
+| # | Tripwire | Verdict | Reading |
+|---:|---|:-:|---|
+| 1 | Sight lowers p99 `v/c` against the control | **FIRED** | 1.73 against 0.96, at N = 1 |
+| 1a | *Advisory, stated after the numbers and scoring nothing*: the same wire over **occupied** indices | would pass | 16.48 against 23.43 |
+| 2 | The instrument is connected | **PASS** | mean `v/c` 22.96 → 15.64, 31.87%; control diversions 0 |
+| 3 | Conservation, every Tick, every rung | **PASS** | 0 volume, 0 unplaced, 0 bounded, over **42 rungs** |
+| 4 | Steady state established, never assumed | **FIRED** | 2 of 42 rungs outside 25%, each marked in its own table |
+| 5 | Sight's cost measured, never derived | **PASS** | `Move(N) − Move(0)`; `Refresh` timed separately |
+| 6 | Every table names its O-D rung and its load | **PASS** | |
+| — | Temperament damps — amplitude falls **monotonically** in spread | **REFUTED** | scored as written; the instrument's resolution floor is 0.20 and the breaking step is 0.02 |
+| — | *A different statistic, beside it and never in its place*: the **net fall** | **damps** | 9.87 → 0.76, 92.28% against a 25.00% bar |
+| — | Sight is a mechanism — p99 `v/c` falls with `N` | **non-monotone** | on both ladders; see R8.3 |
+| — | **`03 §3.4` closes under sustained demand with only the local layers** | **not refuted** | both bound; Sight 42.62% lower |
+
+**Tripwire 1 fired on a redistribution, and that is the finding rather than an embarrassment.** p99
+went *up* while the mean over the busiest 64 went *down*, and so did the same quantile over indices
+carrying anything, and so did the clamp share, and so did journey time. All are true and they describe
+one behaviour: **Sight takes load off an extreme tail and puts it onto arcs that were carrying
+nothing.** A percentile of a population that is nine parts empty **must** rise the moment previously
+empty arcs start carrying traffic. **A router that spreads a jam over more road cannot avoid raising an
+unconditioned middling quantile — that is what spreading is.**
+
+**Beside it sits an argument about the instrument that does not depend on the outcome**, which is what
+separates this from reasoning around a wire that fired: across the seven rungs of the cross-load
+Horizon sweep the unconditioned p99 takes **one distinct value**, against five for the conditioned one.
+That is checkable by inspecting the ladder without knowing what any rung did. **It does not unfire the
+wire; it bounds what the wire is evidence of.** A fourth version belongs in R8's successor and should
+read the **share past the clamp** — the only column that is a statement about whether the model can
+still see what it is simulating.
+
+### The lesson R8 produced three times, and it is an addition to `adr/0043`
+
+**A maximum over 33,018 volume indices** was chosen before anyone knew the distribution was nine parts
+empty. **An unconditioned p99** was chosen before anyone knew the same thing. **A monotonicity test**
+was chosen before anyone knew the response was a cliff — the first spread rung alone carries a factor
+of 15.59× and everything after it is flat inside the noise.
+
+**Each was a statistic chosen before the shape of what it would measure was known**, and each survived
+into a published wire because nothing in the process asks that question. `adr/0043` requires a claim a
+measurement could settle to **name the number that would refute it**. R8 adds a second requirement:
+**name the shape you expect, because a number read off the wrong shape is not evidence.** A wire should
+be re-derived once the first measurement shows what the response looks like, and the re-derivation
+**stated and scored separately rather than swapped in**.
+
+**And a siting lesson beside it, which is the most transferable thing here.** The spread ladder was
+sited at the **median of the measured improvement distribution** — a defensible choice made precisely
+to avoid sweeping around a number nobody had grounded, and R3's denominator rule applied correctly.
+It still put every rung past the transition. ***A sweep across a measured distribution is not
+automatically a sweep across the regime the mechanism operates in.*** Measuring the denominator is
+necessary and it is not sufficient; siting a sweep means locating the **regime**, which means finding
+the transition first.
+
+### What R8 decided, and what it did not
+
+- **Settled: `03 §3.4`'s self-correction closes with only the local layers reading the VDF**, under a
+  sustained asymmetry, 42.62% below a control with identical physics. **Static Habit survives as the
+  null hypothesis** and the refresh-cadence question stays shut — no maintenance scheme, no
+  hash-bearing cadence, and R4.6's break-even does not select an algorithm after all.
+- **Settled: the Sight Horizon's floor is 1 Segment**, derived from the graph with no traffic, at the
+  p90 of the arrival distribution. 98.02% of arrivals are already at a node with a real choice.
+- **Settled: Temperament damps**, by 92.28% where a herd exists, on an instrument shown able to
+  separate a maximal-herd positive control from every swept rung. **The wire stated on monotonicity is
+  REFUTED as written** and the two readings stand side by side.
+- **Settled: a stored route cannot afford Sight.** 3,951% of the Tick budget against 3.18% for a
+  next-hop read. Session M's third axis.
+- **Not settled, and it outranks the rest: what to do about the tree.** 87.25% of traffic on 1% of the
+  road is a property of District-granular free-flow routing, not of the city, and no rung of the load
+  sweep is both congested and resolvable. **This is decision 11 on a different axis** and it is not
+  S2's to take.
+- **Owed to `03 §3`: nothing guarantees Sight and Promotion read the same congestion quantity.** Sight
+  reads live `v/c` at a junction; Stress drives Promotion. If they diverge the city routes around a jam
+  it never promotes, which is `01 §7`'s contradiction rule arriving between two parts of the simulation
+  rather than between the simulation and a panel.
+- **Owed: the `Refresh` sweep must become incremental.** `O(arcs)` per Tick, flat in fleet size, costing
+  more than the entire traveller loop. The arcs whose cost moved are already enumerated by the loop that
+  moved them.
+- **Owed: four Ruleset numbers remain unset** — Sight Horizon above its floor, base Temperament
+  threshold, base/jitter blend weight, Habit refresh cadence (provisionally infinite, and R8.5 is why).
+  **R8 reports curves and chooses none of them**, exactly as R1 did for the District count.

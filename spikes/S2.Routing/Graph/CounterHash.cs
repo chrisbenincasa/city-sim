@@ -52,6 +52,21 @@ internal static class CounterHash
         OdAccept = 16,
         EditSegment = 17,
         GestureOrigin = 18,
+
+        // adr/0046: "Two new purpose tags, TemperamentBase and TemperamentJitter, and the base's
+        // counter is fixed rather than the Tick. Folding them into one would correlate a Citizen's
+        // character with its mood, which is the correlation the whole layer split exists to avoid."
+        TemperamentBase = 19,
+        TemperamentJitter = 20,
+
+        // R8's origin-destination pool draw. A pool index, not a District — see SightFleet.
+        LoopPair = 21,
+
+        // R8.5's sustained surge: whether a respawning Traveller is drawn into the surged District
+        // rather than from the pool. Distinct from LoopPair because it decides a *different thing*
+        // about the same Traveller in the same Tick, and sharing the tag would make the two
+        // decisions perfectly correlated — the surge would always capture the same pool indices.
+        SurgeDraw = 22,
     }
 
     public static ulong Of(ulong seed, ulong entity, ulong counter, Purpose purpose) =>

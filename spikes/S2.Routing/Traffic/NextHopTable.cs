@@ -103,6 +103,18 @@ internal sealed class NextHopTable
     private readonly int _nodes;
 
     private readonly int[] _nextArc;
+
+    /// <summary>
+    /// Settled free-flow cost from each node to each District, or <c>null</c> when nobody asked.
+    /// </summary>
+    /// <remarks>
+    /// <b>Retained only on request, because it doubles the table.</b> R2 and R4 publish this
+    /// structure's resident size and the DSDV memory tripwire divides by it, so making every caller
+    /// pay for R8's array would move a figure the corpus has already read. See
+    /// <see cref="DistanceOf"/> for what R8 needs it for.
+    /// </remarks>
+    private readonly int[]? _distance;
+
     private readonly int[] _cost;
     private readonly int[] _touched;
     private readonly int[] _closed;
@@ -112,7 +124,7 @@ internal sealed class NextHopTable
     private int _heapCount;
     private int _generation;
 
-    private NextHopTable(RoadGraph graph, ReverseArcs reverse, int districts)
+    private NextHopTable(RoadGraph graph, ReverseArcs reverse, int districts, bool retainDistance)
     {
         _graph = graph;
         _reverse = reverse;
@@ -129,13 +141,32 @@ internal sealed class NextHopTable
         _heapNode = new int[4096];
 
         Array.Fill(_nextArc, -1);
+
+        if (retainDistance)
+        {
+            _distance = new int[_nextArc.Length];
+
+            // Impassable rather than zero, so an unreached node reads as *no route* and not as
+            // *already there*. A zero fill here would make every District look adjacent to every
+            // node it cannot reach, which is a scoring bug that presents as a Traveller confidently
+            // diverting into a component it can never leave.
+            Array.Fill(_distance, RoadGraph.Impassable);
+        }
     }
 
     /// <summary>Nodes settled by the last backward search. The build's own work figure.</summary>
     public int NodesSettled { get; private set; }
 
     /// <summary><c>districts × nodes × 4 B</c>. The axis <c>adr/0006</c> would fail on first.</summary>
+    /// <remarks>
+    /// <b>The distance column is deliberately not in here.</b> R2 and R4 report this quantity and the
+    /// DSDV memory tripwire divides by it; adding a column R8 asked for would change a figure that
+    /// has already been read and argued over. See <see cref="DistanceResidentBytes"/>.
+    /// </remarks>
     public long ResidentBytes => (long)_nextArc.Length * sizeof(int);
+
+    /// <summary>What retaining the free-flow distances costs, or zero where they were not retained.</summary>
+    public long DistanceResidentBytes => _distance is null ? 0 : (long)_distance.Length * sizeof(int);
 
     /// <summary>
     /// The arc to take from <paramref name="node"/> toward <paramref name="district"/>, or <c>-1</c>
@@ -150,12 +181,51 @@ internal sealed class NextHopTable
     public int Of(int node, int district) => _nextArc[(district * _nodes) + node];
 
     /// <summary>
+    /// The settled cost from <paramref name="node"/> to <paramref name="district"/> under the arc
+    /// costs the table was built on, Q16.16 Ticks, or <see cref="RoadGraph.Impassable"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the lagged half of <c>adr/0046</c>'s model and R8 cannot score a branch without
+    /// it.</b> Sight compares the live cost of the next <c>N</c> arcs down two branches; two branches
+    /// that have travelled different distances are not comparable, and comparing the raw sums biases
+    /// the choice toward whichever branch happens to have shorter Segments. Adding the free-flow
+    /// remainder from where each lookahead ends makes them comparable — and it is exactly what
+    /// <c>adr/0046</c> describes, <i>"a live view of what is in front plus a lagged expectation of
+    /// the rest."</i>
+    /// </para>
+    /// <para>
+    /// <b>Also the reachability test the diversion filter needs</b>, and a better one than
+    /// <see cref="Of"/>: the arc at a District's own representative is <c>-1</c>, so a branch landing
+    /// exactly on the destination would read as unreachable through <see cref="Of"/> and be discarded
+    /// — the one alternative that cannot be wrong.
+    /// </para>
+    /// <para>
+    /// Throws where the table was built without distances rather than returning a plausible number.
+    /// </para>
+    /// </remarks>
+    public int DistanceOf(int node, int district) =>
+        _distance is null
+            ? throw new InvalidOperationException("table was built without distances")
+            : _distance[(district * _nodes) + node];
+
+    /// <summary>
     /// Builds the table: one backward Dijkstra per District, over the arc costs supplied.
     /// </summary>
+    /// <param name="retainDistance">
+    /// Keep each node's settled cost to each District as well as its first arc. Off by default, and
+    /// the default is what every caller before R8 gets — see <see cref="DistanceOf"/>.
+    /// </param>
     public static NextHopTable Build(
-        RoadGraph graph, ReverseArcs reverse, Districts districts, int[] arcTicks)
+        RoadGraph graph,
+        ReverseArcs reverse,
+        Districts districts,
+        int[] arcTicks,
+        bool retainDistance = false)
     {
-        var table = new NextHopTable(graph, reverse, districts.Count);
+        ArgumentNullException.ThrowIfNull(districts);
+
+        var table = new NextHopTable(graph, reverse, districts.Count, retainDistance);
 
         for (int district = 0; district < districts.Count; district++)
         {
@@ -184,6 +254,12 @@ internal sealed class NextHopTable
         _cost[target] = 0;
         _touched[target] = _generation;
         _nextArc[column + target] = -1;
+
+        if (_distance is not null)
+        {
+            _distance[column + target] = 0;
+        }
+
         Push(0, target);
 
         while (_heapCount > 0)
@@ -226,6 +302,14 @@ internal sealed class NextHopTable
 
                 // The arc that got us here backwards is, forwards, the first step out of `from`.
                 _nextArc[column + from] = arc;
+
+                // Written in step with the arc, so the two can never disagree about which route the
+                // distance belongs to. A node relaxed again before it closes overwrites both.
+                if (_distance is not null)
+                {
+                    _distance[column + from] = candidate;
+                }
+
                 Push(candidate, from);
             }
         }

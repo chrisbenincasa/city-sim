@@ -549,6 +549,23 @@ Because no Citizen record is ever collapsed or discarded, both directions are **
 **Traveller**
 A Citizen currently on a Trip. Transient, created on demand when travel is required and released on arrival. A Traveller on a Microscopic Segment is a real vehicle in a Lane queue; on a Statistical Segment it is an origin, a destination, and an arrival Tick.
 
+**Habit Route**
+The route a Traveller normally takes between two places, computed from a **slow-moving** cost basis and reused across many Trips. It is the road network's Provider List: `adr/0017`'s sticky incumbent, one actor class further on.
+
+A Habit Route is deliberately **out of date**. Nothing recomputes it because a road got busy — that is what Sight is for — and whether it needs to be refreshed at all is an open measurement rather than an assumption. See `docs/adr/0046`. `BOUNDED KNOWLEDGE`
+
+**Sight Horizon**
+How far ahead a Traveller can see live conditions: the number of Segments along the Habit Route whose current cost it reads before choosing which arc to take out of a junction. Beyond the horizon it falls back to its lagged expectation of the rest of the journey.
+
+**Its floor is a property of the Road Graph, not a preference.** A Traveller looking fewer Segments ahead than the distance to its next *branching* node receives a signal it cannot act on — it will still be committed to the corridor when it reaches the jam. This is the only routing parameter in the design whose lower bound is derivable.
+
+**Temperament**
+A Citizen's threshold for how much better an alternative must be before it is worth diverting to — `adr/0017`'s *"substantially better… by enough to be worth the bother"*, given a number at last.
+
+**A stable base plus per-decision jitter, and both halves are load-bearing.** The base is character and persists for life; the jitter is what kind of morning this is. Without the base nobody is ever *the sort of person who takes the back roads*; without the jitter the same driver takes the same decision on the same data every Day and the flow re-synchronises. Two `purpose_tag`s, never one.
+
+Temperament is what keeps congestion response from being a **herd**: an identical rule over an identical input diverts everybody at once, jams the alternative, and diverts everybody back for ever. It is the case where `UNIQUE INDIVIDUALS` is what makes the city *work* rather than what makes it interesting. `EMERGENCE`
+
 ---
 
 ## Movement

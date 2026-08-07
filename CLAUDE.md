@@ -33,7 +33,7 @@ makes the diffusion cadence **hash-bearing**, the **sixth claim in the corpus me
 first outside S2**. **That ADR then got its own second half wrong by argument** — it filed the cadence
 as world-creation-fixed while citing `adr/0015` without running the membership test `adr/0015` states,
 which the cadence fails and the kernel radius passes. Withdrawn and recorded rather than amended away;
-**citing an ADR is not applying it**. On the parallel spike track, **S2 R0 through R4 are done** — the synthetic
+**citing an ADR is not applying it**. On the parallel spike track, **S2 R0 through R5.5 are done** — the synthetic
 Road Graph and the denominator, the travel-time matrix, which **carries the choice loop**, the path
 source, which **revived the DSDV case rather than retiring it**, HPA\*, which **narrowed the
 pathfinding cluster to 8 or 16 Chunks a side without closing it, weakened its own standing** to 2.63×
@@ -44,7 +44,24 @@ by a scheme the plan never named (dynamic subtree repair, **4.71 ms** against **
 found that **S2's uniform origin-destination draw had been hiding a conclusion**: it is the
 longest-trip distribution available, and on a local-trip draw a District-granular route's detour goes
 from R2's 18.52% to **128.82%**, which under `05 §4` is a different city. The draw is now a swept
-family, which is what makes R6 runnable at all. `spikes/S2.Routing/` compiles the arithmetic substrate in by source
+family, which is what makes R6 runnable at all. **R5, the edit storm, is done through R5.5** — it fired a
+tripwire (a single-counter Epoch *is* a global flush), found **no Epoch rung both affordable and correct**
+across the whole core verb because addition is monotone-*improving* and per-Segment structurally cannot
+notice it, and then measured the way out: a **TTL rotation** at 0.40 forced refreshes per Tick clears the
+wrongly-valid count 38 → 0 while retaining 97.08%. It also **retired the shared District route on a number**
+and established that the two survivors are wrong in **different currencies** — structural against temporal —
+which is session M's question and not a benchmark's. **The whole spike so far ran on a frozen cost basis**:
+nothing in S2 has ever invalidated a route because a road got *busy*, only because one was bulldozed.
+`adr/0046` settles the structure that fixes this — **Habit, Sight and Temperament**, which is `adr/0017`'s
+satisficing rule reaching the one actor class nobody had applied it to — and sets no parameter.
+**R8 then measured it and all three layers survive**: `03 §3.4`'s self-correction closes on the local
+layers alone (Sight settles **42.62%** below a control under sustained demand), so **static Habit holds
+and there is no refresh cadence to argue about**; the Sight Horizon's floor is **1 Segment**, derived
+from the graph; Temperament damps by **92.28%** where a herd exists. **R8's largest finding is none of
+those.** *The network runs out of routes, not road* — **87.25% of traffic on 1% of the carriageway,
+90.87% of it empty, at 13% of holding capacity, with capacity confirmed realistic** — because one
+free-flow tree per District means one route per (node, District) pair in the whole model. That is
+**decision 11 on a different axis** and it is now the top item on the board. `spikes/S2.Routing/` compiles the arithmetic substrate in by source
 and can name nothing else of `Core`, so it has changed no simulation code. Task 7 shipped its instrument and **not** its trend assertion — nothing in
 the world churns yet, so the assertion would have been vacuous. It is owed by slice 7; the board's
 *Owed* section says how.
@@ -69,7 +86,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | 43 decision records, numbered to `0044` — `0028` is reserved and unwritten |
+| `docs/adr/` | 45 decision records, numbered to `0046` — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — done, next, unblocked, owed, blocked. A view over `0002` and `0003`, never a source |
@@ -208,6 +225,9 @@ dotnet run --project src/Borough.Headless
 | Target population | 10,000 first hour / 1,000,000 late game | sizing |
 | Tick budget | 15.6 ms at 4× speed | |
 | Microscopic Cap | **unset** | fixed world constant, still open |
+| Sight Horizon | **unset** | tuning, hot-reloadable. Its **floor** is a Road Graph property — the distance to the next node with a real choice — and S2 R8.1 derives it (`adr/0046`) |
+| Temperament base and spread | **unset** | tuning. Stable base plus per-decision jitter, two `purpose_tag`s. **The base/jitter blend weight has no argument behind it at all** and is the routing model's weakest number |
+| Habit refresh cadence | **unset**, provisionally **infinite** | static per world is the null hypothesis. **Hash-bearing if it is ever finite**; S2 R8.5 is what could refute it |
 
 ## Definition of done for any milestone
 
