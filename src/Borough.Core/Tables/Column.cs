@@ -54,6 +54,19 @@ public abstract class Column
 
     internal abstract void Fold(ref ulong hash, int slotCount);
 
+    /// <summary>Copies the live half over the write half, before a partial parallel write.</summary>
+    /// <remarks>
+    /// <b>Seeding rather than clearing, because a parallel phase is entitled to write only part of
+    /// the table.</b> Map Layer diffusion is incremental by design — it recomputes a halo and leaves
+    /// the rest alone (<c>02 §2.4</c>) — so an unseeded write half would swap in values from two
+    /// cycles ago everywhere the halo did not reach. That defect is invisible in one Tick and arrives
+    /// as a field flickering between two states, which reads as an art problem.
+    /// </remarks>
+    internal abstract void PrepareBack();
+
+    /// <summary>Makes the write half live. See <see cref="Rows.SwapBuffers"/>.</summary>
+    internal abstract void SwapBuffers();
+
     /// <summary>
     /// Whether this column holds a handle at <paramref name="slot"/> whose target row is gone.
     /// </summary>
@@ -93,9 +106,29 @@ public class Column<T> : Column
 {
     private T[] _values;
 
+    /// <summary>
+    /// The write half, allocated only for a <see cref="Buffering.TwoCopies"/> table.
+    /// </summary>
+    /// <remarks>
+    /// <b>Null is the declaration, not a lazy allocation.</b> <c>adr/0037</c>'s rule is per table — a
+    /// table is double-buffered <em>if and only if</em> a parallel phase both reads and writes it — so
+    /// whether this array exists is settled at construction by the table's stated
+    /// <see cref="Rows.Buffering"/> and never by a call site deciding it needs one. A column that
+    /// allocated its second half on first use would let a phase quietly acquire a hazard the table
+    /// never declared.
+    /// </remarks>
+    private T[]? _back;
+
     internal Column(Rows owner, string name, Disposition disposition, Touch touch, int capacity)
-        : base(owner, name, disposition, touch) =>
+        : base(owner, name, disposition, touch)
+    {
         _values = new T[capacity];
+
+        if (owner.Buffering == Buffering.TwoCopies)
+        {
+            _back = new T[capacity];
+        }
+    }
 
     /// <inheritdoc/>
     public sealed override int BytesPerRow => Unsafe.SizeOf<T>();
@@ -110,11 +143,67 @@ public class Column<T> : Column
     /// <summary>The value at one slot. The slot is a resolved index, never a raw handle.</summary>
     public ref T this[int slot] => ref _values[slot];
 
+    /// <summary>
+    /// The write half of a double-buffered column, over the same live prefix as <see cref="Span"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A parallel phase writes here and reads <see cref="Span"/>, then the table swaps.</b> That is
+    /// what removes the order dependence <c>02 §2.4</c> names: an in-place field lets a Cell's new
+    /// value depend on whether its neighbour has been visited yet, which is simultaneously a
+    /// determinism hazard and a directional smear in the picture.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The table is <see cref="Buffering.OneCopy"/>.</exception>
+    public Span<T> BackSpan => Back().AsSpan(0, Owner.SlotCount);
+
+    /// <inheritdoc cref="BackSpan"/>
+    /// <summary>The write half's value at one slot.</summary>
+    public ref T AtBack(int slot) => ref Back()[slot];
+
     private protected Span<T> Raw => _values;
 
-    internal sealed override void Grow(int capacity) => Array.Resize(ref _values, capacity);
+    internal sealed override void Grow(int capacity)
+    {
+        Array.Resize(ref _values, capacity);
 
-    internal sealed override void Clear(int slot) => _values[slot] = default;
+        if (_back is not null)
+        {
+            Array.Resize(ref _back, capacity);
+        }
+    }
+
+    internal sealed override void Clear(int slot)
+    {
+        _values[slot] = default;
+
+        // Both halves, so that a recycled slot cannot swap its previous occupant back in. The free
+        // list hands slots out again and the swap is blind to liveness; a write half left holding the
+        // old row would resurrect it on the next cycle, in a column the hash folds.
+        if (_back is not null)
+        {
+            _back[slot] = default;
+        }
+    }
+
+    internal sealed override void PrepareBack()
+    {
+        if (_back is not null)
+        {
+            _values.AsSpan(0, Owner.SlotCount).CopyTo(_back);
+        }
+    }
+
+    internal sealed override void SwapBuffers()
+    {
+        if (_back is not null)
+        {
+            (_values, _back) = (_back, _values);
+        }
+    }
+
+    private T[] Back() =>
+        _back ?? throw new InvalidOperationException(
+            $"column '{Name}' has one copy; table '{Owner.Name}' did not declare Buffering.TwoCopies. "
+            + "adr/0037: a table is double-buffered if and only if a parallel phase reads and writes it.");
 
     internal override void Fold(ref ulong hash, int slotCount) =>
         FoldBytes(ref hash, MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount)));

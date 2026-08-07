@@ -126,4 +126,23 @@ public enum Invariant
     /// away, which is the half of the check that catches an accumulator with no sink.
     /// </remarks>
     MoneyIsRepresentable = 11,
+
+    /// <summary>A Map Layer's value at some Cell has run away.</summary>
+    /// <remarks>
+    /// <b><c>adr/0003</c> extended <c>adr/0006</c> from collections to quantities, and a diffusing
+    /// Layer with a source and no decay is exactly the shape that violates it.</b> Pollution
+    /// accumulates from every emission and nothing removes it, so the long-run test is where this is
+    /// found — <c>plans/0009</c> task 10 registers it in the end-of-run tier for that reason rather
+    /// than because it is expensive.
+    /// </remarks>
+    LayerMagnitudeIsBounded = 12,
+
+    /// <summary>A Cell has more Tiles built on it than it has Tiles.</summary>
+    /// <remarks>
+    /// Sealing is bounded by <c>CellGrid.TilesInCell</c> by construction, clamped at its one write
+    /// site. This is that bound checked rather than trusted: <b>a bound maintained at one write site
+    /// is a bound that stops holding on the day somebody adds a second</b>, and the failure is silent
+    /// because an over-sealed Cell still reads as a plausible number.
+    /// </remarks>
+    SealingIsWithinTheCell = 13,
 }

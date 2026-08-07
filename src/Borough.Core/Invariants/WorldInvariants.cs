@@ -1,5 +1,7 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 
 namespace Borough.Core.Invariants;
@@ -35,6 +37,58 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, EveryHandleResolves);
         invariants.Register(InvariantTier.EndOfRun, EveryoneIsInExactlyOnePlace);
         invariants.Register(InvariantTier.EndOfRun, MoneyIsRepresentable);
+        invariants.Register(InvariantTier.EndOfRun, LayerMagnitudesAreBounded);
+    }
+
+    /// <summary>
+    /// <c>adr/0003</c>'s <em>no quantity accumulates without bound</em>, applied to the Map Layers.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A diffusing Layer with a source and no decay is the exact shape the rule forbids</b>, and
+    /// pollution is currently that shape: every emission adds to a Cell's source and nothing takes any
+    /// away. Decay is a Ruleset number that does not exist yet, so what stands between the design and
+    /// an overflow today is this check and the long-run test that runs it.
+    /// </para>
+    /// <para>
+    /// <b>The ceiling is the kernel's, not the integer's, and that is the point of checking it here
+    /// rather than trusting the arithmetic to throw.</b> A two-pass tent multiplies a source by
+    /// <c>Scale</c> — 6,561 at radius 8 — so a source Cell above roughly 327,000 cannot be represented
+    /// diffused. Waiting for <c>LayerDiffusion</c> to overflow would report the failure at the Tick a
+    /// plume happened to be recomputed, which is a diffusion cadence after the Tick that caused it.
+    /// </para>
+    /// <para>
+    /// <b>End-of-run rather than staggered, because that is where the runs that surface it are.</b>
+    /// <c>adr/0033</c>'s shape, quoted by <c>02 §10</c>: unaffordable per Tick and trivial once per
+    /// run, however long the run was.
+    /// </para>
+    /// </remarks>
+    internal static void LayerMagnitudesAreBounded(World world, InvariantRegistry report)
+    {
+        LayerCellTable cells = world.Layers.Cells;
+        int ceiling = MapLayers.PollutionKernel.SourceCeiling;
+
+        for (int slot = 0; slot < cells.Rows.SlotCount; slot++)
+        {
+            if (!cells.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (IntegerMath.Abs(cells.PollutionSource[slot]) > ceiling)
+            {
+                report.Report(Invariant.LayerMagnitudeIsBounded, slot);
+                return;
+            }
+
+            int sealed_ = cells.Sealing[slot];
+
+            if (sealed_ < 0 || sealed_ > CellGrid.TilesInCell)
+            {
+                report.Report(Invariant.SealingIsWithinTheCell, slot);
+                return;
+            }
+        }
     }
 
     /// <summary>

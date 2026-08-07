@@ -100,6 +100,24 @@ public static class IntegerMath
         return rounded / (denominator * 2);
     }
 
+    /// <inheritdoc cref="RoundDiv(int,int)"/>
+    /// <remarks>
+    /// <b>Widened for the one call site that needs it: normalising a two-pass convolution.</b> A
+    /// separable kernel of gain <em>g</em> accumulates at <em>g²</em>, which overflows an <c>int</c>
+    /// long before the field values do, so the accumulator is a <c>long</c> and the division has to
+    /// meet it there. Doubling the numerator is safe at that magnitude — a Layer scaled by 6,561 needs
+    /// 44 bits, not 63.
+    /// </remarks>
+    public static long RoundDiv(long numerator, long denominator)
+    {
+        long doubled = numerator * 2;
+        long rounded = (numerator < 0) != (denominator < 0)
+            ? doubled - denominator
+            : doubled + denominator;
+
+        return rounded / (denominator * 2);
+    }
+
     /// <summary>Left-shifts, rejecting a count the hardware would silently mask.</summary>
     /// <exception cref="ArgumentOutOfRangeException">
     /// The count is outside <c>[0, 31]</c>, which would be masked rather than saturated.

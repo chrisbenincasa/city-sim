@@ -373,11 +373,11 @@ The scope of a Rule's inputs is therefore also a statement about *what it can su
 
 **2. Chunking.** §5. Dirty tracking, aggregate caching, and coarse layer storage all fall out of the partition at once.
 
-**3. Map Layers coarse and staggered.** Three separate multipliers, all of which are invisible to the player:
+**3. Map Layers coarse and staggered.** Three multipliers make the work affordable, and **this list used to offer all three as levers. Only the first is one** — measured in [`adr/0044`](adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md), which is the second time a number in this document was welded to two decisions and governed by the louder one. §4's rule did not fail; nobody ran it against these numbers.
 
-- **Coarse.** Diffusion at one value per **Cell** rather than per Tile is a 1024× reduction, and upsampled it looks identical. The original SimCity did exactly this — coarse grids, tiny kernels, few iterations — and it looked fine.
-- **Low frequency.** Every 32–64 Ticks, not every Tick. Pollution does not move fast enough for anyone to tell.
-- **Staggered.** Pollution on `tick % 64 == 0`, noise on `tick % 64 == 16`, and so on, so no single Tick carries every layer at once. A spike every 64 Ticks is a visible stutter; the same work spread across those 64 Ticks is not.
+- **Coarse.** Diffusion at one value per **Cell** rather than per Tile is a 1024× reduction, and upsampled it looks identical. The original SimCity did exactly this — coarse grids, tiny kernels, few iterations — and it looked fine. *This one is settled rather than free: the Cell is a frozen design constant ([`adr/0034`](adr/0034-fields-are-sorted-by-source-geometry.md)), so the reduction is already banked and there is no further coarsening available.*
+- **Low frequency.** Every 64 or 256 Ticks, not every Tick. Pollution does not move fast enough for anyone to tell — but **it is not a knob on this page.** The period decides when a source becomes visible to a Rule reading the Cell, which moves the State Hash, so under §4 it is a design change and belongs to the designer. It stays hot-reloadable Ruleset data; what it stops being is something a profile may move.
+- **Staggered.** Pollution on `tick % 64 == 0`, land value on `tick % 256 == 16`, so no single Tick carries every layer at once. A spike every 64 Ticks is a visible stutter; the same work spread across those 64 Ticks is not. **The *offsets* are hash-bearing by the same measurement, so what remains available here is the freedom to give a *new* Layer an offset nobody else holds** — which is the whole of the smoothing benefit and none of the design change. *This bullet used to offer noise as the second example; noise stopped being a Map Layer in [`adr/0034`](adr/0034-fields-are-sorted-by-source-geometry.md).*
 
 Diffusion is **double-buffered**, and not merely for tidiness: in-place diffusion is order-dependent, which is simultaneously a determinism hazard and a visible directional smear in the resulting field. Kernels are separable — two 1-D passes rather than one 2-D pass — and arithmetic is integer with explicit rounding.
 

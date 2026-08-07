@@ -3,6 +3,7 @@ namespace Borough.Core.Entities;
 using Borough.Core.Arithmetic;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 
 /// <summary>
@@ -52,6 +53,32 @@ public sealed class World
     /// 360 Households, ~150 Buildings, ~225 Lots. 1M is a floor rather than a cap.
     /// </remarks>
     public World(int citizens)
+        : this(citizens, LayerRuleset.Default)
+    {
+    }
+
+    /// <inheritdoc cref="World(int, LayerRuleset)"/>
+    /// <summary>A world whose Layer cadence is stated and whose Layer rates are the defaults.</summary>
+    public World(int citizens, LayerSchedule layers)
+        : this(citizens, new LayerRuleset(layers, LayerRates.Default))
+    {
+    }
+
+    /// <inheritdoc cref="World(int)"/>
+    /// <param name="citizens">Initial Citizen capacity. Every other entity table is sized from it.</param>
+    /// <param name="layers">
+    /// The Map Layer cadence and rates. Ruleset data (<c>adr/0044</c>); see <see cref="LayerRuleset"/>.
+    /// </param>
+    /// <remarks>
+    /// <b>The Layer ruleset is a constructor argument rather than a constant so that it could be
+    /// measured, and it stays one because slice 8 will read it from a file.</b> <c>02 §1.2</c> filed
+    /// the diffusion cadence as tuning and <c>plans/0009</c> doubted it; under <c>adr/0043</c> that
+    /// claim is <em>measurable</em> rather than arguable, because the number that would settle it is a
+    /// State Hash and the machine that produces it is this one. Two worlds differing only in this
+    /// argument, run over one Input Log, either hash the same or do not. They do not — so the cadence
+    /// is the designer's number and not the profiler's (<c>adr/0044</c>).
+    /// </remarks>
+    public World(int citizens, LayerRuleset layers)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(citizens);
 
@@ -59,8 +86,14 @@ public sealed class World
         Buildings = new BuildingTable(PerThousand(citizens, 150), Lots);
         Households = new HouseholdTable(PerThousand(citizens, 360), Buildings);
         Citizens = new CitizenTable(citizens, Households, Buildings);
+        Layers = new MapLayers(layers);
 
-        _tables = [Lots.Rows, Buildings.Rows, Households.Rows, Citizens.Rows];
+        // Declaration order, which is hash composition order. The Layer Cells go last because they
+        // arrived last; the order is arbitrary but it is not free to change, so it is stated here and
+        // moving it is a re-baseline rather than a tidy-up.
+        _tables = [
+            Lots.Rows, Buildings.Rows, Households.Rows, Citizens.Rows, Layers.Cells.Rows,
+        ];
 
         Invariants = new InvariantRegistry();
         WorldInvariants.RegisterAll(Invariants);
@@ -77,6 +110,9 @@ public sealed class World
 
     /// <summary>People.</summary>
     public CitizenTable Citizens { get; }
+
+    /// <summary>The coarse environment: one integer per Cell per Map Layer.</summary>
+    public MapLayers Layers { get; }
 
     /// <summary>Every table, in the declaration order the hash folds them in.</summary>
     public ReadOnlySpan<Rows> Tables => _tables;
@@ -227,6 +263,8 @@ public sealed class World
     /// </remarks>
     public void RebuildDerived()
     {
+        Layers.RebuildDerived();
+
         Buildings.OccupantHead.Span.Clear();
         Buildings.OccupantTail.Span.Clear();
         Households.DwellingNext.Span.Clear();

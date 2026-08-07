@@ -26,13 +26,40 @@ nobody could find*.
 
 ---
 
+## Status
+
+**All ten tasks are done, and the acceptance criteria pass.** The Cell grid and the Cell/Chunk type
+split, the sparse double-buffered `LayerCellTable` (the project's first `Buffering.TwoCopies`), the
+separable integer convolution with its three properties asserted, the staggered schedule as a table,
+incremental re-diffusion proved **bit-identical** to a full recompute, the three real Layers, the
+named holes that throw rather than answering, the recorded home of the line-source queries,
+`layer_cells(aabb, layer)` — allocation-free and string-free — and the end-of-run magnitude check.
+`Borough.Core.Space`, plus `dotnet run --project src/Borough.Headless -- --layer pollution`, which is
+**the first time the project shows a field rather than a number**.
+
+**Both decisions this slice owed are settled, and one of them is settled by measurement** —
+[`adr/0044`](../docs/adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md).
+**Six findings came out of building it that the plan did not anticipate**, one of which is a wrong
+answer this slice published and then had to withdraw; they are recorded under *What building it
+found* below.
+
+**The 100,000-Tick acceptance run lives in the test suite rather than the headless runner, and that
+is a correction to the plan.** No session can place a pollution source, because sources come from
+industry and industry needs Rules (slice 7) — so a headless run would diffuse an empty map 1,562
+times and report that nothing trended upward, which is exactly the **vacuous assertion** slice 5 task
+7 refused to write. The churn is injected through the cold API instead, which is the only thing that
+can supply it today.
+
+**The golden baselines were re-recorded once**, because a fifth table entered the State Hash's
+composition. Nothing about the simulation's behaviour moved; the composition did.
+
 ## Gate
 
 **Cleared, session seven.** `adr/0034` sorted fields by source geometry, split the Cell from the
 Chunk, and produced `02 §2.5`'s classification procedure. The Cell is frozen at 32×32 Tiles.
 
-**One thing inside the gate is contested** — the diffusion cadence's classification. See *Decisions
-owed*.
+**The one contested thing inside the gate is settled** — the diffusion cadence's classification, by
+measurement. See *Decisions owed*.
 
 ## Prerequisites
 
@@ -173,7 +200,96 @@ the check in slice 5's **end-of-run** tier and let the long-run test find it.
   the project shows a *field* rather than a number, and it is the direct ancestor of the Phase 3
   overlay.
 
+## What building it found
+
+Six things the plan did not anticipate, each of which changed what was built — and one of them
+changed a decision this slice had already published.
+
+**1. The rounding cannot live inside a pass, and the plan's own acceptance criteria are what forbid
+it.** Task 3 asks for *explicit rounding through slice 2's stated-rounding helper* **and** for
+*superposition exact, bit for bit*. Those are incompatible if the rounding is per-pass: integer
+division is not linear — `RoundDiv(41, 81)` is 1 and so is `RoundDiv(82, 81)`, so two sources of 41
+diffuse to 2 apart and 1 together — and superposition is precisely the claim that the operator is
+linear. So the passes accumulate exactly, **a Layer is stored pre-normalised in kernel units**, and
+the one stated division happens at the point of use. It is cheaper as well as exact: one division per
+read rather than one per Cell per pass. Recorded in `adr/0044`.
+
+**2. The convolution form already contains half of what "double-buffered" was asked for, and the
+half it does not contain is the half that matters.** `02 §2.4` justifies the double buffer by saying
+in-place diffusion is order-dependent — but under `adr/0034 §3` the read field (**sources**) and the
+write field (**the diffused value**) are already different columns, so the read-write hazard that
+argument describes is not present for pollution. What genuinely needs two copies is **land value**,
+which moves *toward* a target and therefore reads its own previous value. The table is declared
+`TwoCopies` anyway, per `adr/0037`'s per-table rule, and the buffer is now real rather than declared:
+`Rows.PrepareBack()` seeds the write half and `Rows.SwapBuffers()` makes it live.
+
+**3. `PrepareBack` seeds rather than clears, and incremental re-diffusion is why.** A partial writer
+that swapped an unseeded write half would swap in values from two cycles ago everywhere its halo did
+not reach — a field flickering between two states on the diffusion cadence, which reads as an art
+problem. It seeds **every** column rather than the ones the phase intends to write, because a swap
+that moved a stale `id` or `generation` would resurrect freed rows.
+
+**4. The integer first-order lag has a dead band, and a dead band is path dependence in stored
+state.** Land value closes a fraction of the gap to its target each cycle — `RoundDiv(gap, tau)` —
+and at `tau = 8` a gap of 3 rounds to a step of 0. So a Cell settles up to `tau/2` short of its
+target, *on whichever side it approached from*: two cities with identical desirability holding
+different land values because of their histories. Under `05 §4` that is two cities, so it is a defect
+rather than a rounding detail. The fix is a **minimum step of ±1** whenever the gap is non-zero,
+which cannot oscillate because a gap of one moves by exactly one. Caught by testing convergence
+**from both directions**; a test that only approached from below would have passed.
+
+**5. A trend measured before steady state is a measurement of the transient, and the acceptance run
+found this the expensive way.** The first churn drew sources at random across the map, and peak
+pollution rose from 1.06M to 1.44M over the run's second half — which reads exactly like the
+unbounded accumulation `adr/0006` forbids, and was the field *filling in*. A random walk over 16,384
+Cells has not covered them by Tick 100,000, so the run never reached the state the rule is stated
+about. The churn now **sweeps a bounded region round-robin** with each Cell's emission a fixed
+function of the Cell, so the source field converges to a known constant after one sweep and the
+assertion becomes **exact equality across the tail** rather than a trend line. That is a stronger
+test as well as a correct one: an accumulating implementation fails on the first sample after
+convergence. **The lesson generalises past this slice** — every long-run assertion `0003` owes needs
+a stated argument that the run reaches steady state, and slice 5 task 7's owed trend assertion
+inherits it.
+
+**6. `adr/0044` published a wrong classification and had to withdraw it, one draft later.** Its first
+version filed the cadence as a **world-creation constant**, reasoning that `adr/0015`'s Ruleset is *by
+definition* the set of numbers a designer may change without changing the city. `adr/0015` says the
+opposite in its own words — the Ruleset's content hash feeds the State Hash, and reload is a logged
+simulation event precisely so hash-bearing changes stay replayable — and its world-creation category
+carries a **membership test** (*was existing state recorded in units of the constant?*) that the
+cadence fails and the kernel radius passes. The ADR had cited `adr/0015` without running the test it
+states. **Citing an ADR is not applying it**, and that is the finding: the corpus's rules are only
+worth what somebody executing them against the case at hand is worth. Cost here was one document,
+because no code depended on the wrong half — `LayerRuleset` was already a constructor argument, and
+on the corrected classification the `WorldConfiguration` field and log-format bump the first draft
+owed are **not owed at all**.
+
 ## Decisions owed by this slice
+
+> **SETTLED, both of them.**
+> [`adr/0044`](../docs/adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md).
+> The cadence is **hash-bearing** — two cadences produce two hash traces, so it is a design change
+> under `05 §4` — which makes it **the designer's number and not the profiler's**, and it stays
+> ordinary hot-reloadable Ruleset data. The kernel is a **separable tent reaching 1,024 m (8 Cells)**,
+> authored in metres, recorded **unratified**, and it *is* world-creation-fixed, because a Cell is
+> stored in kernel units. `05 §9`'s multiplier bullet is corrected and `02 §1.2`'s row gains the hash.
+> What follows is the question as it was posed.
+>
+> **The ADR said *world-creation* for the cadence too, for one draft, and that was wrong** — see its
+> own record of it. The correction is the fourth thing building this slice found, and it is filed
+> below with the other three.
+>
+> **The measurement also found something the question did not ask for: the divergence is
+> transient.** Once emissions stop and both cadences have fired the fields are bit-identical, because
+> a Layer is a convolution of its sources and not a function of its own history. The cadence does not
+> change what the field settles to — it changes *when a source becomes visible to a Rule*, which is
+> the sentence below, now with a number under it. **That makes the case stronger, not weaker: a city
+> is never in the settled state.**
+>
+> **And it found that the plume band fails the corpus's own guard rule.** `02 §2.4`'s *1–10 km* is a
+> 10× span, and `02 §2.5` guard rule 1 says two ranges more than ~5× apart are two fields wearing one
+> name. Either industrial pollution is two fields or the band describes the spread across industries.
+> **No argument can tell those apart; it wants a source.** Filed, not fixed.
 
 **The diffusion cadence is classified as tuning and probably is not.** `02 §1.2` lists *Map Layer
 diffusion, every 32–64 Ticks, staggered* in the **tuning** column. But the cadence decides when a

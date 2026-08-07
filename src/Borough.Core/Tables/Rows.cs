@@ -214,6 +214,48 @@ public abstract class Rows
         hash = h;
     }
 
+    /// <summary>
+    /// Seeds the write half from the live half, opening a double-buffered phase's write window.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Called once per parallel write, not once per Tick, and the distinction is the whole reason
+    /// <c>adr/0037</c> deleted the full-world buffer.</b> The copy this makes is bounded by one table
+    /// rather than by the world, and it happens on that table's cadence — Map Layer cells at
+    /// <c>tick % 64</c>, not every Tick. The thing <c>05 §9</c> priced at ~150 MB against ~1 MB of
+    /// writes was a copy of everything, every Tick, including every sleeping Citizen.
+    /// </para>
+    /// <para>
+    /// <b>Every column, not only the ones the phase intends to write.</b> A phase that writes one
+    /// column and swaps would otherwise swap the rest to whatever they held a cycle ago — including
+    /// the allocator's own <c>id</c> and <c>generation</c>, which would resurrect freed rows. Seeding
+    /// uniformly makes the swap a no-op for anything untouched, which is the only version of this that
+    /// does not depend on a caller enumerating its writes correctly.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The table declared <see cref="Buffering.OneCopy"/>.</exception>
+    public void PrepareBack()
+    {
+        RequireTwoCopies();
+
+        foreach (Column column in _columns)
+        {
+            column.PrepareBack();
+        }
+    }
+
+    /// <summary>Makes the write half live, closing the window <see cref="PrepareBack"/> opened.</summary>
+    /// <exception cref="InvalidOperationException">The table declared <see cref="Buffering.OneCopy"/>.</exception>
+    public void SwapBuffers()
+    {
+        RequireTwoCopies();
+
+        foreach (Column column in _columns)
+        {
+            column.SwapBuffers();
+        }
+    }
+
     /// <summary>True while the slot holds a live row. Live generations are odd; free ones are even.</summary>
     public bool IsLive(int slot) => (uint)slot < (uint)_slotCount && (_generation[slot] & 1u) == 1u;
 
@@ -312,6 +354,16 @@ public abstract class Rows
 
         _declaring.Add(column);
         return column;
+    }
+
+    private void RequireTwoCopies()
+    {
+        if (Buffering != Buffering.TwoCopies)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' declared Buffering.OneCopy and has no write half. adr/0037: a table "
+                + "is double-buffered if and only if a parallel phase both reads and writes it.");
+        }
     }
 
     private void Grow()

@@ -82,7 +82,8 @@ That figure is invariant under both exchange rates. It is the only time-related 
 | Cross-town trip | **~480 Ticks** | derived | 5.9% of a Day |
 | Cell | **32×32** Tiles | world-creation; baked into the save | **Design constant.** It is the resolution of pollution, so it changes the State Hash. Never tuned — [`adr/0034`](adr/0034-fields-are-sorted-by-source-geometry.md) |
 | Chunk | **≥ 32×32** Tiles, a multiple of the Cell | tuning; unvalidated | Hash-preserving, so it is a measurement. Probably wants to be larger. See [`05 §5`](05-technical-architecture.md) |
-| Map Layer diffusion | every **32–64** Ticks, staggered | tuning | §2.4 |
+| Map Layer diffusion | pollution every **64** Ticks at offset 0; land value every **256** at offset 16 | tuning; **hash-bearing** | **The designer's number, not the profiler's** — measured, not argued, in [`adr/0044`](adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md). Hot-reloadable; the dirty set is what makes a mid-run change lossless. §2.4 |
+| Industrial pollution kernel | separable tent, **1,024 m** — 8 Cells | world-creation; baked into the save; **unratified** | A Cell is *stored* in kernel units, so this meets [`adr/0015`](adr/0015-all-tuning-data-is-hot-reloadable.md)'s membership test where the cadence above does not. Authored in metres per §2.5 question 2. `02 §2.4`'s 1–10 km band is 10× wide and fails guard rule 1; filed, not fixed. [`adr/0044`](adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md) |
 
 Derived, for orientation only — none of these are inputs:
 
@@ -201,9 +202,9 @@ Land value is the exception — it is stored because it has *momentum*. It moves
 
 **Diffusion mechanics:**
 - Double-buffered. In-place diffusion is order-dependent, which is a determinism hazard *and* produces a visible directional smear.
-- Integer arithmetic with explicit rounding. No floats.
+- Integer arithmetic with explicit rounding. No floats. **The rounding is at the point of use, not inside a pass, and the placement is forced rather than chosen** — integer division is not linear, so a rounded pass would fail the superposition property below. A Layer is therefore stored **pre-normalised in kernel units**. [`adr/0044`](adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md).
 - Separable kernels — two 1-D passes rather than one 2-D pass.
-- **Staggered** across ticks so no single tick spikes: pollution on `tick % 64 == 0`, noise on `tick % 64 == 16`, and so on.
+- **Staggered** across ticks so no single tick spikes: pollution on `tick % 64 == 0`, land value on `tick % 256 == 16`. **The periods and the offsets are hash-bearing, so they are the designer's numbers and not the profiler's** — measured, not argued, in [`adr/0044`](adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md). They stay ordinary hot-reloadable Ruleset data, because the dirty set means a skipped diffusion has deferred work rather than lost it. *Noise is not on this list and never was scheduled: it stopped being a Layer at all in [`adr/0034`](adr/0034-fields-are-sorted-by-source-geometry.md), and this bullet's old example outlived the decision that removed it.*
 - **Incremental** where possible: maintain a set of Cells whose *sources* changed, and re-diffuse only those plus a halo of radius *r*. **Exact**, not approximate, because the Layer is a convolution and our kernels have bounded support.
 
 ### 2.5 Admitting a new field

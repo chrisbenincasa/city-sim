@@ -40,9 +40,18 @@ internal static class Program
 
         try
         {
-            return options.Mode == Mode.Run
-                ? Session.Run(options)
-                : Report.Print(options.Citizens);
+            switch (options.Mode)
+            {
+                case Mode.Run:
+                    return Session.Run(options);
+
+                case Mode.Layer:
+                    return Session.DumpLayer(options);
+
+                case Mode.Report:
+                default:
+                    return Report.Print(options.Citizens);
+            }
         }
         catch (Exception failure) when (failure is IOException
                                             or FormatException

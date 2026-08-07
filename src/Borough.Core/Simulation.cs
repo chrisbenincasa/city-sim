@@ -240,14 +240,34 @@ public sealed class Simulation
 
     /// <summary>Phase 5 — Map Layer diffusion for whatever is scheduled this Tick.</summary>
     /// <remarks>
-    /// Permitted parallel, and <c>adr/0037</c>'s other double-buffered table. Slice 6. Its cadence is
-    /// listed as tuning in <c>02 §1.2</c> and is not — it decides when a source becomes visible to a
-    /// Rule, so it changes the State Hash. Recorded as owed in <c>plans/0003</c>.
+    /// <para>
+    /// Permitted parallel, and <c>adr/0037</c>'s other double-buffered table — the first one in the
+    /// project to declare <c>Buffering.TwoCopies</c>. This build runs it serially, which
+    /// <c>Phases.Runs</c> states: permission is an upper bound.
+    /// </para>
+    /// <para>
+    /// <b>It costs nothing on the overwhelming majority of Ticks, by construction.</b> The schedule is
+    /// staggered — pollution on <c>tick % 64 == 0</c>, land value every 256 offset by 16 — so 63 Ticks
+    /// in 64 do no convolution at all, and the two Layers never land on the same Tick. That is
+    /// <c>05 §9</c>'s third multiplier: a spike every 64 Ticks is a visible stutter, and the same work
+    /// spread over those 64 Ticks is not.
+    /// </para>
+    /// <para>
+    /// <b>The cadence is hash-bearing, which makes it the designer's number and not the profiler's</b>
+    /// (<c>adr/0044</c>). It decides when a source becomes visible to a Rule that reads the Cell, so
+    /// two worlds differing only in the period produce two hash traces — <c>05 §4</c>'s test, run
+    /// rather than argued, because under <c>adr/0043</c> the claim was <em>measurable</em> and the
+    /// machine that settles it is this one. It stays ordinary hot-reloadable Ruleset data, which is
+    /// why the schedule arrives as a constructor argument of the <c>World</c> rather than a constant
+    /// here: a number embedded in an <c>if</c> has no name, and a number with no name is one nobody
+    /// runs the hash rule against.
+    /// </para>
     /// </remarks>
     private void Layers(Ticks tick)
     {
-        _ = tick;
         _phase = TickPhase.Layers;
+
+        _world.Layers.Step(tick);
     }
 
     /// <summary>Phase 6 — Zone Rules sample Lots; Buildings with accumulated failure decline.</summary>

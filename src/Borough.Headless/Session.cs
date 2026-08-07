@@ -211,4 +211,27 @@ internal static class Session
             trace.Write(writer, preamble);
         }
     }
+
+    /// <summary>
+    /// <c>--layer</c>: print a Map Layer's Cell grid before and after a source change.
+    /// </summary>
+    /// <remarks>
+    /// <b>The first artefact from this runner that is looked at rather than diffed</b>
+    /// (<c>plans/0009</c> acceptance). Every other output here is a number whose job is to be compared
+    /// against another number; a field's defects are shaped, so this one is judged by eye.
+    /// </remarks>
+    internal static int DumpLayer(Options options)
+    {
+        if (options.OutPath is null)
+        {
+            LayerDump.Run(Console.Out, options.Layer, options.Csv);
+        }
+        else
+        {
+            using var writer = new StreamWriter(options.OutPath);
+            LayerDump.Run(writer, options.Layer, options.Csv);
+        }
+
+        return 0;
+    }
 }

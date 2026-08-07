@@ -1,4 +1,5 @@
 using System.Globalization;
+using Borough.Core.Space;
 
 namespace Borough.Headless;
 
@@ -10,6 +11,16 @@ internal enum Mode
 
     /// <summary>Run a session and print its State Hash trace. Slice 5's.</summary>
     Run,
+
+    /// <summary>
+    /// Print a Map Layer's Cell grid before and after a source change. Slice 6's.
+    /// </summary>
+    /// <remarks>
+    /// A third mode rather than a flag on the other two, for the reason the first two are separate:
+    /// it needs a world with sources in it, and no session can put them there until Rules exist. A
+    /// Layer dump taken at the end of a replay would print an empty grid.
+    /// </remarks>
+    Layer,
 }
 
 /// <summary>
@@ -98,6 +109,18 @@ internal sealed class Options
     /// </remarks>
     public string? CrashPath { get; private init; }
 
+    /// <summary>Which Map Layer to dump, in <see cref="Mode.Layer"/>.</summary>
+    public Layer Layer { get; private init; }
+
+    /// <summary>Dump the Layer as CSV rather than as an ASCII field.</summary>
+    /// <remarks>
+    /// <b>Both, because they answer different questions.</b> The ASCII form is for judging a
+    /// <em>shape</em> — a directional smear or a hard kernel edge is obvious in it and invisible in a
+    /// column of numbers — and the CSV form is for anybody comparing values, because the ramp is a
+    /// nine-step display quantisation and nothing should read it back.
+    /// </remarks>
+    public bool Csv { get; private init; }
+
     /// <summary>
     /// Parses the command line, or explains why it could not.
     /// </summary>
@@ -120,6 +143,8 @@ internal sealed class Options
         bool census = false;
         bool session = false;
         bool citizensGiven = false;
+        bool csv = false;
+        Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
         {
@@ -136,6 +161,10 @@ internal sealed class Options
                 case "--census":
                     census = true;
                     session = true;
+                    continue;
+
+                case "--csv":
+                    csv = true;
                     continue;
 
                 case "--help" or "-h":
@@ -200,6 +229,18 @@ internal sealed class Options
                     session = true;
                     break;
 
+                case "--layer":
+                    if (!LayerDump.TryParse(value, out Layer named))
+                    {
+                        complaint = $"--layer {value} is not a Map Layer. "
+                                  + "The Layers are pollution, land-value and sealing. Noise is not "
+                                  + "one: it is a line source and a point-of-use query (adr/0034).";
+                        return false;
+                    }
+
+                    dump = named;
+                    break;
+
                 case "--hash-every":
                     if (!TryCount(value, out hashEvery))
                     {
@@ -223,9 +264,18 @@ internal sealed class Options
             return false;
         }
 
+        if (dump is not null && session)
+        {
+            complaint = "--layer and the session flags disagree: a Layer dump builds its own world "
+                      + "with sources in it, because no session can place a source until Rules exist.";
+            return false;
+        }
+
         options = new Options
         {
-            Mode = session ? Mode.Run : Mode.Report,
+            Mode = dump is not null ? Mode.Layer : session ? Mode.Run : Mode.Report,
+            Layer = dump ?? default,
+            Csv = csv,
             LogPath = log,
             RulesetPath = ruleset,
             OutPath = output,
@@ -261,6 +311,10 @@ internal sealed class Options
                                 print first/last/low/high per collection at the end
           --crash PATH          where to write the crash artifact if the run panics.
                                 One is always written; this only names where
+          --layer NAME          dump a Map Layer's Cell grid before and after a source
+                                change, with the halo that was recomputed. NAME is
+                                pollution, land-value or sealing
+          --csv                 dump the Layer as CSV rather than as an ASCII field
 
         A replay whose Ruleset does not match refuses to run rather than diverging
         silently: a different Ruleset is a different simulation, and the divergence

@@ -103,7 +103,7 @@ become three.
 | **3** | **The analysers** — **all six tasks done.** `Borough.Analysers`, twelve diagnostics covering CI lints 2, 3 and 7 and the `purpose_tag` row. Produced the rule-7 exception axis in `adr/0036` and fixed the lint count across three documents | — | none | 2 | [`0006`](0006-analysers-and-lints.md) |
 | **4** | **Typed tables and the field declaration** — **all eleven tasks done.** Handles, columns, the single declaration, the State Hash, intrusive lists, `ResourceMap`, the first four tables. Produced `BOR0901`, answered ledger #29b for Phase 1, and gave the project its first State Hash | **2** | cleared | 3 | [`0007`](0007-typed-tables.md) |
 | **5** | **The Tick, the Input Log and replay** | **1** | cleared | 3 | [`0008`](0008-tick-and-replay.md) |
-| **6** | **Map Layers** | **3c** (Layers half) | cleared | 3 | [`0009`](0009-map-layers.md) |
+| **6** | **Map Layers** — **all ten tasks done.** Cell grid and the Cell/Chunk type split, the sparse double-buffered `LayerCellTable` — the project's first `Buffering.TwoCopies` — the separable integer convolution, the staggered schedule as a table, incremental re-diffusion proved bit-identical, the three real Layers, the named holes that throw, `layer_cells(aabb, layer)` and the end-of-run magnitude check. Produced `adr/0044`, which **settles owed decision 2 by measurement and finds it false** — and then got its own second half wrong by argument and withdrew it rather than amending it away | **3c** (Layers half) | cleared | 3 | [`0009`](0009-map-layers.md) |
 | — | *the Phase 1 gate closes here* | | | | |
 | **7** | Rule engine — Bins and Rules | **3a** | 🔴 `02 §4` residue | — | stub |
 | **8** | Rule engine — hot reload | **3b** | 🔴 `adr/0015` | — | stub |
@@ -187,6 +187,25 @@ through-line warns about. It is also a hash-bearing world-creation constant by t
 it cannot be tuned later. *Blocks: slice 2. Recommended handling: build the table generator with
 resolution as an explicit parameter, pick a provisional figure, and record it as **unratified** with
 the validation owed against `adr/0005`'s herding behaviour.*
+
+**2. ~~Map Layer diffusion cadence is called tuning and is not.~~ SETTLED in slice 6, by measurement.**
+[`adr/0044`](../docs/adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md).
+Under `adr/0043` the claim typed **measurable** rather than arguable — the refuting number was a State
+Hash and the machine was the slice itself — so it was measured instead of argued, and it is **false**:
+two worlds differing only in the diffusion period produce different hash traces. So the cadence is
+**the designer's number and not the profiler's**, and it stays ordinary hot-reloadable Ruleset data.
+`05 §9`'s performance-multiplier bullet is where it was actually mis-filed and is corrected; `02
+§1.2`'s row keeps *tuning* and gains *hash-bearing*. **The sixth claim in the corpus measured false,
+and the first outside S2.**
+
+> **This entry said *world-creation-fixed* for one draft, and that was wrong** — an argument
+> (*the Ruleset is by definition the numbers that do not change the city*) put in place of a stated
+> test. `adr/0015` says the opposite in its own words: the Ruleset's content hash feeds the State
+> Hash, and its world-creation category has a membership test — *was existing state recorded in units
+> of the constant?* — that the cadence **fails** and the kernel radius passes. Recorded rather than
+> silently amended, because it is the same failure the entry is about.
+
+The original entry follows.
 
 **2. Map Layer diffusion cadence is called tuning and is not.** `02 §1.2` lists *"Map Layer
 diffusion, every 32–64 Ticks, staggered"* in the **tuning** column. But cadence decides when a
