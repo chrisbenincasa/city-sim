@@ -105,7 +105,7 @@ become three.
 | **5** | **The Tick, the Input Log and replay** | **1** | cleared | 3 | [`0008`](0008-tick-and-replay.md) |
 | **6** | **Map Layers** — **all ten tasks done.** Cell grid and the Cell/Chunk type split, the sparse double-buffered `LayerCellTable` — the project's first `Buffering.TwoCopies` — the separable integer convolution, the staggered schedule as a table, incremental re-diffusion proved bit-identical, the three real Layers, the named holes that throw, `layer_cells(aabb, layer)` and the end-of-run magnitude check. Produced `adr/0044`, which **settles owed decision 2 by measurement and finds it false** — and then got its own second half wrong by argument and withdrew it rather than amending it away | **3c** (Layers half) | cleared | 3 | [`0009`](0009-map-layers.md) |
 | — | *the Phase 1 gate closes here* | | | | |
-| **7** | Rule engine — Bins and Rules | **3a** | 🔴 `02 §4` residue | — | stub |
+| **7** | Rule engine — Bins and Rules | **3a** | 🔴 `adr/0015`'s validator | — | stub |
 | **8** | Rule engine — hot reload | **3b** | 🔴 `adr/0015` | — | stub |
 | **9** | Event Wheel | **4** | 🔴 `02 §7`, `adr/0006` | — | stub |
 | **10** | Zone Rules | **3c** (Sweep half) | 🔴 depends on 7 | — | stub |
@@ -160,16 +160,18 @@ nobody starts one of these by accident.
 
 | Slice | Blocked by | What specifically is missing |
 |---|---|---|
-| **7** — Bin Rules | `02 §4` residue | **Fallback chain depth and cycle checking.** `on_fail` chains are the whole diagnostic story and are currently unbounded, with nothing stating a limit or a cycle check. Nine Resources and a Policy layer will make them longer. Also: whether `mean_workforce_experience` is a legitimate Building Readout, and what a predicate may read |
+| **7** — Bin Rules | `adr/0015`'s Ruleset validator | **`02 §4` residue is closed** ([`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md)) and closing it **moved this gate rather than clearing it**. Depth needed no cap — the source ladder bounds it and the number is measurable, routed to this slice's counters. What remains is load-time: the `on_fail` **cycle check** and the **`fills` check**, both refusals on `adr/0015`'s error surface, and both needing the TOML parser below. Slice 7 also owes **Rule evaluations per Tick** and **walked chain depth** (`02 §9`) |
 | **8** — hot reload | `adr/0015` | Never grilled. The roadmap says plainly it **must not slip behind 3c**, so it is gated on an argument, not on more code |
 | **9** — Event Wheel | `02 §7`, `adr/0006` | Both never grilled. `02 §7` is partly spoken for by `adr/0033` and should be read against it rather than fresh |
 | **10** — Zone Rules | slice 7 | A Zone Rule is a Sweep Rule. There is nothing to sample with until the Rule engine exists |
 
-**Also owed, and not blocking Phase 1:** a TOML parser library is unnamed
+**Also owed, and it is no longer merely adjacent to slice 7:** a TOML parser library is unnamed
 ([`dev-environment.md`](../docs/dev-environment.md) flags it as needed by slice 7). `adr/0003`
 requires any core dependency be argued against it explicitly, so a determinism liability entering
 the core needs a written exception. That argument is cheap and should happen before slice 7, not
-during it.
+during it — and `adr/0045` gave it a second reason to be settled in session **A** rather than on its
+own: **the parser is what runs the two refusals**, so naming it and specifying the error surface it
+reports on are one conversation.
 
 ---
 

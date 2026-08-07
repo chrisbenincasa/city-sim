@@ -324,9 +324,33 @@ A recorded shortfall can go stale if the waiter's own local Bins changed while i
 
 **Apply count** lets one rule evaluation apply `1..n` times. This is how throughput scales without adding entities — a large factory is not more buildings, it is a higher apply count. Important for keeping entity counts down.
 
-**Apply count may be derived rather than literal**, and this is what buys proportionality without an expression language. `amount` stays a fixed integer; `apply` may be computed from a **Readout** — a named read-only scalar such as gross income, mean workforce experience, or composed fertility. *"15% of gross income"* is one unit of money applied `gross_income * 15 / 100` times — integer, deterministic, no floats, no parser. This is also why `CONTEXT` → Policy prefers percentages to flat amounts: **a percentage is an apply count; a flat amount is an amount.**
+**`n` is authored per Rule, and greed is one of the choices.** A Rule declaring `{min, max}` applies as many times as its inputs allow within that band, and **fails if it cannot reach `min`** — subscribing with a recorded shortfall of `(min × amount) − available`, a number it computed while deciding. Atomicity then has a well-defined referent: `n` is settled first, and *those* `n` applications happen in their entirety or not at all.
 
-Readouts are what a Rule *consults*; Bins are what it *spends*. The readable set is deliberately bounded to the `Evidence` surface (§9) — **a Rule may read anything the player can see, and nothing else** — so no Rule can act on a quantity the player has no way to inspect.
+**Fixed is the degenerate case, not a second mechanism.** `min = max` is a Rule that performs a defined quantum or fails, so one form expresses both and there is no third spelling. Which one a Rule uses is a **modelling decision fixed at design time**, never a performance one — the same discipline §4 applies to the choice between the two Rule families, and for the same reason, since the two differ in observable behaviour:
+
+> **Greedy when the actor works through its stock. Fixed when the actor owes a quantum.**
+
+A bakery bakes the flour it has and a clinic treats who arrives; infrastructure **Upkeep** ([`adr/0035`](adr/0035-infrastructure-is-priced-by-what-it-consumes.md)) draws `construction cost ÷ effective life` per Day and must never draw more because the treasury happens to be full. Both cases already exist in the corpus, which is why greed cannot be a property of the engine.
+
+**Burstiness is therefore authored rather than incurred**, and that matters because of what actually costs under subscription. A chain is walked **once on entry into shortage** and a chronically starved District walks nothing — so the cost driver is how often a Bin crosses the supplied/short boundary, not chain depth and not how broken the city is. This sharpens `adr/0033`: under polling the simulator is most expensive when the city is most *broken*, and under subscription it is most expensive when the city is most *unstable*. A greedy Rule drains to the floor and crosses that boundary more often than a fixed quantum of the same throughput, so a designer choosing greed is choosing a visible behaviour and paying for it. **Slice 7 ships the counter** — Rule evaluations per Tick, and walked chain depth per §9 — and the tripwire is stated over measured cost rather than over a depth nobody can price yet.
+
+There is a second way to specify `n`, and it is introduced below: a Rule declares **either `{min, max}` or `derived`, never both**.
+
+**Apply count may be derived rather than literal**, and this is what buys proportionality without an expression language. `amount` stays a fixed integer; `apply` may be computed from a **Readout** — a named read-only scalar such as gross income or composed fertility. *"15% of gross income"* is one unit of money applied `gross_income * 15 / 100` times — integer, deterministic, no floats, no parser. This is also why `CONTEXT` → Policy prefers percentages to flat amounts: **a percentage is an apply count; a flat amount is an amount.**
+
+**A Rule declares either `{min, max}` or `derived`, never both**, and the discriminator is the Bin/Readout distinction arriving in the apply count:
+
+> **Greed handles what is *consumed*. A derived apply count handles what is *consulted*.**
+
+Flour and labour are spent, so stock decides `n` and no Readout is involved. **Fertility** is why derived counts remain necessary on Bin Rules rather than only on Policies: a farm's yield scales with fertility, fertility is never consumed, and greed cannot see it. Admitting both specifications on one Rule would also collide their failure semantics — below `min` is a failure, and a derived zero is a success.
+
+**`mean_workforce_experience` was listed here and is struck.** Staffing already dissolves into a **labour input Bin** filled by arriving commute Trips (below), and experience folds into it as a **per-worker deposit multiplier** — a skilled worker deposits more labour units than a novice. Quality becomes quantity, which is what a production function is, and greedy apply then scales throughput with experience for free. Keeping it as a Readout would have cost three things: a **mean** is a division, so `sum / count` and then `× 15 / 100` round twice on a hash-bearing path where a sum rounds not at all; it would have leaned on the letter of `CONTEXT` → Building's *"a field that would have to be averaged across its Occupants is a Cohort forming"* on the ground that workers are not Occupants, which is the move that invariant exists to catch; and an unstaffed Building would have had a derived apply count of **zero**, which is a *success*, so it would re-arm on `rate` and produce nothing for ever without a failure, an `on_fail` chain, or a word of Evidence — the *silent non-event* this section bans predicates for. Summed workforce experience remains worth **displaying**; §2.5's test is what separates the two, and display-only is a display, never a Readout.
+
+Readouts are what a Rule *consults*; Bins are what it *spends*. **The readable set is declared in the simulation, and every declared Readout is inspectable** — a Rule may read any of them, and none of them is hidden from the player. `CONTEXT` → Readout is the definition of record: *a named scalar an entity exposes*.
+
+**The converse does not hold.** The inspectable surface is much larger than the Readout set — Bin levels, Occupants, which Rule a Building last ran, a Trip's Fate — and declaring a scalar a Readout is not a decision to *show* it but a decision to let every future Rule *act* on it. The test is §2.5's, the one that demoted service coverage to an overlay: **does a Rule read it, or is it only displayed?** Display-only is a display, never a Readout.
+
+This bound used to run the other way, inward from §9, and that was an error rather than a ratchet. §9 is an obligation to **expand** an aggregate into its constituents, not an enumeration of scalars; there is no set there to validate an `apply` against. Worse, it made the Rule engine depend on a presentation design that does not exist — the shell owns how a Readout is *rendered*, never which ones *exist*, or `Core`'s no-strings rule is being enforced at the wrong boundary. Inverted, `LEGIBLE CAUSE` is discharged **by construction** rather than by reference: no Rule can act on a quantity the player has no way to inspect, because the declaration is the thing the inspector reads. It is `adr/0015`'s enumerability argument — *the balance surface is a file listing rather than an archaeology exercise* — applied to what Rules read rather than to what tunes them.
 
 **A derived apply count of zero is a success, not a failure.** A farm on zero fertility applied zero times, re-arms normally on `rate`, and explains itself through its Readouts. Nothing is missing, so nothing is waited on — which matters, because a Readout is not subscribable and a zero-apply *failure* would have nothing to sleep on.
 
@@ -342,11 +366,36 @@ Every case that appears to want one dissolves elsewhere: *"only produces if staf
 ```
 bake_bread            (consume local flour)
   on_fail → draw_flour_from_pool
-      on_fail → request_shipment
-          on_fail → mark_input_starved   (records a reportable condition)
+      on_fail → request_shipment         (fills local flour, asynchronously)
+          on_fail → mark_input_starved   (a reporting terminal — the chain stays failed)
 ```
 
 That chain is the entire "why is this bakery not producing?" diagnostic, expressed as data. `LEGIBLE CAUSE`
+
+**A failed chain subscribes once, at its head.** Not once per link. The substitution this engine
+models is *source* substitution — `CONTEXT` → Rule's *can't source locally → import* — and
+[`04 §1`](04-economy-and-goods.md)'s Goods table is strictly linear, one input per Good, so every link
+in a well-formed chain rescues by relieving the same Bin the head failed on. One subscription
+therefore wakes on every rescue path, and **chain depth costs no subscriptions at all**. Depth is
+then a `LEGIBLE CAUSE` question and never a cost one, which is also what makes collapsing a chain at
+load time checkable against `05 §4`: it is an optimisation exactly while the head Bin, the recorded
+shortfall and the wait-list insertion order are unchanged.
+
+**Well-formedness is a load-time law, and it is refused rather than warned.** Every link must either
+**output to** the head's blocking Bin or **declare** that it fills it — `fills = { scope, resource }`.
+The declaration is what an asynchronous rescue needs: `request_shipment` dispatches a Shipment and
+outputs nothing this Tick, so without it the link is indistinguishable from one that rescues nothing.
+*Blocking* generalises over both failure modes — refill if the Bin was short, drain if it was a full
+output. A chain that cannot satisfy this is a malformed Ruleset and is rejected with a file, a line
+and a rule name (`adr/0015`), by the same load-time walk that rejects a cycle. **The `on_fail` graph
+is static**, so both checks are Ruleset validation and neither is a runtime guard.
+
+**A reporting terminal is not a Rule that succeeds.** `mark_input_starved` records a reportable
+condition and leaves the chain *failed*, so the Building sleeps on its subscription. Were it an
+ordinary Rule it would succeed — recording has no input that can be short — and re-arm the head on
+`rate`, walking the whole chain again every `rate` Ticks for as long as the shortage lasts. That is
+precisely the polling cost `adr/0033` says subscription exists to remove, reintroduced through the
+last link.
 
 ### 4.2 Sweep Rules
 

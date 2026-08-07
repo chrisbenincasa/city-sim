@@ -239,9 +239,9 @@ That last group closes capability 2 as well: productivity reads workforce experi
 
 ### Still open in `02 §4`
 
-- **Is `mean_workforce_experience` a legitimate Building Readout?** `CONTEXT` → Building forbids a field *"that would have to be averaged across its Occupants."* Workers are not Occupants and production is logistics rather than decision, so this reads as permitted — but it is close enough to the invariant to want one sentence stating why, rather than being left to inference.
+- ~~**Is `mean_workforce_experience` a legitimate Building Readout?**~~ **CLOSED by the `02 §4` residue session, and by deletion rather than by the sentence this entry asked for.** The recommendation here — *workers are not Occupants, so it reads as permitted* — is a **letter defence against a spirit invariant**, and `CONTEXT` → Building says in terms that a Cohort *"would re-enter here if anywhere."* A **sum** is not an average, so the question evaporates instead of being argued past; the mean also costs a division on a hash-bearing path, where `sum / count` and then `× 15 / 100` round twice. Experience folds into the **labour input Bin** as a per-worker deposit multiplier, which is better on its own terms: under a Readout an unstaffed Building has a derived apply count of **zero**, which `02 §4.1` calls a *success*, so it would re-arm for ever and never produce an `on_fail` chain — the *silent non-event* that section bans predicates for. Summed workforce experience stays worth **displaying**; `02 §2.5`'s test separates the two.
 - **Labour as an input Bin** was reached for as the clean answer to staffing, and it is a real change to how employment works. `adr/0026` has jobs as a Household↔Business relationship; a labour Bin filled by arriving Trips is a *second* representation. They need reconciling, and `04 §7` (Jobs) is already stale twice over.
-- **Fallback chain depth.** `on_fail` chains are the whole diagnostic story and are unbounded. Nine Resources and a Policy layer will make them longer; nothing states a limit or a cycle check. Untouched.
+- ~~**Fallback chain depth.**~~ **CLOSED by the `02 §4` residue session, recorded in [`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md), and both of this entry's multipliers were wrong.** A **Policy cannot lengthen a chain** — Policies are Sweep Rules and a Sweep Rule has no `on_fail`. **Nine Resources cannot either**, because *no power → run the generator on fuel* is input substitution, which the source-ladder law refuses at load. **Cycle checking is not a `02 §4` question at all**: the `on_fail` graph is static, so it is Ruleset validation on `adr/0015`'s error surface. And depth **costs no subscriptions**, so it is a `LEGIBLE CAUSE` question only — typed **measurable** under `adr/0043` and routed to slice 7, whose instrument `02 §9` already required.
 - ~~**Ruleset versioning.**~~ **CLOSED — ledger #24, recorded in `05 §7`.** Two policies, not one: play permits a cross-Ruleset load with degradation and warnings; replay refuses an *unaccounted* mismatch. The discriminator is the State Hash rule again, third application. Three findings came out of it: **a logged transition is replayable**, because degradation is a pure function of `(state, old, new)` — what defeats replay is a changed **binary**, not changed data. There are **two replay bases**, and bug reports use the weaker one (*from save*, which §8 already builds), so a city that crossed several patch boundaries stays diagnosable. And the one class no replay can ever reach — a defect caused by a degradation three patches ago — is answered by making degradation **state rather than a warning**: a **provenance trail** in the save naming what each transition destroyed. `adr/0006`-checked: it grows with patches survived, not elapsed time, and caps with older entries aggregated.
 
 ## Session seven — Chunk size, and it was two questions welded together
@@ -509,9 +509,40 @@ So **K was two debts filed as one** — the second confirmed instance of the sha
 
 ---
 
-## Resume here — session ten
+## Session B — `02 §4` residue, and the gate it moved rather than cleared
 
-**Open on `02 §7` + `adr/0006` (the Event Wheel, milestone 4), then `02 §4` residue + `adr/0015` (the Rule engine, milestones 3a/3b). Those four are the last of the Phase 1 gate.** Session nine was booked for these and was redirected; they are unchanged and still next.
+**Run beside slice 6, against the ordering claim that it should run *before* `adr/0015`. The session closed its four items and refuted its own premise:** `adr/0015` now gates slice 7 as well as slice 8, because the half of `02 §4` that dissolved turned out to dissolve *into* it.
+
+Settled, recorded in [`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md), `02 §4.1` and `CONTEXT`:
+
+| Decision | Record |
+|---|---|
+| **A fallback chain is a source ladder over one Bin.** Every link relieves the Bin the head failed on — refill if short, drain if a full output | `adr/0045`, `02 §4.1` |
+| Therefore **a failed chain subscribes once, at its head**, and depth costs no subscriptions | `adr/0045`, `CONTEXT` → Bin Rule |
+| The substitution this economy has is **source** substitution. `04 §1`'s Goods table is linear, one input per Good, so **input substitution has no instance** — it was imported from the genre | `adr/0045`, `04 §1` |
+| An asynchronous rescue declares `fills = { scope, resource }`. Without it `request_shipment` — the corpus's own third link — fails its own well-formedness rule | `adr/0045`, `02 §4.1` |
+| **Refused at load, never warned.** The `on_fail` graph is static, so this and the cycle check are one walk on `adr/0015`'s error surface | `adr/0045`, `adr/0015` |
+| **A reporting terminal is not a Rule that succeeds.** `mark_input_starved` succeeding re-arms the head on `rate` — `adr/0033`'s polling defect, reproduced by the subscription model's own worked example, through the link nobody checks | `adr/0045`, `02 §4.1` |
+| **The Readout bound is inverted.** `02 §9` is an obligation to *expand* aggregates and contains no enumeration, so *"a Rule may read what the player can see"* pointed at a non-set — and made slice 7 depend on a presentation design that does not exist | `02 §4.1`, `CONTEXT` → Readout |
+| **Every Readout is inspectable; the converse does not hold.** Declaring a scalar a Readout is a decision to let Rules *act* on it, not to *show* it. `02 §2.5`'s test — *does a Rule read it, or is it only displayed?* — is the discriminator, third application after `adr/0032` and `adr/0034` | `CONTEXT` → Readout |
+| **Apply count is authored per Rule**, greedy or fixed, with `min = max` as the fixed spelling. `adr/0035`'s Upkeep must never draw more because the treasury is full, so greed cannot be a property of the engine | `02 §4.1`, `CONTEXT` → Bin Rule |
+| Either `{min, max}` or `derived`, never both: **greed handles what is consumed, derived handles what is consulted.** Fertility is why derived counts survive on Bin Rules | `02 §4.1` |
+| **The cost driver under subscription is shortage *churn***, not depth and not brokenness. A chain is walked once on entry into shortage. Sharpens `adr/0033` from *most expensive when most broken* to *most expensive when most unstable* | `adr/0045`, `adr/0033` |
+
+**Two process findings, both recurrences.**
+
+- **A draft of `adr/0045` published a depth cap of 5**, derived from the length of the source ladder and dressed as a refuting number. That is R3's tripwire defect — *a wire whose denominator is a guess fires on the guess* — and the rule that catches it was already written in `plans/0010`. **Citing a rule is not running it**, which is `adr/0044`'s closing finding arriving one ADR later.
+- **The session's own premise did not survive it.** The claim was *`02 §4` before `adr/0015`, because `02 §4` unlocks slice 7*. It does — and so does `adr/0015`, which the session discovered only by settling `02 §4`. **A gate's stated reason covering only part of what it blocks** is the diagnostic the board already carries from session nine; this is its third instance, and the first where the *reason moved* rather than the work being split.
+
+**Left open, and routed out:** **labour as an input Bin against `adr/0026`'s Household↔Business jobs**, which this session made heavier by folding experience into that Bin. `04 §7` is stale twice over and owns it. **An economy session, not `02 §4`'s.**
+
+---
+
+## Resume here — `adr/0015`, and the two refusals it inherited
+
+**Open on `adr/0015` (hot reload, milestone 3b), then `02 §7` + `adr/0006` (the Event Wheel, milestone 4).** `02 §4` residue is **closed** — see the session above — and the order between the two reversed as a result: `adr/0015` now carries the **`on_fail` cycle check**, the **`fills` check** and the **TOML dependency exception**, so it gates slice **7** as well as slice 8. It is no longer *"never grilled at all"*; it is a session with a concrete first item and a stated error surface to specify.
+
+`06`'s *3b must not slip behind 3c* is still unargued and still circular, and is still owed an answer here — but it is no longer the reason to hold the session.
 
 ~~Session nine opens on `02 §8` and `02 §10` with `adr/0003`'s residue~~ — **all closed session eight. Milestone 1 is buildable**, along with the scaffolding, S4, the fixed-point library, typed quantities, milestone 2 and milestone 3c. **The most useful thing that can happen before session nine is code.**
 
