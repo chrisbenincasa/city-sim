@@ -5,6 +5,60 @@ It is a *view*, not a source: [`0003`](0003-build-plan.md) owns the slice order 
 [`0002`](0002-open-questions.md) owns the reasoning, `docs/adr/` owns the decisions. When they
 disagree, they win. Update this file whenever a task lands.
 
+---
+
+## State of play
+
+Plain summary, kept deliberately short. Everything below this section is dense and argumentative;
+this part is not. If the two ever disagree, the detailed sections are right and this one is stale.
+
+**What the project is.** A city-builder whose simulation is an ordinary C# library with no game
+engine inside it. Godot will be the display layer and has not been started.
+
+**What you can run today.**
+
+```
+dotnet run --project src/Borough.Headless                                   # build a city, print its tables and a State Hash
+dotnet run --project src/Borough.Headless -- --seed 1 --ticks 10000         # step a session and print a hash trace
+dotnet run --project src/Borough.Headless -- --layer pollution              # print a Map Layer as an ASCII field
+dotnet run --project src/Borough.Headless -- --help                         # every flag
+```
+
+**What works.** Typed tables where each field is declared once as saved or derived. Integer-only
+arithmetic, no floats anywhere. A deterministic eight-phase Tick. An input log that replays to
+identical hashes. Map Layers with diffusion. A census of collection sizes. A crash artifact that
+replays back into the same crash. Build-time analysers that turn the determinism rules into
+compiler errors.
+
+**What does not exist.** Seven of the eight Tick phases are empty. There are no Rules, no jobs, no
+money, no movement, no traffic, no roads, no buildings growing or declining, and no renderer.
+Citizens exist as rows and do nothing at all.
+
+**Scale.** A million Citizens fit comfortably: 86 MiB of tables, about 94 MiB resident, and 100,000
+Ticks in 11.75 seconds. Whether a Tick is *fast enough* is still unknown, because the Tick is empty.
+Nothing measured so far suggests C# is the wrong choice; see `docs/adr/0036` and S4 in
+`docs/spike-results.md`.
+
+**What is next.** Slice 7, the Rule engine. It is waiting on one design conversation about hot
+reload (`docs/adr/0015`), not on any code.
+
+**Known problems, none urgent.**
+
+- The synthetic city fixture and the table sizing ratios disagree; Households land at exactly
+  capacity, so the first one the simulation creates will grow the table.
+- Routing does not fit the Tick budget — about 85 trips may start per Tick. This is an algorithm
+  problem, and a route cache is the planned answer (spike S2 R6).
+- The S0a timings were taken with the CPU governor on `powersave`, so the absolute figures are
+  upper bounds. Ratios are unaffected.
+- Several documents still describe behaviour that later measurement contradicted. They are listed
+  under *Owed* at the bottom of this file.
+
+**Where things live.** This file is status. `0003` owns the order code gets built in. `0002` owns
+the reasoning behind open questions. `docs/adr/` owns settled decisions. `CONTEXT.md` owns the
+vocabulary, and every term in it has exactly one meaning.
+
+---
+
 **Where the project is:** Phase 1, **slice 5 closed** — all eight tasks, less task 7's trend assertion,
 which was deliberately not written. The State Hash has a committed baseline under it,
 `Borough.Headless` replays a `.borough` log and prints a diffable hash trace, the three invariant
