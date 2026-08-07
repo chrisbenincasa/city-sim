@@ -39,8 +39,8 @@ Ticks in 11.75 seconds. Whether a Tick is *fast enough* is still unknown, becaus
 Nothing measured so far suggests C# is the wrong choice; see `docs/adr/0036` and S4 in
 `docs/spike-results.md`.
 
-**What is next.** Slice 7, the Rule engine. It is waiting on one design conversation about hot
-reload (`docs/adr/0015`), not on any code.
+**What is next.** Slice 7, the Rule engine. Nothing is in front of it any more — the hot-reload
+conversation it was waiting on has been had (`docs/adr/0048`), so this is a keyboard task.
 
 **Known problems, none urgent.**
 
@@ -270,10 +270,10 @@ but the code track leads.
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | **code** | ~~**S0 — the synthetic 1M-Citizen city**~~ → **slice 7, once session A clears it** | [`0003`](0003-build-plan.md) | **S0a is DONE** — see *Done*. It also found that **S0 was two spikes filed as one**: `0002` specifies four clauses and three of them are slices 7, 9 and 10, so **S0b is not runnable and it is the half carrying `06`'s risk**. The code column's next real item is therefore **slice 7**, which is gated on session **A** — row 4, and it has just become the thing something concrete is blocked on |
+| **1** | **code** | **Slice 7 — the Rule engine, Bins and Rules** | [`0003`](0003-build-plan.md) | **Its gate is cleared.** Session A ran and produced [`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md); **slice 8's gate cleared with it**, since both were the same ADR. Nothing in the argument track now stands in front of code. It still owes two counters — Rule evaluations per Tick, walked chain depth (`02 §9`) — and `0010`'s plan document does not exist yet |
 | **2** | spike | **S2 R6 — the two caches** | [`0010`](0010-s2-routing.md) | **Promoted, and its stakes went up.** R3 called a cache *"one of only two exits"*; [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) has now removed the third option nobody had noticed was in reserve, so **R6 is the only exit.** It owns the two numbers routing still has open: the cache's **key granularity** — a different number with a different error from the matrix's — and the **eviction policy**, which R5 measured as the bigger lever below the highest edit rates (28–31% of lookups missing on direct-mapped collisions before a road is touched). It inherits R3's stored path arena and a `HpaSearch` pristine-seeding defect R5.5 found. *Runs unattended; does not contend with row 1* |
 | **3** | spike | **S2 R5.6 — the Parking Shed**, then **R7 — the report** | [`0010`](0010-s2-routing.md) | The second Epoch consumer, and the last section of R5. It scales with **Buildings** and is a *neighbourhood* rather than a *path*, so per-Segment has no obvious meaning for it. **`CONTEXT.md` → Epoch must not be updated until it runs.** R7 then closes S2 and deletes the harness — and owes a re-capture of R0/R1/R3/R4, all of which carry the one-processor artefact |
-| **4** | argument | **`adr/0015` — hot reload** | [below](#the-argument-track--what-stands-between-here-and-phase-2) | **Promoted, because slice 7 is now what the code column is waiting on.** Slice 7's whole gate runs through it, and [`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md) handed it two named refusals — the `on_fail` cycle check and the `fills` check. Fold in the **TOML dependency exception**: a parser is what runs them. Its own rule — *run an argument session when something concrete is blocked on it* — now selects this one |
+| **4** | argument | ~~**`adr/0015` — hot reload**~~ **DONE** | [`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md) | Ran, and cleared **two** slice gates rather than one. See *Done*. Nothing in this track is now blocking code, so the next session is chosen by what gets blocked next — not by what is available |
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
@@ -302,7 +302,7 @@ milestone 8 is parking — so the *Unblocks* column always says which.
 
 | | Session | What is actually missing | Unblocks | With slice 6 |
 |---|---|---|---|---|
-| **A** | **`adr/0015`** — hot reload | **No longer "never grilled at all."** `adr/0045` hands it **two named refusals** — the `on_fail` cycle check and the `fills` check — both load-time Ruleset validation on the error surface this ADR already specifies. Plus `06`'s *must not slip behind 3c*, which is unargued and circular, and the **TOML dependency exception**, since a parser is what runs the refusals | slices **7** and 8 | **yes** |
+| ~~**A**~~ | ~~**`adr/0015`** — hot reload~~ **CLOSED** — see *Done*. Produced `adr/0048`, named Tomlyn, put the validator in `Borough.Formats`, found `adr/0003`'s exception was never owed, generated a third refusal, retired `06`'s ordering claim and corrected a `CONTEXT.md` sentence that argued against itself | ~~**No longer "never grilled at all."**~~ `adr/0045` hands it **two named refusals** — the `on_fail` cycle check and the `fills` check — both load-time Ruleset validation on the error surface this ADR already specifies. Plus `06`'s *must not slip behind 3c*, which is unargued and circular, and the **TOML dependency exception**, since a parser is what runs the refusals | slices **7** and 8 | **yes** |
 | ~~**B**~~ | ~~**`02 §4` residue**~~ | **CLOSED** — see *Done*. Produced `adr/0045`, struck `mean_workforce_experience`, inverted the Readout bound, and settled apply count. Its cycle-checking half moved to **A**, which is what moved A onto slice 7's gate | ~~slices 7, then 10~~ | — |
 | **C** | **`02 §7` + `adr/0006`** — Event Wheel | Both never grilled. `02 §7` is partly spoken for by `adr/0033` and must be **read against it rather than fresh** | slice 9 | **yes** |
 | **D** | **`03 §5`** — the traffic model | **The wall.** The most detailed unargued design in the project, now carrying transit vehicles. It is one large item and should be booked as more than one sitting | milestones 5b, 5c, 6, 7a | **partly** — the half that wants S2's numbers waits for R1–R3; the rest does not |
@@ -476,6 +476,31 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
 
 ### Planning and design
 
+- [x] **Session A — `adr/0015`, hot reload. It cleared two slice gates, not one.** Produced
+      **[`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md)**:
+      the Ruleset is validated where it is parsed, and only integers and strings cross into the core.
+      **The parser is Tomlyn, in `Borough.Formats`** — chosen on source spans, because `adr/0015`
+      already promises a refusal names *a file, a line and a rule name*. **`adr/0003`'s owed exception
+      turned out never to be owed**: it governs *core* dependencies and there is no core dependency, so
+      what replaces it is one narrower line — *nothing but integers and strings crosses from the parser
+      into the loader* — which is what actually protects determinism, since a bad parse poisons the
+      simulation from any distance. **The float hazard forced the file format**: a designer writes
+      `decline_rate = "0.15"`, quoted, converted by our own routine, because a library `double` fails
+      as a State Hash divergence between two machines with no diff to look at, and fixed-point
+      integers in the file would defeat `adr/0015`'s own *seconds, not a rebuild* test. **That
+      generated a third refusal** — an unquoted decimal is refused by name, joining `adr/0045`'s cycle
+      and `fills` checks in one load-time walk. **The validator cannot live in the core** because its
+      entire output is human-readable strings, which `adr/0002` forbids; drift is answered by the
+      interpreter refusing an unknown id, not by a second validator. **`06`'s *3b must not slip behind
+      3c* is retired rather than re-grounded** — one unargued claim counted twice, falsified by slice 6
+      at no cost because the no-`const` rule was the real mechanism; replaced by something checkable,
+      that **slice 8 is not done until the Layer cadence loads from a file**. **Two sentences were
+      found arguing against themselves**: `02 §4.3`'s *"requires no parser"*, which hid the dependency
+      for six slices, and `CONTEXT.md` → Input Log's *"a replay needs the Rules' content, not the news
+      that they changed"*, which was the stated reason for carrying **hashes** — hashes being exactly
+      the news. Settled by splitting where each travels: hashes in the log, content in the crash
+      artifact, because only a developer ever reloads and the artifact is what goes to strangers
+
 - [x] **S2 planned** — [`0010`](0010-s2-routing.md), and its gate cleared by defining **Segment** in
       `CONTEXT.md`
 - [x] **`adr/0043` — a claim a measurement could settle must not be settled by argument.** Written
@@ -553,8 +578,8 @@ gate's reason *does not* cover, and check whether that remainder is runnable tod
 
 ### Parallel track — argument ([the table above](#the-argument-track--what-stands-between-here-and-phase-2))
 
-- [ ] **A** — `adr/0015`, hot reload, **now carrying `adr/0045`'s two refusals and the TOML exception**
-      · ~~**B** — `02 §4` residue~~ *(closed)* · **C** — `02 §7` + `adr/0006`
+- [x] ~~**A** — `adr/0015`, hot reload~~ *(closed — `adr/0048`)* · ~~**B** — `02 §4` residue~~ *(closed)*
+- [ ] **C** — `02 §7` + `adr/0006`, the Event Wheel. **Gates slice 9, which is now the next gated slice**
 - [ ] **D** — `03 §5`, the traffic model *(more than one sitting)*
 - [ ] **E**–**I** — the six research-written ADRs *(`0005`, `0007`, `0008`, `0009`, `0012`, `0016`)*
 - [ ] **J** — save/load's three: `05 §7`'s format half, map size, Outside Connection layout

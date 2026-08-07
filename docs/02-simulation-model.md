@@ -421,7 +421,7 @@ Two instances, and they differ on one axis:
 
 Rules live in data files, loaded at runtime, **hot-reloadable**. The compiled binary is a stable interpreter for the Ruleset. See `adr/0015`. `FAST ITERATION`
 
-Starting format is **TOML**. Not because it is the most elegant expression of a rule, but because it requires no parser and `adr/0018` sets a standing bias against building bespoke infrastructure. GlassBox's custom DSL was more readable, and a DSL remains a possible later ergonomics improvement — but it is a parser to write, test, and produce good error messages for, and that is not the first thing this project should spend effort on.
+Starting format is **TOML**. Not because it is the most elegant expression of a rule, but because it requires no *bespoke* parser and `adr/0018` sets a standing bias against building bespoke infrastructure. ~~it requires no parser~~ — **struck, and it is the sentence that hid a dependency for six slices.** .NET has no TOML reader, so one is taken: **Tomlyn**, in `Borough.Formats`, named and argued in [`adr/0048`](adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md), which also settles what may cross from it into the core. GlassBox's custom DSL was more readable, and a DSL remains a possible later ergonomics improvement — but it is a parser to write, test, and produce good error messages for, and that is not the first thing this project should spend effort on.
 
 ```toml
 [[rule]]

@@ -120,11 +120,23 @@ public sealed class InputLog
     /// The Ruleset in force on one Tick.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>A stub with the right shape, which is the point of writing it now.</b> Slice 8 makes the
     /// Ruleset hot-reloadable, at which point a reload becomes a transition in this log carrying
-    /// <em>both</em> hashes — a replay needs the Rules' content, not the news that they changed.
-    /// Until then one Ruleset is in force for the whole run and this returns it. What changes in slice
-    /// 8 is this method's body; what does not change is the log format or any caller.
+    /// <em>both</em> hashes. Until then one Ruleset is in force for the whole run and this returns it.
+    /// </para>
+    /// <para>
+    /// <b>This comment used to claim that <em>"what does not change is the log format or any caller"</em>,
+    /// and that is wrong</b> (<c>adr/0048</c>). The log gains reload transitions, so the format changes
+    /// and so does every caller that supplies a Ruleset — <c>--ruleset PATH</c> names one file and a
+    /// session that reloaded twice was played against three. What stays true is the narrower claim this
+    /// method was written for: the <em>signature</em> is right, so nothing has to learn a new question.
+    /// </para>
+    /// <para>
+    /// <b>The hash is what travels here; the content travels in the crash artifact.</b> An Input Log is
+    /// shared between people who have the Rulesets in a repository, and an artifact is attached to an
+    /// issue by somebody who may not.
+    /// </para>
     /// </remarks>
     public ulong RulesetHashAt(Ticks tick)
     {

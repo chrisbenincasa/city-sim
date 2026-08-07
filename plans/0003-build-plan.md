@@ -105,8 +105,8 @@ become three.
 | **5** | **The Tick, the Input Log and replay** | **1** | cleared | 3 | [`0008`](0008-tick-and-replay.md) |
 | **6** | **Map Layers** — **all ten tasks done.** Cell grid and the Cell/Chunk type split, the sparse double-buffered `LayerCellTable` — the project's first `Buffering.TwoCopies` — the separable integer convolution, the staggered schedule as a table, incremental re-diffusion proved bit-identical, the three real Layers, the named holes that throw, `layer_cells(aabb, layer)` and the end-of-run magnitude check. Produced `adr/0044`, which **settles owed decision 2 by measurement and finds it false** — and then got its own second half wrong by argument and withdrew it rather than amending it away | **3c** (Layers half) | cleared | 3 | [`0009`](0009-map-layers.md) |
 | — | *the Phase 1 gate closes here* | | | | |
-| **7** | Rule engine — Bins and Rules | **3a** | 🔴 `adr/0015`'s validator | — | stub |
-| **8** | Rule engine — hot reload | **3b** | 🔴 `adr/0015` | — | stub |
+| **7** | Rule engine — Bins and Rules | **3a** | ✅ **cleared** by session A → `adr/0048` | — | stub |
+| **8** | Rule engine — hot reload | **3b** | ✅ **cleared** by session A → `adr/0048` | — | stub |
 | **9** | Event Wheel | **4** | 🔴 `02 §7`, `adr/0006` | — | stub |
 | **10** | Zone Rules | **3c** (Sweep half) | 🔴 depends on 7 | — | stub |
 
@@ -161,18 +161,18 @@ nobody starts one of these by accident.
 
 | Slice | Blocked by | What specifically is missing |
 |---|---|---|
-| **7** — Bin Rules | `adr/0015`'s Ruleset validator | **`02 §4` residue is closed** ([`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md)) and closing it **moved this gate rather than clearing it**. Depth needed no cap — the source ladder bounds it and the number is measurable, routed to this slice's counters. What remains is load-time: the `on_fail` **cycle check** and the **`fills` check**, both refusals on `adr/0015`'s error surface, and both needing the TOML parser below. Slice 7 also owes **Rule evaluations per Tick** and **walked chain depth** (`02 §9`) |
-| **8** — hot reload | `adr/0015` | Never grilled. The roadmap says plainly it **must not slip behind 3c**, so it is gated on an argument, not on more code |
+| **7** — Bin Rules | ~~`adr/0015`'s Ruleset validator~~ **CLEARED** — [`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md) names the parser (**Tomlyn**, in `Borough.Formats`), puts the validator with it, and enumerates **three** refusals in one load-time walk: the `on_fail` cycle check, the `fills` check, and an unquoted decimal. The core receives ids and integers and never a string. Slice 7 still owes **Rule evaluations per Tick** and **walked chain depth** (`02 §9`) | **`02 §4` residue is closed** ([`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md)) and closing it **moved this gate rather than clearing it**. Depth needed no cap — the source ladder bounds it and the number is measurable, routed to this slice's counters. What remains is load-time: the `on_fail` **cycle check** and the **`fills` check**, both refusals on `adr/0015`'s error surface, and both needing the TOML parser below. Slice 7 also owes **Rule evaluations per Tick** and **walked chain depth** (`02 §9`) |
+| **8** — hot reload | ~~`adr/0015`~~ **CLEARED** | Grilled by session A. **The *must not slip behind 3c* claim is retired**, not re-grounded — it was one unargued claim counted twice, and slice 6 falsified it at no cost because the no-`const` rule was doing the work. What replaces it is checkable: **slice 8 is not done until the Layer cadence and rates load from a file**. Reload's log representation is settled too — hashes travel in the Input Log, Ruleset **content** travels in the crash artifact |
 | **9** — Event Wheel | `02 §7`, `adr/0006` | Both never grilled. `02 §7` is partly spoken for by `adr/0033` and should be read against it rather than fresh |
 | **10** — Zone Rules | slice 7 | A Zone Rule is a Sweep Rule. There is nothing to sample with until the Rule engine exists |
 
-**Also owed, and it is no longer merely adjacent to slice 7:** a TOML parser library is unnamed
-([`dev-environment.md`](../docs/dev-environment.md) flags it as needed by slice 7). `adr/0003`
-requires any core dependency be argued against it explicitly, so a determinism liability entering
-the core needs a written exception. That argument is cheap and should happen before slice 7, not
-during it — and `adr/0045` gave it a second reason to be settled in session **A** rather than on its
-own: **the parser is what runs the two refusals**, so naming it and specifying the error surface it
-reports on are one conversation.
+~~**Also owed, and it is no longer merely adjacent to slice 7:** a TOML parser library is unnamed.~~
+**SETTLED in session A** ([`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md)).
+The parser is **Tomlyn**, and it goes in **`Borough.Formats`, not `Borough.Core`** — so
+**`adr/0003`'s exception is not owed at all**, because there is no core dependency. What replaces it
+is narrower and more useful: *nothing but integers and strings crosses from the parser into the
+loader*. That is what actually protects determinism, since a bad parse poisons the simulation from
+any distance and the assembly it sat in was never the question.
 
 ---
 
