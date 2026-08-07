@@ -98,6 +98,14 @@ internal sealed class RouteCache
     /// <summary>Entries evicted by a colliding key. The direct-mapped policy's own cost.</summary>
     public int Evicted { get; private set; }
 
+    /// <summary>
+    /// Occupied slots discarded by <see cref="Expire"/>. <b>Reported, not charged</b> — the
+    /// rotation's real bill is the misses it causes, which the Tick timings already carry. It is
+    /// printed so a rotation that is expiring nothing (or expiring an empty cache, which looks
+    /// identical in the hit column) can be told apart from one that is working.
+    /// </summary>
+    public int Expired { get; private set; }
+
     /// <summary>Revalidation words read on the last lookup — 1, clusters crossed, or path length.</summary>
     public int LastRevalidationWork { get; private set; }
 
@@ -198,6 +206,48 @@ internal sealed class RouteCache
         _stampGlobal[slot] = clock.Global;
         _stampCluster[slot] = MaxClusterVersion(slot, clock);
         _stampSegment[slot] = MaxSegmentVersion(slot, clock);
+    }
+
+    /// <summary>
+    /// Expire a contiguous slice of slots — the TTL, spelled as a <b>rotation</b> rather than as a
+    /// per-entry timestamp.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// R5.4 measured a hole no Epoch rung closes: a route computed before a road existed cannot
+    /// contain that road, so nothing the per-Segment rung watches will ever move and the entry is
+    /// stale <b>permanently</b>. R5.4's option C is to invalidate on a cadence instead, which bounds
+    /// staleness in time without needing to detect anything. This is that, and the design decision
+    /// worth naming is the spelling.
+    /// </para>
+    /// <para>
+    /// <b>A rotation rather than an expiry check.</b> A per-entry timestamp tested at lookup lets
+    /// every entry inserted during a busy Tick expire during one later Tick, which is a spike — and
+    /// R5.3 has already measured that this cache's exposure is the <i>worst</i> Tick rather than the
+    /// mean one. Sweeping a fixed-width window makes the refresh rate constant by construction:
+    /// expire <c>capacity / period</c> slots a Tick and every entry is refreshed within
+    /// <c>period</c> Ticks, with the cost flat. It is also the shape R4.7 already priced for the
+    /// other consumer, so the two rotations are one mechanism rather than two.
+    /// </para>
+    /// <para>
+    /// <b>The cost is not modelled here and must not be.</b> Expiring a slot costs a write; what it
+    /// actually costs is the <i>miss</i> the next lookup on that key takes, and that lands in the
+    /// Tick timings and the miss column where the storm can charge for it. A rotation priced by
+    /// counting evictions would be a rotation priced by argument.
+    /// </para>
+    /// </remarks>
+    public void Expire(int fromSlot, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            int slot = (fromSlot + i) % _capacity;
+
+            if (_occupied[slot])
+            {
+                _occupied[slot] = false;
+                Expired++;
+            }
+        }
     }
 
     /// <summary>

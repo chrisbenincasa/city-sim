@@ -218,7 +218,7 @@ No routing number means anything without a graph that resembles the real one and
 to divide by.
 
 > **Done. Numbers and the decision each produced in [`spike-results`](../docs/spike-results.md) §S2;
-> raw capture in `spikes/S2.Routing/results/r0-i5-10400.md`.** Headlines, because three of them change
+> raw capture in `spikes/S2.Routing/results/s2-r0-intel-core-i5-10400-ddr2133-powersave-turbo-unpinned-20260806T152301Z.md`.** Headlines, because three of them change
 > a later task in this plan rather than merely closing this one:
 >
 > - **The ~30,000-Segment placeholder is one Street per Cell boundary**, and at that density the mean
@@ -629,7 +629,7 @@ rendering, saves and work partitioning.
 ### R4. DSDV distance-vector, if R2 leaves it live — **DONE**
 
 > **Done. Numbers and the decision each produced in [`spike-results`](../docs/spike-results.md) §S2 R4;
-> raw capture in `spikes/S2.Routing/results/s2-r4-*.md`.** Headlines, because four of them change a
+> raw capture in `spikes/S2.Routing/results/s2-r4-intel-core-i5-10400-ddr2133-*.md`.** Headlines, because four of them change a
 > later task in this plan rather than merely closing this one:
 >
 > - **Distance-vector is out, and on none of the three grounds this plan anticipated.** Not memory —
@@ -747,8 +747,8 @@ derived from connectivity, so a topology edit changes the partition.
 >   256-Segment drag and 4× on the naive worst case. **R3's *current standing favours 16* is
 >   withdrawn**, conditional on R5.5.
 > - **The repair loop R3 and R4 both wrote is a catastrophe on a gesture.** Repairing per Segment
->   rather than per touched cluster costs **21.25×** at 16 Chunks — a worst case of **219.50 ms, or
->   fourteen Tick budgets, from one player gesture**. The two spellings are identical at a gesture of
+>   rather than per touched cluster costs **23.26×** at 16 Chunks — a worst case of **253.22 ms, or
+>   sixteen Tick budgets, from one player gesture**. The two spellings are identical at a gesture of
 >   one, which is the only size either earlier task measured.
 > - **Repair loses to rebuild above ~63 clusters touched** — a scattered 256-Segment gesture at 16
 >   Chunks costs **107% of a full rebuild**. R4.6's break-even arriving at the abstract graph.
@@ -777,8 +777,84 @@ derived from connectivity, so a topology edit changes the partition.
 > rung turned out to have a hole only a measurement could size — and it took R5.4 because that is
 > the order the work ran in. The path source and the Parking Shed are now **R5.5** and **R5.6**.
 >
-> **Owed: the canonical pinned `performance` capture**, as R3's still is. Every count is
-> governor-independent and bit-identical across two captures; no absolute should leave the section.
+> **Discharged: the canonical pinned `performance` capture**, and taking it found the protocol's own
+> pinning to be wrong — one logical processor, which starves the tiered JIT onto the measured core.
+> See `spike-results` → *S2 R5* → *The capture*. Every earlier `performance` capture in S2 carries it.
+
+### R5.5 — the path source — **DONE**
+
+> **What it decided.** **Shared District route is retired on a number** — ~180 ms per gesture, *flat
+> in gesture size*, because a rebuild does not care what was deleted. **The remaining two are not
+> rungs on one ladder**: a maintained next-hop table is wrong **structurally** (16.58% uniform,
+> **149.73%** local, unmoved across a storm deleting 1,021 Segments) and a cache is wrong
+> **temporally** (near-zero while it lasts, permanent under addition). No measurement ranks a fixed
+> 16.58% against an occasional 62.41% that never heals — **`05 §4` does, and session M owns it.**
+>
+> **The TTL works and it is cheap.** **0.40 forced refreshes per Tick: wrongly-valid 38 → 0 within
+> one rotation, 97.08% of the cache retained**, against a control that plateaus at **23** and does
+> not move for 960 Ticks. R5.4's *does not heal* is measured. **Every tripwire below was honoured**;
+> tripwire 4 **fired negative** — R5.2's 23.26× does not generalise (0.91–1.51×) — and tripwire 7's
+> instrument-can-move requirement is what the control row exists to satisfy.
+>
+> **A pre-existing defect found on the way**: `HpaSearch` seeds Access Point remainders against the
+> **pristine** graph, so the hierarchy returns routes down bulldozed roads. Common-mode across the
+> Epoch rungs, so nothing moves — but ***Unroutable* on a hierarchical row is evidence of nothing**
+> and **R6 must fix it.** Numbers in [`spike-results`](../docs/spike-results.md) → *S2 R5.5*.
+
+#### The design, as written before it was measured
+
+**R5.4 changed what this section is about, and the change is worth stating before any number.** R2
+handed R5 a choice between a shared District route and a next-hop table, to be decided on
+*invalidation*. R5.3 and R5.4 then measured the rung that was not on R2's ballot — HPA\* behind a
+route cache — and found its error is **temporal, permanent and concentrated on the busiest pairs**.
+A maintained table's error is **structural, bounded and identical every Tick**. So the section is no
+longer *which is faster*; it is **which kind of wrong the city should have**, and only the first of
+those is a benchmark.
+
+**The rungs.** Four, against a control.
+
+| | Path source | What an edit costs it | What it is wrong by |
+|---|---|---|---|
+| **a** | HPA\* + `RouteCache`, per-Segment Epoch | O(1) per lookup; exact under deletion | **permanently** stale under addition — R5.4 |
+| **b** | **a** plus a **TTL rotation** — NEW | a fixed slice of the cache expired per Tick | bounded by the rotation period |
+| **c** | next-hop table maintained by `DistanceVector.RepairSubtree` | 4.71 ms per single edit — R4 | District granularity: 18.52% uniform, **128.82%** local — R4.8 |
+| **d** | shared District route, **rebuild only** | a full rebuild; no repair is written | 36.01% — R2 |
+| **control** | flat A\* on the current graph | nothing; it is never stale | nothing; it is the truth |
+
+**Rung b is `adr/0043` applied to a proposal rather than to a document.** R5.4 tabulated five ways
+out and typed two of them *arguable*. A TTL is **option C**, and pairing it with option B is what
+makes B legitimate rather than a defect: `BOUNDED KNOWLEDGE` permits drivers not to know about a new
+road **if the ignorance is modelled with a stated learning rate**, and a rotation period *is* a
+stated learning rate — a number a designer sets and a player can be told. The question is whether it
+is affordable, which is measurable, so it is measured here rather than argued in session M.
+
+**Rung d is priced as a rebuild and is not given a repair.** R4 established maintenance is
+*separable* from path source, so a repair written for `RouteStore` would measure the repair. If d
+loses by an order of magnitude that is a retirement on a number, which is what R2 asked for.
+
+**Tripwires, stated before the measurement.**
+
+1. **A rung that cannot be made correct again within one Tick budget after a plausible gesture is out
+   on a design commitment, not on a number.** The player is waiting.
+2. **A rung whose error does not heal is out** unless the corpus adopts option B *with* a stated
+   rate — because R5.4 established **permanence**, not magnitude, as the disqualifying property.
+3. **The TTL's refuting number, named in advance:** the forced refresh rate needed to bound staleness
+   at *N* Ticks exceeds the routing budget. Published the R3 way — *a rotation of period N fits while
+   fewer than X refreshes per Tick are forced* — never as a multiple over the guessed arrival rate.
+4. **`RepairSubtree` takes a changed-arc set, so it has a coalesced spelling.** R5.2's **23.26×**
+   finding is therefore testable for generality here. If looping it per Segment over a drag is a
+   catastrophe too, that is a corpus-wide API shape rule and not a routing note.
+5. **Sample size per rung is printed or the row is void** — R1's survivorship defect, and this would
+   be its fourth instance.
+6. **The flat-search denominator is measured first and last** — R3's finding, which R5's own capture
+   has just proved live at 4.88×.
+7. **The detour column must have a rung expected non-zero**, or a zero is indistinguishable from an
+   instrument that is not wired up — R3.5, and R3.6 is how that was established.
+
+**Two caveats travel with every figure this section produces**, both inherited: the hit-rate *levels*
+rest on R5.3's **invented pool** standing in for Trip repetition, and the Street half of the
+addition measurement reads zero because **the synthetic grid is degenerate**. Neither is fixable
+without Trip generation. The ratios between rungs under one pool are what the section is for.
 
 > **R4 hands R5 four things and one of them changes the ladder below.**
 >
@@ -848,7 +924,7 @@ The measurement that separates a routing design that works from one that works o
 - **A gesture needs a coalesced repair and a rebuild fallback, and a per-edit API invites neither.**
   NEW, produced by R5.2. A cluster's edge set is a function of its arcs, so it must be decided once
   however many Segments inside it were deleted — but `RebuildFor(segment)` is the natural shape and
-  looping it over a drag costs up to **21.25×** what coalescing costs. Above ~63 clusters touched the
+  looping it over a drag costs up to **23.26×** what coalescing costs. Above ~63 clusters touched the
   coalesced repair loses to a **full rebuild** outright. So the repair path has two thresholds, not
   none, and both are properties of *clusters touched* rather than of Segments deleted.
 

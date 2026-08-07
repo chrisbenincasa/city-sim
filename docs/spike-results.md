@@ -1593,7 +1593,7 @@ disguise"* — and until R0 the corpus had never measured any part of it.
 ### The machine, and a capture defect closed rather than declared
 
 Measured **2026-08-06** on the Linux desktop: Intel i5-10400, Ubuntu 24.04.4, .NET 10.0.10, Release.
-Every timing below is from `spikes/S2.Routing/results/s2-intel-core-i5-10400-ddr2133-performance-turbo.md`
+Every timing below is from `spikes/S2.Routing/results/s2-r0+r1+r2-intel-core-i5-10400-ddr2133-performance-turbo-cpu2-20260806T185053Z.md`
 — **the canonical capture: `performance`, turbo enabled, pinned to one physical core with its SMT
 sibling idle**, taken by `spikes/S2.Routing/tools/routing-run.sh`, which is S4's `kernel-run.sh` with
 the BenchmarkDotNet machinery removed because S2's harness times its own loops.
@@ -2350,7 +2350,7 @@ argument against averaging is a correctness one rather than a budget one.
 **Captured** 2026-08-06 18:52 UTC, i5-10400 @ DDR4-2133, `performance` governor with turbo, pinned to
 one physical core, .NET 10.0.10, Release — the canonical configuration
 `spikes/S2.Routing/tools/routing-run.sh` produces. Raw capture in
-`spikes/S2.Routing/results/s2-intel-core-i5-10400-ddr2133-performance-turbo.md`. **Every count in R0
+`spikes/S2.Routing/results/s2-r0+r1+r2-intel-core-i5-10400-ddr2133-performance-turbo-cpu2-20260806T185053Z.md`. **Every count in R0
 and R1 is bit-identical to the previous canonical capture** and the timing columns move within 2%,
 which is the determinism check carried forward rather than re-argued.
 
@@ -2601,7 +2601,7 @@ commit.
 ### The capture is `powersave`, and the canonical one is owed
 
 **Stated first because R0's own first capture was rejected for exactly this.** The figures below come
-from `s2-intel-core-i5-10400-ddr2133-powersave-turbo.md` — taken by `tools/routing-run.sh`, so it is
+from `s2-r3-intel-core-i5-10400-ddr2133-powersave-turbo-cpu2-20260806T203318Z.md` — taken by `tools/routing-run.sh`, so it is
 **pinned to one physical core with its SMT sibling idle**, but the governor is `powersave` because
 the canonical configuration needs root and this sitting did not have it. `docs/dev-environment.md`'s
 protocol is `sudo spikes/S2.Routing/tools/routing-run.sh --cluster`, and it is owed.
@@ -2998,7 +2998,7 @@ of how the weights land; but *the plan's reason for it is not yet evidence.*
 ## S2 R4 — distance-vector, and the table that has to stay current
 
 > `plans/0010-s2-routing.md` R4. Raw capture in
-> `spikes/S2.Routing/results/s2-r4-intel-core-i5-10400-ddr2133-performance-turbo.md`; the `powersave`
+> `spikes/S2.Routing/results/s2-r4-intel-core-i5-10400-ddr2133-performance-turbo-cpu2-20260806T224402Z.md`; the `powersave`
 > capture it is checked against is beside it as `…-powersave-turbo.md`.
 
 **R4 is not a beauty contest between two routers**, and reading it as one would miss what R3 handed
@@ -3260,28 +3260,71 @@ explains why R2 published 474.47 ms for the same operation: R2's was also a firs
 ## S2 R5 — the edit storm, the gesture, and the Epoch that has to carry a location
 
 > `plans/0010-s2-routing.md` R5. Raw capture in
-> `spikes/S2.Routing/results/s2-r5-intel-core-i5-10400-ddr2133-powersave-turbo.md`.
-> **Four of R5's sections.** The path source and the Parking Shed cache are **not run**, and the plan
-> says the second of those is the one most likely to move the verdict below. R5.4 here is *the
-> addition*, which was not in the plan at all — it exists because R5.3's recommended rung turned out
-> to have a hole that only a measurement could size.
+> `spikes/S2.Routing/results/s2-r5-…-performance-turbo-cpu2+8-20260807T151916Z.md`, with two earlier
+> captures of the identical configuration retained beside it and the unpinned `powersave` run as
+> `s2-r5-…-powersave-turbo-unpinned-20260807T033838Z.md`.
+> **Seven of R5's sections. R5.6, the Parking Shed, is not run**, and the plan says it is the one most
+> likely to move the verdict below. **Two sections were not in the plan at all**: R5.4, *the
+> addition*, exists because R5.3's recommended rung turned out to have a hole only a measurement
+> could size; and R5.5.4, *the rotation*, exists because R5.5 would otherwise have published a
+> mechanism's cost with no measurement of its benefit.
 
 **R5 is where the two earlier tasks' unit turns out to have been wrong.** R3 priced one deleted
 Segment and R4 priced one deleted Segment, and both said in their own words that the case they could
 not reach was hundreds of Segments in a single gesture. **A player does not delete a Segment; a
 player drags.** Everything below follows from measuring the gesture instead of the edit.
 
-### The capture, and what it is not
+### The capture, which is canonical — and the artefact that had to be fixed to make it so
 
-**Not canonical.** `powersave` governor, unpinned, not run through
-`spikes/S2.Routing/tools/routing-run.sh`. Every *count* below is governor-independent and every ratio
-is taken within one process, so no decision here rests on the configuration — but **no absolute
-nanosecond or millisecond figure in this section should be quoted outside it until the canonical
-pinned `performance` capture exists.** The canonical capture is owed, exactly as R3's still is.
+**Canonical: `performance`, turbo enabled, pinned, run as root through
+`spikes/S2.Routing/tools/routing-run.sh --storm`.** The unpinned `powersave` capture is retained
+beside it.
 
-**The determinism check passes across two captures fourteen minutes apart.** Every count, share and
-percentage in R5.3 is **bit-identical** between them — hit, stale, miss and unroutable shares,
-gesture collection counts, clusters touched, revalidation words. Only nanosecond columns move.
+**The determinism check passes across four captures, and the absolutes now carry a spread rather
+than a disclaimer.** Every count, share and percentage in R5.1, R5.3, R5.4, R5.5.2 and R5.5.3 is
+**bit-identical** across three canonical runs and the unpinned `powersave` one — hit, stale, miss and
+unroutable shares, gesture collection counts, clusters touched, revalidation words, detours, sample
+sizes, forced-refresh rates, and the whole R5.4 addition table including its 9.22% / 16.71% / 62.65%
+row. The only percentages that move are R5.2's *% of rebuild* column and R5.5.1's *naive ÷ coalesced*,
+both ratios of two timings.
+
+**The millisecond columns reproduce to about 1% except where the absolute is small.** Across the two
+full canonical captures the next-hop gesture repair reads 20.28 and 20.38 ms, the shared rebuild
+181.61 and 179.32 ms, and the flat control's mean Tick 6,821 and 6,664 µs — while the cache's
+2.75 ms gesture repair also read 3.67 ms, a **1.33× spread on the smallest absolute in the section**.
+Read the small numbers as bands.
+
+**Getting a canonical capture took two attempts, and the failed one is the finding.** The protocol
+pinned with `taskset -c 2` — a physical core with its SMT sibling deliberately left idle. On a
+machine with one logical processor visible, the .NET tiered JIT's background compilation has nowhere
+to run but the measured core, and it lands on whatever is timed first. Measured directly, in one
+capture, by the denominator this task already takes twice:
+
+| Configuration | Rebuild @8, first vs last | Rebuild @16, first vs last | CPU stall |
+|---|---:|---:|---:|
+| `powersave`, unpinned (12 processors) | 50.88 / 50.43 ms — 1.00× | 78.88 / 83.89 ms — 0.94× | 0.88% |
+| `performance`, `taskset -c 2` (1 processor) | **214.94 / 43.99 ms — 4.88×** | 81.24 / 76.13 ms — 1.06× | **3.68%** |
+| **`performance`, `taskset -c 2,8` (2 processors)** | **43.14 / 46.64 ms — 0.92×** | 75.31 / 81.31 ms — 0.92× | **1.26%** |
+
+The one-processor run inflated the whole first-timed half of R5.2's table by ~3× and **reversed the
+8-versus-16 cluster verdict on its face** — 8 read 10.72 ms against 16's 6.52 ms, where both the
+unpinned and the correctly-pinned captures put 8 ahead by ~1.9×. It also read a *slower* 8-Chunk
+rebuild measured first than `powersave` managed while reading a *faster* one measured last, which is
+the shape that identifies it as first-timed contamination rather than a slow machine.
+
+**This is `plans/0000-board.md`'s open question about R0, answered.** *Why plain Dijkstra's absolute
+moved 1.64× under pinning* was filed as a hypothesis — *taskset leaves one visible logical processor
+and tiered-JIT background compilation shares the measured core* — with the check named as *re-run in
+reverse order, or with tiering disabled*. Neither was needed: the twice-measured denominator makes
+the artefact visible **within a single capture**, at two rungs, and giving the JIT the SMT sibling
+removes it. `routing-run.sh` now reads `thread_siblings_list` from the kernel and pins to both
+threads of the named core. **Sixth instance in S2 of *an argument for reporting a quantity you expect
+to be boring*, and the first where the boring quantity diagnosed the harness rather than the result.**
+
+**Every earlier `performance` capture in this spike was taken at `taskset -c 2`** — R0, R1, R3 and R4
+alike, including the session-eleven canonical re-capture this document quotes throughout. Their
+counts and in-process ratios are unaffected, and their **first-timed absolutes are not**. Filed as a
+debt below.
 
 ### R5.1 — the gesture, which is the unit R3 and R4 could not reach
 
@@ -3314,32 +3357,32 @@ else.
 
 The rebuild is the denominator, measured on both sides of the sweep **and at both cluster rungs**.
 
-- Full abstract-graph build at **8 Chunks**: 44.24 ms first, 44.59 ms last — 0.99× apart.
-- Full abstract-graph build at **16 Chunks**: 74.85 ms first, 81.04 ms last — 0.92× apart.
+- Full abstract-graph build at **8 Chunks**: 43.14 ms first, 46.64 ms last — 0.92× apart.
+- Full abstract-graph build at **16 Chunks**: 75.31 ms first, 81.31 ms last — 0.92× apart.
 
 | Cluster | Gesture | Got | Clusters | Coalesced | Worst | Naive | Worst | Naive ÷ coalesced | % of rebuild |
 |---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 8 | drag 1 | 1 | 1 | 0.29 ms | 0.45 ms | 0.37 ms | 0.80 ms | 1.28× | 0.66% |
-| 8 | drag 64 | 64 | 8 | 1.78 ms | 2.68 ms | 11.85 ms | 15.20 ms | 6.65× | 3.99% |
-| **8** | **drag 256** | 173 | 15 | **3.79 ms** | **5.15 ms** | 31.76 ms | 52.96 ms | 8.36× | 8.54% |
-| 8 | scattered 256 | 256 | 172 | 43.39 ms | 46.67 ms | 64.84 ms | 74.39 ms | 1.49× | 88.09% |
-| 16 | drag 1 | 1 | 1 | 1.03 ms | 1.56 ms | 1.11 ms | 1.82 ms | 1.07× | 1.36% |
-| 16 | drag 64 | 64 | 4 | 5.62 ms | 9.34 ms | 70.45 ms | 92.55 ms | 12.51× | 7.42% |
-| **16** | **drag 256** | 173 | 7 | **7.61 ms** | **12.60 ms** | **161.79 ms** | **219.50 ms** | **21.25×** | 10.05% |
-| 16 | scattered 256 | 256 | 63 | 79.23 ms | 85.45 ms | 334.10 ms | 349.41 ms | 4.21× | **107.09%** |
+| 8 | drag 1 | 1 | 1 | 0.26 ms | 0.53 ms | 0.31 ms | 0.58 ms | 1.20× | 0.60% |
+| 8 | drag 64 | 64 | 8 | 2.00 ms | 3.20 ms | 12.44 ms | 18.68 ms | 6.21× | 4.64% |
+| **8** | **drag 256** | 173 | 15 | **3.74 ms** | **5.42 ms** | 27.65 ms | 43.58 ms | 7.38× | 8.67% |
+| 8 | scattered 256 | 256 | 172 | 42.12 ms | 44.18 ms | 63.18 ms | 66.73 ms | 1.50× | 97.62% |
+| 16 | drag 1 | 1 | 1 | 1.19 ms | 1.81 ms | 1.21 ms | 1.93 ms | 1.01× | 1.59% |
+| 16 | drag 64 | 64 | 4 | 4.38 ms | 7.42 ms | 81.05 ms | 124.70 ms | 18.47× | 5.82% |
+| **16** | **drag 256** | 173 | 7 | **7.20 ms** | **11.63 ms** | **167.71 ms** | **253.22 ms** | **23.26×** | 9.57% |
+| 16 | scattered 256 | 256 | 63 | 77.54 ms | 82.15 ms | 358.55 ms | 411.70 ms | 4.62× | **102.96%** |
 
 **The naive per-Segment repair loop is the spelling R3 and R4 both measured, and on a drag it is a
 catastrophe.** A cluster's edge set is a function of its arcs, so it must be decided **once** however
 many Segments inside it were deleted; repairing per Segment re-decides the same few clusters dozens
-of times. At 16 Chunks the two spellings differ by **21.25×**, and the naive worst case is
-**219.50 ms — fourteen times the entire 15.6 ms Tick budget, from one player gesture.** The two
+of times. At 16 Chunks the two spellings differ by **23.26×**, and the naive worst case is
+**253.22 ms — sixteen times the entire 15.6 ms Tick budget, from one player gesture.** The two
 spellings are *identical at a gesture of one*, which is the only size either earlier task measured,
 so this cost was structurally invisible to both. **It is not an implementation note. A per-edit
 repair API invites the loop that produces it**, which is why the coalescing now lives on
 `AbstractGraph` rather than in the harness.
 
 **Repair loses to rebuild, and the crossover is on the map.** A scattered 256-Segment gesture at 16
-Chunks costs **107% of a full rebuild** — repairing is strictly worse than starting again. This is
+Chunks costs **103% of a full rebuild** — repairing is strictly worse than starting again. This is
 R4.6's incremental/rebuild break-even arriving at the abstract graph rather than at the matrix, and
 it lands where a gesture stops being local. **A production repair path needs the rebuild as its own
 fallback**, chosen on clusters touched.
@@ -3352,12 +3395,12 @@ rate R5 owns. R5 owns it, and it points the other way:
 
 | | Cluster 8 | Cluster 16 |
 |---|---:|---:|
-| 256-Segment drag, coalesced | **3.79 ms** | 7.61 ms |
-| …worst gesture | **5.15 ms** | 12.60 ms |
-| …naive worst | **52.96 ms** | 219.50 ms |
-| Full rebuild | **44.24 ms** | 74.85 ms |
+| 256-Segment drag, coalesced | **3.74 ms** | 7.20 ms |
+| …worst gesture | **5.42 ms** | 11.63 ms |
+| …naive worst | **43.58 ms** | 253.22 ms |
+| Full rebuild | **43.14 ms** | 75.31 ms |
 
-**8 is cheaper on every edit row measured**, by roughly 2× on the coalesced drag and 4× on the naive
+**8 is cheaper on every edit row measured**, by 1.9× on the coalesced drag and 5.8× on the naive
 worst case. R3's own framing was that 16 costs 0.92 ms more per deleted Segment — *a per-Tick cost
 against a per-click one* — and left the weighing to the edit rate. The weighing now has both sides,
 and the query advantage 16 holds is 1.31× against an edit penalty of 2×. **The recommendation is 8**,
@@ -3380,18 +3423,18 @@ O-D rungs agree on every ranking.
 
 | Epoch | Edit every | Deleted | Hit | Stale | Revalidation words | Mean Tick | Worst Tick |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| global | never | 0 | 71.63% | 0.00% | 0.71 | 1,120.62 µs | 5,397.97 µs |
-| per-cluster | never | 0 | 71.63% | 0.00% | 7.56 | 1,023.65 µs | 3,738.46 µs |
-| per-Segment | never | 0 | 71.63% | 0.00% | 41.97 | 1,044.75 µs | 5,726.70 µs |
-| global | 64 Ticks | 64 | 49.36% | 22.26% | 0.71 | 1,826.60 µs | 4,868.22 µs |
-| per-cluster | 64 Ticks | 64 | 70.62% | 1.00% | 7.56 | 1,121.70 µs | 4,915.40 µs |
-| per-Segment | 64 Ticks | 64 | 71.60% | 0.02% | 41.97 | 1,062.36 µs | 4,183.90 µs |
-| global | 16 Ticks | 256 | 20.87% | 50.75% | 0.71 | 3,047.58 µs | 6,294.14 µs |
-| per-cluster | 16 Ticks | 256 | 66.25% | 5.37% | 7.60 | 1,392.04 µs | 4,630.25 µs |
-| per-Segment | 16 Ticks | 256 | 70.19% | 1.44% | 42.79 | 1,217.81 µs | 5,525.74 µs |
-| **global** | **4 Ticks** | 1,021 | **6.59%** | 65.03% | 0.71 | 3,659.98 µs | 7,640.03 µs |
-| **per-cluster** | **4 Ticks** | 1,021 | 57.49% | 14.13% | 7.64 | 2,003.38 µs | 4,979.86 µs |
-| **per-Segment** | **4 Ticks** | 1,021 | **68.99%** | 2.63% | 42.80 | 1,426.43 µs | 4,570.06 µs |
+| global | never | 0 | 71.63% | 0.00% | 0.71 | 1,069.84 µs | 4,599.86 µs |
+| per-cluster | never | 0 | 71.63% | 0.00% | 7.56 | 989.04 µs | 3,515.95 µs |
+| per-Segment | never | 0 | 71.63% | 0.00% | 41.97 | 1,020.92 µs | 5,558.00 µs |
+| global | 64 Ticks | 64 | 49.36% | 22.26% | 0.71 | 1,894.18 µs | 6,402.68 µs |
+| per-cluster | 64 Ticks | 64 | 70.62% | 1.00% | 7.56 | 1,097.14 µs | 3,811.33 µs |
+| per-Segment | 64 Ticks | 64 | 71.60% | 0.02% | 41.97 | 1,068.26 µs | 3,909.86 µs |
+| global | 16 Ticks | 256 | 20.87% | 50.75% | 0.71 | 3,050.73 µs | 8,329.87 µs |
+| per-cluster | 16 Ticks | 256 | 66.25% | 5.37% | 7.60 | 1,344.45 µs | 5,841.88 µs |
+| per-Segment | 16 Ticks | 256 | 70.19% | 1.44% | 42.79 | 1,283.66 µs | 5,243.22 µs |
+| **global** | **4 Ticks** | 1,021 | **6.59%** | 65.03% | 0.71 | 3,713.37 µs | 7,187.22 µs |
+| **per-cluster** | **4 Ticks** | 1,021 | 57.49% | 14.13% | 7.64 | 1,984.14 µs | 5,885.38 µs |
+| **per-Segment** | **4 Ticks** | 1,021 | **68.99%** | 2.63% | 42.80 | 1,409.97 µs | 4,513.86 µs |
 
 **Ladder monotonicity: 12 triples checked, 0 violations.** Each rung is strictly less conservative
 than the one above — *anything moved* implies *a crossed cluster moved* implies *an own Segment
@@ -3506,8 +3549,189 @@ not. **Option E is also the argument R1 declined to have**: R1 refused the matri
 *"a version counter would imply a relationship to the route cache that nobody has argued"*, and E is
 that relationship arriving from the other side.
 
+### R5.5.1 — the edit response, which is what the player is waiting through
+
+**The rungs, and what each has to do to be correct again after a gesture.** A 256-Segment drag
+collects 173 Segments and touches 15 clusters at 8 Chunks.
+
+| Rung | Coalesced | Worst | Naive | Worst | Naive ÷ coalesced |
+|---|---:|---:|---:|---:|---:|
+| `cache` (HPA\*, per-Segment Epoch) | **2.75 ms** | 4.10 ms | — | — | — |
+| `cache+ttl` | 3.54 ms | 6.78 ms | — | — | — |
+| `nexthop` (`RepairSubtree`) | **20.38 ms** | **45.64 ms** | 29.42 ms | 85.21 ms | **1.44×** |
+| `shared` (rebuild) | **179.32 ms** | 188.38 ms | — | — | — |
+| `flat` | **none** | — | — | — | — |
+
+**Tripwire 4 fires negative, and that is a result worth having.** `plans/0010` asked whether R5.2's
+**23.26×** per-edit repair penalty is a corpus-wide API shape rule or a property of one structure.
+Looping `RepairSubtree` per Segment rather than handing it the gesture costs **0.91× / 1.08× / 1.22×
+/ 1.51× / 1.44×** across drags of 1, 4, 16, 64 and 256. **It is not a general law.** A cluster's edge
+set must be *decided* once however many of its arcs moved, which is what makes re-deciding it dozens
+of times catastrophic; a shortest-path subtree is *repaired* from the boundary inward, and feeding it
+one arc at a time repeats a traversal rather than a decision. **The 0.91× at a gesture of one is the
+identity check** — there the two spellings are the same computation, so anything far from 1.00×
+would have meant the harness was comparing two different things.
+
+**`shared` is flat in gesture size at ~180 ms, and that is the shape of its retirement.** A rebuild
+does not care how much was deleted. Against a 15.6 ms Tick that is **eleven Tick budgets from one
+drag, and eleven from a single deleted Segment equally.** R2 declined to choose between shared and
+next-hop and said the axis was invalidation; this is that axis, and it separates them by an order of
+magnitude before correctness is considered at all.
+
+**`flat` costs nothing because it is never stale**, which is the structural advantage the denominator
+has always had and which R3 named without pricing. It pays instead in R5.5.2.
+
+### R5.5.2 — the storm, and which kind of wrong each rung is
+
+The flat search is the denominator and it is measured on both sides of the sweep: **911.68 µs
+measured first, 402.74 µs measured last, 2.26× apart.** R3's finding survives the pinning repair —
+see *The capture* above — so the twice-measured denominator stays mandatory rather than becoming a
+formality.
+
+Uniform draw, no edits and the highest edit rate. 256 Ticks, 16 Trip starts per Tick.
+
+| Rung | Mean Tick | Worst Tick | Hit | Mean detour | p90 | Worst |
+|---|---:|---:|---:|---:|---:|---:|
+| `cache`, never | 969 µs | 3,367 µs | 71.63% | 0.00% | 0.00% | 1.12% |
+| `cache`, 4 Ticks | 1,283 µs | 5,394 µs | 68.99% | 0.00% | 0.00% | 1.12% |
+| `nexthop`, never | **1.29 µs** | 15 µs | — | **16.58%** | 26.97% | 913.61% |
+| `nexthop`, 4 Ticks | 584 µs | 41,383 µs | — | 16.69% | 28.80% | 913.61% |
+| `shared`, never | **1.43 µs** | 13 µs | — | **31.21%** | 56.46% | 953.61% |
+| `shared`, 4 Ticks | **45,297 µs** | 187,119 µs | — | 31.27% | 56.46% | 953.61% |
+| `flat`, never | **6,821 µs** | **12,435 µs** | — | 0.00% | 0.00% | 0.00% |
+
+**The two kinds of wrong are visible in one table and they do not trade against each other.** A
+maintained table answers a Trip in **about one microsecond** — three orders of magnitude under the
+cache and four under a flat search — and is wrong by a fixed structural margin that does not move
+with edit rate at all (16.58% → 16.69% across a storm that deletes 1,021 Segments). The cache is
+near-exact and costs a millisecond a Tick. **Neither is the other's rung on a ladder**; they are
+different answers to *what may a route be wrong about*.
+
+**The detour is a property of the draw, and R4.8 arrives a second time by a different door.** On the
+local-trip rung the same next-hop table reads **149.73%** and the shared route **211.94%**; on
+monocentric they read 16.58% and 33.21%. R2 measured 18.52% and 36.01% on the uniform draw with a
+different harness and a different composition, and R5.5 reads 16.58% and 31.21% — **an independent
+reproduction to within two points**, which is the strongest cross-task agreement in this spike.
+
+**`flat` at 16 Trip starts already reaches a worst Tick of 12.44 ms against a 15.6 ms budget**, with
+a mean of 6.82 ms. R3 published *routing fits while fewer than 85 Trips start per Tick* from a mean
+per-route cost. At **16** — a fifth of that — the control is already at 80% of the budget on its
+worst Tick. **A mean per-route cost does not bound a Tick**, and this is the third instance after
+S4's K6 and R5.3.
+
+#### The TTL, priced as a rate
+
+| Rotation | **Forced refreshes / Tick** | Uniform hit | Mean Tick |
+|---|---:|---:|---:|
+| none | — | 71.63% | 969 µs |
+| every 1024 Ticks | **0.34** | 70.06% | 1,015 µs |
+| every 256 Ticks | **1.44** | 64.74% | 1,208 µs |
+| every 64 Ticks | **5.26** | 46.63% | 1,787 µs |
+
+**The rate is the finding and the period is not.** A period of 256 Ticks over this harness's
+1,024-entry cache is 4 slots swept a Tick; the same period over a real hot set is a different bill
+entirely, and it is the *rate* that has to fit the routing budget. Stated the R3 way: **a rotation
+costs about seven points of hit rate at 1.44 forced refreshes per Tick and about twenty-five at
+5.26**, and what period that buys is a function of a cache size nobody has measured.
+
+**The `cache+ttl 1024` row prices cost and says nothing about the bound**, because it completes 25%
+of one sweep inside a 256-Tick run. R5.5.4 is where the bound is measured, on a window sized to a
+full rotation.
+
+### R5.5.3 — what the cache *holds*, as against what it *serves*
+
+**R5.5.2's detour column cannot answer the question R5.5 exists to ask, and this section is why.**
+Under a per-Segment Epoch a stale entry is *detected* and recomputed, so what is *served* is never
+stale — the column prices freshly-computed HPA\* routes and is invariant across edit rate by
+construction. It is a result rather than a silence, but it is the wrong instrument for a hole in
+what the cache *retains*. So this section walks the entire pool at the end of the storm and prices
+every resident entry the Epoch declares good, whether or not any Trip asked for it.
+
+**48 rows: `wrongly valid` reads 0.00% on all of them, and `improvable` reads 0.00% on all of them.**
+That is R5.4's monotone-worsening argument measured rather than argued — under deletion, a rung
+watching a route's own Segments misses nothing.
+
+**The zero is worth less than the identity it comes with.** On **48 of 48 rows**,
+
+> resident − declared valid **==** entries holding a deleted Segment
+
+The set the Epoch refuses is *exactly* the set containing a bulldozed road, neither more nor fewer.
+A zero column proves nothing on its own — R3.5's 0.00% detour wore that shape until R3.6 drove the
+same instrument to 80.49% — whereas an equality between two independently counted quantities fails
+loudly if either side is miscounted.
+
+**This confirms the asymmetry; it does not endorse the rung.** A storm that only deletes cannot say
+anything about addition, which is the half R5.4 measured and where per-Segment is the *worst* rung
+available. R5.5.4 is that half.
+
+### R5.5.4 — does the rotation actually clear the addition hole
+
+R5.4's technique exactly: build the abstract graph on the **full** graph so every portal slot is
+reserved, delete the Arterial gesture (**4 Segments, ~512 m**, the smallest addition worth drawing),
+cache the pool against the damaged graph, then restore — restoration *is* addition. What is new is a
+**1,024-Tick window afterwards with ordinary Trip traffic and a rotation running**, sampled at eight
+points, sized to one full sweep of the longest period so every rate is entitled to a statement about
+the bound.
+
+**Traffic is load-bearing and the design says so.** A rotation alone only empties slots; what makes
+an entry *correct* is the next Trip missing on it and searching the graph as it now is. A window
+with a rotation and no traffic would measure a cache being deleted and report it as a cache being
+taught.
+
+| Rotation | Refreshes/Tick | Tick 0 | 16 | 64 | 128 | 256 | 512 | 768 | 1024 | Resident retained |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **none** | 0.00 | 38 | 29 | **23** | 23 | 23 | 23 | 23 | **23** | 100.00% |
+| every 64 | 5.79 | 38 | 24 | 0 | 0 | 0 | 0 | 0 | 0 | 59.70% |
+| every 256 | 1.60 | 38 | 25 | 18 | 10 | **0** | 0 | 0 | 0 | 87.13% |
+| **every 1024** | **0.40** | 38 | 27 | 19 | 18 | 18 | 10 | 3 | **0** | **97.08%** |
+
+*Wrongly-valid entries, as counts. Resident population 412 at Tick 0.*
+
+**The control is the finding, and it passes the instrument check decisively.** With no rotation the
+count falls 38 → 29 → **23 by Tick 64 and then does not move for 960 Ticks**, with the resident
+population constant at 412. **60.52% of the error survives every Tick in the window.** R5.4's *the
+error does not heal* is now measured rather than argued, and **the flatness is what makes it
+permanent rather than merely slow** — a curve still descending at the right-hand edge would have
+meant the window was too short to conclude anything. The early 38 → 23 decay is collision eviction,
+which is precisely the only removal mechanism R5.4 named.
+
+**A share that falls because the population shrank is a hole being hidden, not closed, and the count
+column is what separates them.** The **64**-Tick rotation drives the count to zero by **Tick 64** —
+and sheds **40% of the resident cache** doing it. That row cannot carry the conclusion. The row that
+can is **`every 1024`: 38 → 0 while resident falls only 412 → 400, a 97.08% retention, at 0.40
+forced refreshes per Tick.** The denominator held, so those entries were genuinely taught the new
+road rather than deleted.
+
+**The surviving error is worse than the cleared error, and that sharpens `adr/0012`.** In the control
+the mean detour *rises* from 16.35% to 19.31% while the count falls 38 → 23: collision eviction
+removes the mild errors and leaves the severe ones. `adr/0012` keys the cache by origin-destination
+pair **rather than by agent**, so a hot pair is the least likely to be evicted precisely because it
+is hot. **What persists is every driver's route, on the busiest pairs, at the largest detours** — so
+a residual quoted as a count understates it, and this is the second time R5 has reached that
+conclusion from a different direction.
+
+**Tick 0 re-measures R5.4 and agrees, which bounds a units worry R5.5.3 raised.** R5.4 published
+**9.22% improvable / 16.71% mean / 62.65% worst** computed on *arc sums*; Tick 0 here reads
+**9.22% / 16.35% / 62.41%** on *whole journey cost*. Improvable is identical to the digit and the
+detours move by about a third of a percentage point. **R5.4's figures carry the arc-sum residual at
+the level of rounding rather than as a factor** — worth stating, because R5.5.3's own draft had that
+same residual manufacture a phantom wrongly-valid entry out of nothing, and the two outcomes would
+otherwise read as contradictory.
+
 ### What R5 found that it was not looking for
 
+- **`HpaSearch` cannot see a Segment deleted under a Trip's own feet — pre-existing, and it reaches
+  R5.3 and R5.4.** The forward seed and goal remainders call
+  `SegmentEntry.CostToEndpoint(graph, null, …)`, and a **null** cost array reads `graph.ArcCarTicks`
+  — the pristine array — while the storm deletes into a shadow clone. The confined searches and
+  abstract edges read the live costs; only the two Access Point remainders do not. **So when the
+  player bulldozes the Segment a Trip starts on, the hierarchy seeds both of its endpoints anyway and
+  returns a route down a road that is not there.** Over R5.5's sweep `flat` found **416** unroutable
+  where the four cache rungs found **16** between them, on the same graph at the same Tick. It is
+  **common-mode across all three Epoch rungs**, so the ladder comparison cancels it and no R5.3 or
+  R5.4 conclusion moves — but ***Unroutable* on any hierarchical row is zero by construction and is
+  evidence of nothing**, and **R6 must fix it before it caches anything.** Recorded rather than
+  repaired, because repairing it moves R5.3's published hit rates and that is a re-capture.
 - **The miss column is the eviction policy's bill, not staleness.** It sits at 28–31% and does not
   move with edit rate at all — the tell that it is collisions rather than invalidation. **A
   direct-mapped cache at 2× over-provisioning loses about three lookups in ten before a single road
@@ -3516,7 +3740,8 @@ that relationship arriving from the other side.
   fell out and a reader would otherwise read it as the Epoch's doing.
 - **The worst Tick is far worse than R3's framing implies.** R3 published *routing fits while fewer
   than 85 Trips start per Tick*, from a mean. At **16** Trip starts the worst Tick already reaches
-  **13.26 ms** on monocentric/global against a 15.6 ms budget. A mean per-route cost multiplied by an
+  **10.37 ms** on monocentric/global against a 15.6 ms budget — 66% of it, from an arrival rate 5×
+  below the one R3's row permits. A mean per-route cost multiplied by an
   arrival rate does not bound a Tick, and S4's K6 said so first: a run whose worst iteration was
   100.2 ms read 2.462 ms at p99.9.
 - **R3's denominator finding arrives a fourth time, in a form it had not taken.** R5's first draft
@@ -3549,6 +3774,40 @@ that relationship arriving from the other side.
 - **`CONTEXT.md` → Epoch's *"spike S2 settles it by measurement"* is discharged for the route
   consumer and not for the Parking Shed**, which is the second Epoch consumer, scales with Buildings
   rather than with routes, and is inherently a *neighbourhood* rather than a *path* — so per-Segment
-  has no obvious meaning for it. **The vocabulary entry must not be updated until R5.5 runs.**
-- **Not settled: the path source.** R2 left shared-route and next-hop live and R5.4 is unrun.
-- **Owed: the canonical pinned `performance` capture**, as R3's still is.
+  has no obvious meaning for it. **The vocabulary entry must not be updated until R5.6 runs** — the renumbering that moved the path source to R5.5 moved the Parking Shed to R5.6, and it is the Parking Shed this waits on.
+- **The shared District route is retired, on a number.** R2 left it live and said the axis was
+  invalidation. It is **~180 ms per gesture flat in gesture size** — a rebuild does not care what was
+  deleted — for **45.3 ms mean and 187.1 ms worst** per Tick under a storm, against a next-hop table
+  that is exact-again in 20.38 ms and answers a Trip in a microsecond. It is also worse on error at
+  every O-D rung. That is a retirement measured rather than argued, which is what R2 asked for.
+- **The path source is not one choice, and R5.5 is what establishes that.** A maintained table and a
+  route cache are wrong in **different currencies**: the table's error is structural, fixed and
+  visible (16.58% uniform, **149.73%** local); the cache's is temporal, near-zero while it lasts, and
+  — under addition and without a rotation — **permanent**. Neither is a rung on the other's ladder.
+  **Which the city should have is `05 §4`'s question rather than a benchmark's**, and it is session
+  **M**'s to close with these numbers under it.
+- **A TTL rotation closes the addition hole, and it is affordable.** **0.40 forced refreshes per Tick
+  takes the wrongly-valid count from 38 to 0 within one rotation while retaining 97.08% of the
+  resident cache**, against a control that plateaus at 23 and never moves again. This is R5.4's
+  option **C** measured, and it is what makes option **B** a design position rather than a defect:
+  `BOUNDED KNOWLEDGE` permits drivers not to know about a new road **if the ignorance is modelled
+  with a stated learning rate**, and a rotation period is exactly that — a number a designer sets,
+  priced here as a rate so it survives a cache size nobody has measured.
+- **Not settled: R5.6, the Parking Shed**, the second Epoch consumer. `CONTEXT.md` → Epoch must not
+  be updated until it runs.
+- **Discharged: the canonical pinned `performance` capture.** Every figure in this section is quoted
+  from it. What it cost to obtain is written up above, because the first attempt at it was wrong in a
+  way that changed a verdict.
+- **Owed, and it is new: every earlier `performance` capture in S2 carries the one-processor
+  artefact.** R0, R1, R3 and R4 were all taken at `taskset -c 2`. Counts and in-process ratios are
+  untouched; **first-timed absolutes are not**, and R3's denominator finding — 1,401,307 ns first
+  against 477,609 ns last — is very likely this rather than a cold clock. Re-capture is cheap now
+  that the harness pins correctly. **R7 owes it**, and it should be done before the report quotes an
+  absolute from any of them.
+- **Owed as a lesson rather than a task: R5's first write-up quoted figures that exist in no retained
+  capture.** `3.79 ms`, `7.61 ms`, `161.79 ms`, `219.50 ms`, `21.25×` and a 13.26 ms worst Tick
+  appear in no file under `spikes/S2.Routing/results/`, because the harness wrote every run to one
+  filename keyed on the machine configuration alone — so a `--storm` run displaced a whole-run
+  capture and a later one displaced it in turn. **A published absolute with no artefact behind it is
+  not a measurement**, and the corpus was carrying six of them. The harness now names every capture
+  by section, CPU set and capture time, and never overwrites.

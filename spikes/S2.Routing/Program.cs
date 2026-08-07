@@ -19,6 +19,10 @@ bool cluster = false;
 bool vector = false;
 bool storm = false;
 
+// R5.5 alone. It is the longest section in the spike and the last one open, so it gets a flag of
+// its own — but it is also *part of* R5, so `--storm` runs it too and passing both runs it twice.
+bool pathSource = false;
+
 for (int i = 0; i < args.Length; i++)
 {
     switch (args[i])
@@ -47,17 +51,22 @@ for (int i = 0; i < args.Length; i++)
         case "--storm":
             storm = true;
             break;
+        case "--path-source":
+            pathSource = true;
+            break;
         default:
             Console.Error.WriteLine($"Unrecognised argument: {args[i]}");
             Console.Error.WriteLine(
                 "Usage: S2.Routing [--graph] [--denominator] [--matrix] [--traffic] [--cluster] "
-                + "[--vector] [--storm] "
+                + "[--vector] [--storm] [--path-source] "
                 + "[--out PATH]");
             return 2;
     }
 }
 
-if (!graph && !denominator && !matrix && !traffic && !cluster && !vector && !storm)
+// `pathSource` is deliberately absent from the whole-run default: `--storm` already contains R5.5,
+// and adding it here would print the section twice in every capture that names no section at all.
+if (!graph && !denominator && !matrix && !traffic && !cluster && !vector && !storm && !pathSource)
 {
     graph = true;
     denominator = true;
@@ -79,7 +88,8 @@ string report =
     + (traffic ? TrafficReport.Run() + Environment.NewLine : string.Empty)
     + (cluster ? ClusterReport.Run() + Environment.NewLine : string.Empty)
     + (vector ? VectorReport.Run() + Environment.NewLine : string.Empty)
-    + (storm ? StormReport.Run() : string.Empty);
+    + (storm ? StormReport.Run() + Environment.NewLine : string.Empty)
+    + (pathSource ? StormReport.RunPathSource() : string.Empty);
 
 report += Environment.NewLine + "---" + Environment.NewLine + Environment.NewLine
     + Capture.Contention(before, Capture.Read()) + Environment.NewLine;
