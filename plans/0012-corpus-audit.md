@@ -113,7 +113,8 @@ reaches one of three places is *Cause 2* rather than a fix.
       chain loads clean and throws when reached, and `§1`'s contention example is not yet reachable
 - [x] The Readout examples are marked as the intended shape; **the declared set has one member**
 - [x] **A link is not a Rule Instance of its own**, and a rescue re-arms on the **link's** rate
-- [x] The two counters are task 9 and do not exist; the evaluation counter counts due Instances
+- [x] The two counters are task 9 and do not exist; the evaluation counter counts due Instances —
+      **and task 9 has since replaced that sentence with the measurement it was waiting for**
 - [x] `02:449`'s *"never `global`"* reconciled: no actor's **balance** is `global`, and `global` names
       the **treasury** as the far end of a transfer — which is the only spelling the loader accepts
 
@@ -122,32 +123,80 @@ reaches one of three places is *Cause 2* rather than a fix.
 `05 §4`'s rule 5, which said replay equivalence was *owed* by a slice that delivered it; and `04 §2`,
 which described integer Bins without saying money's has no ceiling.
 
-### `plans/0002-open-questions.md`
+### `plans/0002-open-questions.md` — **mostly PAID, by restructure rather than by edit**
 
-Every item below is in the **live-status half**. The session history is sound and should be left
-alone.
+**The file was reorganised by state instead of by session.** Every entry below was in its
+**live-status half**, and the diagnosis that closed most of them at once is that the live-status half
+should not have existed: `0002` was organised by *which session raised a question*, so answering *what
+is open* meant reading fifteen session sections and diffing them. Nobody did, and the board — a
+self-declared *view* — silently became the ledger, carrying **63** open items while the file named
+*open questions* carried **none**. That is Cause 1 with the status column swapped for the questions
+column, and it is the largest single instance of it in the corpus.
 
-- [ ] `0002:541` — **the resume-here pointer**, still opening `adr/0015`. Highest-cost single item
-- [ ] `0002:7`, `:485`, `:577` — "the last four items of the Phase 1 gate"; one remains, and the gate
-      is closed
-- [ ] `0002:457-462` — the **Readiness table**, five of six rows stale, and `0003:5` points readers
-      at it as the readiness derivation
-- [ ] `0002:9`, `:11`, `:432` — "buildable now" for things that are built; "six items gate Phase 1"
-- [ ] `0002:140`, `:143`, `:150` — the coverage map contradicts itself (`§5` listed as both closed
-      and unargued) and lists `§8`/`§10` as never grilled when session eight closed them
-- [ ] `0002:602`, `:604`, `:1496`, `:1436` — four ledger entries settled elsewhere and never struck
-- [ ] `0002:323` vs `:578` — `04 §7` is stale "twice over" and "three times over" in one document
-- [ ] **`0002` has no *Unratified numbers* section for slices 5, 6 or 7**, which `0003:254` makes a
-      per-slice definition of done. Concretely owed: the Cell size in metres and the industrial
-      pollution **kernel radius** (deferred here by `0009`), and the Bin / Rule Instance sizing ratios
-      (deferred here by `0011`)
+`0002` now opens with a ledger grouped by what is blocked, every entry typed *measurable* or
+*arguable* per `adr/0043`. Everything that was there before is retained verbatim beneath it under a
+banner reading **not maintained, not status**. Correcting a stale pointer inside an archive would have
+been the wrong repair — the pointer is not wrong about the past, it was only ever wrong as status.
+
+- [x] ~~`0002:541` — the resume-here pointer, still opening `adr/0015`~~ **archived**
+- [x] ~~`0002:7`, `:485`, `:577` — "the last four items of the Phase 1 gate"~~ **archived**
+- [x] ~~`0002:9`, `:11`, `:432` — "buildable now" for things that are built~~ **archived**
+- [x] ~~`0002:602`, `:604`, `:1496`, `:1436` — four ledger entries settled elsewhere and never
+      struck~~ **archived**; the live ones were carried into the ledger and the settled ones were not
+- [x] ~~`0002:323` vs `:578` — `04 §7` is stale "twice over" and "three times over"~~ **archived**;
+      the ledger states it once
+- [x] ~~**`0002` has no *Unratified numbers* section for slices 5, 6 or 7**~~ **PAID** — the ledger's
+      section D is that section, and it is now cumulative rather than per-slice, which is what stopped
+      it being written three times running. All three concrete items named here are in it: the Cell's
+      metre reading, the industrial pollution **kernel radius**, and the sizing ratios
+- [ ] `0002:457-462` — the **Readiness table**, five of six rows stale. Now archived, but **`0003:5`
+      still points readers at it as the readiness derivation**, so the live defect is `0003`'s pointer
+      rather than the table
+- [ ] `0002` **coverage map** — contradicts itself (`§5` listed as both closed and unargued) and lists
+      `§8`/`§10` as never grilled when session eight closed them. **This one got more important, not
+      less**: the archive banner names the coverage map as the one section still worth reading, because
+      it is the only per-document account of what has been examined and `adr/0043` cites its 🟢 rows as
+      evidence that a green mark is not evidence a sentence was read. A self-contradicting map cannot
+      carry that. **Promote it out of the archive and into the ledger once it is corrected**
+- [ ] **Nine slice plans carry a *Decisions owed by this slice* section and nothing reconciles them
+      against the ledger.** `0003:254` already makes it a per-slice definition of done that every
+      unratified number goes into `0002` before the slice closes, and **slices 5, 6 and 7 all closed
+      tasks without doing it** — which is why the mechanism looked absent when it was merely unexecuted.
+      The rule needs no rewriting; it needs a check. Same shape as Cause 2
+- [ ] **The design documents' own *Open questions* sections have never been reconciled against the
+      ledger.** `0002`'s old preamble said they *"remain authoritative for their own areas"*, which is
+      the drift generator stated as policy — five authorities and an index. The rule is now that a
+      document may **restate** an entry and may never **hold** one the ledger lacks. Nobody has run the
+      pass. `04 §8` is the known instance: it listed a question `adr/0024` closed **in the document the
+      ADR is about**
+
+- [ ] **`0002`'s *path source* row is closed by [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)
+      and still sits in the live ledger as session **M**'s — NEW, found by S2 R6.** The row reads *"a
+      maintained table is wrong structurally — 16.58% detour uniform, 149.73% local, and it does not
+      move across a storm deleting 1,021 Segments"*, and `adr/0047`'s own table carries **those three
+      figures verbatim** and concludes *"the table was never a path source. It was the fallback if the
+      cache did not work."* An ADR beats the ledger, so this is a correction and not a question.
+      **What survives of M is the invalidation contract**, which is a narrower gate than the board's
+      spike order reads it as — R6's two owned questions, the **key** and the **eviction policy**, are
+      not gated on it. **This is `0000`'s own diagnostic — *a gate whose stated reason covers only
+      part of what it blocks* — landing on a spike row rather than a slice row**, which is the third
+      instance after `adr/0003`'s split debt and `06`'s ordering. Fix: strike the row from `0002`'s
+      ledger, and narrow `0000`'s *R6 gated on session M* to the invalidation half
+
+- [ ] **`0000` and `docs/spike-results.md` both quote R5.5's *16 against 416* — NEW, found by S2 R6.**
+      The 16 sums **four** cache rungs where the 416 is **one** control rung, so the comparison never
+      had a denominator. It cost R5.5 no conclusion, both sides being about 1% of the control, and it
+      is struck rather than argued: `spike-results` → *S2 R6.0* now publishes the per-rung table
 
 ### `plans/0003-build-plan.md`
 
-- [ ] `0003:164` — states slice 7's owed counters **twice inside one table cell**, and calls the
-      refusals three
-- [ ] `0003:105`, `:107`, `:108` — slice 5 carries no status, the Phase 1 gate is written as future,
-      and slice 7 shows no progress against 8 of 10 tasks
+- [x] `0003:164` — ~~states slice 7's owed counters **twice inside one table cell**, and calls the
+      refusals three~~ **PAID by slice 7 task 9.** Both statements of the owed counters are struck in
+      place rather than deleted, because each cell records a different session's reasoning and the
+      duplication is the record; the refusal count now says three at the gate and **five in the
+      build**, naming the two that arrived while it was written
+- [ ] `0003:105`, `:107`, `:108` — slice 5 carries no status, and the Phase 1 gate is written as
+      future. **The slice 7 half is paid**: its row now carries 9 of 10 and what each task delivered
 - [ ] `0003:111` — slice 10 marked 🔴 in the *Gate* column when its gate is cleared; it waits on
       slice 7 finishing. `0003:167` states it correctly, so the file disagrees with itself
 - [ ] `0003:184-192` — decisions-owed item 1 settled by `adr/0038`; the only one of four unstruck
@@ -173,6 +222,26 @@ alone.
 - [x] `adr/0023:85` — claimed to absorb `04 §8` question 7. **Question 7 now records that the
       *mechanism* is settled and only the tuning is open**, which is a playtest question
 - [x] `adr/0045:78` — *"slice 7 is therefore gated on `adr/0015`"*; annotated with the clearance and the corrected refusal count
+
+### The routing budget counts an event that stopped being the expensive one
+
+**Raised by S2 R6.3 and owed to two documents at once.** Both size routing by **Trip starts**:
+
+- [ ] `plans/0013:82` — the *Routing* row is denominated in *16 Trip starts — guessed*. Under static
+      Habit a Trip start is a **lookup**, and R6.3 prices the whole formation bill at **0.316 ms**, or
+      **0.24% of routing's total**, at R8's own rung. The row is measuring the cheap half. It wants a
+      **diversions per Tick** denominator instead — R8.3 measured 1,269.51 at 40,000 Travellers.
+      **Not edited in place**: `0013` was being written by another session when this was found, so the
+      correction is filed here rather than applied underneath it
+- [ ] `docs/spike-results.md` R3 — the tripwire *"routing fits while fewer than 85 Trips start per
+      Tick"* is not wrong, it is **no longer the binding constraint**, and nothing near it says so.
+      R6.3 is now adjacent in the same file; a forward reference from R3 is what closes it
+
+**The general defect is worth more than either fix.** `adr/0047` deleted the next-hop table on the ADR
+track, and in doing so **invalidated a denominator on the spike track** — a diversion stopped having a
+cheap path source, which is what made the Trip-start count adequate. Nothing in the process noticed,
+because the board's model of the three tracks is that they *do not contend*. They do not contend for
+**files**. They plainly do contend for **conclusions**.
 
 ### Not a defect — recorded so it is not re-raised
 

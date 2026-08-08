@@ -1,14 +1,286 @@
-# Open Questions — resume here
+# 0002 — Open Questions
 
-A consolidated ledger of everything still unresolved, ordered so it can be picked up cold. Each entry states the fork, what it blocks, and a recommended answer to argue against.
+**This file answers exactly one question: *what still needs answering.*** Nothing else. It does not
+say what is done, what to build next, or what a document gets wrong.
 
-The per-document `Open questions` sections remain authoritative for their own areas; this file is the index and the ordering. When something here is settled, close it **in the owning document** and strike it here.
+| Question | File |
+|---|---|
+| What is **done** | [`0003`](0003-build-plan.md)'s slice ledger, with [`0000`](0000-board.md) → *Done* as its view |
+| What is **next** | [`0000`](0000-board.md) → *Do these next* — the only place that can order three tracks against each other |
+| What **needs answering** | **here** |
+| What a document says **wrongly** | [`0012`](0012-corpus-audit.md), plus [`0000`](0000-board.md) → *Owed — documentation debt*. A correction is not a question: nobody has to decide anything, somebody has to type |
 
-Run `/grill-with-docs` to continue. **Session ten opens on `02 §7` + `adr/0006`, then `02 §4` residue + `adr/0015` — the last four items of the Phase 1 gate.** Session nine was booked for those and opened on `06-roadmap.md` instead; it produced `adr/0042` and left them untouched.
+**Why this file was restructured.** It was organised by *which session raised a question* and had
+grown to fifteen session sections, so answering *what is open* meant reading all of them and diffing
+them in your head. Nobody did, so the board — a self-declared **view** — quietly became the ledger and
+carried 63 open items while the file named *open questions* carried none. That is the same defect
+[`0012`](0012-corpus-audit.md) diagnoses in the status column, one column over. The session record is
+retained in full below the ledger, unchanged; it is history and stays that way.
 
-**Milestone 1 is now buildable**, and so are the scaffolding, S4, the fixed-point library, typed quantities, milestone 2 and milestone 3c. See *Readiness*. **The most useful thing that can happen next is code, not another session.**
+**The rule that keeps it true.** Every open question in the corpus appears **here, once**. A design
+document's own *Open questions* section may restate an entry for a local reader; it may never hold one
+this ledger lacks. When a question closes, it closes in an ADR or the owning document and is **struck
+here in the same sitting** — striking rather than deleting, because a reader needs to see that it was
+answered rather than dropped.
 
-**That work is now decomposed.** [`0003-build-plan.md`](0003-build-plan.md) is the ordered slice ledger for Phase 0 and Phase 1, with a plan document per slice ([`0004`](0004-s4-kernel-benchmark.md) S4, [`0005`](0005-arithmetic-substrate.md) substrate, [`0006`](0006-analysers-and-lints.md) analysers, [`0007`](0007-typed-tables.md) tables, [`0008`](0008-tick-and-replay.md) tick and replay, [`0009`](0009-map-layers.md) Map Layers) and a gate board naming exactly what slices 7–10 are waiting on. **Slice 1 — S4 — has run**, and no tripwire row fired; only its final task, deleting the harness, is outstanding and held on purpose. The four items below stay owed; they gate the *back* of Phase 1, not the front.
+### How to read an entry
+
+Every entry is typed, per [`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md):
+
+- **M — measurable.** You can name the number that would refute it and the machine that would produce
+  it. It is routed to a named spike and **no document may cite it as decided until the number exists.**
+- **A — arguable.** No measurement settles it. A session may close it.
+
+An entry with no type is an entry nobody has looked at properly, and it is the shape that let two
+measured-false claims sit in 🟢 rows of the coverage map below.
+
+---
+
+## A — Blocking something now
+
+Four. Everything else in this file can wait, and treating any of it as urgent is how this project
+starts going in circles — see [`0000`](0000-board.md) → *Do these next*.
+
+| Question | Type | Owner | What settles it |
+|---|---|---|---|
+| ~~**The path source.**~~ **CLOSED by [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)** — struck by S2 R6, and it had been closed for some time. The ADR's table carries this row's three figures verbatim (16.58% uniform, 149.73% local, unmoved across a storm deleting 1,021 Segments) and concludes *"the table was never a path source. It was the fallback if the cache did not work."* A correction, filed in [`0012`](0012-corpus-audit.md) | — | — | — |
+| **The route cache's invalidation contract** — is modelled driver ignorance what this city wants, and at what rate? | A | session **M** | `05 §4`: a different route is a different city. R5.5.4's TTL rotation (0.40 forced refreshes/Tick, 38 → 0 wrongly-valid, 97.08% retained) is the mechanism; **`BOUNDED KNOWLEDGE` permits not knowing about a new road if the ignorance is modelled with a stated learning rate**, and a rotation period is exactly that. **S2 R6.0 adds a second, independent instrument agreeing with R5.5.4** — severance rather than detour: an unrotated cache finds 82.93% of the severed lookups a truth search finds, a 64-Tick rotation 99.03%, monotone in the refresh rate. **This gates R6's invalidation half only** — the key and the eviction policy are not downstream of it |
+| **What does a diverting Traveller do about its route?** — re-search, cache, or **rejoin the Habit Route** | A | session **M** | **NEW, and it displaces the cache as the largest thing R6 found.** `adr/0046` made diversion routine and `adr/0047` deleted the one path source that served one cheaply; **nobody had multiplied the two.** S2 R6.3 does: at R8's own rung — 40,000 Travellers, a 7-Day Habit — Habit formations cost **0.316 ms** and diversions cost **134.135 ms**, which is **99.76% of routing's bill and 861.87% of the Tick budget**. **The in-flight rungs are S0a's own band for a 1,000,000-population city**, so that is target scale rather than an extrapolation — 795.91% at the band's floor and **2,387.73%** at its ceiling. **Between 32 and 147 diversions per Tick fit; R8.3 measured 1,269.51.** The cache cannot be the answer: it would need an **88.5% hit rate at 40,000 in flight and 95.9% at 111,000**, on a key whose origin is *wherever congestion happened to be* — which is R6.1b's worst input. Three levers: raise the **Temperament** threshold, shrink the **Sight Horizon** toward its 1-Segment floor, or **let a diversion rejoin the Habit Route without re-searching** — which nothing in the corpus proposes and which is free by construction. **Arguable, not measurable**: all three change which route a Traveller takes, and `05 §4` says that is a different city |
+| ~~**Is a `map` term's `amount` a stock or a rate?**~~ **CLOSED by [`adr/0051`](../docs/adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md)** — a stock the environment absorbs, with an emergent ceiling rather than a clamp. **It was never as open as it looked**: `02 §2.4`'s field table had said *"Decays"* since it was written, and slice 6 built the diffusion without the removal. The clamp, the set-don't-add and the counter-source options are recorded there as rejected, with reasons. What it left behind is one **measurable** (section B) and one **unratified number** (section D) | — | — | — |
+| **The Event Wheel** — `02 §7` and `adr/0006` have never been grilled | A | session **C** | The **only red gate** on `0003`'s board. Slice 9 waits on it and nothing else does |
+| **The Epoch's granularity.** Settled per-Segment for the *route* consumer (96% retention against a single counter's 9%, and cheaper) — but per-Segment is the **worst rung available** under road addition, and the Parking Shed is the other consumer, scaling with Buildings rather than paths | M, then A | S2 **R5.6**, then session **M** | R5.6 measures the second consumer. **`CONTEXT.md` → Epoch must not be updated before it runs**, or the rung is chosen on the cheaper consumer alone |
+| **How coarse a routing destination may be.** A District-granular route's detour is 20.14% on a uniform draw and **128.82%** on a local-trip draw, because the error is roughly fixed in Ticks and the journey is not | A | session **M** | The corpus has no position on what a District-granular answer may be *wrong by*. Answer once, together with the representative funnel and the Commute Budget's granularity — `plans/0010` decision 13 |
+
+---
+
+## B — Measurable: routed to a machine
+
+**No document may cite any of these as decided.** Where no spike is named, the entry is owed one.
+
+| Question | Owner | The number that settles it |
+|---|---|---|
+| ~~The route cache's **key granularity** and **eviction policy**~~ **MEASURED by S2 R6** | S2 **R6** | **Key:** the error is **0.86–0.94 Ticks, flat across the O-D family** — bounded by Segment geometry, not by trip length, so the *absolute* is the number to carry and the percentage (1.84–9.70%) must not be quoted. **`node-a` costs exactly 2× `nearest-node`** and the fix is one comparison at insert with the key space unchanged. **Eviction:** R5's 28–31% floor is **20.0% conflict, 0.0% capacity** — a defect, not a size. **4-way LRU** takes it to 3.8% at four contiguous probes. Both owed to `adr/0012` as an amendment |
+| **Does the route cache actually work?** — its hit rate, and therefore routing's whole Tick budget | Trip generation, `06` **5b** | **NEW, and it is the largest thing R6 found.** The cache is *"the only exit"* (`adr/0047`) and its benefit has never been measured: every ~70% in the corpus is a property of R5.3's invented 512-pair pool, which R5.3 said itself. **R6.1b closed the one other candidate source** — a coarser key collapses nothing, because two Trips must coincide at *both* ends and the graph has 1.09 × 10⁹ Segment pairs. So the cache rests **entirely on Trip repetition**, and routing's affordable Trip rate is a function of a number no spike can produce. **Not a refutation** — real commutes repeat heavily — but `adr/0043` forbids settling it on that |
+| The travel-time matrix's **refresh cadence**, and therefore its maintenance scheme | S2 **R6**/**R7** | The incremental/rebuild break-even sits between **1% and 10% of arcs moved per refresh**. A number the corpus files as *tuning* selects an algorithm. `plans/0010` decision 12 |
+| The matrix's **time resolution** | S2 **R7** | A Day-average matrix reports **1** one-way District pair where the morning peak has **76** — two cities under `05 §4`. Settle with the cadence |
+| The **routing Tick budget share** — 10% is a stated guess | S2 **R7**, then S0b | **The other consumers are now being priced and the running total is [`0013`](0013-tick-budget.md).** Cannot be ratified until they are. And it must be restated **over the worst Tick, not the mean**: R3's *85 Trip starts* is a mean-derived figure, and at **16** starts R5 measured a worst Tick of 10.37 ms against 15.6 ms. **S2 R6.3 then found the denominator is the wrong event entirely** — under static Habit a Trip start is a *lookup*, worth 0.26% of routing's bill, and the figure wants **diversions per Tick**. Filed in [`0012`](0012-corpus-audit.md) against both this row and `0013:82` |
+| The **industrial plume range** — `02 §2.4`'s *1–10 km* | none yet | 10× wide, and `02 §2.5` guard rule 1 says two ranges more than ~5× apart are two fields wearing one name. Wants a **source**, not an argument. The kernel radius stays unratified until it exists |
+| **Road density** — R0 swept it and reports 16.20 km/km² | none yet | Whether that describes a real city. `CONTEXT.md` → Segment keeps its disclaimer until somebody checks |
+| **Chunk size** | a profile, post-slice-10 | On the *cannot be retrofitted* list. Phase 1 runs at Chunk = Cell, provisional. No longer pending S2 — `adr/0040` moved the pathfinding role off it |
+| `T_high` / `T_low`, the fidelity promotion thresholds | Phase 2 | `03 §3.3`: *measured, not chosen* — sweep one Input Log and find where the boundary stops mattering |
+| The **Microscopic Cap** | Phase 2 | Needs a built traffic model. S2 R2 informs it and cannot set it |
+| `adr/0003`'s herding validation — *does the city feel herdy* | Phase 2 | Needs a running choice model. **The other half is discharged**: worst selection-probability divergence between the committed table and a double oracle is below 0.001 |
+| The **snapshot interchange format**'s marshalling cost | S1 / S3 | `adr/0002` names marshalling as its own revisit trigger and 1M Citizens is the load that would fire it |
+| `05 §5` role 3 — whether the Chunk partition survives **mobile** entities | S0b | Answered for Phase 1 structurally (rows never move; the partition is a separate index). The measurement is owed, and `05 §5` still leans on the other answer |
+| **Whether Bin Rule evaluation fits the Tick budget at 1M** | **S0b** | Slice 7 task 9 measured the unit and published the wire inverted: **82.84 ns an evaluation**, flat to 1.8% across two orders of magnitude, so **15.6 ms holds ~188,000 per Tick**. What it cannot settle is the multiplicand. Against `0002`'s own **450 Rule Instances per 1,000 Citizens** and `02 §4.3`'s rate of 8, a 1M city spends **~60% of a Tick on evaluation alone**. **Since superseded by a whole-Tick measurement — 67% at 4×** ([`0013`](0013-tick-budget.md)), which prices all eight phases including the sort rather than inferring Phase 3; quote that one. Still a floor, because it is measured over a Rule with no terms and the 450 is unratified. **This is the first of the Tick's consumers to have a number at all**, which is what the routing-share row above has been waiting on |
+
+---
+
+## C — Arguable: a session can close it
+
+Grouped by the document that would carry the answer, because that is the sitting it belongs to.
+An entry here is not scheduled; [`0000`](0000-board.md) decides when a session runs, and the standing
+rule is **when something concrete is blocked on it, not because it is available.**
+
+### `02-simulation-model.md`
+
+- **What "full" means for a Bin with no capacity.** `adr/0031` flagged the unbounded-Bin comparison as
+  a determinism hazard and never resolved it. Slice 7 made the money Bin unbounded and refuses an
+  authored ceiling, which settles the *storage* half and not the *comparison* half. Rule-engine work.
+- **Where private capital comes from.** A regenerating pool is legible but arbitrary; deriving it from
+  profits and savings is causally honest and adds a loop that could deadlock a struggling city.
+  Probably derived, with a floor.
+- **Multiplicative rather than additive utility** in `§5.4`'s choice model. SILO multiplies, so zero on
+  any component yields zero total — *no amount of cheapness compensates for zero reachable jobs*
+  expressed structurally rather than as a penalty.
+- **`§3` (Resources) is stale**, not open: `adr/0031` replaced the Goods taxonomy with Resource
+  families and nobody rewrote it. A correction — [`0012`](0012-corpus-audit.md)'s, not this file's.
+
+### `03-agent-architecture.md`
+
+- **`§5`, the traffic model — the most detailed unargued design in the project**, and now under a
+  Microscopic Cap that binds far harder at 1M. So is **`§2`, the Citizen model**.
+- **Audit rate and escalation policy.** The divergence metric is settled; how often the audit runs and
+  what happens on repeated divergence is not.
+- **Freight weighting** — whether freight contributes to Segment Stress identically to commuters.
+  Coupled to lane distribution, since a weighting only matters if freight is mechanically distinct.
+- **Does traffic distribute across parallel Lanes at all?** If lane choice is made only for the next
+  turn, a car queues behind a bus with three empty Lanes beside it. Not wrong at the road level,
+  possibly wrong at the lane level, and **visible**. It is dwell time specifically; stops are free.
+- **The arithmetic of a Disaster response.** How many units dispatch, from where, and what *contained*
+  means as a stopping condition. Nobody has argued it.
+- **What happens when transit wait exceeds the Commute Budget for a whole corridor.** Transit scarcity
+  is a gradient everywhere else; this is the one place it could fail hard, and hard failure is the
+  thing this design says to suspect.
+- **Audit every displayed figure against *if an indicator would change when the simulation is
+  optimised, it is not a trajectory*.** Gridlock was one instance and has been severed. The pass has
+  never been run.
+
+### `04-economy-and-goods.md`
+
+- **Labour as an input Bin, against `adr/0026`'s jobs.** `02 §4.1` dissolves *only produces if staffed*
+  into a labour input Bin filled by arriving commute Trips, and session B loaded it further by folding
+  **experience** in as a per-worker deposit multiplier. `adr/0026` has jobs as a Household↔Business
+  relationship, so the Bin is a *second representation of the same fact*. `§7` (Jobs) is stale twice
+  over and is where it lands. **An economy session, not `02 §4`'s.**
+- **How construction consumes Materials** — drawn down over Days or in one transaction. Raised in
+  priority by `adr/0022`: Materials imports are the growth brake, and this decides how sharply it bites.
+- **Whether Outside Connection prices drift**, and on what. Unified with the Hinterland, so if anything
+  drifts it all drifts together. Drawdown is the only non-arbitrary candidate found so far.
+- **`§3` (Movement) and `§6` (how a shortage becomes an unhappy person) have never been grilled.**
+
+### `05-technical-architecture.md`
+
+- **`§6` threading, the whole of it** — which thread runs `step()`; who owns and publishes the
+  transform history (`adr/0037` left this downstream); whether hot-path results need **generation
+  tagging** (`adr/0002` leaves the row open); whether cold queries drain from a queue or are called
+  between Ticks; the `adr/0033` wait-list check; the `§1.1`-versus-`§6` parallelism contradiction
+  (the phase table states *permission*, `§6` states *implementation*, neither says so); **Phase 4 Move
+  is marked parallel and `§6` never mentions it**; and `adr/0034`'s point-of-use noise queries moving a
+  spatial search into Decide. **Phase 2 — it gates milestones 10 and 11, not 1–4.**
+- **`§2`, the sim/render boundary and the snapshot format.** Sharpened by the threading answer:
+  `visible_agents` is a cross-thread query, so format and buffer lifetime are one question.
+- **Is the travel-time matrix saved or rebuilt on load?** Leaning rebuild — a cache, not state.
+  Consistent with wait lists being rebuilt.
+- **A save migration path for the kernel radius**, which is a shape `adr/0015` has no word for. The
+  radius is world-creation-fixed because a Cell is stored in kernel units, but unlike `TICKS_PER_DAY`
+  nothing is *lost*: one full re-diffusion repairs the map. `adr/0015` offers *reload freely* and
+  *refuse*; this wants a third answer, **migrate**. If a third member appears it is `adr/0015`'s
+  two-category split that reopens, not `adr/0044`.
+- **A save migration path for a Chunk size change.** Chunk size is on the *cannot be retrofitted* list
+  and nothing describes what happens if a profile later says it should move. **Its own session.**
+- **`§1`, `§7`'s format-and-migration half, `§8`, `§10` remain unargued.**
+
+### Routing — session M's cluster
+
+Beyond the blocking entries in section A — of which **the diversion policy is now the one to answer
+first**, because it is the only one with a measured overshoot behind it and because two of its three
+levers are Ruleset numbers section D already lists as unset:
+
+- **The representative funnel.** Under either surviving path-source rung, every Trip into a District
+  passes through one node, so its Stress is an artefact of the partition rather than a property of the
+  city. Same defect class `03 §3.9` rejects for the Microscopic Cap and `adr/0041` rejects for volume,
+  arriving a third time by a different door. `plans/0010` decision 11.
+- **A player-drawn District still changes the city**, through the path source rather than through
+  volume — both surviving rungs key on the District, so moving a boundary moves a representative and
+  changes the Segments a Traveller drives. `plans/0010` decision 10.
+- **The Commute Budget's granularity.** A matrix entry is wrong by 11.32% (6.73 Ticks) against a true
+  query. Whether that is free or disqualifying depends on a granularity nothing states. **R6 is owed
+  the same question about its cache key and the two should be answered once.**
+- **The cost unit for routing.** R0 routes in Q16.16 Ticks and had to — a Tick is ~10.5 in-world
+  seconds and a vehicle crosses about one Segment per Tick, so whole-Tick costs make A\* minimise *hop
+  count* while appearing to route on time. But `05` says Q16.16 is for sub-Tile positions and nothing
+  else. An integer count of a fixed fraction of a Tick measures identically, so **no number rests on
+  this**; whether the core acquires a second Q16.16 meaning is the corpus's decision. Owed by R7.
+- **The network runs out of routes, not road** — 87.25% of traffic on 1% of the carriageway, 90.87% of
+  it empty, at 13% of holding capacity with capacity confirmed realistic, because one free-flow tree
+  per District means one route per (node, District) pair in the whole model. Decision 11 on a
+  different axis, and produced by R8 rather than argued.
+
+### Never grilled at all
+
+- **`adr/0005`–`0009` and `adr/0012`** — six decisions written from research and never argued: the
+  fidelity tiers, the Event Wheel's own rule, walking, parking, routing intent. **All six gate Phase 2**
+  (sessions **D**–**J**), and `0006` gates milestone 4.
+- **`00-vision`'s pillars have never been challenged directly.** They are inherited from `plans/0001`
+  and assumed by everything. The document's only remaining exposure.
+- **`01-player §1` (core loop), `§3` (first ten minutes), `§4` (two hours, and twenty).** `§4` carries
+  a real problem with no answer: **268 km² of individually-placed service Buildings is a governability
+  problem**.
+- **`06`'s Phase 2 ordering (K2)**, which stays last — re-deriving it before `03 §5` is grilled is
+  writing it twice.
+- **Phase 3 is undesigned, not unplanned.** Rendering has never been designed and has no document to
+  argue; every other phase is backed by `02`–`05`. Session **L**, itself blocked on S1 and S3.
+
+### Unowned — no document covers it
+
+- **What is health actually for?** Established as Attended and nothing more. Every other Service has a
+  place in a causal chain; health has none, and a Service with no chain ends up as a desirability bar.
+  The design has no illness, no mortality and no aging (`adr/0010`), so the obvious mechanism is
+  foreclosed and something else has to justify it.
+- **Is recreation only Amenity?** If Amenity is the whole answer, parks are the cheapest Service in the
+  game and that should be stated deliberately rather than by omission.
+- **On what axis do Service variants differ?** Deferred every time it has come up. Capacity alone makes
+  variants a ladder the player graduates up, which is the error `adr/0025` refused for Density. Settle
+  the axis before any variant is authored, even though the catalogue is Ruleset content.
+- **Is car ownership endogenous?** Ownership is a persistent Household state with a purchase price and
+  a per-Day running cost, and mode is a Provider List attribute. What is open is the *decision* —
+  bought when habitual Trips are bad without one, sold under pressure — which would make ownership an
+  **outcome of urban form rather than an input**. The counter is that it is a feedback loop, and this
+  design has needed hysteresis in three places to stop that shape oscillating. The poverty interaction
+  is unresolved: an unemployed Household sells the car, freeing money and removing reach, so **the
+  absorbing state tightens by the act of surviving.**
+
+---
+
+## D — Numbers chosen and never ratified
+
+Recorded on the day each was chosen rather than after it has been repeated until it reads as settled
+([`0003`](0003-build-plan.md) rule 6). `CLAUDE.md`'s constants table is the same list in the code's
+words; when they disagree, this file is the one that says *nobody ratified it*.
+
+| Number | Where it stands | What ratifies it |
+|---|---|---|
+| **Microscopic Cap** | unset | A built traffic model. Fixed world constant |
+| **Sight Horizon** | floor derived at **1 Segment**; value unset | Tuning. `adr/0046`; the floor is a Road Graph property |
+| **Temperament base and spread** | unset, and **the base/jitter blend weight has no argument behind it at all** | The routing model's weakest number |
+| **Habit refresh cadence** | unset, provisionally **infinite** | Static per world is the null hypothesis and R8 did not refute it. **Hash-bearing if it is ever finite** |
+| **Industrial pollution kernel** | separable tent, 1,024 m | The plume range's source — section B. World-creation |
+| **Chunk size** | provisionally 1:1 with the Cell | A profile — section B. Hash-preserving, on the *cannot be retrofitted* list |
+| **Map Layer cadence** | 64 Ticks at offset 0 (pollution), 256 at 16 (land value) | **Measured hash-bearing** by `adr/0044` — the designer's number, not the profiler's. The values themselves are unratified |
+| **The Rule Instance arming stagger** | unset — slice 7 task 10a chooses it | **Hash-bearing**, and it needs its own `purpose_tag`. Arming every Building's Rule at one delay puts the whole city in one Event Wheel bucket, so a stagger is not optional; *which* stagger is a tuning number nobody has argued, and it is the second hash-bearing number this project has chosen by necessity rather than by argument — the Layer cadence was the first, and `adr/0044` had to measure its way back out of that |
+| **Routing Tick budget share** | 10%, a stated guess | Section B |
+| **Road density** | 16.20 km/km² at the ~30,000-Segment rung | A source — section B |
+| **μ, the choice model's sharpness** | free knob, `02 §5.4` | **It is not only a sharpness knob.** Q16.16 underflows `exp` to exactly zero below −11.09, so the argument `μ·V` means **doubling `μ` halves the horizon at which options stop existing**, and the two effects compound. A finer table does not move it; only a wider representation would |
+| **The Tick↔second and Tile↔metre exchange rates** | 16 Ticks/s, ≈4 m — which is what makes a Cell ≈128 m | Invented by definition. *Ratios are real; units are invented* — free to change, and `TICKS_PER_DAY` is the one that is **not** an exchange rate. The Cell's **32×32 Tiles** is frozen; only its metre reading moves |
+| **Table sizing ratios** | 225 Lots and 150 Buildings per 1,000 Citizens in `World`; **120 of each** in `SyntheticCity`; Households at **exactly capacity** | Owed by slice 7. Nothing checks that the two agree, and at exactly capacity the first Household the simulation itself creates reallocates the table. The right ratio is a design question and a fixture is not where it gets settled. The Bin and Rule Instance ratios `0011` deferred here are the same question |
+| **The S4 measurement configuration** | `performance`, turbo on, one core pinned, **DIMMs at 2133 MT/s because XMP is off** | Every K0–K6 figure divides by it. A re-sweep with XMP enabled is owed; until then the DRAM-bound figures describe this configuration, not this machine |
+| **The slice 7 evaluation-cost capture** | `powersave`, turbo on, unpinned — **the same caveat as S0a**, on the same machine | Every absolute is an **upper bound** and every ratio unaffected. The two conclusions leaning on absolutes both lean the safe way: a faster machine widens the 188,000 and *shrinks* the 60%, so the alarm is conservative. The **flatness across three rungs** (1.8%) is a ratio and does not move at all. Rides along with R7's re-capture |
+| **The S0a capture** | `powersave` — setting the governor needed root | Every absolute is an **upper bound**; ratios unaffected. The one verdict leaning on an absolute (the State Hash at 2.08 Tick budgets) needs the machine 2.08× faster to move. Rides along with R7's re-capture |
+| **The 37k–111k in-flight band** | conflates duration sensitivity with peaking | Re-derive on both axes |
+
+---
+
+## E — Owed work with no slice and no session
+
+Not questions. Nobody has to decide anything; nobody has scheduled them either, and each was named so
+it would be scheduled rather than discovered.
+
+- **Generation with playability guarantees.** A seed producing no buildable land or no water access is
+  a broken map, not a hard one (`adr/0021`).
+- **Dial playability floors.** A Hinterland at minimum depth and minimum recovery produces no
+  immigration at all, which breaks `01 §3`'s opening outright. Every Mode is a hand-validated point;
+  the free sliders need floors.
+- **Hazard Region derivation.** Floodplain and Woodland hazard maps are computed at world generation
+  and never read during a Tick, so they belong to the generator's output alongside terrain — not to the
+  Ruleset.
+- **Hysteresis on the extraction frontier.** Forestry Buildings declining and regrowing will flicker
+  without it, same as Segment Stress.
+- **Evidence for composed fertility.** A farm's panel must decompose its own yield by source, or the
+  whole `adr/0022` mechanic is inexplicable.
+- **S0b — the Tick with work in it.** Blocked on slices 7, 9 and 10, and it is the half carrying `06`'s
+  stated risk. S0a closed the sizing half; **1M is a spec for row counts and still a hope for the Tick.**
+- ~~**Price Phase 3, and price Map Layer diffusion.**~~ **DONE**, and both moved something. The engine
+  row in [`0013`](0013-tick-budget.md) went from an *inferred* 60% to a **measured 67%** at 4×, over a
+  whole Tick rather than one phase; the **sort was found and identified** — 121.6 → 198.3 ns per due
+  Rule across two decades, a 1.63× rise where `log₂` predicts 1.7× — and it is real but not a wall.
+  **Map Layer diffusion turned out to be the only row in the ledger with no guess in it**, because
+  residency saturates at ~256 emitters against a city of 120,001 Buildings, and it costs 0.5–15.8 µs
+  per Tick amortised on any budget.
+
+---
+---
+
+# Archive — the session record
+
+**Everything below this line is history and is not maintained.** It is the record of how each question
+was raised and argued, session by session, and it is kept because the reasoning is worth more than the
+conclusions on their own. It is **not** a status surface: where it disagrees with the ledger above, the
+ledger is right, and an item that reads as open below but is absent above has been closed.
+
+The coverage map immediately following is the exception worth reading — it is the only per-document
+account of what has and has not been examined, and `adr/0043` cites its 🟢 rows as the evidence that a
+green mark is not evidence a sentence was examined.
 
 ---
 
