@@ -19,6 +19,8 @@ bool cluster = false;
 bool vector = false;
 bool storm = false;
 bool loop = false;
+bool key = false;
+bool eviction = false;
 
 // R5.5 alone. It is the longest section in the spike and the last one open, so it gets a flag of
 // its own — but it is also *part of* R5, so `--storm` runs it too and passing both runs it twice.
@@ -58,11 +60,17 @@ for (int i = 0; i < args.Length; i++)
         case "--loop":
             loop = true;
             break;
+        case "--key":
+            key = true;
+            break;
+        case "--eviction":
+            eviction = true;
+            break;
         default:
             Console.Error.WriteLine($"Unrecognised argument: {args[i]}");
             Console.Error.WriteLine(
                 "Usage: S2.Routing [--graph] [--denominator] [--matrix] [--traffic] [--cluster] "
-                + "[--vector] [--storm] [--path-source] [--loop] "
+                + "[--vector] [--storm] [--path-source] [--loop] [--key] [--eviction] "
                 + "[--out PATH]");
             return 2;
     }
@@ -74,7 +82,7 @@ for (int i = 0; i < args.Length; i++)
 // and R8 is contained by nothing, so leaving it out of the default would make a whole-run capture
 // silently missing a section rather than printing one twice.
 if (!graph && !denominator && !matrix && !traffic && !cluster && !vector && !storm && !pathSource
-    && !loop)
+    && !loop && !key && !eviction)
 {
     graph = true;
     denominator = true;
@@ -84,6 +92,8 @@ if (!graph && !denominator && !matrix && !traffic && !cluster && !vector && !sto
     vector = true;
     storm = true;
     loop = true;
+    key = true;
+    eviction = true;
 }
 
 // Read before any work and again after all of it, so the contention block at the foot of the report
@@ -99,6 +109,8 @@ string report =
     + (vector ? VectorReport.Run() + Environment.NewLine : string.Empty)
     + (storm ? StormReport.Run() + Environment.NewLine : string.Empty)
     + (loop ? LoopReport.Run() + Environment.NewLine : string.Empty)
+    + (key ? KeyReport.Run() + Environment.NewLine : string.Empty)
+    + (eviction ? EvictionReport.Run() + Environment.NewLine : string.Empty)
     + (pathSource ? StormReport.RunPathSource() : string.Empty);
 
 report += Environment.NewLine + "---" + Environment.NewLine + Environment.NewLine

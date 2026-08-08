@@ -67,6 +67,11 @@ internal static class CounterHash
         // about the same Traveller in the same Tick, and sharing the tag would make the two
         // decisions perfectly correlated — the surge would always capture the same pool indices.
         SurgeDraw = 22,
+
+        // R6.1b's key-space pool draw. Distinct from LoopPair although both index a pool of O-D
+        // pairs: sharing the tag would make R6's trip sequence identical to R8's, and a hit rate
+        // measured on the same sequence as a congestion sweep is two results resting on one draw.
+        KeyPoolDraw = 23,
     }
 
     public static ulong Of(ulong seed, ulong entity, ulong counter, Purpose purpose) =>

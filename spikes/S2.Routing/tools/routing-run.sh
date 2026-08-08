@@ -88,15 +88,31 @@ CPU="$(awk -F': ' '/model name/ { gsub(/\(R\)|\(TM\)|CPU| @.*/, "", $2); gsub(/^
 # by the machine configuration, so a section re-run displaced a whole-run capture and vice versa. The
 # cost is recorded in `docs/spike-results.md` §S2 R5: the figures its first write-up published exist in
 # no retained file on disk, and the numbers had to be re-derived from a fresh capture.
+# A section flag the runner accepts and this case list does not know about falls through to `all`, so
+# the artefact is named for a scope the run did not have — the retention defect above, wearing the
+# label instead of the filename's configuration half. It happened: `--key` produced an `s2-all-…`
+# file holding one section. Unknown flags are now refused rather than silently mislabelled.
 SECTIONS=""
 for arg in "$@"; do
     case "${arg}" in
+        --graph)   SECTIONS="${SECTIONS}+r0" ;;
+        --denominator) SECTIONS="${SECTIONS}+r0d" ;;
         --matrix)  SECTIONS="${SECTIONS}+r1" ;;
+        --traffic) SECTIONS="${SECTIONS}+r2" ;;
         --cluster) SECTIONS="${SECTIONS}+r3" ;;
         --vector)  SECTIONS="${SECTIONS}+r4" ;;
         --storm)   SECTIONS="${SECTIONS}+r5" ;;
         --path-source) SECTIONS="${SECTIONS}+r55" ;;
+        --key)     SECTIONS="${SECTIONS}+r61" ;;
+        --eviction) SECTIONS="${SECTIONS}+r62" ;;
         --loop)    SECTIONS="${SECTIONS}+r8" ;;
+        --out)     ;;
+        --*)
+            echo "routing-run.sh: unknown section flag ${arg}." >&2
+            echo "Add it to the SECTIONS case list before capturing, or the artefact will be" >&2
+            echo "named for a scope it does not have." >&2
+            exit 2
+            ;;
     esac
 done
 SECTIONS="${SECTIONS:-+all}"

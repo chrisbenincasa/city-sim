@@ -31,10 +31,11 @@ internal static class Capture
         var lines = new List<string>
         {
             $"- **Captured** {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)} UTC",
-            $"- **Machine** {CpuModel()}, {Environment.ProcessorCount} logical processors",
+            $"- **Machine** {CpuModel()}, {MachineProcessors()} logical processors",
             $"- **OS** {RuntimeInformation.OSDescription}, {RuntimeInformation.OSArchitecture}",
             $"- **Runtime** {RuntimeInformation.FrameworkDescription}",
             $"- **Governor** {Governor()}",
+            $"- **Processors allowed** {AffinityList()} of {MachineProcessors()}",
             $"- **Build** {Configuration()}",
         };
 
@@ -105,6 +106,7 @@ internal static class Capture
         // 0.85%** — a value never checked against what it claimed to describe, inside the instrument
         // added to close exactly that gap. TimeSpan.Ticks are 100 ns units and cannot overflow here.
         long microseconds = Stopwatch.GetElapsedTime(before.Timestamp, after.Timestamp).Ticks / 10;
+        string affinity = AffinityList();
 
         var lines = new List<string>
         {
@@ -125,11 +127,26 @@ internal static class Capture
             Stall("Memory", before.MemoryStallMicroseconds, after.MemoryStallMicroseconds, microseconds),
             Stall("IO", before.IoStallMicroseconds, after.IoStallMicroseconds, microseconds),
             string.Empty,
-            "**A run whose memory stall is a rounding error is a run the pinning actually protected.**"
-            + " Pinning to one physical core stops another process stealing cycles; it does nothing"
-            + " about L3 eviction or DRAM bandwidth, which is S4's recorded finding about this same"
-            + " machine and is the exposure R1.3's absolute nanoseconds live in. This block is what"
-            + " lets a later reader check that rather than reason about it afterwards.",
+            IsPinned(affinity)
+                ? "**A run whose memory stall is a rounding error is a run the pinning actually"
+                    + $" protected.** This process was confined to processors **{affinity}** of"
+                    + $" {MachineProcessors()}. Pinning to one physical core stops another"
+                    + " process stealing cycles; it does nothing about L3 eviction or DRAM"
+                    + " bandwidth, which is S4's recorded finding about this same machine and is"
+                    + " the exposure R1.3's absolute nanoseconds live in. This block is what lets a"
+                    + " later reader check that rather than reason about it afterwards."
+                : "**THIS CAPTURE WAS NOT PINNED — every absolute in it is uncomparable with the"
+                    + $" canonical captures.** The process was allowed on processors **{affinity}**,"
+                    + $" which is all {MachineProcessors()} of them, so the tiered JIT's"
+                    + " background compilation and anything else on the machine shared the measured"
+                    + " cores. **Counts, shares and in-process ratios are unaffected** — S2 has"
+                    + " verified that across three captures — but no nanosecond, microsecond or"
+                    + " millisecond figure below may be quoted. Re-take with"
+                    + " `sudo spikes/S2.Routing/tools/routing-run.sh`. This sentence used to assert"
+                    + " that pinning had protected the run **whatever the affinity mask said**,"
+                    + " because the block never read it: static prose claiming the one property it"
+                    + " did not measure, in the section that exists so a reader need not reason"
+                    + " about the machine afterwards.",
         };
 
         return string.Join(Environment.NewLine, lines);
@@ -321,6 +338,100 @@ internal static class Capture
         {
             return "unreadable";
         }
+    }
+
+    /// <summary>
+    /// The processors this process is actually allowed on, as the kernel sees it. Reported because
+    /// the machine-state block used to assert *"the pinning actually protected"* unconditionally —
+    /// static prose claiming the one property the block never measured, so an unpinned capture
+    /// declared itself pinned. The results filenames have always encoded this and the report did not.
+    /// </summary>
+    private static string AffinityList()
+    {
+        try
+        {
+            foreach (string line in File.ReadLines("/proc/self/status"))
+            {
+                if (line.StartsWith("Cpus_allowed_list:", StringComparison.Ordinal))
+                {
+                    return line["Cpus_allowed_list:".Length..].Trim();
+                }
+            }
+
+            return "unavailable on this platform";
+        }
+        catch (IOException)
+        {
+            return "unreadable";
+        }
+    }
+
+    /// <summary>
+    /// How many processors the machine has, which is <b>not</b> <see cref="Environment.ProcessorCount"/>:
+    /// that respects the affinity mask, so under <c>taskset -c 2,8</c> it returns 2 and any
+    /// "am I pinned" test written against it compares 2 with 2 and answers no. Found by running the
+    /// pinned branch rather than reasoning about it — untested, this instrument would have declared
+    /// every canonical capture unpinned.
+    /// </summary>
+    private static int MachineProcessors()
+    {
+        const string Path = "/sys/devices/system/cpu/present";
+
+        try
+        {
+            if (File.Exists(Path))
+            {
+                int present = CountList(File.ReadAllText(Path).Trim());
+
+                if (present > 0)
+                {
+                    return present;
+                }
+            }
+        }
+        catch (IOException)
+        {
+            // Fall through to the affinity-respecting count, which is only wrong when pinned.
+        }
+
+        return Environment.ProcessorCount;
+    }
+
+    /// <summary>Whether the affinity mask describes a restricted set rather than the whole machine.</summary>
+    private static bool IsPinned(string list)
+    {
+        int allowed = CountList(list);
+        return allowed > 0 && allowed < MachineProcessors();
+    }
+
+    /// <summary>Counts the entries in a kernel CPU list such as <c>0-11</c> or <c>2,8</c>.</summary>
+    private static int CountList(string list)
+    {
+        if (list.Length == 0 || !char.IsDigit(list[0]))
+        {
+            return 0;
+        }
+
+        int total = 0;
+
+        foreach (string part in list.Split(','))
+        {
+            int dash = part.IndexOf('-', StringComparison.Ordinal);
+
+            if (dash < 0)
+            {
+                total++;
+                continue;
+            }
+
+            if (int.TryParse(part[..dash], out int low)
+                && int.TryParse(part[(dash + 1)..], out int high))
+            {
+                total += high - low + 1;
+            }
+        }
+
+        return total;
     }
 
     private static string Configuration()

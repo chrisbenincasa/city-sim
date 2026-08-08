@@ -4206,6 +4206,335 @@ the transition first.
 
 ---
 
+## S2 R6 — the two caches
+
+**Ordered after session M on the board, and started ahead of it on a gate audit.** `plans/0000`
+gates R6 on session **M**, and [`adr/0047`](adr/0047-routing-never-keys-on-the-district.md) has since
+closed M's path-source half by name — its table carries the same three figures
+`plans/0002`'s row does (16.58% uniform, 149.73% local, unmoved across a storm deleting 1,021
+Segments) and concludes *"the table was never a path source."* **What survives of M against R6 is the
+invalidation contract**, and R6's own two questions are the **key** and the **eviction policy**,
+neither of which invalidation touches: the key's cost is a detour, and R5.3 measured the miss column
+*before a road is touched*. **This is `plans/0000`'s own diagnostic — a gate whose stated reason
+covers only part of what it blocks — applied to a spike row rather than a slice row.**
+`plans/0002`'s path-source row is stale and belongs in [`0012`](../plans/0012-corpus-audit.md).
+
+### R6.0 — the pristine-seeding repair, and what a dead column was hiding
+
+R5.5 recorded that `HpaSearch` priced the two Access Point remainders against a **null cost array** —
+the pristine `graph.ArcCarTicks` — while the storm deletes into a shadow clone, so the hierarchy
+returned routes down roads the player had just bulldozed. It declined to repair it, because repairing
+it re-baselines R5.3, and instructed R6 to fix it before caching anything.
+
+**The defect was wider than it was filed.** Not the two remainders but **eight call sites**, and the
+four R5.5 did not name are the worse ones:
+
+| Site | Path | Why it is worse |
+|---|---|---|
+| `Hierarchical:273,274,283,284` | goal remainders, forward seeds | what R5.5 named |
+| `Run:131` | same-Segment bypass | returns `HpaOutcome(true, …)` **directly**, never entering a confined search |
+| `Through:243,244` | adjacent-Segment bypass | the same, from `Run:137` |
+| `BypassFor:149` | R3.8's share column | classifies a bulldozed Segment as a bypass |
+
+The seeding defect at least left the confined search reading live costs downstream. **A bypass reads
+the pristine array and returns**, so nothing downstream can catch it — and R3.8 puts the bypass at
+**78.28%** of Legs inside one block against 1.75% at two, so the defect was heaviest exactly where the
+local-trip O-D rung lives, which is the rung `adr/0047` quotes 149.73% from. **The control had it
+right throughout**: `PointToPoint` threads its cost array through every call including
+`SameSegmentCost`; `HpaSearch` threaded it through none. That asymmetry is the whole 416-against-16 gap.
+
+**Repaired, a column R5.5 called *"zero by construction… evidence of nothing"* becomes the sharpest
+staleness instrument in the section.** Over the same 12 rows, against a control finding 416 severed
+lookups:
+
+| Rung | Forced refreshes / Tick | Unroutable | Share of the control's |
+|---|---:|---:|---:|
+| cache, no rotation | 0.00 | 345 | 82.93% |
+| cache+ttl 1024 | 0.34 | 350 | 84.13% |
+| cache+ttl 256 | 1.35 | 377 | 90.62% |
+| cache+ttl 64 | 5.08 | 412 | **99.03%** |
+| flat — the truth | — | 416 | 100.00% |
+
+Before the repair each rung read about **4**.
+
+**The residual gap is not a defect — it is the cache serving routes down roads that are gone, and it
+is monotone in the refresh rate with the control as the asymptote.** The only thing separating those
+four rungs is how often an entry is forced to look again, and severance is precisely what a route that
+never looks again cannot discover. That is a causal demonstration rather than a correlation.
+
+**It corroborates R5.5.4 through a different column entirely.** R5.5.4 measures staleness as *detour*
+against a truth search; this measures it as *severance*. Two independent instruments now agree that a
+rotation clears what the Epoch rung structurally cannot — **evidence session M did not have.**
+
+**`nexthop` and `shared` report zero severed lookups at every rung**, because both answer through a
+District representative and always return *something*. That zero is the unwired-instrument shape, not
+a result — a fourth argument against the table, arriving after `adr/0047` closed it on four others.
+
+### The re-baseline, bounded by checksum
+
+| Section | |
+|---|---|
+| R5.1, R5.2, R5.4, R5.5.1, R5.5.3, R5.5.4 | **bit-identical** |
+| R5.3 | hit −0.1 to −0.6pp, stale +0 to +0.4pp, miss +0.03 to +0.7pp, `Unroutable` 0.00% → 0.14–2.75%; evictions 29,373 → 28,953 |
+| R5.5.2 | the repair itself |
+
+**Nothing session M leans on moved.** R5.5.4's verdict table — 0.40 forced refreshes/Tick, 97.08%
+resident retained, wrongly-valid 38 → 0 against a control plateauing at 23 — is bit-identical, because
+R5.5.4 runs an *addition* scenario in which no cached route ever points at a missing Segment, so the
+pristine/live distinction cannot bite. **R5.3's conclusions survive**: the ladder ranking per-Segment >
+per-cluster > global holds at every rung, and the miss column reads **28.39–31.49%**, still flat across
+a 16× edit-rate range — which is R6.2's premise, intact.
+
+**Every count above is bit-identical across three captures**, two unpinned and one pinned. **No timing
+figure from them may be quoted**: all three are `powersave`, and the root capture is owed alongside
+R7's, exactly as S0a's is.
+
+### A denominator that survived because everything it divided was near zero
+
+R5.5 published the disagreement as **16 against 416** — but the 16 summed **four** cache rungs where
+the 416 was **one** control rung. The two sides never had the same denominator. It cost R5.5 nothing,
+both figures being about 1% of the control. Summed the same way after the repair it reads **1,484
+against 416**, which invites exactly the wrong reading — *the hierarchy is 3.6× worse* — where per rung
+it is 82.93–99.03% of it. **A broken denominator survives while every number it divides is near zero**,
+and the repair is what made it visible. Sixth instance in S2 of *an argument for reporting a quantity
+you expect to be boring*, and the first where the arithmetic rather than the sampling was wrong.
+
+### R6.1a — what a coarser key costs, and the column that should be quoted instead
+
+**The measurement R5.5.2 named and declined to make.** Its detour column compares an *arc sum* with an
+*arc sum*, so a cached route is never charged the remainders its key forces — which is why every cache
+row there reads about 0.00%, and why that section says in terms that *"correcting it would mean
+charging the served route the remainders its own endpoints imply… and it is not made here."* Made here,
+in a new `--key` section. **No storm runs in it**: the key's error is structural, present on a graph
+nobody has touched, every Tick, for ever — and mixing it with invalidation would confound two errors
+that heal differently, which is the distinction R5.5 drew between a structural and a temporal currency.
+
+Every figure is a **whole-journey** cost — arcs plus both Access Point remainders — against a flat
+search on the same graph. `SearchOutcome.CostTicks` already carries exactly that quantity, so nothing
+had to be reconstructed.
+
+| O-D rung | Key | Mean detour | p90 | Worst | Mean, Ticks | Worst, Ticks | Sample |
+|---|---|---:|---:|---:|---:|---:|---:|
+| uniform | `node-a` | 1.84% | 3.85% | 37.83% | 0.93 | 11.61 | 2,019 |
+| uniform | `nearest-node` | 0.80% | 1.84% | 23.77% | 0.41 | 7.52 | 2,028 |
+| uniform | `best-endpoint` | 0.00% | 0.00% | 2.70% | 0.00 | 1.52 | 2,045 |
+| uniform | `access-point` | 0.00% | 0.00% | 0.00% | 0.00 | 0.00 | 2,048 |
+| decay L=1024 | `node-a` | 3.09% | 6.81% | 106.66% | 0.90 | 11.61 | 2,017 |
+| decay L=1024 | `nearest-node` | 1.55% | 3.31% | **128.20%** | 0.41 | 7.52 | 2,025 |
+| decay L=1024 | `best-endpoint` | 0.00% | 0.00% | 7.43% | 0.00 | 1.52 | 2,040 |
+| decay L=1024 | `access-point` | 0.00% | 0.00% | 0.00% | 0.00 | 0.00 | 2,048 |
+| decay L=256 | `node-a` | 9.70% | 23.77% | 552.95% | 0.86 | 12.21 | 2,011 |
+| decay L=256 | `nearest-node` | 4.22% | 10.77% | 128.20% | 0.42 | 7.68 | 2,021 |
+| decay L=256 | `best-endpoint` | 0.02% | 0.00% | 9.41% | 0.00 | 1.52 | 2,039 |
+| decay L=256 | `access-point` | 0.00% | 0.00% | 0.00% | 0.00 | 0.00 | 2,045 |
+| monocentric L=512 | `node-a` | 1.91% | 4.20% | 42.55% | 0.94 | 12.32 | 2,008 |
+| monocentric L=512 | `nearest-node` | 0.85% | 1.86% | 29.78% | 0.42 | 7.52 | 2,022 |
+| monocentric L=512 | `best-endpoint` | 0.00% | 0.00% | 4.02% | 0.00 | 1.63 | 2,038 |
+| monocentric L=512 | `access-point` | 0.00% | 0.00% | 0.00% | 0.00 | 0.00 | 2,048 |
+
+**`access-point` is the control and reads exactly zero on every rung**, measured by a second
+independent search rather than assigned from the truth — a zero from `served = truth` would prove the
+assignment worked and nothing else. **Routes cheaper than the unconstrained optimum: 0**, printed on
+the run where it reads zero, because it is the one way this instrument could be wrong in the direction
+that flatters its subject.
+
+**The headline is in the absolute columns, and it is that the percentage columns should not be
+quoted.** `node-a`'s mean error is **0.86–0.94 Ticks across the whole O-D family** and
+`nearest-node`'s is **0.41–0.42** — flat to two decimal places — while the *percentage* for the same
+key swings **1.84% → 9.70%**, better than five-fold. The worst absolute is equally flat: 11.61–12.32
+Ticks for `node-a` on every rung. **The key's error is bounded by Segment geometry and has nothing to
+do with the trip distribution**; the percentage is a statement about journey length wearing a statement
+about the key.
+
+**This is R4.1's finding reproduced one layer down.** There, a District-granular detour went 18.52% →
+128.82% because the error was fixed in Ticks and the journey was not — which the corpus treats as a
+serious correctness finding and `adr/0047` cites. Same shape, same cause, a different mechanism. **The
+difference is that here the rung-invariant number exists**, so the right repair is not *name the rung
+beside every figure* but *carry the absolute instead*.
+
+**`node-a` costs exactly twice what `nearest-node` does, on every rung**, and the factor is geometric
+rather than empirical: node A is an arbitrary end, so a traveller pays a half-Segment on average at
+each end where choosing the nearer end pays a quarter. **The fix is free** — one comparison per Access
+Point at insert, key space unchanged at nodes² — and `adr/0012`'s owed amendment can state it in a
+sentence.
+
+**`best-endpoint` reads 0.00% mean on three rungs and 0.02% on the fourth**, which settles the question
+the ladder exists to separate: **a nodes² key is essentially free if the endpoint is chosen well.** The
+error is not intrinsic to keying on nodes; it is an artefact of choosing badly. What no nodes² key can
+recover is the tail — `best-endpoint`'s worst is still 2.70–9.41%, because forcing a journey through a
+node forbids the partial-Segment shortcut, and short trips pay for that.
+
+**But the greedy choice is not monotone, and the tail is where it shows.** On decay L=1024
+`nearest-node`'s worst reads **128.20%** against `node-a`'s **106.66%** — the coarser key wins that
+column. *Nearer along the Segment* is not *better for the journey*: the near endpoint can point away
+from the destination, and the traveller then pays the Segment twice. **A mean improved by 2× and a tail
+made worse is a trade rather than a strict win**, and `05 §4` says to look at the shape rather than the
+average.
+
+**Every count reproduces bit-identically across three captures**, two unpinned and one pinned; all are
+`powersave` and no timing figure from them is quotable. Same-Segment pairs are excluded and the sample
+size is printed per row — they are answered by R3.8's bypass without consulting any cache, so charging
+a key for them would credit the key with a case it never sees.
+
+**What R6.1a cannot say is anything about hit rate, and the reason is a modelling gap rather than an
+omission.** Hit rate is a property of how many *distinct* keys a population of Buildings generates, and
+**S2 has no Buildings** — it draws Access Points at random offsets on random Segments, so no two pairs
+share a Segment except by accident. `plans/0010`'s *"the five Buildings sharing a Segment share one
+entry instead of minting five"* is a statement about a population this spike does not have. Measuring
+it needs an invented Buildings-per-Segment pool, and **an invented pool must be swept or its level is a
+guess wearing a measurement's clothes** — R5.3's debt, in the same words. That is R6.1b.
+
+### R6.1b — the key space, and a claim S2 cannot confirm
+
+**`plans/0010` argues the key on hit rate, and S2 cannot draw the population the argument is about.**
+*"Keyed on those, the space is Buildings² ≈ 2.25 × 10¹⁰ and the hit rate is approximately zero. Keyed
+on the endpoints… the space collapses to nodes² and the five Buildings sharing a Segment share one
+entry instead of minting five."* That is a claim about **Buildings**, and this spike has none. Two
+inventions were built and swept — Buildings per Segment (1, 5, 20) and destination sites
+(unrestricted, 128, 32, 8) — on R5.3's rule that an invented pool must be swept or its level is a
+guess wearing a measurement's clothes.
+
+**The collapse column reads 1.00× on every row of both sweeps, and after two attempts to move it that
+is the finding rather than the failure.** A node-keyed entry collapses two Trips only when they share
+a Segment at **both** ends. Concentrating destinations onto 8 sites leaves 512 distinct origins, so
+the pairs stay distinct; adding Buildings to a Segment mints Access Points without making two Trips
+end together. **Collapse is a property of the ratio between the Trip population and the Segment-pair
+space**, and the working graph has **33,018 Segments — about 1.09 × 10⁹ ordered pairs.** No pool S2
+can draw is dense in that.
+
+**So `plans/0010`'s argument for the coarse key is unconfirmed — not refuted, and not available to be
+cited either.** The five-Buildings sentence holds only if those Buildings' Trips also *end* on a
+shared Segment. Against 10⁹ Segment pairs a real city's Trips may be sparse enough that a node key
+collapses almost nothing, in which case the hit rate comes from **the same person repeating the same
+journey**, which no key affects — and the coarse key would be paying R6.1a's detour for very little.
+**Settling it needs a Trip population, which is `06` milestone 5b.** R6.1a settles the price side
+exactly, and settles that the price is avoidable at no cost in key space; that asymmetry is the
+useful part.
+
+**Two things did come out of it, and one belongs to R6.2.**
+
+- **The miss floor reproduces from outside R5.** Every unrestricted row sits near 70% hit — a **~30%
+  miss with no storm, no Epoch and nothing stale** — which is R5.3's *28–31% of lookups missing on
+  direct-mapped collisions before a road is touched*, on a different harness and a different pool.
+  **R6.2's premise is independently confirmed.**
+- **The slot function degrades on structured keys, and it is not a capacity effect.** As destinations
+  concentrate, `access-point`'s hit rate falls **71.9% → 15.9%** with evictions rising 738 → 3,362,
+  while `node-a` on the same pools falls only to 55.6%. **Distinct keys stay at 511–512 throughout**,
+  so the cache is not full and the key space has not shrunk. `RouteCache.Slot` is one multiply and one
+  xor-shift, and where the low half of the key takes few values it clusters. **A cache can lose two
+  lookups in three to its hash while holding every entry it needs.** R5.3's 28–31% is the same defect
+  at a gentler input.
+
+**No document may cite a hit rate from this section.** Both axes are invented, neither moved the
+column it was built to move, and every level is a property of a 512-pair pool standing in for Trip
+repetition that does not exist. What carries out is structural: **collapse needs coincidence at both
+ends**, and **the slot function degrades on structured keys**.
+
+### R6.2 — the eviction policy, and who is to blame for a miss
+
+**No eviction policy is stated anywhere in the corpus.** `adr/0012` permits caching and says nothing
+about what leaves; `adr/0017` shows the pattern — fixed capacity, least-used eviction — and nobody has
+written it down for routes. `RouteCache` implements neither: **direct-mapped, one slot**, and an
+insert whose slot is taken overwrites.
+
+**This is the one part of R6 that does not depend on the number nobody has measured.** The cache's
+absolute hit rate rests entirely on Trip repetition, which needs `06` milestone 5b. But a lookup that
+*should* have hit and did not is a pure loss whatever the repetition rate turns out to be. So the
+section reports **blame** rather than a rate, on the standard three-way split: *cold* (first
+reference), *capacity* (a perfect cache of the same size would also have missed), and **conflict** (a
+perfect cache of the same size would have hit, and this scheme missed anyway). **Conflict is the only
+column that is a defect.**
+
+1,024 entries, 16,384 Trips, `nearest-node` keys, load swept against capacity.
+
+| Load | Scheme | Hit | Cold | Capacity | **Conflict** | Probes |
+|---|---|---:|---:|---:|---:|---:|
+| 0.50× | `direct`, modulo — **shipped** | 76.7% | 3.1% | 0.0% | **20.0%** | 1 |
+| 0.50× | `direct`, high bits | 75.6% | 3.1% | 0.0% | **21.1%** | 1 |
+| 0.50× | 2-way LRU | 86.1% | 3.1% | 0.0% | **10.6%** | 2 |
+| 0.50× | 4-way LRU | 92.9% | 3.1% | 0.0% | **3.8%** | 4 |
+| 0.50× | 8-way LRU | 95.4% | 3.1% | 0.0% | **1.4%** | 8 |
+| 0.50× | fully associative — *bound* | 96.8% | 3.1% | 0.0% | **0.0%** | — |
+| 1.00× | **shipped** | 61.4% | 6.2% | 0.0% | **32.2%** | 1 |
+| 1.00× | 4-way LRU | 77.4% | 6.2% | 0.0% | **16.2%** | 4 |
+| 2.00× | **shipped** | 40.6% | 12.5% | 29.8% | **16.9%** | 1 |
+| 2.00× | 4-way LRU | 47.0% | 12.5% | 31.7% | **8.7%** | 4 |
+| 0.50×, 8 sites | **shipped** | 65.6% | 3.1% | 0.0% | **31.2%** | 1 |
+| 0.50×, 8 sites | `direct`, high bits | 75.1% | 3.1% | 0.0% | **21.7%** | 1 |
+| 0.50×, 8 sites | 4-way LRU | 92.7% | 3.1% | 0.0% | **4.1%** | 4 |
+
+**R5.3's 28–31% floor is not a property of cache size and never was.** At its own rung the shipped
+scheme's misses are **20.0% conflict and 0.0% capacity** — every one a lookup a perfect cache of the
+same size would have served. Reading it as a floor is what made it look like a fact of life rather
+than a bug with a fix.
+
+**Associativity is the lever and four ways is where it stops paying.** Conflict falls 20.0% → 10.6% →
+3.8% → 1.4% across 1, 2, 4 and 8 ways against a bound of 0.0%. **Four ways recovers most of the gap at
+four contiguous probes** — on the cache line an entry already occupies, close to free. This is
+`adr/0017`'s pattern sized, and the first number the corpus has for it.
+
+**The index function is not the lever, and this task predicted that it would be.** The hypothesis on
+file was that `RouteCache.Slot` multiplies by the golden-ratio constant, driving entropy upward, then
+takes `% capacity`, which reads the low bits — so the modulo discards what the multiply created.
+**Measured, that is wrong on random keys**: high-bit indexing reads 21.1% against 20.0% at 0.50× and
+32.6% against 32.2% at 1.00%, level or slightly worse. A route key is already a pair of well-spread
+node ids, so the low bits carry no structure for a modulo to expose. **Recorded rather than quietly
+dropped**, because the draft prose asserted the fix worked and would have published a hypothesis as a
+result — the defect this spike has now caught three times in its own documents.
+
+**Where it does help is exactly where R6.1b found the damage.** On the eight-destination pool, high
+bits take conflict **31.2% → 21.7%** and four ways takes it to **4.1%**. So the index function is a
+**robustness** fix rather than a throughput one: it costs nothing and stops a concentrated city
+falling off a cliff the uniform draw never shows. **Both changes are worth making and only one shows
+up in the average case**, which is the argument for measuring the concentrated rung at all.
+
+**One honest limit.** R6.1b's worst case — 15.9% hit — was the `access-point` key; this table keys on
+`nearest-node` throughout, where the same pool reads 65.6%. The conflict column is clearly elevated
+against the unconcentrated rung at identical load (31.2% against 20.0%), so **the mechanism is
+confirmed and the magnitude is not.** This table does not reproduce R6.1b's extreme.
+
+**Load is the axis R5.3 never swept, and it dominates.** Conflict at four ways runs 1.0% → 3.8% →
+16.2% across 0.25×, 0.50× and 1.00×, and capacity misses appear only at 2.00×, reaching 29.8%. **R5.3
+measured one load and called the result a floor; it is a point on a curve that triples.**
+
+**Every count reproduces bit-identically across a pinned and an unpinned capture.** All `powersave`;
+no timing figure is quoted because the section publishes none.
+
+### Two labels that asserted what nobody had checked
+
+**Both found while checking whether R6's own captures were quotable, and both are provenance defects
+rather than measurement ones.** `Capture.cs` closed the machine-state block with *"A run whose memory stall
+is a rounding error is a run the pinning actually protected."* That was **static prose**. The block
+read the governor and never read the affinity mask, so **every unpinned capture declared itself
+pinned** — in the section that exists so a reader *"need not reason about the machine afterwards."*
+
+This is R5's *a published absolute with no artefact behind it is not a measurement* moved one layer
+further out, from **retention** to **provenance**. R5 fixed the filenames so the configuration is
+visible in an `ls`; the report went on asserting the opposite of what the filename said.
+
+Fixed: the block reads `Cpus_allowed_list` and prints the branch it measured, condemning an unpinned
+capture in terms. **The fix had the same defect one level down and it is worth recording.**
+`Environment.ProcessorCount` **respects the affinity mask**, so under `taskset -c 2,8` it returns 2 and
+`allowed < ProcessorCount` compares 2 with 2 and answers *not pinned*. Untested, the new instrument
+would have condemned every canonical capture in `results/`. **It was caught only by running the pinned
+branch rather than reasoning about it** — the corpus's rule about a correctness column that reads zero,
+arriving at a boolean.
+
+**The second is the same shape in `routing-run.sh`.** Its filename encodes which sections a capture
+holds, from a `case` list that did not know about `--key` — so an unknown section flag fell through to
+`all` and R6.1's first pinned capture was written as `s2-all-…` holding **one** section. The runner
+accepted the flag and the labeller did not, and nothing connected them. Unknown flags are now refused
+outright rather than silently mislabelled, and the misnamed artefact was deleted rather than kept.
+
+**Three instances in one sitting, and they are one defect.** The machine-state block asserted a pinning
+it never read; the filename asserted a scope it never checked; and R5.5's *16 against 416* asserted a
+comparison whose two sides had different denominators. **Each is a claim written once and thereafter
+carried by prose rather than by measurement** — which is R5's *a published absolute with no artefact
+behind it is not a measurement* generalised past absolutes to labels. `spike-results` already records
+that the retention layer had this problem. It has it at the provenance layer too.
+
+---
+
 ## S0a — the world at target size
 
 **S0 turned out to be two spikes filed as one, and only one of them was runnable.**

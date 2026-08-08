@@ -1977,7 +1977,7 @@ internal static class StormReport
         report.AppendLine();
 
         int flatUnroutable = 0;
-        int cachedUnroutable = 0;
+        var byTtl = new SortedDictionary<int, int>();
 
         foreach (var row in rows)
         {
@@ -1987,27 +1987,84 @@ internal static class StormReport
             }
             else if (row.Rung is PathRung.Cache or PathRung.CacheTtl)
             {
-                cachedUnroutable += row.Unroutable;
+                byTtl.TryGetValue(row.TtlPeriod, out int running);
+                byTtl[row.TtlPeriod] = running + row.Unroutable;
             }
         }
 
+        // Ordered by how hard the rung is made to re-look: no rotation first, then the longest
+        // period down to the shortest. The claim below is that the column is monotone in that
+        // order, so it is printed in that order and a reader can check it.
+        var ladder = byTtl.Keys.OrderBy(period => period <= 0 ? int.MinValue : -period).ToList();
+
         report.AppendLine(string.Create(CultureInfo.InvariantCulture,
-            $"**The *Unroutable* column disagrees between the control and the hierarchy, and the "
-            + $"disagreement is a defect in the search rather than in the storm.** Over the whole "
-            + $"sweep `flat` reports **{flatUnroutable:N0}** lookups with no route where the four "
-            + $"cache rungs report **{cachedUnroutable:N0}** between them, on the same graph at the "
-            + $"same Tick. `HpaSearch` prices the step *onto* the origin Segment and *off* the "
-            + $"destination Segment through `SegmentEntry.CostToEndpoint(graph, null, …)` — a **null "
-            + $"cost array**, which is free-flow — so when the player bulldozes the Segment a Trip "
-            + $"starts on, the flat search correctly finds nothing and **the hierarchy seeds both of "
-            + $"that Segment's endpoints anyway and returns a route from a road that is not there**. "
-            + $"The confined searches and the abstract edges all read the live costs; it is only the "
-            + $"two Access Point remainders that do not. **The defect predates this section** — "
-            + $"R5.3 and R5.4 run the same search — and it is recorded rather than corrected here, "
-            + $"because correcting it would move R5.3's published hit rates and that is a "
-            + $"re-capture and not an edit. What it costs immediately is the *Unroutable* column's "
-            + $"meaning on every hierarchical row, which should be read as **zero by construction** "
-            + $"rather than as evidence of anything."));
+            $"**The *Unroutable* column was dead and is now the sharpest staleness instrument in "
+            + $"this section — R6.0 repaired the defect R5.5 recorded, and repairing it turned a "
+            + $"column that read *zero by construction* into one that moves monotonically with the "
+            + $"refresh rate.** `HpaSearch` priced the step *onto* the origin Segment and *off* the "
+            + $"destination Segment against a **null cost array** — the pristine `graph.ArcCarTicks` "
+            + $"— while the storm deletes into a shadow clone, so the hierarchy returned routes down "
+            + $"roads the player had just bulldozed. **The defect was wider than R5.5 filed it**: not "
+            + $"the two Access Point remainders but **eight call sites**, and the four it missed are "
+            + $"the worse ones, because the same-Segment and adjacent-Segment bypasses return "
+            + $"*routable* directly from `Run` without ever entering a confined search. R3.8 puts "
+            + $"the bypass at **78.28%** of Legs inside one block, so the defect was heaviest exactly "
+            + $"where the local-trip O-D rung lives. The control had it right all along: "
+            + $"`PointToPoint` threads its cost array through every call including `SameSegmentCost`, "
+            + $"and `HpaSearch` threaded it through none."));
+        report.AppendLine();
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"**What the repaired column now says is that the residual gap is not a bug — it is the "
+            + $"cache serving routes down roads that are gone, and the rotation closes it.** Against "
+            + $"a control finding **{flatUnroutable:N0}** severed lookups over the same 12 rows:"));
+        report.AppendLine();
+
+        report.AppendLine("| Rung | Unroutable | Share of the control's |");
+        report.AppendLine("|---|---:|---:|");
+
+        foreach (int period in ladder)
+        {
+            string label = period <= 0 ? "cache, no rotation" : $"cache+ttl {period}";
+            report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+                $"| {label} | {byTtl[period]:N0} | {Percent(byTtl[period], flatUnroutable)} |"));
+        }
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"| flat (the truth) | {flatUnroutable:N0} | 100.00% |"));
+        report.AppendLine();
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"**Monotone in the refresh rate, with the control as the asymptote**, which is the "
+            + $"causal demonstration rather than a correlation: the only thing separating these rungs "
+            + $"is how often an entry is forced to look again, and severance is precisely what a "
+            + $"route that never looks again cannot discover. **This corroborates R5.5.4 through a "
+            + $"different column entirely** — R5.5.4 measures staleness as *detour* against a truth "
+            + $"search, and this measures it as *severance*, and the two agree that a rotation clears "
+            + $"what the Epoch rung structurally cannot. **It also discharges the corpus's own "
+            + $"warning** that a correctness column reading zero is indistinguishable from an "
+            + $"instrument that is not wired up: this one was not wired up, for three tasks, and "
+            + $"nothing but the control's disagreement gave it away."));
+        report.AppendLine();
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"**One denominator defect became visible only once the numbers moved, and it is worth "
+            + $"recording.** R5.5 published the disagreement as *16 against 416* — but the 16 summed "
+            + $"**four** cache rungs where the 416 was **one** control rung, so the two sides never "
+            + $"had the same denominator. It did not change R5.5's conclusion, both figures being "
+            + $"about 1% of the control. Summed the same way after the repair it reads "
+            + $"**{byTtl.Values.Sum():N0} against {flatUnroutable:N0}**, which invites exactly the "
+            + $"wrong reading — *the hierarchy is 3.6× worse* — when per rung it is "
+            + $"**{Percent(byTtl.Values.Min(), flatUnroutable)}–"
+            + $"{Percent(byTtl.Values.Max(), flatUnroutable)}** of the control. **A broken "
+            + $"denominator survives while every number it divides is near zero.**"));
+        report.AppendLine();
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"**`nexthop` and `shared` report zero severed lookups at every rung, and that is the "
+            + $"unwired-instrument shape rather than a result.** Both answer through a District "
+            + $"representative and always return *something*, so neither can report a severance at "
+            + $"all. The zero should be read as *this rung has no such column*, not as evidence."));
         report.AppendLine();
         report.AppendLine(
             "**A worst Tick on a sub-microsecond rung is the runtime and not the rung.** The two "

@@ -69,6 +69,14 @@ internal sealed class HpaSearch
     private readonly AbstractGraph _abstract;
     private readonly int[] _arcCost;
 
+    // The cost basis the two Access Point remainders are priced against. This is _arcCost, and the
+    // only reason it is a separate field is that it may deliberately be null: R5.5 found every
+    // remainder call passing null, which reads graph.ArcCarTicks — the pristine array — while a storm
+    // deletes into a shadow clone, so the hierarchy returned routes down bulldozed roads. Retained as
+    // a selectable mode so the repair has a control that moves, per Unroutable being worthless as a
+    // zero nobody has seen non-zero.
+    private readonly int[]? _entryCost;
+
     private readonly ClusterSearch _forward;
     private readonly ClusterSearch _backward;
     private readonly ClusterSearch _refine;
@@ -97,12 +105,18 @@ internal sealed class HpaSearch
     private int _directEndpoint = -1;
 
     public HpaSearch(
-        RoadGraph graph, Clusters clusters, AbstractGraph abstractGraph, ReverseArcs reverse, int[] arcCost)
+        RoadGraph graph,
+        Clusters clusters,
+        AbstractGraph abstractGraph,
+        ReverseArcs reverse,
+        int[] arcCost,
+        bool pristineEntrySeeding = false)
     {
         _graph = graph;
         _clusters = clusters;
         _abstract = abstractGraph;
         _arcCost = arcCost;
+        _entryCost = pristineEntrySeeding ? null : arcCost;
 
         _forward = new ClusterSearch(graph, clusters, reverse, arcCost);
         _backward = new ClusterSearch(graph, clusters, reverse, arcCost);
@@ -128,7 +142,7 @@ internal sealed class HpaSearch
         _bestPortal = -1;
         _directEndpoint = -1;
 
-        int same = SegmentEntry.SameSegmentCost(_graph, null, Modes.Car, origin, goal);
+        int same = SegmentEntry.SameSegmentCost(_graph, _entryCost, Modes.Car, origin, goal);
         if (same < Unreachable)
         {
             return new HpaOutcome(true, same, Bypass.SameSegment, 0, 0, 0, 0);
@@ -146,7 +160,7 @@ internal sealed class HpaSearch
     /// <summary>Whether a query would take a bypass, without answering it. For the share column.</summary>
     public Bypass BypassFor(AccessPoint origin, AccessPoint goal, Modes mode)
     {
-        if (SegmentEntry.SameSegmentCost(_graph, null, mode, origin, goal) < Unreachable)
+        if (SegmentEntry.SameSegmentCost(_graph, _entryCost, mode, origin, goal) < Unreachable)
         {
             return Bypass.SameSegment;
         }
@@ -240,8 +254,8 @@ internal sealed class HpaSearch
             return Unreachable;
         }
 
-        int toNode = SegmentEntry.CostToEndpoint(_graph, null, Modes.Car, origin, node);
-        int fromNode = SegmentEntry.CostFromEndpoint(_graph, null, Modes.Car, node, goal);
+        int toNode = SegmentEntry.CostToEndpoint(_graph, _entryCost, Modes.Car, origin, node);
+        int fromNode = SegmentEntry.CostFromEndpoint(_graph, _entryCost, Modes.Car, node, goal);
 
         return toNode >= Unreachable || fromNode >= Unreachable ? Unreachable : toNode + fromNode;
     }
@@ -270,8 +284,8 @@ internal sealed class HpaSearch
     {
         _goalNodeA = _graph.SegmentNodeA[goal.Segment];
         _goalNodeB = _graph.SegmentNodeB[goal.Segment];
-        _remainderA = SegmentEntry.CostFromEndpoint(_graph, null, Modes.Car, _goalNodeA, goal);
-        _remainderB = SegmentEntry.CostFromEndpoint(_graph, null, Modes.Car, _goalNodeB, goal);
+        _remainderA = SegmentEntry.CostFromEndpoint(_graph, _entryCost, Modes.Car, _goalNodeA, goal);
+        _remainderB = SegmentEntry.CostFromEndpoint(_graph, _entryCost, Modes.Car, _goalNodeB, goal);
 
         int originA = _graph.SegmentNodeA[origin.Segment];
         int originB = _graph.SegmentNodeB[origin.Segment];
@@ -280,8 +294,8 @@ internal sealed class HpaSearch
         (int goalCluster, int goalSecond) = ClusterPair(_goalNodeA, _goalNodeB);
 
         _forward.Begin(originCluster, originSecond, backward: false);
-        _forward.Seed(originA, SegmentEntry.CostToEndpoint(_graph, null, Modes.Car, origin, originA));
-        _forward.Seed(originB, SegmentEntry.CostToEndpoint(_graph, null, Modes.Car, origin, originB));
+        _forward.Seed(originA, SegmentEntry.CostToEndpoint(_graph, _entryCost, Modes.Car, origin, originA));
+        _forward.Seed(originB, SegmentEntry.CostToEndpoint(_graph, _entryCost, Modes.Car, origin, originB));
         _forward.Run();
 
         _backward.Begin(goalCluster, goalSecond, backward: true);
