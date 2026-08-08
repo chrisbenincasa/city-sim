@@ -4533,6 +4533,92 @@ carried by prose rather than by measurement** — which is R5's *a published abs
 behind it is not a measurement* generalised past absolutes to labels. `spike-results` already records
 that the retention layer had this problem. It has it at the provenance layer too.
 
+### R6.3 — the two consumers, multiplied
+
+**Every budget figure in this corpus counts Trip starts.** R3's tripwire — *routing fits while fewer
+than 85 Trips start per Tick* — counts them, and `plans/0013`'s routing row counts them. But
+`adr/0046` introduced **Sight**, R8.3 measured what it does — **1,269.51 diversions per Tick at 40,000
+Travellers** — and `adr/0047` then deleted the next-hop table, which was the only path source that
+served a diversion cheaply. **Nobody had multiplied those together.** A new `--budget` section does,
+pricing its own basis in-process rather than quoting absolutes across captures.
+
+| Event | Cost | Mean arcs |
+|---|---:|---:|
+| Whole-journey search — a **Habit formation** | 439.17 µs | 58 |
+| Remainder search from mid-journey — a **diversion** | 105.70 µs | 28 |
+| Cache hit — lookup and compare | 39 ns | — |
+| *the same whole-journey loop, measured last* | *453.72 µs* | — |
+
+**The bill at R8's own rung — 40,000 Travellers, a 7-Day Habit — is 0.316 ms of Habit formation and
+134.135 ms of diversion.** That is **424.15× the formation bill and 99.76% of routing's total**, or
+**861.87% of the Tick budget**. The in-flight rungs are **S0a's own band for a 1,000,000-population
+city** — 37,000 / 56,000 / 111,000, swept because the mean Trip duration behind them is unmeasured —
+so **nothing here is a small city being extrapolated from**. The band's floor is 795.91% and its
+ceiling 2,387.73%.
+
+**An earlier draft of this section said the opposite**, calling 40,000 in flight *"a fleet 4% of the
+target population"* — true as arithmetic against a 1,000,000 **population**, and wrong about what the
+number is, which is a count of Trips *in flight* that S0a derived **for that same population**. It
+would have read as *and it gets 25× worse at full size* when the measurement is already at full size.
+**Seventh instance of the session's recurring defect and the third that is mine**: a figure carried by
+a label rather than by its derivation.
+
+**Habit is doing exactly what `adr/0046` claims, and that is why the finding is not about Habit.** A
+Citizen that computes a route once and keeps it for a week costs well under one search per Tick across
+a whole fleet. **R3's 85 Trip starts is not the binding constraint and never was**, because a Trip
+start under static Habit is a *lookup*. The constraint is the thing the same ADR introduced in its next
+paragraph — and no document counts it.
+
+Published R3's way, as a threshold on a quantity rather than a multiple over a guess:
+
+| Policy | Cost per diversion | Diversions/Tick that fit | R8's rate is |
+|---|---:|---:|---|
+| **re-search** — what the corpus specifies today | 105.70 µs | 147 | **over**, by 8.63× |
+| *the same, on R8.6's own diversion cost* | *485.50 µs* | *32* | *over, by 39.65×* |
+| cache-served | **no hit rate exists to price this** | — | see below |
+| **rejoin** the Habit Route, no search — *unproposed* | — | unbounded | **free** |
+
+**The two ends of the basis disagree by 4.59× and the conclusion survives both.** This section's
+remainder search is the optimistic end — a midpoint site on a graph nobody is bulldozing. R8.6's
+485.50 µs is the pessimistic end, on sites a live fleet actually diverted at, and it sits close to a
+*whole-journey* cost rather than half of one, which is itself worth someone's attention. **Between 32
+and 147 diversions per Tick fit. R8 measured 1,269.**
+
+**The cache is not priced here, because R6.2 says in terms that no document may cite a hit rate from
+it.** It is inverted instead — a cached diversion costs `hit + miss-rate × search`, so the question is
+what hit rate makes it fit:
+
+| In flight | Diversions/Tick | Required hit rate, optimistic basis | Required hit rate, R8.6's basis |
+|---:|---:|---:|---:|
+| 37,000 | 1,174 | **87.5%** | **97.3%** |
+| 40,000 | 1,269 | **88.5%** | **97.5%** |
+| 56,000 | 1,777 | **91.8%** | **98.3%** |
+| 111,000 | 3,522 | **95.9%** | **99.1%** |
+
+**R6.1b is why those are not attainable.** A diversion is keyed on *(wherever I now am → destination)*,
+and a mid-journey position is an arbitrary point along a route rather than a Building. R6.1b
+established that a coarse key collapses **nothing** unless trips coincide at *both* ends — and
+diversion origins coincide far less than trip origins do, because they are wherever congestion happened
+to be. **The cache is being asked for its best case on its worst input.**
+
+**So `adr/0046` and `adr/0047` are not jointly affordable under the policy the corpus currently
+specifies.** Three levers exist and two are Ruleset numbers already unset — raise the **Temperament**
+threshold so fewer drivers act on what Sight shows them, or shrink the **Sight Horizon** toward its
+1-Segment floor. The third is the row nothing in the corpus proposes: **let a diversion rejoin the
+Habit Route without re-searching**, which is what a driver with a map in their head actually does, and
+which is free by construction.
+
+**R6.3 does not pick one, and cannot.** `05 §4` says a different route is a different city and all
+three change which route a Traveller takes, so this is session **M**'s to answer. What R6.3 supplies is
+that **it must be answered** — which the corpus did not previously know, because the two facts sat in
+different documents and were never multiplied.
+
+**This is also the counter-example to the board's claim that the three tracks do not contend.** They do
+not contend for *files*, which is what the claim was about. But `adr/0047` was ratified on the ADR
+track and it **invalidated a spike's denominator** — R3's tripwire went on counting Trip starts after
+the event that dominates routing's bill stopped being one. **A decision track can silently retire a
+measurement track's question**, and nothing in the process notices.
+
 ---
 
 ## S0a — the world at target size

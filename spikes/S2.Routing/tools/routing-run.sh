@@ -105,6 +105,7 @@ for arg in "$@"; do
         --path-source) SECTIONS="${SECTIONS}+r55" ;;
         --key)     SECTIONS="${SECTIONS}+r61" ;;
         --eviction) SECTIONS="${SECTIONS}+r62" ;;
+        --budget)  SECTIONS="${SECTIONS}+r63" ;;
         --loop)    SECTIONS="${SECTIONS}+r8" ;;
         --out)     ;;
         --*)
