@@ -51,6 +51,7 @@ The cost is drift: `Formats` could accept a Ruleset `Core` cannot run. That is a
 ## Consequences
 
 - **Three refusals, not two.** `0045` handed this session the `on_fail` **cycle check** and the **`fills` check**. The decimal rule generates a third: **an unquoted decimal is refused by name**, never coerced. All three are one load-time walk in `Borough.Formats`, on the error surface `0015` specifies.
+  - **There are now five, and this bullet is the count of record.** Slice 7 added an **unbalanced money** refusal (`adr/0024`, when the Resource family was taken out of order) and an **unterminated chain** refusal (task 8, enforcing `0045`'s own reporting terminal). The number is stated here, in `0015`, and in `0003`'s gate board, and all three had drifted apart by task 8 — which is `plans/0012`'s *Cause 1* in the ADR that owns the surface.
 - **`02 §4.3`'s *"requires no parser"* is struck.** It is the sentence that hid the dependency.
 - **`Borough.Formats` gains a package reference and stays lint-free by design.** Nothing changes in `Borough.Core.csproj`.
 - **The core's interpreter carries one cheap assertion** — an unknown id is refused — and no defensive checking beyond it.

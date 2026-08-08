@@ -44,7 +44,9 @@ Lineage is RollerCoaster Tycoon rather than any city builder: park rating is not
 
 ## The Hinterland is a stock, and the city takes the most willing first
 
-A Hinterland is never Ticked and never rendered — it is a small configuration, not a simulated place, and specifically **not** the frozen neighbour that [`0020`](0020-one-live-world-and-settlements-are-derived.md) rejected as a second clock. It holds a population with composition, a rent, and a wage.
+A Hinterland is never Ticked and never rendered — it is a small configuration, not a simulated place, and specifically **not** the frozen neighbour that [`0020`](0020-one-live-world-and-settlements-are-derived.md) rejected as a second clock. It holds a population with composition, a rent, a wage, and **a price per Good**.
+
+> **Amended by [`0050`](0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md), which added the price per Good.** This ADR originally enumerated population, rent and wage, while [`0026`](0026-wages-are-posted-locally-and-never-cleared.md) claimed all three price systems anchor to *"the same authored object"* and named the import price as one of them. One anchor was enumerated and a second was implied but homeless, so the claim was false by inspection until the field existed. **Four edges therefore price Goods independently**, which is what makes `04 §8`'s open *"should Outside Connection prices drift?"* answerable in this ADR's own terms — four comparable markets are each other's referent — and which extends this ADR's *"a port on the far edge buys a different economy"* from immigration to trade.
 
 Drawing it down does two things for **one** reason:
 

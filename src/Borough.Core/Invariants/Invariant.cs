@@ -145,4 +145,39 @@ public enum Invariant
     /// because an over-sealed Cell still reads as a plausible number.
     /// </remarks>
     SealingIsWithinTheCell = 13,
+
+    /// <summary>A Bin's level left <c>[0, capacity]</c>.</summary>
+    /// <remarks>
+    /// <b><c>CONTEXT.md</c> → Bin's constraint, checked at the one write site that can break it.</b>
+    /// A Rule applies in its entirety or not at all precisely so that this holds, so a violation here
+    /// says the atomicity check was skipped rather than that the arithmetic overflowed — which is why
+    /// it is worth reporting at the deposit rather than discovering in a sweep.
+    /// </remarks>
+    BinLevelIsWithinCapacity = 14,
+
+    /// <summary>A Building was about to be given a second Bin for one Resource.</summary>
+    /// <remarks>
+    /// One Bin, one Resource. Two would make <c>local</c> scope ambiguous — a Rule naming a Resource
+    /// would draw from whichever the list happened to reach first, which is a balance outcome decided
+    /// by allocation order.
+    /// </remarks>
+    BuildingHasOneBinPerResource = 15,
+
+    /// <summary>A Rule Instance was about to be armed and waiting at once.</summary>
+    /// <remarks>
+    /// The two states share one link, so being on both lists is not representable; what this catches
+    /// is the step before, a subscribe on a row that was never taken off the Wheel. That row would
+    /// evaluate on its armed Tick <em>and</em> on the write that satisfies it — a Rule that polls and
+    /// subscribes, which is the defect <c>02 §4.1</c>'s subscription model exists to remove.
+    /// </remarks>
+    RuleInstanceIsArmedOrWaiting = 16,
+
+    /// <summary>A waiting Rule Instance is on the wait list of the Bin it names.</summary>
+    /// <remarks>
+    /// The whole-world half of the claim <see cref="RuleInstanceIsArmedOrWaiting"/> makes locally. A
+    /// row naming a Bin it is not queued on is asleep with nothing that will ever wake it, which is
+    /// <c>05 §9</c>'s failure reached from the other side — and unlike a missed drain it leaves no
+    /// trace at the write site at all.
+    /// </remarks>
+    WaiterIsQueuedOnTheBinItNames = 17,
 }

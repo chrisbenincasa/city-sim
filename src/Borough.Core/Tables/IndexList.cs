@@ -123,6 +123,21 @@ public readonly ref struct IndexList
     }
 
     /// <summary>
+    /// The first element without removing it, or <see cref="Rows.NoSlot"/> when the list is empty.
+    /// </summary>
+    /// <remarks>
+    /// <b>What a Bin's drain needs, and the reason it is separate from <see cref="PopFront"/>.</b>
+    /// The drain stops at the first waiter the arriving quantity cannot cover and <em>leaves it at the
+    /// head</em> — skipping it would starve a large waiter behind small ones, and popping it to look
+    /// at it would lose its place. So the decision has to be made before the removal.
+    /// </remarks>
+    public int PeekFront(int owner)
+    {
+        int encoded = _head[owner];
+        return encoded == 0 ? Rows.NoSlot : encoded - 1;
+    }
+
+    /// <summary>
     /// Removes and returns the first element, or <see cref="Rows.NoSlot"/> when the list is empty.
     /// </summary>
     public int PopFront(int owner)

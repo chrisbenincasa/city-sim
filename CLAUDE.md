@@ -8,8 +8,8 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: Phase 1 gate closed; S0a run; slice 7 is next and is gated on session A.** The repository is ~7,000 lines of design
-documents and 43 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
+**Current state: Phase 1 gate closed; S0a run; slice 7's gate cleared by session A and tasks 1–8 of 10 are done.** The repository is ~7,000 lines of design
+documents and 49 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
 declaration and the State Hash — and all eight tasks of slice 5: `step(inputs)` with the
 eight phases, the command model and the Input Log, replay, the golden-hash baseline, the
@@ -86,8 +86,8 @@ stated risk.** 1M is a spec for **row counts** and still a hope for **the Tick**
 **`plans/0000-board.md` is the first thing to read on any cold start** — a flat view of what is done,
 what to do next and what is blocked. It is a *view*: `plans/0003-build-plan.md` owns the slice order
 and its gates when picking the *code* up cold, and `plans/0002-open-questions.md` owns the reasoning
-when picking up the *design*. When the board disagrees with either, they win. Slices 7 onward are gated and must
-not be started before their gate clears. The corpus is still being grilled and several decisions
+when picking up the *design*. When the board disagrees with either, they win. **Slices 7, 8 and 10 have cleared gates; slice 9 is the
+only red one**, on session C. A gated slice must not be started before its gate clears. The corpus is still being grilled and several decisions
 on the critical path are open, so do not write implementation code beyond the current slice
 unless asked.
 
@@ -103,14 +103,15 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | 45 decision records, numbered to `0046` — `0028` is reserved and unwritten |
+| `docs/adr/` | 49 decision records, numbered to `0050` — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — done, next, unblocked, owed, blocked. A view over `0002` and `0003`, never a source |
 | `plans/0002-open-questions.md` | The live ledger of design questions, and where the *reasoning* lives |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0009` | One plan document per unblocked slice: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers |
-| `docs/spike-results.md` | Recorded spike numbers and the decision each produced. Empty until S4 runs |
+| `plans/0004`–`0011` | One plan document per unblocked slice or spike: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, and the Rule engine. **`0011` owns the slice in flight** |
+| `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
+| `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8 and S0a have all run |
 | `docs/dev-environment.md` | Setting up a machine to work on this |
 
 `plans/0001-foundational-design.md` predates ADRs 0005–0011 and is stale. `docs/06-roadmap.md`
@@ -134,7 +135,7 @@ revisit trigger is a decision nobody can reopen honestly.
 before settling it: *can you name the number that would refute this, and the machine that would produce
 it?* If you can, it is **measurable** — route it to a named spike with that number written down, and do
 not let any document cite it as decided until the number exists. If you cannot, it is **arguable** and
-a session may close it. Five claims in the corpus have been measured false so far and **two of them sat
+a session may close it. Six claims in the corpus have been measured false so far and **two of them sat
 in documents `0002` marks fully argued**, so a green mark is not evidence a sentence was examined.
 
 **Every significant decision cites a guiding concept** from `CONTEXT.md`'s tag table —
@@ -170,7 +171,8 @@ These are enforced mechanically because they fail silently. Full list in `docs/0
 (hash-map enumeration, `System.Random`), `BOR0701` (managed state) and `BOR0801`–`BOR0803` (the
 `purpose_tag` enum). `BOR0901` is `adr/0003`'s per-field declaration — storage in a `[Table]` type
 that is not a declared `Column` or the table's own `Rows`. Neither `BOR08xx` nor `BOR0901` is one of
-the seven lints; the count stays seven. Lints 4, 5 and 6 need machinery that does not exist yet.
+the seven lints; the count stays seven. Lint 5 is live — `ReplayTests` and the golden baseline. Lints 4
+and 6 need machinery that does not exist yet.
 Every diagnostic has a test that writes the violation and watches it fire — do not add one without.
 
 **Every field in a table is declared once** as `(saved AND hashed)` or `(derived AND rebuilt)`, and

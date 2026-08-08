@@ -42,7 +42,7 @@ A contiguous named region, either player-drawn or automatically derived. A Distr
 
 **It is not the granularity of the travel-time matrix, and it is not where routing happens** (`adr/0047`). That role was welded on, sized by a Goods playtest, and is now the routing partition's — so redrawing a boundary changes what pools, never what a Traveller drives.
 
-**A contiguous set of Cells, never of Chunks.** The Cell is frozen and the Chunk is tunable (`05 §4` lists Chunk size as hash-preserving), so boundaries made of Chunks would let a profiler move what a District *is* — and District extent decides Goods pooling and matrix granularity, which is a change to the city. Cell alignment costs nothing, the Cell being a strict divisor of the Chunk.
+**A contiguous set of Cells, never of Chunks.** The Cell is frozen and the Chunk is tunable (`05 §4` lists Chunk size as hash-preserving), so boundaries made of Chunks would let a profiler move what a District *is* — and District extent decides Goods pooling, which is a change to the city. (It no longer decides matrix granularity; `adr/0047` removed that role, and the argument stands on pooling alone.) Cell alignment costs nothing, the Cell being a strict divisor of the Chunk.
 
 **Its maximum extent is bounded by the pooling abstraction's own validity** (`02 §2.1`): a District can only be as large as the area within which *ignoring transport* is a defensible simplification, because a District large enough to span a genuine delivery has deleted the Shipment that delivery should have been — the collapse `adr/0022` warns of. **Working anchor: 128 Cells — 2.10 km², ~1.45 km across.** A starting point rather than a derivation: *what actually pools convincingly is a playtesting question*, and the number should be expected to move once there is a city to feel it in.
 
@@ -107,7 +107,7 @@ A maximal set of Districts mutually reachable within the Commute Budget. **Deriv
 
 Settlements appear when jobs cluster out of range of the existing centre, **merge** when a new road brings two inside the Budget of each other, and **split** when congestion pushes travel times past it. The region view is therefore a *diagram of the commute sheds the city actually has*, not a menu of tiles anyone chose.
 
-A Settlement is a **reporting and diagnosis unit, not a simulation unit**. Nothing pools by Settlement, nothing is budgeted by Settlement, and no Rule reads one — Districts remain the granularity of Goods pooling and of the travel-time matrix. See `docs/adr/0020-one-live-world-and-settlements-are-derived.md`.
+A Settlement is a **reporting and diagnosis unit, not a simulation unit**. Nothing pools by Settlement, nothing is budgeted by Settlement, and no Rule reads one — Districts remain the granularity of Goods pooling. They are **not** the granularity of the travel-time matrix; `adr/0047` removed that role from the District entirely. See `docs/adr/0020-one-live-world-and-settlements-are-derived.md`.
 
 **Map Layer**
 A coarse scalar field covering the world, stored **one value per Cell** as integers, double-buffered, and updated on a staggered low-frequency schedule. Layers are *composed* at the point of use rather than baked into derived layers.
@@ -164,7 +164,7 @@ A special Building at the map edge representing the rest of the world. Absorbs s
 It is also **the city's gate**. Households arrive and depart through it as ordinary Trips, so immigration is physical, located, and congestion-bearing rather than a number added to a pool. Its throughput is what bounds arrivals — infrastructure the player built, not a constant someone chose.
 
 **Hinterland**
-The economy behind one map edge, shared by every Outside Connection on that edge. Not a simulated place — never Ticked, never rendered — but a small configuration described in **the same units a District exposes**: median rent, median wage, service levels, a commute figure. Prospective Households compare it against the city using the identical utility function residents use, so the Outside is an ordinary alternative in the choice model rather than a special case. Authoring it in domain units instead of utility units is the whole point: *"is §620 the right rent out there"* is a question a designer can answer and a player can read off a panel, and `V = 4.7` is not.
+The economy behind one map edge, shared by every Outside Connection on that edge. Not a simulated place — never Ticked, never rendered — but a small configuration described in **the same units a District exposes**: median rent, median wage, **a price per Good**, service levels, a commute figure. It is **the one authored anchor under every price in the design** — Goods, rents and wages all bound to it, so a designer authors four objects and never writes a price anywhere else (`adr/0026`, `adr/0050`). Prospective Households compare it against the city using the identical utility function residents use, so the Outside is an ordinary alternative in the choice model rather than a special case. Authoring it in domain units instead of utility units is the whole point: *"is §620 the right rent out there"* is a question a designer can answer and a player can read off a panel, and `V = 4.7` is not.
 
 A Hinterland is **a stock the city spends** — the third instance of the pattern, after Land and Woodland. It holds a population with composition, and the city **takes the most willing first**, so drawing it down raises its rate *and* skews its mix toward the stages that weight cheapness hardest. Both effects have the same cause and neither needs a rule. Departures refill the Hinterland they leave for, and it recovers slowly on its own.
 
@@ -177,11 +177,24 @@ Four edges means four Hinterlands drifting independently, which is what makes th
 **Bin**
 An integer store of one resource with a fixed capacity, constrained to `[0, capacity]`. No floats, no continuous flows. Bins live on Buildings, on Districts (as Pools), and globally (the treasury).
 
+**Which Bins a Building has is declared per Building kind**, in the Ruleset, with each one's capacity — so *how many Bins* has a structural answer rather than a guess, and a capacity is an ordinary tuning number under `adr/0015` rather than a constant somebody chose in code. A Building is given exactly its kind's Bins when it is built.
+
+**A Bin is written through one mutator, and the write drains the wait list.** There is no assignable level: a Bin written without draining its wait list leaves every waiter asleep for ever, with no error and no timer to rescue it (`05 §9`), so the door is narrowed rather than the discipline documented. The drain runs **from the head, only while the arriving quantity still covers the recorded shortfall** — six flour arriving wakes exactly the one bakery that needs six, or the two that need three each, and stops at the first waiter it cannot cover rather than skipping past it. Skipping would let a large waiter starve behind small ones; waking everybody would push the whole list into Phase 2 and let the sorted settle order pick a permanent winner, which is the wait list being decorative.
+
+**Rule Instance**
+One `Bin Rule` on one `Building` — the row carrying where that Rule has got to. It is created with the Building and freed with it, and it is in exactly one of two states at every moment: **armed**, scheduled on the `Event Wheel` for the Tick its `rate` re-armed it to, or **waiting**, on the wait list of the one Bin it was short of, holding the shortfall it computed when it failed.
+
+**The two states share one link, and that is the design rather than an economy of columns.** `02 §4.1` says a Rule that fires re-arms and a Rule that fails subscribes *instead of* re-arming; a row that could be armed and waiting at once would be a Rule that polls *and* subscribes, which is the defect subscription exists to remove. Making the states share a link makes that unrepresentable rather than checked.
+
+**Nothing is allocated when a Rule subscribes and nothing is freed when it wakes.** A Rule Instance's whole life is its Building's, so shortage *churn* — which `02 §4.1` identifies as the real cost driver, ahead of chain depth and ahead of how broken the city is — costs no rows at all.
+
 **Rule**
 A transformation the Ruleset declares and the simulation applies. Rules come in **two families**, and which family a mechanism belongs to is decided by one question: *does it wait on a specific named thing, or sweep a population?*
 
 **Bin Rule**
 An atomic transformation over Bins, attached to one Building. It declares inputs and outputs against **four scopes** — local Bins, the District Pool, global Bins, and Map Layer cells under the footprint (write-only, since a layer cell has no capacity to exceed). **A Bin Rule applies in its entirety or not at all** — if any Bin would go negative or exceed capacity, nothing happens.
+
+**A scope answers *whose is it*, not *where do I look*.** A `local` term is free because the Bin is already the Building's; a term crossing an **ownership boundary** is a **trade**, and the Good moves one way while money moves the other at the prevailing price. **No payment is ever written in a Rule** — the price is emergent, the quantity is the term's `amount`, and the counterparty follows from the scope, so nothing is left for a designer to author. This is what lets `amount` stay a fixed integer for ever, and it is why the District Pool is **a market** rather than a wider Bin lookup. `adr/0050`
 
 A Bin Rule carries a firing rate, an apply count, and an optional fallback Rule invoked on failure. Fallback chaining is how supply-chain substitution works: *can't source locally → import* — **source** substitution and never input substitution, so every link in a chain relieves the same Bin the head failed on and **a failed chain subscribes once, at its head**. A link whose rescue arrives later rather than this Tick declares the Bin it `fills`. The **rate is a reschedule interval, not a polling period**: success re-arms it, and **failure subscribes it to the Bin that was short** rather than retrying on a timer, so a starved District costs nothing until supply arrives. The last link of a chain is a **reporting terminal**, which records the condition and leaves the chain failed — a terminal that *succeeded* would re-arm the head on its rate and walk the chain forever. Each Bin therefore holds a wait list, drained round-robin so shortage degrades a District evenly instead of starving its late-built Buildings. **Apply count is authored per Rule.** A Rule with `{min, max}` applies as many times as its inputs allow within that band and fails if it cannot reach `min`; `min = max` is the fixed case, so one form spells both. Which it is, is a modelling decision and never a performance one — *greedy when the actor works through its stock, fixed when the actor owes a quantum.* **Or the count is derived** from a Readout rather than being a literal, which is how proportion is expressed without leaving integers. Never both: *greed handles what is consumed, derived handles what is consulted.*
 
@@ -361,15 +374,17 @@ This is the mechanism by which `LEGIBLE CAUSE` becomes real rather than aspirati
 Evidence is the primary way a player encounters an individual Citizen. Free-roam browsing of the population is explicitly **not** the mechanism, and is not required for any diagnosis.
 
 **Readout**
-A named scalar an entity exposes for reading: gross income, experience, occupancy, time unemployed, composed fertility. A Readout is **read-only** — never consumed, never conserved, never subscribed to — which is what separates it from a Bin. Bins are what a Rule *spends*; Readouts are what a Rule *consults*.
+A named scalar an entity exposes for reading. **The declared set has one member today, `occupancy`** — a Readout is admitted when a Rule reads it, so gross income, time unemployed and composed fertility name the intended shape and are refused by the loader until the state behind them exists. (`experience` is **struck**: it folds into the labour Bin as a per-worker deposit multiplier, `02 §4.1`.) A Readout is **read-only** — never consumed, never conserved, never subscribed to — which is what separates it from a Bin. Bins are what a Rule *spends*; Readouts are what a Rule *consults*.
 
 **The set is declared in the simulation, and every Readout is inspectable** — so nothing the simulation acts on is hidden from the player, by construction rather than by a rule pointing at a panel. The shell owns how a Readout is rendered; it never owns which ones exist.
 
 **The converse does not hold, and the difference is the point.** The inspectable surface is far larger than the Readout set: Bin levels, Occupants, which Rule last ran, a Trip's Fate. Declaring a scalar a Readout is not a decision to *show* it — it is a decision to let every future Rule *act* on it. The test is `02 §2.5`'s, the one that demoted service coverage from a Map Layer to an overlay: **does a Rule read it, or is it only displayed?** Display-only is a display, never a Readout.
 
-**The set of Readouts is the Evidence surface**, and this is a constraint rather than a coincidence:
+**The Readout set is declared in the simulation, and the Evidence surface reads it** — that direction, and not the reverse:
 
 > **A Rule may read anything the player can see, and nothing else.**
+
+> **This entry previously bound the set to `Evidence`, and the bound is inverted** (`02 §4.1`). `02 §9` is an obligation to *expand* aggregates and contains no enumeration, so the old direction pointed the readable set at a non-set. Declaring it simulation-side keeps the guarantee below intact — the set is small, named, and inspectable by construction — while removing a dependency on a presentation design that does not exist.
 
 A Policy whose predicate could consult a hidden internal would be one no player could ever explain being subject to, so binding Rule reads to the same quantities the game already displays makes every Rule explicable by construction. It also forces any new readable quantity to be surfaced *before* it can be depended on, and gives the Ruleset a stable named interface — a data file referring to an unknown Readout fails to load loudly, where a data file referring to a moved field would fail silently. `LEGIBLE CAUSE`
 

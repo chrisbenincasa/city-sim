@@ -2,6 +2,7 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Tables;
 
 namespace Borough.Core;
@@ -35,6 +36,7 @@ public sealed class Simulation
 {
     private readonly World _world;
     private readonly WorldKey _key;
+    private readonly RuleEngine _rules;
 
     private ulong _tick;
     private TickPhase _phase = TickPhase.Commit;
@@ -47,10 +49,20 @@ public sealed class Simulation
 
         _world = world;
         _key = key;
+        _rules = new RuleEngine(world, key);
     }
 
     /// <summary>The tables this Simulation advances.</summary>
     public World World => _world;
+
+    /// <summary>The Bin Rule interpreter: Phase 1 collects, Phase 2 evaluates, Phase 3 applies.</summary>
+    /// <remarks>
+    /// <b>Owned here rather than by the <see cref="Entities.World"/>, unlike the invariant registry.</b>
+    /// The registry holds claims about a world and a hand-built test world has the same ones; the
+    /// engine holds a Tick's worth of scratch, which only means anything inside a Tick. Putting it on
+    /// the World would have made the buffers look like state, which is precisely what they must not be.
+    /// </remarks>
+    public RuleEngine Rules => _rules;
 
     /// <summary>The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</summary>
     public WorldKey Key => _key;
@@ -165,13 +177,15 @@ public sealed class Simulation
 
     /// <summary>Phase 1 — drain the Event Wheel bucket for this Tick.</summary>
     /// <remarks>
-    /// Serial. Empty until slice 9 builds the Wheel. Every Citizen already carries the
-    /// <c>next_event_tick</c> it will be bucketed by, declared in slice 4.
+    /// <b>Serial, and the only phase that takes rows off the Wheel.</b> Slice 7's wheel carries Rule
+    /// Instances; slice 9 generalises it to everything else that sleeps, and every Citizen already
+    /// carries the <c>next_event_tick</c> it will be bucketed by, declared in slice 4.
     /// </remarks>
     private void Wake(Ticks tick)
     {
-        _ = tick;
         _phase = TickPhase.Wake;
+
+        _rules.CollectDue(tick);
     }
 
     /// <summary>
@@ -212,15 +226,8 @@ public sealed class Simulation
         }
     }
 
-    /// <summary>The read-only half of Phase 2. Empty until Rules arrive in slice 7.</summary>
-    /// <summary>The read-only half of Phase 2. Empty until Rules arrive in slice 7.</summary>
-    /// <remarks>
-    /// <b>Static because it reads nothing yet, and that is worth leaving visible.</b> It becomes an
-    /// instance method the moment it reads the world, which is the first line slice 7 writes here.
-    /// Reaching for a discard to keep it non-static would have hidden the one fact this method
-    /// currently states.
-    /// </remarks>
-    private static void DecideCore(Ticks tick) => _ = tick;
+    /// <summary>The read-only half of Phase 2: evaluate every Rule the Wheel handed us.</summary>
+    private void DecideCore(Ticks tick) => _rules.Evaluate(tick);
 
     /// <summary>Phase 3 — apply intents in shuffle order, re-checking atomicity.</summary>
     /// <remarks>
@@ -230,8 +237,9 @@ public sealed class Simulation
     /// </remarks>
     private void Settle(Ticks tick)
     {
-        _ = tick;
         _phase = TickPhase.Settle;
+
+        _rules.Apply(tick);
     }
 
     /// <summary>Phase 4 — Lanes advance Vehicles; Statistical trips check arrival.</summary>

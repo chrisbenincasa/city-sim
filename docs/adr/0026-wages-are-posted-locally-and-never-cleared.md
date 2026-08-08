@@ -31,7 +31,9 @@ It also produces wage *dispersion* for free: identical Businesses pay differentl
 
 ## The anchor, and what to do about thin markets
 
-Every price system in this design now anchors to the same authored object — the **Hinterland**, per [`0023`](0023-immigration-arrives-through-the-gate.md), which carries a median rent and a median wage per map edge in domain units:
+Every price system in this design now anchors to the same authored object — the **Hinterland**, per [`0023`](0023-immigration-arrives-through-the-gate.md), which carries a median rent, a median wage and **a price per Good** per map edge in domain units:
+
+> **The price per Good was added by [`0050`](0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md), and this sentence is why.** When it was written, `0023` enumerated only a population, a rent and a wage — so *"the same authored object"* was an assertion the schema did not support, and the phrase *"as import price already anchors Goods"* two lines below quietly treated the import price as a **fourth** object living nowhere. The claim is now true rather than aspirational. Recorded rather than corrected away: a sentence naming a single anchor while the anchor lacked a third of its contents is the same shape as the blanket-row defect `plans/0002` names, and finding it took a slice-7 grilling session about apply counts.
 
 - Goods ← bounded by the Outside Connection import price
 - Rents ← bounded by Hinterland rent; price past it and people stop coming, then start leaving

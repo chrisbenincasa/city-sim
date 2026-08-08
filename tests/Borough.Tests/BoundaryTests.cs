@@ -132,6 +132,40 @@ public class BoundaryTests
     }
 
     /// <summary>
+    /// adr/0048's central claim: the TOML parser reaches Borough.Formats and stops there.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The ADR argues that <c>adr/0003</c>'s exception machinery is <em>not</em> owed, and this is
+    /// the sentence that argument rests on.</b> <c>0003</c> requires any <b>core</b> dependency to be
+    /// argued explicitly, because a determinism liability entering the core is not recoverable.
+    /// Tomlyn enters the fifth project instead — so what protects determinism is not an exception
+    /// document but the fact that the core cannot name the parser at all.
+    /// </para>
+    /// <para>
+    /// <b>It is the cheapest of the checks here and the one most likely to be needed.</b> Nobody will
+    /// argue for adding a parser reference to <c>Borough.Core.csproj</c>; somebody will add it while
+    /// reaching for a type, exactly as with the Formats reference above. The narrower rule the ADR
+    /// actually states — <em>nothing but integers and strings crosses from the parser into the
+    /// loader</em> — is not reflection-checkable, and this is the half that is.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Core_does_not_reference_a_toml_parser()
+    {
+        var offenders = Core.GetReferencedAssemblies()
+            .Where(a => a.Name!.Contains("Toml", StringComparison.OrdinalIgnoreCase))
+            .Select(a => a.Name!)
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            $"Borough.Core references {string.Join(", ", offenders)}. adr/0048: the Ruleset is " +
+            "parsed and validated in Borough.Formats, and the core receives ids and integers. " +
+            "A parser in the core would be the determinism liability adr/0003 requires an " +
+            "argued exception for, and no such exception exists.");
+    }
+
+    /// <summary>
     /// Borough.Formats is engine-agnostic too, and for a sharper reason than the core is.
     /// </summary>
     /// <remarks>

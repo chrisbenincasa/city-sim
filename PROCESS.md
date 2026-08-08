@@ -120,7 +120,7 @@ Both are live, both are in the code, and both will bite.
 
 *Rule until this is fixed:* a slice with a number attached (*slice 7*) is always the dev unit. The row
 partition is always written as **stagger slice**. Renaming the second one in code is owed — it is one
-class and two documentation lines, against six plan documents and forty-eight ADRs using the first.
+class and two documentation lines, against twelve plan documents and forty-nine ADRs using the first.
 
 **Phase.**
 

@@ -42,4 +42,15 @@ public enum PurposeTag : ulong
     /// value — a zeroed struct field must not silently mean "the first purpose anyone declared".
     /// </summary>
     None = 0,
+
+    /// <summary>
+    /// Phase 3's settle order over the Rule evaluations due on one Tick.
+    /// </summary>
+    /// <remarks>
+    /// <b>The first real tag in the project, and it is a shuffle rather than a choice.</b> <c>02 §8</c>
+    /// rule 5: a contested outcome is settled by a counter-based shuffle, never by arrival and never by
+    /// entity id — ordering by id is <em>biased</em>, so the same Building would win every contested
+    /// draw for the life of the city, and nothing observing the running city could see why.
+    /// </remarks>
+    RuleSettleOrder = 1,
 }

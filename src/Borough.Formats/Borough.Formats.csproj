@@ -19,5 +19,23 @@
   <ItemGroup>
     <ProjectReference Include="..\Borough.Core\Borough.Core.csproj" />
   </ItemGroup>
+  <!--
+    The Ruleset parser. adr/0048 names it, and names it here rather than in Borough.Core: adr/0003
+    requires any *core* dependency be argued explicitly, and this is not one. What protects
+    determinism is that the core cannot name this package at all — BoundaryTests asserts it — plus
+    the narrower rule the ADR states, that nothing but integers and strings crosses from the parser
+    into the loader.
+
+    Chosen on source spans rather than on popularity. adr/0015 promises a refusal names "a file, a
+    line, and a rule name", and a syntax tree carrying spans is what makes the third of those
+    possible. RulesetLoader therefore walks the tree rather than the model — the model would be
+    shorter and would throw every span away.
+
+    adr/0018 demands a written exception naming a property no library provides before anything is
+    built by hand. There is no such property here, so writing a TOML parser is not available.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Tomlyn" Version="2.10.1" />
+  </ItemGroup>
 
 </Project>

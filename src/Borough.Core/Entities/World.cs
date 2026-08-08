@@ -3,6 +3,7 @@ namespace Borough.Core.Entities;
 using Borough.Core.Arithmetic;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
@@ -79,8 +80,24 @@ public sealed class World
     /// is the designer's number and not the profiler's (<c>adr/0044</c>).
     /// </remarks>
     public World(int citizens, LayerRuleset layers)
+        : this(citizens, layers, Ruleset.Empty)
+    {
+    }
+
+    /// <inheritdoc cref="World(int, LayerRuleset)"/>
+    /// <param name="citizens">Initial Citizen capacity. Every other entity table is sized from it.</param>
+    /// <param name="layers">The Map Layer cadence and rates.</param>
+    /// <param name="rules">
+    /// The Bin Rules, already validated (<c>adr/0048</c>). <b>Not simulation state and not folded into
+    /// the State Hash</b> — what names a Ruleset in the hash is its content hash, carried in the Input
+    /// Log, because two runs against different Rules are two different simulations.
+    /// </param>
+    public World(int citizens, LayerRuleset layers, Ruleset rules)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(citizens);
+        ArgumentNullException.ThrowIfNull(rules);
+
+        Rules = rules;
 
         Lots = new LotTable(PerThousand(citizens, 225));
         Buildings = new BuildingTable(PerThousand(citizens, 150), Lots);
@@ -88,11 +105,19 @@ public sealed class World
         Citizens = new CitizenTable(citizens, Households, Buildings);
         Layers = new MapLayers(layers);
 
-        // Declaration order, which is hash composition order. The Layer Cells go last because they
-        // arrived last; the order is arbitrary but it is not free to change, so it is stated here and
-        // moving it is a re-baseline rather than a tidy-up.
+        // ~3 Bins and ~3 Rules on each of ~150 Buildings per 1,000 Citizens. Both multipliers are
+        // capacity hints rather than bounds — the tables grow — but they are numbers nobody has
+        // justified, so plans/0002 carries them as unratified until a real Ruleset supplies the shape.
+        Bins = new BinTable(PerThousand(citizens, 450), Buildings);
+        RuleInstances = new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins);
+        Wheel = new EventWheel(RuleInstances);
+
+        // Declaration order, which is hash composition order. The Rule engine's three tables go last
+        // because they arrived last; the order is arbitrary but it is not free to change, so it is
+        // stated here and moving it is a re-baseline rather than a tidy-up.
         _tables = [
             Lots.Rows, Buildings.Rows, Households.Rows, Citizens.Rows, Layers.Cells.Rows,
+            Bins.Rows, RuleInstances.Rows, Wheel.Buckets.Rows,
         ];
 
         Invariants = new InvariantRegistry();
@@ -113,6 +138,24 @@ public sealed class World
 
     /// <summary>The coarse environment: one integer per Cell per Map Layer.</summary>
     public MapLayers Layers { get; }
+
+    /// <summary>The Bins, and their wait lists.</summary>
+    public BinTable Bins { get; }
+
+    /// <summary>One row per (Building, Bin Rule) — armed, or asleep on a Bin.</summary>
+    public RuleInstanceTable RuleInstances { get; }
+
+    /// <summary>Slice 7's minimal Event Wheel: a bucket per Tick, an arming, and a drain.</summary>
+    public EventWheel Wheel { get; }
+
+    /// <summary>The Bin Rules this world runs. Ids and integers; no string reaches here.</summary>
+    /// <remarks>
+    /// <b>A constructor argument rather than a load, for <see cref="MapLayers.Ruleset"/>'s reason.</b>
+    /// The core cannot read a file (<c>02 §1</c>) and cannot name the parser (<c>adr/0048</c>), so a
+    /// Ruleset arrives already validated or not at all. Slice 8 makes it swappable at a phase boundary;
+    /// this slice loads one at world creation and leaves it.
+    /// </remarks>
+    public Ruleset Rules { get; }
 
     /// <summary>Every table, in the declaration order the hash folds them in.</summary>
     public ReadOnlySpan<Rows> Tables => _tables;
@@ -267,10 +310,16 @@ public sealed class World
 
         Buildings.OccupantHead.Span.Clear();
         Buildings.OccupantTail.Span.Clear();
+        Buildings.BinHead.Span.Clear();
+        Buildings.BinTail.Span.Clear();
+        Buildings.RuleHead.Span.Clear();
+        Buildings.RuleTail.Span.Clear();
         Households.DwellingNext.Span.Clear();
         Households.MemberHead.Span.Clear();
         Households.MemberTail.Span.Clear();
         Citizens.MemberNext.Span.Clear();
+        Bins.BinNext.Span.Clear();
+        RuleInstances.RuleNext.Span.Clear();
 
         IndexList occupants = Occupants;
         for (int slot = 0; slot < Households.Rows.SlotCount; slot++)
@@ -291,6 +340,30 @@ public sealed class World
                 members.InsertOrdered(householdSlot, slot);
             }
         }
+
+        // The Bin and Rule Instance lists are derived; the wait lists threaded through the same rows
+        // are not, and are untouched here. That asymmetry is the point of the two declarations: which
+        // Bins a Building has follows from the Bins' own owner column, and the order a queue was
+        // joined in follows from nothing.
+        IndexList buildingBins = BuildingBins;
+        for (int slot = 0; slot < Bins.Rows.SlotCount; slot++)
+        {
+            if (Bins.Rows.IsLive(slot)
+                && Buildings.Rows.TryResolve(Bins.Owner[slot], out int buildingSlot))
+            {
+                buildingBins.InsertOrdered(buildingSlot, slot);
+            }
+        }
+
+        IndexList buildingRules = BuildingRules;
+        for (int slot = 0; slot < RuleInstances.Rows.SlotCount; slot++)
+        {
+            if (RuleInstances.Rows.IsLive(slot)
+                && Buildings.Rows.TryResolve(RuleInstances.Building[slot], out int buildingSlot))
+            {
+                buildingRules.InsertOrdered(buildingSlot, slot);
+            }
+        }
     }
 
     /// <summary>The Households living in each Building.</summary>
@@ -306,6 +379,301 @@ public sealed class World
     /// <inheritdoc cref="Occupants"/>
     public IndexList Members =>
         new(Households.MemberHead, Households.MemberTail, Citizens.MemberNext);
+
+    /// <summary>The Bins on each Building.</summary>
+    /// <inheritdoc cref="Occupants"/>
+    public IndexList BuildingBins => new(Buildings.BinHead, Buildings.BinTail, Bins.BinNext);
+
+    /// <summary>The Rule Instances each Building runs.</summary>
+    /// <inheritdoc cref="Occupants"/>
+    public IndexList BuildingRules =>
+        new(Buildings.RuleHead, Buildings.RuleTail, RuleInstances.RuleNext);
+
+    /// <summary>The Rule Instances asleep on each Bin because it was <em>short</em>.</summary>
+    /// <inheritdoc cref="Occupants"/>
+    public IndexList LevelWaiters => new(Bins.LevelHead, Bins.LevelTail, RuleInstances.QueueNext);
+
+    /// <summary>The Rule Instances asleep on each Bin because it was <em>full</em>.</summary>
+    /// <inheritdoc cref="Occupants"/>
+    public IndexList HeadroomWaiters => new(Bins.HeadroomHead, Bins.HeadroomTail, RuleInstances.QueueNext);
+
+    /// <summary>Gives a Building a Bin, per its kind's declaration in the Ruleset.</summary>
+    public Handle<Bin> CreateBin(Handle<Building> owner, ResourceId resource, BinCapacity capacity)
+    {
+        int buildingSlot = Buildings.Rows.Resolve(owner);
+
+        Invariants.Require(
+            FindBin(buildingSlot, resource) == Rows.NoSlot,
+            Invariant.BuildingHasOneBinPerResource,
+            buildingSlot,
+            resource.Raw);
+
+        Handle<Bin> handle = Bins.Create(owner, resource, capacity);
+
+        BuildingBins.InsertOrdered(buildingSlot, Bins.Rows.Resolve(handle));
+
+        return handle;
+    }
+
+    /// <summary>
+    /// The Bin on <paramref name="buildingSlot"/> storing <paramref name="resource"/>, or
+    /// <see cref="Rows.NoSlot"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A walk rather than a binary search, and the list is short by construction.</b> A Building's
+    /// Bins are its kind's declared set — a handful — so the search is a few sequential comparisons
+    /// against a sorted-array lookup's setup cost. The alternative that would earn
+    /// <see cref="ResourceMap"/> here is a contiguous block per Building, which buys the search back
+    /// at the price of a second allocator and a fragmentation sink under <c>adr/0006</c>.
+    /// </remarks>
+    public int FindBin(int buildingSlot, ResourceId resource)
+    {
+        foreach (int bin in BuildingBins.Walk(buildingSlot))
+        {
+            if (Bins.Resource[bin] == resource)
+            {
+                return bin;
+            }
+        }
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>Gives a Building one of the Rules its kind runs, armed to fire in <paramref name="delay"/>.</summary>
+    public Handle<RuleInstance> CreateRuleInstance(
+        Handle<Building> building, RuleId rule, Ticks now, uint delay)
+    {
+        int buildingSlot = Buildings.Rows.Resolve(building);
+
+        Handle<RuleInstance> handle = RuleInstances.Create(building, rule);
+        int slot = RuleInstances.Rows.Resolve(handle);
+
+        BuildingRules.InsertOrdered(buildingSlot, slot);
+        Wheel.Arm(slot, now, delay);
+
+        return handle;
+    }
+
+    /// <summary>
+    /// Adds to a Bin and drains its wait list. <b>The only way a Bin's level ever rises.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>The write and the drain are one call because <c>05 §9</c> says what happens when they are
+    /// two</b>: <em>a Bin written without draining its wait list leaves that Building asleep for ever,
+    /// with no error and no timer to rescue it.</em> There is no level column to assign, so there is
+    /// no second spelling in which the drain can be forgotten.
+    /// </remarks>
+    public void Deposit(Handle<Bin> bin, int amount, Ticks tick)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+
+        int slot = Bins.Rows.Resolve(bin);
+
+        Invariants.Require(
+            amount <= Bins.HeadroomAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
+
+        Bins.Move(slot, amount);
+        Drain(slot, Blocking.Level, amount, tick);
+    }
+
+    /// <summary>
+    /// Takes from a Bin and drains the waiters that wanted it emptier.
+    /// </summary>
+    /// <remarks>
+    /// <b>Symmetric with <see cref="Deposit"/>, because <c>adr/0045</c>'s <em>blocking</em> is</b> —
+    /// <em>refill if the Bin was short, drain if it was a full output.</em> A withdrawal is what
+    /// rescues a Rule whose output Bin was full, and a withdrawal that did not drain would strand
+    /// those waiters exactly as a deposit that did not drain strands the others.
+    /// </remarks>
+    public void Withdraw(Handle<Bin> bin, int amount, Ticks tick)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+
+        int slot = Bins.Rows.Resolve(bin);
+
+        Invariants.Require(
+            amount <= Bins.LevelAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
+
+        Bins.Move(slot, -amount);
+        Drain(slot, Blocking.Headroom, amount, tick);
+    }
+
+    /// <summary>
+    /// Puts a Rule Instance to sleep on the Bin that blocked it, carrying what it was short of.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It does not re-arm, and that is the whole mechanism</b> (<c>02 §4.1</c>): a Rule that fails
+    /// subscribes <em>instead of</em> retrying on a timer, so a starved District costs nothing at all
+    /// until supply arrives. What wakes it is the mutator that writes the Bin.
+    /// </para>
+    /// <para>
+    /// <b>The caller must already have taken the row off the Wheel, and this cannot check it.</b>
+    /// <see cref="Invariant.RuleInstanceIsArmedOrWaiting"/> here catches a double subscribe, which is
+    /// <c>O(1)</c>; the row that is still in a Wheel bucket looks identical from the write site,
+    /// because the only evidence is a link in a bucket nobody has walked. That half is
+    /// <see cref="Invariants.WorldInvariants.RuleInstancesAreQueuedExactlyOnce"/>, at the end of the
+    /// run, and the split is <c>02 §10</c>'s tiering rather than a gap — neither half covers the
+    /// invariant alone.
+    /// </para>
+    /// </remarks>
+    public void Subscribe(
+        Handle<RuleInstance> instance, Handle<Bin> bin, Blocking blocking, int shortfall)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(shortfall);
+
+        if (blocking == Blocking.Nothing)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(blocking), blocking, "a subscription must name why it is blocked.");
+        }
+
+        int slot = RuleInstances.Rows.Resolve(instance);
+        int binSlot = Bins.Rows.Resolve(bin);
+
+        Invariants.Require(
+            !RuleInstances.IsWaiting(slot), Invariant.RuleInstanceIsArmedOrWaiting, slot, binSlot);
+
+        RuleInstances.WaitingOn[slot] = bin;
+        RuleInstances.Blocked[slot] = blocking;
+        RuleInstances.Shortfall[slot] = shortfall;
+
+        Waiters(blocking).Append(binSlot, slot);
+    }
+
+    /// <summary>
+    /// Demolishes a Building, with its Bins, its Rules, and everybody asleep on its Bins.
+    /// </summary>
+    /// <remarks>
+    /// <b>The waiters are woken rather than dropped.</b> A Rule Instance asleep on a Bin that no
+    /// longer exists is <c>05 §9</c>'s asleep-for-ever reached through demolition instead of through a
+    /// missed drain — nothing will ever write that Bin again. Waking them puts each back on the Wheel
+    /// to re-evaluate, fail against a Bin that is gone, and take whatever its <c>on_fail</c> chain
+    /// offers, which is the reportable outcome rather than the silent one.
+    /// </remarks>
+    public void DestroyBuilding(Handle<Building> building, Ticks tick)
+    {
+        int slot = Buildings.Rows.Resolve(building);
+
+        // The Rules first, so that any of them asleep on this Building's own Bins are off those wait
+        // lists before the Bins below start waking whoever is left on them.
+        int instance = BuildingRules.PopFront(slot);
+        while (instance != Rows.NoSlot)
+        {
+            Unlink(instance);
+            RuleInstances.Rows.Free(RuleInstances.Rows.At(instance));
+            instance = BuildingRules.PopFront(slot);
+        }
+
+        int bin = BuildingBins.PopFront(slot);
+        while (bin != Rows.NoSlot)
+        {
+            WakeAll(bin, tick);
+            Bins.Rows.Free(Bins.Rows.At(bin));
+            bin = BuildingBins.PopFront(slot);
+        }
+
+        Buildings.Rows.Free(building);
+    }
+
+    /// <summary>Which of a Bin's two wait lists a given blocking reason queues on.</summary>
+    private IndexList Waiters(Blocking blocking) =>
+        blocking == Blocking.Level ? LevelWaiters : HeadroomWaiters;
+
+    /// <summary>
+    /// Wakes waiters from the head while the arriving quantity still covers their shortfalls.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>From the head, and it stops rather than skips.</b> <c>02 §4.1</c>: <em>six flour arriving
+    /// wakes exactly the one bakery that needs six.</em> Skipping an uncovered waiter to reach a
+    /// smaller one behind it would starve every large waiter permanently; waking everybody instead
+    /// would push the whole list into Phase 2 and let the sorted settle order pick a winner that never
+    /// changes, which is the wait list being decorative.
+    /// </para>
+    /// <para>
+    /// <b>The budget is what arrived, not what the Bin now holds.</b> A shortfall was recorded against
+    /// the level at the moment of failure, so what decides whether it is covered is the change since —
+    /// and spending the budget down as waiters are woken is what lets six flour wake two bakeries
+    /// needing three each without also waking a third.
+    /// </para>
+    /// </remarks>
+    private void Drain(int binSlot, Blocking blocking, int arriving, Ticks tick)
+    {
+        IndexList waiters = Waiters(blocking);
+        int remaining = arriving;
+
+        while (true)
+        {
+            int head = waiters.PeekFront(binSlot);
+
+            if (head == Rows.NoSlot || RuleInstances.Shortfall[head] > remaining)
+            {
+                return;
+            }
+
+            remaining -= RuleInstances.Shortfall[head];
+
+            waiters.PopFront(binSlot);
+            Wake(head, tick);
+        }
+    }
+
+    /// <summary>Empties both of a Bin's wait lists, for a Bin that is about to stop existing.</summary>
+    private void WakeAll(int binSlot, Ticks tick)
+    {
+        WakeAll(LevelWaiters, binSlot, tick);
+        WakeAll(HeadroomWaiters, binSlot, tick);
+    }
+
+    private void WakeAll(IndexList waiters, int binSlot, Ticks tick)
+    {
+        int waiter = waiters.PopFront(binSlot);
+
+        while (waiter != Rows.NoSlot)
+        {
+            Wake(waiter, tick);
+            waiter = waiters.PopFront(binSlot);
+        }
+    }
+
+    /// <summary>
+    /// Moves a Rule Instance off a wait list and back onto the Wheel, for the next Tick.
+    /// </summary>
+    /// <remarks>
+    /// <b>The next Tick, not this one.</b> A Bin is written in Phase 3 and a Rule evaluates in Phase 2,
+    /// which has already run — so arming for <c>tick + 1</c> is the earliest honest answer. Arming for
+    /// this Tick would be a write in Phase 3 that a Phase 2 already past was supposed to have seen.
+    /// </remarks>
+    private void Wake(int instanceSlot, Ticks tick)
+    {
+        RuleInstances.Blocked[instanceSlot] = Blocking.Nothing;
+        RuleInstances.WaitingOn[instanceSlot] = default;
+        RuleInstances.Shortfall[instanceSlot] = 0;
+
+        Wheel.Arm(instanceSlot, tick, 1);
+    }
+
+    /// <summary>Takes a Rule Instance off whichever one list it is on, leaving it on neither.</summary>
+    private void Unlink(int instanceSlot)
+    {
+        Blocking blocking = RuleInstances.Blocked[instanceSlot];
+
+        if (blocking == Blocking.Nothing)
+        {
+            Wheel.Armed.Remove(
+                EventWheel.BucketOf(RuleInstances.NextTick[instanceSlot]), instanceSlot);
+            return;
+        }
+
+        if (Bins.Rows.TryResolve(RuleInstances.WaitingOn[instanceSlot], out int binSlot))
+        {
+            Waiters(blocking).Remove(binSlot, instanceSlot);
+        }
+
+        RuleInstances.Blocked[instanceSlot] = Blocking.Nothing;
+        RuleInstances.WaitingOn[instanceSlot] = default;
+    }
 
     private static int PerThousand(int citizens, int rows)
     {

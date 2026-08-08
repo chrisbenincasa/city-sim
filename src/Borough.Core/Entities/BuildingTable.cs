@@ -31,6 +31,10 @@ public sealed class BuildingTable
         Kind = _rows.Saved<byte>("kind");
         OccupantHead = _rows.Derived<int>("occupant_head");
         OccupantTail = _rows.Derived<int>("occupant_tail");
+        BinHead = _rows.Derived<int>("bin_head", Touch.PerTick);
+        BinTail = _rows.Derived<int>("bin_tail");
+        RuleHead = _rows.Derived<int>("rule_head");
+        RuleTail = _rows.Derived<int>("rule_tail");
 
         _rows.Seal();
     }
@@ -49,6 +53,27 @@ public sealed class BuildingTable
 
     /// <summary>Tail of the occupant list, so a Household appends rather than push-fronts.</summary>
     public Column<int> OccupantTail { get; }
+
+    /// <summary>
+    /// Head of this Building's Bins — see <see cref="Rules.BinTable.BinNext"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Derived, where the wait list hanging off each of those Bins is not.</b> Which Bins a
+    /// Building has is a pure function of the Bins' own <c>owner</c> column and the order carries no
+    /// meaning, a lookup by Resource being a search either way. A wait list's order is arrival order,
+    /// which is recoverable from nothing, so it is state. The two calls sit one indirection apart and
+    /// go opposite ways, which is worth noticing rather than assuming.
+    /// </remarks>
+    public Column<int> BinHead { get; }
+
+    /// <summary>Tail of the Bin list.</summary>
+    public Column<int> BinTail { get; }
+
+    /// <summary>Head of the Rule Instances this Building runs.</summary>
+    public Column<int> RuleHead { get; }
+
+    /// <summary>Tail of the Rule Instance list.</summary>
+    public Column<int> RuleTail { get; }
 
     /// <summary>Allocates a Building on a Lot.</summary>
     public Handle<Building> Create(Handle<Lot> lot, byte kind)

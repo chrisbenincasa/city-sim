@@ -1,6 +1,7 @@
 using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
@@ -38,6 +39,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, EveryoneIsInExactlyOnePlace);
         invariants.Register(InvariantTier.EndOfRun, MoneyIsRepresentable);
         invariants.Register(InvariantTier.EndOfRun, LayerMagnitudesAreBounded);
+        invariants.Register(InvariantTier.EndOfRun, RuleInstancesAreQueuedExactlyOnce);
     }
 
     /// <summary>
@@ -234,6 +236,113 @@ public static class WorldInvariants
                 return;
             }
         }
+    }
+
+    /// <summary>
+    /// Every Rule Instance is in exactly one queue, and it is the queue it says it is in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The whole-world half of <see cref="Invariant.RuleInstanceIsArmedOrWaiting"/>.</b> Sharing
+    /// one link column makes <em>on two lists at once</em> unrepresentable, and that is worth having,
+    /// but it makes the opposite failure easy: a row taken off the Wheel and never subscribed, or
+    /// subscribed and never appended, is on <em>no</em> list. Nothing will ever reach it again, which
+    /// is <c>05 §9</c>'s asleep-for-ever with no write site to blame — so it can only be found by
+    /// counting.
+    /// </para>
+    /// <para>
+    /// <b>Counted the way <see cref="EveryoneIsInExactlyOnePlace"/> counts</b>, and for its reason:
+    /// asking of each row <em>which queue am I on</em> is a search per row, and walking every queue
+    /// once answers more. The <em>which</em> half is checked on the way past, while the walk already
+    /// knows what queue it is in — a row queued on the wrong Bin wakes on writes to a Bin it does not
+    /// care about and sleeps through the one it does.
+    /// </para>
+    /// </remarks>
+    internal static void RuleInstancesAreQueuedExactlyOnce(World world, InvariantRegistry report)
+    {
+        RuleInstanceTable instances = world.RuleInstances;
+        var seen = new int[instances.Rows.SlotCount];
+
+        CountQueue(world, world.LevelWaiters, Blocking.Level, seen, report);
+        CountQueue(world, world.HeadroomWaiters, Blocking.Headroom, seen, report);
+
+        IndexList armed = world.Wheel.Armed;
+
+        for (int bucket = 0; bucket < EventWheel.Size; bucket++)
+        {
+            foreach (int instance in armed.Walk(bucket))
+            {
+                if (!Tally(seen, instance, instances.Rows, bucket, report))
+                {
+                    return;
+                }
+
+                bool armedHere = instances.Blocked[instance] == Blocking.Nothing
+                    && EventWheel.BucketOf(instances.NextTick[instance]) == bucket;
+
+                report.Require(
+                    armedHere, Invariant.WaiterIsQueuedOnTheBinItNames, instance, bucket);
+            }
+        }
+
+        for (int instance = 0; instance < seen.Length; instance++)
+        {
+            if (instances.Rows.IsLive(instance) && seen[instance] != 1)
+            {
+                report.Report(
+                    Invariant.RuleInstanceIsArmedOrWaiting, instance, seen[instance]);
+            }
+        }
+    }
+
+    /// <summary>Walks one of the two wait lists on every Bin, counting and checking as it goes.</summary>
+    private static void CountQueue(
+        World world, IndexList waiters, Blocking blocking, int[] seen, InvariantRegistry report)
+    {
+        RuleInstanceTable instances = world.RuleInstances;
+        BinTable bins = world.Bins;
+
+        for (int bin = 0; bin < bins.Rows.SlotCount; bin++)
+        {
+            if (!bins.Rows.IsLive(bin))
+            {
+                continue;
+            }
+
+            foreach (int instance in waiters.Walk(bin))
+            {
+                if (!Tally(seen, instance, instances.Rows, bin, report))
+                {
+                    return;
+                }
+
+                bool queuedHere = instances.Blocked[instance] == blocking
+                    && bins.Rows.TryResolve(instances.WaitingOn[instance], out int named)
+                    && named == bin;
+
+                report.Require(queuedHere, Invariant.WaiterIsQueuedOnTheBinItNames, instance, bin);
+            }
+        }
+    }
+
+    /// <summary>Records one appearance, refusing an index no live row could have.</summary>
+    private static bool Tally(
+        int[] seen, int instance, Rows instances, int owner, InvariantRegistry report)
+    {
+        if (instance < 0 || instance >= seen.Length)
+        {
+            report.Report(Invariant.RuleInstanceIsArmedOrWaiting, instance, owner);
+            return false;
+        }
+
+        seen[instance]++;
+
+        if (!instances.IsLive(instance))
+        {
+            report.Report(Invariant.NoFreedRowIsStillLinked, instance, owner);
+        }
+
+        return true;
     }
 
     /// <summary>

@@ -41,6 +41,16 @@ It also reinforces the `UNIQUE INDIVIDUALS` commitment in [`0005`](0005-two-fide
 - **"Nobody optimises" is a testable anti-invariant.** Headless tests: given two providers differing by less than the switching threshold, no Household switches; given a large city over many Days, no single cycle produces a mass migration to one provider. Herd behaviour becomes a detectable regression rather than a vibe.
 - **Switching must be reportable.** A Household that changed shops recorded why — the old one was starved of Goods, the commute grew — because that chain is what an inspector shows when the player asks why a Business is failing.
 
+- **A rule this ADR owes and does not yet state: a failed Trip must demote the option that produced
+  it.** [`adr/0047`](0047-routing-never-keys-on-the-district.md) names the defect precisely — this ADR
+  re-evaluates *"immediately on a failed Trip"* against the same information, which still says the
+  same wrong thing, so a Household can choose, fail, re-evaluate and **choose the same unreachable
+  option for ever**. At S2's worst-case entry error of 77.62 Ticks that is a different Trip, not an
+  estimate. The satisficing loop needs a memory of what it just tried; what that memory *is* — a
+  per-Household demotion, a cooldown, or Habit's own weight moving — is unsettled, and `02 §9` wants
+  the diagnostic either way. **Recorded here rather than invented**, because picking the mechanism is
+  a design decision and this note is not one.
+
 ## What would trigger revisiting
 
 - **Nothing about performance.** The decision is already O(1) per choice; if decision cost is ever the bottleneck, the levers [`0005`](0005-two-fidelity-tiers.md) names apply — sample fewer candidates, decide less often. Evaluating more options is not on the list, and a proposal to do so should be read as a proposal to reintroduce the herd.

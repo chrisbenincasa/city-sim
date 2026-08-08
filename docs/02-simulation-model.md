@@ -17,7 +17,7 @@ It has no concept of wall-clock time, no camera, no renderer, and no filesystem.
 
 Everything in this document is expressed in integers. Money, goods, population, positions, layer values, and time are all integral or fixed-point. **There is no float arithmetic in the core at all** — not merely no floats in stored state, since a float temporary cast to an integer is exactly as non-deterministic (§8 rule 1). `SOLVE THE ACTUAL PROBLEM` does not extend to floating-point physics we don't need.
 
-**Transcendentals are not banned — they are tabulated.** This section previously said *"no transcendental functions anywhere,"* which was never true of this document: §5.4's choice model is a softmax over `exp`, and §2.4's noise falloff is logarithmic. `exp` and `log` exist in the core as **fixed-point tables with defined rounding**, and no `sin` is needed. See [`adr/0003`](adr/0003-deterministic-integer-simulation.md), which also records why the table's *resolution* is a stated figure rather than an implementation detail: it perturbs the effective `μ`, and `μ` is what stops stampedes.
+**Transcendentals are not banned — they are tabulated.** This section previously said *"no transcendental functions anywhere,"* which was never true of this document: §5.4's choice model is a softmax over `exp`, and §2.4's noise falloff is logarithmic. `exp` and `log` exist in the core as **fixed-point tables with defined rounding**, and no `sin` is needed. See [`adr/0003`](adr/0003-deterministic-integer-simulation.md), which also records why the table's *resolution* is a stated figure rather than an implementation detail: it perturbs the effective `μ`, and `μ` is what stops stampedes. The figure itself is [`adr/0038`](adr/0038-the-transcendental-tables-are-sized-by-the-representation.md): **256 entries each with rounded linear interpolation and base-2 range reduction**, chosen so the table stops being the limiting factor — about 0.12 ULP of a roughly 1 ULP total, the remainder being Q16.16's own rounding, which no table size can improve. The entry count, the rounding and the committed values are **hash-bearing world-creation constants**.
 
 ### 1.1 Tick phases
 
@@ -42,7 +42,7 @@ Two properties this buys:
 
 **Contention is resolved honestly.** Two bakeries evaluating in parallel may both observe six flour in the Pool and both decide to consume it. In Phase 3 the first one — by a **counter-based random shuffle**, per §8 rule 5 — succeeds, and the second finds the condition no longer holds, fails atomically, and takes its fallback. Nobody gets phantom flour, the loser's failure is a real event that can be reported, and no Building holds a standing advantage over its neighbours.
 
-**This must stay the occasional case, not the structural one.** A sorted key applied to *chronic* shortage produces permanent starvation rather than a gradient — the same Building loses every time and no player could see why. What keeps it occasional is the shortfall-aware wait list in §4.1: when a Pool is short, its consumers are asleep subscribed rather than awake competing, and a delivery wakes only as many as it can actually satisfy. Phase 3 contention is then what it should be — a Rule that was already awake racing one that was just woken.
+**This must stay the occasional case, not the structural one.** A sorted key applied to *chronic* shortage produces permanent starvation rather than a gradient — the same Building loses every time and no player could see why. What keeps it occasional is the shortfall-aware wait list in §4.1: a consumer that failed is asleep subscribed rather than awake competing, and a write wakes only as many waiters as the arriving quantity can actually satisfy. Note the subscription is on the Bin that **stopped** the Rule — its own `local` Bin — and never on the Pool it would have escalated to; a Pool delivery reaches those consumers through the link that refills them, not directly. Phase 3 contention is then what it should be — a Rule that was already awake racing one that was just woken.
 
 ### 1.2 Rates and scales
 
@@ -266,9 +266,11 @@ That is true for satisfaction, and false for flour. A bakery that consumes six f
 
 ### 3.2 Bins
 
-A Bin is `{ resource: ResourceId, amount: u32, capacity: u32 }`, invariant `amount <= capacity`.
+A Bin is `{ owner: Handle<Building>, resource: ResourceId, level: int, capacity: int }` plus its two wait-list heads, invariant `0 <= level <= capacity`. **The level is signed deliberately**, because headroom is `capacity − level` and an unsigned subtraction there wraps instead of failing. **A money Bin is unbounded** (`adr/0024`): its capacity is the representation's ceiling and the loader **refuses** an authored one, because a warehouse limit on money is what made `§4.3`'s own worked example destroy a unit per baking.
 
-Bins live in a **ResourceMap** — a sorted array with binary lookup, not a hash map. Cache-friendly, tiny, and critically: **deterministically ordered**. Hash map iteration order in .NET depends on insertion history and, for string keys, on per-process hash randomisation. A hash map is never iterated in simulation code.
+**A hash map is never iterated in simulation code.** Iteration order in .NET depends on insertion history and, for string keys, on per-process hash randomisation, so a walk over one is not reproducible. Build one and look up in it freely; never walk it.
+
+> **This paragraph previously said Bins live in a `ResourceMap`.** They do not. A Bin is a row in the Bin table owned by a Building handle, and a Building's Bins are an **intrusive index list** walked linearly — a Building holds few enough Bins that a walk beats a search, and the list is what every variable-length collection in the core already is. `ResourceMap` exists and would earn its place against a contiguous block per Building, which is not the shape that was built.
 
 Capacity is what makes production chains interesting: a bakery with capacity for 20 flour cannot stockpile indefinitely, so its supply must be continuous rather than bursty.
 
@@ -297,16 +299,23 @@ Lineage: this is GlassBox's model, which was genuinely excellent and is the part
 
 A **Bin Rule** is an atomic transformation over Bins. It declares inputs and outputs against four target scopes:
 
-| Scope | Meaning |
-|---|---|
-| `local` | Bins on the Building running the rule |
-| `pool` | Bins on the Building's District Pool (requires road connectivity) |
-| `global` | City-wide Bins — the treasury, aggregate statistics |
-| `map` | Map Layer cells under the Building's footprint — **write-only** |
+| Scope | Meaning | Whose is it |
+|---|---|---|
+| `local` | Bins on the Building running the rule | **mine — free** |
+| `pool` | Bins on the Building's District Pool (requires road connectivity) | **somebody else's — a trade** |
+| `global` | City-wide Bins — the treasury, aggregate statistics | the city's |
+| `map` | Map Layer cells under the Building's footprint — **write-only** | nobody's |
+
+**The third column is load-bearing and is the subject of [`adr/0050`](adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md).** A scope is not answering *where do I look for this Bin*, it is answering *whose is it* — and a term crossing an **ownership boundary** is not a transformation but a **trade**, with the Good moving one way and money the other at the prevailing price. There is **no Ruleset syntax for that payment**: the price is emergent by §4, the quantity is already the term's `amount`, and the counterparty is implied by the scope, so nothing is left for a designer to write. This is what keeps `amount` a fixed integer permanently, since a variable *rate* is the one thing a derived apply count provably cannot express — `n` cancels out of a ratio. **`pool` is therefore a market, and an implementation treating it as a wider Bin lookup ships an unconserved economy.** It also makes `adr/0045`'s fallback ladder a **price** ladder as well as a source ladder: local → Pool → Shipment → import is monotone increasing in cost, which is *why* the rungs are in that order.
 
 **Four, and there is no proximity scope.** `CONTEXT` previously described the non-local scope as *"Bins in nearby Buildings,"* which is a category error: proximity selection belongs to whatever is moving, never to the Rule engine. A Parking Shed (`adr/0009`), an Amenity set, a Provider List and `adr/0030` dispatch are all *nearest-first choices made by a Trip or a Household*. **Movers choose; Rules transform.** The Rule engine's one non-local scope is the District Pool, and the two radii cannot coincide: a District is bounded by where transport can be *ignored* (§2.1), and a shed is bounded by where transport must be *measured*, because the walk Leg is its whole output.
 
-`map` is **write-only**, which removes it from the subscription question entirely. Map Layer cells are written by a staggered double-buffered diffusion pass ([`05 §9`](05-technical-architecture.md)) rather than by a mutator, and they have no capacity to exceed — so a `map` output can never fail, and no Rule ever waits on one.
+> **Two of the four are named holes, and this is a statement of design rather than of what runs.** Only `local` and `map` are implemented. `pool` needs road connectivity and `global` needs somewhere for a Bin nobody owns to live; both **throw when a Rule reaches one**, and neither is refused at load — deliberately, because a Ruleset naming a Pool is well-formed and merely early. The practical consequence is that **the worked chain below loads clean and throws the first time `draw_flour_from_pool` is reached**, and the contention example in §1's phase table, which contends over the Pool, is not reachable yet.
+
+`map` is **write-only**, which removes it from the subscription question entirely. It is also not a
+scope of a *term* in the way the other three are: an authored `map` output is split off at load into a
+separate emission list, so nothing ever resolves a `map` reference to a Bin. **Only pollution is
+implemented**; land value and sealing are named holes that throw when reached. Map Layer cells are written by a staggered double-buffered diffusion pass ([`05 §9`](05-technical-architecture.md)) rather than by a mutator, and they have no capacity to exceed — so a `map` output can never fail, and no Rule ever waits on one.
 
 **Atomicity is the core semantic.** A Rule applies in its entirety or not at all. If any input is insufficient or any output would exceed capacity, nothing happens and the Rule *fails*. There is no partial application. This is what makes the economy conserved and what makes failure a real, reportable event rather than a silent partial-completion.
 
@@ -314,7 +323,7 @@ A **Bin Rule** is an atomic transformation over Bins. It declares inputs and out
 
 It also removes a lag nobody authored. Under polling, each level of an `on_fail` chain carries its own rate and its own phase offset — whichever Tick that Building was built on — so an arriving Shipment reaches the thing that needed it after a delay determined by construction order. Deterministic, but unreadable and unauthored.
 
-Each Bin therefore carries a **wait list**, and a subscription records **the amount that was missing** — a waiter already computed that number when it failed. On a write the Bin drains **from the head, only while the arriving quantity covers the recorded shortfalls**. A Rule that fires goes to the back of the queue.
+Each Bin therefore carries **two** wait lists — one for Rules blocked on **level**, one for Rules blocked on **headroom** — and a subscription records **the amount that was missing**, a number the waiter computed while failing. Two lists rather than one because the failure has two directions: a single list would wake a Rule waiting for the Bin to *fill* when it had just been *drained*, and neither would ever make progress. On a write the Bin drains **from the head, only while the arriving quantity covers the recorded shortfalls**, and **a Withdraw drains the headroom list exactly as a Deposit drains the level list**. A Rule that fires goes to the back of the queue.
 
 **The shortfall is what makes the queue mean anything**, and omitting it silently deletes the whole mechanism. Waking every subscriber instead would put them all into Phase 2, all into Phase 3, and let §1.1's sorted-key settle order pick the winner — so the head of the queue would lose every time, forever, and the list would be decorative. Draining by shortfall keeps contention out of Phase 3 in the chronic case entirely: six flour arriving wakes exactly the one bakery that needs six.
 
@@ -324,7 +333,11 @@ A recorded shortfall can go stale if the waiter's own local Bins changed while i
 
 **Apply count** lets one rule evaluation apply `1..n` times. This is how throughput scales without adding entities — a large factory is not more buildings, it is a higher apply count. Important for keeping entity counts down.
 
-**`n` is authored per Rule, and greed is one of the choices.** A Rule declaring `{min, max}` applies as many times as its inputs allow within that band, and **fails if it cannot reach `min`** — subscribing with a recorded shortfall of `(min × amount) − available`, a number it computed while deciding. Atomicity then has a well-defined referent: `n` is settled first, and *those* `n` applications happen in their entirety or not at all.
+**`n` is authored per Rule, and greed is one of the choices.** A Rule declaring `{min, max}` applies as many times as its inputs allow within that band, and **fails if it cannot reach `min`** — subscribing with a recorded shortfall of `(min × delta) − available`, a number it computed while deciding. **The `delta` is the Rule's *net* movement on that Bin, not the term's amount** — a Rule naming one Bin on both sides moves only the difference, and a Bin drawn from and returned to in equal measure bounds nothing at any count. Atomicity then has a well-defined referent: `n` is settled first, and *those* `n` applications happen in their entirety or not at all.
+
+**The count is decided against the Past, and Settle may only reduce it** ([`adr/0049`](adr/0049-a-rules-apply-count-is-decided-against-the-past-and-settle-may-only-reduce-it.md)). `n` is settled in Phase 2 against a single state; Phase 3's re-check may **reduce** it, or fail the Rule outright, and may **never raise** it. So Settle serves a greedy Rule *short* rather than enlarging it, and §8 rule 5's shuffle decides **who goes short when there is not enough — never how much anyone takes when there is**. Re-deriving the count from part-way through Phase 3 would make the same city on the same Tick eat either 12 or 24 flour depending on settle order, which is a tie-breaker becoming a mechanism.
+
+**One case sits outside that rule, and it is not a hole in it.** A Rule that loses the Phase 3 re-check takes its fallback (§4.1's chain, below), and a link reached that way was never evaluated against the Past, so there is no count to reduce. Nor is the harm the same: what `adr/0049` forbids is a *producer's throughput* moving with settle order, whereas a rescue drawn from a contended shared Bin is precisely the *who goes short* the shuffle exists to decide — the contention case above contends over the **Pool**, and a `local` Bin has only one owner.
 
 **Fixed is the degenerate case, not a second mechanism.** `min = max` is a Rule that performs a defined quantum or fails, so one form expresses both and there is no third spelling. Which one a Rule uses is a **modelling decision fixed at design time**, never a performance one — the same discipline §4 applies to the choice between the two Rule families, and for the same reason, since the two differ in observable behaviour:
 
@@ -332,11 +345,11 @@ A recorded shortfall can go stale if the waiter's own local Bins changed while i
 
 A bakery bakes the flour it has and a clinic treats who arrives; infrastructure **Upkeep** ([`adr/0035`](adr/0035-infrastructure-is-priced-by-what-it-consumes.md)) draws `construction cost ÷ effective life` per Day and must never draw more because the treasury happens to be full. Both cases already exist in the corpus, which is why greed cannot be a property of the engine.
 
-**Burstiness is therefore authored rather than incurred**, and that matters because of what actually costs under subscription. A chain is walked **once on entry into shortage** and a chronically starved District walks nothing — so the cost driver is how often a Bin crosses the supplied/short boundary, not chain depth and not how broken the city is. This sharpens `adr/0033`: under polling the simulator is most expensive when the city is most *broken*, and under subscription it is most expensive when the city is most *unstable*. A greedy Rule drains to the floor and crosses that boundary more often than a fixed quantum of the same throughput, so a designer choosing greed is choosing a visible behaviour and paying for it. **Slice 7 ships the counter** — Rule evaluations per Tick, and walked chain depth per §9 — and the tripwire is stated over measured cost rather than over a depth nobody can price yet.
+**Burstiness is therefore authored rather than incurred**, and that matters because of what actually costs under subscription. A chain is walked **once on entry into shortage** and a chronically starved District walks nothing — so the cost driver is how often a Bin crosses the supplied/short boundary, not chain depth and not how broken the city is. This sharpens `adr/0033`: under polling the simulator is most expensive when the city is most *broken*, and under subscription it is most expensive when the city is most *unstable*. A greedy Rule drains to the floor and crosses that boundary more often than a fixed quantum of the same throughput, so a designer choosing greed is choosing a visible behaviour and paying for it. **Slice 7 ships the counters** — Rule evaluations per Tick, and walked chain depth per §9 — and the tripwire is stated over measured cost rather than over a depth nobody can price yet. Both are task 9 and neither exists at the time of writing; the evaluation counter currently counts *due Rule Instances*, which does not see a chain link at all.
 
 There is a second way to specify `n`, and it is introduced below: a Rule declares **either `{min, max}` or `derived`, never both**.
 
-**Apply count may be derived rather than literal**, and this is what buys proportionality without an expression language. `amount` stays a fixed integer; `apply` may be computed from a **Readout** — a named read-only scalar such as gross income or composed fertility. *"15% of gross income"* is one unit of money applied `gross_income * 15 / 100` times — integer, deterministic, no floats, no parser. This is also why `CONTEXT` → Policy prefers percentages to flat amounts: **a percentage is an apply count; a flat amount is an amount.**
+**Apply count may be derived rather than literal**, and this is what buys proportionality without an expression language. `amount` stays a fixed integer; `apply` may be computed from a **Readout** — a named read-only scalar. **The declared set currently has one member, `occupancy`**, because a Readout is admitted when a Rule reads it (§4.1, below); the examples in this section describe the mechanism and are refused by name at load until the state they read exists. *"15% of gross income"* is one unit of money applied `gross_income * 15 / 100` times — integer, deterministic, no floats, no parser. This is also why `CONTEXT` → Policy prefers percentages to flat amounts: **a percentage is an apply count; a flat amount is an amount.**
 
 **A Rule declares either `{min, max}` or `derived`, never both**, and the discriminator is the Bin/Readout distinction arriving in the apply count:
 
@@ -372,6 +385,18 @@ bake_bread            (consume local flour)
 
 That chain is the entire "why is this bakery not producing?" diagnostic, expressed as data. `LEGIBLE CAUSE`
 
+**A link is not a Rule Instance of its own.** It has a `rate` like any Rule and is never armed on
+it: a link exists to rescue its head and is reached only by walking a chain that failed. Arming one
+would run it independently of the head it serves, and a reporting terminal armed that way would
+report at its own rate for ever — the polling defect, arriving through the Rule Instance table rather
+than through the walk. So a Building's armed Rules are its chain **heads**, and the links hang off
+them as data.
+
+**A rescue re-arms on the link's rate, not the head's.** The link is the Rule that actually ran, and
+the head did not fire this Tick — it does not bake, because a link *refills its Bin* rather than doing
+its work by another route. The head is then woken by the link's own deposit, through the wait list,
+which is §7's mechanism and not a retry.
+
 **A failed chain subscribes once, at its head.** Not once per link. The substitution this engine
 models is *source* substitution — `CONTEXT` → Rule's *can't source locally → import* — and
 [`04 §1`](04-economy-and-goods.md)'s Goods table is strictly linear, one input per Good, so every link
@@ -381,13 +406,19 @@ then a `LEGIBLE CAUSE` question and never a cost one, which is also what makes c
 load time checkable against `05 §4`: it is an optimisation exactly while the head Bin, the recorded
 shortfall and the wait-list insertion order are unchanged.
 
-**Well-formedness is a load-time law, and it is refused rather than warned.** Every link must either
-**output to** the head's blocking Bin or **declare** that it fills it — `fills = { scope, resource }`.
+**Well-formedness is a load-time law, and it is refused rather than warned.** Every link must
+**relieve** the head's blocking Bin — **outputting to** it, **drawing from** it where the failure was a
+full output, or **declaring** that it fills it later: `fills = { scope, resource }`.
 The declaration is what an asynchronous rescue needs: `request_shipment` dispatches a Shipment and
 outputs nothing this Tick, so without it the link is indistinguishable from one that rescues nothing.
 *Blocking* generalises over both failure modes — refill if the Bin was short, drain if it was a full
 output. A chain that cannot satisfy this is a malformed Ruleset and is rejected with a file, a line
-and a rule name (`adr/0015`), by the same load-time walk that rejects a cycle. **The `on_fail` graph
+and a rule name (`adr/0015`), by the same load-time walk that rejects a cycle. **A chain that does not
+end in a reporting terminal is refused by that walk too** — a chain which simply ends leaves the
+Building failed with nothing recorded, which is the *silent non-event* this section bans predicates
+for, so the terminal is a law and not a convention. The terminal check runs **before** the relieving
+check, because a chain missing its terminal fails both and *"no Bin is relieved"* would name the head
+for a defect in the tail. **The `on_fail` graph
 is static**, so both checks are Ruleset validation and neither is a runtime guard.
 
 **A reporting terminal is not a Rule that succeeds.** `mark_input_starved` records a reportable
@@ -433,7 +464,6 @@ on_fail = "draw_flour_from_pool"
 
 inputs = [
   { scope = "local", resource = "flour", amount = 6 },
-  { scope = "local", resource = "money", amount = 1 },
 ]
 outputs = [
   { scope = "local", resource = "bread",     amount = 1 },
@@ -443,7 +473,13 @@ outputs = [
 
 **Hot reload is a day-one requirement, not a convenience.** Citybound's simulation became unbalanceable because a warm rebuild took 60–120 seconds, and its author's own final devblog admits he had "been abandoning the simulation aspect for a while" in favour of the parts he could iterate on. The test we hold ourselves to: **changing a production ratio and seeing the effect takes seconds.**
 
-Note that money is drawn at `local` scope, not `global`. Every actor holds a balance (`adr/0024`), so a Business pays from its own Bin. This is not a detail: with money at `global`, every money-consuming Rule in the city would subscribe to a single Bin and every tax collection would wake ten thousand of them.
+**There is no money term, and the absence is the whole of [`adr/0050`](adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md) applied.** Every term here is `local`: the bakery's own flour becoming the bakery's own bread. No ownership boundary is crossed, so nothing is bought and there is nobody to pay. The money appears one rung down the fallback ladder — `draw_flour_from_pool` names `pool`, which *is* a boundary, so that Rule is a trade and its payment is implicit at the prevailing price. A designer never writes the money side of a purchase, because §4.1's third column has already said who owns what.
+
+Money is nonetheless **held** at `local` scope by every actor that has any — a tax, a wage, a subsidy is paid *from somebody's own Bin* (`adr/0024`). No actor's balance is ever `global`, and that is not a detail: with balances at `global`, every money-moving Rule in the city would subscribe to a single Bin and every tax collection would wake ten thousand of them.
+
+`global` names the **treasury**, and it appears only as the far end of an explicit **transfer** — `local` money out, `global` money in, balancing within the one atomic Rule. That is the shape the loader accepts and the only spelling available for a counterparty that is not a market: a `pool` term is a *purchase* under `adr/0050` and authors no payment at all, and a `local`→`local` money pair nets to zero and bounds nothing. So the treasury is a destination, never a balance-holder in the sense actors are. **No transfer executes today**, since `global` throws.
+
+> **This example previously drew one money and output none — it destroyed money, which `adr/0024` forbids, the Outside Connection being money's only sink.** Found while grilling slice 7 task 6, six slices after it was written; the loader now refuses the shape outright (refusal 4), so the document and the interpreter cannot disagree about it again. The finding worth keeping is *why* it survived: the transcription into the loader's own test fixture had silently dropped the money line, so the corpus's flagship example was never actually run. Recorded in [`plans/0011`](../plans/0011-rule-engine-bins-and-rules.md).
 
 Reload semantics: the Ruleset is swapped at a phase boundary. Bins whose resource no longer exists are dropped with a logged warning. Buildings whose kind no longer exists are marked derelict rather than deleted. **All wait lists are dropped and every Rule is woken with a stagger**, since a subscription taken under the old Ruleset may name a Bin the new one does not have — which also means a wait list is never cross-version state. Reload is recorded in the Input Log as a **transition carrying both Ruleset content hashes**, not merely as an event — a replay needs the Rules' content, not the news that they changed. Because the degradation above is a pure function of `(state, old Ruleset, new Ruleset)`, a logged transition replays exactly; see [`05 §7`](05-technical-architecture.md).
 
@@ -684,7 +720,7 @@ This converts cost from *number of entities* to *number of entities with somethi
 
 **The discipline that makes it work: entities do not poll, mutators wake observers.** When a District Pool's contents change, it wakes the Buildings registered as interested in that resource. When a road is edited, it wakes what depended on it. Every mutation site must know its observers. That is more code than polling, and it is the difference between a city that scales and one that doesn't. Factorio measured a 40× improvement on roboports from exactly this.
 
-**Consequence for rule design:** a Rule that fails should register a wake-up on the condition that would let it succeed, not retry on a timer. `bake_bread` failing on flour registers interest in flour arriving in the Pool.
+**Consequence for rule design:** a Rule that fails should register a wake-up on the condition that would let it succeed, not retry on a timer. `bake_bread` failing on flour registers interest in **its own local flour Bin**, which is the one that stopped it. Not the Pool: under [`adr/0045`](adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md) every link of a chain relieves the Bin the *head* failed on, so the Pool rung is a link that **refills local flour**, and its deposit is what wakes the head. One subscription therefore covers every rescue path, and chain depth costs no subscriptions at all.
 
 ---
 
