@@ -55,7 +55,8 @@ conversation it was waiting on has been had (`docs/adr/0048`), so this is a keyb
 
 **Where things live.** This file is status. `0003` owns the order code gets built in. `0002` owns
 the reasoning behind open questions. `docs/adr/` owns settled decisions. `CONTEXT.md` owns the
-vocabulary, and every term in it has exactly one meaning.
+vocabulary of the city, and [`PROCESS.md`](../PROCESS.md) owns the vocabulary of the project — what a
+slice is, what a spike is, what a gate is, and the two words that unfortunately mean two things each.
 
 ---
 
@@ -270,7 +271,7 @@ but the code track leads.
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | **code** | **Slice 7 — the Rule engine, Bins and Rules** | [`0003`](0003-build-plan.md) | **Its gate is cleared.** Session A ran and produced [`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md); **slice 8's gate cleared with it**, since both were the same ADR. Nothing in the argument track now stands in front of code. It still owes two counters — Rule evaluations per Tick, walked chain depth (`02 §9`) — and `0010`'s plan document does not exist yet |
+| **1** | **code** | **Slice 7 — the Rule engine, Bins and Rules** | [`0003`](0003-build-plan.md) | **Its gate is cleared.** Session A ran and produced [`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md); **slice 8's gate cleared with it**, since both were the same ADR. Nothing in the argument track now stands in front of code. **Planned in [`0011`](0011-rule-engine-bins-and-rules.md)**, which found one thing worth knowing before starting: **scheduled dispatch needs the Event Wheel, and that is slice 9.** Most of slice 7 does not — a subscription is woken by the mutator, not a timer — but the `rate` re-arm is, and one branch of that fork re-blocks the code column on session **C** |
 | **2** | spike | **S2 R6 — the two caches** | [`0010`](0010-s2-routing.md) | **Promoted, and its stakes went up.** R3 called a cache *"one of only two exits"*; [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) has now removed the third option nobody had noticed was in reserve, so **R6 is the only exit.** It owns the two numbers routing still has open: the cache's **key granularity** — a different number with a different error from the matrix's — and the **eviction policy**, which R5 measured as the bigger lever below the highest edit rates (28–31% of lookups missing on direct-mapped collisions before a road is touched). It inherits R3's stored path arena and a `HpaSearch` pristine-seeding defect R5.5 found. *Runs unattended; does not contend with row 1* |
 | **3** | spike | **S2 R5.6 — the Parking Shed**, then **R7 — the report** | [`0010`](0010-s2-routing.md) | The second Epoch consumer, and the last section of R5. It scales with **Buildings** and is a *neighbourhood* rather than a *path*, so per-Segment has no obvious meaning for it. **`CONTEXT.md` → Epoch must not be updated until it runs.** R7 then closes S2 and deletes the harness — and owes a re-capture of R0/R1/R3/R4, all of which carry the one-processor artefact |
 | **4** | argument | ~~**`adr/0015` — hot reload**~~ **DONE** | [`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md) | Ran, and cleared **two** slice gates rather than one. See *Done*. Nothing in this track is now blocking code, so the next session is chosen by what gets blocked next — not by what is available |

@@ -4,6 +4,8 @@ This file defines the vocabulary of the project. Every design document, every AD
 
 Terms are grouped by the layer they belong to. Where a term is borrowed from a prior game, that lineage is noted — it makes the reference material searchable.
 
+**This file is the vocabulary of the city. [`PROCESS.md`](PROCESS.md) is the vocabulary of the project** — slice, spike, gate, session, milestone. Nothing about how work is organised belongs here. Two words appear in both registers and mean different things in each, **Slice** and **Phase**; `PROCESS.md` says how to tell them apart, and the Tick-phase meaning of *Phase* is the one defined below.
+
 ---
 
 ## Guiding concepts

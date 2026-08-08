@@ -105,7 +105,7 @@ become three.
 | **5** | **The Tick, the Input Log and replay** | **1** | cleared | 3 | [`0008`](0008-tick-and-replay.md) |
 | **6** | **Map Layers** — **all ten tasks done.** Cell grid and the Cell/Chunk type split, the sparse double-buffered `LayerCellTable` — the project's first `Buffering.TwoCopies` — the separable integer convolution, the staggered schedule as a table, incremental re-diffusion proved bit-identical, the three real Layers, the named holes that throw, `layer_cells(aabb, layer)` and the end-of-run magnitude check. Produced `adr/0044`, which **settles owed decision 2 by measurement and finds it false** — and then got its own second half wrong by argument and withdrew it rather than amending it away | **3c** (Layers half) | cleared | 3 | [`0009`](0009-map-layers.md) |
 | — | *the Phase 1 gate closes here* | | | | |
-| **7** | Rule engine — Bins and Rules | **3a** | ✅ **cleared** by session A → `adr/0048` | — | stub |
+| **7** | Rule engine — Bins and Bin Rules | **3a** | ✅ **cleared** by session A → `adr/0048` | 3 | [`0011`](0011-rule-engine-bins-and-rules.md) |
 | **8** | Rule engine — hot reload | **3b** | ✅ **cleared** by session A → `adr/0048` | — | stub |
 | **9** | Event Wheel | **4** | 🔴 `02 §7`, `adr/0006` | — | stub |
 | **10** | Zone Rules | **3c** (Sweep half) | 🔴 depends on 7 | — | stub |
