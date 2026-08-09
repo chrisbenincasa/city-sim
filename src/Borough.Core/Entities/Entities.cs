@@ -44,3 +44,14 @@ public readonly struct Building;
 
 /// <summary>A parcel of land. See <see cref="Citizen"/> for why it is empty.</summary>
 public readonly struct Lot;
+
+/// <summary>
+/// One Household's place in the Unplaced Pool.
+/// </summary>
+/// <remarks>
+/// <b>The only row type here that is not a thing in the world.</b> A Lot, a Building and a Household
+/// are nouns a player would use; a row of this table is a <em>membership</em>, and it exists because
+/// the Pool needs to be drawn from in constant time and saved verbatim. Nothing ever holds a
+/// <c>Handle&lt;Unplaced&gt;</c> — see <see cref="UnplacedTable"/>, whose rows move between slots.
+/// </remarks>
+public readonly struct Unplaced;

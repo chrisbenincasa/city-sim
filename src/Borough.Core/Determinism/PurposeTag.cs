@@ -90,4 +90,24 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     ZoneRuleSample = 3,
+
+    /// <summary>
+    /// Which Household in the Unplaced Pool takes a newly built dwelling.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>02 §8</c> rule 5 applied where its own wording does not quite reach.</b> The rule is
+    /// stated over Phase 3's contested intents; this is a Sweep Rule acting in phase 6 and nothing is
+    /// contested, because the drain is blind (<c>adr/0054</c>) and any member would take the house.
+    /// The rule's <em>reason</em> reaches it exactly, though: a Pool that does not fully drain — which
+    /// is what a housing shortage <em>is</em> — would leave the same Households unhoused for the life
+    /// of the city under any fixed order, and the player would see a permanent underclass with no
+    /// cause behind it.
+    /// <para>
+    /// <b>Distinct from <see cref="ZoneRuleSample"/> even though one trigger uses both.</b> They
+    /// answer <em>which Lot do we look at</em> and <em>who moves in</em>; sharing a tag would tie the
+    /// two together, so the Households housed would correlate with the Lots sampled and a District
+    /// would appear to be favoured by the same families every time.
+    /// </para>
+    /// </remarks>
+    PoolDraw = 4,
 }

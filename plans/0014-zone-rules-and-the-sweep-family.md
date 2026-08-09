@@ -49,7 +49,13 @@ families for performance. Building the second family is what puts it at risk of 
   the first time. Found `02 §4.2`'s *rotate the scan start* **inapplicable rather than merely
   unnecessary**, and its stagger too: both are mitigations for a cost that grows with the population,
   which is a sweep's shape and not a sample's. `adr/0055` had inherited the error and is struck.
-- **Next: task 6**, the create predicate — and the first `[[zone_rule]]` in `rulesets/minimal.toml`.
+- **Task 6** — the create predicate, and the Unplaced Pool it reads, which task 8 was to have built.
+  The Pool is a **table** because a member is drawn by position and a derived list would come back in
+  a different order after a reload. **Found: the growth cycle cannot be entered from a standing
+  start** — a populated city has no vacant Lot and an empty Pool, so nothing this project can build
+  today exercises creation. Task 7 is what supplies both.
+- **Next: task 7**, demolish — which closes the cycle, and is the first thing that can put a
+  `[[zone_rule]]` in `rulesets/minimal.toml` and have it do something.
 
 ---
 
@@ -339,7 +345,7 @@ definition of the peak, which is the half that drifts silently.
 **No `[[zone_rule]]` in `rulesets/minimal.toml` yet.** A trigger that fires and changes nothing is
 content that does nothing; it earns its place in task 6, and the baselines move then. Twelve tests.
 
-### 6. Create — a Building on a vacant, permitted Lot somebody wants
+### 6. Create — a Building on a vacant, permitted Lot somebody wants — **done**
 
 `World.CreateBuilding` already gives a Building its kind's Bins and Rule Instances with an arming
 stagger, so this task is the *decision* and not the construction.
@@ -363,6 +369,53 @@ is not the beginning of one"*, and that sentence is why nobody has mistaken it f
 **Construction time is deliberately not built** (`02 §5.7`'s second pacing mechanism). A Building
 under construction occupies its Lot and produces nothing, which needs a state a Building does not
 have; it is Phase 2's, with the derelict flag slice 8 owes.
+
+**Task 8 came forward into this task, because the third term needed something to read.** The Unplaced
+Pool did not exist, so it is built here: `UnplacedTable`, `World.Unplace` and `World.Place`, plus the
+derived reverse index on the Household. Task 8 keeps the eviction *verb* and its Ruleset-facing half;
+what moved is the structure.
+
+**The Pool is a table and not a list threaded through the Households, and save/reload is the reason.**
+The cheaper shape is an intrusive list rebuilt from *which Households have no dwelling* — no new table
+and no new saved state. But a member is chosen by **position**, and a rebuilt list is in slot order
+while a live one is in arrival order, so the same save would rehouse a different Household after a
+reload. That is a divergence only the save/reload test could see, and not having it is cheaper than
+detecting it.
+
+**Live Pool rows are dense, which is bought and not given.** `Leave` moves the last member into the
+vacated position and frees the *last* slot; the free list is LIFO, so the slot freed is the one the
+next `Join` takes back and the live range never holes. Freeing the middle slot instead would let a
+draw over the count name a dead row — so a Lot that passed every term would silently not be built on,
+at a rate set by how much the Pool had churned. **That failure reads as a city that grows slowly**,
+which is the family `ZoneSampleTests` was written against on the sampling side. An invariant asserts
+density rather than this paragraph being trusted.
+
+**Who moves in is drawn, not taken from the front.** `02 §8` rule 5's wording covers Phase 3's
+contested intents and this is neither, since the drain is blind — but its *reason* reaches exactly: a
+Pool that never fully drains is what a housing shortage **is**, and under any fixed order the same
+Households would stay unhoused for the life of the city with nothing to explain why.
+`PurposeTag.PoolDraw` is the fourth tag, keyed on the **Lot's monotonic id** rather than its slot,
+per the same rule's footnote about recycled indices.
+
+**Two invariants were qualified rather than one, and the suite found the second.** `adr/0054`
+predicted `HouseholdHomeExists`; it did not predict `EveryoneIsInExactlyOnePlace`, whose occupant
+count reports any Household in no Building's list — which is every member of the Pool. Both are now
+two-sided: a Household housed *and* in the Pool is as much a violation as one that is neither, and
+the second is the corruption that would let somebody be housed twice.
+
+**The finding that outranks the code: neither task 6 nor task 7 can run in a real world alone.**
+`SyntheticCity` creates exactly one Lot per Building and houses every Household, so a populated city
+has **no vacant Lot and an empty Pool** — two of the three terms are false everywhere, permanently.
+What makes vacant land is the Lot subdivider, which is milestone 5a's and has no Phase 1 milestone
+(`plans/0012`); what makes a Household seek a home is demolition, which is the next task. **The growth
+cycle closes on itself and cannot be entered from a standing start.** That is now a test on
+`Populate` rather than a note, so if it ever stops being true the golden trace needs rereading.
+
+Consequently **no `[[zone_rule]]` goes into `rulesets/minimal.toml` here either** — one would fire on
+schedule and provably build nothing. The baselines moved anyway, and only because the world gained a
+ninth table; the fold is unchanged and `World.HashSeed` is untouched.
+
+Twenty tests: nine on the Pool, eleven on the predicate, each of the three terms removed on its own.
 
 ### 7. Demolish — and failure pressure is a duration, not a tally
 

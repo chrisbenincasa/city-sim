@@ -206,4 +206,47 @@ public enum Invariant
     /// at the write site would leave behind.
     /// </remarks>
     LotHoldsExactlyOneBuilding = 19,
+
+    /// <summary>
+    /// A Household entering the Unplaced Pool was living somewhere.
+    /// </summary>
+    /// <remarks>
+    /// The <c>O(1)</c> write-site guard on the Pool's one corruption: unplacing a Household already
+    /// in the Pool gives it a second membership row, and a draw over the Pool would then favour it in
+    /// proportion to how often that happened. Nothing downstream could tell that apart from luck.
+    /// </remarks>
+    OnlyAHousedHouseholdIsUnplaced = 20,
+
+    /// <summary>
+    /// <c>adr/0054</c>: a Household is housed <b>or</b> is in the Unplaced Pool.
+    /// </summary>
+    /// <remarks>
+    /// <b>The qualified form of <see cref="HouseholdHomeExists"/>, and the qualification is the
+    /// point.</b> A Household with no dwelling used to be a violation outright; now it is legal
+    /// precisely when the Pool holds it. Deleting the check instead would have removed the only thing
+    /// that catches a genuinely orphaned Household — one the city has neither housed nor is looking
+    /// for a home for, which is a row nothing will ever touch again.
+    /// </remarks>
+    HouseholdIsHousedOrInThePool = 21,
+
+    /// <summary>
+    /// Every member of the Unplaced Pool is a live Household with no dwelling, named once.
+    /// </summary>
+    /// <remarks>
+    /// The Pool's half of the bijection above. It catches a membership left behind after a Household
+    /// was housed by some path that did not go through <see cref="World.Place"/>, and a Household
+    /// listed twice — both of which bias the draw silently rather than failing.
+    /// </remarks>
+    ThePoolNamesOnlyUnhousedHouseholds = 22,
+
+    /// <summary>
+    /// The Unplaced Pool's live rows are dense: every slot below its count is live.
+    /// </summary>
+    /// <remarks>
+    /// <b>The property that makes an unbiased draw <c>O(1)</c>, asserted rather than argued.</b>
+    /// <see cref="UnplacedTable.Leave"/> keeps it by moving the last member into the vacated position;
+    /// if it ever stopped, a draw over the count would name a dead slot and a Lot that qualified
+    /// would silently not be built on — which reads as a city that grows slowly and not as a defect.
+    /// </remarks>
+    ThePoolIsDense = 23,
 }

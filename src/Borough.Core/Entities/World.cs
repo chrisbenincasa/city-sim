@@ -106,6 +106,10 @@ public sealed class World
         Citizens = new CitizenTable(citizens, Households, Buildings);
         Layers = new MapLayers(layers);
 
+        // Sized for a city in trouble rather than a healthy one: the Pool is empty when everybody is
+        // housed, and the table's job is to absorb a District emptying without reallocating mid-Tick.
+        UnplacedPool = new UnplacedTable(PerThousand(citizens, 36), Households);
+
         // ~3 Bins and ~3 Rules on each of ~150 Buildings per 1,000 Citizens. Both multipliers are
         // capacity hints rather than bounds — the tables grow — but they are numbers nobody has
         // justified, so plans/0002 carries them as unratified until a real Ruleset supplies the shape.
@@ -118,7 +122,7 @@ public sealed class World
         // stated here and moving it is a re-baseline rather than a tidy-up.
         _tables = [
             Lots.Rows, Buildings.Rows, Households.Rows, Citizens.Rows, Layers.Cells.Rows,
-            Bins.Rows, RuleInstances.Rows, Wheel.Buckets.Rows,
+            Bins.Rows, RuleInstances.Rows, Wheel.Buckets.Rows, UnplacedPool.Rows,
         ];
 
         Invariants = new InvariantRegistry();
@@ -148,6 +152,15 @@ public sealed class World
 
     /// <summary>Slice 7's minimal Event Wheel: a bucket per Tick, an arming, and a drain.</summary>
     public EventWheel Wheel { get; }
+
+    /// <summary>The Households seeking housing, and the only demand signal this design has.</summary>
+    /// <remarks>
+    /// <b>Named <c>UnplacedPool</c> in full because <c>CONTEXT</c> holds two Pools and they are
+    /// unrelated.</b> A District Pool is where Goods sit; the Unplaced Pool is where people wait.
+    /// Shortening either to <c>Pool</c> in code is how the two would eventually be confused by
+    /// somebody reading one call site.
+    /// </remarks>
+    public UnplacedTable UnplacedPool { get; }
 
     /// <summary>The Bin Rules this world runs. Ids and integers; no string reaches here.</summary>
     /// <remarks>
@@ -213,6 +226,73 @@ public sealed class World
         Occupants.InsertOrdered(buildingSlot, slot);
 
         return handle;
+    }
+
+    /// <summary>
+    /// Moves a housed Household into the Unplaced Pool, keeping its Money and Savings.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Eviction is free, and that is <c>adr/0054</c>'s finding rather than a convenience.</b> This
+    /// touches the dwelling handle and the occupant list. It does not touch <c>Money</c> or
+    /// <c>Savings</c>, so <em>"a Household keeps what it owns when the city stops housing it"</em>
+    /// needed no code — it is what not writing to those columns already means, and it is what keeps
+    /// demolition from becoming a hole in <c>adr/0024</c>'s conserved Money.
+    /// </para>
+    /// <para>
+    /// <b>Only a housed Household can be unplaced, and the check is why it is <c>O(1)</c>.</b>
+    /// Unplacing one already in the Pool would give it a second membership row, and the draw would
+    /// then favour it in proportion to how many times it had been unplaced. Detecting that afterwards
+    /// costs a walk of the Pool; refusing it here costs the handle resolve already being done.
+    /// </para>
+    /// </remarks>
+    /// <param name="household">The Household to evict.</param>
+    public void Unplace(Handle<Household> household)
+    {
+        int slot = Households.Rows.Resolve(household);
+
+        if (!Buildings.Rows.TryResolve(Households.Dwelling[slot], out int buildingSlot))
+        {
+            Invariants.Report(Invariant.OnlyAHousedHouseholdIsUnplaced, slot);
+            return;
+        }
+
+        Occupants.Remove(buildingSlot, slot);
+        Households.Dwelling[slot] = default;
+
+        UnplacedPool.Join(Households, household);
+    }
+
+    /// <summary>
+    /// Takes the Household at <paramref name="position"/> out of the Unplaced Pool and houses it.
+    /// </summary>
+    /// <remarks>
+    /// <b>By position rather than by handle, because the caller drew the position.</b> A Zone Rule
+    /// picks a member with a counter-based draw over <see cref="UnplacedTable.Count"/> — never the
+    /// front of the queue and never the lowest slot, since <c>02 §8</c> rule 5's argument applies
+    /// directly: a Pool that does not fully drain would otherwise leave the same Households unhoused
+    /// for the life of the city, and no player could see why.
+    /// </remarks>
+    /// <param name="position">Which member, in <c>[0, Count)</c>.</param>
+    /// <param name="dwelling">The Building they move into.</param>
+    /// <returns>The Household that was housed.</returns>
+    public Handle<Household> Place(int position, Handle<Building> dwelling)
+    {
+        int buildingSlot = Buildings.Rows.Resolve(dwelling);
+        Handle<Household> household = UnplacedPool.Leave(Households, position);
+        int slot = Households.Rows.Resolve(household);
+
+        Households.Dwelling[slot] = dwelling;
+
+        Invariants.Require(
+            !Lists(Occupants, buildingSlot, slot),
+            Invariant.HouseholdIsNotAlreadyInThisBuilding,
+            slot,
+            buildingSlot);
+
+        Occupants.InsertOrdered(buildingSlot, slot);
+
+        return household;
     }
 
     /// <summary>Adds a Citizen to a Household, linking it into the Household's member list.</summary>
@@ -316,6 +396,7 @@ public sealed class World
         Buildings.RuleHead.Span.Clear();
         Buildings.RuleTail.Span.Clear();
         Households.DwellingNext.Span.Clear();
+        Households.PoolSlot.Span.Clear();
         Households.MemberHead.Span.Clear();
         Households.MemberTail.Span.Clear();
         Citizens.MemberNext.Span.Clear();
@@ -332,6 +413,19 @@ public sealed class World
                 && Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
             {
                 Lots.Occupy(lotSlot, slot);
+            }
+        }
+
+        // The Pool's reverse index, and the one place where a derived structure is rebuilt from a
+        // saved *table* rather than from a saved column. The Pool is the saved side because a member
+        // is drawn by position, and a position that changed across a reload would rehouse a different
+        // Household from the same save.
+        for (int slot = 0; slot < UnplacedPool.Rows.SlotCount; slot++)
+        {
+            if (UnplacedPool.Rows.IsLive(slot)
+                && Households.Rows.TryResolve(UnplacedPool.Household[slot], out int householdSlot))
+            {
+                Households.EnterPool(householdSlot, slot);
             }
         }
 

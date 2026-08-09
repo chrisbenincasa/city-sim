@@ -122,13 +122,49 @@ public sealed class InvariantTierTests
 
     // ---- The staggered tier ----
 
+    /// <summary>
+    /// A Household with no dwelling and no place in the Pool is still a violation.
+    /// </summary>
+    /// <remarks>
+    /// <c>adr/0054</c> qualified this claim rather than deleting it, and this is the half that
+    /// survived: <em>housed or looking</em>. A Household that is neither is a row nothing will ever
+    /// touch again, and it is the only thing the unqualified check was ever catching.
+    /// </remarks>
     [Fact]
-    public void A_household_whose_home_is_gone_is_caught()
+    public void A_household_that_is_neither_housed_nor_in_the_pool_is_caught()
     {
         World world = Built();
         world.Buildings.Rows.Free(world.Buildings.Rows.At(0));
 
-        Assert.Equal(Invariant.HouseholdHomeExists, Caught(world));
+        Assert.Equal(Invariant.HouseholdIsHousedOrInThePool, Caught(world));
+    }
+
+    /// <summary>The other side of the exclusive-or, which a one-directional check would miss.</summary>
+    /// <remarks>
+    /// A Household both housed and in the Pool would be drawn for a second dwelling and would then
+    /// occupy two Buildings — which the occupant lists would report as perfectly consistent, because
+    /// each list is walked on its own.
+    /// </remarks>
+    [Fact]
+    public void A_household_both_housed_and_in_the_pool_is_caught()
+    {
+        World world = Built();
+
+        world.UnplacedPool.Join(world.Households, world.Households.Rows.At(0));
+
+        Assert.Equal(Invariant.HouseholdIsHousedOrInThePool, Caught(world));
+    }
+
+    /// <summary>A Household in the Pool is legal, which is the whole point of the qualification.</summary>
+    [Fact]
+    public void A_household_in_the_pool_is_not_a_violation()
+    {
+        World world = Built();
+
+        world.Unplace(world.Households.Rows.At(0));
+
+        Sweep(world);
+        world.Invariants.RunEndOfRun(world, default);
     }
 
     [Fact]

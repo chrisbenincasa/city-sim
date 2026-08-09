@@ -3,6 +3,7 @@ namespace Borough.Core.Rules;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
+using Borough.Core.Tables;
 
 /// <summary>
 /// What the Zone Rules did since the last reading: how often they triggered, and what their samples
@@ -25,7 +26,9 @@ using Borough.Core.Quantities;
 /// <param name="Triggers">Zone Rule firings — one per Rule per Tick its interval divides.</param>
 /// <param name="Vacant">Sampled Lots with no Building on them.</param>
 /// <param name="Occupied">Sampled Lots with one.</param>
-public readonly record struct ZoneActivity(RuleFlow Triggers, RuleFlow Vacant, RuleFlow Occupied)
+/// <param name="Created">Buildings built — the subset of <paramref name="Vacant"/> that qualified.</param>
+public readonly record struct ZoneActivity(
+    RuleFlow Triggers, RuleFlow Vacant, RuleFlow Occupied, RuleFlow Created)
 {
     /// <summary>Lots evaluated over the interval, which is what a trigger is charged for.</summary>
     /// <remarks>
@@ -86,10 +89,12 @@ public sealed class ZoneRuleEngine
     private int _tickTriggers;
     private int _tickVacant;
     private int _tickOccupied;
+    private int _tickCreated;
 
     private RuleFlow _triggerFlow;
     private RuleFlow _vacantFlow;
     private RuleFlow _occupiedFlow;
+    private RuleFlow _createdFlow;
 
     /// <param name="world">The tables this sweeps, and the Ruleset it sweeps under. Not copied.</param>
     /// <param name="key">The world seed, as the sample's first coordinate.</param>
@@ -110,11 +115,13 @@ public sealed class ZoneRuleEngine
     /// </remarks>
     public ZoneActivity Drain()
     {
-        var activity = new ZoneActivity(_triggerFlow, _vacantFlow, _occupiedFlow);
+        var activity = new ZoneActivity(
+            _triggerFlow, _vacantFlow, _occupiedFlow, _createdFlow);
 
         _triggerFlow = default;
         _vacantFlow = default;
         _occupiedFlow = default;
+        _createdFlow = default;
 
         return activity;
     }
@@ -167,13 +174,12 @@ public sealed class ZoneRuleEngine
 
             for (int i = 0; i < drawn; i++)
             {
-                // The fork the rest of the slice hangs off. A vacant Lot is a candidate for creation
-                // and an occupied one is a Building whose failure pressure is read; both predicates
-                // are still to come, so what a trigger costs today is exactly what it will cost in
-                // structure — the sample — and nothing else.
+                // The fork the rest of the slice hangs off. A vacant Lot is a candidate for creation;
+                // an occupied one is a Building whose failure pressure is read, which is task 7's.
                 if (_world.Lots.IsVacant(into[i]))
                 {
                     _tickVacant++;
+                    Create(definition, into[i], tick);
                 }
                 else
                 {
@@ -183,6 +189,57 @@ public sealed class ZoneRuleEngine
         }
 
         CloseTick();
+    }
+
+    /// <summary>
+    /// The create predicate: <b>vacant AND permitted AND somebody in the Pool would take it</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Three terms, and the third is a documented vacancy reason rather than a stand-in for the
+    /// pro-forma.</b> <c>02 §5.6</c>'s developer test needs prices, capital and a bid contest, none of
+    /// which exist. But <c>CONTEXT</c> → Frontage lists the four answers to <em>why is this Lot
+    /// vacant</em>, and <em>"no Household in the Unplaced Pool that would accept it"</em> is one of
+    /// them — <b>beside</b> <em>no capital</em>, not downstream of it. So consulting the Pool is the
+    /// design's own reason, and what is missing is missing rather than approximated.
+    /// </para>
+    /// <para>
+    /// <b>The permission bit is a term here and nowhere else</b> (<c>adr/0055</c>). Filtering the
+    /// sample by it instead would let a player repaint a Lot and put the Building on it beyond every
+    /// Rule's reach, which is immortality by paintbrush.
+    /// </para>
+    /// <para>
+    /// <b>The Pool is read as <em>non-empty</em> and drained blind</b> (<c>adr/0054</c>). There is no
+    /// acceptance test, because acceptance needs rent, a commute and a tolerance; a Household that
+    /// would refuse this dwelling is a thing this build cannot express, and pretending otherwise would
+    /// put a number in a file that nothing had measured.
+    /// </para>
+    /// <para>
+    /// <b>Construction time is deliberately absent</b> (<c>02 §5.7</c>'s second pacing mechanism). A
+    /// Building under construction occupies its Lot and produces nothing, which needs a state a
+    /// Building does not have. Growth is therefore instantaneous, and the only thing pacing it is the
+    /// trigger interval and the sample.
+    /// </para>
+    /// </remarks>
+    private void Create(ZoneRuleDefinition definition, int lot, Ticks tick)
+    {
+        if ((_world.Lots.Zone[lot] & definition.Admits) == 0 || _world.UnplacedPool.Count == 0)
+        {
+            return;
+        }
+
+        Handle<Building> building = _world.CreateBuilding(
+            _world.Lots.Rows.At(lot), definition.Kind, tick, _key);
+
+        // Keyed on the Lot's monotonic id rather than its slot. 02 §8 rule 5's own footnote: a slot
+        // is recycled when a row is freed, so drawing against one would make demolishing an unrelated
+        // Lot change who moves in downtown.
+        ulong value = Randomness.Draw(
+            _key, _world.Lots.Rows.IdAt(lot), tick, PurposeTag.PoolDraw);
+
+        _world.Place((int)(value % (ulong)(uint)_world.UnplacedPool.Count), building);
+
+        _tickCreated++;
     }
 
     /// <summary>A span of at least <paramref name="size"/>, growing the buffer once if it must.</summary>
@@ -208,9 +265,11 @@ public sealed class ZoneRuleEngine
         _triggerFlow = _triggerFlow.Fold(_tickTriggers);
         _vacantFlow = _vacantFlow.Fold(_tickVacant);
         _occupiedFlow = _occupiedFlow.Fold(_tickOccupied);
+        _createdFlow = _createdFlow.Fold(_tickCreated);
 
         _tickTriggers = 0;
         _tickVacant = 0;
         _tickOccupied = 0;
+        _tickCreated = 0;
     }
 }

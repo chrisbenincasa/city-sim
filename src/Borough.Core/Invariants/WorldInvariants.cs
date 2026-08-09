@@ -41,6 +41,70 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, LayerMagnitudesAreBounded);
         invariants.Register(InvariantTier.EndOfRun, RuleInstancesAreQueuedExactlyOnce);
         invariants.Register(InvariantTier.EndOfRun, LotsAndBuildingsAgreeWhoIsWhere);
+        invariants.Register(InvariantTier.EndOfRun, ThePoolIsDenseAndAgreesWithTheHouseholds);
+    }
+
+    /// <summary>
+    /// The Unplaced Pool is dense, and every membership in it is a live unhoused Household.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Density is the half that would fail silently and expensively.</b> A dead slot inside
+    /// <c>[0, Count)</c> makes a draw over the count name nothing, so a Lot that passed every term of
+    /// the create predicate is not built on — at a rate set by how much the Pool has churned. The city
+    /// then grows more slowly than its Ruleset says, with no error anywhere, which is precisely the
+    /// shape <c>ZoneSampleTests</c>' coverage check was written against on the sampling side.
+    /// </para>
+    /// <para>
+    /// <b>The agreement half is the bijection, both ways.</b> Pool to Household catches a membership
+    /// left behind after somebody housed a Household without going through <see cref="World.Place"/>;
+    /// Household to Pool catches a reverse index pointing at a position that has since been swapped
+    /// or freed. Either one makes the draw favour somebody, and a favoured Household is indisting-
+    /// uishable from luck.
+    /// </para>
+    /// </remarks>
+    internal static void ThePoolIsDenseAndAgreesWithTheHouseholds(
+        World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        UnplacedTable pool = world.UnplacedPool;
+        HouseholdTable households = world.Households;
+
+        for (int slot = 0; slot < pool.Rows.SlotCount; slot++)
+        {
+            // Live below the count, dead at or above it. Stated as one claim over every slot rather
+            // than as a live-count comparison, because two compensating holes sum correctly.
+            if (pool.Rows.IsLive(slot) != (slot < pool.Count))
+            {
+                report.Report(Invariant.ThePoolIsDense, slot);
+                continue;
+            }
+
+            if (!pool.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (!households.Rows.TryResolve(pool.Household[slot], out int householdSlot))
+            {
+                report.Report(Invariant.ThePoolNamesOnlyUnhousedHouseholds, slot);
+                continue;
+            }
+
+            report.Require(
+                households.PoolPosition(householdSlot) == slot,
+                Invariant.ThePoolNamesOnlyUnhousedHouseholds,
+                slot,
+                householdSlot);
+
+            report.Require(
+                !world.Buildings.Rows.TryResolve(households.Dwelling[householdSlot], out _),
+                Invariant.ThePoolNamesOnlyUnhousedHouseholds,
+                slot,
+                householdSlot);
+        }
     }
 
     /// <summary>
@@ -189,9 +253,18 @@ public static class WorldInvariants
 
             if (!world.Buildings.Rows.TryResolve(households.Dwelling[slot], out int building))
             {
-                report.Report(Invariant.HouseholdHomeExists, slot);
+                // adr/0054 qualified this rather than deleting it: no dwelling is legal precisely
+                // when the Pool holds them. A Household that is neither housed nor looking is still
+                // a row nothing will ever touch again, which is what the check is for.
+                report.Require(
+                    households.IsUnplaced(slot), Invariant.HouseholdIsHousedOrInThePool, slot);
                 continue;
             }
+
+            // And the other side of the exclusive-or, which is the half a one-directional check
+            // would miss: a Household housed *and* in the Pool would be drawn for a second dwelling.
+            report.Require(
+                !households.IsUnplaced(slot), Invariant.HouseholdIsHousedOrInThePool, slot);
 
             report.Require(
                 Lists(occupants, building, slot),
@@ -276,12 +349,18 @@ public static class WorldInvariants
             Invariant.CitizenIsInExactlyOneHousehold,
             report);
 
+        // adr/0054's second consequence, and the suite found it rather than the plan: a Household in
+        // the Unplaced Pool is in *no* Building's occupant list, so the unqualified count reported it
+        // the instant the first eviction landed. The exemption is two-sided at no extra cost — an
+        // unplaced Household that is still listed somewhere reads as one appearance against an
+        // expected zero, which is the corruption that would let it be housed twice.
         Count(
             world.Occupants,
             world.Buildings.Rows,
             world.Households.Rows,
             Invariant.HouseholdIsInExactlyOneBuilding,
-            report);
+            report,
+            absentIsLegal: world.Households.IsUnplaced);
     }
 
     /// <summary>
@@ -425,8 +504,17 @@ public static class WorldInvariants
     /// <summary>
     /// Walks every list once, counting how many times each element appears.
     /// </summary>
+    /// <param name="absentIsLegal">
+    /// Elements that belong in no list at all. <b>An exemption rather than a skip</b>: an exempt
+    /// element is expected to appear exactly zero times, so being listed anywhere still reports.
+    /// </param>
     private static void Count(
-        IndexList list, Rows owners, Rows elements, Invariant invariant, InvariantRegistry report)
+        IndexList list,
+        Rows owners,
+        Rows elements,
+        Invariant invariant,
+        InvariantRegistry report,
+        Func<int, bool>? absentIsLegal = null)
     {
         var seen = new int[elements.SlotCount];
 
@@ -456,7 +544,9 @@ public static class WorldInvariants
 
         for (int element = 0; element < seen.Length; element++)
         {
-            if (elements.IsLive(element) && seen[element] != 1)
+            int expected = absentIsLegal is not null && absentIsLegal(element) ? 0 : 1;
+
+            if (elements.IsLive(element) && seen[element] != expected)
             {
                 report.Report(invariant, element, seen[element]);
             }

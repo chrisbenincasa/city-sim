@@ -661,6 +661,10 @@ Tighter clamping and fewer iterations than UrbanSim's defaults (±25%, five iter
 
 **Construction trigger: local price × buildable capacity versus cost.** For each Lot and each form allowed by zoning, estimate revenue from the current price surface and cost from construction plus land, and build when return clears a hurdle rate.
 
+> **None of that exists, and what stands in for it is a documented vacancy reason rather than an approximation of it.** There is no price surface, no capital and no bid, so slice 10's create predicate is **vacant AND permitted AND a Household in the Unplaced Pool would take it**. The third term is not a weakened pro-forma: `CONTEXT` → Frontage lists the four answers to *why is this Lot vacant*, and *"no Household in the Unplaced Pool that would accept it"* is one of them, **beside** *no capital* rather than downstream of it. What is missing is therefore missing rather than faked, and the Pool is also what makes growth self-limiting — creation drains the signal that authorised it, so no Ruleset can build past its demand however wide its sample.
+>
+> **Which Household moves in is drawn, never queued.** The drain is blind ([`adr/0054`](adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md)) because acceptance needs rent, a commute and a tolerance, so any member would take the dwelling and nothing is contested — but §8 rule 5's *reason* still binds. A Pool that never fully drains is what a housing shortage **is**, and under any fixed order the same Households would remain unhoused for the life of the city with nothing in any readout to explain why.
+
 So the full causal chain is:
 
 > Households can't find housing → they stay in the pool → demand/supply in that submarket exceeds 1 → prices rise → the pro-forma flips positive → a developer builds → supply appears → prices relax.

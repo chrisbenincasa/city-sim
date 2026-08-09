@@ -42,6 +42,40 @@ public sealed class PopulateCommandTests
     }
 
     /// <summary>
+    /// The populated city has nowhere to build and nobody to build for.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Found while building slice 10's create predicate, and it is why the Zone Rule cannot be
+    /// exercised by any world this project can currently produce.</b> <c>SyntheticCity</c> creates
+    /// exactly one Lot per Building and houses every Household, so the Lot table has no vacancy and
+    /// the Unplaced Pool has no member — two of the create predicate's three terms are false
+    /// everywhere, permanently.
+    /// </para>
+    /// <para>
+    /// <b>Recorded as a test rather than a note because it is the shape of the fixture and not a
+    /// defect in it.</b> What makes vacant land is the Lot subdivider, which is milestone 5a's and has
+    /// no milestone in Phase 1 (<c>plans/0012</c>); what makes a Household seek a home is demolition,
+    /// which is slice 10's own next task. So the growth cycle closes on itself and cannot be entered
+    /// from a standing start — and if this assertion ever fails, the reason the golden session builds
+    /// nothing has changed and that trace needs rereading.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_populated_city_has_no_vacant_lot_and_an_empty_pool()
+    {
+        World world = Run(Log()).World;
+
+        Assert.Equal(world.Buildings.Rows.LiveCount, world.Lots.Rows.LiveCount);
+        Assert.Equal(0, world.UnplacedPool.Count);
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            Assert.False(world.Lots.Rows.IsLive(slot) && world.Lots.IsVacant(slot));
+        }
+    }
+
+    /// <summary>
     /// The claim the whole shape rests on: a log carrying a Populate reproduces its city exactly.
     /// </summary>
     [Fact]
