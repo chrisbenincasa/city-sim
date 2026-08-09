@@ -469,7 +469,7 @@ and what is left.
       no rotation at all. That is what `adr/0012`'s owed amendment now has to carry.
       **`CONTEXT.md` → Epoch is unblocked**, and `05 §3`'s *invalidated by the Road Graph Epoch* is
       owed the correction `CONTEXT.md` already took
-- [ ] **R6 — the two caches. STARTED; R6.0 is done.** Promoted to load-bearing, and now **the only
+- [ ] **R6 — the two caches. R6.0–R6.3 DONE and the round now has a verdict (written by R7); the invalidation half cannot run.** Promoted to load-bearing, and now **the only
       exit**: `adr/0047` removed the option nobody had noticed was in reserve. Owns the cache's **key
       granularity** and its **eviction policy**, which R5 measured as the bigger lever below the
       highest edit rates. **The gate on session M is narrower than this list read it as** — `adr/0047`
@@ -529,8 +529,25 @@ and what is left.
         Habit is a lookup; `plans/0013`'s routing row counts the same wrong event, filed in
         [`0012`](0012-corpus-audit.md). Three levers, one of them unproposed: **let a diversion rejoin
         the Habit Route without re-searching.** Session **M**'s, and now the first thing M answers
-- [ ] **R7 — the report, the verdict, and deleting the harness.** Owes a **re-capture of R0, R1, R3
-      and R4**, all of which carry the one-processor artefact
+- [ ] **R7 — the report and the verdict. IN PROGRESS, and it cannot delete the harness.** The
+      re-capture of R0/R0d/R1/R3/R4 is done for **pinning** and moved one conclusion — R3's break-even
+      **85 → 112**, and the 8-versus-16 query advantage **1.31× → 1.61×**, so routes alone would now
+      pick 16 and **R5.6's shed is what keeps the answer at 8**. **The `performance` half is still
+      owed and needs root**: `sudo spikes/S2.Routing/tools/routing-run.sh --graph --denominator
+      --matrix --traffic --cluster --vector`, twice.
+      **The tripwire is now scored — all seven rows, which no document had ever done.** Three fire,
+      three do not, and **one cannot be scored**: row 5's *the route cache grows at steady state* was
+      **unrepresentable in every harness the spike built**, each having made its cache fixed-capacity
+      by construction, so it was never testable rather than tested and found safe. And **two of the
+      three that fired named something other than what they caught** — row 3 says *either router* and
+      no router failed it, the Epoch's granularity did; row 1's *"with matrix refresh amortised"* was
+      never computed at all. **So of seven rows written before the numbers, only 2, 6 and 7 were both
+      testable as written and tested as written.** The repair recorded is to **score each row at the
+      first round that touches it**, not at the report, while a bad row can still be rewritten.
+      **Still owed:** the `performance` capture; R2's 474.47 ms reconciliation, which the re-capture
+      did *not* close since 217.36 ms reproduces, so R2's figure is the suspect; and the decisions
+      ledger restated as what S2 hands on. **Deleting the harness is R7's last act and is not owed
+      yet**, because R6 cannot finish
 
 ### Parallel track — Godot (Track B, no gate)
 
@@ -580,7 +597,13 @@ diagnose.
       support for the first: `§3.3` confessed a *lag* and compensated for it, but the defect is that
       the smear reports the jam **in the wrong place**, which no cadence and no second trigger fixes
 - [ ] **`adr/0012` amendment** — the route cache's **eviction policy** *and* its **key** (`adr/0012`'s
-      *"keyed by origin-destination pair"* is ambiguous between nodes² and Buildings²)
+      *"keyed by origin-destination pair"* is ambiguous between nodes² and Buildings²). **The content
+      now exists and only the typing is owed**, from R6's verdict: the key is **nearest-node repaired
+      by one comparison at insert** (`node-a` costs exactly 2×, and the number to quote is the
+      **absolute** 0.86–0.94 Ticks, flat across the O-D family, never the percentage); eviction is
+      **fixed capacity, 4-way LRU, high-bit index** — conflict 20.0% → 3.8% against a 0.0% bound, with
+      the index a **robustness** fix that is level-or-worse on random keys and worth 31.2% → 21.7% on a
+      concentrated pool; and from R5.6, that **the two consumers do not want the same mechanism**
 - [ ] **`adr/0041` amendment** — owed by S2 R2, on evidence. *"Searched per Trip or shared per
       origin-destination pair is a performance axis with **no correctness content**"* is wrong on two
       counts: a shared route costs **36.01%** mean detour and a next-hop table **18.52%**, and *every*

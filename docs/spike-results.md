@@ -1579,13 +1579,23 @@ harness is scheduled for deletion in task 11, and the raw captures are what surv
 
 ## S2 — the routing ceiling
 
-**Tasks R0 and R1 of [`plans/0010`](../plans/0010-s2-routing.md) are done.** R0: the synthetic Road
-Graph, the road density a 268 km² city implies, the uncached point-to-point denominator, and the
-heuristic ladder's verdict on admissibility. **R1: the travel-time matrix, and it carries the choice
-loop** — which is the finding R4 was made conditional on. R2 is next.
+**R0 through R8 of [`plans/0010`](../plans/0010-s2-routing.md) are done, less R6's invalidation half.**
+R0: the synthetic Road Graph, the road density a 268 km² city implies, the uncached point-to-point
+denominator, and the heuristic ladder's verdict on admissibility. R1: the travel-time matrix, **and it
+carries the choice loop** — the finding R4 was made conditional on. R2: the path source, which revived
+the task it was meant to retire. R3: HPA\* and the cluster it owns. R4: distance-vector, out on cost.
+R5: the edit storm, the Parking Shed, and the TTL rotation. R6.0–R6.3: the key, the eviction policy,
+and the two consumers multiplied. R8: the congestion loop and `adr/0046`'s three layers.
 
-Raw captures in `spikes/S2.Routing/results/`; both sections are owed a rewrite by R7, which also
-records the deleting commit.
+**R7 is this section's closing report and it is in progress.** What it cannot do is **close the
+spike**: R6's remaining half is the route cache's *invalidation contract*, which is session **M**'s and
+is typed *arguable* under `adr/0043` — no measurement settles it. So `spikes/S2.Routing/` is **not
+deleted**, and the deleting commit is not recorded here yet.
+
+~~Raw captures in `spikes/S2.Routing/results/`; both sections are owed a rewrite by R7~~ — raw captures
+are still in `spikes/S2.Routing/results/`, and **the rewrite is owed over every section rather than
+two**, because what counts as a canonical capture changed underneath the spike while it ran. See the
+machine block immediately below.
 
 S2 is the project's top risk and the only one argument cannot close. `adr/0020` makes route
 computation the binding constraint on world size — *"the map-size question is the routing question in
@@ -1593,11 +1603,37 @@ disguise"* — and until R0 the corpus had never measured any part of it.
 
 ### The machine, and a capture defect closed rather than declared
 
+> **R7: the definition of *canonical* changed while the spike was running, and the capture named below
+> no longer meets it.** This block was written on 2026-08-06 and declares its capture canonical partly
+> *because* the SMT sibling was idle. **R5.3 then measured that the idle sibling is the defect** — it
+> starves the tiered JIT's background compilation of anywhere to run, so it shares the measured core
+> with whatever is timed first, 4.88× apart within a single capture. The canonical configuration is now
+> `performance` **and** `cpu2+8`, both threads of the physical core, and for R0, R0d, R1, R2, R3 and R4
+> **no such capture exists**: the `performance` runs are `cpu2`, and the correctly-pinned re-run of
+> 2026-08-09 is `powersave`. Only **R5 and R8** were ever taken under the configuration this corpus now
+> calls canonical.
+>
+> **So every absolute in R0–R4 below is currently mis-pinned, `powersave`, or both**, and the two
+> confounds cannot be separated by comparing the captures that exist, because no two of them differ in
+> only one variable. `plans/0010` states the standing rule — *R7 must not publish a first-timed
+> absolute without re-running the ladder* — and the re-run is the outstanding item. **Counts, in-process
+> ratios and every conclusion resting on them are unaffected**, which is not a hope: every count is
+> bit-identical across all captures, including `powersave`, and that is the determinism check the debt
+> bought on the way past.
+>
+> **The general lesson is the one worth keeping, and it is about protocol rather than about this
+> machine.** A capture is labelled with its configuration so that two captures can be compared. That
+> only works while the *set* of configuration variables is fixed. R5.3 added a variable — which threads,
+> not just which governor — and in doing so **retrospectively unlabelled every capture taken before
+> it**, because they record a value for a dimension nobody knew was a dimension. Nothing in the naming
+> scheme could have caught that; the filename was complete against the schema of its day.
+
 Measured **2026-08-06** on the Linux desktop: Intel i5-10400, Ubuntu 24.04.4, .NET 10.0.10, Release.
 Every timing below is from `spikes/S2.Routing/results/s2-r0+r1+r2-intel-core-i5-10400-ddr2133-performance-turbo-cpu2-20260806T185053Z.md`
-— **the canonical capture: `performance`, turbo enabled, pinned to one physical core with its SMT
-sibling idle**, taken by `spikes/S2.Routing/tools/routing-run.sh`, which is S4's `kernel-run.sh` with
-the BenchmarkDotNet machinery removed because S2's harness times its own loops.
+— ~~**the canonical capture**~~ **superseded, see the banner above**: `performance`, turbo enabled,
+pinned to one physical core with its SMT sibling idle, taken by
+`spikes/S2.Routing/tools/routing-run.sh`, which is S4's `kernel-run.sh` with the BenchmarkDotNet
+machinery removed because S2's harness times its own loops.
 
 > **R0's first capture ran under `powersave`, unpinned, and S4's own protocol says not to.** That was
 > **the third capture in this corpus to carry a machine-state defect**, after the desktop's background
@@ -4633,6 +4669,89 @@ track and it **invalidated a spike's denominator** — R3's tripwire went on cou
 the event that dominates routing's bill stopped being one. **A decision track can silently retire a
 measurement track's question**, and nothing in the process notices.
 
+### What R6 decided, and what it did not
+
+**Written by R7, and late.** Every other round closes with one of these; R6 has run four sub-rounds
+without a round-level verdict, and the reason is the same fact as the open gate — **R6 is the only
+round that cannot finish**, so nobody wrote the section that would have to say so. That was a mistake
+in the other direction: R6.0 through R6.3 decided a great deal, and none of it was collected.
+
+#### Decided
+
+- **Four-way LRU, and it is the corpus's first sized statement of `adr/0017`'s pattern.** Conflict
+  falls **20.0% → 3.8%** at four contiguous probes against a fully-associative bound of 0.0%, and four
+  ways is where the lever stops paying. The probes land on a cache line the entry already occupies.
+- **High-bit indexing, as a *robustness* fix and not a throughput one.** It is level-or-worse on random
+  keys — 21.1% against 20.0% — and takes conflict **31.2% → 21.7%** on a concentrated eight-destination
+  pool. It costs nothing and stops a concentrated city falling off a cliff the uniform draw never
+  shows. **Both changes are worth making and only one of them appears in the average case.**
+- **The key is `nearest-node`, repaired by one comparison at insert.** `node-a` costs exactly **2×**
+  `nearest-node` on every rung, geometrically, and the key space is unchanged by the fix. **Quote the
+  absolute and never the percentage**: the mean error is **0.86–0.94 Ticks, flat across the entire O-D
+  family**, while its percentage swings 1.84% → 9.70% with the trip distribution. R4.1's finding one
+  layer down, except that here the rung-invariant number exists.
+- **R5.3's 28–31% miss floor is not a floor, and never was.** At its own rung it is **20.0% conflict
+  and 0.0% capacity** — every miss a lookup a perfect cache of the same size would have served. It is a
+  bug with a fix, not a fact of life, and reading it as a property of cache size is what hid that.
+- **Load is the axis R5.3 never swept and it dominates** — conflict at four ways runs 1.0% → 3.8% →
+  16.2% across 0.25×, 0.50× and 1.00× load. One point on a curve that triples was published as a floor.
+- **The diversion, not the Trip start, is routing's bill** — **99.76%** of it. R3's *85 Trip starts per
+  Tick* is not the binding constraint and never was, because a Trip start under static Habit is a
+  lookup.
+
+Together these are `adr/0012`'s owed amendment, which can now be written: the **key** (nodes², nearest
+node, one comparison at insert), the **eviction policy** (fixed capacity, 4-way LRU, high-bit index),
+and — from R5.6 rather than from R6 — that **the two consumers do not want the same mechanism**, routes
+needing a temporal answer and Parking Sheds needing no rotation at all.
+
+#### Not decided, and three of the four cannot be
+
+- **The invalidation contract.** Session **M**'s, and it is R6's gate. Neither the key nor the eviction
+  policy is downstream of it, which is why this round ran ahead of the gate — see below.
+- **The cache's absolute hit rate.** It rests on Trip repetition, which needs `06` milestone 5b.
+  **This is the round's shape and it is worth naming: R6.1a settles the price exactly and R6.1b cannot
+  settle the benefit.** The two halves of the same question have different epistemic status, and only
+  one of them was ever going to close inside a spike with no Trip generation in it.
+- **Which of the three diversion levers.** Raise Temperament, shrink the Sight Horizon, or **rejoin the
+  Habit Route without re-searching** — the third being the one nothing in the corpus proposes and the
+  only one that is free by construction. All three change which route a Traveller takes, and `05 §4`
+  says that is a different city, so it is a design decision. **R6.3's contribution is that it must be
+  answered**, which the corpus did not previously know.
+- **`plans/0010`'s five-Buildings argument for the coarse key is unconfirmed and may not be cited.** A
+  node key collapses two Trips only if they share a Segment at **both** ends, and 33,018 Segments is
+  1.09 × 10⁹ ordered pairs — no pool S2 can draw is dense in that.
+
+#### What R6 found that it was not looking for
+
+- **R6.3 was not on the plan at all**, and it produced the round's largest result. It was run because
+  the two halves of routing's bill had never been added up — `adr/0046` made diversion routine in one
+  document and `adr/0047` deleted the cheap path source in another, and **nobody had multiplied them**.
+- **R6.0's repair turned a dead column into the section's sharpest instrument.** The pristine-seeding
+  defect was **eight call sites rather than the four filed**, and once repaired `Unroutable` stops being
+  *"zero by construction"* and reads **82.93% → 99.03%** of the control's severed lookups, **monotone in
+  the refresh rate**. That corroborates R5.5.4 through an entirely different column, and it is evidence
+  session **M** did not have when the question was framed.
+- **Two provenance defects, both about labels rather than measurements.** The machine-state block
+  asserted a pinning it never measured — it read the governor and never the affinity mask, so **every
+  unpinned capture declared itself pinned**, in the block that exists so a reader need not reason about
+  the machine. And R5.5's *16 against 416* summed four cache rungs against one control rung, so the
+  comparison never had a denominator.
+- **The board's *the three tracks do not contend* has a counter-example.** They do not contend for
+  **files**, which is what the claim was about. But `adr/0047` was ratified on the ADR track and
+  **invalidated a spike's denominator** — R3's tripwire went on counting Trip starts after the event
+  that dominates routing's bill stopped being one. A decision track can silently retire a measurement
+  track's question, and nothing in the process notices.
+
+#### The round was started ahead of its gate, and that was right
+
+`plans/0000` gates R6 on session M. R6 ran anyway, on a gate audit, and the audit was correct:
+`adr/0047` had already closed M's path-source half by name, and what survived — the invalidation
+contract — touches neither of R6's two questions. **This is the corpus's own diagnostic, *a gate whose
+stated reason covers only part of what it blocks*, applied to a spike row rather than a slice row**,
+and it is the third instance after `adr/0003`'s split debt and `06`'s ordering. The general lesson is
+already written down: for each blocked row, ask what the gate's reason *does not* cover, and check
+whether that remainder is runnable today.
+
 ---
 
 ## S2 R5.6 — the Parking Shed, and the rung it disagrees with
@@ -4750,7 +4869,7 @@ R6's and S0a's do.
 
 ---
 
-## S2 R7 — the re-capture, and the one conclusion that moved
+## S2 R7 — the report: the re-capture, the conclusion that moved, and the tripwire scored
 
 **R0, R1, R3 and R4 were all captured under `taskset -c 2` — a single logical processor.** R5 later
 measured what that does: with the tiered JIT's background compilation having nowhere to run, its
@@ -4810,15 +4929,231 @@ quantity rather than a duration — entries, wrong entries, non-optimal routes, 
 reproduces exactly. **Only the timing columns moved, which is the artefact behaving as diagnosed**
 rather than a second unexplained difference riding along with it.
 
+### Against the tripwire — every row, and the three that could not be scored as written
+
+`plans/0010`'s wire has **seven rows**, written before any number arrived, on S4's stated practice:
+*the wire was written before the numbers precisely so it could not be reasoned around afterwards.*
+**No document has ever scored them.** R8 has a scoreboard and it covers R8's own six internal wires;
+S4 has one and it is S4's. This is the first pass over the plan-level rows, and it is the one thing in
+R7 that does not wait on the `performance` capture — every verdict below rests on a ratio, a count or
+a decision, and row 1 clears its threshold by two orders of magnitude.
+
+| | Row | Verdict | What decides it |
+|---|---|---|---|
+| 1 | Routing exceeds **10%** of the Tick at 1M, at the morning peak | **FIRES** | R6.3: diversion costs **861.87%** of the budget at R8's rung, and **795.91%–2,387.73%** across S0a's own 1M in-flight band — **80×–239× the allowance** |
+| 2 | Matrix read costs more than S4's K2 random gather | **does not fire** | **1.20 ns** at the 121-District anchor and **5.37 ns** at 4,096, against K2's **13.66 ns**. An order of magnitude in hand; `02 §5.8` is enforceable |
+| 3 | Either router needs a **global flush** on a Road Graph edit | **FIRES — against a different object** | R5.3: a single-counter Epoch retains **9%** of ceiling under a storm against per-Segment's 96%. R5.6: one deleted Segment invalidates all **159,825** sheds at **255.560 ms**, **1,638.20%** of a Tick |
+| 4 | An attribution scheme cannot report a jam **within its cycle** | **FIRES — harder than written** | R2b: the aggregate scheme's lag is **`never`**. It does not report the jam late; it does not report it at all, and `never` appears at a **one-Tick cycle** where no cadence is left to blame |
+| 5 | The route cache **grows at steady state** with no bound | **UNSCORABLE** | Nothing in S2 tests it. See below |
+| 6 | The congestion loop **does not close** under Sight | **does not fire** | R8.5: both bound 5/5, and Sight settles **42.62% below** the control against a 5.00% bar. Static Habit survives as the null hypothesis |
+| 7 | DSDV's tables exceed the world's **172.3 MiB** | **does not fire, at the granularity the design can use** | **23.12 MiB / 0.13×** at 121 Districts; **3.11 GiB / 18.51×** at node granularity. Distance-vector went out on **cost** instead — 2.17× the rebuild it exists to avoid |
+
+**Three fire, three do not, and one cannot be scored. That last count is the finding.**
+
+#### Row 5 could not have fired, and the harness is why
+
+Every S2 harness that touched a route cache made it **fixed-capacity by construction** — R5.3 a
+1,024-entry cache, R6.2 direct-mapped at one slot per index. A structure that evicts cannot grow
+without bound, so *"grows at steady state with no bound"* was **not a representable outcome** in any
+run this spike performed. The row was not tested and found safe; it was never testable.
+
+Three nearby objects were each shown bounded, and none of them is the one the row names: R1.2's
+**District-pair route store** grows as *n²* in District count (4.06 GiB at 4,096) — which is a static
+configuration axis and not elapsed time; R3.1's **stored-path arena** is explicitly cleared of
+`adr/0006` because it is rebuilt rather than appended to; and R6.2 shows the *cache* evicting rather
+than growing, with capacity misses at 0.0% until 2.00× load. **Reading any of those as discharging row
+5 would be the `adr/0006` mistake this project has already made once**, in slice 6, where a `map`
+emission accumulated with no sink and the long-run test built to catch exactly that had been written
+around it.
+
+**What the row actually needs is a run with a sink and elapsed time in it**, which is a Phase 2
+property: the cache's bound is only interesting once Trips are generated rather than drawn from an
+invented family. It is not S2's to close, and R7 records it as **owed rather than clear**.
+
+#### Two of the three that fired, fired at something other than what they named
+
+**Row 3 names *either router* and no router failed it.** R3.7 repairs 1.03 clusters per deleted
+Segment; R4.4 repairs a subtree in 4.71 ms. What fired the row is the **Epoch's granularity** — a
+single global counter — which is a property of the invalidation scheme, an object the row does not
+mention and which R5 had to invent a vocabulary for. The wire caught a real defect at the wrong
+address, twice, and only because somebody scoring it was willing to read *"global flush"* as the thing
+it describes rather than the thing it names.
+
+**Row 1 carries a qualifier that was never computed.** *"With matrix refresh amortised"* appears in no
+measurement in this spike — the word does not occur in S2's results at all. The nearest measurable
+analogue is R8.3's maintenance column, and it is not the matrix but the arc-cost VDF sweep: **9.94%**
+of a Tick at N=0, plus Sight at N=1 for another **5.64%**, so **15.18% combined before a single route
+is computed.** The row's threshold is exceeded by the maintenance it was written to exclude. That does
+not weaken the verdict — row 1 fires by 80× on routing alone — but it does mean the row **as written**
+was never satisfiable, and nobody would have noticed while it was firing so hard.
+
+#### What this says about writing a wire before the numbers
+
+S4's practice is sound and this spike is not an argument against it. What S2 adds is the failure mode
+S4 never met: **a wire written before the numbers can be unfireable, or can name the wrong object, and
+neither is visible until somebody tries to score it.** Of seven rows, only **2, 6 and 7** were both
+testable as written and tested as written. Rows 1 and 3 needed interpretation at scoring time — which
+is exactly the *reasoning around afterwards* the practice exists to prevent, arriving through the back
+door. Row 5 needed a harness nobody built.
+
+The cheap repair is not a better wire. It is **scoring the wire early** — at the first round that
+touches each row, rather than at the report — because a row that cannot be scored is a row that can
+still be rewritten while the spike is running. Row 5 would have been caught at R5.3, the first time a
+cache was built with a fixed capacity, and R5 would have cost one extra sweep instead of leaving a
+debt no round owns. **This is the general form of the corpus's own repeated finding — citing a rule is
+not applying it — pointed at tripwires**, and it is the third instance inside this plan.
+
+### What S2 hands on — the decisions ledger, restated
+
+`plans/0010` opened with a *Decisions owed by this spike* section, written while planning under
+`0003`'s rule 6. **Nineteen entries.** R7's job is to say which closed, which S2 answered, and — for
+the rest — **who answers now**, because a debt with no owner is how the corpus got the ones it already
+has.
+
+| | Entry | State | Who answers |
+|---|---|---|---|
+| 1 | `Segment` needs a `CONTEXT.md` entry | **closed** — it was S2's gate | — |
+| 2 | Matrix refresh cadence is hash-bearing and filed as tuning | open | the cadence cluster, below |
+| 2a | The matrix's **time resolution** | open | the cadence cluster |
+| 3 | The routing Tick budget share — the 10% | open, **filed unratified in `0002` §D** | it cannot be ratified yet; see R7's tripwire scoring |
+| 3a | How a Segment gets its volume | **closed** by `adr/0041` | — |
+| 4 | District count, and road density | **half closed.** R1 swept the count; R0 swept density and reports **16.20 km/km²** | density needs **a source, not a sweep** — filed in `0002` §B |
+| 4a | The **cost unit** — Q16.16 Ticks against an integer fraction | open | the corpus. **No number in S2 rests on it** |
+| 5 | Route cache **key** and **eviction policy** | **ANSWERED by R6** | only `adr/0012`'s typing is owed |
+| 5a | The sun arc's **phase widths** | open, and almost certainly hash-bearing | the cadence cluster |
+| 6 | `06`'s S2 specification is stale | **closed** session nine, by deletion | — |
+| 7 | R0's timing table is owed a re-capture | **half closed** — pinning done, governor not | R7, and it is the last thing owed |
+| 8 | The **Commute Budget's granularity** | open | the error cluster, below |
+| 9 | Does the matrix carry an Epoch; can a dirty region invalidate it | **answered — it does not, and `02 §6` is unsound** | a correction, not a question |
+| 10 | Path source keys on the District | **closed** by `adr/0047` | — |
+| 11 | The representative funnel | **closed** by `adr/0047`; R8 moved the axis first | the error cluster |
+| 12 | The **maintenance scheme**, and the cadence that chooses it | **half closed** — subtree repair wins at 4.71 ms against 234.74 | the cadence cluster |
+| 13 | What a District-granular route may be wrong by | **closed** by `adr/0047` | the error cluster |
+| 14 | The **origin-destination distribution** | open, and **unmeasurable here** | Trip generation, `06` **5b** |
+| 15 | A District-granular tree concentrates the city onto a skeleton | **closed** by `adr/0047` — it was the fourth ground | see the reconciliation below |
+
+**The rest of this section is the four groups the open entries actually form.** They are not fifteen
+questions; they are four, and each has already cost something by being filed as several.
+
+#### The cadence cluster — 2, 2a, 12 and 5a are one argument about one object
+
+The matrix's **refresh cadence**, its **time resolution**, the **maintenance scheme** and the **sun
+arc's phase widths** are the same decision seen from four sides, and every one of them was filed as
+*tuning*.
+
+They are not tuning. Cadence decides when a changed travel time reaches the choice loop, and two
+cadences produce two cities under `05 §4`. Resolution does the same and the corpus has **never named
+it at all** — a Day-average matrix and a per-phase one differ on 76 one-way District pairs against 1,
+so a Household picking where to live picks differently under each. Phase widths decide how
+concentrated demand is, and **no peaking factor exists anywhere in the corpus**, so every load figure
+it holds is a Day-average of a Day that has a rush hour.
+
+**And R4 found the sting: a decision filed as tuning turns out to select an algorithm.** R4.6 puts the
+incremental-versus-rebuild break-even between **1% and 10% of arcs moved per refresh**, so the cadence
+does not merely tune the maintenance scheme — it **chooses** it. Settle these together or one of them
+will be settled as a knob.
+
+#### The error cluster — 8, 11 and 13 are one question nobody has asked
+
+*What is a coarse routing answer allowed to be wrong by?* The corpus has no position, and three
+entries circle it.
+
+R1 measured the error: a District entry is wrong by **11.32% at the anchor — 6.73 Ticks — p90 14.04,
+worst case 77.62.** That is neither obviously acceptable nor obviously fatal, **and it cannot be judged
+at all**, because the only thing that consumes it is the Commute Budget and `CONTEXT.md` gives no
+number for what a Commute Budget resolves. `01 §7` draws it as a wedge on the sun arc, which is a
+granularity of a kind and not a stated one. **6.73 Ticks is free against a Budget read to the nearest
+half hour and disqualifying against one read to the minute.**
+
+`adr/0047` closed 11 and 13 by removing the District from routing, which removes *this* instance. It
+does not answer the question, and R6's key raises it again in the same shape — R6.1a's **0.86–0.94
+Ticks** is an induced error against the same unstated consumer. **Answer it once.**
+
+#### Session M's — and R6.3 put a new question in front of the old one
+
+M owns the **invalidation contract**, which is R6's gate and the reason S2 cannot close. R6.3 has since
+added one that must be answered first, because it is the only routing question with a measured
+overshoot behind it: **what does a diverting Traveller do about its route?** Re-search costs 861.87% of
+the Tick budget at R8's own rung; the cache would need an 88.5% hit rate it has no claim to; and the
+third option — **rejoin the Habit Route without re-searching** — is free by construction and appears
+nowhere in the corpus.
+
+#### Corrections, which are not questions
+
+- **`02 §6`'s *slow cadence, dirty regions only* is unsound.** A spatial test missed **309 of 429**
+  changed entries on a central edit and did so silently, leaving entries stale rather than coarse.
+- **The origin-destination family is a placeholder with a named successor.** R4.1 replaced a silent
+  uniform draw with a swept family, and **the family is invented** — it measures nothing. No document
+  may cite a figure derived from it without naming the rung. The corpus already knows this failure's
+  general form: a curve reported as a fact is how the ~400k Trips/Day figure survived.
+- **Road density is owed a source, not a sweep.** 16.20 km/km² reproduces the corpus's own
+  ~30,000-Segment placeholder and turns out to be one Street on every Cell boundary — so the input no
+  longer *"exists nowhere"*. Whether it describes a real city is unchecked, and it is a **denominator**,
+  so everything divided by it inherits the error.
+
+### The reconciliation R7 owes, and it is larger than the ledger
+
+**`adr/0047` deleted the structure three of S2's most-quoted results were measured on, and nothing has
+said so.**
+
+R8 ran on a **District-granular free-flow tree**. That is what `adr/0047` removed — and it removed it
+*using R8's own evidence*, the concentration column: 87.25% of traffic on 1% of the road. The ADR is
+right and decision 15 is properly closed. But R8 measured `adr/0046`'s three layers **on that same
+tree**, and R8 says so itself, in terms:
+
+> the ~21.64% fire rate is a property of District-granular routing and **must not be carried to any
+> scheme that gives a Traveller more than one candidate route.**
+
+`adr/0047` mandates exactly such a scheme — *"a tree holds **one** route to a place; a cache holds
+many. Only one of the two can disperse traffic at all."* So the disclaimer fires on the design the ADR
+chose, and **three live results inherit it**:
+
+- **R8's diversion fire rate, 14.08% of crossings**, which is the multiplicand behind R6.3's 1,269.51
+  diversions per Tick — the number that fires tripwire row 1.
+- **R8.5's self-correction result**, which is the named ratifier for **Habit refresh cadence =
+  infinite**, recorded as **RATIFIED** in `CLAUDE.md`'s constants table and in `plans/0002` §D. It is
+  the first row ever struck from that section.
+- **Temperament's 92.28% damping**, measured against a herd the same tree produced.
+
+**What survives, and it is most of it.** Row 1's verdict is untouched: it fires by 80×–239×, and no
+plausible movement in the fire rate closes two orders of magnitude. R8.5's ratification is very likely
+safe and probably strengthened — more candidate routes means more places for a jam to redistribute to,
+so self-correction should close at least as easily — **but that is an argument, and it is not the one
+on file.** The ratification currently rests on *R8.5 ran and did not refute*, with no statement that
+the run's structure was subsequently deleted.
+
+**What is owed is small and it is not a re-run.** Each of the three needs one sentence saying which
+direction the superseded basis pushes it, and `plans/0002` §D's Habit row needs that sentence before it
+can keep the word *RATIFIED* — because `adr/0052`'s whole point is that a ratifier is named, and a
+ratifier that measured a deleted structure has not been checked, only cited. **This is `adr/0044`'s
+closing finding once more — citing is not applying — arriving this time at a ratification rather than
+at a decision.**
+
+**The general form is worth more than the three fixes.** `adr/0047` is a *decision-track* act that
+invalidated a *measurement-track* basis, which is the second instance in this spike after R6.3 found
+the same ADR retiring R3's denominator. The board's model is that the three tracks do not contend.
+They do not contend for **files**. **They contend for the ground a measurement stands on, and nothing
+in the process looks.**
+
 ### What R7 still owes
 
 - **The `performance` capture.** Every S2 absolute now in the corpus is either mis-pinned or
   `powersave` or both. This re-capture fixes the pinning for four sections; **R5.6, R6.1, R6.2 and
   R6.3 remain `powersave`** and R5's are `performance` but predate nothing that moved.
+- **Row 5 of the tripwire, which no round owns.** Recorded above as unscorable rather than clear. It
+  wants a run with a sink and elapsed time in it, and that is Phase 2's.
+- ~~**R6 has no closing verdict.**~~ **WRITTEN** — *What R6 decided, and what it did not*, above. It
+  was missing because R6 is the round that cannot finish, so the absent verdict and the open gate were
+  the same fact; four sub-rounds had nonetheless decided a great deal and nothing collected it. The
+  section it produced is `adr/0012`'s owed amendment, stated: the **key**, the **eviction policy**, and
+  R5.6's finding that **the two consumers do not want the same mechanism**.
 - **R2's reconciliation.** R4 records that its rebuild denominator disagrees with R2's published build
   by 2.2× — 217.36 ms against 474.47 ms for the same 121 backward Dijkstras. **The re-capture does not
   close this**: 217.36 ms reproduces, so the disagreement is not the pinning artefact and R2's figure
   is the one under suspicion.
+- **The three results measured on a structure `adr/0047` deleted.** One sentence each on which
+  direction the superseded basis pushes them, and **`plans/0002` §D's Habit row needs that sentence
+  before it can keep the word *RATIFIED*.** See *The reconciliation R7 owes*.
 - **S2 cannot close.** R6's invalidation half is gated on session **M**, which `adr/0043` types
   *arguable* — no measurement settles it — and R6.3 has since put a second question in front of it.
   The harness therefore stays; deleting it is R7's last act and it is not owed yet.

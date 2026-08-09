@@ -1246,12 +1246,35 @@ verdict.
 
 ---
 
-### R7. The report, and the verdict
+### R7. The report, and the verdict — **IN PROGRESS**
 
 Into `docs/spike-results.md`, in the form S4 established: the machine, the numbers, and — separately —
 **the decision each produced.** A spike that records data and no verdict has not finished.
 
-Then delete `spikes/S2.Routing/` and record the deleting commit's parent.
+~~Then delete `spikes/S2.Routing/` and record the deleting commit's parent.~~ **Not available.** R6's
+invalidation half is gated on session **M**, typed *arguable* under `adr/0043`, so no measurement
+closes it and the harness stays. Deleting it is R7's last act and it is **not owed yet**.
+
+**Done so far:** the re-pinned re-capture of R0/R0d/R1/R3/R4 and the one conclusion it moved (R3's
+break-even 85 → **112**, and the 8-versus-16 query advantage 1.31× → **1.61×**, which shifts the
+cluster recommendation's *support* to R5.6 without changing it); the machine block's correction, since
+**what counts as a canonical capture changed while the spike ran**; and **the tripwire scored, all
+seven rows, which no document had ever done**.
+
+**The tripwire result is R7's own finding and it is about method rather than about routing.** Three
+rows fire, three do not, and **one cannot be scored at all**: row 5's *the route cache grows at steady
+state* was unrepresentable in every harness this spike built, because each made its cache
+fixed-capacity by construction. Two of the three that fired named something other than what they
+caught — row 3 says *either router* and no router failed it, the **Epoch's granularity** did; row 1's
+*"with matrix refresh amortised"* was never computed at all. **So of seven rows written before the
+numbers, only 2, 6 and 7 were both testable as written and tested as written**, and the repair is to
+**score each row at the first round that touches it** rather than at the report, while a bad row can
+still be rewritten.
+
+**Still owed:** the `performance` capture (`--graph --denominator --matrix --traffic --cluster
+--vector`, as root, twice); R2's 474.47 ms reconciliation, which the re-capture did *not* close since
+217.36 ms reproduces; a closing verdict for **R6**, the only round without one; and the decisions
+ledger below, restated as what S2 hands on.
 
 ---
 
