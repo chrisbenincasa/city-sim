@@ -39,7 +39,9 @@ families for performance. Building the second family is what puts it at risk of 
   settled three of the four owed decisions, and **deleted one of the four unratified numbers by
   deriving it away**. Tasks 4, 6, 7 and 8 are rewritten; task 7's planned mechanism was found to
   invert severity and would have shipped.
-- **Next: task 2**, the derived Lot→Building reverse index.
+- **Task 2** — the derived Lot→Building reverse index, and `02 §2.2`'s invariant checkable for the
+  first time in both tiers. It caught six existing fixtures on the day it landed.
+- **Next: task 3**, the `[[zone_rule]]` table and its three refusals.
 
 ---
 
@@ -170,21 +172,41 @@ been avoiding since `02 §2.2`.
 Saved and hashed — it is player intent, and `05 §4` says a different permission set is a different
 city.
 
-### 2. Which Building is on this Lot — the derived reverse index
+### 2. Which Building is on this Lot — the derived reverse index — **done**
 
-**The relation is one-directional today.** `BuildingTable` declares `Lot`; `LotTable` declares
-`East`, `North` and `Zone` and **no Building handle**. So *"is this Lot vacant"*, which is the first
-question a Zone Rule asks and the one it asks most, has no answer without scanning Buildings — which
-would make the sweep `O(Buildings)` per sample and lose the constant-cost property task 9 measures
-before task 9 could measure it.
+**The relation was one-directional.** `BuildingTable` declared `Lot`; `LotTable` declared `East`,
+`North`, `Zone` and no Building handle. So *"is this Lot vacant"*, which is the first question a Zone
+Rule asks and the one it asks most, had no answer without scanning Buildings — `O(Buildings)` per
+sample, which would have destroyed the constant-cost property task 9 measures before task 9 could
+measure it.
 
-Declared **`Derived`**, not `Saved`: it is recoverable from `BuildingTable.Lot` in one pass, so it
-stays out of the State Hash and out of the save, and it is rebuilt in `World.RebuildDerived`, which
-already exists and already does exactly this for other indices.
+`LotTable.BuildingSlot`, declared **`Derived`** so it stays out of the State Hash and out of the save,
+rebuilt in `World.RebuildDerived` alongside the four indices already there. Confirmed by the golden
+baselines not moving.
 
-*`02 §2.2` states the invariant this index materialises — "a Lot is either vacant or holds exactly one
-Building" — and nothing currently enforces it. It becomes checkable here, and belongs in the
-whole-world tier.*
+**Three things the implementation turned up:**
+
+- **It is a slot plus one, not a handle, and not a raw slot.** A `DerivedHandle` would be a
+  construction cycle — `BuildingTable` already takes `LotTable` to address its own `Lot` column. And
+  the `+1` encoding is mandatory rather than cosmetic: `IndexList` documents at length that slots are
+  zero-filled on growth and on free, so a `-1` sentinel would make every freshly allocated Lot read as
+  holding *Building slot 0*. Vacancy decodes to `Rows.NoSlot` for free — stored zero, minus one.
+- **`BuildingTable.Create` was the only table door in the project that wrote cross-table state.**
+  `HouseholdTable` and `CitizenTable` expose no `Create` at all; `World` is their only door. Building's
+  did, and it wrote the forward handle while leaving the reverse end to whoever called it — which is
+  the arrangement that made `02 §2.2` unenforceable for four slices. It now takes the `LotTable` and
+  writes both ends. It could not simply *hold* the table: **`BOR0901`** forbids a `[Table]` type from
+  holding anything but declared columns and its own `Rows`, so the analyser chose the shape.
+- **The invariant caught six existing tests immediately**, all of them fixtures that had built a
+  half-written relation. That is the check earning its place on the day it was added rather than in a
+  hypothetical future.
+
+**`02 §2.2`'s *a Lot is either vacant or holds exactly one Building* is now checked in both tiers.**
+`LotIsNotAlreadyBuiltOn` at the write site, one comparison, where the second Building would go up.
+`LotHoldsExactlyOneBuilding` whole-world, walking **both directions** — because each sees a failure the
+other structurally cannot. Walking Buildings catches an index left stale by a demolition that freed the
+row without vacating the Lot; walking Lots catches an index pointing at a slot since freed *or
+recycled into an unrelated Building*, which reads as perfectly valid from the Building side.
 
 ### 3. The Zone Rule in the Ruleset, and its refusals
 

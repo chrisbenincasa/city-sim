@@ -151,7 +151,7 @@ public class IndexListTests
 
             for (int i = 0; i < 16; i++)
             {
-                building = world.Buildings.Create(default, kind: 0);
+                building = world.Buildings.Create(world.Lots, default, kind: 0);
             }
 
             for (int i = 0; i < 16; i++)

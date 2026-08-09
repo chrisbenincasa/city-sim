@@ -65,7 +65,7 @@ public class TableAllocationTests
     public void Walking_an_intrusive_list_allocates_no_managed_memory()
     {
         var world = new World(10_000);
-        Handle<Building> building = world.Buildings.Create(default, kind: 0);
+        Handle<Building> building = world.Buildings.Create(world.Lots, default, kind: 0);
 
         for (int i = 0; i < 64; i++)
         {

@@ -29,7 +29,7 @@ public sealed class BinTests
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
 
-        return (world, world.Buildings.Create(lot, kind: 1));
+        return (world, world.Buildings.Create(world.Lots, lot, kind: 1));
     }
 
     /// <summary>
@@ -286,7 +286,7 @@ public sealed class BinTests
         (World world, Handle<Building> doomed) = Built();
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(9), new Tiles(9), zone: 1);
-        Handle<Building> neighbour = world.Buildings.Create(lot, kind: 1);
+        Handle<Building> neighbour = world.Buildings.Create(world.Lots, lot, kind: 1);
 
         Handle<Bin> flour = world.CreateBin(doomed, Flour, capacity: BinCapacity.Of(100));
         Handle<RuleInstance> own = Sleeper(world, doomed);

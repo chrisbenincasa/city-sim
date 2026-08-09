@@ -145,7 +145,7 @@ internal static class RuleEngineFixture
         for (int i = 0; i < buildings; i++)
         {
             Handle<Lot> lot = world.Lots.Create(new Tiles(i % 2_048), new Tiles(i / 2_048), zone: 1);
-            Handle<Building> building = world.Buildings.Create(lot, Bakery);
+            Handle<Building> building = world.Buildings.Create(world.Lots, lot, Bakery);
 
             foreach (BinDeclaration bin in ruleset.BinsOf(Bakery))
             {

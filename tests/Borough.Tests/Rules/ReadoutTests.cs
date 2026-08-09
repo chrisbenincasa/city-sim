@@ -80,7 +80,7 @@ public sealed class ReadoutTests
         var world = new World(1_000, LayerRuleset.Default, Empty());
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
-        Handle<Building> building = world.Buildings.Create(lot, kind: 1);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
         int slot = world.Buildings.Rows.Resolve(building);
 
         var occupancy = new ReadoutId((ushort)Readout.Occupancy);
@@ -104,7 +104,7 @@ public sealed class ReadoutTests
         var world = new World(1_000, LayerRuleset.Default, Empty());
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
-        Handle<Building> building = world.Buildings.Create(lot, kind: 1);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
         int slot = world.Buildings.Rows.Resolve(building);
 
         Assert.Throws<InvalidOperationException>(

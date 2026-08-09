@@ -321,6 +321,19 @@ public sealed class World
         Citizens.MemberNext.Span.Clear();
         Bins.BinNext.Span.Clear();
         RuleInstances.RuleNext.Span.Clear();
+        Lots.BuildingSlot.Span.Clear();
+
+        // The Lot's reverse index. Not ordered like the four lists below it — a Lot holds at most one
+        // Building, so there is nothing to insert in order, and a second Building naming the same Lot
+        // is a violation the whole-world tier reports rather than a list this would silently lengthen.
+        for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
+        {
+            if (Buildings.Rows.IsLive(slot)
+                && Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
+            {
+                Lots.Occupy(lotSlot, slot);
+            }
+        }
 
         IndexList occupants = Occupants;
         for (int slot = 0; slot < Households.Rows.SlotCount; slot++)
@@ -430,7 +443,14 @@ public sealed class World
     /// </remarks>
     public Handle<Building> CreateBuilding(Handle<Lot> lot, byte kind, Ticks now, WorldKey key)
     {
-        Handle<Building> building = Buildings.Create(lot, kind);
+        int lotSlot = Lots.Rows.Resolve(lot);
+
+        // 02 §2.2's "a Lot is either vacant or holds exactly one Building", at the write site, which
+        // is where 02 §10 puts the checks that are O(1). The whole-world half is
+        // Invariant.LotHoldsExactlyOneBuilding.
+        Invariants.Require(Lots.IsVacant(lotSlot), Invariant.LotIsNotAlreadyBuiltOn, lotSlot);
+
+        Handle<Building> building = Buildings.Create(Lots, lot, kind);
 
         // A kind the Ruleset does not declare gets no Bins and no Rules, and that is a real state
         // rather than a swallowed error: 02 §4.3 already names it, saying a reload marks Buildings
@@ -660,6 +680,12 @@ public sealed class World
             WakeAll(bin, tick);
             Bins.Rows.Free(Bins.Rows.At(bin));
             bin = BuildingBins.PopFront(slot);
+        }
+
+        // Before the row is freed, because the Lot handle is read off it.
+        if (Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
+        {
+            Lots.Vacate(lotSlot);
         }
 
         Buildings.Rows.Free(building);

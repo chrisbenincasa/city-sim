@@ -194,7 +194,7 @@ public sealed class SimulationTests
         var world = new World(Population);
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
-        Handle<Building> building = world.Buildings.Create(lot, kind: 1);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 1);
 
         world.CreateCitizen(household, new Ticks(4));

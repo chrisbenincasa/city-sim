@@ -76,13 +76,43 @@ public sealed class BuildingTable
     public Column<int> RuleTail { get; }
 
     /// <summary>Allocates a Building on a Lot.</summary>
-    public Handle<Building> Create(Handle<Lot> lot, byte kind)
+    /// <summary>Allocates a Building on a Lot, and records it on the Lot.</summary>
+    /// <param name="lots">
+    /// The Lot table, so that the reverse index is written in the same call as the forward handle.
+    /// </param>
+    /// <param name="lot">The Lot to stand on. A default handle makes a Building on no Lot.</param>
+    /// <param name="kind">Which Building kind.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>The Lot table is a parameter because the relation has two ends and this writes both.</b>
+    /// Slice 10 gave <see cref="LotTable.BuildingSlot"/> the reverse of <see cref="Lot"/>, and a
+    /// <c>Create</c> that wrote only the forward handle would leave every caller responsible for the
+    /// other end — which is the arrangement that produced <c>02 §2.2</c>'s invariant being
+    /// unenforceable for four slices.
+    /// </para>
+    /// <para>
+    /// <b>It is not held as a field, and that is <c>BOR0901</c> rather than taste.</b> A <c>[Table]</c>
+    /// type may hold declared columns and its own <c>Rows</c> and nothing else, so the reference
+    /// arrives per call. The constructor already takes the same table to declare
+    /// <see cref="Lot"/> against it, so the coupling is not new — only the enforcement is.
+    /// </para>
+    /// </remarks>
+    public Handle<Building> Create(LotTable lots, Handle<Lot> lot, byte kind)
     {
+        ArgumentNullException.ThrowIfNull(lots);
+
         Handle<Building> handle = _rows.Allocate();
         int slot = _rows.Resolve(handle);
 
         Lot[slot] = lot;
         Kind[slot] = kind;
+
+        // A default or stale handle leaves the Building on no Lot, which the fixtures use
+        // deliberately and the whole-world tier reports rather than this silently inventing a Lot.
+        if (lots.Rows.TryResolve(lot, out int lotSlot))
+        {
+            lots.Occupy(lotSlot, slot);
+        }
 
         return handle;
     }

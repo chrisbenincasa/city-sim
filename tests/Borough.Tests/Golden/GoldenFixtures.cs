@@ -164,7 +164,7 @@ internal static class GoldenFixtures
         var buildings = new Handle<Building>[4];
         for (int i = 0; i < buildings.Length; i++)
         {
-            buildings[i] = world.Buildings.Create(lots[i], kind: (byte)(1 + (i % 3)));
+            buildings[i] = world.Buildings.Create(world.Lots, lots[i], kind: (byte)(1 + (i % 3)));
         }
 
         var households = new Handle<Household>[8];

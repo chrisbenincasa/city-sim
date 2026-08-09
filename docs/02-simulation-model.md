@@ -150,6 +150,12 @@ Subdivision rules:
 
 Re-subdivision happens when the street network changes, and must preserve existing Buildings — only vacant land re-parcels.
 
+> **The subdivider does not exist, and every Lot this project has ever run has been painted.** It needs the Street network, which is milestone **5a** and therefore Phase 2, while the slice that gives Lots their permission set is 3c. So the opening sentence above is true of the design and false of the build: today a Lot arrives one per `zone` command, or from the synthetic populator's grid, and **nothing has ever refused a Lot for want of frontage**. That also means *"every Building is on the Road Graph by construction"* — which `CONTEXT` → Frontage leans on to delete the utility network entirely — is currently true because there is no Road Graph, not because of construction. Recorded rather than quietly tolerated; the debt is in [`plans/0012`](../plans/0012-corpus-audit.md).
+
+**A Lot's Zone is a permission set, and it governs what may be built rather than what may die.** A Zone Rule's declared permission bit is a term in its *create* predicate; it is never a filter on the Lots the Rule samples ([`adr/0055`](adr/0055-a-zone-rules-permission-set-scopes-what-it-builds-never-which-lots-it-looks-at.md)). Scoping the population instead would mean a player who repainted a Lot removed its Building from every Rule's reach for ever — immortality by paintbrush. Repainting therefore does nothing immediate to what already stands there, which is the symmetric reading of [`adr/0025`](adr/0025-density-is-a-cap-and-it-trades-land-for-materials.md)'s *"upzoning a built block does nothing until its Buildings go"*, and why `01 §5` lists rezoning and clearance of abandoned stock as two separate recovery levers.
+
+*A Lot is either vacant or holds exactly one Building* is checked in both tiers `§10` provides: at the write site, where a second Building would be built, and whole-world as a bijection between the Lot's reverse index and the Building's Lot handle.
+
 ### 2.3 Terrain, and the land as a stock
 
 Terrain is generated procedurally from the world seed, which the Input Log already carries. Seeds are shareable, the map need not be stored in the save — only the Chunks the player has changed — and the **generator's version is pinned in the save header**, because a changed generator would silently load every existing save onto different ground.
@@ -691,6 +697,14 @@ A Building accumulates **failure pressure** from:
 - Local conditions falling below its occupants' tolerance
 
 Past a threshold, it **loses occupancy and quality**. Past a further threshold, it is abandoned and its Lot returns to vacant.
+
+**Pressure is a *duration*, not a tally of failure events** ([`adr/0053`](adr/0053-failure-pressure-is-a-duration-not-a-tally.md)). It measures how long the Building has been continuously failing, and it resets the instant the Building stops — so recovery is total rather than a debt worked off, and it needs no decay rate to stay bounded because nothing accumulates.
+
+> **Counting the events instead inverts severity, and the reason is not local to this section.** A Rule that fails does not retry; it subscribes to what it is short of and sleeps ([`adr/0045`](adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md), and `§4.1`'s *"a starved District costs nothing until supply arrives"*). So a **comprehensively** starved Building emits exactly one failure event and then silence, while an **intermittently** supplied one wakes and fails repeatedly. Tally them and the healthier Building is condemned while the dead one is preserved. The threshold is therefore authored in **missed firings** rather than Ticks, so that a Ruleset which retunes every `rate` cannot silently retune every Building's lifespan.
+
+**Sampling reads that duration; it never produces it.** A Zone Rule's sample is when the city *notices* a condemned Building, not when the Building fails — the pressure was already true before the sample arrived. That distinction is what makes sampled decline legitimate at all, since `CONTEXT` → Zone Rule justifies sampling by *developers do not evaluate every Lot*, an argument about an actor choosing among alternatives, and **abandonment has no actor**.
+
+**The Occupants are evicted into the Unplaced Pool, with their Money and Savings intact** ([`adr/0054`](adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md)). Eviction is the Pool's fourth entry route and the only one the Household did not choose. Destroying them instead would delete their Money, which [`adr/0024`](adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md) forbids — the Outside Connection is money's only sink — and would be an unbounded population sink with no Departure record.
 
 **Buildings do not shrink.** An earlier version of this section said a Building "declines a density level," which is physically incoherent — nothing gets shorter. The density ladder is walked at construction only, and the band is re-tested when the Lot redevelops. See [`adr/0025`](adr/0025-density-is-a-cap-and-it-trades-land-for-materials.md).
 

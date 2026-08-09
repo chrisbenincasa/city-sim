@@ -1,4 +1,5 @@
 using Borough.Core;
+using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Invariants;
@@ -36,7 +37,7 @@ public sealed class InvariantTierTests
         var world = new World(1_000);
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
-        Handle<Building> building = world.Buildings.Create(lot, kind: 1);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 1);
 
         world.CreateCitizen(household, new Ticks(10));
@@ -268,6 +269,108 @@ public sealed class InvariantTierTests
         world.Households.Savings[world.Households.Rows.Resolve(second)] = new Money(long.MaxValue);
 
         Assert.Equal(Invariant.MoneyIsRepresentable, CaughtAtEnd(world));
+    }
+
+    /// <summary>
+    /// A Lot whose reverse index was never written — the shape a create path that forgets the second
+    /// end of the relation leaves behind.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the failure the whole-world tier exists for, and it is why the check walks both
+    /// directions.</b> Walking Lots alone would see a vacant Lot and be content. Walking Buildings
+    /// alone is what catches it: the Building names a Lot that does not name it back.
+    /// </remarks>
+    [Fact]
+    public void A_building_its_lot_does_not_point_back_at_is_caught()
+    {
+        World world = Built();
+        world.Lots.Vacate(0);
+
+        Assert.Equal(Invariant.LotHoldsExactlyOneBuilding, CaughtAtEnd(world));
+    }
+
+    /// <summary>
+    /// The other direction: an index left pointing at a row that has since been freed.
+    /// </summary>
+    /// <remarks>
+    /// <b>Walking Buildings cannot see this one</b>, because there is no live Building left to walk
+    /// from — which is exactly the demolition-that-did-not-vacate bug, and the reason one direction
+    /// would have been a check that passed while the world was wrong.
+    /// </remarks>
+    [Fact]
+    public void A_lot_still_holding_a_freed_building_is_caught()
+    {
+        // An unoccupied spare, so that no Household's Dwelling handle points at the freed row and
+        // CrossTableHandleResolves does not catch it first. The point is to isolate this check.
+        World world = Built();
+        Handle<Lot> spare = world.Lots.Create(new Tiles(7), new Tiles(7), zone: 1);
+        world.Buildings.Rows.Free(world.CreateBuilding(spare, kind: 1, default, WorldKey.FromSeed(1)));
+
+        Assert.Equal(Invariant.LotHoldsExactlyOneBuilding, CaughtAtEnd(world));
+    }
+
+    /// <summary>
+    /// <c>02 §2.2</c>'s *exactly one*, at the write site where the second one would go up.
+    /// </summary>
+    [Fact]
+    public void Building_twice_on_one_lot_is_caught_at_the_write_site()
+    {
+        World world = Built();
+        Handle<Lot> occupied = world.Buildings.Lot[0];
+
+        InvariantViolationException failure = Assert.Throws<InvariantViolationException>(
+            () => world.CreateBuilding(occupied, kind: 1, default, WorldKey.FromSeed(1)));
+
+        Assert.Equal(Invariant.LotIsNotAlreadyBuiltOn, failure.Violation.Invariant);
+    }
+
+    /// <summary>
+    /// The index is a cache, so rebuilding it from the saved relation must reproduce it exactly.
+    /// </summary>
+    /// <remarks>
+    /// <b>The property that makes it safe to declare <c>Derived</c>.</b> If a rebuild disagreed with
+    /// the incrementally maintained value, the column would be state wearing a cache's label — and
+    /// because it is outside the State Hash, nothing else in the project would ever notice.
+    /// </remarks>
+    [Fact]
+    public void Rebuilding_the_reverse_index_reproduces_it()
+    {
+        World world = Built();
+        int before = world.Lots.BuildingSlot[0];
+
+        world.RebuildDerived();
+
+        Assert.Equal(before, world.Lots.BuildingSlot[0]);
+        world.Invariants.RunEndOfRun(world, default);
+    }
+
+    /// <summary>Demolition returns the Lot to vacant, which is what lets it be built on again.</summary>
+    /// <remarks>
+    /// <b>An unoccupied Building, because demolishing an occupied one is still broken</b> —
+    /// <c>DestroyBuilding</c> does not touch Occupants, so its Households would be left holding a
+    /// handle to a freed row. That is slice 10 task 8's work and
+    /// <see href="../../../docs/adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md">adr/0054</see>
+    /// settles what it should do. This test is deliberately scoped to the Lot relation so that it
+    /// keeps testing that once eviction lands.
+    /// </remarks>
+    [Fact]
+    public void Demolishing_returns_the_lot_to_vacant()
+    {
+        World world = Built();
+        Handle<Lot> lot = world.Lots.Create(new Tiles(7), new Tiles(7), zone: 1);
+        Handle<Building> building = world.CreateBuilding(lot, kind: 1, default, WorldKey.FromSeed(1));
+        int lotSlot = world.Lots.Rows.Resolve(lot);
+
+        Assert.False(world.Lots.IsVacant(lotSlot));
+
+        world.DestroyBuilding(building, default);
+
+        Assert.True(world.Lots.IsVacant(lotSlot));
+
+        // And the Lot is genuinely reusable rather than merely reading as empty — which is the
+        // property slice 10's churn depends on and nothing has ever exercised.
+        world.CreateBuilding(lot, kind: 1, default, WorldKey.FromSeed(1));
+        world.Invariants.RunEndOfRun(world, default);
     }
 
     // ---- The switch, and the cost model ----

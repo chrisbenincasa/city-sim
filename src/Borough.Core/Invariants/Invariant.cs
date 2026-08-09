@@ -181,4 +181,29 @@ public enum Invariant
     /// trace at the write site at all.
     /// </remarks>
     WaiterIsQueuedOnTheBinItNames = 17,
+
+    /// <summary>
+    /// <c>02 §2.2</c>: a Lot is either vacant or holds exactly one Building — checked where the
+    /// second one would be built.
+    /// </summary>
+    /// <remarks>
+    /// The <c>O(1)</c> write-site half, and the cheap one: <see cref="World.CreateBuilding"/> already
+    /// has the Lot resolved, so the check is one comparison against the reverse index. Without it a
+    /// second Building on an occupied Lot would overwrite the index and orphan the first — a live row
+    /// nothing points at, which is <c>adr/0006</c>'s unreachable row arriving through a door nobody
+    /// watches.
+    /// </remarks>
+    LotIsNotAlreadyBuiltOn = 18,
+
+    /// <summary>
+    /// The whole-world half of the same claim: the Lot and Building relation is a bijection.
+    /// </summary>
+    /// <remarks>
+    /// Both directions, because each catches what the other cannot. Forward — every live Building is
+    /// claimed by the Lot it names — catches a stale index after a demolition that did not vacate.
+    /// Reverse — every occupied Lot names a live Building that names it back — catches an index
+    /// pointing at a freed or recycled row, which is exactly what a missed <see cref="Invariant"/>
+    /// at the write site would leave behind.
+    /// </remarks>
+    LotHoldsExactlyOneBuilding = 19,
 }

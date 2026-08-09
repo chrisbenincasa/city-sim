@@ -59,7 +59,7 @@ public sealed class CensusTests
         var world = new World(64);
         var census = new Census(world);
 
-        Handle<Building> home = world.Buildings.Create(
+        Handle<Building> home = world.Buildings.Create(world.Lots, 
             world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1), kind: 1);
 
         Handle<Household> household = world.CreateHousehold(home, lifeStage: 1);

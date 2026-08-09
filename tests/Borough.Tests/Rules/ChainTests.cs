@@ -74,7 +74,7 @@ public sealed class ChainTests
         var simulation = new Simulation(world, WorldKey.FromSeed(seed));
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
-        Handle<Building> building = world.Buildings.Create(lot, Bakery);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, Bakery);
 
         foreach (BinDeclaration bin in ruleset.BinsOf(Bakery))
         {

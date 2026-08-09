@@ -114,7 +114,7 @@ public class StateHashTests
     public void Repointing_a_handle_moves_the_hash()
     {
         World world = Build();
-        Handle<Building> other = world.Buildings.Create(default, kind: 2);
+        Handle<Building> other = world.Buildings.Create(world.Lots, default, kind: 2);
 
         ulong before = world.HashState();
         world.Citizens.Workplace[0] = other;
@@ -130,7 +130,7 @@ public class StateHashTests
     public void A_dangling_handle_moves_the_hash_without_throwing()
     {
         World world = Build();
-        Handle<Building> doomed = world.Buildings.Create(default, kind: 2);
+        Handle<Building> doomed = world.Buildings.Create(world.Lots, default, kind: 2);
         world.Citizens.Workplace[0] = doomed;
 
         ulong before = world.HashState();
@@ -180,7 +180,7 @@ public class StateHashTests
         var world = new World(population);
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(4), new Tiles(6), zone: 1);
-        Handle<Building> building = world.Buildings.Create(lot, kind: 3);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 3);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 2);
 
         world.Households.Money[world.Households.Rows.Resolve(household)] = new Money(500);

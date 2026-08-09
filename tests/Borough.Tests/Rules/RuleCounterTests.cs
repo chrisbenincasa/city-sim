@@ -105,7 +105,7 @@ public sealed class RuleCounterTests
     private static Handle<Building> Bake(World world, Simulation simulation, uint delay = 1)
     {
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
-        Handle<Building> building = world.Buildings.Create(lot, Bakery);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, Bakery);
 
         foreach (BinDeclaration bin in world.Rules.BinsOf(Bakery))
         {

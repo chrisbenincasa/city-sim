@@ -32,6 +32,7 @@ public sealed class LotTable
         East = _rows.Saved<Tiles>("east");
         North = _rows.Saved<Tiles>("north");
         Zone = _rows.Saved<ushort>("zone");
+        BuildingSlot = _rows.Derived<int>("building_slot");
 
         _rows.Seal();
     }
@@ -71,6 +72,55 @@ public sealed class LotTable
     /// </para>
     /// </remarks>
     public Column<ushort> Zone { get; }
+
+    /// <summary>
+    /// Which Building stands on this Lot, as a slot index <b>plus one</b> — zero meaning vacant.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The relation exists on <see cref="BuildingTable.Lot"/> and this is its reverse index.</b>
+    /// <em>Is this Lot vacant</em> is the first question a Zone Rule asks and the one it asks most, and
+    /// without this column answering it means scanning Buildings — which would make the sweep
+    /// <c>O(Buildings)</c> per sample and destroy the constant-cost property slice 10's tripwire exists
+    /// to measure, before the tripwire could measure it.
+    /// </para>
+    /// <para>
+    /// <b><c>Derived</c> rather than <c>Saved</c>, so it is outside the State Hash and outside the
+    /// save.</b> It is recoverable from <see cref="BuildingTable.Lot"/> in one pass and is rebuilt by
+    /// <see cref="World.RebuildDerived"/>. Storing it would give the same fact two homes that could
+    /// disagree, and the hash would then fold a disagreement as though it were state.
+    /// </para>
+    /// <para>
+    /// <b>Plus one, for the reason <see cref="IndexList"/> gives at length.</b> Slots are zero-filled
+    /// when a table grows and zeroed again when a row is freed, so a sentinel of <c>-1</c> would make a
+    /// freshly allocated Lot read as holding <em>Building slot 0</em> — the first Building in the city,
+    /// silently claimed by every new Lot. Use <see cref="IsVacant"/> and <see cref="BuildingOn"/>
+    /// rather than reading this directly; the encoding is not meant to travel.
+    /// </para>
+    /// <para>
+    /// <b>A slot rather than a <c>DerivedHandle</c>, and the reason is construction order rather than
+    /// preference.</b> <see cref="BuildingTable"/> already takes this table to address its
+    /// <see cref="BuildingTable.Lot"/> handles, so a handle column pointing back would be a cycle. The
+    /// four reverse indices that predate this one are all raw slots for the same reason, and a derived
+    /// index carries no generation risk anyway: it is rebuilt from the truth it mirrors.
+    /// </para>
+    /// </remarks>
+    public Column<int> BuildingSlot { get; }
+
+    /// <summary>Whether nothing stands here — <c>02 §2.2</c>'s other state.</summary>
+    public bool IsVacant(int slot) => BuildingSlot[slot] == 0;
+
+    /// <summary>
+    /// The slot of the Building on this Lot, or <see cref="Rows.NoSlot"/> when it is vacant.
+    /// </summary>
+    /// <remarks>Vacant decodes to <see cref="Rows.NoSlot"/> on its own: stored zero, minus one.</remarks>
+    public int BuildingOn(int slot) => BuildingSlot[slot] - 1;
+
+    /// <summary>Records that a Building now stands here.</summary>
+    public void Occupy(int slot, int buildingSlot) => BuildingSlot[slot] = buildingSlot + 1;
+
+    /// <summary>Records that the Lot is clear again.</summary>
+    public void Vacate(int slot) => BuildingSlot[slot] = 0;
 
     /// <summary>Allocates a Lot at a position.</summary>
     public Handle<Lot> Create(Tiles east, Tiles north, ushort zone)

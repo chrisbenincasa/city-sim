@@ -58,7 +58,7 @@ public sealed class RuleEvaluationTests
         var simulation = new Simulation(world, WorldKey.FromSeed(seed));
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
-        Handle<Building> building = world.Buildings.Create(lot, Bakery);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, Bakery);
 
         foreach (BinDeclaration bin in ruleset.BinsOf(Bakery))
         {
@@ -550,7 +550,7 @@ public sealed class RuleEvaluationTests
         var simulation = new Simulation(world, WorldKey.FromSeed(1));
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
-        Handle<Building> building = world.Buildings.Create(lot, Bakery);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, Bakery);
 
         world.CreateBin(building, Flour, capacity: BinCapacity.Of(60));
 

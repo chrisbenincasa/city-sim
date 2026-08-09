@@ -40,6 +40,80 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, MoneyIsRepresentable);
         invariants.Register(InvariantTier.EndOfRun, LayerMagnitudesAreBounded);
         invariants.Register(InvariantTier.EndOfRun, RuleInstancesAreQueuedExactlyOnce);
+        invariants.Register(InvariantTier.EndOfRun, LotsAndBuildingsAgreeWhoIsWhere);
+    }
+
+    /// <summary>
+    /// <c>02 §2.2</c>'s <em>a Lot is either vacant or holds exactly one Building</em>, whole-world.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The claim is as old as the design and has never been checkable</b>, because until slice 10
+    /// the relation was one-directional — a Building named its Lot and nothing named the Building. The
+    /// reverse index is what makes the second direction expressible, and an index is exactly the kind
+    /// of thing that is right when written and wrong three mechanisms later.
+    /// </para>
+    /// <para>
+    /// <b>Both directions are walked, because each sees a failure the other cannot.</b> Walking
+    /// Buildings catches an index left stale by a demolition that freed the row without vacating the
+    /// Lot. Walking Lots catches an index still pointing at a slot that has since been freed — or
+    /// worse, recycled into an unrelated Building, which reads as perfectly valid from the Building
+    /// side and is the failure a generation counter exists to make loud.
+    /// </para>
+    /// <para>
+    /// <b>End-of-run rather than staggered.</b> It is <c>O(Buildings + Lots)</c> with no per-row
+    /// allocation, and the runs that surface an index bug are the long headless ones — <c>02 §10</c>'s
+    /// shape, and the same argument the other four checks here make.
+    /// </para>
+    /// </remarks>
+    internal static void LotsAndBuildingsAgreeWhoIsWhere(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        BuildingTable buildings = world.Buildings;
+        LotTable lots = world.Lots;
+
+        for (int slot = 0; slot < buildings.Rows.SlotCount; slot++)
+        {
+            if (!buildings.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (!lots.Rows.TryResolve(buildings.Lot[slot], out int lotSlot))
+            {
+                // A Building standing on a Lot that no longer exists. Reported here rather than left
+                // to EveryHandleResolves because the consequence is specific: nothing can ever
+                // demolish it, since a Zone Rule reaches a Building only through its Lot.
+                report.Report(Invariant.LotHoldsExactlyOneBuilding, slot);
+                continue;
+            }
+
+            report.Require(
+                lots.BuildingOn(lotSlot) == slot,
+                Invariant.LotHoldsExactlyOneBuilding,
+                slot,
+                lotSlot);
+        }
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || lots.IsVacant(slot))
+            {
+                continue;
+            }
+
+            int building = lots.BuildingOn(slot);
+
+            // IsLive bounds-checks, so a decode that has gone wrong entirely fails here rather than
+            // indexing out of range.
+            bool agrees = buildings.Rows.IsLive(building)
+                && lots.Rows.TryResolve(buildings.Lot[building], out int back)
+                && back == slot;
+
+            report.Require(agrees, Invariant.LotHoldsExactlyOneBuilding, slot, building);
+        }
     }
 
     /// <summary>

@@ -131,7 +131,7 @@ public class RuleTickAxisBenchmarks
         for (int i = 0; i < buildings; i++)
         {
             Handle<Lot> lot = world.Lots.Create(new Tiles(i % 2_048), new Tiles(i / 2_048), zone: 1);
-            made[i] = world.Buildings.Create(lot, Kind);
+            made[i] = world.Buildings.Create(world.Lots, lot, Kind);
 
             foreach (BinDeclaration bin in ruleset.BinsOf(Kind))
             {
