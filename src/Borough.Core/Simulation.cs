@@ -37,6 +37,7 @@ public sealed class Simulation
     private readonly World _world;
     private readonly WorldKey _key;
     private readonly RuleEngine _rules;
+    private readonly ZoneRuleEngine _zoning;
 
     private ulong _tick;
     private TickPhase _phase = TickPhase.Commit;
@@ -50,6 +51,7 @@ public sealed class Simulation
         _world = world;
         _key = key;
         _rules = new RuleEngine(world, key);
+        _zoning = new ZoneRuleEngine(world, key);
     }
 
     /// <summary>The tables this Simulation advances.</summary>
@@ -63,6 +65,16 @@ public sealed class Simulation
     /// the World would have made the buffers look like state, which is precisely what they must not be.
     /// </remarks>
     public RuleEngine Rules => _rules;
+
+    /// <summary>The Sweep Rule interpreter: Zone Rules trigger, sample and act, all in phase 6.</summary>
+    /// <remarks>
+    /// <b>A second engine rather than a mode of the first, which is <c>adr/0033</c> honoured in the
+    /// code layout.</b> The two families share the word <em>Rule</em> and nothing else structural: one
+    /// is woken by the Event Wheel and settled against contention, the other is polled on an interval
+    /// and acts where it runs. A single class that branched on family would make moving a mechanism
+    /// between them look like a flag, which is exactly what the ADR says it is not.
+    /// </remarks>
+    public ZoneRuleEngine Zoning => _zoning;
 
     /// <summary>The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</summary>
     public WorldKey Key => _key;
@@ -293,11 +305,26 @@ public sealed class Simulation
     }
 
     /// <summary>Phase 6 — Zone Rules sample Lots; Buildings with accumulated failure decline.</summary>
-    /// <remarks>Serial. Slice 10, which is gated behind the Rule engine: a Zone Rule is a Sweep Rule.</remarks>
+    /// <remarks>
+    /// <para>
+    /// Serial, and the whole of a Sweep Rule's Tick. <b>That it is one phase rather than three is the
+    /// difference <c>adr/0033</c> is about</b>: a Bin Rule's proposal survives phase 2 only to be
+    /// re-checked and possibly refused in phase 3, whereas a Zone Rule's effect exists the instant it
+    /// acts. Nothing here proposes, so nothing here can be outbid.
+    /// </para>
+    /// <para>
+    /// <b>It runs after phase 5 and that ordering is a decision.</b> A Zone Rule's predicates read
+    /// Map Layer values, so growth this Tick sees the diffusion this Tick — a Building placed on a
+    /// Cell whose pollution rose in phase 5 is judged against the risen figure and not the stale one.
+    /// Reversing the two would make growth lag the environment by a whole Tick on the 1-in-64 Ticks a
+    /// Layer moves, which is a difference no readout could explain.
+    /// </para>
+    /// </remarks>
     private void Growth(Ticks tick)
     {
-        _ = tick;
         _phase = TickPhase.Growth;
+
+        _zoning.Sweep(tick);
     }
 
     /// <summary>Phase 7 — schedule next events, re-evaluate Stress, emit the State Hash if due.</summary>

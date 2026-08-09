@@ -45,7 +45,11 @@ families for performance. Building the second family is what puts it at risk of 
   from five to eight, corrected in `adr/0048` and `adr/0015`.
 - **Task 4** — `PurposeTag.ZoneRuleSample` and `ZoneSample.Draw`. Sampling without replacement turned
   out to need **no retry budget**, which would have been a fourth hash-bearing number.
-- **Next: task 5**, the trigger in Tick phase 6.
+- **Task 5** — `ZoneRuleEngine` and Tick phase 6. `adr/0033`'s observable difference is checkable for
+  the first time. Found `02 §4.2`'s *rotate the scan start* **inapplicable rather than merely
+  unnecessary**, and its stagger too: both are mitigations for a cost that grows with the population,
+  which is a sweep's shape and not a sample's. `adr/0055` had inherited the error and is struck.
+- **Next: task 6**, the create predicate — and the first `[[zone_rule]]` in `rulesets/minimal.toml`.
 
 ---
 
@@ -291,21 +295,49 @@ check rather than a distribution test, aimed at the family of defects that make 
 (a modulus against the wrong bound, a coordinate that does not vary, a dropped mixer). Each of those
 would otherwise look like a city that simply grew slowly.
 
-### 5. The trigger, in Tick phase 6 — and what it does *not* share with a Bin Rule
+### 5. The trigger, in Tick phase 6 — and what it does *not* share with a Bin Rule — **done**
 
-`Simulation.Growth` stops being empty. The Zone Rule evaluates **and acts** inside phase 6.
+`Simulation.Growth` stops being empty. `ZoneRuleEngine` triggers on `tick % interval`, samples, and
+forks each sampled Lot to the mechanism its occupancy selects. **A second engine class rather than a
+mode of `RuleEngine`**, which is `adr/0033` honoured in the layout: a single class branching on family
+would make moving a mechanism between them look like a flag.
 
-**This is `adr/0033`'s observable difference, made concrete, and it is the first time the claim has
-been checkable.** A Bin Rule proposes in Tick phase 2 and is settled in phase 3 by a counter-based
-shuffle, because two Rules may contend for one Bin. A Sweep Rule has no such split: it acts where it
-runs. So the two families differ in **when their effect becomes visible within a single Tick** — which
-is exactly the class of difference the ADR asserts and `05 §4` says makes a migration a design change.
+**`adr/0033`'s observable difference is now checkable, and one test is the whole of it.** A world
+running one Zone Rule and nothing else does real work in phase 6 while the Bin Rule engine's due and
+evaluation counters stay at zero for the entire run and `RuleInstances` holds no rows — no wheel
+entry, no subscription, no proposal that phase 3 could refuse. That boundary is what a migration
+between families would cross.
 
-Contention between two Zone Rules over one Lot is resolved by **scan order** and nothing else, because
-`02 §5.5`'s bid-price contest needs prices. `02 §4.2` supplies the mitigation that *does* exist —
-**rotate the scan start per trigger** — and the reasoning is the wait list's: a fixed order privileges
-the same low-index Lots for the life of the city, and no player could see why. Rotation is required
-here, not optional, and it is cheaper to write once centrally than to argue about later.
+**`02 §4.2`'s *rotate the scan start* is not the mitigation here, and the section is corrected.** Task
+4 had already found rotation unnecessary for the sample; building the trigger found the stronger
+statement — **it is inapplicable**, because a sampler has no scan to start, *and* the bias it exists to
+fix is absent. A Policy rotates because a treasury **is exhausted**, so a fixed order permanently
+excludes the tail of a population; nothing a Zone Rule contends for is exhausted, and two Rules
+overlap at all only about `sample² ÷ Lots` of the time. Contention is settled by **declaration
+order**, which is not new hash-bearing surface — the Rule's index is already a coordinate of its draw.
+`adr/0055` had carried the same over-generalisation into a consequence line and is struck through.
+
+**No stagger either, and that is the same correction one level up.** §4.2's three cheapness mechanisms
+— low frequency, stagger, Chunk partition — are all mitigations for a per-trigger cost that *grows
+with the population*, which is a sweep's shape and not a sample's. Staggering a Zone Rule would be
+armour against the cost task 9's tripwire exists to prove absent, bought with a second hash-bearing
+coordinate in the trigger.
+
+**Phase 6 after phase 5 is a decision, now stated where the code is.** A Zone Rule's predicates read
+Map Layer values, so growth this Tick sees the diffusion this Tick. Reversing them would make growth
+lag the environment by a Tick on the 1-in-64 Ticks a Layer moves — a difference no readout could
+explain.
+
+`ZoneActivity` carries three flows: **triggers**, **vacant** and **occupied**. The last two are two
+different mechanisms rather than a breakdown — a vacant Lot is a candidate for creation, an occupied
+one is a Building whose failure pressure is *read* (`02 §5.9`: *"sampling reads that duration; it never
+produces it"*) — and their **sum** is task 9's quantity. There is deliberately no peak equivalent of
+that sum: the busiest Tick of one flow and of the other need not be the same Tick, so adding the peaks
+would report a burst that never happened. `RuleFlow.Fold` moved onto the type so both engines share one
+definition of the peak, which is the half that drifts silently.
+
+**No `[[zone_rule]]` in `rulesets/minimal.toml` yet.** A trigger that fires and changes nothing is
+content that does nothing; it earns its place in task 6, and the baselines move then. Twelve tests.
 
 ### 6. Create — a Building on a vacant, permitted Lot somebody wants
 

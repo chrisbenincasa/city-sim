@@ -60,7 +60,17 @@ public readonly record struct RuleVerdict(
 /// </remarks>
 /// <param name="Sum">The total over the interval. Divided by the reading cadence, a mean rate.</param>
 /// <param name="Peak">The largest single Tick in that interval.</param>
-public readonly record struct RuleFlow(long Sum, int Peak);
+public readonly record struct RuleFlow(long Sum, int Peak)
+{
+    /// <summary>This flow with one Tick's count rolled into it.</summary>
+    /// <remarks>
+    /// <b>Shared by both Rule families rather than written once per engine</b>, because the peak is
+    /// the half that drifts silently: a sum accumulated wrongly is visible in the first reading, and
+    /// a peak that is never raised reads as a perfectly flat load — which is the shape both engines'
+    /// tripwires are stated over.
+    /// </remarks>
+    public RuleFlow Fold(int tick) => new(Sum + tick, tick > Peak ? tick : Peak);
+}
 
 /// <summary>
 /// What the Rule engine did since the last reading: <c>02 §4</c>'s two counters, and the scheduled
@@ -339,18 +349,14 @@ public sealed class RuleEngine
     /// </remarks>
     public void CloseTick()
     {
-        Fold(ref _dueFlow, _tickDue);
-        Fold(ref _evaluationFlow, _tickEvaluations);
-        Fold(ref _rungFlow, _tickRungs);
+        _dueFlow = _dueFlow.Fold(_tickDue);
+        _evaluationFlow = _evaluationFlow.Fold(_tickEvaluations);
+        _rungFlow = _rungFlow.Fold(_tickRungs);
 
         _tickDue = 0;
         _tickEvaluations = 0;
         _tickRungs = 0;
     }
-
-    /// <summary>Rolls one Tick's count into the interval a Census reading will drain.</summary>
-    private static void Fold(ref RuleFlow flow, int tick) =>
-        flow = new RuleFlow(flow.Sum + tick, tick > flow.Peak ? tick : flow.Peak);
 
     /// <summary>
     /// Evaluates one Rule Instance at the largest count its Bins allow, leaving its net Bin deltas in

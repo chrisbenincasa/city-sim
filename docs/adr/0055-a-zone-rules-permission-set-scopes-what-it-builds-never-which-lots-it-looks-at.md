@@ -53,8 +53,14 @@ instrument idling.
   structurally true rather than a consequence of how the population was filtered.
 - **A Lot with an empty permission set is a real and useful state** — land the player has deliberately
   taken out of development while whatever stands on it lives out its life.
-- **Two Zone Rules may sample the same Lot in one trigger.** Contention is resolved by scan order,
-  with the start rotated per trigger (`02 §4.2`), because `02 §5.5`'s bid-price contest needs prices.
+- **Two Zone Rules may sample the same Lot in one trigger.** Contention is resolved by **declaration
+  order**, because `02 §5.5`'s bid-price contest needs prices. ~~with the start rotated per trigger
+  (`02 §4.2`)~~ — **struck when the trigger was built.** `02 §4.2`'s rotation was generalised from
+  its one worked example, the Policy, and a sampler has no scan to start; the bias it mitigates is
+  also absent, because rotation exists there to stop an *exhausted* treasury permanently excluding
+  the tail of a population and nothing a Zone Rule contends for is exhausted. §4.2 is corrected with
+  this. Declaration order is not a new hash-bearing surface: the Rule's index is already a coordinate
+  of its draw.
 
 ## What would trigger revisiting
 
