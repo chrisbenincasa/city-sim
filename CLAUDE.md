@@ -8,8 +8,8 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: Phase 1 gate closed; S0a run; slice 7 is closed — its gate cleared by session A, its last task shipped, and its 10b half re-filed to Phase 2.** The repository is ~7,000 lines of design
-documents and 51 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
+**Current state: Phase 1 gate closed; S0a run; slice 7 is closed; slice 10 is in flight — task 1 shipped and its design grilled, producing `adr/0053`–`0055`.** The repository is ~7,000 lines of design
+documents and 54 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
 declaration and the State Hash — and all eight tasks of slice 5: `step(inputs)` with the
 eight phases, the command model and the Input Log, replay, the golden-hash baseline, the
@@ -166,7 +166,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | 51 decision records, numbered to `0052` — `0028` is reserved and unwritten |
+| `docs/adr/` | 54 decision records, numbered to `0055` — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |

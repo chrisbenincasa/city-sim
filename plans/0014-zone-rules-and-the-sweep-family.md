@@ -27,7 +27,19 @@ families for performance. Building the second family is what puts it at risk of 
 
 ## Status
 
-**Not started.** The gate is clear and slice 7 — its only dependency — closed with task 10a.
+**Task 1 shipped. Grilled.** The gate is clear and slice 7 — its only dependency — closed with task
+10a.
+
+- **Task 1** — the Lot's permission set at full width. Its second half, *a `zone` verb that paints an
+  area*, was **cut**: see *The second collision*.
+- **Grilled before task 2**, because decision 1 shapes a table rather than a predicate. Produced
+  [`adr/0053`](../docs/adr/0053-failure-pressure-is-a-duration-not-a-tally.md),
+  [`adr/0054`](../docs/adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md)
+  and [`adr/0055`](../docs/adr/0055-a-zone-rules-permission-set-scopes-what-it-builds-never-which-lots-it-looks-at.md),
+  settled three of the four owed decisions, and **deleted one of the four unratified numbers by
+  deriving it away**. Tasks 4, 6, 7 and 8 are rewritten; task 7's planned mechanism was found to
+  invert severity and would have shipped.
+- **Next: task 2**, the derived Lot→Building reverse index.
 
 ---
 
@@ -197,9 +209,19 @@ New refusals, in the same style as the existing five:
 the second states the rule this obeys: two uses of randomness over the same row that answer *different
 questions* must not share a tag, or the two decisions are correlated invisibly.
 
+**The population is every Lot**, not the Lots carrying the Rule's permission bit — `adr/0055`. A
+sample scoped to the bit would make repainting a preservation order, because a Building nobody samples
+is a Building nothing can condemn.
+
 **Sample without replacement**, per `02 §5.3`'s implementation note — UrbanSim samples *with*
 replacement and double-counts an alternative's weight, which the section calls out as a real if minor
 defect. Copying the defect knowingly would be worse than copying it unknowingly.
+
+**The sample decides where to build and never what dies.** On a sampled Lot: vacant → task 6's create
+predicate; occupied → read the Building's failure duration and condemn past threshold. The second is
+an observation of a quantity that was already true, which is what makes sampled decline legitimate
+(`adr/0053`) — sampling the *accumulation* would give every condemned Building a random lifetime
+distributed by sample size and Lot count.
 
 **The sample size is hash-bearing, and `02 §5.3`'s `N` is not it.** §5.3's `N` is the number of
 *dwellings a Household considers*; §5.7's is the number of *Lots a developer evaluates*. Different
@@ -224,66 +246,87 @@ Contention between two Zone Rules over one Lot is resolved by **scan order** and
 the same low-index Lots for the life of the city, and no player could see why. Rotation is required
 here, not optional, and it is cheaper to write once centrally than to argue about later.
 
-### 6. Create — a Building on a vacant, permitted Lot
+### 6. Create — a Building on a vacant, permitted Lot somebody wants
 
 `World.CreateBuilding` already gives a Building its kind's Bins and Rule Instances with an arming
 stagger, so this task is the *decision* and not the construction.
 
-The predicate is **vacant AND permitted**, and the Ruleset comment says in its own words why it is not
-`02 §5.6`'s: no price surface, no capital, no Unplaced Pool, no bid. `rulesets/minimal.toml`'s header
-is the model for the register — it says *"it models no city, and it is not the beginning of one"*, and
-that sentence is why nobody has mistaken it for content.
+The predicate is **vacant AND permitted AND a Household in the Pool would take it**. The third term
+arrived from the grill and is not a softening of the second: `CONTEXT` → Frontage lists the four
+`Evidence` answers for why a Lot is vacant, and *"no Household in the Unplaced Pool that would accept
+it"* is one of them, **beside** *no capital* rather than downstream of it. So consulting the Pool is a
+documented vacancy reason and not a draft of `02 §5.6`'s pro-forma, which needs prices, capital and a
+bid this build has none of. See [`adr/0054`](../docs/adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md).
+
+**The permission bit is a term here and nowhere else.** It does not filter the sample population —
+[`adr/0055`](../docs/adr/0055-a-zone-rules-permission-set-scopes-what-it-builds-never-which-lots-it-looks-at.md),
+because a Rule that only looked at Lots carrying its own bit would make repainting a preservation
+order.
+
+The Ruleset comment says in its own words what is still missing: no price surface, no capital, no bid.
+`rulesets/minimal.toml`'s header is the model for the register — it says *"it models no city, and it
+is not the beginning of one"*, and that sentence is why nobody has mistaken it for content.
 
 **Construction time is deliberately not built** (`02 §5.7`'s second pacing mechanism). A Building
 under construction occupies its Lot and produces nothing, which needs a state a Building does not
 have; it is Phase 2's, with the derelict flag slice 8 owes.
 
-### 7. Demolish — from the one failure source that exists
+### 7. Demolish — and failure pressure is a duration, not a tally
 
-A Building accumulates failure pressure from **Rules reaching a reporting terminal**, and past a
-Ruleset-authored threshold it is demolished and its Lot returns to vacant (`02 §5.9`).
+**The grill rewrote this task.** [`adr/0053`](../docs/adr/0053-failure-pressure-is-a-duration-not-a-tally.md)
+owns the reasoning; what changes here is that the planned mechanism — *pressure is a count of terminal
+firings* — was found to **invert severity** and would have shipped.
 
-Two properties this must have, both from `02 §5.9` and neither optional:
+Under [`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md) a failed Rule
+does not retry; it subscribes and sleeps. So a comprehensively starved Building emits **one** terminal
+report and then nothing, while an intermittently supplied one wakes and fails repeatedly. A tally
+condemns the second and spares the first.
 
-- **The accumulated condition is retained and readable.** *"abandoned: 74% of work trips exceeded
-  commute budget over 30 days"* is the section's example; ours is a terminal count, which is less
-  interesting and the same shape. A demolition with no sentence behind it is the sad-face icon the
-  section exists to refuse — `LEGIBLE CAUSE`.
-- **Failure pressure needs a sink**, or `adr/0006` is violated by the mechanism built to prove the
-  city is bounded. Pressure that only accumulates makes every Building eventually fall over, at a rate
-  set by elapsed time rather than by conditions. It decays, and the decay rate is Ruleset data — the
-  same shape `adr/0051` gave pollution, and found the hard way when a `map` emission accumulated with
-  no sink for six slices.
+So: a Building carries **the Tick it began failing**. Pressure is `now − since`, derived on read,
+reset whenever a Rule fires successfully. Three consequences:
 
-**Buildings do not shrink** (`adr/0025`). There is no downgrade in this slice and there should not be
-one: `02 §5.9` calls the earlier "declines a density level" wording physically incoherent, and the
-density ladder is walked at construction only.
+- **The decay rate is deleted before it was ever chosen.** Nothing accumulates, so nothing can run
+  away, and `adr/0006`'s magnitude half is satisfied structurally rather than by a number somebody
+  tuned. Four unratified numbers became three.
+- **The threshold is authored in *missed firings*, not Ticks.** A Rule fires every `rate` Ticks when
+  healthy, so silence of `N × rate` is `N` missed firings. In Ticks, a Ruleset that halved every rate
+  would silently double every Building's lifespan.
+- **One threshold, not two.** `02 §5.9` has *loses occupancy and quality*, then *abandoned*. Only the
+  second ships: the first is half-expressible because **quality does not exist anywhere in the tree**,
+  and it is purely additive later.
 
-### 8. What happens to the Households in a demolished Building — and this one is a hole
+`RuleInstanceTable.Reported` needs no change — it is already a `ConditionId` **level**, which is the
+right shape. The condition current at the crossing is retained so the demolition has a sentence behind
+it, per `02 §5.9`'s refusal of the sad-face icon. Ours is a duration and a condition where §5.9's
+worked example is a proportion over a window; that is a weaker instrument of the same shape, and the
+window version is not attempted rather than approximated.
 
-**`World.DestroyBuilding` does not touch Occupants.** It frees the Building's Rule Instances, wakes
-and frees its Bins, and frees the Building row. `BuildingTable` declares `OccupantHead`/`OccupantTail`
-and `HouseholdTable` declares `Dwelling` — a handle at the other end of that list.
+**Buildings do not shrink** (`adr/0025`). No downgrade in this slice.
 
-So demolishing an occupied dwelling leaves every resident Household holding a **handle to a freed
-row**, which `Rows`' generation counter turns into a `StaleHandleException` on next access. Loud, at
-least — but the correct behaviour is not *don't throw*, it is **the Households go somewhere**, and the
-somewhere is the **Unplaced Pool**, which does not exist.
+### 8. Eviction — where the Households go, and it is settled
 
-**This is slice 10's `pool`.** Options, none of them settled here:
+**No longer a hole.** [`adr/0054`](../docs/adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md)
+settles it: the Occupants move to a minimal **Unplaced Pool** with `Money` and `Savings` intact, and
+task 6's create predicate drains it.
 
-- **(a)** Demolish only unoccupied Buildings. Cheap, honest, and it makes the demolish path unreachable
-  in any populated world — `SyntheticCity` places Households in every dwelling — so it would ship a
-  mechanism nothing exercises, which is the defect task 9's tripwire exists to catch elsewhere.
-- **(b)** Destroy the Households with the Building. Wrong, and quietly: it is an unbounded population
-  sink with no Departure record, and `06` mechanism 2 already owes a milestone for where Households
-  come from and go.
-- **(c)** Build the minimal Unplaced Pool this slice needs, and let `06` 9a generalise it. The shape
-  slice 7 took for the Event Wheel (`0011` decision owed 1 branch (c)), which worked.
+Three findings from the grill made the choice cheap:
 
-**Recommendation: (c)**, with slice 7's reservation attached — it must not quietly decide what `06` 9a
-owns. The Pool's *semantics* — immigration, Departure, rejected-arrival reasons — are not this slice's.
-A list of Households with no dwelling is.
+- **Eviction is free.** Moving a Household touches `Dwelling` and the occupant list; it does not touch
+  `Money` or `Savings`, so *"Households keep what they own"* is what not writing to those columns
+  already means.
+- **Destroying them is a money leak**, which `adr/0024` forbids and which this project has already
+  paid for once — slice 7 took the Resource family out of order *"to stop a money leak six slices
+  old"*.
+- **The Pool needs no Departure yet.** Nothing creates a Household after world creation, so the Pool
+  is a subset of a fixed population and cannot grow with elapsed time. `adr/0006` holds for a reason
+  that has nothing to do with the mechanism the design intends — **and that reason expires the day
+  immigration arrives**, which the ADR records as the named trigger.
+
+**One invariant is qualified, not deleted.** `WorldInvariants` reports `HouseholdHomeExists` when
+`Dwelling` fails to resolve. The claim becomes *a Household is housed **or** is in the Pool*, and a
+Household that is neither is still a violation — which is the check worth keeping.
+
+**No emigration, no refusal reasons, no give-up counter, no rejected-arrival taxonomy.** All 9a's.
 
 ### 9. The tripwire — constant cost regardless of Zone size
 
@@ -344,25 +387,52 @@ is a whole number of the Zone Rule's trigger period, or the assertion is about t
 
 ---
 
-## Decisions owed, found while planning
+## Decisions owed — three settled by the grill, one deliberately left
 
-**1. Where the Households from a demolished Building go.** Task 8. Three branches, (c) recommended.
-Arguable, and it is a fairness-and-bookkeeping question rather than a measurable one.
+**Grilled before task 2 was written**, on the reasoning that decision 1 shapes a table rather than a
+predicate and discovering it mid-task 7 would be expensive. It produced three ADRs and deleted one of
+the four unratified numbers.
 
-**2. Whether a Zone Rule may demolish a Building it did not build.** The Ruleset declares a Zone Rule
-against a permission bit and a kind. A Building whose Lot's permission set has since been repainted by
-the player is outside every Zone Rule's population, so nothing can ever demolish it — a Building
-immortal by a paint stroke. Arguable, and it interacts with slice 8: a hot reload that removes a kind
-already owes `02 §4.3`'s **derelict rather than deleted**.
+**~~1. Where the Households from a demolished Building go.~~ SETTLED** →
+[`adr/0054`](../docs/adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md).
+Branch (c), and cheaper than the plan feared: eviction is free because it never touches `Money` or
+`Savings`, and the Pool needs no Departure because nothing creates a Household after world creation.
+**The bound is real and its reason is not the design's** — that is the ADR's load-bearing half.
 
-**3. The relationship between failure pressure and the reporting terminal's recorded condition.**
-`adr/0045` made the terminal *record why*; this slice makes something *read* it. Whether pressure is a
-count of terminal firings, or is weighted by which condition, is a modelling decision with `LEGIBLE
-CAUSE` consequences — the inspector sentence differs.
+**~~2. Whether a Zone Rule may demolish a Building it did not build.~~ SETTLED** →
+[`adr/0055`](../docs/adr/0055-a-zone-rules-permission-set-scopes-what-it-builds-never-which-lots-it-looks-at.md).
+The question decomposed into four sub-decisions of which only one was open. Repainting does **nothing
+immediate** (`adr/0025`, plus `01 §5` listing rezoning and clearance as *separate* recovery levers),
+which forces the rest: the permission bit scopes the create predicate, the sample population is every
+Lot, and nothing is ever immortal.
 
-**4. Whether the create predicate's absence needs a name in the Ruleset schema.** `rulesets/minimal.toml`
-handles this in prose. A second file doing the same suggests the pattern wants a first-class spelling —
-or that prose is the right answer twice. Do not decide this on one instance.
+**~~3. Pressure as a count of terminal firings, or weighted by condition.~~ SETTLED, and the question
+was wrong** → [`adr/0053`](../docs/adr/0053-failure-pressure-is-a-duration-not-a-tally.md). Both
+branches were tallies, and a tally **inverts severity** under `adr/0045`'s subscription model: a
+comprehensively starved Building emits one event and sleeps, an intermittently supplied one emits many.
+Pressure is a **duration**. This is the grill's largest finding and it would have shipped.
+
+**4. Whether the create predicate's absence needs a name in the Ruleset schema.** Still open, and
+deliberately. `rulesets/minimal.toml` handles this in prose. A second file doing the same suggests the
+pattern wants a first-class spelling — or that prose is the right answer twice. Do not decide this on
+one instance.
+
+### The numbers, after the grill
+
+Four became three, and the one that went was **derived away rather than chosen** — the third time that
+has worked here, after tau and the arming stagger.
+
+| Number | Standing |
+|---|---|
+| ~~**Failure-pressure decay rate**~~ | **Deleted.** A duration does not accumulate, so there is nothing to decay and `adr/0006`'s magnitude half holds structurally |
+| **Condemnation threshold** | Authored in **missed firings**, not Ticks — dimensionless, and immune to a Ruleset that retunes every `rate` |
+| **Sample size** | Its usual justification — *sample N, take the best* — has nothing to rank until `02 §5.4`'s choice model exists. Today it buys throughput, not choice |
+| **Trigger interval** | `02 §4.2` names it Ruleset data. Composes with sample size into one rate; they differ only in burstiness |
+
+All three go to [`0002`](0002-open-questions.md) §D **D1** with task 10's 100,000-Tick run as a
+**bounding** ratifier — the values must sit where `live` neither collapses to zero nor stays flat — and
+the first playable build as what selects within that band. The row says *bounds* rather than *picks*,
+because pretending a pacing number was settled by a benchmark is exactly what `adr/0052` exists to stop.
 
 ---
 

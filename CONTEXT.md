@@ -158,6 +158,17 @@ A Building holds **one or more Occupants** — an apartment block is one Buildin
 
 It may hold Bins its Occupants draw from, one Access Point they all share, and one Parking Shed they all query. It may **never** hold a Need, money, a Provider List, a Trip, or anything a Household decides. If a field would differ between two Occupants, it lives on the Occupant. The checkable rule: *a Building field that would have to be averaged across its Occupants is a Cohort forming* — which `adr/0005` deleted, and which would re-enter here if anywhere.
 
+**Failure Pressure**
+What a Building accumulates when the city stops working for it. Three sources: **Trips to or from it failing**, **its Rules repeatedly reaching a reporting terminal**, and **local conditions falling below its Occupants' tolerance**. Past a threshold it loses occupancy and quality; past a further one it is **abandoned**, its Occupants are evicted into the Unplaced Pool, and its Lot returns to vacant.
+
+**It is a property of the Building and of nothing else.** Not of the Lot, not of the Zone, not of what the land is currently zoned for — which is why repainting a permission set cannot save a Building or condemn one.
+
+**It is a duration, not a tally**, and that distinction is the whole mechanism. Pressure is *how long this Building has been continuously failing* — measured from the moment it entered the failing state — and it resets the instant it stops. Recovery is therefore total and immediate: a Building whose Trips start succeeding again is not a Building working off a debt, it is a Building that is fine.
+
+**Counting failure events instead would invert severity, which is the trap here.** A Rule that fails does not retry; it subscribes to what it is short of and sleeps until supply arrives (`adr/0045`). So a Building that is *comprehensively* starved generates **one** failure event and then silence, while a Building that is *intermittently* supplied wakes and fails over and over. Tally them and the healthier Building is condemned first. Duration gets the ordering right, and needs no decay rate to stay bounded — nothing accrues, so nothing can run away.
+
+**The accumulated condition is retained and readable** — *"abandoned: 74% of work trips exceeded commute budget over 30 days"*, never a sad-face icon. An abandonment nobody can explain is the thing this whole design exists to refuse. `LEGIBLE CAUSE`
+
 **Outside Connection**
 A special Building at the map edge representing the rest of the world. Absorbs surplus Goods and supplies deficits, at a price. The pressure-release valve that keeps the economy from having to balance perfectly.
 
@@ -205,6 +216,10 @@ A Rule that fires on a **time trigger**, walks a population, tests real simulati
 
 **Zone Rule**
 A Sweep Rule over Lots: it creates, upgrades, downgrades, or demolishes Buildings. It **samples** a small random set rather than scanning — not to save work, but because sampling *is* the behaviour model. Developers do not evaluate every Lot either. That it also keeps growth cost constant regardless of Zone size is a second benefit, not the reason.
+
+**The sample decides where to build; it never decides what dies.** The *developers do not evaluate every Lot* argument is about an actor choosing among alternatives, and **abandonment has no actor** — a Building does not fall over because somebody looked at it. So a sampled Lot's Building is condemned on a quantity that was already true before the sample arrived: how long it has been failing (see **Failure Pressure**). The sample is when the city *notices*, not when the Building *fails*. Sampling the accumulation rather than the observation would give every condemned Building a random lifetime whose distribution is set by sample size and Lot count, which models nothing.
+
+**The permission set scopes what a Zone Rule may build, never which Lots it looks at.** A Rule that only ever sampled Lots already carrying its bit would make a Building's mortality depend on the player's paint — repaint the land and the Building becomes unreachable and therefore immortal. Permission is a term in the *create* predicate; the population is Lots.
 
 A Policy, by contrast, **sweeps** its whole population, because a transfer is an entitlement rather than a behaviour and paying a random subset would be a defect.
 
@@ -394,11 +409,17 @@ A Citizen or Household the player has chosen to keep track of after meeting them
 Pinning is how the game delivers long-term attachment to individuals without needing free-roam inspection: players do not want to click strangers, they want to follow *someone they were introduced to*.
 
 **Unplaced Pool**
-The set of Households currently seeking housing — immigrants, existing Households that decided to move, and **Households the city generated itself** when a Mature Family's children left home. All three enter on equal terms, which is what makes a city failing to house its own children visible rather than a special case. A Household that finds no acceptable dwelling in a cycle stays in the Pool with a **recorded refusal reason**.
+The set of Households currently seeking housing — immigrants, existing Households that decided to move, **Households the city generated itself** when a Mature Family's children left home, and **Households evicted when the Building they lived in was demolished**. All four enter on equal terms, which is what makes a city failing to house its own children visible rather than a special case.
+
+**Eviction is the one route the Household did not choose**, and it is the reason the Pool cannot be described as *Households seeking to move*. The other three are looking; an evicted Household is looking because the city stopped housing it. It arrives with its Money and Savings intact — losing a dwelling is not losing what you own — which is also what keeps demolition from being a hole in `adr/0024`'s conserved Money.
+
+A Household that finds no acceptable dwelling in a cycle stays in the Pool with a **recorded refusal reason**.
 
 The Pool *is* the demand signal. It replaces the global RCI demand scalar found in other city builders, and it is strictly better as an interface: "412 Households want to move in; 380 can't find anything under §900; 32 can't reach a job inside their Commute Budget" is a diagnosis rather than a bar chart.
 
 The Pool is bounded — Households give up after a limited number of failed attempts and become a Departure. `LEGIBLE CAUSE`
+
+**That is the bound the design relies on, and it is not the bound in force today.** Nothing creates a Household after world creation, so the Pool is currently a subset of a population fixed at that moment and cannot grow with elapsed time whatever it does. `adr/0006` is therefore satisfied for a reason that has nothing to do with Departure — **and the day immigration arrives, that reason evaporates and Departure becomes load-bearing**. Whoever builds the gate owes the give-up rule in the same milestone.
 
 **Departure**
 A Household leaving the city permanently. Two channels, counted and surfaced **separately**, because they are different diagnoses with different remedies:
