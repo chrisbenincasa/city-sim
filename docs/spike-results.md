@@ -4621,6 +4621,121 @@ measurement track's question**, and nothing in the process notices.
 
 ---
 
+## S2 R5.6 — the Parking Shed, and the rung it disagrees with
+
+**The second Epoch consumer, and `plans/0010` named it the one the ladder was most likely to be
+decided by.** It scales with **Buildings** rather than routes, and `05 §3` declares it cached per
+Building and *"invalidated by the Road Graph Epoch."* Harness at `spikes/S2.Routing/Storm/ParkingShed.cs`
+and a `--shed` section; the storm, the gestures and the cluster partitions are R5's own, so the two
+sections compare directly.
+
+**Four rungs where routes had three, and the extra one is the whole result.** A route's witness is the
+arcs it drives and it stores them anyway. A shed has no path, so *"my Segments"* is a **choice**, and
+the two defensible answers differ by an order of magnitude: the **ball** — every Segment the walk
+explored — or the **paths** — only the walks to the Bins the shed kept. Measuring the conservative one
+alone would have condemned the rung on a definition rather than on a number.
+
+### What a shed is
+
+159,825 sheds — five Buildings a Segment, `CONTEXT.md`'s own working figure, on Segments admitting
+**both** Car and Foot. Walking distance is swept because the corpus says *acceptable* and states no
+number.
+
+| Walk radius | Build | Bins found | Ball Segments | Path Segments |
+|---:|---:|---:|---:|---:|
+| 200 m | 1.76 µs | 22 | 4 | 1 |
+| 400 m | 1.59 µs | 110 | 22 | 2 |
+| 800 m | 4.37 µs | 596 | 122 | 2 |
+
+**The path witness saturates and the ball does not.** The ball grows 4 → 22 → 122 with the radius; the
+paths witness is **2 Segments at 400 m and still 2 at 800 m**, because it is bounded by the handful of
+Bins the shed keeps rather than by how far a pedestrian may walk. **A witness that does not grow with
+the parameter nobody has set is worth more than one that is merely small today.**
+
+### The storm
+
+At 400 m, 1.59 µs to rebuild one shed, mean over 24 gestures. *Asked* against *got* is reported because
+an Arterial drag runs out of fast road — at 16 and at 256 it is **the same 3-Segment gesture**, and the
+two rows must not be read as a trend.
+
+| Gesture | Asked | Got | global | per-cluster (8) | per-cluster (16) | per-Segment (ball) | per-Segment (paths) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| drag | 1 | 1 | **1638.20%** | 13.04% | 37.51% | 1.12% | **0.10%** |
+| drag | 256 | 199 | **1638.20%** | 164.48% | 264.20% | 51.98% | **14.95%** |
+| scattered | 256 | 256 | **1638.20%** | 1351.24% | 1619.75% | 265.45% | **26.10%** |
+| arterial | 256 | 3 | **1638.20%** | 37.60% | 100.99% | 0.00% | **0.00%** |
+
+**The global rung is out, and the tripwire fired as written.** One deleted Segment anywhere invalidates
+all 159,825 sheds, at **255.560 ms — 1,638.20% of a Tick**. `plans/0010` predicted it in words before
+the harness existed. **The number is worse than the sentence**, because `adr/0009` pays the rebuild *on
+arrival* — the moment a Trip is trying to finish — so it is not one stall but a stampede spread across
+every arriving vehicle in the city, triggered by the player's most common action.
+
+**`plans/0010`'s own prediction about the winner is measured false, and it is the seventh claim in the
+corpus to go that way.** The plan argued that *"a per-cluster Epoch fits it far better than it fits
+routes: a shed is inherently local, and 'did anything change in my cluster' is close to the right
+question already."* It is the **worst surviving rung**: 127× the invalidation of per-Segment (paths) on
+a single-Segment drag (1,273 against 10), and 1,351.24% of a Tick on a scattered storm. **The intuition
+confuses two localities.** A shed *is* local — 22 Segments — but a cluster is not the shed's
+neighbourhood, it is a fixed tile of map holding thousands of sheds, so cluster granularity answers a
+question far coarser than the one asked.
+
+**The Arterial rows are where the over-invalidation becomes visible rather than inferred.** Arterials on
+this graph are `Modes.Car` only — a motorway has no pavement — so no Building fronts one and no walk
+crosses one. Deleting three of them invalidates **zero** sheds under either per-Segment rung, correctly,
+and **3,669 under per-cluster**. Every one of those is wrong. **A rung whose error is 100% on a gesture
+the design expects is not a granularity that needs tuning.**
+
+**The 8-versus-16 conditional resolves, and it resolves the way R3 already went.** The board carried
+R3's cluster-size pick as *"conditional on R5.6, which may rank a Parking Shed differently, so the
+sweep is not deleted."* It does not rank it differently: **8 beats 16 on every gesture and every size**,
+by 2.9× at a single-Segment drag and 1.6× at a 256-Segment drag. The conditional is discharged and the
+sweep may go.
+
+| Rung | Reverse index | Resident |
+|---|---:|---:|
+| per-cluster (16) | 222,536 entries | 0.84 MiB |
+| per-cluster (8) | 301,599 entries | 1.15 MiB |
+| per-Segment (paths) | 319,655 entries | 1.21 MiB |
+| per-Segment (ball) | 3,608,241 entries | 13.76 MiB |
+
+**Storage decides nothing, exactly as R5 said it would not.** The winning rung's reverse index is
+1.21 MiB against a world S0a measures at 85.98 MiB. **The rung that costs the most to store is not the
+rung that costs the most to be wrong**, and the two orderings are nearly inverted.
+
+### The verdict
+
+**Per-Segment, witnessed by paths, and it is the only rung that fits.** Worst case **26.10% of a Tick**
+against per-Segment (ball) at 265.45%, per-cluster at 1,351.24% and global at 1,638.20%. It carries the
+same soundness qualifier `EditStorm` already states for routes — **exact under deletion, unsound under
+addition**, because new road can shorten a walk without touching a Segment the walk used — so the
+addition case needs the same answer routes get, and does not have one yet.
+
+**And that is the disagreement the section was run to find.** R5 concluded that for routes **no Epoch
+rung was both affordable and correct**, and the way out was a TTL rotation — a *temporal* answer. Sheds
+need no rotation at all: a structural rung fits with 74% of the budget spare. **The two consumers do
+not want the same mechanism**, which is the fact `adr/0012`'s owed amendment has to carry, and it is
+also why `plans/0010` was right to insist they be measured together even though its prediction about
+which way it would go was wrong.
+
+**Two defects found in this harness before the numbers were believed, both of the session's recurring
+kind.** The storm deletes by writing `Impassable` into a *car* cost array, and `SegmentEntry.ArcCost`
+**ignores that array entirely when the mode is Foot** — a shed built against it would have walked down
+bulldozed roads and reported a serene invalidation cost, which is R5.5's pristine-seeding defect
+exactly, in a second consumer. And the path witness at first omitted the shed's **own** Segment, so
+bulldozing the road a Building stands on left that Building's shed valid; it showed up as a 0.00%
+column, which is the value this spike has learned to distrust on sight.
+
+**One dead column is retained and labelled.** *Empty* — sheds finding no Bin — is **0 everywhere and
+cannot be otherwise**, because every Building is a Bin site and so every shed contains its own. It is
+kept in the harness rather than deleted so the next reader does not mistake its absence for an unasked
+question, but nothing may be concluded from it.
+
+**Capture is `powersave`.** The absolutes owe a root/`performance` re-take alongside R7's, exactly as
+R6's and S0a's do.
+
+---
+
 ## S0a — the world at target size
 
 **S0 turned out to be two spikes filed as one, and only one of them was runnable.**

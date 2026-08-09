@@ -106,6 +106,7 @@ for arg in "$@"; do
         --key)     SECTIONS="${SECTIONS}+r61" ;;
         --eviction) SECTIONS="${SECTIONS}+r62" ;;
         --budget)  SECTIONS="${SECTIONS}+r63" ;;
+        --shed)    SECTIONS="${SECTIONS}+r56" ;;
         --loop)    SECTIONS="${SECTIONS}+r8" ;;
         --out)     ;;
         --*)

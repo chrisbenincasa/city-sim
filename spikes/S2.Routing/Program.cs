@@ -22,6 +22,7 @@ bool loop = false;
 bool key = false;
 bool eviction = false;
 bool budget = false;
+bool shed = false;
 
 // R5.5 alone. It is the longest section in the spike and the last one open, so it gets a flag of
 // its own — but it is also *part of* R5, so `--storm` runs it too and passing both runs it twice.
@@ -70,12 +71,15 @@ for (int i = 0; i < args.Length; i++)
         case "--budget":
             budget = true;
             break;
+        case "--shed":
+            shed = true;
+            break;
         default:
             Console.Error.WriteLine($"Unrecognised argument: {args[i]}");
             Console.Error.WriteLine(
                 "Usage: S2.Routing [--graph] [--denominator] [--matrix] [--traffic] [--cluster] "
                 + "[--vector] [--storm] [--path-source] [--loop] [--key] [--eviction] "
-                + "[--budget] [--out PATH]");
+                + "[--budget] [--shed] [--out PATH]");
             return 2;
     }
 }
@@ -86,7 +90,7 @@ for (int i = 0; i < args.Length; i++)
 // and R8 is contained by nothing, so leaving it out of the default would make a whole-run capture
 // silently missing a section rather than printing one twice.
 if (!graph && !denominator && !matrix && !traffic && !cluster && !vector && !storm && !pathSource
-    && !loop && !key && !eviction && !budget)
+    && !loop && !key && !eviction && !budget && !shed)
 {
     graph = true;
     denominator = true;
@@ -99,6 +103,7 @@ if (!graph && !denominator && !matrix && !traffic && !cluster && !vector && !sto
     key = true;
     eviction = true;
     budget = true;
+    shed = true;
 }
 
 // Read before any work and again after all of it, so the contention block at the foot of the report
@@ -117,6 +122,7 @@ string report =
     + (key ? KeyReport.Run() + Environment.NewLine : string.Empty)
     + (eviction ? EvictionReport.Run() + Environment.NewLine : string.Empty)
     + (budget ? BudgetReport.Run() + Environment.NewLine : string.Empty)
+    + (shed ? ShedReport.Run() + Environment.NewLine : string.Empty)
     + (pathSource ? StormReport.RunPathSource() : string.Empty);
 
 report += Environment.NewLine + "---" + Environment.NewLine + Environment.NewLine
