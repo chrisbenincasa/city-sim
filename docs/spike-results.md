@@ -4929,6 +4929,77 @@ quantity rather than a duration — entries, wrong entries, non-optimal routes, 
 reproduces exactly. **Only the timing columns moved, which is the artefact behaving as diagnosed**
 rather than a second unexplained difference riding along with it.
 
+### The canonical capture, and the reconciliation it closed
+
+**Taken 2026-08-09, `performance`, turbo, `cpu2+8`, all six sections in one process** —
+`s2-r0+r0d+r1+r2+r3+r4-…-performance-turbo-cpu2+8-20260809T142233Z`. Run duration 194.06 s, **CPU stall
+0.10% and memory stall 0.00% over the run**, which is the machine block doing the job it exists for.
+This is the first capture of R0–R4 under the configuration this corpus calls canonical.
+
+> **One run, not two.** Session eleven's precedent is two captures of one configuration fourteen
+> minutes apart, on the argument that *two runs of one configuration are an error bar and one run is an
+> assertion.* This is an assertion. Counts are still checkable — they are bit-identical against the
+> `powersave` re-pin — but **no nanosecond figure below carries a measured error bar**, and a second
+> run is cheap.
+
+**R2's 474.47 ms is resolved, and R7's own diagnosis of it was wrong.** R7 recorded *"217.36 ms
+reproduces, so the disagreement is not the pinning artefact and R2's figure is the one under
+suspicion."* The conclusion was right and the reason was not: **the two figures were never the same
+operation.**
+
+| Operation | R2.1 | R4.3 | R4.4 |
+|---|---:|---:|---:|
+| 121 backward Dijkstras — the **shared route store** build | **195.44 ms** | **195.42 ms** | **194.94 ms** |
+| The **next-hop table** build — a larger operation | **260.57 ms** | — | — |
+
+Three independent measurements of the same operation agree to **0.3%**. What the corpus published as
+*"the same 121 backward Dijkstras"* at **474.47 ms** was the **next-hop** build, which is a different
+and larger thing, and under correct pinning it reads **260.57 ms**. That is a **1.82×** move — against
+the **1.80×** R4 independently measured for the same first-timed JIT artefact. **One artefact, two
+witnesses, and the *2.2× disagreement* was comparing two different operations the whole time.**
+
+**Plain Dijkstra's absolute settles, and the standing hypothesis is confirmed.** Driving `None` reads
+**723,306 ns** canonically, against **1,240,382** pinned to one logical processor and 779,150 unpinned.
+The first-timed row was inflated **1.71×** by tiered-JIT contention, exactly as diagnosed, and the
+check R0 asked for — *re-run the ladder, or disable tiering* — is discharged by the pinning fix
+instead.
+
+**The break-even holds, so pinning was the whole artefact.** R3's most-cited figure went 85 (one
+processor) → 112 (`powersave`, pinned) → **111** (canonical). The governor is worth about 1%; the
+correction is real and it is confirmed. The 8-versus-16 query advantage reads **1.49×** — between the
+published 1.31× and the `powersave` re-pin's 1.61× — so the conclusion is unchanged: **routes alone
+would now pick 16, and R5.6's Parking Shed is what keeps the answer at 8.**
+
+**Tripwire row 2 does not fire under canonical conditions either** — **1.17 ns** at the 121-District
+anchor and **5.25 ns** at 4,096, against K2's 13.6 ns.
+
+#### A struck claim comes back, and it should be re-examined rather than re-instated
+
+R0 originally reported that **`EuclideanFloor` is not faster than plain Dijkstra at all**, and the
+board struck it as an artefact of the unpinned capture. Canonically, `EuclideanFloor` totals
+**759,127 ns** against `None`'s **723,607 ns** — so it is **slower**, and the struck claim is true
+under the configuration the corpus now calls canonical. The mechanism was always stated and is
+unaffected by pinning: an exact integer square root is a sixteen-iteration loop run twice per node
+pushed, which is why `EuclideanFloor` expands the fewest nodes of the safe rungs and costs **204 ns
+per expansion** against `Chebyshev`'s 106. **Somebody should decide whether the strike stands**, and
+the answer is not automatic: a claim struck for a bad reason can still be true.
+
+#### A capture file is static prose plus generated tables, and only the tables are data
+
+**Found while reconciling R2, and it is a provenance defect with corpus-wide reach.** In this
+capture's own R4 section, the verdict prose reads *"472.53 ms against 217.36 ms … 2.17× slower"* and
+*"3.35 ms against a 217.36 ms rebuild — 64.81×"*, while **R4.4's table in the same file** reads
+rebuild **194.94 ms**, DSDV sequenced **450.80 ms**, dynamic repair **3.05 ms**, **63.86×**. The prose
+is authored commentary with numbers written into it; the tables are regenerated per run. **They
+disagree because the prose was written against an earlier capture and nothing re-derives it.**
+
+Nothing here moves a conclusion — 63.86× and 64.81× decide the same thing. What it moves is a rule:
+**a figure quoted out of a capture must come from a table**, and any figure this corpus took from
+capture prose is provenance-unknown rather than merely stale. This is the fourth provenance defect S2
+has found in its own reporting, after the mislabelled section filenames, the machine block that
+asserted a pinning it never read, and R5.5's denominator-free comparison — and it is the same shape as
+all three: **the part of a report a human wrote is the part that does not get re-measured.**
+
 ### Against the tripwire — every row, and the three that could not be scored as written
 
 `plans/0010`'s wire has **seven rows**, written before any number arrived, on S4's stated practice:
@@ -5137,9 +5208,18 @@ in the process looks.**
 
 ### What R7 still owes
 
-- **The `performance` capture.** Every S2 absolute now in the corpus is either mis-pinned or
-  `powersave` or both. This re-capture fixes the pinning for four sections; **R5.6, R6.1, R6.2 and
-  R6.3 remain `powersave`** and R5's are `performance` but predate nothing that moved.
+- ~~**The `performance` capture.**~~ **TAKEN**, 2026-08-09, all six sections — see above. **What
+  remains is a second run of it**, because one capture is an assertion and two are an error bar, and
+  **R5.6, R6.1, R6.2 and R6.3 are still `powersave`**. Those four publish no timing figure that a
+  conclusion rests on, which is why they are last rather than urgent.
+- ~~**R2's reconciliation.**~~ **CLOSED** — the two figures were never the same operation, and the
+  1.82× move on the one that did shift matches R4's independently measured 1.80× artefact.
+- **Re-verify the absolutes R0–R4 publish**, now that a canonical capture exists to verify them
+  against. R3 already disclaims its own — *"until it exists no absolute nanosecond figure in this
+  section should be quoted outside it"* — and that disclaimer can now be lifted or discharged rather
+  than carried.
+- **Whether R0's struck `EuclideanFloor` claim stands.** True under canonical conditions; struck for a
+  reason that no longer applies. A claim struck for a bad reason can still be true.
 - **Row 5 of the tripwire, which no round owns.** Recorded above as unscorable rather than clear. It
   wants a run with a sink and elapsed time in it, and that is Phase 2's.
 - ~~**R6 has no closing verdict.**~~ **WRITTEN** — *What R6 decided, and what it did not*, above. It

@@ -596,9 +596,8 @@ diagnose.
       **force-promotion must stand on its own second argument or go** — and R2 removed the last
       support for the first: `§3.3` confessed a *lag* and compensated for it, but the defect is that
       the smear reports the jam **in the wrong place**, which no cadence and no second trigger fixes
-- [ ] **`adr/0012` amendment** — the route cache's **eviction policy** *and* its **key** (`adr/0012`'s
-      *"keyed by origin-destination pair"* is ambiguous between nodes² and Buildings²). **The content
-      now exists and only the typing is owed**, from R6's verdict: the key is **nearest-node repaired
+- [x] ~~**`adr/0012` amendment**~~ **DISCHARGED.** The route cache's **eviction policy** *and* its **key** (`adr/0012`'s
+      *"keyed by origin-destination pair"* is ambiguous between nodes² and Buildings²). **Written**, from R6's verdict, as an amendment blockquote on the caching bullet plus two new revisit triggers: the key is **nearest-node repaired
       by one comparison at insert** (`node-a` costs exactly 2×, and the number to quote is the
       **absolute** 0.86–0.94 Ticks, flat across the O-D family, never the percentage); eviction is
       **fixed capacity, 4-way LRU, high-bit index** — conflict 20.0% → 3.8% against a 0.0% bound, with
