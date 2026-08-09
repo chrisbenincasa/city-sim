@@ -2736,6 +2736,13 @@ consume a whole 15.6 ms Tick on its own.
 | 32, reduced + paths | 210,385 ns | **74** |
 | 64, reduced + paths | 746,193 ns | **20** |
 
+> **SUPERSEDED by R7's re-capture, and the whole table is one processor's.** Every row here was taken
+> under `taskset -c 2`. Correctly pinned the best rung reads **138,641 ns and a break-even of 112**,
+> not 85 — the corpus's most-quoted routing figure is **32% low** — and 8 reads 69 rather than 65.
+> The tripwire's *form* survives, being a measured cost over a world constant; its number did not.
+> Retained rather than corrected in place, because what the number was when the recommendation below
+> was written is the record.
+
 **The break-even column is the finding, and it is stated this way deliberately.** *Break-even
 Trips/Tick* is a measured per-route cost divided by a world constant and contains nothing derived, so
 it stays true when the arrival rate is finally measured. The obvious alternative — multiplying by the
@@ -3406,6 +3413,13 @@ worst case. R3's own framing was that 16 costs 0.92 ms more per deleted Segment 
 against a per-click one* — and left the weighing to the edit rate. The weighing now has both sides,
 and the query advantage 16 holds is 1.31× against an edit penalty of 2×. **The recommendation is 8**,
 and R3's *current standing favours 16* is withdrawn.
+
+> **The recommendation stands; this sentence's arithmetic does not.** R7's re-capture makes the query
+> advantage **1.61×**, not 1.31×, which against a 1.9× edit penalty is a coin toss rather than a
+> decision. **What carries 8 now is S2 R5.6** — the Parking Shed prefers it by **2.9×**, on every
+> gesture and every size. `plans/0010` warned that a ladder chosen on routes alone would be chosen on
+> the cheaper consumer; corrected for pinning, routes alone would have chosen **wrongly** rather than
+> merely narrowly.
 
 **This is not yet the whole trade.** R5.4 and R5.5 are unrun, and a Parking Shed is inherently local
 in a way that may favour a coarser cluster. The verdict is recorded as *R5.2 decides it against 16 on
@@ -4733,6 +4747,81 @@ question, but nothing may be concluded from it.
 
 **Capture is `powersave`.** The absolutes owe a root/`performance` re-take alongside R7's, exactly as
 R6's and S0a's do.
+
+---
+
+## S2 R7 — the re-capture, and the one conclusion that moved
+
+**R0, R1, R3 and R4 were all captured under `taskset -c 2` — a single logical processor.** R5 later
+measured what that does: with the tiered JIT's background compilation having nowhere to run, its
+abstract graph rebuild read **214.94 ms measured first against 43.99 ms measured last, 4.88× apart**,
+where the same pair under `-c 2,8` reads 0.92×. The runner has pinned to the sibling pair ever since.
+**This is the first correctly-pinned capture of any of those four sections.**
+
+Artefact: `s2-r0+r0d+r1+r3+r4-…-powersave-turbo-cpu2+8`. **The governor half of the debt is not
+discharged** — this is `powersave`, and the canonical `performance` capture needs root.
+
+### R3 moved, and it is a clean comparison
+
+**R3's earlier captures were `powersave` too**, so governor is held constant and pinning is the only
+variable. Refined route cost, and the break-even the corpus quotes everywhere:
+
+| Rung | Corpus (`-c 2`) | Re-capture (`-c 2,8`) | Break-even, corpus → now |
+|---|---:|---:|---:|
+| 8, reduced + paths | 237,325 ns | 223,173 ns | 65 → **69** |
+| **16, reduced + paths** | **181,554 ns** | **138,641 ns** | 85 → **112** |
+| 16 against 8 | **1.31×** | **1.61×** | — |
+
+**The corpus's most-cited routing figure is 32% low.** *Routing fits while fewer than 85 Trips start
+per Tick* was measured on one processor; correctly pinned it is **112**. The tripwire's *form* survives
+— it is still a measured cost over a world constant, which is why R3 wrote it that way — but its
+number was wrong and nothing downstream knew.
+
+**And the 8-versus-16 weighing is no longer the weighing that was published.** `spike-results` records
+*"the query advantage 16 holds is 1.31× against an edit penalty of 2×. The recommendation is 8."*
+The query advantage is **1.61×**. Against R5's route-edit penalty of 1.9× on a coalesced drag, that is
+no longer a decision — it is a coin toss, and the published one was decided by a number that does not
+survive its own re-capture.
+
+**What carries the recommendation now is R5.6, and that is the point `plans/0010` was making.** The
+Parking Shed prefers **8 by 2.9×** on a one-Segment drag, on every gesture and every size. So the
+verdict is unchanged — **8** — but its support has moved from a route-query margin that shrank to a
+second consumer that was not measured when the recommendation was written. `plans/0010` warned that *"a
+ladder chosen on routes alone would be chosen on the cheaper of the two consumers"*; this is that
+warning arriving from the other direction, where routes alone would now have chosen **wrongly** rather
+than merely narrowly.
+
+### What did not move
+
+- **R0.** `Chebyshev` is still the only heuristic admissible at every Arterial density — 0 non-optimal
+  routes of 300 at every rung, where `Manhattan` reaches 19 and `Octile` 3 by four Arterials. The
+  verdict and the ladder are unchanged.
+- **R1.** The tripwire still does not fire, and not narrowly: the scattered read is **1.20 ns** at the
+  121-District anchor and **5.37 ns** at 4,096, against S4's K2 gather at 13.6 ns. `02 §5.8`'s *never
+  resolve a route inside the choice loop* remains enforceable. The row-scan/scatter split and the L3
+  ceiling on the scattered pattern reproduce unchanged.
+- **R4.** Distance-vector is still out, on the same ground and at nearly the same number: **2.17×** the
+  rebuild it exists to avoid, against the 2.13× recorded. Subtree repair still wins by **64.81×** with
+  0 entries wrong, the memory wire still does not fire at District granularity (23.12 MiB, bit-identical
+  to the recorded figure), and node granularity is still 3.11 GiB and 18.51× the world.
+
+**The counts are bit-identical across pinnings wherever they are counts.** Every column that is a
+quantity rather than a duration — entries, wrong entries, non-optimal routes, resident bytes —
+reproduces exactly. **Only the timing columns moved, which is the artefact behaving as diagnosed**
+rather than a second unexplained difference riding along with it.
+
+### What R7 still owes
+
+- **The `performance` capture.** Every S2 absolute now in the corpus is either mis-pinned or
+  `powersave` or both. This re-capture fixes the pinning for four sections; **R5.6, R6.1, R6.2 and
+  R6.3 remain `powersave`** and R5's are `performance` but predate nothing that moved.
+- **R2's reconciliation.** R4 records that its rebuild denominator disagrees with R2's published build
+  by 2.2× — 217.36 ms against 474.47 ms for the same 121 backward Dijkstras. **The re-capture does not
+  close this**: 217.36 ms reproduces, so the disagreement is not the pinning artefact and R2's figure
+  is the one under suspicion.
+- **S2 cannot close.** R6's invalidation half is gated on session **M**, which `adr/0043` types
+  *arguable* — no measurement settles it — and R6.3 has since put a second question in front of it.
+  The harness therefore stays; deleting it is R7's last act and it is not owed yet.
 
 ---
 

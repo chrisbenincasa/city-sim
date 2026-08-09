@@ -390,10 +390,13 @@ is a machine running unattended — but **the code track leads**.
   S0a as having discharged it
 - **Argument** — **C** is the only session gating a slice. The rest run when something concrete is
   blocked on them, never because they are available
-- **Spike** — **R7**, the report and the verdict. **R5.6 is done and R6's ungated halves are done**,
-  so the only measurement left in S2 is R7's owed **re-capture of R0/R1/R3/R4** under root and
-  `performance` — every R6 and R5.6 capture is `powersave` too. **S2 cannot fully close**: R6's
-  invalidation half is gated on session **M**, which is *arguable* and no measurement can settle
+- **Spike** — **R7's re-capture is half done and it moved a conclusion.** R0/R1/R3/R4 are re-taken
+  correctly pinned: **R3's *85 Trips/Tick* is 32% low and reads 112**, and the 8-versus-16 query
+  advantage is **1.61×** rather than 1.31×, so **routes alone would now pick 16 and R5.6's shed is
+  what keeps the answer at 8**. R0, R1 and R4 are unchanged. **Still owed: the `performance` capture,
+  which needs root** — every S2 absolute is `powersave`, mis-pinned, or both. **S2 cannot fully
+  close**: R6's invalidation half is gated on session **M**, which is *arguable* and no measurement
+  can settle
 
 ### Parallel track — S2, routing ([`0010`](0010-s2-routing.md))
 
@@ -409,7 +412,9 @@ and what is left.
 - [x] **R2** — searched against looked-up path. **Revived the task it was meant to retire**: a
       next-hop table supplies `adr/0041`'s *next Segment* while storing no path
 - [x] **R3** — HPA\*, and the cluster it owns. **Weakened its own standing** and measured
-      `adr/0014`'s *"the Chunk grid is already the cluster"* **false by 256× in area**
+      `adr/0014`'s *"the Chunk grid is already the cluster"* **false by 256× in area**. **Its timings
+      are superseded by R7's re-capture**: taken on one processor, the break-even was 85 Trips/Tick
+      and is **112**
 - [x] **R4** — distance-vector. **Out on cost**, 2.13× the rebuild it exists to avoid, beaten by a
       scheme the plan never named. Also found the O-D draw problem
 - [x] **R5.1–R5.5** — the edit storm. **A single-counter Epoch *is* a global flush**, no Epoch rung is
@@ -727,7 +732,9 @@ diagnose.
       against a ~2× edit penalty picks 8, and **the canonical capture confirms it** — the one run
       that said otherwise is the mis-pinned one. **The conditional on R5.6 is discharged**: sheds do
       not rank it differently — **8 beats 16 on every gesture and every size**, by 2.9× at a
-      one-Segment drag — so the sweep may go
+      one-Segment drag — so the sweep may go. **But the query side of that trade was itself
+      mis-pinned**: R7 makes it **1.61×**, not 1.31×, which against a 1.9× edit penalty is a coin
+      toss. **The answer is still 8 and it is now the shed carrying it, not the route**
 - [x] ~~**`HpaSearch` cannot see a Segment deleted under a Trip's own feet — NEW, found by S2 R5.5, and
       it is pre-existing.**~~ **DISCHARGED by S2 R6.0, and the defect was twice the size filed** —
       eight call sites, not the two remainders, the extra four being the same-Segment and
