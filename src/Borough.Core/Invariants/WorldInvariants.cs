@@ -47,10 +47,13 @@ public static class WorldInvariants
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>A diffusing Layer with a source and no decay is the exact shape the rule forbids</b>, and
-    /// pollution is currently that shape: every emission adds to a Cell's source and nothing takes any
-    /// away. Decay is a Ruleset number that does not exist yet, so what stands between the design and
-    /// an overflow today is this check and the long-run test that runs it.
+    /// <b>This is an overflow guard and no longer a design bound, which is what
+    /// <c>adr/0051</c> restored it to.</b> Pollution was once a source with no removal — every emission
+    /// added and nothing subtracted — and while that was true this check and the long-run test were the
+    /// only things standing between the design and an overflow. <see cref="MapLayers.DecayPollution"/>
+    /// is the sink now, and the bound on the level is emergent: a steady emitter settles where what it
+    /// adds each cadence equals what the ground absorbs. So this fires only on arithmetic that could
+    /// not be represented, which is the job it was written for.
     /// </para>
     /// <para>
     /// <b>The ceiling is the kernel's, not the integer's, and that is the point of checking it here

@@ -150,7 +150,12 @@ public readonly struct LayerSchedule
 /// <param name="SealingDecayTau">
 /// How many updates Sealing takes to decay away. <b>Zero means never</b>, which is Phase 1's value.
 /// </param>
-public readonly record struct LayerRates(int LandValueTau, int SealingDecayTau)
+/// <param name="PollutionTau">
+/// How many scheduled updates the environment takes to absorb a Cell's pollution source
+/// (<c>adr/0051</c>). <b>Zero means never</b>, which is the pre-<c>adr/0051</c> behaviour and is kept
+/// reachable only so the accumulating case can be written in a test and watched to fail.
+/// </param>
+public readonly record struct LayerRates(int LandValueTau, int SealingDecayTau, int PollutionTau)
 {
     /// <summary>
     /// Phase 1's rates. <b>Sealing does not decay, and that is a stated absence rather than a guess.</b>
@@ -163,7 +168,27 @@ public readonly record struct LayerRates(int LandValueTau, int SealingDecayTau)
     /// <c>adr/0006</c> would object to if the bound were not structural — and it is, because a Cell
     /// cannot have more Tiles built on it than it has Tiles.
     /// </remarks>
-    public static LayerRates Default => new(LandValueTau: 8, SealingDecayTau: 0);
+    /// <summary>
+    /// <b>Pollution's tau is derived rather than picked, and the derivation is the whole argument for
+    /// it.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// It is <b>128</b>, which is <c>TICKS_PER_DAY ÷ the pollution cadence</c> — 8192 ÷ 64 — so it is
+    /// <em>one Day, counted in the units the decay actually runs in</em>. That makes the designer-facing
+    /// sentence "a shut-down factory's plume fades over about a Day", and it makes the number move
+    /// correctly on its own if either constant it is built from ever changes. <c>adr/0044</c> is the
+    /// standing warning about the alternative: the Layer cadence was two numbers picked to look
+    /// reasonable, cited as settled by three documents, and had to be measured back out.
+    /// </para>
+    /// <para>
+    /// <b>It is still unratified and it is still hash-bearing</b>, because a derivation is not a
+    /// ratification — what is derived is the <em>time constant</em>, and what nobody has checked is
+    /// whether a Day is the right period for a plume to fade over. Filed in <c>plans/0002</c> §D with
+    /// its ratifier.
+    /// </para>
+    /// </remarks>
+    public static LayerRates Default => new(LandValueTau: 8, SealingDecayTau: 0, PollutionTau: 128);
 }
 
 /// <summary>

@@ -910,6 +910,47 @@ argued** (`0002` §D, with `adr/0044` as the standing warning), and **decay is i
 6's incremental re-diffusion** — every emitting Cell is dirty on every cadence — which is measurable
 and is routed to S0b rather than argued (`0002` §B).
 
+**BUILT, as slice 6's debt and not as part of task 10a — and the reasoning that led there was wrong in
+a way worth keeping.** It was begun on the argument that 10a's content Ruleset needed an honest
+never-starving Rule; that a Rule can only avoid starving by emitting to `map`, into its own Bin, or by
+reporting; and that the first of those therefore had to be made bounded before any Ruleset could run
+for 100,000 Ticks. **The enumeration was incomplete.** A Rule fails two ways and only one of them is
+starvation: `rulesets/minimal.toml` sustains for ever on a producer that fails on **headroom**, sleeps
+on a full Bin, and is woken by the consumer drawing from it. No `map` term, no decay, no lie about
+`04 §1`. **The lesson is the one this slice keeps relearning** — the enumeration was of the failure
+mode being thought about rather than of the failure modes that exist, which is finding 29's shape
+(*the counter that could not fail its own tripwire*) arriving in a design argument instead of in an
+instrument.
+
+So `adr/0051` was **never on 10a's critical path**. It is still owed, because finding 37 stands on its
+own: `map` emission is an unbounded accumulator whatever else is true, and the one test built to catch
+that had been written around it. Doing it separately also kept a hash-bearing number from being
+settled as a sub-clause of a wiring task, which is the shape `adr/0044` is the standing warning about.
+Three things came out of the build that the planning did not have:
+
+- **The tail rule the ADR left open was already in the file.** It says *"integer decay stalls, and the
+  tail needs a rule… whatever the answer is, it is arithmetic"*. The answer is `max(1, round(v/tau))`,
+  which is `MapLayers`'s `Step` helper — **the arithmetic land value has drifted by since slice 6**.
+  Applied, not invented, and that is now three times in two slices that something recorded as owed was
+  present under another name.
+- **Tau needed no choosing either**, for the same reason finding 38 gives for the stagger: it is
+  `TICKS_PER_DAY ÷ the pollution cadence` = **128**, one Day in the units the decay runs in. Two
+  hash-bearing numbers on one day and **neither turned out to be a free parameter** — `adr/0052`'s
+  cheapest discharge is to look for the derivation before reaching for a plausible number.
+- **The golden baselines did not move**, which is a statement about coverage rather than a relief.
+  Decay is hash-bearing and the golden world has no emitter in it, so nothing to fold changed. The
+  first Ruleset with a `map` output is what re-bases the trace, and that is task 10a.
+
+**The long-run test now churns the way the simulation does.** `Churn` adds instead of setting, and the
+assertion changed shape with it: the field converges to a **limit cycle** of one sweep's period rather
+than to a constant, so what is read is the sweep-to-sweep step — it contracts **1373 → 373** against a
+level of 13.1M, where an accumulator with no sink would step by one sweep's emission, about **5.7M**,
+for ever. Four orders of magnitude between pass and fail. **Exact equality is not available inside the
+100,000-Tick run** and that is a fact about tau rather than about the test: absorbing the transient to
+the last integer takes ~134,000 Ticks, and the approach is *linear* rather than geometric in the
+quantised regime where `round(v/tau)` is pinned at 1.
+
+
 ---
 
 ## Decisions owed, found while planning

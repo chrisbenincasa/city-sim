@@ -150,7 +150,8 @@ public class LayerFieldsTests
     public void Sealing_decays_once_a_rate_is_supplied()
     {
         MapLayers layers = new(new LayerRuleset(
-            LayerSchedule.Default, new LayerRates(LandValueTau: 8, SealingDecayTau: 4)));
+            LayerSchedule.Default,
+            new LayerRates(LandValueTau: 8, SealingDecayTau: 4, PollutionTau: 128)));
 
         Cells east = new(3);
         Cells north = new(4);
@@ -160,6 +161,133 @@ public class LayerFieldsTests
 
         Assert.Equal(750, layers.Sealing(east, north));
     }
+
+    /// <summary>
+    /// <c>adr/0051</c>: a Cell's pollution source is a stock the environment absorbs.
+    /// </summary>
+    [Fact]
+    public void A_pollution_source_is_absorbed()
+    {
+        MapLayers layers = Layers(pollutionTau: 4);
+
+        layers.EmitPollution(new Cells(3), new Cells(4), 1_000);
+        layers.DecayPollution();
+
+        Assert.Equal(750, layers.PollutionSource(new Cells(3), new Cells(4)));
+    }
+
+    /// <summary>
+    /// A source reaches <b>exactly zero</b>, which is the tail rule <c>adr/0051</c> left to the
+    /// implementation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Plain <c>value − value/tau</c> stalls, and the residue it leaves is <c>adr/0006</c> in
+    /// miniature.</b> Integer division floors, so a source below tau loses nothing and a demolished
+    /// factory leaves a permanent stain on the map. The ADR names the problem, declines to solve it,
+    /// and says the answer belongs with the implementation — this is it: absorb
+    /// <c>max(1, round(value/tau))</c>, which is <see cref="MapLayers"/>'s existing <c>Step</c> helper
+    /// and therefore the same arithmetic land value already drifts by. <b>The tail rule was solved in
+    /// this file before the question was asked</b>; it needed applying rather than inventing.
+    /// </para>
+    /// <para>
+    /// <b>The floor has a consequence worth stating, because it is the honest cost of the fix.</b> It
+    /// quantises the equilibrium: a Cell emitting less than one unit per cadence is absorbed at one
+    /// unit per cadence, so its level is pinned around tau rather than being proportional to its rate.
+    /// That bounds it — <c>adr/0006</c> is satisfied — but below one unit per cadence the field
+    /// reports a floor instead of a rate, and a designer who wants resolution there wants a larger tau
+    /// rather than a different rule.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_source_is_absorbed_to_exactly_zero()
+    {
+        MapLayers layers = Layers(pollutionTau: 4);
+        Cells east = new(3);
+        Cells north = new(4);
+
+        layers.EmitPollution(east, north, 10);
+
+        for (int i = 0; i < 64; i++)
+        {
+            layers.DecayPollution();
+        }
+
+        Assert.Equal(0, layers.PollutionSource(east, north));
+    }
+
+    /// <summary>Zero tau is the pre-<c>adr/0051</c> accumulator, kept reachable and watched to fail.</summary>
+    /// <remarks>
+    /// The counterfactual, written down rather than described. <b>Without a sink the source is exactly
+    /// what it was emitted as, for ever</b> — which is what <c>plans/0011</c> finding 37 found in the
+    /// shipped code and what slice 6's long-run test had been written around.
+    /// </remarks>
+    [Fact]
+    public void Without_a_rate_a_pollution_source_only_accumulates()
+    {
+        MapLayers layers = Layers(pollutionTau: 0);
+        Cells east = new(3);
+        Cells north = new(4);
+
+        for (int i = 0; i < 16; i++)
+        {
+            layers.EmitPollution(east, north, 100);
+            layers.DecayPollution();
+        }
+
+        Assert.Equal(1_600, layers.PollutionSource(east, north));
+    }
+
+    /// <summary>
+    /// A steady emitter settles at a level proportional to its <b>rate</b>, which is the ADR's headline.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the claim the accumulator got wrong, stated as a measurement.</b> Under <c>+=</c> the
+    /// level counts firings, so it reports <em>how long this has stood</em>; under absorption it settles
+    /// where what is added equals what is taken, so it reports <em>how hard this emits</em> — which is
+    /// what <c>02 §2.4</c> says a source field holds. Doubling the emission doubles the settled level,
+    /// and neither depends on how long the run has been going.
+    /// </remarks>
+    [Fact]
+    public void A_steady_emitter_settles_in_proportion_to_its_rate()
+    {
+        int single = Settled(emission: 40, cycles: 512);
+        int doubled = Settled(emission: 80, cycles: 512);
+
+        // Within 1%, and not exact, because absorption rounds: adr/0003 requires integer arithmetic
+        // with stated rounding, so the equilibrium is the fixed point of a rounded map rather than of
+        // a real-valued one. Asserting exact proportionality would be asserting that RoundDiv does not
+        // round. The residue is 4 parts in 556 and does not grow with the run.
+        Assert.True(
+            Math.Abs((2 * single) - doubled) * 100 < doubled,
+            $"doubling the emission moved the settled level from {single} to {doubled}, which is not "
+            + "proportional. adr/0051: the level a steady emitter settles at is proportional to its "
+            + "rate, because that is the quantity 02 §2.4 says a source field holds.");
+
+        // The half the accumulator got wrong, and the one that needs no tolerance. Under `+=` the
+        // level counts firings, so it answers "how long has this stood"; under absorption it answers
+        // "how hard does this emit" and running four times as long changes nothing at all.
+        Assert.Equal(single, Settled(emission: 40, cycles: 2_048));
+
+        static int Settled(int emission, int cycles)
+        {
+            MapLayers layers = Layers(pollutionTau: 8);
+            Cells east = new(3);
+            Cells north = new(4);
+
+            for (int i = 0; i < cycles; i++)
+            {
+                layers.EmitPollution(east, north, emission);
+                layers.DecayPollution();
+            }
+
+            return layers.PollutionSource(east, north);
+        }
+    }
+
+    private static MapLayers Layers(int pollutionTau) => new(new LayerRuleset(
+        LayerSchedule.Default,
+        new LayerRates(LandValueTau: 8, SealingDecayTau: 0, PollutionTau: pollutionTau)));
 
     /// <summary>
     /// The named holes fail loudly rather than returning zero.

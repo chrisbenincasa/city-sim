@@ -116,6 +116,11 @@ public sealed class MapLayers
     {
         if (Schedule.IsDue(Layer.IndustrialPollution, tick))
         {
+            // Absorbed first, then diffused, so the field a Tick publishes is the convolution of the
+            // sources as they stand after that Tick's absorption rather than one cadence behind it.
+            // The order is hash-bearing and there is no second candidate: diffusing first would
+            // publish a field whose sources no longer exist.
+            DecayPollution();
             DiffusePollution();
         }
 
@@ -326,6 +331,64 @@ public sealed class MapLayers
                 int value = _cells.Sealing[slot];
                 _cells.Sealing[slot] = value - IntegerMath.RoundDiv(value, tau);
             }
+        }
+    }
+
+    /// <summary>
+    /// Absorbs one cadence's worth of every Cell's pollution source. <c>adr/0051</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The source is a stock, not a running total.</b> <c>+=</c> is right across <em>emitters</em>
+    /// — twenty factories in one Cell must sum — and wrong across <em>firings</em>, where it silently
+    /// converts a strength into an elapsed-time counter. This is the removal that reconciles the two:
+    /// a quantity per firing against a continuous absorption gives a level proportional to the
+    /// <em>rate</em>, which is what <c>02 §2.4</c> says a source field holds. The ceiling is therefore
+    /// emergent rather than authored, and <see cref="WorldInvariants.LayerMagnitudesAreBounded"/> goes
+    /// back to being the overflow guard it always was.
+    /// </para>
+    /// <para>
+    /// <b>Every decayed Cell is marked dirty, and that cost is the decision's, not this method's.</b>
+    /// A decaying source is a changing source, so the incremental set converges on the occupied set
+    /// and slice 6's exact re-diffusion stops being a saving wherever industry stands. <c>adr/0051</c>
+    /// names this and routes the size of it to a machine rather than to an argument; the fallback it
+    /// reserves — a decay cadence coarser than the diffusion cadence — is a third hash-bearing number
+    /// and is deliberately not taken here.
+    /// </para>
+    /// <para>
+    /// <b>In place rather than through the back buffer</b>, which is <see cref="DecaySealing"/>'s form
+    /// and not <see cref="DriftLandValue"/>'s. The double buffer exists for a column that reads its
+    /// own previous value <em>while Phase 5 runs in parallel</em>; decay reads and writes one Cell
+    /// with no reference to any other, so there is no cross-Cell read to protect and a swap would buy
+    /// nothing.
+    /// </para>
+    /// </remarks>
+    public void DecayPollution()
+    {
+        int tau = _ruleset.Rates.PollutionTau;
+
+        if (tau <= 0)
+        {
+            return;
+        }
+
+        for (int slot = 0; slot < _cells.Rows.SlotCount; slot++)
+        {
+            if (!_cells.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int value = _cells.PollutionSource[slot];
+
+            if (value == 0)
+            {
+                continue;
+            }
+
+            _cells.PollutionSource[slot] = value - Step(value, tau);
+
+            MarkPollutionDirty(_cells.East[slot], _cells.North[slot]);
         }
     }
 

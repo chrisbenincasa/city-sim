@@ -130,10 +130,11 @@ public enum Invariant
     /// <summary>A Map Layer's value at some Cell has run away.</summary>
     /// <remarks>
     /// <b><c>adr/0003</c> extended <c>adr/0006</c> from collections to quantities, and a diffusing
-    /// Layer with a source and no decay is exactly the shape that violates it.</b> Pollution
-    /// accumulates from every emission and nothing removes it, so the long-run test is where this is
-    /// found — <c>plans/0009</c> task 10 registers it in the end-of-run tier for that reason rather
-    /// than because it is expensive.
+    /// Layer with a source and no decay is exactly the shape that violates it.</b> Pollution was that
+    /// shape until <c>adr/0051</c> made the source a stock the environment absorbs; the level is now
+    /// bounded by an equilibrium rather than by this check, and what remains here is the kernel's
+    /// representation ceiling. <c>plans/0009</c> task 10 registers it in the end-of-run tier because
+    /// that is where the long runs are, not because it is expensive.
     /// </remarks>
     LayerMagnitudeIsBounded = 12,
 

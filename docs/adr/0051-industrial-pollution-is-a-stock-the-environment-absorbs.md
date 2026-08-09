@@ -67,6 +67,11 @@ that works.
 downstream is recorded yet, so the cost is paid now and only now.
 
 **Tau is a new unratified number**, filed in [`plans/0002`](../../plans/0002-open-questions.md) §D.
+It shipped as **128**, and it is **derived rather than picked**: `TICKS_PER_DAY ÷ the pollution
+cadence`, 8192 ÷ 64, which is *one Day counted in the units the decay actually runs in*. That gives it
+a sentence a designer can disagree with — "a shut-down factory's plume fades over about a Day" — and
+makes it move on its own if either constant it is built from changes. It is unratified all the same,
+because deriving the time constant is not the same as checking that a Day is the right period.
 `adr/0044` is the standing warning here: the Layer cadence was chosen by argument, cited as settled,
 and had to be measured back out. Tau is worse-placed than the cadence was, because it sets an
 equilibrium rather than a refresh interval. **It ships as one global value in the Ruleset**;
@@ -83,6 +88,19 @@ cadence than the diffusion cadence, which is a third hash-bearing number and is 
 source falls below tau, so a demolished factory would leave a permanent stain rather than fading.
 Whatever the answer is, it is arithmetic and belongs with the implementation — but it must be written
 down, because a small residue that never clears is `adr/0006` returning in miniature.
+
+> **DISCHARGED on implementation, and the rule already existed.** Absorption is
+> `max(1, round(source/tau))` — `MapLayers`'s `Step` helper, which is the arithmetic **land value has
+> drifted by since slice 6**, in the same file. The tail rule needed *applying* rather than inventing,
+> which is the third time in two slices that a thing recorded as owed turned out to be present under
+> another name. A source now reaches exactly zero and no stain survives.
+>
+> **The floor has one consequence and it is the honest cost of the fix.** It quantises the
+> equilibrium: a Cell emitting less than one unit per cadence is absorbed at one unit per cadence, so
+> its level is pinned near tau instead of being proportional to its rate. That still *bounds* it, so
+> `adr/0006` is satisfied — but below one unit per cadence the field reports a floor rather than a
+> rate, and the fix for a designer who needs resolution there is a **larger tau**, not a different
+> rule. Tau is 128, so the floor bites only below ~0.8% of a typical emitter.
 
 **The overflow bound stays and stops pretending.** `WorldInvariants.LayerMagnitudesAreBounded` checks
 the kernel's representation ceiling. It was never a design bound and, with the design bound now

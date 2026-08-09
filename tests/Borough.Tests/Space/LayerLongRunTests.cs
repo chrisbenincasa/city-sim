@@ -29,9 +29,25 @@ namespace Borough.Tests.Space;
 /// </para>
 /// <para>
 /// So the churn below sweeps a bounded region round-robin, with each Cell's emission a fixed function
-/// of the Cell. The source field therefore converges to a known constant after one full sweep, and the
-/// assertion becomes <b>exact equality across the tail</b> rather than a trend line — which an
-/// accumulating implementation fails on the first sample after convergence.
+/// of the Cell.
+/// </para>
+/// <para>
+/// <b>It used to <em>set</em> each Cell's source rather than add to it, and that was working around a
+/// live defect instead of reporting one</b> (<c>plans/0011</c> finding 37). The comment justifying it
+/// said, correctly, that "adding forever would manufacture the unbounded growth the test then reports"
+/// — but a Rule's <c>map</c> output adds, so what the test had actually done was decline to exercise
+/// the only write path the simulation has. <c>adr/0051</c> made the source a stock the environment
+/// absorbs, so the churn now <b>adds, exactly as <c>RuleEngine.Emit</c> does</b>, and what is asserted
+/// is the equilibrium rather than the arithmetic's ceiling.
+/// </para>
+/// <para>
+/// <b>The assertion is exact equality at one sweep's lag, which is stronger than the trend line it
+/// replaces and was not available before.</b> Emission is periodic with period <see cref="Sweep"/> and
+/// absorption is a contraction, so the source field converges to a <em>limit cycle</em> of that period
+/// rather than to a constant — every Cell is topped up once per sweep and absorbed for the cadences in
+/// between. Comparing samples one full sweep apart compares like with like: a correct implementation
+/// repeats to the digit, and an accumulator with no sink drifts upward by one sweep's emission every
+/// time.
 /// </para>
 /// </remarks>
 public class LayerLongRunTests
@@ -48,8 +64,19 @@ public class LayerLongRunTests
     /// <summary>How often the State Hash is folded in. The project's trace cadence.</summary>
     private const int HashEvery = 16;
 
-    /// <summary>Ticks for one full sweep of the region, after which the source field is settled.</summary>
+    /// <summary>Ticks for one full sweep of the region. The period of the emission, and of the field.</summary>
     private const int Sweep = Region * Region * EmitEvery;
+
+    /// <summary>
+    /// The first sample of the tail — where the limit cycle is assumed reached.
+    /// </summary>
+    /// <remarks>
+    /// Ten sweeps, which is <b>deliberately far more than convergence needs</b> and costs nothing
+    /// because the run happens either way. A transient read as a steady state is the failure this
+    /// class's own history records: the first version of the churn measured the field filling in and
+    /// would have reported it as a leak.
+    /// </remarks>
+    private const int Settled = 15 * Sweep / HashEvery;
 
     /// <summary>
     /// The acceptance run, and all three of its claims.
@@ -70,20 +97,44 @@ public class LayerLongRunTests
         //    complicated enough for this to be a real question rather than a formality.
         Assert.Equal(first, second);
 
-        // 2. No magnitude trends upward. Past the first full sweep the source field is settled, so a
-        //    correct implementation reports the identical peak at every later sample. An accumulating
-        //    one, or a halo that left a stale contribution behind, does not.
-        int[] tail = peaks[((Sweep / HashEvery) + 1)..];
+        // 2. No magnitude trends upward. Emission is periodic with one sweep's period, so the sweep-to
+        //    -sweep step is what to read: with a sink it contracts toward zero, and with none it is a
+        //    constant — one sweep's emission, for ever. Those two are four orders of magnitude apart
+        //    here, which is why this is a sharper instrument than a trend line over the raw level.
+        const int Lag = Sweep / HashEvery;
+        int[] tail = peaks[Settled..];
 
-        for (int i = 1; i < tail.Length; i++)
+        Assert.True(tail.Length > Lag, "the tail is shorter than one sweep, so it asserted nothing.");
+        Assert.True(tail[0] > 0, "the run diffused nothing, so it asserted nothing.");
+
+        // Approached from below and never overshot. Each Cell's source rises monotonically toward its
+        // own equilibrium from zero, so the peak over them does too — an overshoot would mean the halo
+        // had left a contribution behind that the next recompute did not clear.
+        for (int i = 0; i + Lag < tail.Length; i++)
         {
             Assert.True(
-                tail[i] == tail[0],
-                $"peak pollution moved from {tail[0]} to {tail[i]} after the sources had settled. "
-                + "adr/0003 extends adr/0006 to quantities: no quantity accumulates without bound.");
+                tail[i + Lag] >= tail[i],
+                $"peak pollution fell from {tail[i]} to {tail[i + Lag]} one sweep later, at sample {i} "
+                + $"of {tail.Length}. The source field only rises toward its equilibrium, so a fall is a "
+                + "stale contribution in the incremental halo rather than absorption.");
         }
 
-        Assert.True(tail[0] > 0, "the run diffused nothing, so it asserted nothing.");
+        int firstStep = tail[Lag] - tail[0];
+        int lastStep = tail[^1] - tail[^(1 + Lag)];
+
+        Assert.True(
+            lastStep * 3 < firstStep,
+            $"the sweep-to-sweep step went {firstStep} → {lastStep}, which is not contracting. "
+            + "adr/0051 makes the pollution source a stock the environment absorbs, so the level "
+            + "converges on an equilibrium; a source with no sink steps by one sweep's emission for "
+            + "ever. adr/0003 extends adr/0006 to quantities.");
+
+        // And the step is a vanishing fraction of the level it is a step in, which is the same claim
+        // stated so that it cannot be satisfied by a run that simply emitted very little.
+        Assert.True(
+            lastStep * 1_000 < tail[^1],
+            $"the last sweep's step of {lastStep} is not small against a level of {tail[^1]}, so the "
+            + "field has not converged on an equilibrium.");
 
         // 3. No collection trends upward. Residency is bounded by the map by construction, so what
         //    this can actually catch is a second row allocated for a Cell that already had one.
@@ -131,15 +182,17 @@ public class LayerLongRunTests
     }
 
     /// <summary>
-    /// Sweeps the region round-robin, setting each Cell's emission to a fixed function of the Cell.
+    /// Sweeps the region round-robin, adding a fixed function of the Cell to each Cell's source.
     /// </summary>
     /// <remarks>
-    /// <b>Set, not added, and round-robin, not random. Both were needed and neither was obvious.</b>
-    /// Adding forever would manufacture the unbounded growth the test then reports; drawing the Cell
-    /// at random leaves the region uncovered for far longer than the run, so the field never settles
-    /// and the transient reads as a leak. Sweeping means the source field is a known constant after
-    /// <see cref="Sweep"/> Ticks, and every Cell is rewritten many times over — which is what exercises
-    /// the incremental halo rather than merely filling the map once.
+    /// <b>Added, not set — which is the correction — and round-robin, not random, which was right all
+    /// along.</b> Adding is what a Rule's <c>map</c> output does, and before <c>adr/0051</c> it would
+    /// have grown without bound, so this method set the source instead and the test never touched the
+    /// simulation's own write path. Absorption is what makes adding safe to assert over. Drawing the
+    /// Cell at random, by contrast, leaves the region uncovered for far longer than the run, so the
+    /// field never reaches its limit cycle and the transient reads as a leak; sweeping tops every Cell
+    /// up once per <see cref="Sweep"/> Ticks and rewrites all of them many times over, which is what
+    /// exercises the incremental halo rather than merely filling the map once.
     /// </remarks>
     private static void Churn(World world, int emission)
     {
@@ -151,12 +204,7 @@ public class LayerLongRunTests
         // than linear so the field has structure — a smooth ramp would hide a transposed kernel.
         int amount = (int)(Randomness.Mix((ulong)index + 0xB0110C6UL) % 2_000);
 
-        int slot = world.Layers.Residency.Slot(east, north);
-        int already = slot == CellResidency.NotResident
-            ? 0
-            : world.Layers.Cells.PollutionSource[slot];
-
-        world.Layers.EmitPollution(east, north, amount - already);
+        world.Layers.EmitPollution(east, north, amount);
         world.Layers.Seal(east, north, 1);
     }
 
