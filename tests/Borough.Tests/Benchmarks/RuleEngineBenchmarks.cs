@@ -187,7 +187,8 @@ internal static class RuleEngineFixture
         outputs: [],
         emissions: [],
         bins: [],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 
     /// <summary><c>02 §4.3</c>'s bakery with no fallback: six flour in, four bread out.</summary>
     private static Ruleset Flat() => new(
@@ -202,7 +203,8 @@ internal static class RuleEngineFixture
         outputs: [new Term(new BinRef(Scope.Local, Bread), 4)],
         emissions: [],
         bins: [new BinDeclaration(Flour, BinCapacity.Of(60)), new BinDeclaration(Bread, BinCapacity.Of(20))],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 
     /// <summary>The same bakery over a two-link ladder ending in a report.</summary>
     private static Ruleset Laddered() => new(
@@ -238,5 +240,6 @@ internal static class RuleEngineFixture
             new BinDeclaration(Bread, BinCapacity.Of(20)),
             new BinDeclaration(Grain, BinCapacity.Of(60)),
         ],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 }

@@ -65,7 +65,8 @@ public sealed class ChainTests
             new BinDeclaration(Grain, BinCapacity.Of(60)),
         ],
         // The head only. The other two are links, reached by walking a chain that failed.
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 
     private static (World World, Simulation Simulation, Handle<Building> Building) Built(
         Ruleset ruleset, ulong seed = 1)

@@ -22,6 +22,17 @@ using Borough.Core.Tables;
 [Table]
 public sealed class LotTable
 {
+    /// <summary>
+    /// How many kinds a Zone can ever admit — the width of <see cref="Zone"/> in bits.
+    /// </summary>
+    /// <remarks>
+    /// <b>Declared here because this is where the width is decided</b>, and read by the Ruleset loader
+    /// so that *a Zone Rule naming a permission bit no <c>zone</c> verb can paint* is refused against
+    /// the column rather than against a number copied into the parser. A constant repeated in two
+    /// projects is one edit away from a Ruleset that loads clean and paints nothing.
+    /// </remarks>
+    public const int ZoneBits = 16;
+
     private readonly Rows<Lot> _rows;
 
     /// <param name="capacity">Initial slot count. ~225 Lots per 1,000 Citizens, per S4 task 2.</param>

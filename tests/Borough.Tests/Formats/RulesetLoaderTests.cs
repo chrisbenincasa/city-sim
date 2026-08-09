@@ -1,3 +1,5 @@
+using System.Globalization;
+using Borough.Core.Entities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -844,5 +846,117 @@ public sealed class RulesetLoaderTests
         Assert.Throws<ArgumentOutOfRangeException>(() => ruleset.Rule(new RuleId(99)));
         Assert.Throws<ArgumentOutOfRangeException>(() => ruleset.Rule(RuleId.None));
         Assert.Throws<ArgumentOutOfRangeException>(() => ruleset.Kind(9));
+    }
+
+    // ---- Zone Rules, and refusals 6, 7 and 8 ----------------------------------------------------
+
+    private const string Zoned = """
+        [[building]]
+        name = "dwelling"
+        bins = []
+
+        [[zone_rule]]
+        name     = "housing"
+        kind     = "dwelling"
+        zone     = 3
+        interval = 64
+        sample   = 4
+        """;
+
+    [Fact]
+    public void A_zone_rule_loads_as_ids_and_integers()
+    {
+        Ruleset ruleset = Accepted(Zoned);
+
+        ZoneRuleDefinition zone = Assert.Single(ruleset.ZoneRules.ToArray());
+
+        Assert.Equal(1, zone.Kind);
+        Assert.Equal(3, zone.Zone);
+        Assert.Equal(64u, zone.Interval);
+        Assert.Equal(4, zone.Sample);
+
+        // The bit is stored as an index and read as a set, because a Lot's Zone is a set.
+        Assert.Equal(0b1000, zone.Admits);
+    }
+
+    /// <summary>
+    /// Refusal 6 — a Zone Rule naming a kind the Ruleset does not declare.
+    /// </summary>
+    /// <remarks>
+    /// The failure mode is silence: such a Rule would sample Lots on schedule for ever and build
+    /// nothing, which is indistinguishable from a city nobody wants to move to.
+    /// </remarks>
+    [Fact]
+    public void A_zone_rule_naming_an_undeclared_kind_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Zoned.Replace(
+            @"kind     = ""dwelling""", @"kind     = ""tower""", StringComparison.Ordinal));
+
+        Assert.Contains("tower", refusal.Reason, StringComparison.Ordinal);
+        Assert.Equal("housing", refusal.Rule);
+    }
+
+    /// <summary>
+    /// Refusal 7 — a permission bit wider than the Lot's permission set, which no verb can paint.
+    /// </summary>
+    /// <remarks>
+    /// <b>Checked against <see cref="LotTable.ZoneBits"/> rather than a literal</b>, so that widening
+    /// the column cannot leave the parser refusing bits that have become paintable.
+    /// </remarks>
+    [Theory]
+    [InlineData(LotTable.ZoneBits)]
+    [InlineData(LotTable.ZoneBits + 9)]
+    [InlineData(-1)]
+    public void A_zone_rule_naming_an_unpaintable_bit_is_refused(int bit)
+    {
+        RulesetRefusal refusal = Refused(Zoned.Replace(
+            "zone     = 3",
+            string.Create(CultureInfo.InvariantCulture, $"zone     = {bit}"),
+            StringComparison.Ordinal));
+
+        Assert.Contains("permission", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Refusal 8 — a sample of zero loads clean and sweeps nothing.
+    /// </summary>
+    /// <remarks>
+    /// <b>The <c>apply = {min=1,max=4}</c> behaving as <c>{1,1}</c> defect, arriving in the second
+    /// family.</b> That one got through because a silent narrowing looks exactly like a quiet design
+    /// decision; this refusal exists so the second instance cannot.
+    /// </remarks>
+    [Fact]
+    public void A_zone_rule_sampling_no_lots_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Zoned.Replace(
+            "sample   = 4", "sample   = 0", StringComparison.Ordinal));
+
+        Assert.Contains("no Lots", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>An interval is bounded like a rate, and for the same Event Wheel reason.</summary>
+    [Fact]
+    public void A_zone_rule_triggering_beyond_the_wheel_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Zoned.Replace(
+            "interval = 64",
+            string.Create(CultureInfo.InvariantCulture, $"interval = {EventWheel.Size}"),
+            StringComparison.Ordinal));
+
+        Assert.Contains("WHEEL_SIZE", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// An unknown section is named with the full list, which now has four entries.
+    /// </summary>
+    [Fact]
+    public void An_unknown_section_lists_the_ones_that_exist()
+    {
+        RulesetRefusal refusal = Refused("""
+            [[zoning_rule]]
+            name = "typo"
+            """);
+
+        Assert.Contains("[[zone_rule]]", refusal.Reason, StringComparison.Ordinal);
     }
 }

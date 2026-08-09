@@ -1,3 +1,4 @@
+using Borough.Core.Entities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -68,6 +69,7 @@ public static class RulesetLoader
 
         private readonly List<TableSyntaxBase> _kindTables = [];
         private readonly List<TableSyntaxBase> _ruleTables = [];
+        private readonly List<TableSyntaxBase> _zoneRuleTables = [];
 
         public RulesetLoadResult Read()
         {
@@ -99,6 +101,7 @@ public static class RulesetLoader
                 out MapEmission[] emissions);
             KindDefinition[] kinds = ReadKinds(rules, out BinDeclaration[] bins,
                 out RuleId[] kindRules);
+            ZoneRuleDefinition[] zoneRules = ReadZoneRules();
 
             if (_refusals.Count == 0)
             {
@@ -121,7 +124,8 @@ public static class RulesetLoader
             return _refusals.Count > 0
                 ? RulesetLoadResult.Refused(_refusals)
                 : RulesetLoadResult.Accepted(new Ruleset(
-                    [.. _families], rules, kinds, inputs, outputs, emissions, bins, kindRules));
+                    [.. _families], rules, kinds, inputs, outputs, emissions, bins, kindRules,
+                    zoneRules));
         }
 
         // ---- the walk -------------------------------------------------------------------------
@@ -163,10 +167,17 @@ public static class RulesetLoader
                         Register(_rules, table, "rule", (ushort)(_rules.Count + 1));
                         break;
 
+                    case "zone_rule":
+                        // Not registered into a name table: nothing in a Ruleset ever refers to a
+                        // Zone Rule, so it needs no id. The name is carried for refusal messages
+                        // only, which is why a duplicate one is not an ambiguity here.
+                        _zoneRuleTables.Add(table);
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
-                            + "[[resource]], [[building]] and [[rule]].");
+                            + "[[resource]], [[building]], [[rule]] and [[zone_rule]].");
                         break;
                 }
             }
@@ -615,6 +626,127 @@ public static class RulesetLoader
             kindRules = [.. allRules];
 
             return definitions;
+        }
+
+        // ---- zone rules -----------------------------------------------------------------------
+
+        /// <summary>
+        /// Reads the <c>[[zone_rule]]</c> tables, and runs refusals 6, 7 and 8.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>On the same walk as the other five</b> (<c>adr/0048</c>): one load-time pass, one error
+        /// surface, and the core receives ids and integers with no string among them.
+        /// </para>
+        /// <para>
+        /// <b>Every refusal here is a Ruleset that would load clean and do nothing</b>, which is the
+        /// class this build has already been bitten by — <c>apply = {min=1,max=4}</c> behaving as
+        /// <c>{1,1}</c> got through because a silent narrowing is indistinguishable from a quiet
+        /// design. A Zone Rule naming an undeclared kind, an unpaintable bit, or a sample of zero all
+        /// produce the same symptom: a city that never grows, and no sentence anywhere saying why.
+        /// </para>
+        /// </remarks>
+        private ZoneRuleDefinition[] ReadZoneRules()
+        {
+            var definitions = new List<ZoneRuleDefinition>(_zoneRuleTables.Count);
+
+            foreach (TableSyntaxBase table in _zoneRuleTables)
+            {
+                string? name = TryString(table, "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                // Refusal 6 — a kind the Ruleset does not declare. The same two-sided check the rest
+                // of the loader makes: the loader refuses an unknown name, the interpreter refuses an
+                // unknown id, and neither trusts the other.
+                byte kind = 0;
+
+                if (TryString(table, "kind", out string? kindName, required: true, name))
+                {
+                    if (!_kinds.TryGetValue(kindName!, out kind))
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "kind") ?? table), name,
+                            $"no [[building]] is named '{kindName}'. A Zone Rule builds a declared "
+                            + "kind, and one naming a kind that does not exist would sample Lots for "
+                            + "ever and build nothing.");
+                    }
+                }
+
+                // Refusal 7 — a permission bit no `zone` verb can paint. The Lot's permission set is
+                // LotTable.ZoneBits wide, so a higher bit can never be set by any command, and the
+                // Rule's create predicate can never pass. Checked against the column's own constant
+                // rather than a number copied into this file.
+                byte zone = 0;
+
+                if (TryInteger(table, "zone", out long bit, required: true, name))
+                {
+                    if (bit < 0 || bit >= LotTable.ZoneBits)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "zone") ?? table), name,
+                            $"zone bit {bit} is outside 0..{LotTable.ZoneBits - 1}. A Lot's permission "
+                            + $"set is {LotTable.ZoneBits} bits wide, so no zone command can paint "
+                            + "this bit and no Lot can ever admit this Rule.");
+                    }
+                    else
+                    {
+                        zone = (byte)bit;
+                    }
+                }
+
+                // Refusal 8 — a sample of zero loads clean and sweeps nothing. Stated as its own
+                // refusal rather than folded into a range check because the message is the point: the
+                // author wrote a Zone Rule, so they meant it to do something.
+                int sample = 0;
+
+                if (TryInteger(table, "sample", out long size, required: true, name))
+                {
+                    if (size < 1)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "sample") ?? table), name,
+                            $"a sample of {size} evaluates no Lots, so this Zone Rule would trigger "
+                            + "on schedule for ever and never build anything. If the intent is to "
+                            + "disable it, delete it.");
+                    }
+                    else
+                    {
+                        sample = (int)size;
+                    }
+                }
+
+                uint interval = ReadInterval(table, name);
+
+                definitions.Add(new ZoneRuleDefinition(kind, zone, interval, sample));
+            }
+
+            return [.. definitions];
+        }
+
+        /// <summary>
+        /// A Zone Rule's trigger interval, bounded like a Bin Rule's rate and for the same reason.
+        /// </summary>
+        /// <remarks>
+        /// <b>Not <see cref="ReadRate"/>, because the key is spelled differently and that is
+        /// deliberate.</b> <c>rate</c> is how often a Building's Rule re-arms; <c>interval</c> is how
+        /// often the city sweeps. Sharing a word would invite the reading that a Zone Rule is armed
+        /// per Lot, which is exactly the Bin Rule shape it is not.
+        /// </remarks>
+        private uint ReadInterval(TableSyntaxBase table, string? name)
+        {
+            if (!TryInteger(table, "interval", out long interval, required: true, name))
+            {
+                return 1;
+            }
+
+            if (interval < 1 || interval >= Borough.Core.Rules.EventWheel.Size)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "interval") ?? table), name,
+                    $"interval {interval} is outside 1..{Borough.Core.Rules.EventWheel.Size - 1}. An "
+                    + "interval is a reschedule in Ticks, and one at or beyond WHEEL_SIZE would "
+                    + "re-arm into the bucket it just came off.");
+                return 1;
+            }
+
+            return (uint)interval;
         }
 
         private void ReadBins(TableSyntaxBase table, string? kind, List<BinDeclaration> into)

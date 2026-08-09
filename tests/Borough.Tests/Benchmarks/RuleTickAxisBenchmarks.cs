@@ -182,7 +182,8 @@ public class RuleTickAxisBenchmarks
         outputs: [],
         emissions: [],
         bins: [],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 
     /// <summary>
     /// Four terms whose net delta per Bin is zero: the bakery's term count, applied to nothing.
@@ -199,5 +200,6 @@ public class RuleTickAxisBenchmarks
         outputs: [new Term(new BinRef(Scope.Local, First), 1), new Term(new BinRef(Scope.Local, Second), 1)],
         emissions: [],
         bins: [new BinDeclaration(First, BinCapacity.Of(60)), new BinDeclaration(Second, BinCapacity.Of(60))],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 }

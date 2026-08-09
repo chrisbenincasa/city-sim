@@ -41,7 +41,9 @@ families for performance. Building the second family is what puts it at risk of 
   invert severity and would have shipped.
 - **Task 2** — the derived Lot→Building reverse index, and `02 §2.2`'s invariant checkable for the
   first time in both tiers. It caught six existing fixtures on the day it landed.
-- **Next: task 3**, the `[[zone_rule]]` table and its three refusals.
+- **Task 3** — the `[[zone_rule]]` table and its three refusals. The loader's count of record goes
+  from five to eight, corrected in `adr/0048` and `adr/0015`.
+- **Next: task 4**, the sample and its third `purpose_tag`.
 
 ---
 
@@ -208,22 +210,47 @@ other structurally cannot. Walking Buildings catches an index left stale by a de
 row without vacating the Lot; walking Lots catches an index pointing at a slot since freed *or
 recycled into an unrelated Building*, which reads as perfectly valid from the Building side.
 
-### 3. The Zone Rule in the Ruleset, and its refusals
+### 3. The Zone Rule in the Ruleset, and its refusals — **done**
 
-A `[[zone_rule]]` table, loaded by `Borough.Formats.RulesetLoader` on the same walk as the other five
-refusals, reaching `Borough.Core.Rules.Ruleset` as ids and integers and never a string (`adr/0048`).
+A `[[zone_rule]]` table, read by `Borough.Formats.RulesetLoader` on the same walk as the other five,
+reaching `Borough.Core.Rules.ZoneRuleDefinition` as ids and integers and never a string (`adr/0048`).
+It declares a **kind**, a **zone** bit, an **interval** and a **sample**.
 
-It declares: the **trigger interval**, the **permission bit** it applies to, the **sample size**, and
-the **kind** it builds. `02 §4.2` fixes the first as Ruleset data and not a scheduling knob — *"a
-Policy paying daily is a different city from one paying weekly"* — which is what keeps it out of being
-a `const` and inside `adr/0015`.
+**The loader now runs eight refusals, and the count is corrected in `adr/0048` and `adr/0015`** —
+`0012` records that this exact number has drifted between three documents before.
 
-New refusals, in the same style as the existing five:
+Three new, and they are **one class rather than three**: each describes a Zone Rule that loads clean,
+triggers on schedule for ever, and builds nothing.
 
 - a Zone Rule naming a **kind the Ruleset does not declare**
-- a Zone Rule naming a **permission bit no `zone` verb can paint**
-- a **sample size of zero**, which loads clean and sweeps nothing — the `apply = {min=1,max=4}`
-  behaving as `{1,1}` defect (finding 19) arriving in the second family
+- a Zone Rule naming a **permission bit no `zone` verb can paint** — checked against
+  `LotTable.ZoneBits` rather than a literal, so widening the column cannot leave the parser refusing
+  bits that have become paintable
+- a **sample size of zero**, which is the `apply = {min=1,max=4}` behaving as `{1,1}` defect
+  (finding 19) arriving in the second family
+
+A fourth bounds check rides along, on **interval**, for the Event Wheel reason `rate` already has. It
+is spelled `interval` rather than `rate` deliberately: sharing the word would invite the reading that
+a Zone Rule is armed *per Lot*, which is the Bin Rule shape it is not.
+
+**Two things the implementation turned up:**
+
+- **A Zone Rule needs no id, and giving it one would have invented a reference nothing holds.** A Bin
+  Rule is named by an `on_fail`; a kind is named by a Rule. Nothing ever names a Zone Rule — it is
+  only iterated — so it is a span in declaration order, which is also `02 §4.2`'s tie-break between
+  two Rules contending for one Lot.
+- **`BOR0204` caught `1 << Zone` on the first build.** The permission bit is a variable shift count,
+  and C# masks it against the operand width, so an out-of-range bit would have wrapped to a valid one
+  rather than throwing. The loader refuses such a bit; `IntegerMath.ShiftLeft` is the second side of
+  that check, and the analyser is what insisted on it.
+
+**No `[[zone_rule]]` is added to `rulesets/minimal.toml` yet**, so the golden baselines do not move.
+The trigger that would run one is task 5.
+
+**The condemnation threshold is not here.** It belongs on `[[building]]`, not on the Zone Rule: under
+`adr/0055` any Zone Rule may sample any Lot, so a threshold declared per Zone Rule would make a
+Building's mortality depend on which Rule happened to look at it — and `adr/0053` makes pressure a
+property of the Building. Task 7.
 
 ### 4. The sample — and it is a new `purpose_tag`
 

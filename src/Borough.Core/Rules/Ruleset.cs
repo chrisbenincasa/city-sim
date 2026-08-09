@@ -1,5 +1,6 @@
 namespace Borough.Core.Rules;
 
+using Borough.Core.Arithmetic;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
@@ -284,6 +285,46 @@ public readonly record struct KindDefinition(
     int BinFirst, int BinCount, int RuleFirst, int RuleCount);
 
 /// <summary>
+/// One Zone Rule: a time trigger, a sample of Lots, and the kind it builds on those that qualify.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The second of <c>02 §4</c>'s two execution models, and the first Sweep Rule.</b> A Bin Rule is
+/// attached to a Building and proposes in Tick phase 2 to be settled in phase 3; a Zone Rule is
+/// attached to the city, fires on <see cref="Interval"/>, and acts where it runs, in phase 6. That
+/// difference in *when an effect becomes visible within a Tick* is <c>adr/0033</c>'s observable
+/// difference and the reason a mechanism may not change family for performance.
+/// </para>
+/// <para>
+/// <b><see cref="Zone"/> is a bit index and it scopes what this Rule may build — never which Lots it
+/// looks at</b> (<c>adr/0055</c>). The sample is drawn from every Lot; the bit is a term in the create
+/// predicate. Filtering the population by it instead would let a player repaint a Lot and make the
+/// Building on it unreachable, and therefore immortal.
+/// </para>
+/// <para>
+/// <b><see cref="Interval"/> is Ruleset data rather than a scheduling knob</b>, which <c>02 §4.2</c>
+/// settles in one sentence — *a Policy paying daily is a different city from one paying weekly*. It is
+/// hash-bearing, and so is <see cref="Sample"/>; both are in <c>plans/0002</c> §D with a named
+/// ratifier, per <c>adr/0052</c>.
+/// </para>
+/// </remarks>
+/// <param name="Kind">The Building kind this Rule builds. Never zero — the loader refuses that.</param>
+/// <param name="Zone">Which permission bit admits <paramref name="Kind"/> here.</param>
+/// <param name="Interval">Ticks between triggers.</param>
+/// <param name="Sample">How many Lots one trigger evaluates.</param>
+public readonly record struct ZoneRuleDefinition(byte Kind, byte Zone, uint Interval, int Sample)
+{
+    /// <summary>The permission set a Lot must carry for this Rule to build on it.</summary>
+    /// <remarks>
+    /// Through <see cref="IntegerMath.ShiftLeft"/> rather than <c>&lt;&lt;</c>, per <c>BOR0204</c>:
+    /// C# masks a shift count against the operand width, so an out-of-range <see cref="Zone"/> would
+    /// silently wrap to a valid bit rather than throwing. The loader refuses such a bit at load time;
+    /// this is the second side of that check, and the analyser is what insisted on it.
+    /// </remarks>
+    public ushort Admits => (ushort)IntegerMath.ShiftLeft(1, Zone);
+}
+
+/// <summary>
 /// The Ruleset the interpreter runs: ids and integers, validated, with no string anywhere in it.
 /// </summary>
 /// <remarks>
@@ -314,6 +355,7 @@ public sealed class Ruleset
     private readonly MapEmission[] _emissions;
     private readonly BinDeclaration[] _bins;
     private readonly RuleId[] _kindRules;
+    private readonly ZoneRuleDefinition[] _zoneRules;
 
     /// <param name="resources">One family per Resource, indexed by <c>ResourceId.Raw - 1</c>.</param>
     /// <param name="rules">One per Rule, indexed by <c>RuleId.Raw - 1</c>.</param>
@@ -323,6 +365,7 @@ public sealed class Ruleset
     /// <param name="emissions">Every Rule's Map Layer writes, concatenated.</param>
     /// <param name="bins">Every kind's Bin declarations, concatenated.</param>
     /// <param name="kindRules">Every kind's Rules, concatenated.</param>
+    /// <param name="zoneRules">One per Zone Rule, in declaration order.</param>
     public Ruleset(
         ResourceFamily[] resources,
         RuleDefinition[] rules,
@@ -331,8 +374,10 @@ public sealed class Ruleset
         Term[] outputs,
         MapEmission[] emissions,
         BinDeclaration[] bins,
-        RuleId[] kindRules)
+        RuleId[] kindRules,
+        ZoneRuleDefinition[] zoneRules)
     {
+        ArgumentNullException.ThrowIfNull(zoneRules);
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(kinds);
         ArgumentNullException.ThrowIfNull(inputs);
@@ -350,10 +395,11 @@ public sealed class Ruleset
         _emissions = emissions;
         _bins = bins;
         _kindRules = kindRules;
+        _zoneRules = zoneRules;
     }
 
     /// <summary>The Ruleset a world has before one is loaded. Declares nothing and runs nothing.</summary>
-    public static Ruleset Empty { get; } = new([], [], [], [], [], [], [], []);
+    public static Ruleset Empty { get; } = new([], [], [], [], [], [], [], [], []);
 
     /// <summary>How many Resources are declared. Ids run <c>1..ResourceCount</c>.</summary>
     public int ResourceCount => _resources.Length;
@@ -378,6 +424,22 @@ public sealed class Ruleset
 
     /// <summary>How many Building kinds are declared. Ids run <c>1..KindCount</c>.</summary>
     public int KindCount => _kinds.Length;
+
+    /// <summary>
+    /// Every Zone Rule, in declaration order — which is the order a trigger evaluates them in.
+    /// </summary>
+    /// <remarks>
+    /// <b>A span rather than an id lookup, because a Zone Rule is never referred to by name.</b>
+    /// Nothing points at one: a Bin Rule is named by an <c>on_fail</c> and a kind is named by a Rule,
+    /// but a Zone Rule is only ever iterated. So it needs no id type, and giving it one would invent
+    /// a reference nothing holds.
+    /// <para>
+    /// Declaration order is <c>02 §4.2</c>'s tie-break between two Zone Rules contending for one Lot,
+    /// and it is a Ruleset-authored order rather than an incidental one — which is why it is stable
+    /// here and why the *scan start within a Rule* is rotated per trigger instead.
+    /// </para>
+    /// </remarks>
+    public ReadOnlySpan<ZoneRuleDefinition> ZoneRules => _zoneRules;
 
     /// <summary>
     /// One Rule, or a throw. <b>This is <c>adr/0048</c>'s drift assertion, and it is the only one.</b>

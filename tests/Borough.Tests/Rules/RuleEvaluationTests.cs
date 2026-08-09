@@ -41,7 +41,8 @@ public sealed class RuleEvaluationTests
         outputs: [new Term(new BinRef(Scope.Local, Bread), 4)],
         emissions: [],
         bins: [new BinDeclaration(Flour, BinCapacity.Of(60)), new BinDeclaration(Bread, BinCapacity.Of(20))],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 
     /// <summary>
     /// A world with one bakery, its declared Bins, and its Rules armed for Tick 1.
@@ -173,7 +174,8 @@ public sealed class RuleEvaluationTests
             outputs: [],
             emissions: [],
             bins: [new BinDeclaration(Flour, BinCapacity.Of(60)), new BinDeclaration(Bread, BinCapacity.Of(20))],
-            kindRules: [new RuleId(1)]);
+            kindRules: [new RuleId(1)],
+            zoneRules: []);
 
         (World world, Simulation simulation, Handle<Building> building) = Built(ruleset);
 
@@ -230,7 +232,8 @@ public sealed class RuleEvaluationTests
             outputs: [new Term(new BinRef(Scope.Local, Flour), 4)],
             emissions: [],
             bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-            kindRules: [new RuleId(1)]);
+            kindRules: [new RuleId(1)],
+            zoneRules: []);
 
         (World world, Simulation simulation, Handle<Building> building) = Built(ruleset);
 
@@ -253,7 +256,8 @@ public sealed class RuleEvaluationTests
         outputs: [new Term(new BinRef(Scope.Local, Bread), 4)],
         emissions: [],
         bins: [new BinDeclaration(Flour, BinCapacity.Of(60)), new BinDeclaration(Bread, BinCapacity.Of(20))],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 
     /// <summary>
     /// <b>Greedy: the bakery bakes the flour it has</b>, up to its own ceiling. Sixty flour would
@@ -346,7 +350,8 @@ public sealed class RuleEvaluationTests
             outputs: [new Term(new BinRef(Scope.Local, Flour), 4)],
             emissions: [],
             bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-            kindRules: [new RuleId(1)]);
+            kindRules: [new RuleId(1)],
+            zoneRules: []);
 
         (World world, Simulation simulation, Handle<Building> building) = Built(ruleset);
 
@@ -370,7 +375,8 @@ public sealed class RuleEvaluationTests
             outputs: [],
             emissions: [new MapEmission(Layer.IndustrialPollution, 40)],
             bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-            kindRules: [new RuleId(1)]);
+            kindRules: [new RuleId(1)],
+            zoneRules: []);
 
         (World world, Simulation simulation, Handle<Building> building) = Built(ruleset);
 
@@ -392,7 +398,8 @@ public sealed class RuleEvaluationTests
         outputs: [],
         emissions: [],
         bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-        kindRules: [new RuleId(1), new RuleId(2)]);
+        kindRules: [new RuleId(1), new RuleId(2)],
+        zoneRules: []);
 
     /// <summary>
     /// <b>The Phase 3 re-check serves a greedy Rule short rather than failing it.</b> Both Rules decide
@@ -425,7 +432,8 @@ public sealed class RuleEvaluationTests
         outputs: [new Term(new BinRef(Scope.Local, Flour), 24)],
         emissions: [],
         bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-        kindRules: [new RuleId(1), new RuleId(2)]);
+        kindRules: [new RuleId(1), new RuleId(2)],
+        zoneRules: []);
 
     /// <summary>
     /// <b>…and it may never serve one <em>more</em>, which is what makes Phase 2 the deciding phase.</b>
@@ -498,7 +506,8 @@ public sealed class RuleEvaluationTests
         outputs: [],
         emissions: [],
         bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-        kindRules: [new RuleId(1), new RuleId(2)]);
+        kindRules: [new RuleId(1), new RuleId(2)],
+        zoneRules: []);
 
     /// <summary>
     /// <b><c>02 §8</c> rule 5, measured.</b> Ordering a contested draw by entity id is <em>biased</em>:
@@ -608,7 +617,8 @@ public sealed class RuleEvaluationTests
         outputs: [],
         emissions: [],
         bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 
     /// <summary>
     /// <c>pool</c> and <c>global</c> throw rather than resolving to an empty Bin, which is slice 6's
@@ -657,7 +667,8 @@ public sealed class RuleEvaluationTests
         outputs: [],
         emissions: [],
         bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 
     private static void House(World world, Handle<Building> building, int households)
     {
@@ -755,7 +766,8 @@ public sealed class RuleEvaluationTests
             outputs: [],
             emissions: [],
             bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-            kindRules: [new RuleId(1)]);
+            kindRules: [new RuleId(1)],
+            zoneRules: []);
 
         (_, Simulation simulation, _) = Built(ruleset);
 
@@ -774,7 +786,8 @@ public sealed class RuleEvaluationTests
             outputs: [],
             emissions: [],
             bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-            kindRules: [new RuleId(1)]);
+            kindRules: [new RuleId(1)],
+            zoneRules: []);
 
         (_, Simulation simulation, _) = Built(ruleset);
 
@@ -798,7 +811,8 @@ public sealed class RuleEvaluationTests
             outputs: [],
             emissions: [new MapEmission(Layer.IndustrialPollution, 40)],
             bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-            kindRules: [new RuleId(1)]);
+            kindRules: [new RuleId(1)],
+            zoneRules: []);
 
         (World world, Simulation simulation, Handle<Building> building) = Built(ruleset);
 
@@ -821,7 +835,8 @@ public sealed class RuleEvaluationTests
             outputs: [],
             emissions: [new MapEmission(Layer.LandValue, 40)],
             bins: [new BinDeclaration(Flour, BinCapacity.Of(60))],
-            kindRules: [new RuleId(1)]);
+            kindRules: [new RuleId(1)],
+            zoneRules: []);
 
         (World world, Simulation simulation, Handle<Building> building) = Built(ruleset);
 

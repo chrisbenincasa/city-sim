@@ -27,7 +27,8 @@ public sealed class ReadoutTests
         outputs: [],
         emissions: [],
         bins: [],
-        kindRules: []);
+        kindRules: [],
+        zoneRules: []);
 
     private static IEnumerable<Readout> Members =>
         Enum.GetValues<Readout>().Where(readout => readout != Readout.None);

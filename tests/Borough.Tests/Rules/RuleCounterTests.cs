@@ -52,7 +52,8 @@ public sealed class RuleCounterTests
         outputs: [new Term(new BinRef(Scope.Local, Bread), 4)],
         emissions: [],
         bins: [new BinDeclaration(Flour, BinCapacity.Of(60)), new BinDeclaration(Bread, BinCapacity.Of(20))],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 
     /// <summary>
     /// The same bakery, falling back to milling, falling back to a report.
@@ -91,7 +92,8 @@ public sealed class RuleCounterTests
             new BinDeclaration(Bread, BinCapacity.Of(20)),
             new BinDeclaration(Grain, BinCapacity.Of(60)),
         ],
-        kindRules: [new RuleId(1)]);
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
 
     private static (World World, Simulation Simulation) Built(Ruleset ruleset)
     {

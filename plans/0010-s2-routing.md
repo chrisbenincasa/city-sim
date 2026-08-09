@@ -1246,6 +1246,36 @@ verdict.
 
 ---
 
+### R6.4. What a per-Traveller Habit Route costs — **NEW, produced by session M, and it runs before R7 closes**
+
+**Session M declined to choose and named a measurement instead**, which is `adr/0043` applied to the
+session's own output rather than to a document's. The choice it faced is a **trilemma** — memory,
+diversion cost, concentration, pick two — and **two of the three rows are fully priced while the third
+has no numbers at all**:
+
+| | Memory at 1M | Diversion | Concentration |
+|---|---:|---|---|
+| **Per-Traveller stored path** | **unmeasured** — 232.7 MiB uncompressed | **unmeasured** | none |
+| Shared next-hop tree | 7.70 MiB (R2.1) | free, 3.18% (R8.6) | **87.25% on 1%** (R8.0) |
+| Cached route | ~250 KiB + handles | needs **88.5%**, unattainable (R6.1b) | none |
+
+**Both missing numbers are Road Graph properties.** Neither needs Trip generation, Travellers or
+traffic, which is what makes this runnable on the harness that is still on disk — and the same class of
+measurement as the Sight Horizon floor, which `adr/0046` also derived off the graph rather than tuning.
+
+**R6.4.1 — the branch-point compression ratio.** A stored route is mostly forced: R3 measured this
+network at degree ~3, so many nodes are degree 2 and mid-block, and `adr/0046` already leans on exactly
+that fact. Sample routes across the O-D family and count the nodes with a genuine choice. **Refutes if
+`k > ~25`**, which leaves memory above 100 MiB and the row loses on the axis it was chosen against.
+
+**R6.4.2 — the rejoin cost.** From one arc off a stored path, search back to the path, bounded by the
+Sight Horizon. **Refutes if the cost exceeds ~10 µs**, which against R8.3's measured 1,269.51
+diversions per Tick is 12.7 ms — most of a 15.6 ms budget, and the row loses to the tree on the axis
+the tree wins.
+
+*Report both as absolutes and not as percentages, per R6.1a: the percentage is a property of whichever
+O-D draw was used and the absolute is a property of the graph.*
+
 ### R7. The report, and the verdict — **IN PROGRESS**
 
 Into `docs/spike-results.md`, in the form S4 established: the machine, the numbers, and — separately —
