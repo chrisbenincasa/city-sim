@@ -1246,7 +1246,13 @@ verdict.
 
 ---
 
-### R6.4. What a per-Traveller Habit Route costs — **NEW, produced by session M, and it runs before R7 closes**
+### R6.4. What a per-Citizen Habit Route costs — **NEW, produced by session M, and it runs before R7 closes**
+
+> **Retitled mid-session, and the rename is a finding.** This block said *per-Traveller* because
+> `CONTEXT.md` → Habit Route did, and that entry contradicted the same file's *a Traveller is a view,
+> not an owner*. A route reused across many Trips is conserved across embodiments, so it lives on the
+> **Citizen**. The distinction is not cosmetic: it sets the **store size** to the population rather
+> than to the Microscopic Cap, and every cost below is that size times something.
 
 **Session M declined to choose and named a measurement instead**, which is `adr/0043` applied to the
 session's own output rather than to a document's. The choice it faced is a **trilemma** — memory,
@@ -1255,7 +1261,7 @@ has no numbers at all**:
 
 | | Memory at 1M | Diversion | Concentration |
 |---|---:|---|---|
-| **Per-Traveller stored path** | **unmeasured** — 232.7 MiB uncompressed | **unmeasured** | none |
+| **Per-Citizen stored path** | **unmeasured** — 232.7 MiB uncompressed | **unmeasured** | none |
 | Shared next-hop tree | 7.70 MiB (R2.1) | free, 3.18% (R8.6) | **87.25% on 1%** (R8.0) |
 | Cached route | ~250 KiB + handles | needs **88.5%**, unattainable (R6.1b) | none |
 
@@ -1273,8 +1279,59 @@ Sight Horizon. **Refutes if the cost exceeds ~10 µs**, which against R8.3's mea
 diversions per Tick is 12.7 ms — most of a 15.6 ms budget, and the row loses to the tree on the axis
 the tree wins.
 
-*Report both as absolutes and not as percentages, per R6.1a: the percentage is a property of whichever
-O-D draw was used and the absolute is a property of the graph.*
+**R6.4.3 — the addition wake's fan-out, and what `d` should be.** `adr/0012`'s contract wakes routes
+within `d` of a newly added Segment, and R1.7 has already measured that a proximity test over a
+*matrix* missed **309 of 429** changed entries and missed them silently. This runs R1.7's method over
+a **route store**: add a Segment, wake everything within `d`, and diff against the ground truth of
+which stored routes a full recompute would change. Sweep `d`.
+
+**Fixture, deliberately R5.4's and R5.5.4's exactly so the numbers sit beside theirs**: draw the
+Arterial gesture (`EditStorm.Draw(Arterial, 4)`, ~512 m, the smallest addition worth drawing), `Apply`
+to damage the graph, build the store against the damaged graph, then `Revert` — **restoration is
+addition**. Store is `RouteStore.ForSearchedPool`, swept across the O-D family per R4, because R4
+established that the draw is a swept family and not a setting.
+
+**Three columns, and the third is the one nobody would print unprompted:**
+
+| Column | | Read as |
+|---|---|---|
+| `\|W(d)\|` | fan-out — routes woken | the **marks** paid per edit |
+| `\|C \ W(d)\|` | **missed** — changed but not woken | R1.7's 309-of-429. **Survivable**, because `T` catches it, so **it does not refute** |
+| `\|W(d) \ C\|` | **woken needlessly** | the waste, and the term that actually drives `P(stale)` up |
+
+**The wake sets a bit; it does not recompute** — session M's second decision, and it is what gives this
+task a threshold it did not previously have. Age past `T` sets the stale bit, an addition within `d`
+sets the same bit, and **both drain at Trip start on a budget line that already exists**. So a wake
+costs a *mark*, not a route computation, and *"fan-out too large to afford"* was never the right
+refutation — it had no number behind it.
+
+**Refutes if `P(stale)` measured over the window after one ordinary gesture approaches 1 at every `d`
+that catches a useful share of `C`.** Then one road edit marks most of the city, every subsequent Trip
+start recomputes, and the drain stops bounding anything — which is `adr/0012`'s trigger arrived at
+from the other end, and the two are deliberately the same quantity. Report fan-out as **routes woken
+per added Segment**, unmultiplied; the edit rate belongs to whoever prices it.
+
+**The second measurement is the reverse index, and it is most of the work.** `|W(d)|` means nothing
+if answering *which routes touch this Cell* costs more than the wake buys. **Build a real one** — a
+Cell-keyed **intrusive index list**, head on the Cell and `next` on the route, per `CLAUDE.md`, since
+a spike measuring a structure the project could not adopt measures the wrong thing. Report:
+
+- **resident bytes**, against `RouteStore.ResidentBytes`
+- **query time per gesture** — the cost of forming `W(d)`
+- **maintenance cost per route insert and per eviction**, which is the term to watch: it is paid on
+  the **common** path where the wake is paid on the **rare** one, so it can dominate while looking
+  free. Nobody has priced it and R1.7 named it as the missing piece without building it.
+
+**Report the structure, not only its numbers.** R7's last act is deleting this harness, and an index
+that measured well and was never described is a measurement thrown away.
+
+**A caveat that runs against us and is stated rather than hidden**: R1.7's harness had a matrix, whose
+entries are pairs, while a route store holds paths. A path is a *longer* object with more chances to
+pass near an edit, so a route store's fan-out should be **worse** than R1.7's at the same `d`, not
+better. Nothing here should be read as expecting the earlier number to improve.
+
+*Report every figure as an absolute and not as a percentage, per R6.1a: the percentage is a property
+of whichever O-D draw was used and the absolute is a property of the graph.*
 
 ### R7. The report, and the verdict — **IN PROGRESS**
 

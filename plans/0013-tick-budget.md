@@ -82,6 +82,28 @@ and were expected to be the smallest.** Two of the three are properties of a rea
 optimised away; the term axis is code, and it is `World.FindBin` searching a Building's intrusive Bin
 list once per term per evaluation.
 
+**The lesson has a mirror image, and session M walked straight into it three days later.** This
+document's warning is *a measured multiplicand against a guessed one*, and the paragraph above adds
+*a unit cost is a hypothesis*. Session M then produced **872% of the routing budget** for a proposed
+Habit refresh — a **measured unit** (112 route computations per Tick, R7's re-capture) times a
+**guessed multiplicand** (one Habit per Citizen at 1M, from nothing), and treated it as a reason to
+discard a mechanism. It is the same defect as the Bin Rule row wearing the opposite face, and the
+repair is not *stop estimating*: it is **type the two halves of an estimate separately before acting
+on it.**
+
+> A **shape** claim — *a rotation costs `store size ÷ period`, so it couples the learning rate to the
+> population* — is arithmetic about the mechanism. It holds at every store size, needs no measurement,
+> and is `arguable` under `adr/0043`. **That is what a design decision may rest on.**
+>
+> A **magnitude** claim — *872%* — is the shape multiplied by numbers, and it inherits the softest one.
+> It is `measurable`, and until the multiplicand exists it may be used to *decide what to measure* and
+> never to decide what to build.
+
+Session M's outcome survived because the shape claim was sufficient on its own: the mechanism chosen
+is bounded by a quantity already in the budget *whatever the multiplicand turns out to be*, which is a
+property, not a number. **Prefer the option that is robust to your own estimate being wrong** — that
+is the one line of this worth carrying to the next row in the ledger.
+
 **The one non-flat unit is the intent sort, and it was found by looking for it.** Phase 3 sorts its
 intents into the settle order, which is `O(n log n)` where everything else in the engine is linear.
 Measured across two decades of due count the per-Rule cost rises **121.6 → 146.3 → 198.3 ns**, a

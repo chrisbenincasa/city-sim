@@ -75,6 +75,31 @@ not happen is choosing it quietly.
 and defeats the purpose. A ratifier that names no owner and no quantity is not one, and a row carrying
 one should be treated as unfilled.
 
+### Changing a hash-bearing number is **cheap today**, and this rule is a habit being built ahead of its cost
+
+The *Why* above prices the move as *"every recorded baseline, every golden trace and every balance
+observation was taken against a different city."* True, and it is worth being precise about which of
+those exist:
+
+| Accretion | Cost of a hash-bearing move | Exists today |
+|---|---|---|
+| Golden traces and baselines | **re-record them.** Mechanical, minutes, already done routinely — slice 10 re-recorded both on a `byte`→`ushort` widening | yes, and cheap |
+| **Citations across the corpus** | **the expensive one.** `adr/0044` had to *measure* the Map Layer cadence back out of **three documents** that cited it as settled | yes, and not cheap |
+| Balance knowledge — what a good Ruleset looks like | none. `rulesets/minimal.toml` says in its own header that it models no city | **no** |
+| **Player saves** | unbounded, and there is no migration story | **no** |
+
+**So the weight this decision will one day carry is not the weight it carries now.** There is no game,
+no player and no save; the *only* accretion with real cost today is citation, which is why `adr/0044`
+was painful without a single player existing. Read the rule as **a habit rehearsed while it is free**,
+not as a reason for caution about picking numbers.
+
+**And it must not be cited to slow anything down.** The board has already recorded one session where
+*"the design was generating design"* and the correction was **build**. A rule whose only cost is two
+sentences may not become a reason to defer a choice, to open a session, or to treat a number as
+dangerous. **`adr/0043`'s companion rule is the one with teeth right now** — do not settle by argument
+what a measurement could settle. This one is bookkeeping, and bookkeeping that starts costing more
+than it saves has stopped working.
+
 ## What would trigger revisiting
 
 - **D1 stays empty for a long stretch.** If nothing accumulates, the discipline has done its job and

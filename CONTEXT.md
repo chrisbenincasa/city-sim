@@ -592,9 +592,11 @@ Because no Citizen record is ever collapsed or discarded, both directions are **
 A Citizen currently on a Trip. Transient, created on demand when travel is required and released on arrival. A Traveller on a Microscopic Segment is a real vehicle in a Lane queue; on a Statistical Segment it is an origin, a destination, and an arrival Tick.
 
 **Habit Route**
-The route a Traveller normally takes between two places, computed from a **slow-moving** cost basis and reused across many Trips. It is the road network's Provider List: `adr/0017`'s sticky incumbent, one actor class further on.
+The route a **Citizen** normally takes between two places, computed from a **slow-moving** cost basis and reused across many Trips. It is the road network's Provider List: `adr/0017`'s sticky incumbent, one actor class further on.
 
-A Habit Route is deliberately **out of date**. Nothing recomputes it because a road got busy — that is what Sight is for — and whether it needs to be refreshed at all is an open measurement rather than an assumption. See `docs/adr/0046`. `BOUNDED KNOWLEDGE`
+**It belongs to the Citizen, never to the Traveller**, and this entry said otherwise until session M. A thing *reused across many Trips* is conserved across embodiments, and a Traveller is released on arrival — so storing it there would break this file's own rule that **a Traveller is a view, not an owner** (see *Promotion / Demotion*). A Traveller reads its Citizen's Habit Route; it never holds one.
+
+A Habit Route is **deliberately out of date about congestion, and only boundedly out of date about the network** — two different kinds of wrong, and conflating them cost session M a day. Nothing recomputes it because a road got busy; that is what Sight is for, and `adr/0046`'s **static Habit** is ratified over exactly that case and no other. A road being **built or demolished** is not staleness at all — the route is wrong about what *exists*, which no amount of local self-correction repairs. What a Habit Route is permitted to be wrong about, and for how long, is stated in `adr/0012`. See `docs/adr/0046`, `docs/adr/0012`. `BOUNDED KNOWLEDGE`
 
 **Sight Horizon**
 How far ahead a Traveller can see live conditions: the number of Segments along the Habit Route whose current cost it reads before choosing which arc to take out of a junction. Beyond the horizon it falls back to its lagged expectation of the rest of the journey.
