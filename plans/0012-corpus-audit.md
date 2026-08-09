@@ -10,10 +10,16 @@ discharged. It is a debt ledger with a closing condition: when everything here i
 
 **The design documents are paid and agree with the code.** `02`, `04`, `05`, `CONTEXT.md` and
 `adr/0033` were corrected inline in the sitting that found them, together with the two ADRs the
-citation check caught. **What remains open is entirely `plans/`** — `0002`'s live-status half and
-`0003`'s three disagreeing tables — which is *Cause 1*, and which the board restructure has already
-shown how to fix: give the fact one home and point at it. Nothing left in this ledger describes the
-simulation wrongly.
+citation check caught. **What remains open is almost entirely `plans/`** — `0002`'s live-status half
+and `0003`'s three disagreeing tables — which is *Cause 1*, and which the board restructure has
+already shown how to fix: give the fact one home and point at it. Nothing left in this ledger
+describes the simulation wrongly.
+
+**One item is not like the others and arrived after the sweep closed:** a `const` in `src/` that
+`adr/0015` says belongs in the Ruleset. It is a **code** defect rather than a document correction, and
+it is here because it exposes a bias in this sweep's method — every other item fixes a document,
+because *documents against the code* was only ever run in one direction. See *A constant `adr/0015`
+enumerates lives in the binary*.
 
 ---
 
@@ -286,6 +292,42 @@ for want of frontage, so *"every Building is on the Road Graph by construction"*
 Frontage leans on to delete the utility network entirely — is currently true by there being no Road
 Graph rather than by construction.
 
+### A constant `adr/0015` enumerates lives in the binary — and this sweep could not have found it
+
+**Raised by slice 8's planning** ([`0015`](0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md)),
+which went looking for what a hot reload would have to refuse and found there was nothing there to
+refuse.
+
+- [ ] **`src/Borough.Core/Space/SeparableKernel.cs:177` — the industrial pollution kernel radius is
+      `public const int IndustrialPollutionMetres = 1_024;`**, with the kernel built from it at `:180`.
+      It is not in `LayerRuleset`, it is in no file, and no loader has ever seen it. **`adr/0015`'s
+      world-creation category freezes a number *per world*; it does not move it into the binary** — its
+      own words are that these constants *"live in the Ruleset like everything else and are **read**
+      from it, but they are fixed when a world is created and baked into the save"*. `CLAUDE.md` states
+      the rule without qualification: **a `const` where a Ruleset value belongs is a defect, not a
+      shortcut.** Discharged by `0015` task 3, which needs it discharged *first*: a reload cannot refuse
+      a change to a number a designer has no way to change, so the refusal is untestable theatre until
+      the value is in a file. Moving it does **not** ratify it — the 1–10 km band is still 10× wide and
+      the `0002` §D row stays open
+
+**Why this ledger did not already hold it is the more useful half.** The entry above —
+*`adr/0015`'s world-creation constants were missing the kernel radius* — is marked paid, and it is:
+`adr/0044` instructed the ADR to enumerate the member, and the ADR now does. **The document was
+corrected and the code it describes was never looked at**, so the corpus reads as consistent from every
+angle this sweep took.
+
+**That is a directional bias in the audit's own method.** The premise is *status-bearing documents
+against the state of the code*, and every one of the forty-odd items above corrects a **document**.
+The sweep had no verb for the other direction. Where a design document is **right** and the build is
+wrong, this ledger is structurally blind — and `adr/0015` is precisely the ADR most exposed to that,
+because what it asserts is a property of **where a number lives**, which is checkable in source and
+invisible in prose. Two of the three other enumerated members (`TICKS_PER_DAY`, `WHEEL_SIZE`, the Cell)
+have never been checked against the same test either.
+
+*This is a code defect rather than a document correction, so it sits outside this ledger's closing
+condition.* It is filed here because the same method found it and because it belongs beside its
+sibling entry — but it is discharged by slice 8, not by typing.
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and
@@ -309,6 +351,13 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    sweep had missed.
 2. **Slice task status agrees between `0003` and the slice plan.** Needs one machine-readable line
    per slice. Catches the drift that started this sweep.
+3. **Every member of `adr/0015`'s world-creation enumeration is read from the Ruleset, not a `const`.**
+   Added after slice 8's planning found the kernel radius in the binary. This is the only one of the
+   three that checks a **document's claim against the source** rather than one document against
+   another, which is the direction the sweep was blind in — and it is the direction `adr/0015` is most
+   exposed to, since a tuning number silently becoming a `const` is exactly the failure it exists to
+   prevent. The enumeration is four items long, so the check is cheap; `Borough.Analysers` is the
+   natural home if it wants teeth.
 
 Neither is a substitute for the restructure. A check over three tables that disagree only tells you
 they disagree; the point of thinning is that there is one place to be right.
