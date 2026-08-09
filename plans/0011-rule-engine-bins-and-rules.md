@@ -108,8 +108,26 @@ corpus's own multipliers says a 1M city spends **~60% of a Tick on Rule evaluati
 **floor**. Findings 29–33. 585 tests green; the golden baselines did not move, because a counter is
 not state.
 
-**Task 10 is not started, and it has been split, because planning it found that the task as written
-cannot be done.** It asked for *a production chain over two or three Goods*, and a production chain
+**Task 10a is done, and the simulation does something for the first time.** A Ruleset now reaches a
+`World`: `Replay.Start` takes one, the runner **loads** what it previously only hashed, and
+`World.CreateBuilding` is the door that gives a Building its kind's Bins and arms its chain heads — so
+`CONTEXT` → Bin's *"a Building is given exactly its kind's Bins when it is built"* has an
+implementation rather than a test that writes the loop by hand. The arming stagger turned out to have
+**no number to choose** (finding 38). `rulesets/minimal.toml` is the content, it says in its own header
+that it models no city, and it reaches a **genuine oscillating steady state**: 121 Buildings, 121 Bins,
+242 Rule Instances, a Bin at its ceiling, `restock` asleep on headroom, one derived draw waking it
+every 32 Ticks for ever. The golden session **adopts it and opens with `populate`**, so the committed
+trace covers the Rule engine, the Bins, the Wheel and the populator for the first time; all three
+baselines were re-recorded and the `.borough` file names the Ruleset by content hash. The flow half of
+slice 5 task 7's trend assertion ships with it, as **exact equality across the tail** rather than a
+trend line, because the Ruleset's period is known. 593 tests green. **Two findings outrank the rest**:
+the first Ruleset **deadlocked in about two hundred Ticks**, which turned finding 35 from an argument
+into a measurement (finding 40); and **the shortage regime is not expressible today** — a recorded
+shortfall is a deficit at the instant of failure and the wait list wakes on the *arriving quantity*, so
+a consumer short of three is never woken by three arrivals of one (finding 41). Findings 38–41.
+
+**Task 10b is not started, and it has been split from 10a, because planning it found that the task as
+written cannot be done.** It asked for *a production chain over two or three Goods*, and a production chain
 between Buildings is `pool` by definition — which **decision owed 3, in this document, settled as a
 named hole that throws**. The task list and the decisions section had disagreed since task 3 and
 nobody went back. **Task 10a is the wiring**, which is real, unblocked, and the last thing standing
@@ -444,6 +462,20 @@ that it models no city. It is deleted rather than grown when 10b becomes possibl
 The **golden session adopts it and the baselines are re-recorded** — the first time the golden trace
 covers the Rule engine at all.
 
+**Done.** All four pieces, plus the content and the baselines. `rulesets/minimal.toml` declares one
+Resource that is not one of `04 §1`'s five, one Building kind — **kind 1, which is what the populator
+builds and what Households live in** — one Bin, and two Rules: a greedy `restock` with no inputs, and
+a `consume` whose count is derived from `occupancy`, which is the **first thing outside a test to read
+a Readout**. There is no `on_fail` chain in it, and that is the same argument as decision owed 4: a
+link rescues from a source the head could not reach, every source available today is the Building's
+own Bins, so a chain here would be a Rule rescuing itself. There is no `map` emission either, for
+finding 37's reason — the decay that would bound it is settled (`adr/0051`) and unbuilt.
+
+**The steady state is a surplus one, and that is forced rather than chosen** (finding 41). The golden
+session opens with `populate` and its Zone commands moved two rows north, because the populator lays
+its Lots across rows 0 and 1 and a fixture whose docstring promises coherence should not be the first
+world to hold two Lots on one Tile.
+
 #### 10b. The proving chain — BLOCKED on `pool`
 
 The task above, unchanged, waiting on the scope that makes a chain between Buildings expressible.
@@ -459,6 +491,8 @@ twice.
 - A Ruleset with a cycle, a broken `fills`, or an unquoted decimal is **refused with a file, a line
   and a rule name**, and the previous Ruleset stays live.
 - Replay equivalence holds over a session in which Rules fire: two runs, identical hash traces.
+  **Done** — `ReplayTests.Two_runs_of_one_log_agree_when_rules_fire`, over the golden session, with a
+  third run against `Ruleset.Empty` asserting the traces differ so the agreement is over something.
 - ~~A 100,000-Tick run at a real population where no collection and no magnitude trends upward.~~
   **Split, per finding 36.** The **flow** half is this slice's and is testable: over the tail of a
   100,000-Tick run, `evaluations` must not trend upward against a flat `due`, which is chain walking
@@ -466,19 +500,25 @@ twice.
   engine allocates no rows — a Rule Instance's life is its Building's (finding 2) — so no Ruleset can
   make a table's slot count trend, and what makes rows churn is Zone Rules creating and demolishing
   Buildings.
-- The State Hash moved, deliberately, and the golden baselines were re-recorded.
+  **Shipped**, as `RuleLongRunTests`, and **stronger than the line asked for**: the minimal Ruleset's
+  period is `consume`'s rate, so the tail's readings are not merely flat but *identical*, and the
+  assertion is exact equality rather than a slope somebody has to argue about. Verified live by
+  mutation — reading on an interval that is not a whole number of periods fails it by 53 evaluations.
+- The State Hash moved, deliberately, and the golden baselines were re-recorded. **Done**: the golden
+  session opens with `populate` and names `rulesets/minimal.toml` by content hash, so all three
+  artefacts moved together and `The_golden_ruleset_is_the_one_the_session_names` keeps them together.
 - Every unratified number this slice chose is in [`0002`](0002-open-questions.md) before it closes.
 
 ---
 
 ## What building it found
 
-Recorded as it happens, per slice 6's practice. Thirty-seven so far — **numbered 1 to 37 with 22 and
+Recorded as it happens, per slice 6's practice. Forty-one so far — **numbered 1 to 41 with 22 and
 23 used twice**, because task 8 restarted its count where task 7 had already been. Left as it is:
 renumbering would silently invalidate every reference made to a finding by number, and the collision
-is itself an instance of the thing this section keeps finding. Task 9's are **29–33**; task 10's are
-**34–37**, and they are the first in this slice found entirely by **planning** — no line of task 10
-has been written.
+is itself an instance of the thing this section keeps finding. Task 9's are **29–33**; task 10's
+planning findings are **34–37**, the first in this slice found entirely by **planning**; task 10a's
+are **38–41**, and two of those are the same questions answered by a running city instead.
 
 **1. `adr/0045`'s *blocking* forces a Bin to have two wait lists, not one.** The plan's task 2 describes
 one queue and one recorded shortfall, which is right for an input Bin that was short. But the ADR
@@ -950,6 +990,69 @@ for ever. Four orders of magnitude between pass and fail. **Exact equality is no
 the last integer takes ~134,000 Ticks, and the approach is *linear* rather than geometric in the
 quantised regime where `round(v/tau)` is pinned at 1.
 
+### Task 10a's findings
+
+**38. The arming stagger has no number to choose, and looking for one is what found that out.** The
+task asked for a stagger and called it hash-bearing, which under `adr/0052` means naming a ratifier
+before writing the number down. There is no number. A Rule re-arms at `+rate` for ever after its first
+firing, so **the window is the Rule's own `rate`**: any narrower window re-converges the population
+into one bucket after the first cycle, and any wider one privileges the Ticks inside the first
+`rate` of them. Uniform over `[1, rate]` is the only offset that stays spread, and it is *derived*
+rather than chosen — so `0002` §D gains no row. **`adr/0052` earned its keep in the negative
+direction**, which is the direction nobody was watching for: the rule's value is not only that a
+chosen number acquires a ratifier, it is that being made to look for one exposes the numbers that were
+never free.
+
+**The tag is new and deliberately not shared.** `RuleArmingStagger` and `RuleSettleOrder` answer
+different questions about the same row — *when does it first come due* against *who wins when two of
+them contend* — and sharing one would mean a Building armed early also won its contests, which is
+exactly the invisible correlation the one-tag-per-use rule exists to prevent.
+
+**39. A Building of an undeclared kind is a representable state, and `02 §4.3` had said so for six
+slices.** `Ruleset.BinsOf` throws on a kind it does not declare, which is `adr/0048`'s two-sided drift
+check working — the loader refuses an unknown *name*, the interpreter refuses an unknown *id*. But
+**every ruleless world builds kind-1 Buildings**, so the first thing the wiring did was throw on the
+whole of Phase 1's history. The tempting fixes were both wrong: weakening `BinsOf` to an empty span
+deletes the check to serve one caller, and refusing at world creation makes an unfitted Building an
+error. `02 §4.3` already had the answer in plain words — a reload marks Buildings whose kind no
+longer exists **derelict rather than deleted** — so an undeclared kind is a *situation*, not a fault.
+`Ruleset.Declares(kind)` is the question a caller asks, `BinsOf` still throws for everyone else, and
+**the derelict flag itself is slice 8's**, so the state is currently unnamed rather than wrong.
+
+**40. The first Ruleset deadlocked in about two hundred Ticks, and finding 35 stopped being an
+argument.** Planning had *reasoned* that sustained churn needs a closed loop inside one Building, and
+that a Ruleset without one runs its starting stock down and goes quiet. The first content written —
+flour to 60, bread to 20, no sink — did exactly that, unprompted and faster than anybody expected:
+every Bin full, every Rule failed on headroom, every Rule subscribed, and nothing left that could ever
+drain a Bin to wake one. **Total, correct, honest deadlock**, and the engine demonstrated it rather
+than being talked into it. The unbounded-capacity variant is the other failure: it runs for ever and
+grows a magnitude without bound, so it fails the half of acceptance the first one passed. **The gap
+between those two is where the content had to land**, and what closes it is a consumption Rule whose
+count is *derived from occupancy* — which is not a trick to make the numbers move but `CONTEXT` →
+Building's own sentence, *a Building may hold Bins its Occupants draw from*. The one shape available
+under `local` turned out to be the domain-correct one.
+
+**41. A recorded shortfall is a deficit at the instant of failure, and the wait list wakes on the
+arriving quantity — so the shortage regime is not expressible today.** The two facts are individually
+correct and their product is a constraint nobody had written down. `Check` subscribes with
+`(floor × amount) − available`, the *missing* amount; `Drain` wakes the head waiter only while the
+**single arriving quantity** covers that recorded number, and it never revisits it. So for the head
+waiter the wake condition is *exact* — a deposit of `d` satisfies a deficit of `d` — and for a waiter
+whose Bin fills in smaller instalments it is **unreachable**: a consumer short of three is never woken
+by three arrivals of one, and the recorded three goes stale while the Bin fills to its ceiling behind
+it. Both parties then sleep for ever with the Bin full.
+
+**This is why `rulesets/minimal.toml` runs in surplus rather than in shortage**, which was the more
+interesting demo and is not available: the producer's quantum has to be at least as large as any
+consumer's deficit, so the Rule that fails must be the *producer, on headroom*, whose deficit is
+bounded by its own output amount. **What it is not is a bug**, or not obviously — `02 §4.1`'s own
+worked example is *"six flour arriving wakes exactly the one bakery that needs six"*, which is a
+delivery-shaped world where quanta are Shipments and the case does not arise. It becomes a real
+question the moment a Bin can be filled by a trickle, which is what `pool` is. **Routed to
+[`0002`](0002-open-questions.md) rather than settled here**, typed *arguable*, because the two
+candidate answers — decrement the recorded shortfall as arrivals accumulate, or re-derive it from
+the Bin's state — differ in what they promise the *second* waiter in the queue, and that is a fairness
+decision rather than an implementation detail.
 
 ---
 

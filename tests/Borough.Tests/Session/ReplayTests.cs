@@ -29,6 +29,42 @@ public sealed class ReplayTests
     }
 
     /// <summary>
+    /// <b>Replay equivalence over a session in which Rules actually fire</b> — slice 7's own
+    /// acceptance line.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every other test in this file replays a log against <see cref="Ruleset.Empty"/>, which was the
+    /// only thing available until task 10a and which asks nothing of the Rule engine at all. This one
+    /// replays the golden session under the golden Ruleset, so the counter-based settle-order draw,
+    /// the arming stagger, the wait lists and the Wheel are all inside the loop being checked.
+    /// </para>
+    /// <para>
+    /// <b>The shuffle is what makes this worth a test rather than a formality.</b> Phase 3 orders
+    /// contested intents by a draw, and a draw taken from anything but the world key, the entity and
+    /// the Tick would reproduce within a run and diverge between two — which is precisely the failure
+    /// this file exists to catch and precisely the failure that no single run can see.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Two_runs_of_one_log_agree_when_rules_fire()
+    {
+        InputLog log = Golden.GoldenFixtures.Session();
+        var ticks = new Ticks(Golden.GoldenFixtures.Ticks);
+
+        ulong[] first = Replay.Run(log, ticks, hashEvery: 1, Golden.GoldenFixtures.Rules());
+        ulong[] second = Replay.Run(log, ticks, hashEvery: 1, Golden.GoldenFixtures.Rules());
+
+        Assert.Equal(first, second);
+
+        // And the Rules moved the city, so the agreement above is over something. Without this the
+        // test would pass identically against a Ruleset the world never loaded.
+        Assert.NotEqual(
+            first,
+            Replay.Run(log, ticks, hashEvery: 1, Ruleset.Empty));
+    }
+
+    /// <summary>
     /// Two logs differing in one command produce different cities. Stated as a test because the
     /// interesting failure is the opposite one — a replay that ignores part of its log and passes the
     /// equality test above by reproducing the same wrong thing twice.

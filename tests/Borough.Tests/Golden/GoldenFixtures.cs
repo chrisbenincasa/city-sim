@@ -1,7 +1,9 @@
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Tables;
+using Borough.Formats;
 
 namespace Borough.Tests.Golden;
 
@@ -33,9 +35,20 @@ internal static class GoldenFixtures
     internal const int Population = 1_000;
 
     /// <summary>
-    /// The Ruleset content hash. Zero until slice 8, which is when a Ruleset first has content.
+    /// The content hash of <see cref="RulesetPath"/>, as the session records it.
     /// </summary>
-    internal const ulong RulesetHash = 0UL;
+    /// <remarks>
+    /// <b>A literal rather than a call, and that is the point of it.</b> The committed
+    /// <c>session.borough</c> carries this number, so it has to be a number here too — and the pair
+    /// is what makes editing the Ruleset a re-baseline rather than a silent change of what the
+    /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
+    /// so, and it fails with the number to paste in.
+    /// </remarks>
+    internal const ulong RulesetHash = 0x8669_4596_5CED_074FUL;
+
+    /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
+    internal static string RulesetPath =>
+        Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml");
 
     /// <summary>How far the session runs. Well past its last command, which is the ordinary case.</summary>
     internal const int Ticks = 256;
@@ -44,7 +57,7 @@ internal static class GoldenFixtures
     internal const int HashEvery = 8;
 
     /// <summary>
-    /// The golden session: eleven Zone commands, then silence.
+    /// The golden session: a population, eleven Zone commands, then silence.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -54,28 +67,61 @@ internal static class GoldenFixtures
     /// at Tick 97 with the run going to 256, so most samples are of a city nobody is touching.
     /// </para>
     /// <para>
-    /// <b>Only <see cref="CommandKind.Zone"/> appears, because only Zone is applied.</b> Connect,
-    /// Service and Govern are declared and throw on application until slice 7. When they land they
-    /// extend this session rather than replace it, and that extension is a deliberate re-baseline.
+    /// <b><see cref="CommandKind.Populate"/> arrives first, and it is what makes this baseline cover
+    /// the Rule engine at all.</b> Until slice 7 task 10a the session raised no Building, so no Bin
+    /// and no Rule Instance existed to fold and the trace was a hash over an empty world stepping.
+    /// Populate is world creation, so it is at Tick 0 and once, ahead of the Zone commands — and it
+    /// puts <c>SyntheticCity</c> under the baseline too, which is deliberate: the populator writes
+    /// saved state, and saved state that moves without somebody saying so is what this file is for.
+    /// </para>
+    /// <para>
+    /// <b>The Zone commands sit north of the populated rows.</b> The populator lays 121 Lots across
+    /// rows 0 and 1, and five of the original coordinates were inside that block — two Lots on one
+    /// Tile is a state nothing refuses today and a fixture whose docstring promises coherence should
+    /// not be the first to hold one. Nothing else about them moved.
+    /// </para>
+    /// <para>
+    /// <b>Connect, Service and Govern are still declared and still throw on application.</b> When
+    /// they land they extend this session rather than replace it, and that extension is a deliberate
+    /// re-baseline.
     /// </para>
     /// </remarks>
     internal static InputLog Session()
     {
         InputLogBuilder builder = new(Seed, new WorldConfiguration(Population), RulesetHash);
 
-        Append(builder, tick: 0, east: 0, north: 0, zone: 1);
-        Append(builder, tick: 1, east: 1, north: 0, zone: 1);
-        Append(builder, tick: 1, east: 2, north: 0, zone: 2);
-        Append(builder, tick: 2, east: 2, north: 1, zone: 2);
+        builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
+
+        Append(builder, tick: 0, east: 0, north: 2, zone: 1);
+        Append(builder, tick: 1, east: 1, north: 2, zone: 1);
+        Append(builder, tick: 1, east: 2, north: 2, zone: 2);
+        Append(builder, tick: 2, east: 2, north: 3, zone: 2);
         Append(builder, tick: 9, east: 7, north: 3, zone: 3);
         Append(builder, tick: 17, east: 11, north: 5, zone: 1);
         Append(builder, tick: 17, east: 12, north: 5, zone: 1);
         Append(builder, tick: 33, east: 31, north: 29, zone: 4);
-        Append(builder, tick: 64, east: 63, north: 0, zone: 2);
+        Append(builder, tick: 64, east: 63, north: 2, zone: 2);
         Append(builder, tick: 65, east: 0, north: 63, zone: 3);
         Append(builder, tick: 97, east: 255, north: 255, zone: 5);
 
         return builder.Build();
+    }
+
+    /// <summary>The Rules the golden session runs under, parsed from the committed file.</summary>
+    /// <remarks>
+    /// <b>Loaded rather than built in C#, which is the opposite of what this file does everywhere
+    /// else.</b> The session exists twice on purpose — once as an artefact and once as a builder — so
+    /// that the codec is checked against a file nothing in the run wrote. A Ruleset built here would
+    /// have no such property: it would be a second Ruleset agreeing with the loader by construction,
+    /// which is exactly the shape <c>adr/0048</c> refuses a second validator for.
+    /// </remarks>
+    internal static Ruleset Rules()
+    {
+        RulesetLoadResult result = RulesetLoader.Load(RulesetPath);
+
+        return result.Ruleset
+            ?? throw new InvalidOperationException(
+                $"the golden Ruleset was refused, so no baseline can be taken:\n{result.Describe()}");
     }
 
     /// <summary>
@@ -84,11 +130,13 @@ internal static class GoldenFixtures
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>This exists because the session covers one table in four.</b> A Zone command creates a Lot
-    /// and nothing else — Buildings, Households and Citizens are reachable only through the cold API
-    /// until slice 7 gives the player verbs that make them. Without this fixture, three tables' saved
-    /// columns would have no committed hash over them at all, and the baseline would be claiming a
-    /// coverage it does not have.
+    /// <b>This existed because the session covered one table in four, and slice 7 task 10a moved
+    /// that boundary without dissolving it.</b> The session now opens with
+    /// <see cref="CommandKind.Populate"/>, so Buildings, Households and Citizens are under the
+    /// committed trace at last. What no session can do yet is <em>destroy</em> a row — so the two
+    /// retirements below, and with them the allocator's free head and its never-reused id counter
+    /// sitting off their initial values, are still under this hash and no other. It goes when slice
+    /// 10's Zone Rules can demolish a Building.
     /// </para>
     /// <para>
     /// <b>It is built to exercise the fold's awkward cases rather than to look like a city.</b> Both

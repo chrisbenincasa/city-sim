@@ -325,7 +325,9 @@ internal sealed class Options
           --citizens N          Citizen sizing, for a fresh session or the report
           --ticks N             how many Ticks to run
           --hash-every N        trace sampling cadence, in Ticks
-          --ruleset PATH        the Ruleset the session must have been recorded against
+          --ruleset PATH        the Rules to run under. Loaded and put in force, and
+                                the session must name it. Without one, nothing has
+                                any Rules and the run simulates an inert city
           --force-ruleset       run against a Ruleset the session does not name, and
                                 stamp the trace hash-broken
           --out PATH            write the trace to a file instead of standard output

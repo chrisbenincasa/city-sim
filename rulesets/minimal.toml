@@ -1,0 +1,70 @@
+# The minimal Ruleset. It models no city, and it is not the beginning of one.
+#
+# Slice 7 task 10a of plans/0011-rule-engine-bins-and-rules.md. Its whole job is to be the smallest
+# content that makes Bins move, so that the wiring underneath it — a Ruleset reaching a World, a
+# Building given its kind's Bins and Rule Instances when it is built, an arming stagger — is exercised
+# by a running city rather than by a test that builds the same shape by hand.
+#
+# WHY IT NAMES NO GOOD. 04 §1's five Goods are Produce, Food, Timber, Materials and Consumer Goods,
+# and every one of them is produced by one Building and consumed by another. That crosses an ownership
+# boundary, which is the `pool` scope, which is a named hole that throws until Phase 2 brings roads,
+# Districts and connectivity. So a Ruleset that could run today and also name a Good would be claiming
+# a chain it cannot express. `sundries` is deliberately a word for goods too unimportant to name:
+# nothing in this file should be read as a decision about content. Choosing the Goods is decision
+# owed 4, and it belongs to task 10b with the chain it is for.
+#
+# WHY THERE IS NO on_fail CHAIN. A link rescues by relieving the Bin the head failed on, from a source
+# the head could not reach. Every source available today is the Building's own Bins, so a chain here
+# would be a Rule rescuing itself. adr/0045's ladder starts at the District Pool, and that is task 10b.
+#
+# WHY IT EMITS NO POLLUTION. Not because it would be unbounded — adr/0051's decay is built, so a `map`
+# term is now a stock the environment absorbs and settles at a level proportional to the emission rate.
+# It emits nothing because a dwelling is not industry. `02 §2.4` gives industrial pollution point
+# sources, and inventing a smokestack here to exercise a code path would be this file claiming
+# something about content, which its first line says it does not. The Rule engine's `map` output is
+# covered by `RuleEvaluationTests`, and the absorption by `LayerFieldsTests` and `LayerLongRunTests`.
+#
+# THE STEADY STATE IS THE POINT, AND IT IS A SURPLUS ONE. Production outruns consumption, so the Bin
+# sits near its ceiling and `restock` is the Rule that fails: it sleeps on headroom, `consume` draws
+# and wakes it, it refills and sleeps again. Both Rules move for ever, nothing trends, and no Rule is
+# ever wrongly asleep. THE SHORTAGE REGIME IS NOT AVAILABLE AND THAT IS AN ENGINE PROPERTY RATHER THAN
+# A TASTE: a recorded shortfall is a deficit at the instant of failure and the wait list wakes on the
+# arriving quantity, so a consumer short of 3 is never woken by three arrivals of 1. Producing in a
+# quantum at least as large as any consumer's deficit is what makes this file's steady state honest.
+# See finding 41.
+#
+# It is deleted rather than grown when task 10b becomes possible.
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+# Kind 1, which is what Borough.Core.Entities.SyntheticCity builds and what Households are placed in.
+# A dwelling holding a Bin its Occupants draw from is CONTEXT -> Building's own sentence, and it is
+# the one shape available while `local` is the only scope with a Bin behind it.
+[[building]]
+name = "dwelling"
+bins = [ { resource = "sundries", capacity = 12 } ]
+
+# Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
+# from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
+# `pool` draw in task 10b. Greedy because the actor works through whatever headroom it has, which is
+# 02 §4.1's own test for which of the two forms to write.
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 1 } ]
+
+# Derived, because a dwelling's draw is stated by how many Households live in it rather than bounded
+# by what is in the Bin. `occupancy` is the one declared Readout (slice 7 task 7), and this is the
+# first thing outside a test to read it.
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { derived = "occupancy" }
+inputs  = [ { scope = "local", resource = "sundries", amount = 1 } ]
+outputs = []

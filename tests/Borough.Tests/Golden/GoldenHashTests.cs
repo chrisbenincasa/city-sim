@@ -39,7 +39,8 @@ public sealed class GoldenHashTests
     /// <summary>The command that regenerates <c>session-trace.txt</c>. Named by the failure message.</summary>
     private const string Regenerate =
         "dotnet run --project src/Borough.Headless -- "
-        + "--log tests/Borough.Tests/Golden/session.borough --ticks 256 --hash-every 8 "
+        + "--log tests/Borough.Tests/Golden/session.borough --ruleset rulesets/minimal.toml "
+        + "--ticks 256 --hash-every 8 "
         + "--out tests/Borough.Tests/Golden/session-trace.txt";
 
     /// <summary>
@@ -53,7 +54,8 @@ public sealed class GoldenHashTests
         ulong[] observed = Replay.Run(
             GoldenFixtures.Session(),
             new Ticks(GoldenFixtures.Ticks),
-            GoldenFixtures.HashEvery);
+            GoldenFixtures.HashEvery,
+            GoldenFixtures.Rules());
 
         if (!observed.AsSpan().SequenceEqual(recorded))
         {
@@ -132,7 +134,41 @@ public sealed class GoldenHashTests
 
         Assert.Equal(
             Read(TraceFile).Hashes(),
-            Replay.Run(parsed, new Ticks(GoldenFixtures.Ticks), GoldenFixtures.HashEvery));
+            Replay.Run(
+                parsed,
+                new Ticks(GoldenFixtures.Ticks),
+                GoldenFixtures.HashEvery,
+                GoldenFixtures.Rules()));
+    }
+
+    /// <summary>
+    /// <b>The committed Ruleset is the one the committed session names.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The session records a Ruleset content hash and the runner refuses a run whose supplied
+    /// Ruleset does not match it. That check is only as good as the file it is taken over, and this
+    /// is the line that keeps the two together: edit <c>rulesets/minimal.toml</c> and this fails with
+    /// the number to paste into <see cref="GoldenFixtures.RulesetHash"/> — at which point the trace
+    /// has to be regenerated too, which is the whole point.
+    /// </para>
+    /// <para>
+    /// <b>It also catches the change that is not an edit.</b> A Ruleset that stopped being copied
+    /// beside the test assembly, or one loaded from the source tree instead, would make every other
+    /// test here pass over a file the runner never reads.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_golden_ruleset_is_the_one_the_session_names()
+    {
+        ulong observed = RulesetFile.HashOf(GoldenFixtures.RulesetPath);
+
+        Assert.True(
+            observed == GoldenFixtures.RulesetHash,
+            $"the golden Ruleset hashes to 0x{observed:X16} and the session names "
+            + $"0x{GoldenFixtures.RulesetHash:X16}. If you meant to change the Ruleset, put that "
+            + "number in GoldenFixtures.RulesetHash and in session.borough, then re-baseline the "
+            + $"trace:\n\n  {Regenerate}");
     }
 
     /// <summary>

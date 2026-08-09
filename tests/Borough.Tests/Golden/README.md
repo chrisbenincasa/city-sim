@@ -16,6 +16,11 @@ are the only thing that can notice a change nobody was looking for.
 | `session-trace.txt` | Thirty-two State Hash samples from that 256-Tick session | `Borough.Headless --out` |
 | `world-hash.txt` | One State Hash over a hand-built city, with its row counts | `GoldenFixtures.Build()` |
 
+A fourth artefact is not in this directory and is part of the baseline anyway:
+**[`rulesets/minimal.toml`](../../../rulesets/minimal.toml)**, which the session names by content hash
+and runs under. Editing it moves every sample here, and `The_golden_ruleset_is_the_one_the_session_names`
+is the line that says so with the number to paste in.
+
 **Two artefacts, because one of them cannot see three tables.** The session drives the simulation
 through `step()` and is the more valuable of the two — it covers the Input Log, the phase order,
 replay and the hash together. But the only verb applied before slice 7 is `Zone`, and a Zone command
@@ -23,6 +28,14 @@ creates a Lot; Buildings, Households and Citizens are reachable only through the
 `world-hash.txt`, three of the four tables' saved columns would sit under no committed hash at all
 and the baseline would be claiming coverage it does not have. When later slices give the player
 verbs that build a city, the session absorbs the world fixture's job and this file can go.
+
+**Slice 7 task 10a moved that boundary without dissolving it.** The session now opens with
+`populate`, so it raises 121 Buildings, 360 Households and 1,000 Citizens, gives every Building its
+kind's Bins and Rule Instances, and runs the Rule engine for 256 Ticks — the first time the golden
+trace has covered any of that. What it does **not** cover is what `GoldenFixtures.Build()` was
+written for: a destroyed Household and a destroyed Citizen, so the allocator's free head and its
+never-reused id counter are off their initial values. Nothing in a session can destroy a row yet.
+`world-hash.txt` goes when slice 10's Zone Rules can demolish a Building, and not before.
 
 **The session exists twice, and that is the codec's test rather than a duplication.** `session.borough`
 is the artefact; `GoldenFixtures.Session()` is the same session built in C#. One test asserts they are
@@ -50,9 +63,14 @@ A failure here is a question — *did you mean to do that?* — and the answer i
    ```
    dotnet run --project src/Borough.Headless -- \
      --log tests/Borough.Tests/Golden/session.borough \
+     --ruleset rulesets/minimal.toml \
      --ticks 256 --hash-every 8 \
      --out tests/Borough.Tests/Golden/session-trace.txt
    ```
+
+   **`--ruleset` is not optional here and the runner will tell you so.** The session records the
+   Ruleset's content hash, so a run given none — or given a different one — is refused before it
+   starts rather than quietly reproducing a different city.
 
    The runner writes exactly the committed format, so this is a re-record rather than a
    transcription. For `world-hash.txt`, which is a hand-built world rather than a session the runner

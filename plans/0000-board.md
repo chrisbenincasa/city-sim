@@ -40,12 +40,11 @@ many Rules came due, how many evaluations that cost, and how deep the chains wen
 
 **What does not exist.** Three of the eight Tick phases are still empty — movement, growth, and most
 of commit. There are no jobs, no money, no movement, no traffic, no roads, no buildings growing or
-declining, and no renderer. Citizens exist as rows and do nothing at all. Bin Rules now run, but **no
-Ruleset file exists anywhere in the repository** for them to run, and **no Ruleset has ever reached a
-`World`** — the loader, the engine and the tests build theirs in code, `Replay.Start` hard-codes the
-empty one, and the runner hashes `--ruleset` without ever parsing it. Shipping that wiring is slice 7
-**task 10a**. What it will *not* ship is a supply chain: a chain between Buildings crosses an
-ownership boundary, which is the District Pool, which throws.
+declining, and no renderer. Citizens exist as rows and do nothing at all. Bin Rules now run
+against a real Ruleset — `rulesets/minimal.toml`, which the golden session runs under and which
+**says in its own header that it models no city** — but there is **no supply chain**, because a chain
+between Buildings crosses an ownership boundary, which is the District Pool, which throws. The one
+shape available today is a Building producing into and drawing from its own Bins.
 
 **Scale.** A million Citizens fit comfortably: 86 MiB of tables, about 94 MiB resident, and 100,000
 Ticks in 11.75 seconds. Whether a Tick is *fast enough* is still unknown, because the Tick is nearly
@@ -58,13 +57,21 @@ thing to watch rather than a problem to fix. S0b is what replaces the guesses.
 Nothing measured so far suggests C# is the wrong choice; see `docs/adr/0036` and S4 in
 `docs/spike-results.md`.
 
-**What is next.** Slice 7, the Rule engine, **is under way — tasks 1–9 of 10 are done**. Bins, the
-wait list, the Ruleset loader and its refusals, quoted decimals, Rule evaluation with atomicity,
-the apply count, the Readout set, `on_fail` chains, and the counters. **Only task 10 is left, and
-planning it split it in two.** As written it asked for a production chain over two or three Goods —
-which is `pool`, which the same document had already made a named hole that throws. **10a is the
-wiring**, and it is the last thing standing between the engine and a world; **10b, the content, is
-re-filed to Phase 2.** Four findings came out of the planning before a line was written, and one of
+**What is next.** Slice 7, the Rule engine, **is closed**. Bins, the wait list, the Ruleset loader and
+its refusals, quoted decimals, Rule evaluation with atomicity, the apply count, the Readout set,
+`on_fail` chains, the counters, and **task 10a's wiring — the first Ruleset ever to reach a `World`**.
+Task 10 was split while being planned: as written it asked for a production chain over two or three
+Goods, which is `pool`, which the same document had already made a named hole that throws, so **10b is
+re-filed to Phase 2** and 10a closed the slice. **The simulation now does something**: 121 Buildings,
+121 Bins, 242 Rule Instances, the State Hash moving on their account, and a genuine oscillating steady
+state that holds for 100,000 Ticks. Two things came out of building it that no amount of planning had
+produced. **The first Ruleset deadlocked in about two hundred Ticks** — every Bin full, every Rule
+subscribed, nothing left that could wake one — which turned the planning finding *sustained churn
+needs a sink* from an argument into a measurement. And **the shortage regime turns out not to be
+expressible**: a recorded shortfall is the deficit at the instant of failure, the wait list wakes on
+the *arriving quantity*, so a consumer short of three is never woken by three arrivals of one. That is
+a fairness question, not a bug, and it is in [`0002`](0002-open-questions.md) §C with `pool` as its
+trigger. Four findings came out of the planning before a line was written, and one of
 them was a live defect in slice 6: **a `map` emission accumulated with no sink**, so the corpus's own
 worked Rule grew a magnitude for ever — and slice 6's long-run test, the one built to catch exactly
 that, had been written to work around it in the fixture. Settled the same day by
@@ -133,9 +140,10 @@ what a gate is, and the two words that unfortunately mean two things each.
 
 ---
 
-**Where the project is.** Phase 1. Slices 0–6 are closed and the Phase 1 gate with them; **slice 7 is
-in flight at 9 of 10 tasks**. The spike track has run S4, S0a and S2 R0–R8. The argument track has
-closed sessions A, B, eight and nine; **C is the only session still gating a slice**.
+**Where the project is.** Phase 1. Slices 0–7 are closed — the Phase 1 gate with slice 6, and **slice
+7 with task 10a**, whose 10b half is re-filed to Phase 2 rather than left open. The spike track has
+run S4, S0a and S2 R0–R8. The argument track has closed sessions A, B, eight and nine; **C is the only
+session still gating a slice**.
 
 Detail lives where it is owned — slice narrative in the slice plans, spike numbers in
 [`spike-results`](../docs/spike-results.md), reasoning in [`0002`](0002-open-questions.md). What
@@ -197,7 +205,7 @@ but the code track leads.
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | **code** | **Slice 7 — the Rule engine**, task **10a** | [`0011`](0011-rule-engine-bins-and-rules.md) | **Gate cleared, 9 of 10 done, and task 10 split while being planned** — it asked for a *production chain over two or three Goods*, and a chain between Buildings is `pool`, which the same document had already settled as a **named hole that throws**. A plan contradicting itself, unnoticed for seven tasks (`0011` finding 34). **10a is the wiring and is the whole of what is left**: no Ruleset has ever reached a `World` — `Replay.Start` hard-codes `Ruleset.Empty`, the runner hashes `--ruleset` and never parses it, and nothing outside a test turns a declaration into a Bin. Four pieces, one of them **hash-bearing** (the arming stagger, which needs a `purpose_tag`). **10b, the proving chain, is re-filed to Phase 2** with decision owed 4, because sustained churn with `local` and `map` alone provably requires a closed loop inside one Building, which is a lie about `04 §1` (finding 35). One thing to know before starting: **scheduled dispatch needs the Event Wheel, and that is slice 9** — most of slice 7 does not, since a subscription is woken by the mutator, but the `rate` re-arm is |
+| **1** | **code** | **Slice 8 — hot reload**, and it needs a plan document first | [`0003`](0003-build-plan.md) | **Slice 7 is closed and this is the next slice whose gate is clear** — session A's `adr/0048` cleared 7 and 8 together. It is a stub with no plan document, so the first sitting is writing one — **[`0015`], not `0014`**, because plan numbers are allocated when a plan is *written* and slice 10 took `0014` first. What it owes is concrete and larger than *swap a file*: a Ruleset swapped at a **phase boundary**, the transition **logged** so a replay can reproduce it, and — the obligation that replaced `06`'s retired ordering claim — the **Map Layer cadence and rates loading from a file** rather than from `LayerRuleset.Default`. Two things slice 7 leaves on its doorstep: `02 §4.3` says a reload marks Buildings whose kind no longer exists **derelict rather than deleted**, and there is no derelict flag (`0011` finding 39); and `Replay.Start` takes a Ruleset while a log carries only its **content hash**, which `02 §4.3` already says is not enough — *"a replay needs the Rules' content, not the news that they changed"*. **Slice 10, Zone Rules, is also unblocked now** and is the alternative if hot reload wants a session first |
 | **2** | spike | **S2 R6 — the two caches** | [`0010`](0010-s2-routing.md) | **Promoted, and its stakes went up.** R3 called a cache *"one of only two exits"*; [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) has now removed the third option nobody had noticed was in reserve, so **R6 is the only exit.** It owns the two numbers routing still has open: the cache's **key granularity** — a different number with a different error from the matrix's — and the **eviction policy**, which R5 measured as the bigger lever below the highest edit rates (28–31% of lookups missing on direct-mapped collisions before a road is touched). It inherits R3's stored path arena and a `HpaSearch` pristine-seeding defect R5.5 found. *Runs unattended; does not contend with row 1* |
 | **3** | spike | **S2 R5.6 — the Parking Shed**, then **R7 — the report** | [`0010`](0010-s2-routing.md) | The second Epoch consumer, and the last section of R5. It scales with **Buildings** and is a *neighbourhood* rather than a *path*, so per-Segment has no obvious meaning for it. **`CONTEXT.md` → Epoch must not be updated until it runs.** R7 then closes S2 and deletes the harness — and owes a re-capture of R0/R1/R3/R4, all of which carry the one-processor artefact |
 | **4** | argument | ~~**`adr/0015` — hot reload**~~ **DONE** | [`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md) | Ran, and cleared **two** slice gates rather than one. See *Done*. Nothing in this track is now blocking code, so the next session is chosen by what gets blocked next — not by what is available |
@@ -321,16 +329,20 @@ slice *was for*, and keeps a finding only where it changed something **outside**
       measured false and the first outside S2** — which then got its own second half wrong by argument
       and withdrew it, leaving the finding that outlived the slice: **citing an ADR is not applying
       it**, and the difference is whether the test it states was run against the case
-- [x] **7 — the Rule engine** → [`0011`](0011-rule-engine-bins-and-rules.md). Tasks 1–9 of 10.
-      Produced **`adr/0049`** and **`adr/0050`**. Two findings reached past the slice: `02 §4.3`'s
-      worked example **destroyed money** for six slices, because the transcription into the loader's
-      own fixture had dropped the money line — and the same shape recurred in task 8 as a green
-      **count**, `RulesOf(1) == 4`, hiding every chain link being armed as an independent Rule
+- [x] **7 — the Rule engine** → [`0011`](0011-rule-engine-bins-and-rules.md). All of it, 10b excepted
+      and re-filed. Produced **`adr/0049`** and **`adr/0050`**. Two findings reached past the slice:
+      `02 §4.3`'s worked example **destroyed money** for six slices, because the transcription into
+      the loader's own fixture had dropped the money line — and the same shape recurred in task 8 as a
+      green **count**, `RulesOf(1) == 4`, hiding every chain link being armed as an independent Rule
       Instance. Both are a green suite agreeing with the code instead of with the document
-  - [ ] *task 10a* — **the wiring: the first Ruleset to reach a `World`.** Not a gate, just work, and
-        the last task in the slice. Also the first thing slice 8 needs, since hot reload has nothing
-        to swap if no Ruleset is ever in force. It carries the **flow** half of slice 5 task 7's
-        trend assertion — `evaluations` flat against `due`
+  - [x] *task 10a* — **the wiring, and the first Ruleset ever to reach a `World`.** A Ruleset crosses
+        into `Replay.Start`, the runner **loads** what it only hashed, `World.CreateBuilding` fits a
+        Building with its kind's Bins and arms its chain heads, and the arming stagger — expected to
+        be a hash-bearing number needing a ratifier — turned out to be **derived from the Rule's own
+        rate, with no number to choose**. `rulesets/minimal.toml` is the content, the golden session
+        adopts it and opens with `populate`, and all three baselines were re-recorded. The **flow**
+        half of slice 5 task 7's trend assertion ships with it, as **exact equality across the tail**
+        rather than a trend line
   - [ ] ~~*task 10b* — the proving chain~~ **re-filed to Phase 2**, with decision owed 4. Blocked on
         `pool`, which is blocked on roads, Districts and connectivity
 - [x] **S0a — the world at target size** → [`spike-results`](../docs/spike-results.md). Closed the
@@ -384,8 +396,8 @@ this section adds is the order *across* tracks, which neither of those owns. The
 contend — the code track is somebody at a keyboard, the argument track is a sitting, the spike track
 is a machine running unattended — but **the code track leads**.
 
-- **Code** — slice 7 task **10**, the last in the slice; then slice 8, or slice 9 once session **C**
-  has run.
+- **Code** — **slice 8**, which needs a plan document before it needs code; or **slice 10**, whose
+  gate is clear and whose only dependency was slice 7. Slice 9 waits on session **C**.
   **S0b** is blocked on slices 7, 9 and 10 and is the half carrying `06`'s stated risk. Do not read
   S0a as having discharged it
 - **Argument** — **C** is the only session gating a slice. The rest run when something concrete is
@@ -873,7 +885,14 @@ diagnose.
       R4's audit counted the destination itself as unreachable, one phantom per column, which
       presented as a suspiciously round **121** — a number a reader could have rationalised. R2's
       883× `v/c` announced itself; this did not
-- [ ] **The long-run trend assertion is owed by slice 7, and the instrument for it now exists.**
+- [x] **The long-run trend assertion is owed by slice 7, and the instrument for it now exists.**
+      **DISCHARGED by task 10a, in the only half slice 7 could carry, and it came out stronger than
+      the line asked for.** `RuleLongRunTests` runs 100,000 Ticks of the minimal Ruleset and asserts
+      **exact equality** of the `evaluations`, `due` and peak readings across the tail — not a trend
+      line — because the Ruleset settles into a cycle whose period is `consume`'s rate, so a
+      steady-state reading is not merely flat but identical. Verified live by mutation: reading on an
+      interval that is not a whole number of periods fails it. The rest of this entry is the history
+      of how it got here, kept because the reasoning is what stopped it being shipped vacuous twice.
       *Decided:* task 7 shipped the Census and `series(metric, window)` and deliberately did not ship
       the assertion. Nothing in the world grows or shrinks yet — no Event Wheel, no Rules, no Trips —
       so *no collection trends upward at steady state* would pass against an empty world and a static

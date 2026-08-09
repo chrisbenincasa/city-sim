@@ -37,6 +37,16 @@
     <None Include="Golden\*.borough" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!--
+    The Rulesets the runner ships, copied beside the test assembly. They are not test fixtures — the
+    golden session runs under one of them, so the test has to read the same bytes the runner does
+    rather than a transcription of them, which is the property the golden baselines exist to have.
+  -->
+  <ItemGroup>
+    <None Include="..\..\rulesets\*.toml" Link="Rulesets\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Borough.Core\Borough.Core.csproj" />
     <ProjectReference Include="..\..\src\Borough.Formats\Borough.Formats.csproj" />

@@ -8,7 +8,7 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: Phase 1 gate closed; S0a run; slice 7's gate cleared by session A and tasks 1–9 of 10 are done.** The repository is ~7,000 lines of design
+**Current state: Phase 1 gate closed; S0a run; slice 7 is closed — its gate cleared by session A, its last task shipped, and its 10b half re-filed to Phase 2.** The repository is ~7,000 lines of design
 documents and 51 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
 declaration and the State Hash — and all eight tasks of slice 5: `step(inputs)` with the
@@ -63,8 +63,8 @@ those.** *The network runs out of routes, not road* — **87.25% of traffic on 1
 free-flow tree per District means one route per (node, District) pair in the whole model. That is
 **decision 11 on a different axis** and it is now the top item on the board. `spikes/S2.Routing/` compiles the arithmetic substrate in by source
 and can name nothing else of `Core`, so it has changed no simulation code. Slice 5 task 7 shipped its instrument and **not** its trend assertion — nothing in
-the world churns yet, so the assertion would have been vacuous. It is owed by slice 7 **task 10**,
-which is what puts a Ruleset in the world; the board's *Owed* section says how.
+the world churned yet, so the assertion would have been vacuous. **Task 10a discharged it**, in the
+flow half that is the only half the Rule engine could carry.
 
 **Slice 7 task 9 gave the Tick its first measured price.** `02 §4`'s two counters exist, plus a third
 — *due Rule Instances* — because `evaluations − due` is what chain walking costs and neither number
@@ -83,6 +83,28 @@ floor. Filed to `0002` as **S0b's**, and summed with every other priced consumer
 `plans/0013-tick-budget.md`, **which prices the same rows against 1×, 2×, 4× and 8× — because the
 speed multiplier is a product decision nobody has argued, and the whole simulation as priced fits at
 2× and does not fit at 4×.**
+
+**Slice 7 task 10a closed the slice, and the simulation does something for the first time.** A Ruleset
+now reaches a `World` — `Replay.Start` takes one, the runner **loads** what it previously only hashed,
+and `World.CreateBuilding` is the door that gives a Building its kind's Bins and arms its chain heads,
+so `CONTEXT` → Bin's *"a Building is given exactly its kind's Bins when it is built"* has an
+implementation rather than a test writing the loop by hand. The arming stagger was expected to be a
+hash-bearing number needing a ratifier under `adr/0052` and **turned out to have no number to choose**:
+a Rule re-arms at `+rate` for ever, so uniform over `[1, rate]` is the only offset that stays spread —
+derived, not chosen, and `adr/0052` earning its keep in the negative direction. `rulesets/minimal.toml`
+is the content and **says in its own header that it models no city**; the golden session **adopts it
+and opens with `populate`**, so the committed trace covers the Rule engine, the Bins, the Wheel and the
+populator for the first time, and all three baselines were re-recorded. **Two findings outrank
+everything else.** The first Ruleset written **deadlocked in about two hundred Ticks** — every Bin
+full, every Rule failed on headroom, every Rule subscribed, nothing left that could drain a Bin to
+wake one — which turned the planning claim *sustained churn needs a sink* from an argument into a
+measurement, unprompted. And **the shortage regime is not expressible**: a recorded shortfall is the
+deficit at the instant of failure and the wait list wakes on the **arriving quantity**, so a consumer
+short of three is never woken by three arrivals of one and both parties sleep for ever with the Bin
+full. That is why the shipped Ruleset runs in **surplus** — the Rule that fails is the producer, on
+headroom — and it is a fairness question rather than a bug, filed to `0002` §C with **`pool` as its
+trigger**. The flow half of slice 5 task 7's trend assertion ships as **exact equality across the
+tail** rather than a trend line, because the Ruleset's period is known.
 
 **S0a is done and the Phase 1 gate is closed.** `CommandKind.Populate` fills a world through **Phase 0**,
 so the population is in the Input Log and replay reproduces it by construction; `Borough.Core.Entities.SyntheticCity`
@@ -141,6 +163,7 @@ unless asked.
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8 and S0a have all run |
 | `docs/dev-environment.md` | Setting up a machine to work on this |
+| `rulesets/` | **Ruleset content, in TOML.** Data the binary interprets, not source — hot-reloadable tuning under `adr/0015`. One file today: `minimal.toml`, the smallest Ruleset that makes Bins move, which the golden session runs under and which says in its own header that it models no city |
 
 `plans/0001-foundational-design.md` predates ADRs 0005–0011 and is stale. `docs/06-roadmap.md`
 supersedes its build order. Do not trust it without checking.

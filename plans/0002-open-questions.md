@@ -88,6 +88,18 @@ rule is **when something concrete is blocked on it, not because it is available.
 - **What "full" means for a Bin with no capacity.** `adr/0031` flagged the unbounded-Bin comparison as
   a determinism hazard and never resolved it. Slice 7 made the money Bin unbounded and refuses an
   authored ceiling, which settles the *storage* half and not the *comparison* half. Rule-engine work.
+- **Whether a wait list wakes on the arrival or on the state.** A subscription records the amount that
+  was **missing at the instant of failure**, and the drain wakes the head waiter only while the
+  **single arriving quantity** covers that recorded number. For the head the condition is exact; for a
+  Bin filled in instalments smaller than the deficit it is unreachable, so a consumer short of three
+  is never woken by three arrivals of one and both parties sleep for ever with the Bin full. **It is
+  not visible yet**: `02 §4.1`'s worked example is delivery-shaped (*"six flour arriving wakes exactly
+  the one bakery that needs six"*) and `local` is the only scope with a Bin behind it, so slice 7 task
+  10a sidestepped it by running its Ruleset in surplus (`0011` finding 41). A trickle-filled Bin is
+  what `pool` is, so **`pool` is the trigger**. Two candidate answers — decrement the recorded
+  shortfall as arrivals accumulate, or re-derive it from the Bin — and they differ in what they
+  promise the *second* waiter in the queue, which makes this a fairness question and therefore
+  arguable rather than measurable.
 - **Where private capital comes from.** A regenerating pool is legible but arbitrary; deriving it from
   profits and savings is causally honest and adds a loop that could deadlock a struggling city.
   Probably derived, with a floor.
@@ -265,7 +277,6 @@ choice*: tau is `TICKS_PER_DAY ÷ cadence` and the stagger is the Rule's own rat
 **derived** and the argument was about where to look rather than what to pick. `adr/0052` asks for a
 named ratifier and does not ask for an arbitrary number, and the cheapest way to satisfy it is to find
 the derivation.
-
 
 | Number | Waiting on | Note |
 |---|---|---|
