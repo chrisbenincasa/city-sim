@@ -1054,6 +1054,102 @@ candidate answers — decrement the recorded shortfall as arrivals accumulate, o
 the Bin's state — differ in what they promise the *second* waiter in the queue, and that is a fairness
 decision rather than an implementation detail.
 
+### After the slice closed: the first in-situ Tick capture
+
+**42. Every Rule-engine cost in the corpus was measured in a laboratory, and first contact with a
+city cost 2.8×.** Task 10a made something possible that had never been possible before: a 1M-Citizen
+world with a Ruleset actually in force. S0a had already found that *run mode had never had a city in
+it*; what it could not find is that the **benchmarks had not either**.
+
+The capture. 1M Citizens, `rulesets/minimal.toml`, `--no-decide-guard`, per-Tick **slope** across two
+run lengths so that startup, JIT and the populate fall out, interleaved and repeated to cancel
+thermal drift on a `powersave` box:
+
+| | Measured |
+|---|---|
+| Rows | 120,001 Buildings, 120,001 Bins, **240,002 Rule Instances** |
+| Resident | **177 MB** (S0a's ~94 MiB owed exactly this re-take — finding 5) |
+| Due Rule Instances | **11,586** per Tick |
+| Evaluations | **19,426** per Tick, peak 44,628 |
+| **Whole Tick** | **6.25 / 6.60 ms** — call it **~6.4 ms** |
+| **Per due Rule** | **~552 ns**, against `RuleTickBenchmarks`' 121.6 → 198.3 ns — **2.8×** |
+| **Per evaluation** | **~329 ns**, against task 9's 82.84 ns — **4.0×** |
+
+**The cost is proportional to evaluations and not to rows**, which was checked rather than assumed:
+quartering both rates cut evaluations per Tick by 4.0× and wall clock by 3.7×. So this is the
+evaluation path and not an `O(world)` sweep hiding in a phase — and the staggered invariant tier is
+excluded outright, since it walks only Households and Citizens and both arms of the comparison
+populate identically.
+
+**What it does to [`0013`](0013-tick-budget.md)'s ledger is worse than making a row bigger.** That row
+reads *10.42 ms per Tick, multiplicand **guessed***. The truth is **6.4 ms at a measured 11,586 due**.
+The multiplicand was ~5× too high and the unit cost ~2.8× too low, so **the product landed within 40%
+of the answer by cancellation** — and a row that is right by cancellation is worse than one that is
+wrong, because any future change moves one factor without the other and nothing notices.
+
+**The published tripwire moves by 3.3× and lands on the corpus's own worked example.** Task 9
+published *evaluation fits while the mean Rule rate stays above **4.8 Ticks***. Re-derived from the
+in-situ cost — 15.6 ms ÷ 552 ns is **28,260 due Rules per Tick**, against `0002`'s 450,000 Rule
+Instances at 1M — the line moves to a mean rate of **~15.9 Ticks at 4×**, or **~8.0 at 2×**.
+`02 §4.3`'s bakery runs at **rate 8**. Under the old number that example was comfortable; under this
+one it does not fit at 4× and is exactly on the line at 2×.
+
+**The honest limit of this capture, and it matters as much as the number.** The multiplicand is
+*measured* and it is measured for a Ruleset that says in its own header that it models no city — 2
+Rule Instances per Building against `0002`'s guessed 450 per 1,000 Citizens, which is 3.75. So this
+**does not ratify the 450**; it replaces one unrepresentative number with another. The durable half is
+the **unit cost**, and even that is a floor: these Rules carry one term each and the bakery carries
+four.
+
+**The general lesson is the one to carry forward.** `0013`'s organising distinction is *measured
+multiplicand* against *guessed multiplicand*, and it quietly assumed the **unit** side was solid. It
+is not: a benchmark fixture is best-case on every axis nobody was thinking about, and here there were
+three at once — no terms, every Rule due in one bucket walked in slot order, and no Citizen or
+Household table competing for cache. That is not a defect in the benchmark; it is what a benchmark
+*is*. What follows from it is that **a unit cost is a hypothesis until a real world has produced
+one** — and routing's 10.37 ms worst Tick came off a synthetic harness too, and nothing has checked
+it against a world either.
+
+**43. The three axes multiply to 3.13× against an observed 3.70×, and the residual is the part the
+instrument could not reach.** Finding 42 named three ways the fixture is best case and could have left
+it at that. `RuleTickAxisBenchmarks` adds them one at a time, **holding the due count fixed at
+10,000** — which is the design and not a detail, because the intent sort is `O(n log n)` in the due
+count and is the one non-linear term in the engine, so a comparison that let the due count move would
+attribute the sort's curvature to whichever axis happened to change it.
+
+| Axis | Cost | Ratio |
+|---|---|---|
+| **Baseline** — no terms, every Rule due in slot order, no population | 1.490 ms / 10,000 due = **149 ns** | 1.00 |
+| **+ four terms**, net zero per Bin | 2.705 ms | **1.84×** |
+| **+ scattered** — same due count drawn from a table 16× larger by a stagger | 2.353 ms | **1.49×** |
+| **+ population** — 1M Citizens and 333k Households in the working set | 1.730 ms | **1.14×** |
+| | **product** | **3.13×** |
+| | observed in situ (552 ÷ 149) | **3.70×** |
+
+**The baseline corroborates `RuleTickBenchmarks` to 1.8%** — 149 ns here against 146.3 ns there at the
+same due count, from a fixture written independently. That is worth as much as the ratios: it says
+the gap is a property of the *arrangement* and not of either harness.
+
+**Terms are the largest axis and that was not the expected answer.** The prior reading, in `0013`'s
+own note, was that the sort is the interesting non-linearity and terms are an addition on top. In fact
+four terms nearly double a Tick — and this row is a **floor**, because a balanced Rule's net delta per
+Bin is zero, which is what keeps the Tick repeatable and also means `Check` skips the level and
+headroom read, `Fire` performs no `Deposit` or `Withdraw`, and no wait list is ever drained. **The
+1.18× residual is almost certainly the rest of the term axis** rather than a fourth cause: everything
+the balanced Rule is prevented from doing is exactly what a real Rule does. Saying so is a hypothesis
+and it is written here as one — the measurement that would settle it needs a Tick that mutates and
+therefore a fixture that cannot be stepped twice, which is the same wall `RuleTickBenchmarks` hit.
+
+**What this means for where to look if the engine ever has to get faster.** The scatter and
+population axes are properties of a real city and cannot be optimised away; together they are 1.7×.
+The term axis is 1.84× and is *code* — a `local` term resolves its Bin through `World.FindBin`, which
+is a search down the Building's intrusive Bin list, run once per term per evaluation. Decision owed
+2 chose the intrusive list over a contiguous block per Building and priced the alternative as *"a
+second allocator and a fragmentation sink"* against *"a few sequential comparisons"*. **The few
+sequential comparisons are now measured, and they are the biggest single line in the gap.** That does
+not reopen the decision — the multiplicand is still a guess and optimising against a guess is what
+`0013` warns about — but it names where the lever is when somebody needs one.
+
 ---
 
 ## Decisions owed, found while planning

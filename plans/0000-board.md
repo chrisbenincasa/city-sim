@@ -46,14 +46,31 @@ against a real Ruleset — `rulesets/minimal.toml`, which the golden session run
 between Buildings crosses an ownership boundary, which is the District Pool, which throws. The one
 shape available today is a Building producing into and drawing from its own Bins.
 
-**Scale.** A million Citizens fit comfortably: 86 MiB of tables, about 94 MiB resident, and 100,000
-Ticks in 11.75 seconds. Whether a Tick is *fast enough* is still unknown, because the Tick is nearly
+**The corpus's Rule-engine price was measured in a laboratory, and first contact with a city cost
+2.8×.** Task 10a made a 1M world with a Ruleset in force possible for the first time, and the whole
+Tick reads **~6.4 ms at 11,586 due Rules** — **552 ns per due Rule against a synthetic 198.3**. The
+gap is attributed rather than shrugged at (`0011` findings 42–43): **terms ×1.84, scatter ×1.49,
+population ×1.14**, a product of 3.13× against an observed 3.70×. Two consequences outrank the number.
+`0013`'s Rule row was **right by cancellation** — a unit 2.8× too low times a multiplicand ~5× too
+high — which is worse than being wrong, because nothing would have noticed either factor moving. And
+**the published tripwire moved 3.3× onto the corpus's own worked example**: the engine fits below a
+mean Rule rate of ~15.9 Ticks at 4×, where the retired wire said 4.8, and `02 §4.3`'s bakery runs at
+8. The general lesson is in `0013` now: **its *measured multiplicand* column always assumed the unit
+side was solid, and a unit cost is a hypothesis until a real world has produced one.** Routing's
+10.37 ms has never met a world either.
+
+**Scale.** A million Citizens fit comfortably: 86 MiB of tables, **177 MB resident once a Ruleset
+fills the Bin and Rule Instance tables** (S0a's ~94 MiB owed exactly this re-take), and 100,000
+Ticks in 11.75 seconds on an empty world. Whether a Tick is *fast enough* is still unknown, because the Tick is nearly
 empty — but four of its consumers now have real prices, summed in
 [`0013`](0013-tick-budget.md). **The clearest result is that the answer depends on a decision nobody
-has made.** Everything priced so far fits comfortably in a Tick at **1× or 2× speed** and does not fit
-at **4×** — and 4× is where the project's stated 15.6 ms budget comes from, on no recorded argument.
-Two of the four priced rows also rest on guesses about how big a city's workload is, so the total is a
-thing to watch rather than a problem to fix. S0b is what replaces the guesses.
+has made.** Everything priced so far fits at **1× or 2× speed** and does not fit at **4×** — and 4× is
+where the project's stated 15.6 ms budget comes from, on no recorded argument. **The sum at 4× fell
+from ≥140% to ≥114% when the Rule row stopped being a guess, and falling is not good news**: it
+measures how much slack was in a figure everybody quoted, and at 114% the conclusion is marginal
+rather than comfortable. **Only one of the priced rows now rests on a guessed multiplicand** — routing's
+— and the Rule row's is measured for a Ruleset that models no city, which is a different weakness
+rather than none. S0b is what replaces the guesses.
 Nothing measured so far suggests C# is the wrong choice; see `docs/adr/0036` and S4 in
 `docs/spike-results.md`.
 

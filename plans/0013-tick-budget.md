@@ -57,10 +57,30 @@ the durable half of the document.
 | One Rule **evaluation** (`02 §4.3`'s bakery terms) | **82.84 ns** | yes — 1.8% over two decades | [`0011`](0011-rule-engine-bins-and-rules.md) task 9 |
 | One **chain rung**, marginal | **53.6 ns** | — | as above |
 | One **whole engine Tick** per due Rule, no term work | **121.6 → 198.3 ns** | **no — the sort** | `RuleTickBenchmarks` |
+| ⚠️ **One whole engine Tick per due Rule, *in situ*** | **~552 ns** | — | [`0011`](0011-rule-engine-bins-and-rules.md) **finding 42** |
+| ⚠️ **One Rule evaluation, *in situ*** | **~329 ns** | — | as above |
 | **Pollution diffusion**, one Cell dirty | **31.6 µs** | — | `MapLayerBenchmarks` |
 | **Pollution diffusion**, whole map | **1.01 ms** | — | as above |
 | One **State Hash** at 1M | **32.47 ms** | — | [S0a](../docs/spike-results.md) |
 | One **routing worst Tick** at 16 Trip starts | **10.37 ms** | — | [S2 R5](../docs/spike-results.md) |
+
+**The two marked rows are the same quantities measured in a running city rather than in a fixture,
+and they are 2.8× and 4.0× the synthetic ones.** They arrived after slice 7 task 10a put a Ruleset in
+a 1M world for the first time, and they are the reason the *measured / guessed* column below is no
+longer the only thing in this document a reader should be suspicious of. **This table's left-hand
+column was never audited the way the multiplicand column was**: a fixture is best case on every axis
+nobody was thinking about, and the Rule engine's was best case on three at once — no terms, every
+Rule due in one bucket walked in slot order, and no Citizen or Household table competing for cache.
+A unit cost is a hypothesis until a real world has produced one. **Routing's 10.37 ms came off a
+synthetic harness too and has never met a world.**
+
+**The gap was then attributed rather than left as a warning** (`0011` finding 43). Added to the
+fixture one at a time at a fixed due count: **terms ×1.84**, **scatter ×1.49**, **population ×1.14** —
+a product of **3.13×** against an observed **3.70×**, with the residual most likely the rest of the
+term axis, since the instrument's balanced Rule cannot apply anything. **Terms are the largest axis
+and were expected to be the smallest.** Two of the three are properties of a real city and cannot be
+optimised away; the term axis is code, and it is `World.FindBin` searching a Building's intrusive Bin
+list once per term per evaluation.
 
 **The one non-flat unit is the intent sort, and it was found by looking for it.** Phase 3 sorts its
 intents into the settle order, which is `O(n log n)` where everything else in the engine is linear.
@@ -78,26 +98,41 @@ multiplicand**, which is why that column sits next to it rather than in a footno
 | Consumer | Phase | Cost/Tick | Multiplicand | 8× | 4× | 2× | 1× |
 |---|---|---|---|---|---|---|---|
 | **Skeleton, staggered invariants, Layer schedule** | all | 0.112 ms | 1M rows — **measured** | 1.4% | 0.7% | 0.4% | 0.2% |
-| **Bin Rule engine**, whole Tick, before term work | 1–3 | **10.42 ms** | 56,250 due — **guessed** | **134%** | **67%** | **33%** | **17%** |
+| ~~**Bin Rule engine**, whole Tick, before term work~~ | ~~1–3~~ | ~~10.42 ms~~ | ~~56,250 due — **guessed**~~ | ~~134%~~ | ~~67%~~ | ~~33%~~ | ~~17%~~ |
+| **Bin Rule engine**, whole Tick, **in situ** | 1–3 | **6.4 ms** | 11,586 due — **measured, on a toy Ruleset** | 82% | **41%** | 20% | 10% |
 | **Routing** | 4 Move | 10.37 ms | 16 Trip starts — **guessed** | **133%** | **66%** | **33%** | **17%** |
 | **Map Layer diffusion**, on the Tick it lands | 5 Layers | 0.03–1.01 ms | dirty region — **measured range** | 0.4–13% | 0.2–6.5% | 0.1–3.2% | 0.05–1.6% |
 | **Event Wheel, general** | 1 Wake | **unbuilt** — slice 9 | — | — | — | — | — |
 | **Growth, Commit** | 6, 7 | **unbuilt** | — | — | — | — | — |
-| | | | | **≥281%** | **≥140%** | **≥70%** | **≥36%** |
+| | | | | **≥229%** | **≥114%** | **≥57%** | **≥29%** |
 
 **Read the last row across, not down.** The headline is not *we are over budget*; it is that **the
 simulation as priced fits at 2× and does not fit at 4×** — and the difference between those is a
 product decision nobody has made, not an engineering problem anybody has to solve.
 
+**The sum fell from ≥140% to ≥114% at 4×, and that is not good news.** It moved because the Bin Rule
+row stopped being a guess, and the correction happened to point down; the *unit* underneath it moved
+**up** by 2.8× at the same time. What the fall actually measures is how much slack there was in a
+figure everybody quoted. **At 114% the conclusion is now marginal rather than comfortable** — a single
+unbuilt phase, or a real Ruleset instead of a toy one, decides it either way.
+
 ### Notes each row needs
 
-- **The Bin Rule row is a floor, and the largest reason is visible in the unit table.** It is a whole
-  Tick measured over a Rule with **no terms at all**, which is what made a steady state possible to
-  measure — a no-term Rule leaves the world bit-identical, so a Tick can be run thousands of times
-  over one arrangement. Real Rules add term walking to two atomicity checks on top.
-- **The Bin Rule row supersedes an earlier Phase-2-only estimate of ~60%.** That figure multiplied a
-  measured Phase 2 by an *inferred* Phase 3 re-check. This one measures all eight phases end to end;
-  it is both larger and better founded, and the earlier number should not be quoted.
+- **The Bin Rule row is now measured end to end in a running city, and the row it replaced was right
+  by cancellation.** The struck row multiplied a synthetic unit cost that was **2.8× too low** by a
+  multiplicand that was **~5× too high**, and the product landed within 40% of the truth. That is a
+  worse failure than being wrong: any change that moves one factor without the other would have gone
+  unnoticed, and both factors were about to move — the unit when a real Ruleset arrived, the
+  multiplicand when a real one is chosen.
+- **The new row's multiplicand is measured and is still not representative.** 11,586 due per Tick
+  comes from `rulesets/minimal.toml`, which carries 2 Rule Instances per Building and says in its own
+  header that it models no city; `0002`'s guess is 450 per 1,000 Citizens, which is 3.75 per Building.
+  So the **41% share is not a forecast** — it is what this Ruleset costs. **The durable half is the
+  unit cost**, and even that is a floor, because these Rules carry one term and `02 §4.3`'s bakery
+  carries four.
+- **The Bin Rule row supersedes an earlier Phase-2-only estimate of ~60% and a whole-Tick estimate of
+  67%.** The first multiplied a measured Phase 2 by an *inferred* Phase 3 re-check; the second
+  measured all eight phases but in a fixture. Neither should be quoted.
 - **The first row already contains the staggered invariant tier.** S0a's empty Tick is *"the phase
   skeleton, the staggered invariant tier and the Layer schedule, and nothing else"*, and slice 5's
   own extrapolation of the tier to 1M (~91 µs) is 81% of that 0.112 ms — two measurements
@@ -131,12 +166,22 @@ Instances per 1,000 Citizens is `0002`'s number and rate 8 is `02 §4.3`'s baker
 **The honest statements are the inverted ones**, per the rule S2 R3 established after drafting its own
 budget row the wrong way round:
 
-> Bin Rule evaluation fits while fewer than **~188,000 evaluations** occur per Tick at 4×.
+> ~~Bin Rule evaluation fits while fewer than **~188,000 evaluations** occur per Tick at 4×.~~
+> **The Bin Rule engine fits while fewer than ~28,000 Rule Instances come due per Tick at 4×**
+> (~56,000 at 2×) — measured in situ, whole Tick, one term per Rule.
 > Routing fits while fewer than **85 Trips** start per Tick — *mean-derived*, with a measured worst
 > Tick already at 66% from an arrival rate 5× lower.
 > Pollution diffusion fits on any budget, at any city size, with the whole map dirty.
 
 Each survives its multiplicand being settled elsewhere. None is a verdict.
+
+**The Rule wire moved by 3.3× and it moved onto the corpus's own worked example.** Against `0002`'s
+450 Rule Instances per 1,000 Citizens — 450,000 at 1M — the ~28,000 due per Tick at 4× requires a
+**mean Rule rate above ~15.9 Ticks**, where the retired evaluation-based wire required only **4.8**.
+`02 §4.3`'s bakery runs at **rate 8**: comfortable under the old wire, over budget at 4× under this
+one, and exactly on the line at 2×. **That is a statement about the wire, not about the bakery** —
+the multiplicand is still a guess and one worked example is not a Ruleset — but it is the first time
+the two have been close enough to touch, and it is what the multiplicand being settled will decide.
 
 ---
 

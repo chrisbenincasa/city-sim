@@ -106,6 +106,20 @@ headroom — and it is a fairness question rather than a bug, filed to `0002` §
 trigger**. The flow half of slice 5 task 7's trend assertion ships as **exact equality across the
 tail** rather than a trend line, because the Ruleset's period is known.
 
+**Task 10a then made the first in-situ Tick capture possible, and every Rule-engine price in the
+corpus turned out to have been taken in a laboratory.** A 1M world with a Ruleset in force costs
+**~6.4 ms a Tick at 11,586 due Rules — 552 ns each, against a synthetic 198.3.** The gap is
+attributed rather than shrugged at (findings 42–43): **terms ×1.84, scatter ×1.49, population ×1.14**,
+a product of **3.13×** against an observed **3.70×**, with terms the largest axis and the one nobody
+expected. Two consequences outrank the number. `0013`'s Bin Rule row was **right by cancellation** —
+a unit cost 2.8× too low times a multiplicand ~5× too high — **which is worse than being wrong**,
+because any change moving one factor without the other would have gone unnoticed. And the published
+tripwire moved **3.3× onto the corpus's own worked example**: the engine fits below a mean Rule rate
+of **~15.9 Ticks at 4×** where the retired wire said 4.8, and `02 §4.3`'s bakery runs at **8**. The
+general lesson is now written into `0013`: **its organising column is *measured multiplicand* against
+*guessed*, and it always assumed the unit side was solid — a unit cost is a hypothesis until a real
+world has produced one**, and routing's 10.37 ms has never met a world either.
+
 **S0a is done and the Phase 1 gate is closed.** `CommandKind.Populate` fills a world through **Phase 0**,
 so the population is in the Input Log and replay reproduces it by construction; `Borough.Core.Entities.SyntheticCity`
 is the one populator, replacing two drifted copies that lived in the shells and were therefore outside
