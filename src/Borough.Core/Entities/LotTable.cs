@@ -31,7 +31,7 @@ public sealed class LotTable
 
         East = _rows.Saved<Tiles>("east");
         North = _rows.Saved<Tiles>("north");
-        Zone = _rows.Saved<byte>("zone");
+        Zone = _rows.Saved<ushort>("zone");
 
         _rows.Seal();
     }
@@ -45,11 +45,35 @@ public sealed class LotTable
     /// <summary>Position along the north axis, in whole Tiles.</summary>
     public Column<Tiles> North { get; }
 
-    /// <summary>Which Zone family the Lot is zoned for. Resolved through the Ruleset.</summary>
-    public Column<byte> Zone { get; }
+    /// <summary>
+    /// The Lot's Zone: <b>a permission set, one bit per kind admitted here</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A set rather than a kind, and the distinction is the design's rather than a convenience.</b>
+    /// <c>CONTEXT</c> → Zone is <em>"a permission set over land: it lists the uses allowed there and
+    /// forbids every other"</em>, and says mixed use needs no machinery because it is a set with more
+    /// than one entry. A single enum here would re-introduce the *zone type* that framing exists to
+    /// refuse, and would make mixed use something somebody has to add later.
+    /// </para>
+    /// <para>
+    /// <b>It is permission and never instruction</b> (<c>adr/0025</c>). Zoning admits a kind; it does
+    /// not summon one, and a bit set over land nothing wants to build on grows nothing. Density is the
+    /// intensity cap <em>within</em> a permission rather than a second concept.
+    /// </para>
+    /// <para>
+    /// <b>Sixteen bits, matching <see cref="Input.Command.Zone"/> at full width</b>, which discharges
+    /// the narrowing that verb has carried since slice 5 — it authored a set and this column kept a
+    /// byte of it. Sixteen is therefore how many kinds can ever be zoned for, against a <c>kind</c>
+    /// that is a <see cref="byte"/> everywhere else. The two are deliberately not the same width: a
+    /// kind nothing zones for is an ordinary thing — a service Building is *placed* (<c>adr/0032</c>)
+    /// — and a seventeenth zonable kind is a widening that should be argued rather than absorbed.
+    /// </para>
+    /// </remarks>
+    public Column<ushort> Zone { get; }
 
     /// <summary>Allocates a Lot at a position.</summary>
-    public Handle<Lot> Create(Tiles east, Tiles north, byte zone)
+    public Handle<Lot> Create(Tiles east, Tiles north, ushort zone)
     {
         Handle<Lot> handle = _rows.Allocate();
         int slot = _rows.Resolve(handle);

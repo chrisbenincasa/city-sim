@@ -153,9 +153,16 @@ public sealed class Simulation
         switch (command.Kind)
         {
             case CommandKind.Zone:
-                // Slice 10 gives Lots a permission column and Zone Rules to sample them. Until then a
-                // Zone paints one Lot, and the permission set narrows to the Lot's zone byte.
-                _world.Lots.Create(command.East, command.North, (byte)command.Zone);
+                // The permission set now arrives at full width — slice 10 widened the Lot's column to
+                // match this verb, so nothing authored here is lost on the way in.
+                //
+                // It still paints exactly one Lot, and that is not a shortcut: 02 §2.2 says Lots are
+                // **generated, not painted**, by a subdivider that carves zoned land against the
+                // Street network and refuses frontage-less land. Streets are milestone 5a, which is
+                // Phase 2, so the generator cannot exist yet. Painting a *region* of Lots here would
+                // stand in for more of 5a than painting one does, and every Lot it invented would be
+                // one the real subdivider would have refused.
+                _world.Lots.Create(command.East, command.North, command.Zone);
                 break;
 
             case CommandKind.Populate:

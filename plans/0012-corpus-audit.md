@@ -260,6 +260,32 @@ because the board's model of the three tracks is that they *do not contend*. The
       routes."* **Measured false**: per-cluster is the worst surviving rung. Struck rather than
       deleted, per the corpus's practice, because the prediction is why the section was run
 
+### The Lot subdivider is described in full by `02` and built by no milestone
+
+**Raised by slice 10's first sitting**, which went looking for the shape of its `zone` verb and found
+that the verb cannot have the shape `02` gives it until Phase 2.
+
+- [ ] `docs/06-roadmap.md` — the *Mechanisms with no milestone* table does not list **Lot
+      subdivision**, and milestone **5a** is *"Road Graph and Streets"*, whose named risk is geometry
+      leaking into the simulation. Neither names the thing that turns zoned land into parcels.
+      `02 §2.2` specifies it — subdivision rules, depth and width varying by density band,
+      re-subdivision on network change preserving existing Buildings — and `adr/0014` and `adr/0035`
+      both reason *from* its frontage rule, so it is settled design with no builder. It belongs either
+      in 5a explicitly or in the no-milestone table
+- [ ] `docs/02-simulation-model.md §2.2` — *"Lots are **generated, not painted**"* is true of the
+      design and **false of the build, in every world this project has ever run**. Every Lot in the
+      tree is painted: one per `CommandKind.Zone`, or `SyntheticCity`'s grid. Slice 10 made this
+      visible and deliberately did not fix it (`0014` → *The second collision*), because the fix is
+      5a's. The section wants the same treatment `rulesets/minimal.toml` gave its own emptiness — a
+      sentence saying the generator does not exist yet — rather than a silent gap between a design
+      document and every number taken under it
+
+**The general shape is the one `0013` published about unit costs.** A precondition stated in a design
+document is a hypothesis about the build until something enforces it. Nothing has ever refused a Lot
+for want of frontage, so *"every Building is on the Road Graph by construction"* — which `CONTEXT` →
+Frontage leans on to delete the utility network entirely — is currently true by there being no Road
+Graph rather than by construction.
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and

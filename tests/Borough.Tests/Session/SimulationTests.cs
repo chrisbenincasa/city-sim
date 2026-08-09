@@ -55,6 +55,34 @@ public sealed class SimulationTests
         Assert.Equal(new Tiles(8), simulation.World.Lots.North[0]);
     }
 
+    /// <summary>
+    /// The permission set survives application at full width.
+    /// </summary>
+    /// <remarks>
+    /// <b>The assertion nobody wrote, which is why the narrowing lived for five slices.</b>
+    /// <c>A_zone_command_paints_a_lot</c> above checks that a Lot appears where the command said, and
+    /// checks nothing about what was painted on it — so slice 5 casting the authored set down to a
+    /// byte on the way in passed every test in this file. The bits chosen here are the ones that cast
+    /// destroyed: bit 15 and bit 8 are both above a byte, and a Lot that came back holding
+    /// <c>0b0000_0101</c> would be the old behaviour reporting success.
+    /// <para>
+    /// <c>CONTEXT</c> → Zone is a permission set and mixed use is a set with more than one entry, so
+    /// four bits are set rather than one — a single bit could not tell a set apart from an enum that
+    /// happens to fit.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_zone_command_paints_its_whole_permission_set()
+    {
+        Simulation simulation = Build();
+        const ushort MixedUse = 0b1000_0001_0000_0101;
+
+        simulation.Step(new TickInput(
+            [Paint(east: 3, north: 4, permissions: MixedUse)], rulesetHash: 0));
+
+        Assert.Equal(MixedUse, simulation.World.Lots.Zone[0]);
+    }
+
     [Fact]
     public void Commands_in_one_tick_are_applied_in_issue_order()
     {

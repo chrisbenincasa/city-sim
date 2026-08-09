@@ -96,10 +96,11 @@ public readonly struct Command
     /// </summary>
     /// <remarks>
     /// <b>A set, not a kind</b> — <c>01 §2</c>'s verb paints a <em>permission set</em>, and a Lot
-    /// permitting two uses is a real thing the design wants. It is carried at full width here and
-    /// narrowed to <see cref="Entities.LotTable"/>'s single zone byte on application, because Lots do
-    /// not have a permission column until Zone Rules arrive in slice 10. Widening the Lot is that
-    /// slice's job; losing the authored value on the way in would have been this one's bug.
+    /// permitting two uses is a real thing the design wants. Slice 5 carried it at full width here and
+    /// narrowed it to <see cref="Entities.LotTable"/>'s single zone byte on application, on the
+    /// reasoning that losing the authored value on the way in would have been that slice's bug while
+    /// widening the Lot was slice 10's job. <b>Slice 10 did that, and the narrowing is discharged</b>:
+    /// <see cref="Entities.LotTable.Zone"/> is a <see cref="ushort"/> and this value reaches it whole.
     /// </remarks>
     public ushort Zone { get; }
 

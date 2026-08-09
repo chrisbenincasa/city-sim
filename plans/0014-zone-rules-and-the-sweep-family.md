@@ -112,13 +112,43 @@ after.
 
 ---
 
+## The second collision, found on the first sitting: Lots are generated, and the generator is 5a's
+
+**`02 §2.2` is unambiguous — *"Lots are **generated, not painted**"*.** The subdivider carves zoned
+land against the Street network into parcels with frontage, and `CONTEXT` → Frontage calls that
+contact *"the geometric precondition for a Lot existing at all"*, with land the network cannot reach
+staying unlotted. **`06` puts the Road Graph and Streets at milestone 5a, which is Phase 2.** This
+slice is 3c, which is Phase 1.
+
+**So the roadmap placed the subdivider after the slice that was supposed to make the `zone` verb
+honest**, and no spelling of task 1's second half is available here. A Zone command that emits Lots is
+standing in for 5a whatever shape it takes; painting a rectangle stands in for *more* of it than
+painting one Lot does, and every Lot it invents is one the real subdivider would have refused for
+want of frontage.
+
+**What dissolves it is that this slice never needed the verb.** `SyntheticCity` already creates Lots
+— 225 per 1,000 Citizens — so a world entered through `populate` has a Lot population in quantity.
+The tripwire's Zone-size sweep, the churn run and the trend assertion all sample *that*, and a Zone in
+this build is anyway not an entity but **the set of Lots whose permission set carries a bit**, which
+is what task 3's `[[zone_rule]]` names. Nothing downstream asks the verb for an area.
+
+The verb keeps its single Lot, the permission set widens, and **the subdivider stays visibly unbuilt**
+— filed below rather than half-built, because a half-built subdivider is the one shape that would stop
+anyone noticing it is missing.
+
+---
+
 ## Tasks
 
-### 1. The Lot's permission set, and a `zone` verb that paints an area
+### 1. The Lot's permission set
 
 `LotTable`'s `Zone` byte becomes a **permission set** matching `Command.Zone`'s `ushort`, discharging
-the narrowing `Command.cs:101` records. `CommandKind.Zone` stops creating exactly one Lot and paints
-the region the command describes.
+the narrowing `Command.cs:101` records.
+
+**The other half of this task — *and a `zone` verb that paints an area* — is cut**, and the reason is
+a roadmap ordering rather than a difficulty. See *The second collision* above. `CommandKind.Zone`
+keeps creating exactly one Lot, which is no more fictional than it is today and materially less
+fictional than a rectangle of them would be.
 
 **A permission set is a set, and the distinction is `adr/0025`'s.** Density is a *cap*, so a Lot's
 permission is *which forms may be built here*, not *which form is here*. One bit per admitted kind is
@@ -345,6 +375,12 @@ Per `PROCESS.md`: a correction goes to [`0012`](0012-corpus-audit.md), not to `0
   the same document is *"Map Layers and Zone Rules"*. A Zone Rule is a Sweep Rule. The row justifies
   itself by naming 3a and 3b and skipping 3c. **Policy** genuinely has no milestone; *the family
   entire* is over-stated, and this slice is the counter-example.
+- **The Lot subdivider has no milestone.** `06`'s *Mechanisms with no milestone* table does not list
+  it, and 5a is *"Road Graph and Streets"* — which names the graph and the geometry risk and never
+  names the thing that turns zoned land into parcels. `02 §2.2` describes it in full, `adr/0014` and
+  `adr/0035` both reason from its frontage rule, and nothing builds it. Until it exists **every Lot in
+  this project is painted**, which is the sentence `02 §2.2` opens by denying, and slice 10 is the
+  slice that made that visible without being able to fix it.
 - **`02 §5.3` and `§5.7` use "sampling" for two different populations** with two different actors, and
   only §5.3 carries a number. See task 4.
 
@@ -354,6 +390,8 @@ Per `PROCESS.md`: a correction goes to [`0012`](0012-corpus-audit.md), not to `0
 
 - **No price surface, no land value, no capital, no bid contest, no pro-forma.** `02 §5.4`–`§5.6`
   entire. Phase 2.
+- **No subdivider, and therefore no Zone verb that paints an area.** `02 §2.2` entire. It needs the
+  Street network, which is milestone 5a's. See *The second collision*.
 - **No construction time and no derelict state.** Both need a Building state that does not exist;
   the derelict flag is slice 8's.
 - **No upgrade or downgrade.** `adr/0025`: the density ladder is walked at construction only.
