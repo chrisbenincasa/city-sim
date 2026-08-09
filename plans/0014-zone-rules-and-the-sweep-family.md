@@ -43,7 +43,9 @@ families for performance. Building the second family is what puts it at risk of 
   first time in both tiers. It caught six existing fixtures on the day it landed.
 - **Task 3** — the `[[zone_rule]]` table and its three refusals. The loader's count of record goes
   from five to eight, corrected in `adr/0048` and `adr/0015`.
-- **Next: task 4**, the sample and its third `purpose_tag`.
+- **Task 4** — `PurposeTag.ZoneRuleSample` and `ZoneSample.Draw`. Sampling without replacement turned
+  out to need **no retry budget**, which would have been a fourth hash-bearing number.
+- **Next: task 5**, the trigger in Tick phase 6.
 
 ---
 
@@ -252,32 +254,42 @@ The trigger that would run one is task 5.
 Building's mortality depend on which Rule happened to look at it — and `adr/0053` makes pressure a
 property of the Building. Task 7.
 
-### 4. The sample — and it is a new `purpose_tag`
+### 4. The sample — and it is a new `purpose_tag` — **done**
 
-`PurposeTag` gains a third member. It has `RuleSettleOrder` and `RuleArmingStagger` and the comment on
-the second states the rule this obeys: two uses of randomness over the same row that answer *different
-questions* must not share a tag, or the two decisions are correlated invisibly.
+`PurposeTag.ZoneRuleSample`, the third member and the **first belonging to the Sweep family**. Distinct
+from `RuleSettleOrder` for a sharper reason than usual: both are *which of these do we act on*, so
+sharing a tag looks harmless — and would mean the Lots a Zone Rule sampled correlated with which Bin
+Rule won a contested draw on the same Tick. That reads as a lucky District, never as a defect.
 
-**The population is every Lot**, not the Lots carrying the Rule's permission bit — `adr/0055`. A
-sample scoped to the bit would make repainting a preservation order, because a Building nobody samples
-is a Building nothing can condemn.
+**The population is every Lot** (`adr/0055`). The permission bit is a term in the create predicate,
+never a filter on what is drawn from.
 
-**Sample without replacement**, per `02 §5.3`'s implementation note — UrbanSim samples *with*
-replacement and double-counts an alternative's weight, which the section calls out as a real if minor
-defect. Copying the defect knowingly would be worse than copying it unknowingly.
+**The finding: sampling without replacement needed no retry budget, and a retry budget would have been
+a fourth hash-bearing number.** The obvious implementation draws until it has `k` usable Lots, which
+needs a bounded attempt count — and how many attempts you allow changes *which* Lots get built on, so
+it is hash-bearing, so `adr/0052` would demand a named ratifier for a quantity nobody has ever wanted
+to think about.
 
-**The sample decides where to build and never what dies.** On a sampled Lot: vacant → task 6's create
-predicate; occupied → read the Building's failure duration and condemn past threshold. The second is
-an observation of a quantity that was already true, which is what makes sampled decline legitimate
-(`adr/0053`) — sampling the *accumulation* would give every condemned Building a random lifetime
-distributed by sample size and Lot count.
+**`ZoneSample.Draw` makes exactly `k` draws and discards the ones that land badly**, which costs
+nothing and *is already the model*: a draw landing on a freed slot, or on a Lot this trigger has
+already seen, is a parcel the developer looked at and could not use. So the sample size is how many
+Lots are **evaluated** — which is the quantity `02 §5.7` names and the one task 9 holds fixed — and how
+many turn out usable is a property of the city rather than a number in a file. Cost is `O(sample)`
+exactly, with no dependence on the Lot count in either direction.
 
-**The sample size is hash-bearing, and `02 §5.3`'s `N` is not it.** §5.3's `N` is the number of
-*dwellings a Household considers*; §5.7's is the number of *Lots a developer evaluates*. Different
-population, different actor, and the *argument* for sampling transfers while the *number* does not.
-The corpus has no number for the second anywhere. Under [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)
-it is written into `0002` §D on the day it is chosen, with a named ratifier — and *"a profile"* or
-*"a future spike"* is not one.
+Duplicates are discarded rather than counted twice, which is `02 §5.3`'s one criticism of UrbanSim.
+The scan that finds one is linear over what has been drawn so far: a set would allocate, hash, and be
+walked in an order `05 §4` lint 3 bans, for a handful of Lots.
+
+**`02 §4.2`'s *rotate the scan start per trigger* turns out to be unnecessary here**, and not by
+oversight. The mitigation exists because a fixed scan order privileges the same low-index Lots for the
+life of the city. A sample keyed on the Tick has no fixed order to privilege anything — which the
+coverage test asserts directly.
+
+Nine tests, including allocation-free on the hot path and *many triggers reach every Lot* — a coverage
+check rather than a distribution test, aimed at the family of defects that make a sampler concentrate
+(a modulus against the wrong bound, a coordinate that does not vary, a dropped mixer). Each of those
+would otherwise look like a city that simply grew slowly.
 
 ### 5. The trigger, in Tick phase 6 — and what it does *not* share with a Bin Rule
 

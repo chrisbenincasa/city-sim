@@ -73,4 +73,21 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     RuleArmingStagger = 2,
+
+    /// <summary>
+    /// Which Lots a Zone Rule looks at on one trigger.
+    /// </summary>
+    /// <remarks>
+    /// <b>The first tag belonging to the Sweep family, and it answers a question about a Lot rather
+    /// than about a Building.</b> <c>02 §5.3</c>: sampling is a behaviour model and not an
+    /// optimisation — a developer does not evaluate every parcel in the city, so the Rule does not
+    /// either.
+    /// <para>
+    /// <b>Distinct from <see cref="RuleSettleOrder"/>, and the reason is sharper here than usual.</b>
+    /// Both are *which of these do we act on*, so sharing a tag looks harmless — and would mean the
+    /// Lots a Zone Rule sampled correlated with which Bin Rule won a contested draw on the same Tick.
+    /// That is invisible in play and would read as a lucky District rather than a defect.
+    /// </para>
+    /// </remarks>
+    ZoneRuleSample = 3,
 }
