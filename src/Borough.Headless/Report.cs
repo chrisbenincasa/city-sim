@@ -1,6 +1,9 @@
 using System.Globalization;
+using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 
 namespace Borough.Headless;
@@ -23,10 +26,32 @@ namespace Borough.Headless;
 /// </remarks>
 internal static class Report
 {
-    public static int Print(int population)
+    /// <summary>The exit code for a report refused because its Ruleset would not load.</summary>
+    /// <remarks>The same code <c>Session</c> uses, because it is the same refusal.</remarks>
+    private const int Refused = 3;
+
+
+    /// <param name="options">The run's flags. <c>--ruleset</c> decides whether the Bins are real.</param>
+    /// <remarks>
+    /// <b>The report takes a Ruleset because without one the two largest tables are empty and the
+    /// footprint is wrong in the direction nobody checks.</b> <c>plans/0011</c> finding 5: <c>bin</c>
+    /// and <c>rule_instance</c> pre-allocate to capacity like every other table, so ~30 MB is
+    /// committed at 1M Citizens for rows that do not exist — and S0a's ~94 MiB was measured in exactly
+    /// that state. Passing the Ruleset is what turns this mode into the instrument that re-takes it.
+    /// </remarks>
+    public static int Print(Options options)
     {
-        var world = new World(population);
-        SyntheticCity.PopulateInto(world);
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (!Session.TryRules(options.RulesetPath, out Ruleset rules))
+        {
+            return Refused;
+        }
+
+        int population = options.Citizens;
+        var world = new World(population, LayerRuleset.Default, rules);
+
+        SyntheticCity.PopulateInto(world, WorldKey.FromSeed(options.Seed), Ticks.Zero);
 
         Write($"Borough — table report at {population:N0} Citizens");
         Console.WriteLine();

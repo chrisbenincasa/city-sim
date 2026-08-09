@@ -2,6 +2,8 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Instruments;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
+using Borough.Core.Space;
 
 namespace Borough.Core.Input;
 
@@ -31,11 +33,35 @@ namespace Borough.Core.Input;
 public static class Replay
 {
     /// <summary>Builds the world a log describes, at Tick zero, before any command has been applied.</summary>
-    public static Simulation Start(InputLog log)
+    /// <summary>
+    /// Builds the world a log describes, with a Ruleset in force.
+    /// </summary>
+    /// <param name="log">The session to reproduce.</param>
+    /// <param name="rules">
+    /// The Rules to run under, already validated (<c>adr/0048</c>). Pass <see cref="Ruleset.Empty"/>
+    /// for a session with no Rules — <b>required rather than defaulted</b>, so that running without
+    /// Rules is something a caller says rather than something it inherits.
+    /// </param>
+    /// <remarks>
+    /// <b>The Ruleset is the one thing a replay needs that the log does not carry, and that is not
+    /// the exception to this class's rule that it looks like.</b> The paragraph above says world state
+    /// may never arrive from outside the log. A Ruleset is not world state — it is the interpreter the
+    /// state is run through — and the log carries its <em>content hash</em> precisely so that supplying
+    /// the wrong one is loud rather than silent. <c>Borough.Headless</c>'s <c>RulesetCheck</c> is where
+    /// that refusal lives, because <c>05 §7</c> makes the policy the shell's and not the format's.
+    /// <para>
+    /// What this does mean is that a log is not self-sufficient: reproducing a session needs the log
+    /// <em>and</em> the Ruleset it names. <c>02 §4.3</c> already says so for hot reload — <em>"a replay
+    /// needs the Rules' content, not the news that they changed"</em> — and carrying content rather
+    /// than a hash is slice 8's problem, not this one's.
+    /// </para>
+    /// </remarks>
+    public static Simulation Start(InputLog log, Ruleset rules)
     {
         ArgumentNullException.ThrowIfNull(log);
+        ArgumentNullException.ThrowIfNull(rules);
 
-        var world = new World(log.Configuration.Citizens);
+        var world = new World(log.Configuration.Citizens, LayerRuleset.Default, rules);
         return new Simulation(world, WorldKey.FromSeed(log.Seed));
     }
 
@@ -58,12 +84,29 @@ public static class Replay
     /// a balance run wants every thousandth.
     /// </para>
     /// </remarks>
-    public static ulong[] Run(InputLog log, Ticks ticks, int hashEvery)
+    public static ulong[] Run(InputLog log, Ticks ticks, int hashEvery) =>
+        Run(log, ticks, hashEvery, Ruleset.Empty);
+
+    /// <inheritdoc cref="Run(InputLog, Ticks, int)"/>
+    /// <param name="log">The session to reproduce.</param>
+    /// <param name="ticks">How many Ticks to run. May exceed the log's <see cref="InputLog.Horizon"/>.</param>
+    /// <param name="hashEvery">The sampling cadence, in Ticks. Must be positive.</param>
+    /// <param name="rules">The Rules to run under.</param>
+    /// <remarks>
+    /// <b>The three-argument form defaults to <see cref="Ruleset.Empty"/> and
+    /// <see cref="Start(InputLog, Ruleset)"/> deliberately does not, which is not an inconsistency.</b>
+    /// <c>Start</c> is the door the runner goes through, where a silently ruleless world would be a
+    /// session that reported success having simulated nothing — the shape this project has found
+    /// several times. <c>Run</c> is a convenience whose callers are almost all asking whether two
+    /// replays of one log agree, a question no Ruleset changes.
+    /// </remarks>
+    public static ulong[] Run(InputLog log, Ticks ticks, int hashEvery, Ruleset rules)
     {
         ArgumentNullException.ThrowIfNull(log);
+        ArgumentNullException.ThrowIfNull(rules);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(hashEvery);
 
-        Simulation simulation = Start(log);
+        Simulation simulation = Start(log, rules);
         var trace = new List<ulong>();
 
         Trace(simulation, log, ticks, hashEvery, trace);
@@ -116,7 +159,7 @@ public static class Replay
             if (simulation.Tick.Raw % cadence == 0)
             {
                 trace.Add(simulation.World.HashState());
-                census?.Observe(simulation.World, simulation.Tick);
+                census?.Observe(simulation);
             }
         }
     }

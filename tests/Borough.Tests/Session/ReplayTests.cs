@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 
 namespace Borough.Tests.Session;
 
@@ -100,7 +101,7 @@ public sealed class ReplayTests
     [Fact]
     public void A_replay_starts_from_an_empty_world_at_tick_zero()
     {
-        Simulation simulation = Replay.Start(Log());
+        Simulation simulation = Replay.Start(Log(), Ruleset.Empty);
 
         Assert.Equal(0UL, simulation.Tick.Raw);
         Assert.Equal(0, simulation.World.Lots.Rows.LiveCount);
@@ -114,7 +115,7 @@ public sealed class ReplayTests
     private static ulong[] ByHand(int mutateAfterSample)
     {
         InputLog log = Log();
-        Simulation simulation = Replay.Start(log);
+        Simulation simulation = Replay.Start(log, Ruleset.Empty);
         var trace = new List<ulong>();
 
         for (int i = 0; i < TickCount; i++)

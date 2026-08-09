@@ -16,16 +16,23 @@ Written plainly on purpose. The rest of the corpus argues; this file just define
 Four documents carry status or plans, and it matters which is which. A **source** owns a fact. A
 **view** restates facts owned elsewhere, so it can be stale and is never authoritative.
 
-| Document | Kind | Owns |
-|---|---|---|
-| `plans/0000-board.md` | **view** | Nothing. A flat status of everything, for orientation |
-| `plans/0003-build-plan.md` | **source** | The order slices are built in, and what gates each one |
-| `plans/0002-open-questions.md` | **source** | Open design questions and the reasoning behind them |
-| `docs/adr/` | **source** | Settled decisions, one per file |
-| `docs/spike-results.md` | **source** | Measured numbers, and the decision each produced |
-| `plans/0004`… | **source** | One plan document per slice or spike, holding its task list |
+| Document | Kind | Owns | Answers |
+|---|---|---|---|
+| `plans/0000-board.md` | **view** | Nothing. A flat status of everything, for orientation | *what is next* |
+| `plans/0003-build-plan.md` | **source** | The order slices are built in, and what gates each one | *what is done* |
+| `plans/0002-open-questions.md` | **source** | **Every open question in the corpus**, typed and grouped by what is blocked | *what needs answering* |
+| `plans/0012-corpus-audit.md` | **source** | Corrections owed to documents. Deleted when empty | *what a document says wrongly* |
+| `docs/adr/` | **source** | Settled decisions, one per file | |
+| `docs/spike-results.md` | **source** | Measured numbers, and the decision each produced | |
+| `plans/0004`… | **source** | One plan document per slice or spike, holding its task list | |
 
 When the board disagrees with a source, the source is right.
+
+**A question is written in one place.** It goes in `0002`, once, whoever found it and whatever raised
+it — a slice plan's *Decisions owed* section, a spike's findings, an ADR's Consequences. The failure
+this rule exists to stop has already happened: the board accumulated 63 open items while the file named
+*open questions* held none, because it was organised by *which session raised a question* rather than
+by *what is open*, and nobody could read it. A correction is **not** a question and goes to `0012`.
 
 ---
 
@@ -92,7 +99,9 @@ unsettled decision gets rewritten.
 work that was deferred deliberately. Listed at the bottom of the board. None of it blocks anything;
 all of it is real.
 
-**Ledger** — `plans/0002`'s numbered list of open design questions.
+**Ledger** — `plans/0002`'s list of open design questions, grouped by what is blocked on each and
+typed *measurable* or *arguable*. Everything below it in that file is an **archive** of the sessions
+that raised them, and is not status.
 
 **Unratified** — a number somebody chose because a choice was needed, which nobody has justified. The
 project's own finding is that *an unratified number is more dangerous than an open question*, because

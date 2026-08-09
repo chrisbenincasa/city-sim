@@ -1,14 +1,23 @@
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Tables;
 
 namespace Borough.Core.Instruments;
 
 /// <summary>
-/// A periodic reading of every collection's size, kept in a ring, and the history behind
-/// <c>series(metric, window)</c>.
+/// A periodic reading of every collection's size and of what the Rule engine did, kept in a ring, and
+/// the history behind <c>series(metric, window)</c>.
 /// </summary>
 /// <remarks>
+/// <para>
+/// <b>It reads two kinds of number and the difference is not cosmetic.</b> A table counter is a
+/// <em>level</em>: read it at any cadence and it means the same thing, because it is the size of
+/// something that exists. A Rule counter is a <em>flow</em>: it has no value at an instant, only over
+/// an interval, so it is accumulated between readings and a reading drains it. Sampling a flow the
+/// way a level is sampled would report one Tick in sixty-four of a quantity <c>02 §4</c> makes
+/// deliberately bursty — see <see cref="Aggregate"/> for why that matters and what replaces it.
+/// </para>
 /// <para>
 /// <b>This is the instrument <c>adr/0006</c> needs and did not have.</b> <em>No collection in the
 /// simulation may grow as a function of elapsed game time</em> is a claim about a run rather than
@@ -41,6 +50,18 @@ public sealed class Census
     /// <summary>The members of <see cref="CensusCounter"/>, which the layout below is a multiple of.</summary>
     private const int CountersPerTable = 3;
 
+    /// <summary>The members of <see cref="RuleCounter"/>.</summary>
+    private const int RuleCounters = 3;
+
+    /// <summary>The members of <see cref="Aggregate"/>: a flow is read twice, as a sum and as a peak.</summary>
+    private const int AggregatesPerRuleCounter = 2;
+
+    /// <summary>
+    /// The Rule engine's share of one reading. Fixed, because the engine's counters are declared in
+    /// the core rather than derived from the world's shape.
+    /// </summary>
+    private const int RuleMetrics = RuleCounters * AggregatesPerRuleCounter;
+
     /// <summary>
     /// Readings held before the oldest is overwritten.
     /// </summary>
@@ -53,6 +74,10 @@ public sealed class Census
     public const int DefaultCapacity = 1_024;
 
     private readonly int _tables;
+
+    /// <summary>Where the Rule engine's metrics begin, which is where the tables' end.</summary>
+    private readonly int _ruleBase;
+
     private readonly int _metrics;
     private readonly int _capacity;
     private readonly ulong[] _ticks;
@@ -81,7 +106,8 @@ public sealed class Census
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 
         _tables = world.Tables.Length;
-        _metrics = _tables * CountersPerTable;
+        _ruleBase = _tables * CountersPerTable;
+        _metrics = _ruleBase + RuleMetrics;
         _capacity = capacity;
         _ticks = new ulong[capacity];
         _values = new long[capacity * _metrics];
@@ -107,16 +133,50 @@ public sealed class Census
     public int Tables => _tables;
 
     /// <summary>
-    /// Takes one reading of every metric.
+    /// Takes one reading of every metric: every table's size, and the Rule engine's interval since
+    /// the previous reading.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The caller owns the cadence, for the reason the State Hash's caller does.</b> <em>Due</em>
     /// is a property of the run rather than of the simulation, and sharing the hash's cadence is what
     /// makes a reading and a hash from the same Tick two views of one moment.
+    /// </para>
+    /// <para>
+    /// <b>It takes a Simulation rather than a World because half of a reading is a run's and not a
+    /// world's.</b> A table's size can be read off a world nobody ever stepped; what the Rule engine
+    /// did between two readings cannot. The Tick comes from the same place for the same reason — a
+    /// reading stamped with a Tick the simulation disagreed with would be a series about nothing.
+    /// </para>
+    /// <para>
+    /// <b>The reading <em>drains</em> the engine's counters</b>, so two readings of one Tick are not
+    /// two readings: the second sees an empty interval. That is the flow half behaving as a flow, and
+    /// it is what stops the counters becoming the unbounded accumulation they exist to watch for.
+    /// </para>
+    /// </remarks>
+    /// <param name="simulation">The run to read: its world, its Tick, and its Rule engine.</param>
+    public void Observe(Simulation simulation)
+    {
+        ArgumentNullException.ThrowIfNull(simulation);
+
+        Observe(simulation.World, simulation.Tick, simulation.Rules.Drain());
+    }
+
+    /// <summary>
+    /// Takes one reading of every metric, against a world and a Rule engine's interval stated
+    /// separately.
+    /// </summary>
+    /// <remarks>
+    /// <b>The explicit form, and it exists because a world is not always a run.</b> A world built by
+    /// hand in a test has a shape to read and no history to have run, and passing
+    /// <c>default</c> here says so: no Rule was due, none was evaluated, no chain was walked. That is
+    /// a true reading rather than a placeholder — which is the distinction that decides whether a zero
+    /// may be written at all.
     /// </remarks>
     /// <param name="world">The world to read. Must have the shape the census was built against.</param>
     /// <param name="tick">The Tick to stamp the reading with.</param>
-    public void Observe(World world, Ticks tick)
+    /// <param name="activity">The Rule engine's interval since the previous reading, already drained.</param>
+    public void Observe(World world, Ticks tick, RuleActivity activity)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -142,6 +202,10 @@ public sealed class Census
             _values[slot + (int)CensusCounter.Capacity] = table.Capacity;
         }
 
+        Write(_values, at + _ruleBase, RuleCounter.Due, activity.Due);
+        Write(_values, at + _ruleBase, RuleCounter.Evaluations, activity.Evaluations);
+        Write(_values, at + _ruleBase, RuleCounter.ChainRungs, activity.ChainRungs);
+
         _ticks[_next] = tick.Raw;
         _next = (_next + 1) % _capacity;
         _taken++;
@@ -149,6 +213,14 @@ public sealed class Census
         if (_count < _capacity)
         {
             _count++;
+        }
+
+        static void Write(long[] values, int at, RuleCounter counter, RuleFlow flow)
+        {
+            int slot = at + ((int)counter * AggregatesPerRuleCounter);
+
+            values[slot + (int)Aggregate.Sum] = flow.Sum;
+            values[slot + (int)Aggregate.Peak] = flow.Peak;
         }
     }
 
@@ -166,17 +238,7 @@ public sealed class Census
     /// <returns>The readings, oldest first, and whether the window was covered in full.</returns>
     public Series Series(Metric metric, Ticks window)
     {
-        if ((uint)metric.Table >= (uint)_tables)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(metric), metric.Table, $"this census has {_tables} tables.");
-        }
-
-        if (metric.Counter is not (CensusCounter.Live or CensusCounter.Slots or CensusCounter.Capacity))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(metric), metric.Counter, "not a counter this census reads.");
-        }
+        int offset = Offset(metric);
 
         if (_count == 0)
         {
@@ -196,7 +258,6 @@ public sealed class Census
 
         int length = _count - first;
         var samples = new CensusSample[length];
-        int offset = (metric.Table * CountersPerTable) + (int)metric.Counter;
 
         for (int k = 0; k < length; k++)
         {
@@ -209,5 +270,48 @@ public sealed class Census
         bool complete = first > 0 || _taken <= (ulong)_capacity;
 
         return new Series(metric, samples, complete);
+    }
+
+    /// <summary>
+    /// Where one metric sits in a reading: the tables in declaration order, then the Rule engine.
+    /// </summary>
+    /// <remarks>
+    /// <b>The Rule engine's block is last and fixed in size</b>, so adding a table moves nothing about
+    /// how a Rule metric is addressed and adding a Rule counter moves no table's. The two families
+    /// grow on different schedules — one with the world, one with the core — and interleaving them
+    /// would have coupled those.
+    /// </remarks>
+    private int Offset(Metric metric)
+    {
+        if (metric.Source is MetricSource.Table)
+        {
+            if ((uint)metric.Table >= (uint)_tables)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.Table, $"this census has {_tables} tables.");
+            }
+
+            if (metric.Counter is not (CensusCounter.Live or CensusCounter.Slots or CensusCounter.Capacity))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.Counter, "not a counter this census reads.");
+            }
+
+            return (metric.Table * CountersPerTable) + (int)metric.Counter;
+        }
+
+        if (metric.RuleCounter is not (RuleCounter.Due or RuleCounter.Evaluations or RuleCounter.ChainRungs))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(metric), metric.RuleCounter, "not a Rule counter this census reads.");
+        }
+
+        if (metric.Aggregate is not (Aggregate.Sum or Aggregate.Peak))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(metric), metric.Aggregate, "not a reduction this census takes.");
+        }
+
+        return _ruleBase + ((int)metric.RuleCounter * AggregatesPerRuleCounter) + (int)metric.Aggregate;
     }
 }

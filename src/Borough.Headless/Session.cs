@@ -4,6 +4,7 @@ using Borough.Core.Determinism;
 using Borough.Core.Input;
 using Borough.Core.Instruments;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Formats;
 
 namespace Borough.Headless;
@@ -34,11 +35,11 @@ internal static class Session
 
     public static int Run(Options options)
     {
-        InputLog log = Load(options);
-
         ulong supplied = options.RulesetPath is null
             ? ContentHash.None
             : RulesetFile.HashOf(options.RulesetPath);
+
+        InputLog log = Load(options, supplied);
 
         RulesetCheck check = RulesetCheck.Against(
             log.RulesetHash, supplied, options.RulesetPath, options.ForceRuleset);
@@ -49,7 +50,17 @@ internal static class Session
             return Refused;
         }
 
-        Simulation simulation = Replay.Start(log);
+        // Parsed after the hash check and refused independently of it. The order is the operator's
+        // rather than the machine's: given both a wrong Ruleset and a malformed one, "you supplied a
+        // different Ruleset" is the more actionable sentence, and it is the one that explains why the
+        // other refusals look unfamiliar. The parse refusal is unconditional, though —
+        // --force-ruleset waives a mismatch and cannot waive Rules nobody can read.
+        if (!TryRules(options.RulesetPath, out Ruleset rules))
+        {
+            return Refused;
+        }
+
+        Simulation simulation = Replay.Start(log, rules);
         simulation.VerifyDecideWritesNothing = options.DecideGuard;
 
         var hashes = new List<ulong>();
@@ -146,7 +157,61 @@ internal static class Session
     /// their logs</em> — a runner that could start a world some other way would be a way for state to
     /// arrive that the log does not account for, which is state no divergence can be attributed to.
     /// </remarks>
-    private static InputLog Load(Options options)
+    /// <param name="supplied">
+    /// The content hash of the Ruleset given on the command line, or <c>ContentHash.None</c>.
+    /// </param>
+    /// <remarks>
+    /// <b>A fresh session is recorded against the Ruleset it was handed, and getting this wrong makes
+    /// the flag unusable.</b> The builder previously stamped <c>ContentHash.None</c> unconditionally,
+    /// which was right while nothing could be supplied — the moment <c>--ruleset</c> loads content, a
+    /// fresh run would name no Ruleset, be handed one, and <see cref="RulesetCheck"/> would correctly
+    /// refuse the session against its own Rules. A new session is not a mismatch; it is the recording.
+    /// </remarks>
+    /// <summary>
+    /// Parses the Ruleset the run was given, or explains to the operator why it could not.
+    /// </summary>
+    /// <param name="path">The path from <c>--ruleset</c>, or null if none was given.</param>
+    /// <param name="rules">The Rules to run under. <see cref="Ruleset.Empty"/> when no path was given.</param>
+    /// <returns>Whether the run may proceed.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>No path means no Rules, and there is deliberately no default Ruleset.</b> A run given none
+    /// is genuinely running against nothing, which is what every figure this project has recorded so
+    /// far was taken against. A default would silently change what every existing invocation
+    /// measures, S0a's included, and the first symptom would be numbers that no longer compare.
+    /// </para>
+    /// <para>
+    /// <b>Every refusal reaches the operator, not the first.</b> <c>adr/0048</c>'s whole argument for
+    /// validating at the parse is that a designer gets a file, a line and a rule name; printing one
+    /// refusal and stopping would turn a single pass over a broken file into as many runs as it has
+    /// mistakes.
+    /// </para>
+    /// </remarks>
+    internal static bool TryRules(string? path, out Ruleset rules)
+    {
+        if (path is null)
+        {
+            rules = Ruleset.Empty;
+            return true;
+        }
+
+        RulesetLoadResult result = RulesetLoader.Load(path);
+
+        if (result.Ruleset is null)
+        {
+            Console.Error.WriteLine(result.Describe());
+            Console.Error.WriteLine(
+                $"{result.Refusals.Count} refusal(s). The Ruleset was not loaded and nothing ran.");
+
+            rules = Ruleset.Empty;
+            return false;
+        }
+
+        rules = result.Ruleset;
+        return true;
+    }
+
+    internal static InputLog Load(Options options, ulong supplied)
     {
         if (options.LogPath is null)
         {
@@ -157,7 +222,7 @@ internal static class Session
             // The command goes in the log rather than into the world, so the trace stays reproducible
             // from the file alone.
             InputLogBuilder builder = new(
-                options.Seed, new WorldConfiguration(options.Citizens), ContentHash.None);
+                options.Seed, new WorldConfiguration(options.Citizens), supplied);
 
             builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
 

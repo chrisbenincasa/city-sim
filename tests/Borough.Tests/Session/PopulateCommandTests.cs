@@ -3,6 +3,7 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Formats;
 
 namespace Borough.Tests.Session;
@@ -133,7 +134,7 @@ public sealed class PopulateCommandTests
 
     private static Simulation Run(InputLog log)
     {
-        Simulation simulation = Replay.Start(log);
+        Simulation simulation = Replay.Start(log, Ruleset.Empty);
         Replay.Trace(simulation, log, new Ticks(8), hashEvery: 8, trace: []);
         return simulation;
     }

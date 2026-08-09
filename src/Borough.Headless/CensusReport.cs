@@ -40,6 +40,27 @@ internal static class CensusReport
         (CensusCounter.Capacity, "capacity"),
     ];
 
+    /// <summary>
+    /// The Rule engine's counters, each read twice.
+    /// </summary>
+    /// <remarks>
+    /// <b>These rows mean something different from the ones above them, and the labels have to carry
+    /// that.</b> A table row is a size at the moment of the reading; a Rule row is a total <em>between</em>
+    /// readings, so <c>first</c> and <c>last</c> are two intervals rather than two instants and
+    /// <c>high</c> is the busiest interval rather than the largest the collection ever got. The
+    /// <c>peak</c> rows are the finer question the sums cannot answer — the worst single Tick inside
+    /// an interval, which is the figure a per-Tick budget is held against.
+    /// </remarks>
+    private static readonly (RuleCounter Counter, Aggregate Aggregate, string Name)[] RuleCounters =
+    [
+        (RuleCounter.Due, Aggregate.Sum, "due"),
+        (RuleCounter.Due, Aggregate.Peak, "due peak"),
+        (RuleCounter.Evaluations, Aggregate.Sum, "evaluations"),
+        (RuleCounter.Evaluations, Aggregate.Peak, "evaluations peak"),
+        (RuleCounter.ChainRungs, Aggregate.Sum, "chain rungs"),
+        (RuleCounter.ChainRungs, Aggregate.Peak, "chain rungs peak"),
+    ];
+
     public static void Print(TextWriter writer, World world, Census census, ulong ticks)
     {
         ArgumentNullException.ThrowIfNull(writer);
@@ -47,7 +68,9 @@ internal static class CensusReport
         ArgumentNullException.ThrowIfNull(census);
 
         writer.WriteLine();
-        Write(writer, $"census — collection sizes over {ticks:N0} Ticks, {census.Count:N0} readings");
+        Write(
+            writer,
+            $"census — collection sizes and Rule activity over {ticks:N0} Ticks, {census.Count:N0} readings");
         writer.WriteLine();
 
         // Built through the same formatter as the rows, because a header aligned by hand is a header
@@ -68,11 +91,22 @@ internal static class CensusReport
 
             foreach ((CensusCounter counter, string label) in Counters)
             {
-                Series series = census.Series(new Metric(table, counter), window);
+                Series series = census.Series(Metric.Of(table, counter), window);
                 truncated |= !series.Complete;
 
                 WriteRow(writer, name, label, series);
             }
+        }
+
+        // The second family, and it is printed as its own block rather than interleaved because the
+        // numbers are not commensurable: a table row is a level and a Rule row is a flow over the
+        // interval between two readings.
+        foreach ((RuleCounter counter, Aggregate aggregate, string label) in RuleCounters)
+        {
+            Series series = census.Series(Metric.Of(counter, aggregate), window);
+            truncated |= !series.Complete;
+
+            WriteRow(writer, "rules", label, series);
         }
 
         if (truncated)
@@ -127,7 +161,7 @@ internal static class CensusReport
     private static string Row(
         string table, string counter, string first, string last, string low, string high)
     {
-        string head = F($"{table,-10}  {counter,-10}  {first,11}");
+        string head = F($"{table,-14}  {counter,-16}  {first,11}");
         string tail = F($"{last,11}  {low,11}  {high,11}");
 
         return $"{head}  {tail}";

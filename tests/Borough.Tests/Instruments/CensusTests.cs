@@ -3,6 +3,7 @@ using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Instruments;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Tables;
 
 namespace Borough.Tests.Instruments;
@@ -33,7 +34,7 @@ public sealed class CensusTests
 
         world.Lots.Create(new Tiles(1), new Tiles(1), zone: 1);
         world.Lots.Create(new Tiles(2), new Tiles(2), zone: 1);
-        census.Observe(world, new Ticks(0));
+        census.Observe(world, new Ticks(0), default);
 
         Assert.Equal(1, census.Count);
         Assert.Equal(2, Latest(census, Lots, CensusCounter.Live));
@@ -68,7 +69,7 @@ public sealed class CensusTests
             world.CreateCitizen(household, new Ticks(0));
         }
 
-        census.Observe(world, new Ticks(0));
+        census.Observe(world, new Ticks(0), default);
         long slotsAtRest = Latest(census, Citizens, CensusCounter.Slots);
 
         for (int round = 0; round < 32; round++)
@@ -77,7 +78,7 @@ public sealed class CensusTests
             world.DestroyCitizen(passing);
         }
 
-        census.Observe(world, new Ticks(1));
+        census.Observe(world, new Ticks(1), default);
 
         Assert.Equal(8, Latest(census, Citizens, CensusCounter.Live));
         Assert.Equal(slotsAtRest + 1, Latest(census, Citizens, CensusCounter.Slots));
@@ -91,14 +92,14 @@ public sealed class CensusTests
 
         for (ulong tick = 0; tick < 10; tick++)
         {
-            census.Observe(world, new Ticks(tick));
+            census.Observe(world, new Ticks(tick), default);
         }
 
         Assert.Equal(4, census.Count);
         Assert.Equal(4, census.Capacity);
         Assert.Equal(10UL, census.Taken);
 
-        Series series = census.Series(new Metric(Lots, CensusCounter.Live), new Ticks(1_000));
+        Series series = census.Series(Metric.Of(Lots, CensusCounter.Live), new Ticks(1_000));
 
         Assert.Equal(4, series.Count);
         Assert.Equal(6UL, series.Samples.Span[0].Tick.Raw);
@@ -113,10 +114,10 @@ public sealed class CensusTests
 
         for (ulong tick = 0; tick <= 100; tick += 10)
         {
-            census.Observe(world, new Ticks(tick));
+            census.Observe(world, new Ticks(tick), default);
         }
 
-        Series series = census.Series(new Metric(Lots, CensusCounter.Live), new Ticks(30));
+        Series series = census.Series(Metric.Of(Lots, CensusCounter.Live), new Ticks(30));
 
         // Newest reading is Tick 100, so the window floor is 70: four readings, not eleven.
         Assert.Equal(4, series.Count);
@@ -140,10 +141,10 @@ public sealed class CensusTests
 
         for (ulong tick = 0; tick < 10; tick++)
         {
-            census.Observe(world, new Ticks(tick));
+            census.Observe(world, new Ticks(tick), default);
         }
 
-        var metric = new Metric(Lots, CensusCounter.Live);
+        var metric = Metric.Of(Lots, CensusCounter.Live);
 
         Assert.False(census.Series(metric, new Ticks(100)).Complete);
         Assert.True(census.Series(metric, new Ticks(2)).Complete);
@@ -154,7 +155,7 @@ public sealed class CensusTests
     {
         var census = new Census(new World(16));
 
-        Series series = census.Series(new Metric(Lots, CensusCounter.Live), new Ticks(1_000));
+        Series series = census.Series(Metric.Of(Lots, CensusCounter.Live), new Ticks(1_000));
 
         Assert.Equal(0, series.Count);
         Assert.True(series.Complete);
@@ -166,7 +167,7 @@ public sealed class CensusTests
         var census = new Census(new World(16));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => census.Series(new Metric(census.Tables, CensusCounter.Live), new Ticks(1)));
+            () => census.Series(Metric.Of(census.Tables, CensusCounter.Live), new Ticks(1)));
     }
 
     /// <summary>
@@ -184,7 +185,7 @@ public sealed class CensusTests
 
         ulong[] without = Replay.Run(log, new Ticks(512), hashEvery: 64);
 
-        Simulation simulation = Replay.Start(log);
+        Simulation simulation = Replay.Start(log, Ruleset.Empty);
         var with = new List<ulong>();
 
         Replay.Trace(simulation, log, new Ticks(512), 64, with, new Census(simulation.World));
@@ -197,7 +198,7 @@ public sealed class CensusTests
     {
         InputLog log = new InputLogBuilder(0x0B07, new WorldConfiguration(256), 0).Build();
 
-        Simulation simulation = Replay.Start(log);
+        Simulation simulation = Replay.Start(log, Ruleset.Empty);
         var hashes = new List<ulong>();
         var census = new Census(simulation.World);
 
@@ -206,7 +207,7 @@ public sealed class CensusTests
         Assert.Equal(10, hashes.Count);
         Assert.Equal(10, census.Count);
 
-        Series series = census.Series(new Metric(Lots, CensusCounter.Live), new Ticks(1_000));
+        Series series = census.Series(Metric.Of(Lots, CensusCounter.Live), new Ticks(1_000));
 
         Assert.Equal(100UL, series.Samples.Span[0].Tick.Raw);
         Assert.Equal(1_000UL, series.Samples.Span[^1].Tick.Raw);
@@ -215,7 +216,7 @@ public sealed class CensusTests
     /// <summary>The newest reading of one metric, which a zero-length window is exactly.</summary>
     private static long Latest(Census census, int table, CensusCounter counter)
     {
-        Series series = census.Series(new Metric(table, counter), new Ticks(0));
+        Series series = census.Series(Metric.Of(table, counter), new Ticks(0));
 
         return series.Samples.Span[^1].Value;
     }

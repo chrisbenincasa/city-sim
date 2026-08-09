@@ -39,7 +39,7 @@ public sealed class CrashArtifactTests
             .Append(new Ticks(5), new Command(CommandKind.Connect, new Tiles(3), new Tiles(4), 0))
             .Build();
 
-        Simulation simulation = Replay.Start(log);
+        Simulation simulation = Replay.Start(log, Core.Rules.Ruleset.Empty);
 
         Assert.Throws<InvalidOperationException>(
             () => Replay.Trace(simulation, log, new Ticks(100), 10, []));

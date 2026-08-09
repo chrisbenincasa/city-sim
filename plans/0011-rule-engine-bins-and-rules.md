@@ -92,7 +92,31 @@ are different shapes, so both mechanisms stand and `adr/0050` survives re-readin
 loader's own fixture had silently dropped the money line. 556 tests green; the golden baselines did
 not move.
 
-**Tasks 8–10 are not started.**
+**Task 9 is done.** `02 §4`'s two counters exist, and **the first one it names could not have failed
+its own tripwire**: an evaluation was a *due Rule Instance*, so a chain walk moved it by nothing and
+the quantity the tripwire is stated over was the one quantity chain walking cannot touch. An
+evaluation is now one `Check` — a head, each non-terminal link, and Phase 3's re-check — and a third
+counter, **due**, ships beside them because `evaluations − due` is what chain walking actually costs
+and neither number alone separates a bigger city from a less stable one. They reach the Census as a
+**second metric family**: a table counter is a *level* and these are *flows*, so each is read as a sum
+and a peak over the interval since the last reading, and the reading drains it. **The tripwire is
+measured and published inverted**, per S2 R3's rule: **82.84 ns an evaluation**, flat to 1.8% across
+two orders of magnitude, so **15.6 ms holds about 188,000 of them**. Two findings outrank the rest —
+**a chain rung is cheaper than the head that failed** (53.6 ns against 82.84), which is the first
+number behind `02 §4`'s claim that depth is not the cost driver; and the same figure against the
+corpus's own multipliers says a 1M city spends **~60% of a Tick on Rule evaluation alone**, which is a
+**floor**. Findings 29–33. 585 tests green; the golden baselines did not move, because a counter is
+not state.
+
+**Task 10 is not started, and it has been split, because planning it found that the task as written
+cannot be done.** It asked for *a production chain over two or three Goods*, and a production chain
+between Buildings is `pool` by definition — which **decision owed 3, in this document, settled as a
+named hole that throws**. The task list and the decisions section had disagreed since task 3 and
+nobody went back. **Task 10a is the wiring**, which is real, unblocked, and the last thing standing
+between the engine and a world; **task 10b is the proving chain**, re-filed against `pool` and
+therefore against Phase 2. Slice 5 task 7's trend assertion was also misfiled here and only half of it
+belongs to this slice. Findings **34–37**, of which 37 is a defect in slice 6's code rather than a
+planning finding.
 
 ---
 
@@ -292,14 +316,140 @@ a multiple over a guessed denominator.
 
 These feed the Census, which already has the ring and the `series(metric, window)` API.
 
+**Done, and there are three counters rather than two.** `RuleEngine.Drain()` returns
+`02 §4`'s two plus **due Rule Instances**, which is the scheduled load the other two are read against.
+Nothing about that was a widening of the task: the section names two counters and then argues, in the
+same paragraph, that the interesting quantity is neither of them — *"the cost driver is how often a
+Bin crosses the supplied/short boundary, not chain depth and not how broken the city is."* `due` does
+not measure that either, but it is what makes an evaluation count readable at all, and it was already
+being computed.
+
+#### What a reading is
+
+**A table counter is a level and these are flows**, which is why they are a second `Metric` family
+rather than a synthetic table reusing `live`/`slots`/`capacity`. A level means the same thing at any
+cadence; a flow has no value at an instant. Each is therefore accumulated across every Tick and read
+twice — as a **sum** over the interval since the last reading, and as the **peak** single Tick inside
+it — and the reading drains it.
+
+Both readings are needed and neither is decoration. The tripwire is stated *per Tick*, and burstiness
+under this design is **authored** (`02 §4`), so a mean over sixty-four Ticks cannot state the worst
+one. The sum is what a run cost. **There is one census cadence and not a second, finer one**, because
+the accumulator sees every Tick even when it is read every sixty-fourth: a slow reading discards the
+interval's *shape* and never its magnitude, and `sum ÷ cadence` against `peak` recovers the part of
+the shape anybody reads a census for.
+
+#### The measurement
+
+`Benchmarks/RuleEngineBenchmarks` times **Phase 2 alone**, over a Tick on which every Building is due.
+Phase 2 is the phase that writes nothing (`adr/0037`), so one arrangement can be evaluated a million
+times and the millionth call does the work of the first — every alternative measures either a
+starving city or a constructor. Every Building due on one Tick does not occur in a real city, which
+is exactly why it is the right thing to time: the tripwire is a statement about the **worst Tick the
+engine can be handed**.
+
+**The denominator is measured, not assumed.** How many evaluations one invocation performs is a
+property of the fixture, and S2 hit *a denominator nobody checked* three separate times.
+`RuleEngineBenchmarkFixtureTests` runs the same three arrangements through the engine's own counter,
+so the number the timings are divided by is read off the same code on the same fixture.
+
+Intel i5-10400, `powersave`, turbo on — **the same caveat S0a carries**: absolutes are upper bounds,
+ratios are unaffected.
+
+| Buildings due | fires | starves | walks a 3-rung ladder |
+|---|---|---|---|
+| **1,000** | 81.34 µs | 79.50 µs | 202.39 µs |
+| **10,000** | 824.61 µs | 812.04 µs | 1,978.93 µs |
+| **100,000** | 8,284.18 µs | 8,327.48 µs | 19,045.43 µs |
+| *evaluations per due Rule* | 1 | 1 | 3 |
+| **ns per evaluation** | **82.84** | 83.27 | 63.48 |
+
+Allocation is **zero** at every rung, which is the scratch buffers behaving as the class docstring
+claims.
+
+#### The tripwire
+
+> **Bin Rule evaluation fits the Tick budget while fewer than ~188,000 evaluations occur per Tick.**
+
+15.6 ms ÷ 82.84 ns. Stated this way round on purpose: R3 drafted its own budget row as *routing is
+6.4× over budget*, which multiplies a measured cost by an arrival rate nobody had measured — **a wire
+whose denominator is a guess fires on the guess**. Here the published quantity is a measured cost
+over a world constant, and it survives the Rule Instance count being settled elsewhere.
+
+**82.84 ns is the *firing* rate and that is the deliberate choice.** A starving Rule stops at the
+first Bin that cannot carry its delta, so it is the cheaper evaluation; deriving the wire from it
+would price the healthy city at the broken city's rate.
+
+**The per-evaluation cost is flat to 1.8% across two orders of magnitude** (81.34 → 82.84 ns), which
+is what licenses the extrapolation below. A figure that moved with the rung would be a cache effect
+being reported as a unit cost.
+
+#### What the wire says about the city, which is the uncomfortable half
+
+The corpus's own unratified multiplier is **450 Rule Instances per 1,000 Citizens** (finding 5), so
+1M Citizens is **450,000** of them. A Rule that fires costs **two** evaluations — Phase 2 and Phase
+3's re-check — so at a mean rate of `r` Ticks the engine performs `900,000 ÷ r` evaluations per Tick:
+
+| Mean Rule rate | Evaluations/Tick | Share of the 15.6 ms budget |
+|---|---|---|
+| **4 Ticks** | 225,000 | **119%** |
+| **8 Ticks** — `02 §4.3`'s own bakery | 112,500 | **60%** |
+| **16 Ticks** | 56,250 | 30% |
+| **64 Ticks** | 14,063 | 7% |
+
+Inverted, which is the form that survives: **evaluation alone fills the Tick budget once the mean
+Rule rate falls below about 4.8 Ticks.**
+
+**Three things make this a floor rather than an estimate.** Phase 3 is *not measured* and it sorts
+its intents, which is `O(n log n)` over the due set on top of the re-check counted here. The 450
+multiplier is unratified and is a guess in a direction nobody has argued. And nothing else in the
+Tick is priced at all — `05`'s routing budget share of 10% is still "a stated guess", and this is the
+first of the Tick's other consumers to have a number.
+
+**No number here is a decision.** What is owed is in [`0002`](0002-open-questions.md): the capture's
+governor, and whether Bin Rule evaluation fits at 1M, which is **S0b**'s to answer and not a
+benchmark's.
+
 ### 10. A Ruleset with something in it
 
-Enough content to prove the engine, and no more: a production chain over two or three of `04 §1`'s
-five Goods, one greedy Rule, one fixed Rule, one derived Rule, and one `on_fail` chain that
-terminates in a report.
+> **Split while being planned. The original text is kept below, struck, because the reason it could
+> not be done is worth more than the task was.** See findings 34–36.
 
-This is the slice's *something to look at* — `--census` showing Rules firing, Bins filling and
-draining, and a chain walking on entry into shortage and then going quiet.
+> ~~Enough content to prove the engine, and no more: a production chain over two or three of `04 §1`'s
+> five Goods, one greedy Rule, one fixed Rule, one derived Rule, and one `on_fail` chain that
+> terminates in a report. This is the slice's *something to look at* — `--census` showing Rules
+> firing, Bins filling and draining, and a chain walking on entry into shortage and then going
+> quiet.~~
+
+#### 10a. A Ruleset reaching a World
+
+**The wiring, which has never existed, and which nothing else in the corpus can proceed without.** No
+Ruleset has ever been in force: `Replay.Start` builds its `World` on `Ruleset.Empty`, `Session.Run`
+hashes `--ruleset` for the `RulesetCheck` and never parses it, and no code outside a test has ever
+turned a `BinDeclaration` into a Bin. Four pieces:
+
+- **A Ruleset crosses into `Replay.Start`**, and therefore into `World`, which already takes one.
+- **The shell loads what it currently only hashes** — `RulesetLoader` on the content path, the
+  refusals reaching the operator. `--ruleset` stays **explicit with no default**, because a run given
+  none is genuinely running against no Rules and every existing figure in the corpus was taken that
+  way.
+- **A Building is given its kind's Bins and Rule Instances when it is built.** At the `Buildings.Create`
+  door rather than in the populator, since a Building grown in Phase 2 needs them on the same terms.
+- **An arming stagger**, which is **hash-bearing** and needs its own `purpose_tag`. Arming every
+  Building's Rule at one delay puts the whole city in one Wheel bucket.
+
+The content this runs is **the smallest Ruleset that makes Bins move**, and it says in its own header
+that it models no city. It is deleted rather than grown when 10b becomes possible.
+
+The **golden session adopts it and the baselines are re-recorded** — the first time the golden trace
+covers the Rule engine at all.
+
+#### 10b. The proving chain — BLOCKED on `pool`
+
+The task above, unchanged, waiting on the scope that makes a chain between Buildings expressible.
+`pool` needs roads, Districts and connectivity, so this is **Phase 2** and not slice 7's. Decision
+owed 4 — which Goods — goes with it, since choosing content for a chain that cannot run is choosing
+twice.
 
 ---
 
@@ -309,9 +459,13 @@ draining, and a chain walking on entry into shortage and then going quiet.
 - A Ruleset with a cycle, a broken `fills`, or an unquoted decimal is **refused with a file, a line
   and a rule name**, and the previous Ruleset stays live.
 - Replay equivalence holds over a session in which Rules fire: two runs, identical hash traces.
-- A 100,000-Tick run at a real population where **no collection and no magnitude trends upward** —
-  wait lists especially, since a wait list that only grows is `adr/0006` arriving through the Rule
-  engine.
+- ~~A 100,000-Tick run at a real population where no collection and no magnitude trends upward.~~
+  **Split, per finding 36.** The **flow** half is this slice's and is testable: over the tail of a
+  100,000-Tick run, `evaluations` must not trend upward against a flat `due`, which is chain walking
+  growing without the city growing. The **`slots` half is re-filed to slice 10**, because the Rule
+  engine allocates no rows — a Rule Instance's life is its Building's (finding 2) — so no Ruleset can
+  make a table's slot count trend, and what makes rows churn is Zone Rules creating and demolishing
+  Buildings.
 - The State Hash moved, deliberately, and the golden baselines were re-recorded.
 - Every unratified number this slice chose is in [`0002`](0002-open-questions.md) before it closes.
 
@@ -319,7 +473,12 @@ draining, and a chain walking on entry into shortage and then going quiet.
 
 ## What building it found
 
-Recorded as it happens, per slice 6's practice. Seventeen so far.
+Recorded as it happens, per slice 6's practice. Thirty-seven so far — **numbered 1 to 37 with 22 and
+23 used twice**, because task 8 restarted its count where task 7 had already been. Left as it is:
+renumbering would silently invalidate every reference made to a finding by number, and the collision
+is itself an instance of the thing this section keeps finding. Task 9's are **29–33**; task 10's are
+**34–37**, and they are the first in this slice found entirely by **planning** — no line of task 10
+has been written.
 
 **1. `adr/0045`'s *blocking* forces a Bin to have two wait lists, not one.** The plan's task 2 describes
 one queue and one recorded shortfall, which is right for an input Bin that was short. But the ADR
@@ -609,6 +768,148 @@ per-Tick Bin behaviour and none of it exists. An accepted-and-ignored `storage =
 designer a Power Resource that warehouses electricity for ever, which they would debug as balance;
 the loader refuses the key by name and says why. Slice 6's holes set the form.
 
+### Task 9's findings
+
+**29. The counter `02 §4` names could not have failed the tripwire `02 §4` states over it.** The
+section asks for *Rule evaluations per Tick* and for the tripwire to be stated over measured
+evaluation cost — and the counter that existed returned the number of **due Rule Instances**, which a
+chain walk does not move by one. Two worlds identical in everything the Event Wheel can see, one with
+a two-rung ladder under its head and one without, read **1 and 1**. Under an evaluation counter they
+read **1 and 2**, and the difference is exactly the link that was walked. So the instrument and the
+claim it was built to test were measuring different things, and the wire would have read *fits* at
+every chain depth including ones that do not. `02 §4` had noticed — *"the evaluation counter currently
+counts due Rule Instances, which does not see a chain link at all"* — and the sentence had sat there
+across two tasks. **Verified by mutation: restoring the due-row count fails six tests by name.**
+
+**30. A chain rung is cheaper than the head that failed, and nothing in the corpus expected that
+direction.** The marginal cost of descending one rung is **53.6 ns** against **82.84 ns** for the
+evaluation that failed into it — about two-thirds — because the per-Rule overhead is paid once and
+amortised down the ladder: the settle-order draw, the Building resolve, the verdict buffer's growth
+check. Only the atomicity walk repeats.
+
+This matters because of what it settles. **Session B published a fallback-chain depth cap of 5 and
+withdrew it**, on the grounds that R3's tripwire rule had been written down and not run — *any number
+published today would be an argument wearing a measurement's clothes*. This is the measurement, and
+it points away from a cap: depth is the **cheap** axis, so a cap would have bought the least
+available saving at the cost of `adr/0045`'s ladder. It is also the first number behind `02 §4`'s
+own claim that *"the cost driver is how often a Bin crosses the supplied/short boundary, not chain
+depth"* — which had been asserted for two sessions with nothing behind it.
+
+**31. Timing a phase needed a moment to close a Tick at, and Phase 3 was not it.** The counters fold
+at the end of Phase 3, which is a Tick's last engine call and therefore the right place. But the
+benchmark times **Phase 2 alone** — it has to, because Phase 2 is the phase that writes nothing and
+is therefore the only one that can be run a million times over one arrangement — and a Phase 2 that
+never closes its Tick is a phase whose cost cannot be read off the counter that exists to price it.
+The alternative was to time a whole Tick and *derive* Phase 2's share, which is the shape S2 hit three
+times: **a denominator nobody measured**. So `CloseTick` is public, Phase 3 calls it, and the fixture
+test asserts the benchmark's divisor on the same code the benchmark runs. Cost: one method. Recorded
+because the obvious reading of it — *an internal being exposed for a test* — is backwards; what is
+exposed is the statement *this Tick is over*, and a caller running one phase is the only party who
+knows it.
+
+**32. The tripwire's own arithmetic is more alarming than the tripwire, and the alarming half rests
+on a number nobody ratified.** 188,000 evaluations per Tick sounds generous until it meets the
+corpus's **450 Rule Instances per 1,000 Citizens** (finding 5) and `02 §4.3`'s own bakery rate of 8:
+1M Citizens is 450,000 instances, 56,250 due per Tick, **112,500 evaluations, ~60% of the budget
+before a Bin is written.** Below a mean rate of about **4.8 Ticks** there is no budget left at all.
+
+**It is a floor, not an estimate, and each reason it is a floor is worse than the last.** Phase 3 is
+unmeasured and **sorts** its intents, so it carries an `O(n log n)` term over the same due set. The
+450 multiplier is a guess in an unargued direction. And no other consumer of the Tick has a number —
+`05`'s routing share of 10% is still, in `0002`'s own words, *"a stated guess"*, and this is the first
+of them priced. **What the finding is not is a conclusion**: the multiplier is `0002`'s, the rate is
+one example's, and the question *does Bin Rule evaluation fit at 1M* is **S0b**'s. Filed there rather
+than answered here.
+
+**33. The Census had one kind of number in it and now has two, and the distinction was worth a type.**
+Every existing metric is a **level** — a table's size, read at an instant, meaning the same thing at
+any cadence. All three Rule counters are **flows**, which have no value at an instant at all. The
+cheap implementation was a synthetic table appended to the metric space, reusing `live`, `slots` and
+`capacity` for three things that are none of them; the reason not to is written in `Metric`'s own
+docstring, which exists because a metric identified loosely is a metric a panel will mislabel. What
+the second family then forced was the honest question about **sampling**: reading a flow the way a
+level is read reports one Tick in sixty-four of a quantity `02 §4` makes deliberately bursty, and
+noticing that is what produced the sum-and-peak pair. **A second, finer census cadence was the wrong
+answer** and was considered — the accumulator already sees every Tick, so a slow reading loses the
+interval's shape and never its magnitude, and a per-metric cadence would have cost the property that a
+reading and a State Hash from the same Tick are two views of one moment.
+
+### Task 10's findings, all four found before a line was written
+
+**34. A task in this document was invalidated by a decision in this document, and neither noticed for
+seven tasks.** Task 10 asked for *"a production chain over two or three of `04 §1`'s five Goods"*.
+Decision owed 3 — thirty lines further down the same file — settled `pool` and `global` as **named
+holes that throw**, and `02 §4.1`'s third column makes a chain between Buildings a `pool` term by
+definition, because it crosses an ownership boundary. The task was written before the decision and
+the decision never walked back up to it. **The task list is the one part of a plan nobody re-reads
+after the plan is being executed**, which is precisely when its assumptions are being invalidated one
+at a time by the section beneath it — and the same shape reached six slices as the money leak
+(finding 27) and two tasks as `RulesOf(1) == 4` (finding 23). It is the third instance, and the first
+where the document contradicting itself was a *plan* rather than a document of record.
+
+**35. With the scopes that exist, sustained churn provably requires a closed loop inside one
+Building — so any Ruleset that runs for 100,000 Ticks today is a lie about `04 §1`.** The argument is
+short enough to be checkable. `map` is **write-only**, so it can never be a source; `local` reaches
+only the Building's own Bins; `pool` and `global` throw. Therefore a Bin that still moves once its
+initial stock is spent must be **both produced into and consumed from by Rules on the same Building**.
+`04 §1` has no such Good and `adr/0050` denies the shape outright — a Building feeding itself crosses
+no ownership boundary and so is not a trade, but the thing it is modelling is one.
+
+**The honest alternative is worse in a way worth writing down.** A Ruleset that runs a finite starting
+stock down and then goes quiet — every Rule failed, subscribed and asleep — is truthful, is a genuine
+steady state, and makes the tail of a long run **empty**. That is exactly the vacuity slice 5 task 7
+refused to ship an assertion into. So the two options were *a demo that lies* and *a demo that is over
+before the measurement starts*, and neither is a slice's *something to look at*. **That is what
+promoted the wiring from task 10's plumbing to task 10 entire.**
+
+**36. The trend assertion has been filed against the wrong slice since slice 5, and the Rule engine
+cannot carry the half it was given.** Its stated form is *a positive trend in `slots` with `live`
+flat* — table slot counts. But finding 2 established that a Rule Instance's life is its Building's and
+that **subscription allocates nothing and frees nothing**, which was recorded as a *virtue* at the
+time and is also a fact about what the instrument can see: **no Ruleset can make a table's slot count
+trend, because the Rule engine creates no rows.** What churns rows is Buildings arriving and being
+demolished, which is **Zone Rules, slice 10**. What this slice *can* carry is the half task 9 added
+without noticing it was the only half available — `evaluations` rising against a flat `due`, which is
+`adr/0006`'s shape arriving as a **flow** rather than as a collection. Re-filed accordingly.
+
+**37. `map` emission is an accumulator with no sink, and slice 6's own long-run test worked around it
+instead of filing it.** `MapLayers.EmitPollution` is `PollutionSource[slot] += amount` and nothing in
+the repository ever subtracts, resets or decays it; `RuleEngine.Emit` passes `Amount * applications`
+straight in. So `02 §4.3`'s flagship Rule — which emits 2 pollution per bake — **grows a magnitude
+without bound for as long as the city runs**, which is `adr/0003`'s extension of `adr/0006` arriving
+through a Map Layer. The end-of-run invariant does not catch it: `LayerMagnitudesAreBounded` checks
+the **kernel's representation ceiling** (~327,000 at radius 8), which is an overflow guard, not a
+sink.
+
+**What makes this a finding rather than a bug report is where the evidence was.**
+`LayerLongRunTests.Churn` computes `amount - already` and emits the difference, and its own docstring
+says why: *"Adding forever would manufacture the unbounded growth the test then reports."* The author
+of slice 6's long-run test **saw the accumulator, wrote around it in the fixture, and left the
+production path as it was** — so the one test built to find unbounded growth was configured to avoid
+the only unbounded thing in the subsystem. It has never fired because no Rule has ever emitted; task
+10a's Ruleset is the first thing that would.
+
+**SETTLED, and the corpus had settled it years earlier without anybody building it.** The question
+was whether a `map` term's `amount` is a **stock** or a **rate** —
+[`adr/0051`](../docs/adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md) says a stock
+the environment absorbs, so a Rule adds and the source decays, and the ceiling **emerges** at the
+level where the two balance rather than being clamped. `+=` turns out to be right across *emitters*
+and wrong across *firings*: twenty factories in one Cell must sum and one factory firing twenty
+thousand times must not, and decay is what separates the two.
+
+**The finding is smaller than it looked and the reason is the interesting part.** `02 §2.4`'s field
+table has said *"Decays; wind advection is a later addition"* of industrial pollution since it was
+written. Slice 6 built the source field, the kernel, the schedule and exact incremental
+re-diffusion — and did not build the removal, which is the only one of the five the table names in
+plain words. **So this was not a design gap; it was an unimplemented line in a table nobody read as a
+requirement.** A clamp was the obvious fix and is rejected in the ADR for breaking superposition,
+which is the property `02 §2.4` says everything else rests on.
+
+It leaves two things behind rather than closing clean: **tau is a new hash-bearing number nobody has
+argued** (`0002` §D, with `adr/0044` as the standing warning), and **decay is in tension with slice
+6's incremental re-diffusion** — every emitting Cell is dirty on every cadence — which is measurable
+and is routed to S0b rather than argued (`0002` §B).
+
 ---
 
 ## Decisions owed, found while planning
@@ -665,6 +966,13 @@ refused at load — see finding 14, which is the one place `adr/0015`'s error su
 
 **4. `04 §1`'s Goods are five and the Resources are nine.** Which of them slice 7's proving Ruleset
 uses is a content decision, and content is meant to follow the Ruleset work rather than lead it.
+
+**DEFERRED with the task it belongs to, and the deferral is the answer rather than a delay.** It
+follows the Ruleset work, and the Ruleset work it follows is **task 10b**, which is blocked on `pool`
+— see findings 34 and 35. Choosing Goods for a chain that cannot be expressed would be choosing
+twice, and the first choice would be the one a later reader found in the repository. Task 10a's
+Ruleset names **no Good at all**: it declares whatever the engine needs to move and says in its header
+that it models no city.
 
 **5. A Bin Rule term is a Ruleset constant, and a price is not — so a purchase is not expressible as
 a Bin Rule.** Found while grilling task 6, and **not settled here deliberately**. A term is

@@ -399,6 +399,22 @@ public sealed class Ruleset
 
     /// <summary>One Building kind, or a throw.</summary>
     /// <exception cref="ArgumentOutOfRangeException">No kind carries that id.</exception>
+    /// <summary>Whether this Ruleset declares a Building kind with that id.</summary>
+    /// <remarks>
+    /// <b>Asked rather than caught, and it exists so that <see cref="Kind"/> can keep throwing.</b>
+    /// An undeclared kind reaching <see cref="BinsOf"/> is <c>adr/0048</c>'s two-sided drift check
+    /// firing — the loader refuses an unknown <em>name</em> and the interpreter refuses an unknown
+    /// <em>id</em> — and weakening it to an empty span would delete the check to serve one caller.
+    /// <para>
+    /// The one caller that legitimately needs to ask is Building creation, because a Building of an
+    /// undeclared kind is a <em>representable situation the corpus already names</em>: <c>02 §4.3</c>
+    /// says a reload marks Buildings whose kind no longer exists <b>derelict rather than deleted</b>.
+    /// The commonest instance is the whole of Phase 1 so far — a world running on
+    /// <see cref="Empty"/>, where no kind is declared and every Building is unfitted.
+    /// </para>
+    /// </remarks>
+    public bool Declares(byte kind) => kind != 0 && kind <= _kinds.Length;
+
     public KindDefinition Kind(byte kind)
     {
         if (kind == 0 || kind > _kinds.Length)

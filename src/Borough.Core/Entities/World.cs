@@ -1,6 +1,7 @@
 namespace Borough.Core.Entities;
 
 using Borough.Core.Arithmetic;
+using Borough.Core.Determinism;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -398,6 +399,94 @@ public sealed class World
     public IndexList HeadroomWaiters => new(Bins.HeadroomHead, Bins.HeadroomTail, RuleInstances.QueueNext);
 
     /// <summary>Gives a Building a Bin, per its kind's declaration in the Ruleset.</summary>
+    /// <summary>
+    /// Builds a Building and fits it out with its kind's Bins and Rule Instances.
+    /// </summary>
+    /// <param name="lot">The Lot it occupies.</param>
+    /// <param name="kind">The Building kind, which is what the Ruleset declares Bins and Rules against.</param>
+    /// <param name="now">The current Tick, which the arming is relative to.</param>
+    /// <param name="key">The world key, for the stagger draw.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the door, and it is the symmetric partner of <see cref="DestroyBuilding"/>.</b>
+    /// <c>CONTEXT.md</c> → Bin: <em>"A Building is given exactly its kind's Bins when it is built."</em>
+    /// That sentence had no implementation — every Bin in the project was created by a test writing
+    /// the loop by hand, so the Ruleset declared a shape nothing built. Putting it here rather than in
+    /// the populator is what makes it true of a Building grown in Phase 2 on the same terms as one the
+    /// populator makes, which is the case that would otherwise have been discovered late.
+    /// </para>
+    /// <para>
+    /// <b>Only the chain heads are armed.</b> <see cref="Ruleset.RulesOf"/> returns them, and a link
+    /// is reached by walking a chain that failed rather than by coming due — arming a link would run
+    /// it independently of the head it exists to rescue, and the reporting terminal would fire on its
+    /// own rate for ever. That is <c>adr/0045</c>'s polling defect arriving through the Rule Instance
+    /// table instead of through the walk.
+    /// </para>
+    /// <para>
+    /// <b>The Bins come first.</b> A Rule armed before its Bins exist could come due against a
+    /// Building that cannot hold what it transforms — not reachable today, since arming is at least
+    /// one Tick out, but the ordering costs nothing and the alternative relies on that staying true.
+    /// </para>
+    /// </remarks>
+    public Handle<Building> CreateBuilding(Handle<Lot> lot, byte kind, Ticks now, WorldKey key)
+    {
+        Handle<Building> building = Buildings.Create(lot, kind);
+
+        // A kind the Ruleset does not declare gets no Bins and no Rules, and that is a real state
+        // rather than a swallowed error: 02 §4.3 already names it, saying a reload marks Buildings
+        // whose kind no longer exists **derelict rather than deleted**. There is no derelict flag yet
+        // — it arrives with hot reload in slice 8 — so today the situation is unnamed rather than
+        // wrong, and the commonest instance of it is a world running on Ruleset.Empty, which is every
+        // figure this project has recorded so far.
+        if (!Rules.Declares(kind))
+        {
+            return building;
+        }
+
+        foreach (BinDeclaration bin in Rules.BinsOf(kind))
+        {
+            CreateBin(building, bin.Resource, bin.Capacity);
+        }
+
+        foreach (RuleId rule in Rules.RulesOf(kind))
+        {
+            CreateRuleInstance(building, rule, now, ArmingStagger(building, rule, now, key));
+        }
+
+        return building;
+    }
+
+    /// <summary>
+    /// Where in its own rate a new Rule Instance first comes due — uniform over <c>[1, rate]</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Hash-bearing, and derived rather than chosen</b>, which is what
+    /// <c>adr/0052</c> asks of a number like this. The window is the Rule's own <c>rate</c> because a
+    /// Rule re-arms at <c>+rate</c> for ever after: any other window would spread the first firing and
+    /// then let the population re-converge. See <see cref="PurposeTag.RuleArmingStagger"/>.
+    /// <para>
+    /// <b>A rate at or beyond the wheel's period is left to throw.</b> Such a Rule could not re-arm
+    /// after its first success either, so clamping here would buy one working firing and fail on the
+    /// second — <see cref="EventWheel.Arm"/>'s refusal names slice 9's overflow list, which is the
+    /// correct diagnosis and the one worth surfacing at world creation rather than a rate later.
+    /// </para>
+    /// </remarks>
+    private uint ArmingStagger(Handle<Building> building, RuleId rule, Ticks now, WorldKey key)
+    {
+        uint rate = Rules.Rule(rule).Rate;
+
+        // The Rule as well as the Building, so that two Rules on one Building do not share an offset
+        // and arrive together every time — which is the same bucket spike, one Building wide. The
+        // Building's contribution is its monotonic never-reused id and not its slot, for the reason
+        // the State Hash folds the same thing: a recycled slot would make a demolished Building's
+        // replacement inherit its schedule.
+        ulong id = Buildings.Rows.IdAt(Buildings.Rows.Resolve(building));
+        ulong entity = Randomness.Mix(id ^ ((ulong)rule.Raw << 32));
+        ulong draw = Randomness.Draw(key, entity, now, PurposeTag.RuleArmingStagger);
+
+        return 1u + (uint)(draw % rate);
+    }
+
     public Handle<Bin> CreateBin(Handle<Building> owner, ResourceId resource, BinCapacity capacity)
     {
         int buildingSlot = Buildings.Rows.Resolve(owner);

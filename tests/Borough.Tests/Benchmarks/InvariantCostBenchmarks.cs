@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 
@@ -46,7 +47,7 @@ public class InvariantCostBenchmarks
     public void Setup()
     {
         _world = new World(Population);
-        SyntheticCity.PopulateInto(_world);
+        SyntheticCity.PopulateInto(_world, WorldKey.FromSeed(0), Ticks.Zero);
     }
 
     /// <summary>

@@ -8,8 +8,8 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: Phase 1 gate closed; S0a run; slice 7's gate cleared by session A and tasks 1–8 of 10 are done.** The repository is ~7,000 lines of design
-documents and 49 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
+**Current state: Phase 1 gate closed; S0a run; slice 7's gate cleared by session A and tasks 1–9 of 10 are done.** The repository is ~7,000 lines of design
+documents and 51 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
 declaration and the State Hash — and all eight tasks of slice 5: `step(inputs)` with the
 eight phases, the command model and the Input Log, replay, the golden-hash baseline, the
@@ -62,9 +62,27 @@ those.** *The network runs out of routes, not road* — **87.25% of traffic on 1
 90.87% of it empty, at 13% of holding capacity, with capacity confirmed realistic** — because one
 free-flow tree per District means one route per (node, District) pair in the whole model. That is
 **decision 11 on a different axis** and it is now the top item on the board. `spikes/S2.Routing/` compiles the arithmetic substrate in by source
-and can name nothing else of `Core`, so it has changed no simulation code. Task 7 shipped its instrument and **not** its trend assertion — nothing in
-the world churns yet, so the assertion would have been vacuous. It is owed by slice 7; the board's
-*Owed* section says how.
+and can name nothing else of `Core`, so it has changed no simulation code. Slice 5 task 7 shipped its instrument and **not** its trend assertion — nothing in
+the world churns yet, so the assertion would have been vacuous. It is owed by slice 7 **task 10**,
+which is what puts a Ruleset in the world; the board's *Owed* section says how.
+
+**Slice 7 task 9 gave the Tick its first measured price.** `02 §4`'s two counters exist, plus a third
+— *due Rule Instances* — because `evaluations − due` is what chain walking costs and neither number
+alone separates a bigger city from a less stable one. **The counter the section names could not have
+failed the tripwire the section states over it**: an evaluation was a due Rule Instance, which a chain
+walk does not move by one. An evaluation is now one atomicity check, and they reach the Census as a
+**second metric family** — a table counter is a *level*, these are *flows*, so each is read as a sum
+and a peak over the interval and the reading drains it. Measured: **82.84 ns an evaluation**, flat to
+1.8% across two orders of magnitude, so **15.6 ms holds ~188,000**. A chain rung's marginal cost is
+**53.6 ns**, two-thirds of the head that failed, which is the first evidence behind `02 §4`'s claim
+that depth is not the cost driver — and it retires session B's withdrawn depth cap by pointing the
+other way. **The uncomfortable half**: against `0002`'s own unratified 450 Rule Instances per 1,000
+Citizens and `02 §4.3`'s rate of 8, a 1M city spends **~67% of a 15.6 ms Tick on the Rule engine
+alone** — a whole-Tick figure that supersedes an earlier Phase-2-only estimate of 60%, and still a
+floor. Filed to `0002` as **S0b's**, and summed with every other priced consumer in
+`plans/0013-tick-budget.md`, **which prices the same rows against 1×, 2×, 4× and 8× — because the
+speed multiplier is a product decision nobody has argued, and the whole simulation as priced fits at
+2× and does not fit at 4×.**
 
 **S0a is done and the Phase 1 gate is closed.** `CommandKind.Populate` fills a world through **Phase 0**,
 so the population is in the Input Log and replay reproduces it by construction; `Borough.Core.Entities.SyntheticCity`
@@ -84,9 +102,18 @@ stated risk.** 1M is a spec for **row counts** and still a hope for **the Tick**
 `powersave` and owes a re-take, which is stamped rather than hidden.
 
 **`plans/0000-board.md` is the first thing to read on any cold start** — a flat view of what is done,
-what to do next and what is blocked. It is a *view*: `plans/0003-build-plan.md` owns the slice order
-and its gates when picking the *code* up cold, and `plans/0002-open-questions.md` owns the reasoning
-when picking up the *design*. When the board disagrees with either, they win. **Slices 7, 8 and 10 have cleared gates; slice 9 is the
+what to do next and what is blocked. It is a *view*, and **four files answer four questions, one
+each**: the board answers *what is next*; `plans/0003-build-plan.md` owns the slice order and its
+gates and answers *what is done*; `plans/0002-open-questions.md` holds **every open question**, typed
+*measurable* or *arguable* per `adr/0043` and grouped by what is blocked, and answers *what needs
+answering*; `plans/0012-corpus-audit.md` holds corrections owed to documents, which are not questions; and
+`plans/0013-tick-budget.md` answers *what a Tick costs*, which is the one thing none of the other four
+can hold, because it is a property of the whole set of measurements rather than of any one of them.
+**Its headline is that the two consumers with numbers already exceed the budget between them — and
+that neither multiplicand has been measured**, which is what makes it a thing to watch rather than a
+thing to fix today.
+When the board disagrees with any of them, they win — and **an open question is never written on the
+board**, which is how it once came to hold 63 of them while `0002` held none. **Slices 7, 8 and 10 have cleared gates; slice 9 is the
 only red one**, on session C. A gated slice must not be started before its gate clears. The corpus is still being grilled and several decisions
 on the critical path are open, so do not write implementation code beyond the current slice
 unless asked.
@@ -103,14 +130,15 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | 49 decision records, numbered to `0050` — `0028` is reserved and unwritten |
+| `docs/adr/` | 51 decision records, numbered to `0052` — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
-| `plans/0000-board.md` | **The board. Read this first on any cold start** — done, next, unblocked, owed, blocked. A view over `0002` and `0003`, never a source |
-| `plans/0002-open-questions.md` | The live ledger of design questions, and where the *reasoning* lives |
+| `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
+| `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
 | `plans/0004`–`0011` | One plan document per unblocked slice or spike: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, and the Rule engine. **`0011` owns the slice in flight** |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
+| `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8 and S0a have all run |
 | `docs/dev-environment.md` | Setting up a machine to work on this |
 
@@ -137,6 +165,18 @@ it?* If you can, it is **measurable** — route it to a named spike with that nu
 not let any document cite it as decided until the number exists. If you cannot, it is **arguable** and
 a session may close it. Six claims in the corpus have been measured false so far and **two of them sat
 in documents `0002` marks fully argued**, so a green mark is not evidence a sentence was examined.
+
+**A hash-bearing or world-creation number is chosen with a named ratifier or not at all** (`adr/0052`).
+The sibling rule to `adr/0043`, and it governs numbers rather than claims: on the day such a number is
+written down, record beside it in `0002` §D *the named thing that would ratify it* — a spike id, a
+session letter, a quantity — and the trigger that would reopen it. **A category is not a name**;
+*"a profile"* or *"a future spike"* satisfies the letter and defeats the point. It does **not** require
+ratifying before choosing, which is often impossible and worse than the disease. Why it exists:
+`adr/0044` had to *measure* the Map Layer cadence back out of three documents that cited it as settled,
+and `0002` §D had reached eighteen rows without ever losing one. The triage that followed found
+**five were not numbers at all** and **seven were unset** — and an unset number is a *gap*, not a debt,
+because nothing accretes on a value that does not exist. Keep those three apart or the list stops
+being readable.
 
 **Every significant decision cites a guiding concept** from `CONTEXT.md`'s tag table —
 `EMERGENCE`, `LEGIBLE CAUSE`, `UNIQUE INDIVIDUALS`, `BOUNDED KNOWLEDGE`,
@@ -246,7 +286,7 @@ dotnet run --project src/Borough.Headless
 | Microscopic Cap | **unset** | fixed world constant, still open |
 | Sight Horizon | **unset** | tuning, hot-reloadable. Its **floor** is a Road Graph property — the distance to the next node with a real choice — and S2 R8.1 derives it (`adr/0046`) |
 | Temperament base and spread | **unset** | tuning. Stable base plus per-decision jitter, two `purpose_tag`s. **The base/jitter blend weight has no argument behind it at all** and is the routing model's weakest number |
-| Habit refresh cadence | **unset**, provisionally **infinite** | static per world is the null hypothesis. **Hash-bearing if it is ever finite**; S2 R8.5 is what could refute it |
+| Habit refresh cadence | **infinite — static per world. RATIFIED** | S2 R8.5 was the named ratifier, ran, and did not refute: `03 §3.4`'s loop closes on the local layers alone. No cadence, and no hash-bearing number |
 
 ## Definition of done for any milestone
 

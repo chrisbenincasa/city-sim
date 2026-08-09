@@ -50,7 +50,7 @@ internal static class Program
 
                 case Mode.Report:
                 default:
-                    return Report.Print(options.Citizens);
+                    return Report.Print(options);
             }
         }
         catch (Exception failure) when (failure is IOException

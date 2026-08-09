@@ -40,6 +40,23 @@ It is also exactly the pipe-laying slog CS2 deleted, wearing a better justificat
 
 ---
 
+## Absorption varies by ground — parks, terrain, and Policies that clean
+
+**Status:** parked by [`adr/0051`](adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md), which ships **one global decay rate** and names this as the end state.
+**Retrofit cost:** ✅ **Low, and it gets lower the longer it waits.** Tau is already Ruleset data read at the point of decay; making it a per-Cell lookup changes where the number comes from and nothing about the mechanism. The field it would need is a second sparse Layer on a grid that already exists.
+
+`adr/0051` makes pollution a stock the environment absorbs, at one rate everywhere. In reality absorption is a property of the ground: vegetation, water and open land take up more than asphalt does, and that is the mechanism a park should use.
+
+**It is the right shape for parks specifically, and the reason is worth keeping.** A park modelled as a *negative source* has two failures the absorption model does not: with no factory nearby it produces negative pollution, and a large enough park beside a smokestack produces a clean Cell next to the source. A park that makes its area absorb faster does nothing where there is nothing to absorb, and lowers the level beside a factory without ever erasing it. `adr/0051` records the full argument.
+
+It also gives Policies a second lever with a different feel from the first. A scrubber mandate lowers what a Building emits and shows up immediately at the source; a tree-planting programme raises what the ground absorbs and shows up slowly, over the whole area, exactly as `Sealing`'s terrain-keyed recovery already does. **Two dials on one equilibrium, and both read off the same number the player is already looking at.**
+
+**Why it is parked:** the global rate is unratified and nothing has been balanced against it. Varying a number nobody has fixed yet means tuning two unknowns against each other, and `adr/0044` is the standing example of what that costs. There is also nothing to vary it *with* — parks are not built, and terrain type is not yet read by anything on the Cell grid.
+
+**Trigger:** parks or any greenspace land use entering the build plan; or the global rate being ratified and balance testing then showing that pollution reads the same everywhere in a city whose land plainly does not.
+
+---
+
 ## Pricing pollution that crosses the map edge
 
 **Status:** named in [`adr/0034`](adr/0034-fields-are-sorted-by-source-geometry.md) as a loophole, deliberately left open.

@@ -53,4 +53,24 @@ public enum PurposeTag : ulong
     /// draw for the life of the city, and nothing observing the running city could see why.
     /// </remarks>
     RuleSettleOrder = 1,
+
+    /// <summary>
+    /// The offset within its own rate at which a new Rule Instance first comes due.
+    /// </summary>
+    /// <remarks>
+    /// <b>A stagger is not optional and it is not a free parameter.</b> Arming every Building's copy
+    /// of a Rule at one delay puts the whole city into one Event Wheel bucket, so the Tick that bucket
+    /// falls on pays for all of it and every other Tick pays nothing — <c>02 §2.4</c>'s reason for
+    /// staggering the Layer passes, arriving at the Rule engine. What removes the free parameter is
+    /// that the window is the Rule's **own <c>rate</c>**: a Rule re-arms at <c>+rate</c> for ever
+    /// after, so spreading the first firing uniformly across <c>[1, rate]</c> is the only offset that
+    /// stays spread and the only one that privileges no Tick. Nobody chooses a number.
+    /// <para>
+    /// <b>Distinct from <see cref="RuleSettleOrder"/> because they answer different questions about
+    /// the same row</b> — <em>when does it first come due</em> against <em>who wins when two of them
+    /// contend on one Tick</em>. Sharing a tag would correlate the two invisibly, which is what the
+    /// one-tag-per-use rule exists to prevent: a Building armed early would win its contests.
+    /// </para>
+    /// </remarks>
+    RuleArmingStagger = 2,
 }

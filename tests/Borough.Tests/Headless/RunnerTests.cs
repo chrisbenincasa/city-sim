@@ -1,4 +1,5 @@
 using Borough.Core.Determinism;
+using Borough.Core.Rules;
 using Borough.Headless;
 
 namespace Borough.Tests.Headless;
@@ -200,5 +201,84 @@ public sealed class RunnerTests
     {
         Assert.False(Options.TryParse(["--ticks"], out _, out string? complaint));
         Assert.Contains("needs a value", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>No <c>--ruleset</c> means no Rules, and there is deliberately no default.</b>
+    /// </summary>
+    /// <remarks>
+    /// A default Ruleset would silently change what every existing invocation measures — S0a's
+    /// footprint capture included — and the first symptom would be figures that no longer compare to
+    /// the ones already in the corpus.
+    /// </remarks>
+    [Fact]
+    public void A_run_given_no_ruleset_runs_against_no_rules()
+    {
+        Assert.True(Borough.Headless.Session.TryRules(null, out Ruleset rules));
+        Assert.Same(Ruleset.Empty, rules);
+    }
+
+    /// <summary>
+    /// A Ruleset the loader refuses stops the run, and every refusal reaches the operator.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the first test in which <c>adr/0048</c>'s promise is checked end to end</b> — the
+    /// refusals had a file, a line and a rule name since task 3, and until the runner parsed anything
+    /// there was no path by which one reached a person. Printing only the first would turn a single
+    /// pass over a broken file into as many runs as it has mistakes.
+    /// </remarks>
+    [Fact]
+    public void A_refused_ruleset_stops_the_run()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"borough-refused-{Guid.NewGuid():N}.toml");
+
+        // A chain that is its own fallback: adr/0045's cycle check, which is refusal 1.
+        File.WriteAllText(path, """
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "bakery"
+            bins = [ { resource = "flour", capacity = 60 } ]
+
+            [[rule]]
+            name    = "bake_bread"
+            kind    = "bakery"
+            rate    = 10
+            apply   = { min = 1, max = 4 }
+            on_fail = "bake_bread"
+            inputs  = [ { scope = "local", resource = "flour", amount = 6 } ]
+            outputs = []
+            """);
+
+        try
+        {
+            Assert.False(Borough.Headless.Session.TryRules(path, out Ruleset rules));
+            Assert.Same(Ruleset.Empty, rules);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// <b>A fresh session is recorded against the Ruleset it was handed.</b>
+    /// </summary>
+    /// <remarks>
+    /// The builder stamped <c>ContentHash.None</c> unconditionally, which was correct for as long as
+    /// nothing could be supplied. The moment <c>--ruleset</c> began loading content it became a
+    /// defect that makes the flag unusable: a fresh run would name no Ruleset, be handed one, and
+    /// <see cref="RulesetCheck"/> would refuse the session against its own Rules — correctly, on the
+    /// evidence it had. <b>A new session is not a mismatch; it is the recording.</b>
+    /// </remarks>
+    [Fact]
+    public void A_fresh_session_names_the_ruleset_it_was_given()
+    {
+        Assert.True(Options.TryParse(["--ticks", "4", "--citizens", "100"], out Options options, out _));
+
+        Assert.Equal(Recorded, Borough.Headless.Session.Load(options, Recorded).RulesetHash);
+        Assert.Equal(ContentHash.None, Borough.Headless.Session.Load(options, ContentHash.None).RulesetHash);
     }
 }

@@ -48,6 +48,45 @@ public readonly record struct RuleVerdict(
 }
 
 /// <summary>
+/// One flow counter's readings over an interval: what it totalled, and its largest single Tick.
+/// </summary>
+/// <remarks>
+/// <b>Both, because a budget is per Tick and a bill is per run.</b> <c>02 §4</c> makes burstiness
+/// <em>authored</em> rather than incurred — a greedy Rule drains to the floor and crosses the
+/// supplied/short boundary more often than a fixed quantum of the same throughput — so an interval
+/// holding a spike and an interval holding a plateau can carry the same total. Only
+/// <see cref="Peak"/> can be held against the Tick budget, and only <see cref="Sum"/> says what the
+/// run cost.
+/// </remarks>
+/// <param name="Sum">The total over the interval. Divided by the reading cadence, a mean rate.</param>
+/// <param name="Peak">The largest single Tick in that interval.</param>
+public readonly record struct RuleFlow(long Sum, int Peak);
+
+/// <summary>
+/// What the Rule engine did since the last reading: <c>02 §4</c>'s two counters, and the scheduled
+/// load they are read against.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b><c>Evaluations − Due</c> is the quantity task 9's tripwire is actually about.</b> Due rows are
+/// what the Event Wheel handed over and evaluations are what was spent on them, so the difference is
+/// the entire cost of chain walking and Phase 3's re-check. Neither number alone separates a bigger
+/// city from a less stable one, which is the same reason the Census carries a table's slots beside
+/// its live rows.
+/// </para>
+/// <para>
+/// <b>Read by draining, so the counters cannot become the defect they are watching for.</b> A
+/// monotonically rising total trends upward for the life of every run by construction, which is
+/// exactly the shape <c>adr/0006</c>'s instrument exists to flag — an instrument that always reads
+/// <em>leak</em> reports nothing. The reading is the sink.
+/// </para>
+/// </remarks>
+/// <param name="Due">Rule Instances taken off the Event Wheel.</param>
+/// <param name="Evaluations">Evaluations performed — a head, each non-terminal link, each re-check.</param>
+/// <param name="ChainRungs">Chain rungs descended, the reporting terminal included.</param>
+public readonly record struct RuleActivity(RuleFlow Due, RuleFlow Evaluations, RuleFlow ChainRungs);
+
+/// <summary>
 /// Bin Rule evaluation and application: Phase 2 decides, Phase 3 applies, and nothing is partial.
 /// </summary>
 /// <remarks>
@@ -107,6 +146,16 @@ public sealed class RuleEngine
     private int[] _touchedDelta = new int[8];
     private int _touchedCount;
 
+    // 02 §4's counters. The first three are the Tick in flight; CloseTick folds them into the second
+    // three, which are the interval a Census reading drains.
+    private int _tickDue;
+    private int _tickEvaluations;
+    private int _tickRungs;
+
+    private RuleFlow _dueFlow;
+    private RuleFlow _evaluationFlow;
+    private RuleFlow _rungFlow;
+
     /// <param name="world">The tables this evaluates against. Not copied.</param>
     /// <param name="key">The world seed, for Phase 3's settle order.</param>
     public RuleEngine(World world, WorldKey key)
@@ -118,10 +167,38 @@ public sealed class RuleEngine
     }
 
     /// <summary>
-    /// How many Rules were evaluated on the last Tick. <c>02 §4</c>'s first counter; task 9 feeds it
-    /// to the Census.
+    /// Reads <c>02 §4</c>'s counters for the interval since the last call, and resets them.
     /// </summary>
-    public int Evaluated => _verdictCount;
+    /// <remarks>
+    /// <para>
+    /// <b>Read-and-reset rather than a running total</b>, so that a series of readings is a series of
+    /// <em>intervals</em>. A cumulative counter would rise for the life of every run, and a census
+    /// exists to answer <em>is this trending upward</em> — a metric that always says yes says nothing.
+    /// It also puts the sink where <c>adr/0006</c> asks for one: the reading is what bounds these.
+    /// </para>
+    /// <para>
+    /// <b>The interval is Ticks, not calls.</b> The accumulator behind this sees every Tick even when
+    /// it is read every sixty-fourth, so a slow reading loses only the shape of the interval and never
+    /// its magnitude — which is why there is one census cadence and not a second, finer one for
+    /// flows.
+    /// </para>
+    /// <para>
+    /// <b>Undrained, these are bounded by the run rather than by the city.</b> A caller that never
+    /// takes a reading accumulates until the run ends, which is why the totals are 64-bit; they are
+    /// counters rather than collections, so <c>adr/0006</c> is not what they are about, and
+    /// <c>adr/0003</c>'s extension to magnitudes is answered by the width.
+    /// </para>
+    /// </remarks>
+    public RuleActivity Drain()
+    {
+        var activity = new RuleActivity(_dueFlow, _evaluationFlow, _rungFlow);
+
+        _dueFlow = default;
+        _evaluationFlow = default;
+        _rungFlow = default;
+
+        return activity;
+    }
 
     /// <summary>
     /// Phase 1 — take everything due off the Event Wheel.
@@ -144,6 +221,8 @@ public sealed class RuleEngine
             _due[_dueCount++] = slot;
             slot = _world.Wheel.PopDue(tick);
         }
+
+        _tickDue += _dueCount;
     }
 
     /// <summary>
@@ -236,7 +315,42 @@ public sealed class RuleEngine
         }
 
         _dueCount = 0;
+
+        CloseTick();
     }
+
+    /// <summary>
+    /// Rolls what this Tick spent into the interval a reading will drain, and starts the next one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Called by <see cref="Apply"/>, which is a Tick's last engine phase, and public because a
+    /// Tick is not always all three.</b> An instrument timing Phase 2 on its own has run something
+    /// the engine can price and nothing that would close it, so without this the only way to read
+    /// what a phase cost would be to derive it from what a whole Tick cost — and a benchmark dividing
+    /// by a number nobody measured is the shape S2 hit three times.
+    /// </para>
+    /// <para>
+    /// <b>Closing twice with nothing in between is closing once</b> — the second call folds a Tick of
+    /// zero, which adds nothing to a sum and cannot lower a peak. Closing part-way <em>through</em> a
+    /// Tick is a different thing and is wrong in one direction: the sums stay right and the peaks
+    /// read low, because one busy Tick has been folded as two quiet ones.
+    /// </para>
+    /// </remarks>
+    public void CloseTick()
+    {
+        Fold(ref _dueFlow, _tickDue);
+        Fold(ref _evaluationFlow, _tickEvaluations);
+        Fold(ref _rungFlow, _tickRungs);
+
+        _tickDue = 0;
+        _tickEvaluations = 0;
+        _tickRungs = 0;
+    }
+
+    /// <summary>Rolls one Tick's count into the interval a Census reading will drain.</summary>
+    private static void Fold(ref RuleFlow flow, int tick) =>
+        flow = new RuleFlow(flow.Sum + tick, tick > flow.Peak ? tick : flow.Peak);
 
     /// <summary>
     /// Evaluates one Rule Instance at the largest count its Bins allow, leaving its net Bin deltas in
@@ -291,6 +405,11 @@ public sealed class RuleEngine
     {
         while (!at.IsNone)
         {
+            // 02 §4's second counter, and it is a depth rather than a cost: the terminal below is
+            // reached and counted but never evaluated, so a chain ending in a report is one rung
+            // deeper than it is evaluations expensive.
+            _tickRungs++;
+
             RuleDefinition definition = _world.Rules.Rule(at);
 
             // A terminal is never evaluated. It has no term that could be short, so under ordinary
@@ -318,6 +437,12 @@ public sealed class RuleEngine
 
     private RuleVerdict Check(int instance, RuleId rule, int ceiling)
     {
+        // 02 §4's first counter, and this is the only place it can be taken honestly: a head, a link
+        // below one, and Phase 3's re-check all arrive here and all cost the same walk. Counting due
+        // rows instead — which is what this counter was before task 9 — cannot see a chain link at
+        // all, so chain walking would have been invisible in the number stated to price it.
+        _tickEvaluations++;
+
         RuleDefinition definition = _world.Rules.Rule(rule);
         int building = _world.Buildings.Rows.Resolve(_world.RuleInstances.Building[instance]);
 

@@ -1,6 +1,7 @@
 namespace Borough.Core.Entities;
 
 using Borough.Core.Arithmetic;
+using Borough.Core.Determinism;
 using Borough.Core.Quantities;
 using Borough.Core.Tables;
 
@@ -61,7 +62,10 @@ public static class SyntheticCity
     /// </remarks>
     /// <param name="world">The world to fill. Must have no Citizens in it.</param>
     /// <exception cref="InvalidOperationException">The world already has a population.</exception>
-    public static void PopulateInto(World world)
+    /// <param name="world">The world to fill.</param>
+    /// <param name="key">The world key, which the Rule arming stagger draws against.</param>
+    /// <param name="now">The Tick the population arrives on, which arming is relative to.</param>
+    public static void PopulateInto(World world, WorldKey key, Ticks now)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -84,7 +88,10 @@ public static class SyntheticCity
             Handle<Lot> lot = world.Lots.Create(
                 new Tiles(i % LotsPerRow), new Tiles(IntegerMath.FloorDiv(i, LotsPerRow)), zone: 1);
 
-            world.Buildings.Create(lot, kind: 1);
+            // Through World's door rather than the table's, so the Building arrives with its kind's
+            // Bins and its chain heads armed. Before this the populator built bare Buildings and the
+            // Ruleset described a shape nothing constructed.
+            world.CreateBuilding(lot, kind: 1, now, key);
         }
 
         for (int i = 0; i < households; i++)

@@ -3,6 +3,7 @@ using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Tables;
 using Borough.Tests.Golden;
 
@@ -73,7 +74,7 @@ public sealed class InvariantTierTests
     [Fact]
     public void A_replayed_session_violates_nothing()
     {
-        Simulation simulation = Replay.Start(GoldenFixtures.Session());
+        Simulation simulation = Replay.Start(GoldenFixtures.Session(), Ruleset.Empty);
         InputLog log = GoldenFixtures.Session();
 
         Replay.Trace(simulation, log, new Ticks(256), hashEvery: 8, []);
@@ -309,7 +310,7 @@ public sealed class InvariantTierTests
     private static ulong[] Trace(int slices)
     {
         InputLog log = GoldenFixtures.Session();
-        Simulation simulation = Replay.Start(log);
+        Simulation simulation = Replay.Start(log, Ruleset.Empty);
         simulation.World.Invariants.Slices = slices;
 
         var hashes = new List<ulong>();
