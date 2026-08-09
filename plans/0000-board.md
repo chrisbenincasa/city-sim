@@ -65,9 +65,15 @@ planning it split it in two.** As written it asked for a production chain over t
 which is `pool`, which the same document had already made a named hole that throws. **10a is the
 wiring**, and it is the last thing standing between the engine and a world; **10b, the content, is
 re-filed to Phase 2.** Four findings came out of the planning before a line was written, and one of
-them is a live defect in slice 6: **a `map` emission accumulates with no sink**, so the corpus's own
-worked Rule grows a magnitude for ever — and slice 6's long-run test, the one built to catch exactly
-that, was written to work around it in the fixture. *(Slice **8** is hot reload — a different thing wearing the same
+them was a live defect in slice 6: **a `map` emission accumulated with no sink**, so the corpus's own
+worked Rule grew a magnitude for ever — and slice 6's long-run test, the one built to catch exactly
+that, had been written to work around it in the fixture. Settled the same day by
+**[`adr/0051`](../docs/adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md)**, which
+turned out to be **less a decision than an excavation**: `02 §2.4`'s field table had said pollution
+*"Decays"* since it was written, and slice 6 built the diffusion without the removal. The ceiling is
+now emergent rather than clamped, and the two things it left behind are honest ones — **tau is
+hash-bearing and unratified**, and **decay fights slice 6's incremental re-diffusion**, which is
+measurable and went to S0b rather than to an argument. *(Slice **8** is hot reload — a different thing wearing the same
 number as task 8, which this section once confused.)* **The Readout set has exactly one member**
 — `occupancy` — because a Readout is admitted when a Rule reads it, and nothing else in the world is
 read by a Rule yet; every other scalar `CONTEXT` calls a Readout is refused by name at load. Between
@@ -179,7 +185,7 @@ observed rather than predicted. The board had ordered *argument first* on the re
 is gated on code. True, and it produced a session in which **every decision generated two or three
 more** — `adr/0046` alone spawned four unratified numbers, `adr/0047` found defects in two other ADRs
 on its way past, and three separate findings arrived labelled *the third instance of a pattern*.
-**The design was generating design.** There are 49 ADRs and the game is at slice 7.
+**The design was generating design.** There are 51 ADRs and the game is at slice 7.
 
 **S2's risk is retired** — see *Where the project is*. Everything after that is refinement, and
 refinement has no stopping condition, so it needs an external one. This is it.
@@ -384,8 +390,10 @@ is a machine running unattended — but **the code track leads**.
   S0a as having discharged it
 - **Argument** — **C** is the only session gating a slice. The rest run when something concrete is
   blocked on them, never because they are available
-- **Spike** — S2 **R5.6**, then **R6** (gated on session **M**), then **R7**, which closes S2 and
-  deletes the harness
+- **Spike** — **R7**, the report and the verdict. **R5.6 is done and R6's ungated halves are done**,
+  so the only measurement left in S2 is R7's owed **re-capture of R0/R1/R3/R4** under root and
+  `performance` — every R6 and R5.6 capture is `powersave` too. **S2 cannot fully close**: R6's
+  invalidation half is gated on session **M**, which is *arguable* and no measurement can settle
 
 ### Parallel track — S2, routing ([`0010`](0010-s2-routing.md))
 
@@ -412,9 +420,21 @@ and what is left.
       layers survive**: `03 §3.4`'s self-correction closes on the local layers alone, the Sight
       Horizon's floor is **1 Segment**, and Temperament damps by 92.28% where a herd exists. **Static
       Habit holds, so there is no refresh cadence to argue about**
-- [ ] **R5.6 — the Parking Shed.** The second Epoch consumer, and the last section of R5. It scales
-      with **Buildings** and is a *neighbourhood* rather than a *path*. **`CONTEXT.md` → Epoch must
-      not be updated until it runs**
+- [x] **R5.6 — the Parking Shed. DONE, and it disagrees with routes.** **Per-Segment witnessed by
+      *paths* is the only rung that fits** — worst case **26.10% of a Tick** against per-Segment
+      (ball) 265.45%, per-cluster **1,351.24%** and global **1,638.20%**. The global tripwire fired
+      as written: one deleted Segment invalidates all **159,825** sheds at 255.560 ms, and
+      `adr/0009` pays it **on arrival**, so it is a stampede rather than a stall. **`plans/0010`'s
+      own prediction is measured false** — it argued per-cluster *"fits it far better than it fits
+      routes"* and per-cluster is the **worst survivor**, 127× the paths rung on a one-Segment drag,
+      because a cluster is a tile of map holding thousands of sheds and not the shed's
+      neighbourhood. **The Arterial gesture makes the error visible**: deleting motorway invalidates
+      **zero** sheds correctly and **3,669** under per-cluster, so 100% of that rung's work is
+      wrong. **The two consumers do not want the same mechanism** — routes needed a *temporal* answer
+      (R5.5.4's TTL rotation) because no structural rung was both affordable and correct; sheds need
+      no rotation at all. That is what `adr/0012`'s owed amendment now has to carry.
+      **`CONTEXT.md` → Epoch is unblocked**, and `05 §3`'s *invalidated by the Road Graph Epoch* is
+      owed the correction `CONTEXT.md` already took
 - [ ] **R6 — the two caches. STARTED; R6.0 is done.** Promoted to load-bearing, and now **the only
       exit**: `adr/0047` removed the option nobody had noticed was in reserve. Owns the cache's **key
       granularity** and its **eviction policy**, which R5 measured as the bigger lever below the
@@ -705,8 +725,9 @@ diagnose.
       is an edit rate R5 owns. **8 is 1.9× cheaper on a coalesced 256-Segment drag, 5.8× on the naive
       worst case, and its full rebuild is 43.14 ms against 75.31 ms.** A 1.31× query advantage
       against a ~2× edit penalty picks 8, and **the canonical capture confirms it** — the one run
-      that said otherwise is the mis-pinned one. **Conditional on R5.6**, which may rank a Parking Shed
-      differently, so the sweep is not deleted
+      that said otherwise is the mis-pinned one. **The conditional on R5.6 is discharged**: sheds do
+      not rank it differently — **8 beats 16 on every gesture and every size**, by 2.9× at a
+      one-Segment drag — so the sweep may go
 - [x] ~~**`HpaSearch` cannot see a Segment deleted under a Trip's own feet — NEW, found by S2 R5.5, and
       it is pre-existing.**~~ **DISCHARGED by S2 R6.0, and the defect was twice the size filed** —
       eight call sites, not the two remainders, the extra four being the same-Segment and

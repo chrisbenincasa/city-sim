@@ -197,8 +197,13 @@ been the wrong repair — the pointer is not wrong about the past, it was only e
       build**, naming the two that arrived while it was written
 - [ ] `0003:105`, `:107`, `:108` — slice 5 carries no status, and the Phase 1 gate is written as
       future. **The slice 7 half is paid**: its row now carries 9 of 10 and what each task delivered
-- [ ] `0003:111` — slice 10 marked 🔴 in the *Gate* column when its gate is cleared; it waits on
-      slice 7 finishing. `0003:167` states it correctly, so the file disagrees with itself
+- [x] `0003:111` — slice 10 marked 🔴 in the *Gate* column when its gate is cleared; it waits on
+      slice 7 finishing. `0003:167` states it correctly, so the file disagrees with itself.
+      **STRUCK 2026-08-08, and it had just cost something.** Planning the shortest path to a running
+      city, the red mark was read as a gate and produced the recommendation *task 10a → slice 9 →
+      slice 10*, routing the critical path through **session C** — the one genuinely red gate — when
+      slice 9 is not on the path at all. **A stale status mark is not cosmetic**: this one invented a
+      design session's worth of work and put it in front of the thing the project most needs
 - [ ] `0003:184-192` — decisions-owed item 1 settled by `adr/0038`; the only one of four unstruck
 - [ ] `0003:266` — *"S0 is slice 11"*. There is no slice 11, as the next paragraph says
 
@@ -242,6 +247,18 @@ track, and in doing so **invalidated a denominator on the spike track** — a di
 cheap path source, which is what made the Trip-start count adequate. Nothing in the process noticed,
 because the board's model of the three tracks is that they *do not contend*. They do not contend for
 **files**. They plainly do contend for **conclusions**.
+
+### `05 §3` describes the shed's invalidation the way `CONTEXT.md` used to
+
+- [ ] `05 §3:136` — *"cached Parking Shed membership per Building … **invalidated by the Road Graph
+      Epoch**"* is owed the correction `CONTEXT.md` → Epoch already took. **The phrase says when the
+      rebuild is paid, not how much survives**, and S2 R5.6 measured what it costs under one counter:
+      all **159,825** sheds at **255.560 ms — 1,638.20% of a Tick** — and `adr/0009` pays it *on
+      arrival*, so it is a stampede across every arriving vehicle rather than one stall. The rung is
+      **per-Segment, witnessed by the walk paths to the Bins the shed kept**
+- [ ] `plans/0010` R5.6 — its own prose predicts *"a per-cluster Epoch fits it far better than it fits
+      routes."* **Measured false**: per-cluster is the worst surviving rung. Struck rather than
+      deleted, per the corpus's practice, because the prediction is why the section was run
 
 ### Not a defect — recorded so it is not re-raised
 
