@@ -249,4 +249,27 @@ public enum Invariant
     /// would silently not be built on — which reads as a city that grows slowly and not as a defect.
     /// </remarks>
     ThePoolIsDense = 23,
+
+    /// <summary>
+    /// A Household joining the Unplaced Pool landed at the end of it.
+    /// </summary>
+    /// <remarks>
+    /// <b>The <c>O(1)</c> write-site half of <see cref="ThePoolIsDense"/>, and it guards a borrowed
+    /// assumption rather than a local one.</b> Density holds because <c>Rows</c>'s free list is LIFO
+    /// and <see cref="UnplacedTable.Leave"/> frees only the last slot — but nothing in <c>Rows</c>
+    /// promises LIFO, so this table depends on another type's implementation detail. Checked here, a
+    /// change to the allocator fails on the first eviction; left to the whole-world walk, the city
+    /// builds less than its Ruleset says for the length of a run and then reports it once.
+    /// </remarks>
+    ThePoolAppendsInOrder = 24,
+
+    /// <summary>
+    /// A Household being housed out of the Unplaced Pool was in it.
+    /// </summary>
+    /// <remarks>
+    /// The mirror of <see cref="OnlyAHousedHouseholdIsUnplaced"/>, closing the other direction of the
+    /// same boundary. Housing somebody who was never in the Pool would move them out of a dwelling
+    /// they still occupy and take an unrelated membership row with them.
+    /// </remarks>
+    OnlyAPooledHouseholdIsPlaced = 25,
 }

@@ -140,7 +140,8 @@ public sealed class UnplacedPoolTests
         Handle<Building> elsewhere = world.Households.Dwelling[world.Households.Rows.Resolve(
             Household(world, 3))];
 
-        Assert.Equal(evicted, world.Place(0, elsewhere));
+        world.Place(evicted, elsewhere);
+
         Assert.Equal(0, world.UnplacedPool.Count);
         Assert.False(world.Households.IsUnplaced(slot));
         Assert.Equal(elsewhere, world.Households.Dwelling[slot]);
@@ -168,6 +169,54 @@ public sealed class UnplacedPoolTests
         Assert.Equal(Invariant.OnlyAHousedHouseholdIsUnplaced, failure.Violation.Invariant);
     }
 
+    /// <summary>Housing a Household that is not in the Pool is refused at the write site.</summary>
+    /// <remarks>
+    /// The mirror of the check above, and it closes the other direction of the same boundary: this
+    /// would otherwise move somebody out of a dwelling they still occupy and take an unrelated
+    /// membership row with them.
+    /// </remarks>
+    [Fact]
+    public void A_household_that_is_not_in_the_pool_cannot_be_placed()
+    {
+        World world = Built();
+        Handle<Building> home = world.Households.Dwelling[world.Households.Rows.Resolve(
+            Household(world, 7))];
+
+        InvariantViolationException failure = Assert.Throws<InvariantViolationException>(
+            () => world.Place(Household(world, 0), home));
+
+        Assert.Equal(Invariant.OnlyAPooledHouseholdIsPlaced, failure.Violation.Invariant);
+    }
+
+    /// <summary>
+    /// A Pool row freed anywhere but the end is caught on the next eviction, not at the end of the run.
+    /// </summary>
+    /// <remarks>
+    /// <b>This writes the violation that the allocator changing would produce.</b> Density is inherited
+    /// from <c>Rows</c>'s free list being LIFO, which nothing in <c>Rows</c> promises — so the failure
+    /// mode being guarded is somebody else's edit, not this table's. Punching the hole by hand is the
+    /// only way to reach it, and what it proves is that the write-site check fires on the very next
+    /// <c>Join</c> rather than leaving the city quietly under-building for a whole run.
+    /// </remarks>
+    [Fact]
+    public void A_hole_in_the_pool_is_caught_on_the_next_eviction()
+    {
+        World world = Built();
+
+        for (int i = 0; i < 3; i++)
+        {
+            world.Unplace(Household(world, i));
+        }
+
+        // Straight at the table, behind Leave's back: the free list now offers a slot in the middle.
+        world.UnplacedPool.Rows.Free(world.UnplacedPool.Rows.At(1));
+
+        InvariantViolationException failure = Assert.Throws<InvariantViolationException>(
+            () => world.Unplace(Household(world, 4)));
+
+        Assert.Equal(Invariant.ThePoolAppendsInOrder, failure.Violation.Invariant);
+    }
+
     // ---- density --------------------------------------------------------------------------------
 
     /// <summary>
@@ -186,7 +235,9 @@ public sealed class UnplacedPoolTests
         Handle<Building> home = world.Households.Dwelling[world.Households.Rows.Resolve(
             Household(world, 7))];
 
-        Assert.Equal(Household(world, 2), world.Place(2, home));
+        Assert.Equal(Household(world, 2), world.UnplacedPool.At(2));
+        world.Place(world.UnplacedPool.At(2), home);
+
         Assert.Equal(5, world.UnplacedPool.Count);
 
         AssertDense(world);
@@ -205,7 +256,9 @@ public sealed class UnplacedPoolTests
         Handle<Building> home = world.Households.Dwelling[world.Households.Rows.Resolve(
             Household(world, 7))];
 
-        Assert.Equal(Household(world, 1), world.Place(1, home));
+        Assert.Equal(Household(world, 1), world.UnplacedPool.At(1));
+        world.Place(world.UnplacedPool.At(1), home);
+
         Assert.Equal(1, world.UnplacedPool.Count);
         Assert.False(world.Households.IsUnplaced(world.Households.Rows.Resolve(Household(world, 1))));
 
@@ -239,7 +292,7 @@ public sealed class UnplacedPoolTests
 
             while (world.UnplacedPool.Count > 0)
             {
-                world.Place(world.UnplacedPool.Count / 2, home);
+                world.Place(world.UnplacedPool.At(world.UnplacedPool.Count / 2), home);
                 AssertDense(world);
             }
         }
@@ -272,7 +325,7 @@ public sealed class UnplacedPoolTests
         Handle<Building> home = world.Households.Dwelling[world.Households.Rows.Resolve(
             Household(world, 7))];
 
-        world.Place(1, home);
+        world.Place(world.UnplacedPool.At(1), home);
 
         Handle<Household>[] before = Members(world);
 

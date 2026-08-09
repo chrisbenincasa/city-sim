@@ -100,6 +100,22 @@ rule is **when something concrete is blocked on it, not because it is available.
   shortfall as arrivals accumulate, or re-derive it from the Bin — and they differ in what they
   promise the *second* waiter in the queue, which makes this a fairness question and therefore
   arguable rather than measurable.
+- **How many Households a Building holds.** **A Building has no capacity anywhere** — not in
+  `BuildingTable`, not in `KindDefinition`, not in the Ruleset — and the two things that populate a
+  world already disagree about it: `SyntheticCity` puts **3** Households in every Building (S4 task 2's
+  row ratio, 360 Households against ~120 Buildings), and slice 10's Zone Rule houses **1** per Building
+  it raises. Nothing reconciles them and nothing can, because the quantity is not expressible. It
+  breaks nothing today — an occupant list is unbounded and no Rule reads its length — which is exactly
+  why it is worth writing down now: **the first mechanism that reads occupancy inherits a world whose
+  two halves were built to different numbers.** `adr/0025` is adjacent and does not cover it: density
+  is a cap on *what may be built*, chosen at construction and never revisited, whereas this is *how
+  many families fit in what was built*. Candidate answers are a per-kind Ruleset figure, a figure
+  derived from the density band, or **no capacity at all** — which is coherent and would make
+  overcrowding rather than homelessness the failure mode a shortage produces, and is therefore a
+  design position rather than the absence of one. **Arguable now and measurable later**: once rent or
+  Need satisfaction reads occupancy, *what a Building holds* becomes a balance number with a machine
+  behind it. Found while building slice 10 task 6; nothing in slice 10 is blocked on it, and slice 8's
+  Ruleset work is the first place it could be authored.
 - **Where private capital comes from.** A regenerating pool is legible but arbitrary; deriving it from
   profits and savings is causally honest and adds a loop that could deadlock a struggling city.
   Probably derived, with a floor.

@@ -260,27 +260,57 @@ public sealed class World
         Occupants.Remove(buildingSlot, slot);
         Households.Dwelling[slot] = default;
 
-        UnplacedPool.Join(Households, household);
+        // The write-site half of the Pool's density claim. The table needs the allocator to hand back
+        // exactly the next position, which is true because the free list is LIFO and Leave only ever
+        // frees the last slot — an implementation detail of Rows that nothing in Rows promises. Left
+        // to the end-of-run walk, a change there would surface as a city that had been quietly
+        // building less than its Ruleset said for the length of a run.
+        Invariants.Require(
+            UnplacedPool.Join(Households, household) == UnplacedPool.Count - 1,
+            Invariant.ThePoolAppendsInOrder,
+            slot);
     }
 
     /// <summary>
-    /// Takes the Household at <paramref name="position"/> out of the Unplaced Pool and houses it.
+    /// Takes a Household out of the Unplaced Pool and houses it.
     /// </summary>
     /// <remarks>
-    /// <b>By position rather than by handle, because the caller drew the position.</b> A Zone Rule
-    /// picks a member with a counter-based draw over <see cref="UnplacedTable.Count"/> — never the
-    /// front of the queue and never the lowest slot, since <c>02 §8</c> rule 5's argument applies
-    /// directly: a Pool that does not fully drain would otherwise leave the same Households unhoused
-    /// for the life of the city, and no player could see why.
+    /// <para>
+    /// <b>Keyed on the Household and not on its position, even though the caller drew a position.</b>
+    /// A Zone Rule picks a member with a counter-based draw over <see cref="UnplacedTable.Count"/> —
+    /// never the front of the queue and never the lowest slot, since <c>02 §8</c> rule 5's argument
+    /// applies directly: a Pool that does not fully drain would otherwise leave the same Households
+    /// unhoused for the life of the city, and no player could see why. But the draw's *result* is
+    /// converted to a handle immediately, because a position is only valid until the next call.
+    /// </para>
+    /// <para>
+    /// <b>That is the difference between a mistake that throws and one that houses the wrong
+    /// family.</b> Leaving swaps the last member into the vacated position, so a caller holding two
+    /// positions and using both would silently move somebody who was never drawn — and since the whole
+    /// mechanism is a draw, the result looks exactly like a legitimate one. The reverse index makes
+    /// the lookup free, so nothing is paid for the safer shape.
+    /// </para>
     /// </remarks>
-    /// <param name="position">Which member, in <c>[0, Count)</c>.</param>
+    /// <param name="household">The Household to house. Must currently be in the Pool.</param>
     /// <param name="dwelling">The Building they move into.</param>
-    /// <returns>The Household that was housed.</returns>
-    public Handle<Household> Place(int position, Handle<Building> dwelling)
+    public void Place(Handle<Household> household, Handle<Building> dwelling)
     {
         int buildingSlot = Buildings.Rows.Resolve(dwelling);
-        Handle<Household> household = UnplacedPool.Leave(Households, position);
         int slot = Households.Rows.Resolve(household);
+
+        if (!Households.IsUnplaced(slot))
+        {
+            Invariants.Report(Invariant.OnlyAPooledHouseholdIsPlaced, slot);
+            return;
+        }
+
+        // Resolved from the reverse index rather than taken from the caller. Leave moves the last
+        // member into the vacated position, so a caller holding two positions and using both would
+        // house the wrong Household with the second — and the swap makes that failure look like an
+        // ordinary draw. Keyed on identity there is no stale value to hold.
+        Handle<Household> left = UnplacedPool.Leave(Households, Households.PoolPosition(slot));
+
+        Invariants.Require(left == household, Invariant.ThePoolNamesOnlyUnhousedHouseholds, slot);
 
         Households.Dwelling[slot] = dwelling;
 
@@ -291,8 +321,6 @@ public sealed class World
             buildingSlot);
 
         Occupants.InsertOrdered(buildingSlot, slot);
-
-        return household;
     }
 
     /// <summary>Adds a Citizen to a Household, linking it into the Household's member list.</summary>

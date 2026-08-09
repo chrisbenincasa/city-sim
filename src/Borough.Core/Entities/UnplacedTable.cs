@@ -74,11 +74,17 @@ public sealed class UnplacedTable
     /// <summary>The Household at <paramref name="position"/> in the Pool.</summary>
     public Handle<Household> At(int position) => Household[position];
 
-    /// <summary>Adds a Household to the Pool, and tells it where it landed.</summary>
+    /// <summary>Adds a Household to the Pool, and returns where it landed.</summary>
     /// <remarks>
     /// <para>
-    /// Appends, because the free list is empty whenever the Pool is at its high-water mark and holds
-    /// exactly the tail slots otherwise. Either way the new member lands at <c>Count - 1</c>.
+    /// <b>It appends, and that is inherited rather than enforced here.</b> Density needs the allocator
+    /// to hand back exactly <c>Count - 1</c>, which holds because <see cref="Rows{T}"/>'s free list is
+    /// <b>LIFO</b> and <see cref="Leave"/> only ever frees the last slot: the frees run downwards from
+    /// the high-water mark, so the pops run back upwards through the same slots. <b>Nothing in
+    /// <c>Rows</c> promises LIFO</b> — it is an implementation detail this table depends on — which is
+    /// why the position is returned rather than discarded, and why <see cref="World.Unplace"/> checks
+    /// it at the write site. A bitmap or FIFO allocator would break density silently, and the
+    /// whole-world check would not see it until the end of the run.
     /// </para>
     /// <para>
     /// <b>The Household table arrives as a parameter rather than as a field</b>, which is task 2's
@@ -88,7 +94,7 @@ public sealed class UnplacedTable
     /// and its reverse index can disagree.
     /// </para>
     /// </remarks>
-    public void Join(HouseholdTable households, Handle<Household> household)
+    public int Join(HouseholdTable households, Handle<Household> household)
     {
         ArgumentNullException.ThrowIfNull(households);
 
@@ -97,6 +103,8 @@ public sealed class UnplacedTable
 
         Household[position] = household;
         households.EnterPool(households.Rows.Resolve(household), position);
+
+        return position;
     }
 
     /// <summary>

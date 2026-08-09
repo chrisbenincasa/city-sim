@@ -237,7 +237,9 @@ public sealed class ZoneRuleEngine
         ulong value = Randomness.Draw(
             _key, _world.Lots.Rows.IdAt(lot), tick, PurposeTag.PoolDraw);
 
-        _world.Place((int)(value % (ulong)(uint)_world.UnplacedPool.Count), building);
+        int position = (int)(value % (ulong)(uint)_world.UnplacedPool.Count);
+
+        _world.Place(_world.UnplacedPool.At(position), building);
 
         _tickCreated++;
     }

@@ -415,7 +415,24 @@ Consequently **no `[[zone_rule]]` goes into `rulesets/minimal.toml` here either*
 schedule and provably build nothing. The baselines moved anyway, and only because the world gained a
 ninth table; the fold is unchanged and `World.HashSeed` is untouched.
 
-Twenty tests: nine on the Pool, eleven on the predicate, each of the three terms removed on its own.
+**Two things a review of the shipped code changed, both about failing loudly rather than late.**
+Density is inherited from `Rows`'s free list being **LIFO**, which nothing in `Rows` promises — so the
+failure mode is somebody else's edit to a different type. `Join` now returns the position it landed on
+and `World.Unplace` checks it at the write site, so an allocator change fails on the first eviction
+instead of leaving the city under-building for a whole run and reporting it once at the end. And
+`World.Place` is keyed on the **Household handle** rather than the position drawn: `Leave` swaps the
+last member into the vacated slot, so a caller holding two positions and using both would house
+somebody who was never drawn — and because the whole mechanism *is* a draw, that reads as a
+legitimate outcome. The reverse index makes the lookup free, so the safer shape costs nothing.
+
+**A third finding went to `0002` rather than into the code: a Building has no capacity.** Not in
+`BuildingTable`, not in `KindDefinition`, not in the Ruleset — and the two populators already disagree,
+`SyntheticCity` housing 3 Households per Building against growth's 1. Nothing breaks today because an
+occupant list is unbounded and nothing reads its length, which is exactly why it is worth recording:
+the first mechanism that reads occupancy inherits a world whose halves were built to different numbers.
+
+Twenty-two tests: eleven on the Pool, eleven on the predicate with each of the three terms removed on
+its own.
 
 ### 7. Demolish — and failure pressure is a duration, not a tally
 
