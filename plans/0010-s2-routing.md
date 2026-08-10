@@ -1448,10 +1448,22 @@ on 2026-08-09** — the two figures were never the same operation, R2's being th
 was one of four places in the corpus still carrying it open while `spike-results` carried it closed,
 **including R7's own owed-list, which held both states at once.**
 
+**The provenance sweep has run**, and it reclassified its own premise. *Quote from a table* condemns
+three different things at once, and only one of them is a defect in a number: **contradicted** (prose
+disagreeing with a table in the same capture — the R4 verdict block throughout, `23.26×`, R8's *"mean
+journey of order 80"*), **unbacked** (a real figure the harness prints only as prose — most of R8's
+verdicts, R6.4's reverse-index table, and R6.4.3's correction published the same day), and **absent**
+(no artefact at all). **The sweep caught R7 quoting the prose figures in the section that diagnosed
+them** — 2.17× and 64.81× against tables reading 2.31× and 63.86× — and its largest find is that
+**`10.37 ms` has no artefact**: R5's worst Tick at 16 Trip starts, quoted by `plans/0013` as the
+routing row of the Tick budget, by `CLAUDE.md`, and three times on the board. R5 disclosed six unbacked
+figures after a filename collision and this is a seventh that was not on the list. Details and the
+sharpened rule are in [`spike-results`](../docs/spike-results.md) → *The provenance sweep*.
+
 **Still owed:** a **second** `performance` capture, because one is an assertion and two are an error
-bar, and R5.6 and R6.1–R6.4 are all still `powersave`; the **provenance sweep** — 217.36 ms is a
-string literal with no table behind it, and every figure this corpus took from capture *prose* is
-provenance-unknown; **one sentence each** on the three R8 results measured on the District-granular
+bar, and R5.6 and R6.1–R6.4 are all still `powersave`; **re-running R5's worst-Tick sweep** so
+`10.37 ms` either has an artefact or is struck from `0013` and `CLAUDE.md`; **repairing the harness's
+contradicted prose at source** and printing tables for the unbacked figures; **one sentence each** on the three R8 results measured on the District-granular
 tree `adr/0047` deleted, of which `plans/0002` §D's Habit row is the one that cannot keep the word
 *RATIFIED* without it; re-verifying the absolutes R0–R4 publish; **row 5 of the tripwire**, which no
 round owns and which wants a run with a sink and elapsed time in it; and the harness's deletion,

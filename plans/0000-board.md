@@ -641,7 +641,16 @@ and what is left.
       first round that touches it**, not at the report, while a bad row can still be rewritten.
       ~~**Still owed:** the `performance` capture; R2's 474.47 ms reconciliation, which the re-capture
       did *not* close since 217.36 ms reproduces, so R2's figure is the suspect; and the decisions
-      ledger restated as what S2 hands on.~~ **Three of those four are done and one was never owed** —
+      ledger restated as what S2 hands on.~~ **The provenance sweep has since run and found the rule was under-specified** — *quote from a table*
+      condemns **contradicted**, **unbacked** and **absent** figures alike, and only the first is a
+      defect in a number. It caught **R7 quoting prose figures in the section that diagnosed them**
+      (2.17×/64.81× against tables reading 2.31×/63.86×), and its largest find is that **`10.37 ms` has
+      no artefact at all** — R5's worst Tick at 16 Trip starts, which [`0013`](0013-tick-budget.md)
+      carries as **the routing row of the Tick budget** and `CLAUDE.md` quotes. R5 disclosed six
+      unbacked figures after a filename collision; this is a **seventh that was not on the list**, and
+      it is the one every budget document leans on. **Three tables in `spike-results` were also
+      assembled from capture prose**, which is the corpus's own fault rather than the harness's.
+      **Three of those four are done and one was never owed** —
       **R2's reconciliation closed on 2026-08-09** and four documents including R7's own owed-list went
       on carrying it open, that list holding **both states at once**. What remains is a **second**
       `performance` capture, the **provenance sweep** 217.36 ms turns out to need — it is a string
@@ -675,6 +684,18 @@ the spike and slice work left behind as it ran; `0012` is the one-off audit of e
 document against the code. Keep them separate — a debt in two ledgers is the defect `0012` exists to
 diagnose.
 
+- [ ] **`10.37 ms` has no artefact, and it is the routing row of the Tick budget.** Found by S2 R7's
+      provenance sweep. R5's worst Tick at 16 Trip starts appears in **no capture under
+      `spikes/S2.Routing/results/`** — R5 already disclosed that a filename collision destroyed six of
+      its captures and **named six unbacked figures**, and this is a **seventh that was not on the
+      list**. It is quoted by [`0013`](0013-tick-budget.md) **as the routing row**, by `CLAUDE.md`, by
+      [`0011`](0011-rule-engine-bins-and-rules.md), by [`0002`](0002-open-questions.md) and three times
+      on this board. Under `spike-results`'s own rule — *a published absolute with no artefact behind
+      it is not a measurement* — **it may not be quoted until R5's worst-Tick sweep is re-run**. The
+      re-run is cheap and is **not** the same task as the owed `performance` capture. It does not
+      overturn `0013`'s conclusion, which already marks the row's multiplicand *guessed*; what it moves
+      is that the **unit** was unverified too, which is `0013`'s own lesson arriving at `0013`'s own
+      row. `223.92 KiB`, `6.82 ms` and `9.94%` are in the same class and carry less
 - [ ] **S0a's capture is `powersave`, not `performance`** — setting the governor needs root and the
       session did not have it. **Every absolute in that section is an upper bound** and every ratio is
       unaffected, since ratios are taken within one machine state. The one verdict leaning on an

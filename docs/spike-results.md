@@ -5270,8 +5270,8 @@ than merely narrowly.
   121-District anchor and **5.37 ns** at 4,096, against S4's K2 gather at 13.6 ns. `02 §5.8`'s *never
   resolve a route inside the choice loop* remains enforceable. The row-scan/scatter split and the L3
   ceiling on the scattered pattern reproduce unchanged.
-- **R4.** Distance-vector is still out, on the same ground and at nearly the same number: **2.17×** the
-  rebuild it exists to avoid, against the 2.13× recorded. Subtree repair still wins by **64.81×** with
+- **R4.** Distance-vector is still out, on the same ground and at nearly the same number: **2.31×** the
+  rebuild it exists to avoid, against the 2.13× recorded. Subtree repair still wins by **63.86×** with
   0 entries wrong, the memory wire still does not fire at District granularity (23.12 MiB, bit-identical
   to the recorded figure), and node granularity is still 3.11 GiB and 18.51× the world.
 
@@ -5351,6 +5351,14 @@ has found in its own reporting, after the mislabelled section filenames, the mac
 asserted a pinning it never read, and R5.5's denominator-free comparison — and it is the same shape as
 all three: **the part of a report a human wrote is the part that does not get re-measured.**
 
+> **The sweep this paragraph asked for has since run — see *The provenance sweep* below — and it
+> caught this section committing the defect twice.** The bullet in *What did not move* and row 7 of
+> the tripwire table both quoted **2.17×** and **64.81×**, which are the *prose* figures named two
+> paragraphs above as unreliable. Both are corrected to the table's **2.31×** and **63.86×**. The
+> paragraph *"nothing here moves a conclusion"* was true of the numbers and false of the practice:
+> **stating a rule in the same breath as breaking it is how a rule fails to take**, and the sweep is
+> what a rule needs instead of a sentence.
+
 ### Against the tripwire — every row, and the three that could not be scored as written
 
 `plans/0010`'s wire has **seven rows**, written before any number arrived, on S4's stated practice:
@@ -5368,7 +5376,7 @@ a decision, and row 1 clears its threshold by two orders of magnitude.
 | 4 | An attribution scheme cannot report a jam **within its cycle** | **FIRES — harder than written** | R2b: the aggregate scheme's lag is **`never`**. It does not report the jam late; it does not report it at all, and `never` appears at a **one-Tick cycle** where no cadence is left to blame |
 | 5 | The route cache **grows at steady state** with no bound | **UNSCORABLE** | Nothing in S2 tests it. See below |
 | 6 | The congestion loop **does not close** under Sight | **does not fire** | R8.5: both bound 5/5, and Sight settles **42.62% below** the control against a 5.00% bar. Static Habit survives as the null hypothesis |
-| 7 | DSDV's tables exceed the world's **172.3 MiB** | **does not fire, at the granularity the design can use** | **23.12 MiB / 0.13×** at 121 Districts; **3.11 GiB / 18.51×** at node granularity. Distance-vector went out on **cost** instead — 2.17× the rebuild it exists to avoid |
+| 7 | DSDV's tables exceed the world's **172.3 MiB** | **does not fire, at the granularity the design can use** | **23.12 MiB / 0.13×** at 121 Districts; **3.11 GiB / 18.51×** at node granularity. Distance-vector went out on **cost** instead — 2.31× the rebuild it exists to avoid (*corrected by the provenance sweep from a prose-sourced 2.17×*) |
 
 **Three fire, three do not, and one cannot be scored. That last count is the finding.**
 
@@ -5586,6 +5594,69 @@ figure and used that to convict R5.5.4, and the plausibility argument was sound 
 harness was not drawing. **A magnitude that matches the story being told about it is not evidence
 that the story is right.**
 
+### The provenance sweep, and the three classes it turned out to be
+
+**Run because 217.36 ms was found to be a string literal, on the expectation of finding a handful more.
+It found that the rule as stated — *a figure quoted out of a capture must come from a table* — is
+under-specified, and that the corpus's own presentation is doing more damage than the harness's.**
+
+Every 2-decimal figure in S2's sections was matched against every capture in
+`spikes/S2.Routing/results/`, and each match classified by whether the line it sits on is a markdown
+table row or prose. **781 figures trace to a table. About 50 trace only to prose. 24 trace to
+nothing.** Those three groups are not one defect, and treating them as one is why the rule needed
+sharpening:
+
+| | What it means | What it costs | The fix |
+|---|---|---|---|
+| **Contradicted** | Prose disagrees with a table **in the same capture** | The corpus quotes a wrong number | Interpolate the prose; correct the quote |
+| **Unbacked** | A real measurement the harness prints **only** as prose | Nothing is wrong; nothing is checkable either | Print it as a table |
+| **Absent** | No artefact of any kind | **It is not a measurement** | Re-run, or strike |
+
+**Contradicted — and the worst instance is R7's own.** `VectorReport`'s R4 verdict is a ~120-line
+authored block with a full set of measured values typed into it, and it is a **stale generation**: it
+says 472.53 ms where the canonical table says **450.80**, 3.35 ms where the table says **3.05**,
+**2.17×** where the table says **2.31×**, and **64.81×** where the table says **63.86×**, on top of
+the four copies of the phantom 217.36. **R7 then quoted 2.17× and 64.81× from that prose** — in *What
+did not move*, and again in the tripwire scoring table, which is the section that established the rule
+being broken. The numbers were read off the capture the same way every earlier round had read them,
+which is exactly why the rule was needed and exactly why stating it was not enough. Corrected in both
+places by this sweep.
+
+**Two more contradicted figures, both load-bearing.** `StormReport`'s **23.26×** — R5.2's naive/coalesced
+spelling difference, quoted **ten times** across `spike-results`, `plans/0010` and the board — is prose,
+and the tables it claims to summarise read **23.28×** and **22.61×** in the two retained captures.
+Neither of those appears anywhere in the corpus. And `LoopReport` argues R8's congestion asymmetry
+against *"a mean journey of order 80"*, which was true at the retired **5,000**-Traveller load and is
+**~240** at the 40,000 the round settled on: an arc at the clamp is 14% of a journey rather than 43%,
+so the argument survives with a third of the force it is written with.
+
+**Unbacked is the largest class and mostly is not a defect at all** — a real number the harness happens
+to print in a paragraph. But **three tables in this document were assembled from capture prose**, and
+that is worse than a bare quote, because the corpus's own formatting launders the provenance: R5's
+machine table, R6.4's reverse-index table — which carries **8.15×**, **11.66×** and **1,678.46 MiB**,
+this round's stated largest number — and R8.4's. **R8's verdicts are unbacked as a family**: 87.25% on
+1%, 12.98% of holding capacity, the 14.08% diversion fire rate, 21.64%, **15.59×**, and **92.28%**,
+which `CLAUDE.md` records as a **named ratifier**. All are real and none is checkable against a table.
+**So is R6.4.3's correction, published earlier today**: 13.69%, 42.76% and 95.54% are prose. A
+correction that inherits the defect it corrects is still a correction, and it is also still the defect.
+
+**Absent is where the sweep stopped being an audit of transcription.** Four figures match no capture at
+all, and one of them is the most-quoted routing number in the project. **`10.37 ms` — R5's worst Tick
+at 16 Trip starts — has no artefact**, and it is in [`0013`](../plans/0013-tick-budget.md) as the
+**routing row of the Tick budget**, in `CLAUDE.md`, in `plans/0011`, in `plans/0002` and three times on
+the board. R5 already disclosed that a filename collision destroyed six of its captures and **named
+six figures as unbacked**; 10.37 ms is a seventh and was not on the list, so the disclosure was
+partial in precisely the direction that matters — **the figure that escaped the list is the one the
+budget document quotes.** `223.92 KiB` (twice, once as a verdict), `6.82 ms` and `9.94%` are the other
+three.
+
+**What the sweep changes about the rule.** *Quote from a table* is right and insufficient. The
+sharper form is three sentences: **a figure with no artefact is not a measurement and may not be
+quoted at all**; **a figure printed only as prose may be quoted, and the harness owes a table for it**;
+and **a document may not render prose-sourced figures as a table**, because that is a claim about
+provenance the reader cannot check. The third is new, it is the corpus's own doing rather than the
+harness's, and it is the one instance of this family nobody would have found by reading code.
+
 ### What R7 still owes
 
 - ~~**The `performance` capture.**~~ **TAKEN**, 2026-08-09, all six sections — see above. **What
@@ -5627,7 +5698,30 @@ that the story is right.**
   reproduces"* was never a property of a measurement; **it reproduced because it was retyped**, which
   is exactly the provenance defect recorded under *the canonical capture* and never followed through
   to its instances. **Every figure this corpus took from capture prose rather than from a capture
-  table is provenance-unknown**, and that is a sweep, not a line.
+  table is provenance-unknown**, and that is a sweep, not a line. **THE SWEEP HAS RUN** — see *The
+  provenance sweep* — and what it leaves is below.
+- **`10.37 ms` has no artefact, and it is the routing row of the Tick budget.** The sweep's largest
+  find. R5 disclosed that a filename collision destroyed six captures and **named six unbacked
+  figures**; this is a seventh, it was not on that list, and it is the one
+  [`0013`](../plans/0013-tick-budget.md), `CLAUDE.md`, `plans/0011`, `plans/0002` and the board all
+  quote. Under this document's own rule — *a published absolute with no artefact behind it is not a
+  measurement* — **it may not be quoted until R5's worst-Tick sweep is re-run**, which is cheap and is
+  not the same task as the `performance` re-capture. `223.92 KiB`, `6.82 ms` and `9.94%` are in the
+  same class and carry less.
+- **Three tables in this document were assembled from capture prose** — R5's machine table, R6.4's
+  reverse-index table and R8.4's. The figures are real; the *rendering* claims a provenance they do
+  not have, which is the one member of this family that is the corpus's fault rather than the
+  harness's. Either mark them or make the harness print the tables.
+- **The harness's contradicted prose, repaired at source.** `VectorReport`'s R4 verdict block is a
+  stale generation throughout and should interpolate rather than assert; `StormReport`'s **23.26×** is
+  stale against 23.28×/22.61× and is quoted ten times in the corpus; `LoopReport`'s *"mean journey of
+  order 80"* belongs to a retired load and reads ~240 at the one R8 settled on. Beneath those sit the
+  latent copies — `33,018` three times, `66,036` twice, `64` eleven times **including inside table
+  headers**, and a `1,269` typed beside its own interpolation in the same sentence — each of which has
+  a live source in the same file that the prose declines to read.
+- **R8's verdicts are unbacked as a family**, including the **92.28%** that `CLAUDE.md` records as a
+  named ratifier. Nothing is known to be wrong with them and nothing can be checked against a table,
+  which is a different sentence from the one the constants table is currently carrying.
 - **The row label that carried the R2 resolution is wrong, and the resolution survives it.** *What did
   not move* tabulates R2.1's 195.44 ms beside R4.3's 195.42 ms and R4.4's 194.94 ms as *"121 backward
   Dijkstras — the shared route store build"*, three measurements agreeing to **0.3%**. R2.1's rung is
