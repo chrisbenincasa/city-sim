@@ -32,8 +32,20 @@ See *What planning found*.
 
 ## Status
 
-**Not started.** The gate is clear. **The implementation is deliberately not started yet** — see
-*The parallel session*, immediately below, which is a scheduling constraint rather than a dependency.
+**Task 1 shipped.** The gate is clear and slice 10 has closed, so *The parallel session*'s scheduling
+constraint is discharged.
+
+- **Task 1** — the swap, at the top of Phase 0. **Decision owed 1 is settled as recommended** and
+  asserted rather than assumed: the swap runs first, so a Tick has exactly one Ruleset. **It shipped
+  narrower than the task describes, and the narrowing is the finding**: a reload may move **numbers**
+  and may not move **structure**, where the deciding test is *what live state points at it* — which
+  is precisely the width `adr/0015`'s acceptance test asks for, since a production ratio is a number.
+  A structural reload is **refused by name** until tasks 4–6, and two refusals nobody planned turned
+  out to be load-bearing: a transition this session cannot resolve, and a catalogue that does not open
+  with the world's own Ruleset.
+- **Next: task 2** — the transition in the Input Log, and `RulesetHashAt` stopping discarding its
+  argument. Everything task 1 built is driven directly through `TickInput` today; task 2 is what lets
+  a *log* express a reload, and it changes the log format.
 
 ---
 
@@ -270,7 +282,7 @@ as world-creation-fixed *by argument*, citing `adr/0015` without running the mem
 
 ## Tasks
 
-### 1. The swap, at the top of Phase 0 — and there is no new verb
+### 1. The swap, at the top of Phase 0 — and there is no new verb — **done**
 
 **`CommandKind` gains nothing and `Command` is not widened.** *What planning found*, item 3, is the
 whole argument; what follows is what gets built.
@@ -289,6 +301,49 @@ which is the whole of what S0a's finding 1 demanded of `Populate`.
 
 `Core` cannot turn a hash into Rules, so the Rulesets a session references are supplied to it up
 front. `RulesetInForce` (built, unreferenced) is the holder for the one currently live.
+
+#### What building it changed — **done**
+
+**Decision owed 1 is settled as recommended: the swap runs first, and a Tick has exactly one
+Ruleset.** It is asserted rather than merely written down —
+`The_commands_in_the_reloading_tick_run_under_the_new_rules` observes it through Bin capacity, which
+is the one Ruleset number a command's effect reads immediately, so the two orderings are
+distinguishable rather than a matter of taste.
+
+**Task 1 shipped a narrower swap than the task describes, and the narrowing is the finding.** A
+reload today may move **numbers** and may not move **structure**, and the line between them is not the
+obvious one. `RulesetShape.Compare` decides each field by asking **what live state points at it**: a
+Bin row holds a Resource id, a Rule Instance holds a Rule id, a Building holds a kind, so those are
+structure — and a rate, a capacity, a quantity, an apply band and a condemnation threshold are only
+ever read *through* a row, so they are numbers. That test is what puts `ApplyCount.IsDerived` on the
+**safe** side despite the engine branching on it, and the Bin's Resource on the unsafe side despite
+the capacity beside it being free to move.
+
+**Which is exactly the width `adr/0015`'s acceptance test asks for.** Its one sentence is *changing a
+production ratio and seeing the effect must take seconds*, and a production ratio is a number. So
+task 1 is not a partial implementation of reload — it is the whole of the case the ADR names, with
+the migration case refused by name until tasks 4–6 build the degradations. The refusal is `adr/0015`'s
+own polarity: its revisit trigger names **silently ignoring** as the failure mode.
+
+**Two refusals turned out to be load-bearing and neither was in the plan.**
+
+- **A transition this session cannot resolve throws.** `Core` cannot turn a hash into Rules, so a
+  session is handed a `RulesetCatalogue` up front — which makes *"`--ruleset PATH` names one file and
+  a session that reloaded twice was played against three"* (`InputLog.cs:131`) a **refusal** rather
+  than a divergence. An empty catalogue is `RulesetCatalogue.None` rather than a null, precisely so
+  that a run meeting a transition with no Rules to swap to is told so.
+- **A catalogue whose opening entry is not the Ruleset the `World` holds is refused at
+  construction.** Otherwise the first reload swaps *away* from Rules the city had never been running —
+  a divergence with no symptom, because both Rulesets load and both run.
+
+**The safe half of the shape test is the half that would rot, and it is tested by name.** A missing
+refusal is caught the first time somebody reloads a real migration and the world corrupts. A refusal
+that is too **broad** has no symptom at all: a designer is told a tuning change is a migration, and
+nobody ever finds out it was not. So every field that may move has a case in `RulesetShapeTests`
+saying so, and that file is the list to re-run when the Ruleset grows a field.
+
+**Nothing existing moved.** `RulesetCatalogue.None` is the default, so every world built before today
+behaves exactly as it did and no baseline was touched. 27 new tests; 710 total.
 
 ### 2. The transition in the Input Log, and filling in `RulesetHashAt`
 
@@ -454,12 +509,14 @@ and the same instinct that produced `minimal.toml` in the first place.
 
 ## Decisions owed, found while planning
 
-**1. Whether the Tick's commands run under the old Rules or the new ones.** *Which* boundary is not a
-question — `02 §4.3` says *"a phase boundary"*, and Phase 0 is the only one that is also the door, so
-the constraints intersect in one place. What is genuinely open is the ordering **within** Phase 0.
-Recommended: swap first, so a Tick has exactly one Ruleset — which is what `RulesetHashAt(tick)`'s
-signature already promises, and a promise in a signature is cheaper to keep than to explain away.
-Arguable, cheap, and it is hash-bearing, so it wants recording rather than assuming.
+**~~1. Whether the Tick's commands run under the old Rules or the new ones.~~ SETTLED — task 1, as
+recommended: swap first.** *Which* boundary was never a question — `02 §4.3` says *"a phase
+boundary"*, and Phase 0 is the only one that is also the door. What was open was the ordering
+**within** Phase 0, and the swap runs before the commands, so a Tick has exactly one Ruleset — which
+is what `RulesetHashAt(tick)`'s signature already promised, and a promise in a signature is cheaper
+to keep than to explain away. **It is asserted rather than recorded**: a Building raised by a command
+in the reloading Tick carries the *new* Ruleset's Bin capacity, so the two orderings are
+distinguishable by a test rather than only by argument.
 
 *(The question this replaces — whether a reload needs a new `CommandKind` — was retired during
 planning rather than filed. See *What planning found*, item 3.)*

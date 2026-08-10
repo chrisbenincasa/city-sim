@@ -169,7 +169,31 @@ public sealed class World
     /// Ruleset arrives already validated or not at all. Slice 8 makes it swappable at a phase boundary;
     /// this slice loads one at world creation and leaves it.
     /// </remarks>
-    public Ruleset Rules { get; }
+    public Ruleset Rules { get; private set; }
+
+    /// <summary>
+    /// Puts a different Ruleset in force. Slice 8's swap, and the only way <see cref="Rules"/> moves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Internal, so the door stays one door.</b> A reload reaches the world through Phase 0 like
+    /// everything else (<c>Simulation.Step</c>), which is what keeps the Input Log a complete
+    /// description of a session. A public setter would let a shell swap Rules between Ticks, and a
+    /// replay would reproduce the commands and not the city.
+    /// </para>
+    /// <para>
+    /// <b>It changes no row, and that is a precondition rather than a description.</b> Slice 8 task 1
+    /// admits only a replacement that is structurally identical (<see cref="RulesetShape"/>), because
+    /// the degradations that make a structural swap safe — derelict Buildings, dropped Bins, wait
+    /// lists re-armed — are tasks 4–6. The caller checks; this method trusts.
+    /// </para>
+    /// </remarks>
+    internal void Adopt(Ruleset rules)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+
+        Rules = rules;
+    }
 
     /// <summary>Every table, in the declaration order the hash folds them in.</summary>
     public ReadOnlySpan<Rows> Tables => _tables;

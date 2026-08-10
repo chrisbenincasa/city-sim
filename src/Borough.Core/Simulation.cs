@@ -38,20 +38,56 @@ public sealed class Simulation
     private readonly WorldKey _key;
     private readonly RuleEngine _rules;
     private readonly ZoneRuleEngine _zoning;
+    private readonly RulesetCatalogue _rulesets;
 
     private ulong _tick;
     private TickPhase _phase = TickPhase.Commit;
+    private ulong _inForce;
+    private bool _opened;
+    private int _reloads;
 
     /// <param name="world">The tables this advances. Not copied; the Simulation does not own it.</param>
     /// <param name="key">The world seed, already folded. The first coordinate of every draw.</param>
     public Simulation(World world, WorldKey key)
+        : this(world, key, RulesetCatalogue.None)
+    {
+    }
+
+    /// <inheritdoc cref="Simulation(World, WorldKey)"/>
+    /// <param name="world">The tables this advances. Not copied; the Simulation does not own it.</param>
+    /// <param name="key">The world seed, already folded. The first coordinate of every draw.</param>
+    /// <param name="rulesets">
+    /// Every Ruleset this session references, by content hash, opening one first. Slice 8's reload
+    /// resolves a transition out of this and never out of a file.
+    /// </param>
+    /// <remarks>
+    /// <b>Supplied up front because <c>Core</c> cannot turn a hash into Rules</b> — see
+    /// <see cref="RulesetCatalogue"/>. A session that never reloads passes
+    /// <see cref="RulesetCatalogue.None"/> and behaves exactly as it did before slice 8, which is what
+    /// keeps every existing golden baseline meaningful.
+    /// </remarks>
+    public Simulation(World world, WorldKey key, RulesetCatalogue rulesets)
     {
         ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(rulesets);
+
+        if (rulesets.Count > 0 && !ReferenceEquals(rulesets.Opening, world.Rules))
+        {
+            // The catalogue's first entry is what the world opened with, and a catalogue that
+            // disagreed would make the first reload swap *away* from Rules the city had never been
+            // running — a divergence with no symptom, because both Rulesets load and both run.
+            throw new ArgumentException(
+                "the catalogue's opening Ruleset is not the one this World holds. The first entry "
+                + "names the Rules the world was created with; a reload is a transition away from "
+                + "them.",
+                nameof(rulesets));
+        }
 
         _world = world;
         _key = key;
         _rules = new RuleEngine(world, key);
         _zoning = new ZoneRuleEngine(world, key);
+        _rulesets = rulesets;
     }
 
     /// <summary>The tables this Simulation advances.</summary>
@@ -123,6 +159,7 @@ public sealed class Simulation
     {
         Ticks tick = new(_tick);
 
+        Reload(input, tick);
         ApplyInput(input, tick);
         Wake(tick);
         Decide(tick);
@@ -133,6 +170,88 @@ public sealed class Simulation
         Commit(tick);
 
         _tick++;
+    }
+
+    /// <summary>How many times the Ruleset in force has changed since this Simulation started.</summary>
+    /// <remarks>
+    /// <b>A count, for <c>RulesetInForce.Refusals</c>'s reason turned the other way up.</b> That one
+    /// climbs when a designer is fighting the file format; this one climbs when a designer is
+    /// *tuning*, which is <c>adr/0015</c>'s success condition rather than its failure one. It is also
+    /// what a crash artifact needs to say how many Rulesets a session was played against.
+    /// </remarks>
+    public int Reloads => _reloads;
+
+    /// <summary>The content hash of the Ruleset in force, or 0 before the first Tick.</summary>
+    public ulong RulesetInForce => _inForce;
+
+    /// <summary>
+    /// The top of Phase 0: put a different Ruleset in force, if this Tick names one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Before the commands, not after, and a Tick has exactly one Ruleset.</b> That is what
+    /// <c>InputLog.RulesetHashAt(tick)</c>'s signature already promises — it answers per Tick, not per
+    /// command — so the commands in the Tick that reloads are applied under the **new** Rules. The
+    /// alternative reading, swap after, would make a Tick's meaning depend on where in the Tick you
+    /// asked.
+    /// </para>
+    /// <para>
+    /// <b>There is no new verb, and <c>Command</c> was not widened.</b> A reload is a *transition*
+    /// rather than an event: <c>TickInput.RulesetHash</c> is populated every Tick and was read by
+    /// nothing until now, and <c>Command</c> is 12 bytes and could not have carried a hash anyway. The
+    /// door argument is satisfied rather than weakened — <c>TickInput</c> **is** Phase 0's input, so
+    /// nothing reaches in from outside a Tick and a replay reproduces the transition by construction.
+    /// </para>
+    /// <para>
+    /// <b>The first Tick establishes the hash in force rather than swapping.</b> A World is
+    /// constructed with its opening Ruleset and the log's first Tick names it; treating that as a
+    /// transition would make every session that ever ran reload on Tick 0.
+    /// </para>
+    /// </remarks>
+    private void Reload(in TickInput input, Ticks tick)
+    {
+        _phase = TickPhase.Input;
+
+        if (!_opened)
+        {
+            _inForce = input.RulesetHash;
+            _opened = true;
+            return;
+        }
+
+        if (input.RulesetHash == _inForce)
+        {
+            return;
+        }
+
+        if (!_rulesets.TryResolve(input.RulesetHash, out Ruleset replacement))
+        {
+            // adr/0015's polarity: its revisit trigger names *silently ignoring* as the failure mode,
+            // so a transition this session cannot resolve says so rather than running on regardless.
+            throw new InvalidOperationException(
+                $"Tick {tick.Raw} names Ruleset 0x{input.RulesetHash:X16} and this session was given "
+                + $"{_rulesets.Count} Ruleset(s), none of which is it. A reload is resolved out of "
+                + "the catalogue supplied to the Simulation, because Core cannot read a file.");
+        }
+
+        RulesetChange change = RulesetShape.Compare(_world.Rules, replacement);
+
+        if (change != RulesetChange.None)
+        {
+            // The named hole, and it is named after the tasks that fill it. A structural swap needs
+            // the degradations — derelict Buildings, dropped Bins, wait lists re-armed on slice 7's
+            // stagger — and performing half of one would corrupt a save during a balance session,
+            // which is the exact failure adr/0015 exists to prevent.
+            throw new NotSupportedException(
+                $"Tick {tick.Raw} reloads to a structurally different Ruleset ({change}), and the "
+                + "degradations that make that safe are slice 8 tasks 4-6. Today a reload may move "
+                + "numbers — rates, capacities, quantities, apply bands, thresholds, intervals — and "
+                + "may not add, remove or repurpose anything a row can point at.");
+        }
+
+        _world.Adopt(replacement);
+        _inForce = input.RulesetHash;
+        _reloads++;
     }
 
     /// <summary>Phase 0 — apply the player's commands.</summary>
