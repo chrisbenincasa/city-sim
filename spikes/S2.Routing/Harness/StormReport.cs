@@ -208,13 +208,13 @@ internal static class StormReport
         Mark("R5.1 the gesture");
         AppendGestures(report, graph, storm, segmentArcs);
         Mark("R5.2 the repair");
-        AppendRepair(report, graph, reverse, storm);
+        string spellingRatio = AppendRepair(report, graph, reverse, storm);
         Mark("R5.3 the Epoch ladder");
         AppendLadder(report, graph, reverse, storm);
         Mark("R5.4 the addition");
         AppendAddition(report, graph, reverse, storm);
         Mark("R5.5 the path source");
-        AppendPathSource(report, graph, reverse, storm, segmentArcs);
+        AppendPathSource(report, graph, reverse, storm, segmentArcs, spellingRatio);
 
         return report.ToString();
     }
@@ -348,7 +348,13 @@ internal static class StormReport
         long NaiveWorst,
         long RebuildNanoseconds);
 
-    private static void AppendRepair(
+    /// <summary>
+    /// R5.2. Returns the peak naive-over-coalesced ratio it measured, because R5.5.1 is written
+    /// about that number and used to carry a hand-typed copy of it: the prose said 23.26x while
+    /// this table read 23.28x and 22.61x in the two retained captures, and the corpus quoted the
+    /// prose. A figure a later section argues from is returned by the section that measures it.
+    /// </summary>
+    private static string AppendRepair(
         StringBuilder report, RoadGraph graph, ReverseArcs reverse, EditStorm storm)
     {
         report.AppendLine("### R5.2 — what a gesture costs to repair, against a rebuild");
@@ -459,6 +465,30 @@ internal static class StormReport
             + $"gesture is one player action and a quantile over eight of them would hide the "
             + $"event S4's K6 was about."));
         report.AppendLine();
+
+        // Compared as a scaled ratio per row rather than by cross-multiplying two timings, which
+        // would square a nanosecond count: at 3 s a row the product reaches long.MaxValue, and the
+        // whole point of this repair is not to leave that kind of headroom unexamined.
+        long peakHundredths = -1;
+        long peakNaive = 0;
+        long peakCoalesced = 1;
+        foreach (var row in rows)
+        {
+            if (row.CoalescedNanoseconds <= 0)
+            {
+                continue;
+            }
+
+            long hundredths = (row.NaiveNanoseconds * 100) / row.CoalescedNanoseconds;
+            if (hundredths > peakHundredths)
+            {
+                peakHundredths = hundredths;
+                peakNaive = row.NaiveNanoseconds;
+                peakCoalesced = row.CoalescedNanoseconds;
+            }
+        }
+
+        return Ratio(peakNaive, peakCoalesced);
     }
 
     private static Repaired MeasureRepair(
@@ -1261,7 +1291,10 @@ internal static class StormReport
             + $"load-bearing rather than decorative."));
         report.AppendLine();
 
-        AppendPathSource(report, graph, reverse, storm, segmentArcs);
+        // This entry point runs R5.5 alone, so R5.2's table is not in this capture and there is
+        // no measured spelling ratio to hand on. Null rather than a placeholder number: R5.5.1
+        // says so in words instead of printing a figure this run did not take.
+        AppendPathSource(report, graph, reverse, storm, segmentArcs, spellingRatio: null);
 
         return report.ToString();
     }
@@ -1271,7 +1304,8 @@ internal static class StormReport
         RoadGraph graph,
         ReverseArcs reverse,
         EditStorm storm,
-        SegmentArcs segmentArcs)
+        SegmentArcs segmentArcs,
+        string? spellingRatio)
     {
         var clusters = Clusters.Partition(graph, LadderCluster);
         var districts = Districts.Partition(graph, PathSourceDistricts);
@@ -1295,7 +1329,8 @@ internal static class StormReport
 
         Mark("R5.5.1 the edit response");
         AppendEditResponse(
-            report, graph, reverse, vectorArcs, storm, segmentArcs, clusters, districts);
+            report, graph, reverse, vectorArcs, storm, segmentArcs, clusters, districts,
+            spellingRatio);
 
         Mark("R5.5.2 the storm");
         AppendPathStorm(
@@ -1316,7 +1351,8 @@ internal static class StormReport
         EditStorm storm,
         SegmentArcs segmentArcs,
         Clusters clusters,
-        Districts districts)
+        Districts districts,
+        string? spellingRatio)
     {
         report.AppendLine("### R5.5.1 — the edit response, which is what the player is waiting for");
         report.AppendLine();
@@ -1328,14 +1364,20 @@ internal static class StormReport
             + "because the player is holding the mouse button down while it happens. This table is "
             + "that quantity, per rung, swept over the gesture sizes R5.1 established the shape of.");
         report.AppendLine();
-        report.AppendLine(
-            "**The naive columns exist because R5.2 found a 23.26× spelling difference and this is "
-            + "where that finding is tested for generality.** `RepairSubtree` takes a changed-arc "
-            + "set, so it has a coalesced spelling and a per-Segment one, exactly as `AbstractGraph` "
-            + "did. If looping it per deleted Segment over a drag is a catastrophe too, then *a "
-            + "per-edit repair API invites the loop that produces it* stops being a routing note and "
-            + "becomes a corpus-wide rule about API shape. If it is not, R5.2's finding is a "
-            + "property of a cluster's edge set and belongs to the hierarchy alone.");
+        string spellingClause = spellingRatio is null
+            ? "a spelling difference large enough to matter — R5.2 does not run in this capture, "
+                + "so its ratio is not restated here"
+            : $"a {spellingRatio} spelling difference";
+
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"**The naive columns exist because R5.2 found {spellingClause} and this is "
+            + $"where that finding is tested for generality.** `RepairSubtree` takes a changed-arc "
+            + $"set, so it has a coalesced spelling and a per-Segment one, exactly as `AbstractGraph` "
+            + $"did. If looping it per deleted Segment over a drag is a catastrophe too, then *a "
+            + $"per-edit repair API invites the loop that produces it* stops being a routing note and "
+            + $"becomes a corpus-wide rule about API shape. If it is not, R5.2's finding is a "
+            + $"property of a cluster's edge set and belongs to the hierarchy alone."));
         report.AppendLine();
         report.AppendLine(
             "**Two rungs have no naive spelling and the reason differs.** The cache rungs repair the "
@@ -3587,8 +3629,10 @@ internal static class StormReport
 
     /// <summary>
     /// Every arc a gesture deletes, coalesced into one buffer. <b>The whole gesture at once is the
-    /// point</b> — R5.2 found the per-edit spelling costing 23.26× the coalesced one at the
-    /// hierarchy, and R5.5.1 exists to find out whether that generalises.
+    /// point</b> — R5.2 found the per-edit spelling costing an order of magnitude more than the
+    /// coalesced one at the hierarchy, and R5.5.1 exists to find out whether that generalises. The
+    /// ratio is deliberately not quoted here: it is measured per run and per rung by AppendRepair,
+    /// which returns it, and a doc comment cannot be kept honest by anything.
     /// </summary>
     private static int ChangedArcs(SegmentArcs segmentArcs, Gesture gesture, int[] into)
     {

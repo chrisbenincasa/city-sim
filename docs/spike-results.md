@@ -5773,6 +5773,65 @@ wrong: it is a real value from the real table, **read off the wrong row**. That 
 sweep could not have detected in principle, and it is the reason the re-run was worth its cost quite
 apart from the retraction that prompted it.
 
+### What repairing the prose at source then found
+
+**The repair was not the fix it looked like, because the defect was structural rather than careless.**
+`AppendVerdict` took a `StringBuilder` and nothing else. Every section computed its numbers, printed a
+table and discarded them, so the verdict **had no measurement available to cite even in principle** —
+a hand-typed figure was the only thing it could contain, and going stale was the default rather than
+the accident. The three sites are repaired by giving each verdict the measurements its own sections
+took: R4 carries a `Measured` record, R5.2 *returns* the peak spelling ratio that R5.5.1 argues from,
+and R8's asymmetry paragraph reads the mean journey out of the sweep it is describing. **A figure a
+later section argues from is now returned by the section that measures it.**
+
+**Regenerating R4 then found two errors the provenance sweep could not have reached**, because the
+sweep compares the corpus against captures and neither can see a capture whose own prose disagrees
+with its own table. The verdict said the detour ladder rises *"to 36.04% at a **4.1 km** mean, 62.02%
+at **2.6 km** and 128.82% at **1.5 km**"*. R4.1's table, four sections above it in the same file,
+reads **5.24 km, 3.30 km and 1.83 km** — the prose was wrong about every trip length by 20–30%. And
+the ladder has **four** rungs, not three: monocentric at 7.22 km and 24.97% was simply omitted. The
+generated sentence now names all four and reads their lengths from the table.
+
+**Neither error reached the corpus, and the reason is the rule that was already in force.**
+`spike-results` transcribed R4.8's *table*, which carries the correct lengths in its own column, and
+`plans/0010`'s mirror quotes the three percentages with no lengths at all. **Quote from a table**
+contained a defect that nobody had detected, in the document that stated it. That is the first
+evidence the rule pays for itself rather than merely sounding right.
+
+**What reproduced exactly is the other half of the finding.** The regenerated verdict's deterministic
+quantities are identical to the stale prose's — 215,894,753 relaxations against 133,258, 16,684 of
+16,697 entries wrong, 121 rounds — while every timing moved (472.53 → 433.33 ms, 217.36 → 197.56,
+2.17× → 2.19×, 64.81× → 63.52×). **So the staleness was confined to the machine-dependent figures and
+to the two errors above**, and a counter-based spike is legible in exactly the way it was built to be:
+what should reproduce does, and what should not is visibly the thing that moved.
+
+#### The audit that followed, because one defect of a kind is a question about the kind
+
+**The overflow class is closed.** `HabitReport`'s `(before - after) * 10_000` in `int` over Q16.16
+costs was found and fixed earlier in this session; the same shape was then swept across the whole
+spike. Six sites scale a travel-time difference before dividing — `VectorReport`'s detour ladder,
+`KeyReport`'s, `TrafficReport`'s two error columns and `StormReport`'s three — and **every one of them
+is safe**, because each carries a `long` operand or an explicit `(long)` cast placed for that reason.
+`VectorReport`'s is the closest call and the most instructive: `long followed = (long)viaTable + …` is
+what keeps R4.8's 128.82% honest. Without that one cast the ladder wraps above a **4.58%** detour on
+the uniform rung and **14.11%** on the shortest — thresholds set by each rung's own mean journey,
+because the wrap point is `2³¹ ÷ 10,000` against a Q16.16 cost — and **every published rung sits above
+its own threshold**, so the whole table would have been wrong rather than a corner of it. The lint this wants is *a Q16.16 quantity scaled in 32 bits*, and the spike does not have one.
+
+**The hand-typed-measurement class is smaller than feared.** Every decimal figure carrying a unit
+inside report prose, across all fourteen report files, is **eighteen literals** — and all but one are
+legitimate: external citations that belong to another round (S4's 172.3 MiB, R2's 474.47 ms and
+7.70 MiB, R1's 4.06 GiB), constants in table headers (15.6 ms, 10.55 s), or the defect narratives,
+whose numbers describe harness states that no longer exist and which **no live measurement can
+reproduce by construction**. The remaining one is `MatrixReport`'s *"this row's ~1.5 ms"*, hedged with
+a tilde and never quoted by the corpus.
+
+**And the structural hole exists in one other place without having been exploited.**
+`TrafficReport.AppendVerdict(StringBuilder report)` has the same signature R4's did — it can cite
+nothing — but R2's verdict happens to contain **no figures at all**, being entirely argumentative. So
+no correction is owed there. It is recorded because the shape is the risk and the emptiness is luck:
+the next figure anybody adds to that block will be a typed one, and nothing would stop it.
+
 ### What R7 still owes
 
 - ~~**The `performance` capture.**~~ **TAKEN**, 2026-08-09, all six sections — see above. **What
@@ -5836,13 +5895,16 @@ apart from the retraction that prompted it.
   reverse-index table and R8.4's. The figures are real; the *rendering* claims a provenance they do
   not have, which is the one member of this family that is the corpus's fault rather than the
   harness's. Either mark them or make the harness print the tables.
-- **The harness's contradicted prose, repaired at source.** `VectorReport`'s R4 verdict block is a
-  stale generation throughout and should interpolate rather than assert; `StormReport`'s **23.26×** is
-  stale against 23.28×/22.61× and is quoted ten times in the corpus; `LoopReport`'s *"mean journey of
-  order 80"* belongs to a retired load and reads ~240 at the one R8 settled on. Beneath those sit the
-  latent copies — `33,018` three times, `66,036` twice, `64` eleven times **including inside table
-  headers**, and a `1,269` typed beside its own interpolation in the same sentence — each of which has
-  a live source in the same file that the prose declines to read.
+- ~~**The harness's contradicted prose, repaired at source.**~~ **DONE**, and the repair found two
+  defects the sweep structurally could not — see *What repairing the prose at source then found*.
+  `VectorReport`'s R4 verdict block was a stale generation throughout; `StormReport`'s **23.26×** was
+  stale against 23.28×/22.61× and quoted ten times in the corpus; `LoopReport`'s *"mean journey of
+  order 80"* belonged to a retired load and reads ~240 at the one R8 settled on. All three now
+  interpolate what their own sections measured. Beneath those sit the latent copies — `33,018` three
+  times, `66,036` twice, `64` eleven times **including inside table headers**, and a `1,269` typed
+  beside its own interpolation in the same sentence — each of which has a live source in the same file
+  that the prose declines to read. **Those are still owed**, and they are a smaller class than they
+  look: a count that has not changed since R0 goes stale silently rather than loudly.
 - **R8's verdicts are unbacked as a family**, including the **92.28%** that `CLAUDE.md` records as a
   named ratifier. Nothing is known to be wrong with them and nothing can be checked against a table,
   which is a different sentence from the one the constants table is currently carrying.

@@ -1077,7 +1077,9 @@ diagnose.
       retained captures. (*The sweep also accused `10.37 ms` here and was wrong — see the Owed entry
       above.*) **Half a debt about unbacked figures was discharged in an unbacked figure**, and
       nothing noticed because
-      the discharge quoted a capture — just not a table in one
+      the discharge quoted a capture — just not a table in one. **`23.26×` is now repaired at source**:
+      R5.2 returns the peak ratio it measures and R5.5.1 interpolates it, so the two cannot disagree
+      again
 - [ ] **Every earlier `performance` capture in S2 carries a one-processor artefact — NEW, produced by
       R5's canonical capture.** `routing-run.sh` pinned with `taskset -c 2`, one logical processor
       with the SMT sibling idle, which starves the .NET tiered JIT's background compilation of

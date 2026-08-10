@@ -1482,6 +1482,30 @@ Horizon 1 and published a total its own addends miss by 0.40 points — a real v
 **read off the wrong row**. **Absence of the literal is not absence of the measurement**, which is the
 retraction's lesson arriving one layer up.
 
+**The harness's contradicted prose is then repaired at source, and the repair was the finding.** The
+defect was structural: `AppendVerdict` took a `StringBuilder` and nothing else, so a verdict **could
+not cite a measurement even in principle** and a hand-typed figure was the only thing it could hold.
+R4 now carries a `Measured` record, R5.2 *returns* the peak spelling ratio R5.5.1 argues from, and
+R8's asymmetry paragraph reads its mean journey out of the sweep it describes. **Regenerating R4 then
+found two errors no sweep could reach** — the corpus is compared against captures, and neither can see
+a capture whose prose disagrees with its own table. The verdict's detour ladder named trip lengths of
+*4.1, 2.6 and 1.5 km* where R4.1's table four sections above reads **5.24, 3.30 and 1.83 km**, and it
+omitted a fourth rung entirely. **Neither reached the corpus**, because `spike-results` transcribed
+the table and this plan's mirror quotes the percentages with no lengths at all — which is the first
+time *quote from a table* has demonstrably contained a defect rather than merely sounded right. What
+reproduced exactly is the other half: every deterministic quantity in the regenerated verdict is
+identical and every timing moved, so the staleness was confined to the machine-dependent figures.
+
+**The audit that followed closes two classes and opens no new ones.** The `int`-overflow shape that
+bit `HabitReport` was swept across the spike: six sites scale a travel-time difference before
+dividing and **all six are safe**, each carrying a `long` operand or a deliberate cast — without the
+one in `VectorReport`, R4.8's ladder wraps above a **4.58%** detour on the uniform rung and **14.11%**
+on the shortest, and every published rung sits above its own threshold. And every unit-carrying
+decimal typed into report prose across all fourteen files is **eighteen literals**, of which all but
+one are external citations, table-header constants, or defect narratives describing harness states no
+live measurement can reproduce. **`TrafficReport.AppendVerdict` still has the hole** — it can cite
+nothing — but R2's verdict contains no figures at all, so the emptiness is luck rather than design.
+
 **Still owed:** a **second** `performance` capture, because one is an assertion and two are an error
 bar, and R5.6 and R6.1–R6.4 are all still `powersave`; **re-running R5's worst-Tick sweep** so
 `10.37 ms` either has an artefact or is struck from `0013` and `CLAUDE.md`; **repairing the harness's

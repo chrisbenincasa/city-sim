@@ -1681,6 +1681,13 @@ internal static class LoopReport
 
     // --- R8.3 --------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// One arc held at the BPR clamp, in Q16.16 Ticks. Derived from the two constants the paragraph
+    /// below states rather than typed a third time: BPR at β = 4 with α = 0.15 and v/c capped at
+    /// 4.00 is 1 + 0.15 × 4⁴ = 39.4× free-flow, and a Street's free-flow is 0.87 Ticks.
+    /// </summary>
+    private static readonly long SaturatedArcTicks = (87L * 394 * Fixed.One) / 1000;
+
     private static int AppendSweep(
         StringBuilder report, List<LoopOutcome> sweep, int floor, int load)
     {
@@ -1810,18 +1817,25 @@ internal static class LoopReport
                 + "unsupported, because the column it stood on no longer says what it said. Sight "
                 + "behaves like a monotone knob on the distribution, which is what `adr/0046` "
                 + "claims for it."
-            : "**On p99, `v/c` still does not fall monotonically in `N`, so the asymmetry argument "
-                + "survives the change of statistic and is worth naming.** BPR at β = 4 with "
-                + "`α = 0.15` and the ratio clamped at 4.00 makes one saturated arc **39.4× its "
-                + "free-flow time** — a Street that runs in 0.87 Ticks free-flow runs in 34, "
-                + "against a mean journey of order 80. So a lookahead of even two arcs can put more "
-                + "live cost in front of a driver than the free-flow remainder behind it, and the "
-                + "remainder is what makes the branches comparable. Where that happens the "
-                + "comparison is dominated by its live half, the detour is charged at free-flow and "
-                + "looks cheap, and `N` stops behaving like a monotone knob. It is not a defect in "
-                + "the implementation: it is what a live-versus-lagged comparison does when the live "
-                + "half is bounded only by the clamp and the lagged half is not bounded at all, and "
-                + "it is a constraint on the base threshold that nothing in `adr/0046` anticipates.");
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"**On p99, `v/c` still does not fall monotonically in `N`, so the asymmetry "
+                + $"argument survives the change of statistic and is worth naming.** BPR at β = 4 "
+                + $"with `α = 0.15` and the ratio clamped at 4.00 makes one saturated arc "
+                + $"**39.4× its free-flow time** — a Street that runs in 0.87 Ticks free-flow runs "
+                + $"in 34, against a measured mean journey of {Fix(sweep[0].MeanJourneyTicks)} "
+                + $"Ticks at this load, so two saturated arcs of lookahead are "
+                + $"{Percent(2 * 34 * Fixed.One, sweep[0].MeanJourneyTicks)} of the whole trip. "
+                + $"Where the live half is large against the remainder behind it — and the "
+                + $"remainder is what makes the branches comparable — the comparison is dominated "
+                + $"by its live half, the detour is charged at free-flow and looks cheap, and `N` "
+                + $"stops behaving like a monotone knob. It is not a defect in the implementation: "
+                + $"it is what a live-versus-lagged comparison does when the live half is bounded "
+                + $"only by the clamp and the lagged half is not bounded at all, and it is a "
+                + $"constraint on the base threshold that nothing in `adr/0046` anticipates. "
+                + $"**The proportion is printed rather than asserted**: this paragraph once read "
+                + $"*\"a mean journey of order 80\"*, which was true at the retired 5,000-Traveller "
+                + $"load and had been left standing at the load the round settled on."));
         report.AppendLine();
         report.AppendLine(string.Create(CultureInfo.InvariantCulture,
             $"The maximum column is {(monotoneOnMax ? "also monotone" : "**not** monotone")}, which "

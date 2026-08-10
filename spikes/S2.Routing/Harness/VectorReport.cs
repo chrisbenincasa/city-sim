@@ -32,6 +32,56 @@ internal static class VectorReport
     /// <summary>K0's whole-world footprint, the tripwire's threshold.</summary>
     private const long WorldBytes = 180_648_346;
 
+    /// <summary>The Tick budget at 4x, in nanoseconds. 15.6 ms.</summary>
+    private const long TickBudgetNanoseconds = 15_600_000;
+
+    /// <summary>
+    /// What the sections measured, carried forward to the verdict that cites them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The verdict block used to be authored prose with every figure typed into it by hand, and it
+    /// had gone stale: it published 472.53 ms where R4.4's own table read 450.80 ms, 3.35 ms where
+    /// the table read 3.05, 2.17x where the table read 2.31x, and 64.81x against 63.86x. R7's
+    /// provenance sweep then caught the corpus quoting those literals back out of the capture — in
+    /// the same section that had just stated the rule against quoting capture prose.
+    /// </para>
+    /// <para>
+    /// The defect was structural rather than careless. <c>AppendVerdict</c> took a StringBuilder
+    /// and nothing else, so it had no measurement available to cite even in principle, and a
+    /// hand-typed number was the only thing it could contain. Every figure it states about this
+    /// run is now carried here from the section that measured it, so a verdict cannot disagree
+    /// with the table above it.
+    /// </para>
+    /// <para>
+    /// Figures that are deliberately <b>not</b> here: external citations (R2's 474.47 ms build,
+    /// <c>references.md</c>'s claim) belong to another measurement and are quoted as such; and the
+    /// defect narrative's numbers (232 seconds per edit, -8,267.51 ms) describe states of a
+    /// harness that no longer exists, which no live measurement can reproduce by construction.
+    /// </para>
+    /// </remarks>
+    private sealed class Measured
+    {
+        public int Districts;
+        public long DistrictTableBytes;
+
+        public long RebuildPerEdit;
+        public long SequencedPerEdit;
+        public long SubtreePerEdit;
+        public int SequencedWrong;
+        public int SubtreeWrong;
+
+        public long SeveranceSequencedRelaxations;
+        public long SeveranceUnsequencedRelaxations;
+        public long SeveranceSequencedRounds;
+        public int SeveranceUnsequencedWrong;
+        public int SeveranceEntries;
+        public bool SeveranceUnsequencedConverged;
+
+        public readonly string[] MeanTripByRung = new string[OdDistribution.Rungs.Length];
+        public readonly string[] DetourByRung = new string[OdDistribution.Rungs.Length];
+    }
+
     public static string Run()
     {
         var report = new StringBuilder();
@@ -67,23 +117,25 @@ internal static class VectorReport
         var distribution = new OdDistribution(graph, sampler);
         var anchor = Districts.Partition(graph, AnchorPerSide);
 
+        var measured = new Measured { Districts = anchor.Count };
+
         Mark("AppendDistribution");
-        AppendDistribution(report, graph, distribution);
+        AppendDistribution(report, graph, distribution, measured);
         Mark("AppendFootprint");
-        AppendFootprint(report, graph);
+        AppendFootprint(report, graph, measured);
         Mark("AppendColdStart");
         AppendColdStart(report, graph, reverse, anchor, freeFlow);
         Mark("AppendEdit");
-        AppendEdit(report, graph, reverse, anchor, freeFlow);
+        AppendEdit(report, graph, reverse, anchor, freeFlow, measured);
         Mark("AppendSeverance");
-        AppendSeverance(report, graph, reverse, anchor, freeFlow);
+        AppendSeverance(report, graph, reverse, anchor, freeFlow, measured);
         Mark("AppendDrift");
         AppendDrift(report, graph, reverse, anchor, freeFlow);
         Mark("AppendRolling");
         AppendRolling(report, graph, reverse, anchor, freeFlow);
         Mark("AppendDetour");
-        AppendDetour(report, graph, reverse, anchor, distribution, freeFlow);
-        AppendVerdict(report);
+        AppendDetour(report, graph, reverse, anchor, distribution, freeFlow, measured);
+        AppendVerdict(report, measured);
 
         return report.ToString();
     }
@@ -96,7 +148,7 @@ internal static class VectorReport
     // ---------------------------------------------------------------- R4.1
 
     private static void AppendDistribution(
-        StringBuilder report, RoadGraph graph, OdDistribution distribution)
+        StringBuilder report, RoadGraph graph, OdDistribution distribution, Measured measured)
     {
         report.AppendLine(
             "### R4.1 — the origin-destination distribution, which S2 has been guessing since R0");
@@ -133,8 +185,9 @@ internal static class VectorReport
             "| Shape | Mean | Median | p90 | Mean route | Draws/pair | Exhausted | Sample |");
         report.AppendLine("|---|---:|---:|---:|---:|---:|---:|---:|");
 
-        foreach (OdRung rung in OdDistribution.Rungs)
+        for (int rungIndex = 0; rungIndex < OdDistribution.Rungs.Length; rungIndex++)
         {
+            OdRung rung = OdDistribution.Rungs[rungIndex];
             OdPair[] pairs = distribution.Draw(
                 CounterHash.Seed, DrawSamples, Modes.Car, rung, out long attempts, out int exhausted);
 
@@ -168,6 +221,7 @@ internal static class VectorReport
             }
 
             int mean = (int)(sum / distances.Length);
+            measured.MeanTripByRung[rungIndex] = Kilometres(mean);
 
             report.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
@@ -193,8 +247,13 @@ internal static class VectorReport
 
     // ---------------------------------------------------------------- R4.2
 
-    private static void AppendFootprint(StringBuilder report, RoadGraph graph)
+    private static void AppendFootprint(StringBuilder report, RoadGraph graph, Measured measured)
     {
+        // The row the verdict cites is the granularity R4 actually runs at, so it is captured by
+        // the same expression AppendFootprintRow prints rather than re-derived beside it.
+        measured.DistrictTableBytes =
+            (long)measured.Districts * graph.Nodes * 3 * sizeof(int);
+
         report.AppendLine("### R4.2 — the memory axis, and the tripwire that fires on it");
         report.AppendLine();
         report.AppendLine(
@@ -341,7 +400,8 @@ internal static class VectorReport
     // ---------------------------------------------------------------- R4.4
 
     private static void AppendEdit(
-        StringBuilder report, RoadGraph graph, ReverseArcs reverse, Districts districts, int[] freeFlow)
+        StringBuilder report, RoadGraph graph, ReverseArcs reverse, Districts districts,
+        int[] freeFlow, Measured measured)
     {
         report.AppendLine("### R4.4 — one deleted Segment, which is the core verb");
         report.AppendLine();
@@ -453,6 +513,12 @@ internal static class VectorReport
 
         long entries = (long)EditSamples * districts.Count * graph.Nodes;
 
+        measured.RebuildPerEdit = elapsed[0] / EditSamples;
+        measured.SequencedPerEdit = elapsed[1] / EditSamples;
+        measured.SubtreePerEdit = elapsed[3] / EditSamples;
+        measured.SequencedWrong = wrongCost[1];
+        measured.SubtreeWrong = wrongCost[3];
+
         report.AppendLine(
             "| Scheme | Per edit | Against rebuild | Relaxations | Rounds / settles | Wrong cost | Stranded |");
         report.AppendLine("|---|---:|---:|---:|---:|---:|---:|");
@@ -501,7 +567,8 @@ internal static class VectorReport
     // ---------------------------------------------------------------- R4.5
 
     private static void AppendSeverance(
-        StringBuilder report, RoadGraph graph, ReverseArcs reverse, Districts districts, int[] freeFlow)
+        StringBuilder report, RoadGraph graph, ReverseArcs reverse, Districts districts,
+        int[] freeFlow, Measured measured)
     {
         report.AppendLine("### R4.5 — a severed destination, and the failure sequence numbers exist for");
         report.AppendLine();
@@ -566,6 +633,20 @@ internal static class VectorReport
                 0, target, arcTicks, nodes, nodes.Length, protocol, RoundCap);
 
             table.Audit(0, target, truthCosts, out int wrong, out int lost);
+
+            if (protocol == VectorProtocol.Sequenced)
+            {
+                measured.SeveranceSequencedRelaxations = cost.Relaxations;
+                measured.SeveranceSequencedRounds = cost.Rounds;
+            }
+            else
+            {
+                measured.SeveranceUnsequencedRelaxations = cost.Relaxations;
+                measured.SeveranceUnsequencedWrong = wrong;
+                measured.SeveranceUnsequencedConverged = cost.Converged;
+            }
+
+            measured.SeveranceEntries = graph.Nodes;
 
             report.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
@@ -788,7 +869,8 @@ internal static class VectorReport
         ReverseArcs reverse,
         Districts districts,
         OdDistribution distribution,
-        int[] freeFlow)
+        int[] freeFlow,
+        Measured measured)
     {
         report.AppendLine("### R4.8 — what the table's routes cost, on a distribution that is not uniform");
         report.AppendLine();
@@ -821,8 +903,9 @@ internal static class VectorReport
         report.AppendLine("| Shape | Mean detour | p90 | Worst | Sample |");
         report.AppendLine("|---|---:|---:|---:|---:|");
 
-        foreach (OdRung rung in OdDistribution.Rungs)
+        for (int rungIndex = 0; rungIndex < OdDistribution.Rungs.Length; rungIndex++)
         {
+            OdRung rung = OdDistribution.Rungs[rungIndex];
             OdPair[] pairs = distribution.Draw(
                 CounterHash.Seed, DetourSamples, Modes.Car, rung, out _, out _);
 
@@ -883,6 +966,8 @@ internal static class VectorReport
                 sum += detour;
             }
 
+            measured.DetourByRung[rungIndex] = Hundredths((int)(sum / detours.Count)) + "%";
+
             report.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
                 $"| {rung.Name} | {Hundredths((int)(sum / detours.Count))}% "
@@ -901,20 +986,24 @@ internal static class VectorReport
 
     // ---------------------------------------------------------------- verdict
 
-    private static void AppendVerdict(StringBuilder report)
+    private static void AppendVerdict(StringBuilder report, Measured m)
     {
         report.AppendLine("### What R4 decided, and what it did not");
         report.AppendLine();
         report.AppendLine("**Decided.**");
         report.AppendLine();
-        report.AppendLine(
-            "- **Distance-vector is out, and on none of the three grounds anybody expected.** Not "
-            + "memory: at District granularity the table is 23.12 MiB against a 172.27 MiB world, "
-            + "and `plans/0010`'s wire does not fire. Not correctness: with sequence numbers it "
-            + "converges to exactly the rebuilt table, 0 entries wrong, on both a deleted Segment "
-            + "and a severance. **It is out because it costs more than the rebuild it exists to "
-            + "avoid** — 472.53 ms against 217.36 ms for one deleted Segment, **2.17× slower** — and "
-            + "145× more than the scheme this plan never named.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"- **Distance-vector is out, and on none of the three grounds anybody expected.** Not "
+            + $"memory: at District granularity the table is {Bytes(m.DistrictTableBytes)} against a "
+            + $"{Bytes(WorldBytes)} world, and `plans/0010`'s wire does not fire. Not correctness: "
+            + $"with sequence numbers it converges to exactly the rebuilt table, "
+            + $"{m.SequencedWrong:N0} entries wrong, on both a deleted Segment and a severance. "
+            + $"**It is out because it costs more than the rebuild it exists to avoid** — "
+            + $"{Milliseconds(m.SequencedPerEdit)} against {Milliseconds(m.RebuildPerEdit)} for one "
+            + $"deleted Segment, **{Ratio(m.SequencedPerEdit, m.RebuildPerEdit)} slower** — and "
+            + $"{Ratio(m.SequencedPerEdit, m.SubtreePerEdit)} more than the scheme this plan never "
+            + $"named."));
         report.AppendLine();
         report.AppendLine(
             "  The reason is structural rather than a constant, which is why no tuning recovers it. "
@@ -926,45 +1015,56 @@ internal static class VectorReport
             + "minimum accept the new number. **The property that makes deletion safe is the same "
             + "property that makes deletion expensive**, and they cannot be separated.");
         report.AppendLine();
-        report.AppendLine(
-            "- **`references.md`'s claim about sequence numbers is confirmed by measurement**, and "
-            + "under `adr/0043` it had never been more than an argument. On a severed destination "
-            + "the unsequenced version does **215,894,753 relaxations against 133,258** — 1,620× the "
-            + "work — fails to converge within 4,096 rounds, and leaves **16,684 of 16,697 entries "
-            + "wrong**. The sequenced version converges in 121 rounds with nothing wrong. *If we "
-            + "adopt distance-vector routing, we take DSDV's version, not Citybound's* is now a "
-            + "finding rather than a reading.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"- **`references.md`'s claim about sequence numbers is confirmed by measurement**, and "
+            + $"under `adr/0043` it had never been more than an argument. On a severed destination "
+            + $"the unsequenced version does **{m.SeveranceUnsequencedRelaxations:N0} relaxations "
+            + $"against {m.SeveranceSequencedRelaxations:N0}** — "
+            + $"{Ratio(m.SeveranceUnsequencedRelaxations, m.SeveranceSequencedRelaxations)} the work "
+            + $"— {(m.SeveranceUnsequencedConverged ? "converges" : $"fails to converge within {RoundCap:N0} rounds")}, "
+            + $"and leaves **{m.SeveranceUnsequencedWrong:N0} of {m.SeveranceEntries:N0} entries "
+            + $"wrong**. The sequenced version converges in {m.SeveranceSequencedRounds:N0} rounds "
+            + $"with nothing wrong. *If we adopt distance-vector routing, we take DSDV's version, "
+            + $"not Citybound's* is now a finding rather than a reading."));
         report.AppendLine();
-        report.AppendLine(
-            "- **The scheme that wins was not on the ballot.** Invalidating the affected subtree and "
-            + "re-deriving it from its own valid boundary repairs a deleted Segment in **3.35 ms "
-            + "against a 217.36 ms rebuild — 64.81× — with 0 entries wrong**, and converges on a "
-            + "severance too. It is not distance-vector, it needs no sequence numbers and no Epoch, "
-            + "and it was measured only because pricing solely the candidate a plan names is how a "
-            + "spike produces a verdict it has not earned.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"- **The scheme that wins was not on the ballot.** Invalidating the affected subtree "
+            + $"and re-deriving it from its own valid boundary repairs a deleted Segment in "
+            + $"**{Milliseconds(m.SubtreePerEdit)} against a {Milliseconds(m.RebuildPerEdit)} "
+            + $"rebuild — {Ratio(m.RebuildPerEdit, m.SubtreePerEdit)} — with {m.SubtreeWrong:N0} "
+            + $"entries wrong**, and converges on a severance too. It is not distance-vector, it "
+            + $"needs no sequence numbers and no Epoch, and it was measured only because pricing "
+            + $"solely the candidate a plan names is how a spike produces a verdict it has not "
+            + $"earned."));
         report.AppendLine();
-        report.AppendLine(
-            "- **A rebuild is not the fallback anybody feared.** It is 217.36 ms for the whole "
-            + "121-column table — 1.75 ms per column — which a rolling refresh spends at **11.19% "
-            + "of one Tick** for a full rotation every 121 Ticks. That is affordable. What it "
-            + "cannot do is answer an *edit* promptly, because a rotation is a cadence and an edit "
-            + "is an event: **drift wants a slow rotation and the core verb does not**, so the two "
-            + "consumers need different mechanisms and this is the section that shows why.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"- **A rebuild is not the fallback anybody feared.** It is "
+            + $"{Milliseconds(m.RebuildPerEdit)} for the whole {m.Districts}-column table — "
+            + $"{Milliseconds(m.RebuildPerEdit / m.Districts)} per column — which a rolling refresh "
+            + $"spends at **{Percent(m.RebuildPerEdit / m.Districts, TickBudgetNanoseconds)} of one "
+            + $"Tick** for a full rotation every {m.Districts} Ticks. That is affordable. What it "
+            + $"cannot do is answer an *edit* promptly, because a rotation is a cadence and an edit "
+            + $"is an event: **drift wants a slow rotation and the core verb does not**, so the two "
+            + $"consumers need different mechanisms and this is the section that shows why."));
         report.AppendLine();
         report.AppendLine("**Not decided, and owed.**");
         report.AppendLine();
-        report.AppendLine(
-            "- **The next-hop table's error is far worse than R2 measured, and R4 does not know what "
-            + "to do about it.** R2's **18.52%** mean detour was taken on the uniform draw, which "
-            + "R4.1 shows is the longest-trip distribution available — 8.53 km mean on a 16.4 km "
-            + "map. Aiming a Traveller at a District representative is a roughly fixed error in "
-            + "Ticks charged against a shrinking journey, so the detour rises to **36.04%** at a "
-            + "4.1 km mean, **62.02%** at 2.6 km and **128.82%** at 1.5 km. **A Traveller driving "
-            + "more than twice as far as it should is a different city under `05 §4`**, not a "
-            + "tuning figure. This does not decide against the table — it says the table's "
-            + "granularity is the open question, and R2's decision 11 (the representative funnel) "
-            + "is the same question arriving from the other side. **The two should be answered "
-            + "once.**");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"- **The next-hop table's error is far worse than R2 measured, and R4 does not know "
+            + $"what to do about it.** R2's **18.52%** mean detour was taken on the uniform draw, "
+            + $"which R4.1 shows is the longest-trip distribution available — {m.MeanTripByRung[0]} "
+            + $"mean on a 16.4 km map, and R4.8 reads {m.DetourByRung[0]} there. Aiming a Traveller "
+            + $"at a District representative is a roughly fixed error in Ticks charged against a "
+            + $"shrinking journey, so the detour rises to {DetourLadder(m)}. **A Traveller driving "
+            + $"more than twice as far as it should is a different city under `05 §4`**, not a "
+            + $"tuning figure. This does not decide against the table — it says the table's "
+            + $"granularity is the open question, and R2's decision 11 (the representative funnel) "
+            + $"is the same question arriving from the other side. **The two should be answered "
+            + $"once.**"));
         report.AppendLine();
         report.AppendLine(
             "- **The congestion-drift break-even sits between 1% and 10% of arcs moved**, and "
@@ -981,26 +1081,35 @@ internal static class VectorReport
             + "exist. **Every figure in R4.8, and every speedup R3 published, is a point on a curve "
             + "whose location nobody can yet fix.**");
         report.AppendLine();
-        report.AppendLine(
-            "- **R4's rebuild denominator disagrees with R2's published build by 2.2×** — 217.36 ms "
-            + "against 474.47 ms for the same 121 backward Dijkstras. Every ratio here is taken "
-            + "in-process against R4's own measurement, per R3's rule, so no conclusion moves; but "
-            + "two S2 tasks now publish different absolutes for the same operation and R7 owes the "
-            + "reconciliation.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"- **R4's rebuild denominator disagrees with R2's published build** — "
+            + $"{Milliseconds(m.RebuildPerEdit)} against 474.47 ms for the same {m.Districts} "
+            + $"backward Dijkstras, a factor of "
+            + $"{Ratio(474_470_000L, m.RebuildPerEdit)}. Every ratio here is taken in-process "
+            + $"against R4's own measurement, per R3's rule, so no conclusion moves; but two S2 "
+            + $"tasks now publish different absolutes for the same operation and R7 owes the "
+            + $"reconciliation."));
         report.AppendLine();
         report.AppendLine("**Four defects in R4's own harness, all caught by instruments rather than by reading.**");
         report.AppendLine();
-        report.AppendLine(
-            "- **The sequenced protocol was missing DSDV's acceptance rule** — a node must *reject* "
-            + "an advertisement older than what it already holds, not merely prefer newer ones. "
-            + "Without it a poisoned node kept its odd sequence number while adopting a neighbour's "
-            + "stale finite cost, then advertised that stale cost under the high sequence its own "
-            + "poison had earned. **The first capture reported 232 seconds per edit and would have "
-            + "published *distance-vector loses by three orders of magnitude*.** With the rule, the "
-            + "same measurement is 472.53 ms. What flagged it was R2's own recorded lesson: the "
-            + "sequenced and unsequenced rungs were reporting near-identical relaxation counts and "
-            + "*identical* wrong-entry counts, and **two measurements that agree that closely are "
-            + "not two measurements.**");
+
+        // The figures in this block describe states of a harness that no longer exists. They are
+        // literals because no live measurement can reproduce them by construction -- the defect
+        // they name is the thing that was removed. Every other figure in this verdict is measured.
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"- **The sequenced protocol was missing DSDV's acceptance rule** — a node must "
+            + $"*reject* an advertisement older than what it already holds, not merely prefer newer "
+            + $"ones. Without it a poisoned node kept its odd sequence number while adopting a "
+            + $"neighbour's stale finite cost, then advertised that stale cost under the high "
+            + $"sequence its own poison had earned. **The first capture reported 232 seconds per "
+            + $"edit and would have published *distance-vector loses by three orders of "
+            + $"magnitude*.** With the rule, the same measurement is "
+            + $"{Milliseconds(m.SequencedPerEdit)}. What flagged it was R2's own recorded lesson: "
+            + $"the sequenced and unsequenced rungs were reporting near-identical relaxation counts "
+            + $"and *identical* wrong-entry counts, and **two measurements that agree that closely "
+            + $"are not two measurements.**"));
         report.AppendLine();
         report.AppendLine(
             "- **The poison phase was a silent no-op.** It seeded the flood with the nodes that "
@@ -1024,6 +1133,29 @@ internal static class VectorReport
             + "everywhere else in this harness — **a helper is only as safe as the largest quantity "
             + "anybody has yet asked it to measure.**");
         report.AppendLine();
+    }
+
+    /// <summary>
+    /// The detour ladder as a sentence — every rung past the uniform one, each with the mean trip
+    /// length it was drawn at. Generated rather than typed so that adding an O-D rung cannot leave
+    /// the verdict describing a family it no longer has.
+    /// </summary>
+    private static string DetourLadder(Measured m)
+    {
+        var parts = new List<string>();
+        for (int i = 1; i < OdDistribution.Rungs.Length; i++)
+        {
+            parts.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"**{m.DetourByRung[i]}** at a {m.MeanTripByRung[i]} mean"));
+        }
+
+        return parts.Count switch
+        {
+            0 => "no other rung",
+            1 => parts[0],
+            _ => string.Join(", ", parts.GetRange(0, parts.Count - 1)) + " and " + parts[^1],
+        };
     }
 
     // ---------------------------------------------------------------- helpers
