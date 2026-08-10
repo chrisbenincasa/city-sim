@@ -731,8 +731,12 @@ Growth is paced by four mechanisms, all diegetic:
 > 117× span in sample, so this is structural and not a badly chosen number. **An absolute throughput
 > against a growing city is a decelerating city**, and *sampling* therefore paces **cost** rather than
 > **growth**. Of the four mechanisms above only **capital** scales with the city; the **build rate
-> throttle** is absolute too, so two of the four pace in a unit this section never names. What a sample
-> should be denominated in is open and filed in [`plans/0002`](../plans/0002-open-questions.md) §C.
+> throttle** is absolute too, so two of the four pace in a unit this section never names.
+>
+> **Settled by [`adr/0059`](adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)**:
+> a Zone Rule authors a **revisit period** and the engine derives the count, so the first bullet above is
+> split — **sampling paces cost, and capital paces growth.** Until capital exists, growth is bounded by
+> the Unplaced Pool, which is `CLAUDE.md`'s *the Pool is the demand signal* doing the job on its own.
 
 ### 5.8 Where we deliberately deviate from the academic models
 

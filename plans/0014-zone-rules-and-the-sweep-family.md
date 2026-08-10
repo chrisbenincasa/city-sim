@@ -898,3 +898,120 @@ Per `PROCESS.md`: a correction goes to [`0012`](0012-corpus-audit.md), not to `0
 - **No Chunk partition or stagger on the sweep.** `02 §4.2` names them as the cost controls; task 9
   measures whether they are needed rather than assuming. Adding them first would make the tripwire
   unmeasurable.
+
+---
+
+## The correction S0b found — task 11, and it reopens a closed slice
+
+**Added 2026-08-10, after S0b.** The slice is closed and met its acceptance; this is a defect it shipped
+and the tripwire is what hid it. Settled by
+[`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md);
+the numbers behind it are in [`spike-results`](../docs/spike-results.md) → S0b, findings 1–3.
+
+**The defect in one line: `sample` is an absolute count of Lots per cycle, so the quantity the city
+actually feels — a fraction of the city per cycle — is inversely proportional to the size of the city.**
+A Lot is visited once per **0.12 Day at 1,000 Citizens and once per 117 Days at 1,000,000**. At target
+scale the shipped Ruleset builds **nothing** in 2,000 Ticks, and it is not the create predicate:
+`created` equals `vacant` exactly in every interval of every capture, so the Pool and the permission bit
+have never once declined a candidate.
+
+**Three things about how this got through are worth more than the fix.**
+
+- **Task 9's tripwire is what hid it, and it was a good tripwire.** It measured `O(sample)` independence
+  from Zone size, proved `02 §5.7`'s stated claim, and passed. **A test that confirms the stated claim
+  while the unstated one fails is worse than no test** — the same shape as `0013`'s *right by
+  cancellation*. What went unstated: the mechanism is scale-free in **cost** and its **time constant is
+  the city**.
+- **`adr/0052` was followed to the letter and still admitted it.** `0002` §D named the ratifier *in
+  advance* — task 10's 100,000-Tick run — and it ran, bounded `sample = 4` against *"54–78 Buildings of
+  121, oscillating, nothing trending"*, and passed. **A ratifier that runs at one city size cannot catch
+  a number that is absolute.** This is the strongest argument in the corpus for a third question beside
+  *measurable/arguable* and *who ratifies it*: **what does this number scale with?** *Nothing* is a
+  claim, and here it was false twice in one file.
+- **`0002` §D already had half the answer and stopped one step short.** Its row says sample and interval
+  *"compose into a single rate; `N/I` is what the city feels"*. Correct, and `N/I` is still absolute —
+  what the city feels is `N ÷ (I × Lots)`.
+
+### Sequencing — this waits for slice 8
+
+**Do not start task 11 until slice 8 lands.** It is hash-bearing and moves the three golden baselines,
+and slice 8 task 10 is *the golden session reloading*, which re-records the same files. Two re-records
+against one mechanism is how a baseline stops being evidence of anything.
+
+### 11a. `revisit_ticks` in the Ruleset, and the refusals
+
+`[[zone_rule]]` gains `revisit_ticks` and **loses `sample`**. Optional, defaulting to `Ticks.PerDay` —
+derived, so no `adr/0052` ratifier is needed (`adr/0059`). Refusals, on `RulesetLoader`'s existing
+pattern:
+
+- **Zero, or absent with no default reachable** — refuse. Today's refusal 8 (*a sample of zero evaluates
+  no Lots*) is the same check one level up and its message is re-pointed rather than deleted.
+- **Shorter than `interval`** — refuse. It would round the derived sample against a cycle that cannot
+  deliver it, which is `pollution_decay_ticks`'s *a duration shorter than the cadence* refusal exactly,
+  and that one is worth copying because it was the one slice 8 task 3 found by reasoning rather than by a
+  test failing.
+- **`sample` still present in a file** — refuse **by name**, with a message pointing at `adr/0059`. A
+  silently ignored key is how a designer's tuning stops taking effect without anything saying so, and
+  every Ruleset on disk today carries one.
+
+### 11b. The derivation, and where it is read
+
+`sample = ceil(Lots × interval ÷ revisit_ticks)`, spelled through `IntegerMath` — there is no `/` in
+`Core` outside `Arithmetic`, and the ceiling matters because flooring gives **zero** for any city smaller
+than `revisit_ticks ÷ interval` Lots, which is 256 Lots at the defaults and therefore covers the golden
+fixture and every test in the suite. **Flooring here would make the mechanism silently stop existing on
+small worlds**, which is the defect being fixed wearing the opposite sign.
+
+Read from `_world.Lots.Rows.SlotCount` in `ZoneRuleEngine.Sweep`, per trigger. **`SlotCount` rather than
+`LiveCount`** for the reason `ZoneSample.Draw` already draws against it: the draw is over slots and
+discards ones that are not live, so a denominator of live rows would systematically over-sample.
+
+### 11c. Retire the `O(sample²)` duplicate scan
+
+`ZoneSample.Draw`'s `Contains` walk is quadratic and justified by *"a sample is a handful of Lots"*. The
+premise is gone. At a one-Day revisit at 1M it is ~110,000 comparisons a trigger, amortised to ~3,400 a
+Tick — **affordable today and quadratic in a quantity now proportional to the map**, so it is replaced
+rather than carried on the strength of one measurement.
+
+The replacement may not be a `HashSet` (`05 §4` lint 3 bans walking one, and it would allocate). Two
+candidates, and the choice wants a number rather than an argument: a **stamp array** indexed by Lot slot
+holding the trigger ordinal that last touched it — `O(1)` per draw, one `int` per Lot, allocated once and
+therefore `adr/0006`-safe by the same argument as the scratch buffer — or **accepting duplicates** and
+letting the discard rule absorb them, which `ZoneSample`'s remarks already argue is *the model* rather
+than a defect, and which would delete the problem instead of solving it. **Prefer the second if the
+measured duplicate rate is negligible**, because it removes code. At a one-Day revisit the sample is
+0.4% of the Lot table, so the birthday-collision rate is small and this is measurable in one run.
+
+Note `02 §5.3`'s standing criticism of UrbanSim — *it samples with replacement and double-counts an
+alternative's weight* — is why accepting duplicates needs the measurement rather than a shrug. The
+defence is that a duplicate here costs a wasted evaluation and **not** a doubled weight, because the
+create predicate is a boolean with no score; that stops being true the day `02 §5.4`'s choice model
+arrives.
+
+### 11d. The scratch buffer's bound, restated
+
+`ZoneRuleEngine.Scratch`'s remark says it is *"bounded by the Ruleset rather than by elapsed time"*. It
+becomes bounded by the **Lot count**, hence by the map. Still `adr/0006`-safe — a map does not grow with
+elapsed time — but the **stated reason changes**, and a remark that is true by accident is how the next
+person gets it wrong. Rewrite it; do not leave it.
+
+### 11e. Re-record the three baselines, and say why in the message
+
+`session.borough`, `session-trace.txt` and `world-hash.txt`, per the procedure in
+`tests/Borough.Tests/Golden/README.md`. **`World.HashSeed`'s version byte is not bumped**: the fold is
+unchanged and this is a behaviour change, which is precisely what that byte exists to distinguish a
+regression *from*. Under `CLAUDE.md`'s own test — *a change is an optimisation if the State Hash is
+unchanged and a design change otherwise* — this is a design change, deliberately.
+
+### Acceptance for task 11
+
+- **The scale test, which is the point**: a run at 1,000 and a run at 1,000,000 Citizens produce the
+  **same occupancy at the same τ**, and the per-Lot revisit period is within one interval of
+  `revisit_ticks` at both. S0b's collapse table is the shape to reproduce.
+- **A 1M run creates Buildings.** `zones created` is non-zero within a few thousand Ticks, which is the
+  observation that opened this and the cheapest possible regression test for it.
+- **`created` still equals `vacant`** wherever the Pool is non-empty — the create predicate was never
+  the defect and must not become one.
+- **The Tick price does not move measurably** at 1M against S0b's 8.72 ms, which is the cost claim this
+  fix leans on and the one thing that would invalidate it.
+- **Every Ruleset on disk loads**, or is refused **by name** for carrying `sample`. Silence is failure.
