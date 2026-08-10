@@ -35,12 +35,17 @@ row it discharges, and says so.
 
 **Not started. This document is the plan the board asked for before any code.**
 
-Slice 8 is in flight in another session ([`0015`](0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md)),
-at task 4 sub-tasks B and C. **The two slices touch the same mechanism**, and unlike slices 8 and 10 —
-which collided on a *file* and a *baseline* — these two collide on a *claim*: sub-task C is the
-project's first bulk unlink-and-re-arm pass over the world, `0015` says of it that *"nothing in the
-shape of a re-arm loop makes the exclusion obvious"*, and tasks 2 and 3 below are the refusals that
-would notice a re-arm loop getting it wrong. See *Ordering against slice 8*.
+~~Slice 8 is in flight in another session, at task 4 sub-tasks B and C. **The two slices touch the same
+mechanism**, and unlike slices 8 and 10 — which collided on a *file* and a *baseline* — these two
+collide on a *claim*: sub-task C is the project's first bulk unlink-and-re-arm pass over the world,
+`0015` says of it that *"nothing in the shape of a re-arm loop makes the exclusion obvious"*, and tasks
+2 and 3 below are the refusals that would notice a re-arm loop getting it wrong.~~
+
+**Slice 8's task 4 has since landed** ([`0015`](0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md)),
+green at **772 tests**, and it is **not a re-arm pass**: `World.Migrate` frees every Rule Instance and
+`Fit` allocates fresh ones, so nothing is ever armed twice and the collision this section anticipated
+did not exist. Tasks 2 and 3 keep their derivations and lose their urgency; task 4 gains a second
+caller. See *Ordering against slice 8*, which is kept as written with the refutation on top of it.
 
 ## Gate
 
@@ -197,6 +202,32 @@ have the same one-per-table shape the wheels do, and nobody has noticed that yet
 ---
 
 ## Ordering against slice 8
+
+> **OVERTAKEN, and the argument below is half refuted by the code that overtook it.** Slice 8's
+> sub-task C landed first, green at 772 tests, and **`World.Migrate` does not re-arm in place**: it
+> walks every Building, `Unlink`s and **frees** every Rule Instance, remaps the Bins, re-kinds the
+> Building, and then `Fit` **allocates fresh instances** through `CreateRuleInstance`. A row is
+> therefore never armed twice, **structurally** — so task 2's refusal would have caught nothing in the
+> pass this section called the first caller that could trip it. **The urgency argument was wrong and
+> the derivation was not**: `Arm` still has no write-site check where `Subscribe` does, and the
+> predicate is still free. Task 2 survives on correctness and loses its ordering claim.
+>
+> **Task 3 narrows the same way.** `Fit` arms on slice 7's `[1, rate]` stagger, so every `NextTick` the
+> reload path writes is inside the period and finding 4's blind spot is not reachable through a reload
+> either. Its one remaining path is **save/reload**, which does not exist — so the period bound is a
+> check written in front of a mechanism rather than behind a caller.
+>
+> **Task 4 is the one that got stronger.** `Unlink` now has **two** callers relying on phase order for
+> their safety — Zone Rule demolition at phase 6, after Phase 3, and `Adopt` at phase 0, before Phase 1
+> — and both are safe because no row is in flight at either point, and *still* nothing anywhere states
+> it. One caller relying on an undocumented ordering property is a smell; two is the argument.
+>
+> **The general lesson is the corpus's own, arriving at a plan instead of at an ADR.** This section
+> predicted the shape of code that had not been written and got it wrong in the safe direction — it
+> assumed a re-arm loop would re-arm. `0015`'s own worry (*"nothing in the shape of a re-arm loop makes
+> the exclusion obvious"*) was answered by a guard at the top of `Fit` rather than by the invariant
+> either document expected. What follows is kept as written, because the reasoning is what was wrong
+> and striking it would hide that.
 
 The collision is on a claim, not a file, and it points one way.
 
