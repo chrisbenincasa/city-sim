@@ -27,8 +27,12 @@ using Borough.Core.Tables;
 /// <param name="Vacant">Sampled Lots with no Building on them.</param>
 /// <param name="Occupied">Sampled Lots with one.</param>
 /// <param name="Created">Buildings built — the subset of <paramref name="Vacant"/> that qualified.</param>
+/// <param name="Demolished">
+/// Buildings condemned — the subset of <paramref name="Occupied"/> whose failure pressure had crossed
+/// their kind's threshold.
+/// </param>
 public readonly record struct ZoneActivity(
-    RuleFlow Triggers, RuleFlow Vacant, RuleFlow Occupied, RuleFlow Created)
+    RuleFlow Triggers, RuleFlow Vacant, RuleFlow Occupied, RuleFlow Created, RuleFlow Demolished)
 {
     /// <summary>Lots evaluated over the interval, which is what a trigger is charged for.</summary>
     /// <remarks>
@@ -90,11 +94,13 @@ public sealed class ZoneRuleEngine
     private int _tickVacant;
     private int _tickOccupied;
     private int _tickCreated;
+    private int _tickDemolished;
 
     private RuleFlow _triggerFlow;
     private RuleFlow _vacantFlow;
     private RuleFlow _occupiedFlow;
     private RuleFlow _createdFlow;
+    private RuleFlow _demolishedFlow;
 
     /// <param name="world">The tables this sweeps, and the Ruleset it sweeps under. Not copied.</param>
     /// <param name="key">The world seed, as the sample's first coordinate.</param>
@@ -116,12 +122,13 @@ public sealed class ZoneRuleEngine
     public ZoneActivity Drain()
     {
         var activity = new ZoneActivity(
-            _triggerFlow, _vacantFlow, _occupiedFlow, _createdFlow);
+            _triggerFlow, _vacantFlow, _occupiedFlow, _createdFlow, _demolishedFlow);
 
         _triggerFlow = default;
         _vacantFlow = default;
         _occupiedFlow = default;
         _createdFlow = default;
+        _demolishedFlow = default;
 
         return activity;
     }
@@ -184,6 +191,7 @@ public sealed class ZoneRuleEngine
                 else
                 {
                     _tickOccupied++;
+                    Condemn(into[i], tick);
                 }
             }
         }
@@ -244,6 +252,103 @@ public sealed class ZoneRuleEngine
         _tickCreated++;
     }
 
+    /// <summary>
+    /// The condemn predicate: <b>a Building that has been starved for longer than its kind allows</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The permission bit is not a term here, and that is <c>adr/0055</c> stated the other way
+    /// round.</b> A Zone Rule's permission set scopes what it <em>builds</em>, never which Lots it
+    /// looks at — so repainting a Lot cannot put the Building on it beyond every Rule's reach, which
+    /// would be immortality by paintbrush. A Zone Rule that could not have built this Building may
+    /// still notice that it has fallen down.
+    /// </para>
+    /// <para>
+    /// <b>Sampling reads the duration; it never produces it</b> (<c>02 §5.9</c>). The pressure was
+    /// already true before the sample arrived, so what a sample costs a condemned Building is a lag in
+    /// being noticed and not a random lifetime. That distinction is what makes sampled decline
+    /// legitimate at all, since <c>CONTEXT</c> → Zone Rule justifies sampling by <em>developers do not
+    /// evaluate every Lot</em> — an argument about an actor choosing among alternatives — and
+    /// abandonment has no actor.
+    /// </para>
+    /// <para>
+    /// <b>The Building's pressure is the longest of its Rules', measured in missed firings</b>
+    /// (<c>adr/0053</c>, as amended). Two Rules that went short at different moments are two
+    /// durations, and a <c>rate</c> belongs to a Rule rather than to a kind — so the comparison is
+    /// made per Rule Instance and the maximum is never stored anywhere. The walk is over a Building's
+    /// own Rule list, which is its kind's declared set and a handful long.
+    /// </para>
+    /// <para>
+    /// <b>The threshold multiplies rather than the duration dividing.</b> <c>elapsed ≥ condemn × rate</c>
+    /// and not <c>elapsed ÷ rate ≥ condemn</c>, because the second is a division this project would
+    /// have to spell through <see cref="Arithmetic.IntegerMath"/> to say the same thing, once per
+    /// sampled Rule, for an answer it then throws away.
+    /// </para>
+    /// <para>
+    /// <b>The condition behind the demolition is available and is not kept.</b>
+    /// <see cref="RuleInstanceTable.Reported"/> holds it wherever an author has written an
+    /// <c>on_fail</c> chain, which is <c>02 §5.9</c>'s refusal of the sad-face icon — but nothing
+    /// consumes it: <c>01 §5</c>'s notification surface does not exist, and the row it would be copied
+    /// off is freed on the next line. Storing it now would be a column nothing reads, which is the
+    /// shape <c>0011</c> finding 39 already has one of.
+    /// </para>
+    /// </remarks>
+    private void Condemn(int lot, Ticks tick)
+    {
+        // Through BuildingOn rather than off the column, because BuildingSlot is plus-one encoded so
+        // that a zero-filled row reads as vacant rather than as holding the first Building in the
+        // city. Read raw it is off by one, which condemns the Building on the next slot — and that
+        // failure is invisible from outside: Buildings decline, Lots clear, the counts are plausible,
+        // and the only wrong thing is which house fell down.
+        int building = _world.Lots.BuildingOn(lot);
+        byte kind = _world.Buildings.Kind[building];
+
+        // A kind the Ruleset does not declare, which World.CreateBuilding permits by name: such a
+        // Building is given no Bins and no Rules, so it has nothing that could starve and no threshold
+        // to be measured against. 02 §4.3 calls this state derelict, and there is no flag for it yet —
+        // asking the Ruleset about the kind would throw rather than answer.
+        if (!_world.Rules.Declares(kind))
+        {
+            return;
+        }
+
+        int threshold = _world.Rules.Kind(kind).CondemnAfter;
+
+        if (threshold == 0)
+        {
+            return;
+        }
+
+        bool condemned = false;
+
+        foreach (int instance in _world.BuildingRules.Walk(building))
+        {
+            if (!_world.RuleInstances.IsStarving(instance))
+            {
+                continue;
+            }
+
+            ulong elapsed = tick.Raw - _world.RuleInstances.StarvedSince[instance].Raw;
+            ulong allowed = (ulong)threshold * _world.Rules.Rule(
+                _world.RuleInstances.Rule[instance]).Rate;
+
+            if (elapsed >= allowed)
+            {
+                condemned = true;
+                break;
+            }
+        }
+
+        // Outside the walk, because demolition empties the list being walked. Breaking first and
+        // acting after costs a bool and removes the question of whether an enumerator survives having
+        // its collection dismantled underneath it.
+        if (condemned)
+        {
+            _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
+            _tickDemolished++;
+        }
+    }
+
     /// <summary>A span of at least <paramref name="size"/>, growing the buffer once if it must.</summary>
     /// <remarks>
     /// <b>The only allocation this class can make, and it happens on the first trigger of the widest
@@ -268,10 +373,12 @@ public sealed class ZoneRuleEngine
         _vacantFlow = _vacantFlow.Fold(_tickVacant);
         _occupiedFlow = _occupiedFlow.Fold(_tickOccupied);
         _createdFlow = _createdFlow.Fold(_tickCreated);
+        _demolishedFlow = _demolishedFlow.Fold(_tickDemolished);
 
         _tickTriggers = 0;
         _tickVacant = 0;
         _tickOccupied = 0;
         _tickCreated = 0;
+        _tickDemolished = 0;
     }
 }

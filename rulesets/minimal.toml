@@ -33,18 +33,50 @@
 # quantum at least as large as any consumer's deficit is what makes this file's steady state honest.
 # See finding 41.
 #
+# WHY EVERY DWELLING FALLS DOWN, AND WHY THAT IS NOT A BALANCE MISTAKE. Slice 10 task 7 needs a
+# Building that is *continuously* starved, because failure pressure is a duration and a Rule that is
+# rescued resets it (adr/0053). Nothing in this file could supply one: the only Rule that fails here
+# is `restock`, and it fails on HEADROOM — the Bin is full, which is the healthy state of a producer
+# with nobody to sell to, and the amended adr/0053 reads only starvation. So `upkeep` was added, and
+# it draws on a Resource this file deliberately never produces. Every dwelling therefore declines,
+# which is total rather than selective because there is one kind and it has one behaviour. A city
+# where some Buildings thrive and others do not needs Buildings that differ, which needs content, and
+# content is what the first line of this file says it is not. The cycle it does produce is real: a
+# condemned dwelling is demolished, its Households go to the Unplaced Pool, its Lot goes vacant, and
+# the [[zone_rule]] below raises another — which is the first time anything in this project has both
+# built and unbuilt, and the first time slice 5 task 7's `slots` assertion has had a table that churns.
+#
 # It is deleted rather than grown when task 10b becomes possible.
 
 [[resource]]
 name = "sundries"
 family = "good"
 
+# The Good with no producer. It is a `good` rather than a family of its own because it is ordinary
+# in every way except that no Rule in this file emits it — a dwelling needs maintenance, maintenance
+# comes from somewhere else in the city, and "somewhere else in the city" is the `pool` scope, which
+# throws. So this Resource is the same named hole `sundries` works around, seen from the other side:
+# where `sundries` avoids the hole by keeping a chain inside one Building, `repairs` walks into it on
+# purpose, because a Building starved for ever is exactly what decline needs and is otherwise not
+# expressible. See finding 41 for why the *partial* shortage regime is the one that cannot be written.
+[[resource]]
+name = "repairs"
+family = "good"
+
 # Kind 1, which is what Borough.Core.Entities.SyntheticCity builds and what Households are placed in.
 # A dwelling holding a Bin its Occupants draw from is CONTEXT -> Building's own sentence, and it is
 # the one shape available while `local` is the only scope with a Bin behind it.
+#
+# `condemn_after` is in MISSED FIRINGS, not Ticks (adr/0053): a Rule fires every `rate` Ticks when
+# healthy, so four missed firings of `upkeep` is 64 Ticks of continuous starvation. Authoring it in
+# Ticks would mean that halving every rate in this file silently doubled every dwelling's lifespan.
 [[building]]
 name = "dwelling"
-bins = [ { resource = "sundries", capacity = 12 } ]
+bins = [
+    { resource = "sundries", capacity = 12 },
+    { resource = "repairs",  capacity = 1 },
+]
+condemn_after = 4
 
 # Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
 # from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
@@ -68,3 +100,32 @@ rate    = 32
 apply   = { derived = "occupancy" }
 inputs  = [ { scope = "local", resource = "sundries", amount = 1 } ]
 outputs = []
+
+# The Rule that never fires. Its Bin is filled by nothing, so its first firing goes short of an input,
+# it subscribes to a Bin no Rule will ever write, and it sleeps for ever — which is the one shape a
+# duration-based failure pressure can actually measure. It has no on_fail chain, so no ConditionId
+# reaches RuleInstance.reported and the demolition has no sentence behind it; 02 §5.9 wants one, and
+# writing a terminal here would claim a source of supply this file has just finished saying it has no
+# way to name. The sentence arrives with the chain, in task 10b.
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 1 } ]
+outputs = []
+
+# The first [[zone_rule]] in the project, and the thing that closes the loop. It samples 4 Lots every
+# 32 Ticks out of the whole Lot table: a vacant one it may build on, an occupied one it reads the
+# pressure of. Both branches run against the same sample, which is 02 §5.7's claim that a Zone Rule's
+# cost is its sample size and not its Zone's size — the tripwire task 9 holds fixed.
+#
+# `zone = 0` is a bit INDEX, not a mask; SyntheticCity paints every Lot with bit 0. And under adr/0055
+# that bit scopes only what this Rule may BUILD: it condemns without consulting it, so repainting a
+# Lot cannot make the Building standing on it immortal.
+[[zone_rule]]
+name     = "housing"
+kind     = "dwelling"
+zone     = 0
+interval = 32
+sample   = 4

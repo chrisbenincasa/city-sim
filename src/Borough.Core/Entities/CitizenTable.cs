@@ -50,7 +50,13 @@ public sealed class CitizenTable
         Activity = _rows.Saved<byte>("activity", Touch.PerTick);
 
         HouseholdOf = _rows.SavedHandle("household", households.Rows);
-        Workplace = _rows.SavedHandle("workplace", buildings.Rows);
+        // Severable, and slice 10 is what forced the declaration. A Citizen's Workplace is somebody
+        // else's Building, so demolition can free it out from under this handle — and clearing it
+        // would need a Building-to-workers reverse index that does not exist and belongs to the labour
+        // system rather than to Zone Rules. A workplace that no longer resolves is the job no longer
+        // existing, which is the fact and not a break in it.
+        Workplace = _rows.SavedHandle(
+            "workplace", buildings.Rows, reference: Reference.Severable);
         Experience = _rows.Saved<long>("experience");
         SkillTier = _rows.Saved<byte>("skill_tier");
         Employment = _rows.Saved<byte>("employment");

@@ -63,11 +63,46 @@ among alternatives, and **abandonment has no actor**. Sampling the accumulation 
 condemned Building a random lifetime distributed by sample size and Lot count, which models nothing.
 Sampling the observation costs a lag in noticing and distorts no physics.
 
+## Amendment — slice 10 task 7: which failure counts, and where the clock lives
+
+**Two things this ADR settled by argument did not survive contact with the code.** Both are
+narrowings rather than reversals: pressure is still a duration, recovery is still total, and there is
+still no decay rate.
+
+**The signal is a Rule Instance asleep short of an *input*, never any reporting terminal.** The
+section above reads `Reported` as the level to integrate, and `Reported` is set only where an author
+has written an `on_fail` chain ending in a report. `rulesets/minimal.toml` has no chain at all — its
+own header explains why, every source available today being the Building's own Bins — so under the
+only Ruleset that exists `Reported` is permanently `ConditionId.None` and no Building could ever be
+condemned. **The obvious repair is worse than the omission.** The one Rule that fails in that file is
+the *producer*, and it fails on `Blocking.Headroom`: the Bin is **full**, which is the healthy
+surplus steady state the file was built to demonstrate. A terminal there would mark every dwelling in
+the city as distressed for being well supplied.
+
+`02 §5.9` already names the source — *"Rules repeatedly hitting their terminal fallback (**input
+starvation**)"* — and `RuleEngine.Check` already separates the two failures by name. Nothing had
+connected the two facts. So **pressure integrates `Blocked == Blocking.Level`**, which needs no
+Ruleset content to work, and `Reported` keeps the job it already had: the **sentence** behind a
+demolition where an author has written a chain, and honestly absent where they have not.
+
+**The clock lives on the Rule Instance, not on the Building.** This ADR's own argument is that
+integrating a level over time gives a duration — and the level is per Rule Instance. Two things
+follow that a Building-level column cannot express. **The threshold is in missed firings and a rate
+is a property of a Rule**, so a kind running one Rule at 8 Ticks and another at 32 has two different
+meanings for *three missed firings*, and a Building carrying one clock would have to pick one
+arbitrarily. And **two Rules that began failing at different moments are two durations**, of which
+the Building's is the longest. That maximum is computed where the sample reads it and stored nowhere,
+so the derived-on-read property this ADR insists on is strengthened rather than weakened.
+
+**The sentinel is Tick 0, and it is sound rather than convenient.** A Rule Instance is armed uniform
+over `[1, rate]` at construction, so none can come due — or therefore fail — at Tick 0. The one value
+a real starvation can never carry is the one that means *not starving*.
+
 ## Consequences
 
-- **A Building carries the Tick it began failing, not a counter.** Pressure is derived on read. There
-  is no per-Tick bookkeeping, no accumulator column to bound, and no whole-world pass to decay
-  anything.
+- **A Rule Instance carries the Tick it began starving, not a counter, and a Building's pressure is
+  the longest of its instances'.** Derived on read, per the amendment above. There is no per-Tick
+  bookkeeping, no accumulator column to bound, and no whole-world pass to decay anything.
 - **`adr/0006`'s magnitude half is satisfied structurally rather than by tuning.** There is no
   quantity here that can trend upward, so slice 10's long-run assertion tests row recycling rather
   than a decay rate somebody chose well.
@@ -99,3 +134,9 @@ Sampling the observation costs a lag in noticing and distorts no physics.
   a wrong one.
 - **The threshold needing to differ per Building kind** in a way missed firings cannot express — for
   instance a kind whose Rules legitimately idle for long periods, where silence is not distress.
+- **A city where being unable to *sell* is distress.** The amendment reads only `Blocking.Level`,
+  because a full Bin is today the healthy state of a Building with no customer. The moment a Rule's
+  output has somewhere to go — `pool`, and the supply chains of Phase 2 — a producer stuck on
+  headroom stops meaning *well supplied* and starts meaning *nobody is buying*, which is a real
+  decline signal that this amendment currently ignores by name. **The tell is the arrival of the
+  first Rule whose output crosses an ownership boundary**, not a play-test observation.

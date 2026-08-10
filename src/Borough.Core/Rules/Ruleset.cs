@@ -280,9 +280,39 @@ public readonly record struct RuleDefinition(
     public bool IsTerminal => !Reports.IsNone;
 }
 
-/// <summary>One Building kind: the Bins it is given, and the Rules it runs.</summary>
+/// <summary>One Building kind: the Bins it is given, the Rules it runs, and when it falls down.</summary>
 public readonly record struct KindDefinition(
-    int BinFirst, int BinCount, int RuleFirst, int RuleCount);
+    int BinFirst, int BinCount, int RuleFirst, int RuleCount)
+{
+    /// <summary>
+    /// How many firings a Rule of this kind may miss, starved, before the Building is condemned.
+    /// Zero means it never is.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>In missed firings rather than in Ticks</b> (<c>adr/0053</c>). A Rule fires every
+    /// <c>rate</c> Ticks when healthy, so silence of <c>N × rate</c> is <c>N</c> missed firings —
+    /// dimensionless, and immune to a Ruleset that retunes every rate and would otherwise have
+    /// silently retuned every Building's lifespan.
+    /// </para>
+    /// <para>
+    /// <b>On the kind rather than on the Zone Rule</b> (<c>adr/0055</c>, and task 3 of
+    /// <c>plans/0014</c>). Any Zone Rule may sample any Lot, so a threshold declared per Zone Rule
+    /// would make a Building's mortality depend on which Rule happened to look at it — where pressure
+    /// is a property of the Building and of nothing else.
+    /// </para>
+    /// <para>
+    /// <b>An init property rather than a positional parameter, and zero meaning immortal.</b>
+    /// Decline is content a Ruleset opts into: a kind that falls down is a stronger claim than one
+    /// that does not, and the default is the behaviour of every Ruleset written before this existed.
+    /// The failure it could hide — a Zone Rule that condemns nothing because nobody wrote a threshold
+    /// — is a Ruleset that loads clean and does nothing, which is the refusal class task 3
+    /// established; it is left unrefused because a growth-only Ruleset is coherent and would be
+    /// refused with it.
+    /// </para>
+    /// </remarks>
+    public int CondemnAfter { get; init; }
+}
 
 /// <summary>
 /// One Zone Rule: a time trigger, a sample of Lots, and the kind it builds on those that qualify.

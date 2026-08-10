@@ -44,7 +44,7 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0x8669_4596_5CED_074FUL;
+    internal const ulong RulesetHash = 0x8E25_644E_65ED_3E31UL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>

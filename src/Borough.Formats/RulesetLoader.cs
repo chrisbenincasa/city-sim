@@ -618,8 +618,33 @@ public static class RulesetLoader
                     }
                 }
 
+                // adr/0053's threshold, in missed firings. Optional, and absent means this kind never
+                // declines — which is what every Ruleset written before decline existed already
+                // meant. A negative one is refused rather than clamped: it reads as "condemn
+                // immediately", and a Ruleset that demolished every Building it built would be a
+                // sentence somebody meant to write and nobody would guess from the symptom.
+                int condemnAfter = 0;
+
+                if (TryInteger(table, "condemn_after", out long missed, required: false, name))
+                {
+                    if (missed < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "condemn_after") ?? table), name,
+                            $"condemn_after is {missed}. It counts firings a starved Rule may miss "
+                            + "before the Building is condemned, so it cannot be negative; omit it "
+                            + "for a kind that never declines.");
+                    }
+                    else
+                    {
+                        condemnAfter = missed > int.MaxValue ? int.MaxValue : (int)missed;
+                    }
+                }
+
                 definitions[i] = new KindDefinition(
-                    binFirst, allBins.Count - binFirst, ruleFirst, allRules.Count - ruleFirst);
+                    binFirst, allBins.Count - binFirst, ruleFirst, allRules.Count - ruleFirst)
+                {
+                    CondemnAfter = condemnAfter,
+                };
             }
 
             bins = [.. allBins];

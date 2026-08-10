@@ -49,6 +49,7 @@ public sealed class RuleInstanceTable
         Blocked = _rows.Saved<Blocking>("blocked", Touch.PerTick);
         Shortfall = _rows.Saved<int>("shortfall");
         Reported = _rows.Saved<ConditionId>("reported", Touch.PerTick);
+        StarvedSince = _rows.Saved<Ticks>("starved_since", Touch.PerTick);
         QueueNext = _rows.Saved<int>("queue_next", Touch.PerTick);
         RuleNext = _rows.Derived<int>("rule_next");
 
@@ -90,6 +91,38 @@ public sealed class RuleInstanceTable
     /// </remarks>
     public Column<ConditionId> Reported { get; }
 
+    /// <summary>
+    /// The Tick this Rule went short of an input and has been short ever since, or
+    /// <see cref="Ticks"/> zero when it is not starving.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The failure pressure clock (<c>adr/0053</c>, as amended), and it is here rather than on the
+    /// Building for two reasons the Building cannot express.</b> The threshold is authored in
+    /// <em>missed firings</em> and a <c>rate</c> belongs to a Rule, so a kind running one Rule at 8
+    /// Ticks and another at 32 means two different things by <em>three missed firings</em>. And two
+    /// Rules that began failing at different moments are two durations, of which the Building's
+    /// pressure is the longest — computed where the sample reads it and stored nowhere.
+    /// </para>
+    /// <para>
+    /// <b>Only <see cref="Blocking.Level"/> sets it.</b> A Rule stopped on
+    /// <see cref="Blocking.Headroom"/> has a Bin that is <em>full</em>, which is what a well-supplied
+    /// Building with nobody to sell to looks like, and <c>02 §5.9</c> names input starvation as the
+    /// source. Waking and failing short again does not restart the clock, because the Rule never
+    /// fired; only firing clears it, which is what makes this a duration of continuous starvation
+    /// rather than a time since the last complaint.
+    /// </para>
+    /// <para>
+    /// <b>Tick 0 is the sentinel and it is sound.</b> A Rule Instance is armed uniform over
+    /// <c>[1, rate]</c>, so none can come due — or fail — at Tick 0. The one value a real starvation
+    /// cannot carry is the one that means it is not starving.
+    /// </para>
+    /// </remarks>
+    public Column<Ticks> StarvedSince { get; }
+
+    /// <summary>True when this Rule has been short of an input continuously since some Tick.</summary>
+    public bool IsStarving(int slot) => StarvedSince[slot] != default;
+
     /// <summary>The shared link: through a Bin's wait list, or through an Event Wheel bucket.</summary>
     public Column<int> QueueNext { get; }
 
@@ -100,6 +133,17 @@ public sealed class RuleInstanceTable
     public bool IsWaiting(int slot) => Blocked[slot] != Blocking.Nothing;
 
     /// <summary>Allocates a Rule Instance. Arming it is <see cref="World"/>'s.</summary>
+    /// <summary>Allocates a Rule Instance, healthy and owing nothing. Arming it is <see cref="World"/>'s.</summary>
+    /// <remarks>
+    /// <b>The failure state is written rather than assumed, for <see cref="BinTable.Create"/>'s
+    /// reason.</b> A recycled slot carries its predecessor's columns, and the two that would survive
+    /// demolition are the two this task added a consumer for: a stale <see cref="Reported"/> gives a
+    /// new Building a condition it never reached, and a stale <see cref="StarvedSince"/> condemns it
+    /// on the Tick it is built, at an age it has not lived. <see cref="Blocked"/> and
+    /// <see cref="WaitingOn"/> are cleared on the way out by <c>World.Unlink</c> and are written here
+    /// anyway, because a door that leaves half the row to somebody else's tidiness is the arrangement
+    /// this class was already bitten by.
+    /// </remarks>
     internal Handle<RuleInstance> Create(Handle<Building> building, RuleId rule)
     {
         Handle<RuleInstance> handle = _rows.Allocate();
@@ -107,6 +151,11 @@ public sealed class RuleInstanceTable
 
         Building[slot] = building;
         Rule[slot] = rule;
+        Blocked[slot] = Blocking.Nothing;
+        WaitingOn[slot] = default;
+        Shortfall[slot] = 0;
+        Reported[slot] = ConditionId.None;
+        StarvedSince[slot] = default;
 
         return handle;
     }

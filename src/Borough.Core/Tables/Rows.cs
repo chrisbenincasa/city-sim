@@ -112,16 +112,20 @@ public abstract class Rows
     /// monotonic id rather than by the slot the handle happens to address.
     /// </summary>
     public HandleColumn<TTarget> SavedHandle<TTarget>(
-        string name, Rows<TTarget> target, Touch touch = Touch.Wake)
+        string name, Rows<TTarget> target, Touch touch = Touch.Wake,
+        Reference reference = Reference.Required)
         where TTarget : unmanaged =>
-        Declare(new HandleColumn<TTarget>(this, name, Disposition.Saved, touch, _capacity, target));
+        Declare(new HandleColumn<TTarget>(
+            this, name, Disposition.Saved, touch, _capacity, target, reference));
 
-    /// <inheritdoc cref="SavedHandle{TTarget}(string, Rows{TTarget}, Touch)"/>
+    /// <inheritdoc cref="SavedHandle{TTarget}(string, Rows{TTarget}, Touch, Reference)"/>
     /// <summary>Declares a rebuilt column of handles — an index, not state.</summary>
     public HandleColumn<TTarget> DerivedHandle<TTarget>(
-        string name, Rows<TTarget> target, Touch touch = Touch.Wake)
+        string name, Rows<TTarget> target, Touch touch = Touch.Wake,
+        Reference reference = Reference.Required)
         where TTarget : unmanaged =>
-        Declare(new HandleColumn<TTarget>(this, name, Disposition.Derived, touch, _capacity, target));
+        Declare(new HandleColumn<TTarget>(
+            this, name, Disposition.Derived, touch, _capacity, target, reference));
 
     /// <summary>
     /// Closes the declaration. Called at the end of a table's constructor; nothing can be allocated

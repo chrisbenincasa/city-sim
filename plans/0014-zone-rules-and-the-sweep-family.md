@@ -54,8 +54,13 @@ families for performance. Building the second family is what puts it at risk of 
   a different order after a reload. **Found: the growth cycle cannot be entered from a standing
   start** — a populated city has no vacant Lot and an empty Pool, so nothing this project can build
   today exercises creation. Task 7 is what supplies both.
-- **Next: task 7**, demolish — which closes the cycle, and is the first thing that can put a
-  `[[zone_rule]]` in `rulesets/minimal.toml` and have it do something.
+- **Task 7** — demolish, and the cycle closes. The mechanism needed **two amendments to `adr/0053`**,
+  both found by the code rather than by argument: the signal is a Rule asleep short of an **input**
+  and never a reporting terminal, and the clock lives on the **Rule Instance**. It also found a defect
+  that had been latent since slice 4 and a live one it introduced itself. `rulesets/minimal.toml` now
+  declines and rebuilds, and all three baselines moved.
+- **Next: task 8** — eviction, which task 7 shipped, so what is left of it is the invariant
+  qualification; then task 9's tripwire and task 10's long run.
 
 ---
 
@@ -434,7 +439,7 @@ the first mechanism that reads occupancy inherits a world whose halves were buil
 Twenty-two tests: eleven on the Pool, eleven on the predicate with each of the three terms removed on
 its own.
 
-### 7. Demolish — and failure pressure is a duration, not a tally
+### 7. Demolish — and failure pressure is a duration, not a tally — **done**
 
 **The grill rewrote this task.** [`adr/0053`](../docs/adr/0053-failure-pressure-is-a-duration-not-a-tally.md)
 owns the reasoning; what changes here is that the planned mechanism — *pressure is a count of terminal
@@ -466,7 +471,80 @@ window version is not attempted rather than approximated.
 
 **Buildings do not shrink** (`adr/0025`). No downgrade in this slice.
 
-### 8. Eviction — where the Households go, and it is settled
+#### What building it changed — **done**
+
+**`adr/0053` needed two amendments and both were found by writing the code, not by arguing it.** The
+ADR is the grill's largest finding and it was still wrong twice, in the two places an argument could
+not reach.
+
+- **The signal is `Blocking.Level`, never a reporting terminal.** `Reported` is set only where an
+  author has written an `on_fail` chain, and `minimal.toml` has none — so under the only Ruleset that
+  exists no Building could ever have been condemned, and the task would have shipped a mechanism that
+  provably never fires. **The obvious repair is worse**: the one Rule that fails in that file is the
+  *producer*, failing on **headroom**, which is the healthy surplus steady state slice 7 built on
+  purpose. A terminal there condemns the whole city for being well supplied. `02 §5.9` already said
+  *input starvation* and `RuleEngine.Check` already separated the two by name; nothing had joined them.
+- **The clock is on the Rule Instance.** The threshold is in missed firings and a `rate` belongs to a
+  Rule, so a kind running Rules at 8 and 32 Ticks means two different things by *three missed
+  firings* — a Building carrying one clock has to pick one arbitrarily. Two Rules that went short at
+  different moments are two durations, and the Building's pressure is the longest, computed at the
+  sample and stored nowhere.
+
+**The condition behind a demolition is available and deliberately not kept.** Nothing consumes it —
+`01 §5`'s notification surface does not exist and the row is freed on the next line — so storing it
+would be a column nothing reads. That is `0011` finding 39's shape and it is recorded rather than
+built.
+
+**Two defects, and the interesting one had been latent since slice 4.** `Rows.Allocate` hands back a
+recycled slot **without clearing any column**, and has never promised to; until this task nothing in a
+running simulation ever freed a row, so it cost nothing. Demolition makes it reachable in two places
+at once: a rebuilt Building would open with the condemned one's **Bin contents** — goods from nothing,
+reading as a generous city — and its Rule Instances would inherit the condemned one's **starvation**,
+condemning it on the Tick it was raised at an age it had not lived. Both doors now write the columns
+they do not read. It is task 6's Pool-density finding one level down: *a borrowed guarantee nobody
+wrote down*.
+
+**The live one is the better story.** `LotTable.BuildingSlot` is **plus-one encoded**, so that a
+zero-filled row reads as vacant rather than as holding the first Building in the city, and its own
+doc-comment says *"use `BuildingOn` rather than reading this directly; the encoding is not meant to
+travel."* The condemn branch read it raw and **demolished the Building on the next slot**. Nothing
+about the symptom said so: Buildings declined, Lots cleared, Households pooled, the census was
+plausible and the long-run assertions passed. The only wrong thing was **which house fell down** —
+which is invisible in every aggregate and would have been found, if at all, by a player.
+
+**A handle column can now declare that its target may be freed underneath it** — `Reference.Required`
+against `Reference.Severable`, beside `Disposition` and `Touch`. Demolition is the first thing in this
+project that can free a row another table holds a handle to, and **exactly one column needs it**:
+`citizen.workplace`, which is somebody else's Building. Clearing it would need a Building-to-workers
+reverse index that does not exist and belongs to the labour system rather than to Zone Rules, and a
+workplace that no longer resolves **is** the job no longer existing. The declaration goes at the field
+because `02 §10`'s walk is driven by the columns for a stated reason — a list of fields shares its
+blind spot with the bug it exists to find — and the whole-world tier caught this on the first run.
+
+**`rulesets/minimal.toml` declines now, and the content is honest about being total.** A `repairs`
+Good that nothing produces, a Bin, an `upkeep` Rule that goes short on its first firing and sleeps for
+ever, `condemn_after = 4`, and **the project's first `[[zone_rule]]`**. Every dwelling therefore falls
+down, which is total rather than selective because there is one kind and it has one behaviour — a city
+where some Buildings thrive and others do not needs Buildings that differ, which needs content, which
+the file's first line says it is not. All three baselines moved.
+
+**Slice 7's long-run assertion lost its premise, and that is the correct outcome rather than a
+regression.** `RuleLongRunTests` asserted *exact equality* across the tail, earned by a Ruleset whose
+period was known, and stated its premise plainly: *no Building created or demolished*. A
+`[[zone_rule]]` falsifies it. The premise did not turn out to be wrong — it **expired**, and the
+replacement is bounded rather than exact because the churn is aperiodic: the sampler is the pacemaker
+and is in phase with nothing. What is still exact is better than what was lost: **`slots` does not
+move while `live` does**, which is `adr/0006`'s collection half reaching the one place nothing has
+ever been able to check it. That is task 10's assertion arriving early, because a long-run test left
+asserting `LiveCount == SlotCount` after demolition exists is red rather than merely weak. Task 10
+still owns the sharper form — a reading interval that is a whole number of the Zone Rule's trigger
+period, so the assertion is not about the sampling phase.
+
+Eleven tests, of which the load-bearing one is *running out of headroom does not start the clock*:
+every other test in the file passes with the wrong signal, and the city that results merely falls down
+everywhere at once.
+
+### 8. Eviction — where the Households go, and it is settled — **shipped inside task 7**
 
 **No longer a hole.** [`adr/0054`](../docs/adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md)
 settles it: the Occupants move to a minimal **Unplaced Pool** with `Money` and `Savings` intact, and
@@ -488,6 +566,12 @@ Three findings from the grill made the choice cheap:
 **One invariant is qualified, not deleted.** `WorldInvariants` reports `HouseholdHomeExists` when
 `Dwelling` fails to resolve. The claim becomes *a Household is housed **or** is in the Pool*, and a
 Household that is neither is still a violation — which is the check worth keeping.
+
+**Eviction itself shipped with task 7**, because `DestroyBuilding` cannot leave Households pointing at
+a Building it is about to free and there was nothing to defer. It is three lines and a paragraph: the
+Occupants are peeked rather than popped, since `Unplace` removes each from the list itself, and it
+runs first while the Building is still whole because `Unplace` reads the dwelling handle to find the
+list it is leaving. What remains of this task is the invariant qualification above.
 
 **No emigration, no refusal reasons, no give-up counter, no rejected-arrival taxonomy.** All 9a's.
 

@@ -37,6 +37,16 @@ written for: a destroyed Household and a destroyed Citizen, so the allocator's f
 never-reused id counter are off their initial values. Nothing in a session can destroy a row yet.
 `world-hash.txt` goes when slice 10's Zone Rules can demolish a Building, and not before.
 
+**Slice 10 task 7 arrived and the trigger named above turns out not to fire.** The session now
+demolishes Buildings, so it frees Building, Bin and Rule Instance rows and hands them back out —
+which is new coverage and is exactly what `world-hash.txt` was standing in for. It does **not** cover
+what that file was written for. Demolition **evicts** a Household into the Unplaced Pool
+([`adr/0054`](../../../docs/adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md));
+it destroys neither a Household nor a Citizen, because destroying one would delete its Money. So the
+free head and the id counter of those two tables are still at their initial values in every session
+this project can record, and `world-hash.txt` stays. **The correct trigger is a session that can
+remove a person** — emigration, or a Departure record — which is Phase 2 and not this slice.
+
 **The session exists twice, and that is the codec's test rather than a duplication.** `session.borough`
 is the artefact; `GoldenFixtures.Session()` is the same session built in C#. One test asserts they are
 the same log and that the *parsed file* reproduces the committed trace — which is a stronger check

@@ -111,3 +111,41 @@ public enum Buffering
     /// </summary>
     TwoCopies = 1,
 }
+
+/// <summary>
+/// Whether a handle column's target must outlive it, or may be freed underneath it.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The exemption <c>02 §10</c>'s every-handle-resolves walk needs, declared at the field rather
+/// than listed in the checker.</b> That walk is driven by the columns for a stated reason — a list of
+/// fields shares its blind spot with the bug it exists to find — so the one column that is allowed to
+/// dangle has to say so where it is declared, in the same place and the same spirit as
+/// <see cref="Disposition"/>.
+/// </para>
+/// <para>
+/// <b>Slice 10 is what made this necessary, and only one column needs it.</b> Demolition is the first
+/// thing in this project that can free a row another table holds a handle to. A Household's dwelling
+/// is repointed on eviction and a Bin's owner dies with its Building — but a Citizen's Workplace
+/// belongs to somebody else's Building, and clearing it would need a Building-to-workers reverse index
+/// that does not exist and belongs to the labour system rather than to Zone Rules. Leaving it stale is
+/// not a concession: <see cref="Rows{T}.Free"/> already promises that every handle to a freed row
+/// becomes <em>detectably</em> stale, and a workplace that no longer resolves is exactly the fact that
+/// the job no longer exists.
+/// </para>
+/// </remarks>
+public enum Reference
+{
+    /// <summary>
+    /// The target must be live for as long as the row holding the handle is. A dangling one is a
+    /// defect, and <c>Invariant.CrossTableHandleResolves</c> reports it.
+    /// </summary>
+    Required = 0,
+
+    /// <summary>
+    /// The target may be freed while this handle still points at it, and the stale handle <em>is</em>
+    /// the fact. Read it through <c>TryResolve</c>; a bare <c>Resolve</c> on such a column is a throw
+    /// waiting for the first demolition.
+    /// </summary>
+    Severable = 1,
+}

@@ -112,15 +112,26 @@ public sealed class BinTable
     public int HeadroomAt(int slot) => Capacity[slot] - _level[slot];
 
     /// <summary>Allocates an empty Bin on a Building. Linking it in is <see cref="World"/>'s.</summary>
+    /// <summary>Allocates a Bin on a Building, empty.</summary>
+    /// <remarks>
+    /// <b>The level is written rather than assumed, because a recycled slot carries its predecessor's
+    /// contents.</b> <see cref="Rows{T}.Allocate"/> hands back a free slot without clearing any
+    /// column — it has never promised to — and until slice 10 nothing in a running simulation ever
+    /// freed a Bin, so the omission cost nothing. Demolition is what makes it reachable: the next
+    /// Building raised on a cleared Lot would open its doors with whatever the condemned one still had
+    /// in store, which is goods created from nothing and would read as a generous city rather than as
+    /// a defect. The wait-list columns need no such line — <see cref="IndexList"/> encodes an empty
+    /// list as zero, so a fresh slot is already empty and a drained one is empty again.
+    /// </remarks>
     internal Handle<Bin> Create(Handle<Building> owner, ResourceId resource, BinCapacity capacity)
     {
-
         Handle<Bin> handle = _rows.Allocate();
         int slot = _rows.Resolve(handle);
 
         Owner[slot] = owner;
         Resource[slot] = resource;
         Capacity[slot] = capacity.Units;
+        _level[slot] = 0;
 
         return handle;
     }

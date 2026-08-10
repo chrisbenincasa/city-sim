@@ -23,21 +23,28 @@ namespace Borough.Tests.Rules;
 /// chain walking growing without the city growing.
 /// </para>
 /// <para>
-/// <b>The assertion is exact equality across the tail rather than a trend line, and the Ruleset is
-/// what earns that.</b> <c>rulesets/minimal.toml</c> settles into a cycle whose period is
-/// <c>consume</c>'s rate: the Bin sits at its ceiling, <c>restock</c> sleeps on headroom, one draw
-/// wakes it, it refills and sleeps again. Every 32 Ticks each Building therefore performs the same
-/// three due Rules and the same five evaluations, whatever offset the arming stagger gave it — a
-/// phase shift moves when a Building does its work and not how much. Summed over an interval that is
-/// a whole number of periods, the counters are not merely flat: they are <em>identical</em>, and an
-/// implementation that leaked one subscription or walked one extra rung fails on the first sample
-/// after the transient rather than on a slope somebody has to argue about.
+/// <b>This assertion used to be exact equality, and slice 10 task 7 took that away by making the
+/// city move.</b> It was earned: <c>rulesets/minimal.toml</c> settled into a cycle whose period was
+/// <c>consume</c>'s rate, every Building did the same work every 32 Ticks whatever offset the arming
+/// stagger gave it, and summed over a whole number of periods the counters were not merely flat but
+/// <em>identical</em>. That rested on one premise stated in the original comment — <em>no Building
+/// created or demolished</em> — and a <c>[[zone_rule]]</c> that condemns and rebuilds is precisely
+/// the thing that falsifies it. The premise was not wrong; it expired, which is worth distinguishing.
 /// </para>
 /// <para>
-/// <b>A trend line was the alternative and it is weaker here for the reason
-/// <c>LayerLongRunTests</c> found</b>: a slope fitted over a run that has not reached steady state
-/// measures the transient, and the honest fix in both cases was to build a fixture that converges to
-/// something known. This one converges by Tick 40 or so; the tail starts far later than that.
+/// <b>What replaced it is bounded rather than exact, because the churn is aperiodic.</b> Buildings
+/// are condemned in loose cohorts — the sampler is the pacemaker and it is not in phase with anything
+/// — so the interval totals wobble by tens of percent with no trend underneath. Two things are still
+/// exactly true and are asserted as such: <c>slots</c> does not move, which is <c>adr/0006</c>'s
+/// collection half reaching the one place nothing has ever been able to check it, and <c>live</c>
+/// does, which is what stops the first assertion passing over a run in which nothing happened.
+/// </para>
+/// <para>
+/// <b>The collection half arrived here early.</b> <c>plans/0014</c> gives it to task 10; task 7 is
+/// what made rows churn, and a long-run test left asserting <c>LiveCount == SlotCount</c> after
+/// demolition exists would have been red rather than merely weak. Task 10 owns the sharper form — a
+/// reading interval that is a whole number of the Zone Rule's trigger period, so the assertion is not
+/// about the sampling phase.
 /// </para>
 /// </remarks>
 public class RuleLongRunTests
@@ -62,7 +69,7 @@ public class RuleLongRunTests
     [Fact]
     public void The_hundred_thousand_Tick_acceptance_run()
     {
-        RuleActivity[] readings = Run(out World world);
+        RuleActivity[] readings = Run(out World world, out Opening opening);
         RuleActivity[] tail = readings[(Settle / ReadEvery)..];
 
         // The run has to have done something, or every line below passes over nothing. This is the
@@ -70,42 +77,87 @@ public class RuleLongRunTests
         Assert.True(tail[0].Due.Sum > 0, "no Rule came due in the whole run.");
         Assert.True(tail[0].Evaluations.Sum > tail[0].Due.Sum, "no Rule was evaluated twice.");
 
-        for (int i = 1; i < tail.Length; i++)
-        {
-            Assert.True(
-                tail[i].Evaluations.Sum == tail[0].Evaluations.Sum,
-                $"Rule evaluations moved from {tail[0].Evaluations.Sum} to {tail[i].Evaluations.Sum} "
-                + $"per {ReadEvery} Ticks, with due Rule Instances at {tail[i].Due.Sum} against "
-                + $"{tail[0].Due.Sum}. Evaluations rising against a flat due is chain walking growing "
-                + "without the city growing, which is adr/0006 arriving as a flow.");
+        long early = Mean(tail[..(tail.Length / 2)]);
+        long late = Mean(tail[(tail.Length / 2)..]);
 
-            Assert.True(
-                tail[i].Due.Sum == tail[0].Due.Sum,
-                $"due Rule Instances moved from {tail[0].Due.Sum} to {tail[i].Due.Sum} per "
-                + $"{ReadEvery} Ticks. The city is the same size throughout, so the scheduled load "
-                + "should be too: a Rule is re-armed once per firing and subscribes instead of "
-                + "re-arming when it fails.");
+        Assert.True(
+            late <= early + (early / 8),
+            $"Rule evaluations drifted upward across the tail: {early} per {ReadEvery} Ticks over "
+            + $"the first half against {late} over the second. A city of bounded size cannot "
+            + "produce steadily more work with elapsed time, which is adr/0006 arriving as a flow.");
 
-            // The peak is the burst the sum cannot see (02 §4, task 9). A run whose sum held while
-            // its worst Tick doubled is a run that concentrated the same work into fewer Ticks.
-            Assert.True(
-                tail[i].Evaluations.Peak == tail[0].Evaluations.Peak,
-                $"the worst Tick moved from {tail[0].Evaluations.Peak} evaluations to "
-                + $"{tail[i].Evaluations.Peak}, with the interval's total unchanged. Burstiness under "
-                + "this design is authored, so a peak that moves on its own is the stagger collapsing.");
-        }
+        // The band is one direction only. A city that quietened down is not this test's business:
+        // adr/0006 is about growth, and demanding symmetry would fail the run where a cohort of
+        // Buildings happened to be mid-demolition at the last reading.
+        Assert.True(
+            Max(tail) <= Min(tail) * 2,
+            $"the interval total ranged from {Min(tail)} to {Max(tail)} across the tail. Cohort "
+            + "churn wobbles it; a factor of two is a different shape.");
 
-        // The collection half, as far as this slice can carry it: a Rule Instance's life is its
-        // Building's, so with no Building created or demolished these are constants. The **slots**
-        // half of the assertion is re-filed to slice 10, which is what makes rows churn.
-        Assert.Equal(world.Bins.Rows.LiveCount, world.Bins.Rows.SlotCount);
-        Assert.Equal(world.RuleInstances.Rows.LiveCount, world.RuleInstances.Rows.SlotCount);
+        // The collection half, and slice 10 task 7 is what made it testable: before demolition
+        // existed nothing could free a row, so `slots` could not have trended whatever the Ruleset
+        // said. A rising slot count against a bounded city is freed rows not being reused — the table
+        // growing to the high-water mark of a *cycle* rather than to the size of the city.
+        Assert.Equal(opening.Bins, world.Bins.Rows.SlotCount);
+        Assert.Equal(opening.Instances, world.RuleInstances.Rows.SlotCount);
+
+        // And the guard that keeps the two lines above from passing over a run in which nothing was
+        // ever demolished, which is how they would read if the Ruleset lost its [[zone_rule]].
+        Assert.True(
+            world.Bins.Rows.LiveCount < opening.Bins,
+            $"every Bin slot is still live after {Ticks} Ticks, so nothing was ever demolished and "
+            + "the slot-count assertions above are vacuous.");
 
         // The end-of-run tier, run for real. It throws by default, so reaching the next line passes.
         new Simulation(world, WorldKey.FromSeed(GoldenFixtures.Seed)).CheckEndOfRun();
     }
 
-    private static RuleActivity[] Run(out World world)
+    private static long Mean(RuleActivity[] readings)
+    {
+        long total = 0;
+
+        foreach (RuleActivity reading in readings)
+        {
+            total += reading.Evaluations.Sum;
+        }
+
+        return total / readings.Length;
+    }
+
+    private static long Min(RuleActivity[] readings)
+    {
+        long least = long.MaxValue;
+
+        foreach (RuleActivity reading in readings)
+        {
+            if (reading.Evaluations.Sum < least)
+            {
+                least = reading.Evaluations.Sum;
+            }
+        }
+
+        return least;
+    }
+
+    private static long Max(RuleActivity[] readings)
+    {
+        long most = 0;
+
+        foreach (RuleActivity reading in readings)
+        {
+            if (reading.Evaluations.Sum > most)
+            {
+                most = reading.Evaluations.Sum;
+            }
+        }
+
+        return most;
+    }
+
+    /// <summary>The city's size, read once before anything has been demolished.</summary>
+    private readonly record struct Opening(int Bins, int Instances, int Buildings);
+
+    private static RuleActivity[] Run(out World world, out Opening opening)
     {
         var key = WorldKey.FromSeed(GoldenFixtures.Seed);
 
@@ -120,6 +172,15 @@ public class RuleLongRunTests
         };
 
         SyntheticCity.PopulateInto(world, key, new Ticks(0));
+
+        // The high-water mark, taken before a single Building has been demolished. Every row the run
+        // frees must be handed back out rather than appended beside, so these are what the run may
+        // not exceed — and because the populator builds one Building per Lot, they are the size of
+        // the city rather than a number this test chose.
+        opening = new Opening(
+            world.Bins.Rows.SlotCount,
+            world.RuleInstances.Rows.SlotCount,
+            world.Buildings.Rows.LiveCount);
 
         List<RuleActivity> readings = [];
 

@@ -320,7 +320,7 @@ public sealed class RuleEngine
             }
             else
             {
-                Stop(verdict);
+                Stop(verdict, tick);
             }
         }
 
@@ -538,7 +538,11 @@ public sealed class RuleEngine
         RuleId rule = verdict.Rule;
         RuleDefinition definition = _world.Rules.Rule(rule);
 
+        // Recovery is total (adr/0053): a Building whose supply returns is indistinguishable from one
+        // that never failed. Firing is the only thing that clears the clock, which is why the
+        // duration means continuous starvation rather than time since the last complaint.
         _world.RuleInstances.Reported[instance] = ConditionId.None;
+        _world.RuleInstances.StarvedSince[instance] = default;
 
         for (int i = 0; i < _touchedCount; i++)
         {
@@ -567,13 +571,33 @@ public sealed class RuleEngine
 
     /// <summary>Puts a failed Rule to sleep on the Bin that stopped it.</summary>
     /// <remarks>
+    /// <para>
     /// <b>It does not re-arm</b> (<c>02 §4.1</c>), which is the entire economics of the design: a
     /// starved District costs nothing at all until supply arrives, where a retry timer would cost the
     /// same as a firing Rule for as long as the shortage lasted.
+    /// </para>
+    /// <para>
+    /// <b>This is also where failure pressure starts, and only for one of the two failures</b>
+    /// (<c>adr/0053</c>, as amended). Short of an <em>input</em> is <c>02 §5.9</c>'s starvation and
+    /// starts the clock; out of <em>headroom</em> is a full Bin, which is what a well-supplied
+    /// Building looks like, and stops it. Starting it only when it is not already running is what
+    /// makes the duration continuous: a Rule woken by an arrival that turns out not to cover its
+    /// shortfall comes back through here without having fired, and must not have its clock reset by
+    /// the visit.
+    /// </para>
     /// </remarks>
-    private void Stop(RuleVerdict verdict)
+    private void Stop(RuleVerdict verdict, Ticks tick)
     {
         _world.RuleInstances.Reported[verdict.Instance] = verdict.Reported;
+
+        if (verdict.Blocking != Blocking.Level)
+        {
+            _world.RuleInstances.StarvedSince[verdict.Instance] = default;
+        }
+        else if (!_world.RuleInstances.IsStarving(verdict.Instance))
+        {
+            _world.RuleInstances.StarvedSince[verdict.Instance] = tick;
+        }
 
         _world.Subscribe(
             _world.RuleInstances.Rows.At(verdict.Instance),

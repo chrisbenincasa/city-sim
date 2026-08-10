@@ -276,24 +276,44 @@ public sealed class HandleColumn<TTarget> : Column<Handle<TTarget>>
     private const ulong Dangling = ulong.MaxValue;
 
     private readonly Rows<TTarget> _target;
+    private readonly Reference _reference;
 
     internal HandleColumn(
         Rows owner, string name, Disposition disposition, Touch touch, int capacity,
-        Rows<TTarget> target)
-        : base(owner, name, disposition, touch, capacity) =>
+        Rows<TTarget> target, Reference reference)
+        : base(owner, name, disposition, touch, capacity)
+    {
         _target = target;
+        _reference = reference;
+    }
 
     /// <summary>The table this column's handles address.</summary>
     public Rows<TTarget> Target => _target;
 
+    /// <summary>Whether the target must outlive the handle, or may be freed underneath it.</summary>
+    public Reference Reference => _reference;
+
     /// <inheritdoc />
     /// <remarks>
+    /// <para>
     /// The unset handle is not dangling. A column is allowed to point at nothing — a Citizen with no
     /// Workplace is unemployed rather than corrupt — and a walk that could not tell those apart would
     /// report every empty field in the city.
+    /// </para>
+    /// <para>
+    /// <b>Nor is a stale handle in a <see cref="Reference.Severable"/> column.</b> There the target
+    /// being gone is the state being modelled rather than a break in it, and the two are
+    /// indistinguishable to this method — which is why the difference is declared once, beside the
+    /// field, instead of being decided here.
+    /// </para>
     /// </remarks>
     internal override bool IsDangling(int slot)
     {
+        if (_reference == Reference.Severable)
+        {
+            return false;
+        }
+
         Handle<TTarget> handle = this[slot];
 
         return !handle.IsNone && !_target.IsValid(handle);

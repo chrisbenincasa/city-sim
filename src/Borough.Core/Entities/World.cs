@@ -776,17 +776,37 @@ public sealed class World
     /// Demolishes a Building, with its Bins, its Rules, and everybody asleep on its Bins.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// <b>The Occupants are evicted into the Unplaced Pool, with their Money and Savings intact</b>
+    /// (<c>adr/0054</c>). Destroying them instead would delete their Money, which <c>adr/0024</c>
+    /// forbids — the Outside Connection is money's only sink — and would be an unbounded population
+    /// sink with no Departure record. It happens first, while the Building is still whole, because
+    /// <see cref="Unplace"/> reads each Household's dwelling handle to find the occupant list it is
+    /// leaving.
+    /// </para>
+    /// <para>
     /// <b>The waiters are woken rather than dropped.</b> A Rule Instance asleep on a Bin that no
     /// longer exists is <c>05 §9</c>'s asleep-for-ever reached through demolition instead of through a
     /// missed drain — nothing will ever write that Bin again. Waking them puts each back on the Wheel
     /// to re-evaluate, fail against a Bin that is gone, and take whatever its <c>on_fail</c> chain
     /// offers, which is the reportable outcome rather than the silent one.
+    /// </para>
     /// </remarks>
     public void DestroyBuilding(Handle<Building> building, Ticks tick)
     {
         int slot = Buildings.Rows.Resolve(building);
 
-        // The Rules first, so that any of them asleep on this Building's own Bins are off those wait
+        // Peeked rather than popped, because Unplace removes the Household from this list itself —
+        // popping first would leave it unlinking a node that is already off, and the two spellings of
+        // "leave the occupant list" would have to agree for ever.
+        int occupant = Occupants.PeekFront(slot);
+        while (occupant != Rows.NoSlot)
+        {
+            Unplace(Households.Rows.At(occupant));
+            occupant = Occupants.PeekFront(slot);
+        }
+
+        // The Rules next, so that any of them asleep on this Building's own Bins are off those wait
         // lists before the Bins below start waking whoever is left on them.
         int instance = BuildingRules.PopFront(slot);
         while (instance != Rows.NoSlot)
