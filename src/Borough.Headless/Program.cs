@@ -48,6 +48,9 @@ internal static class Program
                 case Mode.Layer:
                     return Session.DumpLayer(options);
 
+                case Mode.Zones:
+                    return Session.DumpZones(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

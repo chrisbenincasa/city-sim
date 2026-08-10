@@ -27,8 +27,8 @@ families for performance. Building the second family is what puts it at risk of 
 
 ## Status
 
-**Task 1 shipped. Grilled.** The gate is clear and slice 7 — its only dependency — closed with task
-10a.
+**All ten tasks shipped. The slice is closed.** The gate was clear and slice 7 — its only dependency —
+closed with task 10a.
 
 - **Task 1** — the Lot's permission set at full width. Its second half, *a `zone` verb that paints an
   area*, was **cut**: see *The second collision*.
@@ -65,8 +65,18 @@ families for performance. Building the second family is what puts it at risk of 
   hierarchy**, not the algorithm — against a control rung that moved **989×** on the same data. It is
   the **third sighting of scatter ×1.5**, after task 10a's findings 42–43, and the first with nothing
   else moving beside it.
-- **Next: task 8** — eviction, which task 7 shipped, so what is left of it is the invariant
-  qualification; then task 10's long run.
+- **Task 8** — eviction, and closing it was an audit rather than a change. The qualification had
+  already shipped in task 6, as a **new** invariant rather than an amended one — which left
+  `HouseholdHomeExists` **reported by nothing**, the only orphan among 26 members. Bannered and
+  `[Obsolete]`, and the id retired rather than reused, because a crash artifact carries the number.
+- **Task 10 — the slice is closed.** The `slots` half of slice 5 task 7's trend assertion is
+  discharged: five of six tables are **dead flat** across 100,000 Ticks of continuous demolition and
+  rebuilding, which is `adr/0006`'s collection half checked for the first time. The sixth, the
+  Unplaced Pool, is a **running maximum** and gets a structural ceiling plus a convergence *rate*
+  rather than a fitted window. **The finding is what the numbers sit on**: the city settles at ~60 of
+  121 Lots built and ~300 of 360 Households homeless, because demolition evicts a Building's whole
+  occupancy and creation rehouses exactly one — **a Building has no occupancy at all**, filed to
+  `0002` §B.
 
 ---
 
@@ -550,7 +560,7 @@ Eleven tests, of which the load-bearing one is *running out of headroom does not
 every other test in the file passes with the wrong signal, and the city that results merely falls down
 everywhere at once.
 
-### 8. Eviction — where the Households go, and it is settled — **shipped inside task 7**
+### 8. Eviction — where the Households go, and it is settled — **done, mostly inside tasks 6 and 7**
 
 **No longer a hole.** [`adr/0054`](../docs/adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md)
 settles it: the Occupants move to a minimal **Unplaced Pool** with `Money` and `Savings` intact, and
@@ -580,6 +590,27 @@ runs first while the Building is still whole because `Unplace` reads the dwellin
 list it is leaving. What remains of this task is the invariant qualification above.
 
 **No emigration, no refusal reasons, no give-up counter, no rejected-arrival taxonomy.** All 9a's.
+
+#### What closing it found — **done**
+
+**The qualification had already shipped, and not where this task said it would.** Task 6 needed the
+Pool for its create predicate, so it added `HouseholdIsHousedOrInThePool` as a **new** member with
+both directions of the exclusive-or and two tests, rather than amending `HouseholdHomeExists` in
+place as planned. That is the better outcome — the two claims are different claims, and the old name
+says the wrong one — but it left the old member **reported by nothing**.
+
+**One orphan, and it is the only one.** An audit of all 26 members against every `Invariant.X`
+reference in `src/` found `HouseholdHomeExists` alone at zero call sites; every other member is
+reported at least once. **An enum member nothing can report reads as a check that exists**, which is
+the corpus's recurring failure mode arriving in a new place — a green mark that is not evidence a
+claim was examined. It is now bannered and `[Obsolete]`, so a call site that tried to report it would
+be a build warning rather than a silent lie.
+
+**Retired in place, never renumbered.** The id travels: a violation reaches a human through a crash
+artifact carrying the number, so letting a later invariant inherit 3 would make every artifact
+written before that day say something false. A banner costs nothing and a reused id cannot be
+un-reused — which is `CLAUDE.md`'s *superseded documents get a banner, never a deletion*, applied to
+an identifier for the first time.
 
 ### 9. The tripwire — constant cost regardless of Zone size — **done**
 
@@ -663,7 +694,7 @@ widening past a cache line, or the sample gaining a term that reads a neighbour.
 the sweep column steepening while the control column stays where it is, which is the one shape this
 harness distinguishes.
 
-### 10. The `slots` half of slice 5 task 7's trend assertion
+### 10. The `slots` half of slice 5 task 7's trend assertion — **done**
 
 **Inherited, and this slice is the only thing that can discharge it.** `0003`'s gate board states the
 reasoning: the Rule engine allocates no rows — a Rule Instance's life is its Building's — so no
@@ -679,26 +710,99 @@ Slice 7 shipped the **flow** half of this assertion and shipped it stronger than
 equality over a whole number of periods. The same discipline applies: choose a reading interval that
 is a whole number of the Zone Rule's trigger period, or the assertion is about the sampling phase.
 
+#### What it measured — **done**
+
+`ZoneRuleLongRunTests`, 100,000 Ticks, 1,000 Citizens, `rulesets/minimal.toml` in force, read every
+**2,048 Ticks — derived from the Ruleset rather than written down**, as 64 of the `[[zone_rule]]`'s
+own 32-Tick period. Retuning the file therefore moves the reading interval with it, instead of
+leaving an exact assertion quietly measuring a sampling phase. It bought exactly what it was meant
+to: **64 triggers in every one of the 45 tail readings, asserted as equality**.
+
+**Five of six tables are dead flat, and the sixth is flat for a different reason.**
+
+| | `slots` | `live` across the tail |
+|---|---:|---|
+| Lots | **121**, never moves | 121 — nothing creates or destroys a Lot |
+| Buildings | **121**, never moves | **54 → 78**, oscillating |
+| Households | **360**, never moves | 360 — nothing destroys a Household |
+| Bins | **242**, never moves | 108 → 156 |
+| Rule Instances | **363**, never moves | 162 → 234 |
+| Unplaced Pool | **300 → 312**, then flat | 282 → 306 |
+
+`slots` for Buildings equals the Lot count and never exceeds it across a run that demolished and
+rebuilt continuously, which is `adr/0006`'s collection half **checked for the first time**: every
+freed row was handed back out rather than appended beside. The same holds for the Bins and Rule
+Instances that hang off a Building's life.
+
+**The Pool is a running maximum, and that is a different claim needing a different assertion.** Its
+slot count is the largest number of Households ever homeless *at once*, so it legitimately creeps
+while the run is still finding the largest eviction cohort it will see: 300, 304, 305, 309, 311, 312,
+then 312 for the last 37,000 Ticks. Two things are asserted instead of flatness. The **ceiling**,
+which is the population, because a Household is in the Pool at most once — a *structural* bound, and
+it is why task 8's third finding said `adr/0006` holds here for a reason that has nothing to do with
+the sink. And **convergence as a rate**, ≤1/32 growth in the high-water mark across the back half of
+the tail.
+
+**The rate is there because the alternative would have been fitted to the data.** The plateau arrives
+at tail reading **26 of 45** — just past the midpoint — so a *flat after reading N* assertion would
+have had an N chosen because the run has that shape. A rate has no such freedom, it is the same form
+slice 7's flow half already uses, and the thing it is guarding against is not subtle: a Pool that
+failed to recycle would allocate thousands of rows over 100,000 Ticks and cross the 360-row ceiling
+almost immediately.
+
+#### The finding underneath the numbers: the city drains into the Pool, and it is not a leak
+
+**In steady state ~60 of 121 Lots hold a Building and ~300 of 360 Households are homeless.** Nothing
+trends, every table recycles, and the run passes — so this is not `adr/0006`. It is arithmetic:
+**demolition evicts a Building's whole occupancy and creation rehouses exactly one Household.**
+`SyntheticCity` puts three Households in each Building; `ZoneRuleEngine.Create` draws one member of
+the Pool and places it. Every demolish-and-rebuild cycle therefore nets **+2** into the Pool until
+eviction and rehousing balance, which they do — at a city five-sixths homeless.
+
+**The two halves of the model disagree about what a Building holds, and neither is wrong on its own.**
+The populator's three-per-Building is a sizing ratio; `Create`'s one is `adr/0054`'s *drained blind*
+— there is no acceptance test, no rent and no tolerance, so placing more than one would be inventing
+a capacity nobody has measured. What is missing is that **a Building has no occupancy at all**: a Lot
+has a permission set and a Building has a kind, and how many Households either admits is a number the
+Ruleset cannot express. That is `02 §5.4`–`§5.6`'s Phase 2 hole seen from the inside, and this is the
+first run that could see it.
+
+**It is filed rather than fixed, and the reason is `adr/0043`.** The claim *a Building should house
+N Households* is **measurable** — the number that settles it is an occupancy declared in a Ruleset and
+the machine is this run — so no session should settle it by argument, and today there is nothing to
+declare it in. What can be said without a number: **the equilibrium is an artefact of the mismatch
+and not of the mechanism**, so it will move when occupancy exists and no tuning done before then is
+worth keeping.
+
 ---
 
-## Acceptance
+## Acceptance — **met**
 
-- `dotnet build` and `dotnet test` green with no GPU and no Godot.
-- A Ruleset naming an undeclared kind, an unpaintable permission bit, or a zero sample size is
-  **refused with a file, a line and a rule name**, and the previous Ruleset stays live.
-- Replay equivalence holds over a session in which Buildings are created and demolished: two runs, one
-  log, identical hash traces. This is materially stronger than slice 7's, because row *allocation
-  order* now depends on the free list, and the free list depends on demolition order.
-- The tripwire of task 9 is published as a break-even with its denominator measured twice.
-- A 100,000-Tick run in which **no collection and no magnitude trends upward** — both halves, for the
-  first time. `slots` flat against a moving `live`; failure pressure bounded by its decay.
-- `02 §2.2`'s *a Lot is either vacant or holds exactly one Building* is registered as a whole-world
-  invariant.
-- There is something to look at: `--zones` or equivalent printing the Lot grid by permission and
-  occupancy, in the register of `--layer pollution`. A city that visibly fills in and thins out.
-- Every unratified number this slice chose is in [`0002`](0002-open-questions.md) §D **with a named
-  ratifier** (`adr/0052`) before it closes. At minimum: the **sample size**, the **trigger interval**,
-  the **failure-pressure threshold** and its **decay rate**.
+- ✅ `dotnet build` and `dotnet test` green with no GPU and no Godot. **683 tests.**
+- ✅ A Ruleset naming an undeclared kind, an unpaintable permission bit, or a zero sample size is
+  **refused with a file, a line and a rule name**, and the previous Ruleset stays live. Task 3.
+- ✅ Replay equivalence holds over a session in which Buildings are created and demolished: two runs,
+  one log, identical hash traces. Materially stronger than slice 7's, because row *allocation order*
+  now depends on the free list and the free list depends on demolition order — and the golden session
+  has churned 121 → 103 → 121 Buildings since task 7 re-recorded it.
+- ✅ The tripwire of task 9 is published as a break-even with its denominator measured twice.
+  **1.56×**, denominator re-timed at every rung, drift 2.3%.
+- ✅ A 100,000-Tick run in which **no collection and no magnitude trends upward** — both halves, for
+  the first time. Task 10 for the collections; the magnitude half is **structural rather than
+  measured**, and saying so is the point: failure pressure is a duration whose clock is cleared by
+  firing and whose holder is demolished at the threshold, so there is no accumulator to bound. That
+  was `adr/0053`'s whole reason and it is why the *decay rate* row in the table above is struck.
+- ✅ `02 §2.2`'s *a Lot is either vacant or holds exactly one Building* is registered as a whole-world
+  invariant. `LotHoldsExactlyOneBuilding`, both directions, plus the `O(1)` write-site half.
+- ✅ There is something to look at: **`--zones`**, printing the Lot grid by permission and occupancy
+  before and after a run, with what the sweep did. It refuses without `--ruleset` rather than
+  degrading, because an unchanging grid would read as a broken mechanism instead of as a file that
+  declares no `[[zone_rule]]`. At 10,000 Citizens a city of 1,201 Lots visibly thins from solid to
+  824 built and 377 vacant.
+- ✅ Every unratified number this slice chose is in [`0002`](0002-open-questions.md) §D1 **with a named
+  ratifier** (`adr/0052`): the **sample size**, the **trigger interval** and the **condemnation
+  threshold**, bounded by task 10's run and selected by the first playable build. The fourth, the
+  **decay rate**, was derived away rather than chosen.
 
 ---
 

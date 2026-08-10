@@ -8,7 +8,7 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: Phase 1 gate closed; S0a run; slice 7 is closed; slice 10 is in flight — task 1 shipped and its design grilled, producing `adr/0053`–`0055`.** The repository is ~7,000 lines of design
+**Current state: Phase 1 gate closed; S0a run; slices 7 and 10 are closed — slice 10 shipped all ten tasks and produced `adr/0053`–`0055`. Next is slice 8, hot reload.** The repository is ~7,000 lines of design
 documents and 54 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
 declaration and the State Hash — and all eight tasks of slice 5: `step(inputs)` with the
@@ -28,7 +28,29 @@ Fertility, Desirability and the line-source queries will go, and `layer_cells(aa
 project's first hot query — allocation-free and string-free, both checked. **Superposition is exact
 over twenty sources and the in-place variant is kept in the suite watching itself fail.**
 `dotnet run --project src/Borough.Headless -- --layer pollution` prints a field, which is the first
-thing here that is not a number. The slice's owed decision is settled *by measurement*: `adr/0044`
+thing here that is not a number. **Slice 10 added the second: `--zones` prints the Lot grid before and
+after a run of sweeping, so a city visibly thins out** — and it refuses without a `--ruleset` rather
+than degrading, because an unchanging grid would read as a broken mechanism instead of as a file that
+declares no `[[zone_rule]]`.
+**Slice 10, Zone Rules, is closed — all ten tasks.** The second Rule family runs in Tick phase 6: a
+Zone Rule samples Lots rather than sweeping them, builds on a vacant permitted one somebody in the
+**Unplaced Pool** would take, and condemns an occupied one whose Building has been **starved of an
+input** for longer than its kind allows — `adr/0053` making pressure a **duration**, amended twice by
+the code itself. `adr/0054` sends a demolished Building's Households to the Pool with their money
+intact; `adr/0055` scopes a permission set to what a Rule *builds* and never to which Lots it looks
+at, so there is no immortality by paintbrush. **Four findings outlive the slice.** The growth cycle
+**cannot be entered from a standing start**, which is why the shipped Ruleset makes dwellings decline.
+The tripwire reads **1.56×** over a 1,000× Zone against a control that moved **989×**, so `02 §5.7`'s
+*constant cost regardless of Zone size* is **false in the letter and true in the substance** — the
+sweep is `O(sample)` exactly and the variable is the **working set**, which is the third sighting of
+scatter ≈1.5 after `0011`'s findings 42–43. The 100,000-Tick run discharged `adr/0006`'s **collection**
+half for the first time — five of six tables dead flat across continuous demolition, the sixth a
+**running maximum** bounded structurally by the population — and found the city settles **five-sixths
+homeless**, because demolition evicts a Building's whole occupancy and creation rehouses exactly one:
+**a Building has no declared occupancy at all**, filed to `0002` §B rather than tuned. And closing
+task 8 was an audit rather than a change: **`HouseholdHomeExists` was reported by nothing**, the only
+orphan among 26 invariants, now bannered with its **id retired rather than reused**, because a crash
+artifact carries the number. The slice's owed decision is settled *by measurement*: `adr/0044`
 makes the diffusion cadence **hash-bearing**, the **sixth claim in the corpus measured false and the
 first outside S2**. **That ADR then got its own second half wrong by argument** — it filed the cadence
 as world-creation-fixed while citing `adr/0015` without running the membership test `adr/0015` states,
@@ -304,6 +326,7 @@ method that returns a formatted string because a panel wanted one.
 dotnet build                  # must succeed with no GPU and no Godot installed
 dotnet test                   # must be green
 dotnet run --project src/Borough.Headless
+dotnet run --project src/Borough.Headless -- --zones --ruleset rulesets/minimal.toml --ticks 5000
 ```
 
 ## Constants

@@ -309,4 +309,18 @@ internal static class Session
 
         return 0;
     }
+
+    /// <summary>Slice 10's artefact: the Lot grid before and after a run of sweeping.</summary>
+    internal static int DumpZones(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return ZoneDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return ZoneDump.Run(options, writer);
+    }
 }

@@ -281,4 +281,59 @@ public sealed class RunnerTests
         Assert.Equal(Recorded, Borough.Headless.Session.Load(options, Recorded).RulesetHash);
         Assert.Equal(ContentHash.None, Borough.Headless.Session.Load(options, ContentHash.None).RulesetHash);
     }
+
+    /// <summary>Asking for the Lot grid selects its own mode, not a run and not the report.</summary>
+    [Fact]
+    public void Asking_for_zones_selects_the_zone_dump()
+    {
+        Assert.True(Options.TryParse(
+            ["--zones", "--ruleset", "minimal.toml"], out Options options, out _));
+
+        Assert.Equal(Mode.Zones, options.Mode);
+    }
+
+    /// <summary>
+    /// <b>A sweep is a Ruleset's behaviour, so a Zone dump with no Rules is refused rather than
+    /// degraded.</b>
+    /// </summary>
+    /// <remarks>
+    /// The degraded form is the dangerous one: it would print the same grid twice and read as a
+    /// broken mechanism, when what happened is that the file declares no <c>[[zone_rule]]</c>. That
+    /// is <c>HONEST DEGRADATION</c> in the one direction the tag is usually not applied — the honest
+    /// thing here is not to degrade at all.
+    /// </remarks>
+    [Fact]
+    public void A_zone_dump_with_no_ruleset_is_refused()
+    {
+        Assert.False(Options.TryParse(["--zones"], out _, out string? complaint));
+
+        Assert.Contains("--zones needs --ruleset", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>Two pictures of two different things, each building its own world.</summary>
+    [Fact]
+    public void A_zone_dump_and_a_layer_dump_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--zones", "--ruleset", "minimal.toml", "--layer", "pollution"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("Ask for one", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A Zone dump runs its own populated session, so a log's commands would land on a world it did
+    /// not record.
+    /// </summary>
+    [Fact]
+    public void A_zone_dump_and_a_log_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--zones", "--ruleset", "minimal.toml", "--log", "s.borough"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("runs its own populated session", complaint, StringComparison.Ordinal);
+    }
 }

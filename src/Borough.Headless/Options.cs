@@ -21,6 +21,17 @@ internal enum Mode
     /// Layer dump taken at the end of a replay would print an empty grid.
     /// </remarks>
     Layer,
+
+    /// <summary>
+    /// Print the Lot grid by permission and occupancy, before and after a run. Slice 10's.
+    /// </summary>
+    /// <remarks>
+    /// A fourth mode for <see cref="Layer"/>'s reason turned around. That one builds its own sources
+    /// because no session can place any; this one runs a real session because a sweep is a thing that
+    /// happens <em>over time</em>, and it refuses without a Ruleset because Zone Rules are content
+    /// and there is nothing to invent in their place.
+    /// </remarks>
+    Zones,
 }
 
 /// <summary>
@@ -158,6 +169,7 @@ internal sealed class Options
         bool citizensGiven = false;
         bool csv = false;
         bool decideGuard = true;
+        bool zones = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -179,6 +191,13 @@ internal sealed class Options
 
                 case "--csv":
                     csv = true;
+                    continue;
+
+                // Deliberately not a session flag, unlike --census. A Zone dump *is* a run, and the
+                // mode it selects already implies one; setting `session` too would make it collide
+                // with --layer's refusal below for a reason the operator did not cause.
+                case "--zones":
+                    zones = true;
                     continue;
 
                 // A run, for the same reason --census is: the guard is a property of stepping a world,
@@ -292,9 +311,36 @@ internal sealed class Options
             return false;
         }
 
+        if (zones && dump is not null)
+        {
+            complaint = "--zones and --layer are two pictures of two different things, and each "
+                      + "builds its own world. Ask for one.";
+            return false;
+        }
+
+        // A sweep is a Ruleset's behaviour, so a Zone dump with no Rules would print the same grid
+        // twice and read as a broken mechanism rather than an absent one. Refuse instead of degrade.
+        if (zones && ruleset is null)
+        {
+            complaint = "--zones needs --ruleset PATH. A Zone Rule is content, not a default: "
+                      + "without one there is no sweep to show, and an unchanging grid would look "
+                      + "like a defect rather than like a Ruleset that declares no [[zone_rule]].";
+            return false;
+        }
+
+        if (zones && log is not null)
+        {
+            complaint = "--zones and --log disagree: a Zone dump runs its own populated session, and "
+                      + "a replay's commands would be applied to a world it did not record.";
+            return false;
+        }
+
         options = new Options
         {
-            Mode = dump is not null ? Mode.Layer : session ? Mode.Run : Mode.Report,
+            Mode = zones ? Mode.Zones
+                 : dump is not null ? Mode.Layer
+                 : session ? Mode.Run
+                 : Mode.Report,
             Layer = dump ?? default,
             Csv = csv,
             LogPath = log,
@@ -341,7 +387,11 @@ internal sealed class Options
           --layer NAME          dump a Map Layer's Cell grid before and after a source
                                 change, with the halo that was recomputed. NAME is
                                 pollution, land-value or sealing
-          --csv                 dump the Layer as CSV rather than as an ASCII field
+          --zones               dump the Lot grid by permission and occupancy, before and
+                                after --ticks Ticks of sweeping, with what the sweep did.
+                                Needs --ruleset, because a sweep is a Ruleset's behaviour
+          --csv                 dump the Layer or the Lot grid as CSV rather than as an
+                                ASCII field
 
         A replay whose Ruleset does not match refuses to run rather than diverging
         silently: a different Ruleset is a different simulation, and the divergence

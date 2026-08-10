@@ -26,6 +26,7 @@ engine inside it. Godot will be the display layer and has not been started.
 dotnet run --project src/Borough.Headless                                   # build a city, print its tables and a State Hash
 dotnet run --project src/Borough.Headless -- --seed 1 --ticks 10000         # step a session and print a hash trace
 dotnet run --project src/Borough.Headless -- --layer pollution              # print a Map Layer as an ASCII field
+dotnet run --project src/Borough.Headless -- --zones --ruleset rulesets/minimal.toml --ticks 5000   # watch the city thin out
 dotnet run --project src/Borough.Headless -- --help                         # every flag
 ```
 
@@ -38,9 +39,19 @@ that cannot run sleeps on the Bin that stopped it instead of retrying, and a fai
 fallback chain that ends by recording why. The census also reports what the Rule engine did — how
 many Rules came due, how many evaluations that cost, and how deep the chains went.
 
-**What does not exist.** Three of the eight Tick phases are still empty — movement, growth, and most
-of commit. There are no jobs, no money, no movement, no traffic, no roads, no buildings growing or
-declining, and no renderer. Citizens exist as rows and do nothing at all. Bin Rules now run
+**Zone Rules, the second Rule family, now run too.** Land is painted with a permission set, a Zone
+Rule wakes on a fixed interval and looks at a *sample* of Lots rather than all of them, and it builds
+on a vacant one somebody in the Unplaced Pool would take or condemns an occupied one whose Building
+has been starved for longer than its kind allows. Households evicted by a demolition keep their money
+and go into the Pool to wait. `--zones` prints the Lot grid before and after, so you can watch a city
+thin out.
+
+**What does not exist.** Two of the eight Tick phases are still empty — movement and most of commit.
+There are no jobs, no money, no movement, no traffic, no roads, and no renderer. Citizens exist as
+rows and do nothing at all. Buildings rise and fall, but **a Building has no occupancy**: the
+populator puts three Households in one and a Zone Rule rehouses exactly one, so a long run settles
+with five-sixths of the city homeless — arithmetic rather than a balance mistake, and filed rather
+than tuned because the number that would settle it does not exist in a Ruleset yet. Bin Rules now run
 against a real Ruleset — `rulesets/minimal.toml`, which the golden session runs under and which
 **says in its own header that it models no city** — but there is **no supply chain**, because a chain
 between Buildings crosses an ownership boundary, which is the District Pool, which throws. The one
@@ -78,7 +89,23 @@ city has*. Sixteen of them triggering on one Tick is 0.08% of a 15.6 ms budget.
 Nothing measured so far suggests C# is the wrong choice; see `docs/adr/0036` and S4 in
 `docs/spike-results.md`.
 
-**What is next.** Slice 7, the Rule engine, **is closed**. Bins, the wait list, the Ruleset loader and
+**What is next.** **Slice 10, Zone Rules, is closed — all ten tasks**, and the simulation now has a
+growth cycle rather than a steady city. Four things came out of it that no amount of planning had
+produced. **The growth cycle cannot be entered from a standing start** — a populated city has no
+vacant Lot and an empty Pool, so nothing could exercise creation until something could demolish.
+**The tripwire reads 1.56×**, so `02 §5.7`'s *constant cost regardless of Zone size* is false in the
+letter and true in the substance: the sweep is `O(sample)` exactly and what grows is the **memory
+hierarchy**, measured against a control rung that moved 989×, and it is the third sighting of scatter
+≈1.5. **The long run found the city settles five-sixths homeless**, because demolition evicts a
+Building's whole occupancy and creation rehouses one — a Building has no declared occupancy at all,
+which is `02 §5.4`–`§5.6`'s Phase 2 hole seen from the inside. And **`HouseholdHomeExists` was
+reported by nothing**, the only orphan among 26 invariants, because task 6 added the qualified claim
+as a new member rather than amending the old one; it is bannered and the id retired rather than
+reused, since a crash artifact carries the number. Next is **slice 8, hot reload**, whose gate has
+been clear since session A and which was waiting on this slice to stop editing `RulesetLoader` and
+the golden baselines. Slice 9, the Event Wheel, is the only red gate.
+
+Slice 7, the Rule engine, **is closed**. Bins, the wait list, the Ruleset loader and
 its refusals, quoted decimals, Rule evaluation with atomicity, the apply count, the Readout set,
 `on_fail` chains, the counters, and **task 10a's wiring — the first Ruleset ever to reach a `World`**.
 Task 10 was split while being planned: as written it asked for a production chain over two or three
