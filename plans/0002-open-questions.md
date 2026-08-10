@@ -32,22 +32,27 @@ Every entry is typed, per [`adr/0043`](../docs/adr/0043-a-claim-a-measurement-co
 - **A — arguable.** No measurement settles it. A session may close it.
 
 An entry with no type is an entry nobody has looked at properly, and it is the shape that let two
-measured-false claims sit in 🟢 rows of the coverage map below.
+measured-false claims sit in 🟢 rows of the coverage map — which is now **§F** below, promoted out of
+the archive and rebuilt. **§F is where you look for *what has never been examined at all***, as
+opposed to §A–§E, which are questions somebody has already framed.
 
 ---
 
 ## A — Blocking something now
 
-Four. Everything else in this file can wait, and treating any of it as urgent is how this project
-starts going in circles — see [`0000`](0000-board.md) → *Do these next*.
+**Three open**, and they are all routing's — the diversion policy, the Epoch's granularity for the
+Parking Shed, and how coarse a routing destination may be. Everything else in this file can wait, and
+treating any of it as urgent is how this project starts going in circles — see
+[`0000`](0000-board.md) → *Do these next*. **The three closed rows keep their struck line here and
+their bodies in the archive**, so a reader sees they were answered rather than dropped.
 
 | Question | Type | Owner | What settles it |
 |---|---|---|---|
-| ~~**The path source.**~~ **CLOSED by [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)** — struck by S2 R6, and it had been closed for some time. The ADR's table carries this row's three figures verbatim (16.58% uniform, 149.73% local, unmoved across a storm deleting 1,021 Segments) and concludes *"the table was never a path source. It was the fallback if the cache did not work."* A correction, filed in [`0012`](0012-corpus-audit.md) | — | — | — |
-| ~~**The route cache's invalidation contract**~~ **CLOSED by session M**, into [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md) — *never wrong about a removal, boundedly wrong about an addition*, the bound checked **at use** rather than swept, with a proximity wake over it for responsiveness. Modelled driver ignorance is what this city wants **about congestion only**; *never update* was ruled out explicitly. **Two things the session found that the row did not anticipate.** R5.5.4's rotation was measured on the **shared 412-entry cache**, and the store that goes stale about a new road is the **per-Citizen Habit Route** — `CONTEXT.md` said *Traveller* and contradicted its own conservation invariant doing so, now corrected. And a rotation's cost is `store size ÷ period`, so **it couples the learning rate to the population**, which is why the bound is checked at Trip start instead. Leaves two unset numbers in §D2 | — | — | — |
+| ~~**The path source.**~~ **CLOSED by [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)** — struck by S2 R6, and it had been closed for some time. **Full body in the archive below** → *Closed entries*. | — | — | — |
+| ~~**The route cache's invalidation contract**~~ **CLOSED by session M**, into [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md) — *never wrong about a removal, boundedly wrong about an addition*, the bound checked **at use**. Left two unset numbers in §D2 (`T`, `d`). **Full body in the archive below** → *Closed entries*. | — | — | — |
 | **What does a diverting Traveller do about its route?** — re-search, cache, or **rejoin the Habit Route** | A | session **M** | **NEW, and it displaces the cache as the largest thing R6 found.** `adr/0046` made diversion routine and `adr/0047` deleted the one path source that served one cheaply; **nobody had multiplied the two.** S2 R6.3 does: at R8's own rung — 40,000 Travellers, a 7-Day Habit — Habit formations cost **0.316 ms** and diversions cost **134.135 ms**, which is **99.76% of routing's bill and 861.87% of the Tick budget**. **The in-flight rungs are S0a's own band for a 1,000,000-population city**, so that is target scale rather than an extrapolation — 795.91% at the band's floor and **2,387.73%** at its ceiling. **Between 32 and 147 diversions per Tick fit; R8.3 measured 1,269.51.** The cache cannot be the answer: it would need an **88.5% hit rate at 40,000 in flight and 95.9% at 111,000**, on a key whose origin is *wherever congestion happened to be* — which is R6.1b's worst input. Three levers: raise the **Temperament** threshold, shrink the **Sight Horizon** toward its 1-Segment floor, or **let a diversion rejoin the Habit Route without re-searching** — which nothing in the corpus proposes and which is free by construction. ~~**Arguable, not measurable**~~ — **session M reversed the typing on its own question**, which is `adr/0043` turned on a session's output rather than on a document. The *policy* is arguable and session M took it: **rejoin the Habit Route.** The **trilemma between the three stores** is not arguable, and two of its three rows had no numbers at all — so the cost went to **R6.4** (branch-point compression, rejoin cost) instead of being settled here. One correction the row carries: the stored path is per-**Citizen**, not per-Traveller, for the reason `CONTEXT.md` → Habit Route now gives |
-| ~~**Is a `map` term's `amount` a stock or a rate?**~~ **CLOSED by [`adr/0051`](../docs/adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md)** — a stock the environment absorbs, with an emergent ceiling rather than a clamp. **It was never as open as it looked**: `02 §2.4`'s field table had said *"Decays"* since it was written, and slice 6 built the diffusion without the removal. The clamp, the set-don't-add and the counter-source options are recorded there as rejected, with reasons. What it left behind is one **measurable** (section B) and one **unratified number** (section D) | — | — | — |
-| **The Event Wheel** — `02 §7` and `adr/0006` have never been grilled | A | session **C** | The **only red gate** on `0003`'s board. Slice 9 waits on it and nothing else does |
+| ~~**Is a `map` term's `amount` a stock or a rate?**~~ **CLOSED by [`adr/0051`](../docs/adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md)** — a stock the environment absorbs, with an emergent ceiling rather than a clamp. Left one **measurable** (§B) and one **unratified number** (§D1). **Full body in the archive below** → *Closed entries*. | — | — | — |
+| ~~**The Event Wheel** — `02 §7` and `adr/0006` have never been grilled~~ **CLOSED by session C**, into [`adr/0056`](../docs/adr/0056-the-event-wheel-is-two-levels-ticks-and-days.md) — the Wheel is **two levels, Ticks and Days**, one wheel per scheduled table. **Slice 9 has since shipped the fine wheel and closed.** It left one measurable, now discharged: `02 §7`'s *"a few hundred out of hundreds of thousands"* is **measured false by ~30×** by S0b — 11,191 due a Tick of 359,943 live | — | — | — |
 | **The Epoch's granularity.** Settled per-Segment for the *route* consumer (96% retention against a single counter's 9%, and cheaper) — but per-Segment is the **worst rung available** under road addition, and the Parking Shed is the other consumer, scaling with Buildings rather than paths | A | session **M** | **MEASURED by S2 R5.6 for the second consumer, and it agrees — but by a different mechanism.** Per-Segment witnessed by *paths* is the only shed rung that fits: worst case **26.10% of a Tick** against per-cluster's **1,351.24%** and global's **1,638.20%**, with the global tripwire firing exactly as `plans/0010` wrote it (159,825 sheds, 255.560 ms, paid **on arrival**). **`plans/0010`'s prediction that per-cluster would suit sheds is measured false** — it is the worst survivor, 127× the paths rung, and the Arterial gesture shows 100% of its invalidation is wrong. **`CONTEXT.md` → Epoch is unblocked and the rung is per-Segment on both consumers.** What is *not* settled is the same thing it never was: **per-Segment is unsound under road addition** for sheds exactly as for routes, and routes bought their way out with a temporal answer (R5.5.4's TTL rotation) that sheds do not need. **Two consumers, one rung, two soundness stories** — and **the route half is now closed.** `adr/0012` carries the contract: the addition story is a **bound checked at use** with a proximity wake over it, and *not* a rotation. **The shed half inherits the shape and not the parameter**, which is still session M's. Worth noting the shape explains something R5.6 could only observe: a shed is consulted far less often than a route is driven, so *checked at use* is a much smaller bill there — that is a better account of *sheds need no rotation* than the one R5.6 gave. What nobody has typed is what a shed's **use** is — a parking search, or a Trip arrival |
 | **How coarse a routing destination may be.** A District-granular route's detour is 20.14% on a uniform draw and **128.82%** on a local-trip draw, because the error is roughly fixed in Ticks and the journey is not | A | session **M** | The corpus has no position on what a District-granular answer may be *wrong by*. Answer once, together with the representative funnel and the Commute Budget's granularity — `plans/0010` decision 13 |
 
@@ -59,9 +64,9 @@ starts going in circles — see [`0000`](0000-board.md) → *Do these next*.
 
 | Question | Owner | The number that settles it |
 |---|---|---|
-| ~~The route cache's **key granularity** and **eviction policy**~~ **MEASURED by S2 R6** | S2 **R6** | **Key:** the error is **0.86–0.94 Ticks, flat across the O-D family** — bounded by Segment geometry, not by trip length, so the *absolute* is the number to carry and the percentage (1.84–9.70%) must not be quoted. **`node-a` costs exactly 2× `nearest-node`** and the fix is one comparison at insert with the key space unchanged. **Eviction:** R5's 28–31% floor is **20.0% conflict, 0.0% capacity** — a defect, not a size. **4-way LRU** takes it to 3.8% at four contiguous probes. Both owed to `adr/0012` as an amendment |
+| ~~The route cache's **key granularity** and **eviction policy**~~ **MEASURED by S2 R6** | S2 **R6** | **Key:** the error is **0.86–0.94 Ticks, flat across the O-D family** — carry the absolute, never the percentage. **Eviction:** **4-way LRU**, taking R5's 28–31% floor to 3.8%. Both owed to `adr/0012` as an amendment. **Full body in the archive below** → *Closed entries*. |
 | **Does the route cache actually work?** — its hit rate, and therefore routing's whole Tick budget | Trip generation, `06` **5b** | **NEW, and it is the largest thing R6 found.** The cache is *"the only exit"* (`adr/0047`) and its benefit has never been measured: every ~70% in the corpus is a property of R5.3's invented 512-pair pool, which R5.3 said itself. **R6.1b closed the one other candidate source** — a coarser key collapses nothing, because two Trips must coincide at *both* ends and the graph has 1.09 × 10⁹ Segment pairs. So the cache rests **entirely on Trip repetition**, and routing's affordable Trip rate is a function of a number no spike can produce. **Not a refutation** — real commutes repeat heavily — but `adr/0043` forbids settling it on that |
-| **What does pollution decay cost the incremental re-diffusion?** [`adr/0051`](../docs/adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md) makes every emitting Cell change on every cadence, so slice 6's dirty set converges on the *occupied* set and its exactness stops buying anything | owed a spike — **S0b** is the natural home, since it is the first run with a city and a Ruleset in it | The re-diffusion cost with decay against without, at a realistic fraction of Cells emitting. **The fraction is the real unknown** and it is a property of a city nobody has built yet. If it is bad the fallback is a decay cadence coarser than the diffusion cadence — **a third hash-bearing Layer number**, which is reason enough not to reach for it on a guess |
+| **What does pollution decay cost the incremental re-diffusion?** [`adr/0051`](../docs/adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md) makes every emitting Cell change on every cadence, so slice 6's dirty set converges on the *occupied* set and its exactness stops buying anything | ~~**S0b**~~ — **S0b ran and could not reach it**, because `rulesets/minimal.toml` emits no pollution at all. **Re-owned by task 10b**, the first Ruleset with industry in it | The re-diffusion cost with decay against without, at a realistic fraction of Cells emitting. **The fraction is the real unknown** and it is a property of a city nobody has built yet. If it is bad the fallback is a decay cadence coarser than the diffusion cadence — **a third hash-bearing Layer number**, which is reason enough not to reach for it on a guess |
 | The travel-time matrix's **refresh cadence**, and therefore its maintenance scheme | S2 **R6**/**R7** | The incremental/rebuild break-even sits between **1% and 10% of arcs moved per refresh**. A number the corpus files as *tuning* selects an algorithm. `plans/0010` decision 12 |
 | The matrix's **time resolution** | S2 **R7** | A Day-average matrix reports **1** one-way District pair where the morning peak has **76** — two cities under `05 §4`. Settle with the cadence |
 | The **routing Tick budget share** — 10% is a stated guess | S2 **R7**, then S0b | **The other consumers are now being priced and the running total is [`0013`](0013-tick-budget.md).** Cannot be ratified until they are. And it must be restated **over the worst Tick, not the mean**: R3's *85 Trip starts* is a mean-derived figure, and at **16** starts R5 measured a worst Tick of 10.37 ms against 15.6 ms — **and R7's re-run makes that a maximum with a 9.4–10.5 ms spread over five pinned captures**, so the *restate it over the worst Tick* instruction stands and the number wants a range rather than two decimals. **And 85 was measured on one processor** — R7's re-capture reads **112**, so the figure most often quoted for routing was 32% low. **S2 R6.3 then found the denominator is the wrong event entirely** — under static Habit a Trip start is a *lookup*, worth 0.26% of routing's bill, and the figure wants **diversions per Tick**. Filed in [`0012`](0012-corpus-audit.md) against both this row and `0013:82` |
@@ -73,7 +78,7 @@ starts going in circles — see [`0000`](0000-board.md) → *Do these next*.
 | The **Microscopic Cap** | Phase 2 | Needs a built traffic model. S2 R2 informs it and cannot set it |
 | `adr/0003`'s herding validation — *does the city feel herdy* | Phase 2 | Needs a running choice model. **The other half is discharged**: worst selection-probability divergence between the committed table and a double oracle is below 0.001 |
 | The **snapshot interchange format**'s marshalling cost | S1 / S3 | `adr/0002` names marshalling as its own revisit trigger and 1M Citizens is the load that would fire it |
-| `05 §5` role 3 — whether the Chunk partition survives **mobile** entities | S0b | Answered for Phase 1 structurally (rows never move; the partition is a separate index). The measurement is owed, and `05 §5` still leans on the other answer |
+| `05 §5` role 3 — whether the Chunk partition survives **mobile** entities | ~~S0b~~ — **S0b ran and could not reach it**: nothing in the world moves, so there is no mobile entity to partition. **Re-owned by milestone 5b**, Trip generation | Answered for Phase 1 structurally (rows never move; the partition is a separate index). The measurement is owed, and `05 §5` still leans on the other answer |
 | **Whether Bin Rule evaluation fits the Tick budget at 1M** | **S0b** | Slice 7 task 9 measured the unit and published the wire inverted: **82.84 ns an evaluation**, flat to 1.8% across two orders of magnitude, so **15.6 ms holds ~188,000 per Tick**. What it cannot settle is the multiplicand. Against `0002`'s own **450 Rule Instances per 1,000 Citizens** and `02 §4.3`'s rate of 8, a 1M city spends **~60% of a Tick on evaluation alone**. ~~**Since superseded by a whole-Tick measurement — 67% at 4×**~~ **and superseded again, this time by a measurement taken in a city rather than in a fixture** ([`0011`](0011-rule-engine-bins-and-rules.md) finding 42). Task 10a put a Ruleset in a 1M world for the first time: **~6.4 ms a Tick, 41% at 4×, at a measured 11,586 due**. The synthetic whole-Tick unit was **2.8× too low** and the guessed multiplicand ~5× too high, so the 67% was **right by cancellation** — the worst way for a number to be right. The wire is now *fewer than ~28,000 due Rules per Tick at 4×*, which against the 450 needs a **mean rate above ~15.9 Ticks** where the old wire needed 4.8, and `02 §4.3`'s bakery runs at 8. **What is still owed is unchanged and is now the only thing owed: the multiplicand.** 11,586 is measured for a Ruleset that models no city, so it settles nothing about a real one — that is **10b**'s, and S0b's for the rest of the Tick |
 
 ---
@@ -145,34 +150,15 @@ rule is **when something concrete is blocked on it, not because it is available.
   expressed structurally rather than as a penalty.
 - **`§3` (Resources) is stale**, not open: `adr/0031` replaced the Goods taxonomy with Resource
   families and nobody rewrote it. A correction — [`0012`](0012-corpus-audit.md)'s, not this file's.
-- **What a Zone Rule's `sample` is denominated in — and therefore what `§5.7` means by pacing growth.**
-  **NEW, and measured into existence by S0b rather than argued.** `§5.7` lists sampling first among four
-  growth-pacing mechanisms and justifies it with *"cost is constant regardless of Zone size"*. Both
-  halves are now measured and they point in opposite directions. **The cost claim is true and then
-  some**: raising the sample **117×** at 1,000,000 Citizens — enough to hold a one-Day revisit period
-  over 120,001 Lots — cost nothing outside noise (18.36 s against 19.12 s over 2,000 Ticks), so
-  `O(sample²)` in `ZoneSample.Draw` is amortised by the interval and cost has never been the constraint.
-  **The pacing claim is the problem**: `sample ÷ interval` is an **absolute** throughput, so the period
-  in which a given Lot is looked at once is `Lots ÷ (sample ÷ interval)` — **0.12 Day at 1,000 Citizens
-  and 117 Days at 1,000,000.** S0b confirmed this is structural rather than a bad guess by collapsing
-  the whole occupancy trajectory onto **τ = (sample ÷ interval) × Ticks ÷ Lots**, agreeing to 1.6 points
-  across a 1,000× span in Lots *and* a 117× span in sample. **An absolute throughput against a growing
-  city is a decelerating city.** The diegetic argument is where the answer probably lives: `CONTEXT` →
-  Zone Rule justifies sampling because *a developer does not evaluate every parcel*, which is a sample
-  per **developer**, and the model has exactly one developer per Zone Rule at every city size — **a city
-  of a million people has more developers than a city of a thousand.** Note that of §5.7's four
-  mechanisms only **capital** scales with the city and capital does not exist yet; sampling and the
-  **build rate throttle** are both absolute, so two of the four pace in a unit the section never names.
-  ~~**Arguable** — no measurement chooses a denominator — but the revisit period it implies is
-  hash-bearing and needs a ratifier under `adr/0052` on the day it is written down. Owner: **task 10b**,
-  which is the first Ruleset that models a city and therefore the first that could be wrong about this.~~
-  **CLOSED the same day by [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)**
-  — a Zone Rule authors `revisit_ticks`, a **duration**, and the engine derives
-  `sample = ceil(Lots × interval ÷ revisit_ticks)`, which is `pollution_decay_ticks`'s shape against the
-  Lot count instead of the cadence. **It needed no ratifier after all**: the default is `TICKS_PER_DAY`,
-  derived the way tau and the arming stagger were, so §D **loses a row rather than gaining one**.
-  Implementation is `0014` **task 11**, sequenced **after slice 8** because it moves the three golden
-  baselines and slice 8 task 10 re-records the same files.
+- ~~**What a Zone Rule's `sample` is denominated in — and therefore what `§5.7` means by pacing
+  growth.**~~ **CLOSED the same day it was raised**, by
+  [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md):
+  a Zone Rule authors **`revisit_ticks`, a duration**, and the engine derives
+  `sample = ceil(Lots × interval ÷ revisit_ticks)`. **It needed no ratifier** — the default is
+  `TICKS_PER_DAY`, derived — so §D **lost a row rather than gaining one**, the first time that has
+  happened. Implementation is [`0014`](0014-zone-rules-and-the-sweep-family.md) **task 11**, sequenced
+  after slice 8. **Full body, including S0b's τ collapse and the developer-per-Zone-Rule argument, in
+  the archive below** → *Closed entries*.
 
 ### `03-agent-architecture.md`
 
@@ -382,15 +368,15 @@ the derivation.
 
 | Number | Waiting on | Note |
 |---|---|---|
-| ~~**Pollution decay rate (tau)**~~ | ~~Being chosen now~~ | **SET on 2026-08-08 and moved to D1**, where it is now an unratified number rather than a gap. `adr/0051`'s decay was implemented, tau is **128** and derived rather than picked, and the ADR's one unsolved piece — *"integer decay stalls, and the tail needs a rule"* — was **discharged by applying arithmetic that was already in the same file**: land value's `Step` helper absorbs `max(1, round(value/tau))`, so a source reaches exactly zero and a demolished factory leaves no stain. **The second of the two rows this section flagged to watch, and both moved within one session** |
-| ~~**Rule Instance arming stagger**~~ | ~~Being chosen now~~ | **SET and moved to D1.** Uniform over `[1, rate]`, with its own `purpose_tag`. *Which* stagger is no longer unargued: the window is the Rule's own re-arm period, which is the only one that stays spread, so **there is no free parameter and nothing left to ratify** |
+| ~~**Pollution decay rate (tau)**~~ | ~~Being chosen now~~ | **SET 2026-08-08 and moved to D1**, where it is an unratified number rather than a gap. **Derived, not picked.** **Full body in the archive below** → *Closed entries*. |
+| ~~**Rule Instance arming stagger**~~ | ~~Being chosen now~~ | **SET and moved to D1.** Uniform over `[1, rate]`. **There is no free parameter and nothing left to ratify.** **Full body in the archive below** → *Closed entries*. |
 | ~~**Habit refresh cadence**~~ | ~~The routing model~~ | **RATIFIED as infinite — static per world — on 2026-08-08, by the ratifier this row already named.** S2 **R8.5** was written down as the thing that could refute it; it ran, and it did not: `03 §3.4`'s self-correction closes on the local layers alone, Sight settling **42.62% below a control against a 5.00% bar**, five of five runs bound, with the caveat running in the safe direction. So there is **no refresh cadence, no hash-bearing number, and R4.6's break-even does not select an algorithm** (`adr/0046`). **The first row ever struck from this section**, and it had been ratifiable since R8.5 reported — the list was not being read. Re-opens only if `03 §3.4`'s loop is later shown not to close. **⚠ QUALIFIED by S2 R7, and the word *RATIFIED* is provisional until one sentence is written.** R8.5 ran on a **District-granular free-flow tree**, and [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) has since **deleted that structure** — using R8's own concentration column as one of the four grounds. R8 states the limit itself: its fire rate *"is a property of District-granular routing and must not be carried to any scheme that gives a Traveller more than one candidate route"*, which is precisely the scheme `adr/0047` chose. **The likely direction is safe and probably strengthening** — more candidate routes means more places for a jam to redistribute to, so self-correction should close at least as easily — **but that is an argument nobody has made, and this row currently rests on *the named ratifier ran and did not refute*, with no statement that the run's structure was subsequently removed.** Under `adr/0052` a ratifier that measured a deleted structure has been cited rather than applied. **Two neighbours inherit the same defect and are not rows here**: R8's 14.08% diversion fire rate, which is the multiplicand behind R6.3's 1,269.51/Tick, and Temperament's 92.28% damping. **⚠ NARROWED by session M, which is a second qualification and not a discharge of the first.** What R8.5 ratified is **static under congestion**: `03 §3.4`'s loop closes on the local layers, so nothing recomputes a Habit *because a road got busy*. It never ratified static under **topology change**, and could not have — R8.5 ran no edits, and a road being built is not a cost signal. `adr/0012` now states the topology half separately and it is **not** static: bounded, checked at use, parameter `T` above. So *RATIFIED* stands for the claim the ratifier actually tested and the **scope is written down instead of assumed** — which is the same defect as the `adr/0047` qualification, found twice on one row by two different routes. **The `adr/0047` qualification is untouched and remains open** |
 | **`T`, the Habit staleness bound** | Trip generation, `06` **5b** | **NEW, from session M**, and hash-bearing. *How long after a player builds a bypass the city starts using it*, counted in Ticks but **spent at Trip start** — a Habit older than `T` is recomputed the next time its owner travels. **Named ratifier: the first `06` 5b run that produces a steady-state `P(stale)` and a Trip start rate**, which is what turns `T` from a period into a bill; the value is then bounded by *the wake-missed fraction must clear within a span a player will sit through* and selected inside that band by the first playable build. **Reopens** if `P(stale)` comes back near 1, which would mean the bound is not bounding — `adr/0012`'s **`P(stale)` trigger**, which `d` shares, because session M collapsed the two setters onto one bit and one drain. Note it is **not** a rotation period and R5.5.4's 0.40/Tick does not transfer: that was a 412-entry cache and this is a per-Citizen store |
 | **`d`, the addition wake radius** | ~~S2 **R6.4.3**~~ — **THE RATIFIER HAS RUN** | **NEW, from session M**, and hash-bearing — it decides which Citizens learn about a new road promptly, so it moves routes and therefore the hash. **Named ratifier: R6.4.3**, which sweeps `d` and reports wake fan-out against the ground truth of *which routes would actually change*, per R1.7's method. **The refuting number is `P(stale)`, not a fan-out and not a miss rate.** The miss is survivable because `T` backstops it — the whole reason belt-and-braces was chosen — and the fan-out is only *marks*, because session M's second decision is that **the wake sets a bit and does not recompute**: age and proximity set the same bit and both drain at Trip start. So `d` fails exactly where `T` fails, through one shared quantity, and R6.4.3 measures the `d` half of it on the graph alone. **Reopens** if the wake is dropped — in which case the number ceases to exist rather than becoming unratified — or if the reverse index's **per-insert** maintenance cost turns out to exceed what the wake buys. **⚠ R6.4.3 RAN and did not refute — `d` = 0** ("`P(stale)`" peaks at **31.73%** at `d` = 16 Cells and reads **16.89%** at `d` = 0; 2 km of radius nearly doubles fan-out to buy eight points of catch). **But the round found something the ratifier was not designed to see, and it is worth more than the value**: the wake **tests proximity of the wrong object.** Where a *stored* path runs says nothing about whether a new road helps it — the routes that change are those whose *recomputed* path uses the new Segment — so the miss **does not close at any radius** (36 missed at `d` = 0, still 20 at `d` = 16). That is R5.4's addition asymmetry arriving at the wake, and it gives R1.7's 309-of-429 a structural explanation at last. **`d` = 0 is therefore ratified as *the cheapest rung of a mechanism whose ceiling is low*, not as a well-chosen radius**, and the open question it leaves belongs to `adr/0012`: whether a proximity wake is the right instrument at all, given `T` is what actually backstops the miss. Also measured: **`C` is dominated by rounding** — of 202 changed routes only 53 improve by more than 1%, and the wake catches 66.03% of those at `d` = 0 and never reaches 80% |
 | **Sight Horizon** | The routing model | Floor **derived at 1 Segment** from the Road Graph (`adr/0046`); the value above the floor is tuning. **⚠ S2 R6.4.2 found this is two parameters wearing one name.** Rejoin success cliffs **19.14% → 85.74% at Horizon 3**, identically on all five O-D rungs, because rejoining a route means going round a block and a block on this graph is three Segments. R8.1's floor of **1** is *noticing a choice*; **3** is *recovering a route you have left*. Nothing in the corpus separates them, and `adr/0046` sets neither |
 | **`W`, the Life Stage spread window** | Life Stages, which are **Phase 2** | **NEW, from session C** ([`adr/0056`](../docs/adr/0056-the-event-wheel-is-two-levels-ticks-and-days.md)), and hash-bearing — it moves which Tick a Household transitions on. One `W` per `[[life_stage]]`, forward-only over `[N, N+W)` Days so the authored countdown keeps its meaning as a **floor**, with its own `purpose_tag`. **The contrast with the arming stagger two rows up is the point**: the Tick *within* a Day is unconstrained, so uniform is the only draw that stays spread and there was nothing to pick — **a width in Days is a free parameter**, and that is exactly the difference between a number that owes a ratifier and one that does not. **Named ratifier: the first build in which `[[life_stage]]` exists and a founding generation reaches its first transition at 1M.** The refuting number is **peak armed rows drained on a cascade Tick** — `W` must be wide enough that a founding wave's cascade fits the Tick budget — and the value is then selected inside that band by the first playable build, on slice 10's pacing precedent. **Reopens** if the demographic echo it deliberately preserves turns out to read as a bug rather than as history |
 | **Temperament base and spread** | The routing model | **The routing model's weakest number** — the base/jitter blend weight has no argument behind it at all |
-| ~~**Zone Rule sample size**~~ **RETIRED by [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)** — there is no such number any more. `revisit_ticks` replaces it, defaults to `TICKS_PER_DAY`, and is **derived** rather than picked, so nothing here needs ratifying. **The row is kept because its own history is the lesson**: everything below was done correctly and did not work | Slice 10 task 4 | **Hash-bearing.** Ratifier named in advance: slice 10 task 10's 100,000-Tick run **bounds** it — the value must sit where `live` neither collapses to zero nor stays flat — and the first playable build selects within that band. The row says *bounds* rather than *picks* deliberately. Note what constrains it today: *sample N and take the best* has **nothing to rank**, because the create predicate is a boolean with no score, so `N` buys throughput and not choice until `02 §5.4`'s choice model exists. **`02 §5.3`'s `N` is not this number** — that one is dwellings a Household considers |
+| ~~**Zone Rule sample size**~~ **RETIRED by [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)** — there is no such number any more | Slice 10 task 4 | **The row is kept because its own history is the lesson**: the ratifier was named in advance, ran, bounded the value, and **passed** — and the number was still dimensionally wrong, because *a ratifier that runs at one city size cannot catch a number that is absolute*. **Full body in the archive below** → *Closed entries*. |
 | **Zone Rule trigger interval** | Slice 10 task 3 | **Hash-bearing**, and `02 §4.2` names it Ruleset data rather than a scheduling knob — *"a Policy paying daily is a different city from one paying weekly"*. Same bounding ratifier as the sample size, and the two **compose into a single rate**: `N/I` is what the city feels, and they differ only in burstiness, which the Tick budget feels and the city does not |
 | **Condemnation threshold** | Slice 10 task 7 | **Hash-bearing.** Authored in **missed firings**, not Ticks ([`adr/0053`](../docs/adr/0053-failure-pressure-is-a-duration-not-a-tally.md)) — a Rule fires every `rate` Ticks when healthy, so the threshold is dimensionless and a Ruleset that halves every rate cannot silently double every Building's lifespan. Same bounding ratifier. **Its sibling was deleted rather than entered**: the decay rate this row would have had does not exist, because a duration does not accumulate |
 | **Microscopic Cap** | A built traffic model | Fixed world constant. Genuinely unsettable before the thing it caps exists |
@@ -427,8 +413,234 @@ it would be scheduled rather than discovered.
   without it, same as Segment Stress.
 - **Evidence for composed fertility.** A farm's panel must decompose its own yield by source, or the
   whole `adr/0022` mechanic is inexplicable.
-- **S0b — the Tick with work in it.** Blocked on slices 7, 9 and 10, and it is the half carrying `06`'s
-  stated risk. S0a closed the sizing half; **1M is a spec for row counts and still a hope for the Tick.**
+- ~~**S0b — the Tick with work in it.** Blocked on slices 7, 9 and 10~~ **DONE**, three clauses of four.
+  **8.72 ms a Tick at 1M — 55.9% of a 15.6 ms budget at 4×**, and it **split the way S0 did**: the
+  routing load, pollution decay and `05 §5` role 3 are all unreachable for want of **content** rather
+  than machinery, and all three wait on **task 10b**. Its largest finding is not the price — it is that
+  a Zone Rule's `sample` is **absolute** where the thing it paces is relative to the size of the city,
+  which `adr/0059` has since settled. Numbers in [`spike-results`](../docs/spike-results.md) → *S0b*.
+- ~~**Price Phase 3, and price Map Layer diffusion.**~~ **DONE**, and both moved something — the engine
+  row went from an *inferred* 60% to a **measured 67%** at 4× (since superseded by an in-situ 41%), and
+  **Map Layer diffusion turned out to be the only row in [`0013`](0013-tick-budget.md) with no guess in
+  it**. Full body in the archive below → *Closed entries*.
+
+---
+
+## F — Coverage: what has been grilled, and what has not
+
+**Promoted out of the archive on 2026-08-10 and rebuilt**, discharging
+[`0012`](0012-corpus-audit.md)'s instruction — *"promote it out of the archive and into the ledger
+once it is corrected"*. It had been sitting below the archive banner, which declares its contents
+*history and not maintained*, while being **the only per-document account of what has been examined**
+and while [`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
+cited its 🟢 rows as evidence. **A self-contradicting map filed as history cannot carry that.** The
+version it replaces is kept below the archive line, bannered.
+
+**Three defects fixed in the rebuild**, all named by `0012` or by `adr/0043`:
+
+1. **It contradicted itself.** `05 §5` was listed as closed in one sentence and unargued in the next;
+   `02 §8` and `§10` were listed as never grilled when session eight closed them.
+2. **It stopped at `adr/0043`.** **Twenty-two ADRs — `0038` through `0059` — did not appear at all**,
+   which is every decision the *building* has produced. A coverage map blind to two thirds of a year's
+   output is worse than none, because it reads as complete.
+3. **Its blanket rows were the defect `adr/0043` names.** `adr/0010`–`0022` was thirteen ADRs under one
+   mark from two sittings, **two of them since measured false**. Those rows are now **split**, because
+   *a status whose granularity is coarser than the claims it covers cannot be checked.*
+
+> **⚠ Read this map for one thing above all.** A 🟢 mark says *a session argued this decision*. It does
+> **not** say every sentence supporting the decision was read — that is exactly how `adr/0014`'s
+> pre-partition claim and `adr/0020`'s union-find claim passed through 🟢 rows and were later measured
+> false. **Nothing in this corpus has ever been typed *arguable* or *measurable* per `adr/0043`**, and
+> until that audit runs, ⚫ is a lower bound rather than a count.
+
+**Legend:** 🔴 never grilled · 🟡 partially · 🟢 substantially settled · ⚫ **a supporting claim has been
+measured false** (the decision may still stand) · ⚠ **reads decided and has no number** — `adr/0043`'s
+named suspects, and the first place to look.
+
+### F1 — Design documents
+
+| Document | State | What is left |
+|---|---|---|
+| `CONTEXT.md` | 🟡 | Maintained continuously and corrected by sessions A and M and by `adr/0047`; **never grilled as a document.** Its **Epoch**, **Habit Route** and **Segment** entries each carry a live disclaimer |
+| `00-vision.md` | 🟡 | All four open questions closed. **The pillars have never been challenged directly** — inherited from `plans/0001` and assumed by everything. The document's only remaining exposure |
+| `01-player-experience.md` | 🟡 | §2, §5, §6, §7 done. **§1 (core loop), §3 (first ten minutes), §4 (two hours, and twenty) never touched.** §4 carries the governability problem — *268 km² of individually-placed service Buildings* — which is a **playtest** question and must not be grilled |
+| `02-simulation-model.md` | 🟡 | §1, §2, §2.4–2.5, §4, §5 done (sessions six and seven, `adr/0033`). **§7 closed by session C** → `adr/0056`. **§8 and §10 closed by session eight.** **§3 (Resources) is stale rather than open** — `adr/0031` replaced the taxonomy and nobody rewrote it, so it is [`0012`](0012-corpus-audit.md)'s. Residual in §4: what a predicate may read |
+| `03-agent-architecture.md` | 🔴 | **The wall, and session D is promoted against it.** §5's traffic model is the most detailed unargued design in the project, now carrying transit vehicles under an unset Microscopic Cap. **§2, the Citizen model, is also unargued.** §3.3 and §3.4 are rewritten; **§3.8's third clause is an open decision** — *force-promotion must stand on its own second argument or go* |
+| `04-economy-and-goods.md` | 🟡 | §1, §4, §5 done. **§3 (Movement), §6 (how a shortage becomes an unhappy person), §7 (Jobs) never grilled** — and §7 is **stale by construction**, since `adr/0026` rewrote how jobs work without anyone reading it |
+| `05-technical-architecture.md` | 🟡 | §3, §4, §5, §9 done. **§1, §2 (sim/render boundary), §6 (threading, the whole of it), §7's format half, §8, §10 unargued** — and the unquestioned parts are the larger risk, because threading policy, save format and the boundary are assumed by every decision made so far. §6 gates milestones 10 and 11, not 1–4 |
+| `06-roadmap.md` | 🟢 | Session nine → `adr/0042`. **Stores no status, and is [`0012`](0012-corpus-audit.md)'s control case** — the only large document that came back clean. **K2, the Phase 2 ordering, is what remains**, and it is deliberately last |
+| `deferred.md` | 🟢 | Maintained rather than grilled, which is correct — it is a record, not a design |
+| `references.md` | 🟢 | §9 closed the genre prior-art gap |
+| `PROCESS.md` | 🟢 | The vocabulary of the project, as `CONTEXT.md` is the vocabulary of the city |
+| `plans/0001` | 🟡 | The origin document, **stale**. Its research sections hold; `06` supersedes its build order |
+
+### F2 — ADRs
+
+**58 written, numbered to `0059`; `0028` is reserved and unwritten.** Grouped by what grilled them.
+
+| ADR | State | Note |
+|---|---|---|
+| `0001` godot-and-csharp | 🟢 | Session eight. Mis-scoped rather than under-argued — split, and `0036` took the core's language |
+| `0002` engine-agnostic library | 🟢 | Session eight. **Rebuilt around hot/cold query flavours** on the finding that it had sized its boundary against a *renderer* when the consumer is an *inspector* |
+| `0003` deterministic integer simulation | 🟡 | Opened session eight; implemented by slice 2, with `adr/0038` sizing the tables. Its *"zero transcendental functions"* claim was **false and hard-blocking** |
+| `0004` typed tables over ECS | 🟢 | Session eight; the buffering strategy that had ridden into its Consequences moved to `0037`. **#29b remains open**: the Chunk-partition claim holds for static entities and is unargued for mobile ones |
+| `0005` two fidelity tiers | 🔴 | **Written from research, never argued.** Session **E**, with `0007` |
+| `0006` no collection grows with elapsed time | 🟡 | **Session C did not challenge it and did not need to** — what it added is *why* the Wheel satisfies it, which is **partition rather than accumulation**. Its collection half was **discharged by measurement** in slice 10; the magnitude half by slice 6 |
+| `0007` stress-driven detail | 🔴 | Research. Session **E** — one session with `0005`, because `0007` moved Fidelity from person to **place** and `0005`'s tiers are what it moved |
+| `0008` walking is a simulated Leg | 🔴 ⚠ | Research. Session **F**. Makes 5b *the irreversible milestone*, so it is owed **before** the Leg model is built |
+| `0009` parking is modelled supply | 🔴 ⚠ | Research. Session **H**. Its `adr/0006`-class occupancy leak is named and its invariant unspecified |
+| `0010` one clock, demographics by sorting | 🟢 | Sessions one and two, three superseding notes since |
+| `0011` life stages and self-generating population | 🟢 ⚫ | Sessions one and two — **and its arithmetic was never checked.** Session C found it schedules Life Stages in **Days** while the Wheel's period is exactly one Day, so **every transition it specifies was unrepresentable on the wheel it was specified to run on** |
+| `0012` routing intent lives in the agent | 🔴 | Research, and **amended twice without ever being argued** — session M's invalidation contract, and R6's key and eviction policy. Session **I** |
+| `0013` goods pooled within a District | 🟢 | Sessions one and two. **Untested**: `pool` is a named hole that throws |
+| `0014` grid streets, freeform arterials | 🟢 ⚫ | **Measured false in part** — *"the Chunk grid is already the pathfinding cluster"*, wrong by **256× in area** (S2 R3). The decision survives; `adr/0040` replaces the sentence |
+| `0015` all tuning data is hot-reloadable | 🟢 | **Session A** → `adr/0048`. Slice 8 is implementing it, and found its **world-creation enumeration has four members of which only one is Ruleset data** |
+| `0016` the lane is the entity | 🔴 ⚠ | Research. **Carries the order-of-magnitude claim the whole Microscopic tier rests on, and has no number.** `adr/0043`'s top remaining suspect. Session **G** |
+| `0017` agents satisfice | 🟢 | Sessions one and two. **Sized for the first time by S2 R6.2** — 4-way LRU, conflict 20.0% → 3.8% |
+| `0018` prefer off-the-shelf infrastructure | 🟢 | Sessions one and two |
+| `0019` `TICKS_PER_DAY` is a balance constant | 🟢 | Sessions one and two |
+| `0020` one live world, settlements derived | 🟢 ⚫ | **Measured false** — union-find returns **6 Settlements where Tarjan returns 8** (S2 R1), a fifth of the map assigned to a Settlement it is not mutually reachable within. Amended; the decision stands |
+| `0021` bounded procedural map | 🟢 | Sessions one and two |
+| `0022` land is a stock the city spends | 🟢 | Sessions one and two; `adr/0034` note (Sealing is per Cell) |
+| `0023`–`0027` immigration, money, density, wages, preference | 🟢 | Session three. `0026` gained a session-five superseding note re-justifying the tier wall as a **category boundary** |
+| `0029`–`0032` transit, crime, resources, services | 🟢 | Session five. `0029` closed the largest single open question in the project |
+| `0033` two rule families | 🟢 | Session six. **Slice 10's tripwire found its `02 §5.7` justification false in the letter** — a sweep's cost is `O(sample)` and the variable is the working set |
+| `0034` fields sorted by source geometry | 🟢 | Session seven |
+| `0035` infrastructure priced by what it consumes | 🟢 | Session seven |
+| `0036` the core's language is C# | 🟢 | Session eight. K6 is its revisit trigger; S4 ran and did not fire it |
+| `0037` single-buffered world, per-table hazards | 🟢 | Session eight |
+| `0038` transcendental tables sized by the representation | 🟢 | Slice 2 |
+| `0039` the text formats are a fifth project | 🟢 | Slice 5 |
+| `0040` the pathfinding cluster is a multiple of the Chunk | 🟢 | S2 planning. **S2 R3/R5.2/R7 settled the size at 8**, and it is the *shed* rather than the route that carries the answer |
+| `0041` volume attributed by the Traveller | 🟢 | S2 planning, **amended by R2 on evidence** — a shared route costs 36.01% mean detour, so the axis was never free of correctness content |
+| `0042` a planning document cites | 🟢 | Session nine |
+| `0043` measurement beats argument | 🟢 | **And its own audit has never been run** — see the board → *Two audits* |
+| `0044` the Layer cadence is the designer's number | 🟢 ⚫ | Slice 6, **by measurement, and the sixth claim in the corpus measured false**. **Its own second half was then wrong by argument and withdrawn** — *citing an ADR is not applying it* |
+| `0045` a fallback chain is a source ladder | 🟢 | Session B. A published depth cap of 5 was **withdrawn** because R3's tripwire rule had not been run |
+| `0046` habit, sight and temperament | 🟢 | Sets no parameter; **R8 measured all three layers and all three survive**. **⚠ Two qualifications open** on the Habit row — the ratifier ran on a structure `adr/0047` has since deleted, and what it ratified was *static under congestion*, never under topology change |
+| `0047` routing never keys on the District | 🟢 | S2 R6 |
+| `0048` the Ruleset is validated where it is parsed | 🟢 | Session A. Enumerated three refusals; **the build has five**, both extra ones arriving while writing it |
+| `0049` apply count is decided against the past | 🟢 | Slice 7. **[`0012`](0012-corpus-audit.md) found it is cited by no document at all** — a decision with no inbound citation governs nothing, and that is greppable |
+| `0050` crossing an ownership boundary is a trade | 🟢 | Slice 7. **Untested**: `pool` throws |
+| `0051` industrial pollution is a stock | 🟢 | Slice 6/7. **Less a decision than an excavation** — `02 §2.4` had said pollution *"Decays"* since it was written and slice 6 built the diffusion without the removal |
+| `0052` a hash-bearing number needs a named ratifier | 🟢 | The §D triage. **Has since deleted a number rather than added one** (`adr/0059`), and earned its keep in the negative direction on slice 7's arming stagger |
+| `0053` failure pressure is a duration | 🟢 | Slice 10, **amended twice by the code that implemented it** |
+| `0054` evicted Households keep their money | 🟢 | Slice 10 |
+| `0055` a permission set scopes what a Rule builds | 🟢 | Slice 10 |
+| `0056` the Event Wheel is two levels | 🟢 ⚫ | Session C. **The partition it states has a third state it does not name** — between Phase 1 and the end of Phase 3 a due row is on *no* queue, so every future consumer inherits a claim false for two of the eight phases |
+| `0057` dereliction is derived, not recorded | 🟢 | Slice 8 |
+| `0058` the Tick is state, so the World holds it | 🟢 | Slice 9's planning. **`_phase` and `_inForce` are still in the position the Tick was in** — §C keeps that half open |
+| `0059` a Zone Rule's sample is a revisit period | 🟢 | S0b. **The ratifier was named in advance, ran, bounded the value and passed — and the number was still dimensionally wrong**, because a ratifier that runs at one city size cannot catch a number that is absolute |
+
+### What the map says now
+
+**The old summary — *we have argued what the city does thoroughly and how it is built not at all* — is
+no longer true, and it is worth saying why.** It was written after session five, when the technical
+layer had never been examined. Since then **thirty-one ADRs have come out of building rather than
+arguing** (`0038`–`0059`, plus `0036`, `0037` and the S2 pair), and they are concentrated in exactly
+the layer the summary called untouched. **The gap did not close by argument; it closed by code and
+spikes producing decisions.**
+
+**What replaces it is narrower and worse.** The remaining 🔴 is almost entirely **one cluster**:
+`03 §5` and the six research-written ADRs around it — `0005`, `0007`, `0008`, `0009`, `0012`, `0016` —
+which together are the traffic and movement model. That is **one wall, not many small gaps**, it gates
+every Phase 2 milestone, and **it is where the largest measured number in the corpus lands** (the
+861.87% diversion figure). Session **D** is promoted against it; **E** through **I** are the rest of it.
+
+**The three ⚠ rows are the actionable part.** `adr/0016`, `adr/0009` and `adr/0008` each read as
+decided, each carry a quantitative claim, and **none has a number**. `adr/0043`'s own evidence is that
+this exact shape has already produced two false claims from 🟢 rows. **Type them before grilling them**
+— if the refuting number and the machine can be named, they are measurable and a session must not
+close them.
+
+# Archive — the session record
+
+**Everything below this line is history and is not maintained.** It is the record of how each question
+was raised and argued, session by session, and it is kept because the reasoning is worth more than the
+conclusions on their own. It is **not** a status surface: where it disagrees with the ledger above, the
+ledger is right, and an item that reads as open below but is absent above has been closed.
+
+**The coverage map that used to live down here has been promoted to §F above and rebuilt.** It was
+the only per-document account of what has been examined, and `adr/0043` cites it as evidence — which
+a section banner-ed *history and not maintained* cannot carry. The superseded version is retained
+below, bannered, because its wording is what §F's list of defects is stated against.
+
+---
+
+
+## Closed entries — the full bodies
+
+**Moved here on 2026-08-10, verbatim and unedited.** Each of these is a question that has **closed**;
+the ledger above keeps its struck one-line row so a reader still sees that it was *answered rather
+than dropped*, and the body lands here because a closed body is history and the ledger is a live
+surface. **Nothing was deleted** — the strike convention is right and is retained.
+
+**Where it disagrees with the ledger above, the ledger is right.**
+
+### A — the path source
+
+| Question | Type | Owner | What settles it |
+|---|---|---|---|
+| ~~**The path source.**~~ **CLOSED by [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)** — struck by S2 R6, and it had been closed for some time. The ADR's table carries this row's three figures verbatim (16.58% uniform, 149.73% local, unmoved across a storm deleting 1,021 Segments) and concludes *"the table was never a path source. It was the fallback if the cache did not work."* A correction, filed in [`0012`](0012-corpus-audit.md) | — | — | — |
+
+### A — the route cache invalidation contract
+
+| Question | Type | Owner | What settles it |
+|---|---|---|---|
+| ~~**The route cache's invalidation contract**~~ **CLOSED by session M**, into [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md) — *never wrong about a removal, boundedly wrong about an addition*, the bound checked **at use** rather than swept, with a proximity wake over it for responsiveness. Modelled driver ignorance is what this city wants **about congestion only**; *never update* was ruled out explicitly. **Two things the session found that the row did not anticipate.** R5.5.4's rotation was measured on the **shared 412-entry cache**, and the store that goes stale about a new road is the **per-Citizen Habit Route** — `CONTEXT.md` said *Traveller* and contradicted its own conservation invariant doing so, now corrected. And a rotation's cost is `store size ÷ period`, so **it couples the learning rate to the population**, which is why the bound is checked at Trip start instead. Leaves two unset numbers in §D2 | — | — | — |
+
+### A — is a map term's amount a stock or a rate
+
+| Question | Type | Owner | What settles it |
+|---|---|---|---|
+| ~~**Is a `map` term's `amount` a stock or a rate?**~~ **CLOSED by [`adr/0051`](../docs/adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md)** — a stock the environment absorbs, with an emergent ceiling rather than a clamp. **It was never as open as it looked**: `02 §2.4`'s field table had said *"Decays"* since it was written, and slice 6 built the diffusion without the removal. The clamp, the set-don't-add and the counter-source options are recorded there as rejected, with reasons. What it left behind is one **measurable** (section B) and one **unratified number** (section D) | — | — | — |
+
+### A — the Event Wheel (row as it stood while open)
+
+| Question | Type | Owner | What settles it |
+|---|---|---|---|
+| **The Event Wheel** — `02 §7` and `adr/0006` have never been grilled | A | session **C** | The **only red gate** on `0003`'s board. Slice 9 waits on it and nothing else does |
+
+### B — the route cache key granularity and eviction policy
+
+| Question | Owner | The number that settles it |
+|---|---|---|
+| ~~The route cache's **key granularity** and **eviction policy**~~ **MEASURED by S2 R6** | S2 **R6** | **Key:** the error is **0.86–0.94 Ticks, flat across the O-D family** — bounded by Segment geometry, not by trip length, so the *absolute* is the number to carry and the percentage (1.84–9.70%) must not be quoted. **`node-a` costs exactly 2× `nearest-node`** and the fix is one comparison at insert with the key space unchanged. **Eviction:** R5's 28–31% floor is **20.0% conflict, 0.0% capacity** — a defect, not a size. **4-way LRU** takes it to 3.8% at four contiguous probes. Both owed to `adr/0012` as an amendment |
+
+### C — what a Zone Rule's sample is denominated in
+
+- **What a Zone Rule's `sample` is denominated in — and therefore what `§5.7` means by pacing growth.**
+  **NEW, and measured into existence by S0b rather than argued.** `§5.7` lists sampling first among four
+  growth-pacing mechanisms and justifies it with *"cost is constant regardless of Zone size"*. Both
+  halves are now measured and they point in opposite directions. **The cost claim is true and then
+  some**: raising the sample **117×** at 1,000,000 Citizens — enough to hold a one-Day revisit period
+  over 120,001 Lots — cost nothing outside noise (18.36 s against 19.12 s over 2,000 Ticks), so
+  `O(sample²)` in `ZoneSample.Draw` is amortised by the interval and cost has never been the constraint.
+  **The pacing claim is the problem**: `sample ÷ interval` is an **absolute** throughput, so the period
+  in which a given Lot is looked at once is `Lots ÷ (sample ÷ interval)` — **0.12 Day at 1,000 Citizens
+  and 117 Days at 1,000,000.** S0b confirmed this is structural rather than a bad guess by collapsing
+  the whole occupancy trajectory onto **τ = (sample ÷ interval) × Ticks ÷ Lots**, agreeing to 1.6 points
+  across a 1,000× span in Lots *and* a 117× span in sample. **An absolute throughput against a growing
+  city is a decelerating city.** The diegetic argument is where the answer probably lives: `CONTEXT` →
+  Zone Rule justifies sampling because *a developer does not evaluate every parcel*, which is a sample
+  per **developer**, and the model has exactly one developer per Zone Rule at every city size — **a city
+  of a million people has more developers than a city of a thousand.** Note that of §5.7's four
+  mechanisms only **capital** scales with the city and capital does not exist yet; sampling and the
+  **build rate throttle** are both absolute, so two of the four pace in a unit the section never names.
+  ~~**Arguable** — no measurement chooses a denominator — but the revisit period it implies is
+  hash-bearing and needs a ratifier under `adr/0052` on the day it is written down. Owner: **task 10b**,
+  which is the first Ruleset that models a city and therefore the first that could be wrong about this.~~
+  **CLOSED the same day by [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)**
+  — a Zone Rule authors `revisit_ticks`, a **duration**, and the engine derives
+  `sample = ceil(Lots × interval ÷ revisit_ticks)`, which is `pollution_decay_ticks`'s shape against the
+  Lot count instead of the cadence. **It needed no ratifier after all**: the default is `TICKS_PER_DAY`,
+  derived the way tau and the arming stagger were, so §D **loses a row rather than gaining one**.
+  Implementation is `0014` **task 11**, sequenced **after slice 8** because it moves the three golden
+  baselines and slice 8 task 10 re-records the same files.
+
+
+### E — price Phase 3 and Map Layer diffusion
+
 - ~~**Price Phase 3, and price Map Layer diffusion.**~~ **DONE**, and both moved something. The engine
   row in [`0013`](0013-tick-budget.md) went from an *inferred* 60% to a **measured 67%** at 4×, over a
   whole Tick rather than one phase; the **sort was found and identified** — 121.6 → 198.3 ns per due
@@ -440,16 +652,24 @@ it would be scheduled rather than discovered.
 ---
 ---
 
-# Archive — the session record
 
-**Everything below this line is history and is not maintained.** It is the record of how each question
-was raised and argued, session by session, and it is kept because the reasoning is worth more than the
-conclusions on their own. It is **not** a status surface: where it disagrees with the ledger above, the
-ledger is right, and an item that reads as open below but is absent above has been closed.
+### D2 — pollution decay rate (tau), while unset
 
-The coverage map immediately following is the exception worth reading — it is the only per-document
-account of what has and has not been examined, and `adr/0043` cites its 🟢 rows as the evidence that a
-green mark is not evidence a sentence was examined.
+| Number | Waiting on | Note |
+|---|---|---|
+| ~~**Pollution decay rate (tau)**~~ | ~~Being chosen now~~ | **SET on 2026-08-08 and moved to D1**, where it is now an unratified number rather than a gap. `adr/0051`'s decay was implemented, tau is **128** and derived rather than picked, and the ADR's one unsolved piece — *"integer decay stalls, and the tail needs a rule"* — was **discharged by applying arithmetic that was already in the same file**: land value's `Step` helper absorbs `max(1, round(value/tau))`, so a source reaches exactly zero and a demolished factory leaves no stain. **The second of the two rows this section flagged to watch, and both moved within one session** |
+
+### D2 — Rule Instance arming stagger, while unset
+
+| Number | Waiting on | Note |
+|---|---|---|
+| ~~**Rule Instance arming stagger**~~ | ~~Being chosen now~~ | **SET and moved to D1.** Uniform over `[1, rate]`, with its own `purpose_tag`. *Which* stagger is no longer unargued: the window is the Rule's own re-arm period, which is the only one that stays spread, so **there is no free parameter and nothing left to ratify** |
+
+### D2 — Zone Rule sample size, before adr/0059 retired it
+
+| Number | Waiting on | Note |
+|---|---|---|
+| ~~**Zone Rule sample size**~~ **RETIRED by [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)** — there is no such number any more. `revisit_ticks` replaces it, defaults to `TICKS_PER_DAY`, and is **derived** rather than picked, so nothing here needs ratifying. **The row is kept because its own history is the lesson**: everything below was done correctly and did not work | Slice 10 task 4 | **Hash-bearing.** Ratifier named in advance: slice 10 task 10's 100,000-Tick run **bounds** it — the value must sit where `live` neither collapses to zero nor stays flat — and the first playable build selects within that band. The row says *bounds* rather than *picks* deliberately. Note what constrains it today: *sample N and take the best* has **nothing to rank**, because the create predicate is a boolean with no score, so `N` buys throughput and not choice until `02 §5.4`'s choice model exists. **`02 §5.3`'s `N` is not this number** — that one is dwellings a Household considers |
 
 ---
 
@@ -568,7 +788,14 @@ Added session five:
 
 ---
 
-## Coverage map — what has been grilled, and what has not
+## Coverage map — what has been grilled, and what has not — **SUPERSEDED**
+
+> **SUPERSEDED by §F above, on 2026-08-10, and retained rather than deleted.** It stopped at
+> `adr/0043` — **twenty-two ADRs, `0038`–`0059`, never appeared in it** — it contradicted itself on
+> `05 §5` and on `02 §8`/`§10`, and its blanket rows are the granularity defect `adr/0043` names.
+> **Do not read it for status.** It is kept because §F states its defects against this wording, and
+> because its closing summary — *we have argued what the city does and not how it is built* — is a
+> claim §F now contradicts with evidence, which is worth being able to check.
 
 Three sessions in, coverage is **very uneven**, and the unevenness is not random: everything argued so far is the *simulation and economy* layer. The **agent architecture and the entire technical layer have never been through this process at all**, and neither has the roadmap that sequences them.
 

@@ -158,12 +158,19 @@ been the wrong repair — the pointer is not wrong about the past, it was only e
 - [ ] `0002:457-462` — the **Readiness table**, five of six rows stale. Now archived, but **`0003:5`
       still points readers at it as the readiness derivation**, so the live defect is `0003`'s pointer
       rather than the table
-- [ ] `0002` **coverage map** — contradicts itself (`§5` listed as both closed and unargued) and lists
-      `§8`/`§10` as never grilled when session eight closed them. **This one got more important, not
-      less**: the archive banner names the coverage map as the one section still worth reading, because
-      it is the only per-document account of what has been examined and `adr/0043` cites its 🟢 rows as
-      evidence that a green mark is not evidence a sentence was read. A self-contradicting map cannot
-      carry that. **Promote it out of the archive and into the ledger once it is corrected**
+- [x] ~~`0002` **coverage map** — contradicts itself (`§5` listed as both closed and unargued) and lists
+      `§8`/`§10` as never grilled when session eight closed them. **Promote it out of the archive and
+      into the ledger once it is corrected**~~ **DONE 2026-08-10 — it is now [`0002`](0002-open-questions.md) §F**,
+      and correcting it found **a third defect larger than the two filed**: it **stopped at `adr/0043`**,
+      so **twenty-two ADRs — `0038` through `0059` — did not appear in it at all.** That is every
+      decision the *building* has produced, and it is the half of the corpus this audit's own *Cause 1*
+      predicts will drift, because the map stores status. **A coverage map blind to two thirds of a
+      year's output is worse than none, because it reads as complete.** The blanket rows are also split
+      now, per `adr/0043`. The superseded version is retained in the archive, bannered, because §F
+      states its defects against that wording. **The finding that outlives the fix**: the old map's
+      closing summary — *we have argued what the city does thoroughly and how it is built not at all* —
+      is **no longer true and nothing had noticed**, because thirty-one decisions have since come out of
+      building rather than arguing, concentrated in exactly the layer it called untouched
 - [ ] **Nine slice plans carry a *Decisions owed by this slice* section and nothing reconciles them
       against the ledger.** `0003:254` already makes it a per-slice definition of done that every
       unratified number goes into `0002` before the slice closes, and **slices 5, 6 and 7 all closed
