@@ -19,6 +19,7 @@ BOR0203 | Borough.Determinism     | Error    | Lint 2 — raw integer `/`; state
 BOR0204 | Borough.Determinism     | Error    | Lint 2 — shift by a non-constant count; the count is silently masked
 BOR0205 | Borough.Determinism     | Error    | Lint 2 — wall-clock time; the library has no clock
 BOR0206 | Borough.Determinism     | Error    | Lint 2 — Guid.NewGuid or the default object/ValueType GetHashCode
+BOR0207 | Borough.Determinism     | Error    | Lint 2 — a ratio pre-scaled by a large constant and divided in 32 bits; a Q16.16 quantity wraps almost at once
 BOR0301 | Borough.Determinism     | Error    | Lint 3 — enumerating a hash-ordered map or set; building and looking up stays legal
 BOR0302 | Borough.Determinism     | Error    | Lint 3 — System.Random; use Randomness.Draw
 BOR0701 | Borough.SimulationState | Error    | Lint 7 — a struct that does not satisfy `unmanaged`, without a [ColdPath] argument

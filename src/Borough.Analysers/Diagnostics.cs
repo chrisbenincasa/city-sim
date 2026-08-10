@@ -107,6 +107,27 @@ internal static class Diagnostics
         "same hazard BOR0301 exists to prevent, so letting its direct spelling through would have " +
         "been the rule contradicting itself.");
 
+    internal static readonly DiagnosticDescriptor ScaledRatioIn32Bits = Error(
+        "BOR0207", Determinism,
+        "A ratio pre-scaled in 32 bits in Borough.Core",
+        "'{0}' scales by {1} in {2} before dividing, so it overflows above {3}. 05 §4 and adr/0003: " +
+        "a Q16.16 quantity is 65,536 times its whole value, so this wraps at {4} whole units — " +
+        "silently, and negatively, which subtracts the largest inputs from the result instead of " +
+        "reporting them. Widen the scale to a long literal ('{1}L'), or use Fixed.Mul/Fixed.Div if " +
+        "both operands are Q16.16.",
+        "The scale factor exists only to carry fractional digits through an integer division, so " +
+        "this idiom is always a ratio and its inputs are always the quantities the surrounding code " +
+        "cares about most. That is what makes the failure mode perverse: the product wraps negative, " +
+        "so the *largest* improvements, detours or shares are the ones deleted from a mean, and what " +
+        "survives is a plausible small number nobody queries. S2's routing spike shipped exactly " +
+        "this in a published finding and it was caught by arithmetic on the printed output rather " +
+        "than by any tool. It is reported here and not merely in a spike because BOR0203 routes " +
+        "every division through IntegerMath, whose FloorDiv, CeilDiv and RoundDiv all have int " +
+        "overloads: 'IntegerMath.FloorDiv(cost * 10_000, total)' binds to the 32-bit one and the " +
+        "multiplication has already overflowed inside the argument, while the call site reads as " +
+        "though it were 64-bit. Fixed.Mul is the shape to copy — it widens with '(long)a * b' " +
+        "before shifting.");
+
     // ---- Lint 3: no hash-map enumeration, no System.Random ------------------------------------
 
     internal static readonly DiagnosticDescriptor HashMapEnumeration = Error(

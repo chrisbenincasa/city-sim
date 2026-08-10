@@ -222,10 +222,13 @@ internal static class EvictionReport
             poolSize,
             concentrated,
             scheme,
-            (hits * 1_000) / Trips,
-            (cold * 1_000) / Trips,
-            (capacity * 1_000) / Trips,
-            (conflict * 1_000) / Trips,
+            // 1_000L rather than 1_000: these are counts and cannot overflow at this scale, but
+            // BOR0207 is deliberately strict for the reason BOR0203 records — a lint that is
+            // sometimes right is one that gets suppressed at the site where it was right.
+            (int)((hits * 1_000L) / Trips),
+            (int)((cold * 1_000L) / Trips),
+            (int)((capacity * 1_000L) / Trips),
+            (int)((conflict * 1_000L) / Trips),
             (int)((probes * 100) / Trips));
     }
 

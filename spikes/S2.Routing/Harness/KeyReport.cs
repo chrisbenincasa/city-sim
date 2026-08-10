@@ -408,7 +408,7 @@ internal static class KeyReport
             key,
             distinctKeys.Count,
             distinctPairs.Count,
-            (hits * 1_000) / LookupTrips,
+            (int)((hits * 1_000L) / LookupTrips),
             resident,
             evictions);
     }

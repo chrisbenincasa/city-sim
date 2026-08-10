@@ -1500,7 +1500,11 @@ identical and every timing moved, so the staleness was confined to the machine-d
 bit `HabitReport` was swept across the spike: six sites scale a travel-time difference before
 dividing and **all six are safe**, each carrying a `long` operand or a deliberate cast — without the
 one in `VectorReport`, R4.8's ladder wraps above a **4.58%** detour on the uniform rung and **14.11%**
-on the shortest, and every published rung sits above its own threshold. And every unit-carrying
+on the shortest, and every published rung sits above its own threshold. **The lint this class wanted
+now exists** — `BOR0207`, *a ratio pre-scaled by a large constant and divided in 32 bits* — keyed on
+the shape rather than the type, since a Q16.16 value here is a bare `int`. Reverting `HabitReport`'s
+`10_000L` reproduces it as a build error at the exact line, so the defect that took a session to find
+by arithmetic on printed output would not have compiled. And every unit-carrying
 decimal typed into report prose across all fourteen files is **eighteen literals**, of which all but
 one are external citations, table-header constants, or defect narratives describing harness states no
 live measurement can reproduce. **`TrafficReport.AppendVerdict` had the same hole and it is now closed
@@ -1840,3 +1844,278 @@ and blocking milestone 5c. S2 sweeps the zone count and hands back a curve.
 **It does not open Phase 2.** [`0003`](0003-build-plan.md) is explicit that Phase 2 stays unplanned
 until S0 runs, and S2 reporting does not change that. What S2 produces is a number and a router, not
 a schedule.
+
+---
+
+## Findings that change a later round — moved here from the board
+
+**Moved verbatim from [`0000`](0000-board.md) → *Owed — findings that change a later task*.** The board
+is a **view**, and it had become the only home of ~260 lines of this spike's instructions to its own
+later rounds. Nothing below is edited: checkbox state, strikes and wording stand exactly as they did
+there. This is [`adr/0042`](../docs/adr/0042-a-planning-document-cites-and-a-design-document-owns.md)
+applied one level further — **a view cites, a record owns** — and the record for an S2 finding is this
+document and [`spike-results`](../docs/spike-results.md).
+
+**Read the unstruck ones as standing instructions to R6.4 and R7**, which are what is left of S2. The
+struck ones are kept rather than deleted because each records *which half* of a claim was wrong, which
+is the part a later round needs and a bare "discharged" destroys.
+
+- [x] **R3 must not quote HPA\* in expansions saved.** *Discharged, and the warning was load-bearing:*
+      the hierarchy expands **4.7× fewer** nodes and is **1.44×** faster unreduced, because a road
+      network is degree-3 and the complete abstraction is degree-40. Quoted in expansions it would
+      have read as a large win. **R6 still inherits the instruction.** Original wording: R0 measured a case where the currency does not
+      convert: `EuclideanFloor` expands **11% fewer** nodes than `Chebyshev` and takes **1.8× as
+      long**, and against plain Dijkstra it cuts expansions by 55% while being no faster at all. The
+      cost is its exact integer square root, run twice per node pushed. `plans/0010`'s ladder specified
+      nodes expanded, path cost and optimality; **adding a clock is R0's amendment to the plan**, and
+      R3 and R6 inherit it — a hierarchy or a cache that saves expansions has not yet saved anything
+- [ ] **An artefact that varies with the swept axis is not distinguishable from a result.** R1 needed
+      **four** warm-up schemes before its cold-build column stopped falling smoothly with District
+      count — which is precisely the shape a reader hopes a sweep will discover, and was the process
+      leaving tier 0. Ruling out the per-rung explanations is what identified it as per-process:
+      `OneToAll.Run` is called once per District, so the small rungs never call it enough. **R3 and R5
+      sweep cluster size and edit rate and are exposed to the same failure**; only a warm pass over the
+      whole sweep removes it. This is R0's *"the bootstrap column was mostly the sampler"* in its
+      general form, and it is the second time in S2
+- [ ] **A sample that shrinks with the swept axis manufactures a trend out of survivorship.** R1's
+      entry-error section first drew Access Points uniformly and rejected those outside the named
+      District; at 1,024 Districts a hit is one draw in a thousand, so the sample silently collapsed to
+      **nine searches** and was printed beside rows built from 2,244. Third instance of the corpus's
+      recurring shape, after R0.5's *mean cost when found* and R0's dead Arterials. **Any later section
+      that samples inside a swept partition must report its sample size per rung**
+- [ ] **An invariant is worth printing on the run where it reads *yes*, because it is worthless on
+      the run where nobody printed it.** R2's next-hop rung tested arrival *after* entering the last
+      arc, so an arriving Traveller was respawned without decrementing — `adr/0041`'s named
+      `adr/0006`-class defect, *"a road that looks busy forever."* It published a peak `v/c` of
+      **883×** while the footprint, the crossing rate, the detour and the crossover columns all looked
+      healthy. The ADR had already specified the invariant that catches it — *summed Segment volume
+      equals in-flight Travellers, every Tick* — and it found the bug on the first run it was printed.
+      **Fourth instance in this spike of R0's *"an argument for reporting a quantity you expect to be
+      boring"*, and the first where the corpus had written the check down in advance and the harness
+      had simply not run it.** R3, R5 and R6 all mutate state a conservation law covers
+- [ ] **Two measurements that agree to the last digit are not two measurements.** R2's shared and
+      next-hop rungs reported **byte-identical** peaks, because the next-hop fleet was being spawned
+      *at* the origin District's representative — which made it walk the shared route. The rung's whole
+      claim is that it is followed from wherever the Traveller actually is, and the experiment had
+      quietly removed the difference it existed to measure. **Nothing but the identical digits gave it
+      away.** R3 compares a hierarchy against a flat search over the same graph and is exposed to the
+      same class
+- [ ] **An error rate that moves with an unrelated optimisation is not evidence.** R0's heuristic
+      multiplies by a floored reciprocal rather than dividing, to remove four hardware divisions per
+      node. The reciprocal's ~2-in-10,000 slack **partially cancels an overestimating metric's error**:
+      the same change moved walking `Manhattan` from 35 of 300 non-optimal to 4 of 300, worst exactly
+      where `adr/0008`'s walk Legs live. **Any later measurement of an error rate — R2b's attribution
+      lag, R5's hit rate — should ask what else in the pipeline rounds in the same direction**
+- [ ] **A denominator measured once has no error bar, and a denominator measured first has a
+      systematic one.** R3's first pinned capture read **1,401,307 ns** for the flat search and
+      **477,609 ns** for the same code measured after the sweep — a 193% spread — because the flat
+      loop was the first timed thing in the process and the clock had not ramped. **Every ratio R3
+      publishes divides by that number**, so the artefact would have decorated the whole task rather
+      than one column. The harness now measures it twice and publishes both. **R4, R5 and R6 all
+      divide by the same denominator** and must do the same. Fifth instance in S2 of R0's *"an
+      argument for reporting a quantity you expect to be boring"*, and the first where the boring
+      quantity was the denominator
+- [ ] **A correctness column that cannot move is not evidence that the error is absent.** R3's detour
+      read 0.00% at every cluster rung, which is the shape R2's byte-identical peaks wore. It is real
+      — the abstraction is complete, so it cannot lose a route — but that was established by making
+      the instrument move: **sampling transitions drove the same column to 80.49%**. A zero should be
+      paired with a rung that is expected to be non-zero, or it is indistinguishable from an
+      instrument that is not wired up
+- [ ] **Nothing in the corpus invalidates a route when congestion changes, and R3 is the first task
+      with a large number attached to that.** The Epoch bumps on an *edit*; the VDF makes travel time
+      a function of `volume / capacity`; `adr/0041` moves volume **every Tick**. A flat search reads
+      arc costs at query time and is always current — a structural advantage of the denominator R3
+      never priced — while **every precomputed structure in S2 is stale the Tick after it is built**:
+      HPA\*'s intra-cluster edges, R2's next-hop table, and R1's matrix alike. **Third invalidation
+      mechanism in the corpus and the first with none at all**, after R1.7's dirty region and the
+      scalar Epoch. **R5 must be given the refresh cadence of the routing cost basis before its edit
+      storm means anything**; if that cadence is the time-of-day phase R1.8 found, the exposure
+      evaporates, and if it is per-Tick both surviving routers are dead against a 15.6 ms budget
+- [ ] **A tripwire should be gathered as direct data, and where it cannot be, the derivation should
+      be inverted until what is published is measured.** R3's Tick-budget row was first drafted as
+      *routing is 6.4× over budget*, which multiplies a measured per-route cost by **550 Trip starts
+      per Tick** — a figure resting on a mean Trip duration the corpus calls provisional, in a spike
+      with no Travellers and no Trip generation to improve it. **A wire whose denominator is a guess
+      fires on the guess.** Published the other way round — *routing fits while fewer than 85 Trips
+      start per Tick* — the quantity is a measured cost over a world constant and survives the arrival
+      rate being measured elsewhere. **R4, R5 and R6 each have a row that can be inverted the same
+      way**, and `plans/0010`'s tripwire section now carries the rule
+- [x] ~~**S2's O-D draw is uniform over the map, and R0 flagged that as a placeholder that was never
+      replaced.**~~ **DISCHARGED as a debt and reopened as an axis, by R4.1.** The draw is now a
+      **swept family** — uniform, distance-decay at L = 1024/512/256 Tiles, monocentric — with
+      uniform as a rung of the same sampler, so a difference between rows is the shape and cannot be
+      the machinery. It cost a conclusion to find: R2's **18.52%** detour is 20.14% on uniform and
+      **128.82%** on the tightest decay rung, because uniform is the **longest-trip** distribution
+      available (8.53 km mean on a 16.4 km map) and a District-representative detour is a fixed error
+      against a shrinking journey. **R3's speedups remain an upper bound and are now quantifiably
+      so.** What is *not* discharged is the underlying absence: the family is invented, and only Trip
+      generation can replace it — filed as `plans/0010` decision 14, and **no document may cite an
+      S2 figure derived from it without naming the rung**. Original wording:
+      **S2's O-D draw is uniform over the map, and R0 flagged that as a placeholder that was never
+      replaced.** R0 said it could not have the distribution it was supposed to use and would take
+      R1's; R1 produced none, and R3 inherited the uniform draw unchanged. **A uniform draw over 4,096
+      Tiles produces long routes, and long routes are where a hierarchy wins widest** — so R3's
+      speedups are an upper bound. It does not move the optimality counts, which are counts, and it
+      does not move the ranking of the cluster rungs against each other. **R4 inherits the same draw**
+      and a next-hop table's error profile is distance-dependent too, so the comparison is on the same
+      footing but both sides are measured on a distribution nobody has confirmed. **R3.8's bypass
+      table is the only evidence in the spike about the short end**, and it says the cliff is at one
+      block
+- [x] ~~**Two S2 tasks publish different absolutes for the same operation.** R2 reports 474.47 ms to
+      build the 121-column next-hop table; R4 reports **234.74 ms** for the identical rebuild. R4
+      substantially explains it rather than resolving it: **the same 121 backward Dijkstras read
+      423.47 ms measured first in R4's own process and 234.74 ms measured later** — 1.80× apart,
+      which is **R3's *a denominator measured first has a systematic error* reproducing a third
+      time**, and R2's figure was also first-timed. Every R4 ratio is taken in-process against R4's
+      own figure, so no conclusion moves. **R7 owes the reconciliation**~~ **DISCHARGED 2026-08-09,
+      and this entry outlived its own discharge by a week.** They were never the same operation: R2's
+      figure is the **next-hop** build, 260.57 ms canonically — a **1.82×** move matching R4's
+      independently measured 1.80× artefact — while the rebuild reads 194.94 ms. **Two things the
+      closure left behind.** The row label that carries it says *"three measurements of 121 backward
+      Dijkstras agreeing to 0.3%"* and one of the three is **121 forward one-to-all Dijkstras plus
+      14,641 path extractions**, so the conclusion stands on **two** witnesses and a coincidence.
+      And **217.36 ms, the figure the whole disagreement was stated in, has no table anywhere** — a
+      string literal in `VectorReport.cs`, contradicted by its own commit's captures at 219.73 and
+      234.74 ms. That is a **provenance sweep**, now R7's: any figure taken from capture *prose*
+      rather than a capture *table* is provenance-unknown
+- [x] ~~**The canonical `performance` capture of R4 is owed**~~ **DISCHARGED.** Captured as root
+      under `performance`, pinned, turbo enabled; 23.69 s, CPU stall 1.41%, memory stall 0.00%.
+      `docs/spike-results.md` §S2 R4 now quotes it throughout, and the `powersave` run is retained
+      beside it. **Against that run every non-timing row is bit-identical** — relaxations, rounds,
+      wrong-entry counts, stranded counts, footprints, detour percentages and the whole O-D table —
+      and only nanosecond columns move, by 2–7%. **The governor moved nothing R4 concludes from.**
+      The scheme ranking, the sign of every comparison and the break-even band are all unchanged;
+      dynamic repair's margin over a rebuild on one deletion widened from 37.99× to **49.76×**
+- [ ] **`plans/0010` R3's *current standing favours HPA\* at 16 Chunks* is withdrawn — NEW, produced
+      by S2 R5.2**, and it is a correction R3 asked for in advance. R3 narrowed cluster size to 8 or
+      16, put the bias on 16 on a 1.31× faster refined query, and said the axis that separates them
+      is an edit rate R5 owns. **8 is 1.9× cheaper on a coalesced 256-Segment drag, 5.8× on the naive
+      worst case, and its full rebuild is 43.14 ms against 75.31 ms.** A 1.31× query advantage
+      against a ~2× edit penalty picks 8, and **the canonical capture confirms it** — the one run
+      that said otherwise is the mis-pinned one. **The conditional on R5.6 is discharged**: sheds do
+      not rank it differently — **8 beats 16 on every gesture and every size**, by 2.9× at a
+      one-Segment drag — so the sweep may go. **But the query side of that trade was itself
+      mis-pinned**: R7 makes it **1.61×**, not 1.31×, which against a 1.9× edit penalty is a coin
+      toss. **The answer is still 8 and it is now the shed carrying it, not the route**
+- [x] ~~**`HpaSearch` cannot see a Segment deleted under a Trip's own feet — NEW, found by S2 R5.5, and
+      it is pre-existing.**~~ **DISCHARGED by S2 R6.0, and the defect was twice the size filed** —
+      eight call sites, not the two remainders, the extra four being the same-Segment and
+      adjacent-Segment bypasses, which return *routable* without entering a confined search at all.
+      Repairing it moved `Unroutable` from ~1% of the control to **82.93–99.03%**, monotone in the
+      refresh rate, which turned a dead column into an independent confirmation of R5.5.4. The
+      re-baseline it was deferred for is **bounded to R5.3 and R5.5.2** and changes no R5 conclusion.
+      Numbers in [`spike-results`](../docs/spike-results.md) → *S2 R6.0*. Original wording:
+      **`HpaSearch` cannot see a Segment deleted under a Trip's own feet — NEW, found by S2 R5.5, and
+      it is pre-existing.** The forward seed and goal remainders call `CostToEndpoint(graph, null, …)`,
+      and a **null** cost array reads `graph.ArcCarTicks` — the pristine array — while the storm
+      deletes into a shadow clone. **So the hierarchy returns a route down a road the player has just
+      bulldozed.** `flat` found **416** unroutable over R5.5's sweep where four cache rungs found
+      **16**. It is **common-mode across all three Epoch rungs**, so no R5.3 or R5.4 conclusion moves
+      — but ***Unroutable* on any hierarchical row is evidence of nothing**, and **R6 must fix it
+      before it caches anything.** Not repaired, because repairing it re-baselines R5.3
+- [ ] **A per-edit repair API invites the loop that destroys it — NEW, produced by S2 R5.2**, and it
+      is a shape rather than a number. **R5.5 tested it for generality and it does not have any**:
+      looping `RepairSubtree` per Segment over a drag costs **0.91–1.51×**, not 23.26×, because a
+      shortest-path subtree is *repaired* from the boundary inward where a cluster's edge set must be
+      *decided* whole. **The finding is real and local to `AbstractGraph`**, not a corpus-wide rule. `RebuildFor(segment)` is the natural signature and looping it
+      over a drag re-decides the same few clusters dozens of times, for **23.26×** the coalesced cost
+      and a worst case of **253.22 ms**. The two spellings are **identical at a gesture of one**,
+      which is the only size R3 and R4 ever measured, so no earlier task could have caught it.
+      **Anything the player can do to hundreds of objects at once needs its API shaped for the
+      gesture**, not for the object — and above ~63 clusters touched the repair loses to a **full
+      rebuild** outright, so the path has two thresholds rather than none
+- [ ] **No Epoch rung is both affordable and correct across the whole core verb — NEW, MEASURED by
+      S2 R5.4**, which was not a task the plan had. Deletion is monotone-**worsening**, so a rung
+      watching a route's own Segments misses nothing and per-Segment is exact. Addition is
+      monotone-**improving**, and **a route computed before a road existed cannot contain it**, so
+      per-Segment declares **100.00%** of the cache valid and structurally cannot notice — and
+      **per-cluster fails the same way**, since a new fast link in a cluster the route never enters
+      still beats it. **Only global is sound under addition, and R5.3 measured global as unusable.**
+      Sized rather than argued: restoring **4 Arterial Segments — ~512 m, the smallest addition worth
+      drawing** — leaves per-Segment serving stale routes on **9.22%** of resident entries at a mean
+      **16.71%** detour and a worst of **62.65%**, against R2's 18.52% which the corpus treats as a
+      serious correctness finding. **It is a floor, and unlike every other error in this spike it
+      does not heal**: nothing the rung watches will ever move again, so only **eviction** removes
+      it — and `adr/0012` keys by O-D **rather than by agent**, so it is every driver's route and a
+      hot pair is the *least* likely to be evicted. **Five ways out are tabulated in
+      [`spike-results`](../docs/spike-results.md) → R5.4**, and two of them are corpus decisions
+      rather than engineering: **B** (weaken the contract to feasibility — which fits `BOUNDED
+      KNOWLEDGE` if the ignorance is *modelled* and is a defect if it is *accidental*), and **E**
+      (R1's matrix as an O(1) detector — **the relationship R1 explicitly declined to argue**,
+      arriving from the other side). **Addition is measurable after all**, which R3 had thought it
+      was not: build the abstract graph on the full graph so every portal slot is reserved, then
+      delete a set and restore it
+- [ ] **The synthetic grid cannot answer the Street half of that question — NEW, produced by S2 R5.4.**
+      Restoring ordinary Street improved **0.00%** of cached routes at every size up to 126 Segments,
+      because one Street per Cell boundary at a uniform speed gives very many *equal-cost* shortest
+      paths: deleting a line leaves an equal-cost alternative one block over, so the cached cost never
+      moved. **The zero is real and does not generalise** — a real network has heterogeneous speeds
+      and far fewer ties. It is the same debt `CONTEXT.md` → Segment already carries from R0: **road
+      density has a curve and no source**, and now so does road *homogeneity*. **The Arterial side is
+      thin for the same reason**: the graph holds **8 Arterials and 104 Arterial Segments**, and an
+      Arterial-only drag saturates at **4** — which is why R5.4 publishes one Arterial rung rather
+      than a sweep, and why its 16.71% is stated as a **floor** rather than a curve
+- [ ] **R5's cache hit rates rest on an invented pool, and no document may quote the level — NEW,
+      produced by S2 R5.3.** A route cache works because real Trips **repeat**, and nothing in S2 can
+      produce that recurrence because it needs Trip generation. R5 substitutes a fixed pool of 512
+      O-D pairs sampled with repetition; drawing fresh pairs every Tick would report ~0% for every
+      rung and compare nothing. **So every absolute hit rate in R5.3 is a property of the pool
+      size.** What the pool cannot distort is the *ratio between rungs under the same pool*, which is
+      what the ladder is for. **Exactly the handling R4.1's O-D family already has** — and that debt
+      is discharged as an *axis* rather than closed, so this one should be too: **R6 must sweep pool
+      reuse rate the way R4.1 swept trip length**, or its hit-rate curve is one guess wearing a
+      measurement's clothes
+- [ ] **`adr/0017`'s eviction pattern has a number for the first time — NEW, produced by S2 R5.3 and
+      not looked for.** R5's miss column sits at **28–31% and does not move with edit rate at all**,
+      which is the tell that it is collisions rather than staleness: **a direct-mapped route cache at
+      2× over-provisioning loses about three lookups in ten before a single road is touched.** The
+      decision belongs to **R6**, which owns eviction and the key; what R5 supplies is evidence that
+      the policy is worth more than the Epoch rung below the highest edit rates
+- [ ] **A mean per-route cost times an arrival rate does not bound a Tick — NEW, produced by S2 R5.3.**
+      R3 published *routing fits while fewer than 85 Trips start per Tick*, derived from a mean. At
+      **16** Trip starts R5 already measures a worst Tick of **10.37 ms** — R7's re-run makes that
+      **~9.4–10.5 ms** across five pinned captures, and it is a *maximum* — against a 15.6 ms budget.
+      **S4's K6 said it first** — a run whose worst iteration was 100.2 ms read 2.462 ms at p99.9 —
+      and R6 inherits the instruction along with R3's
+- [x] ~~**The canonical `performance` capture of R5 is owed**~~ **DISCHARGED**, and taking it found a
+      defect in the capture protocol itself. `spike-results` → *S2 R5* quotes the pinned run
+      throughout and the unpinned `powersave` capture is retained beside it. **Every count, share and
+      percentage is bit-identical across the two**, including R5.4's whole addition table, so no
+      conclusion moved. Three absolutes did: the repair loop reads **23.26× and a 253.22 ms worst
+      gesture** rather than 21.25× / 219.50 ms, and the worst Tick reads **10.37 ms** rather than
+      13.26 ms. **⚠ This discharge is partly implicated.** The debt it closed was *R5 published figures
+      with no artefact behind them*, and one of the figures it closed it with is **prose contradicted
+      by its own tables**: `23.26×` against tables reading **23.28×** and **22.61×** in the two
+      retained captures. (*The sweep also accused `10.37 ms` here and was wrong — see the Owed entry
+      above.*) **Half a debt about unbacked figures was discharged in an unbacked figure**, and
+      nothing noticed because
+      the discharge quoted a capture — just not a table in one. **`23.26×` is now repaired at source**:
+      R5.2 returns the peak ratio it measures and R5.5.1 interpolates it, so the two cannot disagree
+      again
+- [ ] **Every earlier `performance` capture in S2 carries a one-processor artefact — NEW, produced by
+      R5's canonical capture.** `routing-run.sh` pinned with `taskset -c 2`, one logical processor
+      with the SMT sibling idle, which starves the .NET tiered JIT's background compilation of
+      anywhere to run but the measured core. Measured **within one capture** by the twice-taken
+      denominator: **214.94 ms first against 43.99 ms last, 4.88× apart**, against **0.92×** under
+      `-c 2,8`. It inflated R5.2's first-timed half by ~3× and **flipped the 8-versus-16 verdict**.
+      **R0, R1, R3 and R4 were all captured this way**, session eleven's canonical re-capture
+      included. Counts and in-process ratios are unaffected; **first-timed absolutes are not**, and
+      R3's 1,401,307 ns / 477,609 ns denominator spread is very likely this rather than a cold clock.
+      The harness is fixed — it reads `thread_siblings_list` and pins to both threads. **R7 owes the
+      re-capture**, and it is cheap
+- [ ] **A published absolute with no artefact behind it is not a measurement — NEW.** Six figures in
+      R5's first write-up existed in no file under `results/`, because the harness wrote every run to
+      one filename keyed on machine configuration alone: a `--storm` run displaced a whole-run
+      capture, and a later `--storm` displaced that. **Fixed** — every capture is now named by
+      section, CPU set and capture time and nothing is ever overwritten, and the retained captures
+      have been renamed to the same scheme, which is what makes the artefact above visible in an
+      `ls`. **The generalisation is owed a home**: this is *an argument for reporting a quantity you
+      expect to be boring* arriving at the **retention** layer rather than the measurement one, and
+      S4 and every later spike write to the same kind of directory
+- [ ] **The canonical `performance` capture of R3 is owed, and it is now owed twice over.** The
+      published figures come from a `powersave` capture, and it was pinned the **wrong** way —
+      `taskset -c 2`, one logical processor — so it carries the artefact the entry above describes on
+      top of the governor. Every *count* is configuration-independent and every ratio is taken within
+      one process, so no R3 decision rests on it; **no absolute nanosecond figure should be quoted
+      outside the section until it exists.** The harness pins correctly now:
+      `sudo spikes/S2.Routing/tools/routing-run.sh --cluster`

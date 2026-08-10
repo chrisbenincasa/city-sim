@@ -5816,7 +5816,29 @@ is safe**, because each carries a `long` operand or an explicit `(long)` cast pl
 what keeps R4.8's 128.82% honest. Without that one cast the ladder wraps above a **4.58%** detour on
 the uniform rung and **14.11%** on the shortest — thresholds set by each rung's own mean journey,
 because the wrap point is `2³¹ ÷ 10,000` against a Q16.16 cost — and **every published rung sits above
-its own threshold**, so the whole table would have been wrong rather than a corner of it. The lint this wants is *a Q16.16 quantity scaled in 32 bits*, and the spike does not have one.
+its own threshold**, so the whole table would have been wrong rather than a corner of it.
+
+> **The lint now exists — `BOR0207`, and it catches the original defect as a build error.** *A ratio
+> pre-scaled by a large constant and divided in 32 bits*, keyed on the **shape** rather than the type,
+> because a Q16.16 value in this project is a bare `int` and no analyser can tell it from a count. The
+> scale factor exists only to carry fractional digits through an integer division, so the idiom is
+> always a ratio — which is what makes it worth a rule, since the quantities a ratio is taken over are
+> the ones the surrounding code cares about most. The threshold is **1,000**, derived rather than
+> chosen: `int.MaxValue ÷ 1,000` is 2,147,483, which in Q16.16 is **32.77 whole units**, so a
+> fixed-point quantity above about 33 already overflows there. **`BOR0203` is what leads into it** —
+> that lint routes every division through `IntegerMath`, whose `FloorDiv`, `CeilDiv` and `RoundDiv`
+> all have `int` overloads, so `IntegerMath.FloorDiv(cost * 10_000, total)` binds to the 32-bit one
+> and the multiplication has already overflowed inside the argument while the call site reads as
+> though the widening were handled. Following one rule leads directly into the other, which is the
+> argument for the second rule rather than against it. Reverting `HabitReport`'s `10_000L` reproduces
+> `error BOR0207` at the exact line, so **the defect that took a session to find by arithmetic on
+> printed output is now a build failure**. The spike is analysed, which is why that works — and it
+> also means the rule found five more sites, all `count × 1,000 ÷ count` per-mille rates that cannot
+> overflow in practice and were widened anyway, on `BOR0203`'s own recorded ground that *a lint that
+> is sometimes right is a lint that gets suppressed at the site where it was right*. The arithmetic
+> substrate is **not** exempt, unlike `BOR0203`'s: nothing in it needs to overflow, `Fixed.Mul`
+> already widens with `(long)a * b`, and incorrect substrate code is precisely what no other rule
+> can catch.
 
 **The hand-typed-measurement class is smaller than feared.** Every decimal figure carrying a unit
 inside report prose, across all fourteen report files, is **eighteen literals** — and all but one are

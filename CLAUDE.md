@@ -8,7 +8,70 @@ A city-builder where the city is made of people you can actually meet, the econo
 of Goods that actually move, and when something goes wrong the game can say exactly why.
 Godot 4.7 is the host; the simulation is an engine-agnostic C# library.
 
-**Current state: Phase 1 gate closed; S0a run; slices 7 and 10 are closed — slice 10 shipped all ten tasks and produced `adr/0053`–`0055`. Next is slice 8, hot reload.** The repository is ~7,000 lines of design
+## Current state
+
+**Read [`plans/0000-board.md`](plans/0000-board.md) first on any cold start.** This section is a
+pointer with just enough shape to orient; the board is the view and the slice plans are the record.
+**This file does not store per-slice narrative** — it did, it became a third copy of the board and the
+slice plans, and it was the copy that drifted (`plans/0012` *Cause 1*: every document that stores
+per-slice status drifted, and the only large one that did not stores none).
+
+**Phase 1 is all but closed.** Slices 0–7, **9** and **10** are done; **slice 8, hot reload, is the one
+slice in flight** (tasks 1–4 landed, of which 4, 5 and 6 merged into one). **No gate is red anywhere in
+the corpus.** Slice 10 task 11 — `adr/0059`'s `revisit_ticks` — is planned and sequenced deliberately
+*behind* slice 8, because both re-record the same golden baselines.
+
+**Spikes:** S4, **S0a**, **S0b** and S2 R0–R8 have all run; what remains of S2 is R7's tail (a
+`performance` capture that needs root, plus bookkeeping) and it is what blocks deleting a 33,000-line
+harness. **Sessions A, B, C, M, eight and nine are closed.**
+
+**What runs today.** Typed tables with a per-field saved/derived declaration and a State Hash; a
+deterministic eight-phase Tick; an Input Log that replays to identical hashes; a crash artifact that
+replays back into its own crash; Map Layers with diffusion; build-time analysers that make the
+determinism rules compiler errors; and **two Rule families** — Bin Rules moving Goods atomically with
+wait lists and fallback chains, and Zone Rules building and condemning on a sampled Lot grid. **Two of
+the eight Tick phases are still empty**, and there are no jobs, money, movement, roads or renderer.
+
+**The three numbers to hold in your head.** S0b measured a Tick *with work in it* at **8.72 ms at 1M —
+55.9% of the budget at 4×**, and that is the only Tick figure ever taken from a real running city.
+[`plans/0013`](plans/0013-tick-budget.md) sums the ledger to **≥114% at 4×**, of which **60–67 points
+are routing** — a row whose unit came off a synthetic harness and whose multiplicand R6.3 found counts
+**the wrong event**. And the correction with a known direction points *up*: a diverting Traveller
+re-searching costs **861.87% of the Tick budget** at target scale, which is a design question
+(`03 §5`, session **D**) and not an algorithm.
+
+**The direction of surprise has been consistent**: every time a fixture was replaced by a real world,
+the number came in worse — the Rule unit by 2.8×, Trips/Tick by 32%, the Zone Rule `sample`
+dimensionally wrong at scale, and every pre-S0a Tick figure taken over an empty world. **A unit cost is
+a hypothesis until a real world has produced one.**
+
+**Where the reasoning lives.** Five files, five questions, one each: [`0000`](plans/0000-board.md)
+*what is next*; [`0003`](plans/0003-build-plan.md) *what is done*;
+[`0002`](plans/0002-open-questions.md) *what needs answering*, every entry typed *measurable* or
+*arguable* per `adr/0043`; [`0012`](plans/0012-corpus-audit.md) *what a document says wrongly*, which
+is a correction and not a question; [`0013`](plans/0013-tick-budget.md) *what a Tick costs*. When the
+board disagrees with any of them, they win, and **an open question is never written on the board** —
+that is how it once held 63 of them while `0002` held none.
+
+**A gated slice must not be started before its gate clears**, and several decisions on the critical
+path are still open, so do not write implementation code beyond the current slice unless asked.
+
+## The corpus, in numbers
+
+Roughly **28,000 lines of prose** — `docs/` design documents, 58 ADRs and `plans/` — against **~19,600
+lines of simulation** and **~17,000 lines of tests**, plus a **33,000-line spike harness** awaiting
+deletion. The ratio is known, is on the board as a standing concern, and is why the board's rule is
+*an argument session runs when something concrete is blocked on it, never because it is available.*
+
+<details>
+<summary><b>Historical: the per-slice narrative this section used to carry</b></summary>
+
+Kept collapsed rather than deleted, and **every fact in it is also held by the board's *Done* section,
+the slice plans and `docs/spike-results.md`** — which is precisely why it was removed: it was a third
+copy with no unique content, and it drifted. Delete this block once you have satisfied yourself of
+that; git holds it either way.
+
+The repository is ~7,000 lines of design
 documents and 54 ADRs, plus the first four slices of `plans/0003-build-plan.md` — the scaffolding,
 spike S4, the arithmetic substrate, the analysers, and the typed tables with the per-field
 declaration and the State Hash — and all eight tasks of slice 5: `step(inputs)` with the
@@ -178,6 +241,8 @@ only red one**, on session C. A gated slice must not be started before its gate 
 on the critical path are open, so do not write implementation code beyond the current slice
 unless asked.
 
+</details>
+
 ## Repository map
 
 | Path | What it is |
@@ -190,16 +255,16 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | 57 decision records, numbered to `0058` — `0028` is reserved and unwritten |
+| `docs/adr/` | **58** decision records, numbered to **`0059`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
 | `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0011` | One plan document per unblocked slice or spike: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, and the Rule engine. **`0011` owns the slice in flight** |
+| `plans/0004`–`0016` | One plan document per slice or spike: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`). **`0015` owns the slice in flight**; `0014` also owns task 11, which is planned and sequenced behind it |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
-| `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8 and S0a have all run |
+| `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8, **S0a and S0b** have all run |
 | `docs/dev-environment.md` | Setting up a machine to work on this |
 | `rulesets/` | **Ruleset content, in TOML.** Data the binary interprets, not source — hot-reloadable tuning under `adr/0015`. One file today: `minimal.toml`, the smallest Ruleset that makes Bins move, which the golden session runs under and which says in its own header that it models no city |
 
@@ -267,8 +332,9 @@ These are enforced mechanically because they fail silently. Full list in `docs/0
    exception: the hot path runs inside `step()` every Tick and holds no references; the cold path
    runs on a click and may
 
-**Lints 1–3 and 7 are live.** `Borough.Analysers` reports them as build **errors**, ids `BOR0201`–`BOR0206`
-(floating point, `Math.*`, raw `/`, masked shift counts, wall clock, unstable identity), `BOR0301`–`BOR0302`
+**Lints 1–3 and 7 are live.** `Borough.Analysers` reports them as build **errors**, ids `BOR0201`–`BOR0207`
+(floating point, `Math.*`, raw `/`, masked shift counts, wall clock, unstable identity, a ratio pre-scaled
+in 32 bits), `BOR0301`–`BOR0302`
 (hash-map enumeration, `System.Random`), `BOR0701` (managed state) and `BOR0801`–`BOR0803` (the
 `purpose_tag` enum). `BOR0901` is `adr/0003`'s per-field declaration — storage in a `[Table]` type
 that is not a declared `Column` or the table's own `Rows`. Neither `BOR08xx` nor `BOR0901` is one of
@@ -346,9 +412,9 @@ dotnet run --project src/Borough.Headless -- --zones --ruleset rulesets/minimal.
 | Target population | 10,000 first hour / 1,000,000 late game | sizing |
 | Tick budget | 15.6 ms at 4× speed | |
 | Microscopic Cap | **unset** | fixed world constant, still open |
-| Sight Horizon | **unset** | tuning, hot-reloadable. Its **floor** is a Road Graph property — the distance to the next node with a real choice — and S2 R8.1 derives it (`adr/0046`) |
+| Sight Horizon | **unset** | tuning, hot-reloadable. Its **floor** is a Road Graph property — the distance to the next node with a real choice — and S2 R8.1 derives it at **1 Segment** (`adr/0046`). **⚠ R6.4.2 found this is two parameters wearing one name**: rejoin success cliffs 19.14% → 85.74% at Horizon **3**, because rejoining means going round a block and a block is three Segments. **1** is *noticing a choice*; **3** is *recovering a route you have left*. `adr/0046` sets neither |
 | Temperament base and spread | **unset** | tuning. Stable base plus per-decision jitter, two `purpose_tag`s. **The base/jitter blend weight has no argument behind it at all** and is the routing model's weakest number |
-| Habit refresh cadence | **infinite — static per world. RATIFIED** | S2 R8.5 was the named ratifier, ran, and did not refute: `03 §3.4`'s loop closes on the local layers alone. No cadence, and no hash-bearing number |
+| Habit refresh cadence | **infinite — static per world. RATIFIED, twice qualified** | S2 R8.5 was the named ratifier, ran, and did not refute: `03 §3.4`'s loop closes on the local layers alone. No cadence, and no hash-bearing number. **⚠ Two qualifications, neither discharged** — R8.5 ran on a **District-granular free-flow tree** that `adr/0047` has since deleted, so the ratifier measured a structure that no longer exists; and session M narrowed what was ratified to *static under **congestion***, since R8.5 ran no edits. The **topology** half is not static: it is `T`, the Habit staleness bound, unset in `0002` §D2. Full text there |
 
 ## Definition of done for any milestone
 

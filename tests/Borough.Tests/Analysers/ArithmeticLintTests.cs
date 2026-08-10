@@ -379,4 +379,92 @@ public class ArithmeticLintTests
                     var tick = new Borough.Core.Quantities.Ticks(8192);
                     _ = tick.Raw;
             """));
+
+    // ---- BOR0207, a ratio pre-scaled in 32 bits ------------------------------------------------
+
+    /// <summary>
+    /// The shape S2's routing spike shipped in a published finding: a Q16.16 cost difference scaled
+    /// to hundredths of a percent before dividing, entirely in <c>int</c>. A uniform journey is
+    /// about 4.7 million in Q16.16, so the product wraps once the improvement passes ~215,000 —
+    /// about 4.6% of the journey — and it wraps <i>negative</i>, deleting the largest improvements
+    /// from the mean rather than reporting them.
+    /// </summary>
+    [Theory]
+    [InlineData("the literal on the right", "        int r = ((before - after) * 10_000) / before;\n        _ = r;")]
+    [InlineData("the literal on the left", "        int r = (10_000 * (before - after)) / before;\n        _ = r;")]
+    [InlineData("a named constant", "        const int Scale = 10_000;\n        int r = ((before - after) * Scale) / before;\n        _ = r;")]
+    [InlineData("scaled to per-mille", "        int r = ((before - after) * 1_000) / before;\n        _ = r;")]
+    [InlineData("the product cast to long afterwards", "        long r = (long)((before - after) * 10_000) / before;\n        _ = r;")]
+    public void A_ratio_pre_scaled_in_32_bits_is_reported(string description, string statements)
+    {
+        _ = description;
+        AnalyserHarness.Fires("BOR0207", new ScaledRatioAnalyser(),
+            AnalyserHarness.InMethod("        int before = 1; int after = 0;\n" + statements));
+    }
+
+    /// <summary>
+    /// <b>The route in that looks like compliance with BOR0203.</b> That lint sends every division
+    /// to <c>IntegerMath</c>, whose <c>FloorDiv</c>, <c>CeilDiv</c> and <c>RoundDiv</c> all have
+    /// <c>int</c> overloads — so the call site reads as though the widening had been handled while
+    /// the multiplication has already overflowed inside the argument. Following one rule leads
+    /// directly into the other, which is the whole argument for the second rule existing.
+    /// </summary>
+    [Theory]
+    [InlineData("FloorDiv", "IntegerMath.FloorDiv((before - after) * 10_000, before)")]
+    [InlineData("CeilDiv", "IntegerMath.CeilDiv((before - after) * 10_000, before)")]
+    [InlineData("RoundDiv", "IntegerMath.RoundDiv((before - after) * 10_000, before)")]
+    [InlineData("Fixed.Div", "Fixed.Div((before - after) * 10_000, before)")]
+    public void A_scaled_numerator_handed_to_a_rounding_helper_is_reported(
+        string description, string call)
+    {
+        _ = description;
+        AnalyserHarness.Fires("BOR0207", new ScaledRatioAnalyser(), $$"""
+            using Borough.Core.Arithmetic;
+
+            namespace Probe;
+
+            internal static class Subject
+            {
+                internal static int Run(int before, int after) => {{call}};
+            }
+            """);
+    }
+
+    /// <summary>
+    /// The fix, in both of its spellings, and the two shapes that were never the target. Widening
+    /// either operand gives the product 64 bits of headroom, which is what <c>Fixed.Mul</c> already
+    /// does with <c>(long)a * b</c>. A small scale factor is ordinary unit conversion rather than
+    /// the pre-scaled-ratio idiom, and a division with no scaling multiplication in its numerator
+    /// has nothing to overflow.
+    /// </summary>
+    [Theory]
+    [InlineData("a long scale literal", "        long r = ((before - after) * 10_000L) / before;")]
+    [InlineData("an explicit widening cast on the operand", "        long r = ((long)(before - after) * 10_000) / before;")]
+    [InlineData("a long numerator", "        long wide = before - after;\n        long r = (wide * 10_000) / before;")]
+    [InlineData("a scale below the threshold", "        int r = ((before - after) * 100) / before;")]
+    [InlineData("no scaling at all", "        int r = (before - after) / before;")]
+    [InlineData("a non-constant multiplier", "        int r = ((before - after) * after) / before;")]
+    public void The_widened_and_unscaled_forms_are_left_alone(string description, string statements)
+    {
+        _ = description;
+        AnalyserHarness.Silent(new ScaledRatioAnalyser(),
+            AnalyserHarness.InMethod("        int before = 1; int after = 0;\n" + statements + "\n        _ = r;"));
+    }
+
+    /// <summary>
+    /// <b>The arithmetic substrate is deliberately not exempt</b>, unlike BOR0203's. Nothing in
+    /// <c>Borough.Core.Arithmetic</c> needs to overflow — it is where the widening is written — so
+    /// correct substrate code does not trip this, and incorrect substrate code is precisely what no
+    /// other rule can catch.
+    /// </summary>
+    [Fact]
+    public void The_arithmetic_substrate_is_not_exempt() =>
+        AnalyserHarness.Fires("BOR0207", new ScaledRatioAnalyser(), """
+            namespace Borough.Core.Arithmetic;
+
+            internal static class Probe
+            {
+                internal static int Scale(int part, int whole) => (part * 10_000) / whole;
+            }
+            """);
 }
