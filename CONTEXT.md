@@ -237,6 +237,13 @@ The complete body of Rules, Zone Rules, and tuning constants, loaded from data f
 
 **It is validated where it is parsed, and a malformed one is refused rather than warned about.** Every name is resolved to an id before the simulation sees it, so the simulation never reads a string and never meets a Rule it cannot run. A Ruleset that would load with a broken chain produces a Building that fails silently, which is the outcome the refusals exist to prevent. `adr/0048`
 
+**A reload is a *transition*, not a command.** It is a property of a Tick rather than an event inside one: the Ruleset is swapped at the top of Phase 0, so a Tick has exactly one Ruleset and the commands in the reloading Tick run under the **new** Rules. The Input Log carries the transition as a pair of content hashes, so a replay reproduces it by construction and there is no reload verb. **A declaration's identity across two files is its name, never its id** — an id is a position, and removing a declaration from the middle of a file renumbers everything below it — which is what makes *this Bin's Resource survived* a question with an answer. **What the swap destroyed is kept as state**, capped, because a defect caused by a degradation three patches ago is upstream of every snapshot anybody holds (`05 §7`). `adr/0015`
+
+**Derelict**
+A Building whose kind the Ruleset in force can no longer describe. **Derived, never a stored flag** — it is `Kind == 0`, the row naming nothing — and the distinction is load-bearing rather than stylistic: the only actor who removes a kind from a running city is a designer balancing, and a designer's commonest move is *undo*. A mark that recorded the removal and never cleared would leave them a city of permanently inert Buildings, which is the failure `adr/0015` exists to prevent arriving through the mechanism written to serve it.
+
+A derelict Building **still stands, still holds its Occupants and still occupies its Lot**. What it does not do is run Rules — it has none, because its kind has none — so it has no failures of its own to die of, and nothing about it decays. It is recovered by a reload that describes its kind again. `HONEST DEGRADATION`
+
 ---
 
 ## Economy

@@ -1,5 +1,8 @@
 using Borough.Core.Determinism;
+using Borough.Core.Input;
+using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Formats;
 using Borough.Headless;
 
 namespace Borough.Tests.Headless;
@@ -18,6 +21,23 @@ public sealed class RunnerTests
 {
     private const ulong Recorded = 0xABCD_EF01_2345_6789UL;
 
+    /// <summary>A session recorded against <paramref name="opening"/>, reloading at each Tick given.</summary>
+    private static InputLog Log(ulong opening, params (ulong Tick, ulong To)[] reloads)
+    {
+        InputLogBuilder builder = new(seed: 1, new WorldConfiguration(1_000), opening);
+
+        foreach ((ulong tick, ulong to) in reloads)
+        {
+            builder.Reload(new Ticks(tick), to);
+        }
+
+        return builder.Build();
+    }
+
+    /// <summary>What the operator named on the command line.</summary>
+    private static Supplied[] Given(params (string Path, ulong Hash)[] rulesets) =>
+        [.. rulesets.Select(entry => new Supplied(entry.Path, entry.Hash))];
+
     /// <summary>
     /// The acceptance criterion, as a test: a run whose Ruleset does not match refuses to start.
     /// </summary>
@@ -30,7 +50,7 @@ public sealed class RunnerTests
     public void A_session_whose_ruleset_does_not_match_refuses_to_run()
     {
         RulesetCheck check = RulesetCheck.Against(
-            Recorded, supplied: 0x1111_1111_1111_1111UL, path: "vanilla.toml", force: false);
+            Log(Recorded), Given(("vanilla.toml", 0x1111_1111_1111_1111UL)), force: false);
 
         Assert.False(check.Allowed);
         Assert.Contains("vanilla.toml", check.Refusal, StringComparison.Ordinal);
@@ -46,8 +66,7 @@ public sealed class RunnerTests
     [Fact]
     public void A_session_whose_ruleset_cannot_be_checked_refuses_to_run()
     {
-        RulesetCheck check = RulesetCheck.Against(
-            Recorded, ContentHash.None, path: null, force: false);
+        RulesetCheck check = RulesetCheck.Against(Log(Recorded), Given(), force: false);
 
         Assert.False(check.Allowed);
         Assert.Contains("no --ruleset was given", check.Refusal, StringComparison.Ordinal);
@@ -56,7 +75,8 @@ public sealed class RunnerTests
     [Fact]
     public void A_matching_ruleset_runs_unmarked()
     {
-        RulesetCheck check = RulesetCheck.Against(Recorded, Recorded, "vanilla.toml", force: false);
+        RulesetCheck check = RulesetCheck.Against(
+            Log(Recorded), Given(("vanilla.toml", Recorded)), force: false);
 
         Assert.True(check.Allowed);
         Assert.False(check.HashBroken);
@@ -71,7 +91,7 @@ public sealed class RunnerTests
     public void A_session_naming_no_ruleset_runs_unmarked()
     {
         RulesetCheck check = RulesetCheck.Against(
-            ContentHash.None, ContentHash.None, path: null, force: false);
+            Log(ContentHash.None), Given(), force: false);
 
         Assert.True(check.Allowed);
         Assert.False(check.HashBroken);
@@ -85,10 +105,225 @@ public sealed class RunnerTests
     [Fact]
     public void Forcing_runs_but_marks_the_trace_hash_broken()
     {
-        RulesetCheck check = RulesetCheck.Against(Recorded, ContentHash.None, null, force: true);
+        RulesetCheck check = RulesetCheck.Against(Log(Recorded), Given(), force: true);
 
         Assert.True(check.Allowed);
         Assert.True(check.HashBroken);
+    }
+
+    // ---- slice 8 task 9: a session names more than one Ruleset ---------------------------------
+
+    private const ulong Second = 0x0F0F_0F0F_0F0F_0F0FUL;
+
+    /// <summary>
+    /// Every Ruleset a session reloads into has to be supplied, and the refusal says which one is not.
+    /// </summary>
+    /// <remarks>
+    /// <b>The sentence <c>InputLog.cs:131</c> wrote down in slice 5</b>: <em>"--ruleset PATH names one
+    /// file and a session that reloaded twice was played against three."</em> Before this the runner
+    /// checked the opening hash and nothing else, so a log with a transition in it would have started
+    /// cleanly and thrown a thousand Ticks later.
+    /// </remarks>
+    [Fact]
+    public void A_session_reloading_into_a_ruleset_nobody_supplied_is_refused()
+    {
+        RulesetCheck check = RulesetCheck.Against(
+            Log(Recorded, (100, Second)), Given(("vanilla.toml", Recorded)), force: false);
+
+        Assert.False(check.Allowed);
+        Assert.Contains("Tick 100", check.Refusal, StringComparison.Ordinal);
+        Assert.Contains("0x0F0F0F0F0F0F0F0F", check.Refusal, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>Force waives a mismatch and cannot waive an absence.</b>
+    /// </summary>
+    /// <remarks>
+    /// <em>Run these Rules under this log anyway</em> is a sentence that needs Rules. It is the third
+    /// instance of one distinction in this runner: a malformed Ruleset is refused unconditionally
+    /// because force cannot make Rules readable, and a Ruleset nobody has is the same shape one notch
+    /// further on.
+    /// </remarks>
+    [Fact]
+    public void Forcing_cannot_waive_a_ruleset_nobody_supplied()
+    {
+        RulesetCheck check = RulesetCheck.Against(
+            Log(Recorded, (100, Second)), Given(("vanilla.toml", Recorded)), force: true);
+
+        Assert.False(check.Allowed);
+        Assert.Contains("--force-ruleset cannot waive this", check.Refusal, StringComparison.Ordinal);
+    }
+
+    /// <summary>A session given every Ruleset it names runs unmarked, however they were ordered.</summary>
+    [Fact]
+    public void A_session_given_every_ruleset_it_names_runs_unmarked()
+    {
+        RulesetCheck check = RulesetCheck.Against(
+            Log(Recorded, (100, Second)),
+            Given(("patched.toml", Second), ("vanilla.toml", Recorded)),
+            force: false);
+
+        Assert.True(check.Allowed);
+        Assert.False(check.HashBroken);
+        Assert.Equal(Recorded, check.InForce);
+    }
+
+    [Fact]
+    public void The_ruleset_flag_repeats()
+    {
+        Assert.True(Options.TryParse(
+            ["--log", "s.borough", "--ruleset", "a.toml", "--ruleset", "b.toml"],
+            out Options options,
+            out _));
+
+        Assert.Equal(["a.toml", "b.toml"], options.RulesetPaths);
+        Assert.Equal("a.toml", options.RulesetPath);
+    }
+
+    /// <summary>
+    /// The same file twice is the operator's mistake, and is refused in the operator's words.
+    /// </summary>
+    /// <remarks>
+    /// <c>RulesetCatalogue.Of</c> refuses a duplicate content hash too, and says <em>two Rulesets
+    /// carry one content hash</em> — true, and not what somebody who typed the same path twice needs
+    /// to read.
+    /// </remarks>
+    [Fact]
+    public void The_same_ruleset_named_twice_is_refused()
+    {
+        Assert.False(Options.TryParse(
+            ["--log", "s.borough", "--ruleset", "a.toml", "--ruleset", "a.toml"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("was given twice", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The catalogue opens on the Ruleset the log opens on, whatever order the operator typed.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the trap the sort exists for.</b> <c>RulesetCatalogue</c> takes its opening entry
+    /// from position 0 and the world is built from it, so the wrong order would build a city under
+    /// Rules the log never named — and Tick 0 would <em>establish</em> that hash rather than swap away
+    /// from it, because the first Tick opens rather than reloads. Both Rulesets load, both run, and
+    /// nothing says which one the numbers came from.
+    /// </remarks>
+    [Fact]
+    public void The_catalogue_opens_on_the_ruleset_the_log_opens_on()
+    {
+        string directory = Directory.CreateTempSubdirectory("borough-rulesets").FullName;
+
+        try
+        {
+            string opening = Write(directory, "opening.toml", "sundries");
+            string patched = Write(directory, "patched.toml", "repairs");
+
+            Supplied[] supplied =
+            [
+                new(patched, RulesetFile.HashOf(patched)),
+                new(opening, RulesetFile.HashOf(opening)),
+            ];
+
+            Assert.True(Borough.Headless.Session.TryCatalogue(
+                supplied, supplied[1].Hash, out RulesetCatalogue catalogue));
+
+            Assert.Equal(supplied[1].Hash, catalogue.OpeningHash);
+            Assert.Equal(2, catalogue.Count);
+            Assert.True(catalogue.TryResolve(supplied[0].Hash, out _));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- --reload-at, which is adr/0015's iteration loop ----------------------------------------
+
+    /// <summary>
+    /// A fresh session reloads where the command line says it does, and the transition is in the log.
+    /// </summary>
+    /// <remarks>
+    /// <b>The loop cannot close through a recorded log, which is why this flag exists.</b> A log
+    /// records a transition by content hash, so the first edit to the Ruleset makes the log name a
+    /// file that no longer exists and the run is refused — and editing the file <em>is</em> the loop.
+    /// Building the transitions here against whatever the files hash to on this run is what makes
+    /// <c>adr/0015</c>'s <em>seconds</em> claim testable at all, and the session stays reproducible
+    /// because the log the runner builds still carries them.
+    /// </remarks>
+    [Fact]
+    public void A_fresh_session_reloads_where_the_command_line_says()
+    {
+        Assert.True(Options.TryParse(
+            ["--ticks", "400", "--citizens", "100",
+             "--ruleset", "a.toml", "--reload-at", "200", "--ruleset", "b.toml"],
+            out Options options,
+            out _));
+
+        InputLog log = Borough.Headless.Session.Load(
+            options, Given(("a.toml", Recorded), ("b.toml", Second)));
+
+        Assert.Equal(Recorded, log.RulesetHash);
+        Assert.Equal(1, log.TransitionCount);
+        Assert.Equal(new Ticks(200), log.Transition(0).Tick);
+        Assert.Equal(Recorded, log.Transition(0).From);
+        Assert.Equal(Second, log.Transition(0).To);
+    }
+
+    /// <summary>
+    /// A replay's transitions are what it is reproducing, so the command line may not add one.
+    /// </summary>
+    [Fact]
+    public void A_reload_on_the_command_line_and_a_recorded_log_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--log", "s.borough", "--ruleset", "a.toml", "--reload-at", "200", "--ruleset", "b.toml"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("carries its own", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>One Tick per Ruleset after the first, because each reload swaps to the next one.</summary>
+    [Theory]
+    [InlineData(new[] { "--ruleset", "a.toml", "--reload-at", "200" }, "one Tick per Ruleset")]
+    [InlineData(new[] { "--ruleset", "a.toml", "--ruleset", "b.toml" }, "nothing says when")]
+    [InlineData(
+        new[] { "--ruleset", "a.toml", "--reload-at", "200", "--ruleset", "b.toml",
+                "--reload-at", "200", "--ruleset", "c.toml" },
+        "does not follow")]
+    public void A_reload_the_runner_cannot_place_is_refused(string[] arguments, string because)
+    {
+        Assert.False(Options.TryParse(
+            [.. arguments, "--ticks", "400"], out _, out string? complaint));
+
+        Assert.Contains(because, complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>Tick 0 is the opening Ruleset, so a reload there could never have taken effect.</summary>
+    [Fact]
+    public void A_reload_at_tick_zero_is_refused()
+    {
+        Assert.False(Options.TryParse(
+            ["--ruleset", "a.toml", "--reload-at", "0", "--ruleset", "b.toml"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("Tick after 0", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>A one-Resource Ruleset, named for the Resource so two of them differ.</summary>
+    private static string Write(string directory, string name, string resource)
+    {
+        string path = Path.Combine(directory, name);
+
+        File.WriteAllText(path, $"""
+            [[resource]]
+            name = "{resource}"
+            family = "good"
+            """);
+
+        return path;
     }
 
     [Fact]
@@ -278,8 +513,12 @@ public sealed class RunnerTests
     {
         Assert.True(Options.TryParse(["--ticks", "4", "--citizens", "100"], out Options options, out _));
 
-        Assert.Equal(Recorded, Borough.Headless.Session.Load(options, Recorded).RulesetHash);
-        Assert.Equal(ContentHash.None, Borough.Headless.Session.Load(options, ContentHash.None).RulesetHash);
+        Assert.Equal(
+            Recorded,
+            Borough.Headless.Session.Load(options, Given(("v.toml", Recorded))).RulesetHash);
+
+        Assert.Equal(
+            ContentHash.None, Borough.Headless.Session.Load(options, Given()).RulesetHash);
     }
 
     /// <summary>Asking for the Lot grid selects its own mode, not a run and not the report.</summary>

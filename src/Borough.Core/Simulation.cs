@@ -196,10 +196,11 @@ public sealed class Simulation
     /// </summary>
     /// <remarks>
     /// <b>The logged warning <c>02 §4.3</c> and <c>adr/0015</c> both ask for, in the only currency
-    /// <c>Core</c> may use</b> (<c>adr/0002</c>). It is the latest transition rather than a trail
-    /// because a trail is a collection and <c>adr/0006</c> wants its sink built with it — <c>05 §7</c>
-    /// already wrote that sink, capping the last <c>N</c> transitions with older ones aggregated to
-    /// counts, and <c>N</c> is a saved hash-bearing number needing a ratifier. That is task 7.
+    /// <c>Core</c> may use</b> (<c>adr/0002</c>). It is the <em>latest</em> transition, and it is a
+    /// different question from the one <see cref="Entities.World.RulesetTrail"/> answers rather than a
+    /// weaker version of it: this is what the shell warns about now, that is what a diagnosis three
+    /// patches later reads. The trail is world state because <c>05 §7</c> puts it in the save; this is
+    /// a Simulation's, because a warning is about the run.
     /// </remarks>
     public RulesetDegradation LastReload => _degradation;
 
@@ -257,7 +258,7 @@ public sealed class Simulation
         // refusal lives with them for the same reason -- what a family change breaks is the stock in
         // the Bins, which is state rather than shape. Nothing is caught here: a refused reload leaves
         // the previous Ruleset live by having changed nothing, and the throw is the diagnosis.
-        _degradation = _world.Adopt(replacement, tick, _key);
+        _degradation = _world.Adopt(replacement, input.RulesetHash, tick, _key);
         _inForce = input.RulesetHash;
         _reloads++;
     }

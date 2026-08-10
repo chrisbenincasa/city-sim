@@ -75,7 +75,7 @@ public sealed class InvariantTierTests
     [Fact]
     public void A_replayed_session_violates_nothing()
     {
-        Simulation simulation = Replay.Start(GoldenFixtures.Session(), Ruleset.Empty);
+        Simulation simulation = Replay.Start(GoldenFixtures.Session(), GoldenFixtures.Catalogue());
         InputLog log = GoldenFixtures.Session();
 
         Replay.Trace(simulation, log, new Ticks(256), hashEvery: 8, []);

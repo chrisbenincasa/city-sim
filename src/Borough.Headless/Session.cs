@@ -35,14 +35,12 @@ internal static class Session
 
     public static int Run(Options options)
     {
-        ulong supplied = options.RulesetPath is null
-            ? ContentHash.None
-            : RulesetFile.HashOf(options.RulesetPath);
+        Supplied[] supplied = [.. options.RulesetPaths.Select(
+            path => new Supplied(path, RulesetFile.HashOf(path)))];
 
         InputLog log = Load(options, supplied);
 
-        RulesetCheck check = RulesetCheck.Against(
-            log.RulesetHash, supplied, options.RulesetPath, options.ForceRuleset);
+        RulesetCheck check = RulesetCheck.Against(log, supplied, options.ForceRuleset);
 
         if (!check.Allowed)
         {
@@ -55,12 +53,12 @@ internal static class Session
         // different Ruleset" is the more actionable sentence, and it is the one that explains why the
         // other refusals look unfamiliar. The parse refusal is unconditional, though —
         // --force-ruleset waives a mismatch and cannot waive Rules nobody can read.
-        if (!TryRules(options.RulesetPath, out Ruleset rules))
+        if (!TryCatalogue(supplied, log.RulesetHash, out RulesetCatalogue rulesets))
         {
             return Refused;
         }
 
-        Simulation simulation = Replay.Start(log, rules);
+        Simulation simulation = Replay.Start(log, rulesets);
         simulation.VerifyDecideWritesNothing = options.DecideGuard;
 
         var hashes = new List<ulong>();
@@ -81,6 +79,8 @@ internal static class Session
                 CensusReport.Print(Console.Out, simulation.World, census, options.Ticks);
             }
 
+            ReportReloads(simulation);
+
             simulation.CheckEndOfRun();
         }
         catch (Exception fault) when (fault is not OutOfMemoryException)
@@ -90,7 +90,18 @@ internal static class Session
             // that only recognised the failures already thought of would be missing exactly the ones
             // worth catching. Out of memory is the exception: writing a file needs memory, and
             // failing there would bury the original.
-            return Panic(options, log, simulation.Tick, check.InForce, fault);
+            // The Ruleset in force at the *panic*, not the one the run opened on. Once a session can
+            // reload, those differ, and an artifact stamped with the opening Ruleset would send its
+            // reader to a file that had not been in force for a thousand Ticks. Zero means the run
+            // died before its first Tick established one, and then the opening hash is all there is.
+            return Panic(
+                options,
+                log,
+                simulation.Tick,
+                simulation.RulesetInForce == ContentHash.None
+                    ? check.InForce
+                    : simulation.RulesetInForce,
+                fault);
         }
 
         return 0;
@@ -147,6 +158,54 @@ internal static class Session
 
     /// <summary>Formats with the invariant culture, which adr/0003 requires of every number here.</summary>
     private static string F(FormattableString value) => value.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// What the run's reloads cost the city, if it reloaded at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>02 §4.3</c>'s logged warning, written by the shell because <c>Core</c> may not.</b> The
+    /// simulation counts Buildings, Bins and Rule Instances; the sentence about them is the shell's,
+    /// which is the whole of <c>adr/0002</c>'s string rule in one method.
+    /// </para>
+    /// <para>
+    /// <b>Silent on a run that never reloaded, and that is deliberate.</b> A line saying <em>0
+    /// reloads</em> on every run in the repository would train an operator to skip the block, which
+    /// is the state this line needs not to be in on the day it says something.
+    /// </para>
+    /// </remarks>
+    private static void ReportReloads(Simulation simulation)
+    {
+        if (simulation.Reloads == 0)
+        {
+            return;
+        }
+
+        RulesetTrailTable trail = simulation.World.RulesetTrail;
+        RulesetDegradation total = trail.Total();
+        int recorded = trail.TransitionsRecorded();
+
+        Console.Out.WriteLine();
+        Console.Out.WriteLine(F(
+            $"{simulation.Reloads} reload(s), of which {recorded} cost the city something."));
+
+        if (recorded == 0)
+        {
+            // The ordinary balancing case: numbers moved and no row did. Said explicitly, because
+            // "nothing was destroyed" is the answer a designer wants and an absent line is not it.
+            Console.Out.WriteLine("Nothing was derelicted, dropped or re-armed.");
+            return;
+        }
+
+        Console.Out.WriteLine(F(
+            $"  {total.BuildingsDerelicted} Building(s) derelicted, {total.BinsDropped} Bin(s) dropped, {total.RuleInstancesRearmed} Rule Instance(s) re-armed."));
+
+        if (recorded > RulesetTrailTable.Retained)
+        {
+            Console.Out.WriteLine(F(
+                $"  The last {RulesetTrailTable.Retained} transitions are named individually; {recorded - RulesetTrailTable.Retained} older one(s) are in the totals only."));
+        }
+    }
 
     /// <summary>
     /// The session to run: a recorded one, or a fresh one that never had a player.
@@ -211,8 +270,90 @@ internal static class Session
         return true;
     }
 
-    internal static InputLog Load(Options options, ulong supplied)
+    /// <summary>
+    /// Parses every supplied Ruleset into a catalogue the replay can resolve a transition against.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The opening Ruleset is moved to the front rather than required there.</b>
+    /// <see cref="RulesetCatalogue"/> takes its opening entry from position 0 and
+    /// <see cref="Replay.Start(InputLog, RulesetCatalogue)"/> builds the world from it, so an operator
+    /// who listed the right files in the wrong order would get a city running Rules the log never
+    /// named — a divergence with no symptom, because both Rulesets load and both run. The runner knows
+    /// which one is opening, because the log says so, and sorting is cheaper than a rule to remember.
+    /// </para>
+    /// <para>
+    /// <b>Every refusal in every file reaches the operator</b>, for <see cref="TryRules"/>'s reason:
+    /// stopping at the first would turn one pass over a broken set of files into as many runs as
+    /// there are mistakes between them.
+    /// </para>
+    /// </remarks>
+    /// <param name="supplied">The Rulesets named on the command line, with their content hashes.</param>
+    /// <param name="opening">The content hash the log opens on.</param>
+    /// <param name="rulesets">The catalogue, opening entry first.</param>
+    /// <returns>Whether every file parsed.</returns>
+    internal static bool TryCatalogue(
+        IReadOnlyList<Supplied> supplied, ulong opening, out RulesetCatalogue rulesets)
     {
+        ArgumentNullException.ThrowIfNull(supplied);
+
+        rulesets = RulesetCatalogue.None;
+
+        if (supplied.Count == 0)
+        {
+            // No Rules at all, which is what every figure recorded before slice 7 was taken against.
+            // The log's own hash labels it so that Replay.Start's opening check has something to
+            // agree with: a session recorded against nothing names nothing.
+            rulesets = RulesetCatalogue.Fixed(opening, Ruleset.Empty);
+            return true;
+        }
+
+        var hashes = new List<ulong>(supplied.Count);
+        var rules = new List<Ruleset>(supplied.Count);
+        bool ok = true;
+
+        foreach (Supplied entry in supplied)
+        {
+            if (!TryRules(entry.Path, out Ruleset parsed))
+            {
+                ok = false;
+                continue;
+            }
+
+            hashes.Add(entry.Hash);
+            rules.Add(parsed);
+        }
+
+        if (!ok)
+        {
+            return false;
+        }
+
+        int first = hashes.IndexOf(opening);
+
+        if (first > 0)
+        {
+            (hashes[0], hashes[first]) = (hashes[first], hashes[0]);
+            (rules[0], rules[first]) = (rules[first], rules[0]);
+        }
+        else if (first < 0)
+        {
+            // --force-ruleset got the run this far with no supplied Ruleset matching the log's
+            // opening hash. Relabelling the first one with the log's hash is exactly what force
+            // means -- run these Rules under this log -- and the trace is already stamped
+            // hash-broken, which is what stops the numbers being compared to anything.
+            hashes[0] = opening;
+        }
+
+        rulesets = RulesetCatalogue.Of([.. hashes], [.. rules]);
+        return true;
+    }
+
+    internal static InputLog Load(Options options, IReadOnlyList<Supplied> supplied)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(supplied);
+
         if (options.LogPath is null)
         {
             // A fresh session is populated, and it was not before. A run whose world had capacity for
@@ -222,9 +363,21 @@ internal static class Session
             // The command goes in the log rather than into the world, so the trace stays reproducible
             // from the file alone.
             InputLogBuilder builder = new(
-                options.Seed, new WorldConfiguration(options.Citizens), supplied);
+                options.Seed,
+                new WorldConfiguration(options.Citizens),
+                supplied.Count == 0 ? ContentHash.None : supplied[0].Hash);
 
             builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
+
+            // --reload-at, which is adr/0015's iteration loop and the only shape it could take. A log
+            // records a transition by content hash, so a *recorded* session cannot survive the file
+            // being edited -- and editing the file is what the loop is. So the transitions are built
+            // here, against whatever the Rulesets hash to on this run, and the session stays fully
+            // reproducible because the log the runner builds still carries them.
+            for (int i = 0; i < options.ReloadTicks.Count; i++)
+            {
+                builder.Reload(new Ticks(options.ReloadTicks[i]), supplied[i + 1].Hash);
+            }
 
             return builder.Build();
         }

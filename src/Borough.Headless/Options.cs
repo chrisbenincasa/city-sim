@@ -66,8 +66,45 @@ internal sealed class Options
     /// <summary>A recorded session to replay, or null to run a fresh one.</summary>
     public string? LogPath { get; private init; }
 
-    /// <summary>The Ruleset the session must have been recorded against, or null to skip the check.</summary>
-    public string? RulesetPath { get; private init; }
+    /// <summary>
+    /// Every Ruleset this run was given, in the order the operator named them.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>--ruleset</c> repeats, because a session that reloaded twice was played against
+    /// three.</b> <c>InputLog.cs:131</c> wrote the problem down before anything could reload; slice 8
+    /// task 9 is where it stops being hypothetical. A replay resolves each transition's content hash
+    /// against this set and <b>refuses an unaccounted one</b> rather than diverging (<c>05 §7</c>).
+    /// <b>Order is the operator's convenience and not a contract</b> — the runner puts the Ruleset the
+    /// log opens with first, because <see cref="Borough.Core.Rules.RulesetCatalogue"/> takes its
+    /// opening entry from position 0 and getting that wrong is a divergence with no symptom.
+    /// </remarks>
+    public IReadOnlyList<string> RulesetPaths { get; private init; } = [];
+
+    /// <summary>
+    /// The first Ruleset named, or null if none was. <b>The opening one, after the runner's sort.</b>
+    /// </summary>
+    public string? RulesetPath => RulesetPaths.Count == 0 ? null : RulesetPaths[0];
+
+    /// <summary>
+    /// The Ticks a fresh session reloads on, one per Ruleset after the first.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is what makes <c>adr/0015</c>'s acceptance test runnable, and it is not a
+    /// convenience.</b> The ADR's whole claim is that changing a production ratio and seeing the
+    /// effect takes seconds; there is no Godot shell, so the loop has to close here or it does not
+    /// close. It cannot close through a recorded log, and finding that out is the reason this flag
+    /// exists: a log records a transition by <em>content hash</em>, so the first edit to the file
+    /// makes the log name a Ruleset that no longer exists and the run is refused. **Editing the file
+    /// is what the loop is**, so a log is structurally the wrong instrument for it.
+    /// </para>
+    /// <para>
+    /// <b>It is refused with <c>--log</c> rather than merged into one.</b> A replay's transitions are
+    /// what it is reproducing; letting the command line add one would make a run that is neither the
+    /// recorded session nor a new one, and no divergence in it could be attributed.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<ulong> ReloadTicks { get; private init; } = [];
 
     /// <summary>Where the trace goes. Null is standard output.</summary>
     public string? OutPath { get; private init; }
@@ -156,7 +193,8 @@ internal sealed class Options
         complaint = null;
 
         string? log = null;
-        string? ruleset = null;
+        List<string> rulesets = [];
+        List<ulong> reloadAt = [];
         string? output = null;
         string? crash = null;
         ulong seed = 0;
@@ -228,7 +266,31 @@ internal sealed class Options
                     break;
 
                 case "--ruleset":
-                    ruleset = value;
+                    // Repeats rather than replaces. Naming the same file twice is refused here
+                    // instead of at the catalogue, because "you passed it twice" is the operator's
+                    // sentence and "two Rulesets carry one content hash" is the format's.
+                    if (rulesets.Contains(value, StringComparer.Ordinal))
+                    {
+                        complaint = $"--ruleset {value} was given twice. Each names one Ruleset the "
+                                  + "session was played against, and a duplicate makes a reload "
+                                  + "ambiguous.";
+                        return false;
+                    }
+
+                    rulesets.Add(value);
+                    break;
+
+                case "--reload-at":
+                    if (!TryNumber(value, out ulong at) || at == 0)
+                    {
+                        complaint = $"--reload-at {value} is not a Tick after 0. Tick 0 establishes "
+                                  + "the opening Ruleset rather than swapping, so a reload there "
+                                  + "could never have taken effect.";
+                        return false;
+                    }
+
+                    reloadAt.Add(at);
+                    session = true;
                     break;
 
                 case "--out":
@@ -320,11 +382,45 @@ internal sealed class Options
 
         // A sweep is a Ruleset's behaviour, so a Zone dump with no Rules would print the same grid
         // twice and read as a broken mechanism rather than an absent one. Refuse instead of degrade.
-        if (zones && ruleset is null)
+        if (zones && rulesets.Count == 0)
         {
             complaint = "--zones needs --ruleset PATH. A Zone Rule is content, not a default: "
                       + "without one there is no sweep to show, and an unchanging grid would look "
                       + "like a defect rather than like a Ruleset that declares no [[zone_rule]].";
+            return false;
+        }
+
+        if (reloadAt.Count > 0 && log is not null)
+        {
+            complaint = "--reload-at and --log disagree: a recorded session carries its own "
+                      + "transitions, and a replay that took one from the command line would be "
+                      + "reproducing neither the session it was given nor a new one.";
+            return false;
+        }
+
+        if (reloadAt.Count != 0 && reloadAt.Count != rulesets.Count - 1)
+        {
+            complaint = $"--reload-at was given {reloadAt.Count} time(s) against "
+                      + $"{rulesets.Count} --ruleset(s). Each reload swaps to the next Ruleset "
+                      + "named, so there is exactly one Tick per Ruleset after the first.";
+            return false;
+        }
+
+        for (int i = 1; i < reloadAt.Count; i++)
+        {
+            if (reloadAt[i] <= reloadAt[i - 1])
+            {
+                complaint = $"--reload-at {reloadAt[i]} does not follow {reloadAt[i - 1]}. A session "
+                          + "reloads in the order it runs, and a Tick carries exactly one Ruleset.";
+                return false;
+            }
+        }
+
+        if (rulesets.Count > 1 && reloadAt.Count == 0 && log is null)
+        {
+            complaint = $"{rulesets.Count} --ruleset(s) were given and no --log and no --reload-at, "
+                      + "so nothing says when the second one comes into force. A fresh session "
+                      + "reloads where the command line says it does.";
             return false;
         }
 
@@ -344,7 +440,8 @@ internal sealed class Options
             Layer = dump ?? default,
             Csv = csv,
             LogPath = log,
-            RulesetPath = ruleset,
+            RulesetPaths = rulesets,
+            ReloadTicks = reloadAt,
             OutPath = output,
             Seed = seed,
             Citizens = citizens,
@@ -373,7 +470,15 @@ internal sealed class Options
           --hash-every N        trace sampling cadence, in Ticks
           --ruleset PATH        the Rules to run under. Loaded and put in force, and
                                 the session must name it. Without one, nothing has
-                                any Rules and the run simulates an inert city
+                                any Rules and the run simulates an inert city.
+                                REPEATABLE: a session that reloaded twice was played
+                                against three Rulesets, and every one of them has to be
+                                here or the replay is refused. Order does not matter
+          --reload-at N         a fresh session puts the next --ruleset in force on Tick N.
+                                One per --ruleset after the first, in order. This is
+                                adr/0015's iteration loop: edit a Ruleset, re-run, see the
+                                city differ -- in seconds and with no rebuild. It is
+                                refused with --log, which carries its own transitions
           --force-ruleset       run against a Ruleset the session does not name, and
                                 stamp the trace hash-broken
           --out PATH            write the trace to a file instead of standard output

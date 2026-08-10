@@ -37,6 +37,18 @@ public readonly struct RuleInstance;
 public readonly struct WheelBucket;
 
 /// <summary>
+/// One Ruleset transition this world survived, and what it cost.
+/// </summary>
+/// <remarks>
+/// <b>The third row type in the project that is not a thing in the world</b> — a row of
+/// <see cref="RulesetTrailTable"/> is a piece of the world's <em>history</em> rather than of its
+/// present, which is what <c>05 §7</c> asks for and why it is state rather than a log line. Nothing
+/// ever holds a <c>Handle&lt;RulesetTrailEntry&gt;</c>: entries slide down a slot when the window
+/// fills, for <see cref="Entities.Unplaced"/>'s reason.
+/// </remarks>
+public readonly struct RulesetTrailEntry;
+
+/// <summary>
 /// Why a Rule Instance is asleep, and therefore which of a Bin's two wait lists it is on.
 /// </summary>
 /// <remarks>

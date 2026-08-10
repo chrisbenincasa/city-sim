@@ -16,10 +16,21 @@ are the only thing that can notice a change nobody was looking for.
 | `session-trace.txt` | Thirty-two State Hash samples from that 256-Tick session | `Borough.Headless --out` |
 | `world-hash.txt` | One State Hash over a hand-built city, with its row counts | `GoldenFixtures.Build()` |
 
-A fourth artefact is not in this directory and is part of the baseline anyway:
-**[`rulesets/minimal.toml`](../../../rulesets/minimal.toml)**, which the session names by content hash
-and runs under. Editing it moves every sample here, and `The_golden_ruleset_is_the_one_the_session_names`
-is the line that says so with the number to paste in.
+**Two further artefacts are not in this directory and are part of the baseline anyway**:
+**[`rulesets/minimal.toml`](../../../rulesets/minimal.toml)**, which the session opens on, and
+**[`rulesets/minimal-tuned.toml`](../../../rulesets/minimal-tuned.toml)**, which it **reloads into at
+Tick 128** (slice 8 task 10). Both are named by content hash, so editing either moves every sample
+here — `The_golden_ruleset_is_the_one_the_session_names` says so for the first with the number to
+paste in, and the second's hash lives in `GoldenFixtures.TunedRulesetHash` and in the log's `reload`
+line, which carries **both** hashes.
+
+**The second Ruleset is the first with one number changed, and two tests hold it there.**
+`The_two_golden_rulesets_differ_in_exactly_one_line` compares them with the comments stripped, so a
+copy that drifts fails with the diff in the message. And
+`The_committed_reload_moves_the_trace_and_only_after_it` is the one that makes *the golden session
+reloads* worth saying: every sample up to Tick 128 is identical to the same session with no
+transition, and every sample after it differs. Without that line the baseline could be covering a
+reload that changed nothing.
 
 **Two artefacts, because one of them cannot see three tables.** The session drives the simulation
 through `step()` and is the more valuable of the two — it covers the Input Log, the phase order,
@@ -74,13 +85,17 @@ A failure here is a question — *did you mean to do that?* — and the answer i
    dotnet run --project src/Borough.Headless -- \
      --log tests/Borough.Tests/Golden/session.borough \
      --ruleset rulesets/minimal.toml \
+     --ruleset rulesets/minimal-tuned.toml \
      --ticks 256 --hash-every 8 \
      --out tests/Borough.Tests/Golden/session-trace.txt
    ```
 
    **`--ruleset` is not optional here and the runner will tell you so.** The session records the
    Ruleset's content hash, so a run given none — or given a different one — is refused before it
-   starts rather than quietly reproducing a different city.
+   starts rather than quietly reproducing a different city. **Both are needed**, because the session
+   reloads: a replay resolves each transition's hash out of what it was given, and a transition
+   nobody supplied is refused rather than run under the wrong Rules. `--force-ruleset` does not
+   waive that one — it waives a mismatch, and Rules nobody has are not a mismatch.
 
    The runner writes exactly the committed format, so this is a re-record rather than a
    transcription. For `world-hash.txt`, which is a hand-built world rather than a session the runner

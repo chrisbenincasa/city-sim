@@ -52,16 +52,21 @@ public sealed class ReplayTests
         InputLog log = Golden.GoldenFixtures.Session();
         var ticks = new Ticks(Golden.GoldenFixtures.Ticks);
 
-        ulong[] first = Replay.Run(log, ticks, hashEvery: 1, Golden.GoldenFixtures.Rules());
-        ulong[] second = Replay.Run(log, ticks, hashEvery: 1, Golden.GoldenFixtures.Rules());
+        ulong[] first = Replay.Run(log, ticks, hashEvery: 1, Golden.GoldenFixtures.Catalogue());
+        ulong[] second = Replay.Run(log, ticks, hashEvery: 1, Golden.GoldenFixtures.Catalogue());
 
         Assert.Equal(first, second);
 
         // And the Rules moved the city, so the agreement above is over something. Without this the
-        // test would pass identically against a Ruleset the world never loaded.
+        // test would pass identically against a Ruleset the world never loaded. The control is a
+        // catalogue of two empty Rulesets rather than one Ruleset, because the session reloads: a
+        // log with a transition in it needs both hashes resolvable whatever they resolve to, and
+        // "no Rules on either side of the reload" is exactly the control this line wants.
         Assert.NotEqual(
             first,
-            Replay.Run(log, ticks, hashEvery: 1, Ruleset.Empty));
+            Replay.Run(log, ticks, hashEvery: 1, RulesetCatalogue.Of(
+                [Golden.GoldenFixtures.RulesetHash, Golden.GoldenFixtures.TunedRulesetHash],
+                [Ruleset.Empty, Ruleset.Empty])));
     }
 
     /// <summary>

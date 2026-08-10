@@ -32,8 +32,16 @@ See *What planning found*.
 
 ## Status
 
-**Tasks 1–3 shipped.** The gate is clear and slice 10 has closed, so *The parallel session*'s
-scheduling constraint is discharged.
+**CLOSED. All tasks shipped** — 1, 2, 3, the merged 4/5/6, and 7 through 10 — and every acceptance
+clause is ticked, including `adr/0015`'s own: **the seconds test ran, at 0.70 s**, against the 60–120
+second warm rebuild the ADR was written on.
+
+**Two things outlive the slice and are not in any task's list.** *A tuning reload never re-evaluates a
+sleeping Rule*, so a designer who halves an input requirement does not wake the Building starving on
+the old one — filed to `0002` §C with `pool` as its trigger, because the honest fix is whatever
+settles the fairness question there. And *no reload of any kind moves a live Bin's capacity*, which is
+task 5's stated problem surviving the task that was supposed to absorb it, left as a decision rather
+than patched because the consistent fixes are both or neither.
 
 - **Task 1** — the swap, at the top of Phase 0. **Decision owed 1 is settled as recommended** and
   asserted rather than assumed: the swap runs first, so a Tick has exactly one Ruleset. **It shipped
@@ -88,7 +96,42 @@ scheduling constraint is discharged.
   reload never re-evaluates a sleeping Rule**, which is the acceptance test failing on the shortage
   path; and **no reload of any kind moves a live Bin's capacity**, which is task 5's stated problem
   surviving the task that was supposed to absorb it. See *What sub-tasks B and C found*.
-- **Next: task 7** — the provenance trail, which the counts are already shaped for.
+- **Task 7** — the provenance trail. `05 §7`'s degradation-as-state, capped at **16** transitions with
+  older ones aggregated to counts, and the sink built with the collection rather than after it. Six
+  things came out of it. **The name was already taken**, and the collision is the design: task 2's
+  `RulesetTransition` is the *news* a replay needs, this is the *cost* a diagnosis needs, and no replay
+  can reconstruct the second. **`Adopt` had to gain the content hash**, because `Core` cannot compute
+  one — the trail is the first world state that names a file. **The cap is world-creation-fixed on a
+  self-referential argument**: a designer must not be able to reload a smaller window, because the file
+  whose adoption the history is about would be truncating that history. **A transition that cost
+  nothing is not recorded**, which is what stops a provenance trail becoming a reload log. **The window
+  slides rather than rotating**, because index order is hash composition order. And **adding the table
+  moved every baseline before anything was ever written to it**, since `Rows.Fold` mixes the
+  allocator's scalars ahead of any column — so it is hash-bearing on the day it is declared.
+- **Task 8** — the Layer cadence and rates stated by a Ruleset rather than defaulted, which is the
+  slice's externally-stated definition of done. `rulesets/minimal.toml` states all eight numbers, and
+  `adr/0044`'s claim now runs **end to end from TOML text to State Hash** rather than through a
+  constructor argument. **Two findings.** The re-baseline it forced was caused by the file's *content
+  hash* and not by any Layer number — the world is bit-identical, so *a re-baseline that changes no
+  city is a thing that can happen*. And **the golden session cannot see its own cadence at all**,
+  because `minimal.toml` emits no pollution and diffusing a zero field at any period gives zero — so
+  the committed baselines were never evidence for `adr/0044`, and the claim needed a fixture built for
+  it.
+- **Task 9** — the runner, and `adr/0015`'s acceptance test. `--ruleset` repeats, every transition is
+  resolved against what was supplied, and **the seconds test ran: 0.70 s** against Citybound's 60–120
+  second warm rebuild. **Its largest finding is that the test could not have been run through a
+  recorded log at all** — a log names a Ruleset by content hash, and editing the file *is* the loop,
+  so the first edit makes the log name a file that no longer exists. `--reload-at N` builds the
+  transitions on the run instead. Also: **`Replay.Start` had a latent defect invisible by
+  construction** — it checked the catalogue against the world it had just built from that same
+  catalogue, and never against the log — and **the crash artifact was stamping the Ruleset the run
+  opened on** rather than the one in force at the panic.
+- **Task 10 — the slice is closed.** The golden session reloads into `rulesets/minimal-tuned.toml` at
+  Tick 128, so replay equivalence now covers a session with a **transition** in it. The reload is
+  checked two-sidedly — every sample before it identical, every sample after it different — because a
+  committed reload nobody checks could have moved nothing. **Three existing tests turned out to be
+  replaying a log they could no longer resolve**, each the same shape: a caller assuming a session has
+  exactly one Ruleset.
 
 ---
 
@@ -698,7 +741,7 @@ Rule Instances by hand, which is precisely the derelict-with-Rules-armed shape. 
 a defect, and the fixture now declares its kind; but it is the second time in this project that a
 whole-world check has caught a *test* asserting against a world that could not exist.
 
-### 7. The provenance trail, and `adr/0006`'s sink
+### 7. The provenance trail, and `adr/0006`'s sink — **done**
 
 `05 §7` promotes degradation from a logged warning to **state**: *"at Ruleset `a91f…`: 412 `coal` Bins
 dropped, 3 Buildings derelicted."* The reason is a class of bug no replay can reach — a defect *caused*
@@ -717,7 +760,59 @@ It is `Evidence`-shaped because it names constituents, and it is `Core` state, s
 counts and never a string** — the shell resolves the names. That is the constraint that decides its
 layout rather than a stylistic preference.
 
-### 8. The Map Layer cadence and rates from a file — the checkable obligation
+#### What building it changed
+
+**Shipped**: `RulesetTrailTable`, a `[Table]` of `N + 1` rows on the `World` — row 0 the aggregate,
+rows 1…`N` the retained window, oldest first — written by `World.Adopt`, folded into the State Hash by
+the field declaration, and counted by the Census like every other table. `N` is **16**, filed to
+`0002` §D1 as unratified with **the first real cross-patch diagnosis** as its ratifier. Eight tests,
+including the acceptance clause driven at **200 transitions against a cap of 16**. **All three
+baselines re-recorded.**
+
+**1. `RulesetTransition` was already taken, and the collision is the design rather than a naming
+accident.** `Borough.Core.Input.RulesetTransition` is task 2's — `(Tick, From, To)`, the *news* that
+the Ruleset changed, which is what a **replay** needs and all it needs. This one is *what the change
+cost*, which is what a **diagnosis** needs and which no replay can reconstruct, because the run that
+would reproduce it starts after the cause. Two types, two names (`RulesetTrailEntry`), and the fact
+that the obvious name fitted both is the clearest statement available that the log half and the save
+half of `05 §7` are genuinely different artefacts.
+
+**2. `World.Adopt` had to gain the content hash, and the trail is the first world state that names a
+file.** `Core` cannot compute one — it never sees the file (`adr/0048`) — so the identity of the
+Ruleset a transition adopted has to arrive with the Ruleset or the trail records a transition it
+cannot name. It is a **parameter rather than a second call**, for `UnplacedTable.Join`'s reason: one
+call writes the migration and its record, so there is no door through which the two can disagree.
+
+**3. The cap's argument is self-referential, and that is what makes it a `const` rather than Ruleset
+data.** `adr/0015`'s no-`const` rule governs numbers a designer would want to change; this is one a
+designer must **not** be able to change, because the thing it sizes is the record of their own edits —
+a reload that shrank the window would truncate the history that explains the city, on the authority of
+the file whose adoption the history is about. Run through `adr/0015`'s own membership test — *what live
+state points at it* — it is world-creation-fixed, alongside `WHEEL_SIZE`. **The ADR's enumeration does
+not contain this case**, which is the same gap task 3 found from the other side.
+
+**4. A transition that cost nothing is not recorded, and the filter is the collection rather than a
+saving.** The trail answers *what did a reload destroy*; a tuning reload destroys nothing, and an
+all-zero entry would push a real one out of a window sized for diagnosis. *How many Rulesets this
+session was played against* is a different question with an answer already built — `Simulation.Reloads`
+— and keeping the two apart is what stops this becoming a reload log. It is the same distinction
+`RulesetInForce.Refusals` and `Simulation.Reloads` were already drawn along: **a count of the designer
+fighting the format, a count of the designer tuning, and a record of what tuning cost.**
+
+**5. The window slides rather than rotating, and the reason is the hash.** Index order is hash
+composition order (`02 §8`), so a ring buffer with a write cursor would make two worlds that survived
+exactly the same transitions hash differently depending on where the cursor happened to sit — a
+divergence with no cause in the city, which is the class of bug the State Hash exists to make loud. So
+the entries are copied down one slot when the window fills: `O(N)` once per degrading reload, on a
+keystroke, and the trail reads chronologically in a debugger for free.
+
+**6. Adding the table moved every baseline before anything had ever been written to it.** `Rows.Fold`
+mixes the allocator's scalars — slot count, live count, free head, next id — ahead of any column, so a
+new table changes the State Hash from the moment it exists. That is correct and worth stating
+explicitly: **the trail is hash-bearing on the day it is declared, not on the day it is first
+written**, which is why `N` is a saved number under `adr/0052` even in a world that never reloads.
+
+### 8. The Map Layer cadence and rates from a file — the checkable obligation — **done**
 
 **This is what "slice 8 is done" means**, per the gate board, and it is the one task with an external
 definition of completion.
@@ -740,7 +835,43 @@ number and a world-creation-fixed one.
 differing only in the diffusion period produce different hash traces, which is the whole reason the
 cadence is the designer's number. Coordinate with slice 10, which is also re-recording.
 
-### 9. The runner, and `adr/0015`'s acceptance test
+#### What building it changed
+
+**Shipped**: `rulesets/minimal.toml` gains a `[layers]` table stating all eight numbers with the
+reasoning beside them, and four tests — `adr/0044`'s claim re-run **through the file** on an emitting
+fixture, its control, and two over the shipped Ruleset. **Baselines re-recorded**, and the reason they
+moved is the finding below.
+
+**1. The re-baseline was not caused by a Layer number, and the distinction is the whole of what this
+task can claim.** Adding `[layers]` moved **no State Hash**: the numbers stated are the numbers the
+loader would have defaulted to, so the world is bit-identical. What moved is the file's **content
+hash**, which the golden session records and the runner refuses a mismatch on — so `session.borough`,
+`GoldenFixtures.RulesetHash` and the trace header all had to move while every sample stayed put.
+**A re-baseline that changes no city is a thing that can happen**, and a commit message saying *the
+cadence moved* would have been false.
+
+**2. The golden session cannot see its own cadence at all, so the committed baselines were never
+evidence for `adr/0044`.** `minimal.toml` emits no pollution — a dwelling is not industry, which the
+file has said since slice 7 — so the field is zero everywhere and diffusing zero at any period gives
+zero. Changing `pollution_period` in the shipped Ruleset would move nothing. The acceptance clause is
+therefore demonstrated on an **emitting fixture built for it**, and stating that here is worth more
+than the test: it is the second time in this slice that the obvious place to look for a property
+turned out not to contain it.
+
+**3. `adr/0044` had only ever been measured through a constructor argument.** The ADR built two worlds
+differing in the diffusion period and compared their hash traces; the argument reached the world by
+hand. A number that arrives through a **parser** can be dropped anywhere along that path, and the
+failure would look exactly like a Ruleset key nobody had noticed was inert — the symptom this slice's
+own refusals exist for. The claim now runs end to end from TOML text to State Hash.
+
+**4. Stating a number is not choosing it, and the tests say so twice.** The values are `02 §2.4`'s and
+remain **unratified** in `0002` §D1 — the kernel radius on a 10×-wide band, the cadence as two numbers
+picked to look reasonable. `The_shipped_ruleset_states_the_documented_layer_numbers` asserts against
+the constants rather than against `LayerRuleset.Default`, so an edit that moved the default and the
+file together would still fail rather than pass in agreement with itself. That is the shape slice 7
+found four times: **a green test agreeing with the code instead of with the document.**
+
+### 9. The runner, and `adr/0015`'s acceptance test — **done**
 
 `adr/0015`'s own consequence: ***"The headless runner is the real iteration loop."*** There is no Godot
 shell, so **the acceptance test cannot be run at all without this task** — it is not a convenience
@@ -755,36 +886,135 @@ an unaccounted mismatch** rather than diverging — `05 §7`'s policy, and the m
 The seconds test, stated so it can fail: **change a production ratio in `rulesets/minimal.toml`,
 reload into a running session, and see the Bin levels move — in seconds, without a rebuild.**
 
-### 10. The golden session reloads
+#### What building it changed
+
+**Shipped**: `--ruleset` repeats; `RulesetCheck` resolves the opening hash **and every transition**
+against what was supplied; `Session.TryCatalogue` parses them all and puts the opening one first;
+`--reload-at N` builds a fresh session's transitions from the command line; a reload summary is
+printed by the shell; and `Replay.Start(log, catalogue)` gained a guard. **The seconds test ran and
+the number is below.**
+
+**1. The acceptance test could not have been run through a recorded log, and the reason is
+structural.** A log records a transition by **content hash**, so the first edit to the Ruleset makes
+the log name a file that no longer exists — and **editing the file is what the loop is**. A recorded
+session is therefore exactly the wrong instrument for `adr/0015`'s claim, however carefully it is
+written. `--reload-at N` builds the transitions on the run, against whatever the files hash to now,
+and the session stays fully reproducible because the log the runner builds still carries them.
+**Nobody had noticed this**, and the plan's own task description asked for the runner to accept
+several Rulesets as though that were sufficient.
+
+**2. `--force-ruleset` waives a mismatch and cannot waive an **absence**, which is the third instance
+of one distinction in this runner.** A malformed Ruleset is already refused unconditionally, because
+force cannot make Rules readable. A transition into a Ruleset nobody supplied is the same shape one
+notch on: *run these Rules under this log anyway* is a sentence that needs Rules, and there are none
+for those Ticks. It is refused with the Tick and the hash named.
+
+**3. `Replay.Start(log, catalogue)` had a latent defect and it was invisible by construction.** It
+builds the world from `catalogue.Opening` — position 0 — while the `Simulation` constructor checks the
+catalogue against **the world it was just handed**, so the two agreed with each other and neither
+consulted the **log**. A caller holding exactly the right Rulesets in the wrong order would get a city
+running Rules the session never named, and **Tick 0 would *establish* that hash rather than swap away
+from it**, because the first Tick opens rather than reloads. Both Rulesets load, both run, and no
+trace says which. Now refused, with the runner sorting so an operator cannot meet the refusal.
+
+**4. The crash artifact was stamping the Ruleset the run *opened* on.** Correct while a session had
+exactly one, and wrong from the moment it could reload — an artifact carrying the opening hash would
+send its reader to a file that had not been in force for a thousand Ticks. It now takes
+`Simulation.RulesetInForce`, which is the live one, and falls back to the opening hash only when the
+run died before its first Tick.
+
+**5. The seconds test, run, as `adr/0015` asks for it to be.** Edit `restock`'s `rate` from 8 to 2 in
+a copy of `rulesets/minimal.toml`, reload it into a running session at Tick 200 of 400, and the city
+differs: the State Hash trace diverges from the reload on, the Unplaced Pool goes from 9 to 101, and
+demolitions go from 3 to 11. **0.70 s against a pre-built runner** (three runs: 0.71, 0.71, 0.69) and
+**2.8–3.5 s through `dotnet run`**, which re-checks five projects on the way past. Citybound's
+recorded number — the evidence `adr/0015` was written on — is a **60–120 second warm rebuild**. The
+margin is two orders of magnitude, and the honest caveat is that this city is 1,000 Citizens and 400
+Ticks.
+
+**6. The shell prints what a reload cost, and a tuning reload says so explicitly.** `02 §4.3`'s logged
+warning, written where `adr/0002` allows a string to exist: *"1 reload(s), of which 0 cost the city
+something. Nothing was derelicted, dropped or re-armed."* Silent on a run that never reloaded — a line
+saying *0 reloads* on every run in the repository is a line an operator learns to skip, which is the
+state it must not be in on the day it says something.
+
+### 10. The golden session reloads — **done**
 
 The committed trace gains a reload, so replay equivalence covers a session with a transition in it
 rather than only sessions with one Ruleset. A second Ruleset file is needed and it should be
 `minimal.toml` with **one number changed** — the smallest content that makes the transition observable,
 and the same instinct that produced `minimal.toml` in the first place.
 
+#### What building it changed
+
+**Shipped**: `rulesets/minimal-tuned.toml` — `minimal.toml` with `restock`'s output `amount` moved
+from 1 to 2 — and the committed session **reloads into it at Tick 128**, halfway through its 256
+Ticks. `GoldenFixtures` gained a catalogue, `Replay.Run` a catalogue overload, and the baseline two
+tests. **Trace re-recorded**, and the regenerate command in the README now names both files.
+
+**1. A committed reload is worth nothing unless something checks it moved the city, and the check is
+two-sided.** `The_committed_reload_moves_the_trace_and_only_after_it` runs the same session with and
+without its transition: **every sample up to Tick 128 is identical and every sample after it
+differs.** The *equal* half is the stronger one — it is what makes the divergence attributable to the
+transition rather than to a different world, a different populator draw, or a Ruleset that had been
+subtly in force all along. Without it, *the golden session reloads* would be a sentence rather than a
+baseline, which is the shape this directory's README already warns about for `world-hash.txt`.
+
+**2. A tuning reload was the right one to commit, and the reasoning is about frequency rather than
+coverage.** The migration path has ten shapes that matter and `RulesetMigrationTests` can build them
+far more cheaply than one golden session can hold one of them. What a golden session is uniquely good
+at is the **ordinary** case, run end to end through the codec, the runner and the hash — and the
+ordinary case is a designer moving a number, a hundred times a sitting.
+
+**3. The second Ruleset is a copy, copies drift, and the guard is a test rather than a convention.**
+A Ruleset is a whole file to the loader, so *minimal.toml plus a patch* is not expressible.
+`The_two_golden_rulesets_differ_in_exactly_one_line` compares the two with comments and blanks
+stripped and fails with the diff in the message — so editing `minimal.toml` and forgetting its twin
+is caught by the suite rather than by somebody noticing.
+
+**4. Three existing tests were replaying a log they could no longer resolve, and each one named a
+real caller.** `InvariantTierTests` replayed the golden session against `Ruleset.Empty`;
+`ReplayTests`' control did the same; `Replay.Run`'s only Ruleset-shaped overload could not express
+*two* Rulesets at all. All three are the same shape — **a caller that assumed a session has exactly
+one Ruleset** — and they surfaced as loud throws rather than as silent divergence, which is task 1's
+refusal earning its keep two tasks later.
+
 ---
 
 ## Acceptance
 
 - `dotnet build` clean, `dotnet test` green, no GPU and no Godot.
-- **Replay equivalence across a transition**: a log containing a reload replays to an identical hash
-  sequence. This is the slice's central claim and everything else is in service of it.
-- **A refused reload changes nothing** — same State Hash before and after, the previous Ruleset still
-  in force, and **nothing written to the log** (*What planning found*, item 2).
+- ✅ **Replay equivalence across a transition**: a log containing a reload replays to an identical hash
+  sequence. This is the slice's central claim and everything else is in service of it. **Under a
+  committed baseline** as of task 10, and checked two-sidedly — the trace is identical up to the
+  reload and different after it, so the baseline covers a transition that demonstrably did something.
+- ✅ **A refused reload changes nothing** — same State Hash before and after, the previous Ruleset
+  still in force, and **nothing written to the log** (*What planning found*, item 2). Task 7 added the
+  third clause: **nothing written to the provenance trail either**, because a record of a Tick nobody
+  can replay to is worse than no record.
 - ✅ **The industrial pollution kernel radius is read from a file**, not from
   `SeparableKernel.IndustrialPollutionMetres` — which is the half of task 3 that has to land before the
   next line can be tested at all. It is `[layers] kernel_metres`; the `const` is gone.
 - ✅ **A world-creation change is refused**, by name, naming the constant — on the loader's surface
   with a file and a line, and in the core as the backstop.
-- **A reload that removes a kind derelicts rather than deletes**, and the Building is still there.
-- **A reload that removes a resource drops the Bins**, and no wait list survives the transition.
-- **The Layer cadence comes from a file**, and a Ruleset with a different cadence produces a different
-  hash trace — which is `adr/0044`'s measurement re-run through the file rather than through a
-  constructor argument.
-- **The provenance trail is capped**, demonstrated by a long-run test with more transitions than the
-  cap, and it does not trend.
-- **The seconds test**, run by a person and recorded in this document as a number.
-- Baselines re-recorded, deliberately, with the change stated.
+- ✅ **A reload that removes a kind derelicts rather than deletes**, and the Building is still there.
+- ✅ **A reload that removes a resource drops the Bins**, and no wait list survives the transition.
+- ✅ **The Layer cadence comes from a file**, and a Ruleset with a different cadence produces a
+  different hash trace — `adr/0044`'s measurement re-run through the file rather than through a
+  constructor argument. **On an emitting fixture, because the golden session cannot see its own
+  cadence**: `minimal.toml` emits no pollution, so its field is zero and diffusing zero at any period
+  gives zero.
+- ✅ **The provenance trail is capped**, demonstrated by a long-run test with more transitions than the
+  cap, and it does not trend — **200 transitions against a cap of 16**, with the row count asserted
+  after every one of them. The clause is stated over the **collection**: the aggregate's counts climb,
+  because a counter is what `05 §7` asked for and is not what `adr/0006` forbids.
+- ✅ **The seconds test**, run and recorded in this document as a number: **0.70 s** against a
+  pre-built runner, 2.8–3.5 s through `dotnet run`, against Citybound's 60–120 second warm rebuild.
+  Task 9, finding 5.
+- ✅ Baselines re-recorded, deliberately, with the change stated — **three times, and the three
+  reasons are different**: task 7 added a table (the world moved), task 8 edited a Ruleset (the
+  world did not move; its content hash did), task 10 added a transition to the session (the session
+  moved). Keeping those apart is the whole of the re-baselining procedure.
 
 ---
 
@@ -816,11 +1046,14 @@ the source**: `LayerRates.Default` is now the same derivation run on the default
 appears nowhere, and `TICKS_PER_DAY` got a name (`Ticks.PerDay`) because a derivation cannot cite a
 number that has none.
 
-**3. `N`, the provenance trail's cap.** Saved and hash-bearing, so `adr/0052` applies and a named
-ratifier is required on the day it is chosen. Measurable in principle — the refuting number is how far
-back a real diagnosis had to reach — but nothing can produce that number until patches exist, so the
-honest handling is a provisional value filed in `0002` §D as unratified, with *the first real
-cross-patch diagnosis* as its ratifier.
+**~~3. `N`, the provenance trail's cap.~~ SETTLED — task 7: 16, filed unratified as this entry
+prescribed.** The handling is the one recommended — a provisional value in `0002` §D1 with *the first
+real cross-patch diagnosis* as its ratifier — and what the task added is the **category**, which the
+recommendation had not asked about. `N` is not tuning and it is not merely hash-bearing: it is
+**world-creation-fixed**, because a designer who could reload a smaller window would be truncating the
+record of their own edits on the authority of the file the record is about. So it is a `const` beside
+`WHEEL_SIZE` rather than a Ruleset key, and `adr/0015`'s enumeration is short a member for the second
+time in this slice.
 
 **~~4. Whether the derelict flag is a boolean or a Building state.~~ SETTLED — task 4: neither, because
 there is no flag.** The question presupposed a saved mark and the presupposition is what failed. Asked
@@ -842,20 +1075,23 @@ there was no enum to be the first member of, and then no flag to be a boolean.
 Corrections, per [`0012`](0012-corpus-audit.md)'s distinction: nobody has to decide anything, somebody
 has to type.
 
-- **`02 §4.3`'s reload sentence argues against itself.** *"A transition carrying both Ruleset content
-  hashes… a replay needs the Rules' content, not the news that they changed."* A hash is the news. The
-  design is `05 §7`'s content-addressed sidecar and it is correct; the sentence describing it is not.
-  **Third instance in this section** of the shape session A found twice.
+- ~~**`02 §4.3`'s reload sentence argues against itself.**~~ **PAID.** *"A transition carrying both
+  Ruleset content hashes… a replay needs the Rules' content, not the news that they changed."* A hash
+  **is** the news. The design is right and the sentence describing it was not; it now says which of
+  the two artefacts carries which — hash in the log, content in the crash artifact — and why the
+  redundant `from` hash earns its place, which is catching a **spliced** log at parse time.
 - ~~**`adr/0048`'s refusal count**, once task 3 lands — in the ADR, in `adr/0015`, and in `0003`'s gate
   board, all at once. They have drifted before.~~ **PAID by task 3**, in all three at once: **eleven**
   at load and a **twelfth** on the reload entry point. The ADR now also states what is *not* counted —
   duplicate names, unknown sections — because that is the line the number would drift across next: the
   count is of refusals that catch a Ruleset which would otherwise **load clean and misbehave in
   silence**, and everything in it has that in common.
-- **`CONTEXT.md` → Ruleset** gains reload's transition semantics if the walk-through finds it silent
-  on them. **`CONTEXT.md` is also silent on *Derelict***, which the corpus uses in four places and
-  defines nowhere; it wants the entry, and the entry should say **derived** so nobody adds the column
-  again.
+- ~~**`CONTEXT.md` → Ruleset** gains reload's transition semantics… **`CONTEXT.md` is also silent on
+  *Derelict*.**~~ **PAID, both.** Ruleset gains the paragraph — a reload is a *transition* and not a
+  command, a declaration's identity is its **name**, and what the swap destroyed is kept as capped
+  state. **Derelict** gains its own entry, and it says **derived** in the first line so nobody adds
+  the column again; it also states what a derelict Building still does, since `adr/0055` got exactly
+  that wrong.
 - **`adr/0055`'s consequence bullet** — *a derelict Building "still dies of its own failures"* — is
   **false**, because a Building with no Rules has no failures. Filed to `0012`. It is a correction to
   one bullet and not to the decision the ADR makes.

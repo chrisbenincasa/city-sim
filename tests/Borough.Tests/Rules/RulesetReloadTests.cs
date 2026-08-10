@@ -322,6 +322,31 @@ public sealed class RulesetReloadTests
             RulesetCatalogue.Of([HashB, HashA], [other, opening])));
     }
 
+    /// <summary>
+    /// And a replay refuses the same shape from the other side: a catalogue that does not open on the
+    /// Ruleset the <em>log</em> names.
+    /// </summary>
+    /// <remarks>
+    /// <b>The sibling above catches it against a world that already exists; this catches it against a
+    /// log, which is where a runner actually gets it wrong</b> (slice 8 task 9). <c>Replay.Start</c>
+    /// builds the world from the catalogue's first entry, so an operator holding exactly the right
+    /// Rulesets in the wrong order would get a city under Rules the session never named — and Tick 0
+    /// would <em>establish</em> that hash rather than swap away from it, because the first Tick opens
+    /// rather than reloads. Both Rulesets load, both run, and the trace says nothing.
+    /// </remarks>
+    [Fact]
+    public void A_replay_whose_catalogue_opens_on_the_wrong_ruleset_is_refused()
+    {
+        InputLogBuilder builder = new(seed: 1, new WorldConfiguration(1_000), HashA);
+        InputLog log = builder.Build();
+
+        ArgumentException refusal = Assert.Throws<ArgumentException>(() => Replay.Start(
+            log,
+            RulesetCatalogue.Of([HashB, HashA], [Producing(rate: 2), Producing(rate: 8)])));
+
+        Assert.Contains("opens on Ruleset", refusal.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Two Rulesets under one content hash make a transition ambiguous.</summary>
     [Fact]
     public void A_catalogue_with_two_rulesets_under_one_hash_is_refused()

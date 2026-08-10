@@ -340,6 +340,7 @@ public sealed class LayerRulesetLoadTests
                         LayerSchedule.Default,
                         LayerRates.Default,
                         new LayerConstants(IndustrialPollutionMetres: 4_096))),
+                0x1111_1111_1111_1111UL,
                 Ticks.Zero,
                 WorldKey.FromSeed(0x8000_0001UL)));
 
@@ -355,6 +356,7 @@ public sealed class LayerRulesetLoadTests
             Ruleset.Empty.WithLayers(new LayerRuleset(
                 new LayerSchedule(new LayerCadence(16, 1), new LayerCadence(64, 5)),
                 LayerRates.Default)),
+            0x1111_1111_1111_1111UL,
             Ticks.Zero,
             WorldKey.FromSeed(0x8000_0001UL));
 

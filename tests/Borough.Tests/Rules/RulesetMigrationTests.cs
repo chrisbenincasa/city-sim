@@ -285,7 +285,7 @@ public sealed class RulesetMigrationTests
         var world = new World(1_000, opening);
 
         Assert.Throws<NotSupportedException>(
-            () => world.Adopt(Load(FlourIsMoney), Ticks.Zero, Key));
+            () => world.Adopt(Load(FlourIsMoney), HashB, Ticks.Zero, Key));
 
         Assert.Same(opening, world.Rules);
     }
@@ -309,6 +309,7 @@ public sealed class RulesetMigrationTests
         ulong before = world.HashState();
         RulesetDegradation cost = world.Adopt(
             Load(Both.Replace("rate    = 8", "rate    = 12", StringComparison.Ordinal)),
+            HashB,
             new Ticks(64),
             Key);
 
@@ -332,7 +333,7 @@ public sealed class RulesetMigrationTests
 
         Assert.True(level > 0, "restock produced nothing, so there is no stock to follow.");
 
-        RulesetDegradation cost = world.Adopt(Load(Reordered), new Ticks(64), Key);
+        RulesetDegradation cost = world.Adopt(Load(Reordered), HashB, new Ticks(64), Key);
 
         Assert.Equal(0, cost.BinsDropped);
         Assert.Equal(0, cost.BuildingsDerelicted);
@@ -351,7 +352,7 @@ public sealed class RulesetMigrationTests
 
         Handle<Bin> repairs = world.Bins.Rows.At(world.FindBin(First, new ResourceId(2)));
 
-        RulesetDegradation cost = world.Adopt(Load(SundriesOnly), new Ticks(64), Key);
+        RulesetDegradation cost = world.Adopt(Load(SundriesOnly), HashB, new Ticks(64), Key);
 
         Assert.Equal(3, cost.BinsDropped);
         Assert.Equal(0, cost.BuildingsDerelicted);
@@ -380,7 +381,7 @@ public sealed class RulesetMigrationTests
 
         Handle<Household> resident = world.CreateHousehold(world.Buildings.Rows.At(First), 0);
 
-        RulesetDegradation cost = world.Adopt(Load(NoKinds), new Ticks(64), Key);
+        RulesetDegradation cost = world.Adopt(Load(NoKinds), HashB, new Ticks(64), Key);
 
         Assert.Equal(3, cost.BuildingsDerelicted);
         Assert.Equal(0, cost.BinsDropped);
@@ -413,8 +414,8 @@ public sealed class RulesetMigrationTests
     {
         (World world, _) = City(Load(Both));
 
-        world.Adopt(Load(NoKinds), new Ticks(64), Key);
-        RulesetDegradation cost = world.Adopt(Load(Both), new Ticks(65), Key);
+        world.Adopt(Load(NoKinds), HashB, new Ticks(64), Key);
+        RulesetDegradation cost = world.Adopt(Load(Both), HashA, new Ticks(65), Key);
 
         Assert.Equal(0, world.Buildings.Kind[First]);
         Assert.Equal(0, cost.RuleInstancesRearmed);
@@ -448,7 +449,7 @@ public sealed class RulesetMigrationTests
         Assert.True(asleep > 0, "no Rule ever subscribed, so there is no wait list to drop.");
 
         var now = new Ticks(64);
-        RulesetDegradation cost = world.Adopt(Load(Reordered), now, Key);
+        RulesetDegradation cost = world.Adopt(Load(Reordered), HashB, now, Key);
 
         // Two Rules on each of three dwellings, all of them new rows.
         Assert.Equal(6, cost.RuleInstancesRearmed);
@@ -490,7 +491,7 @@ public sealed class RulesetMigrationTests
 
         Assert.Equal(Core.Tables.Rows.NoSlot, world.FindBin(First, new ResourceId(2)));
 
-        RulesetDegradation cost = world.Adopt(Load(Both), new Ticks(64), Key);
+        RulesetDegradation cost = world.Adopt(Load(Both), HashB, new Ticks(64), Key);
 
         Assert.Equal(0, cost.BinsDropped);
         Assert.Equal(0, cost.BuildingsDerelicted);

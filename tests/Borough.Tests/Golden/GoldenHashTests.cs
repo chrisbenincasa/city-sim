@@ -40,8 +40,85 @@ public sealed class GoldenHashTests
     private const string Regenerate =
         "dotnet run --project src/Borough.Headless -- "
         + "--log tests/Borough.Tests/Golden/session.borough --ruleset rulesets/minimal.toml "
-        + "--ticks 256 --hash-every 8 "
+        + "--ruleset rulesets/minimal-tuned.toml --ticks 256 --hash-every 8 "
         + "--out tests/Borough.Tests/Golden/session-trace.txt";
+
+    /// <summary>
+    /// <b>The committed reload does something, and it does it from the reload onwards.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Slice 8 task 10's actual claim.</b> A committed trace covering a transition that moved no
+    /// hash would be a baseline claiming coverage it does not have — the defect this directory's
+    /// README already describes for <c>world-hash.txt</c> — and *the golden session reloads* is worth
+    /// nothing as a sentence if the two Rulesets happen to produce the same city.
+    /// </para>
+    /// <para>
+    /// <b>The equal half is the stronger half.</b> Every sample up to the reload is identical, so the
+    /// divergence after it is attributable to the transition and to nothing else — not to a different
+    /// world, not to a different populator draw, not to a Ruleset that was subtly in force all along.
+    /// That is the same reasoning <c>adr/0044</c> used and the same reasoning a bisection uses.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_committed_reload_moves_the_trace_and_only_after_it()
+    {
+        var ticks = new Ticks(GoldenFixtures.Ticks);
+
+        ulong[] reloaded = Replay.Run(
+            GoldenFixtures.Session(), ticks, GoldenFixtures.HashEvery, GoldenFixtures.Catalogue());
+
+        ulong[] unchanged = Replay.Run(
+            GoldenFixtures.Session(reloads: false),
+            ticks,
+            GoldenFixtures.HashEvery,
+            GoldenFixtures.Rules());
+
+        int last = (GoldenFixtures.ReloadAt / GoldenFixtures.HashEvery) - 1;
+
+        Assert.Equal(reloaded.Length, unchanged.Length);
+        Assert.Equal(reloaded[..(last + 1)], unchanged[..(last + 1)]);
+        Assert.NotEqual(reloaded[(last + 1)..], unchanged[(last + 1)..]);
+    }
+
+    /// <summary>
+    /// The two golden Rulesets differ in exactly one line, which is what makes the second one a patch.
+    /// </summary>
+    /// <remarks>
+    /// <b>A Ruleset is a whole file to the loader, so <em>minimal.toml plus a patch</em> is not a
+    /// thing this format can express</b> — the second file is a copy, and a copy drifts. This is the
+    /// guard, and it is a test rather than a convention because a convention is what drifted. Comments
+    /// are excluded: the two files explain themselves differently on purpose, and the claim is about
+    /// the <em>city</em> they describe.
+    /// </remarks>
+    [Fact]
+    public void The_two_golden_rulesets_differ_in_exactly_one_line()
+    {
+        string[] plain = Content(GoldenFixtures.RulesetPath);
+        string[] tuned = Content(GoldenFixtures.TunedRulesetPath);
+
+        Assert.Equal(plain.Length, tuned.Length);
+
+        string[] differences =
+        [
+            .. plain.Zip(tuned)
+                .Where(pair => !string.Equals(pair.First, pair.Second, StringComparison.Ordinal))
+                .Select(pair => $"  {pair.First}\n  {pair.Second}"),
+        ];
+
+        Assert.True(
+            differences.Length == 1,
+            $"the two golden Rulesets differ in {differences.Length} lines and should differ in "
+            + $"one:\n{string.Join("\n\n", differences)}");
+    }
+
+    /// <summary>A Ruleset's lines with the comments and the blanks taken out.</summary>
+    private static string[] Content(string path) =>
+    [
+        .. File.ReadAllLines(path)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && !line.StartsWith('#')),
+    ];
 
     /// <summary>
     /// The committed session still produces the committed trace, sample for sample.
@@ -55,7 +132,7 @@ public sealed class GoldenHashTests
             GoldenFixtures.Session(),
             new Ticks(GoldenFixtures.Ticks),
             GoldenFixtures.HashEvery,
-            GoldenFixtures.Rules());
+            GoldenFixtures.Catalogue());
 
         if (!observed.AsSpan().SequenceEqual(recorded))
         {
@@ -138,7 +215,7 @@ public sealed class GoldenHashTests
                 parsed,
                 new Ticks(GoldenFixtures.Ticks),
                 GoldenFixtures.HashEvery,
-                GoldenFixtures.Rules()));
+                GoldenFixtures.Catalogue()));
     }
 
     /// <summary>

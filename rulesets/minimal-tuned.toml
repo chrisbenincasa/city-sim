@@ -1,3 +1,22 @@
+# minimal.toml with one number changed, and that is the whole of its content.
+#
+# Slice 8 task 10 of plans/0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md. The golden
+# session reloads into this file at Tick 128, so replay equivalence covers a session with a TRANSITION
+# in it rather than only sessions with one Ruleset. Everything below is minimal.toml verbatim except
+# `restock`'s output amount, which is 2 here and 1 there.
+#
+# WHY ONE NUMBER. A production ratio is exactly what adr/0015's acceptance test names -- *changing a
+# production ratio and seeing the effect must take seconds* -- and it is a TUNING change, so
+# RulesetShape.Compare reports None, the migration pass is skipped and no row moves. That is the
+# reload a designer performs a hundred times in a sitting, and it is therefore the one the committed
+# baseline should cover. The degrading reloads are covered by RulesetMigrationTests, which can build
+# the ten shapes that matter far more cheaply than a golden session can hold one of them.
+#
+# WHY THE DUPLICATION IS TOLERATED. A Ruleset is a whole file to the loader, so "minimal.toml plus a
+# patch" is not a thing this format can express. What guards the copy is a test rather than a
+# convention: The_two_golden_rulesets_differ_in_exactly_one_line fails the moment the two drift, with
+# the diff in the message. Edit minimal.toml and you edit this file, and the suite says so.
+
 # The minimal Ruleset. It models no city, and it is not the beginning of one.
 #
 # Slice 7 task 10a of plans/0011-rule-engine-bins-and-rules.md. Its whole job is to be the smallest
@@ -88,7 +107,7 @@ kind    = "dwelling"
 rate    = 8
 apply   = { min = 1, max = 4 }
 inputs  = []
-outputs = [ { scope = "local", resource = "sundries", amount = 1 } ]
+outputs = [ { scope = "local", resource = "sundries", amount = 2 } ]
 
 # Derived, because a dwelling's draw is stated by how many Households live in it rather than bounded
 # by what is in the Bin. `occupancy` is the one declared Readout (slice 7 task 7), and this is the

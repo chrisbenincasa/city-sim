@@ -125,6 +125,7 @@ public sealed class World
         Bins = new BinTable(PerThousand(citizens, 450), Buildings);
         RuleInstances = new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins);
         Clock = new ClockTable();
+        RulesetTrail = new RulesetTrailTable();
 
         // The registry is built before the Wheel rather than after the tables, because EventWheel.Arm
         // reports a double arming through it, and after the Clock, because it reads the Tick from this
@@ -135,10 +136,13 @@ public sealed class World
 
         // Declaration order, which is hash composition order. The Rule engine's three tables go last
         // because they arrived last; the order is arbitrary but it is not free to change, so it is
-        // stated here and moving it is a re-baseline rather than a tidy-up.
+        // stated here and moving it is a re-baseline rather than a tidy-up. The trail is appended for
+        // the same reason — it arrived last, in slice 8 task 7 — and appending is the only edit to
+        // this list that does not move rows relative to one another.
         _tables = [
             Lots.Rows, Buildings.Rows, Households.Rows, Citizens.Rows, Layers.Cells.Rows,
             Bins.Rows, RuleInstances.Rows, Wheel.Buckets.Rows, UnplacedPool.Rows, Clock.Rows,
+            RulesetTrail.Rows,
         ];
 
         WorldInvariants.RegisterAll(Invariants);
@@ -194,6 +198,17 @@ public sealed class World
     /// </remarks>
     public UnplacedTable UnplacedPool { get; }
 
+    /// <summary>
+    /// What every Ruleset transition this world survived destroyed, capped and aggregated.
+    /// </summary>
+    /// <remarks>
+    /// <b>The one piece of this world that is about its past rather than its present</b>, and it is
+    /// here rather than on the <see cref="Simulation"/> because <c>05 §7</c> puts it in the
+    /// <em>save</em>: the bug it exists for is a defect caused by a degradation upstream of every
+    /// snapshot anybody holds, and a trail that died with the process could never reach one.
+    /// </remarks>
+    public RulesetTrailTable RulesetTrail { get; }
+
     /// <summary>The Bin Rules this world runs. Ids and integers; no string reaches here.</summary>
     /// <remarks>
     /// <b>A constructor argument rather than a load, for <see cref="MapLayers.Ruleset"/>'s reason.</b>
@@ -231,10 +246,17 @@ public sealed class World
     /// </para>
     /// </remarks>
     /// <param name="rules">The Ruleset to put in force.</param>
+    /// <param name="contentHash">
+    /// That Ruleset's content hash, which is how the trail names it. <c>Core</c> cannot compute one —
+    /// it never sees the file (<c>adr/0048</c>) — so it arrives with the Ruleset or the provenance
+    /// trail records a transition it cannot identify. It is a parameter rather than a second call for
+    /// <see cref="UnplacedTable.Join"/>'s reason: one call writes both halves, so there is no door
+    /// through which a migration and its record can disagree.
+    /// </param>
     /// <param name="now">The current Tick, which the refit's arming is relative to.</param>
     /// <param name="key">The world key, for the stagger draw.</param>
     /// <returns>What the reload cost the city, for the shell to turn into a warning.</returns>
-    internal RulesetDegradation Adopt(Ruleset rules, Ticks now, WorldKey key)
+    internal RulesetDegradation Adopt(Ruleset rules, ulong contentHash, Ticks now, WorldKey key)
     {
         ArgumentNullException.ThrowIfNull(rules);
 
@@ -259,7 +281,15 @@ public sealed class World
         Layers.Adopt(rules.Layers);
         Rules = rules;
 
-        return migration is null ? default : Migrate(migration, now, key);
+        RulesetDegradation cost = migration is null ? default : Migrate(migration, now, key);
+
+        // Recorded after the pass rather than before it, because a degradation this build refuses
+        // half-way through would otherwise leave a trail entry claiming a transition that did not
+        // happen -- and a provenance trail nobody can trust is worse than none, since the whole of its
+        // value is being believed about a Tick nobody can replay to.
+        RulesetTrail.Record(now, contentHash, cost);
+
+        return cost;
     }
 
     /// <summary>

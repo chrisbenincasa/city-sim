@@ -44,11 +44,35 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0x8E25_644E_65ED_3E31UL;
+    internal const ulong RulesetHash = 0x6AD0_FE11_16FB_1316UL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>
         Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml");
+
+    /// <summary>
+    /// The content hash of <see cref="TunedRulesetPath"/>, which the session reloads into.
+    /// </summary>
+    /// <remarks>
+    /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
+    /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
+    /// </remarks>
+    internal const ulong TunedRulesetHash = 0xBCFA_9ADF_32F4_C043UL;
+
+    /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
+    internal static string TunedRulesetPath =>
+        Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal-tuned.toml");
+
+    /// <summary>
+    /// The Tick the golden session reloads on.
+    /// </summary>
+    /// <remarks>
+    /// <b>Halfway, and on a sampling boundary.</b> Halfway so that the trace holds sixteen samples of
+    /// each Ruleset rather than a run and a postscript; on a boundary so the first sample after the
+    /// transition is the Tick after it, which is what makes the failure message name the right window
+    /// when this moves.
+    /// </remarks>
+    internal const int ReloadAt = 128;
 
     /// <summary>How far the session runs. Well past its last command, which is the ordinary case.</summary>
     internal const int Ticks = 256;
@@ -86,7 +110,18 @@ internal static class GoldenFixtures
     /// re-baseline.
     /// </para>
     /// </remarks>
-    internal static InputLog Session()
+    internal static InputLog Session() => Session(reloads: true);
+
+    /// <summary>
+    /// The golden session, optionally without its transition.
+    /// </summary>
+    /// <remarks>
+    /// <b>The parameter exists for exactly one test</b> — the one that shows the reload <em>does
+    /// something</em>. A committed trace covering a transition that moved no hash would be a baseline
+    /// claiming coverage it does not have, which is the defect <c>world-hash.txt</c>'s own README
+    /// paragraph is about. Nothing else should use it.
+    /// </remarks>
+    internal static InputLog Session(bool reloads)
     {
         InputLogBuilder builder = new(Seed, new WorldConfiguration(Population), RulesetHash);
 
@@ -104,6 +139,16 @@ internal static class GoldenFixtures
         Append(builder, tick: 65, east: 0, north: 63, zone: 3);
         Append(builder, tick: 97, east: 255, north: 255, zone: 5);
 
+        // Slice 8 task 10. A transition rather than a command -- there is no reload verb, because
+        // Command is 12 bytes and could not carry a hash -- so it is appended here and not through
+        // Append. It lands after the last Zone command on purpose: the interesting half of a reload
+        // is what a city already running does when the numbers under it change, not what a city
+        // being built does.
+        if (reloads)
+        {
+            builder.Reload(new Ticks(ReloadAt), TunedRulesetHash);
+        }
+
         return builder.Build();
     }
 
@@ -115,13 +160,28 @@ internal static class GoldenFixtures
     /// have no such property: it would be a second Ruleset agreeing with the loader by construction,
     /// which is exactly the shape <c>adr/0048</c> refuses a second validator for.
     /// </remarks>
-    internal static Ruleset Rules()
+    internal static Ruleset Rules() => Load(RulesetPath);
+
+    /// <summary>
+    /// Both Rulesets the golden session names, opening one first.
+    /// </summary>
+    /// <remarks>
+    /// <b>A catalogue rather than a Ruleset, because the session reloads.</b> A replay resolves each
+    /// transition's content hash out of this; handed only the opening file it would refuse the
+    /// transition rather than run on under the wrong Rules, which is the behaviour slice 8 task 1
+    /// chose and <c>adr/0015</c>'s revisit trigger asks for.
+    /// </remarks>
+    internal static RulesetCatalogue Catalogue() => RulesetCatalogue.Of(
+        [RulesetHash, TunedRulesetHash], [Load(RulesetPath), Load(TunedRulesetPath)]);
+
+    private static Ruleset Load(string path)
     {
-        RulesetLoadResult result = RulesetLoader.Load(RulesetPath);
+        RulesetLoadResult result = RulesetLoader.Load(path);
 
         return result.Ruleset
             ?? throw new InvalidOperationException(
-                $"the golden Ruleset was refused, so no baseline can be taken:\n{result.Describe()}");
+                $"the golden Ruleset {path} was refused, so no baseline can be taken:"
+                + $"\n{result.Describe()}");
     }
 
     /// <summary>

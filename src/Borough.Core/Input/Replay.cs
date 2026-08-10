@@ -88,6 +88,21 @@ public static class Replay
         ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(rulesets);
 
+        if (rulesets.OpeningHash != log.RulesetHash)
+        {
+            // The catalogue's opening entry is position 0 and the world is built from it, so a caller
+            // holding exactly the right Rulesets in the wrong order would build a city under Rules
+            // this log never named -- and Tick 0 would then *establish* that hash rather than swap
+            // away from it, because the first Tick opens rather than reloads. Both Rulesets load,
+            // both run, and nothing says which one the numbers came from. Refused rather than sorted:
+            // a shell knows which file the operator meant and this class does not.
+            throw new ArgumentException(
+                $"this session opens on Ruleset 0x{log.RulesetHash:X16} and the catalogue opens on "
+                + $"0x{rulesets.OpeningHash:X16}. A catalogue's first entry is the one the world is "
+                + "built with, so the log's opening Ruleset has to be it.",
+                nameof(rulesets));
+        }
+
         var world = new World(log.Configuration.Citizens, rulesets.Opening);
         return new Simulation(world, WorldKey.FromSeed(log.Seed), rulesets);
     }
@@ -131,9 +146,25 @@ public static class Replay
     {
         ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(rules);
+
+        return Run(log, ticks, hashEvery, RulesetCatalogue.Fixed(log.RulesetHash, rules));
+    }
+
+    /// <inheritdoc cref="Run(InputLog, Ticks, int, Ruleset)"/>
+    /// <param name="log">The session to reproduce.</param>
+    /// <param name="ticks">How many Ticks to run.</param>
+    /// <param name="hashEvery">The sampling cadence, in Ticks. Must be positive.</param>
+    /// <param name="rulesets">
+    /// Every Ruleset the session was played against, opening one first — because a session that
+    /// reloaded twice was played against three.
+    /// </param>
+    public static ulong[] Run(InputLog log, Ticks ticks, int hashEvery, RulesetCatalogue rulesets)
+    {
+        ArgumentNullException.ThrowIfNull(log);
+        ArgumentNullException.ThrowIfNull(rulesets);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(hashEvery);
 
-        Simulation simulation = Start(log, rules);
+        Simulation simulation = Start(log, rulesets);
         var trace = new List<ulong>();
 
         Trace(simulation, log, ticks, hashEvery, trace);
