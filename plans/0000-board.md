@@ -702,12 +702,17 @@ diagnose.
       row now reads **~9.4–10.5 ms** and **60–67%** at 4× rather than a point estimate. The ledger's
       verdict does not move. **The row's real weakness was never its unit**: R6.3 found its
       multiplicand counts the wrong event, and that is the correction with a known direction
-- [ ] **Re-run the provenance sweep as a quantity match, not a string match.** Owed by the retraction
-      above. A matcher that produced one false accusation in four may also have produced false
-      *clearances* — a figure counted as table-backed on a coincidental substring, of which three are
-      already known (`1814.08 µs`, `8.15 Ticks`, `913.69 µs` matching `14.08`, `8.15`, `13.69`).
-      `223.92 KiB` and `9.94%` are the two survivors of the *absent* class and may only be described
-      as **not found under the spellings tried**
+- [x] ~~**Re-run the provenance sweep as a quantity match, not a string match.**~~ **DONE.** The sweep
+      is now an instrument rather than a one-off — `spikes/S2.Routing/tools/provenance-sweep.py` — and
+      it removed the false *clearances* this entry suspected (`1814.08 µs`, `8.15 Ticks`, `913.69 µs`
+      were standing as provenance for `14.08`, `8.15`, `13.69`). **The *absent* class is empty**: both
+      survivors dissolved, `223.92 KiB` being `453.37 − 229.45` over two rows of R3's storage table.
+      **It had two defects of its own, both found before publishing** — `s` matched the first letter of
+      *"searches"*, and `151,000 ns` was matched at ±0.5 ns when trailing zeros are a precision claim.
+      **One real defect survived, and only a quantity match could have found it**: R8's tripwire section
+      quoted `9.94%` maintenance at Horizon 0 beside a Sight cost at Horizon 1, publishing a total its
+      own addends miss by 0.40 points. The number was neither missing nor wrong — it was **read off the
+      wrong row**, which a string search cannot see
 - [ ] **S0a's capture is `powersave`, not `performance`** — setting the governor needs root and the
       session did not have it. **Every absolute in that section is an upper bound** and every ratio is
       unaffected, since ratios are taken within one machine state. The one verdict leaning on an

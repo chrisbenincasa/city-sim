@@ -5423,9 +5423,19 @@ it describes rather than the thing it names.
 
 **Row 1 carries a qualifier that was never computed.** *"With matrix refresh amortised"* appears in no
 measurement in this spike — the word does not occur in S2's results at all. The nearest measurable
-analogue is R8.3's maintenance column, and it is not the matrix but the arc-cost VDF sweep: **9.94%**
-of a Tick at N=0, plus Sight at N=1 for another **5.64%**, so **15.18% combined before a single route
-is computed.** The row's threshold is exceeded by the maintenance it was written to exclude. That does
+analogue is R8.3's maintenance column, and it is not the matrix but the arc-cost VDF sweep: **9.53%**
+of a Tick at N=1, plus Sight at the same rung for another **5.64%**, so **15.18% combined before a
+single route is computed.** The row's threshold is exceeded by the maintenance it was written to
+exclude.
+
+> **CORRECTED, by the quantity-match sweep below.** The first term read **9.94% at N=0** — R8.3's
+> *control* row, `1,551,234 ns`, against a Sight figure taken at N=1. The sentence's own three numbers
+> did not add up: 9.94 + 5.64 is 15.58, not the 15.18 it published. **The total was right and its
+> first addend was not** — 15.18% is N=1's refresh (`1,487,143 ns`, 9.53%) plus N=1's Sight, both read
+> off one row. Nothing downstream moves: refresh is flat in `N` to 4%, which is why a mixed rung
+> survived being written. It was found by matching quantities rather than strings, and by no other
+> means available — a figure that is *near* a table value and derived from the wrong row of it cannot
+> be caught by looking the number up. That does
 not weaken the verdict — row 1 fires by 80× on routing alone — but it does mean the row **as written**
 was never satisfiable, and nobody would have noticed while it was firing so hard.
 
@@ -5674,7 +5684,8 @@ correction that inherits the defect it corrects is still a correction, and it is
 > reverse-index figures and R6.4.3's correction are prose, re-checked against every table in every
 > capture. What is left of **absent** is `223.92 KiB` and `9.94%`, and even those are now stated as
 > *not found under the spellings tried* rather than as absent, because the matcher that produced them
-> is the one that just failed.
+> is the one that just failed. **The re-run has since dissolved both** — see *The sweep as a quantity
+> match* below. The **absent** class is empty.
 >
 > **The rule the sweep proposed needs a fourth sentence, and it is the one that would have prevented
 > this**: *a figure is looked up as a quantity, not as a string* — unit-converted, tolerance-matched,
@@ -5706,6 +5717,61 @@ quoted at all**; **a figure printed only as prose may be quoted, and the harness
 and **a document may not render prose-sourced figures as a table**, because that is a claim about
 provenance the reader cannot check. The third is new, it is the corpus's own doing rather than the
 harness's, and it is the one instance of this family nobody would have found by reading code.
+
+### The sweep as a quantity match, and the absent class is empty
+
+**Owed by the retraction above, and it discharges it: a matcher that produced one false accusation in
+four may also have produced false clearances.** The re-run compares **quantities** rather than rendered
+strings. Every figure is parsed with its unit, normalised to a canonical dimension — times to ns,
+sizes to bytes, ratios and percentages to themselves — and matched at **the precision the corpus
+displays it to**, so `10.37 ms` finds `10370.13 µs` and cannot find anything else. Tokenisation is on
+number boundaries, which is what stops `1814.08 µs` from satisfying a hunt for `14.08%`; the first
+sweep's three most alarming *unbacked* hits were exactly that, and they were caught by hand rather
+than by the instrument. The tool is
+[`tools/provenance-sweep.py`](../spikes/S2.Routing/tools/provenance-sweep.py), so the next round runs
+it instead of re-deriving it.
+
+**It had two defects of its own, and both were found before anything was published this time.** The
+unit alphabet let `s` match the leading letter of a word, so *"2,400 searches"* parsed as 2,400
+seconds and went looking for a 40-minute measurement. And a figure written `151,000 ns` was being
+matched at ±0.5 ns, when its author plainly meant ±500: **trailing zeros are a precision claim**, and
+reading them as significant digits manufactures absences. Fixing the two moved the not-found count
+by a quarter before a single figure was examined — which is the argument for examining the instrument
+first, made numerically.
+
+**The result: 1,461 figures trace to a table, 124 to prose only, and 46 to nothing — 33 distinct.**
+The two sections *about* the sweep are excluded from its own scan, since a section whose subject is
+unbacked figures necessarily quotes them. The prose-only class survives intact and unchanged in
+character: R8's verdicts, R6.4's reverse-index figures and R5's machine table are genuinely printed
+only as paragraphs. **The absent class does not survive at all.** All 33 were resolved by hand, into
+four groups and one defect:
+
+| | What they turn out to be | Examples |
+|---|---|---|
+| **Derived** | Corpus arithmetic over operands that *are* table-backed | `223.92 KiB` is exactly `453.37 − 229.45`, two rows of R3's storage table; `129 KiB` is 33,018 Segments × 4 B; `50.6 ms` is `418 µs × 121`, which its own sentence shows; every ratio and range descriptor |
+| **Another spike's** | Correctly absent from S2's captures because they were never S2's | S4's `13.66 ns` K2 gather, S0a's `85.98 MiB` world |
+| **Already disclosed** | The six figures R5 declares lost to its filename collision | `3.79`, `7.61`, `161.79`, `219.50 ms`, `21.25×`, `13.26 ms` |
+| **Superseded** | A harness state that was fixed, whose capture is therefore not retained | the `3,956 ns` bootstrap, whose own sentence says the figure is now `292 ns` |
+
+**The third group is the best evidence the matcher works.** R5 named six figures as unbacked before
+any sweep existed; the sweep rediscovers **exactly** those six in that region and nothing beside them.
+An instrument that independently reproduces a known-lost set, and does not extend it, is one whose
+silence elsewhere means something.
+
+**And the derived group is the retraction's lesson arriving a second time.** `223.92 KiB` was the
+sweep's other surviving accusation, quoted in the corpus as *"measured at 223.92 KiB of arcs"* — and
+the word *measured* is honest, because both operands of the subtraction are measured. A figure can be
+absent from every artefact and still be perfectly sound. **Absence of the literal is not absence of
+the measurement**, which is the same mistake as *absence of the string is not absence of the quantity*,
+committed one layer up.
+
+**One defect survives, and only a quantity match could have found it** — R8.3's maintenance figure,
+corrected in the tripwire section above. `9.94%` is the **control** row's refresh cost paired with a
+Sight cost taken at Horizon 1, and the sentence carrying it published a total that its own addends
+miss by 0.40 points. A string search cannot find this, because the number is not missing and is not
+wrong: it is a real value from the real table, **read off the wrong row**. That is a class the first
+sweep could not have detected in principle, and it is the reason the re-run was worth its cost quite
+apart from the retraction that prompted it.
 
 ### What R7 still owes
 
@@ -5755,14 +5821,17 @@ harness's, and it is the one instance of this family nobody would have found by 
   rendered strings across a unit boundary and manufactured the accusation. What the re-run leaves is
   smaller and real: **the figure is a maximum with a 9.37–10.51 ms spread over five correctly pinned
   captures**, so quoting it to two decimals overstates it. `6.82 ms` was the same false positive.
-  `223.92 KiB` and `9.94%` remain **not found under the spellings tried**, which is the strongest
-  form that claim may now take.
-- **A figure is looked up as a quantity, not as a string.** The fourth sentence of the provenance
-  rule, and the one that would have prevented the retraction above: unit-converted, tolerance-matched,
-  and confirmed by reading the row. The sweep is worth re-running under it, because a matcher that
-  produced one false accusation in four may have produced false *clearances* too — a figure counted
-  as table-backed on a coincidental substring, of which this sweep has already seen three
-  (`1814.08 µs`, `8.15 Ticks`, `913.69 µs` matching `14.08`, `8.15` and `13.69`).
+  ~~`223.92 KiB` and `9.94%` remain **not found under the spellings tried**.~~ **Both are now
+  resolved** by the quantity match: `223.92 KiB` is `453.37 − 229.45`, a difference of two rows of
+  R3's own storage table, and `9.94%` was a real table value read off the **wrong row**. The *absent*
+  class is empty.
+- ~~**A figure is looked up as a quantity, not as a string.**~~ **DONE** — the fourth sentence of the
+  provenance rule, and the one that would have prevented the retraction above: unit-converted,
+  tolerance-matched, and confirmed by reading the row. The re-run has run, as
+  [`tools/provenance-sweep.py`](../spikes/S2.Routing/tools/provenance-sweep.py), and it found the
+  false *clearances* this bullet suspected: `1814.08 µs`, `8.15 Ticks` and `913.69 µs` were being
+  counted as provenance for `14.08`, `8.15` and `13.69`, and tokenising on number boundaries removes
+  them. It also found one defect nothing else could have — see *The sweep as a quantity match*.
 - **Three tables in this document were assembled from capture prose** — R5's machine table, R6.4's
   reverse-index table and R8.4's. The figures are real; the *rendering* claims a provenance they do
   not have, which is the one member of this family that is the corpus's fault rather than the

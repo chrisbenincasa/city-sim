@@ -1467,6 +1467,21 @@ and real — the worst Tick is a **maximum** spanning **9.37–10.51 ms** over f
 `0013`'s routing row reads **~9.4–10.5 ms** rather than a point estimate. Details in
 [`spike-results`](../docs/spike-results.md) → *The provenance sweep*.
 
+**The re-run has since been done properly, and the sweep is now an instrument** —
+[`tools/provenance-sweep.py`](../spikes/S2.Routing/tools/provenance-sweep.py), which parses each figure
+with its unit, normalises the dimension and matches at the precision the corpus displays. **It found
+two defects in itself before it found any in the corpus**: `s` matched the leading letter of *"searches"*,
+and a figure written `151,000 ns` was matched at ±0.5 ns when **trailing zeros are a precision claim**.
+Fixing them moved the not-found count by a quarter before a single figure was read, which is the
+argument for auditing the instrument first, made numerically. **The *absent* class is then empty** —
+every survivor resolves to corpus arithmetic over table-backed operands (`223.92 KiB` is
+`453.37 − 229.45`), to another spike's figure, to R5's already-disclosed six, or to a superseded harness
+state. **The one real defect it found is a class the string sweep could not have detected in
+principle**: R8's tripwire section paired `9.94%` maintenance from Horizon 0 with a Sight cost from
+Horizon 1 and published a total its own addends miss by 0.40 points — a real value from a real table,
+**read off the wrong row**. **Absence of the literal is not absence of the measurement**, which is the
+retraction's lesson arriving one layer up.
+
 **Still owed:** a **second** `performance` capture, because one is an assertion and two are an error
 bar, and R5.6 and R6.1–R6.4 are all still `powersave`; **re-running R5's worst-Tick sweep** so
 `10.37 ms` either has an artefact or is struck from `0013` and `CLAUDE.md`; **repairing the harness's
