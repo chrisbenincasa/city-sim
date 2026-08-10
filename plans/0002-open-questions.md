@@ -199,6 +199,26 @@ rule is **when something concrete is blocked on it, not because it is available.
   two-category split that reopens, not `adr/0044`.
 - **A save migration path for a Chunk size change.** Chunk size is on the *cannot be retrofitted* list
   and nothing describes what happens if a profile later says it should move. **Its own session.**
+- **Does the World hold the current Tick, or does the Simulation?** Today the Simulation does — `_tick`
+  is a private `ulong` on it — and **it is therefore in no `[Table]`, in no field declaration, and so
+  neither hashed nor saveable.** *(`_phase` and `_inForce`, the Ruleset in force, sit beside it in the
+  same position, which is why this is one question rather than three.)* **Three mechanisms have now paid
+  for the answer being *no*, which is what promotes it from a shrug to an entry.** Slice 8's
+  `World.Adopt` had to take the Tick **as a parameter** to compute an arming stagger. Slice 9 then added
+  three checks over the Event Wheel and **all three are relative to a *now* the wheel cannot reach
+  except through its caller** — the double-arm refusal rests on time being monotone, the period bound on
+  the caller passing a **truthful** Tick, and `Unlink` on the phase order. And the cost of that was not
+  theoretical: the end-of-run tier had been stamping every violation **`Tick 0`** in both 100,000-Tick
+  acceptance runs, because a fresh `Simulation` over an already-run world reports `_tick` = 0, and
+  **nothing caught it for as long as no invariant read the stamp.** A number that must be passed in
+  correctly by every caller is a number the World should probably own. **Two things make it a real
+  question rather than an obvious repair.** `Simulation._tick` is the **next** Tick to run rather than
+  the last one run, and moving it moves that convention into the hash's blast radius — so it is
+  *hash-bearing by relocation*, which `adr/0052` has no row for. And **invariant 6, the Factorio test,
+  needs the Tick to survive a save** and does not exist yet, so the mechanism that would force the
+  answer is the one mechanism nobody has built. **Where it belongs:** with `§7`'s format half rather
+  than on its own, since *what is saved* and *who owns it* are the same sitting. Raised by
+  [`0016`](0016-the-event-wheel.md) → *What building it found*, item 5.
 - **`§1`, `§7`'s format-and-migration half, `§8`, `§10` remain unargued.**
 
 ### Routing — session M's cluster

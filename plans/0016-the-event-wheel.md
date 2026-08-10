@@ -368,8 +368,15 @@ being monotone**, the period bound on the **caller passing a truthful Tick**, an
 the wheel reaches a `now` only through whoever calls it. **This is the same wall slice 8's `World.Adopt`
 hit** when it had to take the Tick as a parameter to compute a stagger. Whether the World should hold
 the Tick is not slice 9's to settle — it is `05 §7`'s save format question wearing a different hat — but
-it is now the third mechanism to have paid for the answer being *no*, and that is recorded in
-[`0002`](0002-open-questions.md) rather than argued here.
+it is now the third mechanism to have paid for the answer being *no*. **Filed** to
+[`0002`](0002-open-questions.md) §C under `05-technical-architecture.md`, beside `§7`'s format half,
+because *what is saved* and *who owns it* are one sitting.
+
+Two things the filing added that this slice did not have. The Tick is in **no field declaration**, so it
+is neither hashed nor saveable — and `_phase` and `_inForce`, the Ruleset in force, are in the same
+position beside it, which is what makes it one question rather than three. And moving it would be
+**hash-bearing by relocation**, carrying `_tick`'s *next-Tick-to-run* convention into the hash's blast
+radius, which is a shape `adr/0052` has no row for.
 
 ## Acceptance
 
