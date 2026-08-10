@@ -3795,16 +3795,18 @@ otherwise read as contradictory.
   below the one R3's row permits. A mean per-route cost multiplied by an
   arrival rate does not bound a Tick, and S4's K6 said so first: a run whose worst iteration was
   100.2 ms read 2.462 ms at p99.9.
-  > **⛔ 10.37 ms has no artefact — R7's provenance sweep, and this is the bullet every downstream
-  > document quotes.** It appears in **no capture** under `spikes/S2.Routing/results/`. It belongs to
-  > the family the bullet four items below already discloses — the filename collision that destroyed
-  > six of R5's captures — and it is a **seventh that was never named there**, which is why it went on
-  > being quoted while the six did not. **The argument survives and the number does not**: *a mean
-  > per-route cost times an arrival rate does not bound a Tick* rests on S4's K6 as much as on this
-  > figure, and K6 has its own artefact. What may not be quoted is **10.37 ms**, and what depends on
-  > it is [`0013`](../plans/0013-tick-budget.md)'s routing row — **66 of the ≥114% that document sums
-  > to at 4×**, which is more than every other priced consumer together. Re-running R5's worst-Tick
-  > sweep is cheap and is not the owed `performance` capture.
+  > **10.37 ms is table-backed, and the precision is what wants qualifying.** R7's provenance sweep
+  > briefly recorded this figure as having no artefact; **that was the sweep's own instrument failing
+  > on a unit conversion** — the row is `10370.13 µs` in
+  > `s2-r5-…-performance-turbo-cpu2+8-20260807T120834Z.md`, and the corpus renders it in
+  > milliseconds. Retracted in full under *The provenance sweep*.
+  >
+  > What the re-run left behind is a better statement of the same number. **Seven captures now stand
+  > behind this cell**, and the five correctly pinned ones read **9.37, 9.45, 9.51, 10.37 and
+  > 10.51 ms** — so **10.37 is the second-highest of five** and the figure is properly **~9.4–10.5 ms**.
+  > It is a *maximum over 256 Ticks*, and a maximum quoted to two decimals in a budget row claims a
+  > precision it does not have. **The conclusion is untouched**: two-thirds of a 15.6 ms budget at 4×
+  > either way.
 - **R3's denominator finding arrives a fourth time, in a form it had not taken.** R5's first draft
   measured the rebuild at 8 Chunks and divided the **16**-Chunk repair figures by it — not measured
   once instead of twice, but **measured on the wrong rung**. A rebuild at 16 Chunks is a different
@@ -5650,15 +5652,53 @@ which `CLAUDE.md` records as a **named ratifier**. All are real and none is chec
 **So is R6.4.3's correction, published earlier today**: 13.69%, 42.76% and 95.54% are prose. A
 correction that inherits the defect it corrects is still a correction, and it is also still the defect.
 
-**Absent is where the sweep stopped being an audit of transcription.** Four figures match no capture at
-all, and one of them is the most-quoted routing number in the project. **`10.37 ms` — R5's worst Tick
-at 16 Trip starts — has no artefact**, and it is in [`0013`](../plans/0013-tick-budget.md) as the
+> **⛔ RETRACTED — the *absent* class was mostly an artefact of the sweep's own instrument, and the
+> re-run written to fix it is what caught that.** The paragraph below claimed four figures had no
+> capture behind them. **Two of the four do**, including the one it called the sweep's largest find.
+> **`10.37 ms` is a table row** — `| monocentric L=512 | global | 4 Ticks | … | 10370.13 µs |` in
+> `s2-r5-…-performance-turbo-cpu2+8-20260807T120834Z.md` — and `6.82 ms` is `6820.86 µs` in another.
+>
+> **The sweep matched rendered strings, and the corpus and the harness do not render in the same
+> units.** `spike-results` writes milliseconds to two decimals; the harness prints microseconds. So
+> every figure the corpus converted on transcription was invisible to the matcher and fell into
+> *absent* — which is not a weaker version of the defect being hunted, it is **a false accusation, and
+> the strongest claim in the sweep was one.** The mechanism was even documented inside the sweep's own
+> evidence, for R1.2, where a ladder *"reads as not-found only because the corpus converts units"* —
+> **noted for one section and not generalised to the class.** `adr/0044`'s *citing is not applying*,
+> committed by the audit written to catch that family, which is the fifth instance and the first
+> where the instrument rather than an argument was the thing not applied.
+>
+> **What survives, and it is verified by hand rather than by the matcher.** The **contradicted** class
+> stands — 2.17×/64.81× against tables reading 2.31×/63.86×, and 23.26× against 23.28×/22.61× — each
+> checked against the table row itself. The **unbacked** class stands: R8's verdicts, R6.4's
+> reverse-index figures and R6.4.3's correction are prose, re-checked against every table in every
+> capture. What is left of **absent** is `223.92 KiB` and `9.94%`, and even those are now stated as
+> *not found under the spellings tried* rather than as absent, because the matcher that produced them
+> is the one that just failed.
+>
+> **The rule the sweep proposed needs a fourth sentence, and it is the one that would have prevented
+> this**: *a figure is looked up as a quantity, not as a string* — unit-converted, tolerance-matched,
+> and confirmed by reading the row. Everything below survives except the class this note replaces.
+
+~~**Absent is where the sweep stopped being an audit of transcription.** Four figures match no capture
+at all, and one of them is the most-quoted routing number in the project. **`10.37 ms` — R5's worst
+Tick at 16 Trip starts — has no artefact**, and it is in [`0013`](../plans/0013-tick-budget.md) as the
 **routing row of the Tick budget**, in `CLAUDE.md`, in `plans/0011`, in `plans/0002` and three times on
 the board. R5 already disclosed that a filename collision destroyed six of its captures and **named
 six figures as unbacked**; 10.37 ms is a seventh and was not on the list, so the disclosure was
 partial in precisely the direction that matters — **the figure that escaped the list is the one the
 budget document quotes.** `223.92 KiB` (twice, once as a verdict), `6.82 ms` and `9.94%` are the other
-three.
+three.~~
+
+**What the re-run produced instead, and it is worth more than the retracted claim.** Taking the R5
+storm again puts **seven** captures behind the same cell, and the worst Tick at 16 Trip starts on
+monocentric/global reads **9,373 / 9,450 / 9,509 / 10,370 / 10,507 µs** across the five correctly
+pinned ones — **9.37 to 10.51 ms**, with the published 10.37 the second-highest of them. The two
+outside that set read 7,497 µs (mis-pinned to one logical processor) and 11,670 µs (unpinned). **So
+the figure is sound and its precision is not**: it is a *maximum over 256 Ticks*, quoted to two
+decimals in a budget row, and the honest form is **~9.4–10.5 ms**. The conclusion it carries does not
+move — the row is still about two-thirds of a 15.6 ms budget at 4× — which is why this belongs in the
+row's statement rather than in its verdict.
 
 **What the sweep changes about the rule.** *Quote from a table* is right and insufficient. The
 sharper form is three sentences: **a figure with no artefact is not a measurement and may not be
@@ -5710,14 +5750,19 @@ harness's, and it is the one instance of this family nobody would have found by 
   to its instances. **Every figure this corpus took from capture prose rather than from a capture
   table is provenance-unknown**, and that is a sweep, not a line. **THE SWEEP HAS RUN** — see *The
   provenance sweep* — and what it leaves is below.
-- **`10.37 ms` has no artefact, and it is the routing row of the Tick budget.** The sweep's largest
-  find. R5 disclosed that a filename collision destroyed six captures and **named six unbacked
-  figures**; this is a seventh, it was not on that list, and it is the one
-  [`0013`](../plans/0013-tick-budget.md), `CLAUDE.md`, `plans/0011`, `plans/0002` and the board all
-  quote. Under this document's own rule — *a published absolute with no artefact behind it is not a
-  measurement* — **it may not be quoted until R5's worst-Tick sweep is re-run**, which is cheap and is
-  not the same task as the `performance` re-capture. `223.92 KiB`, `6.82 ms` and `9.94%` are in the
-  same class and carry less.
+- ~~**`10.37 ms` has no artefact, and it is the routing row of the Tick budget.**~~ **RETRACTED, by the
+  re-run this bullet asked for.** It is a table row, `10370.13 µs`; the sweep's matcher compared
+  rendered strings across a unit boundary and manufactured the accusation. What the re-run leaves is
+  smaller and real: **the figure is a maximum with a 9.37–10.51 ms spread over five correctly pinned
+  captures**, so quoting it to two decimals overstates it. `6.82 ms` was the same false positive.
+  `223.92 KiB` and `9.94%` remain **not found under the spellings tried**, which is the strongest
+  form that claim may now take.
+- **A figure is looked up as a quantity, not as a string.** The fourth sentence of the provenance
+  rule, and the one that would have prevented the retraction above: unit-converted, tolerance-matched,
+  and confirmed by reading the row. The sweep is worth re-running under it, because a matcher that
+  produced one false accusation in four may have produced false *clearances* too — a figure counted
+  as table-backed on a coincidental substring, of which this sweep has already seen three
+  (`1814.08 µs`, `8.15 Ticks`, `913.69 µs` matching `14.08`, `8.15` and `13.69`).
 - **Three tables in this document were assembled from capture prose** — R5's machine table, R6.4's
   reverse-index table and R8.4's. The figures are real; the *rendering* claims a provenance they do
   not have, which is the one member of this family that is the corpus's fault rather than the

@@ -140,9 +140,9 @@ tripwire moved **3.3× onto the corpus's own worked example**: the engine fits b
 of **~15.9 Ticks at 4×** where the retired wire said 4.8, and `02 §4.3`'s bakery runs at **8**. The
 general lesson is now written into `0013`: **its organising column is *measured multiplicand* against
 *guessed*, and it always assumed the unit side was solid — a unit cost is a hypothesis until a real
-world has produced one**, and routing's 10.37 ms has never met a world either — **and S2 R7's
-provenance sweep has since found that 10.37 ms has no capture behind it at all**, so it is not a
-measurement and `0013`'s routing row is a placeholder in the row that decides that document's answer.
+world has produced one**, and routing's 10.37 ms has never met a world either — and S2 R7 has since
+found it is a **maximum with a 9.4–10.5 ms spread**, whose multiplicand R6.3 showed counts the wrong
+event, in the row that carries most of `0013`'s sum.
 
 **S0a is done and the Phase 1 gate is closed.** `CommandKind.Populate` fills a world through **Phase 0**,
 so the population is in the Input Log and replay reproduces it by construction; `Borough.Core.Entities.SyntheticCity`

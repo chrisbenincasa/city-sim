@@ -68,9 +68,8 @@ high — which is worse than being wrong, because nothing would have noticed eit
 mean Rule rate of ~15.9 Ticks at 4×, where the retired wire said 4.8, and `02 §4.3`'s bakery runs at
 8. The general lesson is in `0013` now: **its *measured multiplicand* column always assumed the unit
 side was solid, and a unit cost is a hypothesis until a real world has produced one.** Routing's
-10.37 ms has never met a world either — and R7's provenance sweep has since found it has **no capture
-behind it at all**, which makes `0013`'s routing row a placeholder carrying **66 of the ≥114%** that
-document sums to at 4×.
+10.37 ms has never met a world either — and R7 has since found it is a **maximum with a 9.4–10.5 ms
+spread**, in the row carrying **60–67 of the ≥114%** `0013` sums to at 4×.
 
 **Scale.** A million Citizens fit comfortably: 86 MiB of tables, **177 MB resident once a Ruleset
 fills the Bin and Rule Instance tables** (S0a's ~94 MiB owed exactly this re-take), and 100,000
@@ -650,12 +649,15 @@ and what is left.
       ledger restated as what S2 hands on.~~ **The provenance sweep has since run and found the rule was under-specified** — *quote from a table*
       condemns **contradicted**, **unbacked** and **absent** figures alike, and only the first is a
       defect in a number. It caught **R7 quoting prose figures in the section that diagnosed them**
-      (2.17×/64.81× against tables reading 2.31×/63.86×), and its largest find is that **`10.37 ms` has
-      no artefact at all** — R5's worst Tick at 16 Trip starts, which [`0013`](0013-tick-budget.md)
-      carries as **the routing row of the Tick budget** and `CLAUDE.md` quotes. R5 disclosed six
-      unbacked figures after a filename collision; this is a **seventh that was not on the list**, and
-      it is the one every budget document leans on. **Three tables in `spike-results` were also
+      (2.17×/64.81× against tables reading 2.31×/63.86×), and **three tables in `spike-results` were
       assembled from capture prose**, which is the corpus's own fault rather than the harness's.
+      **Its largest claim it then retracted the same day.** The sweep called `10.37 ms` unbacked; the
+      re-run it prompted found the figure in a table as `10370.13 µs`, because **the matcher compared
+      rendered strings and the corpus renders milliseconds where the harness prints microseconds**.
+      An audit written to catch *citing is not applying* committed it with its own instrument. What
+      the re-run leaves is real and smaller: the figure is a **maximum** spanning **9.37–10.51 ms**
+      over five pinned captures, so a budget row quoting it to two decimals overstates it — and the
+      rule gains a fourth sentence, ***a figure is looked up as a quantity, not as a string***.
       **Three of those four are done and one was never owed** —
       **R2's reconciliation closed on 2026-08-09** and four documents including R7's own owed-list went
       on carrying it open, that list holding **both states at once**. What remains is a **second**
@@ -690,18 +692,22 @@ the spike and slice work left behind as it ran; `0012` is the one-off audit of e
 document against the code. Keep them separate — a debt in two ledgers is the defect `0012` exists to
 diagnose.
 
-- [ ] **`10.37 ms` has no artefact, and it is the routing row of the Tick budget.** Found by S2 R7's
-      provenance sweep. R5's worst Tick at 16 Trip starts appears in **no capture under
-      `spikes/S2.Routing/results/`** — R5 already disclosed that a filename collision destroyed six of
-      its captures and **named six unbacked figures**, and this is a **seventh that was not on the
-      list**. It is quoted by [`0013`](0013-tick-budget.md) **as the routing row**, by `CLAUDE.md`, by
-      [`0011`](0011-rule-engine-bins-and-rules.md), by [`0002`](0002-open-questions.md) and three times
-      on this board. Under `spike-results`'s own rule — *a published absolute with no artefact behind
-      it is not a measurement* — **it may not be quoted until R5's worst-Tick sweep is re-run**. The
-      re-run is cheap and is **not** the same task as the owed `performance` capture. It does not
-      overturn `0013`'s conclusion, which already marks the row's multiplicand *guessed*; what it moves
-      is that the **unit** was unverified too, which is `0013`'s own lesson arriving at `0013`'s own
-      row. `223.92 KiB`, `6.82 ms` and `9.94%` are in the same class and carry less
+- [x] ~~**`10.37 ms` has no artefact, and it is the routing row of the Tick budget.**~~ **RETRACTED
+      the same day, by the re-run this entry asked for.** It is a table row — `10370.13 µs` in
+      `s2-r5-…-performance-turbo-cpu2+8-20260807T120834Z.md` — and S2 R7's sweep had matched **rendered
+      strings across a unit boundary**, so every figure the corpus converted on transcription was
+      invisible to it. `6.82 ms` was the same false positive. **What the re-run establishes instead is
+      that the figure is a *maximum*** spanning **9.37–10.51 ms** over five correctly pinned captures,
+      with the published 10.37 the second-highest of them — so [`0013`](0013-tick-budget.md)'s routing
+      row now reads **~9.4–10.5 ms** and **60–67%** at 4× rather than a point estimate. The ledger's
+      verdict does not move. **The row's real weakness was never its unit**: R6.3 found its
+      multiplicand counts the wrong event, and that is the correction with a known direction
+- [ ] **Re-run the provenance sweep as a quantity match, not a string match.** Owed by the retraction
+      above. A matcher that produced one false accusation in four may also have produced false
+      *clearances* — a figure counted as table-backed on a coincidental substring, of which three are
+      already known (`1814.08 µs`, `8.15 Ticks`, `913.69 µs` matching `14.08`, `8.15`, `13.69`).
+      `223.92 KiB` and `9.94%` are the two survivors of the *absent* class and may only be described
+      as **not found under the spellings tried**
 - [ ] **S0a's capture is `powersave`, not `performance`** — setting the governor needs root and the
       session did not have it. **Every absolute in that section is an upper bound** and every ratio is
       unaffected, since ratios are taken within one machine state. The one verdict leaning on an
@@ -1050,9 +1056,8 @@ diagnose.
       the policy is worth more than the Epoch rung below the highest edit rates
 - [ ] **A mean per-route cost times an arrival rate does not bound a Tick — NEW, produced by S2 R5.3.**
       R3 published *routing fits while fewer than 85 Trips start per Tick*, derived from a mean. At
-      **16** Trip starts R5 already measures a worst Tick of ~~**10.37 ms**~~ **— a figure R7's
-      provenance sweep found in no capture, so the lesson stands and the number may not be quoted
-      until R5's worst-Tick sweep is re-run** — against a 15.6 ms budget.
+      **16** Trip starts R5 already measures a worst Tick of **10.37 ms** — R7's re-run makes that
+      **~9.4–10.5 ms** across five pinned captures, and it is a *maximum* — against a 15.6 ms budget.
       **S4's K6 said it first** — a run whose worst iteration was 100.2 ms read 2.462 ms at p99.9 —
       and R6 inherits the instruction along with R3's
 - [x] ~~**The canonical `performance` capture of R5 is owed**~~ **DISCHARGED**, and taking it found a
@@ -1061,12 +1066,12 @@ diagnose.
       percentage is bit-identical across the two**, including R5.4's whole addition table, so no
       conclusion moved. Three absolutes did: the repair loop reads **23.26× and a 253.22 ms worst
       gesture** rather than 21.25× / 219.50 ms, and the worst Tick reads **10.37 ms** rather than
-      13.26 ms. **⚠ This discharge is itself implicated, and it is the sharpest thing the provenance
-      sweep found about process rather than about numbers.** The debt it closed was *R5 published
-      figures with no artefact behind them*, and it closed it by substituting **two figures of the
-      same kind**: `10.37 ms` appears in **no capture**, and `23.26×` is prose contradicted by the
-      tables it summarises, which read **23.28×** and **22.61×** in the two retained captures. **A
-      debt about unbacked figures was discharged in unbacked figures**, and nothing noticed because
+      13.26 ms. **⚠ This discharge is partly implicated.** The debt it closed was *R5 published figures
+      with no artefact behind them*, and one of the figures it closed it with is **prose contradicted
+      by its own tables**: `23.26×` against tables reading **23.28×** and **22.61×** in the two
+      retained captures. (*The sweep also accused `10.37 ms` here and was wrong — see the Owed entry
+      above.*) **Half a debt about unbacked figures was discharged in an unbacked figure**, and
+      nothing noticed because
       the discharge quoted a capture — just not a table in one
 - [ ] **Every earlier `performance` capture in S2 carries a one-processor artefact — NEW, produced by
       R5's canonical capture.** `routing-run.sh` pinned with `taskset -c 2`, one logical processor

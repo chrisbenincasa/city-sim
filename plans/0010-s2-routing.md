@@ -1454,11 +1454,18 @@ disagreeing with a table in the same capture — the R4 verdict block throughout
 journey of order 80"*), **unbacked** (a real figure the harness prints only as prose — most of R8's
 verdicts, R6.4's reverse-index table, and R6.4.3's correction published the same day), and **absent**
 (no artefact at all). **The sweep caught R7 quoting the prose figures in the section that diagnosed
-them** — 2.17× and 64.81× against tables reading 2.31× and 63.86× — and its largest find is that
-**`10.37 ms` has no artefact**: R5's worst Tick at 16 Trip starts, quoted by `plans/0013` as the
-routing row of the Tick budget, by `CLAUDE.md`, and three times on the board. R5 disclosed six unbacked
-figures after a filename collision and this is a seventh that was not on the list. Details and the
-sharpened rule are in [`spike-results`](../docs/spike-results.md) → *The provenance sweep*.
+them** — 2.17× and 64.81× against tables reading 2.31× and 63.86×.
+
+**Its largest claim was a false accusation, and the re-run it prompted is what caught that.** The
+sweep called `10.37 ms` unbacked; it is a table row, `10370.13 µs`, and **the matcher had compared
+rendered strings across a unit boundary** — the corpus renders milliseconds where the harness prints
+microseconds, so every figure converted on transcription fell into *absent*. An audit written to catch
+`adr/0044`'s *citing is not applying* committed it **with its own instrument**, which is the fifth
+instance and the first in a tool rather than an argument. **The rule therefore gains a fourth
+sentence: *a figure is looked up as a quantity, not as a string*.** What the re-run leaves is smaller
+and real — the worst Tick is a **maximum** spanning **9.37–10.51 ms** over five pinned captures, so
+`0013`'s routing row reads **~9.4–10.5 ms** rather than a point estimate. Details in
+[`spike-results`](../docs/spike-results.md) → *The provenance sweep*.
 
 **Still owed:** a **second** `performance` capture, because one is an assertion and two are an error
 bar, and R5.6 and R6.1–R6.4 are all still `powersave`; **re-running R5's worst-Tick sweep** so
