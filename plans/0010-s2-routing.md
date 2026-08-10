@@ -1503,8 +1503,13 @@ one in `VectorReport`, R4.8's ladder wraps above a **4.58%** detour on the unifo
 on the shortest, and every published rung sits above its own threshold. And every unit-carrying
 decimal typed into report prose across all fourteen files is **eighteen literals**, of which all but
 one are external citations, table-header constants, or defect narratives describing harness states no
-live measurement can reproduce. **`TrafficReport.AppendVerdict` still has the hole** — it can cite
-nothing — but R2's verdict contains no figures at all, so the emptiness is luck rather than design.
+live measurement can reproduce. **`TrafficReport.AppendVerdict` had the same hole and it is now closed
+too** — R2's verdict contained no figures at all, so nothing was wrong, but the emptiness was luck
+rather than design and R2 is where `18.52%` and decision 11 come from. **Closing it improved the
+verdict rather than merely protecting it**: the block *gestured* at its measurements without naming
+them, so *"R2.1's detour columns are correctness content"* and *"the crossing rate is now measured"*
+now carry the detour means, p90s and sample count, and the crossing rate as a **range across all three
+path sources** — which is the shape that makes a disagreement between them visible.
 
 **Still owed:** a **second** `performance` capture, because one is an assertion and two are an error
 bar, and R5.6 and R6.1–R6.4 are all still `powersave`; **re-running R5's worst-Tick sweep** so

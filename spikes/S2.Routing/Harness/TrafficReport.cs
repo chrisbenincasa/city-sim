@@ -76,6 +76,33 @@ internal static class TrafficReport
     /// <summary>Share of the fleet the surge redirects, in hundredths.</summary>
     private const int SurgeShareHundredths = 40;
 
+    /// <summary>
+    /// What R2's sections measured, carried forward to the verdict that argues from them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Added by the same repair that fixed R4's verdict, and for the same structural reason rather
+    /// than for a defect found here. <c>AppendVerdict</c> took a StringBuilder and nothing else, so
+    /// it could not cite a measurement even in principle. R4's block, with the same signature, had
+    /// gone stale in four figures and the corpus had quoted them back out.
+    /// </para>
+    /// <para>
+    /// R2's block had <b>not</b> gone stale, because it contained no figures at all — it gestured at
+    /// its own measurements in words (<i>"R2.1's detour columns are correctness content"</i>,
+    /// <i>"the crossing rate is now measured"</i>) and named none of them. That is luck rather than
+    /// design: the next figure anybody added would have been a typed one, and R2 is where the
+    /// 18.52% detour and decision 11 come from. The claims that were qualitative are now quantified
+    /// from the sections that took them, which closes the hole by using it.
+    /// </para>
+    /// </remarks>
+    private sealed class Measured
+    {
+        public Detour Detour;
+
+        /// <summary>Morning-peak crossings per Traveller per Tick, in hundredths, per path source.</summary>
+        public readonly List<(PathSource Source, int RateHundredths)> PeakCrossingRate = [];
+    }
+
     public static string Run()
     {
         var report = new StringBuilder();
@@ -108,17 +135,19 @@ internal static class TrafficReport
         var pool = RouteStore.ForSearchedPool(
             graph, sampler, arcTicks, SearchedPool, CounterHash.Seed, out int poolFound);
 
-        AppendLadder(report, graph, reverse, anchor, arcTicks, sampler, pool, poolFound);
+        var measured = new Measured();
+
+        AppendLadder(report, graph, reverse, anchor, arcTicks, sampler, pool, poolFound, measured);
 
         // Built once and threaded through the remaining sections. Rebuilding per section would put
         // three unrelated build costs inside sections that are not measuring builds.
         var shared = RouteStore.ForDistrictPairs(graph, anchor, arcTicks, new OneToAll(graph));
         var nextHop = NextHopTable.Build(graph, reverse, anchor, arcTicks);
 
-        AppendCrossingRate(report, graph, anchor, arcTicks, pool, shared, nextHop);
+        AppendCrossingRate(report, graph, anchor, arcTicks, pool, shared, nextHop, measured);
         AppendCrossover(report, graph, anchor, arcTicks, shared);
         AppendLag(report, graph, anchor, arcTicks, pool, shared, nextHop);
-        AppendVerdict(report);
+        AppendVerdict(report, measured);
 
         return report.ToString();
     }
@@ -133,7 +162,8 @@ internal static class TrafficReport
         int[] arcTicks,
         OdSampler sampler,
         RouteStore pool,
-        int poolFound)
+        int poolFound,
+        Measured measured)
     {
         report.AppendLine("### R2.1 — the path source ladder, and the rung the plan did not have");
         report.AppendLine();
@@ -160,6 +190,7 @@ internal static class TrafficReport
             (long)InFlightRungs[1] * shared.MeanLength * sizeof(int);
 
         var detour = MeasureDetour(graph, anchor, arcTicks, sampler);
+        measured.Detour = detour;
 
         report.AppendLine(
             "| Rung | Build | Resident | Per Leg at spawn | Per crossing | Detour, mean | p90 |");
@@ -467,7 +498,8 @@ internal static class TrafficReport
         int[] arcTicks,
         RouteStore pool,
         RouteStore shared,
-        NextHopTable nextHop)
+        NextHopTable nextHop,
+        Measured measured)
     {
         report.AppendLine("### R2.2 — the crossing rate, which `adr/0041` assumed and S2 can measure");
         report.AppendLine();
@@ -525,6 +557,11 @@ internal static class TrafficReport
 
                 int rate = (int)IntegerMath.FloorDiv(
                     crossings * 100, (long)WorkingFleet * RateTicks);
+
+                if (peak)
+                {
+                    measured.PeakCrossingRate.Add((source, rate));
+                }
 
                 long expected = (long)(fleet.Size - fleet.Unplaced()) * Fixed.One;
                 long actual = fleet.TotalVolume();
@@ -1067,7 +1104,7 @@ internal static class TrafficReport
 
     // --- the verdict ------------------------------------------------------------------------------
 
-    private static void AppendVerdict(StringBuilder report)
+    private static void AppendVerdict(StringBuilder report, Measured m)
     {
         report.AppendLine("### What R2 decides, and what it hands on");
         report.AppendLine();
@@ -1087,20 +1124,26 @@ internal static class TrafficReport
             + "attraction is that it needs no per-route invalidation, and its exposure is that "
             + "*in a city builder link deletion is the core verb*.");
         report.AppendLine();
-        report.AppendLine(
-            "**`adr/0041` is owed a correction, small and worth making.** It calls the path source "
-            + "*\"a performance axis with no correctness content\"*. R2.1's detour columns are "
-            + "correctness content: a Traveller handed a coarse route drives a different Trip, which "
-            + "under `05 §4`'s test is a different city. The ADR's substantive claim survives intact "
-            + "— experience and contribution stay the same list of Segments under every rung, because "
-            + "a Traveller increments whatever it actually drives — so this amends a sentence and not "
-            + "a decision.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"**`adr/0041` is owed a correction, small and worth making.** It calls the path source "
+            + $"*\"a performance axis with no correctness content\"*. R2.1's detour columns are "
+            + $"correctness content: a Traveller handed a coarse route drives a different Trip — "
+            + $"**{Hundredths(m.Detour.SharedMean)}% longer** under the shared District route and "
+            + $"**{Hundredths(m.Detour.HopMean)}%** under the next-hop table, at the mean over "
+            + $"{m.Detour.Samples:N0} sampled Trips, with p90s of {Hundredths(m.Detour.SharedP90)}% "
+            + $"and {Hundredths(m.Detour.HopP90)}% — which under `05 §4`'s test is a different city. "
+            + $"The ADR's substantive claim survives intact — experience and contribution stay the "
+            + $"same list of Segments under every rung, because a Traveller increments whatever it "
+            + $"actually drives — so this amends a sentence and not a decision."));
         report.AppendLine();
-        report.AppendLine(
-            "**The crossing rate is now measured and `adr/0041`'s own revisit trigger is the place to "
-            + "record it.** Its cost arithmetic assumes one Segment per Tick; R2.2 reports what the "
-            + "graph actually produces at R0's density. Every figure in R2a scales linearly on that "
-            + "number.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"**The crossing rate is now measured and `adr/0041`'s own revisit trigger is the place "
+            + $"to record it.** Its cost arithmetic assumes **one** Segment per Tick; R2.2 reports "
+            + $"what the graph actually produces at R0's density, which is {CrossingRateClause(m)}. "
+            + $"Every figure in R2a scales linearly on that number, so the assumed rate overstates "
+            + $"the bill it is used to compute."));
         report.AppendLine();
         report.AppendLine(
             "**What R2 does not settle.** The peaking factor is still unsized (decision 5a), so the "
@@ -1110,6 +1153,38 @@ internal static class TrafficReport
             + "different District counts and neither ranking is a reason to pick one. And nothing "
             + "here prices **invalidation**, which is R5's.");
         report.AppendLine();
+    }
+
+    /// <summary>
+    /// The measured morning-peak crossing rate, as a phrase. Every path source drives the same
+    /// graph at the same speeds, so the rungs should agree and the interesting case is when they do
+    /// not — the range is printed rather than a single rung's figure, which is the shape that makes
+    /// a disagreement visible instead of hiding it behind whichever rung was quoted first.
+    /// </summary>
+    private static string CrossingRateClause(Measured m)
+    {
+        if (m.PeakCrossingRate.Count == 0)
+        {
+            return "not measured in this capture";
+        }
+
+        int low = int.MaxValue;
+        int high = int.MinValue;
+        foreach ((_, int rate) in m.PeakCrossingRate)
+        {
+            low = rate < low ? rate : low;
+            high = rate > high ? rate : high;
+        }
+
+        return low == high
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"**{Hundredths(low)} crossings per Traveller per Tick**, identical across all "
+                + $"{m.PeakCrossingRate.Count} path sources")
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"**{Hundredths(low)}–{Hundredths(high)} crossings per Traveller per Tick** across "
+                + $"the {m.PeakCrossingRate.Count} path sources");
     }
 
     // --- formatting -------------------------------------------------------------------------------

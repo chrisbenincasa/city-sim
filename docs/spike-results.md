@@ -5826,11 +5826,23 @@ whose numbers describe harness states that no longer exist and which **no live m
 reproduce by construction**. The remaining one is `MatrixReport`'s *"this row's ~1.5 ms"*, hedged with
 a tilde and never quoted by the corpus.
 
-**And the structural hole exists in one other place without having been exploited.**
-`TrafficReport.AppendVerdict(StringBuilder report)` has the same signature R4's did — it can cite
-nothing — but R2's verdict happens to contain **no figures at all**, being entirely argumentative. So
-no correction is owed there. It is recorded because the shape is the risk and the emptiness is luck:
-the next figure anybody adds to that block will be a typed one, and nothing would stop it.
+**The structural hole existed in one other place without having been exploited, and it is now closed
+too.** `TrafficReport.AppendVerdict(StringBuilder report)` had the same signature R4's did — it could
+cite nothing — but R2's verdict contained **no figures at all**, being entirely argumentative. No
+correction was owed and none was made. The hole was still worth closing, because the emptiness was
+luck rather than design: the next figure anybody added would have been a typed one, and R2 is where
+`18.52%` and decision 11 come from.
+
+**Closing it turned out to improve the verdict rather than merely protect it**, because the block was
+not silent about its measurements — it *gestured* at them. *"R2.1's detour columns are correctness
+content"* named no column, and *"the crossing rate is now measured"* named no rate, in the paragraph
+whose whole point is that `adr/0041`'s cost arithmetic assumes the wrong one. Both now carry the
+figures their own sections took: the detour with its mean, its p90 and its sample count under each
+coarse rung, and the crossing rate as a **range across all three path sources** rather than whichever
+rung got quoted first — every source drives the same graph at the same speeds, so they should agree,
+and printing the range is what makes a disagreement visible instead of hiding it. **A verdict that
+cannot cite a measurement does not merely risk going stale; it argues qualitatively about things it
+has the numbers for.**
 
 ### What R7 still owes
 
