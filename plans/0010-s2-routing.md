@@ -1246,13 +1246,20 @@ verdict.
 
 ---
 
-### R6.4. What a per-Citizen Habit Route costs — **NEW, produced by session M, and it runs before R7 closes**
+### R6.4. What a per-Citizen Habit Route costs — **RUN. All three sub-tasks. Numbers in [`spike-results`](../docs/spike-results.md) → *S2 R6.4***
 
 > **Retitled mid-session, and the rename is a finding.** This block said *per-Traveller* because
 > `CONTEXT.md` → Habit Route did, and that entry contradicted the same file's *a Traveller is a view,
 > not an owner*. A route reused across many Trips is conserved across embodiments, so it lives on the
 > **Citizen**. The distinction is not cosmetic: it sets the **store size** to the population rather
 > than to the Microscopic Cap, and every cost below is that size times something.
+
+**Ran on the harness that was still on disk.** `spikes/S2.Routing/Harness/HabitReport.cs` and
+`Traffic/RouteCellIndex.cs`, section flag `--habit`, four captures under `powersave` pinned to
+processors 2,8 — of which two are retained, because one run is an assertion and two are an error bar.
+**Every count, share and percentage is bit-identical across the retained pair**; only nanosecond
+columns move, by 2–8%. **The canonical `performance` capture is owed**, and R7 owes it alongside the
+others.
 
 **Session M declined to choose and named a measurement instead**, which is `adr/0043` applied to the
 session's own output rather than to a document's. The choice it faced is a **trilemma** — memory,
@@ -1261,9 +1268,14 @@ has no numbers at all**:
 
 | | Memory at 1M | Diversion | Concentration |
 |---|---:|---|---|
-| **Per-Citizen stored path** | **unmeasured** — 232.7 MiB uncompressed | **unmeasured** | none |
+| **Per-Citizen stored path** | **~~unmeasured~~ 225.06 MiB compressed + 1,678.46 MiB index** | **~~unmeasured~~ 2.43 µs, 19.81% of a Tick** | none |
 | Shared next-hop tree | 7.70 MiB (R2.1) | free, 3.18% (R8.6) | **87.25% on 1%** (R8.0) |
 | Cached route | ~250 KiB + handles | needs **88.5%**, unattainable (R6.1b) | none |
+
+**Both blank cells are filled and both read against the row** — the memory figure by a factor of
+seven once the reverse index the wake needs is counted, which is a **column this table does not have
+and needs**: two of its three schemes require one and only the per-Citizen row was ever costed
+without it. The figures are the uniform rung; the whole family is in `spike-results` → *S2 R6.4*.
 
 **Both missing numbers are Road Graph properties.** Neither needs Trip generation, Travellers or
 traffic, which is what makes this runnable on the harness that is still on disk — and the same class of
@@ -1274,10 +1286,39 @@ network at degree ~3, so many nodes are degree 2 and mid-block, and `adr/0046` a
 that fact. Sample routes across the O-D family and count the nodes with a genuine choice. **Refutes if
 `k > ~25`**, which leaves memory above 100 MiB and the row loses on the axis it was chosen against.
 
+> **Result: REFUTED, at four of five O-D rungs.** `k` = **59.05** at uniform against `L` = 61.52 — a
+> compression ratio of **1.04×** — and 45.16 / 33.61 / 22.08 / 54.58 down the family. **The premise
+> was refuted before the run and by a table in this document**: R6.4.1 rests on *many nodes are degree
+> 2 and mid-block*, and this Road Graph has **no mid-block nodes at all**, because a Segment runs
+> junction to junction by construction. R8.1 published the same fact from the other side —
+> **98.02% of arrivals are at distance 0 from a node with a genuine choice** — before R6.4 was written
+> into this plan. *Citing a measurement is not applying it*, which is `adr/0044`'s closing finding for
+> the fourth time and the third inside this plan. The one rung that passes, `decay L=256` at
+> `k` = 22.08 and 83.92 MiB, **would also pass with no compression at all** (88.65 MiB): it survives
+> on trip length and not on the representation. A shortest path on a grid *is* its decision sequence,
+> and `CONTEXT.md` → Segment's road-density debt now has a road-**topology** sibling.
+
 **R6.4.2 — the rejoin cost.** From one arc off a stored path, search back to the path, bounded by the
 Sight Horizon. **Refutes if the cost exceeds ~10 µs**, which against R8.3's measured 1,269.51
 diversions per Tick is 12.7 ms — most of a 15.6 ms budget, and the row loses to the tree on the axis
 the tree wins.
+
+> **Result: NOT REFUTED at any horizon up to 8, on any rung** — 667 ns at Horizon 1 to 4.69 µs at
+> Horizon 8, uniform. It fires only at Horizon 16 and only on three rungs of five. **But the threshold
+> is 3.3× too loose to have decided anything, and that is scored here rather than at the report**: 10
+> µs × 1,269.51 diversions is **81% of a 15.6 ms Tick**, so a row that passes at 9.41 µs is spending
+> 77% of the budget on rejoins. Stated R3's way instead, and this is what should be quoted: **a rejoin
+> at Horizon 3 fits while fewer than 6,419 diversions occur per Tick at uniform.**
+>
+> **The unlooked-for finding is a cliff at Horizon 3**, and it is a constant derived off the graph
+> rather than tuned. Rejoin success is 14.64% at Horizon 1, 19.14% at 2 and **85.74% at 3** —
+> reproduced on all five O-D rungs and bit-identical across captures — because getting back onto a
+> path after leaving it means going round a block, and a block on this grid is three Segments. Horizon
+> 3 was not on the planned ladder; it was added when the first build showed a 4× jump between 2 and 4.
+> **So the Sight Horizon is two quantities wearing one name**: R8.1's floor of **1 Segment** is *how
+> far you look to notice a choice*, and **3 Segments** is *how far you may search to recover a route
+> you have left*. One Segment fails 85% of the time at the second job, and nothing in the corpus
+> separates them — a coupling between `adr/0046` and a stored-route scheme that neither names.
 
 **R6.4.3 — the addition wake's fan-out, and what `d` should be.** `adr/0012`'s contract wakes routes
 within `d` of a newly added Segment, and R1.7 has already measured that a proximity test over a
@@ -1332,6 +1373,39 @@ better. Nothing here should be read as expecting the earlier number to improve.
 
 *Report every figure as an absolute and not as a percentage, per R6.1a: the percentage is a property
 of whichever O-D draw was used and the absolute is a property of the graph.*
+
+> **Result: NOT REFUTED on fan-out.** `P(stale)` peaks at **31.73%** at `d` = 16 Cells (2 km) and does
+> not approach 1 anywhere; at `d` = 0 it is **16.89%**. One ordinary gesture marks between a sixth and
+> a third of the store, so the drain still bounds something and `adr/0012`'s contract survives the axis
+> it was tested on. **`d` should be 0** — going to 16 Cells nearly doubles fan-out (346 → 650) to buy
+> eight points of catch.
+>
+> **Two findings outrank the sweep.** First, **the wake tests proximity of the wrong object**, which is
+> R5.4's asymmetry arriving at the wake instead of at the Epoch: a route computed before a road existed
+> cannot contain it, so where the *stored* path runs says nothing about whether the addition helps it —
+> the changed routes are the ones whose *recomputed* path detours to the new Arterial, and those start
+> and end anywhere. That is why the miss **does not close at any radius**: 36 at `d` = 0, still 20 at
+> `d` = 16. R1.7's 309-of-429 now has a structural explanation rather than a number. Second, **`C` is
+> dominated by rounding**: of 202 changed routes only **53 improve by more than 1%**, and on that
+> subset the wake catches **66.03%** at `d` = 0 and never reaches 80%.
+>
+> **And a published R5 figure is contradicted.** R6.4.3 reproduces R5.4's *improvable* count
+> independently — **9.86% against 9.22%** — and contradicts its magnitude by two orders: **0.14% mean
+> improvement against R5.5.4's 16.35% mean detour**, on the same gesture. R6.4.3's is the physically
+> plausible figure. Two candidates, neither settled: R5.4 and R5.5.4 measure hierarchy against
+> hierarchy, and **R6.0's pristine-seeding repair re-baselined only R5.3 and R5.5.2**. **R7 owes the
+> reconciliation.**
+>
+> **The reverse index was most of the work and produced the largest number in R6.4.** Built as
+> `CLAUDE.md` requires — a Cell-keyed intrusive index list over **(route, Cell) memberships**, two
+> `next` chains per membership because a route belongs to many Cells, a free list for the sink. It
+> costs **8.15× the store it indexes**, its memberships scale with **journey length rather than with
+> `k`** so nothing R6.4.1 compresses touches it, and at 1M Citizens **the index alone is 1,678.46
+> MiB** — seven times the uncompressed paths it is waking. **Maintenance is the term that decides it,
+> exactly as this section predicted**: a singly-linked eviction costs **22.94 µs** walking 6,951 chain
+> steps to unlink 110 memberships, against **1.96 µs** and exactly 110 steps with a `previous` index —
+> **11.66×** for 24% more bytes, and **23.96×** on the monocentric draw, which is R8.0's concentration
+> showing up in the index. **If one is ever built, it is doubly linked.**
 
 ### R7. The report, and the verdict — **IN PROGRESS**
 

@@ -72,6 +72,13 @@ internal static class CounterHash
         // pairs: sharing the tag would make R6's trip sequence identical to R8's, and a hit rate
         // measured on the same sequence as a congestion sweep is two results resting on one draw.
         KeyPoolDraw = 23,
+
+        // R6.4.2's diversion sample: which stored route a Citizen is diverted off, and which of that
+        // route's branch points the diversion happens at. Two tags rather than one, for the reason
+        // adr/0046 splits Temperament: sharing would tie a route's identity to where along it the
+        // diversion falls, so the longest routes would always be diverted at the same relative point.
+        HabitDiversionRoute = 24,
+        HabitDiversionStep = 25,
     }
 
     public static ulong Of(ulong seed, ulong entity, ulong counter, Purpose purpose) =>

@@ -174,4 +174,62 @@ internal sealed class RouteStore
         start[count] = arcs.Count;
         return new RouteStore(start, [.. arcs]);
     }
+
+    /// <summary>
+    /// The same pool, drawn from a named <b>O-D rung</b> rather than from the sampler's uniform draw,
+    /// and reporting each route's whole-journey cost alongside it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>R4.1 is why this overload exists.</b> The draw is a swept family and not a setting, and
+    /// <c>plans/0000</c> forbids quoting an S2 figure without naming its rung — so a store built by a
+    /// sampler that only knows the uniform draw cannot be swept, and R6.4 sweeps everything it prints.
+    /// The body is <see cref="ForSearchedPool(RoadGraph, OdSampler, int[], int, ulong, out int)"/>
+    /// unchanged apart from where the pair comes from.
+    /// </para>
+    /// <para>
+    /// <b>The cost column is not decoration.</b> R6.4.3's ground truth is *which stored routes a full
+    /// recompute would change*, and a route's arcs cannot answer that on their own: two routes of
+    /// equal cost may differ in arcs, which is R5.5.3's correction. Recording the whole-journey cost
+    /// at build time — remainders included, exactly as the search returned it — is what lets the
+    /// re-search after the addition be compared on cost rather than on arc identity.
+    /// </para>
+    /// </remarks>
+    public static RouteStore ForSearchedPool(
+        RoadGraph graph,
+        OdPair[] pool,
+        int[] congestedCarTicks,
+        out int found,
+        out int[] costTicks)
+    {
+        var search = new PointToPoint(graph, congestedCarTicks);
+        var start = new int[pool.Length + 1];
+        var arcs = new List<int>(pool.Length * 48);
+
+        costTicks = new int[pool.Length];
+        found = 0;
+
+        for (int query = 0; query < pool.Length; query++)
+        {
+            start[query] = arcs.Count;
+            costTicks[query] = OneToAll.Unreachable;
+
+            search.Bootstrap(pool[query].Origin, pool[query].Destination, Modes.Car, HeuristicKind.Chebyshev);
+            var outcome = search.Expand();
+            if (!outcome.Found)
+            {
+                continue;
+            }
+
+            int length = search.PathArcs(arcs);
+            if (length > 0)
+            {
+                costTicks[query] = outcome.CostTicks;
+                found++;
+            }
+        }
+
+        start[pool.Length] = arcs.Count;
+        return new RouteStore(start, [.. arcs]);
+    }
 }

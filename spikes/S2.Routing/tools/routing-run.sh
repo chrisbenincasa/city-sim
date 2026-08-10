@@ -14,6 +14,7 @@
 #     sudo spikes/S2.Routing/tools/routing-run.sh --vector        R4 only
 #     sudo spikes/S2.Routing/tools/routing-run.sh --storm         R5 only
 #     sudo spikes/S2.Routing/tools/routing-run.sh --path-source   R5.5 only
+#     sudo spikes/S2.Routing/tools/routing-run.sh --habit         R6.4 only
 #
 # Run as root for the canonical capture, which is `performance` with turbo enabled. It also runs
 # without root, under whatever configuration the machine is already in, and labels the result with
@@ -107,6 +108,7 @@ for arg in "$@"; do
         --eviction) SECTIONS="${SECTIONS}+r62" ;;
         --budget)  SECTIONS="${SECTIONS}+r63" ;;
         --shed)    SECTIONS="${SECTIONS}+r56" ;;
+        --habit)   SECTIONS="${SECTIONS}+r64" ;;
         --loop)    SECTIONS="${SECTIONS}+r8" ;;
         --out)     ;;
         --*)

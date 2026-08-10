@@ -4754,6 +4754,286 @@ whether that remainder is runnable today.
 
 ---
 
+## S2 R6.4 — what a per-Citizen Habit Route costs, and the column the trilemma had no cell for
+
+**Produced by session M and run before R7 closes.** Session M faced a trilemma — memory, diversion
+cost, concentration, pick two — and declined to choose, naming a measurement instead, which is
+`adr/0043` applied to a session's own output rather than to a document's. Two of the three rows were
+fully priced; the **per-Citizen stored path** had *unmeasured* in both of its cells. This is those two
+cells, plus the reverse index without which the third sub-task's fan-out means nothing.
+
+Harness at `spikes/S2.Routing/Harness/HabitReport.cs` and `Traffic/RouteCellIndex.cs`, section flag
+`--habit`. The fixture is **R5.4's and R5.5.4's exactly**, so the numbers sit beside theirs: draw the
+Arterial gesture (`EditStorm.Draw(Arterial, 4)` at index 7 — four Segments, ~512 m, the smallest
+addition worth drawing), `Apply` to damage the graph, build the store against the damaged graph, then
+`Revert`, **because restoration is addition**. Store is `RouteStore.ForSearchedPool`, 2,048 routes,
+swept across R4.1's whole O-D family.
+
+### The capture
+
+`sudo` was not available, so this is `powersave` and the absolutes are **upper bounds**; ratios and
+counts within one capture are unaffected, which is this corpus's standing convention and is verified
+below rather than asserted.
+
+- **Machine** Intel Core i5-10400, 12 logical processors, DDR4-2133, **pinned to processors 2,8** —
+  both threads of one physical core, per R5's one-processor finding
+- **OS** Ubuntu 24.04.4, **Runtime** .NET 10.0.10, **Build** Release
+- **Governor** `powersave`, turbo enabled. **The canonical `performance` capture is owed**
+- **Capture** `results/s2-r64-…-20260810T022600Z.md`, 6.30 s, CPU stall 0.16%, memory stall 0.00%
+
+**Four captures were taken and two are retained**, because one run is an assertion and two are an
+error bar. **Every count, share and percentage below is bit-identical across the retained pair** —
+`k` and its whole quantile ladder, `|C|`, `|W(d)|` at all six radii, the rejoin success counts, the
+membership counts. Only nanosecond columns move, by 2–8%. The two earlier captures are the same in
+every count and differ only in that they predate the *material `C`* column.
+
+### R6.4.1 — the branch-point compression ratio: **REFUTED, and the premise was refuted before the run**
+
+**Refutes if `k > ~25`**, which leaves memory above 100 MiB and the row loses on the axis it was
+chosen against. `k` is the count of nodes along a stored route at which a decision existed; the branch
+test is **R8.1's, reused rather than reinvented** — at least two onward car arcs once the arrival
+Segment is discounted, evaluated at the node *before* each arc.
+
+| O-D rung | Routes | Mean arcs `L` | Mean `k` | p50 | p90 | max | `L / k` | Bytes / Citizen | At 1M |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| uniform | 2,048 | 61.52 | **59.05** | 56 | 97 | 170 | **1.04×** | 236 B | **225.06 MiB** |
+| decay L=1024 | 2,045 | 47.01 | **45.16** | 42 | 78 | 159 | 1.04× | 181 B | 172.61 MiB |
+| decay L=512 | 2,044 | 35.07 | **33.61** | 30 | 62 | 147 | 1.04× | 134 B | 127.79 MiB |
+| decay L=256 | 2,031 | 23.24 | **22.08** | 17 | 47 | 111 | 1.05× | 88 B | **83.92 MiB** |
+| monocentric L=512 | 2,047 | 56.59 | **54.58** | 52 | 86 | 147 | 1.03× | 218 B | 207.90 MiB |
+
+**The wire fires on four of five rungs and the fifth does not save the row.** At `decay L=256` — the
+tightest local draw in the family — `k` is 22.08 and the memory is 83.92 MiB, under both thresholds.
+But the compression ratio there is **1.05×**: the row survives because the *journeys are short*, not
+because the representation compresses. Storing the whole path **uncompressed** on that rung is
+**88.65 MiB**, which is also under 100 MiB — so the wire would not have fired there with no
+compression at all. **Compression buys 4.73 MiB; the O-D draw buys the other 136.41.**
+
+**The premise was already refuted by a table in the same plan, and nobody noticed.** R6.4.1 is
+written on *"R3 measured this network at degree ~3, so many nodes are degree 2 and mid-block."*
+**This Road Graph has no mid-block nodes at all** — a Segment runs junction to junction by
+construction, so every node on a route *is* a junction. R8.1 had already published the same quantity
+from the other side: **98.02% of arrivals are at distance 0 from a node with a genuine choice.**
+R6.4.1's 96% of route nodes being branch points is that number seen along a path instead of at an
+arrival. **The refuting measurement existed in `plans/0010` before R6.4 was written into it**, which
+is *citing an ADR is not applying it* — `adr/0044`'s closing finding — arriving for the fourth time
+and the third inside this plan, now against a **measurement** rather than a decision.
+
+**The second reading is stated as weak in advance and is printed anyway.** Recomputed over the routes
+as they stand *after* the addition, `k` reads 56.53 / 43.60 / 32.88 / 21.76 / 53.39 — 4% below the
+first table on every rung, and expected to be, because four restored Arterial Segments move few
+routes. It is not an independent measurement and is not offered as one; what it checks is that `k` is
+a property of the network rather than of the damage, and it is.
+
+**The honest reading of the whole sub-task**: a shortest path on a grid **is** its decision sequence.
+Branch-point compression is a real technique for a network with long forced runs, and this network
+does not have any. `CONTEXT.md` → Segment's road-*density* debt from R0 now has a road-*topology*
+sibling — the same debt R5.4 hit from the equal-cost-ties side, and the third time the synthetic grid
+has declined to answer a question about heterogeneity.
+
+### R6.4.2 — the rejoin cost: **NOT REFUTED**, and the threshold is 3.3× too loose to have decided anything
+
+**Refutes above ~10 µs**, which against R8.3's 1,269.51 diversions per Tick is 12.7 ms — most of a
+15.6 ms budget. The diversion point is drawn among each route's **branch points**, not uniformly along
+it, because a Traveller cannot diverge where there is nothing to diverge onto; R6.4.1 is what makes
+that distinction quantitative. **The same sample serves every horizon** — 512 of 512 draws produced a
+diversion on every rung, so the *attempted* column is flat by construction and no rung can improve by
+losing the samples it would have failed.
+
+| O-D rung | Horizon | Rejoined | Mark | Search | **Total** | p90 | × 1,269 | of 15.6 ms |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| uniform | 1 | 14.64% | 232 ns | 435 ns | **667 ns** | 511 ns | 0.85 ms | 5.42% |
+| uniform | 2 | 19.14% | 232 ns | 1.00 µs | **1.23 µs** | 1.23 µs | 1.56 ms | 10.02% |
+| uniform | **3** | **85.74%** | 232 ns | 2.20 µs | **2.43 µs** | 2.72 µs | 3.09 ms | **19.81%** |
+| uniform | 4 | 88.08% | 232 ns | 3.30 µs | **3.53 µs** | 4.95 µs | 4.48 ms | 28.73% |
+| uniform | 8 | 92.57% | 232 ns | 4.46 µs | **4.69 µs** | 7.97 µs | 5.96 ms | 38.21% |
+| uniform | 16 | 92.77% | 232 ns | 9.18 µs | **9.41 µs** | 9.45 µs | 11.95 ms | 76.57% |
+| decay L=256 | 3 | 78.12% | 40 ns | 1.95 µs | **1.99 µs** | 2.61 µs | 2.53 ms | 16.22% |
+| decay L=256 | 16 | 84.37% | 40 ns | 16.02 µs | **16.06 µs** | 70.85 µs | 20.38 ms | 130.66% |
+| monocentric L=512 | 3 | 83.39% | 81 ns | 2.13 µs | **2.21 µs** | 2.69 µs | 2.81 ms | 18.03% |
+| monocentric L=512 | 16 | 91.79% | 81 ns | 9.89 µs | **9.98 µs** | 10.99 µs | 12.66 ms | 81.18% |
+
+*Full ladder — five rungs × six horizons — in the capture. Suffix marking is timed apart and added,
+not subtracted: it is not free against a compressed store, and pricing the winning representation
+using the losing one's data structure would be the wrong comparison.*
+
+**The wire does not fire at any horizon up to 8, on any rung.** It fires at Horizon 16 on three rungs
+of five (13.81, 16.06, 16.90 µs) and does not on the other two (9.41, 9.98 µs). **Scored as written:
+NOT REFUTED**, because 16 is far above the horizon anything would use.
+
+**And the threshold was set where passing is nearly as bad as failing, which is the row's real
+verdict.** 10 µs × 1,269.51 diversions is **12.7 ms of a 15.6 ms Tick — 81%**. A row that "passes" at
+9.41 µs is spending 77% of the budget on rejoins alone. **The wire should have been stated as a share
+of the Tick and inverted R3's way** — *a rejoin fits while fewer than N diversions occur per Tick* —
+and stated over the horizon that actually works rather than over the operation in the abstract. At
+Horizon 3, the cheapest horizon that works, the bill is **19.81%** of the Tick at uniform: still
+larger than S4's whole Event Wheel at its most pessimistic wake rate, and paid on the common path.
+
+**The finding nobody asked for is the cliff, and it is a number derived off the graph rather than
+tuned.** Rejoin success is 14.64% at Horizon 1, 19.14% at 2 and **85.74% at 3** — a step of 4.5× at
+one rung of the ladder, reproduced on all five O-D rungs (78.12–85.74% at Horizon 3 against
+11.13–17.18% at Horizon 1) and bit-identical across captures. **The reason is structural**: getting
+back onto a stored path after leaving it means going round a block, and a block on this grid is
+**three Segments**. Horizon 3 was not on the ladder R6.4 planned — it was added after the first build
+showed a 4× jump between 2 and 4 — and adding it turned an unexplained jump into a derived constant.
+
+**So the Sight Horizon is two quantities wearing one name.** `adr/0046`'s Horizon is *how far ahead a
+Traveller looks for an alternative*, and R8.1 derived its floor as **1 Segment** off the arrival
+distribution. R6.4.2's horizon is *how far a Traveller may search to get back onto a route it has
+left*, and its floor is **3 Segments** off the block geometry. One Segment is enough to notice a
+choice and fails 85% of the time to recover a path. **Nothing in the corpus separates these**, and a
+Sight Horizon set at R8.1's floor would leave a per-Citizen stored route unable to recover from the
+diversions Sight itself creates — which is a coupling between two mechanisms neither of them names.
+
+### R6.4.3 — the addition wake: **NOT REFUTED on fan-out**, and the wake tests the wrong object
+
+**Refutes if `P(stale)` after one ordinary gesture approaches 1 at every `d` that catches a useful
+share of `C`.** It refutes on **fan-out** and not on miss rate, because `T` backstops the miss.
+`|C|` is ground truth — the routes a full recompute on the restored graph returns cheaper — obtained
+by re-searching all 2,048 pairs flat on the restored graph and comparing **whole-journey cost**, which
+is R5.5.3's correction carried forward.
+
+**O-D rung `uniform`**: 2,048 of 2,048 comparable, **`|C|` = 202 (9.86%)**, mean improvement 0.14%,
+best 5.72%. Routes made **dearer** by the addition: **0** — the conservation law, printed on the run
+where it reads yes, because addition is monotone-improving and a non-zero here would mean the two
+cost columns are not the same quantity.
+
+| `d`, Cells | `\|W(d)\|` | missed `\|C \ W\|` | needless `\|W \ C\|` | **`P(stale)`** | caught of `C` | **caught of material `C`** | query |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 346 | 36 | 180 | **16.89%** | 82.17% | **66.03%** (35 of 53) | 29.82 µs |
+| 1 | 362 | 31 | 191 | 17.67% | 84.65% | 67.92% | 38.75 µs |
+| 2 | 368 | 31 | 197 | 17.96% | 84.65% | 67.92% | 46.80 µs |
+| 4 | 424 | 26 | 248 | 20.70% | 87.12% | 75.47% | 93.47 µs |
+| 8 | 488 | 25 | 311 | 23.82% | 87.62% | 75.47% | 156.16 µs |
+| 16 | 650 | 20 | 468 | **31.73%** | 90.09% | **77.35%** (41 of 53) | 344.12 µs |
+
+**`P(stale)` peaks at 31.73% at `d` = 16 Cells — 2 km — and does not approach 1 anywhere.** The wire
+does not fire. One ordinary gesture marks between a sixth and a third of the store, the drain still
+bounds something, and `adr/0012`'s contract survives on the axis it was tested on.
+
+**The decision the sweep produces is that `d` should be 0.** Going from 0 to 16 Cells nearly doubles
+the fan-out (346 → 650) to buy **8 percentage points** of catch, and 11 points of the material catch.
+`d` is not the useful knob; the index's granularity is. Reported as absolutes per R6.1a rather than as
+percentages, since the percentage is a property of whichever draw was used.
+
+**The finding that outranks the sweep: the wake tests proximity of the *old* path, and the changed
+routes are the ones whose *new* path uses the new road.** This is R5.4's asymmetry arriving at the
+wake instead of at the Epoch. A route computed before a road existed cannot contain it, so where the
+*stored* path runs carries no information about whether the addition helps it — the routes that
+change are those whose recomputed path detours to the new Arterial, and those can start and end
+anywhere. **That is why the miss does not close**: 36 missed at `d` = 0 falls only to 20 at `d` = 16,
+still 9.90% of `C`, and it would not reach zero at any radius. R1.7 measured a proximity test over a
+*matrix* missing 309 of 429; this is the same defect with a structural explanation attached, and the
+caveat stated in advance — that a path is a longer object than a pair and should fan out *worse* —
+holds: nothing here reads as R1.7's number improving.
+
+**`C` is dominated by routes a recompute would change by a rounding error, and that changes what is
+being bought.** Of 202 changed routes, **53 improve by more than 1%**. The wake at `d` = 0 catches
+**66.03%** of those 53 and at `d` = 16 catches 77.35% — so on the subset a player could perceive, the
+wake is *worse* than its headline column suggests, and it never reaches 80% at any radius tried.
+`adr/0012` states its contract over *changed*, and a strict inequality on integer Tick costs makes a
+one-Tick-in-five-thousand improvement a full member of `C`. **Whether that is the set worth waking is
+a decision and not a measurement**, and both columns are printed so the decision stays visible.
+
+**A published figure is contradicted, and it is not one of R6.4's.** R6.4.3 reproduces R5.4's
+*improvable* count independently — **9.86% against R5.4's 9.22%**, on the same gesture with a
+different path source and a different pool, which is a strong agreement. It contradicts the
+**magnitude** by two orders: R5.5.4 published a mean detour of **16.35%** on whole-journey cost where
+R6.4.3 measures a mean improvement of **0.14%** and a best of 5.72%. R6.4.3's figure is the physically
+plausible one — 512 m of 90 km/h road replacing 50 km/h road saves ~16 s on a ~10-minute journey — so
+the discrepancy is on R5's side. Two candidate explanations, neither settled here: R5.4 and R5.5.4
+measure **hierarchy against hierarchy**, so `HpaSearch`'s own error enters the detour that the
+addition is credited with; and **R6.0's pristine-seeding repair re-baselined only R5.3 and R5.5.2**,
+leaving R5.4 and R5.5.4 quoting figures taken with the defect in place. **R7 owes this reconciliation**
+and it is the same shape as the 474.47/234.74 ms one already on its list.
+
+### The reverse index, which is most of the work and produced the largest number
+
+`|W(d)|` means nothing if answering *which routes touch this Cell* costs more than the wake buys. The
+structure is a **Cell-keyed intrusive index list** built to `CLAUDE.md`'s own rule — head index on the
+owner, `next` index on the element, both flat arrays, never a per-entity collection object.
+
+**One departure from the plain form, and it is forced.** A route passes through many Cells, so a route
+cannot be an element of a Cell's list — one `next` per route belongs to one chain. The elements are
+therefore **(route, Cell) memberships**, each carrying *two* `next` indices: one threading its Cell's
+chain, one threading its route's. The Cell chain answers the wake; the route chain answers the
+eviction, which would otherwise scan the whole index to retire one route. Retired memberships go on a
+free list and are reissued, so the entry arrays are a running maximum bounded by the population rather
+than by elapsed time — `adr/0006`'s sink, and live entries read **0** against a high water of 225,505
+after the eviction pass.
+
+| Rung | Memberships | Per route | Singly linked | vs store | Insert | Evict, singly | Evict, doubly |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| uniform | 225,505 | **110** | 3.98 MiB | **8.15×** | 5.92 µs | **22.94 µs** / 6,951 steps | **1.96 µs** / 110 steps |
+| decay L=1024 | 148,436 | 72 | 3.07 MiB | 8.20× | 3.08 µs | 6.01 µs / 2,021 | 1.16 µs / 72 |
+| decay L=512 | 100,829 | 49 | 2.32 MiB | 8.27× | 2.10 µs | 2.10 µs / 760 | 732 ns / 49 |
+| decay L=256 | 61,927 | 30 | 1.58 MiB | 8.41× | 1.41 µs | 725 ns / 250 | 468 ns / 30 |
+| monocentric | 195,039 | 95 | 3.67 MiB | 8.17× | 3.82 µs | 18.04 µs / 5,495 | 753 ns / 95 |
+
+**The maintenance term the plan said nobody had priced is the one that decides this.** It is paid on
+the **common** path — every route inserted, every route evicted — where the wake is paid on the rare
+one, and it can dominate while looking free. It does. **A singly-linked eviction costs 22.94 µs and
+walks 6,951 chain steps to unlink 110 memberships**, because the predecessor must be found by walking
+the Cell's chain and the Cells a route passes through are the hot ones. **A `previous` index — one
+more flat array, 24% more bytes — makes it 1.96 µs over exactly 110 steps: 11.66× cheaper.** The trade
+was stated as an argument in the plan and is now a number on both sides, and it is not close. The
+gap is widest exactly where R8.0 said traffic concentrates: **23.96× on the monocentric draw**, which
+is the rung whose routes pile into the same central Cells.
+
+**And the largest number in R6.4 is the one no column of session M's trilemma exists for.** The index
+costs **8.15× the store it indexes**. Its memberships scale with **journey length**, not with `k`, so
+**nothing R6.4.1 compresses touches it**: 110 memberships × four ints is **1,760 B a Citizen**, and at
+1M Citizens **the reverse index alone is 1,678.46 MiB** — 1,098.63 MiB at `decay L=1024`, 457.76 MiB
+at the tightest local draw. Against a compressed route of 236 B and the trilemma's own uncompressed
+232.7 MiB, **the structure that makes the wake possible costs seven times the paths it is waking.**
+
+### What R6.4 decided
+
+1. **The per-Citizen stored path loses the memory axis, and not on the axis it was tested on.** `k` =
+   59.05 refutes R6.4.1's wire at four of five O-D rungs, and the compression that was supposed to
+   save it delivers **1.03–1.05×** because a shortest path on a grid *is* its decision sequence. But
+   the deciding figure is the **reverse index at 1.64 GiB**, which the trilemma has no cell for and
+   which no amount of path compression reduces. **Session M's trilemma table should be amended to
+   carry an index row**, because two of its three schemes need one and only one of them was ever
+   costed with it.
+2. **The rejoin is affordable and the threshold that said so was too loose to be evidence.** Not
+   refuted at any horizon up to 8; but the useful horizon is 3, and Horizon 3 costs **19.81% of a
+   15.6 ms Tick** at 1,269.51 diversions. Published R3's way, inverted: **a rejoin at Horizon 3 fits
+   while fewer than 6,419 diversions occur per Tick at uniform**, which is a measured cost over a
+   world constant and survives the diversion rate being measured somewhere that can measure it.
+3. **The Sight Horizon is two parameters.** Noticing a choice has a floor of 1 Segment (R8.1);
+   recovering a stored path has a floor of **3 Segments**, derived off the block geometry and
+   reproduced on all five O-D rungs. Neither `adr/0046` nor `CLAUDE.md`'s constant table separates
+   them, and the second is a **new hash-bearing candidate under `adr/0052`** if a stored route is ever
+   adopted.
+4. **`d` = 0.** The radius buys 8 points of catch for a doubling of fan-out, and the miss it fails to
+   close is structural rather than geometric — the wake tests where the *old* path runs and the
+   changed routes are the ones whose *new* path uses the new road. An exact detector would key on the
+   added Segment's **catchment** and is a different structure entirely; **that is `adr/0012`'s trigger
+   arrived at from a third direction**, after R1.7's dirty region and R5.4's Epoch.
+5. **If a reverse index is ever built, it is doubly linked.** 11.66× on eviction for 24% more bytes,
+   and 23.96× on the draw that concentrates.
+
+### What R6.4 did not decide
+
+**Nothing here chooses a scheme**, and it cannot: the concentration column of the trilemma is R8.0's
+87.25%-on-1% and no measurement in R6.4 touches it. What R6.4 supplies is that the per-Citizen row's
+two blank cells are now filled and **both read against it** — which turns a three-way choice into a
+two-way one between the shared tree's concentration and the cached route's unattainable hit rate, and
+that pair is R7's verdict to state.
+
+**Two instrument findings are owed onward.** The board's *elapsed-time helper* entry is discharged
+here in a way the entry did not anticipate: R4's `× 1e9` overflow was repaired everywhere as
+`TimeSpan.Ticks × 100`, which is overflow-safe and **quantises every reading to a 100 ns grid** —
+invisible against R5's millisecond storms and ruinous against a rejoin measured in single
+microseconds. R6.4 splits the timestamp delta into whole seconds and a remainder, which keeps the
+clock's resolution and cannot overflow at any duration. **`MatrixReport` still carries the original
+overflowing spelling.** And the first build of R6.4.2 derived *search alone* as total minus mark with
+the two terms measured under different warmth, and printed **−360 ns**; a derived column that can go
+negative is an instrument reporting on itself.
+
+---
+
 ## S2 R5.6 — the Parking Shed, and the rung it disagrees with
 
 **The second Epoch consumer, and `plans/0010` named it the one the ladder was most likely to be
