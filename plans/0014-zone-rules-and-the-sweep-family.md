@@ -59,8 +59,14 @@ families for performance. Building the second family is what puts it at risk of 
   and never a reporting terminal, and the clock lives on the **Rule Instance**. It also found a defect
   that had been latent since slice 4 and a live one it introduced itself. `rulesets/minimal.toml` now
   declines and rebuilds, and all three baselines moved.
+- **Task 9** — the tripwire, and it fired at **1.56× against a bound of 2×**. `02 §5.7`'s *constant
+  cost regardless of Zone size* is **false in the letter and true in the substance**: the sweep is
+  `O(sample)` exactly, and what grows over three orders of magnitude of Zone is the **memory
+  hierarchy**, not the algorithm — against a control rung that moved **989×** on the same data. It is
+  the **third sighting of scatter ×1.5**, after task 10a's findings 42–43, and the first with nothing
+  else moving beside it.
 - **Next: task 8** — eviction, which task 7 shipped, so what is left of it is the invariant
-  qualification; then task 9's tripwire and task 10's long run.
+  qualification; then task 10's long run.
 
 ---
 
@@ -575,7 +581,7 @@ list it is leaving. What remains of this task is the invariant qualification abo
 
 **No emigration, no refusal reasons, no give-up counter, no rejected-arrival taxonomy.** All 9a's.
 
-### 9. The tripwire — constant cost regardless of Zone size
+### 9. The tripwire — constant cost regardless of Zone size — **done**
 
 **The milestone's own risk, stated as a number in advance** (`PROCESS.md` → *Tripwire*).
 
@@ -594,6 +600,68 @@ Two failure modes the harness must not have, both from S2's findings list, both 
 
 Both counters reach the Census as a **flow**, read as a sum and a peak over the interval, per slice 7
 task 9's second metric family.
+
+#### What it measured — **done**
+
+`ZoneRuleBenchmarks`, four rungs, sample fixed at 16, half the Lots built on. Release, same machine,
+one run. `ZoneRuleBenchmarkFixtureTests` holds the arrangement to the engine's own counters: every
+Tick triggers, both branches of the sample are entered at every rung, and **nothing the benchmark
+times can change the world it times** — which is what makes an invocation repeatable, and is checked
+rather than asserted in prose.
+
+| Lots in the Zone | sweep | denominator (256 Lots, re-timed at this rung) | scan control |
+|---|---:|---:|---:|
+| 256 | 488.1 ns | 474.7 ns | 371.4 ns |
+| 2,560 | 490.6 ns | 485.1 ns | 3,668.5 ns |
+| 25,600 | 596.1 ns | 474.4 ns | 36,138.6 ns |
+| 256,000 | 740.3 ns | 475.2 ns | 367,418.8 ns |
+
+Allocated is `-` at every cell, which is `ZoneSample`'s allocation-free claim measured rather than
+asserted.
+
+**The wire: 1.56×, against a bound of 2×.** 740.3 ns at 256,000 Lots divided by the 475.2 ns the
+smallest Zone cost *at the same rung* — both ends of the division timed on one machine in one run,
+so nothing in the figure came from somewhere else. Taken instead against the sweep's own bottom rung
+it is 1.52×; the two agree to within the harness's noise, and the smaller is not the one published.
+
+**The two guards both held, and both were worth having.**
+
+- **The control moved 989× across a 1,000× Zone** — 371.4 ns to 367,418.8 ns, linear to 1.1%. So the
+  instrument can move, and a flat column is a fact about the sweep rather than about the harness. R3's
+  detour column is why this rung exists and it earned its place: without it, 1.52× would be
+  indistinguishable from a benchmark timing an empty method.
+- **The denominator drifted 2.3% across the whole sweep** — 474.7, 485.1, 474.4, 475.2 — against R3's
+  flat search, which read 1,401,307 ns first and 477,609 ns last. That spread *is* this harness's
+  error bar, and it is small enough that 1.56× is a measurement rather than a mood.
+
+**The claim in `02 §5.7` is false in the letter and true in the substance, and the difference is not
+the algorithm.** Sampling is `O(sample)` exactly — the sweep does the same sixteen draws, the same
+sixteen liveness tests and the same sixteen dispatches at 256,000 Lots as at 256, and the control
+rung shows what a size-dependent sweep would have looked like. What grows is the **memory
+hierarchy**: sixteen random rows scattered over a 256,000-row Lot table miss where sixteen rows in a
+256-row table hit. The staircase is visible in the column — ×1.005 from 256 to 2,560, then ×1.215 and
+×1.242 as the table leaves each level of cache — and it has a floor, because DRAM is the last rung.
+Zone size is not the variable; **working-set size is**, and it is bounded by the map.
+
+**It is the third sighting of the same factor, which is why it is worth writing down.** Task 10a's
+findings 42–43 attributed the Rule engine's laboratory-to-city gap to terms ×1.84, **scatter ×1.49**
+and population ×1.14. This is scatter measured again, in a different mechanism, alone and with
+nothing else moving: **×1.52**. A synthetic benchmark that touches a small table is measuring a
+different machine from the one the simulation runs on, and the size of that difference is now known
+twice.
+
+**A number, not an argument, for `plans/0013`.** One Zone Rule triggering costs 740 ns at the largest
+Zone measured. `rulesets/minimal.toml` triggers on a 32-Tick interval, so one Zone Rule amortises to
+**23 ns a Tick**; sixteen of them all triggering on the same Tick — the worst alignment a Ruleset can
+author — is **11.8 µs, or 0.08% of a 15.6 ms budget**. The multiplicand is *how many Zone Rules a
+real Ruleset declares*, and per `0013`'s own organising column that number is **guessed**: the sweep
+family has never met a content author. What the tripwire retires is the fear that the multiplicand
+might be *Lots*.
+
+**What would move it.** A per-Lot cost that grows with the map rather than with the Zone — a Lot row
+widening past a cache line, or the sample gaining a term that reads a neighbour. Both would show as
+the sweep column steepening while the control column stays where it is, which is the one shape this
+harness distinguishes.
 
 ### 10. The `slots` half of slice 5 task 7's trend assertion
 
@@ -700,6 +768,12 @@ Per `PROCESS.md`: a correction goes to [`0012`](0012-corpus-audit.md), not to `0
   slice that made that visible without being able to fix it.
 - **`02 §5.3` and `§5.7` use "sampling" for two different populations** with two different actors, and
   only §5.3 carries a number. See task 4.
+- **`02 §5.7`'s *constant cost regardless of Zone size* is over-stated, and the correction is worth
+  more than the claim was.** Measured at **1.56×** over a 1,000× Zone (task 9). The algorithm is
+  `O(sample)` exactly and the section is right about *why*; what it does not say is that the cost is a
+  function of the **working set** rather than of the Zone, so it grows until the Lot table leaves
+  cache and then stops. Stated as written, the sentence would be falsified by a benchmark and the
+  reader would draw the wrong conclusion from that. **Amend, do not strike.**
 
 ---
 

@@ -62,15 +62,19 @@ side was solid, and a unit cost is a hypothesis until a real world has produced 
 **Scale.** A million Citizens fit comfortably: 86 MiB of tables, **177 MB resident once a Ruleset
 fills the Bin and Rule Instance tables** (S0a's ~94 MiB owed exactly this re-take), and 100,000
 Ticks in 11.75 seconds on an empty world. Whether a Tick is *fast enough* is still unknown, because the Tick is nearly
-empty — but four of its consumers now have real prices, summed in
+empty — but five of its consumers now have real prices, summed in
 [`0013`](0013-tick-budget.md). **The clearest result is that the answer depends on a decision nobody
 has made.** Everything priced so far fits at **1× or 2× speed** and does not fit at **4×** — and 4× is
 where the project's stated 15.6 ms budget comes from, on no recorded argument. **The sum at 4× fell
 from ≥140% to ≥114% when the Rule row stopped being a guess, and falling is not good news**: it
 measures how much slack was in a figure everybody quoted, and at 114% the conclusion is marginal
-rather than comfortable. **Only one of the priced rows now rests on a guessed multiplicand** — routing's
-— and the Rule row's is measured for a Ruleset that models no city, which is a different weakness
-rather than none. S0b is what replaces the guesses.
+rather than comfortable. **Two of the five priced rows rest on a guessed multiplicand** — routing's,
+and the Zone Rule row slice 10 task 9 added — and the Rule row's is measured for a Ruleset that models
+no city, which is a different weakness rather than none. S0b is what replaces the guesses. **The Zone
+Rule row is the cheap kind of guess**, because its tripwire measured what the multiplicand *is not*:
+a trigger costs **1.56×** more over a 1,000× larger Zone, against a control rung that moved **989×**,
+so the number that scales it is *how many Zone Rules a Ruleset declares* and never *how many Lots the
+city has*. Sixteen of them triggering on one Tick is 0.08% of a 15.6 ms budget.
 Nothing measured so far suggests C# is the wrong choice; see `docs/adr/0036` and S4 in
 `docs/spike-results.md`.
 

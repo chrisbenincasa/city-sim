@@ -102,6 +102,54 @@ public enum RuleCounter : byte
 }
 
 /// <summary>
+/// The counters the Zone Rules expose to the <see cref="Census"/>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The pair the slice's tripwire is stated over is <see cref="Triggers"/> against the sum of
+/// <see cref="Vacant"/> and <see cref="Occupied"/>.</b> <c>02 §5.7</c> claims a Zone Rule's
+/// per-trigger cost is independent of the size of the Zone it sweeps, and the quantity that claim is
+/// really about is <em>Lots evaluated per trigger</em> — which is the sample size in the Ruleset and
+/// nothing else. Neither number can state it alone: triggers rise with elapsed time and evaluations
+/// rise with both.
+/// </para>
+/// <para>
+/// <b><see cref="Vacant"/> and <see cref="Occupied"/> are separate because they are two mechanisms.</b>
+/// A vacant Lot is a candidate for creation and an occupied one is a Building whose failure pressure
+/// is read; their sum is what the tripwire holds fixed, and their <em>ratio</em> is how full the city
+/// is. Summing them in the census and recovering the split later is not possible, so the split is what
+/// is stored.
+/// </para>
+/// <para>
+/// <b><see cref="Created"/> and <see cref="Demolished"/> are the outcomes, and they are what make a
+/// reading legible.</b> Evaluations without outcomes is a Zone Rule sweeping for ever and doing
+/// nothing, which is the whole class the loader's three refusals exist to catch at load time and which
+/// this pair catches at run time.
+/// </para>
+/// <para>
+/// <b>All five are flows</b>, for <see cref="RuleCounter"/>'s reason: a reading is what happened since
+/// the last one, and the reading drains it.
+/// </para>
+/// </remarks>
+public enum ZoneCounter : byte
+{
+    /// <summary>Zone Rule firings — one per Rule per Tick its interval divides.</summary>
+    Triggers,
+
+    /// <summary>Sampled Lots with no Building on them.</summary>
+    Vacant,
+
+    /// <summary>Sampled Lots with one.</summary>
+    Occupied,
+
+    /// <summary>Buildings built — the subset of <see cref="Vacant"/> that qualified.</summary>
+    Created,
+
+    /// <summary>Buildings condemned — the subset of <see cref="Occupied"/> past its kind's threshold.</summary>
+    Demolished,
+}
+
+/// <summary>
 /// How a flow counter's Ticks are reduced into one reading.
 /// </summary>
 /// <remarks>
@@ -147,6 +195,15 @@ public enum MetricSource : byte
 
     /// <summary>One counter of the Rule engine: a flow, accumulated and drained.</summary>
     Rules,
+
+    /// <summary>One counter of the Zone Rules: a flow, accumulated and drained.</summary>
+    /// <remarks>
+    /// A third family rather than more <see cref="RuleCounter"/>s, because <c>adr/0033</c> makes the
+    /// two Rule families differ in observable behaviour. Counting a Zone Rule's triggers alongside a
+    /// Bin Rule's due rows would be the arithmetic saying they are the same kind of event, which is
+    /// the reading the ADR exists to refuse.
+    /// </remarks>
+    Zones,
 }
 
 /// <summary>
@@ -208,12 +265,17 @@ public readonly record struct Metric
         ? (RuleCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not carry a Rule counter.");
 
+    /// <summary>Which of the Zone Rules' counters.</summary>
+    public ZoneCounter ZoneCounter => Source is MetricSource.Zones
+        ? (ZoneCounter)_counter
+        : throw new InvalidOperationException($"a {Source} metric does not carry a Zone counter.");
+
     /// <summary>How the counter's Ticks are reduced into one reading.</summary>
     /// <remarks>
     /// Meaningful only for a flow. A table counter is read at an instant, so there is nothing over
     /// which to take a sum or a peak and asking is a mistake rather than a default.
     /// </remarks>
-    public Aggregate Aggregate => Source is MetricSource.Rules
+    public Aggregate Aggregate => Source is MetricSource.Rules or MetricSource.Zones
         ? (Aggregate)_aggregate
         : throw new InvalidOperationException($"a {Source} metric is a level and is not aggregated.");
 
@@ -228,4 +290,10 @@ public readonly record struct Metric
     /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
     public static Metric Of(RuleCounter counter, Aggregate aggregate) =>
         new(MetricSource.Rules, 0, (byte)counter, (byte)aggregate);
+
+    /// <summary>One counter of the Zone Rules, under one reduction.</summary>
+    /// <param name="counter">Which of the Sweep family's counters.</param>
+    /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
+    public static Metric Of(ZoneCounter counter, Aggregate aggregate) =>
+        new(MetricSource.Zones, 0, (byte)counter, (byte)aggregate);
 }

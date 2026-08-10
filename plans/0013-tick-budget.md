@@ -59,6 +59,7 @@ the durable half of the document.
 | One **whole engine Tick** per due Rule, no term work | **121.6 → 198.3 ns** | **no — the sort** | `RuleTickBenchmarks` |
 | ⚠️ **One whole engine Tick per due Rule, *in situ*** | **~552 ns** | — | [`0011`](0011-rule-engine-bins-and-rules.md) **finding 42** |
 | ⚠️ **One Rule evaluation, *in situ*** | **~329 ns** | — | as above |
+| One **Zone Rule trigger**, 16-Lot sample | **488 → 740 ns** | **no — but the variable is the working set, not the Zone**: 1.56× over a 1,000× Zone against a control that moved 989× | [`0014`](0014-zone-rules-and-the-sweep-family.md) task 9 |
 | **Pollution diffusion**, one Cell dirty | **31.6 µs** | — | `MapLayerBenchmarks` |
 | **Pollution diffusion**, whole map | **1.01 ms** | — | as above |
 | One **State Hash** at 1M | **32.47 ms** | — | [S0a](../docs/spike-results.md) |
@@ -124,8 +125,9 @@ multiplicand**, which is why that column sits next to it rather than in a footno
 | **Bin Rule engine**, whole Tick, **in situ** | 1–3 | **6.4 ms** | 11,586 due — **measured, on a toy Ruleset** | 82% | **41%** | 20% | 10% |
 | **Routing** | 4 Move | 10.37 ms | 16 Trip starts — **guessed** | **133%** | **66%** | **33%** | **17%** |
 | **Map Layer diffusion**, on the Tick it lands | 5 Layers | 0.03–1.01 ms | dirty region — **measured range** | 0.4–13% | 0.2–6.5% | 0.1–3.2% | 0.05–1.6% |
+| **Zone Rules**, worst aligned Tick | 6 Growth | **0.012 ms** | 16 Rules triggering together — **guessed**; unit **measured** | 0.15% | **0.08%** | 0.04% | 0.02% |
 | **Event Wheel, general** | 1 Wake | **unbuilt** — slice 9 | — | — | — | — | — |
-| **Growth, Commit** | 6, 7 | **unbuilt** | — | — | — | — | — |
+| **Commit** | 7 | **unbuilt** | — | — | — | — | — |
 | | | | | **≥229%** | **≥114%** | **≥57%** | **≥29%** |
 
 **Read the last row across, not down.** The headline is not *we are over budget*; it is that **the
@@ -159,6 +161,14 @@ unbuilt phase, or a real Ruleset instead of a toy one, decides it either way.
   skeleton, the staggered invariant tier and the Layer schedule, and nothing else"*, and slice 5's
   own extrapolation of the tier to 1M (~91 µs) is 81% of that 0.112 ms — two measurements
   corroborating. Adding them separately would double-count, and an earlier draft of this table did.
+- **The Zone Rule row is the first whose multiplicand is guessed and whose share is negligible
+  anyway, and that is the finding rather than the number.** Slice 10's tripwire measured that the cost
+  of a trigger does not scale with the number of Lots it could look at — 1.56× over three orders of
+  magnitude, against a control rung that moved 989× on the same data — so **the multiplicand cannot be
+  *Lots***, which was the fear. What is left is *how many Zone Rules a Ruleset declares*, and sixteen
+  of them triggering on the same Tick, which is the worst alignment a file can author, costs 0.08% of
+  a 15.6 ms budget. The row is here so that a later Ruleset with a hundred Zone Rules has something to
+  be checked against, not because 0.012 ms competes with anything.
 - **The Layer row is the only one whose multiplicand is not a guess, and that is a property of the
   map rather than good luck.** The pollution kernel has a radius of 8 Cells, so an interior emitter
   makes 289 Cells resident and a 128×128 map **saturates at about 256 scattered sources** — three
@@ -179,7 +189,8 @@ unbuilt phase, or a real Ruleset instead of a toy one, decides it either way.
 
 ## What the sum says
 
-**Two of the four priced rows rest on guessed multiplicands, and they are the two large ones.** It
+**Three of the five priced rows rest on guessed multiplicands, and the two large ones are among
+them.** It
 would be wrong to read ≥140% at 4× as *the simulation is 40% over budget*: it is two unit costs
 multiplied by two guesses, plus two rows that are genuinely small. It would be equally wrong to
 dismiss it, because **the unit costs are real and the guesses are the corpus's own** — 450 Rule
@@ -194,6 +205,8 @@ budget row the wrong way round:
 > Routing fits while fewer than **85 Trips** start per Tick — *mean-derived*, with a measured worst
 > Tick already at 66% from an arrival rate 5× lower.
 > Pollution diffusion fits on any budget, at any city size, with the whole map dirty.
+> Zone Rules fit while fewer than **~21,000 triggers** land on one Tick at 4× — measured at the
+> largest Zone, and **independent of how many Lots those Zones contain**.
 
 Each survives its multiplicand being settled elsewhere. None is a verdict.
 

@@ -53,6 +53,9 @@ public sealed class Census
     /// <summary>The members of <see cref="RuleCounter"/>.</summary>
     private const int RuleCounters = 3;
 
+    /// <summary>The members of <see cref="ZoneCounter"/>.</summary>
+    private const int ZoneCounters = 5;
+
     /// <summary>The members of <see cref="Aggregate"/>: a flow is read twice, as a sum and as a peak.</summary>
     private const int AggregatesPerRuleCounter = 2;
 
@@ -61,6 +64,9 @@ public sealed class Census
     /// the core rather than derived from the world's shape.
     /// </summary>
     private const int RuleMetrics = RuleCounters * AggregatesPerRuleCounter;
+
+    /// <summary>The Sweep family's share of one reading, on the same terms.</summary>
+    private const int ZoneMetrics = ZoneCounters * AggregatesPerRuleCounter;
 
     /// <summary>
     /// Readings held before the oldest is overwritten.
@@ -77,6 +83,9 @@ public sealed class Census
 
     /// <summary>Where the Rule engine's metrics begin, which is where the tables' end.</summary>
     private readonly int _ruleBase;
+
+    /// <summary>Where the Sweep family's begin, which is where the Rule engine's end.</summary>
+    private readonly int _zoneBase;
 
     private readonly int _metrics;
     private readonly int _capacity;
@@ -107,7 +116,8 @@ public sealed class Census
 
         _tables = world.Tables.Length;
         _ruleBase = _tables * CountersPerTable;
-        _metrics = _ruleBase + RuleMetrics;
+        _zoneBase = _ruleBase + RuleMetrics;
+        _metrics = _zoneBase + ZoneMetrics;
         _capacity = capacity;
         _ticks = new ulong[capacity];
         _values = new long[capacity * _metrics];
@@ -159,7 +169,8 @@ public sealed class Census
     {
         ArgumentNullException.ThrowIfNull(simulation);
 
-        Observe(simulation.World, simulation.Tick, simulation.Rules.Drain());
+        Observe(
+            simulation.World, simulation.Tick, simulation.Rules.Drain(), simulation.Zoning.Drain());
     }
 
     /// <summary>
@@ -176,7 +187,8 @@ public sealed class Census
     /// <param name="world">The world to read. Must have the shape the census was built against.</param>
     /// <param name="tick">The Tick to stamp the reading with.</param>
     /// <param name="activity">The Rule engine's interval since the previous reading, already drained.</param>
-    public void Observe(World world, Ticks tick, RuleActivity activity)
+    /// <param name="zoning">The Sweep family's interval since the previous reading, already drained.</param>
+    public void Observe(World world, Ticks tick, RuleActivity activity, ZoneActivity zoning = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -202,9 +214,15 @@ public sealed class Census
             _values[slot + (int)CensusCounter.Capacity] = table.Capacity;
         }
 
-        Write(_values, at + _ruleBase, RuleCounter.Due, activity.Due);
-        Write(_values, at + _ruleBase, RuleCounter.Evaluations, activity.Evaluations);
-        Write(_values, at + _ruleBase, RuleCounter.ChainRungs, activity.ChainRungs);
+        Write(_values, at + _ruleBase, (int)RuleCounter.Due, activity.Due);
+        Write(_values, at + _ruleBase, (int)RuleCounter.Evaluations, activity.Evaluations);
+        Write(_values, at + _ruleBase, (int)RuleCounter.ChainRungs, activity.ChainRungs);
+
+        Write(_values, at + _zoneBase, (int)ZoneCounter.Triggers, zoning.Triggers);
+        Write(_values, at + _zoneBase, (int)ZoneCounter.Vacant, zoning.Vacant);
+        Write(_values, at + _zoneBase, (int)ZoneCounter.Occupied, zoning.Occupied);
+        Write(_values, at + _zoneBase, (int)ZoneCounter.Created, zoning.Created);
+        Write(_values, at + _zoneBase, (int)ZoneCounter.Demolished, zoning.Demolished);
 
         _ticks[_next] = tick.Raw;
         _next = (_next + 1) % _capacity;
@@ -215,9 +233,9 @@ public sealed class Census
             _count++;
         }
 
-        static void Write(long[] values, int at, RuleCounter counter, RuleFlow flow)
+        static void Write(long[] values, int at, int counter, RuleFlow flow)
         {
-            int slot = at + ((int)counter * AggregatesPerRuleCounter);
+            int slot = at + (counter * AggregatesPerRuleCounter);
 
             values[slot + (int)Aggregate.Sum] = flow.Sum;
             values[slot + (int)Aggregate.Peak] = flow.Peak;
@@ -300,16 +318,30 @@ public sealed class Census
             return (metric.Table * CountersPerTable) + (int)metric.Counter;
         }
 
-        if (metric.RuleCounter is not (RuleCounter.Due or RuleCounter.Evaluations or RuleCounter.ChainRungs))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(metric), metric.RuleCounter, "not a Rule counter this census reads.");
-        }
-
         if (metric.Aggregate is not (Aggregate.Sum or Aggregate.Peak))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(metric), metric.Aggregate, "not a reduction this census takes.");
+        }
+
+        if (metric.Source is MetricSource.Zones)
+        {
+            if (metric.ZoneCounter is not (ZoneCounter.Triggers or ZoneCounter.Vacant
+                or ZoneCounter.Occupied or ZoneCounter.Created or ZoneCounter.Demolished))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.ZoneCounter, "not a Zone counter this census reads.");
+            }
+
+            return _zoneBase
+                + ((int)metric.ZoneCounter * AggregatesPerRuleCounter)
+                + (int)metric.Aggregate;
+        }
+
+        if (metric.RuleCounter is not (RuleCounter.Due or RuleCounter.Evaluations or RuleCounter.ChainRungs))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(metric), metric.RuleCounter, "not a Rule counter this census reads.");
         }
 
         return _ruleBase + ((int)metric.RuleCounter * AggregatesPerRuleCounter) + (int)metric.Aggregate;

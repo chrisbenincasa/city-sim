@@ -61,6 +61,28 @@ internal static class CensusReport
         (RuleCounter.ChainRungs, Aggregate.Peak, "chain rungs peak"),
     ];
 
+    /// <summary>
+    /// The Sweep family's counters, on the same terms as the block above.
+    /// </summary>
+    /// <remarks>
+    /// <b>Its own block for <c>adr/0033</c>'s reason.</b> A Zone Rule's trigger and a Bin Rule's due
+    /// row are not the same kind of event — the two families differ in when their effect becomes
+    /// visible within a Tick — so printing them in one block would be the layout claiming a
+    /// commensurability the design denies. <c>evaluated</c> is <c>vacant + occupied</c> and is the
+    /// quantity <c>02 §5.7</c>'s claim is about, which is why both halves are printed rather than
+    /// their sum: their ratio is how full the city is, and no sum recovers it.
+    /// </remarks>
+    private static readonly (ZoneCounter Counter, Aggregate Aggregate, string Name)[] ZoneCounters =
+    [
+        (ZoneCounter.Triggers, Aggregate.Sum, "triggers"),
+        (ZoneCounter.Vacant, Aggregate.Sum, "vacant"),
+        (ZoneCounter.Occupied, Aggregate.Sum, "occupied"),
+        (ZoneCounter.Created, Aggregate.Sum, "created"),
+        (ZoneCounter.Created, Aggregate.Peak, "created peak"),
+        (ZoneCounter.Demolished, Aggregate.Sum, "demolished"),
+        (ZoneCounter.Demolished, Aggregate.Peak, "demolished peak"),
+    ];
+
     public static void Print(TextWriter writer, World world, Census census, ulong ticks)
     {
         ArgumentNullException.ThrowIfNull(writer);
@@ -107,6 +129,14 @@ internal static class CensusReport
             truncated |= !series.Complete;
 
             WriteRow(writer, "rules", label, series);
+        }
+
+        foreach ((ZoneCounter counter, Aggregate aggregate, string label) in ZoneCounters)
+        {
+            Series series = census.Series(Metric.Of(counter, aggregate), window);
+            truncated |= !series.Complete;
+
+            WriteRow(writer, "zones", label, series);
         }
 
         if (truncated)

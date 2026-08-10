@@ -328,6 +328,22 @@ have never been checked against the same test either.
 condition.* It is filed here because the same method found it and because it belongs beside its
 sibling entry — but it is discharged by slice 8, not by typing.
 
+### `02 §5.7` claims a Zone Rule's cost is constant regardless of Zone size, and it is 1.56×
+
+**Raised by slice 10 task 9's tripwire** ([`0014`](0014-zone-rules-and-the-sweep-family.md) §9), which
+existed to measure this sentence and did.
+
+- [ ] **`02 §5.7` — amend, do not strike.** Measured **1.56×** from 256 Lots to 256,000 with the
+      sample fixed, against a deliberate-scan control rung that moved **989×** on the same data. The
+      section is right about the algorithm — sampling is `O(sample)` exactly and the number of Lots
+      never enters it — and wrong about the consequence: the cost is a function of the **working
+      set**, so it climbs as the Lot table leaves each level of cache and then stops. The sentence as
+      written is falsifiable by a benchmark, and a reader who ran one would conclude the sampling
+      design had failed when what they had measured was DRAM
+
+**Filed here rather than in `0002` because it is not a question.** The number exists, the machine
+that produced it is committed, and what is owed is a paragraph in `02`.
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and
