@@ -65,7 +65,18 @@ scheduling constraint is discharged.
   and the Cell are all `const`s no Ruleset can state, so the ADR's own sentence about them is false of
   three of its four members. Filed to `0012` as a sentence to fix rather than a hole to plug — nothing
   is unguarded, because a file that cannot state a number cannot change it.
-- **Next: task 4** — the derelict flag.
+- **Task 4** — the degradation. **Tasks 4, 5 and 6 were merged before any of them was written**,
+  because none is reachable alone: dereliction needs a kind removed, which trips `KindCount`,
+  `RuleCount` and usually `ResourceCount` at once, and the structural refusal lifts once or the
+  reload half-happens. **Sub-task A shipped**: a declaration's identity is now its **name**, not its
+  id. `RulesetShape.Compare` had assumed ids were stable across two files and they are not — a
+  reordering left every count and shape identical while every live Bin row started naming a different
+  Good, and *removing a declaration from the middle of a file is a reordering*, so every real removal
+  the degradations exist for had it. Two other things were settled without code: **derelict is
+  derived, not a saved flag** — the only actor is a designer, whose commonest move is undo, and a mark
+  that never clears leaves them a city of permanently inert bakeries — and **`adr/0055`'s consequence
+  bullet is false**, because a Building with no Rules has no failures to die of.
+- **Next: task 4 sub-tasks B and C** — the migration map, and the one pass over the world.
 
 ---
 
@@ -514,48 +525,111 @@ change it**. `plans/0012`.
 25 new tests; 750 total. No baseline moved, because `rulesets/minimal.toml` declares no `[layers]` and
 the defaults did not change — the tau is now derived and derives to the 128 it was.
 
-### 4. Degradation, part one — the derelict flag
+### 4. The degradation, whole — derelict, dropped Bins, wait lists, and identity across two files
 
-`BuildingTable` gains the state `02 §4.3` has described for six slices: **a Building whose kind the new
-Ruleset does not declare is marked derelict, not deleted.** Saved and hashed — it is simulation state,
-and `05 §4`'s test is met trivially.
+> **Tasks 4, 5 and 6 were merged before any of them was written, and the merge is a finding rather
+> than a tidy-up.** None of the three is reachable on its own. Dereliction requires a kind to stop
+> being declared, which drops `KindCount`; removing a kind also removes the Rules declared on it, so
+> `RuleCount` drops too, and usually a `ResourceCount` with it. `Simulation.Reload` refuses **any**
+> structural change, and that refusal lifts once or the reload half-happens — which is the single
+> thing `adr/0015` forbids. Three task numbers described one task.
 
-**The read side already exists.** `Ruleset.Declares(kind)` was written in task 10a precisely so that
-this state could be *represented* before it could be *named* (`0011` finding 39), and the situation it
-was written for is not hypothetical: **every ruleless world builds kind-1 Buildings**, so Phase 1
-already contains Buildings of an undeclared kind today. This task retro-fits a name onto a state the
-project already has, and only then extends it to reload.
+**Sub-task A — identity. Shipped.** *An id is not an identity, and the comparison had assumed it was
+for two tasks.* A `ResourceId` is declaration order, so deleting one `[[resource]]` shifts every id
+below it — and a live Bin row holds the id, not the name. `RulesetShape.Compare` therefore called a
+**reordering** of two same-shaped declarations *numbers only*, admitted the reload, and every live Bin
+silently began naming the other Good. **This is not an exotic case: removing a declaration from the
+middle of a file *is* a reordering, so every real removal the degradations exist to handle has it.**
 
-**Silent deletion during a balance session is how a save gets quietly corrupted** — that is
-`adr/0015`'s reason and it is worth quoting in the code, because the cheap fix will look tempting
-every time somebody reads this path.
+`Ruleset` now carries a **key per declaration** — the content hash of its declared name, computed by
+the loader. A number, so it crosses into `Core` under `adr/0048`'s own rule where the name it came
+from does not; the core never renders it and never resolves a name with it, it only asks whether two
+declarations are the same thing. `Compare` checks the key **before** anything else about that id,
+because *a comparison of two declarations that are not the same declaration produces true sentences
+about the wrong pair* — the swapped-kinds test would otherwise have reported `KindBins`. Rulesets
+built in code default to **positional** keys, so every fixture in the suite compares exactly as it
+did. There is no rename: a name is the only identity a TOML file carries, so *flour became grain* and
+*flour went and grain arrived* are the same file, and guessing between them is what an explicit id
+field would be for.
 
-*Jointly owed with slice 10.* See *The parallel session*.
+**Sub-task B — the map and the rewrite. Not started.** The remap runs at the swap, when both Rulesets
+are in hand, so **no row needs a new column**: `Bins.Resource` and `Buildings.Kind` are rewritten from
+old id to new id through the key. That is the whole reason the keys are on the `Ruleset` and not on
+the rows.
 
-### 5. Degradation, part two — Bins whose resource no longer exists
+**Sub-task C — the three degradations, in one pass over the world.** Order matters and it is
+`DestroyBuilding`'s order for the same reason:
 
-Dropped, with a logged warning. `02 §4.3` and `adr/0015` agree and neither is ambiguous.
+1. **Every Rule Instance in the world is dropped** — unlinked from the Wheel and from whatever wait
+   list it is on, and freed. `02 §4.3`: *"all wait lists are dropped and every Rule is woken with a
+   stagger"*, because a subscription taken under the old Ruleset may name a Bin the new one does not
+   have — *"which also means a wait list is never cross-version state."*
+2. **Bins are remapped, and those whose Resource is gone are dropped**, with a count reported.
+3. **`Buildings.Kind` is remapped**; a kind that is gone leaves **0**, which `Ruleset.Declares`
+   already answers false for. That is dereliction, and it needs no flag — see below.
+4. **Every Building with a declared kind is refitted**: the Bins its kind declares that it does not
+   have, and its kind's Rule Instances, armed on slice 7's stagger. That is `World.CreateBuilding`'s
+   arming logic factored out and called again — the same code, not a second copy of it.
 
-The care needed is that a Bin is not free-standing: it belongs to a Building and it may be named by a
-Rule Instance and by a wait list. Task 6 handles the last of those by construction.
+**This task has no number to choose, and that is worth stating loudly**, because it is the second
+time the shape has appeared. Slice 7 task 10a expected the arming stagger to be a hash-bearing number
+needing a ratifier under `adr/0052` and found there was nothing to choose: a Rule re-arms at `+rate`
+for ever, so uniform over `[1, rate]` is the only offset that stays spread. A reload re-arms every
+Rule Instance in the world at once, which is the largest possible instance of exactly that problem,
+and **the answer slice 7 derived is already the right one.** Reuse it; do not re-derive it; do not add
+a reload-specific stagger parameter.
 
-### 6. Degradation, part three — wait lists dropped, every Rule re-armed with slice 7's stagger
+#### Derelict is derived, and the question that settled it was *when does this happen to a player*
 
-`02 §4.3`: ***"All wait lists are dropped and every Rule is woken with a stagger"***, because a
-subscription taken under the old Ruleset may name a Bin the new one does not have — *"which also means
-a wait list is never cross-version state."*
+**Never.** A shipped game ships one Ruleset; nothing removes a Building kind from under a running
+city. The Ruleset changes mid-city in exactly two situations, and one of them does not exist yet: a
+**designer balancing**, which is `adr/0015`'s whole reason for being, and a **save made under one
+Ruleset loaded under another**, which is `05 §7`'s cross-Ruleset load policy and milestone 10.
 
-**This task has no number to choose, and that is worth stating loudly**, because it is the second time
-this shape has appeared. Task 10a expected the arming stagger to be a hash-bearing number needing a
-ratifier under `adr/0052` and found **there was nothing to choose**: a Rule re-arms at `+rate` for
-ever, so uniform over `[1, rate]` is the only offset that stays spread. A reload re-arms every Rule
-Instance in the world at once, which is the largest possible instance of exactly that problem, and
-**the answer slice 7 derived is already the right one.** Reuse it; do not re-derive it; do not add a
-reload-specific stagger parameter.
+So the only actor is a designer, and a designer's commonest move is **undo** — remove `bakery`, watch
+for five hundred Ticks, put it back. That kills the saved flag this task was planned around. A mark
+that records *a reload removed your kind* and is never cleared leaves that designer with a city of
+permanently inert bakeries and no fix but a restart, which is the failure `adr/0015` exists to
+prevent, arriving through the mechanism written to serve it.
 
-A Building's Rule Instances are its kind's, so where a kind's Rules changed, the instances are rebuilt
-rather than patched. That is `World.CreateBuilding`'s arming logic factored out and called again — the
-same code, not a second copy of it.
+**So there is no `derelict` column.** Dereliction is `Kind == 0` — a Building the Ruleset in force
+cannot describe — and it is recovered for free by sub-task C's refit, because a kind that comes back
+brings its Rules with it. `plans/0015`'s own *"Saved and hashed — it is simulation state"* is
+**struck**: under the reading that makes it saved, it is a cache of a two-compare predicate that is
+also wrong after the one edit a designer makes most.
+
+**The one thing that genuinely does not come back is a kind removed and re-added.** `Kind` is set to
+0, so what the Building *was* is forgotten and the re-add does not restore it. That is stated rather
+than fixed: remembering it costs a `ulong` key per Building row for a case that recovers by reloading
+a save, and inventing a refit for it would be inventing a mechanism nobody has asked for.
+`HONEST DEGRADATION`.
+
+#### `adr/0055`'s consequence bullet is false, and the repair is forbidden
+
+`adr/0055` says a derelict Building is *"still sampled and still dies of its own failures, rather than
+becoming a permanent monument to a Ruleset edit"*. The mechanism it names **cannot fire**: a Building
+with no Rules has no failures, so `ZoneRuleEngine.Condemn`'s threshold walk finds nothing and returns.
+And the obvious repair — condemn a derelict Building on sight — is *silent deletion arriving through
+the Zone Rule instead of through the reload*, which is precisely what `adr/0015` forbids and why the
+state is called derelict rather than removed.
+
+**So `adr/0015` wins, the Building stands, and clearing it is the player's** (`PLAYER GOVERNS`).
+Filed to `plans/0012` as a correction owed to `adr/0055`, not to the code.
+
+#### What is left, in order
+
+- Sub-task B, the migration map: `oldResourceId → newResourceId` and `oldKind → newKind` by key, 0 for gone.
+- Sub-task C, the pass over the world, inside `World.Adopt` — which needs the Tick and the `WorldKey`
+  for the stagger, so `Adopt` grows both.
+- **The residual refusal.** `RulesetChange.ResourceFamily` stays refused: a Good becoming Money with
+  live Bins holding stock is `adr/0024` conservation, not a degradation. `ResourceIdentity` and
+  `KindIdentity` become *inputs to the map* rather than refusals once B exists.
+- **The logged warning.** `02 §4.3` and `adr/0015` both say dropped *with a logged warning*, and
+  `Core` returns numbers (`adr/0002`). So: counts per reload — Buildings derelicted, Bins dropped,
+  Rule Instances re-armed — which is also the shape task 7's provenance trail wants.
+- Invariants: **a derelict Building runs no Rule Instances**, which is the claim sub-task C is most
+  likely to break, because nothing in the shape of a re-arm loop makes the exclusion obvious.
+- **Baselines re-record**, deliberately: the refit changes when Rule Instances are armed.
 
 ### 7. The provenance trail, and `adr/0006`'s sink
 
@@ -681,10 +755,18 @@ back a real diagnosis had to reach — but nothing can produce that number until
 honest handling is a provisional value filed in `0002` §D as unratified, with *the first real
 cross-patch diagnosis* as its ratifier.
 
-**4. Whether the derelict flag is a boolean or a Building state.** Slice 10 wants decline and
-construction time and `0014` explicitly defers both for want of *"a Building state that does not
-exist"*. A boolean is right for this slice and probably wrong for the next one. **Do not decide it on
-one instance** — the same instruction `0014`'s decision owed 4 gives itself.
+**~~4. Whether the derelict flag is a boolean or a Building state.~~ SETTLED — task 4: neither, because
+there is no flag.** The question presupposed a saved mark and the presupposition is what failed. Asked
+*when does a kind stop being declared under a running city*, the answer is **never, to a player** — a
+shipped game ships one Ruleset. The only actor is a **designer balancing**, and a designer's commonest
+move is **undo**: remove a kind, watch, put it back. A mark that records the removal and never clears
+leaves them a city of permanently inert Buildings, which is the failure `adr/0015` exists to prevent
+arriving through the mechanism written to serve it. So dereliction is **derived** — `Kind == 0`, a
+Building the Ruleset cannot describe — and the refit recovers it for free. **The instruction not to
+decide it on one instance is what produced this**: looking at the second instance, slice 10's deferred
+construction time, showed that one is not a state either — it is a completion Tick, so *under
+construction* is `now < CompletesAt`, the same shape `adr/0053` gave failure pressure. With both gone
+there was no enum to be the first member of, and then no flag to be a boolean.
 
 ---
 
@@ -704,7 +786,12 @@ has to type.
   count is of refusals that catch a Ruleset which would otherwise **load clean and misbehave in
   silence**, and everything in it has that in common.
 - **`CONTEXT.md` → Ruleset** gains reload's transition semantics if the walk-through finds it silent
-  on them.
+  on them. **`CONTEXT.md` is also silent on *Derelict***, which the corpus uses in four places and
+  defines nowhere; it wants the entry, and the entry should say **derived** so nobody adds the column
+  again.
+- **`adr/0055`'s consequence bullet** — *a derelict Building "still dies of its own failures"* — is
+  **false**, because a Building with no Rules has no failures. Filed to `0012`. It is a correction to
+  one bullet and not to the decision the ADR makes.
 
 ---
 

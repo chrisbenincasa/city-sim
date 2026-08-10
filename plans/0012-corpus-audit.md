@@ -367,6 +367,39 @@ existed to measure this sentence and did.
 **Filed here rather than in `0002` because it is not a question.** The number exists, the machine
 that produced it is committed, and what is owed is a paragraph in `02`.
 
+### `adr/0055` says a derelict Building dies of its own failures, and it structurally cannot
+
+**Raised by slice 8's merged degradation task**, from the call site `adr/0055` is about.
+
+- [ ] **`docs/adr/0055` consequence bullet 2** — *"Slice 8's derelict Buildings decline like anything
+      else… still sampled and still dies of its own failures, rather than becoming a permanent monument
+      to a Ruleset edit."* **The mechanism it names cannot fire.** A derelict Building is one whose kind
+      the Ruleset no longer declares, so it has no Rule Instances; `ZoneRuleEngine.Condemn` walks its
+      Rules looking for one that has starved past its kind's threshold, finds none, and returns. It is
+      a permanent monument, exactly as the bullet says it must not be. **And the obvious repair is
+      forbidden**: condemning a derelict Building on sight is silent deletion arriving through the Zone
+      Rule instead of through the reload, which is what `adr/0015` forbids and why the state is called
+      derelict rather than removed. `adr/0015` wins; the Building stands until a player clears it
+      (`PLAYER GOVERNS`). **Amend the bullet, do not strike it** — the ADR's decision is untouched and
+      only this consequence is wrong
+
+### `adr/0015`'s world-creation members are not the only Ruleset numbers that were never checked against the code
+
+**Raised by slice 8 task 4 sub-task A**, and it is the same directional blindness this ledger diagnosed
+about itself above — a design document that is right about a property of *where a number lives*, and a
+build that never implemented it.
+
+- [x] **A Ruleset declaration's id is its position in the file, and `02 §4.3` describes the reload
+      degradations as though ids were stable across two files.** Nothing made them so. Deleting one
+      `[[resource]]` shifts every id below it, and a live Bin row holds the id — so a reload that
+      *removed* a declaration, which is the entire point of the degradations, would have relabelled
+      every survivor while it derelicted the casualty. `RulesetShape.Compare` could not see it either:
+      a **reordering** of two same-shaped declarations leaves every count, family and shape identical,
+      so it read as *numbers only* and was admitted. **Discharged by slice 8 task 4**: `Ruleset` carries
+      a key per declaration — the content hash of its name, supplied by the loader — and `Compare`
+      checks it before anything else about that id. Rulesets built in code keep positional identity, so
+      no fixture moved
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and

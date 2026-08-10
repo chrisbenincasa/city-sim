@@ -457,6 +457,42 @@ public sealed class Ruleset
     /// </remarks>
     public LayerRuleset Layers { get; init; } = LayerRuleset.Default;
 
+    /// <summary>
+    /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Ids are positional and a designer's edit moves them, which is the fact slice 8's degradation
+    /// ran into and nothing in the corpus had noticed.</b> A <see cref="ResourceId"/> is declaration
+    /// order — delete the first <c>[[resource]]</c> and every id below it shifts up one. A live Bin row
+    /// holds that id, so the same row silently starts naming a different Good. <c>02 §4.3</c> describes
+    /// the reload degradations as though ids were stable across two files, and nothing makes them so.
+    /// </para>
+    /// <para>
+    /// <b>A key per declaration is what makes two Rulesets comparable at all.</b> It is the content
+    /// hash of the declared name, computed by the loader — a number, so it crosses into the core under
+    /// <c>adr/0048</c>'s own rule, where the name it was made from does not. The core never renders it
+    /// and never resolves a name with it; it only asks whether two declarations are the same thing.
+    /// </para>
+    /// <para>
+    /// <b>Empty means positional</b>, which is the behaviour of every Ruleset written in code. A
+    /// fixture that declares two Resources and reloads to a fixture that declares two Resources means
+    /// them to correspond, and there are no names in the tree to hash.
+    /// </para>
+    /// </remarks>
+    public ulong[] ResourceKeys { get; init; } = [];
+
+    /// <inheritdoc cref="ResourceKeys"/>
+    /// <remarks><inheritdoc cref="ResourceKeys" path="/remarks"/></remarks>
+    public ulong[] KindKeys { get; init; } = [];
+
+    /// <summary>What the Resource with this id is, as a key comparable across Rulesets.</summary>
+    public ulong ResourceKey(ResourceId resource) =>
+        ResourceKeys.Length == 0 ? resource.Raw : ResourceKeys[resource.Raw - 1];
+
+    /// <summary>What the Building kind with this id is, as a key comparable across Rulesets.</summary>
+    public ulong KindKey(byte kind) => KindKeys.Length == 0 ? kind : KindKeys[kind - 1];
+
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
     /// <remarks>
     /// <b>What <c>with</c> would give a record, spelled by hand because this is a class.</b> It exists
@@ -469,6 +505,8 @@ public sealed class Ruleset
         new(_resources, _rules, _kinds, _inputs, _outputs, _emissions, _bins, _kindRules, _zoneRules)
         {
             Layers = layers,
+            ResourceKeys = ResourceKeys,
+            KindKeys = KindKeys,
         };
 
     /// <summary>How many Resources are declared. Ids run <c>1..ResourceCount</c>.</summary>

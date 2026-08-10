@@ -1,4 +1,7 @@
+using System.Globalization;
+using System.Text;
 using Borough.Core.Arithmetic;
+using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -182,6 +185,8 @@ public static class RulesetLoader
                     zoneRules)
                 {
                     Layers = layers,
+                    ResourceKeys = Keys(_resources),
+                    KindKeys = Keys(_kinds),
                 });
         }
 
@@ -1286,6 +1291,50 @@ public static class RulesetLoader
 
             value = number.Value;
             return true;
+        }
+
+        // ---- identity -------------------------------------------------------------------------
+
+        /// <summary>
+        /// One key per declaration, in id order: the content hash of the name it was declared under.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>This is where a declaration stops being its position in a file.</b> Ids are assigned by
+        /// declaration order, so deleting one <c>[[resource]]</c> shifts every id below it — and a
+        /// live Bin row holds an id, not a name. The core cannot see the names (<c>adr/0048</c>), so
+        /// it is handed the one thing that survives the boundary and still distinguishes two
+        /// declarations: a number derived from the name.
+        /// </para>
+        /// <para>
+        /// <b>Hashed rather than interned, because the two Rulesets are never in one process
+        /// together as text.</b> A reload compares the Ruleset in force — which may have been loaded
+        /// from a file that has since been overwritten — against the new one, so any scheme that
+        /// resolves through a shared string table would have to keep the old file's strings alive.
+        /// A hash is the same 8 bytes whenever it is computed.
+        /// </para>
+        /// <para>
+        /// <b>A collision would silently merge two declarations</b>, and it is not defended against
+        /// here: <see cref="ContentHash"/> is the function the State Hash itself is built from, and a
+        /// 64-bit collision between two short identifiers in one Ruleset is not a risk this project
+        /// treats differently from the hash trace it already trusts.
+        /// </para>
+        /// </remarks>
+        private static ulong[] Keys<TId>(Dictionary<string, TId> named)
+            where TId : struct, IConvertible
+        {
+            var keys = new ulong[named.Count];
+
+            // The dictionary is a lookup and 05 section 4 lint 3 bans walking one for a simulation
+            // decision. This is not one: the loader runs on a keystroke, outside the Tick, and the
+            // result is written by id so the enumeration order cannot reach the output.
+            foreach (KeyValuePair<string, TId> entry in named)
+            {
+                keys[entry.Value.ToInt32(CultureInfo.InvariantCulture) - 1] =
+                    ContentHash.Of(Encoding.UTF8.GetBytes(entry.Key));
+            }
+
+            return keys;
         }
 
         // ---- layers ---------------------------------------------------------------------------

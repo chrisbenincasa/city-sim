@@ -20,11 +20,33 @@ public enum RulesetChange
     /// <summary>A Resource was added or removed.</summary>
     ResourceCount,
 
+    /// <summary>
+    /// A Resource id names a different declaration than it did. The file was reordered.
+    /// </summary>
+    /// <remarks>
+    /// <b>The failure this catches is silent and total.</b> Ids are declaration order, so swapping two
+    /// <c>[[resource]]</c> blocks leaves every count and every shape identical while every live Bin
+    /// row starts naming the other Good. Without a key per declaration the comparison below cannot
+    /// see it, and the reload reads as <em>numbers only</em>.
+    /// </remarks>
+    ResourceIdentity,
+
     /// <summary>A Resource changed family — which changes whether it is conserved (<c>adr/0024</c>).</summary>
     ResourceFamily,
 
     /// <summary>A Building kind was added or removed.</summary>
     KindCount,
+
+    /// <summary>
+    /// A kind id names a different declaration than it did. The file was reordered.
+    /// </summary>
+    /// <remarks>
+    /// <inheritdoc cref="ResourceIdentity" path="/remarks"/>
+    /// The Building's version of the same failure: every Building of kind 2 becomes a Building of
+    /// whatever kind 2 now is, keeping its Bins and its Rule Instances, and nothing in the world
+    /// records that it changed species.
+    /// </remarks>
+    KindIdentity,
 
     /// <summary>A kind's Bins changed: a different Resource, or a different number of them.</summary>
     KindBins,
@@ -73,6 +95,16 @@ public enum RulesetChange
 /// number. That test is why the apply band and the Bin capacity are on the safe side and the Bin's
 /// Resource is not, and it is the test to re-run when the Ruleset grows a field.
 /// </para>
+/// <para>
+/// <b>And an id is not an identity, which this comparison assumed for two tasks.</b> Ids are
+/// declaration order, so a designer who reorders a file changes every id below the edit while every
+/// count and every shape stays identical — a reload this would have called <em>numbers only</em>
+/// while every live Bin started naming a different Good. <see cref="Ruleset.ResourceKeys"/> is what
+/// closes it: a key per declaration, hashed from its name by the loader, compared before anything
+/// else about that id is compared. **A comparison of two declarations that are not the same
+/// declaration produces true sentences about the wrong pair**, which is why the key check comes
+/// first in both loops rather than alongside.
+/// </para>
 /// </remarks>
 public static class RulesetShape
 {
@@ -93,6 +125,14 @@ public static class RulesetShape
         for (int i = 1; i <= current.ResourceCount; i++)
         {
             var resource = new ResourceId((ushort)i);
+
+            // Identity before family, because a mismatched key makes every comparison below it a
+            // comparison of two unrelated declarations -- and "the family changed" would be a true
+            // sentence about the wrong pair.
+            if (current.ResourceKey(resource) != replacement.ResourceKey(resource))
+            {
+                return RulesetChange.ResourceIdentity;
+            }
 
             // A Good becoming Money is not a tuning change: adr/0024 makes conservation a property
             // the whole Rule engine enforces, so the same Bin would start refusing what it accepted.
@@ -180,6 +220,11 @@ public static class RulesetShape
 
     private static RulesetChange CompareKind(Ruleset current, Ruleset replacement, byte kind)
     {
+        if (current.KindKey(kind) != replacement.KindKey(kind))
+        {
+            return RulesetChange.KindIdentity;
+        }
+
         ReadOnlySpan<BinDeclaration> wasBins = current.BinsOf(kind);
         ReadOnlySpan<BinDeclaration> nowBins = replacement.BinsOf(kind);
 
