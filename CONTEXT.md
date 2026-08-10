@@ -722,7 +722,11 @@ How fast the host advances Ticks in real time. Purely a host concern — the sim
 The default is not the slowest setting. The slowest, **Study**, is the speed at which rendered traffic is visually truthful; above it, vehicles read as faster than their apparent size warrants. Mechanics are identical at every speed.
 
 **Event Wheel**
-The bucket structure that lets idle entities cost nothing. Every Citizen carries a `next_event_tick`; buckets are keyed by that value. A Citizen at work for a third of a Day sits in exactly one bucket and is touched once. This converts cost from *number of Citizens* to *number of Citizens with something happening right now*.
+The bucket structure that lets idle entities cost nothing. Every scheduled row carries a `next_event_tick`; buckets are keyed by that value. A Citizen at work for a third of a Day sits in exactly one bucket and is touched once. This converts cost from *number of Citizens* to *number of Citizens with something happening right now*.
+
+**It has two levels** — a fine wheel of one bucket per Tick and a coarse wheel of one bucket per Day, the coarse cascading into the fine at each Day boundary (`adr/0056`). The fine wheel's period is exactly one Day, so anything sleeping in Days is the coarse wheel's. **There is one wheel per scheduled table**, not one wheel over tagged entities.
+
+A scheduled row is in exactly one of **armed** or **waiting** at every moment, and is unlinked when its owner row is freed. That is what bounds the structure under `adr/0006`: membership is a *partition* of the live rows rather than an accumulation, so the wheel cannot grow with elapsed time.
 
 **Input Log**
 The record of `(world seed, configuration, Ruleset content hash, inputs per Tick)` that fully determines a session. Small enough to attach to a bug report. Everything that affects simulation state must enter through it.

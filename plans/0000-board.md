@@ -188,10 +188,13 @@ what a gate is, and the two words that unfortunately mean two things each.
 
 ---
 
-**Where the project is.** Phase 1. Slices 0–7 are closed — the Phase 1 gate with slice 6, and **slice
-7 with task 10a**, whose 10b half is re-filed to Phase 2 rather than left open. The spike track has
-run S4, S0a and S2 R0–R8. The argument track has closed sessions A, B, eight and nine; **C is the only
-session still gating a slice**.
+**Where the project is.** Phase 1. Slices 0–7 **and 10** are closed — the Phase 1 gate with slice 6,
+**slice 7 with task 10a**, whose 10b half is re-filed to Phase 2 rather than left open, and **slice 10
+with all ten tasks**, which produced `adr/0053`–`0055`. **Slice 8 is the only open slice whose gate is
+clear**, and nothing is queued in front of it any more. The spike track has run S4, S0a and S2 R0–R8,
+less R7's remainder. The argument track has closed sessions A, B, **C**, **M**, eight and nine —
+**and with C closed, no session gates a slice any more.** Every remaining one runs when something
+concrete is blocked on it.
 
 Detail lives where it is owned — slice narrative in the slice plans, spike numbers in
 [`spike-results`](../docs/spike-results.md), reasoning in [`0002`](0002-open-questions.md). What
@@ -241,7 +244,10 @@ observed rather than predicted. The board had ordered *argument first* on the re
 is gated on code. True, and it produced a session in which **every decision generated two or three
 more** — `adr/0046` alone spawned four unratified numbers, `adr/0047` found defects in two other ADRs
 on its way past, and three separate findings arrived labelled *the third instance of a pattern*.
-**The design was generating design.** There are 51 ADRs and the game is at slice 7.
+**The design was generating design.** There were 51 ADRs and the game was at slice 7 when this was
+written; there are now **56** and the game is at slice 8. The ratio is the point, and it has not
+improved — but the correction below is holding, because every session since has been booked against
+something concrete rather than against availability.
 
 **S2's risk is retired** — see *Where the project is*. Everything after that is refinement, and
 refinement has no stopping condition, so it needs an external one. This is it.
@@ -253,10 +259,18 @@ but the code track leads.
 
 | | Track | Task | Where | Why this one |
 |---|---|---|---|---|
-| **1** | **code** | **Slice 8 — hot reload.** Planned; the code waits for slice 10 | [`0015`](0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md) | **Slice 7 is closed and this is the next slice whose gate is clear** — session A's `adr/0048` cleared 7 and 8 together. **The plan is written** — [`0015`](0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md), not `0014`, because plan numbers are allocated when a plan is *written* and slice 10 took `0014` first. **The code waits for slice 10 to land**, which is a scheduling constraint and not a dependency: the two slices both edit `RulesetLoader` and both re-record the golden baselines, and two sessions re-recording one baseline is a conflict that has to be re-run rather than merged. Planning found six things, three of which remove work — **the board's own doorstep item below is not a decision** but a correction owed to `02 §4.3`, which states the transition carries content hashes and then says a hash is not enough, while `05 §7`, session A and `InputLog.cs:136` all settle it the same way; **a reload needs no new `CommandKind`**, because `Command` is 12 bytes and cannot carry a hash while `RulesetHashAt` and `TickInput.RulesetHash` are already in the tree, written for this and read by nothing; and **`RulesetInForce` is built and unreferenced**, so *the previous Ruleset stays live* already has somewhere to be true. It also found a **live defect**: the industrial pollution kernel radius is a `const` in `SeparableKernel.cs:177`, and `adr/0015`'s world-creation category freezes a number per world rather than moving it into the binary — so the slice's world-creation refusal has nothing to refuse until it moves. What it owes is concrete and larger than *swap a file*: a Ruleset swapped at a **phase boundary**, the transition **logged** so a replay can reproduce it, and — the obligation that replaced `06`'s retired ordering claim — the **Map Layer cadence and rates loading from a file** rather than from `LayerRuleset.Default`. Two things slice 7 leaves on its doorstep: `02 §4.3` says a reload marks Buildings whose kind no longer exists **derelict rather than deleted**, and there is no derelict flag (`0011` finding 39); and `Replay.Start` takes a Ruleset while a log carries only its **content hash**, which `02 §4.3` already says is not enough — *"a replay needs the Rules' content, not the news that they changed"*. **Slice 10, Zone Rules, is also unblocked now** and is the alternative if hot reload wants a session first |
-| **2** | spike | **S2 R6.4 — the three measurements session M named, then R7 closes** | [`0010`](0010-s2-routing.md) | **This row is what remains of R6, and session M set it.** R6.0–R6.3 are done and the invalidation half is no longer gated — `adr/0012` carries the contract. **R6.4.1** the branch-point compression ratio (refutes if `k > ~25`), **R6.4.2** the rejoin cost (refutes above ~10 µs), **R6.4.3** the addition wake's fan-out and the radius `d` (refutes on fan-out, *not* on miss rate — `T` backstops the miss). All three are **Road Graph properties needing no Trip generation**, which is what makes them runnable on the harness still on disk. R7 then closes S2 and deletes it. *Historical framing follows.* **Promoted, and its stakes went up.** R3 called a cache *"one of only two exits"*; [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) has now removed the third option nobody had noticed was in reserve, so **R6 is the only exit.** It owns the two numbers routing still has open: the cache's **key granularity** — a different number with a different error from the matrix's — and the **eviction policy**, which R5 measured as the bigger lever below the highest edit rates (28–31% of lookups missing on direct-mapped collisions before a road is touched). It inherits R3's stored path arena and a `HpaSearch` pristine-seeding defect R5.5 found. *Runs unattended; does not contend with row 1* |
+| **1** | **code** | **Slice 8 — hot reload. IN FLIGHT**, tasks 1–4 landed | [`0015`](0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md) | **Slices 7 and 10 are closed and this is the next slice whose gate is clear** — session A's `adr/0048` cleared 7 and 8 together. **The plan is written** — [`0015`](0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md), not `0014`, because plan numbers are allocated when a plan is *written* and slice 10 took `0014` first. ~~The code waits for slice 10 to land~~ **DISCHARGED — slice 10 landed.** It was a scheduling constraint and not a dependency: the two slices both edit `RulesetLoader` and both re-record the golden baselines, and two sessions re-recording one baseline is a conflict that has to be re-run rather than merged. **Slice 10 re-recorded them last**, so the baselines slice 8 starts from are the ones in the tree. Planning found six things, three of which remove work — **the board's own doorstep item below is not a decision** but a correction owed to `02 §4.3`, which states the transition carries content hashes and then says a hash is not enough, while `05 §7`, session A and `InputLog.cs:136` all settle it the same way; **a reload needs no new `CommandKind`**, because `Command` is 12 bytes and cannot carry a hash while `RulesetHashAt` and `TickInput.RulesetHash` are already in the tree, written for this and read by nothing; and **`RulesetInForce` is built and unreferenced**, so *the previous Ruleset stays live* already has somewhere to be true. It also found a **live defect**: the industrial pollution kernel radius is a `const` in `SeparableKernel.cs:177`, and `adr/0015`'s world-creation category freezes a number per world rather than moving it into the binary — so the slice's world-creation refusal has nothing to refuse until it moves. What it owes is concrete and larger than *swap a file*: a Ruleset swapped at a **phase boundary**, the transition **logged** so a replay can reproduce it, and — the obligation that replaced `06`'s retired ordering claim — the **Map Layer cadence and rates loading from a file** rather than from `LayerRuleset.Default`. Two things slice 7 left on its doorstep: ~~`02 §4.3` says a reload marks Buildings whose kind no longer exists **derelict rather than deleted**, and there is no derelict flag (`0011` finding 39)~~ **DISCHARGED by task 4 — and there is no flag, because dereliction is `Kind == 0`, a Building the Ruleset in force cannot describe, and a saved mark would be a cache of a two-compare predicate**; and `Replay.Start` takes a Ruleset while a log carries only its **content hash**, which `02 §4.3` already says is not enough — *"a replay needs the Rules' content, not the news that they changed"*. **Slice 9 is the alternative code row again**, since session C closed its gate — see row 1b |
+| **1b** | **code** | **Slice 9 — the Event Wheel.** Unblocked, unstarted | [`0016`](0016-the-event-wheel.md), and [`adr/0056`](../docs/adr/0056-the-event-wheel-is-two-levels-ticks-and-days.md) | **Session C cleared the last red gate in Phase 1.** The design is settled and the scope is deliberately narrow: **the fine wheel only.** Every `rate` in `rulesets/minimal.toml` is 8–32 Ticks and the Zone Rule interval is 32, so the **coarse Day wheel has no consumer until Life Stages arrive in Phase 2** — building it now would be writing past the slice. What slice 9 owes: finish the fine wheel slice 7 half-built, keep `Arm`'s refusal above `WHEEL_SIZE` with its message re-pointed from *"slice 9's overflow list"* to `adr/0056`, and state the invariant the session extracted — **every live scheduled row is in exactly one of {armed, waiting}, and is unlinked when its owner row is freed**, which is what makes the Wheel bounded under `adr/0006` by *partition* rather than by a sink. It also inherits a measurement: `02 §7`'s *"a few hundred out of hundreds of thousands"* is now typed **measurable** and unmeasured. ~~**Needs a plan document before it needs code**~~ **PLANNED**, and the plan inverts the row: **the fine wheel is built, not half-built**, and the invariant session C extracted has been in the tree — both halves, registered at `EndOfRun`, tested — since slice 7. So slice 9 is **four corrections at the seam slice 8 is writing across**, not a construction. Three findings outrank the rest. The partition `adr/0056` states has **a third state it does not name** — between Phase 1 and the end of Phase 3 a due row is on *no* queue, which `RuleEngine.cs:217` says exactly and the ADR does not, so every future consumer inherits a claim that is false for two of the eight phases. The whole-world check is **blind to a whole period**: `BucketOf(NextTick) == bucket` is invariant under adding `WHEEL_SIZE`, so a row due 8,192 Ticks ago passes — a check written modulo the one number the error is a multiple of, reachable only by **reload** and **save/reload**, which are respectively in flight this week and guarded by the invariant that has never run. And the scope argument everything repeats — *"the Zone Rule interval is 32"* — **names a mechanism that is not on the wheel** (`tick.Raw % Interval`, and `adr/0033` bars a Sweep Rule from ever being a wheel consumer), so the conclusion is right and **stronger** than its stated reason: the fine wheel has exactly **one** consumer, structurally. Fourth-odd instance of *citing is not applying*, and the first in a **scope** argument. It also **removes** the largest piece of work anybody could read into the slice — *one wheel per scheduled table* is unexercisable with one consumer, so `EventWheel` must **not** be generalised — and finds `02 §7`'s measurable number is **already instrumented** (`RuleCounter.Due`, peak), so it waits on S0b's run and not on machinery. **Hash-neutral by construction**, which is its own acceptance test: a moved baseline means a task changed behaviour instead of observing it |
+| **2** | spike | ~~**S2 R6.4**~~ **DONE — all three ran. R7 is what remains, and it is now the only thing between S2 and deletion** | [`0010`](0010-s2-routing.md) | **R6.4.1 is REFUTED**: `k` = **59.05** against a threshold of ~25, a compression ratio of **1.04×**, refuting at four of five O-D rungs — and its premise was already contradicted by **R8.1's 98.02%**, published in the same plan. *Fourth instance of `adr/0044`'s **citing is not applying**, and the first against a **measurement** rather than a decision.* **R6.4.2 passed the letter and was rescored anyway** — 10 µs × R8.3's 1,269.51 diversions is **81% of a Tick**, so the bar was set at the wrong level; republished R3's way as *fits below 6,419 diversions per Tick*. **R6.4.3 did not refute and `d` = 0**, but found the wake **tests proximity of the wrong object**, so the miss closes at no radius — `0002` §D2 carries it. **The largest finding has no cell in session M's trilemma**: the reverse index costs **8.15× the store it indexes**, **1,678 MiB at 1M**, and its memberships scale with journey length so *nothing R6.4.1 compresses touches it* — that, not `k`, is what loses the memory axis. **The Sight Horizon turns out to be two parameters wearing one name** (1 = noticing a choice, 3 = recovering a route you left, cliffing 19.14% → 85.74%). **And it contradicts a published R5 magnitude by two orders on the same gesture** — R7 owes that reconciliation alongside R2's. *Historical framing follows.* **This row is what remains of R6, and session M set it.** R6.0–R6.3 are done and the invalidation half is no longer gated — `adr/0012` carries the contract. **R6.4.1** the branch-point compression ratio (refutes if `k > ~25`), **R6.4.2** the rejoin cost (refutes above ~10 µs), **R6.4.3** the addition wake's fan-out and the radius `d` (refutes on fan-out, *not* on miss rate — `T` backstops the miss). All three are **Road Graph properties needing no Trip generation**, which is what makes them runnable on the harness still on disk. R7 then closes S2 and deletes it. *Historical framing follows.* **Promoted, and its stakes went up.** R3 called a cache *"one of only two exits"*; [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) has now removed the third option nobody had noticed was in reserve, so **R6 is the only exit.** It owns the two numbers routing still has open: the cache's **key granularity** — a different number with a different error from the matrix's — and the **eviction policy**, which R5 measured as the bigger lever below the highest edit rates (28–31% of lookups missing on direct-mapped collisions before a road is touched). It inherits R3's stored path arena and a `HpaSearch` pristine-seeding defect R5.5 found. *Runs unattended; does not contend with row 1* |
 | **3** | spike | ~~**S2 R5.6 — the Parking Shed**~~ **DONE**, and R7's report is written | [`0010`](0010-s2-routing.md) | Both ran. R5.6's verdict is per-Segment **witnessed by paths** at 26.10% of a Tick; R7 re-captured R0/R1/R3/R4 and moved the break-even 85 → **112**. What is left of R7 is the reconciliation it owes and deleting the harness, and neither is available until R6.4 runs. *Historical framing follows.* The second Epoch consumer, and the last section of R5. It scales with **Buildings** and is a *neighbourhood* rather than a *path*, so per-Segment has no obvious meaning for it. **`CONTEXT.md` → Epoch must not be updated until it runs.** R7 then closes S2 and deletes the harness — and owes a re-capture of R0/R1/R3/R4, all of which carry the one-processor artefact |
-| **4** | argument | ~~**`adr/0015` — hot reload**~~ **DONE** | [`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md) | Ran, and cleared **two** slice gates rather than one. See *Done*. Nothing in this track is now blocking code, so the next session is chosen by what gets blocked next — not by what is available |
+
+*There is no argument row in this table, and that is not the same as the argument track blocking
+nothing.* Session **C** gates slice 9, and S0b sits behind slice 9 — so the chain **C → slice 9 → S0b**
+is the one place the argument track is in front of code. It is not promoted to a row here because the
+code track has slice 8 in flight and the two do not contend; promote it when slice 8 closes, or sooner
+if S0b's risk starts to matter. *(This replaces a struck-out row whose last line said nothing in the
+argument track was blocking code. That was true when it was written and stopped being true when slice
+9 became the last red gate.)*
 
 *Why S2 first now:* the argument for delaying it was that the golden baseline should exist before
 throwaway spike code starts changing `Core`. It does, and the runner is what a person uses to look at
@@ -293,7 +307,7 @@ milestone 8 is parking — so the *Unblocks* column always says which.
 |---|---|---|---|---|
 | ~~**A**~~ | ~~**`adr/0015`** — hot reload~~ **CLOSED** — see *Done*. Produced `adr/0048`, named Tomlyn, put the validator in `Borough.Formats`, found `adr/0003`'s exception was never owed, generated a third refusal, retired `06`'s ordering claim and corrected a `CONTEXT.md` sentence that argued against itself | ~~**No longer "never grilled at all."**~~ `adr/0045` hands it **two named refusals** — the `on_fail` cycle check and the `fills` check — both load-time Ruleset validation on the error surface this ADR already specifies. Plus `06`'s *must not slip behind 3c*, which is unargued and circular, and the **TOML dependency exception**, since a parser is what runs the refusals | slices **7** and 8 | **yes** |
 | ~~**B**~~ | ~~**`02 §4` residue**~~ | **CLOSED** — see *Done*. Produced `adr/0045`, struck `mean_workforce_experience`, inverted the Readout bound, and settled apply count. Its cycle-checking half moved to **A**, which is what moved A onto slice 7's gate | ~~slices 7, then 10~~ | — |
-| **C** | **`02 §7` + `adr/0006`** — Event Wheel | Both never grilled. `02 §7` is partly spoken for by `adr/0033` and must be **read against it rather than fresh** | slice 9 | **yes** |
+| ~~**C**~~ | ~~**`02 §7` + `adr/0006`** — Event Wheel~~ **CLOSED** — see *Done*. Produced **`adr/0056`**, and reading `02 §7` against `adr/0033` was the instruction that paid: it found the Wheel's period is **exactly one Day** while `adr/0011` schedules Life Stages in **Days**, so every Life Stage transition the design has ever specified was unrepresentable on the wheel it was specified to run on. `adr/0006` was not challenged and needed no defending — what the session added is *why* the Wheel satisfies it, which is that membership is a **partition** of the live rows rather than an accumulation | ~~slice 9~~ **cleared** | — |
 | **D** | **`03 §5`** — the traffic model | **The wall.** The most detailed unargued design in the project, now carrying transit vehicles. It is one large item and should be booked as more than one sitting | milestones 5b, 5c, 6, 7a | **partly** — the half that wants S2's numbers waits for R1–R3; the rest does not |
 | **E** | **`adr/0005` + `adr/0007`** — fidelity | One session, not two: `0007` moved Fidelity from person to **place**, and `0005`'s tiers are what it moved. Written from research, not argued | milestones 7a, 7b | **yes** |
 | **F** | **`adr/0008`** — walking is a simulated Leg | Written from research. It is what makes 5b *the irreversible milestone*, so the argument is owed before the Leg model is built rather than after | milestone 5b | **yes** |
@@ -394,6 +408,24 @@ slice *was for*, and keeps a finding only where it changed something **outside**
         rather than a trend line
   - [ ] ~~*task 10b* — the proving chain~~ **re-filed to Phase 2**, with decision owed 4. Blocked on
         `pool`, which is blocked on roads, Districts and connectivity
+- [x] **10 — Zone Rules, the second Rule family** → [`0014`](0014-zone-rules-and-the-sweep-family.md).
+      All ten tasks. Produced **`adr/0053`** (failure pressure is a **duration**, amended twice by the
+      code that implemented it), **`adr/0054`** (a demolished Building's Households are evicted into
+      the Unplaced Pool with their money) and **`adr/0055`** (a permission set scopes what a Rule
+      *builds*, never which Lots it looks at — so there is no immortality by paintbrush). It also
+      **deleted one of its four unratified numbers by deriving it away**. Four findings reached past
+      the slice: **the growth cycle cannot be entered from a standing start**, which is why the
+      shipped Ruleset makes dwellings decline; **the tripwire reads 1.56×** over a 1,000× Zone against
+      a control that moved 989×, so `02 §5.7`'s *constant cost regardless of Zone size* is false in
+      the letter and true in the substance and the variable is the **working set** — third sighting of
+      scatter ≈1.5; **the city settles five-sixths homeless**, because demolition evicts a Building's
+      whole occupancy and creation rehouses one, so **a Building has no declared occupancy at all**,
+      filed to [`0002`](0002-open-questions.md) §B rather than tuned; and **`HouseholdHomeExists` was
+      reported by nothing**, the only orphan among 26 invariants, now bannered with its **id retired
+      rather than reused** because a crash artifact carries the number. It is also the slice that
+      **discharged `adr/0006`'s collection half for the first time** — five of six tables dead flat
+      across 100,000 Ticks of continuous demolition, the sixth a running maximum bounded structurally
+      by the population
 - [x] **S0a — the world at target size** → [`spike-results`](../docs/spike-results.md). Closed the
       Phase 1 gate's sizing question at 86 MiB for 1M rows, and found what it was not looking for:
       **run mode had never had a city in it**, so every Tick figure the corpus held had been taken
@@ -418,6 +450,35 @@ the decision in its ADR; kept here is what each session **changed outside itself
       which is what put A on slice 7's gate. Found the corpus's **own worked example polled for ever**
       — `adr/0033`'s defect reproduced by the subscription model's example. A draft published a depth
       cap of 5 and **withdrew it**: R3's tripwire rule was written down and had not been run
+- [x] **Session C — `02 §7` + `adr/0006`, the Event Wheel.** Produced
+      **[`adr/0056`](../docs/adr/0056-the-event-wheel-is-two-levels-ticks-and-days.md)** — the Wheel is
+      **two levels, Ticks and Days**, with **one wheel per scheduled table**. **The board's instruction
+      to read `02 §7` against `adr/0033` rather than fresh is what found everything.** Three things
+      reached outside the session. **The Wheel's period is exactly one Day** (`WHEEL_SIZE` =
+      `TICKS_PER_DAY` = 8192) while `adr/0011` schedules Life Stages in **Days** — so a countdown of
+      *two Days* was already unrepresentable, and **every Life Stage transition the design specified**
+      was unrepresentable on the wheel it was specified to run on. `adr/0011` had argued that point at
+      length against `adr/0010` and the arithmetic under the argument was never checked. **`adr/0033`'s
+      *"wait lists are rebuilt, never saved"* is half wrong and the code already disagreed with it** —
+      `waiting_on`, `blocked`, `shortfall` and `queue_next` are all `Saved`, and they must be, because
+      the same ADR calls the shortfall *"load-bearing, not an optimisation"* and dropping it breaks
+      **invariant 6, the Factorio test**. Nobody caught it because invariant 6's machinery does not
+      exist, so the check that would have fired has never run. The reload half stands and slice 8 is
+      untouched. And **`02 §7` states a number nobody has measured** — *"a few hundred out of hundreds
+      of thousands"* — now typed *measurable* under `adr/0043` with S0b named. One number was created:
+      **`W`**, the Life Stage spread window, in `0002` §D2 with a ratifier, and it is the **exact
+      counter-case to slice 7's arming stagger** — that one had no free parameter and this one does
+- [x] **Session M — the route cache's invalidation contract.** Produced the contract as an amendment
+      to **[`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md)**: *never wrong about a
+      removal, boundedly wrong about an addition*, the bound checked **at use** with a proximity wake
+      over it, and **the diversion policy settled in principle — rejoin the Habit Route** rather than
+      re-search. **What it changed outside itself is not the contract.** `CONTEXT.md` → Habit Route
+      said a Habit belongs to a **Traveller**, contradicting the same file's *a Traveller is a view,
+      not an owner*; it belongs to the **Citizen**, which sets the store's size to the population and
+      means **R5.5.4's 0.40/Tick rotation was measured on a 412-entry cache and was never evidence
+      about it**. It left two unset hash-bearing numbers in `0002` §D2 (`T`, `d`) and one new spike
+      task, **R6.4.3**. And it **caught itself committing `0013`'s own defect in mirror image** — a
+      measured unit times a guessed multiplicand — with the repair written into `0013`
 - [x] **Session nine — `06-roadmap.md`, and what a planning document may assert.** Produced
       **`adr/0042`** — a planning document cites, a design document owns. `06` lost its contents
       column; it gained a table of **seventeen mechanisms with no milestone** and a list of
@@ -445,10 +506,12 @@ this section adds is the order *across* tracks, which neither of those owns. The
 contend — the code track is somebody at a keyboard, the argument track is a sitting, the spike track
 is a machine running unattended — but **the code track leads**.
 
-- **Code** — **slice 8**, which needs a plan document before it needs code; or **slice 10**, whose
-  gate is clear and whose only dependency was slice 7. Slice 9 waits on session **C**.
-  **S0b** is blocked on slices 7, 9 and 10 and is the half carrying `06`'s stated risk. Do not read
-  S0a as having discharged it
+- **Code** — **slice 8 is IN FLIGHT**, five tasks landed (`01414e8`, `9bf94d8`, `e83ba8f`, `8c25fd6`, plus task 4's sub-tasks B and C). **The structural refusal is gone**: a reload now migrates Bins and kinds through a key-based map, derelicts what the new file cannot describe, drops every wait list and re-arms on slice 7's stagger, and reports the three counts `02 §4.3` calls a logged warning. **Slice 9
+  is now unblocked too**, since session C closed its gate — so for the first time in Phase 1 there are
+  **two runnable code rows and no red gate anywhere**. Slice 9's design is settled in `adr/0056` and
+  its scope is deliberately narrow: **the fine wheel only**, because the coarse wheel has no consumer
+  until Life Stages arrive in Phase 2. **S0b is blocked on slice 9 alone** and is the half carrying
+  `06`'s stated risk. Do not read S0a as having discharged it
 - **Argument** — **C** is the only session gating a slice. The rest run when something concrete is
   blocked on them, never because they are available
 - **Spike** — **R7's re-capture is half done and it moved a conclusion.** R0/R1/R3/R4 are re-taken
@@ -623,7 +686,19 @@ diagnose.
       gets settled
 - [ ] **`plans/0002 §1840`'s S0 specification** — it names four clauses as one spike. Now split into
       S0a and S0b across `0003` and this board; the ledger entry itself still reads as one item
-- [ ] **`03 §3.3`, `§3.4`, `§3.6` — joint rewrite**, owed by `adr/0041` and now carrying R2's
+- [~] **`03 §3.3`, `§3.4`, `§3.8` — joint rewrite. PARTIALLY DISCHARGED**, and the section list above
+      was wrong: the attribution sentence is in **`§3.8`**, not `§3.6` — `§3.6` is the low-volume
+      junction blind spot and has nothing to do with this. **Two of the three clauses are done**: the
+      District-pair counter is gone from `§3.3`, replaced by per-Segment enter/leave with the
+      superseded sentence quoted in a banner beneath; and `§3.4`'s circularity argument is now
+      **structural** rather than an assumption a future revision must remember to defend, because under
+      `adr/0041` the Segments a Traveller uses and the Segments it raises the volume of are necessarily
+      the same list. **The third clause stays open, deliberately**: *force-promotion must stand on its
+      own second argument or go* is a **decision**, not a transcription. Its *timing* reason is
+      withdrawn in place — the defect was never a lag, it reports the jam in the wrong **place**, and no
+      cadence fixes that — so force-promotion now rests on the structural reason alone and `03 §6`
+      question 2 carries a matching note. Original wording follows.
+- [ ] ~~**`03 §3.3`, `§3.4`, `§3.6` — joint rewrite**~~, owed by `adr/0041` and now carrying R2's
       evidence. The District-pair counter goes; the circularity argument becomes structural;
       **force-promotion must stand on its own second argument or go** — and R2 removed the last
       support for the first: `§3.3` confessed a *lag* and compensated for it, but the defect is that
@@ -635,7 +710,15 @@ diagnose.
       **fixed capacity, 4-way LRU, high-bit index** — conflict 20.0% → 3.8% against a 0.0% bound, with
       the index a **robustness** fix that is level-or-worse on random keys and worth 31.2% → 21.7% on a
       concentrated pool; and from R5.6, that **the two consumers do not want the same mechanism**
-- [ ] **`adr/0041` amendment** — owed by S2 R2, on evidence. *"Searched per Trip or shared per
+- [x] ~~**`adr/0041` amendment**~~ **DISCHARGED.** Written as an amendment blockquote on the opening
+      paragraph with the sentence left standing: the axis has **three** rungs rather than two (this ADR
+      created the next-hop one), searched is out on arithmetic, and the substantive claim survives
+      untouched. Argument 2 in *Why* is recorded as measured and **worse than a lag** — a *place*
+      defect, 0.00% deposited where direct reads 108.51%. The revisit trigger is **discharged in place
+      and struck**: the crossing rate is 0.79–0.83, an overestimate by a fifth and in the opposite
+      direction to the one anticipated, and the crossover is 105 Ticks. One new trigger added — the path
+      source landing on a District-granular rung. Original wording follows.
+- [ ] ~~**`adr/0041` amendment**~~ — owed by S2 R2, on evidence. *"Searched per Trip or shared per
       origin-destination pair is a performance axis with **no correctness content**"* is wrong on two
       counts: a shared route costs **36.01%** mean detour and a next-hop table **18.52%**, and *every*
       Trip into a District arrives through its **one representative node**, whose Stress is then an
@@ -643,13 +726,41 @@ diagnose.
       contribution stay the same list of Segments under every rung — so this amends a sentence, not a
       decision. Its **revisit trigger is also discharged**: the crossing rate is 0.79–0.83, not the
       assumed 1.0, and the crossover sits at 105 Ticks rather than ~10
-- [ ] **`adr/0020` amendment** — owed by S2 R1, on evidence. *"A connected component of the District
+- [x] ~~**`adr/0020` amendment**~~ **DISCHARGED — and it was the one that turned out not to be a
+      transcription.** The board's own wording, *"Tarjan is still cheap; it is simply not the ADR's
+      claim"*, reads as a clean swap and is not one: **under per-Segment volume the matrix is symmetric
+      to the bit and union-find is right by construction**, and the volume-scope question is open in
+      [`0002`](0002-open-questions.md). So the amendment corrects **the claim** — the ADR asserts
+      union-find computes `CONTEXT.md`'s definition, and it does not — **without prescribing the
+      algorithm unconditionally**, and files the per-Segment outcome as a revisit trigger noting that if
+      it lands there the ADR is right for a reason it never gave and should be re-stated rather than
+      left resting on the coincidence. Second trigger: a Day-average matrix shrinks the exposure by
+      cancellation and **must not be read as vindication**. Original wording follows.
+- [ ] ~~**`adr/0020` amendment**~~ — owed by S2 R1, on evidence. *"A connected component of the District
       graph… a union-find"* is not what `CONTEXT.md` → Settlement defines, and the two disagree about
       the city where the city is fragmenting. Tarjan is still cheap; it is simply not the ADR's claim
-- [ ] **`02 §6` correction** — owed by S2 R1. *Slow cadence, dirty regions only* is **unsound**: a
+- [x] ~~**`02 §6` correction**~~ **DISCHARGED — and `02 §6` was the wrong address.** `02 §6` is *Goods
+      movement*; the sentence is in **`02 §5.2`, loop step 6**, and `adr/0043`, `spike-results`,
+      `plans/0010` and this board all carried the wrong citation. The line now reads *"slow cadence;
+      'dirty regions only' is UNSOUND — see below"* over a four-paragraph correction: both edit sites
+      (309 of 429 central, 132 of 252 corner, missed **silently**), and the sound test that is nearly
+      exact and **collapses into the full rebuild** (430 against 429; 2.9% needed against 100% forced).
+      **The cadence survives; the region does not** — *slow cadence* is a claim about *when you pay* and
+      stands, *dirty regions only* is a claim about *what survives* and a spatial predicate cannot make
+      it. **No replacement rung is named**, because there is no drop-in and choosing one would be a
+      decision. Original wording follows.
+- [ ] ~~**`02 §6` correction**~~ — owed by S2 R1. *Slow cadence, dirty regions only* is **unsound**: a
       spatial test misses the long routes that cross an edit without ending near it — 309 of 429
       changed entries on a central edit. It is `CONTEXT.md` → Epoch's *when you pay* / *what survives*
       distinction arriving at the matrix instead of at the cache
+- [ ] **Two section numbers are wrong corpus-wide, and both were being cited rather than read** —
+      found while discharging the two debts above, which is the tell. **`02 §6` is *Goods movement*;
+      the *"slow cadence, dirty regions only"* sentence is `02 §5.2` step 6** — wrong in `adr/0043`,
+      `spike-results`, `plans/0010` and this board. **`03 §3.6` is the low-volume junction blind spot;
+      the attribution sentence is `03 §3.8`** — wrong in `adr/0041`, `plans/0010` and this board. The
+      corrected documents carry a parenthetical so the old citation still lands; the citing documents
+      are the sweep. **Same shape as the *"Zone"* row below**: a quotation that was copied forward
+      instead of checked, which is `adr/0044`'s *citing is not applying* wearing a reference number
 - [ ] **"Zone" is used for the travel-time matrix's granularity, which is the District.** `CONTEXT.md`
       → Zone is *a permission set over land*; `CONTEXT.md` → District is *"the granularity of the
       travel-time matrix"*. `05 §422` and `references.md §2` both say *"zone-to-zone travel-time
@@ -957,8 +1068,21 @@ diagnose.
       presented as a suspiciously round **121** — a number a reader could have rationalised. R2's
       883× `v/c` announced itself; this did not
 - [x] **The long-run trend assertion is owed by slice 7, and the instrument for it now exists.**
-      **DISCHARGED by task 10a, in the only half slice 7 could carry, and it came out stronger than
-      the line asked for.** `RuleLongRunTests` runs 100,000 Ticks of the minimal Ruleset and asserts
+      **FULLY DISCHARGED — the flow half by slice 7 task 10a, the `slots` half by slice 10 task 10**,
+      and each landed in the only slice that could have carried it. **Slice 10's half:**
+      `ZoneRuleLongRunTests` runs 100,000 Ticks of continuous demolition and rebuilding and finds
+      **five of six tables dead flat** — Lots 121, Buildings 121, Households 360, Bins 242, Rule
+      Instances 363 — against a live Building count oscillating 54 to 78, so every freed row was
+      handed back out rather than appended beside. The sixth, the **Unplaced Pool**, is a *running
+      maximum* and needed different assertions: its ceiling is the population, because a Household is
+      in the Pool at most once — a structural bound rather than an observed one — and convergence is
+      asserted as a **rate**, because the plateau arrives at tail reading 26 of 45 and any *"flat
+      after reading N"* would have had its N chosen from the data's shape. The reading interval is
+      **derived from the Ruleset** rather than written down, so retuning the file moves it instead of
+      leaving an exact assertion quietly measuring a sampling phase. **What the run found underneath
+      the numbers is not `adr/0006` at all** — it is arithmetic, and it is the five-sixths-homeless
+      finding above. Slice 7's half, below, is kept for the reasoning. **DISCHARGED by task 10a, in
+      the only half slice 7 could carry, and it came out stronger than the line asked for.** `RuleLongRunTests` runs 100,000 Ticks of the minimal Ruleset and asserts
       **exact equality** of the `evaluations`, `due` and peak readings across the tail — not a trend
       line — because the Ruleset settles into a cycle whose period is `consume`'s rate, so a
       steady-state reading is not merely flat but identical. Verified live by mutation: reading on an
@@ -1018,16 +1142,17 @@ the run that produced it.
 
 ## Blocked
 
-**Slice gates are [`0003`](0003-build-plan.md)'s gate board, which is the source.** Only one is still
-red — slice 9, on session **C**. Slices 7, 8 and 10 cleared with session A, and slice 6 closing
-released S0a, so three rows that sat here through most of Phase 1 have gone.
+**Slice gates are [`0003`](0003-build-plan.md)'s gate board, which is the source. There is no red gate
+left.** Slices 7, 8 and 10 cleared with session A, slice 6 closing released S0a, and **slice 9 cleared
+with session C** — so every row that sat here through Phase 1 has gone, and what remains below is
+Phase 2, Phase 3, and the one row waiting on code.
 
 What this table keeps is everything `0003` does **not** own: Phase 2, Phase 3, and the one row waiting
 on code.
 
 | | Blocked on | Which is |
 |---|---|---|
-| **S0b** — the Tick with work in it | slices 7, 9 and 10 | the only row here blocked on code. **S0a is done** and sized the world; S0b is the half carrying `06`'s stated risk |
+| **S0b** — the Tick with work in it | **slice 9**, which is now **unblocked and runnable** | the only row here blocked on code, and it is down to one slice — **7 and 10 have both closed, and slice 9's own gate cleared with session C**. **S0a is done** and sized the world; S0b is the half carrying `06`'s stated risk, and it now inherits two multiplicands worth measuring in a real world: the Rule row's, whose Ruleset models no city, and the Zone Rule row's, which is still a guess |
 | **Phase 2 milestones 5a–10** | 🔴 `03 §5` and six research-written ADRs, plus S2 | sessions **D**–**J**, plus a spike |
 | **Planning Phase 2 at all** | S0 must have run, and `06`'s ordering must be re-derived | session **K2** |
 | **Phase 3** | 🔴 **a presentation design that does not exist** | session **L**, itself blocked on **S1** and **S3** |

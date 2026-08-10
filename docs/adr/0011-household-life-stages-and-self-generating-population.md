@@ -27,6 +27,12 @@ Schools are the visible symptom rather than the problem. Under frozen compositio
 
 `0010` implied life stages would reintroduce the two-clock problem. It would not. What one-clock rejects is a **conversion factor between two global time bases**, which is what breaks the literal truth of "commutes got long, so the shop closed." A per-Household countdown denominated in Days is an ordinary event on the Event Wheel — the same clock, just a rare event on it.
 
+> **Amended by session C. The argument is sound and the arithmetic underneath it was not.** The Event Wheel's period is `WHEEL_SIZE` = 8192 Ticks and a Day is `TICKS_PER_DAY` = 8192 Ticks, so **the wheel's period is exactly one Day** — and a countdown of *two* Days is already unrepresentable on it. Not a tail case: **every Life Stage transition this ADR specifies** was unrepresentable on the wheel it was specified to run on, and `EventWheel.Arm` throws rather than wrapping.
+>
+> **The defence against `0010` survives intact** — the repair is a second wheel level whose bucket is one Day, and a Day is a fixed integer number of Ticks, so it is a **radix over one clock** rather than a second clock. That is exactly the distinction this paragraph draws, arriving one level lower than it was written. See [`0056`](0056-the-event-wheel-is-two-levels-ticks-and-days.md).
+>
+> **What is new is a number.** A stage's countdown is a **floor**: the wake is a uniform draw over `[N, N+W)` Days, with `W` authored per `[[life_stage]]`, so a founding generation does not transition on one Tick. `W` is hash-bearing and owes a ratifier under `0052`; `plans/0002` §D carries it.
+
 The argument that *was* sound is narrower than it was written: aging at realistic human timescales is arithmetically impossible under one clock, since eighty years at a few minutes per Day is over a thousand real hours. Compressed *stages* are not. `0010` conflated the two.
 
 Individual Citizens still have no advancing age. Adults carry a static age drawn on formation; a child's schooling tier is derived from the Household's stage rather than from a per-Citizen counter.
