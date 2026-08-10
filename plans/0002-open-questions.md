@@ -145,6 +145,27 @@ rule is **when something concrete is blocked on it, not because it is available.
   expressed structurally rather than as a penalty.
 - **`§3` (Resources) is stale**, not open: `adr/0031` replaced the Goods taxonomy with Resource
   families and nobody rewrote it. A correction — [`0012`](0012-corpus-audit.md)'s, not this file's.
+- **What a Zone Rule's `sample` is denominated in — and therefore what `§5.7` means by pacing growth.**
+  **NEW, and measured into existence by S0b rather than argued.** `§5.7` lists sampling first among four
+  growth-pacing mechanisms and justifies it with *"cost is constant regardless of Zone size"*. Both
+  halves are now measured and they point in opposite directions. **The cost claim is true and then
+  some**: raising the sample **117×** at 1,000,000 Citizens — enough to hold a one-Day revisit period
+  over 120,001 Lots — cost nothing outside noise (18.36 s against 19.12 s over 2,000 Ticks), so
+  `O(sample²)` in `ZoneSample.Draw` is amortised by the interval and cost has never been the constraint.
+  **The pacing claim is the problem**: `sample ÷ interval` is an **absolute** throughput, so the period
+  in which a given Lot is looked at once is `Lots ÷ (sample ÷ interval)` — **0.12 Day at 1,000 Citizens
+  and 117 Days at 1,000,000.** S0b confirmed this is structural rather than a bad guess by collapsing
+  the whole occupancy trajectory onto **τ = (sample ÷ interval) × Ticks ÷ Lots**, agreeing to 1.6 points
+  across a 1,000× span in Lots *and* a 117× span in sample. **An absolute throughput against a growing
+  city is a decelerating city.** The diegetic argument is where the answer probably lives: `CONTEXT` →
+  Zone Rule justifies sampling because *a developer does not evaluate every parcel*, which is a sample
+  per **developer**, and the model has exactly one developer per Zone Rule at every city size — **a city
+  of a million people has more developers than a city of a thousand.** Note that of §5.7's four
+  mechanisms only **capital** scales with the city and capital does not exist yet; sampling and the
+  **build rate throttle** are both absolute, so two of the four pace in a unit the section never names.
+  **Arguable** — no measurement chooses a denominator — but the revisit period it implies is
+  hash-bearing and needs a ratifier under `adr/0052` on the day it is written down. Owner: **task 10b**,
+  which is the first Ruleset that models a city and therefore the first that could be wrong about this.
 
 ### `03-agent-architecture.md`
 

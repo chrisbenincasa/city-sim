@@ -5864,8 +5864,197 @@ exercised rather than merely asserted** — a 100,000-Tick run over 1.6M rows mo
 written to.** The tables hold it with an order of magnitude of headroom, the row count is not what
 binds, and a 100,000-Tick run at the target completes in 11.75 s with no collection and no magnitude
 trending. **What is not answered is the Tick itself**, because seven of its eight phases are empty: the
-0.112 ms floor is the cost of a skeleton, not of a simulation. **S0b — the Event Wheel, Bin Rules with
-wait lists, a Sweep Rule pass and a routing load — remains unrun and remains the risk `06` names.**
+0.112 ms floor is the cost of a skeleton, not of a simulation. ~~**S0b — the Event Wheel, Bin Rules with
+wait lists, a Sweep Rule pass and a routing load — remains unrun and remains the risk `06` names.**~~
+**S0b has since run, three clauses of four** — see the section below, which prices the Tick at
+**8.72 ms** and finds that the fourth clause, the routing load, has no implementation in `Core` to
+measure. The sentence is kept because it is the one this section could honestly write on the day.
 The corpus's instruction *"do not open Phase 2 content until S0 has run"* is discharged by S0a only to
 the extent that it was about **sizing**; the part that was about the **Tick budget** is still owed, and
 S2 is currently the only spike with a number in that column.
+
+## S0b — the Tick with work in it
+
+**S0b split the way S0 did, and for the same reason.** `plans/0002` specifies the spike as *"the Event
+Wheel, Bin Rules with wait lists, a Sweep Rule pass, and a routing load"*. Three of those four now run;
+**the routing load does not exist in `Borough.Core` at all** — every routing number this project holds
+was measured in `spikes/S2.Routing/`, which compiles the arithmetic substrate in by source and can name
+nothing else of `Core`. So this section is S0b's first three clauses, and **the routing share of the
+Tick remains unmeasured in situ**, which is the same gap `0013` already records against it.
+
+Two questions routed here in `0002` also could not be answered, and neither is a machinery problem:
+**pollution decay's cost** cannot be measured because `rulesets/minimal.toml` says in its own header
+that it emits none, and **`05 §5` role 3** — whether the Chunk partition survives mobile entities —
+needs something that moves. Both wait on task 10b, not on a spike.
+
+### The machine
+
+Measured 2026-08-10 on the S0a desktop — **Intel i5-10400, 6 cores / 12 threads, .NET 10**, release
+build, `taskset -c 2,8`, governor **`powersave`**. The S0a stamp applies unchanged: absolutes are
+**upper bounds**, ratios are taken within one machine state, and a canonical re-capture is owed. Three
+repeats per timing figure, quoted rather than asserted — 2,000 Ticks read **19.07 / 19.10 / 19.28 s**
+and 6,000 read **53.72 / 54.08 / 54.30 s**.
+
+### The Tick price
+
+At 1,000,000 Citizens — 120,001 Lots, 120,001 Buildings, 360,000 Households, 359,943 live Rule
+Instances — under `rulesets/minimal.toml`, with the Decide guard off:
+
+| | Measured |
+|---|---|
+| **A Tick with work in it** | **8.72 ms** (slope bounds 8.61–8.81) |
+| Share of a 15.6 ms Tick at 4× | **55.9%** |
+| Startup, populate included | 1.71 s |
+| Due Rule Instances, steady | **11,191 a Tick** |
+| Due Rule Instances, peak | **29,620**, and it is a world-creation transient |
+
+**The two-point slope is the whole method and it is worth stating why it is sound here**: both runs
+take exactly one State Hash, so the 32 ms hash cancels, and populate is a Phase 0 command that runs
+once, so the startup constant cancels too. What is left in the difference is 4,000 Ticks.
+
+**8.72 ms against `0011` finding 42's ~6.4 ms is a 1.36× gap that this spike does not close.** It is
+**not** the Sweep family arriving — finding 3 below measures the Zone Rule as free to within noise at
+117× its shipped sample — so the candidates are machine state and something nobody has named. Recorded
+as owed attribution rather than guessed at, which is `0013`'s own lesson applied to `0013`'s newest row.
+
+### Finding 1 — the growth mechanism's time constant is the size of the city, and at 1M it is 117 Days
+
+**The first 1M run built nothing.** `zones created` was **0** for 2,000 Ticks while `demolished` ran
+20–32 per 250, and `zones vacant` was **0** — of ~512 Lots sampled, not one was empty. The obvious
+reading is a broken create predicate. It is not: **the predicate never declined once, at any city size,
+in any run this spike made.** `created` equals `vacant` **exactly**, in every interval of every capture
+below. Neither the Unplaced Pool nor the permission bit has ever been the limiter.
+
+What limits it is vacancy, and vacancy is produced only by demolition. The sampler evaluates
+`sample ÷ interval` Lots a Tick — **4 ÷ 32 = 0.125**, measured 0.1232 — and that quantity is
+**absolute**, while the population it draws from is the Lot table. So the period in which a given Lot
+is looked at once is `Lots ÷ (sample ÷ interval)`, which at the shipped numbers is **8 × Lots Ticks**:
+
+| Citizens | Lots | One visit per Lot every |
+|---|---|---|
+| 1,000 | 121 | 968 Ticks — **0.12 Day** |
+| 1,000,000 | 120,001 | 960,008 Ticks — **117 Days** |
+
+**A developer visits each parcel once every 117 Days at target size, and once a Day at the size every
+previous run was taken at.** That is why slice 10's 100,000-Tick acceptance run at 1,000 Citizens saw a
+city oscillate and S0b's 2,000-Tick run at 1M saw one decline in a straight line: the first is 103
+turnovers of the whole Lot table and the second is **0.002** of one.
+
+### Finding 2 — the trajectory collapses onto one dimensionless number, so this is structural rather than a bad guess
+
+The claim above is falsifiable, so it was tested rather than argued. If the only variable is
+**τ = (sample ÷ interval) × Ticks ÷ Lots** — how many times the sampler has looked at as many Lots as
+the city has — then equal τ must give equal occupancy at any size. Runs at matched τ:
+
+| Citizens | Lots | Occupancy at τ = 0.25 | at τ = 1.0 |
+|---|---|---|---|
+| 1,000 | 121 | 84.3% | 66.9% |
+| 10,000 | 1,201 | 80.4% | 58.5% |
+| 100,000 | 12,001 | **80.1%** | **56.9%** |
+| 1,000,000 (sample 469) | 120,001 | **81.2%** at τ = 0.244 | — |
+
+**The three larger sizes agree to 1.1 points at τ = 0.25 and 1.6 at τ = 1.0, across a 1,000× span in
+Lots.** The 121-Lot row deviates because one trigger moves 3.3% of that city. **The last row is the
+strongest evidence and the reason it is there**: it reaches the curve by changing the **sample** 117×
+rather than the Lot count, so τ is confirmed as the single variable from both directions at once.
+
+The equilibrium is likewise scale-free, and it is **50% occupancy**. Measured at 1,201 Lots over
+τ = 20: `building live` oscillates **576–627 of 1,201 — 48.0% to 52.2%** — with `created` 1,184 against
+`demolished` 1,202, balanced flows rather than a trend. It is also derivable, which is what makes it an
+equilibrium rather than a coincidence: creation runs at `e·v` and demolition at `e·(1−v)·c` for
+evaluated rate `e` and condemnable fraction `c`, so `v = c ÷ (1 + c)`, and at the measured `c` of 99.3%
+that is **49.8%**.
+
+**So what `02 §5.7` calls a pacing mechanism does not pace growth to a rate — it paces it to an absolute
+throughput, and an absolute throughput against a growing city is a decelerating city.**
+
+### Finding 3 — cost was never the constraint, which is what makes finding 1 a design question
+
+The reason to think the sample cannot scale is `02 §5.7`'s own justification: *"cost is constant
+regardless of Zone size — GlassBox's trick, and the right one."* Slice 10 task 9's tripwire measured
+that and confirmed it. **So the sample was raised 117× at 1M and the Tick was timed.** Holding a
+one-Day revisit period at 120,001 Lots needs 14.6 Lot evaluations a Tick against the shipped 0.125,
+which is `sample = 469`:
+
+| | 2,000 Ticks at 1M | Lots evaluated |
+|---|---|---|
+| `sample = 4` | 19.12 s | 252 |
+| `sample = 469` | **18.36 s** | **29,475** |
+
+**117× the work, and the scaled run was nominally the faster of the two** — the difference is inside a
+spread this spike has already quoted as ±0.2 s. `ZoneSample.Draw`'s duplicate scan is `O(sample²)` and
+justified in its own remarks by *"a sample is a handful of Lots"*, which at 469 is ~110,000 comparisons
+a trigger — **amortised by the interval to ~3,400 a Tick**, which is nothing. The quadratic is real and
+is not yet the problem.
+
+**This is the finding that turns the other two into a question worth asking.** The corpus has been
+treating sampling as two things at once: a **cost** mechanism, which it is and which measures free, and
+a **growth pacing** mechanism, which `02 §5.7` lists it as first among four. The measurement separates
+them. And `CONTEXT` → Zone Rule's diegetic argument — *a developer does not evaluate every parcel* —
+justifies a sample per **developer**, while the model has exactly one developer per Zone Rule at every
+city size. **A city of a million people has more developers than a city of a thousand.** Of §5.7's
+four mechanisms only **capital** scales with the city, and capital does not exist yet; sampling and the
+**build rate throttle** are both absolute, so two of the four pace in a unit the section never names.
+Filed to `0002` rather than fixed here: what a Zone Rule's sample should be denominated in is
+**arguable** under `adr/0043`, the revisit period it implies is a **hash-bearing** number needing a
+ratifier under `adr/0052`, and neither is a spike's to choose.
+
+### Finding 4 — slice 10's *five-sixths homeless* is derivable, and it was filed as an observation
+
+Slice 10's 100,000-Tick run found the city settles five-sixths homeless and filed it to `0002` §B as a
+thing to explain later. It follows from finding 2 in one line. Every Building is created holding
+**exactly one** Household (`adr/0054` sends a demolished Building's Households to the Pool; `Create`
+draws one back), and `SyntheticCity.HouseholdsPerBuilding` is **3**, so Lots are `households ÷ 3`. At
+50% equilibrium occupancy the housed count is `0.5 × households ÷ 3 = households ÷ 6`, and the
+homeless share is **1 − 1⁄6 = 5⁄6**. Measured at 10,000 Citizens: the Pool holds **3,024 of 3,600
+Households = 84.0%** against 83.3% predicted.
+
+**It is therefore scale-free and not a balance figure**, which is worth knowing before anybody tunes
+against it: five-sixths is what a 50% vacancy equilibrium and a 3-Households-per-Building populator
+produce together, and moving either number moves it.
+
+### Finding 5 — `02 §7` is measured false by ~30×, and its peak is a world-creation transient
+
+`02 §7` says the Event Wheel holds *"a few hundred out of hundreds of thousands"* due on a Tick. Typed
+**measurable** by session C and instrumented since slice 7 task 9. Measured at 1M against 359,943 live
+Rule Instances: **11,191 a Tick steady, 3.1%**, against a claim of roughly 0.1%. **False by about
+30×** — and the Wheel is not at fault. The variable is the Ruleset's rates, and `minimal.toml` runs
+8–32 Ticks where §7 was imagining a Citizen asleep for a third of a Day.
+
+The steady figure attributes exactly, which is what makes it a measurement rather than a reading.
+`consume` at rate 32 over 120,001 dwellings is 3,750 a Tick; each of its draws wakes that Building's
+`restock`, which fills and then fails on headroom, so it is due about twice per wake — 7,500; `upkeep`
+fails on an input nothing in the file produces and sleeps for ever at **0**. **11,250 predicted against
+11,191 measured.**
+
+**The peak is a separate finding and it corrects a wrong reading made earlier in this spike.** `due
+peak` is **29,620**, which exceeds `0002` row 77's published wire of *fewer than ~28,000 due Rules per
+Tick at 4×* — so the tripwire fires. It was first attributed to a wait-list thundering herd. It is not:
+tracing the first 64 Ticks at a reading every 8 shows **24,007 a Tick over Ticks 1–8, a peak of 29,620,
+and decay to 11,295 by Tick 64**, and the arming stagger predicts precisely that — `populate` arms
+360,003 Instances at Tick 0 uniform over `[1, rate]`, which is 15,000 a Tick for `restock` at rate 8,
+7,500 for `upkeep` at 16 and 3,750 for `consume` at 32, summing to **26,250 a Tick for the first eight
+Ticks**. It is identical to the digit across two runs whose samples differ 117×, which is what ruled
+the Zone sweep out as a cause.
+
+**So the wire is crossed once, at world creation, by the one moment the stagger cannot spread** — its
+window is a single `rate`, and a freshly populated city fires every Rule Instance's first evaluation
+inside it. Slice 7 task 10a concluded the stagger *"had no number to choose"* because uniform over
+`[1, rate]` is the only offset that stays spread for ever. That is still true of the steady state and
+**incomplete about Tick 1**: the transient is 2.6× the steady load, and world creation is the Rule
+engine's peak.
+
+### The verdict
+
+**The Tick with work in it fits at 4×, at 55.9% of the budget, and the routing share is still not in
+the room.** Against `0013`'s running total that is the first row to be measured in a real world for
+both its unit and its multiplicand — but the Ruleset is one that models no city, so the multiplicand
+is honest about `minimal.toml` and says nothing about a designed one. **That remains 10b's.**
+
+The larger result is not the price. **Three of this spike's five findings are about mechanisms that
+behave differently at 1M than at 1,000, and every one of them was invisible at 1,000**: growth's time
+constant is the city, the homeless fraction is a derived consequence rather than a balance number, and
+the Rule engine's worst Tick is its first. `06`'s stated risk was that the design does not survive
+target scale. **What S0b found is narrower and more useful: the arithmetic survives, and two of the
+numbers in the Ruleset are the wrong *kind* of number** — absolute where the thing they pace is
+relative to the size of the city.

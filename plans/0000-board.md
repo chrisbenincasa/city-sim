@@ -510,8 +510,12 @@ is a machine running unattended — but **the code track leads**.
   is now unblocked too**, since session C closed its gate — so for the first time in Phase 1 there are
   **two runnable code rows and no red gate anywhere**. Slice 9's design is settled in `adr/0056` and
   its scope is deliberately narrow: **the fine wheel only**, because the coarse wheel has no consumer
-  until Life Stages arrive in Phase 2. **S0b is blocked on slice 9 alone** and is the half carrying
-  `06`'s stated risk. Do not read S0a as having discharged it
+  until Life Stages arrive in Phase 2. ~~**S0b is blocked on slice 9 alone** and is the half carrying
+  `06`'s stated risk. Do not read S0a as having discharged it~~ **S0b has since run** — slice 9 closed
+  and unblocked it the same day. **8.72 ms a Tick at 1M, 55.9% of the budget at 4×**, and it split the
+  way S0 did: three clauses of four, with the routing load, pollution decay and `05 §5` role 3 all
+  unreachable for want of content rather than machinery. Its largest finding is not the price — **a Zone
+  Rule's `sample` is absolute where the thing it paces is relative to the size of the city**
 - **Argument** — **C** is the only session gating a slice. The rest run when something concrete is
   blocked on them, never because they are available
 - **Spike** — **R7's re-capture is half done and it moved a conclusion.** R0/R1/R3/R4 are re-taken
@@ -1191,7 +1195,7 @@ on code.
 
 | | Blocked on | Which is |
 |---|---|---|
-| **S0b** — the Tick with work in it | **slice 9**, which is now **unblocked and runnable** | the only row here blocked on code, and it is down to one slice — **7 and 10 have both closed, and slice 9's own gate cleared with session C**. **S0a is done** and sized the world; S0b is the half carrying `06`'s stated risk, and it now inherits two multiplicands worth measuring in a real world: the Rule row's, whose Ruleset models no city, and the Zone Rule row's, which is still a guess |
+| ~~**S0b** — the Tick with work in it~~ **DONE, three clauses of four** → [`spike-results`](../docs/spike-results.md) → S0b | — | **The Tick with work in it costs 8.72 ms at 1M — 55.9% of a 15.6 ms budget at 4× — and the routing share is still not in the room**, because a routing load has no implementation in `Core` to measure. **S0b split the way S0 did**: pollution decay's cost and `05 §5` role 3 are also unreachable, the first because `minimal.toml` emits none and the second because nothing moves. Both wait on **task 10b**, not on a spike. **Three of its five findings are about mechanisms that behave differently at 1M than at 1,000, and every one was invisible at 1,000.** A Zone Rule's `sample` is an **absolute** throughput against a population that grows, so a Lot is visited once per **0.12 Day at 1,000 Citizens and once per 117 Days at 1M** — which is why `created` was **0** for the whole first run while `demolished` ran steadily, and it is **not** a broken predicate: `created` equals `vacant` exactly in every interval of every capture, so neither the Pool nor the permission bit was ever the limiter. Confirmed structural by collapsing the trajectory onto **τ = (sample ÷ interval) × Ticks ÷ Lots**, to 1.6 points across a 1,000× span in Lots *and* a 117× span in sample. **Cost is not what stands in the way**: 117× the sample measured free, so `02 §5.7`'s first bullet paces **cost** and not **growth**, and the question of what a sample is denominated in is now in `0002` §C. Two more: slice 10's **five-sixths homeless** is *derivable* — `1 − ½⁄3` from a 50% vacancy equilibrium and a 3-Households-per-Building populator, so it is scale-free rather than a balance figure — and `02 §7`'s *"a few hundred out of hundreds of thousands"* is **measured false by ~30×** at **11,191 due a Tick of 359,943 live**, with its **29,620 peak a world-creation transient** rather than a city state, since `populate` arms every Instance inside one `rate`. **The Rule row's multiplicand is still honest only about a Ruleset that models no city** |
 | **Phase 2 milestones 5a–10** | 🔴 `03 §5` and six research-written ADRs, plus S2 | sessions **D**–**J**, plus a spike |
 | **Planning Phase 2 at all** | S0 must have run, and `06`'s ordering must be re-derived | session **K2** |
 | **Phase 3** | 🔴 **a presentation design that does not exist** | session **L**, itself blocked on **S1** and **S3** |

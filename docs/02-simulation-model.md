@@ -715,6 +715,25 @@ Growth is paced by four mechanisms, all diegetic:
 - **Capital.** Development draws on private capital fed by economic activity. A poor city builds slowly.
 - **Build rate throttle.** A cap on projects started per cycle, so a price spike does not produce instant citywide construction.
 
+> **Measured by S0b, and the first bullet is doing two jobs that point in opposite directions.**
+> See [`spike-results`](spike-results.md) → S0b, findings 1–3.
+>
+> **The cost claim is true and stronger than stated.** Raising the sample **117×** at 1,000,000
+> Citizens — enough to look at every one of 120,001 Lots once a Day — cost nothing outside noise. Cost
+> has never been the constraint here, and `ZoneSample.Draw`'s `O(sample²)` duplicate scan is amortised
+> by the interval.
+>
+> **The pacing claim does not survive.** `sample ÷ interval` is an **absolute** throughput while the
+> population it draws from is the Lot table, so the period in which a given Lot is looked at once is
+> `Lots ÷ (sample ÷ interval)` — **0.12 Day at 1,000 Citizens and 117 Days at 1,000,000**, on the
+> shipped `[[zone_rule]]`. The whole occupancy trajectory collapses onto
+> **τ = (sample ÷ interval) × Ticks ÷ Lots**, confirmed to 1.6 points across a 1,000× span in Lots and a
+> 117× span in sample, so this is structural and not a badly chosen number. **An absolute throughput
+> against a growing city is a decelerating city**, and *sampling* therefore paces **cost** rather than
+> **growth**. Of the four mechanisms above only **capital** scales with the city; the **build rate
+> throttle** is absolute too, so two of the four pace in a unit this section never names. What a sample
+> should be denominated in is open and filed in [`plans/0002`](../plans/0002-open-questions.md) §C.
+
 ### 5.8 Where we deliberately deviate from the academic models
 
 Recorded explicitly, because each deviation is a decision someone will later question.
@@ -781,9 +800,9 @@ Every scheduled row carries a `next_event_tick`. Buckets are keyed by that value
 >
 > 1. **This sentence used to read *"every Building, Household, and Citizen"*, and named the wrong owners.** The column belongs to whichever **table** is scheduled — there is one wheel per scheduled table, because `adr/0004` rejected an ECS and `adr/0036` bans reference types, so a single wheel over heterogeneous entities has nowhere to put a `(kind, slot)` tag that is not itself a collection. Today the only consumer is the **Rule Instance**. A Building has no event of its own at all, and **a wheel is added when its consumer exists** rather than in advance.
 > 2. **The last clause is satisfied for the fine wheel and was false for the design as a whole.** `WHEEL_SIZE` is one Day, and `adr/0011` schedules Life Stages in **Days** — so the longest routine sleep exceeded the period by orders of magnitude from the moment that ADR was written. The repair is a **second level** whose bucket is one Day; a long sleep is never carried by a wrap.
-> 3. **The paragraph below states a number nobody has measured.** *"A few hundred out of hundreds of thousands"* is a claim about the wake rate at target size, and under `adr/0043` it is **measurable** — the refuting number is the mean armed-rows-drained per Tick at 1M, and the machine is S0b. It must not be cited as established until that number exists.
+> 3. ~~**The paragraph below states a number nobody has measured.**~~ **S0b has since measured it and it is false by about 30×.** At 1,000,000 Citizens under `rulesets/minimal.toml`, **11,191 Rule Instances come due a Tick against 359,943 live — 3.1%**, where *"a few hundred"* is roughly 0.1%. **The Wheel is not at fault and the mechanism is not in question**: the variable is the Ruleset's rates, which run 8–32 Ticks in the only Ruleset that exists, where this sentence was imagining a Citizen asleep for a third of a Day. The figure attributes exactly — `consume` at rate 32 gives 3,750, each of its draws wakes a `restock` that fills and then fails on headroom for about 7,500 more, and `upkeep` sleeps for ever at 0, predicting 11,250 against 11,191 measured. **The peak is 29,620 and it is a world-creation transient**, not a city state: `populate` arms every Rule Instance inside one `rate`, so the stagger cannot spread the first firing, and it decays to 11,295 by Tick 64. See [`spike-results`](spike-results.md) → S0b, finding 5. The sentence below is kept and struck rather than rewritten, because *what number belongs here* depends on a designed Ruleset that does not exist — that is task 10b's.
 
-This converts cost from *number of entities* to *number of entities with something happening right now* — typically a few hundred out of hundreds of thousands.
+~~This converts cost from *number of entities* to *number of entities with something happening right now* — typically a few hundred out of hundreds of thousands.~~ This converts cost from *number of entities* to *number of entities with something happening right now* — **measured at 3.1% of live scheduled rows, not the *"few hundred"* this originally claimed.**
 
 **The discipline that makes it work: entities do not poll, mutators wake observers** — for the family that waits on a named thing, which is not every family. [`adr/0033`](adr/0033-two-rule-families-scheduled-and-swept.md) has since created a second one: a **Sweep Rule** fires on a time trigger, walks a population and never waits, and it was admitted precisely *because* subscription is wrong for a population — an entity cannot know whether it matches a predicate without being evaluated, so the wheel buys nothing and costs a wheel entry apiece. The sorting test is `adr/0033`'s: **subscribe when waiting on a specific named thing; poll when sweeping a population.** What follows in this paragraph governs the first case. When a District Pool's contents change, it wakes the Buildings registered as interested in that resource. When a road is edited, it wakes what depended on it. Every mutation site must know its observers. That is more code than polling, and it is the difference between a city that scales and one that doesn't. Factorio measured a 40× improvement on roboports from exactly this.
 
