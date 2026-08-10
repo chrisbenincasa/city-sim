@@ -40,9 +40,10 @@ above are right.
 **What the project is.** A city-builder whose simulation is an ordinary C# library with no game engine
 inside it. Godot will be the display layer and has not been started.
 
-**Where it is.** **Phase 1, all but closed.** Slices 0–7, **9** and **10** are done; **slice 8, hot
-reload, is the one slice in flight** — tasks 1–4 landed, of which 4, 5 and 6 merged into one. **No gate
-is red anywhere in the corpus**, and no session gates a slice any more. S4, S0a, S0b and S2 R0–R8 have
+**Where it is.** **Phase 1's code is closed.** Slices 0–10 are **all done** — **slice 8, hot reload,
+closed last**, and with it `adr/0015`'s own acceptance test: *change a production ratio and see the
+effect in seconds* reads **0.70 s**, against the 60–120 second warm rebuild the ADR was written on.
+**No gate is red anywhere in the corpus**, and no session gates a slice any more. S4, S0a, S0b and S2 R0–R8 have
 run; sessions A, B, C, M, eight and nine are closed.
 
 **What you can run today.**
@@ -52,6 +53,7 @@ dotnet run --project src/Borough.Headless                                   # bu
 dotnet run --project src/Borough.Headless -- --seed 1 --ticks 10000         # step a session and print a hash trace
 dotnet run --project src/Borough.Headless -- --layer pollution              # print a Map Layer as an ASCII field
 dotnet run --project src/Borough.Headless -- --zones --ruleset rulesets/minimal.toml --ticks 5000   # watch the city thin out
+dotnet run --project src/Borough.Headless -- --ruleset rulesets/minimal.toml --reload-at 200 --ruleset rulesets/minimal-tuned.toml --ticks 400   # retune a running city
 dotnet run --project src/Borough.Headless -- --help                         # every flag
 ```
 
@@ -118,11 +120,10 @@ sitting, the spike track is a machine running unattended — but **the code trac
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **Slice 8 — hot reload. IN FLIGHT**, tasks 1–4 landed; 4, 5 and 6 merged before any was written | [`0015`](0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md) | The only open slice, and its gate has been clear since session A. **The structural refusal is gone**: a reload migrates Bins and kinds through a key-based map, derelicts what the new file cannot describe, drops the wait lists and re-arms on slice 7's stagger. What is left is tasks 7–10 — the provenance trail, **the Layer cadence and rates from a file** (the checkable obligation that replaced `06`'s retired ordering claim), the runner accepting more than one Ruleset, and the golden session reloading |
-| **2** | code | **Slice 10 task 11 — `revisit_ticks`. PLANNED, and it waits for slice 8** | [`0014`](0014-zone-rules-and-the-sweep-family.md), [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md) | A closed slice shipped a defect and its own tripwire hid it: `sample` is an **absolute** count, so a Lot is visited once per 0.12 Day at 1,000 Citizens and once per **117 Days at 1M**, and at target scale the shipped Ruleset builds **nothing**. Sequenced behind slice 8 deliberately — both re-record the same three golden baselines |
-| **3** | spike | **S2 R7's tail.** The `performance` capture (**needs root**), the provenance sweep 217.36 ms turns out to need, three sentences on R8 results measured on a tree `adr/0047` deleted, and tripwire row 5 | [`0010`](0010-s2-routing.md) | It is the last thing between S2 and deletion, and **the harness is 33,000 lines — 1.7× the shipped simulation**. Runs unattended; does not contend with row 1 |
+| **1** | code | **Slice 10 task 11 — `revisit_ticks`.** The only open code item, and it was sequenced behind slice 8 because both re-record the same baselines. Slice 8 has now re-recorded them | [`0014`](0014-zone-rules-and-the-sweep-family.md), [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md) | A closed slice shipped a defect and its own tripwire hid it: `sample` is an **absolute** count, so a Lot is visited once per 0.12 Day at 1,000 Citizens and once per **117 Days at 1M**, and at target scale the shipped Ruleset builds **nothing** |
+| **2** | spike | **S2 R7's tail.** The `performance` capture (**needs root**), the provenance sweep 217.36 ms turns out to need, three sentences on R8 results measured on a tree `adr/0047` deleted, and tripwire row 5 | [`0010`](0010-s2-routing.md) | It is the last thing between S2 and deletion, and **the harness is 33,000 lines — 1.7× the shipped simulation**. Runs unattended; does not contend with row 1 |
 
-| **4** | argument | **Session D — `03 §5`, the traffic model. IN FLIGHT** — promoted and kicked off 2026-08-10, in a **parallel session**. The first session ever booked against a **number** rather than against a document being ungrilled. **⚠ It writes to `03`, and to `0002` §C and §D**, so anything else touching those two should land first or wait — same shape as slices 8 and 10 both re-recording one golden baseline, which is a conflict that has to be re-run rather than merged | [`0002`](0002-open-questions.md) §A and §C | **The rule was applied, not suspended.** *An argument session runs when something concrete is blocked on it* — and what is blocked is [`0013`](0013-tick-budget.md)'s **dominant row**: routing is 60–67 of the ledger's 114 points at 4×, its multiplicand counts the wrong event, and **the only thing that can replace it is Trip generation, which is milestone 5b, which D gates.** So D is on the critical path to unguessing the one row that decides whether the simulation fits. **Book it as more than one sitting**; it now runs fully beside code, since the half that wanted S2's numbers has them |
+| **3** | argument | **Session D — `03 §5`, the traffic model. PROMOTED 2026-08-10, briefed, not yet booked.** The first session ever booked against a **number** rather than against a document being ungrilled. **The brief is [`0017`](0017-session-d-the-traffic-model.md)** — read it before booking the sitting, because its **task 0 is a typing pass that must run before anything is argued**. *(An earlier revision of this row read IN FLIGHT and was wrong: the parallel session in progress is **slice 8**, not D. Corrected rather than silently edited, because a board that reports a session as running is how two sittings end up on one document.)* | [`0002`](0002-open-questions.md) §A and §C | **The rule was applied, not suspended.** *An argument session runs when something concrete is blocked on it* — and what is blocked is [`0013`](0013-tick-budget.md)'s **dominant row**: routing is 60–67 of the ledger's 114 points at 4×, its multiplicand counts the wrong event, and **the only thing that can replace it is Trip generation, which is milestone 5b, which D gates.** So D is on the critical path to unguessing the one row that decides whether the simulation fits. **Book it as more than one sitting**; it now runs fully beside code, since the half that wanted S2's numbers has them |
 
 **The argument track has one promoted row and the rest is a menu** — see *Open tracks*. Nothing else
 in it gates a slice, and the standing rule holds for everything below D: **take from the menu when
@@ -148,6 +149,7 @@ its record. Findings live in the plan that produced them.
 | 5 | The Tick, the Input Log and replay | [`0008`](0008-tick-and-replay.md) | **`Borough.Formats`, the fifth project** (`adr/0039`). Its costing of the invariant tiers is worth three orders of magnitude |
 | 6 | **Map Layers** | [`0009`](0009-map-layers.md) | **`adr/0044`** — the sixth claim in the corpus measured false, and the first outside S2 — which then got its own second half wrong by argument and **withdrew rather than amended**. *Citing an ADR is not applying it* |
 | 7 | **The Rule engine — Bins and Bin Rules** | [`0011`](0011-rule-engine-bins-and-rules.md) | `adr/0049`, `adr/0050`. `02 §4.3`'s worked example **destroyed money for six slices**, because the transcription into the loader's own fixture dropped the money line — a green suite agreeing with the code instead of the document, and the first of **four** such |
+| 8 | **Hot reload — the Ruleset as a thing that happens to a running world** | [`0015`](0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md) | **`adr/0015`'s acceptance test, run: 0.70 s** against the 60–120 s warm rebuild it was written on — and **it could not have been run through a recorded log at all**, because a log names a Ruleset by content hash and *editing the file is the loop*. A declaration's identity turned out to be its **name**, not its id, so *every removal the degradations exist for is also a reordering*; **derelict needed no flag**; and the provenance trail's cap is **world-creation-fixed on a self-referential argument** |
 | 9 | **The Event Wheel** — the fine wheel only | [`0016`](0016-the-event-wheel.md), `adr/0056` | **776 tests, no baseline moved** — hash-neutral by construction, its own acceptance test. The end-of-run tier had been stamping every violation **Tick 0** in both 100,000-Tick acceptance runs |
 | 10 | **Zone Rules — the second Rule family** | [`0014`](0014-zone-rules-and-the-sweep-family.md) | `adr/0053`–`0055`. **Discharged `adr/0006`'s collection half for the first time.** The growth cycle **cannot be entered from a standing start**; the city settles **five-sixths homeless**; `02 §5.7`'s *constant cost regardless of Zone size* is false in the letter and true in the substance |
 
@@ -193,7 +195,7 @@ something concrete is waiting. Ordered by what it unblocks.
 
 | | Session | What is missing | Unblocks |
 |---|---|---|---|
-| **D** | **`03 §5`** — the traffic model | **The wall.** The most detailed unargued design in the project, now carrying transit vehicles. More than one sitting. **It is also where the 861.87% diversion figure lands** | milestones 5b, 5c, 6, 7a |
+| **D** | **`03 §5`** — the traffic model. **PROMOTED and briefed** → [`0017`](0017-session-d-the-traffic-model.md) | **The wall.** The most detailed unargued design in the project, now carrying transit vehicles. More than one sitting. **It is also where the 861.87% diversion figure lands**, and where `0002` §F's rebuild found the corpus's remaining 🔴 is essentially **one cluster** rather than many gaps | milestones 5b, 5c, 6, 7a |
 | **E** | `adr/0005` + `adr/0007` — fidelity | One session, not two: `0007` moved Fidelity from person to **place**, and `0005`'s tiers are what it moved | milestones 7a, 7b |
 | **F** | `adr/0008` — walking is a simulated Leg | Written from research. It is what makes 5b *the irreversible milestone* | milestone 5b |
 | **G** | `adr/0016` — the lane is the entity | Carries the order-of-magnitude claim the whole microscopic tier rests on | milestone 6 |

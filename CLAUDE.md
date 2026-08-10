@@ -16,10 +16,12 @@ pointer with just enough shape to orient; the board is the view and the slice pl
 slice plans, and it was the copy that drifted (`plans/0012` *Cause 1*: every document that stores
 per-slice status drifted, and the only large one that did not stores none).
 
-**Phase 1 is all but closed.** Slices 0–7, **9** and **10** are done; **slice 8, hot reload, is the one
-slice in flight** (tasks 1–4 landed, of which 4, 5 and 6 merged into one). **No gate is red anywhere in
-the corpus.** Slice 10 task 11 — `adr/0059`'s `revisit_ticks` — is planned and sequenced deliberately
-*behind* slice 8, because both re-record the same golden baselines.
+**Phase 1's code is closed.** Slices 0–10 are **all done** — **slice 8, hot reload, closed last**, and
+with it `adr/0015`'s acceptance test: *change a production ratio and see the effect in seconds* reads
+**0.70 s**, against the 60–120 second warm rebuild the ADR was written on. **No gate is red anywhere in
+the corpus.** The one open code item is **slice 10 task 11** — `adr/0059`'s `revisit_ticks` — sequenced
+deliberately *behind* slice 8, because both re-record the same golden baselines, and slice 8 has now
+re-recorded them.
 
 **Spikes:** S4, **S0a**, **S0b** and S2 R0–R8 have all run; what remains of S2 is R7's tail (a
 `performance` capture that needs root, plus bookkeeping) and it is what blocks deleting a 33,000-line
@@ -261,12 +263,12 @@ unless asked.
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
 | `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0016` | One plan document per slice or spike: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`). **`0015` owns the slice in flight**; `0014` also owns task 11, which is planned and sequenced behind it |
+| `plans/0004`–`0017` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **`0015` owns the slice in flight**; `0014` also owns task 11, sequenced behind it. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8, **S0a and S0b** have all run |
 | `docs/dev-environment.md` | Setting up a machine to work on this |
-| `rulesets/` | **Ruleset content, in TOML.** Data the binary interprets, not source — hot-reloadable tuning under `adr/0015`. One file today: `minimal.toml`, the smallest Ruleset that makes Bins move, which the golden session runs under and which says in its own header that it models no city |
+| `rulesets/` | **Ruleset content, in TOML.** Data the binary interprets, not source — hot-reloadable tuning under `adr/0015`. Two files: `minimal.toml`, the smallest Ruleset that makes Bins move, which says in its own header that it models no city; and `minimal-tuned.toml`, **the same file with one number changed**, which the golden session **reloads into at Tick 128** so replay equivalence covers a transition. A test holds the two to a one-line difference |
 
 `plans/0001-foundational-design.md` predates ADRs 0005–0011 and is stale. `docs/06-roadmap.md`
 supersedes its build order. Do not trust it without checking.
@@ -395,6 +397,8 @@ dotnet build                  # must succeed with no GPU and no Godot installed
 dotnet test                   # must be green
 dotnet run --project src/Borough.Headless
 dotnet run --project src/Borough.Headless -- --zones --ruleset rulesets/minimal.toml --ticks 5000
+dotnet run --project src/Borough.Headless -- \
+  --ruleset rulesets/minimal.toml --reload-at 200 --ruleset rulesets/minimal-tuned.toml --ticks 400
 ```
 
 ## Constants
@@ -406,7 +410,8 @@ dotnet run --project src/Borough.Headless -- --zones --ruleset rulesets/minimal.
 | Reference tick rate | 16 Ticks/s → a Day is 8m32s | host-side, runtime only |
 | Cell | 32×32 Tiles (≈128 m) | **design constant, never tuned** — it changes the State Hash |
 | Chunk | a multiple of the Cell, ≥32×32 | tuning, hash-preserving, unvalidated. **Provisionally 1:1 with the Cell** |
-| Map Layer cadence | pollution every 64 Ticks at offset 0; land value every 256 at offset 16 | tuning, hot-reloadable, **hash-bearing** — the designer's number and not the profiler's, measured in `adr/0044` |
+| Map Layer cadence | pollution every 64 Ticks at offset 0; land value every 256 at offset 16 | tuning, hot-reloadable, **hash-bearing** — the designer's number and not the profiler's, measured in `adr/0044`. **Stated by `rulesets/minimal.toml`'s `[layers]` since slice 8 task 8**, and `adr/0044`'s claim now runs end to end from TOML text to State Hash. Still **unratified**: stating a number is not choosing it |
+| Provenance trail cap (`N`) | **16** transitions retained in full, older ones aggregated to counts | world-creation, saved and **hash-bearing**. `RulesetTrailTable.Retained`. **UNRATIFIED** — the ratifier is the first real cross-patch diagnosis, and nothing can produce the refuting number until patches exist. A `const` rather than Ruleset data because a designer must not be able to reload a smaller window: the file whose adoption the history is about would be truncating that history |
 | Industrial pollution kernel | separable tent, 1,024 m (8 Cells) | world-creation, **Ruleset data** — `[layers] kernel_metres`, frozen at world creation and refused on reload (slice 8 task 3). **UNRATIFIED** — the 1–10 km band is 10× wide and wants a source, and moving a number into a file does not ratify it |
 | Map | 4096² Tiles, 2048² documented fallback | open |
 | Target population | 10,000 first hour / 1,000,000 late game | sizing |
