@@ -940,7 +940,13 @@ internal static class HabitReport
                 changed[route] = true;
                 changedCount++;
 
-                int gain = ((before - after) * 10_000) / before;
+                // Widened, and the widening is load-bearing rather than defensive. A cost is Q16.16
+                // Ticks, so a uniform journey is ~3.5M and `(before - after) * 10_000` overflows an
+                // int once the improvement passes ~214,748 — about 6% of the journey. It wrapped
+                // negative, which deleted exactly the largest improvements from the mean and from
+                // `material`, and left `best` pinned just under each rung's own threshold. The
+                // sibling expression in StormReport (R5.5.4's detour) is `10_000L` for this reason.
+                int gain = (int)(((before - after) * 10_000L) / before);
                 improvementTotal += gain;
 
                 if (gain >= 100)
@@ -995,9 +1001,10 @@ internal static class HabitReport
             + $"{(changedCount == 0 ? "—" : Hundredths(improvementTotal / changedCount) + "%")}, "
             + $"best {(changedCount == 0 ? "—" : Hundredths(bestImprovement) + "%")}. Routes made "
             + $"**dearer** by the addition: **{worse}** — the conservation law, and it must read "
-            + $"zero. Of those {changedCount:N0}, **{materialCount:N0} improve by more than 1%** — "
-            + $"`C` is dominated by routes a recompute would change by a rounding error, and the "
-            + $"`material` columns below are the same sweep against that subset."));
+            + $"zero. Of those {changedCount:N0}, **{materialCount:N0} improve by more than 1%** "
+            + $"({Share(materialCount, changedCount)} of `C`), and the `material` columns below are "
+            + $"the same sweep against that subset. Whether `C` or material `C` is the set worth "
+            + $"waking is a decision rather than a measurement, so both are printed."));
         report.AppendLine();
         report.AppendLine(
             "| `d`, Cells | `d`, m | `\\|W(d)\\|` | `\\|C \\ W(d)\\|` missed | `\\|W(d) \\ C\\|` "

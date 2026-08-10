@@ -4787,6 +4787,14 @@ error bar. **Every count, share and percentage below is bit-identical across the
 membership counts. Only nanosecond columns move, by 2–8%. The two earlier captures are the same in
 every count and differ only in that they predate the *material `C`* column.
 
+**Two further captures were taken by R7 and are retained beside the first pair**,
+`…20260810T142450Z` and `…20260810T142458Z`, after the
+`int` overflow described under R6.4.3 was repaired. **They are the source of every magnitude figure in
+that sub-task and of nothing else**: they too are bit-identical to each other across every count,
+share and percentage, but they ran with a concurrent workload on the machine, so **their timing
+columns are not quoted anywhere.** R6.4.1's and R6.4.2's figures are untouched by the repair and
+remain the `…022600Z` capture's.
+
 ### R6.4.1 — the branch-point compression ratio: **REFUTED, and the premise was refuted before the run**
 
 **Refutes if `k > ~25`**, which leaves memory above 100 MiB and the row loses on the axis it was
@@ -4893,26 +4901,54 @@ share of `C`.** It refutes on **fan-out** and not on miss rate, because `T` back
 by re-searching all 2,048 pairs flat on the restored graph and comparing **whole-journey cost**, which
 is R5.5.3's correction carried forward.
 
-**O-D rung `uniform`**: 2,048 of 2,048 comparable, **`|C|` = 202 (9.86%)**, mean improvement 0.14%,
-best 5.72%. Routes made **dearer** by the addition: **0** — the conservation law, printed on the run
-where it reads yes, because addition is monotone-improving and a non-zero here would mean the two
-cost columns are not the same quantity.
+> **CORRECTED by R7, and the correction inverts one of this section's own findings.** Every magnitude
+> column below — mean improvement, best, the material count, and *caught of material `C`* — was
+> published wrong on the day R6.4 ran. `HabitReport.cs` computed the per-route gain as
+> `((before - after) * 10_000) / before` **in `int` arithmetic**, and a cost is **Q16.16 Ticks**: a
+> uniform journey is ~3.5M, so the multiply overflows once the improvement passes ~214,748 — **about
+> 6% of the journey**. It wrapped *negative*, which deleted exactly the largest improvements from the
+> mean, excluded them from `material`, and left `best` pinned just under each rung's own overflow
+> threshold. **The sibling expression in `StormReport` — the one that produced R5.5.4's detour — is
+> written `10_000L`**, so the widening was known in this harness and was dropped here.
+>
+> **What caught it was arithmetic on this section's own printed numbers, and not a re-run.** 53 routes
+> improving by ≥1% force a mean of at least 0.26% over 202, and the section printed 0.14%. That check
+> — *mean ≥ material × threshold ÷ `|C|`* — costs nothing, and it is the invariant this table did not
+> have. It is the same class as R2's *"two measurements that agree to the last digit are not two
+> measurements"*, arriving this time as **two aggregates over one set that cannot both be true**.
+>
+> **`|C|` did not move on any rung**, because membership depends only on the sign of `after − before`;
+> nor did `|W(d)|`, missed, needless, `P(stale)` or *caught of `C`*. **So the wire's verdict survives
+> untouched and one published finding is destroyed** — see the two paragraphs below the table.
+>
+> Corrected figures are from `results/s2-r64-…-20260810T142450Z.md` and its pair, bit-identical across
+> every count, share and percentage. **Their timing columns are deliberately not quoted**: the
+> re-capture ran with a concurrent workload on the machine (load average 1.5–1.8), so the `query`
+> column below stays the original `…022600Z` capture's. Stated here rather than left to be noticed.
+
+**O-D rung `uniform`**: 2,048 of 2,048 comparable, **`|C|` = 202 (9.86%)**, mean improvement
+**13.69%**, best **42.76%**. Routes made **dearer** by the addition: **0** — the conservation law,
+printed on the run where it reads yes, because addition is monotone-improving and a non-zero here
+would mean the two cost columns are not the same quantity.
 
 | `d`, Cells | `\|W(d)\|` | missed `\|C \ W\|` | needless `\|W \ C\|` | **`P(stale)`** | caught of `C` | **caught of material `C`** | query |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 0 | 346 | 36 | 180 | **16.89%** | 82.17% | **66.03%** (35 of 53) | 29.82 µs |
-| 1 | 362 | 31 | 191 | 17.67% | 84.65% | 67.92% | 38.75 µs |
-| 2 | 368 | 31 | 197 | 17.96% | 84.65% | 67.92% | 46.80 µs |
-| 4 | 424 | 26 | 248 | 20.70% | 87.12% | 75.47% | 93.47 µs |
-| 8 | 488 | 25 | 311 | 23.82% | 87.62% | 75.47% | 156.16 µs |
-| 16 | 650 | 20 | 468 | **31.73%** | 90.09% | **77.35%** (41 of 53) | 344.12 µs |
+| 0 | 346 | 36 | 180 | **16.89%** | 82.17% | **82.38%** (159 of 193) | 29.82 µs |
+| 1 | 362 | 31 | 191 | 17.67% | 84.65% | 84.97% | 38.75 µs |
+| 2 | 368 | 31 | 197 | 17.96% | 84.65% | 84.97% | 46.80 µs |
+| 4 | 424 | 26 | 248 | 20.70% | 87.12% | 87.56% | 93.47 µs |
+| 8 | 488 | 25 | 311 | 23.82% | 87.62% | 88.08% | 156.16 µs |
+| 16 | 650 | 20 | 468 | **31.73%** | 90.09% | **90.67%** (175 of 193) | 344.12 µs |
 
 **`P(stale)` peaks at 31.73% at `d` = 16 Cells — 2 km — and does not approach 1 anywhere.** The wire
 does not fire. One ordinary gesture marks between a sixth and a third of the store, the drain still
 bounds something, and `adr/0012`'s contract survives on the axis it was tested on.
 
 **The decision the sweep produces is that `d` should be 0.** Going from 0 to 16 Cells nearly doubles
-the fan-out (346 → 650) to buy **8 percentage points** of catch, and 11 points of the material catch.
+the fan-out (346 → 650) to buy **8 percentage points** of catch — 82.17% → 90.09% — and **8 points**
+of the material catch, 82.38% → 90.67%. **The two columns now move together**, which is itself part of
+the correction: on the published figures the material catch started 16 points below the headline and
+climbed faster, and both halves of that were the overflow.
 `d` is not the useful knob; the index's granularity is. Reported as absolutes per R6.1a rather than as
 percentages, since the percentage is a property of whichever draw was used.
 
@@ -4927,25 +4963,50 @@ still 9.90% of `C`, and it would not reach zero at any radius. R1.7 measured a p
 caveat stated in advance — that a path is a longer object than a pair and should fan out *worse* —
 holds: nothing here reads as R1.7's number improving.
 
-**`C` is dominated by routes a recompute would change by a rounding error, and that changes what is
-being bought.** Of 202 changed routes, **53 improve by more than 1%**. The wake at `d` = 0 catches
-**66.03%** of those 53 and at `d` = 16 catches 77.35% — so on the subset a player could perceive, the
-wake is *worse* than its headline column suggests, and it never reaches 80% at any radius tried.
-`adr/0012` states its contract over *changed*, and a strict inequality on integer Tick costs makes a
-one-Tick-in-five-thousand improvement a full member of `C`. **Whether that is the set worth waking is
-a decision and not a measurement**, and both columns are printed so the decision stays visible.
+**`C` is *not* dominated by rounding-error routes, and the claim that it was is the correction's
+largest casualty.** Of 202 changed routes, **193 improve by more than 1% — 95.54%** — and the
+inversion holds across the whole O-D family: **97.90%, 97.72%, 93.47%, 95.90%** on the four other
+rungs. The wake catches material `C` at **82.38%** at `d` = 0 against **82.17%** for `C` as a whole,
+and the two stay within half a point of each other at every radius, so **the wake is not biased
+against the subset a player could perceive.** `adr/0012` states its contract over *changed*, and a
+strict inequality on integer Tick costs does still admit a one-Tick-in-five-thousand improvement as a
+full member of `C` — but such members are now known to be **rare rather than dominant**, which makes
+the choice between `C` and material `C` a far smaller decision than this section published it as. It
+remains **a decision and not a measurement**, and both columns are printed so it stays visible.
 
-**A published figure is contradicted, and it is not one of R6.4's.** R6.4.3 reproduces R5.4's
-*improvable* count independently — **9.86% against R5.4's 9.22%**, on the same gesture with a
-different path source and a different pool, which is a strong agreement. It contradicts the
-**magnitude** by two orders: R5.5.4 published a mean detour of **16.35%** on whole-journey cost where
-R6.4.3 measures a mean improvement of **0.14%** and a best of 5.72%. R6.4.3's figure is the physically
-plausible one — 512 m of 90 km/h road replacing 50 km/h road saves ~16 s on a ~10-minute journey — so
-the discrepancy is on R5's side. Two candidate explanations, neither settled here: R5.4 and R5.5.4
-measure **hierarchy against hierarchy**, so `HpaSearch`'s own error enters the detour that the
-addition is credited with; and **R6.0's pristine-seeding repair re-baselined only R5.3 and R5.5.2**,
-leaving R5.4 and R5.5.4 quoting figures taken with the defect in place. **R7 owes this reconciliation**
-and it is the same shape as the 474.47/234.74 ms one already on its list.
+> **Retired wording, kept because the correction is the point:** *"`C` is dominated by routes a
+> recompute would change by a rounding error… The wake at `d` = 0 catches **66.03%** of those 53 and
+> at `d` = 16 catches 77.35% — so on the subset a player could perceive, the wake is *worse* than its
+> headline column suggests, and it never reaches 80% at any radius tried."* Every number in it was an
+> overflow artefact, and **it read as a finding about the wake when it was a finding about the
+> arithmetic.** The generated report asserted the same claim in its own prose — which is
+> `VectorReport`'s 217.36 provenance defect reappearing in a second harness — so **the generator now
+> prints the count and the share and stops there.** A report that states a conclusion cannot be
+> refuted by its own numbers.
+
+**The published contradiction is withdrawn: it was this section's arithmetic, and R5.5.4 stands.**
+R6.4.3 reproduces R5.4's *improvable* count independently — **9.86% against R5.4's 9.22%**, on the
+same gesture with a different path source and a different pool — and that agreement was real, which
+is what should have been trusted. What was published beside it was a **two-order** contradiction of
+R5.5.4's magnitude: a 16.35% mean detour against a 0.14% mean improvement. **Corrected, R6.4.3 reads
+13.69% against R5.5.4's 16.35% — the same order, from two harnesses that share no code path on this
+quantity.** So neither candidate explanation is needed. R5.4 and R5.5.4 measuring **hierarchy against
+hierarchy** explains nothing that now requires explaining; and the pristine-seeding candidate was
+already refuted **in this same document** by R6.0's own re-baseline, which records that *"R5.5.4 runs
+an addition scenario in which no cached route ever points at a missing Segment, so the pristine/live
+distinction cannot bite."* That sentence was on file while the contradiction was being written
+against it.
+
+**The reasoning that convicted R5 is kept visible, because it was sound reasoning applied to a bad
+number.** This section argued that 0.14% was *"the physically plausible one — 512 m of 90 km/h road
+replacing 50 km/h road saves ~16 s on a ~10-minute journey — so the discrepancy is on R5's side."* The
+physical argument was correct about the gesture *as described* and wrong about the gesture as
+**drawn**: `EditStorm.Draw(Arterial, 4)` severs a corridor rather than adding a shortcut beside one,
+which is why restoring it returns 13.69% and a best of 42.76%. **A plausibility check confirms that a
+number is the right size for the story being told about it**, which is a weaker guarantee than it
+reads as, and it is the reason a wrong number survived a sanity check and went on to convict a right
+one. The corpus's recurring shape once more — an instrument agreeing with itself — and the first time
+here that the agreement was between **a number and a sentence** rather than between two numbers.
 
 ### The reverse index, which is most of the work and produced the largest number
 
@@ -5022,7 +5083,17 @@ two blank cells are now filled and **both read against it** — which turns a th
 two-way one between the shared tree's concentration and the cached route's unattainable hit rate, and
 that pair is R7's verdict to state.
 
-**Two instrument findings are owed onward.** The board's *elapsed-time helper* entry is discharged
+**Three instrument findings are owed onward, and R7 added the third by arithmetic rather than by
+re-running.** The gain expression overflowed `int` for every improvement above ~6% of a journey — the
+second overflow class in this one harness, after the elapsed-time helper below, and both are the same
+root cause: **a Q16.16 quantity multiplied by a scaling constant before being divided.** The general
+repair is not *widen this line*; it is that **any percentage taken over Q16.16 costs must be computed
+in `long`**, which `StormReport` already did and `HabitReport` did not. The cheap detector is a
+cross-check between two aggregates over one set — *mean ≥ material × threshold ÷ `|C|`* — and it wants
+printing beside them, because it is the one thing in the table that could not be satisfied by an
+instrument agreeing with itself.
+
+**Two further instrument findings are owed onward.** The board's *elapsed-time helper* entry is discharged
 here in a way the entry did not anticipate: R4's `× 1e9` overflow was repaired everywhere as
 `TimeSpan.Ticks × 100`, which is overflow-safe and **quantises every reading to a 100 ns grid** —
 invisible against R5's millisecond storms and ruinous against a rejoin measured in single
@@ -5486,6 +5557,35 @@ the same ADR retiring R3's denominator. The board's model is that the three trac
 They do not contend for **files**. **They contend for the ground a measurement stands on, and nothing
 in the process looks.**
 
+### The correction R7 found by arithmetic, and what it says about what a report is for
+
+**R7 is the round that reads the other rounds, and the largest thing it has done is catch one of them
+being wrong using nothing but its own printed numbers.** R6.4.3 published `|C|` = 202, a mean
+improvement of 0.14%, and 53 members improving by more than 1%. Those three cannot all be true: 53
+members at ≥1% force a mean of at least 0.26%. No re-run, no harness, and no second opinion was
+needed to know that one of them was wrong — only the willingness to divide. The cause was an `int`
+overflow on Q16.16 costs and the consequences are in *R6.4.3*; what belongs here is the method.
+
+**Two aggregates over one set are a free tripwire, and nothing in this spike had been printing them
+that way.** Every round publishes counts beside means; almost none publishes a pair whose consistency
+can be checked. The conservation law R6.4.3 *did* print — *routes made dearer by an addition: 0* —
+worked exactly as intended and was blind to this, because it constrains the **sign** of every term
+and says nothing about **magnitude**. An instrument can be correct on one axis and unwired on
+another, and the run where it reads *yes* is the run that proves only the axis it covers.
+
+**This sharpens the repair R7 already recorded for the tripwire.** *Score each row at the first round
+that touches it* was about rows written before the numbers. The sibling rule is about rows written
+**after** them: **a round that publishes two aggregates over one population owes the inequality
+between them**, in the report, printed. It is cheaper than any of the seven tripwire rows and it
+would have fired on the day rather than four rounds later.
+
+**And it lands on the corpus's own recurring shape from a new direction.** The instances on file are
+two *numbers* agreeing when they should not have — R2's byte-identical peaks, R3's zero detour. This
+one is a **number agreeing with a sentence**: R6.4.3 argued that 0.14% was the physically plausible
+figure and used that to convict R5.5.4, and the plausibility argument was sound about a gesture the
+harness was not drawing. **A magnitude that matches the story being told about it is not evidence
+that the story is right.**
+
 ### What R7 still owes
 
 - ~~**The `performance` capture.**~~ **TAKEN**, 2026-08-09, all six sections — see above. **What
@@ -5507,10 +5607,44 @@ in the process looks.**
   the same fact; four sub-rounds had nonetheless decided a great deal and nothing collected it. The
   section it produced is `adr/0012`'s owed amendment, stated: the **key**, the **eviction policy**, and
   R5.6's finding that **the two consumers do not want the same mechanism**.
-- **R2's reconciliation.** R4 records that its rebuild denominator disagrees with R2's published build
-  by 2.2× — 217.36 ms against 474.47 ms for the same 121 backward Dijkstras. **The re-capture does not
-  close this**: 217.36 ms reproduces, so the disagreement is not the pinning artefact and R2's figure
-  is the one under suspicion.
+- ~~**R2's reconciliation.** R4 records that its rebuild denominator disagrees with R2's published
+  build by 2.2× — 217.36 ms against 474.47 ms for the same 121 backward Dijkstras. **The re-capture
+  does not close this**: 217.36 ms reproduces, so the disagreement is not the pinning artefact and
+  R2's figure is the one under suspicion.~~ **STRUCK — this is the same item as the second bullet
+  above, which closed it, and this list carried both states at once for as long as anybody read it
+  top to bottom.** Kept rather than deleted, because *what the duplicate did* is the finding: **an
+  owed-list is a status-bearing document, and this one disagreed with itself about the only question
+  it exists to answer.** The tell was available without any measurement — two bullets, one name, one
+  struck. Three other documents still carried the open form and are corrected with this entry:
+  [`plans/0010`](../plans/0010-s2-routing.md) → *R7*, and [`plans/0000`](../plans/0000-board.md) in
+  two places.
+- **217.36 ms should be struck wherever it appears, and not reconciled.** *Found while closing the
+  duplicate above.* It has **no table provenance anywhere in the corpus**: it exists only as a string
+  literal in `VectorReport.cs`, introduced with R4, and the capture tables committed in that same
+  commit read **219.73 ms** (`powersave`) and **234.74 ms** (`performance`). The figure is also
+  internally inconsistent with the sentence carrying it — 217.36 ÷ 121 is 1.796 ms a column while the
+  same sentence claims 1.75 ms and 11.19% of a Tick, which is 1.746 ms and implies 211.2 ms. *"It
+  reproduces"* was never a property of a measurement; **it reproduced because it was retyped**, which
+  is exactly the provenance defect recorded under *the canonical capture* and never followed through
+  to its instances. **Every figure this corpus took from capture prose rather than from a capture
+  table is provenance-unknown**, and that is a sweep, not a line.
+- **The row label that carried the R2 resolution is wrong, and the resolution survives it.** *What did
+  not move* tabulates R2.1's 195.44 ms beside R4.3's 195.42 ms and R4.4's 194.94 ms as *"121 backward
+  Dijkstras — the shared route store build"*, three measurements agreeing to **0.3%**. R2.1's rung is
+  `RouteStore.ForDistrictPairs` over `OneToAll` — **121 *forward* one-to-all Dijkstras plus 14,641
+  path extractions**, which is not the same operation as R4's 121 backward seeds. **The conclusion is
+  untouched** — R2's 474.47 ms was the *next-hop* build and that is what the 1.82× applies to — but
+  the sentence supporting it says three witnesses where there are two, and **an agreement to 0.3%
+  between two different operations is a coincidence being read as a corroboration.** R2's fourth
+  instance of *two measurements that agree are not two measurements*, arriving in the reconciliation
+  written to close R2.
+- ~~**The R5.5.4 magnitude contradiction R6.4.3 handed this list.**~~ **CLOSED, against R6.4.** See
+  *R6.4.3* — the two orders were an `int` overflow in `HabitReport`, corrected to **13.69% against
+  R5.5.4's 16.35%**, which is the same order from two harnesses sharing no code path on that quantity.
+  **R5.5.4 stands.** Two things this cost that are worth carrying: the contradiction had already been
+  answered inside the same document by R6.0's re-baseline note, and the argument that convicted R5 was
+  a **physical plausibility check**, which cannot distinguish a wrong number from a right one when the
+  story told about the gesture is itself wrong.
 - **The three results measured on a structure `adr/0047` deleted.** One sentence each on which
   direction the superseded basis pushes them, and **`plans/0002` §D's Habit row needs that sentence
   before it can keep the word *RATIFIED*.** See *The reconciliation R7 owes*.

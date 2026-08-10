@@ -1385,16 +1385,22 @@ of whichever O-D draw was used and the absolute is a property of the graph.*
 > cannot contain it, so where the *stored* path runs says nothing about whether the addition helps it —
 > the changed routes are the ones whose *recomputed* path detours to the new Arterial, and those start
 > and end anywhere. That is why the miss **does not close at any radius**: 36 at `d` = 0, still 20 at
-> `d` = 16. R1.7's 309-of-429 now has a structural explanation rather than a number. Second, **`C` is
+> `d` = 16. R1.7's 309-of-429 now has a structural explanation rather than a number. ~~Second, **`C` is
 > dominated by rounding**: of 202 changed routes only **53 improve by more than 1%**, and on that
-> subset the wake catches **66.03%** at `d` = 0 and never reaches 80%.
+> subset the wake catches **66.03%** at `d` = 0 and never reaches 80%.~~ **WITHDRAWN by R7 — it was an
+> `int` overflow in this section's own harness, and the truth is the inverse**: **193 of 202 improve by
+> more than 1%** (95.54%, and 93–98% across the family), and the wake catches material `C` at
+> **82.38%** at `d` = 0, within half a point of the headline column at every radius. `|C|` and every
+> fan-out column are untouched, so the verdict above stands unchanged.
 >
-> **And a published R5 figure is contradicted.** R6.4.3 reproduces R5.4's *improvable* count
-> independently — **9.86% against 9.22%** — and contradicts its magnitude by two orders: **0.14% mean
-> improvement against R5.5.4's 16.35% mean detour**, on the same gesture. R6.4.3's is the physically
-> plausible figure. Two candidates, neither settled: R5.4 and R5.5.4 measure hierarchy against
-> hierarchy, and **R6.0's pristine-seeding repair re-baselined only R5.3 and R5.5.2**. **R7 owes the
-> reconciliation.**
+> ~~**And a published R5 figure is contradicted.**~~ **WITHDRAWN — the contradiction was this section's
+> arithmetic.** R6.4.3 does reproduce R5.4's *improvable* count independently — **9.86% against
+> 9.22%** — and that agreement was the trustworthy half. The **two-order** magnitude gap was the
+> overflow: corrected, R6.4.3 reads **13.69% mean improvement against R5.5.4's 16.35% mean detour**,
+> the same order from two harnesses sharing no code path. **R5.5.4 stands, and neither candidate
+> explanation is needed** — the pristine-seeding one was already refuted by R6.0's own re-baseline
+> note, in the same document, while this paragraph was being written against it. See
+> [`spike-results`](../docs/spike-results.md) → *R6.4.3*.
 >
 > **The reverse index was most of the work and produced the largest number in R6.4.** Built as
 > `CLAUDE.md` requires — a Cell-keyed intrusive index list over **(route, Cell) memberships**, two
@@ -1432,10 +1438,29 @@ numbers, only 2, 6 and 7 were both testable as written and tested as written**, 
 **score each row at the first round that touches it** rather than at the report, while a bad row can
 still be rewritten.
 
-**Still owed:** the `performance` capture (`--graph --denominator --matrix --traffic --cluster
+~~**Still owed:** the `performance` capture (`--graph --denominator --matrix --traffic --cluster
 --vector`, as root, twice); R2's 474.47 ms reconciliation, which the re-capture did *not* close since
 217.36 ms reproduces; a closing verdict for **R6**, the only round without one; and the decisions
-ledger below, restated as what S2 hands on.
+ledger below, restated as what S2 hands on.~~ **Three of those four are done and one was never owed.**
+The decisions ledger and R6's closing verdict are written. **R2's reconciliation had already closed
+on 2026-08-09** — the two figures were never the same operation, R2's being the *next-hop* build at
+260.57 ms canonically, a 1.82× artefact matching R4's independently measured 1.80× — and this line
+was one of four places in the corpus still carrying it open while `spike-results` carried it closed,
+**including R7's own owed-list, which held both states at once.**
+
+**Still owed:** a **second** `performance` capture, because one is an assertion and two are an error
+bar, and R5.6 and R6.1–R6.4 are all still `powersave`; the **provenance sweep** — 217.36 ms is a
+string literal with no table behind it, and every figure this corpus took from capture *prose* is
+provenance-unknown; **one sentence each** on the three R8 results measured on the District-granular
+tree `adr/0047` deleted, of which `plans/0002` §D's Habit row is the one that cannot keep the word
+*RATIFIED* without it; re-verifying the absolutes R0–R4 publish; **row 5 of the tripwire**, which no
+round owns and which wants a run with a sink and elapsed time in it; and the harness's deletion,
+which is **not available** while R6 cannot finish.
+
+**R7 also closed a reconciliation it was handed rather than one it inherited**: R6.4.3's two-order
+contradiction of R5.5.4 was an `int` overflow in R6.4's own harness, and correcting it leaves
+**13.69% against 16.35%** — the same order, from two harnesses sharing no code path on that quantity.
+**R5.5.4 stands, and `C` is 95% material rather than 26%**, which inverts a published R6.4.3 finding.
 
 ---
 
