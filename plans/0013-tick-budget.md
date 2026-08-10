@@ -63,7 +63,7 @@ the durable half of the document.
 | **Pollution diffusion**, one Cell dirty | **31.6 µs** | — | `MapLayerBenchmarks` |
 | **Pollution diffusion**, whole map | **1.01 ms** | — | as above |
 | One **State Hash** at 1M | **32.47 ms** | — | [S0a](../docs/spike-results.md) |
-| One **routing worst Tick** at 16 Trip starts | **10.37 ms** | — | [S2 R5](../docs/spike-results.md) |
+| ⛔ **One routing worst Tick** at 16 Trip starts | **10.37 ms — NO ARTEFACT** | — | [S2 R5](../docs/spike-results.md), and **no capture** |
 
 **The two marked rows are the same quantities measured in a running city rather than in a fixture,
 and they are 2.8× and 4.0× the synthetic ones.** They arrived after slice 7 task 10a put a Ruleset in
@@ -74,6 +74,25 @@ nobody was thinking about, and the Rule engine's was best case on three at once 
 Rule due in one bucket walked in slot order, and no Citizen or Household table competing for cache.
 A unit cost is a hypothesis until a real world has produced one. **Routing's 10.37 ms came off a
 synthetic harness too and has never met a world.**
+
+> **And it is worse than that: S2 R7's provenance sweep found 10.37 ms has no artefact at all.** It
+> appears in **no capture** under `spikes/S2.Routing/results/`. R5 had already disclosed that a
+> filename collision destroyed six of its captures and **named six unbacked figures**; this is a
+> **seventh, and it was not on the list** — the one figure that escaped the disclosure is the one this
+> document built a row on. Under `spike-results`'s own rule, *a published absolute with no artefact
+> behind it is not a measurement*, so **the routing row's unit may not be quoted until R5's worst-Tick
+> sweep is re-run.**
+>
+> **This does not overturn the conclusion below, and the reason is worth stating rather than
+> assuming.** The routing row was already the weakest in the table — its multiplicand is marked
+> *guessed*, and R6.3 has since found the multiplicand counts **the wrong event entirely**, because
+> under static Habit a Trip start is a lookup and the expensive event is a **diversion**. A row whose
+> multiplicand is wrong in kind cannot be rescued by its unit being sound, so the sum's dependence on
+> this row was always qualitative. **What the sweep moves is the paragraph above this one**: the
+> *measured / guessed* column audits the multiplicand, this document has since conceded the unit
+> column was never audited, and the sweep shows the unit column contains an entry that is not a
+> measurement at all. **That is the third distinct way one row has been found unsound, and each was
+> invisible to the check written for the previous one.**
 
 **The gap was then attributed rather than left as a warning** (`0011` finding 43). Added to the
 fixture one at a time at a fixed due count: **terms ×1.84**, **scatter ×1.49**, **population ×1.14** —
@@ -123,7 +142,7 @@ multiplicand**, which is why that column sits next to it rather than in a footno
 | **Skeleton, staggered invariants, Layer schedule** | all | 0.112 ms | 1M rows — **measured** | 1.4% | 0.7% | 0.4% | 0.2% |
 | ~~**Bin Rule engine**, whole Tick, before term work~~ | ~~1–3~~ | ~~10.42 ms~~ | ~~56,250 due — **guessed**~~ | ~~134%~~ | ~~67%~~ | ~~33%~~ | ~~17%~~ |
 | **Bin Rule engine**, whole Tick, **in situ** | 1–3 | **6.4 ms** | 11,586 due — **measured, on a toy Ruleset** | 82% | **41%** | 20% | 10% |
-| **Routing** | 4 Move | 10.37 ms | 16 Trip starts — **guessed** | **133%** | **66%** | **33%** | **17%** |
+| ⛔ **Routing** | 4 Move | 10.37 ms — **no artefact** | 16 Trip starts — **guessed, and the wrong event** | **133%** | **66%** | **33%** | **17%** |
 | **Map Layer diffusion**, on the Tick it lands | 5 Layers | 0.03–1.01 ms | dirty region — **measured range** | 0.4–13% | 0.2–6.5% | 0.1–3.2% | 0.05–1.6% |
 | **Zone Rules**, worst aligned Tick | 6 Growth | **0.012 ms** | 16 Rules triggering together — **guessed**; unit **measured** | 0.15% | **0.08%** | 0.04% | 0.02% |
 | **Event Wheel, general** | 1 Wake | **unbuilt** — slice 9 | — | — | — | — | — |
@@ -133,6 +152,17 @@ multiplicand**, which is why that column sits next to it rather than in a footno
 **Read the last row across, not down.** The headline is not *we are over budget*; it is that **the
 simulation as priced fits at 2× and does not fit at 4×** — and the difference between those is a
 product decision nobody has made, not an engineering problem anybody has to solve.
+
+**⛔ The row carrying most of that sum is the one with no artefact.** At 4×, routing is **66 points of
+the ≥114** — more than every other priced consumer put together, and without it the ledger reads
+**42–48%**, which fits at 4× with room. So the headline *fits at 2×, does not fit at 4×* **is a
+statement about routing and almost nothing else**, and routing is the row whose unit S2 R7's
+provenance sweep found in no capture and whose multiplicand R6.3 found to be counting the wrong
+event. **Neither correction has a direction yet**: the unit could move either way when R5's
+worst-Tick sweep is re-run, and re-basing the multiplicand from Trip starts onto diversions points
+sharply **up** — R6.3 priced diversions at 861.87% of the budget on their own. **This document should
+not be read as having priced routing.** It has priced everything else and is carrying a placeholder
+in the row that decides the answer.
 
 **The sum fell from ≥140% to ≥114% at 4×, and that is not good news.** It moved because the Bin Rule
 row stopped being a guess, and the correction happened to point down; the *unit* underneath it moved

@@ -1108,7 +1108,9 @@ three at once — no terms, every Rule due in one bucket walked in slot order, a
 Household table competing for cache. That is not a defect in the benchmark; it is what a benchmark
 *is*. What follows from it is that **a unit cost is a hypothesis until a real world has produced
 one** — and routing's 10.37 ms worst Tick came off a synthetic harness too, and nothing has checked
-it against a world either.
+it against a world either. **S2 R7 has since found it came off no capture at all**: 10.37 ms appears
+in no file under `spikes/S2.Routing/results/`, so the comparison this finding drew — *a unit measured
+in a fixture beside a unit measured in a world* — was generous to routing by one whole category.
 
 **43. The three axes multiply to 3.13× against an observed 3.70×, and the residual is the part the
 instrument could not reach.** Finding 42 named three ways the fixture is best case and could have left

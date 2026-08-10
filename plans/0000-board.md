@@ -68,7 +68,9 @@ high — which is worse than being wrong, because nothing would have noticed eit
 mean Rule rate of ~15.9 Ticks at 4×, where the retired wire said 4.8, and `02 §4.3`'s bakery runs at
 8. The general lesson is in `0013` now: **its *measured multiplicand* column always assumed the unit
 side was solid, and a unit cost is a hypothesis until a real world has produced one.** Routing's
-10.37 ms has never met a world either.
+10.37 ms has never met a world either — and R7's provenance sweep has since found it has **no capture
+behind it at all**, which makes `0013`'s routing row a placeholder carrying **66 of the ≥114%** that
+document sums to at 4×.
 
 **Scale.** A million Citizens fit comfortably: 86 MiB of tables, **177 MB resident once a Ruleset
 fills the Bin and Rule Instance tables** (S0a's ~94 MiB owed exactly this re-take), and 100,000
@@ -1048,7 +1050,9 @@ diagnose.
       the policy is worth more than the Epoch rung below the highest edit rates
 - [ ] **A mean per-route cost times an arrival rate does not bound a Tick — NEW, produced by S2 R5.3.**
       R3 published *routing fits while fewer than 85 Trips start per Tick*, derived from a mean. At
-      **16** Trip starts R5 already measures a worst Tick of **10.37 ms** against a 15.6 ms budget.
+      **16** Trip starts R5 already measures a worst Tick of ~~**10.37 ms**~~ **— a figure R7's
+      provenance sweep found in no capture, so the lesson stands and the number may not be quoted
+      until R5's worst-Tick sweep is re-run** — against a 15.6 ms budget.
       **S4's K6 said it first** — a run whose worst iteration was 100.2 ms read 2.462 ms at p99.9 —
       and R6 inherits the instruction along with R3's
 - [x] ~~**The canonical `performance` capture of R5 is owed**~~ **DISCHARGED**, and taking it found a
@@ -1057,7 +1061,13 @@ diagnose.
       percentage is bit-identical across the two**, including R5.4's whole addition table, so no
       conclusion moved. Three absolutes did: the repair loop reads **23.26× and a 253.22 ms worst
       gesture** rather than 21.25× / 219.50 ms, and the worst Tick reads **10.37 ms** rather than
-      13.26 ms
+      13.26 ms. **⚠ This discharge is itself implicated, and it is the sharpest thing the provenance
+      sweep found about process rather than about numbers.** The debt it closed was *R5 published
+      figures with no artefact behind them*, and it closed it by substituting **two figures of the
+      same kind**: `10.37 ms` appears in **no capture**, and `23.26×` is prose contradicted by the
+      tables it summarises, which read **23.28×** and **22.61×** in the two retained captures. **A
+      debt about unbacked figures was discharged in unbacked figures**, and nothing noticed because
+      the discharge quoted a capture — just not a table in one
 - [ ] **Every earlier `performance` capture in S2 carries a one-processor artefact — NEW, produced by
       R5's canonical capture.** `routing-run.sh` pinned with `taskset -c 2`, one logical processor
       with the SMT sibling idle, which starves the .NET tiered JIT's background compilation of

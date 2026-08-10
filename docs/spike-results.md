@@ -3795,6 +3795,16 @@ otherwise read as contradictory.
   below the one R3's row permits. A mean per-route cost multiplied by an
   arrival rate does not bound a Tick, and S4's K6 said so first: a run whose worst iteration was
   100.2 ms read 2.462 ms at p99.9.
+  > **⛔ 10.37 ms has no artefact — R7's provenance sweep, and this is the bullet every downstream
+  > document quotes.** It appears in **no capture** under `spikes/S2.Routing/results/`. It belongs to
+  > the family the bullet four items below already discloses — the filename collision that destroyed
+  > six of R5's captures — and it is a **seventh that was never named there**, which is why it went on
+  > being quoted while the six did not. **The argument survives and the number does not**: *a mean
+  > per-route cost times an arrival rate does not bound a Tick* rests on S4's K6 as much as on this
+  > figure, and K6 has its own artefact. What may not be quoted is **10.37 ms**, and what depends on
+  > it is [`0013`](../plans/0013-tick-budget.md)'s routing row — **66 of the ≥114% that document sums
+  > to at 4×**, which is more than every other priced consumer together. Re-running R5's worst-Tick
+  > sweep is cheap and is not the owed `performance` capture.
 - **R3's denominator finding arrives a fourth time, in a form it had not taken.** R5's first draft
   measured the rebuild at 8 Chunks and divided the **16**-Chunk repair figures by it — not measured
   once instead of twice, but **measured on the wrong rung**. A rebuild at 16 Chunks is a different
