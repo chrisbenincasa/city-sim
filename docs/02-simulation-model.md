@@ -532,8 +532,43 @@ Adapted from UrbanSim's architecture, which has been the operational design of a
 5. Development        per Lot × allowed form: revenue(price) − cost > hurdle?
                       build the best feasible, throttled by a build rate
 6. Accessibility      refresh travel-time matrix and reachability fields
-                      (slow cadence, dirty regions only)
+                      (slow cadence; "dirty regions only" is UNSOUND — see below)
 ```
+
+> **Step 6's *dirty regions only* is unsound, and it was measured rather than argued** — S2 R1.7, in
+> [`spike-results`](spike-results.md). *(The corpus cites this step as `02 §6`; the sentence it quotes
+> is this one.)*
+>
+> **A dirty region is a spatial test on a non-spatial quantity.** A route from District *i* to District
+> *j* can cross the edited ground without either endpoint lying anywhere near it, so rebuilding *the
+> Districts the edit overlaps* misses exactly the long entries the matrix exists to serve — **309 of
+> 429** changed entries on a central edit, **132 of 252** on a corner one. It misses them **silently**,
+> leaving entries stale rather than merely coarse, which is a different and worse failure than
+> coarseness because nothing downstream can tell the two apart. Both edit sites are quoted because one
+> of them is degenerate: a central District lies on the shortest path between most pairs and a corner
+> one on almost none, and the contrast is what says the mechanism has a shape rather than a verdict.
+>
+> **The sound test exists, is very nearly exact, and collapses into the full rebuild.** *Which stored
+> routes crossed the edited region* identifies **430 entries against the 429 that actually changed**, so
+> as a predicate it is essentially perfect — but a one-to-all search fills a whole row, so the build
+> granularity **is** the row, and every row holds the entry addressed *to* the edited District, whose
+> route necessarily ends inside it. **However few entries an edit invalidates, at least one lands in
+> every row.** So the two columns say different things and both are the finding: **430 entries is the
+> work genuinely needed — 2.9% of the matrix; 121 rows is the work the structure forces — 100%.** Going
+> finer means a point-to-point search per entry, priced at 418 µs, so filling one row that way costs
+> **50.6 ms** against the one-to-all's **1.46 ms** — entry-granular invalidation is **34× more expensive
+> per row** than the rebuild it exists to avoid, and pays only when fewer than one row in thirty-four is
+> dirty. R1.7 showed every row is.
+>
+> **The cadence survives; the region does not.** This is [`CONTEXT.md`](../CONTEXT.md) → Epoch's *when
+> you pay* / *what survives* distinction arriving at the matrix instead of at the cache, and the two
+> halves come apart here exactly as they do there. *Slow cadence* is a statement about **when you pay**
+> and it stands — a matrix rebuilt every *N* Ticks is stale by at most *N*, and everything reading it
+> can be told so. *Dirty regions only* is a statement about **what survives** an edit, and a spatial
+> predicate cannot make it. **The matrix carries no Epoch and R1 declined to give it one**, on the
+> grounds that a version counter would imply a relationship to the route cache nobody has argued.
+> **Which rebuild rung the matrix takes is therefore open** — see [`plans/0002`](../plans/0002-open-questions.md) —
+> and nothing here chooses one; what is settled is that the rung written above is not available.
 
 **The unplaced pool with per-Household refusal reasons is our replacement for the RCI meter, and it is a strictly better interface primitive.** "412 Households want to move in; 380 can't find anything under §900; 32 can't reach a job inside their Commute Budget" is a diagnosis. A bar chart is not. `LEGIBLE CAUSE`
 

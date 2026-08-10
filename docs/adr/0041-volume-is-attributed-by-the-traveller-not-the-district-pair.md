@@ -10,6 +10,51 @@ a rewrite for. It does **not** decide where a Trip's Segment sequence comes from
 shared per origin-destination pair is a performance axis with no correctness content, and spike **S2**
 measures it ([`plans/0010`](../../plans/0010-s2-routing.md) R2).
 
+> **AMENDED by S2 R2, on evidence. This corrects a sentence, not the decision.** The paragraph's
+> *"a performance axis with **no correctness content**"* is wrong on two counts. **Everything above it
+> survives untouched** — a Traveller increments whatever it actually drives, so experience and
+> contribution remain the same list of Segments under every rung, which is the whole of what this ADR
+> decides. Numbers in [`spike-results`](../spike-results.md) → *S2 R2*.
+>
+> **The axis has three rungs, not two, and the third is the one this ADR created.** Direct attribution
+> needs a **next Segment** every Tick, and a path is only one way to supply one: a **next-hop table**
+> supplies one and stores no path at all. That rung is absent from `plans/0010` because the plan
+> predates this ADR. **Searched is out on arithmetic rather than on a benchmark** — 716,800 ns per Leg
+> against ~550 arrivals per Tick is ~400 ms of searching per 15.6 ms of budget — so the axis that
+> survives is between the two coarse rungs.
+>
+> **Correctness content, first count: the detour, which is statistical.** A route shared per District
+> pair costs **36.01%** mean detour (p90 **71.39%**) and a next-hop table **18.52%** (p90 **40.70%**),
+> against a per-Trip search's zero. The gap between the two is structural rather than incidental: a
+> shared route is coarse at *both* ends, since the Traveller must reach the origin representative
+> before the stored route means anything, while a next-hop table is followed from wherever the
+> Traveller actually is and is coarse only on the destination side — worth almost exactly half the
+> error, measured. **A Traveller driving 36% further is a different Trip, which under
+> [`05 §4`](../05-technical-architecture.md) is a different city.** The figures are taken at node
+> granularity and are therefore an upper bound.
+>
+> **Correctness content, second count: the representative funnel, which is structural and is the larger
+> one.** Under either coarse rung *every* Trip bound for a District arrives through that District's
+> **one representative node** — a shared route ends there, a next-hop column is a tree rooted there —
+> so the arcs into it carry the whole of the District's inbound traffic. The same surge drives the
+> watched arc to **412%** `v/c` under shared routes against **130%** under a per-Trip search. **The
+> representative is not a summary of the District under these rungs; it is a hole every Trip is
+> threaded through**, and a fidelity model that promotes on `volume / capacity` promotes there and
+> nowhere else. That is the defect class `03 §3.9` rejects for the Microscopic Cap and that this ADR
+> rejects for volume, arriving a third time by a different door. **Nothing in the corpus addresses it**;
+> it is [`plans/0002`](../../plans/0002-open-questions.md)'s routing cluster, `plans/0010` decision 11,
+> and this ADR does not settle it.
+>
+> **Argument 2 in *Why* below was also measured, and it is worse than the lag it describes.** R2b found the
+> aggregate scheme does not report a jam late — it does not report it at all. Direct lag is zero at
+> every rung and aggregate's lag reads *never* even at a **one-Tick** cycle, where there is no cadence
+> left to blame: under a next-hop path source the smear deposits **0.00%** on a Segment direct reports
+> at **108.51%**. **It is a *place* defect and no cadence fixes a place.** The two schemes agree closely
+> on *how many* Segments are stressed (2,592 against 2,714 over an 80% threshold) and disagree
+> completely on *which* — the shape most likely to pass an aggregate sanity check while being wrong
+> about every individual road. This strengthens the Consequences' force-promotion bullet without
+> resolving it: the lag justification is not merely superseded, it described the wrong defect.
+
 ## Why
 
 **The corpus answered this question twice, differently, in one document, and nobody had noticed.**
@@ -55,6 +100,12 @@ anchors (~128 Districts on a full map puts it near 819,000 writes per congestion
 80,000 per Tick, so it wins for any cycle longer than ~10 Ticks). **We are knowingly paying for
 correctness, and the price is one L2-resident array.**
 
+> **The ~10 Ticks is measured at 105, and the last sentence overstates what is being paid.** S2 R2a
+> priced the crossover on a measured crossing rate of 0.79–0.83 and a conserving smear: direct
+> attribution is the **cheaper** scheme for any congestion cycle shorter than about 105 Ticks at the
+> anchor. Detail and the peaking sweep are under *What would trigger revisiting*, where this arithmetic
+> was filed as the trigger it discharged.
+
 **Note which way this cuts against convenience.** Aggregate attribution is the cheaper option and the
 one already written down. It is rejected on three correctness grounds, not chosen on a benchmark — which
 is the [`05 §4`](../05-technical-architecture.md) rule applied by name: the two schemes produce
@@ -65,6 +116,15 @@ is the [`05 §4`](../05-technical-architecture.md) rule applied by name: the two
 - **`03 §3.3`, `§3.4` and `§3.6` are rewritten together.** `§3.3`'s counter and its distribution step go;
   `§3.4`'s circularity argument becomes structural rather than probabilistic; `§3.6` stops being in
   tension with anything.
+
+  > **Written, carrying S2 R2's evidence — except the force-promotion clause below, which is a decision
+  > and stays open.** `§3.3`'s counter and distribution step are gone with the superseded text kept
+  > beside them; `§3.4`'s closure is now structural, with the **representative funnel** recorded there as
+  > the exposure it does *not* cover. **The third section is `03 §3.8`, not `§3.6`** — the *"animated…
+  > along its route"* sentence this ADR quotes lives there, and `§3.6` is the low-volume junction blind
+  > spot, which has nothing to do with attribution. This ADR, `plans/0010` and the board all carry the
+  > same mis-citation; it needed no rewrite either way, since the bullet is the half of the contradiction
+  > that survived.
 - **Force-promotion on downstream blocking is no longer justified by lag, and may not be justified at
   all.** Its stated reason was that cycle-driven attribution trails a backward-propagating jam. That
   reason is gone. It may still earn its place on the *second* argument `03 §3.3` gives — that a
@@ -90,10 +150,37 @@ is the [`05 §4`](../05-technical-architecture.md) rule applied by name: the two
 
 ## What would trigger revisiting
 
-- **The measured cost lands far above the estimate above.** The arithmetic rests on a vehicle crossing
-  about one Segment per Tick, which follows from `TICKS_PER_DAY = 8192` and a block-length Segment. If
-  the Segment turns out much shorter than a block — S2 owns the road-density figure that decides it —
-  the crossing rate rises and this should be re-priced before it is re-argued.
+- ~~**The measured cost lands far above the estimate above.**~~ **DISCHARGED by S2 R2, and it moved the
+  other way.** The arithmetic rests on a vehicle crossing about one Segment per Tick, which follows from
+  `TICKS_PER_DAY = 8192` and a block-length Segment. If the Segment turns out much shorter than a block —
+  S2 owns the road-density figure that decides it — the crossing rate rises and this should be re-priced
+  before it is re-argued.
+
+  > **The measured rate is 0.79–0.83 per vehicle per Tick, not 1.0**, reported at free flow *and* at the
+  > morning peak because this ADR's estimate is a free-flow one and the simulation is not — congestion
+  > lowers the rate and lowers the scheme's cost with it, so quoting only the congested figure would
+  > credit direct attribution for a saving the jam paid for. The ~80,000 increment/decrement pairs per
+  > Tick at 1M is therefore an **overestimate by about a fifth**, which is the opposite direction to the
+  > one this trigger anticipated.
+  >
+  > **And the crossover is 105 Ticks at the anchor, an order of magnitude past the ~10 estimated above.**
+  > This ADR reasoned from an assumed crossing rate and an unweighted smear; the rate is now measured and
+  > the smear implemented in its **conserving** form — a Traveller on a route of total time `T`
+  > contributes `t_s / T` to each Segment, so the shares sum to one and this ADR's invariant holds, where
+  > adding the whole pair count to every Segment would have put one vehicle on fifty Segments at once and
+  > **made the price of rejecting the alternative look smaller than it is**. So direct attribution is the
+  > *cheaper* scheme for any congestion cycle shorter than about 105 Ticks, and **this ADR's *"we are
+  > knowingly paying for correctness"* understates its own case**: at plausible cycle lengths it is not
+  > paying at all. Where the crossover inverts is a peaking question — a 50-Tick cycle needs a 2.12× peak
+  > and a 25-Tick cycle 4.25×, against a generator mix that caps the peak near 3× — and the peaking factor
+  > is itself unsized, so that is a curve rather than a verdict.
+- **The path source landing on a District-granular rung**, which is the exposure the amendment above
+  opens and this ADR cannot close. Direct attribution guarantees that the Segments a Traveller raises are
+  the Segments it drives; it guarantees nothing about *which* Segments those are. If a Statistical Trip's
+  route is District-granular, they are the ones a partition chose, and Stress on a representative node is
+  an artefact rather than a property of the city. That does not reopen attribution — it means this ADR's
+  repair is exact at the Segment and silent about the route, and the guarantee should be quoted that
+  narrowly until `plans/0010` decision 11 is answered.
 - **Segment volume proves too noisy to drive hysteresis.** Exact per-Tick volume is spikier than a
   cycle-averaged one, and `adr/0007` already requires hysteresis to stop Segments flickering. If the
   two thresholds cannot be separated far enough to damp per-Tick noise, the answer is a smoothed
