@@ -241,6 +241,27 @@ been the wrong repair — the pointer is not wrong about the past, it was only e
       *mechanism* is settled and only the tuning is open**, which is a playtest question
 - [x] `adr/0045:78` — *"slice 7 is therefore gated on `adr/0015`"*; annotated with the clearance and the corrected refusal count
 
+### `adr/0007` still states two things the document it governs has since corrected
+
+**Found by session D's typing pass (task 0), which is the first time the ADR was read against `03`
+rather than cited by it.** Both are *Cause 2* in its purest form — a correction reached the document
+being argued about and not the ADR that governs it, which is the inverse of the direction the sweep
+expected and therefore the direction it never looked in.
+
+- [ ] **`adr/0007`'s eighth consequence carries invariant 6 inverted.** It reads *"Where a segment is
+      microscopically simulated, observed travel times must match VDF predictions within tolerance"* —
+      and `03 §4` invariant 6 records that binding exactly this to **Microscopic** segments *"inverted
+      it"*, because §3.2's whole justification for simulating them is that the VDF **is wrong there**.
+      The document says so in a quoted block; the ADR was never amended. **Divergence on a stressed
+      Segment is the product; divergence on an unstressed one is the defect** — and the ADR currently
+      asserts the opposite of its own design's success condition
+- [ ] **`adr/0007`'s third bullet still describes the counter `adr/0041` deleted.** *"The trigger
+      consumes a count, not a model. `in_flight` is exact — incremented on departure, decremented on
+      arrival"* is the `in_flight[origin_District][dest_District]` scheme, and `03 §3.3` carries a
+      superseding banner over the same sentence while its governing ADR carries none. S2 R2 found the
+      aggregate scheme is not late but **wrong about which Segments** — 130.21% `v/c` direct against
+      28.09% aggregate on the watched arc — so the banner is not cosmetic
+
 ### The routing budget counts an event that stopped being the expensive one
 
 **Raised by S2 R6.3 and owed to two documents at once.** Both size routing by **Trip starts**:

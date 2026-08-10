@@ -25,6 +25,22 @@
 > a question about what a routing destination may be, which is `plans/0010` decision 15 and is not this
 > ADR's to take.
 
+> ### AMENDED by session D task 5, 2026-08-10 — the ratification is **withdrawn**, and the structure has changed underneath it
+>
+> **`Static Habit suffices` is no longer ratified.** R8.5 ran and did not refute it, and R8 wrote its own limit clause beside the number: its diversion fire rate *"is a property of District-granular routing and must not be carried to any scheme that gives a Traveller more than one candidate route."*
+>
+> [`adr/0047`](0047-routing-never-keys-on-the-district.md) deleted the District-granular tree — citing R8's own concentration column as one of its grounds — and [`adr/0060`](0060-a-habit-route-is-a-small-set-of-variants-and-which-one-you-take-is-who-you-are.md) has now made a Habit **`k` candidate routes**, which is precisely the scheme the spike named as out of scope. **The ratifier has been *cited* rather than *applied***, which is [`adr/0044`](0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md)'s failure and the reason [`adr/0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md) exists. The likely direction is still safe — more candidate routes means more places for a jam to redistribute to — **but that is an argument, and this row was carrying a measurement's authority.**
+>
+> **Withdrawal costs nothing, which is why it is affordable to be strict.** It used to mean re-admitting a Habit refresh cadence — a maintenance scheme and a hash-bearing number, which was the prize static Habit won. It no longer does: [`adr/0061`](0061-a-diversion-rejoins-by-local-descent-and-a-rejoin-is-never-a-search.md) supplies adaptation as a **switch between candidates that were computed once and never change**, so no cadence returns whatever the re-measurement says. **This is the first ratification the corpus has withdrawn**, and it is withdrawn on the spike's own instruction rather than on a doubt.
+>
+> **Re-ratifier, named:** R8.5's instrument — a sustained demand asymmetry, Sight against a control with identical physics and no ability to respond — re-run on a **variant-supplied** route set at `06` **5b**, with **both** responders live.
+>
+> **And R8.5 measured one response where there are now two.** Sight acts per crossing; Aggravation acts per `N` journeys. **Two feedback loops on one signal at very different periods** is the shape that produces slow oscillation, and it is strictly larger than the switch-herd `adr/0061` records as owed. Nothing in R8 speaks to it.
+>
+> **The second qualification is CLOSED rather than withdrawn.** *Ratified under congestion, never under topology change* reads as a hole and is not one: the topology half has an owner and a stated answer. This ADR owns *nothing recomputes because a road got busy*; [`adr/0012`](0012-routing-intent-lives-in-the-agent.md) owns *and here is how long a Habit may be wrong about a road that appeared* — bounded by `T`, checked at use, explicitly **not** static. Two claims, two owners, both stated. What was missing was the sentence saying so.
+>
+> **Two numbers this ADR's measurement produced are orphans and are now entered** in [`0002`](../../plans/0002-open-questions.md) §B: R8's **14.08%** diversion fire rate — whose *consumer* has changed, since under `adr/0061` a diversion no longer costs a search — and Temperament's **92.28%** damping, which was measured against one herd and now has a second to damp.
+
 ## Why
 
 ### This is [`adr/0017`](0017-agents-satisfice-they-never-optimise.md) applied to routing, and it should have been written the day that one was
@@ -63,6 +79,16 @@ A Traveller decides at a **node**, so seeing one Segment ahead *is* actionable i
 
 So the useful quantity is not *N Segments* but **N against the distance to the next actionable junction**. That distance is measurable directly off the Road Graph with no traffic at all, and it sets the floor for `N` before any behavioural argument runs. This is the one place in the routing model where a parameter's lower bound is derivable rather than tuned, and it should be derived.
 
+> **AMENDED by session D task 4: there is a *ceiling* too, and it is the same number — so `N` has no free parameter and is not tuning.**
+>
+> Look at what a driver at a junction is comparing at horizon `N`. **Its own route** it has, so it can read live cost on `N` Segments ahead. **Each alternative** it does not have beyond the first arc, because nothing searches — so it reads live cost on **exactly one** Segment and prices the remainder at free-flow.
+>
+> At `N = 1` the comparison is **symmetric**: one live arc against one live arc, free-flow remainder on both sides. At `N > 1` it is **asymmetric** — `N` live arcs of its own bad news against one of the alternative's — and the asymmetry grows with `N` without bound. **R8 observed the effect and did not name the cause**: BPR at `β = 4` clamped at 4.00 makes a saturated arc 39.4× its free-flow time, *"so a lookahead of even two arcs can carry more live cost than the free-flow remainder it is weighed against — the detour is priced at free-flow, looks cheap, and the horizon stops behaving like a monotone knob."*
+>
+> **That is not a knob misbehaving; it is a comparison being unsound.** A larger horizon biases a driver toward diverting as an artefact of what the driver *has* rather than of what the road *is*. Floor and ceiling meet at 1, so the `0002` §D2 row is **deleted rather than filled** — `adr/0059`'s direction, and the second row to leave that section that way.
+>
+> **The number this name was also wearing is a different one and it stays unset.** R6.4.2's rejoin cliff at 3 Segments is the **Rejoin crossing budget** ([`adr/0061`](0061-a-diversion-rejoins-by-local-descent-and-a-rejoin-is-never-a-search.md)) — a radius around a route a Traveller has *left*, not a lookahead along one it is still on. The two are now named apart, which is what stops a derived 1 and a measured 3 reading as a disagreement about one parameter.
+
 ### Temperament is load-bearing, not flavour
 
 Without it, every driver standing at the same node in the same Tick reads the same numbers and makes the same decision. That is a Cohort in everything but storage, which [`adr/0005`](0005-two-fidelity-tiers.md) bans on principle — and here the principle has a mechanical consequence rather than only a philosophical one. **An identical rule over an identical input produces a herd**: the whole flow switches to the alternative together, the alternative jams, the whole flow switches back, and the city oscillates for ever at the period of the loop. `03 §3.4`'s self-correction becomes self-*excitation*.
@@ -80,7 +106,7 @@ The **structure** is arguable and this decision closes it: the layer decompositi
 | Claim | Type | Where it went | What it read |
 |---|---|---|---|
 | Route choice cannot read live global costs | measured | R3 | Confirmed — flat A\* fits below 85 Trip starts per Tick |
-| **Static Habit suffices** | measurable | **R8.5** | **Not refuted.** Under a *sustained* demand asymmetry Sight settles **42.62% below** a control with identical physics and no ability to respond; the control settles *above* its own pre-surge level and Sight *below* it. `03 §3.4`'s loop closes on the local layers alone, **so no refresh cadence exists to argue about** |
+| **Static Habit suffices** | measurable | **R8.5** — **and the reading is WITHDRAWN, see the amendment above: the structure it measured has been replaced by the one R8 named as out of scope** | **Not refuted.** Under a *sustained* demand asymmetry Sight settles **42.62% below** a control with identical physics and no ability to respond; the control settles *above* its own pre-surge level and Sight *below* it. `03 §3.4`'s loop closes on the local layers alone, **so no refresh cadence exists to argue about** |
 | **A Sight Horizon of one is actionable** | measurable | **R8.1** | **Not refuted.** **98.02%** of arrivals are already at a node with a real choice; the floor is **1 Segment**, taken at p90 |
 | **Temperament damps the herd** | measurable | **R8.4** | **Damps by 92.28%** where a herd exists, on an instrument shown able to separate a maximal-herd control. **The wire stated on *monotonicity* is REFUTED as written** — the response is a cliff, not a gradient, and the rungs after it are closer together than the instrument resolves |
 | **Sight's per-crossing cost fits the budget** | measurable | **R8.3** | **5.64%** of the Tick at the derived floor. But **`Refresh` alone is ~10%** — the per-Tick VDF sweep costs more than the whole traveller loop and is flat in fleet size |

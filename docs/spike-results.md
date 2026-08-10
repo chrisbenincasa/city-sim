@@ -17,6 +17,7 @@ produced**. A spike that records data and no verdict has not finished.
 | **S3** | UI ceiling — one data panel with a live multi-series graph, and how long it took | not run |
 | **S0a** | The world at target size — 1M Citizens in `Borough.Headless`, footprint and the empty Tick | **done, and it found the runs had never had a city in them.** The tables hold 1M with an order of magnitude spare; **one State Hash costs 2.08 Tick budgets** and the Decide guard costs 4.9. Capture is `powersave` and owes a re-take. Recorded below |
 | **S0b** | The Tick with work in it — Event Wheel, Bin Rules with wait lists, a Sweep Rule pass, a routing load | **not run, and not runnable.** Three of the four are slices 9, 7 and 10. This is the half that carries `06`'s stated risk |
+| **S5** | **The Lane kernel** — Vehicles updated per Tick per core under `adr/0016`'s sorted 1-D queue, Overlaps and IDM, in **integer/Q16.16**; and from it *how many Microscopic Segments fit in 15.6 ms* | **not run. Opened 2026-08-10 by session D's typing pass**, which found `adr/0016` resting on **Eickhoff's ~400,000 cars on one core** — an external number off a **float** engine — and [`0013`](../plans/0013-tick-budget.md) holding **no row for the Microscopic tier at all**. S4-class: `spikes/`, arithmetic substrate only, no content and no Trip generation, so it **runs unattended and blocks on nothing** |
 
 ---
 

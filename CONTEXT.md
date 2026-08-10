@@ -587,7 +587,11 @@ This is a behavioural commitment, not a performance one. The whole premise of th
 When decision cost needs reducing, the levers are **sampling fewer candidates** or **deciding less often** — never deciding collectively.
 
 **Microscopic Cap**
-The ceiling on how many Segments may be Microscopic at once. Under it, the Stress ranking decides which Segments get the slots; above it, the most stressed Segments fall back to Statistical.
+The ceiling on how many **Vehicles** may be under microscopic simulation at once — *not* how many Segments. A Lane's per-Tick cost is one pass over its queue, so a six-lane arterial and a residential street are not one slot each, and occupancy varies most in the direction that binds: a Segment holds the most Vehicles exactly when it is jammed, which is why it was promoted. Counting Segments would make the Cap least accurate when it is doing its job. `adr/0062`
+
+**Nothing is ever evicted to make room.** A full Cap **refuses**: force-promotion is admitted ahead of stress-promotion, because spillback is a correctness criterion and better travel times are an accuracy one; ties break on Stress and then on Segment id; and a refused Segment stays Statistical with its overlay reading *modelled*. The reason is not that the newest stress matters least — that argument was made and withdrawn as an unmeasured claim about the VDF — it is that **a queued Segment holds state nothing can rebuild** (queue position, headway, a Switch Lane traversal in progress) while a Segment that has just crossed the threshold holds none.
+
+*(Formerly **Fidelity Budget**, and renamed deliberately. The corpus already has a **Commute Budget**, which is a gameplay concept the player reads and acts on. Sharing the word let an internal ceiling borrow a game mechanic's authority — which is exactly the error described below. `adr/0007`, `adr/0019`, `adr/0020` and `adr/0025` still use the old name.)*
 
 *(Formerly **Fidelity Budget**, and renamed deliberately. The corpus already has a **Commute Budget**, which is a gameplay concept the player reads and acts on. Sharing the word let an internal ceiling borrow a game mechanic's authority — which is exactly the error described below. `adr/0007`, `adr/0019`, `adr/0020` and `adr/0025` still use the old name.)*
 
@@ -608,6 +612,8 @@ A Citizen currently on a Trip. Transient, created on demand when travel is requi
 **Habit Route**
 The route a **Citizen** normally takes between two places, computed from a **slow-moving** cost basis and reused across many Trips. It is the road network's Provider List: `adr/0017`'s sticky incumbent, one actor class further on.
 
+**It is one of several.** Formation computes `k` candidate routes for a pair, and which one a Citizen adopts is drawn from **who that Citizen is** — `hash(world_seed, citizen_id, HabitRouteVariant)` — so two neighbours with the same home and the same job take different roads to it, permanently, with no congestion feedback in the mechanism. The Citizen stores the **index** and not the routes; the route is served from the shared cache, keyed by `(origin node, destination node, variant)`. This is what makes the Provider List row of `adr/0046`'s own table true: a list of one member cannot be switched, only discarded, and every other actor in this city switches. It is also the only structural supply of **route diversity** — without it one shared cost basis returns one route per pair and the city's traffic concentrates on a fraction of its road. See `docs/adr/0060`.
+
 **It belongs to the Citizen, never to the Traveller**, and this entry said otherwise until session M. A thing *reused across many Trips* is conserved across embodiments, and a Traveller is released on arrival — so storing it there would break this file's own rule that **a Traveller is a view, not an owner** (see *Promotion / Demotion*). A Traveller reads its Citizen's Habit Route; it never holds one.
 
 A Habit Route is **deliberately out of date about congestion, and only boundedly out of date about the network** — two different kinds of wrong, and conflating them cost session M a day. Nothing recomputes it because a road got busy; that is what Sight is for, and `adr/0046`'s **static Habit** is ratified over exactly that case and no other. A road being **built or demolished** is not staleness at all — the route is wrong about what *exists*, which no amount of local self-correction repairs. What a Habit Route is permitted to be wrong about, and for how long, is stated in `adr/0012`. See `docs/adr/0046`, `docs/adr/0012`. `BOUNDED KNOWLEDGE`
@@ -615,7 +621,25 @@ A Habit Route is **deliberately out of date about congestion, and only boundedly
 **Sight Horizon**
 How far ahead a Traveller can see live conditions: the number of Segments along the Habit Route whose current cost it reads before choosing which arc to take out of a junction. Beyond the horizon it falls back to its lagged expectation of the rest of the journey.
 
-**Its floor is a property of the Road Graph, not a preference.** A Traveller looking fewer Segments ahead than the distance to its next *branching* node receives a signal it cannot act on — it will still be committed to the corridor when it reaches the jam. This is the only routing parameter in the design whose lower bound is derivable.
+**Its floor is a property of the Road Graph, not a preference.** A Traveller looking fewer Segments ahead than the distance to its next *branching* node receives a signal it cannot act on — it will still be committed to the corridor when it reaches the jam.
+
+**And its ceiling is the same number, so it is derived rather than tuned: the Sight Horizon is 1 Segment.** A driver *has* its own route, so it can read live cost `N` Segments along it; it has no route down an alternative beyond the first arc, because nothing searches. At 1 the comparison is symmetric — one live arc against one live arc — and above 1 it is not, biasing diversion by an artefact of what the driver holds rather than of what the road is. `adr/0046`
+
+**Do not confuse it with the Rejoin crossing budget**, which is a radius around a route a Traveller has *left* rather than a lookahead along one it is still on. Those are the two parameters this name was wearing; the first is 1 and derived, the second is unset. `adr/0061`
+
+**Diversion / Rejoin**
+A **Diversion** is a Traveller leaving its Habit Route at a junction, because Sight found an alternative arc better by more than its Temperament. A **Rejoin** is what it does next: it returns to the Habit Route rather than working out a new one. **A Rejoin is not a search.** The Traveller carries a **Rejoin Target** — the node on its Habit Route that it declined to enter — and at each following junction applies the rule it already has, taking the arc that reduces graph distance to that Target, until it is standing on the route again.
+
+**The whole point is that a Diversion costs a decision and never a route.** Sight makes diverting *routine* rather than exceptional, so anything a diverting Traveller does is paid at the rate the city diverts, not the rate it departs; a mid-journey re-search at that rate is the largest number in the corpus. Nothing here is a cheaper search — there is no search.
+
+**A Rejoin that does not succeed does not search either.** The Traveller stops aiming at the Target, points the same rule at its destination and carries on; the cost arrives as minutes, which the **Commute Budget** already scores, and there is no Trip Fate for a lost driver. It is **stranded** when no arc out of the node it stands on reduces the straight-line distance to its Target — a test that is wrong exactly where the map is deceptive, across a river or a severance, which is `BOUNDED KNOWLEDGE` behaving correctly rather than a defect. See `docs/adr/0061`, `docs/adr/0046`, `docs/adr/0012`. `BOUNDED KNOWLEDGE` `SOLVE THE ACTUAL PROBLEM` `HONEST DEGRADATION`
+
+**Aggravation**
+The fraction of a Citizen's recent journeys on a Habit Route that diverted or stranded. Crossing its threshold makes the Citizen **switch to another variant** of that Habit — it never recomputes a route.
+
+**A fraction and never a tally**, for `adr/0053`'s reason: a count is not scale-free, so somebody who drives four times a Day would switch four times as often as somebody who drives once, and one Ruleset number would mean four different things. It **drains to zero on a switch**, which is what gives it a sink.
+
+**It is not an adaptive Habit**, and the distinction is exact: an adaptive Habit recomputes a route against a cost basis; this chooses differently among candidates that were computed once and never change. Nothing here reads a live cost to build a route, so `adr/0046`'s static Habit is untouched. See `docs/adr/0061`.
 
 **Temperament**
 A Citizen's threshold for how much better an alternative must be before it is worth diverting to — `adr/0017`'s *"substantially better… by enough to be worth the bother"*, given a number at last.
@@ -698,7 +722,7 @@ The routing abstraction: nodes and edges, uniform regardless of how a road was d
 **Segment**
 **An edge of the Road Graph: one run of road between two adjacent nodes.** For Streets the nodes are intersections and both fall out of the Tile grid directly; for Arterials they are the authored Junction pieces. A Segment carries the attributes every other system reads off it — capacity, free-flow speed, mode mask, current volume, and its **Fidelity**.
 
-It is the unit almost everything about movement is counted in, which is why it needs stating precisely. **Fidelity is a property of the Segment**, not of the Traveller on it; the **Microscopic Cap** counts Segments; the **VDF** is evaluated on one Segment's own `volume / capacity`; **Stress** is that ratio times a complexity factor; and `adr/0035` prices **Upkeep** against capacity and free-flow speed, which are Segment attributes. A Microscopic Segment owns **Lanes**; a Statistical one has none at all.
+It is the unit almost everything about movement is counted in, which is why it needs stating precisely. **Fidelity is a property of the Segment**, not of the Traveller on it; the **Microscopic Cap** counts **Vehicles** and not Segments (`adr/0062` — this entry said otherwise, and a list of things counted per Segment is precisely how a wrong unit propagates unnoticed); the **VDF** is evaluated on one Segment's own `volume / capacity`; **Stress** is that ratio times a complexity factor; and `adr/0035` prices **Upkeep** against capacity and free-flow speed, which are Segment attributes. A Microscopic Segment owns **Lanes**; a Statistical one has none at all.
 
 **It is not a Tile and it is not a whole road.** A Tile-length edge would put millions of them on a 4096² map, and a run between authored Junctions would put almost none on a city that is mostly Streets — both by more than an order of magnitude. The working figure is **~30,000 Segments at 1,000,000 Citizens, about four Lanes each**, which puts a Segment at roughly a block-length link. That figure rests on a road-density assumption nothing in this corpus has yet argued, and it is spike **S2**'s to replace.
 
