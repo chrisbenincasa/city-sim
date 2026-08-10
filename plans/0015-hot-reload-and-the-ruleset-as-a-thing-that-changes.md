@@ -32,8 +32,8 @@ See *What planning found*.
 
 ## Status
 
-**Task 1 shipped.** The gate is clear and slice 10 has closed, so *The parallel session*'s scheduling
-constraint is discharged.
+**Tasks 1–3 shipped.** The gate is clear and slice 10 has closed, so *The parallel session*'s
+scheduling constraint is discharged.
 
 - **Task 1** — the swap, at the top of Phase 0. **Decision owed 1 is settled as recommended** and
   asserted rather than assumed: the swap runs first, so a Tick has exactly one Ruleset. **It shipped
@@ -51,9 +51,21 @@ constraint is discharged.
   **spliced log** at parse time. Four builder refusals, each a claim about what a log may say
   happened — including that a Tick carries at most one reload, which is the log's half of task 1's
   ordering.
-- **Next: task 3** — the world-creation refusal, and the `const` that has to move first. This is the
-  **live defect** planning found: the industrial pollution kernel radius is a `const` in
-  `SeparableKernel.cs:177`, and a refusal cannot detect a change to a number that lives in the binary.
+- **Task 3** — the world-creation refusal, and the `const` that had to move first. The defect is
+  discharged: the kernel radius is `[layers] kernel_metres`, and **the whole `[layers]` table was
+  built at once rather than only its one world-creation member**, which absorbs most of task 8 and
+  settles **decision owed 2**. Four things came out of it that were not in the plan. **`LayerRuleset`
+  stopped being a constructor argument of `World` beside the Ruleset and became a member of it** — the
+  old shape admitted a world whose cadence disagreed with the Rules in force, and the first reload
+  would have silently reverted it. **The reload comparison is in Cells, not metres**, because Cells
+  are the units the field is stored in, which is `adr/0015`'s membership test rather than an
+  approximation of it. **The refusal count went 8 → 11 at load plus a 12th on reload**, and the twelfth
+  is the first check in the project that is a property of a file *against a world*. And **`adr/0015`'s
+  world-creation enumeration turned out to be one-quarter implemented**: `TICKS_PER_DAY`, `WHEEL_SIZE`
+  and the Cell are all `const`s no Ruleset can state, so the ADR's own sentence about them is false of
+  three of its four members. Filed to `0012` as a sentence to fix rather than a hole to plug — nothing
+  is unguarded, because a file that cannot state a number cannot change it.
+- **Next: task 4** — the derelict flag.
 
 ---
 
@@ -418,7 +430,7 @@ artifact needed no other change — it embeds the log through the codec, so relo
 
 15 new tests; 725 total. No baseline moved.
 
-### 3. The world-creation refusal, the loader's second entry point, and the `const` that has to move first
+### 3. The world-creation refusal, the loader's second entry point, and the `const` that has to move first — **done**
 
 **Two halves, and the second is a prerequisite of the first.** *What planning found*, item 5: the
 industrial pollution kernel radius is `const int IndustrialPollutionMetres = 1_024` at
@@ -439,6 +451,68 @@ applied"*, and its own revisit trigger names silent ignoring as the failure mode
 
 *The membership test is run per number rather than inherited* — `adr/0044`'s withdrawn second half is
 what that instruction is made of.
+
+#### What building it changed
+
+**It took task 8's loader half with it.** The task as written moves one number; what shipped is the
+whole `[layers]` table — `pollution_period`, `pollution_offset`, `pollution_decay_ticks`,
+`land_value_period`, `land_value_offset`, `land_value_tau`, `sealing_decay_tau`, `kernel_metres` —
+every key optional and defaulting to `LayerRuleset.Default`'s documented value, so a Ruleset written
+before the section existed is still a complete Ruleset. Doing one number would have meant writing the
+section, the reader and the refusal machinery for a single key and then writing them again. What is
+left of task 8 is what it was always really about: **a Ruleset that actually states a cadence, and the
+baselines that re-record when it does.**
+
+**`LayerRuleset` stopped being a constructor argument of `World` and became a member of `Ruleset`, and
+that was not on the list.** Every three-argument call site in the tree passed `LayerRuleset.Default`
+beside a Ruleset that carried its own Layer data — so the shape admitted a world whose cadence
+disagreed with the Rules in force, and the **first reload would have silently reverted it to whatever
+the file said**. That is the exact failure class `adr/0015`'s revisit trigger names, arriving through
+the door nobody was watching. `World(int, Ruleset)` replaces `World(int, LayerRuleset, Ruleset)`;
+`Ruleset.WithLayers` is what a caller holding only a cadence uses, which keeps `adr/0044`'s
+two-cadence measurement door open and gives it one source instead of two.
+
+**The comparison is on Cells, not on metres, in both places that make it.** The radius is authored in
+metres and used in Cells; 1,000 m and 1,024 m are both 8 Cells and build the same array, so refusing
+between them would refuse a reload that reinterprets nothing. Comparing in the units the state was
+recorded in *is* `adr/0015`'s membership test rather than an approximation of it — and it is what lets
+`MapLayers.PollutionKernel` stay the one built at world creation, because an accepted reload provably
+cannot move it.
+
+**Two surfaces, and they are not redundant.** The loader's refusal is where a designer gets a file, a
+line and a sentence; `MapLayers.Adopt` throws, and it is the backstop for a caller that never asked the
+loader — a shell building a Ruleset in code reaches the swap without passing `Formats` at all. The
+failure it prevents is silent rather than loud: every Cell not re-diffused would be read at the wrong
+scale, producing a plausible field that is simply wrong.
+
+**Three new refusals at load, sharing slice 10's symptom.** A **period of zero** freezes the field; an
+**offset outside its period** makes `tick % period == offset` unsatisfiable so the Layer is never
+recomputed; a **decay that rounds to never** inverts its own meaning. Each is a Ruleset that loads
+clean, runs on schedule for ever and does nothing — which is what the count of record is a count of,
+and the ADR now says so, because that is the line it would drift across next.
+
+#### The finding that outlives the task
+
+**`adr/0015`'s world-creation enumeration is one-quarter implemented, and nobody had checked.** The ADR
+says its members *"live in the Ruleset like everything else and are read from it"*. After this task
+that is true of the kernel radius. `TICKS_PER_DAY` had **no symbol at all** — it existed as prose in
+three documents and as a bare `8192` in one populator, and task 3 had to name it (`Ticks.PerDay`)
+before the tau derivation could cite it. `WHEEL_SIZE` is `EventWheel.Size`; the Cell is
+`CellGrid.TilesPerCell`. So the sentence is false of **three of its four members**, and was false of
+all four an hour ago.
+
+**It is not the same defect the kernel radius was**, which is why it is filed rather than fixed. The
+radius was tuning frozen per world that had simply never been offered to a designer. These three are
+numbers the corpus argues a designer should **not** be handed — `adr/0019` is an entire ADR on
+`TICKS_PER_DAY` not being a pacing knob, `CLAUDE.md` calls the Cell a *design constant, never tuned*.
+So the correction owed is to the ADR's sentence: either the category admits a member that is Ruleset
+data in principle and not in the file, or those three belong to the revisit trigger's *"a parameter
+that genuinely cannot be data"* exception, which `adr/0015` already provides and which asks for a
+written exception each. Nothing is unguarded meanwhile — **a file that cannot state a number cannot
+change it**. `plans/0012`.
+
+25 new tests; 750 total. No baseline moved, because `rulesets/minimal.toml` declares no `[layers]` and
+the defaults did not change — the tau is now derived and derives to the 128 it was.
 
 ### 4. Degradation, part one — the derelict flag
 
@@ -507,6 +581,13 @@ layout rather than a stylistic preference.
 **This is what "slice 8 is done" means**, per the gate board, and it is the one task with an external
 definition of completion.
 
+> **Task 3 took the loader half.** `[layers]` exists, every key is read, the derivation is in the code
+> and the world-creation refusal runs on both surfaces. Doing one key's worth of section-reading and
+> refusal machinery and then writing it again for the other seven was not a saving. **What is left is
+> the half that was always the point**: a Ruleset that actually *states* a cadence rather than
+> accepting the default, the hash trace that moves when it does, and the baselines re-recorded against
+> it. Read the rest of this task as that.
+
 `LayerRuleset.Default` stops being the source. The cadence, the offsets and the rates come from the
 Ruleset file; the world-creation members are read at creation and **refused on reload** by task 3.
 
@@ -549,10 +630,11 @@ and the same instinct that produced `minimal.toml` in the first place.
   sequence. This is the slice's central claim and everything else is in service of it.
 - **A refused reload changes nothing** — same State Hash before and after, the previous Ruleset still
   in force, and **nothing written to the log** (*What planning found*, item 2).
-- **The industrial pollution kernel radius is read from a file**, not from
+- ✅ **The industrial pollution kernel radius is read from a file**, not from
   `SeparableKernel.IndustrialPollutionMetres` — which is the half of task 3 that has to land before the
-  next line can be tested at all.
-- **A world-creation change is refused**, by name, naming the constant.
+  next line can be tested at all. It is `[layers] kernel_metres`; the `const` is gone.
+- ✅ **A world-creation change is refused**, by name, naming the constant — on the loader's surface
+  with a file and a line, and in the core as the backstop.
 - **A reload that removes a kind derelicts rather than deletes**, and the Building is still there.
 - **A reload that removes a resource drops the Bins**, and no wait list survives the transition.
 - **The Layer cadence comes from a file**, and a Ruleset with a different cadence produces a different
@@ -579,9 +661,19 @@ distinguishable by a test rather than only by argument.
 *(The question this replaces — whether a reload needs a new `CommandKind` — was retired during
 planning rather than filed. See *What planning found*, item 3.)*
 
-**2. How `PollutionTau` survives a reloadable cadence.** Literal, computed, or **expressed in Days and
-converted at load** (recommended). *What planning found*, item 6. Arguable, and it should be settled
-before task 8 rather than during it.
+**~~2. How `PollutionTau` survives a reloadable cadence.~~ SETTLED — task 3: a duration in the file,
+divided at load.** The recommendation was *Days*; the answer is **Ticks**, and the difference is the
+only part worth recording. Days is closer to the designer's sentence — *a plume fades over about a
+Day* — but it is a unit nothing else in a Ruleset uses, and any value under a Day would have needed
+the quoted-decimal machinery to express. Ticks is what every `rate` and `interval` in the file is
+already written in, and `8192` carries the comment `one Day` perfectly well. The file states
+`pollution_decay_ticks`; `LayerRates.From` divides it by whatever cadence is in force. **It generated
+a refusal that the literal spelling could not have had**: a duration shorter than the period it is
+counted in rounds to a tau of 0, and 0 is the sentinel for *never* — so `pollution_decay_ticks = 30`
+would read as *fades in seconds* and behave as *never fades*. Refused. **And it removed a literal from
+the source**: `LayerRates.Default` is now the same derivation run on the default cadence, so `128`
+appears nowhere, and `TICKS_PER_DAY` got a name (`Ticks.PerDay`) because a derivation cannot cite a
+number that has none.
 
 **3. `N`, the provenance trail's cap.** Saved and hash-bearing, so `adr/0052` applies and a named
 ratifier is required on the day it is chosen. Measurable in principle — the refuting number is how far
@@ -605,8 +697,12 @@ has to type.
   hashes… a replay needs the Rules' content, not the news that they changed."* A hash is the news. The
   design is `05 §7`'s content-addressed sidecar and it is correct; the sentence describing it is not.
   **Third instance in this section** of the shape session A found twice.
-- **`adr/0048`'s refusal count**, once task 3 lands — in the ADR, in `adr/0015`, and in `0003`'s gate
-  board, all at once. They have drifted before.
+- ~~**`adr/0048`'s refusal count**, once task 3 lands — in the ADR, in `adr/0015`, and in `0003`'s gate
+  board, all at once. They have drifted before.~~ **PAID by task 3**, in all three at once: **eleven**
+  at load and a **twelfth** on the reload entry point. The ADR now also states what is *not* counted —
+  duplicate names, unknown sections — because that is the line the number would drift across next: the
+  count is of refusals that catch a Ruleset which would otherwise **load clean and misbehave in
+  silence**, and everything in it has that in common.
 - **`CONTEXT.md` → Ruleset** gains reload's transition semantics if the walk-through finds it silent
   on them.
 

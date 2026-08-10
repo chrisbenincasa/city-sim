@@ -26,7 +26,7 @@ public class LayerDiffusionTests
     /// <summary>Twenty, because <c>02 §2.4</c> makes the claim about twenty factories.</summary>
     private const int Sources = 20;
 
-    private static SeparableKernel Kernel => MapLayers.PollutionKernel;
+    private static SeparableKernel Kernel => LayerKernels.IndustrialPollution(LayerConstants.Default);
 
     [Fact]
     public void The_kernel_is_stated_in_metres_before_it_is_stated_in_Cells()
@@ -34,7 +34,7 @@ public class LayerDiffusionTests
         // 02 §2.5 question 2: what is its actionable range in metres, and can you defend the figure
         // from reality? The Cell count is the derived quantity, and it is derived by rounding up so
         // that a defended range is never silently shortened.
-        Assert.Equal(1_024, LayerKernels.IndustrialPollutionMetres);
+        Assert.Equal(1_024, LayerConstants.Default.IndustrialPollutionMetres);
         Assert.Equal(8, Kernel.Radius.Raw);
         Assert.Equal(1_024, CellGrid.ToMetres(Kernel.Radius));
     }

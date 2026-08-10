@@ -3,7 +3,6 @@ using Borough.Core.Entities;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
-using Borough.Core.Space;
 using Borough.Core.Tables;
 
 namespace Borough.Tests.Entities;
@@ -21,7 +20,7 @@ public sealed class UnplacedPoolTests
 {
     private static World Built(int households = 8)
     {
-        var world = new World(1_000, LayerRuleset.Default, Ruleset.Empty);
+        var world = new World(1_000, Ruleset.Empty);
 
         for (int i = 0; i < households; i++)
         {

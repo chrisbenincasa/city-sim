@@ -3,7 +3,6 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
-using Borough.Core.Space;
 using Borough.Core.Tables;
 
 namespace Borough.Headless;
@@ -49,7 +48,7 @@ internal static class Report
         }
 
         int population = options.Citizens;
-        var world = new World(population, LayerRuleset.Default, rules);
+        var world = new World(population, rules);
 
         SyntheticCity.PopulateInto(world, WorldKey.FromSeed(options.Seed), Ticks.Zero);
 

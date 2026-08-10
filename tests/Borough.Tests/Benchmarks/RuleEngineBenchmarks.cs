@@ -139,7 +139,7 @@ internal static class RuleEngineFixture
 
         // World sizing is per Citizen and the ratio is 150 Buildings per 1,000, so this asks for the
         // population that would carry the Building count rather than growing the tables mid-arrange.
-        var world = new World(Math.Max(1_000, buildings * 1_000 / 150), LayerRuleset.Default, ruleset);
+        var world = new World(Math.Max(1_000, buildings * 1_000 / 150), ruleset);
         var simulation = new Simulation(world, WorldKey.FromSeed(1));
 
         for (int i = 0; i < buildings; i++)

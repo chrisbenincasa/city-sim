@@ -59,8 +59,8 @@ internal static class LayerDump
         output.WriteLine($"# Cell = {CellGrid.TilesPerCell}x{CellGrid.TilesPerCell} Tiles "
             + $"(~{CellGrid.MetresPerCell} m). Window {Window.Width.Raw}x{Window.Height.Raw} Cells "
             + $"from ({Window.East.Raw}, {Window.North.Raw}).");
-        output.WriteLine($"# Kernel: separable tent, radius {MapLayers.PollutionKernel.Radius.Raw} "
-            + $"Cells = {CellGrid.ToMetres(MapLayers.PollutionKernel.Radius)} m. UNRATIFIED (adr/0044).");
+        output.WriteLine($"# Kernel: separable tent, radius {layers.PollutionKernel.Radius.Raw} "
+            + $"Cells = {CellGrid.ToMetres(layers.PollutionKernel.Radius)} m. UNRATIFIED (adr/0044).");
         output.WriteLine();
 
         output.WriteLine("## Before — two sources, full recompute");

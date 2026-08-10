@@ -31,6 +31,23 @@ public readonly record struct Ticks(ulong Raw) : IComparable<Ticks>
     public static Ticks Zero => new(0);
 
     /// <summary>
+    /// <c>TICKS_PER_DAY</c>. A world-creation constant baked into the save (<c>adr/0019</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Named here because a derivation cannot cite a number that has no name.</b> It appeared in
+    /// prose in three documents and as a bare <c>8192</c> in one populator, and slice 8 needed to
+    /// write <em>a plume fades over about a Day</em> as arithmetic rather than as a comment.
+    /// <para>
+    /// <b>It is a <c>const</c> and <c>adr/0015</c> says it should be Ruleset data</b> — <em>"these
+    /// live in the Ruleset like everything else and are read from it"</em> — and it is not, because no
+    /// Ruleset key states it. That is recorded rather than fixed here: naming it is what makes the gap
+    /// visible, and closing it means giving a designer a knob <c>adr/0019</c> spends a whole ADR
+    /// arguing they should not turn casually. See <c>plans/0012</c>.
+    /// </para>
+    /// </remarks>
+    public const int PerDay = 8192;
+
+    /// <summary>
     /// Subtracts, refusing rather than wrapping. <paramref name="earlier"/> must not be after this.
     /// </summary>
     /// <returns><see langword="true"/> if <paramref name="earlier"/> is at or before this Tick.</returns>

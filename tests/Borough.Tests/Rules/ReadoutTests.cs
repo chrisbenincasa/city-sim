@@ -78,7 +78,7 @@ public sealed class ReadoutTests
     [Fact]
     public void Occupancy_counts_the_households_in_the_building()
     {
-        var world = new World(1_000, LayerRuleset.Default, Empty());
+        var world = new World(1_000, Empty());
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
@@ -102,7 +102,7 @@ public sealed class ReadoutTests
     [Fact]
     public void An_undeclared_id_throws_rather_than_reading_zero()
     {
-        var world = new World(1_000, LayerRuleset.Default, Empty());
+        var world = new World(1_000, Empty());
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);

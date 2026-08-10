@@ -161,7 +161,7 @@ public class RuleLongRunTests
     {
         var key = WorldKey.FromSeed(GoldenFixtures.Seed);
 
-        world = new World(Population, LayerRuleset.Default, GoldenFixtures.Rules());
+        world = new World(Population, GoldenFixtures.Rules());
 
         Simulation simulation = new(world, key)
         {

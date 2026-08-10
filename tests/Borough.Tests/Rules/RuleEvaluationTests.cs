@@ -55,7 +55,7 @@ public sealed class RuleEvaluationTests
     private static (World World, Simulation Simulation, Handle<Building> Building) Built(
         Ruleset ruleset, ulong seed = 1)
     {
-        var world = new World(1_000, LayerRuleset.Default, ruleset);
+        var world = new World(1_000, ruleset);
         var simulation = new Simulation(world, WorldKey.FromSeed(seed));
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
@@ -555,7 +555,7 @@ public sealed class RuleEvaluationTests
     /// <summary>Runs one contested Tick at <paramref name="offset"/>, with six flour on the table.</summary>
     private static (World World, Simulation Simulation, Handle<Building> Building) Contest(int offset)
     {
-        var world = new World(1_000, LayerRuleset.Default, Contested());
+        var world = new World(1_000, Contested());
         var simulation = new Simulation(world, WorldKey.FromSeed(1));
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);

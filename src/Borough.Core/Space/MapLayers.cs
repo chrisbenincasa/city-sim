@@ -51,15 +51,16 @@ public sealed class MapLayers
 
     private readonly LayerCellTable _cells;
     private readonly CellResidency _residency = new();
-    private readonly LayerRuleset _ruleset;
 
+    private LayerRuleset _ruleset;
     private CellRect _pollutionDirty = CellRect.Empty;
 
-    /// <param name="ruleset">The cadence and the rates. Ruleset data; see <see cref="LayerRuleset"/>.</param>
+    /// <param name="ruleset">The cadence, the rates and the constants. See <see cref="LayerRuleset"/>.</param>
     public MapLayers(LayerRuleset ruleset)
     {
         _cells = new LayerCellTable(InitialCapacity);
         _ruleset = ruleset;
+        PollutionKernel = LayerKernels.IndustrialPollution(ruleset.Constants);
     }
 
     /// <summary>The Cell rows themselves.</summary>
@@ -74,8 +75,50 @@ public sealed class MapLayers
     /// <summary>The staggered cadence. Shorthand for <c>Ruleset.Schedule</c>.</summary>
     public LayerSchedule Schedule => _ruleset.Schedule;
 
-    /// <summary>The kernel industrial pollution is convolved with.</summary>
-    public static SeparableKernel PollutionKernel => LayerKernels.IndustrialPollution;
+    /// <summary>The kernel industrial pollution is convolved with. Built once, at world creation.</summary>
+    /// <remarks>
+    /// <b>An instance property since slice 8, and the change is the point rather than a
+    /// consequence.</b> It used to be static, built from a <c>const</c> nothing could change; the
+    /// radius is Ruleset data in <c>adr/0015</c>'s <em>world-creation</em> category, so it is read
+    /// from the file, frozen here for this world's life, and a reload that changes it is refused.
+    /// </remarks>
+    public SeparableKernel PollutionKernel { get; }
+
+    /// <summary>
+    /// Puts a reloaded Ruleset's Layer data in force. The tuning half only.
+    /// </summary>
+    /// <remarks>
+    /// <b>The world-creation half is not merely skipped, it is checked.</b> A caller that reached
+    /// here with a different kernel radius has already got past the loader's refusal and
+    /// <c>RulesetShape</c>, so this is the last place it could be caught — and the failure it prevents
+    /// is silent: every Cell not re-diffused would be read at the wrong scale, producing a plausible
+    /// field that is simply wrong. <c>adr/0015</c>'s revisit trigger names silently ignoring as the
+    /// failure mode, and a swap is exactly where that would happen.
+    /// <para>
+    /// <b>Cells, not metres, and the loader compares the same way.</b> The radius is authored in
+    /// metres and used in Cells; two authored figures that round to one Cell count produce one kernel,
+    /// so refusing between them would refuse a reload that reinterprets nothing. Comparing in the
+    /// units the state was recorded in <em>is</em> <c>adr/0015</c>'s membership test rather than an
+    /// approximation of it — and it is what lets <see cref="PollutionKernel"/> stay the one built at
+    /// world creation, because an accepted reload provably cannot change it.
+    /// </para>
+    /// </remarks>
+    internal void Adopt(LayerRuleset ruleset)
+    {
+        Cells radius = CellGrid.FromMetres(ruleset.Constants.IndustrialPollutionMetres);
+
+        if (radius != PollutionKernel.Radius)
+        {
+            throw new InvalidOperationException(
+                $"this world's pollution kernel reaches {PollutionKernel.Radius.Raw} Cells and the "
+                + $"reloaded Ruleset declares {ruleset.Constants.IndustrialPollutionMetres} m, which "
+                + $"is {radius.Raw}. Every Cell is stored in units of the kernel it was diffused "
+                + "through, so this is a world-creation constant (adr/0015) and changing it mid-run "
+                + "reinterprets the whole map.");
+        }
+
+        _ruleset = ruleset;
+    }
 
     /// <summary>Whether any source has changed since pollution was last recomputed.</summary>
     public bool PollutionIsDirty => !_pollutionDirty.IsEmpty;

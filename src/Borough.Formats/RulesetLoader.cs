@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -34,7 +35,7 @@ namespace Borough.Formats;
 /// </remarks>
 public static class RulesetLoader
 {
-    /// <summary>Loads the Ruleset at <paramref name="path"/>.</summary>
+    /// <summary>Loads the Ruleset at <paramref name="path"/>, for a world that does not exist yet.</summary>
     public static RulesetLoadResult Load(string path)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
@@ -48,13 +49,63 @@ public static class RulesetLoader
         ArgumentNullException.ThrowIfNull(text);
         ArgumentException.ThrowIfNullOrEmpty(fileName);
 
-        return new Reader(text, fileName).Read();
+        return new Reader(text, fileName, frozen: null).Read();
+    }
+
+    /// <inheritdoc cref="Reload(string, string, LayerConstants)"/>
+    public static RulesetLoadResult Load(string path, LayerConstants frozen)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+
+        return Reload(File.ReadAllText(path), path, frozen);
+    }
+
+    /// <summary>
+    /// Loads a Ruleset <b>for a world that already exists</b>, refusing any change to a
+    /// world-creation constant.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The second entry point, and the reason there has to be one</b> (<c>plans/0015</c>, item 4).
+    /// Every other refusal is a property of the file alone, which is what let <c>adr/0048</c> put them
+    /// all in one walk and be done. This one is a property of the file <em>against a particular
+    /// world</em>: <c>adr/0015</c>'s world-creation constants are read from the Ruleset but frozen when
+    /// the world is created, and whether a value changed is only knowable against the world it would
+    /// be applied to. <b>Refused rather than warned about and rather than silently ignored</b> —
+    /// silent ignoring is the failure mode <c>adr/0015</c>'s own revisit trigger names.
+    /// </para>
+    /// <para>
+    /// <b><see cref="LayerConstants"/> and nothing else, which is smaller than the category and that
+    /// is a finding rather than an omission.</b> <c>adr/0015</c> enumerates four members —
+    /// <c>TICKS_PER_DAY</c>, <c>WHEEL_SIZE</c>, the Cell, and the industrial pollution kernel radius —
+    /// and says they <em>"live in the Ruleset like everything else and are read from it"</em>. After
+    /// slice 8 task 3 that is true of exactly one of them; the other three are <c>const</c>s in the
+    /// binary that no Ruleset has ever been able to state. A file that cannot say a number cannot
+    /// change it, so a refusal over the other three would be a check with no writer on the other side.
+    /// Each joins this signature on the day it becomes authorable. Filed to <c>plans/0012</c>.
+    /// </para>
+    /// <para>
+    /// <b>The comparison is on the effective value, not the authored one.</b> The kernel is stated in
+    /// metres and used in Cells; 1,024 m and 1,100 m are both 8 Cells, and refusing the second would be
+    /// refusing a reload that changes nothing a Cell was ever recorded in — which is the membership
+    /// test itself, applied to the units the state is actually in.
+    /// </para>
+    /// </remarks>
+    /// <param name="text">The Ruleset text.</param>
+    /// <param name="fileName">Named in every refusal.</param>
+    /// <param name="frozen">The world's Layer constants, as fixed when it was created.</param>
+    public static RulesetLoadResult Reload(string text, string fileName, LayerConstants frozen)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentException.ThrowIfNullOrEmpty(fileName);
+
+        return new Reader(text, fileName, frozen).Read();
     }
 
     /// <summary>
     /// One load. Everything is accumulated and nothing is applied, so a refusal costs nothing.
     /// </summary>
-    private sealed class Reader(string text, string fileName)
+    private sealed class Reader(string text, string fileName, LayerConstants? frozen)
     {
         private readonly List<RulesetRefusal> _refusals = [];
 
@@ -70,6 +121,8 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _kindTables = [];
         private readonly List<TableSyntaxBase> _ruleTables = [];
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
+
+        private TableSyntaxBase? _layersTable;
 
         public RulesetLoadResult Read()
         {
@@ -102,6 +155,7 @@ public static class RulesetLoader
             KindDefinition[] kinds = ReadKinds(rules, out BinDeclaration[] bins,
                 out RuleId[] kindRules);
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
+            LayerRuleset layers = ReadLayers();
 
             if (_refusals.Count == 0)
             {
@@ -125,7 +179,10 @@ public static class RulesetLoader
                 ? RulesetLoadResult.Refused(_refusals)
                 : RulesetLoadResult.Accepted(new Ruleset(
                     [.. _families], rules, kinds, inputs, outputs, emissions, bins, kindRules,
-                    zoneRules));
+                    zoneRules)
+                {
+                    Layers = layers,
+                });
         }
 
         // ---- the walk -------------------------------------------------------------------------
@@ -174,10 +231,25 @@ public static class RulesetLoader
                         _zoneRuleTables.Add(table);
                         break;
 
+                    case "layers":
+                        // Singular and optional. A second one is TOML's own error for [layers] and
+                        // a legal array-of-table for [[layers]], so the ambiguity is caught here
+                        // rather than left to whichever of the two the reader happened to see last.
+                        if (_layersTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [layers] is declared. There is one set of Map Layers, so "
+                                + "two tables of numbers for them is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _layersTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
-                            + "[[resource]], [[building]], [[rule]] and [[zone_rule]].");
+                            + "[[resource]], [[building]], [[rule]], [[zone_rule]] and [layers].");
                         break;
                 }
             }
@@ -1214,6 +1286,158 @@ public static class RulesetLoader
 
             value = number.Value;
             return true;
+        }
+
+        // ---- layers ---------------------------------------------------------------------------
+
+        /// <summary>
+        /// Reads <c>[layers]</c>: the cadence, the rates, and the one world-creation constant.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Every key is optional and the defaults are <see cref="LayerRuleset.Default"/>'s</b>, so a
+        /// Ruleset written before this section existed is still a complete Ruleset. The alternative —
+        /// requiring the table — would refuse every file in the repository to gain nothing, since the
+        /// numbers it holds have documented values that <c>02 §2.4</c> states.
+        /// </para>
+        /// <para>
+        /// <b>The decay is authored as a duration and the tau is derived</b> (<c>plans/0015</c>
+        /// decision owed 2). <see cref="LayerRates.PollutionTau"/> counts <em>scheduled updates</em>,
+        /// so a file stating it as a literal would silently change meaning when the cadence it is
+        /// counted in was reloaded. The file states Ticks; <see cref="LayerRates.From"/> divides.
+        /// </para>
+        /// </remarks>
+        private LayerRuleset ReadLayers()
+        {
+            LayerSchedule schedule = LayerSchedule.Default;
+            LayerRates rates = LayerRates.Default;
+            LayerConstants constants = LayerConstants.Default;
+
+            int pollutionPeriod = Cadence("pollution", schedule.IndustrialPollution,
+                out int pollutionOffset);
+            int landValuePeriod = Cadence("land_value", schedule.LandValue, out int landValueOffset);
+
+            int metres = Number("kernel_metres", constants.IndustrialPollutionMetres, minimum: 1,
+                "A kernel with no reach is not a diffused field.");
+            int decayTicks = Number("pollution_decay_ticks", LayerRates.DefaultPollutionDecayTicks,
+                minimum: 0, "It is a duration in Ticks, and 0 means the plume never fades.");
+            int landValueTau = Number("land_value_tau", rates.LandValueTau, minimum: 1,
+                "A time constant divides, so 0 is not one; land value with no momentum is a period "
+                + "of 1 rather than a tau of 0.");
+            int sealingTau = Number("sealing_decay_tau", rates.SealingDecayTau, minimum: 0,
+                "It counts scheduled updates, and 0 means Sealing never decays — Phase 1's value, "
+                + "because there is no terrain to key a rate off yet.");
+
+            // The one refusal that is a property of the two numbers together rather than of either.
+            // A decay shorter than the period it runs at rounds to zero updates, and zero means
+            // *never* -- so the file would read as "fades fast" and behave as "never fades".
+            if (decayTicks > 0 && IntegerMath.RoundDiv(decayTicks, pollutionPeriod) == 0)
+            {
+                Refuse(LineOf("pollution_decay_ticks"), null,
+                    $"pollution_decay_ticks = {decayTicks} rounds to zero scheduled updates at a "
+                    + $"pollution_period of {pollutionPeriod}, and zero means never — the opposite of "
+                    + "what a short decay asks for. Shorten the period or lengthen the decay.");
+            }
+
+            LayerConstants stated = new(metres);
+            RefuseFrozenChange(stated);
+
+            return new LayerRuleset(
+                new LayerSchedule(
+                    new LayerCadence(pollutionPeriod, pollutionOffset),
+                    new LayerCadence(landValuePeriod, landValueOffset)),
+                LayerRates.From(landValueTau, sealingTau, decayTicks, pollutionPeriod),
+                stated);
+        }
+
+        /// <summary>One Layer's period and offset, with the offset checked against the period.</summary>
+        /// <remarks>
+        /// <b>An offset at or beyond its period never fires</b> — <c>tick % period == offset</c> has no
+        /// solution — so the Layer freezes and the Ruleset loads clean. That is the same symptom slice
+        /// 10's three <c>[[zone_rule]]</c> refusals share, and it is refused here for the same reason.
+        /// </remarks>
+        private int Cadence(string layer, LayerCadence fallback, out int offset)
+        {
+            int period = Number($"{layer}_period", fallback.Period, minimum: 1,
+                "A period is Ticks between recomputations; a Layer that is never recomputed is not "
+                + "expressible as a period, and 0 would freeze the field with nothing to say so.");
+
+            offset = Number($"{layer}_offset", fallback.Offset, minimum: 0,
+                "An offset is which Tick of the cycle the Layer fires on.");
+
+            if (offset >= period)
+            {
+                Refuse(LineOf($"{layer}_offset"), null,
+                    $"{layer}_offset = {offset} is not inside a {layer}_period of {period}, so this "
+                    + "Layer would never be recomputed. The offset is a position in the cycle, and "
+                    + "the cycle is 0 to period - 1.");
+
+                offset = fallback.Offset < period ? fallback.Offset : 0;
+            }
+
+            return period;
+        }
+
+        /// <summary>An optional <c>[layers]</c> integer, refused when it is outside its range.</summary>
+        private int Number(string key, int fallback, int minimum, string range)
+        {
+            if (_layersTable is null
+                || !TryInteger(_layersTable, key, out long value, required: false))
+            {
+                return fallback;
+            }
+
+            if (value < minimum || value > int.MaxValue)
+            {
+                Refuse(LineOf(key), null, $"{key} = {value} is out of range. {range}");
+                return fallback;
+            }
+
+            return (int)value;
+        }
+
+        /// <summary>
+        /// <c>adr/0015</c>'s world-creation refusal, and it runs only on the reload entry point.
+        /// </summary>
+        /// <remarks>
+        /// <b>Compared in Cells rather than in metres</b>, because Cells are the units the stored field
+        /// is in and the membership test is stated in exactly those terms: <em>was existing simulation
+        /// state recorded in units of the constant?</em> 1,024 m and 1,100 m are both 8 Cells, so
+        /// refusing the second would refuse a reload that reinterprets nothing.
+        /// </remarks>
+        private void RefuseFrozenChange(LayerConstants stated)
+        {
+            if (frozen is not { } fixedConstants)
+            {
+                return;
+            }
+
+            Cells was = CellGrid.FromMetres(fixedConstants.IndustrialPollutionMetres);
+            Cells now = CellGrid.FromMetres(stated.IndustrialPollutionMetres);
+
+            if (was == now)
+            {
+                return;
+            }
+
+            Refuse(LineOf("kernel_metres"), null,
+                $"kernel_metres = {stated.IndustrialPollutionMetres} is {now.Raw} Cells, and this "
+                + $"world was created with {fixedConstants.IndustrialPollutionMetres} m — "
+                + $"{was.Raw} Cells. adr/0015: the kernel radius is a world-creation constant, "
+                + "because every Cell's stored pollution is a convolution through it, so changing it "
+                + "would reinterpret the whole map rather than retune it. Refused rather than "
+                + "applied; the Ruleset already in force stays live.");
+        }
+
+        /// <summary>The line a <c>[layers]</c> key is on, or the table's, or the file's first.</summary>
+        private int LineOf(string key)
+        {
+            if (_layersTable is null)
+            {
+                return 1;
+            }
+
+            return Find(_layersTable, key) is { } entry ? LineOf(entry) : LineOf(_layersTable);
         }
 
         // ---- syntax helpers -------------------------------------------------------------------

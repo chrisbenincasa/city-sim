@@ -209,7 +209,10 @@ public static class WorldInvariants
     internal static void LayerMagnitudesAreBounded(World world, InvariantRegistry report)
     {
         LayerCellTable cells = world.Layers.Cells;
-        int ceiling = MapLayers.PollutionKernel.SourceCeiling;
+        // This world's kernel rather than a static one: since slice 8 the radius is Ruleset data in
+        // adr/0015's world-creation category, so the ceiling it implies is a property of the world
+        // being checked and not of the build checking it.
+        int ceiling = world.Layers.PollutionKernel.SourceCeiling;
 
         for (int slot = 0; slot < cells.Rows.SlotCount; slot++)
         {

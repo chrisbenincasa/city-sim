@@ -42,7 +42,7 @@ public sealed class ZoneRuleTriggerTests
     /// <summary>A world with <paramref name="lots"/> vacant Lots and no Buildings at all.</summary>
     private static (World World, Simulation Simulation) Built(Ruleset ruleset, int lots = 200)
     {
-        var world = new World(1_000, LayerRuleset.Default, ruleset);
+        var world = new World(1_000, ruleset);
         var simulation = new Simulation(world, WorldKey.FromSeed(0xB0A0_0F05_0F05_0F05UL));
 
         for (int i = 0; i < lots; i++)

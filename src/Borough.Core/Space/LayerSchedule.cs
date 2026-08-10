@@ -188,11 +188,117 @@ public readonly record struct LayerRates(int LandValueTau, int SealingDecayTau, 
     /// its ratifier.
     /// </para>
     /// </remarks>
-    public static LayerRates Default => new(LandValueTau: 8, SealingDecayTau: 0, PollutionTau: 128);
+    public static LayerRates Default => From(
+        landValueTau: 8,
+        sealingDecayTau: 0,
+        pollutionDecayTicks: DefaultPollutionDecayTicks,
+        pollutionPeriod: LayerSchedule.Default.IndustrialPollution.Period);
+
+    /// <summary>
+    /// One Day, which is what a shut-down factory's plume is meant to fade over.
+    /// </summary>
+    /// <remarks>
+    /// <b>The duration is the stated number and the tau is derived from it</b>, which is the whole of
+    /// <c>plans/0015</c>'s decision owed 2. Stating <c>128</c> instead would silently start meaning
+    /// <em>two Days</em> the moment a designer changed the pollution period from 64 to 128, and slice 8
+    /// is the slice that makes that a thing a designer can do while the city runs.
+    /// </remarks>
+    public const int DefaultPollutionDecayTicks = Ticks.PerDay;
+
+    /// <summary>
+    /// The rates a Ruleset declares, with pollution's decay authored as a <b>duration</b> and
+    /// converted here.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is decision owed 2 of <c>plans/0015</c>, and the conversion is the whole of it.</b>
+    /// <see cref="PollutionTau"/> is a count of <em>scheduled updates</em>, so its value depends on
+    /// the cadence — and slice 8 makes the cadence hot-reloadable. A file listing <c>128</c> as a
+    /// literal would silently start meaning <em>two Days</em> the moment a designer changed the period
+    /// from 64 to 128, with nothing to indicate it. So the file states the duration it actually means
+    /// and the cadence it will be run at, and the tau is derived from both.
+    /// </para>
+    /// <para>
+    /// <b>Ticks rather than Days, which is the one place this departs from the plan's
+    /// recommendation.</b> Days is closer to the designer sentence — <em>a shut-down factory's plume
+    /// fades over about a Day</em> — but it is a unit nothing else in a Ruleset uses, and any value
+    /// under a Day would need the quoted-decimal machinery to express. Ticks is what every rate and
+    /// interval in the file is already written in, and <c>8192</c> carries the comment <c>one Day</c>
+    /// perfectly well.
+    /// </para>
+    /// <para>
+    /// <b>Rounded rather than refused when the division is inexact.</b> A decay of 8,192 Ticks at a
+    /// period of 100 is 81.92 updates, and a designer who writes that has said something meaningful;
+    /// refusing it would make the two numbers secretly coupled. <see cref="IntegerMath.RoundDiv"/>
+    /// states the rounding, which is the project's standing answer to this shape.
+    /// </para>
+    /// </remarks>
+    /// <param name="landValueTau">Land value's time constant, in scheduled updates.</param>
+    /// <param name="sealingDecayTau">Sealing's, in scheduled updates. Zero means never.</param>
+    /// <param name="pollutionDecayTicks">
+    /// How long a Cell's pollution source takes to be absorbed, <b>in Ticks</b>. Zero means never.
+    /// </param>
+    /// <param name="pollutionPeriod">The pollution cadence the decay will run at.</param>
+    public static LayerRates From(
+        int landValueTau, int sealingDecayTau, int pollutionDecayTicks, int pollutionPeriod) =>
+        new(
+            landValueTau,
+            sealingDecayTau,
+            pollutionDecayTicks <= 0 || pollutionPeriod <= 0
+                ? 0
+                : IntegerMath.RoundDiv(pollutionDecayTicks, pollutionPeriod));
 }
 
 /// <summary>
-/// Everything about the Map Layers that comes from the Ruleset: the cadence and the rates.
+/// The Map Layer numbers that are <b>world-creation</b> rather than tuning: fixed when a world is
+/// created, baked into the save, and a reload that changes one is refused.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A separate type so that the two categories are visible in the code and not only in a
+/// document.</b> <c>adr/0015</c> splits Ruleset data into hot-reloadable tuning and world-creation
+/// constants, and <see cref="LayerRuleset"/> carries both — the cadence is tuning, the kernel is not.
+/// <c>adr/0044</c>'s withdrawn second half is the standing warning about what happens when that line
+/// is drawn by argument instead of by test: it filed the cadence as world-creation-fixed while citing
+/// <c>adr/0015</c> without running the membership test <c>adr/0015</c> states. A type boundary is
+/// cheaper to keep straight than a paragraph.
+/// </para>
+/// <para>
+/// <b>The membership test, run per number.</b> <em>Was existing simulation state recorded in units of
+/// this constant?</em> A diffused Cell holds a convolution of its sources <em>through this kernel</em>,
+/// so every stored pollution value is in units of it — changing the radius mid-run reinterprets every
+/// Cell on the map. The cadence fails the same test, because the dirty set holds Cells rather than
+/// Ticks and the next pass produces the field it would have produced anyway.
+/// </para>
+/// </remarks>
+/// <param name="IndustrialPollutionMetres">The industrial pollution kernel's reach, in metres.</param>
+public readonly record struct LayerConstants(int IndustrialPollutionMetres)
+{
+    /// <summary>
+    /// <b>1,024 m, which is 8 Cells, and it is the bottom of a band rather than a derived figure.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>02 §2.4</c> grounds the range in reality as <em>real plumes run 1–10 km</em> and states no
+    /// kernel. This takes the low end, because it is the end a Cell grid can represent: at 10 km the
+    /// radius is 79 Cells and the kernel touches 159 Cells per axis, which is most of a 128-Cell map.
+    /// </para>
+    /// <para>
+    /// <b>The band fails the corpus's own guard rule and that is worth recording rather than
+    /// resolving.</b> <c>02 §2.5</c> guard rule 1 is <em>two ranges more than ~5× apart means two
+    /// fields wearing one name</em> — and 1–10 km is 10× apart. Either industrial pollution is two
+    /// fields (a near plume and a regional haze), or the band describes the spread <em>across</em>
+    /// industries rather than the reach of one. Nothing here can tell those apart, and neither can an
+    /// argument; it wants a source. <b>UNRATIFIED</b>, and moving it out of a <c>const</c> and into a
+    /// file did not ratify it — the <c>plans/0002</c> §D row stays open.
+    /// </para>
+    /// </remarks>
+    public static LayerConstants Default => new(IndustrialPollutionMetres: 1_024);
+}
+
+/// <summary>
+/// Everything about the Map Layers that comes from the Ruleset: the cadence, the rates, and the
+/// world-creation constants.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -202,10 +308,19 @@ public readonly record struct LayerRates(int LandValueTau, int SealingDecayTau, 
 /// them would eventually be forgotten.
 /// </para>
 /// <para>
-/// <b>It is a constructor argument of <c>World</c> rather than a constant, and that is what the
-/// measurement needed.</b> Slice 8 will read it from the Ruleset; until then a caller supplies it, and
-/// the ability to supply two of them is what let <c>adr/0044</c> compare two cadences' hash traces
-/// instead of arguing about them.
+/// <b>Two categories in one type, and the split is <see cref="Constants"/>.</b>
+/// <see cref="Schedule"/> and <see cref="Rates"/> are hot-reloadable tuning; <see cref="Constants"/>
+/// is fixed when a world is created and a reload that changes it is <em>refused</em>. Both live here
+/// because they are one file's worth of Layer data and a designer edits them in one sitting — and
+/// keeping them apart in the type is what lets the reload path apply one while refusing the other
+/// without either being a special case somebody has to remember.
+/// </para>
+/// <para>
+/// <b>It is a constructor argument of <c>World</c> as well as a member of <c>Ruleset</c>, and that is
+/// not redundancy.</b> Slice 8 made a Ruleset carry it, which is what lets a reload change a cadence
+/// at all. The explicit argument stays because it is what let <c>adr/0044</c> build two worlds
+/// differing <em>only</em> in cadence and compare their hash traces — a measurement no Ruleset-shaped
+/// door makes convenient, and the one that settled whether the cadence was hash-bearing.
 /// </para>
 /// </remarks>
 public readonly struct LayerRuleset
@@ -213,18 +328,31 @@ public readonly struct LayerRuleset
     /// <param name="schedule">When each Layer is recomputed.</param>
     /// <param name="rates">How fast each Layer moves when it is.</param>
     public LayerRuleset(LayerSchedule schedule, LayerRates rates)
+        : this(schedule, rates, LayerConstants.Default)
+    {
+    }
+
+    /// <inheritdoc cref="LayerRuleset(LayerSchedule, LayerRates)"/>
+    /// <param name="schedule">When each Layer is recomputed.</param>
+    /// <param name="rates">How fast each Layer moves when it is.</param>
+    /// <param name="constants">The world-creation numbers, frozen for this world's life.</param>
+    public LayerRuleset(LayerSchedule schedule, LayerRates rates, LayerConstants constants)
     {
         Schedule = schedule;
         Rates = rates;
+        Constants = constants;
     }
 
     /// <summary>The stated defaults of <c>02 §2.4</c>.</summary>
     public static LayerRuleset Default { get; } =
-        new(LayerSchedule.Default, LayerRates.Default);
+        new(LayerSchedule.Default, LayerRates.Default, LayerConstants.Default);
 
-    /// <summary>When each Layer is recomputed.</summary>
+    /// <summary>When each Layer is recomputed. <b>Tuning</b> — hot-reloadable.</summary>
     public LayerSchedule Schedule { get; }
 
-    /// <summary>How fast each Layer moves when it is.</summary>
+    /// <summary>How fast each Layer moves when it is. <b>Tuning</b> — hot-reloadable.</summary>
     public LayerRates Rates { get; }
+
+    /// <summary><b>World-creation.</b> Frozen at world creation; a reload that changes it is refused.</summary>
+    public LayerConstants Constants { get; }
 }

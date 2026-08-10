@@ -333,13 +333,13 @@ dotnet run --project src/Borough.Headless -- --zones --ruleset rulesets/minimal.
 
 | Constant | Value | Kind |
 |---|---|---|
-| `TICKS_PER_DAY` | 8192 | world-creation, baked into the save, not hot-reloadable |
+| `TICKS_PER_DAY` | 8192 | world-creation, baked into the save, not hot-reloadable. `Ticks.PerDay` — a `const`, where `adr/0015` says it should be Ruleset data; see `plans/0012` |
 | `WHEEL_SIZE` | 8192 Ticks | world-creation. Set by the longest routine sleep |
 | Reference tick rate | 16 Ticks/s → a Day is 8m32s | host-side, runtime only |
 | Cell | 32×32 Tiles (≈128 m) | **design constant, never tuned** — it changes the State Hash |
 | Chunk | a multiple of the Cell, ≥32×32 | tuning, hash-preserving, unvalidated. **Provisionally 1:1 with the Cell** |
 | Map Layer cadence | pollution every 64 Ticks at offset 0; land value every 256 at offset 16 | tuning, hot-reloadable, **hash-bearing** — the designer's number and not the profiler's, measured in `adr/0044` |
-| Industrial pollution kernel | separable tent, 1,024 m (8 Cells) | world-creation. **UNRATIFIED** — the 1–10 km band is 10× wide and wants a source |
+| Industrial pollution kernel | separable tent, 1,024 m (8 Cells) | world-creation, **Ruleset data** — `[layers] kernel_metres`, frozen at world creation and refused on reload (slice 8 task 3). **UNRATIFIED** — the 1–10 km band is 10× wide and wants a source, and moving a number into a file does not ratify it |
 | Map | 4096² Tiles, 2048² documented fallback | open |
 | Target population | 10,000 first hour / 1,000,000 late game | sizing |
 | Tick budget | 15.6 ms at 4× speed | |

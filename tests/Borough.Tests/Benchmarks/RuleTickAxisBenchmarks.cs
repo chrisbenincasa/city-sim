@@ -118,7 +118,7 @@ public class RuleTickAxisBenchmarks
         // Sized per Citizen at 150 Buildings per 1,000, so the tables are not grown mid-arrange.
         int population = Math.Max(citizens, Math.Max(1_000, buildings * 1_000 / 150));
 
-        var world = new World(population, LayerRuleset.Default, ruleset);
+        var world = new World(population, ruleset);
         var simulation = new Simulation(world, WorldKey.FromSeed(1))
         {
             // O(world) twice per Tick, and 490% of a Tick at 1M on its own. Leaving it on would

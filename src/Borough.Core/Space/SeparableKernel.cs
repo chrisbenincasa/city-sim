@@ -156,27 +156,17 @@ public sealed class SeparableKernel
 public static class LayerKernels
 {
     /// <summary>
-    /// Industrial pollution's reach, in metres. <b>UNRATIFIED — owed by this slice.</b>
+    /// Industrial pollution's kernel: a tent reaching the Ruleset's declared radius.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>1,024 m, which is 8 Cells, and it is the bottom of a band rather than a derived figure.</b>
-    /// <c>02 §2.4</c> grounds the range in reality as <em>real plumes run 1–10 km</em> and states no
-    /// kernel. This takes the low end, because it is the end a Cell grid can represent: at 10 km the
-    /// radius is 79 Cells and the kernel touches 159 Cells per axis, which is most of a 128-Cell map.
-    /// </para>
-    /// <para>
-    /// <b>The band fails the corpus's own guard rule and that is worth recording rather than
-    /// resolving.</b> <c>02 §2.5</c> guard rule 1 is <em>two ranges more than ~5× apart means two
-    /// fields wearing one name</em> — and 1–10 km is 10× apart. Either industrial pollution is two
-    /// fields (a near plume and a regional haze), or the band describes the spread <em>across</em>
-    /// industries rather than the reach of one. Nothing here can tell those apart, and neither can an
-    /// argument; it wants a source. Filed, not fixed.
-    /// </para>
+    /// <b>The metres used to be a <c>const</c> here, and that was a defect rather than a
+    /// shortcut.</b> <c>adr/0015</c>'s world-creation category freezes a number <em>per world</em>;
+    /// it does not move it into the binary — its own words are that these constants <em>"live in the
+    /// Ruleset like everything else and are read from it"</em>. The value now lives in
+    /// <see cref="LayerConstants"/>, is declared in the Ruleset file, and is built into a kernel once
+    /// per world. Slice 8 task 3 found it, and it mattered rather than being tidy: the world-creation
+    /// refusal has nothing to refuse while a designer has no file in which to change the number.
     /// </remarks>
-    public const int IndustrialPollutionMetres = 1_024;
-
-    /// <summary>Industrial pollution's kernel: a tent reaching <see cref="IndustrialPollutionMetres"/>.</summary>
-    public static SeparableKernel IndustrialPollution { get; } =
-        SeparableKernel.Tent(CellGrid.FromMetres(IndustrialPollutionMetres));
+    public static SeparableKernel IndustrialPollution(LayerConstants constants) =>
+        SeparableKernel.Tent(CellGrid.FromMetres(constants.IndustrialPollutionMetres));
 }

@@ -431,6 +431,46 @@ public sealed class Ruleset
     /// <summary>The Ruleset a world has before one is loaded. Declares nothing and runs nothing.</summary>
     public static Ruleset Empty { get; } = new([], [], [], [], [], [], [], [], []);
 
+    /// <summary>
+    /// Everything the Map Layers take from the Ruleset: the cadence, the rates, and the kernel.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An init property rather than a positional parameter, following
+    /// <see cref="KindDefinition.CondemnAfter"/>'s precedent</b>, and for the same reason:
+    /// <see cref="LayerRuleset.Default"/> is what every Ruleset written before slice 8 ran on, so the
+    /// default is the existing behaviour rather than a placeholder. A file with no <c>[layers]</c>
+    /// table is a complete Ruleset.
+    /// </para>
+    /// <para>
+    /// <b>It is what makes the cadence hot-reloadable at all.</b> Before this the schedule reached
+    /// <c>World</c> only as a constructor argument and could therefore only be set once.
+    /// <c>adr/0044</c> measured the cadence hash-bearing <em>and</em> ordinary tuning, and tuning that
+    /// cannot be changed without recreating the world fails <c>adr/0015</c>'s acceptance test.
+    /// </para>
+    /// <para>
+    /// <b>It carries a world-creation number as well</b> — <see cref="LayerConstants"/> — which is
+    /// deliberate. The two categories travel in one file because a designer edits them in one sitting;
+    /// keeping them in separate <em>types</em> is what lets the reload path apply one and refuse the
+    /// other without either being a special case somebody has to remember.
+    /// </para>
+    /// </remarks>
+    public LayerRuleset Layers { get; init; } = LayerRuleset.Default;
+
+    /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
+    /// <remarks>
+    /// <b>What <c>with</c> would give a record, spelled by hand because this is a class.</b> It exists
+    /// for the two callers that legitimately hold Rules and Layer data separately: a world constructed
+    /// from a stated cadence and no Rules — <c>adr/0044</c>'s measurement door — and a test that
+    /// reloads a Ruleset differing only in cadence. The arrays are shared rather than copied because a
+    /// loaded Ruleset is immutable.
+    /// </remarks>
+    public Ruleset WithLayers(LayerRuleset layers) =>
+        new(_resources, _rules, _kinds, _inputs, _outputs, _emissions, _bins, _kindRules, _zoneRules)
+        {
+            Layers = layers,
+        };
+
     /// <summary>How many Resources are declared. Ids run <c>1..ResourceCount</c>.</summary>
     public int ResourceCount => _resources.Length;
 

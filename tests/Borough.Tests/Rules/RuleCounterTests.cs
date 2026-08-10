@@ -97,7 +97,7 @@ public sealed class RuleCounterTests
 
     private static (World World, Simulation Simulation) Built(Ruleset ruleset)
     {
-        var world = new World(1_000, LayerRuleset.Default, ruleset);
+        var world = new World(1_000, ruleset);
         var simulation = new Simulation(world, WorldKey.FromSeed(1));
 
         return (world, simulation);

@@ -94,7 +94,7 @@ public sealed class RulesetReloadTests
     private static (World World, Simulation Simulation) Built(
         Ruleset opening, RulesetCatalogue catalogue, int houses = 4)
     {
-        var world = new World(1_000, LayerRuleset.Default, opening);
+        var world = new World(1_000, opening);
         var simulation = new Simulation(world, WorldKey.FromSeed(0x8000_0001UL), catalogue);
 
         for (int i = 0; i < houses; i++)
@@ -320,7 +320,7 @@ public sealed class RulesetReloadTests
         Ruleset opening = Producing(rate: 8);
         Ruleset other = Producing(rate: 2);
 
-        var world = new World(1_000, LayerRuleset.Default, opening);
+        var world = new World(1_000, opening);
 
         Assert.Throws<ArgumentException>(() => new Simulation(
             world,

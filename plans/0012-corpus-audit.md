@@ -298,7 +298,7 @@ Graph rather than by construction.
 which went looking for what a hot reload would have to refuse and found there was nothing there to
 refuse.
 
-- [ ] **`src/Borough.Core/Space/SeparableKernel.cs:177` — the industrial pollution kernel radius is
+- [x] **`src/Borough.Core/Space/SeparableKernel.cs:177` — the industrial pollution kernel radius is
       `public const int IndustrialPollutionMetres = 1_024;`**, with the kernel built from it at `:180`.
       It is not in `LayerRuleset`, it is in no file, and no loader has ever seen it. **`adr/0015`'s
       world-creation category freezes a number *per world*; it does not move it into the binary** — its
@@ -308,7 +308,30 @@ refuse.
       shortcut.** Discharged by `0015` task 3, which needs it discharged *first*: a reload cannot refuse
       a change to a number a designer has no way to change, so the refusal is untestable theatre until
       the value is in a file. Moving it does **not** ratify it — the 1–10 km band is still 10× wide and
-      the `0002` §D row stays open
+      the `0002` §D row stays open. **Discharged by slice 8 task 3**: it is `[layers] kernel_metres`,
+      it lives in `LayerConstants`, the loader reads it, `MapLayers` freezes it at world creation, and
+      both the loader and the core refuse a reload that moves it. The `0002` §D row did stay open
+
+**The paragraph below asked a question and task 3 answered it, so the answer replaces the guess.**
+*"Two of the three other enumerated members have never been checked against the same test either"* —
+they have now, and **all three fail it**. `TICKS_PER_DAY` had no symbol at all until task 3 named it
+`Ticks.PerDay` (it existed as prose in three documents and as a bare `8192` in one populator);
+`WHEEL_SIZE` is `EventWheel.Size`; the **Cell** is `CellGrid.TilesPerCell`. So `adr/0015`'s sentence
+that its world-creation members *"live in the Ruleset like everything else and are read from it"* is
+false of **three of its four members**, and was false of all four until task 3.
+
+- [ ] **`adr/0015`'s world-creation enumeration is one-quarter implemented, and the remaining three are
+      not the same defect as the kernel radius was.** The radius was *tuning frozen per world* that had
+      simply never been offered. These three are numbers the corpus argues a designer should **not** be
+      handed: `adr/0019` is an entire ADR on `TICKS_PER_DAY` not being a pacing knob, `CLAUDE.md` calls
+      the Cell a *design constant, never tuned*, and `WHEEL_SIZE` is set by the longest routine sleep
+      rather than by taste. **So the correction owed is to the ADR's sentence, not to the code**: either
+      the category admits a member that is Ruleset data *in principle and not in the file*, or those
+      three belong to the revisit trigger's *"a parameter that genuinely cannot be data"* exception,
+      which the ADR already provides and which requires a written exception each. Nothing is unguarded
+      in the meantime — a file that cannot state a number cannot change it — so this is a sentence to
+      fix rather than a hole to plug. **Arguable** under `adr/0043`: no measurement separates the two
+      readings
 
 **Why this ledger did not already hold it is the more useful half.** The entry above —
 *`adr/0015`'s world-creation constants were missing the kernel radius* — is marked paid, and it is:
@@ -321,8 +344,8 @@ against the state of the code*, and every one of the forty-odd items above corre
 The sweep had no verb for the other direction. Where a design document is **right** and the build is
 wrong, this ledger is structurally blind — and `adr/0015` is precisely the ADR most exposed to that,
 because what it asserts is a property of **where a number lives**, which is checkable in source and
-invisible in prose. Two of the three other enumerated members (`TICKS_PER_DAY`, `WHEEL_SIZE`, the Cell)
-have never been checked against the same test either.
+invisible in prose. The other three enumerated members were never checked against the same test either
+— **and when task 3 checked them, all three failed**, which is the box above.
 
 *This is a code defect rather than a document correction, so it sits outside this ledger's closing
 condition.* It is filed here because the same method found it and because it belongs beside its

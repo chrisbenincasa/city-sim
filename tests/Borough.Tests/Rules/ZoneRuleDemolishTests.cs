@@ -107,7 +107,7 @@ public sealed class ZoneRuleDemolishTests
     /// <summary>A world of <paramref name="houses"/> Buildings, each with one Household in it.</summary>
     private static (World World, Simulation Simulation) Built(Ruleset ruleset, int houses = 4)
     {
-        var world = new World(1_000, LayerRuleset.Default, ruleset);
+        var world = new World(1_000, ruleset);
         var simulation = new Simulation(world, WorldKey.FromSeed(0xB0A0_0C6E_A7E0_0007UL));
 
         for (int i = 0; i < houses; i++)

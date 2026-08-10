@@ -58,7 +58,7 @@ public sealed class ZoneRuleCreateTests
     private static (World World, Simulation Simulation) Built(
         Ruleset ruleset, int vacant = 32, int seeking = 4, ushort zone = Housing)
     {
-        var world = new World(1_000, LayerRuleset.Default, ruleset);
+        var world = new World(1_000, ruleset);
         var simulation = new Simulation(world, WorldKey.FromSeed(0xB0A0_0C6E_A7E0_0001UL));
 
         for (int i = 0; i < seeking; i++)

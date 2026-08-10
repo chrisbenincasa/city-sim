@@ -71,7 +71,7 @@ public sealed class ChainTests
     private static (World World, Simulation Simulation, Handle<Building> Building) Built(
         Ruleset ruleset, ulong seed = 1)
     {
-        var world = new World(1_000, LayerRuleset.Default, ruleset);
+        var world = new World(1_000, ruleset);
         var simulation = new Simulation(world, WorldKey.FromSeed(seed));
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);

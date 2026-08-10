@@ -57,7 +57,7 @@ internal static class ZoneDump
         }
 
         var key = WorldKey.FromSeed(options.Seed);
-        World world = new(options.Citizens, LayerRuleset.Default, rules);
+        World world = new(options.Citizens, rules);
         Simulation simulation = new(world, key) { VerifyDecideWritesNothing = false };
 
         SyntheticCity.PopulateInto(world, key, new Ticks(0));

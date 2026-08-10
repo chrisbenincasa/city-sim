@@ -160,7 +160,7 @@ internal static class ZoneRuleFixture
         // Sizing is per Citizen at 225 Lots per 1,000, so ask for the population that carries the Lot
         // count rather than growing the table in the middle of the arrange.
         int citizens = lots * 1_000 / 225;
-        var world = new World(citizens < 1_000 ? 1_000 : citizens, LayerRuleset.Default, Inert());
+        var world = new World(citizens < 1_000 ? 1_000 : citizens, Inert());
         var simulation = new Simulation(world, WorldKey.FromSeed(0x2011_0900_0000_0001UL));
 
         for (int i = 0; i < lots; i++)

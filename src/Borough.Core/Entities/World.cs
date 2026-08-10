@@ -55,7 +55,7 @@ public sealed class World
     /// 360 Households, ~150 Buildings, ~225 Lots. 1M is a floor rather than a cap.
     /// </remarks>
     public World(int citizens)
-        : this(citizens, LayerRuleset.Default)
+        : this(citizens, Ruleset.Empty)
     {
     }
 
@@ -81,19 +81,25 @@ public sealed class World
     /// is the designer's number and not the profiler's (<c>adr/0044</c>).
     /// </remarks>
     public World(int citizens, LayerRuleset layers)
-        : this(citizens, layers, Ruleset.Empty)
+        : this(citizens, Ruleset.Empty.WithLayers(layers))
     {
     }
 
     /// <inheritdoc cref="World(int, LayerRuleset)"/>
     /// <param name="citizens">Initial Citizen capacity. Every other entity table is sized from it.</param>
-    /// <param name="layers">The Map Layer cadence and rates.</param>
     /// <param name="rules">
-    /// The Bin Rules, already validated (<c>adr/0048</c>). <b>Not simulation state and not folded into
+    /// The Rules, already validated (<c>adr/0048</c>). <b>Not simulation state and not folded into
     /// the State Hash</b> — what names a Ruleset in the hash is its content hash, carried in the Input
     /// Log, because two runs against different Rules are two different simulations.
     /// </param>
-    public World(int citizens, LayerRuleset layers, Ruleset rules)
+    /// <remarks>
+    /// <b>The Layer data comes from the Ruleset and from nowhere else</b> (slice 8 task 3). It used to
+    /// arrive as its own argument beside the Rules, which admitted a world whose cadence disagreed with
+    /// the Ruleset in force — and the first reload would then silently revert it to whatever the file
+    /// said. One source is what closes that; <see cref="Ruleset.WithLayers"/> is how a caller holding
+    /// only a cadence still gets a world.
+    /// </remarks>
+    public World(int citizens, Ruleset rules)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(citizens);
         ArgumentNullException.ThrowIfNull(rules);
@@ -104,7 +110,7 @@ public sealed class World
         Buildings = new BuildingTable(PerThousand(citizens, 150), Lots);
         Households = new HouseholdTable(PerThousand(citizens, 360), Buildings);
         Citizens = new CitizenTable(citizens, Households, Buildings);
-        Layers = new MapLayers(layers);
+        Layers = new MapLayers(rules.Layers);
 
         // Sized for a city in trouble rather than a healthy one: the Pool is empty when everybody is
         // housed, and the table's job is to absorb a District emptying without reallocating mid-Tick.
@@ -187,11 +193,18 @@ public sealed class World
     /// the degradations that make a structural swap safe — derelict Buildings, dropped Bins, wait
     /// lists re-armed — are tasks 4–6. The caller checks; this method trusts.
     /// </para>
+    /// <para>
+    /// <b>The Layers are adopted first, because that is the step that can refuse.</b> A world-creation
+    /// constant is refused for ever rather than until a later task (<c>adr/0015</c>), so the check
+    /// lives in <see cref="MapLayers.Adopt"/> and not in <see cref="RulesetShape"/> — and running it
+    /// before <see cref="Rules"/> moves is what makes a refused reload leave the world untouched.
+    /// </para>
     /// </remarks>
     internal void Adopt(Ruleset rules)
     {
         ArgumentNullException.ThrowIfNull(rules);
 
+        Layers.Adopt(rules.Layers);
         Rules = rules;
     }
 

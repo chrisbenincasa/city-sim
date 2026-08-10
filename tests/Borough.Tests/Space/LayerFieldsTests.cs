@@ -345,7 +345,7 @@ public class LayerFieldsTests
         World world = new(Population);
         world.Invariants.Collect = true;
 
-        int ceiling = MapLayers.PollutionKernel.SourceCeiling;
+        int ceiling = world.Layers.PollutionKernel.SourceCeiling;
         world.Layers.EmitPollution(new Cells(20), new Cells(20), ceiling);
 
         new Simulation(world, WorldKey.FromSeed(1)).CheckEndOfRun();

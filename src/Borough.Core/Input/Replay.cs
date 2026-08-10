@@ -88,7 +88,7 @@ public static class Replay
         ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(rulesets);
 
-        var world = new World(log.Configuration.Citizens, LayerRuleset.Default, rulesets.Opening);
+        var world = new World(log.Configuration.Citizens, rulesets.Opening);
         return new Simulation(world, WorldKey.FromSeed(log.Seed), rulesets);
     }
 
