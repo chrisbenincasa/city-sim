@@ -22,10 +22,37 @@ public sealed class BinTests
 
     private static readonly RuleId Bake = new(1);
 
+    /// <summary>
+    /// A Ruleset that declares kind 1 and gives it <see cref="Bake"/>, and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// <b>It declares no Bins, because these tests create theirs by hand, and it exists for one
+    /// reason: <see cref="Invariant.DerelictBuildingRunsNoRules"/>.</b> A Building of an undeclared
+    /// kind running a Rule Instance is dereliction with the Rules left armed, which is slice 8's
+    /// migration defect — and a fixture that ran on <see cref="Ruleset.Empty"/> was that shape by
+    /// accident, so it would have reported the defect for ever without one existing.
+    /// </remarks>
+    private static Ruleset Declaring() =>
+        new(
+            resources: [ResourceFamily.Good, ResourceFamily.Good],
+            rules:
+            [
+                new RuleDefinition(
+                    1, 8, ApplyCount.Band(1, 1), RuleId.None, false, default,
+                    ConditionId.None, 0, 0, 0, 0, 0, 0),
+            ],
+            kinds: [new KindDefinition(0, 0, 0, 1)],
+            inputs: [],
+            outputs: [],
+            emissions: [],
+            bins: [],
+            kindRules: [Bake],
+            zoneRules: []);
+
     /// <summary>A world with one Building on one Lot, and nothing else of interest.</summary>
     private static (World World, Handle<Building> Building) Built()
     {
-        var world = new World(1_000);
+        var world = new World(1_000, Declaring());
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
 

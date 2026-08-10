@@ -45,6 +45,7 @@ public sealed class Simulation
     private ulong _inForce;
     private bool _opened;
     private int _reloads;
+    private RulesetDegradation _degradation;
 
     /// <param name="world">The tables this advances. Not copied; the Simulation does not own it.</param>
     /// <param name="key">The world seed, already folded. The first coordinate of every draw.</param>
@@ -185,6 +186,18 @@ public sealed class Simulation
     public ulong RulesetInForce => _inForce;
 
     /// <summary>
+    /// What the most recent reload cost the city: Buildings derelicted, Bins dropped, Rules re-armed.
+    /// </summary>
+    /// <remarks>
+    /// <b>The logged warning <c>02 §4.3</c> and <c>adr/0015</c> both ask for, in the only currency
+    /// <c>Core</c> may use</b> (<c>adr/0002</c>). It is the latest transition rather than a trail
+    /// because a trail is a collection and <c>adr/0006</c> wants its sink built with it — <c>05 §7</c>
+    /// already wrote that sink, capping the last <c>N</c> transitions with older ones aggregated to
+    /// counts, and <c>N</c> is a saved hash-bearing number needing a ratifier. That is task 7.
+    /// </remarks>
+    public RulesetDegradation LastReload => _degradation;
+
+    /// <summary>
     /// The top of Phase 0: put a different Ruleset in force, if this Tick names one.
     /// </summary>
     /// <remarks>
@@ -234,22 +247,11 @@ public sealed class Simulation
                 + "the catalogue supplied to the Simulation, because Core cannot read a file.");
         }
 
-        RulesetChange change = RulesetShape.Compare(_world.Rules, replacement);
-
-        if (change != RulesetChange.None)
-        {
-            // The named hole, and it is named after the tasks that fill it. A structural swap needs
-            // the degradations — derelict Buildings, dropped Bins, wait lists re-armed on slice 7's
-            // stagger — and performing half of one would corrupt a save during a balance session,
-            // which is the exact failure adr/0015 exists to prevent.
-            throw new NotSupportedException(
-                $"Tick {tick.Raw} reloads to a structurally different Ruleset ({change}), and the "
-                + "degradations that make that safe are slice 8 tasks 4-6. Today a reload may move "
-                + "numbers — rates, capacities, quantities, apply bands, thresholds, intervals — and "
-                + "may not add, remove or repurpose anything a row can point at.");
-        }
-
-        _world.Adopt(replacement);
+        // The degradations live in the World because they are a pass over its rows, and the residual
+        // refusal lives with them for the same reason -- what a family change breaks is the stock in
+        // the Bins, which is state rather than shape. Nothing is caught here: a refused reload leaves
+        // the previous Ruleset live by having changed nothing, and the throw is the diagnosis.
+        _degradation = _world.Adopt(replacement, tick, _key);
         _inForce = input.RulesetHash;
         _reloads++;
     }

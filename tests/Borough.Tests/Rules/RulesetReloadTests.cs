@@ -278,15 +278,15 @@ public sealed class RulesetReloadTests
     }
 
     /// <summary>
-    /// <b>A structurally different Ruleset is refused until tasks 4–6 exist.</b>
+    /// <b>A structurally different Ruleset is migrated rather than refused.</b>
     /// </summary>
     /// <remarks>
-    /// The named hole, and it is named after the tasks that fill it. Applying half a migration during
-    /// a balance session is how a save gets quietly corrupted — <c>adr/0015</c>'s own reason for the
-    /// derelict flag — so a swap this build cannot perform correctly says so.
+    /// The refusal that used to stand here was the named hole, and sub-tasks B and C fill it. What is
+    /// asserted is only that the swap happens and the world survives it; <c>RulesetMigrationTests</c>
+    /// owns what the degradation does to each row.
     /// </remarks>
     [Fact]
-    public void A_structurally_different_ruleset_is_refused_until_the_degradations_exist()
+    public void A_structurally_different_ruleset_is_migrated()
     {
         Ruleset opening = Producing(rate: 8);
         Ruleset wider = TwoKinds();
@@ -295,16 +295,10 @@ public sealed class RulesetReloadTests
             opening, RulesetCatalogue.Of([HashA, HashB], [opening, wider]));
 
         Step(simulation, HashA, ticks: 4);
+        Step(simulation, HashB, ticks: 1);
 
-        NotSupportedException failure = Assert.Throws<NotSupportedException>(
-            () => Step(simulation, HashB, ticks: 1));
-
-        Assert.Contains("KindCount", failure.Message, StringComparison.Ordinal);
-        Assert.Contains("tasks 4-6", failure.Message, StringComparison.Ordinal);
-
-        // And the previous Ruleset stays live, which is adr/0015's requirement and the property
-        // RulesetInForce was built to make structural rather than remembered.
-        Assert.Same(opening, world.Rules);
+        Assert.Same(wider, world.Rules);
+        Assert.Equal(1, simulation.Reloads);
     }
 
     /// <summary>

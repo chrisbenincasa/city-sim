@@ -76,7 +76,19 @@ scheduling constraint is discharged.
   derived, not a saved flag** — the only actor is a designer, whose commonest move is undo, and a mark
   that never clears leaves them a city of permanently inert bakeries — and **`adr/0055`'s consequence
   bullet is false**, because a Building with no Rules has no failures to die of.
-- **Next: task 4 sub-tasks B and C** — the migration map, and the one pass over the world.
+  **Sub-tasks B and C shipped, and the structural refusal is gone.** `RulesetMigration` maps
+  `oldResourceId → newResourceId` and `oldKind → newKind` by key with 0 for gone, and `World.Adopt`
+  runs the pass: every Rule Instance in the world unlinked and freed, Bins remapped and the casualties
+  dropped, kinds remapped with a casualty leaving `Kind == 0`, and every Building the Ruleset can
+  still describe refitted through the same code `CreateBuilding` fits a new one with. It returns
+  counts — Buildings derelicted, Bins dropped, Rule Instances re-armed — which is `02 §4.3`'s *logged
+  warning* in the only currency `adr/0002` allows. **Four things came out of it.** The residual
+  refusal **could not have been spelled as a `Compare` result** and had to move onto the map; the
+  plan's own *recovered for free* sentence is **false for the case it was written about**; a **tuning
+  reload never re-evaluates a sleeping Rule**, which is the acceptance test failing on the shortage
+  path; and **no reload of any kind moves a live Bin's capacity**, which is task 5's stated problem
+  surviving the task that was supposed to absorb it. See *What sub-tasks B and C found*.
+- **Next: task 7** — the provenance trail, which the counts are already shaped for.
 
 ---
 
@@ -581,6 +593,13 @@ a reload-specific stagger parameter.
 
 #### Derelict is derived, and the question that settled it was *when does this happen to a player*
 
+> **Settled in [`adr/0057`](../docs/adr/0057-dereliction-is-a-design-time-state-and-it-is-derived-rather-than-recorded.md),
+> which supersedes the argument below in one respect.** The conclusion is unchanged — no column,
+> `Kind == 0`, and dereliction is **development-time state** rather than a game mechanic. But the
+> *undo* argument this section leans on is **withdrawn**: the derived form does not recover the undo
+> case either, because the pass zeroes the kind and the re-add restores nothing. What carries the
+> decision is that a flag would be a cache of a two-compare predicate. See finding 2 above.
+
 **Never.** A shipped game ships one Ruleset; nothing removes a Building kind from under a running
 city. The Ruleset changes mid-city in exactly two situations, and one of them does not exist yet: a
 **designer balancing**, which is `adr/0015`'s whole reason for being, and a **save made under one
@@ -616,20 +635,68 @@ state is called derelict rather than removed.
 **So `adr/0015` wins, the Building stands, and clearing it is the player's** (`PLAYER GOVERNS`).
 Filed to `plans/0012` as a correction owed to `adr/0055`, not to the code.
 
-#### What is left, in order
+#### What sub-tasks B and C found
 
-- Sub-task B, the migration map: `oldResourceId → newResourceId` and `oldKind → newKind` by key, 0 for gone.
-- Sub-task C, the pass over the world, inside `World.Adopt` — which needs the Tick and the `WorldKey`
-  for the stagger, so `Adopt` grows both.
-- **The residual refusal.** `RulesetChange.ResourceFamily` stays refused: a Good becoming Money with
-  live Bins holding stock is `adr/0024` conservation, not a degradation. `ResourceIdentity` and
-  `KindIdentity` become *inputs to the map* rather than refusals once B exists.
-- **The logged warning.** `02 §4.3` and `adr/0015` both say dropped *with a logged warning*, and
-  `Core` returns numbers (`adr/0002`). So: counts per reload — Buildings derelicted, Bins dropped,
-  Rule Instances re-armed — which is also the shape task 7's provenance trail wants.
-- Invariants: **a derelict Building runs no Rule Instances**, which is the claim sub-task C is most
-  likely to break, because nothing in the shape of a re-arm loop makes the exclusion obvious.
-- **Baselines re-record**, deliberately: the refit changes when Rule Instances are armed.
+**Shipped**: `RulesetMigration` (the map and the one residual refusal), `World.Adopt(rules, now, key)`
+returning a `RulesetDegradation` of three counts, `World.Fit` — `CreateBuilding`'s fit-out factored out
+so the refit is *the same code and not a second copy of it* — and `Invariant.DerelictBuildingRunsNoRules`
+as an end-of-run check, with a test that writes the violation and watches it fire. **No baseline
+re-recorded**: the golden session does not reload yet (that is task 10), and the refactor is
+hash-preserving on the construction path because a fresh Building has no Bins to find.
+
+**1. The residual refusal could not have been spelled as a `Compare` result, and lifting the blanket
+refusal is what exposed it.** `RulesetShape.Compare` returns the *first* way two Rulesets differ, and
+the Resource **count** is compared before any **family** is — so a file that adds a Resource *and*
+refamilies another reports `ResourceCount` and never looks at the families. That is harmless while
+every structural difference is refused outright and a **silent hole the moment they stop being**: a
+Good would have become Money with live Bins holding its stock, which is the one thing this task was
+never allowed to do. The refusal is therefore computed **over the map** —
+`RulesetMigration.FamilyChanged`, the first *surviving* Resource whose family moved — and the test
+that pins it is exactly that file. The general shape is worth keeping: **a first-difference report is
+not a predicate**, and every use of one that outlives the refusal it was written for wants re-reading.
+
+**2. This document's own *recovered for free* sentence is false for the case it was written about.**
+The derelict-flag argument runs: the only actor is a designer, a designer's commonest move is undo —
+remove `bakery`, watch five hundred Ticks, put it back — and a saved mark that never clears leaves a
+city of permanently inert bakeries. It then says dereliction *"is recovered for free by sub-task C's
+refit, because a kind that comes back brings its Rules with it"*. **It is not.** The pass sets
+`Buildings.Kind` to **0**, so the row stops naming anything and the re-add restores nothing; the very
+next paragraph says so, and the two were never reconciled. **The conclusion survives and the argument
+for it does not**: there is no `derelict` column because it would be a cache of a two-compare
+predicate, which is reason enough on its own, and the undo half was doing no work. Keeping the stale
+id instead — the obvious repair — is **worse**, because kind ids are positional and a declaration
+re-added at a different position would silently make every derelict Building a different species,
+which is sub-task A's defect walking back in through the degradation written after it.
+`HONEST DEGRADATION`, and the test states it rather than the prose.
+
+**3. A tuning reload never re-evaluates a sleeping Rule, so a shortfall recorded under the old numbers
+outlives the change.** `Compare == None` skips the pass, which is task 1's behaviour kept
+deliberately — `02 §4.3` drops the wait lists because *a subscription taken under the old Ruleset may
+name a Bin the new one does not have*, and under `None` that demonstrably cannot happen. But there is
+a **second** reason the corpus never names: a designer who halves a Rule's input requirement does not
+wake the bakery asleep waiting for the old amount, so the number reaches the city everywhere except
+where somebody is starving. That is `adr/0015`'s acceptance test failing on the shortage path, and it
+is the **same fairness question already filed to `0002` §C** with `pool` as its trigger — a recorded
+shortfall is a deficit at an instant, and nothing re-derives it. Filed there rather than fixed here:
+waking every waiter on a tuning reload is a whole-world pass on a keystroke, and the honest fix is
+whatever settles §C.
+
+**4. No reload of any kind moves a live Bin's capacity, and task 5 was supposed to have absorbed
+that.** `RulesetShape` files capacity as a *number* on the explicit grounds that *"a Bin over its new
+capacity is task 5's problem rather than a reason to refuse"* — and task 5 merged into task 4, where
+neither path writes `Bins.Capacity`. The tuning path cannot, because it changes no row; the refit only
+creates Bins it does not find. So a retuned capacity reaches the next Building raised and never the
+ones standing. **It is left as a decision rather than patched**, because the consistent fixes are both
+or neither: making only the refit write it would give one edit two behaviours depending on whether
+some *unrelated* declaration also moved, which is worse than the gap. The question — *is a capacity a
+property of the Bin as built, or of the Ruleset in force?* — is arguable under `adr/0043` and belongs
+in `0002`.
+
+**5. The invariant paid for itself before the feature shipped.** `DerelictBuildingRunsNoRules` failed
+one existing test on the first run — `BinTests` built its world on `Ruleset.Empty` and then created
+Rule Instances by hand, which is precisely the derelict-with-Rules-armed shape. A fixture rather than
+a defect, and the fixture now declares its kind; but it is the second time in this project that a
+whole-world check has caught a *test* asserting against a world that could not exist.
 
 ### 7. The provenance trail, and `adr/0006`'s sink
 

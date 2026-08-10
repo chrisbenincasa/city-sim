@@ -178,7 +178,7 @@ public sealed class World
     public Ruleset Rules { get; private set; }
 
     /// <summary>
-    /// Puts a different Ruleset in force. Slice 8's swap, and the only way <see cref="Rules"/> moves.
+    /// Puts a different Ruleset in force, degrading whatever the new one cannot describe.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -188,24 +188,188 @@ public sealed class World
     /// replay would reproduce the commands and not the city.
     /// </para>
     /// <para>
-    /// <b>It changes no row, and that is a precondition rather than a description.</b> Slice 8 task 1
-    /// admits only a replacement that is structurally identical (<see cref="RulesetShape"/>), because
-    /// the degradations that make a structural swap safe — derelict Buildings, dropped Bins, wait
-    /// lists re-armed — are tasks 4–6. The caller checks; this method trusts.
+    /// <b>A reload that moves only numbers still changes no row</b>, which is slice 8 task 1's
+    /// behaviour and is kept rather than subsumed. <see cref="RulesetShape.Compare"/> is what tells
+    /// the two apart, and the reason a tuning swap may skip the pass is the corpus's own reason for
+    /// the pass existing: <c>02 §4.3</c> drops the wait lists because <em>a subscription taken under
+    /// the old Ruleset may name a Bin the new one does not have</em>, and under
+    /// <see cref="RulesetChange.None"/> it demonstrably cannot.
     /// </para>
     /// <para>
-    /// <b>The Layers are adopted first, because that is the step that can refuse.</b> A world-creation
-    /// constant is refused for ever rather than until a later task (<c>adr/0015</c>), so the check
-    /// lives in <see cref="MapLayers.Adopt"/> and not in <see cref="RulesetShape"/> — and running it
-    /// before <see cref="Rules"/> moves is what makes a refused reload leave the world untouched.
+    /// <b>Every refusal runs before anything moves, and that ordering is the requirement rather than
+    /// a tidiness.</b> Two things can still refuse a reload outright — a world-creation Layer constant
+    /// (<see cref="MapLayers.Adopt"/>) and a Resource that changes family
+    /// (<see cref="RulesetMigration.FamilyChanged"/>) — and <c>adr/0015</c>'s whole polarity is that a
+    /// swap this build cannot perform correctly must leave the previous Ruleset live rather than
+    /// half-happen.
     /// </para>
     /// </remarks>
-    internal void Adopt(Ruleset rules)
+    /// <param name="rules">The Ruleset to put in force.</param>
+    /// <param name="now">The current Tick, which the refit's arming is relative to.</param>
+    /// <param name="key">The world key, for the stagger draw.</param>
+    /// <returns>What the reload cost the city, for the shell to turn into a warning.</returns>
+    internal RulesetDegradation Adopt(Ruleset rules, Ticks now, WorldKey key)
     {
         ArgumentNullException.ThrowIfNull(rules);
 
+        RulesetChange change = RulesetShape.Compare(Rules, rules);
+        RulesetMigration? migration = null;
+
+        if (change != RulesetChange.None)
+        {
+            migration = RulesetMigration.Between(Rules, rules);
+
+            if (migration.FamilyChanged.Raw != 0)
+            {
+                throw new NotSupportedException(
+                    $"Resource {migration.FamilyChanged.Raw} changes family, and live Bins hold its "
+                    + "stock. adr/0024 makes conservation a property the whole Rule engine enforces, "
+                    + "so a Good becoming Money would make every unit already banked either created "
+                    + "or destroyed by an edit. There is no honest degradation for that.");
+            }
+        }
+
+        // Every refusal has run by here, so what follows cannot leave the world half-migrated.
         Layers.Adopt(rules.Layers);
         Rules = rules;
+
+        return migration is null ? default : Migrate(migration, now, key);
+    }
+
+    /// <summary>
+    /// The one pass over the world a structural reload needs: drop, remap, derelict, refit.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The order is <see cref="DestroyBuilding"/>'s order, for the same reason.</b> The Rule
+    /// Instances go first so that nothing is asleep on a Bin by the time Bins start disappearing —
+    /// <c>02 §4.3</c>: <em>all wait lists are dropped and every Rule is woken with a stagger</em>,
+    /// because a subscription taken under the old Ruleset may name a Bin the new one does not have,
+    /// <em>which also means a wait list is never cross-version state</em>. Then the Bins are remapped
+    /// and the casualties freed; then the kinds, whose casualties are derelict rather than freed; then
+    /// the refit, which needs the kind already remapped to know what to fit.
+    /// </para>
+    /// <para>
+    /// <b>Four passes rather than one loop doing four things.</b> The steps are not independent —
+    /// step 4 allocates rows step 2 has just freed — so interleaving them is a different assignment of
+    /// slots and therefore a different State Hash. Both orders are deterministic; this one is the one
+    /// the corpus describes, and it is written as four walks so that it stays that one.
+    /// </para>
+    /// <para>
+    /// <b>There is no reload-specific stagger, and that is a decision rather than an omission.</b>
+    /// Slice 7 derived the arming offset as uniform over <c>[1, rate]</c> because a Rule re-arms at
+    /// <c>+rate</c> for ever and no other window stays spread. A reload re-arms every Rule Instance in
+    /// the world at once, which is the largest instance of exactly that problem, so the answer is
+    /// already the right one — see <see cref="ArmingStagger"/>.
+    /// </para>
+    /// </remarks>
+    private RulesetDegradation Migrate(RulesetMigration migration, Ticks now, WorldKey key)
+    {
+        int derelicted = 0;
+        int dropped = 0;
+        int rearmed = 0;
+
+        for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
+        {
+            if (!Buildings.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            int instance = BuildingRules.PopFront(slot);
+
+            while (instance != Rows.NoSlot)
+            {
+                Unlink(instance);
+                RuleInstances.Rows.Free(RuleInstances.Rows.At(instance));
+                instance = BuildingRules.PopFront(slot);
+            }
+        }
+
+        for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
+        {
+            if (Buildings.Rows.IsLive(slot))
+            {
+                dropped += RemapBins(slot, migration);
+            }
+        }
+
+        for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
+        {
+            if (!Buildings.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            byte was = Buildings.Kind[slot];
+            byte becomes = migration.Kind(was);
+
+            Buildings.Kind[slot] = becomes;
+
+            // Only a Building that had a kind can lose one. A world running on Ruleset.Empty is
+            // already full of Buildings at kind 0, and counting those would report a city's whole
+            // stock as casualties of a reload that touched nothing.
+            if (was != 0 && becomes == 0)
+            {
+                derelicted++;
+            }
+        }
+
+        for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
+        {
+            if (Buildings.Rows.IsLive(slot))
+            {
+                rearmed += Fit(Buildings.Rows.At(slot), Buildings.Kind[slot], now, key);
+            }
+        }
+
+        return new RulesetDegradation(derelicted, dropped, rearmed);
+    }
+
+    /// <summary>
+    /// Rewrites one Building's Bins to the incoming Ruleset's ids, freeing those whose Resource went.
+    /// </summary>
+    /// <remarks>
+    /// <b>A rotation rather than a removal from the middle.</b> The list is popped from the front and
+    /// survivors are appended to the back exactly as many times as it is long, which restores the
+    /// original order — and the original order is ascending by slot, which
+    /// <see cref="RebuildDerived"/> depends on because a derived list has to be reproducible from the
+    /// owner columns alone. Removing in place would be <c>O(k²)</c> over a list of three and would
+    /// need a re-scan after every removal to stay safe against the walk it was mutating.
+    /// <para>
+    /// <b>The wait lists are not woken here, unlike in <see cref="DestroyBuilding"/>.</b> They are
+    /// already empty: every Rule Instance in the world was unlinked and freed before this ran, which
+    /// is the whole reason that step comes first.
+    /// </para>
+    /// </remarks>
+    private int RemapBins(int buildingSlot, RulesetMigration migration)
+    {
+        int length = 0;
+
+        foreach (int _ in BuildingBins.Walk(buildingSlot))
+        {
+            length++;
+        }
+
+        int dropped = 0;
+
+        for (int i = 0; i < length; i++)
+        {
+            int bin = BuildingBins.PopFront(buildingSlot);
+            ResourceId becomes = migration.Resource(Bins.Resource[bin]);
+
+            if (becomes.Raw == 0)
+            {
+                Bins.Rows.Free(Bins.Rows.At(bin));
+                dropped++;
+                continue;
+            }
+
+            Bins.Resource[bin] = becomes;
+            BuildingBins.Append(buildingSlot, bin);
+        }
+
+        return dropped;
     }
 
     /// <summary>Every table, in the declaration order the hash folds them in.</summary>
@@ -588,16 +752,9 @@ public sealed class World
     /// populator makes, which is the case that would otherwise have been discovered late.
     /// </para>
     /// <para>
-    /// <b>Only the chain heads are armed.</b> <see cref="Ruleset.RulesOf"/> returns them, and a link
-    /// is reached by walking a chain that failed rather than by coming due — arming a link would run
-    /// it independently of the head it exists to rescue, and the reporting terminal would fire on its
-    /// own rate for ever. That is <c>adr/0045</c>'s polling defect arriving through the Rule Instance
-    /// table instead of through the walk.
-    /// </para>
-    /// <para>
-    /// <b>The Bins come first.</b> A Rule armed before its Bins exist could come due against a
-    /// Building that cannot hold what it transforms — not reachable today, since arming is at least
-    /// one Tick out, but the ordering costs nothing and the alternative relies on that staying true.
+    /// <b>What it fits out with is <see cref="Fit"/>, which a reload calls again.</b> A Building is
+    /// constructed once and refitted every time the Ruleset moves under it, so the two had better be
+    /// one piece of code.
     /// </para>
     /// </remarks>
     public Handle<Building> CreateBuilding(Handle<Lot> lot, byte kind, Ticks now, WorldKey key)
@@ -611,28 +768,75 @@ public sealed class World
 
         Handle<Building> building = Buildings.Create(Lots, lot, kind);
 
-        // A kind the Ruleset does not declare gets no Bins and no Rules, and that is a real state
-        // rather than a swallowed error: 02 §4.3 already names it, saying a reload marks Buildings
-        // whose kind no longer exists **derelict rather than deleted**. There is no derelict flag yet
-        // — it arrives with hot reload in slice 8 — so today the situation is unnamed rather than
-        // wrong, and the commonest instance of it is a world running on Ruleset.Empty, which is every
-        // figure this project has recorded so far.
+        Fit(building, kind, now, key);
+
+        return building;
+    }
+
+    /// <summary>
+    /// Gives a Building the Bins and Rule Instances its kind declares and does not already have.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Factored out of <see cref="CreateBuilding"/> because a reload calls it again</b>, and the
+    /// point of factoring rather than copying is that a refit which drifted from a construction would
+    /// make a Building raised before a reload a different Building from one raised after it — with
+    /// nothing to compare, since both are legal.
+    /// </para>
+    /// <para>
+    /// <b>A kind the Ruleset does not declare gets no Bins and no Rules, and that is a real state
+    /// rather than a swallowed error.</b> <c>02 §4.3</c> names it: a reload marks Buildings whose kind
+    /// no longer exists <b>derelict rather than deleted</b>. There is no derelict column and there
+    /// deliberately never will be (<c>adr/0057</c>): dereliction is <c>Kind == 0</c>, a Building the
+    /// Ruleset in force cannot describe, and a saved mark would be a cache of that two-compare
+    /// predicate — a second spelling of one fact, hashed beside it, that nothing clears. It is
+    /// <b>design-time state</b>: only a Ruleset edit under a running city produces it, so a played
+    /// game never reaches it, and it must never be given abandonment's mechanisms. The commonest
+    /// instance today is a world running on <see cref="Ruleset.Empty"/>.
+    /// </para>
+    /// <para>
+    /// <b>Only the chain heads are armed.</b> <see cref="Ruleset.RulesOf"/> returns them, and a link
+    /// is reached by walking a chain that failed rather than by coming due — arming a link would run
+    /// it independently of the head it exists to rescue, and the reporting terminal would fire on its
+    /// own rate for ever. That is <c>adr/0045</c>'s polling defect arriving through the Rule Instance
+    /// table instead of through the walk.
+    /// </para>
+    /// <para>
+    /// <b>The Bins come first.</b> A Rule armed before its Bins exist could come due against a
+    /// Building that cannot hold what it transforms — not reachable today, since arming is at least
+    /// one Tick out, but the ordering costs nothing and the alternative relies on that staying true.
+    /// </para>
+    /// </remarks>
+    /// <returns>How many Rule Instances were armed.</returns>
+    private int Fit(Handle<Building> building, byte kind, Ticks now, WorldKey key)
+    {
         if (!Rules.Declares(kind))
         {
-            return building;
+            return 0;
         }
 
+        int buildingSlot = Buildings.Rows.Resolve(building);
+
+        // Asked rather than assumed, because a refit meets a Building that already holds the Bins
+        // that survived the migration; on the construction path the answer is always NoSlot and the
+        // walk is over an empty list.
         foreach (BinDeclaration bin in Rules.BinsOf(kind))
         {
-            CreateBin(building, bin.Resource, bin.Capacity);
+            if (FindBin(buildingSlot, bin.Resource) == Rows.NoSlot)
+            {
+                CreateBin(building, bin.Resource, bin.Capacity);
+            }
         }
+
+        int armed = 0;
 
         foreach (RuleId rule in Rules.RulesOf(kind))
         {
             CreateRuleInstance(building, rule, now, ArmingStagger(building, rule, now, key));
+            armed++;
         }
 
-        return building;
+        return armed;
     }
 
     /// <summary>

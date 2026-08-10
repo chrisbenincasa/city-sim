@@ -369,7 +369,9 @@ that produced it is committed, and what is owed is a paragraph in `02`.
 
 ### `adr/0055` says a derelict Building dies of its own failures, and it structurally cannot
 
-**Raised by slice 8's merged degradation task**, from the call site `adr/0055` is about.
+**Raised by slice 8's merged degradation task**, from the call site `adr/0055` is about. **The
+positive claim it collides with is now [`adr/0057`](../docs/adr/0057-dereliction-is-a-design-time-state-and-it-is-derived-rather-than-recorded.md)**,
+which strikes this bullet by name; what is left here is the edit to `0055` itself.
 
 - [ ] **`docs/adr/0055` consequence bullet 2** — *"Slice 8's derelict Buildings decline like anything
       else… still sampled and still dies of its own failures, rather than becoming a permanent monument

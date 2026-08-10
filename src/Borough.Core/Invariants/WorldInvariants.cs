@@ -40,6 +40,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, MoneyIsRepresentable);
         invariants.Register(InvariantTier.EndOfRun, LayerMagnitudesAreBounded);
         invariants.Register(InvariantTier.EndOfRun, RuleInstancesAreQueuedExactlyOnce);
+        invariants.Register(InvariantTier.EndOfRun, NoBuildingRunsRulesItsKindDoesNotDeclare);
         invariants.Register(InvariantTier.EndOfRun, LotsAndBuildingsAgreeWhoIsWhere);
         invariants.Register(InvariantTier.EndOfRun, ThePoolIsDenseAndAgreesWithTheHouseholds);
     }
@@ -417,6 +418,73 @@ public static class WorldInvariants
     /// care about and sleeps through the one it does.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// No Building runs a Rule Instance under a kind the Ruleset in force does not declare.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Whole-world rather than at a write site, because the write site cannot see the failure.</b>
+    /// <see cref="World.CreateRuleInstance"/> is called with a kind's declared Rules and is therefore
+    /// always locally correct; what this catches is a <em>reload</em> that derelicted a Building and
+    /// left its Rules armed — one pass over the world, wrong for the rest of the run, and invisible
+    /// from every row involved because each one is individually legal.
+    /// </para>
+    /// <para>
+    /// <b>Both directions of one claim.</b> A derelict Building must run nothing, and a Building that
+    /// is <em>not</em> derelict must run only Rules its current kind declares — the second half is
+    /// what catches a migration that remapped a kind without refitting it, where the Rule Instances
+    /// survive and quietly belong to the species the Building used to be.
+    /// </para>
+    /// </remarks>
+    internal static void NoBuildingRunsRulesItsKindDoesNotDeclare(
+        World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        BuildingTable buildings = world.Buildings;
+        Ruleset rules = world.Rules;
+
+        for (int slot = 0; slot < buildings.Rows.SlotCount; slot++)
+        {
+            if (!buildings.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            byte kind = buildings.Kind[slot];
+
+            foreach (int instance in world.BuildingRules.Walk(slot))
+            {
+                if (!rules.Declares(kind))
+                {
+                    report.Report(Invariant.DerelictBuildingRunsNoRules, slot, instance);
+                    continue;
+                }
+
+                report.Require(
+                    Declares(rules.RulesOf(kind), world.RuleInstances.Rule[instance]),
+                    Invariant.DerelictBuildingRunsNoRules,
+                    slot,
+                    instance);
+            }
+        }
+    }
+
+    /// <summary>Whether a kind's declared chain heads include this Rule.</summary>
+    private static bool Declares(ReadOnlySpan<RuleId> declared, RuleId rule)
+    {
+        foreach (RuleId candidate in declared)
+        {
+            if (candidate == rule)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal static void RuleInstancesAreQueuedExactlyOnce(World world, InvariantRegistry report)
     {
         RuleInstanceTable instances = world.RuleInstances;

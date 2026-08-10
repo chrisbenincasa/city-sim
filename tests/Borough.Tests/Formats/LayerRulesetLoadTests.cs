@@ -1,4 +1,6 @@
+using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Formats;
@@ -332,11 +334,14 @@ public sealed class LayerRulesetLoadTests
         var world = new World(1_000, Ruleset.Empty);
 
         var exception = Assert.Throws<InvalidOperationException>(
-            () => world.Adopt(Ruleset.Empty.WithLayers(
-                new LayerRuleset(
-                    LayerSchedule.Default,
-                    LayerRates.Default,
-                    new LayerConstants(IndustrialPollutionMetres: 4_096)))));
+            () => world.Adopt(
+                Ruleset.Empty.WithLayers(
+                    new LayerRuleset(
+                        LayerSchedule.Default,
+                        LayerRates.Default,
+                        new LayerConstants(IndustrialPollutionMetres: 4_096))),
+                Ticks.Zero,
+                WorldKey.FromSeed(0x8000_0001UL)));
 
         Assert.Contains("adr/0015", exception.Message, StringComparison.Ordinal);
     }
@@ -346,9 +351,12 @@ public sealed class LayerRulesetLoadTests
     {
         var world = new World(1_000, Ruleset.Empty);
 
-        world.Adopt(Ruleset.Empty.WithLayers(new LayerRuleset(
-            new LayerSchedule(new LayerCadence(16, 1), new LayerCadence(64, 5)),
-            LayerRates.Default)));
+        world.Adopt(
+            Ruleset.Empty.WithLayers(new LayerRuleset(
+                new LayerSchedule(new LayerCadence(16, 1), new LayerCadence(64, 5)),
+                LayerRates.Default)),
+            Ticks.Zero,
+            WorldKey.FromSeed(0x8000_0001UL));
 
         Assert.Equal(new LayerCadence(16, 1), world.Layers.Schedule.IndustrialPollution);
     }

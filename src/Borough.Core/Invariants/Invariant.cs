@@ -290,4 +290,24 @@ public enum Invariant
     /// they still occupy and take an unrelated membership row with them.
     /// </remarks>
     OnlyAPooledHouseholdIsPlaced = 25,
+
+    /// <summary>
+    /// A Building the Ruleset in force cannot describe runs nothing.
+    /// </summary>
+    /// <remarks>
+    /// <b>The claim slice 8's migration is most likely to break, because nothing in the shape of a
+    /// re-arm loop makes the exclusion obvious.</b> Dereliction is <c>Kind == 0</c> and has no flag
+    /// (<c>adr/0057</c>),
+    /// so a refit that armed by walking the Rule table rather than the kind's declarations would leave
+    /// a derelict Building firing the Rules of the kind it used to be — a bakery baking under a
+    /// Ruleset that has never heard of bakeries, and with no name for what it is doing.
+    /// <para>
+    /// It is also the invariant that keeps <c>adr/0055</c>'s consequence bullet honest rather than
+    /// repairing it. A Building with no Rules has no failures, so <c>ZoneRuleEngine.Condemn</c>'s
+    /// threshold walk finds nothing and the Building stands until the player clears it — which is
+    /// <c>PLAYER GOVERNS</c>, and the alternative is silent deletion arriving through a Zone Rule
+    /// instead of through the reload.
+    /// </para>
+    /// </remarks>
+    DerelictBuildingRunsNoRules = 26,
 }

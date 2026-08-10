@@ -169,6 +169,13 @@ What a Building accumulates when the city stops working for it. Three sources: *
 
 **The accumulated condition is retained and readable** — *"abandoned: 74% of work trips exceeded commute budget over 30 days"*, never a sad-face icon. An abandonment nobody can explain is the thing this whole design exists to refuse. `LEGIBLE CAUSE`
 
+**Derelict**
+A Building the **Ruleset in force cannot describe** — its kind is not declared, so it holds whatever Bins survived, houses whoever lived there, and runs nothing at all. It is **derived, never recorded**: there is no derelict flag, and the state is read off the kind (`adr/0057`).
+
+**It is not abandonment and shares none of its machinery.** Abandonment is what the *city* does to a Building — Failure Pressure past a threshold, with a sentence naming the cause. Dereliction is what a **Ruleset edit** does to one, and the only true sentence about it is *the Rules no longer describe this*, which is a statement about a file rather than about the city. A derelict Building therefore has no failure pressure and cannot be condemned by it; it stands until the player clears it. `PLAYER GOVERNS`
+
+**Nothing a player does can produce it**, which is the reason the two must not be conflated. The Ruleset changes under a live city only when a designer is balancing (`adr/0015`) or when a save meets a different Ruleset (`05 §7`) — so this is **development-time state**, and it is in this vocabulary because the code and `02 §4.3` both name it, not because a player will ever meet one.
+
 **Outside Connection**
 A special Building at the map edge representing the rest of the world. Absorbs surplus Goods and supplies deficits, at a price. The pressure-release valve that keeps the economy from having to balance perfectly.
 
