@@ -509,6 +509,25 @@ public static class WorldInvariants
 
                 report.Require(
                     armedHere, Invariant.WaiterIsQueuedOnTheBinItNames, instance, bucket);
+
+                // The bucket agreeing is not the same as the Tick being reachable. BucketOf is
+                // NextTick % WHEEL_SIZE, so the test above is invariant under adding a whole period:
+                // a row due 8,192 Ticks ago and a row due next period sit in the same bucket and both
+                // pass it. That is the one error a modulus can make, and it cannot be caught by a
+                // check written modulo the same number — so this one is written in absolute Ticks.
+                // The window is half-open at the bottom, and the boundary is not a rounding choice:
+                // Simulation advances _tick after running it, so the Tick handed to a tier is the NEXT
+                // one to run, and a row armed for exactly it is due next rather than overdue. Mid-Tick
+                // the distinction cannot arise — Phase 1 has already popped that bucket — so `>=`
+                // costs nothing against the error this is here for, which is a stale NextTick a whole
+                // period out.
+                Ticks due = instances.NextTick[instance];
+
+                report.Require(
+                    due >= report.Tick && due < report.Tick + new Ticks(EventWheel.Size),
+                    Invariant.AnArmedRowIsDueWithinOnePeriod,
+                    instance,
+                    bucket);
             }
         }
 

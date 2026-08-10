@@ -78,7 +78,8 @@ public class ZoneRuleLongRunTests
     [Fact]
     public void The_hundred_thousand_Tick_slots_run()
     {
-        Reading[] readings = Run(out World world, out Reading opening);
+        Reading[] readings =
+            Run(out World world, out Reading opening, out Simulation simulation);
         Reading[] tail = readings[SettleReadings..];
 
         // Vacuity first, and it is the whole reason this test can be trusted. Every assertion below
@@ -160,7 +161,9 @@ public class ZoneRuleLongRunTests
             $"the Unplaced Pool held {earlyPool} Households on average over the first half of the "
             + $"tail and {latePool} over the second. The city is evicting faster than it rehouses.");
 
-        new Simulation(world, WorldKey.FromSeed(GoldenFixtures.Seed)).CheckEndOfRun();
+        // On the Simulation that ran, not a fresh one: a new Simulation's _tick is 0, so this tier
+        // stamped every violation Tick 0 on a world 100,000 Ticks old. See RuleLongRunTests.
+        simulation.CheckEndOfRun();
     }
 
     /// <summary>Every reading's value equals the first one's.</summary>
@@ -251,13 +254,14 @@ public class ZoneRuleLongRunTests
         new Size(world.UnplacedPool.Rows.SlotCount, world.UnplacedPool.Count),
         triggers);
 
-    private static Reading[] Run(out World world, out Reading opening)
+    private static Reading[] Run(
+        out World world, out Reading opening, out Simulation simulation)
     {
         var key = WorldKey.FromSeed(GoldenFixtures.Seed);
 
         world = new World(Population, GoldenFixtures.Rules());
 
-        Simulation simulation = new(world, key)
+        simulation = new Simulation(world, key)
         {
             // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's
             // reason, and the guard's own correctness is covered by the tests written for it.

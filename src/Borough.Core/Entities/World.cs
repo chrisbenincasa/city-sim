@@ -121,7 +121,13 @@ public sealed class World
         // justified, so plans/0002 carries them as unratified until a real Ruleset supplies the shape.
         Bins = new BinTable(PerThousand(citizens, 450), Buildings);
         RuleInstances = new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins);
-        Wheel = new EventWheel(RuleInstances);
+
+        // The registry is built before the Wheel rather than after the tables, because EventWheel.Arm
+        // reports a double arming through it. Ordering only — it folds nothing and the hash is
+        // composed from _tables below.
+        Invariants = new InvariantRegistry();
+
+        Wheel = new EventWheel(RuleInstances, Invariants);
 
         // Declaration order, which is hash composition order. The Rule engine's three tables go last
         // because they arrived last; the order is arbitrary but it is not free to change, so it is
@@ -131,7 +137,6 @@ public sealed class World
             Bins.Rows, RuleInstances.Rows, Wheel.Buckets.Rows, UnplacedPool.Rows,
         ];
 
-        Invariants = new InvariantRegistry();
         WorldInvariants.RegisterAll(Invariants);
     }
 
@@ -850,8 +855,8 @@ public sealed class World
     /// <para>
     /// <b>A rate at or beyond the wheel's period is left to throw.</b> Such a Rule could not re-arm
     /// after its first success either, so clamping here would buy one working firing and fail on the
-    /// second — <see cref="EventWheel.Arm"/>'s refusal names slice 9's overflow list, which is the
-    /// correct diagnosis and the one worth surfacing at world creation rather than a rate later.
+    /// second — <see cref="EventWheel.Arm"/>'s refusal names the coarse wheel, which is the correct
+    /// diagnosis and the one worth surfacing at world creation rather than a rate later.
     /// </para>
     /// </remarks>
     private uint ArmingStagger(Handle<Building> building, RuleId rule, Ticks now, WorldKey key)
@@ -1153,14 +1158,44 @@ public sealed class World
     }
 
     /// <summary>Takes a Rule Instance off whichever one list it is on, leaving it on neither.</summary>
+    /// <summary>
+    /// Takes a Rule Instance off whichever of the two structures holds it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Every live scheduled row is in exactly one of {armed, waiting} — at a phase boundary, which
+    /// is the domain and not a caveat</b> (<c>adr/0056</c>, as amended). Between Phase 1's
+    /// <c>CollectDue</c> and the end of Phase 3 a due row is on <em>neither</em>: it is held in the
+    /// Rule engine's own array, with <see cref="Rules.RuleInstanceTable.Blocked"/> still reading
+    /// <see cref="Blocking.Nothing"/>. So this method's branch would take the armed path and remove
+    /// nothing.
+    /// <para>
+    /// <b>Both callers are safe, and both are safe by the phase order rather than by anything either
+    /// of them does.</b> A Zone Rule demolishes in phase 6, after Phase 3 has put every due row back;
+    /// a Ruleset reload refits in phase 0, before Phase 1 has taken any out. Nothing anywhere stated
+    /// that until now, and two callers resting on an unstated ordering property is what makes it worth
+    /// stating: a third caller between Phases 1 and 3 would free rows the engine is still holding, and
+    /// the only thing that would notice is <see cref="Invariant.NoFreedRowIsStillLinked"/>, a whole run
+    /// later, about a slot that has since been recycled.
+    /// </para>
+    /// <para>
+    /// <b>The removal's answer is therefore checked rather than discarded.</b>
+    /// <see cref="IndexList.Remove"/> returns whether the node was in the list at all, which is the one
+    /// signal separating <em>unlinked</em> from <em>was not there</em> — and while the callers hold to
+    /// the phase order the two are never the same thing.
+    /// </para>
+    /// </remarks>
     private void Unlink(int instanceSlot)
     {
         Blocking blocking = RuleInstances.Blocked[instanceSlot];
 
         if (blocking == Blocking.Nothing)
         {
-            Wheel.Armed.Remove(
+            bool wasArmed = Wheel.Armed.Remove(
                 EventWheel.BucketOf(RuleInstances.NextTick[instanceSlot]), instanceSlot);
+
+            Invariants.Require(
+                wasArmed, Invariant.RuleInstanceIsArmedOrWaiting, instanceSlot, -1);
+
             return;
         }
 

@@ -69,6 +69,19 @@ public sealed class BinTests
     /// hypothetical: the first spelling of this helper did exactly that, and
     /// <see cref="Invariant.RuleInstanceIsArmedOrWaiting"/> is what noticed.
     /// </remarks>
+    /// <summary>
+    /// The Tick a <see cref="Sleeper"/> was drained on, and so the earliest Tick anything may wake it.
+    /// </summary>
+    /// <remarks>
+    /// <b>A fixture cannot pop a row for Tick 1 and then deposit on Tick 0.</b> An armed row is
+    /// distinguished from one in flight by <c>NextTick > now</c>
+    /// (<see cref="EventWheel.IsArmed"/>), which is a statement about a clock that only moves
+    /// forward — so a test running time backwards makes a drained row read as still armed, and
+    /// <see cref="Invariant.RuleInstanceIsArmedOrWaiting"/> reports it. The Simulation cannot do this;
+    /// three fixtures here could, and did.
+    /// </remarks>
+    private static readonly Ticks Woken = new(1);
+
     private static Handle<RuleInstance> Sleeper(World world, Handle<Building> building)
     {
         Handle<RuleInstance> instance =
@@ -158,7 +171,7 @@ public sealed class BinTests
         world.Subscribe(needsSix, flour, Blocking.Level, shortfall: 6);
         world.Subscribe(needsTen, flour, Blocking.Level, shortfall: 10);
 
-        world.Deposit(flour, 6, Ticks.Zero);
+        world.Deposit(flour, 6, Woken);
 
         Assert.False(world.RuleInstances.IsWaiting(SlotOf(world, needsSix)));
         Assert.True(world.RuleInstances.IsWaiting(SlotOf(world, needsTen)));
@@ -185,7 +198,7 @@ public sealed class BinTests
         world.Subscribe(big, flour, Blocking.Level, shortfall: 10);
         world.Subscribe(small, flour, Blocking.Level, shortfall: 2);
 
-        world.Deposit(flour, 6, Ticks.Zero);
+        world.Deposit(flour, 6, Woken);
 
         Assert.True(world.RuleInstances.IsWaiting(SlotOf(world, big)));
         Assert.True(world.RuleInstances.IsWaiting(SlotOf(world, small)));
@@ -207,7 +220,7 @@ public sealed class BinTests
         world.Subscribe(second, flour, Blocking.Level, shortfall: 3);
         world.Subscribe(third, flour, Blocking.Level, shortfall: 3);
 
-        world.Deposit(flour, 6, Ticks.Zero);
+        world.Deposit(flour, 6, Woken);
 
         Assert.False(world.RuleInstances.IsWaiting(SlotOf(world, first)));
         Assert.False(world.RuleInstances.IsWaiting(SlotOf(world, second)));
@@ -234,10 +247,10 @@ public sealed class BinTests
         world.Subscribe(blocked, bread, Blocking.Headroom, shortfall: 4);
 
         // Nothing a deposit could do helps, and at capacity there is not even room to try.
-        world.Deposit(bread, 0, Ticks.Zero);
+        world.Deposit(bread, 0, Woken);
         Assert.True(world.RuleInstances.IsWaiting(SlotOf(world, blocked)));
 
-        world.Withdraw(bread, 4, Ticks.Zero);
+        world.Withdraw(bread, 4, Woken);
         Assert.False(world.RuleInstances.IsWaiting(SlotOf(world, blocked)));
     }
 
@@ -277,7 +290,7 @@ public sealed class BinTests
         world.Subscribe(first, flour, Blocking.Level, shortfall: 4);
         world.Subscribe(second, flour, Blocking.Level, shortfall: 1);
 
-        world.Deposit(flour, 1, Ticks.Zero);
+        world.Deposit(flour, 1, Woken);
 
         Assert.True(world.RuleInstances.IsWaiting(SlotOf(world, first)));
         Assert.True(world.RuleInstances.IsWaiting(SlotOf(world, second)));
@@ -426,6 +439,119 @@ public sealed class BinTests
             Invariant.RuleInstanceIsArmedOrWaiting,
             Assert.Throws<InvariantViolationException>(
                 () => world.Invariants.RunEndOfRun(world, default)).Violation.Invariant);
+    }
+
+    /// <summary>
+    /// Arming a row that is already armed is refused where it happens, not at the end of the run.
+    /// </summary>
+    /// <remarks>
+    /// <b>The symmetric half of <see cref="A_rule_cannot_subscribe_twice"/>, and it was missing.</b>
+    /// A second arming appends the row to a second bucket, so it fires twice and one of the two entries
+    /// survives every later unlink — detectable at the end of a run by a count of two, by which point
+    /// the call site that did it is gone.
+    /// </remarks>
+    [Fact]
+    public void The_wheel_refuses_arming_a_row_that_is_already_armed()
+    {
+        (World world, Handle<Building> building) = Built();
+
+        Handle<RuleInstance> instance =
+            world.CreateRuleInstance(building, Bake, Ticks.Zero, delay: 5);
+
+        Assert.Equal(
+            Invariant.RuleInstanceIsArmedOrWaiting,
+            Assert.Throws<InvariantViolationException>(
+                () => world.Wheel.Arm(SlotOf(world, instance), Ticks.Zero, delay: 7))
+                .Violation.Invariant);
+    }
+
+    /// <summary>
+    /// The row Phase 1 popped may be armed again on the same Tick, which is the ordinary re-arm.
+    /// </summary>
+    /// <remarks>
+    /// <b>The control for the refusal above, and the reason it is a strict comparison.</b> A popped row
+    /// still reads <see cref="Blocking.Nothing"/> and still carries the <c>NextTick</c> it fired on, so
+    /// a refusal written as <em>armed or in flight</em> would refuse every success in the engine's
+    /// hottest path.
+    /// </remarks>
+    [Fact]
+    public void A_row_the_wheel_has_popped_may_be_armed_again_on_the_same_tick()
+    {
+        (World world, Handle<Building> building) = Built();
+
+        Handle<RuleInstance> instance =
+            world.CreateRuleInstance(building, Bake, Ticks.Zero, delay: 1);
+
+        int slot = SlotOf(world, instance);
+
+        Assert.Equal(slot, world.Wheel.PopDue(Woken));
+
+        world.Wheel.Arm(slot, Woken, delay: 32);
+
+        Assert.Equal(slot, world.Wheel.Armed.PeekFront(EventWheel.BucketOf(new Ticks(33))));
+    }
+
+    /// <summary>
+    /// A row whose <c>NextTick</c> is a whole period stale is caught, and the bucket cannot catch it.
+    /// </summary>
+    /// <remarks>
+    /// <b>The error a modulus makes, and the reason this check is written in absolute Ticks.</b>
+    /// <c>BucketOf</c> is <c>NextTick % WHEEL_SIZE</c>, so adding a period leaves the row in the same
+    /// bucket and every test written modulo the period still passes — while the row is now scheduled
+    /// for a Tick the drain reached long ago. Corrupted directly, per this suite's rule: the two
+    /// mechanisms that could produce it are a reload refit, which re-arms on the
+    /// <c>[1, rate]</c> stagger and therefore cannot, and a load from a save, which does not exist.
+    /// </remarks>
+    [Fact]
+    public void An_armed_row_a_whole_period_stale_is_caught_at_the_end_of_the_run()
+    {
+        (World world, Handle<Building> building) = Built();
+
+        Handle<RuleInstance> instance =
+            world.CreateRuleInstance(building, Bake, Ticks.Zero, delay: 5);
+
+        int slot = SlotOf(world, instance);
+        Ticks stale = world.RuleInstances.NextTick[slot] + new Ticks(EventWheel.Size);
+
+        // Same bucket, so the bucket test below it still holds. That is the whole point.
+        Assert.Equal(
+            EventWheel.BucketOf(world.RuleInstances.NextTick[slot]), EventWheel.BucketOf(stale));
+
+        world.RuleInstances.NextTick[slot] = stale;
+
+        Assert.Equal(
+            Invariant.AnArmedRowIsDueWithinOnePeriod,
+            Assert.Throws<InvariantViolationException>(
+                () => world.Invariants.RunEndOfRun(world, default)).Violation.Invariant);
+    }
+
+    /// <summary>
+    /// Unlinking a row that says it is armed and is not in its bucket reports rather than passing.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="IndexList.Remove"/> returns whether the node was there, and discarding that was
+    /// the defect.</b> A row in flight between Phase 1 and Phase 3 reads
+    /// <see cref="Blocking.Nothing"/> while sitting in no bucket, so a caller unlinking one would
+    /// silently remove nothing and free a row the engine is still holding. Both real callers are safe
+    /// by the phase order — demolition is phase 6, a reload refit is phase 0 — and nothing stated that
+    /// until this check existed.
+    /// </remarks>
+    [Fact]
+    public void Unlinking_a_row_that_is_not_in_the_bucket_it_names_is_reported()
+    {
+        (World world, Handle<Building> building) = Built();
+
+        Handle<RuleInstance> instance =
+            world.CreateRuleInstance(building, Bake, Ticks.Zero, delay: 5);
+
+        // Moving the row's due Tick to another bucket without moving the row is what an in-flight
+        // unlink looks like from inside Unlink: Blocked says armed, and the named bucket is empty.
+        world.RuleInstances.NextTick[SlotOf(world, instance)] = new Ticks(6);
+
+        Assert.Equal(
+            Invariant.RuleInstanceIsArmedOrWaiting,
+            Assert.Throws<InvariantViolationException>(
+                () => world.DestroyBuilding(building, new Ticks(7))).Violation.Invariant);
     }
 
     /// <summary>A row queued on one Bin while naming another sleeps through the write it needs.</summary>

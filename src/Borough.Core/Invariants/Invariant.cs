@@ -310,4 +310,30 @@ public enum Invariant
     /// </para>
     /// </remarks>
     DerelictBuildingRunsNoRules = 26,
+
+    /// <summary>
+    /// An armed row is due strictly after now and strictly within one period.
+    /// </summary>
+    /// <remarks>
+    /// <b>The half of <see cref="RuleInstanceIsArmedOrWaiting"/> that could not be written modulo the
+    /// period.</b> The whole-world walk checks that an armed row sits in the bucket its
+    /// <see cref="Rules.RuleInstanceTable.NextTick"/> names, and <c>BucketOf</c> is
+    /// <c>NextTick % WHEEL_SIZE</c> — so that test is invariant under adding a whole period, and a row
+    /// due 8,192 Ticks ago passes it exactly as a row due next period does. Membership in the right
+    /// bucket is not the same claim as being reachable by the drain.
+    /// <para>
+    /// <b>It is unreachable while the drain visits every bucket in order, which is why it is stated
+    /// rather than assumed.</b> The two mechanisms that can produce a stale <c>NextTick</c> are a
+    /// Ruleset reload's refit and a load from a save — and slice 8's refit re-arms on slice 7's
+    /// <c>[1, rate]</c> stagger, so today only the second can, and the second does not exist yet
+    /// (architecture invariant 6, the Factorio test). This is a check written in front of a mechanism
+    /// rather than behind a caller. See <c>plans/0016</c>.
+    /// </para>
+    /// <para>
+    /// <b>It is exactly as good as the Tick its caller passes</b>, because the World does not hold one —
+    /// the same reason <c>World.Adopt</c> has to take it as a parameter. <c>Simulation.CheckEndOfRun</c>
+    /// passes the real Tick, which is the path the long runs and the runner take.
+    /// </para>
+    /// </remarks>
+    AnArmedRowIsDueWithinOnePeriod = 27,
 }

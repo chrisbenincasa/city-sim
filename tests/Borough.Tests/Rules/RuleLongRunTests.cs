@@ -69,7 +69,8 @@ public class RuleLongRunTests
     [Fact]
     public void The_hundred_thousand_Tick_acceptance_run()
     {
-        RuleActivity[] readings = Run(out World world, out Opening opening);
+        RuleActivity[] readings =
+            Run(out World world, out Opening opening, out Simulation simulation);
         RuleActivity[] tail = readings[(Settle / ReadEvery)..];
 
         // The run has to have done something, or every line below passes over nothing. This is the
@@ -109,7 +110,13 @@ public class RuleLongRunTests
             + "the slot-count assertions above are vacuous.");
 
         // The end-of-run tier, run for real. It throws by default, so reaching the next line passes.
-        new Simulation(world, WorldKey.FromSeed(GoldenFixtures.Seed)).CheckEndOfRun();
+        //
+        // On the Simulation that ran, not a fresh one over the same world. A new Simulation's _tick is
+        // 0, so every violation this tier reported was stamped Tick 0 on a world 100,000 Ticks old —
+        // harmless while nothing read the stamp, and wrong the moment something did.
+        // AnArmedRowIsDueWithinOnePeriod is the first end-of-run invariant to be relative to now, and
+        // it read every armed row as due a whole run in the future.
+        simulation.CheckEndOfRun();
     }
 
     private static long Mean(RuleActivity[] readings)
@@ -157,13 +164,14 @@ public class RuleLongRunTests
     /// <summary>The city's size, read once before anything has been demolished.</summary>
     private readonly record struct Opening(int Bins, int Instances, int Buildings);
 
-    private static RuleActivity[] Run(out World world, out Opening opening)
+    private static RuleActivity[] Run(
+        out World world, out Opening opening, out Simulation simulation)
     {
         var key = WorldKey.FromSeed(GoldenFixtures.Seed);
 
         world = new World(Population, GoldenFixtures.Rules());
 
-        Simulation simulation = new(world, key)
+        simulation = new Simulation(world, key)
         {
             // O(world) twice per Tick against a phase meant to be O(woken), which is what
             // --no-decide-guard exists for on the long runs. The guard's own correctness is covered

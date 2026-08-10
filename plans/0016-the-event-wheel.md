@@ -33,7 +33,9 @@ row it discharges, and says so.
 
 ## Status
 
-**Not started. This document is the plan the board asked for before any code.**
+**All four tasks are done. 776 tests, up from 772, and no baseline moved** — which is the acceptance test this slice set itself.
+
+What the code found is worth more than the four tasks, and it is in *What building it found* below.
 
 ~~Slice 8 is in flight in another session, at task 4 sub-tasks B and C. **The two slices touch the same
 mechanism**, and unlike slices 8 and 10 — which collided on a *file* and a *baseline* — these two
@@ -251,7 +253,7 @@ documented against slice 10. **Task 1 is safe in any order** — it touches only
 Four, matching [`0003`](0003-build-plan.md)'s estimate, and the match is a coincidence worth naming:
 the four are not the four anybody expected.
 
-### 1. The refusal, re-pointed — and the design it names was refuted
+### 1. The refusal, re-pointed — and the design it names was refuted — **done**
 
 `Arm`'s message reads *"A longer sleep needs slice 9's overflow list, not a wrap."* **`adr/0056`
 refuted the overflow list**: at 1M Households the flat list holds ~1,000,000 entries permanently, and a
@@ -265,7 +267,7 @@ says so.**
 *claim* rather than the message text; if it asserts text, that is the one thing in this task that can
 break, and it should assert the claim.
 
-### 2. The write-site refusal against a double-arm
+### 2. The write-site refusal against a double-arm — **done**
 
 `Arm` requires `Blocked == Blocking.Nothing && NextTick > now` to be **false** before it appends —
 i.e. it refuses arming a row that is already armed for a future Tick, reporting
@@ -281,7 +283,7 @@ this one is on the phase that runs every Tick.
 A test that writes the violation and watches it fire, per `CLAUDE.md` — arm, then arm again without
 popping.
 
-### 3. The whole-world check, strengthened to the period rather than the bucket
+### 3. The whole-world check, strengthened to the period rather than the bucket — **done**
 
 `RuleInstancesAreQueuedExactlyOnce` gains `report.Tick < NextTick && NextTick < report.Tick + Size` for
 every armed row it walks. Finding 4 is the derivation: the existing predicate is invariant under a whole
@@ -297,7 +299,7 @@ something?** That audit found `HouseholdHomeExists` orphaned among 26 invariants
 the partition, the freed-row clause, the two refusals and now the period bound. Report what is orphaned;
 do not renumber anything, because a crash artifact carries the id.
 
-### 4. `Unlink`'s discarded return, and the phase-order claim underneath it
+### 4. `Unlink`'s discarded return, and the phase-order claim underneath it — **done**
 
 Stop discarding `IndexList.Remove`'s `bool` at `World.cs:1160`. A removal that removed nothing means the
 row was not where `Blocked` said it was, which is either a bug or the in-flight window — and the caller
@@ -311,7 +313,70 @@ consequence bullet, not a new ADR — the decision is unchanged and only its sco
 
 ---
 
+## What building it found
+
+Five things, and the first two are worth more than the slice.
+
+### 1. The end-of-run tier stamped every violation `Tick 0`, in both long runs
+
+`Simulation.CheckEndOfRun()` reports through `InvariantRegistry`, which stamps each `Violation` with the
+Tick it was given. Both 100,000-Tick acceptance runs called it on a **fresh `Simulation` built over the
+already-run world** — `new Simulation(world, key).CheckEndOfRun()` — purely because the helper that ran
+the world did not hand its own `Simulation` back. A new `Simulation`'s `_tick` is 0, so **every
+violation the whole-world tier has ever reported in the runs `CLAUDE.md` names as the ones that surface
+these bugs carried a Tick of 0 on a world 100,000 Ticks old.**
+
+**Nothing noticed because nothing read it.** No end-of-run invariant had ever been relative to *now*;
+the stamp was decorative, and a decorative field agreeing with nothing is invisible. Task 3's check is
+the first consumer, and it failed instantly — reading every armed row in a settled city as due a whole
+run in the future. Fixed by threading the `Simulation` that ran through both helpers, which also deletes
+the throwaway. **The tier where the Tick is the *only* temporal context a crash artifact carries is the
+tier that had it wrong.**
+
+### 2. `Simulation._tick` is the *next* Tick to run, and the window is half-open because of it
+
+The first spelling of task 3 required `NextTick > Tick` and fired on a row armed for **exactly** Tick
+100,000 after a 100,000-Tick run. `Simulation.Step` reads `tick = _tick` and increments **after**, so
+`_tick` is the Tick about to run rather than the one just run, and a row armed for it is due next rather
+than overdue. The bound is `Tick <= NextTick < Tick + WHEEL_SIZE`, and the boundary is derived rather
+than nudged: mid-Tick the case cannot arise, because Phase 1 has already popped that bucket.
+
+### 3. Three fixtures ran time backwards, and the refusal rests on time not doing that
+
+`BinTests.Sleeper` arms at Tick 0 with a delay of 1 and pops the row for **Tick 1** — leaving
+`NextTick` at 1 — and three tests then deposited at **Tick 0**. Under `IsArmed`'s `NextTick > now` a
+drained row therefore read as still armed, and the new refusal reported it. **The fixtures were wrong
+and the predicate was not**: a row popped for Tick 1 cannot be woken on Tick 0 in any run, because the
+Tick loop only moves forward. They now act on a named `Woken` constant, and the assumption is written
+where it is relied on. It is the fourth instance of this project's recurring shape — a green suite
+agreeing with the code rather than with the claim — and the first found in a fixture's *clock* rather
+than its data.
+
+### 4. A state refusal wanted the registry inside `EventWheel`, which reordered `World`'s constructor
+
+`Arm`'s refusal is a claim about the **world** and not about an argument — the delay refusal above it is
+the other way round — so it reports through `InvariantRegistry` with an id a crash artifact can carry,
+exactly as `World.Subscribe` does at the other half of the partition. That meant injecting the registry,
+and `Invariants` was constructed *after* `Wheel`. It is built before it now, with the ordering stated;
+it folds nothing, so the hash is untouched.
+
+### 5. The slice's real shape: every check the wheel wants is relative to a *now* it does not have
+
+Each of the three checks rests on a property nobody had written down — the double-arm refusal on **time
+being monotone**, the period bound on the **caller passing a truthful Tick**, and `Unlink` on the
+**phase order**. All three are properties of the World or of the Tick loop rather than of the wheel, and
+the wheel reaches a `now` only through whoever calls it. **This is the same wall slice 8's `World.Adopt`
+hit** when it had to take the Tick as a parameter to compute a stagger. Whether the World should hold
+the Tick is not slice 9's to settle — it is `05 §7`'s save format question wearing a different hat — but
+it is now the third mechanism to have paid for the answer being *no*, and that is recorded in
+[`0002`](0002-open-questions.md) rather than argued here.
+
 ## Acceptance
+
+**Met.** `dotnet build` clean with 0 warnings, `dotnet test` green at **776** — four new tests, and the
+three refusals each have one that writes the violation and watches it fire, plus a control for the
+ordinary re-arm, which is the case a refusal written as *armed or in flight* would have broken.
+**No baseline moved**, so the slice is hash-neutral as it claimed it would be.
 
 - `dotnet build` clean, `dotnet test` green, no GPU and no Godot.
 - **The three golden baselines are unchanged.** This is the slice's sharpest acceptance test and it is

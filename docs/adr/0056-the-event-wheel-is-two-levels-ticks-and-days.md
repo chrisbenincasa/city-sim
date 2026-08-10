@@ -64,6 +64,25 @@ carries its own `next` column, and cross-wheel ordering is fixed by declaration 
   inherits the obligation. This is what keeps the wheel bounded under `0006` — membership is a
   *partition* of the live rows rather than an accumulation, so the wheel structurally cannot grow with
   elapsed time.
+  - **Amended by slice 9: the partition holds at a phase boundary, and that is its domain rather than a
+    caveat.** Between Phase 1's `CollectDue` and the end of Phase 3 a due row is in **neither** set — it
+    is held in the Rule engine's own array, with `blocked` still reading `Nothing` — and `RuleEngine`
+    said so in a comment before this ADR said the opposite. Stated unqualified, the sentence is false
+    for two of the eight phases, and because the bullet then extends it to *every new consumer*, what a
+    Phase 2 author inherits is a claim they will find false the first time they check it mid-Tick, with
+    nothing to tell them whether they have a bug or a bad invariant. The in-flight window is bounded by
+    one Phase 3 apply and by nothing a consumer chooses.
+  - **The third state is what makes the `O(1)` check possible, which is why it is worth naming rather
+    than hiding.** `blocked` cannot separate *armed* from *in flight*; `next_event_tick` can, because
+    `Arm` refuses a delay of zero — so an armed row is due strictly later than now and a popped one is
+    due exactly now. That is `EventWheel.IsArmed`, and it is what lets a double arming be refused where
+    it happens instead of being counted at the end of a run.
+  - **All three checks slice 9 added are relative to *now*, and the wheel has no *now* of its own.** It
+    reaches one only through its callers, so each check rests on a property nobody had written down:
+    the double-arm refusal on **time being monotone**, the period bound on the **caller passing a
+    truthful Tick**, and `Unlink` on the **phase order**. That is the same wall slice 8's `World.Adopt`
+    hit when it had to take the Tick as a parameter, and it is a property of the World rather than of
+    the wheel.
 - **A Life Stage's wake is a uniform draw over `[N, N+W)` Days**, with `W` authored per `[[life_stage]]`
   in the Ruleset and hot-reloadable under [`0015`](0015-all-tuning-data-is-hot-reloadable.md). The
   countdown keeps its meaning as a **floor** — *"at least N Days in this stage"* stays literally true —
