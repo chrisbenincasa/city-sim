@@ -208,7 +208,7 @@ public sealed class ZoneRuleCreateTests
             Assert.True(world.Buildings.Rows.TryResolve(world.Households.Dwelling[slot], out _));
         }
 
-        world.Invariants.RunEndOfRun(world, simulation.Tick);
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>
@@ -233,7 +233,7 @@ public sealed class ZoneRuleCreateTests
             }
         }
 
-        world.Invariants.RunEndOfRun(world, simulation.Tick);
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>
@@ -258,7 +258,7 @@ public sealed class ZoneRuleCreateTests
         Assert.Equal(12, world.Buildings.Rows.LiveCount);
         Assert.Equal(4, world.UnplacedPool.Count);
 
-        world.Invariants.RunEndOfRun(world, simulation.Tick);
+        world.Invariants.RunEndOfRun(world);
     }
 
     // ---- determinism ------------------------------------------------------------------------------

@@ -44,7 +44,10 @@ public sealed class World
     /// tell that from a regression is for the change to be signed. Bump this when re-baselining, never
     /// otherwise.
     /// </remarks>
-    private const ulong HashSeed = 0x426F_726F_7567_6801UL;
+    // 02: the clock joined the composition. The Tick moved out of Simulation and into ClockTable, so
+    // every hash in the project moved at once on account of the composition rather than the city —
+    // which is exactly the case this byte exists to distinguish from a regression.
+    private const ulong HashSeed = 0x426F_726F_7567_6802UL;
 
     private readonly Rows[] _tables;
 
@@ -121,11 +124,12 @@ public sealed class World
         // justified, so plans/0002 carries them as unratified until a real Ruleset supplies the shape.
         Bins = new BinTable(PerThousand(citizens, 450), Buildings);
         RuleInstances = new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins);
+        Clock = new ClockTable();
 
         // The registry is built before the Wheel rather than after the tables, because EventWheel.Arm
-        // reports a double arming through it. Ordering only — it folds nothing and the hash is
-        // composed from _tables below.
-        Invariants = new InvariantRegistry();
+        // reports a double arming through it, and after the Clock, because it reads the Tick from this
+        // world rather than being told one. Ordering only — the registry folds nothing.
+        Invariants = new InvariantRegistry(this);
 
         Wheel = new EventWheel(RuleInstances, Invariants);
 
@@ -134,11 +138,28 @@ public sealed class World
         // stated here and moving it is a re-baseline rather than a tidy-up.
         _tables = [
             Lots.Rows, Buildings.Rows, Households.Rows, Citizens.Rows, Layers.Cells.Rows,
-            Bins.Rows, RuleInstances.Rows, Wheel.Buckets.Rows, UnplacedPool.Rows,
+            Bins.Rows, RuleInstances.Rows, Wheel.Buckets.Rows, UnplacedPool.Rows, Clock.Rows,
         ];
 
         WorldInvariants.RegisterAll(Invariants);
     }
+
+    /// <summary>The world's position in time, as one saved row.</summary>
+    public ClockTable Clock { get; }
+
+    /// <summary>
+    /// The Tick this world is about to run.
+    /// </summary>
+    /// <remarks>
+    /// <b>Read freely; advanced only by <see cref="Simulation.Step"/>.</b> It is the <em>next</em> Tick
+    /// rather than the last one run — <see cref="ClockTable"/> says why that convention is kept — so a
+    /// row armed for exactly it is due next rather than overdue, which is what makes the Event Wheel's
+    /// period bound half-open at the bottom.
+    /// </remarks>
+    public Ticks Tick => Clock.Tick[0];
+
+    /// <summary>Moves the world on one Tick. <b>The Tick loop's, and nothing else's.</b></summary>
+    internal void Advance() => Clock.Tick[0] += new Ticks(1);
 
     /// <summary>Parcels of land.</summary>
     public LotTable Lots { get; }

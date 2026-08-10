@@ -39,9 +39,23 @@ public sealed class InvariantRegistry
     /// <summary>The default number of Ticks the staggered sweep takes to cover the world.</summary>
     private const int DefaultSlices = 64;
 
+    private readonly Entities.World _world;
+
     private readonly List<Sweep> _staggered = [];
     private readonly List<Walk> _endOfRun = [];
     private readonly List<Violation> _collected = [];
+
+    /// <param name="world">
+    /// The world whose claims these are, and the one the Tick is read from. <b>Taken in the
+    /// constructor rather than per call, because a Tick a caller supplies is a Tick a caller can be
+    /// wrong about</b> — see <see cref="Tick"/>.
+    /// </param>
+    public InvariantRegistry(Entities.World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        _world = world;
+    }
 
     private int _slices = DefaultSlices;
 
@@ -89,8 +103,18 @@ public sealed class InvariantRegistry
         }
     }
 
-    /// <summary>The Tick a violation will be stamped with. Set by the Simulation each Tick.</summary>
-    public Ticks Tick { get; set; }
+    /// <summary>
+    /// The Tick a violation is stamped with, and the Tick a check may compare against.
+    /// </summary>
+    /// <remarks>
+    /// <b>Read from the world, never handed in.</b> It was a settable property, and the two tier
+    /// runners took a Tick from their caller — which let both 100,000-Tick acceptance runs stamp every
+    /// violation <c>Tick 0</c>, because each called <c>CheckEndOfRun</c> on a freshly built Simulation
+    /// over an already-run world. Nothing noticed for as long as no check was relative to it; slice 9's
+    /// period bound was the first that was, and it failed immediately. A Tick a caller can be wrong
+    /// about is a Tick every caller has to be right about, so it is not a parameter any more.
+    /// </remarks>
+    public Ticks Tick => _world.Tick;
 
     /// <summary>What was found, when <see cref="Collect"/> is set. Empty otherwise.</summary>
     public IReadOnlyList<Violation> Collected => _collected;
@@ -164,12 +188,11 @@ public sealed class InvariantRegistry
     /// suite that failed on one machine and passed on another, which is the failure mode that makes
     /// people stop believing tests.
     /// </remarks>
-    public void RunStaggered(World world, Ticks tick)
+    public void RunStaggered(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
 
-        Tick = tick;
-        int slice = (int)(tick.Raw % (ulong)_slices);
+        int slice = (int)(world.Tick.Raw % (ulong)_slices);
 
         foreach (Sweep check in _staggered)
         {
@@ -178,11 +201,9 @@ public sealed class InvariantRegistry
     }
 
     /// <summary>Runs the whole end-of-run tier.</summary>
-    public void RunEndOfRun(World world, Ticks tick)
+    public void RunEndOfRun(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
-
-        Tick = tick;
 
         foreach (Walk check in _endOfRun)
         {

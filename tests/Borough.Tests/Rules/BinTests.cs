@@ -346,7 +346,7 @@ public sealed class BinTests
         Assert.False(world.RuleInstances.IsWaiting(foreignSlot));
         Assert.Equal(new Ticks(8), world.RuleInstances.NextTick[foreignSlot]);
 
-        world.Invariants.RunEndOfRun(world, default);
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>
@@ -438,7 +438,7 @@ public sealed class BinTests
         Assert.Equal(
             Invariant.RuleInstanceIsArmedOrWaiting,
             Assert.Throws<InvariantViolationException>(
-                () => world.Invariants.RunEndOfRun(world, default)).Violation.Invariant);
+                () => world.Invariants.RunEndOfRun(world)).Violation.Invariant);
     }
 
     /// <summary>
@@ -522,7 +522,7 @@ public sealed class BinTests
         Assert.Equal(
             Invariant.AnArmedRowIsDueWithinOnePeriod,
             Assert.Throws<InvariantViolationException>(
-                () => world.Invariants.RunEndOfRun(world, default)).Violation.Invariant);
+                () => world.Invariants.RunEndOfRun(world)).Violation.Invariant);
     }
 
     /// <summary>
@@ -570,7 +570,7 @@ public sealed class BinTests
         Assert.Equal(
             Invariant.WaiterIsQueuedOnTheBinItNames,
             Assert.Throws<InvariantViolationException>(
-                () => world.Invariants.RunEndOfRun(world, default)).Violation.Invariant);
+                () => world.Invariants.RunEndOfRun(world)).Violation.Invariant);
     }
 
     private static int[] Walk(IndexList list, int owner)

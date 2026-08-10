@@ -40,7 +40,6 @@ public sealed class Simulation
     private readonly ZoneRuleEngine _zoning;
     private readonly RulesetCatalogue _rulesets;
 
-    private ulong _tick;
     private TickPhase _phase = TickPhase.Commit;
     private ulong _inForce;
     private bool _opened;
@@ -123,8 +122,15 @@ public sealed class Simulation
     /// An unsigned counter, per <c>CONTEXT.md</c>. At the reference rate of 16 Ticks/s a
     /// <see cref="ulong"/> outlasts any session by a margin with no useful name, so nothing in the
     /// core checks it for overflow.
+    /// <para>
+    /// <b>The world holds it, and this is a view of it.</b> It was a private field here, which meant a
+    /// second Simulation over the same world reported a Tick of zero and every invariant that took a
+    /// Tick from its caller could be told the wrong one — see
+    /// <see cref="Entities.ClockTable"/> for the three mechanisms that paid for that before it moved.
+    /// A Simulation is the loop; the Tick is state.
+    /// </para>
     /// </remarks>
-    public Ticks Tick => new(_tick);
+    public Ticks Tick => _world.Tick;
 
     /// <summary>The phase last entered. For the crash artifact, which reports where a panic landed.</summary>
     public TickPhase Phase => _phase;
@@ -158,7 +164,7 @@ public sealed class Simulation
     /// </remarks>
     public void Step(in TickInput input)
     {
-        Ticks tick = new(_tick);
+        Ticks tick = _world.Tick;
 
         Reload(input, tick);
         ApplyInput(input, tick);
@@ -170,7 +176,7 @@ public sealed class Simulation
         Growth(tick);
         Commit(tick);
 
-        _tick++;
+        _world.Advance();
     }
 
     /// <summary>How many times the Ruleset in force has changed since this Simulation started.</summary>
@@ -463,7 +469,7 @@ public sealed class Simulation
         // 02 §10's staggered tier. Last in the Tick because it asserts about a settled world: run
         // before Growth and it would report a city mid-edit, which is a check that fires on correct
         // code and is therefore a check somebody eventually deletes.
-        _world.Invariants.RunStaggered(_world, tick);
+        _world.Invariants.RunStaggered(_world);
     }
 
     /// <summary>
@@ -481,7 +487,7 @@ public sealed class Simulation
     /// check that ran every Tick would have to be cheap, and these are the ones that are not.
     /// </para>
     /// </remarks>
-    public void CheckEndOfRun() => _world.Invariants.RunEndOfRun(_world, new Ticks(_tick));
+    public void CheckEndOfRun() => _world.Invariants.RunEndOfRun(_world);
 
     /// <summary>
     /// Folds every column of every table — derived ones included — for the Decide guard.

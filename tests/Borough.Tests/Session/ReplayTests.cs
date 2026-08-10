@@ -87,16 +87,30 @@ public sealed class ReplayTests
         Assert.Equal(TickCount / 4, Replay.Run(log, new Ticks(TickCount), hashEvery: 4).Length);
     }
 
+    /// <summary>
+    /// A command moves the hash.
+    /// </summary>
+    /// <remarks>
+    /// <b>This asserted the flat half too, and a trace can no longer state it.</b> The Tick is a saved
+    /// and hashed column now (<see cref="Borough.Core.Entities.ClockTable"/>), so every sample of every
+    /// trace differs from the one before it by construction and <c>trace[3] == trace[4]</c> is not a
+    /// claim about the city any more.
+    /// <para>
+    /// <b>The claim itself is not lost, it moved to where it can be stated honestly</b> —
+    /// <c>SimulationTests.A_tick_with_no_commands_changes_nothing_but_the_clock</c>, which folds every
+    /// table but the clock. A replay trace was always a proxy for it; the World is where the state is.
+    /// What the trace still proves is what the test below it needs and this one keeps: two runs that
+    /// diverge do so at exactly the Tick they diverged, because both carry the same clock.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void A_command_moves_the_hash_and_an_idle_tick_does_not()
+    public void A_command_moves_the_hash()
     {
-        // Commands land on Ticks 0, 1 and 2, so samples 0..2 move and everything after is flat.
+        // Commands land on Ticks 0, 1 and 2, so samples 0..2 each move on their own account.
         ulong[] trace = Replay.Run(Log(), new Ticks(8), hashEvery: 1);
 
         Assert.NotEqual(trace[0], trace[1]);
         Assert.NotEqual(trace[1], trace[2]);
-        Assert.Equal(trace[3], trace[4]);
-        Assert.Equal(trace[4], trace[7]);
     }
 
     [Fact]

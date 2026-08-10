@@ -360,7 +360,7 @@ public sealed class RulesetMigrationTests
         // The survivor is still there, still owned, and still holding what it held.
         Assert.NotEqual(Core.Tables.Rows.NoSlot, world.FindBin(First, new ResourceId(1)));
 
-        world.Invariants.RunEndOfRun(world, new Ticks(64));
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>
@@ -394,7 +394,7 @@ public sealed class RulesetMigrationTests
         Assert.Equal(0, world.RuleInstances.Rows.LiveCount);
         Assert.True(world.BuildingRules.IsEmpty(First));
 
-        world.Invariants.RunEndOfRun(world, new Ticks(64));
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>
@@ -470,7 +470,7 @@ public sealed class RulesetMigrationTests
             Assert.InRange(next.Raw, now.Raw + 1, now.Raw + 16);
         }
 
-        world.Invariants.RunEndOfRun(world, now);
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>
@@ -497,7 +497,7 @@ public sealed class RulesetMigrationTests
         Assert.NotEqual(Core.Tables.Rows.NoSlot, world.FindBin(First, new ResourceId(2)));
         Assert.Equal(4, world.Bins.Capacity[world.FindBin(First, new ResourceId(2))]);
 
-        world.Invariants.RunEndOfRun(world, new Ticks(64));
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>
@@ -520,7 +520,7 @@ public sealed class RulesetMigrationTests
         world.Buildings.Kind[First] = 0;
 
         Violation violation = Assert.Throws<InvariantViolationException>(
-            () => world.Invariants.RunEndOfRun(world, new Ticks(64))).Violation;
+            () => world.Invariants.RunEndOfRun(world)).Violation;
 
         Assert.Equal(Invariant.DerelictBuildingRunsNoRules, violation.Invariant);
     }
@@ -544,6 +544,6 @@ public sealed class RulesetMigrationTests
         Assert.Equal(3, simulation.LastReload.RuleInstancesRearmed);
         Assert.Equal(0, simulation.LastReload.BuildingsDerelicted);
 
-        world.Invariants.RunEndOfRun(world, simulation.Tick);
+        world.Invariants.RunEndOfRun(world);
     }
 }

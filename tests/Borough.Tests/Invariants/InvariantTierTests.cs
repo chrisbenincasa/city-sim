@@ -53,7 +53,7 @@ public sealed class InvariantTierTests
         World world = Built();
 
         Sweep(world);
-        world.Invariants.RunEndOfRun(world, default);
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>
@@ -69,7 +69,7 @@ public sealed class InvariantTierTests
         World world = GoldenFixtures.Build();
 
         Sweep(world);
-        world.Invariants.RunEndOfRun(world, default);
+        world.Invariants.RunEndOfRun(world);
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public sealed class InvariantTierTests
         world.Unplace(world.Households.Rows.At(0));
 
         Sweep(world);
-        world.Invariants.RunEndOfRun(world, default);
+        world.Invariants.RunEndOfRun(world);
     }
 
     [Fact]
@@ -209,9 +209,12 @@ public sealed class InvariantTierTests
 
         world.Invariants.Collect = true;
 
-        for (ulong tick = 0; tick < (ulong)world.Invariants.Slices; tick++)
+        // Advancing the world rather than handing the tier a Tick, which is the point of the Tick
+        // living on the World: the slice is a function of the Tick, and there is now one Tick.
+        for (int slice = 0; slice < world.Invariants.Slices; slice++)
         {
-            world.Invariants.RunStaggered(world, new Ticks(tick));
+            world.Invariants.RunStaggered(world);
+            world.Advance();
         }
 
         Assert.Contains(
@@ -377,7 +380,7 @@ public sealed class InvariantTierTests
         world.RebuildDerived();
 
         Assert.Equal(before, world.Lots.BuildingSlot[0]);
-        world.Invariants.RunEndOfRun(world, default);
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>Demolition returns the Lot to vacant, which is what lets it be built on again.</summary>
@@ -406,7 +409,7 @@ public sealed class InvariantTierTests
         // And the Lot is genuinely reusable rather than merely reading as empty — which is the
         // property slice 10's churn depends on and nothing has ever exercised.
         world.CreateBuilding(lot, kind: 1, default, WorldKey.FromSeed(1));
-        world.Invariants.RunEndOfRun(world, default);
+        world.Invariants.RunEndOfRun(world);
     }
 
     // ---- The switch, and the cost model ----
@@ -461,9 +464,12 @@ public sealed class InvariantTierTests
     /// <summary>Runs a whole staggered sweep, so a violation anywhere in the world is reached.</summary>
     private static void Sweep(World world)
     {
-        for (ulong tick = 0; tick < (ulong)world.Invariants.Slices; tick++)
+        // Advancing the world rather than handing the tier a Tick, which is the point of the Tick
+        // living on the World: the slice is a function of the Tick, and there is now one Tick.
+        for (int slice = 0; slice < world.Invariants.Slices; slice++)
         {
-            world.Invariants.RunStaggered(world, new Ticks(tick));
+            world.Invariants.RunStaggered(world);
+            world.Advance();
         }
     }
 
@@ -472,5 +478,5 @@ public sealed class InvariantTierTests
 
     private static Invariant CaughtAtEnd(World world) =>
         Assert.Throws<InvariantViolationException>(
-            () => world.Invariants.RunEndOfRun(world, default)).Violation.Invariant;
+            () => world.Invariants.RunEndOfRun(world)).Violation.Invariant;
 }

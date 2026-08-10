@@ -716,6 +716,8 @@ A monotonically increasing version counter on the Road Graph, bumped on any edit
 **Tick**
 The atomic simulation step. An unsigned integer counter. The simulation core has no concept of wall-clock time — the host decides when to advance it. This is what makes fast-forward, headless testing, and replay free.
 
+**The World holds it, as a saved and hashed column** — a Simulation is the loop and the Tick is state, so nothing has to be told what time it is (`adr/0058`). The stored value is the *next* Tick to run.
+
 The Tick is fine-grained **because of traffic and nothing else**. Every other process in the simulation is a discrete event that the Event Wheel can schedule at any granularity; car-following is the only continuous one, and it is what sets the resolution everything else inherits.
 
 **Day**

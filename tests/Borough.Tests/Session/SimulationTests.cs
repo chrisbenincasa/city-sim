@@ -31,15 +31,53 @@ public sealed class SimulationTests
         }
     }
 
+    /// <summary>
+    /// A Tick with no commands changes nothing but the clock.
+    /// </summary>
+    /// <remarks>
+    /// <b>The clock has to be excluded, and the exclusion is the honest half of the claim.</b> This read
+    /// <em>changes nothing</em> and compared <see cref="World.HashState"/> directly, which worked only
+    /// because the Tick lived outside the world's state — so the assertion was quietly true of a world
+    /// that had, in fact, moved on in time. Now that the Tick is a saved and hashed column the canonical
+    /// hash differs on every Tick by construction, and the claim worth making is the one this always
+    /// meant: <em>the commands are what change the city.</em>
+    /// <para>
+    /// It folds every table but the clock rather than asking <c>Core</c> for a second hash, because a
+    /// second published fold would be an API a test wanted and a thing to keep in step for ever. The
+    /// clock's own movement is asserted too, so the test cannot pass by excluding everything.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void A_tick_with_no_commands_changes_nothing()
+    public void A_tick_with_no_commands_changes_nothing_but_the_clock()
     {
         Simulation simulation = Build();
-        ulong before = simulation.World.HashState();
+
+        ulong before = HashExceptTheClock(simulation.World);
+        Ticks was = simulation.World.Tick;
 
         simulation.Step(TickInput.Empty);
 
-        Assert.Equal(before, simulation.World.HashState());
+        Assert.Equal(before, HashExceptTheClock(simulation.World));
+        Assert.NotEqual(was, simulation.World.Tick);
+        Assert.NotEqual(before, simulation.World.HashState());
+    }
+
+    /// <summary>Every table's fold except the clock's, in declaration order.</summary>
+    private static ulong HashExceptTheClock(World world)
+    {
+        ulong hash = 0;
+
+        foreach (Rows table in world.Tables)
+        {
+            if (ReferenceEquals(table, world.Clock.Rows))
+            {
+                continue;
+            }
+
+            table.Fold(ref hash);
+        }
+
+        return hash;
     }
 
     [Fact]

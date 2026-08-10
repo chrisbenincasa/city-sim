@@ -369,8 +369,14 @@ the wheel reaches a `now` only through whoever calls it. **This is the same wall
 hit** when it had to take the Tick as a parameter to compute a stagger. Whether the World should hold
 the Tick is not slice 9's to settle — it is `05 §7`'s save format question wearing a different hat — but
 it is now the third mechanism to have paid for the answer being *no*. **Filed** to
-[`0002`](0002-open-questions.md) §C under `05-technical-architecture.md`, beside `§7`'s format half,
-because *what is saved* and *who owns it* are one sitting.
+[`0002`](0002-open-questions.md) §C under `05-technical-architecture.md` — and **closed the same day**,
+into [`adr/0058`](../docs/adr/0058-the-tick-is-state-so-the-world-holds-it-and-the-hash-folds-it.md).
+The World holds the Tick as a saved and hashed column, and the invariant tiers stopped taking one at
+all, so the `Tick 0` bug class is **unrepresentable** rather than fixed. Two things the move found that
+neither this plan nor the filed entry had: adding a table changes the hash **composition**, so the
+golden baseline `README`'s own step 3 applied and the seed's version byte is bumped to `02`; and folding
+the clock **kills within-run flatness**, so *"an idle Tick changes nothing"* moved to a clock-excluded
+fold where it states what it always meant. `_phase` and `_inForce` stay where they were, deliberately.
 
 Two things the filing added that this slice did not have. The Tick is in **no field declaration**, so it
 is neither hashed nor saveable — and `_phase` and `_inForce`, the Ruleset in force, are in the same

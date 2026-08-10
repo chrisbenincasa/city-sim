@@ -199,6 +199,22 @@ rule is **when something concrete is blocked on it, not because it is available.
   two-category split that reopens, not `adr/0044`.
 - **A save migration path for a Chunk size change.** Chunk size is on the *cannot be retrofitted* list
   and nothing describes what happens if a profile later says it should move. **Its own session.**
+- ~~**Does the World hold the current Tick, or does the Simulation?**~~ **CLOSED the day it was filed**,
+  into [`adr/0058`](../docs/adr/0058-the-tick-is-state-so-the-world-holds-it-and-the-hash-folds-it.md):
+  the World holds it, as a saved and hashed column on a one-row table, and the invariant tiers stopped
+  taking a Tick at all — so the bug class is *unrepresentable* rather than fixed. **What closed it was
+  not the argument in this row.** The entry led with *hash-bearing by relocation* as the obstacle, and
+  that was the wrong lead: the only recorded hashes are three baselines in this repository and
+  `GoldenHashTests` names the command that regenerates them, so a re-record is a commit and not a
+  compatibility event. `adr/0052`'s caution is calibrated for a number somebody **chooses**. **Two things
+  that were not on this row turned out to be the content.** Adding a table changes the *composition*, so
+  the golden `README`'s own step 3 applied and `World.HashSeed`'s version byte is bumped to `02` — the
+  procedure caught what the entry had not. And folding the clock **kills within-run flatness**: every
+  hash sample now differs from the last, so *"an idle Tick changes nothing"* had to move to a
+  clock-excluded fold, where it says what it always meant. Cross-run bisection is untouched. **The rest
+  of this row stands and is what is still open**, which is why the text is kept rather than deleted:
+  `_phase` and `_inForce` are still on the Simulation, in the same position the Tick was, and
+  `_inForce`'s save semantics are `§7`'s unargued format half. *Original entry follows.*
 - **Does the World hold the current Tick, or does the Simulation?** Today the Simulation does — `_tick`
   is a private `ulong` on it — and **it is therefore in no `[Table]`, in no field declaration, and so
   neither hashed nor saveable.** *(`_phase` and `_inForce`, the Ruleset in force, sit beside it in the

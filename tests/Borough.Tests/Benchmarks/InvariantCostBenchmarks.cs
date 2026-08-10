@@ -54,7 +54,7 @@ public class InvariantCostBenchmarks
     /// One Tick's worth of the staggered tier: one slice of the world, at the default cadence.
     /// </summary>
     [Benchmark(Description = "staggered, one slice")]
-    public void StaggeredSlice() => _world.Invariants.RunStaggered(_world, new Ticks(7));
+    public void StaggeredSlice() => _world.Invariants.RunStaggered(_world);
 
     /// <summary>
     /// A full sweep: every row checked once, which takes <c>Slices</c> Ticks in a real run.
@@ -69,13 +69,13 @@ public class InvariantCostBenchmarks
     {
         for (ulong tick = 0; tick < (ulong)_world.Invariants.Slices; tick++)
         {
-            _world.Invariants.RunStaggered(_world, new Ticks(tick));
+            _world.Invariants.RunStaggered(_world);
         }
     }
 
     /// <summary>The whole-world walks, paid once per run.</summary>
     [Benchmark(Description = "end of run")]
-    public void EndOfRun() => _world.Invariants.RunEndOfRun(_world, new Ticks(0));
+    public void EndOfRun() => _world.Invariants.RunEndOfRun(_world);
 
     /// <summary>
     /// The State Hash, as the reference point.

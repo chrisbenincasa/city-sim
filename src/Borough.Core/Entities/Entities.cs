@@ -55,3 +55,14 @@ public readonly struct Lot;
 /// <c>Handle&lt;Unplaced&gt;</c> — see <see cref="UnplacedTable"/>, whose rows move between slots.
 /// </remarks>
 public readonly struct Unplaced;
+
+/// <summary>
+/// The world's clock, of which there is exactly one.
+/// </summary>
+/// <remarks>
+/// <b>The second row type here that is not a thing in the world, and the first that is not even a
+/// membership.</b> A row of this table is the world's own position in time, and it is a row rather than
+/// a field because the field declaration is what generates the save and folds the State Hash — so a
+/// scalar outside it is a coverage hole by construction. See <see cref="ClockTable"/>.
+/// </remarks>
+public readonly struct Clock;
