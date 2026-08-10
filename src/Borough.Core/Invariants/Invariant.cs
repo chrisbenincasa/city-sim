@@ -86,7 +86,25 @@ public enum Invariant
     /// <summary>A Household was about to be added to a Building that already lists them.</summary>
     HouseholdIsNotAlreadyInThisBuilding = 2,
 
-    /// <summary>A Household's home is a Building that is still there.</summary>
+    /// <summary>
+    /// <b>Superseded by <see cref="HouseholdIsHousedOrInThePool"/> (<c>adr/0054</c>). Nothing reports
+    /// it, and the id is retired rather than reused.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// It claimed <em>a Household's home is a Building that is still there</em>, which stopped being
+    /// true the day a demolition could evict. The successor carries the qualified claim — <em>housed
+    /// <b>or</b> in the Pool</em> — and slice 10 task 8 expected to amend this member in place;
+    /// task 6 had already added a new one, which is the better outcome and left this behind.
+    /// </para>
+    /// <para>
+    /// <b>Kept because the id travels.</b> A violation reaches a human through a crash artifact
+    /// carrying the number, so deleting 3 would let a later invariant inherit it and make every
+    /// artifact written before that day say something false. A banner costs nothing; a reused id
+    /// cannot be un-reused.
+    /// </para>
+    /// </remarks>
+    [Obsolete("Superseded by HouseholdIsHousedOrInThePool (adr/0054). The id is retired, not reused.")]
     HouseholdHomeExists = 3,
 
     /// <summary>A Household's home lists them as an occupant.</summary>
