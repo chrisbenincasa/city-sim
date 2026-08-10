@@ -49,19 +49,22 @@ public sealed class InputLog
 
     private readonly ulong[] _ticks;
     private readonly Command[] _commands;
+    private readonly RulesetTransition[] _transitions;
 
     internal InputLog(
         ulong seed,
         WorldConfiguration configuration,
         ulong rulesetHash,
         ulong[] ticks,
-        Command[] commands)
+        Command[] commands,
+        RulesetTransition[] transitions)
     {
         Seed = seed;
         Configuration = configuration;
         RulesetHash = rulesetHash;
         _ticks = ticks;
         _commands = commands;
+        _transitions = transitions;
     }
 
     /// <summary>The world seed, as authored. <see cref="Determinism.WorldKey"/> folds it.</summary>
@@ -71,14 +74,27 @@ public sealed class InputLog
     public WorldConfiguration Configuration { get; }
 
     /// <summary>
-    /// The content hash of the Ruleset this session was played against.
+    /// The content hash of the Ruleset this session <b>opened</b> with.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The content, never the name or the path.</b> A replay run against a different Ruleset is a
     /// different simulation and will diverge — which is arithmetic rather than a bug — so the runner
     /// refuses it in <c>--strict</c> instead of reporting a divergence it caused itself.
+    /// </para>
+    /// <para>
+    /// <b>The opening one specifically, since slice 8.</b> A session may reload, so this stopped being
+    /// <em>the</em> Ruleset and became the first of several — which is why
+    /// <see cref="RulesetHashAt(Ticks)"/> exists and why nothing outside a header should read this.
+    /// </para>
     /// </remarks>
     public ulong RulesetHash { get; }
+
+    /// <summary>How many times the Ruleset changed during this session.</summary>
+    public int TransitionCount => _transitions.Length;
+
+    /// <summary>The <paramref name="index"/>-th reload, in Tick order.</summary>
+    public RulesetTransition Transition(int index) => _transitions[index];
 
     /// <summary>The number of commands in the log, across all Ticks.</summary>
     public int Count => _commands.Length;
@@ -121,26 +137,34 @@ public sealed class InputLog
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>A stub with the right shape, which is the point of writing it now.</b> Slice 8 makes the
-    /// Ruleset hot-reloadable, at which point a reload becomes a transition in this log carrying
-    /// <em>both</em> hashes. Until then one Ruleset is in force for the whole run and this returns it.
+    /// <b>The signature was written in slice 5 and stopped discarding its argument in slice 8</b>,
+    /// which is the whole reason it was written early: a stub with the right shape meant that nothing
+    /// had to learn a new question when reload arrived. <c>Replay.Trace</c> has been calling this
+    /// every Tick since slice 5 and now drives reloads by doing so, with no call site changed.
     /// </para>
     /// <para>
-    /// <b>This comment used to claim that <em>"what does not change is the log format or any caller"</em>,
-    /// and that is wrong</b> (<c>adr/0048</c>). The log gains reload transitions, so the format changes
-    /// and so does every caller that supplies a Ruleset — <c>--ruleset PATH</c> names one file and a
-    /// session that reloaded twice was played against three. What stays true is the narrower claim this
-    /// method was written for: the <em>signature</em> is right, so nothing has to learn a new question.
+    /// <b>The hash is what travels here; the content travels in the crash artifact.</b> An Input Log
+    /// is shared between people who have the Rulesets in a repository, and an artifact is attached to
+    /// an issue by somebody who may not.
     /// </para>
     /// <para>
-    /// <b>The hash is what travels here; the content travels in the crash artifact.</b> An Input Log is
-    /// shared between people who have the Rulesets in a repository, and an artifact is attached to an
-    /// issue by somebody who may not.
+    /// <b>A linear walk backwards rather than a binary search, and the asymmetry with
+    /// <see cref="At(Ticks)"/> is deliberate.</b> Commands number in the thousands and are searched;
+    /// transitions number in the handful, because each one is a designer saving a file. A binary
+    /// search over three entries is slower and harder to read than the loop, and inventing one here
+    /// would suggest a scale this list will never reach.
     /// </para>
     /// </remarks>
     public ulong RulesetHashAt(Ticks tick)
     {
-        _ = tick;
+        for (int i = _transitions.Length - 1; i >= 0; i--)
+        {
+            if (_transitions[i].Tick.Raw <= tick.Raw)
+            {
+                return _transitions[i].To;
+            }
+        }
+
         return RulesetHash;
     }
 

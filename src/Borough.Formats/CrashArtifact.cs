@@ -87,9 +87,18 @@ public sealed class CrashArtifact
     /// The Ruleset actually in force, which is not always the one the log names.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A run forced across a mismatch is running Rules the log does not describe, and a reproduction
     /// attempted against the log's Ruleset would diverge for that reason rather than for the reason
     /// it crashed. Recording what was in force is what keeps the artefact honest about which.
+    /// </para>
+    /// <para>
+    /// <b>Since slice 8 there is a second way for these to differ, and it is the ordinary one.</b>
+    /// <c>InputLog.RulesetHash</c> is the Ruleset a session <em>opened</em> with; a session that hot
+    /// reloaded crashed under a later one. So this is the hash at the <b>panic Tick</b>, which the
+    /// embedded log can also be asked for — and the two agreeing is the check that the artefact and
+    /// its log describe one run.
+    /// </para>
     /// </remarks>
     public ulong RulesetHash { get; }
 

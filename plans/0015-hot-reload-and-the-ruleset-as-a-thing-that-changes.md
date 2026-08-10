@@ -43,9 +43,17 @@ constraint is discharged.
   A structural reload is **refused by name** until tasks 4–6, and two refusals nobody planned turned
   out to be load-bearing: a transition this session cannot resolve, and a catalogue that does not open
   with the world's own Ruleset.
-- **Next: task 2** — the transition in the Input Log, and `RulesetHashAt` stopping discarding its
-  argument. Everything task 1 built is driven directly through `TickInput` today; task 2 is what lets
-  a *log* express a reload, and it changes the log format.
+- **Task 2** — the transition in the Input Log. `RulesetHashAt` stopped discarding its argument and
+  **cost zero call sites**, which is what the slice-5 stub was written for. **The format version did
+  not move, and the rule that said it should is the finding**: *bump when a field is added to the
+  header* is a proxy for *bump when an old reader would misread a new log*, and the proxy has now
+  been wrong twice in the same direction. The redundant `from` hash earns its place by catching a
+  **spliced log** at parse time. Four builder refusals, each a claim about what a log may say
+  happened — including that a Tick carries at most one reload, which is the log's half of task 1's
+  ordering.
+- **Next: task 3** — the world-creation refusal, and the `const` that has to move first. This is the
+  **live defect** planning found: the industrial pollution kernel radius is a `const` in
+  `SeparableKernel.cs:177`, and a refusal cannot detect a change to a number that lives in the binary.
 
 ---
 
@@ -345,7 +353,7 @@ saying so, and that file is the list to re-run when the Ruleset grows a field.
 **Nothing existing moved.** `RulesetCatalogue.None` is the default, so every world built before today
 behaves exactly as it did and no baseline was touched. 27 new tests; 710 total.
 
-### 2. The transition in the Input Log, and filling in `RulesetHashAt`
+### 2. The transition in the Input Log, and filling in `RulesetHashAt` — **done**
 
 `InputLog.RulesetHashAt(Ticks)` stops discarding its argument. The log gains a transition list —
 `(tick, from hash, to hash)` — and `RulesetHashAt` answers from it.
@@ -359,6 +367,56 @@ The codec (`InputLogCodec.cs:78` writes `ruleset 0x…` as a single header line)
 `CrashArtifact` continues to carry **content**, per `05 §7` and the remark at `InputLog.cs:136` — and
 an artifact from a session that reloaded twice carries three Rulesets, which is a size question worth
 a glance and probably not worth an answer.
+
+#### What building it changed — **done**
+
+**`RulesetHashAt` cost one method body and zero call sites**, which is what the slice-5 stub bought.
+`Replay.Trace` has called it every Tick since it was written and now drives reloads by doing so, with
+nothing in it changed. *A stub with the right shape is worth writing before it can be implemented*
+has been asserted around here for three slices; this is the first time it has been collected on.
+
+**The format version did **not** move, and the rule that said it should is the finding.** The codec's
+stated rule was *bump whenever a field is added to `Command`, to `WorldConfiguration` or to the
+header*, and `reload` lines are header lines. But the rule is a **proxy** for the property that
+matters — ***bump when an old reader would misread a new log*** — and the proxy has now been wrong
+twice in the same direction. A new verb did not bump it, on the argument that an old reader refuses
+`populate` by name; a `reload` line is refused by name too (*expected `--` between the header and the
+commands*), and a new reader meeting an old log finds no reloads and runs one Ruleset throughout.
+Neither direction misreads. So the comment now states the property and keeps the proxy as an
+example — and records what *would* bump it: a change to a line that already exists, which an old
+reader parses happily and gets wrong.
+
+**The cost of getting that wrong was concrete**: a bump would have invalidated every log ever
+written, the committed golden baseline included, to answer a question no reader was going to get
+wrong. A test writes an old log out **literally** rather than round-tripping it, because a round trip
+through today's writer proves only that this build agrees with itself.
+
+**The `from` hash is redundant and is written anyway, and the refusal it enables is the reason.** The
+`to` hashes alone reproduce a session. Carrying `from` means the parser can verify the chain, so a log
+that has been hand-edited, truncated or **spliced from two sessions** is caught at parse time with a
+line number — rather than parsing perfectly and replaying to a city neither session ever contained.
+The builder *derives* `from` rather than taking it, so an inconsistent chain is unauthorable and the
+check is one every honest writer passes by construction.
+
+**Three builder refusals, and each is a claim about what a log may say happened.** A reload before the
+previous one (append-only). **Two reloads on one Tick** — a Tick has exactly one Ruleset, which is the
+log's half of task 1's swap-then-commands ordering. And **a reload on Tick 0**, which could never have
+taken effect, because the opening Ruleset is the header's and the first Tick *establishes* rather than
+swaps. A fourth is arguably the most useful: **loading the Ruleset already in force is refused**,
+because a designer saving the same file twice is ordinary and recording it would make the reload count
+report keystrokes rather than tuning.
+
+**`Replay.Start` gained a catalogue overload, and the one-Ruleset form got strictly better.** It now
+builds a catalogue of one, so a log carrying a transition it cannot resolve is **refused** — where
+before slice 8 the same log replayed silently under its opening Ruleset and diverged, which is
+arithmetic rather than a bug and indistinguishable from one.
+
+**`InputLog.RulesetHash` quietly changed meaning** from *the* Ruleset to the **opening** one, and
+`CrashArtifact.RulesetHash` inherits the consequence: a session that reloaded crashed under a later
+Ruleset, so the artifact's hash is the one at the **panic Tick**. Both doc comments now say so. The
+artifact needed no other change — it embeds the log through the codec, so reloads travel for free.
+
+15 new tests; 725 total. No baseline moved.
 
 ### 3. The world-creation refusal, the loader's second entry point, and the `const` that has to move first
 

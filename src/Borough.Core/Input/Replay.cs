@@ -61,8 +61,35 @@ public static class Replay
         ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(rules);
 
-        var world = new World(log.Configuration.Citizens, LayerRuleset.Default, rules);
-        return new Simulation(world, WorldKey.FromSeed(log.Seed));
+        return Start(log, RulesetCatalogue.Fixed(log.RulesetHash, rules));
+    }
+
+    /// <inheritdoc cref="Start(InputLog, Ruleset)"/>
+    /// <param name="log">The session to reproduce.</param>
+    /// <param name="rulesets">
+    /// Every Ruleset the session was played against, by content hash, opening one first.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// <b>A session that reloaded twice was played against three Rulesets</b>, which is the sentence
+    /// <c>InputLog.cs:131</c> wrote down before anything could act on it. The one-Ruleset overload
+    /// still exists and is still right for the overwhelming majority of sessions; what it now does is
+    /// build a catalogue of one, so a log carrying a transition it cannot resolve is <b>refused</b>
+    /// rather than replayed against the wrong Rules.
+    /// </para>
+    /// <para>
+    /// <b>That refusal is an improvement rather than a new obligation.</b> Before slice 8 the same
+    /// log would have replayed silently under its opening Ruleset and diverged — arithmetic rather
+    /// than a bug, and indistinguishable from one.
+    /// </para>
+    /// </remarks>
+    public static Simulation Start(InputLog log, RulesetCatalogue rulesets)
+    {
+        ArgumentNullException.ThrowIfNull(log);
+        ArgumentNullException.ThrowIfNull(rulesets);
+
+        var world = new World(log.Configuration.Citizens, LayerRuleset.Default, rulesets.Opening);
+        return new Simulation(world, WorldKey.FromSeed(log.Seed), rulesets);
     }
 
     /// <summary>
