@@ -185,14 +185,20 @@ value that does not exist. What it now does is make the absence visible to anyon
 > was two 64-bit divisions**. Correcting it is bit-identical — 1,060 tests green, no golden baseline
 > moved — and took the Lane model from 47.3–48.0 ns to **27.4–29.3 ns**.
 >
-> **Two rows in the ledger below were measured on that substrate and are not restated here.** The Bin
-> Rule engine's **6.4 ms in situ** and S0b's **8.72 ms** whole Tick were both taken before the
-> correction, so **both are upper bounds by an unknown amount** — unknown because `Fixed.Div`'s
-> frequency in the Rule engine has never been counted, and S5 may speak only for the one consumer it
-> measured. **This is the *measured/guessed* column's blind spot showing up on its good side for once**:
-> the column asks whether a multiplicand was measured, and says nothing about whether the machine the
-> unit was measured on had a defect in it. Re-taking both is owed and neither is urgent, because the
-> correction can only move them **down**.
+> **The other rows were then checked rather than assumed, and they are essentially unmoved.** An
+> earlier revision of this note said the Bin Rule engine's **6.4 ms** and S0b's **8.72 ms** were
+> *"upper bounds by an unknown amount"*. **The amount is now known and it is ~1%.** Measured by the
+> two-point slope S0b itself uses — 200,000 Citizens under `rulesets/minimal.toml`, 2,000 against
+> 8,000 Ticks, best of three, both trees built Release and pinned to the same core pair — the per-Tick
+> cost reads **0.9483 ms before and 0.9383 ms after: 1.011×**.
+>
+> **The blast radius is narrow for a legible reason: the defect's cost is proportional to how
+> division-dense the consumer is.** The Lane kernel does three divisions per Vehicle against ~41 ns of
+> other work and gained **1.50×**; the Rule engine does about two per due Rule against ~552 ns and
+> gained **1.1%**. **Map Layers cannot have been affected at all** — diffusion and decay go through
+> `RoundDiv`, which has no modulo in it. And **routing's hot site was fixed before it was ever
+> published**: see the note in `spike-results` → *S5, L5*. **No published figure in this document
+> needs withdrawing.**
 
 **What the unit buys, stated as a sensitivity rather than as a forecast.** At 29.3 ns a Vehicle — the
 slower of L5's two readings — one core:

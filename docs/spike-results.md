@@ -6964,6 +6964,44 @@ L1 published as *the gap is the arithmetic, not the structure* was neither.
 - **The `powersave` caveat now cuts the other way.** These are lower bounds, so the canonical
   capture can only move the figures **up**, and T1's margin with them.
 
+**Where else the defect reached, checked rather than reasoned about — and the answer is nowhere that
+was published.**
+
+| Consumer | Exposure | Effect |
+|---|---|---|
+| **Lane kernel** (S5) | 3 divisions a Vehicle against ~41 ns of other work | **1.50×** |
+| **Bin Rule engine / whole Tick** | ~2 a due Rule against ~552 ns | **1.011× — measured**, 0.9483 → 0.9383 ms |
+| **Map Layers** | diffusion and decay use `RoundDiv`, which **has no modulo** | **none, by construction** |
+| **Routing** (S2) | the A\* heuristic, **4 divisions a node** | **none published — S2 hoisted it out of its own loop before capturing** |
+| Sizing, loading, `CellGrid`, invariants | setup and cold paths | negligible |
+
+The Rule engine figure is the two-point slope S0b itself uses — 200,000 Citizens under
+`rulesets/minimal.toml`, 2,000 against 8,000 Ticks, best of three, both trees Release and pinned to
+the same core pair. **The cost is proportional to how division-dense a consumer is**, which is why one
+kernel gained 1.50× and the Tick gained 1%.
+
+**⚠ And S2 found this defect first, measured it, and it did not propagate.**
+`spikes/S2.Routing/Routing/Heuristic.cs` has carried this since R2:
+
+> *"`Fixed.Div` routes through `IntegerMath.FloorDiv`, which costs a `/` and a `%`. That is **four
+> 64-bit hardware divisions per node**, and in the first capture it was most of the denominator: 231
+> ns per expansion, against a CSR walk that should cost tens."*
+
+— and, three paragraphs later, ***"Worth recording beyond this spike."*** **It was recorded nowhere
+beyond this spike.** S2 hoisted the division out of its own inner loop, which is the right local fix,
+published its routing numbers on the corrected path, and left `IntegerMath.FloorDiv` exactly as it
+found it. **S5 then walked into the same defect in a kernel that cannot hoist** — the divisors are a
+per-driver `v0` and a per-Tick gap — **attributed 1.5× of it to `adr/0003`'s integer arithmetic, and
+published a tripwire firing against `adr/0016` on that basis.**
+
+**This is [`plans/0012`](../plans/0012-corpus-audit.md) *Cause 1* with a mechanism nobody had named,
+and the mechanism is the nastiest part.** A local workaround **removes the finder's own exposure**,
+and with it the only pressure that would have fixed the source. S2 immunised itself and left the
+substrate defective for every later consumer, and the note recording the finding was in a file whose
+stated destiny is deletion. **A finding about shared infrastructure, made inside a spike, has to
+reach the infrastructure** — the spike's own instinct was right and its follow-through had nowhere to
+go, because *"worth recording beyond this spike"* names no document, no owner and no trigger.
+
 ### The tripwire, scored
 
 | # | Condition | Reading | Fired? |
