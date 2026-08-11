@@ -90,6 +90,18 @@ public static class IntegerMath
     /// Divides, rounding toward positive infinity. Stated for the sizing cases — how many Chunks
     /// cover a span, how many Ticks a job needs — where flooring would under-provision.
     /// </summary>
+    /// <remarks>
+    /// <b>This pays two hardware divisions in its common case, and negating the numerator is why.</b>
+    /// <see cref="FloorDiv(int,int)"/> evaluates its modulo only when the signs disagree — but
+    /// <c>CeilDiv</c> hands it <c>-numerator</c>, so two <em>positive</em> arguments, which is every
+    /// call site today, take that branch by construction. For non-negative operands
+    /// <c>(numerator + denominator - 1) / denominator</c> is one division and no modulo.
+    /// <b>Deliberately not done</b> (2026-08-11): all four call sites are cold — a Zone Rule's derived
+    /// sample at Ruleset load, a Cell-grid span at world creation, a Layer dump — so the faster form
+    /// would buy nothing measurable and would cost the negative range this one handles for free.
+    /// Recorded here rather than filed, per <c>adr/0073</c>: the finding belongs where the next reader
+    /// of this method is, and the trigger to act on it is <b>a hot caller appearing</b>.
+    /// </remarks>
     public static int CeilDiv(int numerator, int denominator) =>
         -FloorDiv(-numerator, denominator);
 
