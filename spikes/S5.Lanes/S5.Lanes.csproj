@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    S5, the Lane kernel. plans/0019-s5-lane-kernel.md.
+
+    Throwaway, on S4's and S2's precedent: the value is entirely in the recorded numbers, and the
+    last task deletes this directory and records the deleting commit's parent.
+
+    Deliberately NOT added to Borough.slnx. S4 and S2 are both in it "for convenience", and the
+    convenience has a price the corpus has already paid twice: a spike in the solution is a spike
+    the whole-repository build has an opinion about. S5 is built by its own path, which is what
+    tools/lane-run.sh does.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>S5.Lanes</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      BenchmarkDotNet, on S4's shape. It is the *cross-check* here rather than the primary
+      instrument, and the asymmetry is deliberate.
+
+      S5's deliverable is a derived ratio — Vehicles per Tick per core, and from it Segments in
+      15.6 ms — not a table of nanoseconds per operation. S2 established the precedent for that
+      shape: a harness that times its own loops and prints the ratio, because the ratio is what a
+      reader has to be able to check. But a self-timed loop is an instrument nobody has calibrated,
+      and S4's BenchmarkDotNet jobs are the calibration that exists. So both run, over the *same*
+      kernel code, and a disagreement between them is itself a reportable result.
+    -->
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The arithmetic substrate, compiled in by source. Same argument as S2.Routing.csproj, and here
+      it is load-bearing rather than tidy: S5 exists because adr/0016's headline figure was measured
+      on a floating-point engine, and the question is what that structure costs in *our* arithmetic.
+      A spike that could name Borough.Core's tables would be able to drift into measuring something
+      else; under this, Fixed, IntegerMath and Transcendental are the only things of ours that are
+      present in the compilation at all, and reaching for anything else is a build error rather than
+      a habit.
+    -->
+    <Compile Include="..\..\src\Borough.Core\Arithmetic\*.cs"
+             Link="Substrate\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The analysers, as a build-time input and never as a dependency — the substrate decision's
+      other half, exactly as in S2.
+
+      BOR0201 is the one that matters here and it is the whole point of the spike: a Lane kernel
+      that computed one intermediate in double would be measuring Citybound's engine again. The
+      rest come along and are all wanted in Lanes/, which models arithmetic the simulation will
+      actually perform. Harness/ is exempted from three of them, by path, in .editorconfig.
+    -->
+    <ProjectReference Include="..\..\src\Borough.Analysers\Borough.Analysers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,32 @@
+# S5.Lanes — analyser scope.
+#
+# The analysers are loaded into this project on purpose (see S5.Lanes.csproj) and they are unscoped
+# by compilation: every diagnostic fires on every line here. That is the intent for Lanes/, which is
+# a model of arithmetic the simulation will actually perform — raw division, Math.*, masked shifts
+# and floating point are hazards there for exactly the reasons they are hazards in Core.
+#
+# Three rules are turned off in Harness/ and Bench/ only, on S2's precedent and for S2's reasons.
+# Each is disabled because obeying it would make the harness lie about what it is:
+#
+#   BOR0205 (wall clock)   — an instrument that cannot read a clock cannot time anything, and cannot
+#                            state its own moment of capture. S4's recorded defect was a report
+#                            claiming a sitting it did not share.
+#   BOR0203 (raw division) — every figure this spike reports is a ratio. Routing a report formatter
+#                            through FloorDiv states a determinism property the report neither has
+#                            nor needs.
+#   BOR0301 (hash-map enumeration) — report tables are keyed lookups walked for printing. Iteration
+#                            order affects the order of rows in a markdown file and nothing else.
+#
+# BOR0201 stays an error everywhere, Harness/ and Bench/ included, and it is not a formality. This
+# spike exists because adr/0016's 400,000 was measured with floats; a report that computes a
+# percentage in double is one edit away from a kernel that computes an acceleration in one.
+
+[Harness/**.cs]
+dotnet_diagnostic.BOR0203.severity = none
+dotnet_diagnostic.BOR0205.severity = none
+dotnet_diagnostic.BOR0301.severity = none
+
+[Bench/**.cs]
+dotnet_diagnostic.BOR0203.severity = none
+dotnet_diagnostic.BOR0205.severity = none
+dotnet_diagnostic.BOR0301.severity = none
