@@ -645,6 +645,65 @@ machine.
 > same, with the caution it was written to give left standing, since which table is largest does not
 > change which schema to be careful about. `CONTEXT.md` → Household states the structure.
 
+### Session F's collection — six, one paid in the sitting
+
+[`plans/0021`](0021-trips-legs-and-the-pedestrian-layer.md) sent session **F** past four of these and told it to
+route rather than work around them, per [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md).
+It found two more on the way. **None blocks anything.**
+
+**1. `adr/0041` still says the travel-time matrix is District-granular, and it is unbannered.**
+*"The matrix remains District-granular; only *attribution* leaves."* [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)
+reversed exactly that — *"the travel-time matrix's granularity is the routing partition, not the
+District"* — and `CONTEXT.md` → District carries the reversal. `adr/0041` **has** an amendment block and
+it does not touch the bullet, which is the worst arrangement: a reader who checks for a banner finds one
+and concludes the document has been reconciled. It is **5c's foundation**, and it is wrong in the ADR a
+reader reaches for first. *Cause 2 — an ADR issued a write to another document and it did not land.*
+
+**2. ~~`CONTEXT.md` has no `Node` entry, and `Node` is load-bearing.~~ PAID by session F**, because
+[`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md)
+defines an **Address** as *never a Node* and a definition cannot rest on an undefined term. `Node`
+appeared in the route cache key, the Rejoin Target, the Sight Horizon's floor, `adr/0040`'s pathfinding
+cluster, and in the definitions of **Segment** and **Access Point** — both of which define themselves
+*against* it — while having no entry at all. 5a shipped `RoadNodeTable`; the vocabulary never caught up.
+**This is Cause 1 with the copy count at zero**: not two copies of a fact drifting apart, but a fact with
+no copy, re-derived by each reader from the shape of its absence — the same defect `adr/0064` hit from
+the other side, where a loader guard with no test was concluded not to exist.
+
+**3. No design document owns Severance, and it is milestone 5b's stated payoff.** `06` says *"the payoff
+is Severance, argued in `adr/0014` and `03 §3.7`"* — but `§3.7` argues *walking's fidelity* and the
+one-graph decision, and cites Severance as evidence **for** that decision by quoting `CONTEXT.md` back at
+itself. The definition exists only in `CONTEXT.md`. Under [`adr/0042`](../docs/adr/0042-a-planning-document-cites-and-a-design-document-owns.md)
+a design document owns and a planning document cites, so **Severance is cited by two and owned by none**.
+The natural owner is `03 §3.7`, which would have to acquire a paragraph that argues Severance rather than
+using it. *Left for whoever next edits `03`; F did not take it, because adopting a mechanism into a
+design document is more than a correction.*
+
+**4. `docs/movement-primer.md` says the Microscopic Cap counts Segments.** [`adr/0062`](../docs/adr/0062-the-microscopic-cap-counts-vehicles-and-nothing-is-ever-evicted.md)
+settled that it counts **Vehicles**, and the primer was written in the *same commit* that changed the
+unit. Its header disclaims authority, which covers it — but *"the fourth copy drifted inside one commit"*
+is precisely the failure the header says the document exists to avoid, and it is **the cheapest sighting
+of Cause 1 in the corpus**: same author, same sitting, same hour.
+
+**5. `adr/0025` and `CONTEXT.md` disagree on how many Access Points a Building has.** *(Found by F, not
+on its list.)* `adr/0025`: a Building *"may hold Bins, **one Access Point**, one Parking Shed. It may
+never hold a Need, money, a Provider List, or a Trip."* `CONTEXT.md` → Access Point: *"every Building has
+a **pedestrian** access point and a **vehicle** access point"* — and `adr/0008`'s third consequence is the
+decision that made it two. The count is incidental to `adr/0025`'s argument, which is about what a
+Building may **never** hold, and that is exactly why it drifted: **a list is checked for its point and
+copied for its contents.** It is the sentence a reader asking *what may a Building hold* reaches for
+first. [`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md)
+states two, so the ADR corpus now disagrees with itself and a banner on `adr/0025` is the fix.
+
+**6. `adr/0007` says walk Legs resolve statistically *"almost always"*, and nothing could ever promote
+one.** *(Found by F, and routed rather than fixed.)* Session F settled the reading as **categorical** and
+amended `adr/0008` accordingly; `adr/0007` carries the same hedge and **belongs to session E**
+(`adr/0005` + `adr/0007`, fidelity). The correction is one word and the argument is written down in
+`adr/0008`'s amendment: Stress is `volume / capacity` over **vehicles**, force-promotion fires on a
+vehicular downstream, and `CONTEXT.md` → Fidelity bars pedestrians from Stress entirely — so the
+expensive regime the hedge gestures at **has no door into it**. F did not take it, per `adr/0073`'s
+routing rule. *Note the shape: four copies of one claim, two categorical and two hedged, and the
+difference between the readings is a whole mechanism.*
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and

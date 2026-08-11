@@ -15,16 +15,29 @@
 
 ## Status
 
-**⚠ BLOCKED. Not started, and it must not be started.** Milestone 5b is gated on session **F** —
+**✅ UNBLOCKED 2026-08-11. Session F has run — one sitting, all seven decisions — and 5b's second gate
+is discharged.** Both gates are now clear: **D** (the traffic model, 2026-08-10) and **F** (the Leg
+model, 2026-08-11). The slice below may be started.
+
+F produced an amendment and three ADRs:
+[`adr/0008`](../docs/adr/0008-walking-is-a-simulated-leg.md) amended in place (four consequences and the
+revisit trigger), plus
+[`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md),
+[`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) and
+[`adr/0076`](../docs/adr/0076-the-trip-fate-set-is-closed-at-four-and-a-fate-names-the-journey.md).
+`CONTEXT.md` gained **Address** and **Node** and had six entries amended. **It closed neither §B-16 nor
+§B-17**, which was the constraint it was booked under. Full record in *What session F decided* below.
+
+*Original status, kept because the gate's history is the reason the brief was written:* ~~**⚠ BLOCKED.
+Not started, and it must not be started.** Milestone 5b is gated on session **F** —
 [`adr/0008`](../docs/adr/0008-walking-is-a-simulated-leg.md), *walking is a simulated Leg* — which has
 not run. [`0000`](0000-board.md)'s argument-track table carries row **F** unstruck against *milestone
 5b*, and [`0002`](0002-open-questions.md) §F states the obligation in the strongest form it uses
-anywhere: *"Makes 5b **the irreversible milestone**, so it is owed **before** the Leg model is built."*
-`CLAUDE.md`'s standing rule is that **a gated slice must not be started before its gate clears.**
+anywhere: "Makes 5b **the irreversible milestone**, so it is owed **before** the Leg model is built."
+`CLAUDE.md`'s standing rule is that **a gated slice must not be started before its gate clears.**~~
 
-**This document exists in two halves for that reason.** *Session F's brief* below is the gate and is
-runnable today. *The slice* below that is scoped so the build can begin the hour F closes, and not
-before.
+**This document exists in two halves for that reason.** *Session F's brief* below is the gate and **has
+run**; *The slice* below that is the build, and it is now available.
 
 ### ⚠ 5b has two gates, one of them cleared, and reading the first as the second is how this brief nearly got written wrong
 
@@ -203,7 +216,98 @@ about a document you do not own gets routed rather than worked around.
 
 ---
 
-## The slice — everything below is BLOCKED on the section above
+---
+
+## What session F decided — the record
+
+**Ran 2026-08-11, one sitting, seven decisions, and it closed no measurable claim.** The brief's own
+constraint was that D task 0's typing pass had already routed §B-16 and §B-17 to milestone 5b, so F may
+sharpen the instrument and may not report a number. It did not.
+
+| | Decision | Outcome | Record |
+|---|---|---|---|
+| **1** | The amendment `adr/0072` forces | **Split, not substituted.** The *sidewalk edges* half is refused and becomes the foot bit on the Arc; the *crossing edges* half **stands literally** as foot-only Segments. *"Real work, not a free consequence"* is **true and already discharged — by 5a** | `adr/0008` |
+| **1b** | The revisit trigger's mitigation | **Already spent.** *One edge per block face* is what the graph is. The lever is the **search**, not the topology: cache the walk route, or straight-line plus a detour factor | `adr/0008` |
+| **2** | What a Leg is | **A three-way split.** Trip owns purpose and Fate, **Leg is the plan**, **Traveller is the cursor**. A Leg stores a **cost, never a path**; Legs are created **eagerly** | [`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) |
+| **3** | The pedestrian Access Point | **Two Addresses on the Building**, pedestrian and vehicle, two saved columns, **equal by construction** today | [`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md) |
+| **4** | Is the Commute Budget one currency | **Yes, literally — clock minutes, no per-mode weight.** Distaste for walking belongs to the choice model, on a Provider List entry's mode | `adr/0008`, `CONTEXT.md` |
+| **5** | Always or almost always Statistical | **Categorical.** 5b builds no foot promotion path and owes no hole for one | `adr/0008` |
+| **6** | The no-parking placeholder | **The vehicle Address, as 5c's *sole* path and never a fallback**, plus the milestone-8 prohibition, plus the direction of error | `adr/0008` |
+| **7** | The Trip Fate set | **Closed at four**, on a two-clause rule. *Stranded* is the Fate; the lost-driver condition is renamed **a Rejoin is abandoned** | [`adr/0076`](../docs/adr/0076-the-trip-fate-set-is-closed-at-four-and-a-fate-names-the-journey.md) |
+
+### The four findings that outlive the session
+
+**1. The brief was wrong about the size of the amendment, in both directions at once.** It proposed
+substituting *sidewalk edges alongside street edges* with *the foot bit on the Street's Arcs*, which
+silently drops the *crossing edges at junctions* clause — and that clause is **correct**, is what
+`CONTEXT.md` → Segment already calls *"the small set of foot-only Segments… the edges Severance turns
+on"*, and is **already built**: `RoadGenerator` keeps every `foot_crossing_every`-th severed crossing as
+a `RoadKind.FootPath` and lays standalone foot paths. So one half was over-corrected and the other
+under-corrected, and the cause is the same in both: **the consequence names two claims in one breath**,
+so a reader who evaluates the sentence evaluates whichever half is salient. *An `and` in a consequence is
+two consequences, and it should be written as two.*
+
+**2. A revisit trigger can be spent before it is written.** `adr/0008`'s only stated mitigation — *one
+pedestrian edge per block face rather than per street segment* — was not made expensive by `adr/0072`;
+it was **already the state of the graph**, because `CONTEXT.md` → Segment fixes a Segment at roughly a
+block-length link. Nobody spent it; it was never available. This is not `adr/0073`'s failure (a
+workaround removing the pressure that would have fixed the source) but its neighbour: **a trigger whose
+mitigation was already the status quo on the day it was written**, and no amount of later diligence would
+have caught it, because the only way to notice is to price the mitigation against the current graph
+rather than against the graph the ADR imagined.
+
+**3. A placeholder whose value is inside the range of legitimate answers cannot announce itself — and
+this one paid the player for the shortage.** The obvious no-parking placeholder makes a flanking walk Leg
+**zero-length**, which is also what a Building with its own garage genuinely produces. So the hole is
+indistinguishable from a modelled answer, which is the `pool` precedent inverted. **And the failure mode
+is not merely silence**: if the vehicle Access Point were ever reachable as a *fallback* from an exhausted
+Parking Shed, a full car park would cost **less** than an empty one — the driver arrives at the door
+instead of parking three blocks away — so the player is rewarded for under-building parking, and the
+reward grows with the scarcity. `CONTEXT.md` → Parking Shed already forbids it (*"scarcity **widens** the
+shed"*), and F wrote the prohibition into `adr/0008` because **F is the last document before the code
+exists.** *The general form: check a placeholder's value against the range of legitimate answers, and
+check the incentive it creates before it becomes a fallback.*
+
+**4. Side of street was nearly surrendered by collapsing two questions into one.** F's first draft of the
+amendment concluded that one graph meant giving up which side of a Street a place is on. It does not:
+**whether side is *modelled* is independent of whether it is *in the graph*.** Four rungs exist and only
+the fourth — two footway edges per Street — is refused. `adr/0074` takes the second, at one saved bit and
+one cost term. **The corpus had already asked for it and nobody had noticed**: `adr/0009`'s deferred table
+lists *"allow or ban street parking per Road Segment **side**"*, so side of a Segment was a latent concept
+with nowhere to live, and parking was always going to be the milestone that demanded it.
+
+### What F handed forward, and what it deliberately did not choose
+
+**Handed forward, untouched:** §B-16 (*do pedestrian networks saturate*) and §B-17 (*mean Legs per Trip*),
+both *measurable*, both machine **5b**. `adr/0008`'s amended revisit trigger names §B-16 explicitly and
+says the ADR **may not be cited as having a number**.
+
+**Two new §D2 rows, and one existing row corrected.** The **crossing cost** and the **Commute Budget** are
+new, hash-bearing, and unset with named ratifiers. **`walk_speed_kph` is not new** — it shipped with 5a
+inside the free-flow speeds row — and F found its **ratifier misordered**: that row names 5c's travel-time
+matrix, but a walk Leg needs no matrix, no cache and no VDF, so **5b is the first thing that produces a
+walk time a person can call implausible**. Corrected in place. *The row bundled three numbers because they
+share a source and then gave them one ratifier because they shared a row, which is the granularity defect
+`plans/0012` names.*
+
+**One §D row that was refused rather than opened.** A per-mode weight in the Commute Budget would have
+been hash-bearing and would have owed a row. F refused it on `adr/0008`'s own ground, so the section got
+**smaller** by an argument — the same direction as `adr/0059`.
+
+**Three hash-bearing numbers named in advance rather than discovered.** `adr/0069` shipped needing three
+its ADR predicted none of, and the board records that. 5b's are the crossing cost, the Commute Budget and
+`walk_speed_kph` — all three written down before a line of code, which is the correction that episode
+asked for.
+
+**Six corpus defects routed to [`0012`](0012-corpus-audit.md)**, one of them paid in the sitting
+(`CONTEXT.md` → **Node**, because an Address is defined as *never a Node* and a definition cannot rest on
+an undefined term). Two were found by F rather than by the brief: `adr/0025` says a Building holds *one*
+Access Point where `CONTEXT.md` says two, and `adr/0007` carries the same *almost always* hedge F settled
+in `adr/0008` — routed to session **E**, which owns it, per `adr/0073`.
+
+---
+
+## The slice — ~~everything below is BLOCKED on the section above~~ **AVAILABLE 2026-08-11**
 
 ### Why this slice, and why now
 
@@ -262,10 +366,24 @@ shops*.
 
 ### Tasks
 
-**1. Access Points.** Every Building gets a pedestrian and a vehicle Access Point as
-`(Handle<RoadSegment>, offset)`. Saved and hashed — a Building's front door is a property of the city,
-not a cache. The offset makes this the query shape `CONTEXT.md` says *"everything downstream must be
-measured on"*, so getting it wrong here mis-measures 5c and 8 as well.
+**1. Access Points.** Every Building gets a pedestrian and a vehicle Access Point, each an **Address** —
+~~`(Handle<RoadSegment>, offset)`~~ **`(Handle<RoadSegment>, offset, side)`**, per
+[`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md).
+Saved and hashed — a Building's front door is a property of the city, not a cache. The offset makes this
+the query shape `CONTEXT.md` says *"everything downstream must be measured on"*, so getting it wrong here
+mis-measures 5c and 8 as well.
+
+**`Address` is a named value type and not a tuple spelled out at each site**, which is what makes
+milestone 8 a one-endpoint swap rather than a restructure. **Side** is left or right of the Segment's
+forward direction — fixed A→B by its endpoints, so it needs no geometry — and it exists so that a walk
+between two Addresses on the same Segment and opposite sides pays a **crossing cost**. That cost is
+`[trips]` Ruleset data, hash-bearing, and **5b must not choose its value**: it is a new `0002` §D2 row
+with a named ratifier.
+
+**The two Addresses are written equal by construction**, and a docstring must say what makes them
+diverge — 5a-bis's subdivider, milestone 8's parking, `03 §6.6`'s freight. ⚠ **And the vehicle Address is
+never a fallback from a failed Parking Shed query**, which is milestone 8's rule written now: an
+exhausted Shed **widens**, because a full car park must not cost less than an empty one.
 
 **⚠ This task's shape depends on whether 5a-bis has landed, and it should have.**
 [`0022`](0022-the-lot-subdivider-and-build-road.md) is **ungated and available now**, while this slice
@@ -276,11 +394,20 @@ real Access Points and the walk Leg's origin stops being a placeholder. Run with
 nearest-Segment-by-construction and must say so in a docstring — every Access Point it invents is one the
 subdivider would have derived.
 
-**2. `Trip` and `Leg` tables.** `Borough.Core` — namespace is F's to name, since F names the Leg. A Trip
-carries origin and destination Access Points, a purpose, a Leg **head index**, and a Fate; a Leg carries
-mode, endpoints, a `TravelTime` (`adr/0071`, Q16.16 Ticks) and a `next` index. Per-field
-`saved AND hashed` / `derived AND rebuilt` throughout, which is what allocates the column and what closes
-the hash's coverage hole.
+**2. `Trip` and `Leg` tables.** ~~`Borough.Core` — namespace is F's to name, since F names the Leg.~~
+**F named the Leg and left the namespace to the build**, which is the smaller decision.
+[`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) fixes the field sets and the
+split is **three-way, not two**: a **Trip** carries a **Trip Purpose**, origin and destination
+**Address**, a Leg **head index**, a Fate and **the index of the failing Leg**; a **Leg** carries mode,
+two Addresses, a `TravelTime` (`adr/0071`, Q16.16 Ticks) and a `next` index — **the plan**; and a
+**Traveller** carries the Citizen, the Trip, which Leg it is on and that Leg's arrival Tick — **the
+cursor**. Per-field `saved AND hashed` / `derived AND rebuilt` throughout, which is what allocates the
+column and what closes the hash's coverage hole. **A Leg stores a cost and never a path**, and every Leg
+of a Trip is created **at Trip creation** — the first is what keeps the table small enough for
+`adr/0008`'s *"roughly triples"*, and the second is what makes §B-17 countable at all.
+
+⚠ **Spell the Trip's purpose `TripPurpose` and never abbreviate it.** `PurposeTag` is the counter-based
+RNG tag policed by `BOR0801`–`BOR0803`; two unrelated concepts one word apart.
 
 **⚠ This table needs a sink and `adr/0006` is not satisfied by *"Trips are transient"*.** A completed
 Trip's Fate must reach the Census **before** the row is freed, or the only durable record of a failure is
@@ -382,9 +509,14 @@ rather than merely an unratified number — `World` allocates 225 Lots and 150 B
 the populator builds 120 of each. **Do not add a fourth guessed ratio to that row.** Size the Trip table
 from what the generator actually produces at a measured rung, and record the rung.
 
-**4. Whether a per-mode weight exists in the Commute Budget.** F's decision 4 above. If it does, it is
-hash-bearing and needs a §D row on the day; if it does not, `adr/0008`'s one-currency claim is built
-literally and the ADR gains a consequence it can be held to.
+~~**4. Whether a per-mode weight exists in the Commute Budget.**~~ **CLOSED by session F: it does not.**
+The Budget is **clock minutes, one currency**, and `adr/0008`'s claim is built literally — so the ADR has
+the consequence it can be held to. The objection was heard and refused on the ADR's own ground: a weight
+would make the **scored** quantity differ from the **displayed** one, which is the SC4 unlearnability
+failure the Budget exists to prevent. **Distaste for walking belongs to the choice model**, on a Provider
+List entry's mode (`adr/0032`), one layer up from the cost function. **This slice therefore builds no
+per-mode weight and owes no §D row for one** — the section got smaller by an argument rather than larger,
+which is `adr/0059`'s direction. *The Commute Budget itself is still a §D2 row and 5b must not choose it.*
 
 **5. ⚠ What a failed Trip does to the option that produced it — and 5b is the first thing that can hit
 this.** The corpus holds the same sentence as both a rule and a named defect. `adr/0032` says
@@ -413,11 +545,22 @@ may break — so either the Trip signal stays out of Building pressure in this s
 
 ### ⚠ What this slice must report and must not choose
 
-**5b is the named ratifier for six numbers at once, and that is the largest concentration of `adr/0052`
-debt ever pointed at a single slice.**
+~~**5b is the named ratifier for six numbers at once**~~ — **nine, after session F, and that is the
+largest concentration of `adr/0052` debt ever pointed at a single slice.**
+
+⚠ **And three of the nine are different in kind, which is the distinction to hold.** The original six are
+numbers 5b **ratifies for somebody else** and must not choose; F's three are numbers **5b itself needs in
+order to run at all** — a walk Leg cannot be costed without a speed, a crossing cannot be priced without
+a term, and a Trip cannot fail without a Budget. **Those three must be chosen, and each is hash-bearing
+and owes a named ratifier on the day it is written.** Naming them here rather than discovering them at
+the write site is the correction `adr/0069` asked for, which shipped needing three its ADR predicted
+none of.
 
 | `0002` | Number | What 5b is asked for |
 |---|---|---|
+| §D1 | **`walk_speed_kph`** — *needed, not ratified for another* | **Not new** — it shipped with 5a inside the free-flow speeds row. **Session F found its ratifier misordered**: that row names 5c's travel-time matrix, but a walk Leg needs no matrix, no cache and no VDF, so **5b is the first thing that produces a walk time a person can call implausible** |
+| §D2 | The **crossing cost** — *needed* | **NEW, session F** ([`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md)). Report the walk-Leg cost distribution at zero and at a candidate value. **Look for the derivation first** — a crossing is a real duration, and *half a signal period* is a property of a junction rather than a preference |
+| §D2 | The **Commute Budget** — *needed* | **NEW, session F.** It is a percentile of a Trip-cost distribution and is meaningless before one exists, so 5b must produce the distribution before anybody picks the value. **One number and not one per mode**, because F refused the per-mode weight |
 | §D2 | **`T`**, the Habit staleness bound | a steady-state `P(stale)` and a Trip start rate — *"what turns `T` from a period into a bill"* |
 | §D2 | **`k`**, Habit Route variants | R8's concentration column **and** the route cache's hit rate, which move in opposite directions |
 | §D2 | The **Rejoin crossing budget** | rejoin success on real demand, since R6.4.2 measured it on an invented draw |

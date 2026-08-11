@@ -623,6 +623,8 @@ Because no Citizen record is ever collapsed or discarded, both directions are **
 **Traveller**
 A Citizen currently on a Trip. Transient, created on demand when travel is required and released on arrival. A Traveller on a Microscopic Segment is a real vehicle in a Lane queue; on a Statistical Segment it is an origin, a destination, and an arrival Tick.
 
+**It is the cursor over a Trip's Legs, and it holds nothing else**: which Citizen, which Trip, which Leg it is on, and when it arrives. The **plan** is the Leg's. Every durable thing therefore sits on a row that outlives the journey and every transient thing on a row that is released — which is what makes *a Traveller is a view, not an owner* hold by construction. See [`docs/adr/0075`](docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md).
+
 **Habit Route**
 The route a **Citizen** normally takes between two places, computed from a **slow-moving** cost basis and reused across many Trips. It is the road network's Provider List: `adr/0017`'s sticky incumbent, one actor class further on.
 
@@ -646,7 +648,9 @@ A **Diversion** is a Traveller leaving its Habit Route at a junction, because Si
 
 **The whole point is that a Diversion costs a decision and never a route.** Sight makes diverting *routine* rather than exceptional, so anything a diverting Traveller does is paid at the rate the city diverts, not the rate it departs; a mid-journey re-search at that rate is the largest number in the corpus. Nothing here is a cheaper search — there is no search.
 
-**A Rejoin that does not succeed does not search either.** The Traveller stops aiming at the Target, points the same rule at its destination and carries on; the cost arrives as minutes, which the **Commute Budget** already scores, and there is no Trip Fate for a lost driver. It is **stranded** when no arc out of the node it stands on reduces the straight-line distance to its Target — a test that is wrong exactly where the map is deceptive, across a river or a severance, which is `BOUNDED KNOWLEDGE` behaving correctly rather than a defect. See `docs/adr/0061`, `docs/adr/0046`, `docs/adr/0012`. `BOUNDED KNOWLEDGE` `SOLVE THE ACTUAL PROBLEM` `HONEST DEGRADATION`
+**A Rejoin that does not succeed does not search either.** The Traveller stops aiming at the Target, points the same rule at its destination and carries on; the cost arrives as minutes, which the **Commute Budget** already scores, and there is no Trip Fate for a lost driver. **A Rejoin is abandoned** when no arc out of the Node it stands on reduces the straight-line distance to its Target — a test that is wrong exactly where the map is deceptive, across a river or a severance, which is `BOUNDED KNOWLEDGE` behaving correctly rather than a defect.
+
+*This condition was called **stranded** until session F, which is the name of a **Trip Fate** — one word over two conditions with opposite consequences, in the same file. Abandoning a Rejoin ends a rule, not a journey; the Traveller carries on and the Trip is unaffected.* See `docs/adr/0061`, `docs/adr/0046`, `docs/adr/0012`. `BOUNDED KNOWLEDGE` `SOLVE THE ACTUAL PROBLEM` `HONEST DEGRADATION`
 
 **Aggravation**
 The fraction of a Citizen's recent journeys on a Habit Route that diverted or stranded. Crossing its threshold makes the Citizen **switch to another variant** of that Habit — it never recomputes a route.
@@ -669,12 +673,22 @@ Temperament is what keeps congestion response from being a **herd**: an identica
 Lineage: lane-as-entity and switch lanes are Citybound's; the commute budget is SimCity 4's.
 
 **Trip**
-A journey with a purpose, an origin, a destination, an ordered sequence of Legs, and a **Trip Fate**. Trips are first-class objects, not transient calculations, because a failed Trip must be reportable. `LEGIBLE CAUSE`
+A journey with a **Trip Purpose**, an origin and destination **Address**, an ordered sequence of Legs, and a **Trip Fate**. Trips are first-class objects, not transient calculations, because a failed Trip must be reportable. `LEGIBLE CAUSE`
+
+It also records **which Leg failed**, which is the difference between *no route found* and *no route found on Leg 1 of 3, on foot, from here to there*.
+
+*Spell the purpose **Trip Purpose** and never abbreviate it: `purpose_tag` is the counter-based RNG tag, an unrelated concept one word away.*
 
 **Leg**
-One mode-homogeneous segment of a Trip. **Walking and driving are both implemented Legs**; transit is a Leg type that may or may not ever be added. A car commute is never fewer than three Legs — `walk → drive → walk` — because Buildings connect to the pedestrian network rather than directly to the Road Graph.
+One mode-homogeneous segment of a Trip: a mode, two **Addresses**, a travel time, and the next Leg. **Walking and driving are both implemented Legs**; transit is a Leg type that may or may not ever be added. A car commute is never fewer than three Legs — `walk → drive → walk` — because Buildings connect to the pedestrian network rather than directly to the Road Graph.
 
-The multi-Leg structure exists from the first line of code. Retrofitting it is not an incremental change, and walking rather than transit is the decision that makes it irreversible. See `docs/adr/0008-walking-is-a-simulated-leg.md`.
+**A Leg is the *plan* and a Traveller is the *cursor*.** The Leg holds what was decided; the Traveller holds where it has got to and when it arrives. That division is what makes *a Traveller is a view, not an owner* true by construction rather than by discipline.
+
+**A Leg stores a cost, never a path.** A walk Leg's route is searched, `distance / speed` is taken, and the Segment list is discarded — pedestrians contribute no volume and no Stress, so nothing reads it. A drive Leg's path lives in the shared route cache off the **Citizen**'s Habit Route index, which is where the design has already twice decided a route belongs.
+
+**Every Leg of a Trip is created at once, when the Trip is created**, because a Trip that cannot be read until it finishes is not reportable and cannot be counted.
+
+The multi-Leg structure exists from the first line of code. Retrofitting it is not an incremental change, and walking rather than transit is the decision that makes it irreversible. See [`docs/adr/0008`](docs/adr/0008-walking-is-a-simulated-leg.md), [`docs/adr/0075`](docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md).
 
 **Transit**
 A network the player draws whose output is **reachability**, not coverage. A transit stop is not a destination — nobody's Need is met by arriving at one — it is an **Access Point onto a different network layer**, which is why Transit is `Connect` in placement and `Govern` in operation, and is not a Service.
@@ -690,12 +704,21 @@ A part of the city made unreachable on foot by infrastructure — most often an 
 
 It is the clearest payoff of treating walking as real. A city can be perfectly well connected for cars and broken for people, and the game can say so. `LEGIBLE CAUSE`
 
+**Address**
+**A location on the Road Graph: a Segment, an offset along it, and which side of it.** Never a Node. It is the value every query about *where something is* takes and returns — a Building's Access Point is a Building's Address, a Leg runs from one Address to another, and a parking Bin will have one.
+
+**The word is chosen because a street address is literally this triple**: a distance along a street plus an odd or even side. The **side** is left or right of the Segment's forward direction, which is fixed A→B by its endpoints, so it needs no geometry and no coordinate — the simulation still never sees a spline.
+
+**An Address is an offset along a Segment, never a Node.** A Segment's Nodes are intersections and an Address is not one. The arithmetic makes this structural rather than a matter of taste: five Buildings share a Segment at the working figures, so promoting Addresses to Nodes would split every Segment five ways and put the Road Graph at 150,000–300,000 Segments instead of ~30,000. **A routing query is therefore `Address → Address` rather than node-to-node, which is the query shape everything downstream must be measured on.**
+
+**Side of street is here rather than in the graph**, and that is a decision rather than an omission. A crossing is a **cost term** applied when two Addresses share a Segment and differ in side — exact for the across-the-street case that walkability turns on, and silent elsewhere, because *the same side* stops meaning anything once a route turns a corner. Two footway edges per Street would express more and cost a tripled graph, one Epoch and one search. See [`docs/adr/0074`](docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md).
+
 **Access Point**
-Where a Building meets a network. Every Building has a **pedestrian** access point and a **vehicle** access point.
+**Where a Building meets a network: a Building's Address.** Every Building has a **pedestrian** one and a **vehicle** one, and today they hold the same Address.
 
-The distinction is load-bearing rather than pedantic: a car's real access point is **wherever it managed to park**, which is generally not its destination. The gap between the two is the walk Leg, and its length is the whole of what parking scarcity does to the player.
+The distinction is load-bearing rather than pedantic: a car's real access point is **wherever it managed to park**, which is generally not its destination. The gap between the two is the walk Leg, and its length is the whole of what parking scarcity does to the player. They diverge when the Lot subdivider gives a Lot real frontage, when parking acquires a location, and when freight needs a loading kerb.
 
-**An Access Point is an offset along a Segment, never a node.** A Segment's nodes are intersections, and an Access Point is not one. The arithmetic makes this structural rather than a matter of taste: five Buildings share a Segment at the working figures, so promoting Access Points to nodes would split every Segment five ways and put the Road Graph at 150,000–300,000 edges instead of ~30,000. A routing query is therefore `(Segment, offset) → (Segment, offset)` rather than node-to-node, which is the query shape everything downstream must be measured on.
+⚠ **The Parking Shed is queried around the *pedestrian* Access Point, not the vehicle one**, so the vehicle Access Point has no consumer until parking exists. It is stored anyway, because `adr/0008`'s third consequence exists precisely so that parking does not restructure the Building later. **The vehicle Access Point is never a fallback from a failed Shed query** — a full car park must not cost less than an empty one. See [`docs/adr/0074`](docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md), [`docs/adr/0008`](docs/adr/0008-walking-is-a-simulated-leg.md).
 
 **Parking Shed**
 The set of parking Bins within acceptable walking distance of a destination's pedestrian Access Point. On arrival it is queried **nearest-first**, taking the first Bin with free capacity — a handful of lookups, never a search.
@@ -707,8 +730,16 @@ See `docs/adr/0009-parking-is-modelled-supply-never-search.md`.
 **Trip Fate**
 The recorded outcome of a Trip: *completed*, *no route found*, *exceeded commute budget*, or *stranded* (the network changed mid-journey). Never silently discarded.
 
+**The set is closed at four, and the rule that closes it has two clauses.** **A Fate names how the *journey* ended** — so anything that fails at the far end is another object's outcome and the Trip **completed**. And **anything that arrives as *time*** is scored by the **Commute Budget**, which is not a Fate. Every candidate fifth the corpus has met falls to one clause or the other, which is why it has been refused three times by three authors reaching independently for the same argument: `adr/0067` (*"the Trip completed; what failed is the purchase"*), → Parking Shed (*"deliberately no *no parking* Trip Fate"*), and → Diversion (*"there is no Trip Fate for a lost driver"*). **A fifth Fate is always a proposal to record something twice**, somewhere less diagnosable than where it already is.
+
+**A destination demolished mid-Trip needs no new Fate**, and it is the common case rather than a corner under any Ruleset that condemns Buildings. If the **Segment** is gone the Trip is *stranded*; if the **Building** is gone and the Segment is fine the Trip **completed** and the purpose failed at the far end — because an **Address** outlives its Building, so a Traveller can genuinely arrive at a plot of rubble.
+
+*Stranded* is this Fate and nothing else. The lost-driver condition that once shared the word is **a Rejoin being abandoned**, which is not a Fate. See [`docs/adr/0076`](docs/adr/0076-the-trip-fate-set-is-closed-at-four-and-a-fate-names-the-journey.md). `LEGIBLE CAUSE` `NO VERDICT`
+
 **Commute Budget**
 The maximum acceptable cost of a Trip. A Trip exceeding it **fails**, and a Building whose Trips keep failing declines and is eventually abandoned. This makes geography matter, bounds pathfinding work, and is legible to the player. **The cost function must be the same quantity the player is scored on** — optimising routes for distance while judging the player on time is what made SimCity 4's traffic system unlearnable.
+
+**One currency, and it is clock minutes.** Walking minutes and driving minutes count the same, and there is **no per-mode weight**. People do not value the two equally — walking time is worth roughly twice in-vehicle time in the literature — but a weight inside the Budget would make the scored quantity differ from the **displayed** one, which is the unlearnability failure this entry exists to prevent, arriving through the door it locked. **Distaste for walking belongs to the choice model**, on a Provider List entry's mode, one layer up from the cost function. See [`docs/adr/0008`](docs/adr/0008-walking-is-a-simulated-leg.md).
 
 **Lane**
 The atomic unit of road, and the entity that owns its Vehicles as a **sorted one-dimensional queue**. A Lane updates all of its Vehicles in one pass. Cars are not independent entities and do not hold references to each other.
@@ -733,8 +764,17 @@ The routing abstraction: nodes and edges, uniform regardless of how a road was d
 
 **One graph, with mode masks.** Pedestrian and vehicle edges are the same structure, tagged by which modes may traverse them — not two parallel networks. This gives one Epoch covering both, one revalidation path, and a multi-Leg Trip routed by a single mode-aware search rather than stitched across two structures. It is also what makes **Severance** emergent: nobody deletes a pedestrian route, the mask simply never granted one.
 
+**Node**
+**A vertex of the Road Graph: a point where Segments meet and a route may branch.** For Streets the Nodes are intersections and fall out of the Tile grid directly; for Arterials they are the authored **Junction** pieces.
+
+**A Node is where a choice exists, and that is what it is for.** It is the unit the routing machinery is keyed in: a route cache entry is `(origin node, destination node, variant)`, a **Rejoin Target** is the Node a diverting Traveller declined to enter, the **Sight Horizon**'s floor is the distance to the next *branching* Node, and `adr/0040`'s pathfinding cluster is a set of them.
+
+**Nothing in the city is located at a Node.** A Building's Access Point is an **Address** — an offset along a Segment — and never a Node, because promoting places to Nodes would split every Segment by the number of Buildings on it. So the graph's vertices are junctions and only junctions, which is what keeps the Segment count at its working figure.
+
+_Avoid_: "vertex", "intersection" as a synonym — the first is the graph-theoretic word `05` may use and design prose may not, and the second is true only of Streets.
+
 **Segment**
-**An edge of the Road Graph: one run of road between two adjacent nodes.** For Streets the nodes are intersections and both fall out of the Tile grid directly; for Arterials they are the authored Junction pieces. A Segment carries the attributes every other system reads off it — capacity, free-flow speed, mode mask, current volume, and its **Fidelity**.
+**An edge of the Road Graph: one run of road between two adjacent Nodes.** For Streets the nodes are intersections and both fall out of the Tile grid directly; for Arterials they are the authored Junction pieces. A Segment carries the attributes every other system reads off it — capacity, free-flow speed, mode mask, current volume, and its **Fidelity**.
 
 It is the unit almost everything about movement is counted in, which is why it needs stating precisely. **Fidelity is a property of the Segment**, not of the Traveller on it; the **Microscopic Cap** counts **Vehicles** and not Segments (`adr/0062` — this entry said otherwise, and a list of things counted per Segment is precisely how a wrong unit propagates unnoticed); the **VDF** is evaluated on one Segment's own `volume / capacity`; **Stress** is that ratio times a complexity factor; and `adr/0035` prices **Upkeep** against capacity and free-flow speed, which are Segment attributes. A Microscopic Segment owns **Lanes**; a Statistical one has none at all.
 

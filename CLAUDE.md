@@ -16,6 +16,31 @@ pointer with just enough shape to orient; the board is the view and the slice pl
 slice plans, and it was the copy that drifted (`plans/0012` *Cause 1*: every document that stores
 per-slice status drifted, and the only large one that did not stores none).
 
+**Session F ran 2026-08-11 and milestone 5b is unblocked — the movement track is open and no session gates
+a slice any more.** F grilled [`adr/0008`](docs/adr/0008-walking-is-a-simulated-leg.md), *walking is a
+simulated Leg*, in one sitting: seven decisions, an amendment in place, and three ADRs —
+[`0074`](docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md) *side of
+street is a property of the Access Point*,
+[`0075`](docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) *a Leg is a plan and a Traveller is
+a cursor*, [`0076`](docs/adr/0076-the-trip-fate-set-is-closed-at-four-and-a-fate-names-the-journey.md)
+*the Trip Fate set is closed at four*. `CONTEXT.md` gained **Address** — `(Segment, offset, side)`, the
+value every *where is it* query takes, of which an Access Point is a Building's — and **`Node`**, which was
+load-bearing in five places with **no entry at all**. **It closed neither of the two measurable claims it
+was forbidden to touch**, and it made §D *smaller* by refusing a per-mode Commute Budget weight.
+
+**F's findings are about how a consequence is written, not about walking.** `adr/0008` asks for
+*"sidewalk edges alongside street edges, **and** crossing edges at junctions"* — and the two halves have
+**opposite fates**: the first is refused by `adr/0072`'s mode mask, the second is correct, is what
+**Severance** turns on, and **5a already built it**. The brief proposed replacing the whole sentence,
+which would have deleted the true half. ***An `and` in a consequence is two consequences.*** Three more:
+**a revisit trigger can be spent before it is written** — *one pedestrian edge per block face* was already
+what the graph is, so the ADR's only stated lever never existed and no later diligence could have caught
+it; **a placeholder whose value sits inside the range of legitimate answers cannot announce itself**, and
+this one *paid the player for the shortage*, since a zero-length parking walk is what a garage genuinely
+produces and a vehicle Access Point reachable as a fallback from an exhausted Parking Shed makes a full
+car park cost **less** than an empty one; and **side of street was nearly surrendered by collapsing two
+questions into one** — whether it is *modelled* is independent of whether it is *in the graph*.
+
 **Phase 2 has started: `06` milestone 5a, the Road Graph, shipped 2026-08-11**
 ([`plans/0020`](plans/0020-the-road-graph.md)). Nodes, Segments and a directed Arc adjacency are typed
 tables in the State Hash; the Arc carries a **mode mask**, which is what makes `03 §3.7`'s **Severance**
@@ -151,7 +176,7 @@ path are still open, so do not write implementation code beyond the current slic
 
 ## The corpus, in numbers
 
-Roughly **28,000 lines of prose** — `docs/` design documents, 72 ADRs and `plans/` — against **~19,600
+Roughly **28,000 lines of prose** — `docs/` design documents, 75 ADRs and `plans/` — against **~19,600
 lines of simulation** and **~17,000 lines of tests**, plus a **33,000-line spike harness** awaiting
 deletion. The ratio is known, is on the board as a standing concern, and is why the board's rule is
 *an argument session runs when something concrete is blocked on it, never because it is available.*
@@ -355,13 +380,13 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **72** decision records, numbered to **`0073`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **75** decision records, numbered to **`0076`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
 | `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0022` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015`, `0014` (task 11) and `0020` are all closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped**. **`0019` is S5's**, the Lane kernel — run, two tripwires fired, **nothing published**. **`0020` is the Road Graph (`06` milestone 5a) and is the first Phase 2 slice brief** — **built 2026-08-11, all seven tasks**, and it is the document that found no session gates 5a. Its close-out carries four findings and the reason the S2 harness is still on disk. **`0021` is milestone 5b — Trips, Legs and the pedestrian layer — and it is ⚠ BLOCKED**: session **F** gates it and has not run, so the document is **F's brief first and the slice second**. **5b has two gates and D cleared only one**, which this file's own *"milestone 5b, which D gates"* obscures. **`0022` is 5a-bis — the Lot subdivider and `build_road` — and it is UNGATED and available**: `0020` scoped it, nothing scheduled it, and it has no milestone in `06` or in that document's no-milestone table either |
+| `plans/0004`–`0022` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015`, `0014` (task 11) and `0020` are all closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped**. **`0019` is S5's**, the Lane kernel — run, two tripwires fired, **nothing published**. **`0020` is the Road Graph (`06` milestone 5a) and is the first Phase 2 slice brief** — **built 2026-08-11, all seven tasks**, and it is the document that found no session gates 5a. Its close-out carries four findings and the reason the S2 harness is still on disk. **`0021` is milestone 5b — Trips, Legs and the pedestrian layer — and it is ✅ UNBLOCKED (2026-08-11)**: it had **two** gates, **D** and **F**, and both are now clear — F ran on 2026-08-11, one sitting, seven decisions. The document is **F's brief, F's record, and then the slice**. *(It was ⚠ BLOCKED until that afternoon, and this file's own "milestone 5b, which D gates" obscured the second gate — corrected rather than silently deleted, because a gate struck for the wrong reason is the failure `0020` warns about for the S2 harness.)* **`0022` is 5a-bis — the Lot subdivider and `build_road` — and it is UNGATED and available**: `0020` scoped it, nothing scheduled it, and it has no milestone in `06` or in that document's no-milestone table either |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8, **S0a and S0b** have all run |
@@ -551,6 +576,8 @@ dotnet run --project src/Borough.Headless -- \
 | Map | 4096² Tiles, 2048² documented fallback | open |
 | Target population | 10,000 first hour / 1,000,000 late game | sizing |
 | Tick budget | 15.6 ms at 4× speed | |
+| The crossing cost | **unset** | tuning, hot-reloadable, **hash-bearing** — `[trips]` Ruleset data (`adr/0074`). What it costs on foot to reach the other side of a Segment. It exists because **side of street was kept rather than surrendered**: it lives as one bit on the **Address**, not as a second footway edge set, which would triple the graph and lose one Epoch and one search. The term applies only when two Addresses **share a Segment and differ in side**, so its blast radius is the across-the-street case and nothing else. **Look for the derivation before picking a value** — a crossing is a real duration, and *half a signal period* is a property of a junction. **UNRATIFIED**; ratifier is 5b's walk-Leg cost distribution |
+| Commute Budget | **unset** | tuning, hot-reloadable, **hash-bearing** — `[trips]` Ruleset data. The line between a Trip that completes and one whose Fate is *exceeded commute budget*, so it decides which Buildings decline. **Clock minutes, one currency across modes, and there is no per-mode weight** (`adr/0008`, session F): a weight would make the scored quantity differ from the **displayed** one, which is the SC4 failure the Budget exists to prevent, and distaste for walking belongs to the choice model instead. It is a **percentile of a Trip-cost distribution** and is meaningless before one exists. **UNRATIFIED**; ratifier is the first 5b run long enough to produce that distribution |
 | Microscopic Cap | **unset** | fixed world constant, still open. **It counts *Vehicles*, not Segments** (`adr/0062`) — the unit was wrong in three places and is the family of `adr/0053` and `adr/0059`. Its value is a **ratio nobody has both halves of**: Vehicles affordable in 15.6 ms (**S5**) against Vehicles a real city stresses at once (`06` 5b) |
 | Sight Horizon | **1 Segment — DERIVED, and there is nothing to choose** | **Not tuning.** The floor is graph geometry (R8.1) and the **ceiling is comparison symmetry** (`adr/0046`, session D task 4): a driver has its own route and can read `N` live arcs along it, but has no route down an alternative beyond the first arc, so above 1 the comparison is asymmetric and biases diversion without bound. **The other parameter this name was wearing is the Rejoin crossing budget** (`adr/0061`), which is unset and is R6.4.2's cliff at 3. *Original row:* ~~tuning, hot-reloadable.~~ Its **floor** is a Road Graph property — the distance to the next node with a real choice — and S2 R8.1 derives it at **1 Segment** (`adr/0046`). **⚠ R6.4.2 found this is two parameters wearing one name**: rejoin success cliffs 19.14% → 85.74% at Horizon **3**, because rejoining means going round a block and a block is three Segments. **1** is *noticing a choice*; **3** is *recovering a route you have left*. `adr/0046` sets neither |
 | Temperament base and spread | **unset** | tuning. Stable base plus per-decision jitter, two `purpose_tag`s. **The base/jitter blend weight has no argument behind it at all** and is the routing model's weakest number |
