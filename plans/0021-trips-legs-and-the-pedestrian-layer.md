@@ -1,0 +1,459 @@
+# 0021 — Trips, Legs and the pedestrian layer (milestone 5b)
+
+> The slice brief for [`06`](../docs/06-roadmap.md) milestone **5b**, *Trips, Legs and the pedestrian
+> layer* — and, ahead of it, the brief for the session that gates it.
+> Decisions to be built: [`adr/0008`](../docs/adr/0008-walking-is-a-simulated-leg.md) (the gate),
+> [`adr/0005`](../docs/adr/0005-two-fidelity-tiers.md),
+> [`adr/0072`](../docs/adr/0072-the-mode-mask-is-saved-on-the-arc-and-the-segments-is-derived.md),
+> [`adr/0071`](../docs/adr/0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md).
+> Design realised: [`03 §3.7`](../docs/03-agent-architecture.md), `CONTEXT.md` → Trip, Leg, Traveller,
+> Access Point, Trip Fate, Severance.
+>
+> **This is a planning document and therefore cites rather than owns**
+> ([`adr/0042`](../docs/adr/0042-a-planning-document-cites-and-a-design-document-owns.md)). Every
+> figure below names its owner. If this document and its owner disagree, the owner is right.
+
+## Status
+
+**⚠ BLOCKED. Not started, and it must not be started.** Milestone 5b is gated on session **F** —
+[`adr/0008`](../docs/adr/0008-walking-is-a-simulated-leg.md), *walking is a simulated Leg* — which has
+not run. [`0000`](0000-board.md)'s argument-track table carries row **F** unstruck against *milestone
+5b*, and [`0002`](0002-open-questions.md) §F states the obligation in the strongest form it uses
+anywhere: *"Makes 5b **the irreversible milestone**, so it is owed **before** the Leg model is built."*
+`CLAUDE.md`'s standing rule is that **a gated slice must not be started before its gate clears.**
+
+**This document exists in two halves for that reason.** *Session F's brief* below is the gate and is
+runnable today. *The slice* below that is scoped so the build can begin the hour F closes, and not
+before.
+
+### ⚠ 5b has two gates, one of them cleared, and reading the first as the second is how this brief nearly got written wrong
+
+**Session D also gated 5b, and D has run.** The board's D blockquote says so in its own words — *"the
+only thing that can replace it is Trip generation, which is milestone 5b, which D gates"* — and
+`CLAUDE.md` repeats it. That sentence is true and it is not the whole gate. The gate table lists **two**
+sessions against this milestone:
+
+| | Session | What is missing | Unblocks | State |
+|---|---|---|---|---|
+| ~~**D**~~ | ~~`03 §5` — the traffic model~~ | ~~the most detailed unargued design in the project~~ | 5b, 5c, 6, 7a | **RUN 2026-08-10** |
+| **F** | [`adr/0008`](../docs/adr/0008-walking-is-a-simulated-leg.md) — walking is a simulated Leg | *"Written from research"*, never argued | **5b** | **🔴 OPEN** |
+
+D cleared the traffic model. F is the Leg model, and nothing has touched it.
+
+**This is [`plans/0012`](0012-corpus-audit.md) *Cause 1* on the gate rather than on the fact, and
+[`0020`](0020-the-road-graph.md) had already written the warning three paragraphs into its own status
+section** — about the S2 harness, *"a deletion blocked twice for unrelated reasons is exactly the kind
+of row that gets struck for the wrong one"*. Same shape, one milestone later, and the document carrying
+the warning is the one this brief was modelled on. **Keep the two apart**: 5b's traffic-model gate is
+discharged and its *Leg-model* gate is not.
+
+---
+
+## Session F's brief — the gate
+
+**F is one sitting, and it does not get a plan document of its own.** [`0017`](0017-session-d-the-traffic-model.md)
+is the precedent and it states the criterion: a session earns a brief when it is *more than one sitting*,
+which is the same test that gives a slice a plan. F is not, and the reason is the next paragraph.
+
+### Session D task 0 already ran F's typing pass, and that is most of the work
+
+`adr/0043` says a claim a measurement could settle must not be settled by argument, and `0002` §F turns
+that into F's instruction directly: *"`adr/0016`, `adr/0009` and `adr/0008` each read as decided, each
+carry a quantitative claim, and none has a number… **Type them before grilling them** — if the refuting
+number and the machine can be named, they are measurable and **a session must not close them.**"*
+
+**That typing has happened.** Two §B rows are stamped *"NEW, from session D task 0"* and both are
+`adr/0008`'s:
+
+| `0002` | The claim, as `adr/0008` states it | The refuting number | Machine |
+|---|---|---|---|
+| **§B-16** | *"pedestrian networks do not saturate at this scale"* — asserted in **three** places (`adr/0008`, `03 §3.7`, `CONTEXT.md` → Fidelity) and measured in none | peak pedestrian density per block face at 1M, against the density at which walking speed falls | **5b** |
+| **§B-17** | *"Trip object count roughly triples"* — the number the Trip table is to be **sized** on | mean Legs per Trip | **5b** |
+
+So **F may not close either of them**, and a brief that asked it to would be setting the session up to
+break the rule that booked it. What F is left with is the *arguable* residue — and the residue is the
+part that is genuinely irreversible, which is the right division.
+
+### ⚠ What F must decide first: `adr/0008` asks for a structure `adr/0072` rejects by name
+
+**This is the finding that makes the gate obviously real work rather than a formality, and it is exactly
+what a grilling session exists to catch.** `adr/0008`'s second consequence reads:
+
+> *"**The road network needs a pedestrian layer**: **sidewalk edges alongside street edges**, and
+> crossing edges at junctions. This is real work, not a free consequence."*
+
+Every other document in the corpus says the opposite. `CONTEXT.md` → Segment: *"**Walking does not add
+Segments.** The mode mask is *an edge property, not a second edge set*, so a Street's footway is **the
+same Segment with the foot bit set**, and the pedestrian network is a **subgraph** rather than an
+addition."* `adr/0072`, shipped yesterday, quotes `CONTEXT.md` → Road Graph as categorical — *"the same
+structure, tagged by which modes may traverse them — **not two parallel networks**"* — and names the
+three things one graph buys, all three of which splitting it would lose: one Epoch, one revalidation
+path, and **a multi-Leg Trip routed by a single mode-aware search rather than stitched across two
+structures.**
+
+**`adr/0008` predates the mode-mask decision and has never been amended.** Taken literally it instructs
+5b to build the thing `adr/0072` refuses. Nobody has noticed because nobody has built a Leg. **F must
+amend `adr/0008` in place** — the corpus's own form, a banner and not a deletion — and the amendment is
+small: *sidewalk edges alongside street edges* becomes *the foot bit on the Street's Arcs*, and the
+argument the ADR was making is untouched, because the argument was never about edge sets. It was about
+Buildings not sitting on the road graph.
+
+**And the amendment decides the revisit trigger's cost.** `adr/0008`'s one trigger names the coarser
+topology as *the mitigation to reach for first* — *"one pedestrian edge per block face rather than per
+street segment — **not** deleting the Leg."* Under the mask reading that mitigation is **not available as
+a tuning change**: it is a change to which Arcs exist, which is a graph change and hash-bearing. F should
+either design the coarse form now and leave it unbuilt, or record that the trigger's stated mitigation
+has become expensive and say what replaces it. **A revisit trigger whose mitigation no longer exists is a
+trigger nobody can act on**, which is the failure `adr/0073` was written about one layer down.
+
+### What else F must decide
+
+Everything below is *arguable* under `adr/0043`: no measurement settles it, and each is a choice the Leg
+model bakes in on its first line.
+
+**2. What a Leg *is*, as a field set.** **No document in the corpus states one.** `CONTEXT.md` → Leg
+defines a Leg by its mode-homogeneity and by the `walk → drive → walk` minimum; it names no fields. Mode,
+endpoints and a cost are implied by every consumer and written down by none. This is the largest hole F
+closes, and it propagates: `03 §4` invariant 3 already owes *"write down what is discarded when a
+Traveller leaves a Microscopic segment — anything not enumerated is a bug"*, and that enumeration cannot
+be written against a structure nobody has specified.
+
+**3. The pedestrian access point, and whether it is a second Access Point or a second offset.**
+`CONTEXT.md` → Access Point says every Building has a **pedestrian** and a **vehicle** one, that *"an
+Access Point is an offset along a Segment, never a node"*, and that the consequence is a query shape:
+*"a routing query is therefore `(Segment, offset) → (Segment, offset)` rather than node-to-node, **which
+is the query shape everything downstream must be measured on**."* `adr/0008` says the two *"are usually
+the same place and occasionally are not, and the distinction is what lets parking later become a real
+location without restructuring anything."* Whether that is two rows, two columns or one row with a flag
+is F's, because milestone 8 inherits it — and `adr/0009`'s superseding note has already cashed the split:
+*"a **District is bounded by where transport can be ignored**; a **shed is bounded by where transport
+must be measured**, because per `adr/0008` the walk Leg is its entire output."*
+
+**4. Whether the Commute Budget is genuinely one currency across modes.** `adr/0008` asserts it —
+*"walking minutes and driving minutes are the same currency and both count against it"* — and derives it
+from the SC4 rule that the routed quantity must be the scored quantity. It is stated nowhere else and has
+never been examined. The obvious objection is that people do not value the two equally; the obvious
+answer is that a weighting is a tuning number rather than a structure. **F should say which, because a
+per-mode weight is hash-bearing and `adr/0052` wants it named on the day.**
+
+**5. Is a walk Leg *always* Statistical, or *almost* always? The corpus says both.** `CONTEXT.md` →
+Fidelity is categorical — *"a **walk Leg is always Statistical**… there is nothing a second tier could
+find"* — while `adr/0007` says *"walk Legs resolve statistically **almost always**"* and `adr/0008` says
+*"Statistical **approximately always**… they **almost never** enter the expensive regime."* **The
+difference is a whole mechanism.** Categorical means no promotion path for a foot Segment need exist at
+all, and 5b builds nothing; probabilistic means one must, and 5b owes a hole for it. The underlying
+claim is §B-16 and is unmeasured, but **which reading the structure takes is not the measurement** — it
+is F's, and it should be settled toward the categorical reading with `03 §3.7`'s transit trigger as the
+one thing that reopens it.
+
+**6. Where a walk Leg starts and ends when there is no parking.** `adr/0008` is explicit that this
+becomes an open question rather than a non-question: *"the walk Leg has to start and end somewhere.
+Deferring a real parking model is defensible; pretending the question does not exist is not."* Parking is
+milestone 8. F must name the placeholder and its retrofit cost, **not** invent a parking model —
+`adr/0070` applies, the absence is *unbuilt*, and it may not generate a compensating design position.
+
+**7. The Trip Fate set, whether it is closed, and what *stranded* means.** `CONTEXT.md` gives four —
+*completed*, *no route found*, *exceeded commute budget*, *stranded* — and the corpus has refused a fifth
+**three times on the same ground**: `adr/0067` (*"the Trip completed; what failed is the purchase"*),
+`CONTEXT.md` → Parking Shed (*"deliberately no *no parking* Trip Fate"*), and → Diversion (*"there is no
+Trip Fate for a lost driver"*). **Three refusals is a pattern worth promoting to a rule**, and F is where
+it gets one. ⚠ **And *stranded* is glossed twice with different entry conditions**: `CONTEXT.md` → Trip
+Fate says *the network changed mid-journey*, and `CONTEXT.md` → Diversion says a Traveller *"is
+**stranded** when no arc out of the node it stands on reduces the straight-line distance to its Target."*
+Whether that is one Fate with two entry conditions or two Fates wearing one name, **the corpus does not
+say** — and 5b writes the enum.
+
+### What F must hand forward rather than settle
+
+- **§B-16 and §B-17** — routed to 5b above. F may sharpen the instrument; it may not report a number.
+- **Whether transit is ever built.** `03 §6.4` already settles the part that matters — *"a bus is a Leg
+  type inserted into machinery that already handles Legs"* — and `03 §3.7` records the one trigger that
+  reopens walking's single fidelity: *"a stop is a queue with a capacity, and a platform is the one
+  pedestrian context where the no-saturation argument genuinely fails."* That is a recorded trigger, not
+  an open question, and F should leave it alone.
+
+### Four corpus defects F should collect on the way past
+
+None blocks the session; all four are in the documents F will be reading, and `adr/0073` says a finding
+about a document you do not own gets routed rather than worked around.
+
+- **`adr/0041` still says the travel-time matrix is District-granular, and it is unbannered.** *"The
+  matrix remains District-granular; only *attribution* leaves."* `adr/0047` reversed that —
+  *"the travel-time matrix's granularity is the routing partition, not the District"* — and `CONTEXT.md`
+  → District carries the reversal. `adr/0041` has an amendment block that does not touch the bullet.
+  **Do not cite that sentence**; it is 5c's foundation and it is wrong in the ADR a reader would reach
+  for first.
+
+- **`CONTEXT.md` has no `Node` entry, and `Node` is load-bearing.** It appears in the route cache key
+  *(origin node, destination node, variant)*, in the Rejoin Target, in the Sight Horizon's floor
+  (*"its next branching node"*), in `adr/0040`'s pathfinding cluster, and in the definition of Segment
+  and Access Point — both of which define themselves *against* it. 5a shipped `RoadNodeTable`. `CLAUDE.md`
+  is explicit: *"if a concept needs a name that isn't in `CONTEXT.md`, add it there first."* This is
+  `0012` *Cause 1* with the copy count at **zero**.
+- **No design document owns Severance.** `06` says *"the payoff is Severance, argued in `adr/0014` and
+  `03 §3.7`"* — but `§3.7` argues *walking's fidelity* and the one-graph decision, and cites Severance as
+  evidence **for** that decision by quoting `CONTEXT.md` back at itself. The definition exists only in
+  `CONTEXT.md`. Under `adr/0042` a design document owns and a planning document cites; **Severance is
+  cited by two and owned by none**, and it is this milestone's stated payoff.
+- **`docs/movement-primer.md` says the Microscopic Cap counts Segments.** `adr/0062` settled that it
+  counts **Vehicles**, and the primer was written in the *same commit* that changed the unit. The primer's
+  header disclaims authority, which covers it — but *"the fourth copy drifted inside one commit"* is
+  exactly the failure its header says it exists to avoid, and it is the cheapest possible sighting of
+  `0012` *Cause 1*.
+
+---
+
+## The slice — everything below is BLOCKED on the section above
+
+### Why this slice, and why now
+
+**Because it is the only thing that can repair either half of [`0013`](0013-tick-budget.md), and it
+repairs them in opposite directions.** The ledger's two movement rows are both half-priced and
+half-priced in different halves:
+
+| Row | Unit | Multiplicand | What 5b supplies |
+|---|---|---|---|
+| **Routing** | **measured** — ~9.4–10.5 ms, a *maximum* over five pinned captures | **guessed, and the wrong event** — 16 Trip starts, where R6.3 showed the expensive event is a **diversion** | the multiplicand |
+| **Microscopic Lane model** | **measured** — 27.4–29.3 ns a Vehicle (S5 L5) | **none at all** — the Microscopic Cap is unset and its demand half is 5b's | the multiplicand |
+
+`0013` says it in one sentence: *"routing needs 5b's Trip generation to fix a multiplicand, and the Lane
+model needs 5b's stress counts to acquire one."* Routing carries **60–67 of the ledger's ≥114 points at
+4×** — without it the ledger reads 42–48% and fits with room — so the question *does the simulation fit*
+is a statement about one row, and that row's multiplicand is 5b's.
+
+**And the code holds four named holes waiting on it by name.** `RoadSegmentTable.Fidelity` is
+`adr/0007`'s hole and its docstring says why: *"Fidelity follows Stress, Stress needs volume, and volume
+is written by Trips — 5b."* `RoadGraph.RebuildDerived` repeats it at the write site. Tick **Phase 4
+(`Move`)** is an empty method whose own remarks reserve it — *"Lanes advance Vehicles; Statistical trips
+check arrival. Empty until Phase 2 of the roadmap."* And `LineSourceQueries` — Noise and near-road
+pollution — is a named hole whose source term is traffic volume, which cascades into Desirability and
+the land-value target that `LayerCellTable` is already diffusing toward and **nothing writes**.
+
+**Under `adr/0070` every one of those is *unbuilt*, not *refused*.** None may generate a compensating
+design position, and the answer to all of them is the same: build the mechanism.
+
+### What this slice is
+
+**Trips that exist, hash, save, complete, fail with a recorded reason, and can be walked.** The city
+gains people going places on foot, and the first thing it can say is *these people cannot reach those
+shops*.
+
+| In | Why |
+|---|---|
+| `Trip` and `Leg` as typed tables, Legs as an **intrusive index list** off the Trip | `CLAUDE.md`; `CONTEXT.md` → Trip is *"an ordered sequence of Legs"* |
+| A **pedestrian and a vehicle Access Point** per Building, each an `(Segment, offset)` | `CONTEXT.md` → Access Point; `adr/0008`'s third consequence |
+| The **walk Leg, resolved end to end** — `distance / speed` over the foot subgraph | `03 §3.7`: for a walk Leg this *"is not an approximation, it is the exact answer"* |
+| A **Trip generator** — one, named, and argued | Nothing generates Trips; see *Decisions this slice must close* |
+| **Trip Fate**, recorded and reported | `CONTEXT.md` → Trip Fate; `02`'s per-Tick assertion *no Trip without a Fate* |
+| The **Commute Budget**, as Ruleset data | `CONTEXT.md` → Commute Budget; `adr/0015`, and it is hash-bearing |
+| Tick **Phase 4** doing something | The phase exists and is empty |
+| **Volume** on the Segment, incremented on entry and decremented on exit | `03 §3.3` and `adr/0041`; it is what unblocks Stress and therefore Fidelity |
+| `--trips` in the headless runner, and a **Severance demonstration** | `06` rule 2: there is something to *look at*, and Severance is this milestone's stated payoff |
+| Census metric family, invariants, State Hash coverage, a long run | The definition of done |
+
+| Out | Owner |
+|---|---|
+| Routing on the vehicle graph, the travel-time matrix, the route cache | **5c** — and S2 has measured all of it |
+| Lanes, IDM, Overlaps, the Microscopic tier | **6** — and S5 has priced the kernel |
+| Stress *thresholds* (`T_high`/`T_low`), promotion, demotion, hysteresis | **7a**; 5b supplies the volume they read and chooses none of them |
+| Parking, Sheds, the shed query | **8** |
+| Transit | Unmilestoned, and `03 §6.4` says a bus is a Leg type inserted later |
+| Jobs, wages, the labour market | Unmilestoned — **and this is why the generator is a decision, not a task** |
+
+### Tasks
+
+**1. Access Points.** Every Building gets a pedestrian and a vehicle Access Point as
+`(Handle<RoadSegment>, offset)`. Saved and hashed — a Building's front door is a property of the city,
+not a cache. The offset makes this the query shape `CONTEXT.md` says *"everything downstream must be
+measured on"*, so getting it wrong here mis-measures 5c and 8 as well. **The Lot subdivider does not
+exist** (it is 5a-bis, [`0020`](0020-the-road-graph.md) → *What this excludes*), so the assignment is
+nearest-Segment-by-construction and says so in a docstring.
+
+**2. `Trip` and `Leg` tables.** `Borough.Core` — namespace is F's to name, since F names the Leg. A Trip
+carries origin and destination Access Points, a purpose, a Leg **head index**, and a Fate; a Leg carries
+mode, endpoints, a `TravelTime` (`adr/0071`, Q16.16 Ticks) and a `next` index. Per-field
+`saved AND hashed` / `derived AND rebuilt` throughout, which is what allocates the column and what closes
+the hash's coverage hole.
+
+**⚠ This table needs a sink and `adr/0006` is not satisfied by *"Trips are transient"*.** A completed
+Trip's Fate must reach the Census **before** the row is freed, or the only durable record of a failure is
+gone; and the Fate counters are *flows*, not levels, so they follow slice 7 task 9's precedent — read as
+a sum and a peak over the interval, and the reading drains them. `CONTEXT.md` → Traveller is the
+constraint that makes this safe: *"a Traveller is a view, not an owner"*, and **conserved quantities live
+on the Citizen record, never on the embodiment.**
+
+**3. The walk Leg, resolved.** A mode-aware search over the foot subgraph — `TravelMode.Foot` on the
+**Arc** (`adr/0072`), which is what makes this a subgraph query rather than a second network. Cost is
+`distance / speed` and `03 §3.7` is unusually strong about why that needs no second tier: pedestrian
+networks do not saturate, so the cheap answer is the *exact* answer. **This is the property that makes 5b
+buildable before 5c**: the walk Leg needs no travel-time matrix, no route cache and no VDF, and it is
+half the Legs in the city.
+
+**4. The Trip generator.** One, chosen in *Decisions* below. It must be a real mechanism rather than a
+sampler — `adr/0069`'s lesson from placement is that a **number** does not settle what a **mechanism**
+settles — and it must be able to fail, because a Trip that cannot fail measures nothing.
+
+**5. Volume on the Segment, and Phase 4.** Increment on entry, decrement on exit, per `03 §3.3` and
+`adr/0041` — *"a Traveller contributes congestion to exactly the Segments it experiences congestion on"*,
+and no `in_flight[origin][dest]` counter, which `adr/0041` deleted. The ADR fixes both the disposition
+and the check: volume is **`(saved AND hashed)`** hot per-Tick state on the Segment table, and *"a new
+invariant belongs with the definition of done: **summed Segment volume equals the number of in-flight
+vehicular Travellers, every Tick**."* **Only vehicular Legs increment** — *"walk Legs still contribute
+nothing"*, because `CONTEXT.md` → Fidelity keeps pedestrians out of Stress entirely. Phase 4 is
+*permitted parallel* and this build runs it serially; `Phases.Runs` already states that permission is an
+upper bound. **Do not write `Fidelity`.** Volume is 5b's; the threshold that reads it is 7a's.
+
+**6. Trip Fate, the Census family and the Commute Budget.** Four Fates, `02`'s *no Trip without a Fate*
+as an `O(1)` write-site invariant, and the Budget as `[trips]` Ruleset data — hot-reloadable and
+**hash-bearing**, so it owes a §D row and a named ratifier the day it is written (`adr/0052`).
+
+**7. `--trips`, and the Severance demonstration.** `--zones` and `--roads` set the precedent, including
+**refusing rather than degrading** when the Ruleset declares nothing. The picture worth printing is not a
+Trip count: it is a city where a neighbourhood cannot reach its shops on foot, and the same city with a
+crossing added. 5a's acceptance test already found the shape this must respect — **Severance is a
+property of the grid's fineness relative to the barrier**, and at 512-Tile blocks or two Arterials the
+crossing dial does nothing at all.
+
+**8. Invariants, hash and the long run.** 100,000 Ticks, no collection and no magnitude trending
+(`adr/0006`), and — the standing warning from slice 10 task 11 — **assert that the branches under test
+were actually reached.** A baseline records what a run *did*, so a change that narrows what the run
+*reaches* is invisible in it by construction. For this slice that means asserting that a Trip failed, and
+that a walk Leg was severed, not merely that Trips ran.
+
+### Decisions this slice must close
+
+**1. What generates a Trip — and the corpus has no answer, which is a finding rather than an oversight.**
+**No document defines a Trip generator.** Not `03`, not `movement-primer`, not `CONTEXT.md`. What exists
+is a scatter of generators owned by other decisions: the **commute** (`CONTEXT.md` → Provider List — *"a
+Provider List entry carries its Mode; how I get to work is decided when the job is taken"*), **shopping**
+(`adr/0067` — *"a Household visits one provider per shopping occasion"*), **school** (`adr/0032`, and
+*"roughly +50% on the commute peak"*), **dispatch** (`adr/0030`), **immigration** (`adr/0023`), **Office
+export**, and **freight** (`03 §6.6`).
+
+**The obvious choice is the commute and it is unavailable: there are no jobs.** No Office, no wages, no
+labour market — `06`'s no-milestone table lists them as settled-and-unplaced. Under `adr/0070` that
+absence is **unbuilt**, so it may not generate a compensating design position, and *"give every Household
+a synthetic workplace"* is exactly such a position.
+
+**The candidate that survives is shopping, and it is the one already specified down to its fields.**
+[`adr/0067`](../docs/adr/0067-a-shopping-attempt-is-a-trip-and-a-household-tries-one-provider-per-occasion.md)
+shipped the mechanism whole: *"a Household travels to a shop on its Provider List, and finding the shelf
+empty is a **transaction** outcome recorded on the Household… **A failed occasion costs one Trip, not
+`N`**"*, selected by a **cursor** that advances on failure and resets on success, and *"the Household
+gains three small fields and no collection"*. It accepts the consequence in its own words — *"every
+Household's shopping is now Trip generation, so `04 §6` is a **load on milestone 5b**"*. Buildings with
+Bins exist, Households exist, placement exists. **This is the rarest starting position a task in this
+project has had: a generator whose design is settled, whose failure mode is designed, and whose cost is
+already booked to this slice.**
+
+Three constraints come with it and none is negotiable. `adr/0032`: **"A Household chooses providers and
+modes. It never chooses an itinerary"**, and *"mode is an attribute of a Provider List entry, not a
+per-Trip decision"* — so the generator picks a destination, never a route. `adr/0025`: a Building *"may
+hold Bins, one Access Point, one Parking Shed. **It may never hold a Need, money, a Provider List, or a
+Trip**"* — Trips belong to Households. And `adr/0009`'s superseding note gives the general form:
+**"movers choose; Rules transform"** — nearest-first selection among nearby options belongs to something
+that moves, never to a Building's Rule, which is what keeps this out of the Rule engine and in Phase 4.
+
+*Arguable* under `adr/0043`; a sitting may take it, and this brief recommends it — while noting that
+`0002` §B-1, *shopping occasions per Household per Day*, is the multiplicand, is **5b's own**, and is the
+number `adr/0067` says *"could force a choice between the Evidence chain and the Tick budget"*. **The
+mechanism may be chosen now and the rate may not.**
+
+**2. Where 5b's Leg model stops and 5c's routing begins — and the honest line is the mode, not the
+Leg.** 5b resolves **walk** Legs completely, because `distance / speed` is exact. It cannot resolve a
+**drive** Leg, because that needs a cost function over a congested graph, which is 5c. The trap is to
+conclude that 5b therefore ships single-Leg Trips — that is precisely the shape `adr/0008` exists to
+forbid, and shipping it *"from the first line of code"* is the ADR's own wording. **Recommendation: the
+multi-Leg structure ships whole and the drive Leg ships as a named hole that throws**, on slice 6's
+`pool`-scope precedent — an absence that announces itself rather than degrading into a plausible answer.
+A walk-only Trip is then a real Trip with one Leg, not a degenerate model.
+
+**3. Whether the Trip table is sized on a number that does not exist yet.** `adr/0008` says *"the Trip
+table must be sized for this rather than for a Leg-per-Trip assumption"*, and §B-17 is the measurement
+that has never been taken. `0002` §D1 already carries **table sizing ratios** as a *live inconsistency*
+rather than merely an unratified number — `World` allocates 225 Lots and 150 Buildings per 1,000 while
+the populator builds 120 of each. **Do not add a fourth guessed ratio to that row.** Size the Trip table
+from what the generator actually produces at a measured rung, and record the rung.
+
+**4. Whether a per-mode weight exists in the Commute Budget.** F's decision 4 above. If it does, it is
+hash-bearing and needs a §D row on the day; if it does not, `adr/0008`'s one-currency claim is built
+literally and the ADR gains a consequence it can be held to.
+
+**5. ⚠ What a failed Trip does to the option that produced it — and 5b is the first thing that can hit
+this.** The corpus holds the same sentence as both a rule and a named defect. `adr/0032` says
+re-evaluation is *"an Event Wheel countdown, or immediate on a failed Trip."* `adr/0047` says that is
+broken: *"`adr/0017` re-evaluates 'immediately on a failed Trip' against the same information, which
+still says the same wrong thing — so a Household can choose, fail, re-evaluate and **choose the same
+unreachable option for ever**."* `adr/0017` records it as **owed and unsettled** — *"what that memory
+*is* — a per-Household demotion, a cooldown, or Habit's own weight moving — is unsettled… **Recorded
+here rather than invented**."*
+
+**This slice builds the failing Trip, so it meets the defect before anybody has picked the mechanism**,
+and a severed neighbourhood is the sharpest possible instance: the destination is permanently
+unreachable, so the loop is infinite rather than merely wasteful. **Recommendation: build `adr/0067`'s
+cursor and nothing more.** It already advances on failure and resets on success, which is a demotion in
+everything but name and is the narrowest thing that stops the loop. **Do not invent the general
+mechanism here** — it is `adr/0017`'s to settle and `02 §9` wants a diagnostic with it. Route it, and
+say in the code that the cursor is standing in.
+
+**6. What Trips do to `adr/0053`'s failure pressure, which predicted this slice by name.** *"When Trips
+arrive in milestone 5b, pressure will be integrating **three** signals of different shapes, and
+*duration of the worst one* may stop being the right composition."* A Rule failure is subscription-driven
+and its pressure is a duration; **a failing Trip is an event per attempt**. 5b does not have to fix the
+composition, but it must not silently feed a third shape into a mechanism whose ADR says the composition
+may break — so either the Trip signal stays out of Building pressure in this slice and says so, or
+`adr/0053` gets its amendment. **The first is smaller and this brief recommends it.**
+
+### ⚠ What this slice must report and must not choose
+
+**5b is the named ratifier for six numbers at once, and that is the largest concentration of `adr/0052`
+debt ever pointed at a single slice.**
+
+| `0002` | Number | What 5b is asked for |
+|---|---|---|
+| §D2 | **`T`**, the Habit staleness bound | a steady-state `P(stale)` and a Trip start rate — *"what turns `T` from a period into a bill"* |
+| §D2 | **`k`**, Habit Route variants | R8's concentration column **and** the route cache's hit rate, which move in opposite directions |
+| §D2 | The **Rejoin crossing budget** | rejoin success on real demand, since R6.4.2 measured it on an invented draw |
+| §D2 | The **Aggravation threshold** | switch rate against variant occupancy, over a run long enough to reach a first switch |
+| §D2 | **Habit refresh cadence** | R8.5's instrument re-run on a variant-supplied route set — the ratification withdrawn 2026-08-10 |
+| §D2 | The **Microscopic Cap** | the demand half — how many Vehicles a real city stresses at once |
+
+**And seven `0002` §B rows name 5b as their machine**, which is a different obligation: §B forbids any
+document citing them as decided, so these are measurements 5b **owes** rather than numbers it must
+resist choosing. §B-1 *shopping occasions per Household per Day*; §B-3 *does the route cache actually
+work* — the hit rate, and therefore routing's whole Tick budget, which `adr/0047` calls *"the only
+exit"*; §B-13 *how many Segments are stressed at once at 1M*; §B-15 *does the Statistical tier cost
+"about 1% of a core"*, which `adr/0005` states as the reason storage was never the problem and which is
+**not a row in `0013` at all**; §B-16 and §B-17 above; and §B-20, `05 §5`'s Chunk partition under
+**mobile** entities — re-owned from S0b, which *"ran and could not reach it: nothing in the world
+moves."*
+
+**Five of the six §D2 numbers are gaps rather than debts** — nothing is built on them, so nothing
+accretes — and that is the only reason this is manageable. The failure mode is named in `0002` itself and it is not
+hypothetical: *"a number becoming a decision by being the only number in the room is a habit this corpus
+has already recorded."* It has happened to the Microscopic Cap's supply half within the last two days.
+
+**So the rule for this slice is: report the distribution, name the rung, and choose nothing.** Four of
+the six also want 5c or 6 to exist before they mean anything — a rejoin budget is meaningless without
+diversion, and diversion needs routing. **5b that reports six numbers has succeeded; 5b that sets six
+numbers has quietly made six decisions nobody argued.**
+
+### Definition of done
+
+`CLAUDE.md`'s cumulative list, plus:
+
+- Trips and Legs are in the State Hash, and replay equivalence holds across a world that travels
+- Every Trip that ends has a Fate, asserted at the write site, and every Fate reaches the Census
+- A walk Leg's cost is `distance / speed` over the foot subgraph, checked against a hand-built fixture
+- **A neighbourhood severed by an Arterial produces *no route found* on foot, and adding a crossing
+  fixes it** — with the unsevered variant kept in the suite watching itself pass
+- Segment volume rises and falls with Travellers, and is zero at the end of a run in which everyone arrived
+- `--trips` prints Trips, Fates and a severed component, and refuses rather than degrading
+- 100,000 Ticks with no collection and no magnitude trending, **and an assertion that a Trip failed**
+- §B-16 and §B-17 are reported with their rungs named, and no §D2 number is chosen
+
+**Risk retired:** the irreversible one. After this slice a Trip is a sequence of Legs, a car commute
+cannot be spelled as one Leg because the structure does not permit it, and walking has a cost the
+Commute Budget scores. `06`'s statement of the risk is what to check the result against — *"a single-Leg
+Trip model propagates into Lot valuation, cost functions and every balance constant, and is what
+Citybound could never undo."*
