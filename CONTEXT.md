@@ -152,11 +152,15 @@ Lineage: this layer is adapted from SimCity 2013's **GlassBox** engine, whose pr
 **Building**
 Anything that occupies a Lot, holds Bins, and runs Rules. Houses, shops, factories, farms, and service buildings are all Buildings. A Building has a footprint (the set of Tiles it covers) and interacts with Map Layers through that footprint. GlassBox called this a "Unit"; we say Building because we have no non-building instances of the abstraction.
 
-A Building holds **one or more Occupants** — an apartment block is one Building and many Households. This is the only structure in the design that sits between a person and their dwelling, and it is bounded by a hard invariant:
+A Building holds **zero or more Occupants**, up to a capacity **declared by its kind** — an apartment block is one Building and many Households. This is the only structure in the design that sits between a person and their dwelling, and it is bounded by a hard invariant:
 
 > **A Building aggregates logistics. It never aggregates decisions.**
 
 It may hold Bins its Occupants draw from, one Access Point they all share, and one Parking Shed they all query. It may **never** hold a Need, money, a Provider List, a Trip, or anything a Household decides. If a field would differ between two Occupants, it lives on the Occupant. The checkable rule: *a Building field that would have to be averaged across its Occupants is a Cohort forming* — which `adr/0005` deleted, and which would re-enter here if anywhere.
+
+**How many it may hold is a property of the Ruleset in force, not of the Building** (`adr/0068`): the capacity is declared per kind, derived and rebuilt when a Ruleset is adopted, and never saved — the same disposition a Bin's ceiling has and for the same reason. A density band expresses itself as **which kinds a Lot permits**, so `adr/0025`'s *"density says how many Occupants a Lot may carry"* runs through the permission set rather than through a second mechanism. A Building standing over a lowered ceiling **evicts the overflow into the Unplaced Pool** — occupancy has no consumer, so unlike an over-full Bin it would never drain on its own.
+
+**Zero is a real state**, because construction and placement are different mechanisms (`adr/0069`): a Zone Rule raises a Building and houses nobody, and the placement pass fills it over the following Days.
 
 **Failure Pressure**
 What a Building accumulates when the city stops working for it. Three sources: **Trips to or from it failing**, **its Rules repeatedly reaching a reporting terminal**, and **local conditions falling below its Occupants' tolerance**. Past a threshold it loses occupancy and quality; past a further one it is **abandoned**, its Occupants are evicted into the Unplaced Pool, and its Lot returns to vacant.
@@ -436,6 +440,8 @@ The set of Households currently seeking housing — immigrants, existing Househo
 **Eviction is the one route the Household did not choose**, and it is the reason the Pool cannot be described as *Households seeking to move*. The other three are looking; an evicted Household is looking because the city stopped housing it. It arrives with its Money and Savings intact — losing a dwelling is not losing what you own — which is also what keeps demolition from being a hole in `adr/0024`'s conserved Money.
 
 A Household that finds no acceptable dwelling in a cycle stays in the Pool with a **recorded refusal reason**.
+
+**What drains the Pool is placement, and placement is not construction** (`adr/0069`). A sampled pass runs each cycle over vacant capacity in Buildings that already stand; a Zone Rule raising a new Building houses nobody. The ordering is what makes the Pool a demand signal rather than a population count: placement runs **first**, so a Household still in the Pool when a developer looks is one **the standing stock could not house** — a developer does not build while there are empty flats.
 
 The Pool *is* the demand signal. It replaces the global RCI demand scalar found in other city builders, and it is strictly better as an interface: "412 Households want to move in; 380 can't find anything under §900; 32 can't reach a job inside their Commute Budget" is a diagnosis rather than a bar chart.
 

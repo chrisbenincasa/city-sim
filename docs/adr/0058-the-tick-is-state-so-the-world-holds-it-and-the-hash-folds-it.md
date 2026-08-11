@@ -76,7 +76,7 @@ field on the loop is in no field declaration at all.
   oversight. `_inForce` is the Ruleset in force, whose save semantics are `05 §7`'s unargued format
   half; moving it would prejudge that. `_phase` only matters if a save can happen mid-Tick, which
   nothing has decided. Both are in the same position the Tick was, and
-  [`plans/0002`](../plans/0002-open-questions.md) records that rather than this ADR settling it.
+  [`plans/0002`](../../plans/0002-open-questions.md) records that rather than this ADR settling it.
 
 ## What would trigger revisiting
 

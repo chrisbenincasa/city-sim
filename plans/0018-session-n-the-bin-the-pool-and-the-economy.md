@@ -31,8 +31,15 @@ and is NOT shipped** — it merges into queue **item 3** with `adr/0064`, becaus
 two columns and a baseline that moved for both would be attributable to neither. Its record is
 [below](#task-4s-record--it-was-filed-as-a-semantic-question-and-the-answer-was-a-width).
 
-**The sitting continues at task 5** (`04 §6`, how a shortage becomes an unhappy person). Task 2 is the
-occupancy question and belongs to the economy half.
+**Task 2 is DECIDED, by
+[`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
+and [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md),
+and is NOT shipped** — it reopens [`0003`](0003-build-plan.md)'s hash-moving queue, which had been empty
+since 2026-08-10. **The second ADR is the one the task found underneath itself**, and it is the answer:
+the occupancy question was never an occupancy question. Its record is
+[below](#task-2s-record--the-question-was-filed-twice-and-both-filings-had-the-wrong-subject).
+
+**The sitting continues at task 6** (`04 §8`'s three genuinely open questions).
 
 **It is booked to run beside session D and shares no document with it.** D's brief claims the whole of
 `03` and `adr/0005`, `0007`, `0008`, `0009`, `0012`, `0016`, `0046`, `0047`; N claims `02 §4`–`§5`, `04`
@@ -174,7 +181,13 @@ picked the winner regardless, so the head of the queue lost every time, and it w
 tracing two named bakeries through all eight phases across three Ticks. *The mechanism that fixed the
 decorative queue is the cause of this hole.*
 
-### 2. What a Building holds — and the typing conflict comes first
+### 2. What a Building holds — and the typing conflict comes first — **DECIDED 2026-08-10, `adr/0068`, and `adr/0069` underneath it**
+
+> **The task text below is kept as written, because the record answers it and because the framing it
+> states is most of what the sitting found wrong.** Its three candidate shapes are not the space, its
+> disqualification of `adr/0025` is false against that ADR's own heading, and the typing conflict it
+> opens with is not a conflict about the type. See
+> [the record](#task-2s-record--the-question-was-filed-twice-and-both-filings-had-the-wrong-subject).
 
 **Defect 2. Before arguing it, resolve how it is filed**, because
 [`0002`](0002-open-questions.md) types it **twice and differently**: §B calls it *"a measurement rather
@@ -556,6 +569,93 @@ built its Bins by hand with `capacity: BinCapacity.Of(100)` and its fixture Rule
 no Bins*. Under `adr/0064` there is nowhere for that argument to go: the only way to ask for a Bin holding
 100 is to declare one. The fixture now declares both Bins and every assertion below is unchanged — a
 compile error standing in for the design claim, which is the cheapest form of enforcement available.
+
+---
+
+## Task 2's record — the question was filed twice and both filings had the wrong subject
+
+**Argued 2026-08-10. Settled by
+[`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md),
+with [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)
+underneath it.** A Building's occupancy is declared per `[[kind]]` and is `derived AND rebuilt` from the
+Ruleset in force; an over-capacity Building evicts the overflow into the Pool by a draw under its own
+`purpose_tag`; and **`02 §5.2` step 2, Household placement, is a mechanism of its own** — construction
+raises a Building and houses nobody.
+
+**The typing conflict dissolved rather than resolving, and that is the finding.** The brief's first
+instruction was to fix a claim filed in two sections with two types. It is not one claim: it is a
+**defect** (two populators disagreeing, owed to code), a **shape** (arguable, closed here), and a
+**value** (a number under `adr/0052`, which is §D and never §B — §B holds claims a measurement could
+*refute*, and *how many families fit in a flat* is a choice). **Neither filing was right, and they were
+not disagreeing about the type.** They were agreeing about the wrong subject.
+
+### Four things checked against the code or the text, none of them argued
+
+**1. `adr/0025` covers it, and both `0002` §C and this brief say it does not.** The disqualifier used in
+both is *"density is a cap on what may be built … this is how many families fit in what was built"*.
+`adr/0025`'s section is headed **Capacity, not quality** and opens *"Density says how many Occupants a
+Lot may carry"*, with a consequence reading *"A Building holds many Occupants"*. **Third sighting in one
+session of a decision re-derived as absent** — tasks 3 and 4 met it as `RulesetLoader`'s untested guard,
+and here the copy exists and is in a ratified ADR.
+
+**2. A Rule already reads occupancy, and the shipped Ruleset does.** §C's *"it breaks nothing today — an
+occupant list is unbounded and no Rule reads its length"* has been false since slice 7 task 10a:
+`Readout.Occupancy` is the **only declared Readout**, and `rulesets/minimal.toml:100` is
+`apply = { derived = "occupancy" }` on `consume`. Both shipped Rulesets scale a dwelling's drawdown by
+how many Households live in it.
+
+**3. The mismatch is not inert — it decided whether the committed golden baseline was broken.**
+`Invariant.cs:370`, written by task 1 four hours earlier: *"a producer whose deficit is 2, drawn down by
+the **occupancy-1** Buildings a Zone Rule creates, is withdrawn from one unit at a time and never
+woken."* At occupancy 3 the deficit is covered on the first withdrawal and the violation does not exist.
+**So the sentence *it breaks nothing today* appears in the same ledger entry as the defect it broke**,
+and neither of the two documents holding this question noticed.
+
+**4. `World.Place` has exactly one caller, inside `ZoneRuleEngine.Create`.** Nothing puts a Household
+into a Building that already stands. Of `02 §5.2`'s six steps only **step 5** exists. That is
+`adr/0069`, and it is what actually settles the equilibrium.
+
+### The methodological finding, and it is the largest thing here
+
+**The sitting spent its first exchanges asking whether construction should fill a Building to capacity,
+and that question is circular.** It is only a question because placement does not exist — and the answer
+to *nothing fills the Building* is to build the thing, not to distort construction into standing in for
+it. **The session was letting the current shape of the code generate design positions.**
+
+That is the exact mirror of what tasks 3 and 4 found, and the pair is worth stating together:
+
+| | Direction | Instance |
+|---|---|---|
+| Tasks 3–4 | an **ADR** was wrong about the **code** | `adr/0064` said the loader refused nothing; it had refused it since slice 7 |
+| Task 2 | the **code** was allowed to be wrong about the **design** | `§5.2` step 2 is unbuilt, so two ledger entries concluded a *number* settles an equilibrium a *mechanism* settles |
+
+**Both are a fact with no copy being re-derived from the shape of its absence** — `plans/0012` *Cause 1*
+— and the second is more dangerous, because a missing mechanism does not look like a gap. It looks like
+a constraint. → [`0012`](0012-corpus-audit.md).
+
+### What the eviction argument turned on
+
+The sitting proposed transplanting `adr/0064` whole — *refuse admission and let it drain* — and it fails
+on one property: **a Bin has a consumer and occupancy has none.** There is no housed departure and no
+moving, so there is no attrition for the drain to run on, and the Building would sit permanently over a
+ceiling its kind says is impossible while `consume` bands on the real number. **That is the split city
+`adr/0064` called its own deciding argument**, arriving worse: a Bin's over-fullness spends itself and
+this one never would.
+
+It is also the same fixture problem tasks 3 and 4 hit — *an over-full Bin that nothing consumes cannot
+distinguish draining from clamping* — met a second time as a **design condition** rather than as a
+difficulty in writing a test. Recorded because the first sighting read as an accident of `upkeep`.
+
+### What was deliberately not decided
+
+- **The number.** → `0002` §D, with a ratifier. `adr/0043` bars this session from it and the brief says
+  so twice.
+- **The acceptance filter** — `§5.2` step 2b's *affordable? a reachable job in budget?* — the sampler's
+  bias, the scored choice and `μ`. Those are `§5.4`'s and milestone 9a's, and `adr/0069` declines them
+  by name for the reason `adr/0054` declined 9a's pieces.
+- **Whether an evicted Household is preferred over a chooser when placement runs.** The Pool records no
+  entry route and `CONTEXT` → Unplaced Pool says all four enter **on equal terms**, which is a decision
+  already taken. Raising it here would have reopened it for a convenience.
 
 ---
 

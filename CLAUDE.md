@@ -16,7 +16,16 @@ pointer with just enough shape to orient; the board is the view and the slice pl
 slice plans, and it was the copy that drifted (`plans/0012` *Cause 1*: every document that stores
 per-slice status drifted, and the only large one that did not stores none).
 
-**Phase 1's code is closed, and the code track is empty.** Slices 0–10 are **all done** — **slice 8, hot
+**Phase 1's code is closed, and the code track holds two items** — `0003`'s hash-moving queue, which
+emptied on 2026-08-10 and **reopened the same day** with session N task 2's
+[`adr/0068`](docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
+and [`adr/0069`](docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md).
+A Building's occupancy is declared by its **kind** and derived from the Ruleset in force; an
+over-capacity Building **evicts** rather than draining, because a Bin has a consumer and occupancy has
+none; and **placement is a mechanism of its own** — `World.Place` had exactly **one** caller, inside the
+Zone Rule's create predicate, so of `02 §5.2`'s six steps only step 5 existed and the city could house
+somebody only by building them a house. **Item 5 is the first entry in that queue that builds a mechanism
+rather than correcting one.** The rest of this section describes the state before those two. Slices 0–10 are **all done** — **slice 8, hot
 reload, closed last**, and with it `adr/0015`'s acceptance test: *change a production ratio and see the
 effect in seconds* reads **0.70 s**, against the 60–120 second warm rebuild the ADR was written on. **No
 gate is red anywhere in the corpus.** Session **N** then put four items back on the code track — the
@@ -284,7 +293,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **66** decision records, numbered to **`0067`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **69** decision records, numbered to **`0070`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
@@ -332,6 +341,21 @@ and `0002` §D had reached eighteen rows without ever losing one. The triage tha
 **five were not numbers at all** and **seven were unset** — and an unset number is a *gap*, not a debt,
 because nothing accretes on a value that does not exist. Keep those three apart or the list stops
 being readable.
+
+**An unbuilt mechanism is not a design constraint** (`adr/0070`). The third sibling: `adr/0043` governs
+**claims**, `adr/0052` governs **numbers**, and this governs **absences** — the third thing a sitting
+reasons from, *this does not happen*. Before deciding anything on the ground that the simulation does not
+do something, **name the mechanism and classify the absence**: *unbuilt* (specified, no builder),
+*undesigned* (no specification), or *refused* (a decision says no). **Only *refused* is evidence.** This
+project is young and most of it does not exist — no jobs, money, movement, roads, prices, bid, choice
+model, immigration or renderer — so *the simulation does not do X* almost always means **nobody has built
+X**, and a rule of inference whose premise is usually false is inverted rather than weak. The symptom to
+watch for is a question of the form *given X does not exist, should Y compensate?*: if X is unbuilt, the
+question is void and the answer is **build X**. Why it exists: session N spent a sitting arguing whether
+construction should fill a Building to capacity, a question that exists only because `02 §5.2`'s
+placement step is unbuilt — and two ledger entries had already concluded that a **number** settled an
+equilibrium that a **mechanism** settles. **A design document is not a description of the build**, and
+where it could be read as one it says which parts exist.
 
 **Every significant decision cites a guiding concept** from `CONTEXT.md`'s tag table —
 `EMERGENCE`, `LEGIBLE CAUSE`, `UNIQUE INDIVIDUALS`, `BOUNDED KNOWLEDGE`,
@@ -446,7 +470,7 @@ dotnet run --project src/Borough.Headless -- \
 | Microscopic Cap | **unset** | fixed world constant, still open. **It counts *Vehicles*, not Segments** (`adr/0062`) — the unit was wrong in three places and is the family of `adr/0053` and `adr/0059`. Its value is a **ratio nobody has both halves of**: Vehicles affordable in 15.6 ms (**S5**) against Vehicles a real city stresses at once (`06` 5b) |
 | Sight Horizon | **1 Segment — DERIVED, and there is nothing to choose** | **Not tuning.** The floor is graph geometry (R8.1) and the **ceiling is comparison symmetry** (`adr/0046`, session D task 4): a driver has its own route and can read `N` live arcs along it, but has no route down an alternative beyond the first arc, so above 1 the comparison is asymmetric and biases diversion without bound. **The other parameter this name was wearing is the Rejoin crossing budget** (`adr/0061`), which is unset and is R6.4.2's cliff at 3. *Original row:* ~~tuning, hot-reloadable.~~ Its **floor** is a Road Graph property — the distance to the next node with a real choice — and S2 R8.1 derives it at **1 Segment** (`adr/0046`). **⚠ R6.4.2 found this is two parameters wearing one name**: rejoin success cliffs 19.14% → 85.74% at Horizon **3**, because rejoining means going round a block and a block is three Segments. **1** is *noticing a choice*; **3** is *recovering a route you have left*. `adr/0046` sets neither |
 | Temperament base and spread | **unset** | tuning. Stable base plus per-decision jitter, two `purpose_tag`s. **The base/jitter blend weight has no argument behind it at all** and is the routing model's weakest number |
-| Habit refresh cadence | **infinite — static per world. RATIFIED, twice qualified** | S2 R8.5 was the named ratifier, ran, and did not refute: `03 §3.4`'s loop closes on the local layers alone. No cadence, and no hash-bearing number. **⚠ Two qualifications, neither discharged** — R8.5 ran on a **District-granular free-flow tree** that `adr/0047` has since deleted, so the ratifier measured a structure that no longer exists; and session M narrowed what was ratified to *static under **congestion***, since R8.5 ran no edits. The **topology** half is not static: it is `T`, the Habit staleness bound, unset in `0002` §D2. Full text there |
+| Habit refresh cadence | **infinite — static per world. RATIFICATION WITHDRAWN 2026-08-10; the value stands and nothing now rests on the ratifier** | **The first ratification this corpus has taken back**, by session D task 5: R8.5's own limit clause forbids carrying its fire rate *"to any scheme that gives a Traveller more than one candidate route"*, and `adr/0060` has made a Habit exactly that. **Withdrawal costs nothing** — `adr/0061` supplies adaptation as a *switch between static candidates*, so no cadence and no hash-bearing number returns whatever a re-measurement says. Both qualifications are now closed rather than open: session M's is **two claims with two owners** (`adr/0046` owns *static under congestion*, `adr/0012` owns topology and says plainly it is **not** static — that is `T`, unset in `0002` §D2), and **S2 R7 discharged the `adr/0047` one on 2026-08-11** by writing the direction down: dispersal gives a jam more places to redistribute to, so self-correction closes **at least as easily** on a variant-supplied route set. Full text in `0002` §D |
 
 ## Definition of done for any milestone
 

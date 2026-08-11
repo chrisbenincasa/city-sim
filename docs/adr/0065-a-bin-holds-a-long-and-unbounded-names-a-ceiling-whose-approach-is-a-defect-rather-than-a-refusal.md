@@ -5,7 +5,7 @@ every quantity on the write path that reaches them, or the narrowing merely move
 the argument. *Unbounded* is not a state: it is `long.MaxValue`, and it means a ceiling far enough away
 that **approaching it is a defect rather than a refusal**. There is no special case — `Check` runs the
 same headroom test on a money Bin as on any other — and a level climbing toward its ceiling is
-[`adr/0006`](0006-every-collection-has-a-sink.md)'s **magnitude** clause, caught by the long-run
+[`adr/0006`](0006-no-collection-grows-with-elapsed-time.md)'s **magnitude** clause, caught by the long-run
 acceptance test, never by a headroom subscription and never by a panic. If 2⁶³ is ever approached the
 answer is **denomination**, not width.**
 
@@ -66,7 +66,7 @@ question stops being interesting.
 ### Truly unbounded is architecturally unavailable, and the word was never true
 
 Arbitrary precision means `BigInteger`, which is managed and allocates, and **lint 7** with
-[`adr/0036`](0036-the-core-speaks-unmanaged-c.md) requires every struct in `Borough.Core` to be
+[`adr/0036`](0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md) requires every struct in `Borough.Core` to be
 `unmanaged`. There is no arbitrary-precision quantity in this design and there will not be while that
 invariant stands.
 

@@ -43,6 +43,8 @@ SC4 gated building stage on **regional population** thresholds. That is a hidden
 
 Density says how many Occupants a Lot may carry. It says nothing about who they are or what they pay — those come from the choice model and the price system, which already produce them.
 
+> **The mechanism is [`0068`](0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md), and this pointer exists because the sentence above was twice recorded as absent.** A band expresses itself as **which kinds a Lot permits** ([`0055`](0055-a-zone-rules-permission-set-scopes-what-it-builds-never-which-lots-it-looks-at.md)), and a kind declares its occupancy — so *how many Occupants a Lot may carry* is discharged through the permission set rather than by a second mechanism, and the two routes below land in different ones: **Subdivide** is Lot subdivision (`02 §2.2`), **Stack** is a kind with a larger declared occupancy. `plans/0002` §C and session N's own brief both disqualified this ADR as *"adjacent"* to the occupancy question, on a *built* / *may be built* distinction this section does not draw.
+
 Collapsing the two into one ladder would make density *a thing the player graduates to* rather than a thing the player chooses between, and that framing is what guarantees the degenerate strategy of painting maximum density everywhere.
 
 A consequence that corrects an existing document: **Buildings do not shrink.** [`02-simulation-model.md`](../02-simulation-model.md) §5.9 says a Building "declines a density level," which is physically incoherent. Decline drains occupancy and quality; the density ladder is walked at construction only, and the band is re-tested when a Lot redevelops.

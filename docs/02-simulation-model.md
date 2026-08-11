@@ -31,7 +31,7 @@ Every tick runs the same ordered phases. The ordering is not an implementation d
 | 3 | **Settle** | serial, sorted | Apply intents in deterministic key order against the **Future**. Re-check atomicity. Losers take their fallback path. |
 | 4 | **Move** | parallel | Lanes advance their Vehicles. Statistical trips check for arrival. |
 | 5 | **Layers** | parallel | Map Layer diffusion, for whichever layers are scheduled this tick. |
-| 6 | **Growth** | serial | Zone Rules sample Lots. Buildings that have accumulated failure decline. |
+| 6 | **Growth** | serial | **Placement drains the Unplaced Pool into vacant capacity**, then Zone Rules sample Lots. Buildings that have accumulated failure decline. |
 | 7 | **Commit** | serial | Swap Past and Future. Schedule next events. Re-evaluate Segment Stress and apply promotions/demotions. Emit the State Hash if due. |
 
 Two properties this buys:
@@ -39,6 +39,13 @@ Two properties this buys:
 **Phase 2 can be parallelised safely** because it only reads the Past and writes nothing. This is the phase that scales with city size, and it is the one we want on many cores. Phase 3 is the serial bottleneck by construction, and it is cheap because it is only applying already-computed decisions.
 
 > **"The Past" is a property of this ordering, not a second copy of the world.** [`adr/0037`](adr/0037-the-world-is-single-buffered-and-hazards-are-per-table.md) replaced the full-world double buffer with **one live state**, double-buffering only the two tables a *parallel* phase both reads and writes — Lane dynamics (Phase 4) and Map Layer cells (Phase 5). The Past is therefore *the state as of the start of this Tick*, which Phase 2 observes because nothing has written yet. Everything this section says is unchanged; only the mechanism is. **The consequence for this table: Phase 2's "writes nothing" is now load-bearing rather than merely tidy** — it is what permits every entity table to be single-buffered, and a future decision to parallelise Decide must not also make it mutating. Phases 4 and 5 are marked parallel here and are the two exceptions for exactly that reason.
+
+> **Placement's position inside Phase 6 is the decision, not its presence there**
+> ([`adr/0069`](adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)). It runs
+> **ahead** of the Zone Rules, which is what makes §5.6's create predicate a statement about *vacancy*
+> rather than about population: a Household still in the Pool when a developer looks is one the standing
+> stock could not house. This table calls the ordering the determinism contract, and here that is the
+> whole content of the decision. **Decided and unbuilt** — see §5.2.
 
 **Contention is resolved honestly.** Two bakeries evaluating in parallel may both observe six flour in the Pool and both decide to consume it. In Phase 3 the first one — by a **counter-based random shuffle**, per §8 rule 5 — succeeds, and the second finds the condition no longer holds, fails atomically, and takes its fallback. Nobody gets phantom flour, the loser's failure is a real event that can be reported, and no Building holds a standing advantage over its neighbours.
 
@@ -574,6 +581,22 @@ Adapted from UrbanSim's architecture, which has been the operational design of a
 > **Which rebuild rung the matrix takes is therefore open** — see [`plans/0002`](../plans/0002-open-questions.md) —
 > and nothing here chooses one; what is settled is that the rung written above is not available.
 
+> **Which of these six steps exist, stated here because this section has twice been read as a
+> description of the build.** Only **step 5, development**, is built — as slice 10's Zone Rules. **Step 2
+> is decided and unbuilt** ([`adr/0069`](adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)):
+> a sampled Phase 6 pass ahead of the Zone Rules, draining the Pool into vacant capacity declared by a
+> Building's kind ([`adr/0068`](adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)),
+> **blind** for `adr/0054`'s stated reasons — step 2b's hard filter needs a price surface and a Commute
+> Budget, and has neither. Steps 1, 3, 4 and 6 do not exist; step 6's *dirty regions only* is separately
+> unsound, below.
+>
+> **What the omission cost is worth recording.** Until session N task 2, `World.Place` had exactly one
+> caller, inside the Zone Rule's create predicate — so construction was doing placement's job one
+> Household deep, and a 100,000-Tick run settled at ~300 of 360 Households homeless. **Two ledger entries
+> read that as a missing *number*** (an occupancy nobody had declared) rather than as a missing
+> *mechanism*, because an unbuilt step in a specified loop does not look like a gap. It looks like a
+> constraint. → [`plans/0012`](../plans/0012-corpus-audit.md).
+
 **The unplaced pool with per-Household refusal reasons is our replacement for the RCI meter, and it is a strictly better interface primitive.** "412 Households want to move in; 380 can't find anything under §900; 32 can't reach a job inside their Commute Budget" is a diagnosis. A bar chart is not. `LEGIBLE CAUSE`
 
 Note that this loop does not guarantee everyone gets housed, does not solve an assignment problem, and does not globally optimise. It processes agents, consumes units, and leaves a residual. **The residual is the demand signal** — and it is a list of specific frustrated Households with specific reasons, which the commercial and development logic can read directly.
@@ -702,9 +725,11 @@ Tighter clamping and fewer iterations than UrbanSim's defaults (±25%, five iter
 
 **Construction trigger: local price × buildable capacity versus cost.** For each Lot and each form allowed by zoning, estimate revenue from the current price surface and cost from construction plus land, and build when return clears a hurdle rate.
 
-> **None of that exists, and what stands in for it is a documented vacancy reason rather than an approximation of it.** There is no price surface, no capital and no bid, so slice 10's create predicate is **vacant AND permitted AND a Household in the Unplaced Pool would take it**. The third term is not a weakened pro-forma: `CONTEXT` → Frontage lists the four answers to *why is this Lot vacant*, and *"no Household in the Unplaced Pool that would accept it"* is one of them, **beside** *no capital* rather than downstream of it. What is missing is therefore missing rather than faked, and the Pool is also what makes growth self-limiting — creation drains the signal that authorised it, so no Ruleset can build past its demand however wide its sample.
+> **None of that exists, and what stands in for it is a documented vacancy reason rather than an approximation of it.** There is no price surface, no capital and no bid, so slice 10's create predicate is **vacant AND permitted AND a Household in the Unplaced Pool would take it**. The third term is not a weakened pro-forma: `CONTEXT` → Frontage lists the four answers to *why is this Lot vacant*, and *"no Household in the Unplaced Pool that would accept it"* is one of them, **beside** *no capital* rather than downstream of it. What is missing is therefore missing rather than faked, and the Pool is also what makes growth self-limiting.
 >
-> **Which Household moves in is drawn, never queued.** The drain is blind ([`adr/0054`](adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md)) because acceptance needs rent, a commute and a tolerance, so any member would take the dwelling and nothing is contested — but §8 rule 5's *reason* still binds. A Pool that never fully drains is what a housing shortage **is**, and under any fixed order the same Households would remain unhoused for the life of the city with nothing in any readout to explain why.
+> **⚠ AMENDED by [`adr/0069`](adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md). The superseded wording was:** *"creation drains the signal that authorised it, so no Ruleset can build past its demand however wide its sample."* **Construction now houses nobody**, so that sentence has nothing to drain and the property comes from the **ordering** instead: placement runs ahead of the Zone Rules in Phase 6, so the Pool a developer reads holds only Households the standing stock could not house. **The replacement is strictly stronger than what it replaces** — the old predicate read a Pool that construction drained one Household at a time, so a wide sample *could* build ahead of demand by up to the sample size within a single trigger, and post-placement it cannot.
+>
+> **Which Household moves in is drawn, never queued** — and under `adr/0069` it is **placement** that draws, not creation. The drain is blind ([`adr/0054`](adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md)) because acceptance needs rent, a commute and a tolerance, so any member would take the dwelling and nothing is contested — but §8 rule 5's *reason* still binds. A Pool that never fully drains is what a housing shortage **is**, and under any fixed order the same Households would remain unhoused for the life of the city with nothing in any readout to explain why.
 
 So the full causal chain is:
 

@@ -55,8 +55,25 @@ none. And tasks 3 and 4 shipped together as one commit
 a Bin's capacity is **derived from the Ruleset in force** rather than frozen when the Building was raised,
 an over-full Bin **drains rather than clamps**, and a Bin's `level` and `capacity` are `long` — because
 `Money` is a `long` and a Bin's level was an `int`, so every payment into a Bin **narrowed 64 bits to 32**.
+**The queue reopened the same day it emptied**, with two more from session N task 2
+([`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md),
+[`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)): a
+Building's occupancy is declared by its **kind** and derived from the Ruleset in force, an over-capacity
+Building **evicts** rather than draining because occupancy has no consumer, and **placement is a
+mechanism of its own** — `World.Place` had exactly **one** caller, at construction, so of `02 §5.2`'s six
+steps only step 5 existed and the city could only house somebody by building them a house.
 **No gate is red anywhere in the corpus**, and no session gates a slice any more. S4, S0a, S0b and S2 R0–R8 have
 run; sessions A, B, C, M, eight and nine are closed.
+
+**The standing rule that came out of that task outranks it, and it is now
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md).** *An unbuilt mechanism
+is not a design constraint.* The third sibling of `adr/0043` (which governs **claims**) and `adr/0052`
+(**numbers**), governing the third thing a sitting reasons from: **absences**. Name the mechanism and
+classify it — *unbuilt*, *undesigned*, or *refused* — and **only refused is evidence**. **Almost nothing
+in this project is built yet**, so *the simulation does not do X* nearly always means nobody has built X,
+and reasoning from it is inverted rather than merely weak. The symptom is a question shaped *given X does
+not exist, should Y compensate?* — session N spent a sitting on exactly one of those, and the answer was
+**build X**.
 
 **What you can run today.**
 
@@ -115,8 +132,12 @@ routing's has never met a world.
   District) pair in the whole model. A design question, in [`0002`](0002-open-questions.md) §C.
 - **The synthetic city fixture and `World`'s table sizing disagree** and nothing checks that they
   agree; Households land at exactly capacity, so the first one the simulation creates grows the table.
-- **Every S2 and S0a absolute is `powersave`, mis-pinned, or both.** Ratios are unaffected. The
-  `performance` re-capture needs root and is R7's.
+- **The governor was the wrong axis to worry about, and S2's re-capture found it.** *Every S2 and S0a
+  absolute is `powersave`, mis-pinned, or both* was the standing caveat; two `performance` captures now
+  show that **co-tenant load dominates the governor** at the rungs where absolutes are fragile — a
+  `powersave` run on an idle machine beat a `performance` run on a busy one — while cache-resident
+  figures reproduce to **±5% across six captures and both governors**. **No capture filename records
+  load.** S0a still owes its own re-capture, and it inherits the same correction.
 - Several documents still describe behaviour that later measurement contradicted — see *Owed*, and
   [`0012`](0012-corpus-audit.md) for the corpus-wide sweep's half.
 
@@ -136,7 +157,8 @@ sitting, the spike track is a machine running unattended — but **the code trac
 |---|---|---|---|---|
 | ~~**1**~~ | ~~code~~ | ~~**Slice 10 task 11 — `revisit_ticks`.**~~ **DONE 2026-08-10 — all five sub-tasks, two baselines re-recorded. → [`0014`](0014-zone-rules-and-the-sweep-family.md) → *Task 11 as built*.** At 1M the shipped Ruleset now raises **2,898 Buildings** where it raised none, and the Tick got **8% cheaper** doing 117× the Lot evaluations. **The finding that outlives it is about the baseline rather than the sampler**: a derived sample of 1 at 132 Lots never lands on a cleared Lot in eight triggers, so the golden session **silently stopped covering the create branch** — every hash moved, every test passed, and the committed trace covered half the mechanism. Session lengthened 256 → 2,048 Ticks, and a test now asserts both branches ran | [`0014`](0014-zone-rules-and-the-sweep-family.md), [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md) | A closed slice shipped a defect and its own tripwire hid it |
 | ~~**1b**~~ | ~~code~~ | ~~**Hash-moving queue item 3 — `adr/0064` + `adr/0065`, one commit.**~~ **DONE 2026-08-10 — capacity is `Rows.Derived<long>` and rebuilt at load and at every swap, `level` and the whole write path are `long`, the end-of-run check is `Invariant.BinCapacityMatchesItsDeclaration` (id 29), one baseline re-recorded. → [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md) → *Tasks 3 and 4's implementation record*.** **With it the code track is empty and the queue is closed.** ⚠ **The finding that outlives it is an ADR being wrong about the code**: `adr/0064` recorded a live defect on the ground that the loader refused nothing for a duplicate `(kind, Resource)`. It has refused it since slice 7 task 8 — and that refusal was the **one guard in the loader with no test**, so the suite you read to find out what the loader refuses did not name it. A fact with **no copy at all**, re-derived wrongly from the shape of its absence | [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md), [`0003`](0003-build-plan.md) → *The hash-moving queue* | A guard with no test is invisible to the next reader, including the one deciding it does not exist |
-| **2** | spike | **S2 R7's tail.** The `performance` capture (**needs root**), the provenance sweep 217.36 ms turns out to need, three sentences on R8 results measured on a tree `adr/0047` deleted, and tripwire row 5 | [`0010`](0010-s2-routing.md) | It is the last thing between S2 and deletion, and **the harness is 33,000 lines — 1.7× the shipped simulation**. Runs unattended; does not contend with row 1 |
+| **1c** | code | **Hash-moving queue items 4 and 5 — `adr/0068` then `adr/0069`.** The queue reopened the day it emptied. **4** is a `[[kind]]`'s occupancy: `Rows.Derived`, rebuilt at load and inside `Adopt`, a write-site guard at `Place`, an over-capacity Building evicting the overflow into the Pool under a **new `purpose_tag`**, and `SyntheticCity.HouseholdsPerBuilding` stops being a `const`. **5** is `02 §5.2`'s **placement pass** — a sampled Phase 6 step **ahead of** the Zone Rules, draining the Pool into vacant capacity; `ZoneRuleEngine.Create` stops calling `World.Place`. **5 is the first item in this queue that builds a mechanism rather than correcting one**, and its acceptance is the **five-sixths-homeless equilibrium closing with no number tuned** | [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md) → *Task 2's record*, [`0003`](0003-build-plan.md) → *The hash-moving queue* | **The argument track moving work into the code track, which is the direction this board asks for.** Session N task 2 found `World.Place` has exactly **one** caller, at construction — so of `02 §5.2`'s six steps only step 5 exists, and two ledger entries had concluded that a **number** settles an equilibrium a **mechanism** settles |
+| **2** | spike | **S2 R7's tail — 2026-08-11, and it is down to one item.** The second `performance` capture is taken, the R0–R4 absolutes re-verified, the three R8 sentences written, tripwire row 5 re-filed to Phase 2, the in-flight band corrected, and the owed list — **stale in four of seven entries** — reconciled. **What remains is printing tables for the unbacked figures**, which is harness work and needs nothing | [`0010`](0010-s2-routing.md) → *R7* | It is the last thing between S2 and deletion, and **the harness is 33,000 lines — 1.7× the shipped simulation**. Deleting it is still **not available** while R6 is gated on session M |
 
 | ~~**3**~~ | ~~argument~~ | ~~**Session D — `03 §5`, the traffic model.**~~ **DONE 2026-08-10 — all five tasks, in one sitting. → *Done / Sessions*.** *(Original row kept below the strike because it is the record of why a session was booked against a number.)* The first session ever booked against a **number** rather than against a document being ungrilled. **The brief is [`0017`](0017-session-d-the-traffic-model.md)**, and its typing pass is recorded there: eleven claims typed measurable, **one spike emitted (S5)**, two `adr/0007` defects filed to [`0012`](0012-corpus-audit.md). *(An earlier revision of this row read IN FLIGHT and was wrong: the parallel session in progress is **slice 8**, not D. Corrected rather than silently edited, because a board that reports a session as running is how two sittings end up on one document.)* | [`0002`](0002-open-questions.md) §A and §C | **The rule was applied, not suspended.** *An argument session runs when something concrete is blocked on it* — and what is blocked is [`0013`](0013-tick-budget.md)'s **dominant row**: routing is 60–67 of the ledger's 114 points at 4×, its multiplicand counts the wrong event, and **the only thing that can replace it is Trip generation, which is milestone 5b, which D gates.** So D is on the critical path to unguessing the one row that decides whether the simulation fits. **Book it as more than one sitting**; it now runs fully beside code, since the half that wanted S2's numbers has them |
 
@@ -284,9 +306,9 @@ moved to [`0010`](0010-s2-routing.md)** → *Findings that change a later round*
 | **Two section numbers, corpus-wide** | **`02 §6` is *Goods movement*; the sentence is `02 §5.2` step 6.** **`03 §3.6` is the junction blind spot; the attribution sentence is `03 §3.8`.** Wrong in four documents each. Same shape as the *"Zone"* row: a quotation copied forward instead of checked | a sweep |
 | **"Zone" for the matrix's granularity** | It is the **District**. `05 §422` and `references.md §2` both say *"zone-to-zone travel-time matrix"*, and a corrected quote is a broken one — so this is a sweep, not a one-line fix | a sweep |
 | **`adr/0012` and two other filenames use "Agent"** | Banned outright by `CONTEXT.md`. 33 occurrences across 22 files | a sweep |
-| **`spike-results`** | The 37k–111k in-flight band conflates duration sensitivity with peaking; re-derive on both axes | R7 |
+| ~~**`spike-results`**~~ | ~~The 37k–111k in-flight band conflates duration sensitivity with peaking; re-derive on both axes~~ **DONE 2026-08-11.** The two axes enter as a **product**, so **111,000 appears three times** on the corrected surface and the real top is **334,000 — 3.0×** the published ceiling. It also unseated the reconciliation built on the band: `adr/0019`'s ≈120,000 is the provisional duration at a 2.16× peak, not a cross-town artefact | ~~R7~~ |
 | **`plans/0002`'s S0 specification** | Names four clauses as one spike. Split into S0a and S0b everywhere else; the ledger entry still reads as one item | — |
-| **S0a's capture is `powersave`** | Every absolute is an **upper bound**; ratios unaffected. Rides with R7's re-capture, which needs root | R7 |
+| **S0a's capture is `powersave`** | Every absolute is an **upper bound**; ratios unaffected. ~~Rides with R7's re-capture~~ — **it does not ride with it**: `routing-run.sh` captures S2's harness only, and S0a is `Borough.Headless`. **S2 R7 has since found the governor is the smaller axis** at memory-bound rungs, so this re-capture must record **load** as well, or it will reproduce the defect it exists to fix | S0a |
 | **The synthetic fixture and `World`'s sizing derivation disagree**, and nothing checks that they do | `World` allocates 225 Lots and 150 Buildings per 1,000 Citizens; `SyntheticCity` builds **120** of each; **Households land at exactly capacity**, so the first one the simulation creates reallocates the table | slice 7's, because the right ratio is a design question and a fixture is not where it gets settled |
 | **The end-of-run tier allocates on the Large Object Heap at scale** | ~544 KB at 100k Citizens, ~5.4 MB extrapolated at 1M. Once per run, after the trace is written, so it perturbs nothing today | Fix with a scratch buffer **when a real 1M city shows it**, not on an extrapolation |
 

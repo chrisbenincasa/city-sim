@@ -55,6 +55,34 @@ immutable; its live-status half — the header, *Readiness*, *Resume here* — h
 it bar two. The costliest is `0002:541`, the file's own **resume-here pointer**, which still directs
 a reader to open `adr/0015`. Session A closed `adr/0015` and produced `adr/0048`.
 
+> **Cause 1 has a second form that no restructure reaches, and session N found it three times in one
+> day.** The form above is *a fact with two copies, one of which drifted*. The other is **a fact with no
+> copy at all, re-derived wrongly from the shape of its absence** — and it is worse, because a missing
+> copy does not look like a gap. It looks like the truth.
+>
+> | Sighting | The fact with no copy | What was re-derived in its place |
+> |---|---|---|
+> | Tasks 3–4 | `RulesetLoader` has refused duplicate `(kind, Resource)` Bins since slice 7 — **the one guard in that loader with no test** | `adr/0064` recorded it as a live defect. *A guard with no test is invisible to every future reader, including the one about to decide it does not exist* |
+> | Task 2 | `adr/0025` says *"Density says how many Occupants a Lot may carry"*, under a heading reading **Capacity, not quality** | `0002` §C and `plans/0018` both disqualified that ADR as *"adjacent and does not cover it"*, on a distinction it does not draw |
+> | Task 2 | `02 §5.2` **step 2, Household placement, is implemented nowhere** — `World.Place` has exactly one caller | Two ledger entries concluded a **number** settles the five-sixths-homeless equilibrium. §B said so outright. No number does; the mechanism does |
+>
+> **The third is the dangerous one and it generalises past documents.** An unbuilt mechanism reads as a
+> design constraint, and the constraint then generates positions — the sitting spent its first exchanges
+> asking whether construction should fill a Building to capacity, a question that exists **only** because
+> placement does not. *The code was allowed to be wrong about the design*, which is the exact mirror of
+> the first row, where an ADR was wrong about the code. **Both are this cause; neither is drift.**
+>
+> **Now a rule rather than a habit:**
+> [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) — *an unbuilt
+> mechanism is not a design constraint*. Name the mechanism and classify the absence as **unbuilt**,
+> **undesigned** or **refused**; only the third is evidence. It is the third sibling of `adr/0043`
+> (claims) and `adr/0052` (numbers), and it governs the thing neither does: **absences**.
+>
+> The mechanical check in [*What the mechanical check should be*](#what-the-mechanical-check-should-be)
+> catches none of these, and should not be extended to try. What catches them is the habit tasks 3–5
+> arrived at independently and `adr/0070` now states: **before recording that something does not exist,
+> name the file you looked in.**
+
 ### Cause 2 — ADRs issue writes to other documents and the writes do not all land
 
 This is the one restructuring cannot fix, and it is the more expensive of the two.
@@ -319,6 +347,39 @@ document is a hypothesis about the build until something enforces it. Nothing ha
 for want of frontage, so *"every Building is on the Road Graph by construction"* — which `CONTEXT` →
 Frontage leans on to delete the utility network entirely — is currently true by there being no Road
 Graph rather than by construction.
+
+### `02 §5.2` step 2 is Household placement, and of that section's six steps only step 5 is built
+
+**Raised by session N task 2**, and it is the *Lot subdivider* entry above wearing a different
+mechanism — settled design, specified in full, owned by nobody. **Now decided** by
+[`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md),
+so what is filed here is the paperwork that decision owes, not the question.
+
+- [x] **PAID in the sitting that found it**, on task 1's precedent for `§1.1` and `§4.1`. `§5.2` gained a
+      *which of these six steps exist* note and the omission's cost; `§5.6`'s sentence was amended in
+      place with the superseded wording recorded; `§1.1`'s phase table gained placement and the note
+      that its **position** is the decision. Left below as written, because what was owed is the
+      argument for the edit.
+- [x] `docs/02-simulation-model.md §5.6` — the note reading *"creation drains the signal that authorised
+      it, so no Ruleset can build past its demand however wide its sample"* is **superseded**. Under
+      `adr/0069` construction houses nobody, so the self-limiting property comes from the **ordering** —
+      placement runs ahead of the Zone Rules' sample, so a Household still in the Pool is one the
+      standing stock could not house. Amend in place with the superseded wording recorded, on task 1's
+      precedent for `§1.1` and `§4.1`. **The replacement is stronger than what it replaces** and the note
+      should say so: today's predicate reads a Pool that construction drains one Household at a time, so
+      a wide sample can build ahead of demand by up to the sample size within a trigger
+- [x] `docs/02-simulation-model.md §5.2` — the six-step loop wants the same treatment
+      `rulesets/minimal.toml` gave its own emptiness: a sentence saying **which steps exist**. Step 5
+      does; steps 1, 3, 4 and 6 do not; step 2 is decided and unbuilt. Without it the section reads as a
+      description of the build, and this sweep has now caught that misreading **twice** — once in `§2.2`
+      above and once here, where it cost two ledger entries and a wrong subject
+- [ ] `docs/06-roadmap.md` — the *Mechanisms with no milestone* table does not list **Household
+      placement**. Milestone **9a** is *Households, the Unplaced Pool and Departure* and is the obvious
+      home, but 9a as written is about where Households come *from*, and this is about where they go
+- [ ] `docs/adr/0025-density-is-a-cap-and-it-trades-land-for-materials.md` — not wrong, and it wants a
+      forward pointer to `adr/0068` all the same. *"Density says how many Occupants a Lot may carry"* is
+      now discharged **through the permitted kind set** rather than by a mechanism of its own, and this
+      entry exists because a reader who could not find that sentence is exactly what happened
 
 ### A constant `adr/0015` enumerates lives in the binary — and this sweep could not have found it
 
