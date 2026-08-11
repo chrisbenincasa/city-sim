@@ -30,10 +30,10 @@ would say so.
 
 **Two of the five tripwires fired, and neither is the one that would have reached a design.**
 
-- **T1 FIRED.** **~325,000–330,000** Vehicles per Tick per core with Overlaps, **~379,000–381,000**
-  without, against `adr/0016`'s 400,000. **The order of magnitude survives the transplant and the
-  figure does not** — and because every absolute here is a `powersave` lower bound, the published
-  reading is *not reproduced* rather than *refuted*.
+- ~~**T1 FIRED.**~~ **WITHDRAWN 2026-08-11 by L5 — see below.** It read ~325,000–330,000 Vehicles per
+  Tick per core with Overlaps against `adr/0016`'s 400,000, and the correct reading is
+  **532,750–569,550**. The tripwire was measuring `IntegerMath.FloorDiv`'s spelling and reporting it
+  as a property of `adr/0003`'s arithmetic.
 - **T3 FIRED, and hard.** The queue pass is **26.2–29.2× the bare walk over the same arrays**, not the
   *"constant of a `memcpy`"* the ADR claims. L1's attribution says where it goes: the IDM divides
   three times per Vehicle per Tick, and removing the two whose denominators never vary takes it to
@@ -82,9 +82,57 @@ the reason this document already gave: *publishing a conclusion happens after re
    cursor does not earn the `03` invariant 3 entry it costs until a Road Graph says otherwise.
 
 **Still owed, and both are on the section in `spike-results`.** The canonical **`performance`** capture
-— T1's verdict is provisional on it, T3/T4/T5 are ratios within one machine state and are not — and
-the deleting commit for `spikes/S5.Lanes/`, which must wait for that re-capture because it needs the
-harness.
+— every absolute is a lower bound, though **no verdict now turns on it**, L5 having settled T1 by
+removing a modulo rather than by raising a clock — and the deleting commit for `spikes/S5.Lanes/`,
+which must wait for that re-capture because it needs the harness.
+
+## L5, and the finding that outranks the spike — 2026-08-11
+
+**The publication pass asked one question the spike had not, and the answer withdrew a tripwire.**
+L1 measured the IDM against an **approximate** reciprocal, found 1.63–1.75×, and filed it as an
+attribution rather than a recommendation because a reciprocal moves the State Hash. That reasoning is
+sound. **Its premise — that the speed is only available by changing the arithmetic — was never
+checked**, and it was false.
+
+**`IntegerMath.FloorDiv` spelled its correction `(n % d != 0) && ((n < 0) != (d < 0))`.** The modulo
+is the first operand, so it ran on every call, and RyuJIT does not fuse it with the division above
+it. **Every `Fixed.Div` in this project was two 64-bit divisions.** Swapping the two conditions is
+commutative over side-effect-free operands and therefore **bit-identical by construction**.
+
+| Form | ns/Vehicle | vs shipped | Row | Moves the hash? |
+|---|---:|---:|---:|---|
+| As written | 40.55–40.83 | 1.00× | 16 B | — |
+| **Reordered `FloorDiv`** | **26.87–27.03** | **1.50–1.51×** | **16 B** | **no** |
+| Exact multiplier-and-shift | 27.00–27.52 | 1.48–1.50× | 24 B | **no** |
+| Approximate reciprocal — L1's | 22.28–22.30 | 1.81–1.83× | 20 B | **yes** |
+
+**T1 is withdrawn.** At the headline rung — two Overlaps per Lane — the reordered kernel reads
+**532,750–569,550 Vehicles a Tick a core** against 351,224–370,951 as written, so `adr/0016`'s
+transplanted **400,000 is reproduced** and the tier is affordable *above* the figure the corpus had
+been treating as unreachable. **T3 stands**: 17.5–20.9× a bare walk against a threshold of 4×,
+because a division is still a division.
+
+**Both alternatives are refused, for opposite reasons.** The approximate reciprocal buys **1.21×**
+over free and is a measurably different city — 451,337 Q16.16 units of drift in 64 Ticks. The exact
+magic form is bit-identical and ties the free correction while costing **8 bytes a Vehicle**. So
+`0002` §D2's *how the IDM is spelled* row **retires the day it was opened**.
+
+**Four things worth carrying out of this.**
+
+1. **The correction is not about the IDM and S5 cannot price it.** `Fixed.Div` is *the* substrate
+   divide and `CeilDiv` delegates to `FloorDiv`. The Rule engine's in-situ **552 ns** and S0b's
+   **8.72 ms** Tick were both measured on the two-division substrate; **both are now upper bounds by
+   an unknown amount**, and re-taking them is owed.
+2. **A tripwire measured the substrate and reported the design.** T1's published caveat named the two
+   axes anybody would doubt — the governor, and the Overlap count — and the answer was on a third.
+   *A figure's stated uncertainty is a list of the doubts its author happened to have.*
+3. **The guard cannot be a test.** The two orders are behaviourally indistinguishable, so nothing
+   fails if a future editor swaps them back. A comment citing this measurement is the whole
+   protection — **`adr/0064`'s lesson with no discharge available.**
+4. **The spike's own discipline is what found it.** L1 measured an attribution it had no intention of
+   recommending, purely to separate *structure* from *arithmetic*. Nothing about the headline
+   required it, and the 1.63–1.75× it produced is the only reason anybody looked at the division at
+   all.
 
 ---
 

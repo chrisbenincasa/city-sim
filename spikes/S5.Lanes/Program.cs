@@ -24,6 +24,7 @@ bool denominator = false;
 bool queue = false;
 bool network = false;
 bool promotion = false;
+bool division = false;
 
 for (int i = 0; i < args.Length; i++)
 {
@@ -44,10 +45,13 @@ for (int i = 0; i < args.Length; i++)
         case "--promotion":
             promotion = true;
             break;
+        case "--division":
+            division = true;
+            break;
         default:
             Console.Error.WriteLine($"Unrecognised argument: {args[i]}");
             Console.Error.WriteLine(
-                "Usage: S5.Lanes [--denominator] [--queue] [--network] [--promotion] [--out PATH]");
+                "Usage: S5.Lanes [--denominator] [--queue] [--network] [--promotion] [--division] [--out PATH]");
             Console.Error.WriteLine("       S5.Lanes bench [BenchmarkDotNet arguments]");
             return 2;
     }
@@ -56,13 +60,14 @@ for (int i = 0; i < args.Length; i++)
 // L4 is a view over the other four and is never selected: a capture that ran one section and
 // printed a product would be printing the product of one measurement and three zeros. It is
 // emitted only when every section that feeds it ran, and it says so itself when they did not.
-bool all = !denominator && !queue && !network && !promotion;
+bool all = !denominator && !queue && !network && !promotion && !division;
 if (all)
 {
     denominator = true;
     queue = true;
     network = true;
     promotion = true;
+    division = true;
 }
 
 long stallBefore = Capture.CpuStallMicroseconds();
@@ -96,6 +101,11 @@ if (network)
 if (promotion)
 {
     report.Append(PromotionReport.Run());
+}
+
+if (division)
+{
+    report.Append(DivisionReport.Run());
 }
 
 if (all)

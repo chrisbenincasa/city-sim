@@ -61,7 +61,12 @@ public static class IntegerMath
     {
         int quotient = numerator / denominator;
         // Truncation and flooring differ only when the signs disagree and the division was inexact.
-        if ((numerator % denominator != 0) && ((numerator < 0) != (denominator < 0)))
+        // The sign test is first because it is a comparison and the other is a division: RyuJIT does
+        // not fuse `%` with the `/` above it, so evaluating the modulo unconditionally makes every
+        // call two divisions. Measured at 1.50× on S5's Lane kernel, where two of three sites can
+        // never have disagreeing signs. `&&` over two side-effect-free conditions is commutative, so
+        // this is bit-identical to the other order and moves no State Hash.
+        if (((numerator < 0) != (denominator < 0)) && (numerator % denominator != 0))
         {
             quotient--;
         }
@@ -73,7 +78,7 @@ public static class IntegerMath
     public static long FloorDiv(long numerator, long denominator)
     {
         long quotient = numerator / denominator;
-        if ((numerator % denominator != 0) && ((numerator < 0) != (denominator < 0)))
+        if (((numerator < 0) != (denominator < 0)) && (numerator % denominator != 0))
         {
             quotient--;
         }

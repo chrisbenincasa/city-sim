@@ -288,6 +288,321 @@ internal static class Idm
     }
 
     /// <summary>
+    /// The same pass with <c>FloorDiv</c>'s correction reordered. <b>Nothing else changes, and the
+    /// output is bit-identical to <see cref="StepQueues"/>.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>IntegerMath.FloorDiv</c> evaluates <c>n % d</c> as the first operand of its <c>&amp;&amp;</c>,
+    /// so the modulo runs on every call, and RyuJIT does not fuse it with the division above it. All
+    /// three of the IDM's divisions have a non-negative numerator and a positive divisor except the
+    /// interaction term, whose numerator straddles zero — so two of the three skip the modulo
+    /// outright and the third skips it about half the time. This variant exists to separate *what
+    /// the substrate spells badly* from *what integer arithmetic costs*, which L1 measured together.
+    /// </remarks>
+    public static void StepQueuesReordered(LaneNetwork n)
+    {
+        int lanes = n.Lanes;
+        int[] position = n.Position;
+        int[] velocity = n.Velocity;
+        int[] desired = n.DesiredSpeed;
+
+        for (int lane = 0; lane < lanes; lane++)
+        {
+            int count = n.Count[lane];
+            if (count == 0)
+            {
+                continue;
+            }
+
+            int block = n.BlockStart[lane];
+            int length = n.LaneLength[lane];
+            int head = n.Head[lane];
+
+            int tail = head + count - 1;
+            if (tail >= count)
+            {
+                tail -= count;
+            }
+
+            int leadPosition = position[block + tail] + length;
+            int leadVelocity = velocity[block + tail];
+
+            int i = head;
+            for (int k = 0; k < count; k++)
+            {
+                int slot = block + i;
+                int p = position[slot];
+                int v = velocity[slot];
+
+                int advanced = AdvanceReordered(v, desired[slot], leadPosition - p, leadVelocity);
+
+                position[slot] = p + advanced;
+                velocity[slot] = advanced;
+
+                leadPosition = p;
+                leadVelocity = v;
+
+                i++;
+                if (i == count)
+                {
+                    i = 0;
+                }
+            }
+
+            Wrap(n, lane, block, head, count, length);
+        }
+    }
+
+    private static int AdvanceReordered(int v, int desiredSpeed, int separation, int leadVelocity)
+    {
+        int gap = separation - Units.VehicleLength;
+        if (gap < Units.GapFloor)
+        {
+            gap = Units.GapFloor;
+        }
+
+        int closing = v - leadVelocity;
+        int interaction = Fixed.Mul(v, Units.DesiredHeadwayTicks)
+            + ExactDivision.DivReordered(Fixed.Mul(v, closing), Units.TwoRootAb);
+        if (interaction < 0)
+        {
+            interaction = 0;
+        }
+
+        int desiredGap = Units.MinimumGap + interaction;
+
+        int ratio = ExactDivision.DivReordered(desiredGap, gap);
+        if (ratio > Units.MaxGapRatio)
+        {
+            ratio = Units.MaxGapRatio;
+        }
+
+        int braking = Fixed.Mul(ratio, ratio);
+
+        int speedRatio = ExactDivision.DivReordered(v, desiredSpeed);
+        int squared = Fixed.Mul(speedRatio, speedRatio);
+        int fourth = Fixed.Mul(squared, squared);
+
+        int acceleration = Fixed.Mul(Units.MaxAcceleration, Fixed.One - fourth - braking);
+
+        int next = v + acceleration;
+        if (next < 0)
+        {
+            next = 0;
+        }
+
+        return next;
+    }
+
+    /// <summary>
+    /// <see cref="StepQueuesWithOverlaps"/> with <c>FloorDiv</c>'s correction reordered, so that the
+    /// headline figure — which carries Overlaps — can be stated on the reordered substrate rather
+    /// than inferred from the no-Overlap rung by addition.
+    /// </summary>
+    public static void StepQueuesWithOverlapsReordered(LaneNetwork n)
+    {
+        int lanes = n.Lanes;
+        int[] position = n.Position;
+        int[] velocity = n.Velocity;
+        int[] desired = n.DesiredSpeed;
+
+        for (int lane = 0; lane < lanes; lane++)
+        {
+            int count = n.Count[lane];
+            if (count == 0)
+            {
+                continue;
+            }
+
+            int block = n.BlockStart[lane];
+            int length = n.LaneLength[lane];
+            int head = n.Head[lane];
+            int obstacleBase = lane * n.OverlapsPerLane;
+            int obstacles = n.ObstacleCount[lane];
+            int nextObstacle = 0;
+
+            int tail = head + count - 1;
+            if (tail >= count)
+            {
+                tail -= count;
+            }
+
+            int leadPosition = position[block + tail] + length;
+            int leadVelocity = velocity[block + tail];
+
+            int i = head;
+            for (int k = 0; k < count; k++)
+            {
+                int slot = block + i;
+                int p = position[slot];
+                int v = velocity[slot];
+
+                int effectivePosition = leadPosition;
+                int effectiveVelocity = leadVelocity;
+
+                while (nextObstacle < obstacles
+                       && n.ObstaclePosition[obstacleBase + nextObstacle] >= leadPosition)
+                {
+                    nextObstacle++;
+                }
+
+                if (nextObstacle < obstacles
+                    && n.ObstaclePosition[obstacleBase + nextObstacle] > p)
+                {
+                    effectivePosition = n.ObstaclePosition[obstacleBase + nextObstacle];
+                    effectiveVelocity = n.ObstacleVelocity[obstacleBase + nextObstacle];
+                }
+
+                int advanced = AdvanceReordered(
+                    v, desired[slot], effectivePosition - p, effectiveVelocity);
+
+                position[slot] = p + advanced;
+                velocity[slot] = advanced;
+
+                leadPosition = p;
+                leadVelocity = v;
+
+                i++;
+                if (i == count)
+                {
+                    i = 0;
+                }
+            }
+
+            Wrap(n, lane, block, head, count, length);
+        }
+    }
+
+    /// <summary>
+    /// The same pass with the two constant-denominator divisions replaced by <b>exact</b>
+    /// multiplier-and-shift forms, and the third division's correction reordered.
+    /// <b>The output is bit-identical to <see cref="StepQueues"/>.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the variant that decides whether the speed L1 attributed is a design change or
+    /// not.</b> L1's reciprocal is approximate — it rounds twice, so it moves the State Hash, so
+    /// under <c>CLAUDE.md</c>'s own test it is a design change however it was motivated. A magic
+    /// divisor is not approximate: it reproduces <c>floor(n/d)</c> at every point in a bounded
+    /// range, verified at construction. If this variant lands near the reciprocal's cost, the
+    /// hash-bearing choice is not worth making and <c>plans/0002</c> §D2's row retires rather than
+    /// fills.
+    /// </para>
+    /// <para>
+    /// The per-Vehicle column is a multiplier and the shift is shared, so the row grows by the same
+    /// 4 or 8 bytes the reciprocal form grows by — reported by <see cref="MagicTables"/> rather
+    /// than assumed, because that width is the honest half of the comparison.
+    /// </para>
+    /// </remarks>
+    public static void StepQueuesExact(LaneNetwork n, MagicTables magic)
+    {
+        int lanes = n.Lanes;
+        int[] position = n.Position;
+        int[] velocity = n.Velocity;
+        ulong[] speedMultiplier = magic.DesiredSpeedMultiplier;
+        int speedShift = magic.DesiredSpeedShift;
+        MagicDivisor interaction = magic.Interaction;
+
+        for (int lane = 0; lane < lanes; lane++)
+        {
+            int count = n.Count[lane];
+            if (count == 0)
+            {
+                continue;
+            }
+
+            int block = n.BlockStart[lane];
+            int length = n.LaneLength[lane];
+            int head = n.Head[lane];
+
+            int tail = head + count - 1;
+            if (tail >= count)
+            {
+                tail -= count;
+            }
+
+            int leadPosition = position[block + tail] + length;
+            int leadVelocity = velocity[block + tail];
+
+            int i = head;
+            for (int k = 0; k < count; k++)
+            {
+                int slot = block + i;
+                int p = position[slot];
+                int v = velocity[slot];
+
+                int advanced = AdvanceExact(
+                    v, speedMultiplier[slot], speedShift, leadPosition - p, leadVelocity, interaction);
+
+                position[slot] = p + advanced;
+                velocity[slot] = advanced;
+
+                leadPosition = p;
+                leadVelocity = v;
+
+                i++;
+                if (i == count)
+                {
+                    i = 0;
+                }
+            }
+
+            Wrap(n, lane, block, head, count, length);
+        }
+    }
+
+    private static int AdvanceExact(
+        int v,
+        ulong speedMultiplier,
+        int speedShift,
+        int separation,
+        int leadVelocity,
+        MagicDivisor interactionMagic)
+    {
+        int gap = separation - Units.VehicleLength;
+        if (gap < Units.GapFloor)
+        {
+            gap = Units.GapFloor;
+        }
+
+        int closing = v - leadVelocity;
+        int interaction = Fixed.Mul(v, Units.DesiredHeadwayTicks)
+            + interactionMagic.DivideFixed(Fixed.Mul(v, closing));
+        if (interaction < 0)
+        {
+            interaction = 0;
+        }
+
+        int desiredGap = Units.MinimumGap + interaction;
+
+        // The gap in front is the one denominator that varies, so it keeps a real division — with
+        // the correction reordered, which is free. This is the floor S5's L1 already identified.
+        int ratio = ExactDivision.DivReordered(desiredGap, gap);
+        if (ratio > Units.MaxGapRatio)
+        {
+            ratio = Units.MaxGapRatio;
+        }
+
+        int braking = Fixed.Mul(ratio, ratio);
+
+        // v is never negative — the pass floors it — so this site needs no sign correction at all.
+        int speedRatio = checked((int)(long)(
+            ((UInt128)speedMultiplier * (UInt128)(ulong)((long)v << 16)) >> speedShift));
+        int squared = Fixed.Mul(speedRatio, speedRatio);
+        int fourth = Fixed.Mul(squared, squared);
+
+        int acceleration = Fixed.Mul(Units.MaxAcceleration, Fixed.One - fourth - braking);
+
+        int next = v + acceleration;
+        if (next < 0)
+        {
+            next = 0;
+        }
+
+        return next;
+    }
+
+    /// <summary>
     /// The IDM itself: returns the Vehicle's velocity after one Tick, which — the Tick being the
     /// integration step — is also the distance it advances.
     /// </summary>

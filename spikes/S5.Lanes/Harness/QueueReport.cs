@@ -14,7 +14,7 @@ internal static class QueueReport
     /// unit cost that had been measured on a fixture, and repeating that mistake here would be
     /// unforced.
     /// </summary>
-    private const int TotalVehicles = 294_912;
+    internal const int TotalVehicles = 294_912;
 
     public static string Run()
     {

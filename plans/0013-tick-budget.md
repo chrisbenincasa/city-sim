@@ -145,7 +145,7 @@ multiplicand**, which is why that column sits next to it rather than in a footno
 | ~~**Bin Rule engine**, whole Tick, before term work~~ | ~~1–3~~ | ~~10.42 ms~~ | ~~56,250 due — **guessed**~~ | ~~134%~~ | ~~67%~~ | ~~33%~~ | ~~17%~~ |
 | **Bin Rule engine**, whole Tick, **in situ** | 1–3 | **6.4 ms** | 11,586 due — **measured, on a toy Ruleset** | 82% | **41%** | 20% | 10% |
 | **Routing** | 4 Move | **~9.4–10.5 ms** — unit **measured**, a *maximum* | 16 Trip starts — **guessed, and the wrong event** | **120–135%** | **60–67%** | **30–34%** | **15–17%** |
-| **Microscopic Lane model** | 4 Move | **47.3–48.0 ns a Vehicle** — unit **measured** (S5), a `powersave` **lower bound** | **the Microscopic Cap — unset, and 5b's** | — | — | — | — |
+| **Microscopic Lane model** | 4 Move | **27.4–29.3 ns a Vehicle** — unit **measured** (S5 L5), a `powersave` **lower bound** | **the Microscopic Cap — unset, and 5b's** | — | — | — | — |
 | **Map Layer diffusion**, on the Tick it lands | 5 Layers | 0.03–1.01 ms | dirty region — **measured range** | 0.4–13% | 0.2–6.5% | 0.1–3.2% | 0.05–1.6% |
 | **Zone Rules**, worst aligned Tick | 6 Growth | **0.012 ms** | 16 Rules triggering together — **guessed**; unit **measured** | 0.15% | **0.08%** | 0.04% | 0.02% |
 | **Event Wheel, general** | 1 Wake | **unbuilt** — slice 9 | — | — | — | — | — |
@@ -180,18 +180,34 @@ said so. The row above contributes **no share**, because its multiplicand is the
 the Cap is unset. **That is a gap and not a debt** (`adr/0052`'s distinction): nothing accretes on a
 value that does not exist. What it now does is make the absence visible to anyone reading the sum.
 
-**What the unit buys, stated as a sensitivity rather than as a forecast.** At 48.0 ns a Vehicle, one
-core:
+> **⚠ The unit above moved 1.64× on 2026-08-11, and not because the kernel changed.** S5's L5 found
+> `IntegerMath.FloorDiv` evaluating its modulo unconditionally, so **every `Fixed.Div` in this project
+> was two 64-bit divisions**. Correcting it is bit-identical — 1,060 tests green, no golden baseline
+> moved — and took the Lane model from 47.3–48.0 ns to **27.4–29.3 ns**.
+>
+> **Two rows in the ledger below were measured on that substrate and are not restated here.** The Bin
+> Rule engine's **6.4 ms in situ** and S0b's **8.72 ms** whole Tick were both taken before the
+> correction, so **both are upper bounds by an unknown amount** — unknown because `Fixed.Div`'s
+> frequency in the Rule engine has never been counted, and S5 may speak only for the one consumer it
+> measured. **This is the *measured/guessed* column's blind spot showing up on its good side for once**:
+> the column asks whether a multiplicand was measured, and says nothing about whether the machine the
+> unit was measured on had a defect in it. Re-taking both is owed and neither is urgent, because the
+> correction can only move them **down**.
+
+**What the unit buys, stated as a sensitivity rather than as a forecast.** At 29.3 ns a Vehicle — the
+slower of L5's two readings — one core:
 
 | Vehicles held Microscopic | Cost/Tick | 8× | 4× | 2× | 1× |
 |---:|---:|---:|---:|---:|---:|
-| 25,000 | 1.20 ms | 15% | **7.7%** | 3.8% | 1.9% |
-| 50,000 | 2.40 ms | 31% | **15%** | 7.7% | 3.8% |
-| 100,000 | 4.80 ms | 62% | **31%** | 15% | 7.7% |
-| 186,624 — S2 R2's fixture, **not a stressed count** | 8.96 ms | 115% | **57%** | 29% | 14% |
-| **324,945** | **15.6 ms** | 200% | **100%** | 50% | 25% |
+| 25,000 | 0.73 ms | 9.4% | **4.7%** | 2.3% | 1.2% |
+| 50,000 | 1.47 ms | 19% | **9.4%** | 4.7% | 2.3% |
+| 100,000 | 2.93 ms | 38% | **19%** | 9.4% | 4.7% |
+| 186,624 — S2 R2's fixture, **not a stressed count** | 5.47 ms | 70% | **35%** | 18% | 8.7% |
+| **532,750** | **15.6 ms** | 200% | **100%** | 50% | 25% |
 
-**Read the last row as the ceiling and none of the others as a prediction.** The Cap is a ratio
+**Read the last row as the ceiling and none of the others as a prediction.** It rose from 324,945 to
+532,750 on the `FloorDiv` correction, which is worth noticing for what it says about ceilings quoted
+from unaudited substrates rather than for the number. The Cap is a ratio
 `adr/0062` settled the units of — it counts **Vehicles** — and S5 supplies only the affordable half.
 How many Vehicles a real city stresses at once is milestone **5b**'s and does not exist, which is why
 no row in this table claims a share for it. **A number becoming a decision by being the only number in
@@ -207,11 +223,12 @@ the room is a habit this corpus has already recorded**, and this table is where 
   multiplicand that counts the wrong event. **Both are half-priced rows and they are half-priced in
   opposite halves**, so neither can be repaired by the other's method: routing needs 5b's Trip
   generation to fix a **multiplicand**, and the Lane model needs 5b's stress counts to acquire one.
-- **The Lane model's unit is a `powersave` lower bound and its tripwire fired on that basis.** S5's T1
-  reads 325,000–330,000 Vehicles a Tick against `adr/0016`'s transplanted 400,000, and the gap needs
-  only 1.23× to close — inside the 1.77× this corpus has measured between mismatched captures. So the
-  unit above may improve and **cannot get worse by more than measurement error**; the direction of
-  surprise, for once, does not point up. The canonical `performance` capture is owed.
+- ~~**The Lane model's unit is a `powersave` lower bound and its tripwire fired on that basis.**~~
+  **The prediction in this note was right and its reasoning was wrong, which is worth keeping.** It
+  said the unit *"may improve and cannot get worse"* and that the 1.23× T1 needed was within reach —
+  attributing the slack to the **governor**. The slack was real and it was in `IntegerMath.FloorDiv`:
+  L5 found 1.50× in a redundant modulo, T1 is withdrawn, and the figures above are the corrected ones.
+  The `performance` capture is still owed and **no verdict turns on it**.
 - **The Bin Rule row is now measured end to end in a running city, and the row it replaced was right
   by cancellation.** The struck row multiplied a synthetic unit cost that was **2.8× too low** by a
   multiplicand that was **~5× too high**, and the product landed within 40% of the truth. That is a

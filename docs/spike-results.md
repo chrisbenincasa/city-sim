@@ -17,7 +17,7 @@ produced**. A spike that records data and no verdict has not finished.
 | **S3** | UI ceiling — one data panel with a live multi-series graph, and how long it took | not run |
 | **S0a** | The world at target size — 1M Citizens in `Borough.Headless`, footprint and the empty Tick | **done, and it found the runs had never had a city in them.** The tables hold 1M with an order of magnitude spare; **one State Hash costs 2.08 Tick budgets** and the Decide guard costs 4.9. Capture is `powersave` and owes a re-take. Recorded below |
 | **S0b** | The Tick with work in it — Event Wheel, Bin Rules with wait lists, a Sweep Rule pass, a routing load | **done, in three of its four clauses.** **A Tick with work in it is 8.72 ms at 1M — 55.9% of the budget at 4×**, and it is the only Tick figure this project has ever taken from a real running city. The **routing load could not be measured in situ** and remains `0013`'s gap. Recorded below |
-| **S5** | **The Lane kernel** — Vehicles updated per Tick per core under `adr/0016`'s sorted 1-D queue, Overlaps and IDM, in **integer/Q16.16**; and from it *how many Microscopic Segments fit in 15.6 ms* | **done, all four rounds, twice, plus a BenchmarkDotNet cross-check. Two of five tripwires fired.** **~325,000–330,000 Vehicles per Tick per core** with Overlaps against `adr/0016`'s transplanted 400,000 (**T1**), and the queue pass is **26–29× a bare walk** rather than *"the constant of a `memcpy`"* (**T3**). The structure survives intact; **the gap is `adr/0003`'s arithmetic, not the structure**. Owes the canonical `performance` capture. Recorded below |
+| **S5** | **The Lane kernel** — Vehicles updated per Tick per core under `adr/0016`'s sorted 1-D queue, Overlaps and IDM, in **integer/Q16.16**; and from it *how many Microscopic Segments fit in 15.6 ms* | **done — four rounds twice, a BenchmarkDotNet cross-check, and L5.** **T3 fired and stands**: the queue pass is **17–29× a bare walk** rather than *"the constant of a `memcpy`"*. **T1 fired and was WITHDRAWN by L5**, which found `IntegerMath.FloorDiv` evaluating a modulo on every call — so **every `Fixed.Div` in the project was two 64-bit divisions**. Correcting it is **bit-identical** and worth **1.50×**, taking the Lane model to **~533,000–570,000 Vehicles a Tick a core** and *above* `adr/0016`'s transplanted 400,000. **The gap was never the arithmetic.** Recorded below |
 
 ---
 
@@ -6695,6 +6695,11 @@ published as a point.*
 | L0 bare walk at the dividing rung, ns/Vehicle | 1.57 | 1.40 | **1.40–1.57** |
 | **T3 — queue pass over bare walk** | 26.19× | 29.19× | **26.2–29.2×** |
 
+> **⚠ Every absolute in this table and in L1–L4 below was measured before L5's `FloorDiv`
+> correction.** They are the record of what those rounds read and are correct as that; **the current
+> figures are L5's**, and the Lane model's headline is **~533,000–570,000 Vehicles a Tick a core**
+> rather than the ~325,000–330,000 recorded here. Ratios taken within a round are unaffected.
+
 **T3's 11% spread is entirely in its denominator.** The queue pass agrees to 0.5% across the two
 captures (41.12 against 40.90) and the bare walk it divides against moves **1.12×** (1.57 against
 1.40). Quoting *29×* as the headline would be attributing to the kernel a spread that belongs to the
@@ -6893,26 +6898,102 @@ fixture that is wrong.**
 list is an index, so a Tick of the Lane model allocates nothing — which is what `adr/0036`'s GC
 argument requires of the hot path and what S4's K6 was about.
 
+### L5 — is the arithmetic's cost a design decision, or a spelling?
+
+**Run 2026-08-11, twice, after the sections above were published.** L1 measured the IDM as written
+against a precomputed **approximate** reciprocal, found 1.63–1.75×, and filed it as an attribution
+rather than a recommendation because a reciprocal rounds, so it moves the State Hash, so under
+`CLAUDE.md`'s own test it is a design change however it was motivated. **That reasoning is sound and
+its premise was never checked**: *is the speed only available by changing the arithmetic?*
+
+**It is not, and the answer cost one line.**
+
+`IntegerMath.FloorDiv` spelled its flooring correction `(n % d != 0) && ((n < 0) != (d < 0))`. The
+**modulo is the first operand, so it ran on every call**, and RyuJIT does not fuse it with the
+division above it — so **every `Fixed.Div` in this project was two 64-bit divisions rather than
+one**. The IDM divides three times and two of those sites can never have disagreeing signs. Swapping
+the two conditions short-circuits the modulo away; `&&` over two side-effect-free conditions is
+commutative, so **the result is bit-identical by construction**.
+
+| Form | Divisions/Vehicle | Row | ns/Vehicle | vs shipped | Moves the hash? |
+|---|---:|---:|---:|---:|---|
+| As written | 3 (**6 idiv**) | 16 B | 40.55–40.83 | 1.00× | — |
+| **Reordered `FloorDiv`** | 3 (3–4 idiv) | **16 B** | **26.87–27.03** | **1.50–1.51×** | **no** |
+| Exact multiplier-and-shift | 1 (1–2 idiv) | 24 B | 27.00–27.52 | 1.48–1.50× | **no** |
+| Approximate reciprocal — L1's | 1 (1–2 idiv) | 20 B | 22.28–22.30 | 1.81–1.83× | **yes** |
+
+**Bit-identity is proven on the kernel's own state, not on sampled operands.** Four networks built
+from one seed — 294,912 Vehicles — stepped 64 Ticks, then every position and every velocity compared
+against the shipped form. The reordered and exact forms are **bit-identical**; L1's reciprocal has
+drifted by **451,337 Q16.16 units** and is a measurably different city. In the repository the same
+change leaves **1,060 tests green and all three golden State Hash baselines unmoved**, which is the
+claim at whole-simulation scale.
+
+**Both alternatives to the free correction are refused, for opposite reasons.** The approximate
+reciprocal buys **1.21×** over the free one and is the only form that moves the hash. The exact
+multiplier-and-shift — Granlund–Montgomery magic, verified at every quotient boundary in range — is
+a **dead heat** with the free correction and costs **8 bytes a Vehicle** to tie it. Neither margin
+is one a design decision should be taken for.
+
+**The headline rung, measured rather than inferred**, at two Overlaps per Lane by cursor:
+
+| Form | ns/Vehicle | **Vehicles per Tick per core** | Segments in 15.6 ms | vs `adr/0016`'s 400,000 |
+|---|---:|---:|---:|---|
+| As written | 42.05–44.41 | **351,224–370,951** | 4,878–5,152 | below — **T1 fires** |
+| **Reordered** | 27.39–29.28 | **532,750–569,550** | **7,399–7,910** | above — **T1 does not fire** |
+
+**So T1 un-fires on a change that moves no bit, and the corpus's reading of its own result was
+wrong in the direction nobody checks.** `adr/0016`'s transplanted 400,000 *is* reachable in
+`adr/0003`'s arithmetic. The reason S5 concluded otherwise is that the substrate was computing a
+modulo nobody had asked for, and **integer arithmetic was carrying the blame for it** — the finding
+L1 published as *the gap is the arithmetic, not the structure* was neither.
+
+**Three things this leaves behind.**
+
+- **The correction is not about the IDM.** `Fixed.Div` is *the* substrate divide and `CeilDiv`
+  delegates to `FloorDiv`, so one line reaches **every division site in the simulation**. S5
+  measured one of them and **can speak for none of the others** — Q16.16 positions, the Rule
+  engine's ratios, the Zone Rule's sampler, `05 §4`'s whole lint-mandated division discipline. What
+  that is worth elsewhere is unmeasured and is not S5's to claim.
+- **It is a performance property no test can hold.** The two orders are behaviourally
+  indistinguishable — even `long.MinValue / -1` throws on the division before the modulo is reached
+  — so nothing fails if a future editor swaps them back. The comment at the site cites this
+  measurement, and that is the whole guard. **`adr/0064`'s lesson applies and cannot be discharged
+  the way it was there**: a guard with no test is invisible to the next reader, and here no test is
+  available to write.
+- **The `powersave` caveat now cuts the other way.** These are lower bounds, so the canonical
+  capture can only move the figures **up**, and T1's margin with them.
+
 ### The tripwire, scored
 
 | # | Condition | Reading | Fired? |
 |---|---|---:|---|
-| **T1** | Vehicles/Tick/core below 400,000 | **325,000–330,000** with Overlaps; **379,000–381,000** without | **FIRED** |
-| T2 | Vehicles/Tick/core below 186,624 — 2,592 Segments × 72 | 325,000–330,000 | no |
+| ~~**T1**~~ | Vehicles/Tick/core below 400,000 | ~~325,000–330,000 with Overlaps~~ → **532,750–569,550** after L5 | ~~**FIRED**~~ → **WITHDRAWN 2026-08-11** |
+| T2 | Vehicles/Tick/core below 186,624 — 2,592 Segments × 72 | 325,000–330,000, and 532,750–569,550 after L5 | no, on either |
 | **T3** | Queue pass worse than 4× the bare walk | **26.2–29.2×** | **FIRED** |
 | T4 | Break-even residency above 30 Ticks | **1 Tick** | no |
 | T5 | Network rung more than 1.50× the fixed-working-set queue rung | **1.00×** | no |
 
-**T1 fires on both readings, which is what makes it robust to the one number S5 declined to choose.**
-The Overlaps-per-Lane count is 5a's, and the verdict does not depend on it.
+**⚠ T1's firing was WITHDRAWN by L5 on 2026-08-11, and the two paragraphs below are the reasoning
+that led to it.** They are kept rather than struck because **the reasoning was careful and still
+landed on the wrong side**, which is the part worth re-reading. *Original text follows.*
 
-**T1's firing is provisional on the governor and its response is not.** Every absolute here is a
-`powersave` lower bound; the no-Overlaps figure needs **1.05×** to clear 400,000 and the with-Overlaps
-figure needs **1.23×**, both inside the 1.77× the corpus has measured between mismatched captures. So
-**the honest statement is that `adr/0016`'s headline is not reproduced rather than that it is refuted**,
-and the canonical `performance` capture is owed before any constant from S5 is quoted as final. The
-response is identical either way: an amendment naming our own measurement and its conditions, and a
-`0013` row that did not exist.
+> **T1 fires on both readings, which is what makes it robust to the one number S5 declined to
+> choose.** The Overlaps-per-Lane count is 5a's, and the verdict does not depend on it.
+>
+> **T1's firing is provisional on the governor and its response is not.** Every absolute here is a
+> `powersave` lower bound; the no-Overlaps figure needs **1.05×** to clear 400,000 and the
+> with-Overlaps figure needs **1.23×**, both inside the 1.77× the corpus has measured between
+> mismatched captures. So **the honest statement is that `adr/0016`'s headline is not reproduced
+> rather than that it is refuted**, and the canonical `performance` capture is owed before any
+> constant from S5 is quoted as final.
+
+**What decided it was neither the governor nor the Overlap count.** T1 needed **1.23×** and the
+substrate had **1.50×** sitting in a redundant modulo, so the tripwire was measuring the spelling of
+`IntegerMath.FloorDiv` and reporting it as a property of integer arithmetic. **The published caveat
+named the two axes anybody would think to doubt, and the answer was on a third.** That is the general
+form worth keeping: *a figure's stated uncertainty is a list of the doubts its author happened to
+have, and the correction is usually not on it.*
 
 **T3 is the unambiguous one, and no governor can rescue it.** It is a ratio taken within one machine
 state, its spread lives in the denominator, and its lowest reading is **6.5× the threshold**.
@@ -6928,32 +7009,69 @@ stressed-Segment count**, because S2 R2's `v/c` is unbounded and its rung is the
 
 ### The verdict
 
-**The Microscopic tier is affordable, at roughly a fifth below the figure the corpus had transplanted
-for it, and the gap is arithmetic rather than structure.** Every one of `adr/0016`'s structural claims
-survives the transplant intact — no spatial index, predecessor is the previous array element,
-scheduling granularity is the Lane, `O(n)` in the queue, zero allocation, determinism nearly free. The
-sentence that does not survive is the constant, and the reason it does not is `adr/0003`: **we pay
-about 1.7× for integer division where a float engine pays nothing**, and that is a decision this
-project took deliberately and can now price.
+**⚠ REVISED 2026-08-11 by L5.** The verdict below was written before the substrate's redundant
+modulo was found, and its headline sentence is wrong in both halves: the tier is **not** below the
+transplanted figure, and the gap was **not** the arithmetic. Corrected reading first, original after.
 
-**What S5 hands `0013` is a unit and explicitly not a multiplicand.** ~325,000–330,000 Vehicles per
-Tick per core with Overlaps, ~4,510–4,580 Microscopic Segments in 15.6 ms at 72 Vehicles each. **The
-Microscopic Cap is a ratio and S5 supplies one half of it** — `adr/0062` settled that the Cap counts
-Vehicles; how many Vehicles a real city stresses at once is milestone **5b's** and does not exist.
-**Supplying one side and stopping is the whole discipline here**, because this corpus has a recorded
-habit of a number becoming a decision by being the only number in the room.
+**The Microscopic tier is affordable at `adr/0016`'s own transplanted figure and above it —
+~533,000–570,000 Vehicles a Tick a core with Overlaps, ~7,400–7,900 Microscopic Segments in 15.6 ms
+— and every structural claim survives.** What the corpus was charged 1.7× for was never
+`adr/0003`'s integer division; it was one line of `IntegerMath.FloorDiv` computing a modulo nobody
+had asked for, and **integer arithmetic was carrying the blame**. The design decision the original
+verdict pointed at — *how the IDM is spelled* — **does not need taking**, because the fast spelling
+and the exact spelling turned out to be the same one.
 
-**Two things this spike found that nobody asked it for.** The **arrival Tick is a demotion discard that
-`03` invariant 3 does not enumerate**, and it is the one field the Statistical representation consists
-of. And the **cursor exchange — the clever structure — buys 3–7% over the naive scan** at the Overlap
-counts a four-Lane Segment produces, so the first implementation should write the scan and the corpus
-should stop assuming the O(1) answer is the cheap one before a Road Graph has said how many Overlaps a
-Lane has.
+**What S5 hands `0013` is a unit and explicitly not a multiplicand.** **27.4–29.3 ns a Vehicle** —
+~533,000–570,000 Vehicles a Tick a core with Overlaps, ~7,400–7,900 Microscopic Segments in 15.6 ms
+at 72 Vehicles each. **The Microscopic Cap is a ratio and S5 supplies one half of it**; `adr/0062`
+settled that the Cap counts Vehicles, and how many Vehicles a real city stresses at once is milestone
+**5b's** and does not exist. **Supplying one side and stopping is the whole discipline here**, because
+this corpus has a recorded habit of a number becoming a decision by being the only number in the room.
+
+**Three things this spike found that nobody asked it for**, and the third outranks everything it was
+sent to measure. The **arrival Tick is a demotion discard that `03` invariant 3 does not enumerate**,
+and it is the one field the Statistical representation consists of. The **cursor exchange — the clever
+structure — buys 3–7% over the naive scan**, so the first implementation should write the scan rather
+than assume the O(1) answer is the cheap one. And **`Fixed.Div` was two divisions**, everywhere in the
+project, for the whole life of the arithmetic substrate — found only because a spike measured a kernel
+carefully enough to ask where its time went, and worth 1.50× on the one consumer that has ever been
+measured.
+
+*The original verdict, kept because being wrong carefully is the part worth re-reading:*
+
+> **The Microscopic tier is affordable, at roughly a fifth below the figure the corpus had transplanted
+> for it, and the gap is arithmetic rather than structure.** Every one of `adr/0016`'s structural claims
+> survives the transplant intact — no spatial index, predecessor is the previous array element,
+> scheduling granularity is the Lane, `O(n)` in the queue, zero allocation, determinism nearly free. The
+> sentence that does not survive is the constant, and the reason it does not is `adr/0003`: **we pay
+> about 1.7× for integer division where a float engine pays nothing**, and that is a decision this
+> project took deliberately and can now price.
+>
+> **What S5 hands `0013` is a unit and explicitly not a multiplicand.** ~325,000–330,000 Vehicles per
+> Tick per core with Overlaps, ~4,510–4,580 Microscopic Segments in 15.6 ms at 72 Vehicles each. **The
+> Microscopic Cap is a ratio and S5 supplies one half of it** — `adr/0062` settled that the Cap counts
+> Vehicles; how many Vehicles a real city stresses at once is milestone **5b's** and does not exist.
+> **Supplying one side and stopping is the whole discipline here**, because this corpus has a recorded
+> habit of a number becoming a decision by being the only number in the room.
+>
+> **Two things this spike found that nobody asked it for.** The **arrival Tick is a demotion discard that
+> `03` invariant 3 does not enumerate**, and it is the one field the Statistical representation consists
+> of. And the **cursor exchange — the clever structure — buys 3–7% over the naive scan** at the Overlap
+> counts a four-Lane Segment produces, so the first implementation should write the scan and the corpus
+> should stop assuming the O(1) answer is the cheap one before a Road Graph has said how many Overlaps a
+> Lane has.
 
 ### Owed by this section
 
-- **The canonical `performance` capture.** `tools/lane-run.sh` as root. **T1's verdict is provisional
-  on it**; T3, T4 and T5 are ratios within one machine state and are not.
+- **The canonical `performance` capture.** `tools/lane-run.sh` as root. ~~T1's verdict is provisional
+  on it~~ — **L5 settled T1 by removing the modulo rather than by raising the clock**, and the margin
+  is now 33–42% rather than the 5–23% a governor could plausibly cover. Every absolute is still a
+  lower bound and the re-capture is still owed; no verdict now turns on it.
+- **What the `FloorDiv` correction is worth outside the Lane kernel.** `Fixed.Div` is the substrate
+  divide and `CeilDiv` delegates to `FloorDiv`, so one line reaches every division site in the
+  simulation — and S5 measured exactly one of them. The Rule engine's in-situ 6.4 ms and S0b's 8.72 ms
+  Tick were both taken on the two-division substrate. **Neither is S5's to re-state**, and both are
+  now known to have been measured against a defect.
 - **A run duration beside the PSI stall**, so a contention figure can be read as a percentage and
   compared with R8's matched pair. Recording load without its denominator is R7's defect one step on.
 - **The deleting commit for `spikes/S5.Lanes/`**, on `plans/0004`'s and `plans/0010`'s precedent —

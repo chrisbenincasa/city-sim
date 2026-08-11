@@ -86,6 +86,7 @@ for arg in "$@"; do
         --queue)       SECTIONS="${SECTIONS}+l1" ;;
         --network)     SECTIONS="${SECTIONS}+l2" ;;
         --promotion)   SECTIONS="${SECTIONS}+l3" ;;
+        --division)    SECTIONS="${SECTIONS}+l5" ;;
         --out)         ;;
         --*)
             echo "lane-run.sh: unknown section flag ${arg}." >&2
