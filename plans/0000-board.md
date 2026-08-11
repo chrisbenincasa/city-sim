@@ -223,12 +223,23 @@ instead of inventing them nearest-Segment-by-construction.
 
 > ### ⚠ Picking this up cold on or after 2026-08-11 — read this box first
 >
-> **5b is IN FLIGHT, not waiting.** Tasks **1, 2 and 3 shipped** (`18544ee`) from a worktree at
+> **5b is IN FLIGHT, not waiting.** Tasks **1, 2 and 3 shipped** (`18544ee`…`8195a44`) from a worktree at
 > `.claude/worktrees/5b-trips-and-legs`, running in parallel with the row 7 sweep below — so two
-> sessions were writing that afternoon and **both landed on `main`**. `src/Borough.Core/Movement/`
-> now holds `TripTable`, `LegTable`, `TravellerTable`, `TripFate`, `TripPurpose`, and **`WalkRouting`
-> — a real Dijkstra over a binary heap**. `plans/0021` → *What tasks 1–3 built* is the record and is
-> authoritative over this box.
+> sessions were writing that afternoon and **both landed on `main`**, at **1,100 green**.
+> `src/Borough.Core/Movement/` now holds `TripTable`, `LegTable`, `TravellerTable`, `TripFate`,
+> `TripPurpose`, and **`WalkRouting` — a real Dijkstra over a binary heap**. `plans/0021` →
+> *What tasks 1–3 built* is the record and is authoritative over this box.
+>
+> ⚠ **Both sessions wrote `Space/Address.cs` that afternoon, with different encodings, and the merge is
+> worth reading before touching either.** 5a-bis's slot-based type is the one that survived; a Leg's
+> endpoints stay `HandleColumn` and resolve to an `Address` at the read, which is where a bulldozed
+> Segment becomes `adr/0079`'s named absence. *A value type's representation is a property of its
+> storage class, not of the concept* — `adr/0074` names the triple and never its encoding, which is why
+> two careful readers took different answers on the same day, **and closing that gap in the ADR is still
+> open**. The same merge corrected a sentence in `CONTEXT.md` → Access Point and in `0021` task 1: **a
+> saved `Handle` does not dangle** (a freed slot bumps its generation — `Rows.cs:326`), so the reason an
+> Access Point is derived is `adr/0064`-style **staleness**, not danglingness. The conclusion never
+> moved; the general rule the old wording implied would have forbidden saving a Trip at all.
 >
 > **What is left is the majority of the slice**: task 1's per-Building Access Points (the *type*
 > shipped, not the rows), **task 4 the generator**, task 5 volume and Phase 4, task 6 the Census
