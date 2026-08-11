@@ -21,10 +21,24 @@ closed last**, and with it `adr/0015`'s acceptance test: *change a production ra
 seconds* reads **0.70 s**, against the 60–120 second warm rebuild the ADR was written on. **No gate is red
 anywhere in the corpus.** Session **N1** then put two items back on the code track and **both have
 shipped** (`adr/0063`): `adr/0033`'s satisfiability invariant — specified in three documents and built in
-none — and the wake predicate it found broken in the committed golden baseline within minutes. The one
-open code item is **slice 10 task 11** — `adr/0059`'s `revisit_ticks` — sequenced deliberately *behind*
-slice 8, because both re-record the same golden baselines, and slice 8 and `adr/0063` have both now
-re-recorded them.
+none — and the wake predicate it found broken in the committed golden baseline within minutes. **Task 3
+has since added a third, decided and unshipped** (`adr/0064`): a Bin's capacity is `derived AND rebuilt`
+from the Ruleset in force rather than frozen at the moment the Building was raised. **Slice 10 task 11 —
+`adr/0059`'s `revisit_ticks` — has shipped**: a `[[zone_rule]]` authors a **duration** and the engine
+derives `sample = ceil(Lots × interval ÷ revisit_ticks)`, so at 1M the shipped Ruleset raises **2,898
+Buildings** where it raised none, and the Tick got **8% cheaper** doing 117× the Lot evaluations. **Task 4 then added a
+fourth** (`adr/0065`): a Bin's `level` and `capacity` are `long`, because the corpus was holding **two
+widths for one quantity** — `Money` is a `long` and a Bin's level was an `int`, so every payment into a
+Bin narrowed 64 bits to 32. **One code item is open** — `adr/0064` and `adr/0065` together, as one
+commit since they change the same two columns, last in the hash-moving queue because nothing either
+fixes is live yet.
+
+**The finding task 11 leaves behind is about the baseline, not the sampler, and it generalises.** A
+derived sample of 1 at the golden fixture's 132 Lots never lands on a Lot demolition has cleared inside
+eight triggers, so the committed trace **silently stopped covering the Zone Rule's create branch** —
+every hash moved, every test passed, and half the mechanism went uncovered. **A baseline records what a
+run *did*, so a change that narrows what the run *reaches* is invisible in it by construction.** The
+session is now 2,048 Ticks and a test asserts both branches ran.
 
 **Spikes:** S4, **S0a**, **S0b** and S2 R0–R8 have all run; what remains of S2 is R7's tail (a
 `performance` capture that needs root, plus bookkeeping) and it is what blocks deleting a 33,000-line
@@ -263,7 +277,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **62** decision records, numbered to **`0063`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **64** decision records, numbered to **`0065`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
