@@ -608,6 +608,17 @@ rather than deriving it from the denominator**, which is the point of having K3 
 
 ### Three things the footprint says that the corpus does not
 
+> **⚠ The two Provider List findings below price a representation the project's own rule forbids, and
+> `adr/0066` has replaced it.** They model the list **inline** on the Household row — the give-away is
+> *"every entry is ~4.5 MiB at 1M"*, which prices **declared capacity**, since a column is a flat array
+> over every slot and an unset entry costs what a set one does. `05 §4` requires every variable-length
+> collection to be an **intrusive index list**, and this was the only structure in the design modelled
+> past that rule. Under a list the cost follows what Households actually *know*. **The numbers are not
+> retracted — they are an upper bound, correct for what was measured** — but *~21% of the entire world*
+> and the Household-versus-Citizen ranking are both **suspended**, and the replacement is a `0002` §B
+> row needing a capture at `06` 5b or 9. The list is only smaller if occupancy sits below the cap: at
+> full occupancy it loses.
+
 **Households are the largest table in the world, and it is not close.** 75.2 MiB against the Citizens'
 53.4 MiB, from 2.8× *fewer* rows — a 219-byte Household row against a 56-byte Citizen. The driver is
 the **Provider List at 104 bytes, 47% of the Household row and roughly 21% of the entire world**. Two

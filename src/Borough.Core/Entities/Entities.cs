@@ -36,6 +36,15 @@ public readonly struct Citizen;
 /// Citizens' 53.4 MiB, from 2.8× fewer rows — driven by a Provider List that is 47% of the row. The
 /// list is not in this slice; the finding is recorded here because it is the reason the Household
 /// schema is the one to be careful about, not the Citizen one.
+/// <para>
+/// <b>⚠ That ranking is suspended, and the reason is the list's representation</b> (<c>adr/0066</c>).
+/// K0 modelled the Provider List <em>inline</em> — 8 reserved entries on every Household, so it priced
+/// what a Household is permitted to know rather than what it knows. It is an <b>intrusive index
+/// list</b>, which is what <c>05 §4</c> required of every variable-length collection all along, so the
+/// 104 bytes are an upper bound and the ordering against <see cref="Citizen"/> may reverse. The
+/// replacement figure needs a capture and is a <c>plans/0002</c> §B row. <b>Be careful about this
+/// schema anyway</b> — the caution the paragraph above draws is unaffected by which table is larger.
+/// </para>
 /// </remarks>
 public readonly struct Household;
 

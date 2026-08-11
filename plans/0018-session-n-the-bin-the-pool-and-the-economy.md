@@ -222,7 +222,7 @@ Note that defect 3's deadlock had **both** failure modes in front of it: bounded
 **unbounded ran for ever and grew a magnitude without bound**, failing the half of acceptance the first
 one passed.
 
-### 5. `04 §6` — how a shortage becomes an unhappy person — **PARTLY DECIDED 2026-08-10, and still running**
+### 5. `04 §6` — how a shortage becomes an unhappy person — **DECIDED 2026-08-10, `adr/0067`, and `adr/0066` underneath it**
 
 > **Three things settled so far, and one ADR that the task found underneath itself.**
 >
@@ -250,8 +250,18 @@ one passed.
 > index list. It suspends two of S0a's conclusions and turns the cap into a behavioural bound rather
 > than a memory parameter.
 >
-> **Still open**: what a Household remembers about a failed purchase, and `04 §6`'s correction to steps
-> 4 and 5.
+> **What a Household remembers is a cursor, not a timestamp.** Advance on failure, reset on success, so
+> a provider that failed is skipped for exactly **one occasion**. The per-provider *last failed at*
+> timestamp was argued for and **is not refused on `adr/0053`** — it is a duration, not a tally, and
+> that ADR endorses the shape; the sitting claimed otherwise first and was wrong. It is refused because
+> its decay window must be **picked**, where the cursor's falls out of the mechanism: the natural
+> derivation is *as long as the shop takes to restock*, and `BOUNDED KNOWLEDGE` is the rule that forbids
+> a Household knowing it. **Fourth time the cheapest way to satisfy `adr/0052` was to find the
+> derivation.**
+>
+> **Owed**: `04 §6`'s correction to steps 4 and 5, filed to [`0012`](0012-corpus-audit.md). **Routed**:
+> shopping occasions per Household per Day, to `0002` §B at milestone 5b — the affordability half that
+> could still force a choice between the Evidence chain and the Tick budget.
 
 **Never grilled, and it is the chain the whole economy exists to produce.** Seven steps, each of which
 must be individually inspectable through Evidence. `LEGIBLE CAUSE`

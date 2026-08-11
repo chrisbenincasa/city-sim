@@ -459,6 +459,60 @@ predicate's re-record would put **two unrelated causes behind one hash move**, w
 an ADR's writes not all landing. This is neither: **a correction whose cost is a baseline**, so the honest
 move is to file it rather than to bundle it. The ledger is where a correction waits for its own commit.
 
+### ~~`04 §6`'s steps 4 and 5 do not say the attempt is a Trip, and step 5 reads as a sequence~~ — **PAID**
+
+**Paid in the sitting that raised it**, and not by choice: `CitationTests` fails an ADR that no document
+outside `docs/adr` cites, and it caught `adr/0066` and `adr/0067` within minutes of their being written.
+**The test is the mechanical form of this file's *Cause 2*** — an ADR written, registered and never
+propagated — and it turned a debt that would have sat here into an edit. `04 §6` steps 4 and 5 and the
+paragraph beneath them now state the Trip, the one-per-occasion rule and the cost that follows;
+`CONTEXT.md` → Household carries both decisions. *Original entry follows.*
+
+**Owed by [`adr/0067`](../docs/adr/0067-a-shopping-attempt-is-a-trip-and-a-household-tries-one-provider-per-occasion.md)**
+(session N task 5). Two edits to the seven-step chain, and the second is the substantive one.
+
+- **Step 4** — *"A Household visits a shop on its Provider List and finds nothing"* — must say the visit
+  is a **Trip**, and that the recorded failure is a **transaction** outcome on the Household, not a
+  `Trip Fate`. As written, *visits* is compatible with a Household reaching across the city into a Bin
+  without moving, which is the coverage model `adr/0032` demoted.
+- **Step 5** — *"The Household consults the rest of its short, sticky Provider List"* — reads as a
+  sequence **within one occasion**, which once step 4 is a Trip means a shortage costs `N` Trips per
+  Household. It must say *at the next occasion*. This is a **correction**, not a clarification: the two
+  readings are different cities, and the one on the page amplifies the failure path by the Provider
+  List's length.
+
+`CONTEXT.md` → **Trip Fate** needs no edit and is worth a sentence saying why: the four outcomes are
+properties of the journey, and *arrived and could not be served* is not one of them.
+
+### `spike-results`'s Provider List figures priced a representation the project's own rule forbids
+
+**Owed by [`adr/0066`](../docs/adr/0066-the-provider-list-is-an-intrusive-index-list-and-its-ruleset-length-is-a-cap-rather-than-an-allocation.md)**
+(session N task 5). S0a's footprint model holds the Provider List **inline** on the Household row —
+*"104 bytes, 47% of the Household row and roughly 21% of the entire world"*, with *"every entry is
+~4.5 MiB at 1M"* — which prices **declared capacity**, since a column is a flat array over the whole
+slot count and an unset entry costs what a set one does. `adr/0066` makes it an **intrusive index
+list**, which is what `05 §4` and `CLAUDE.md` already required of every variable-length collection and
+what every other collection in the code does, `MemberHead`/`MemberTail` on that very table included.
+
+**Three corrections, and none of them is a retraction** — the numbers are true of the model that was
+measured:
+
+| Where | What it says | What is owed |
+|---|---|---|
+| `docs/spike-results.md` → *Three things the footprint says that the corpus does not* | 104 bytes, 47%, ~21% of the world, *"a tuning knob controls a fifth of the world's footprint"* | A banner that these price the **inline** model, superseded by `adr/0066`; the cap no longer costs memory until knowledge is acquired |
+| same, *"Households are the largest table in the world, and it is not close"* | 75.2 MiB against Citizens' 53.4 MiB | **The ordering may reverse** once 104 bytes stop being reserved. Flag rather than restate — the replacement figure is the measurable routed to `0002` §B |
+| `src/Borough.Core/Entities/Entities.cs` | the same 47% claim, in a code comment | The figure has propagated into source; it travels with the correction |
+
+**Why it is here rather than in `0002`**: nobody has to decide anything. `adr/0066` decided it; somebody
+has to type. The replacement *number* is a different matter and is a `0002` §B row, because it needs a
+machine.
+
+> **PAID 2026-08-10, all three.** `spike-results` carries a banner above the two findings — stating that
+> they are an upper bound correct for what was measured, and that *~21% of the world* and the
+> Household-versus-Citizen ranking are suspended pending §B — and `Entities.cs`'s remark carries the
+> same, with the caution it was written to give left standing, since which table is largest does not
+> change which schema to be careful about. `CONTEXT.md` → Household states the structure.
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and

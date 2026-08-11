@@ -165,14 +165,16 @@ This is the chain the whole economy exists to produce, and every link must be in
 1. A farm's output falls, or a Shipment cannot get through, or a Materials plant closes.
 2. The District's Food **Pool** drains. The price rises until it hits the import ceiling.
 3. A grocery's Food **Bin** empties. Its shelves are visibly empty — the player can *see* this before any number changes.
-4. A Household visits a shop on its **Provider List** and finds nothing. This is a recorded failure, not a silent one.
-5. The Household consults the rest of its short, sticky Provider List. `BOUNDED KNOWLEDGE` — it does not scan the city, it checks the two or three places it knows.
+4. A Household **travels** to a shop on its **Provider List** and finds nothing. The visit is a **Trip** ([`adr/0067`](adr/0067-a-shopping-attempt-is-a-trip-and-a-household-tries-one-provider-per-occasion.md)) — the same rule [`adr/0032`](adr/0032-services-are-delivered-by-trips-not-by-coverage.md) already applies to Services, and Goods have the stronger claim, because a grocery's Bin is a physical stock in a place. This is a recorded failure, not a silent one — recorded on the **Household**, as a count of consecutive failed occasions and a refusal reason, and never as a `Trip Fate`, because the journey *completed*; what failed is the transaction.
+5. The Household tries a different entry **at its next shopping occasion**, not this one. `BOUNDED KNOWLEDGE` — it does not scan the city, it checks the places it knows, **one per occasion**. Which one is decided by a cursor that advances on failure and resets on success, so a provider that failed is skipped for exactly one occasion and the list stays *sticky* in `adr/0017`'s sense. **A failed occasion therefore costs one Trip, never one per entry**: consulting the whole list in a single occasion would multiply the city's shopping traffic by the list's length at exactly the moment the city is already failing, and the resulting shortage → Trips → congestion → Trip failures → Failure Pressure loop would be an amplifier nobody chose. The cost of bounding it is **lag** — a Household with three known groceries takes three occasions to discover its District is dry — and the lag is realism.
 6. If none can supply, the Household's **Sustenance** Need degrades.
 7. Sustained degradation produces a housed **Departure**, counted and attributed.
 
 **Every step names its constituents.** The aggregate "Food shortage in Riverside" opens into the specific groceries with empty Bins, which open into the specific Households that walked in and found nothing, which open into the specific Departures that followed. `LEGIBLE CAUSE`
 
 The step that most often gets skipped in other games is 4. A Household must *actually attempt* the purchase and *actually fail*, because that failure is the evidence. A global happiness number computed from a global stock level would produce the same aggregate and answer no questions at all.
+
+**That commitment has a price and it is named rather than hidden.** Since step 4 is a Trip, every Household's shopping is **Trip generation** — so this chain's cost lands in milestone 5b's budget rather than in an economy row of its own, and the multiplicand nobody has is *shopping occasions per Household per Day*. `adr/0067` types the two halves apart deliberately: **that the attempt must be real** is a design commitment this document takes, and **that the city can afford it at a million people** is a measurement that could still force a choice between the Evidence chain and the Tick budget.
 
 ---
 
