@@ -1425,21 +1425,34 @@ Into `docs/spike-results.md`, in the form S4 established: the machine, the numbe
 
 Then delete `spikes/S2.Routing/` and record the deleting commit's parent.
 
-> **⚠ HOLD, 2026-08-11 — do not delete it yet, and the reason is new rather than a re-litigation of
-> the old one.** The harness is not only a record of measurements; `Graph/` is the **reference
-> implementation of the thing milestone 5a has to build** — a directed CSR Road Graph with the mode
-> mask on the *arc*, the `(saved AND hashed)` / `(derived AND rebuilt)` split marked per column, the
-> generator that realises `adr/0014`'s grid-plus-Arterials with real severance, and `Matrix/Connectivity.cs`,
-> which is exactly the component test the District Pool's membership needs. That is ~1,600 lines that
-> eight rounds of measurement have already beaten on.
+> **✅ HOLD DISCHARGED 2026-08-11 — both halves of the closing condition are met, and the deletion is
+> still not taken.** The condition this hold set was *the port is done and the harness has no reader
+> left*, and it is now satisfied on both halves, with the evidence rather than the assurance:
 >
-> **Deleting it before the port is not lossy in the git sense and is lossy in the working sense**: the
-> next person to build the graph would be reading it out of a deleted tree rather than out of `src/`.
-> **The deletion moves to the end of the Road Graph slice**, where it becomes *the port is done and the
-> harness has no reader left* — a stronger closing condition than *the report is written*.
+> - **The port is done.** Milestone 5a shipped `RoadNodeTable`, `RoadSegmentTable`, `RoadArcs`,
+>   `RoadConnectivity` and `RoadGenerator` into `src/Borough.Core/Space/`, with the `[roads]` table in
+>   both shipped Rulesets and `--roads` in the runner. The two things the port *corrected* about
+>   `Graph/` are in [`spike-results`](../docs/spike-results.md) → *The port landed*: the mode mask was
+>   saved on the wrong column ([`adr/0072`](../docs/adr/0072-the-mode-mask-is-saved-on-the-arc-and-the-segments-is-derived.md)),
+>   and `Matrix/Connectivity.cs` was never 5a's to port.
+> - **Nothing reads it.** No project under `src/` or `tests/` compiles against `S2.Routing` — it has no
+>   `ProjectReference` anywhere and is reached only through `Borough.slnx`, which **still lists it**.
+>   The only citations left in the simulation are **two doc-comments naming its file paths**, in
+>   `Borough.Core/Arithmetic/IntegerMath.cs` and `Borough.Core/Quantities/Speed.cs`, and both are
+>   provenance rather than dependency: each says where a routine came from, and each survives the tree
+>   being deleted because git holds it.
 >
-> Nothing about R7's verdict changes. This is a sequencing hold on one act, recorded here because
-> [`0000`](0000-board.md) row 4 reads as available and, on its own wording, is.
+> **The deletion is nevertheless awaiting an explicit go-ahead, and is not taken as a consequence of a
+> green suite.** A passing build proves nothing reads the harness *today*; it cannot prove nobody wants
+> to read it tomorrow, and the whole reason this hold existed was that a compiler's silence and a
+> reader's need are different questions. **51 tracked C# files and 29,719 lines** go in one commit — 92
+> files and 42,914 lines tracked in all once the project file, the scripts and the 36 report documents
+> under `results/` are counted — so it is a deliberate act
+> with a named decider, not a tidy-up. When it is taken: delete `spikes/S2.Routing/`, drop the
+> `<Project>` line from `Borough.slnx`, and record the deleting commit's **parent** in
+> `docs/spike-results.md`.
+>
+> Nothing about R7's verdict changes, and nothing above marks this item done.
 
 > ~~**Not available.** R6's invalidation half is gated on session **M**, typed *arguable* under
 > `adr/0043`, so no measurement closes it and the harness stays. Deleting it is R7's last act and it is

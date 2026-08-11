@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Borough.Core.Arithmetic;
 
 /// <summary>
@@ -165,5 +167,66 @@ public static class IntegerMath
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 63);
         return value >> count;
+    }
+
+    /// <summary>
+    /// The exact floor of the square root of a non-negative value.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It enters the substrate with the Road Graph and not before.</b>
+    /// <c>spikes/S2.Routing/Graph/IntegerGeometry.cs</c> held this and said in its own header that
+    /// <i>"nothing here enters the substrate… it dies with the spike"</i> — correctly, because A*'s
+    /// admissibility needs only a <em>lower bound</em> on a distance and a spike needs no more. What
+    /// needs the true value is the generator: a freeform Arterial's Segment length is the <em>arc
+    /// length</em> of its polyline, that length divides into a traversal cost, and a cost is a
+    /// hashed consequence rather than a heuristic.
+    /// </para>
+    /// <para>
+    /// <b>No division, no <c>Math</c>, and exact.</b> Newton's method needs a division per iteration
+    /// and a seed; the restoring bit-by-bit algorithm below needs neither, uses only constant shifts,
+    /// comparisons and subtraction, and returns the true floor rather than an approximation somebody
+    /// would have to argue about. Exactness is what makes it hashable: an approximation would be a
+    /// second implementation's chance to disagree.
+    /// </para>
+    /// <para>
+    /// <b>The first line is a fix, not a flourish.</b> It was
+    /// <c>long bit = 1L &lt;&lt; 62; while (bit &gt; remainder) bit &gt;&gt;= 2;</c> and that cost S2's
+    /// first denominator capture most of its time — the search called it twice per pushed node and
+    /// span ~30 iterations of warm-up on the small distances that dominate. <see cref="BitOperations.Log2"/>
+    /// gives the exponent outright, and masking the low bit makes it even, which is the invariant the
+    /// restoring loop needs.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is negative.</exception>
+    public static int SqrtFloor(long value)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
+
+        if (value == 0)
+        {
+            return 0;
+        }
+
+        long remainder = value;
+        long result = 0;
+        long bit = ShiftLeft(1L, BitOperations.Log2((ulong)value) & ~1);
+
+        while (bit != 0)
+        {
+            if (remainder >= result + bit)
+            {
+                remainder -= result + bit;
+                result = (result >> 1) + bit;
+            }
+            else
+            {
+                result >>= 1;
+            }
+
+            bit >>= 2;
+        }
+
+        return (int)result;
     }
 }

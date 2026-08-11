@@ -3,6 +3,7 @@ namespace Borough.Core.Entities;
 using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Quantities;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 
 /// <summary>
@@ -98,6 +99,13 @@ public static class SyntheticCity
                 "the world already has a population, and a synthetic city is not something to add a "
                 + "second of. Populate is world creation, so it belongs at Tick 0 and once.");
         }
+
+        // The roads first, because a Lot's frontage is a property of the Street network and the
+        // subdivider that will read it is 5a-bis. Laid here rather than in World's constructor for
+        // S0a's reason: a verb applied through Phase 0 is in the Input Log, so replay reproduces the
+        // network by construction rather than by a second generator agreeing with the first. It
+        // no-ops on a Ruleset that declares no [roads].
+        RoadGenerator.LayInto(world.Roads, key);
 
         int population = world.Citizens.Rows.Capacity;
         int households = IntegerMath.FloorDiv(population * 360, 1_000);

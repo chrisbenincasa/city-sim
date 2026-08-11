@@ -4,7 +4,7 @@
 **Q16.16 Ticks**, not whole Ticks; a free-flow speed is **Q16.16 Tiles/Tick**; and a sub-Tile position
 keeps the spelling it has. All three are distinct `readonly record struct`s over an `int`, sharing one
 implementation in `Borough.Core.Arithmetic.Fixed`, and none of them is assignable to another.
-**`05 §121`'s *"Q16.16 is for sub-Tile positions and nothing else"* is amended**: Q16.16 is a
+**`05 §3`'s *"Q16.16 is for sub-Tile positions and nothing else"* is amended**: Q16.16 is a
 **scale**, the quantities carried at it are enumerated, and the defect that sentence exists to prevent
 is a **raw `int` in a Q16.16 role** — which a type prevents and a prohibition does not.
 
@@ -35,7 +35,7 @@ only the representation is open.
 
 **The two candidate representations are the same representation.** Q16.16 Ticks, or an integer count
 of some fixed fraction of a Tick. `spikes/S2.Routing/Graph/Units.cs` reasons exactly this far, picks
-Q16.16 for the benchmark, and stops — writing down that this contradicts `05 §121`, that the
+Q16.16 for the benchmark, and stops — writing down that this contradicts `05 §3`, that the
 alternative is *"the same representation wearing a different name, so nothing about the measurement
 changes either way"*, and that **the decision is for the corpus rather than for a benchmark.** It was
 right to stop. The question is not which is more accurate.
@@ -44,15 +44,15 @@ right to stop. The question is not which is more accurate.
 static class over raw `int` — `FromInt`, `Mul`, `Div`, `Lerp`, `AssertMagnitude` — so a Q16.16
 position, a Q16.16 speed and a Q16.16 duration are all spelled `int` and the compiler cannot see the
 difference. Nothing stops adding a position to a duration, or passing a speed where a length is
-expected. `05 §121` reads as a prohibition on the second quantity, but the property it protects is
+expected. `05 §3` reads as a prohibition on the second quantity, but the property it protects is
 stated in its own first clause: **widths are stated once, not chosen per site.** It is a rule against
 scale drifting site to site, not against a second dimension existing.
 
 **And the prohibition has already been broken, correctly, and nobody noticed.** `Units.cs` stores
 free-flow speed as **Q16.16 Tiles/Tick**. A speed is not a sub-Tile position. `02 §2` *mandates* that
-this quantity exist and mandates its unit; `05 §121` *forbids* its representation. **The two documents
+this quantity exist and mandates its unit; `05 §3` *forbids* its representation. **The two documents
 have contradicted each other since before the spike ran, and the spike resolved it silently in `02`'s
-favour** — which was the right call and the wrong way to make it. Applied as written, `05 §121` would
+favour** — which was the right call and the wrong way to make it. Applied as written, `05 §3` would
 force speed into whole Tiles per Tick: 36 for a Street, 65 for an Arterial, and **3 for a walk against
 a true 3.66**, a 20% error on the mode the pedestrian layer is made of. A rule whose literal
 application corrupts a quantity is a rule that was never meant literally.
@@ -80,11 +80,11 @@ do not build a second one of something that works.
 
 ## Consequences
 
-**`05 §121` is amended, and `02 §2` wins the contradiction.** The sentence becomes: Q16.16 is a scale;
+**`05 §3` is amended, and `02 §2` wins the contradiction.** The sentence becomes: Q16.16 is a scale;
 the quantities carried at it are **sub-Tile position, speed in Tiles/Tick, and travel time in Ticks**;
 each is a distinct type; and a bare `int` standing for any of them is the defect. The free-flow speed
 column that already violated the old sentence becomes legal rather than remaining an unnoticed
-exception. `05 §121`'s other clauses are untouched — fixed×fixed still operates on dimensionless
+exception. `05 §3`'s other clauses are untouched — fixed×fixed still operates on dimensionless
 ratios, and a genuine product of absolutes still widens to Q32.32 per site with a written reason.
 
 **Only dimensionally sound operations are offered.** Tiles ÷ Speed → TravelTime; TravelTime +

@@ -32,6 +32,18 @@ internal enum Mode
     /// and there is nothing to invent in their place.
     /// </remarks>
     Zones,
+
+    /// <summary>
+    /// Print the Road Graph and its connected components. Slice 5a's.
+    /// </summary>
+    /// <remarks>
+    /// A fifth mode on <see cref="Zones"/>' reasoning, with one difference worth stating: a Zone dump
+    /// runs a session because a sweep happens <em>over time</em>, and this one does not, because the
+    /// graph is laid at world creation and nothing yet edits it. It still refuses without a Ruleset
+    /// for the same reason — a road network is content, and an empty picture would read as a broken
+    /// mechanism rather than as a file that declares no <c>[roads]</c>.
+    /// </remarks>
+    Roads,
 }
 
 /// <summary>
@@ -208,6 +220,7 @@ internal sealed class Options
         bool csv = false;
         bool decideGuard = true;
         bool zones = false;
+        bool roads = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -236,6 +249,13 @@ internal sealed class Options
                 // with --layer's refusal below for a reason the operator did not cause.
                 case "--zones":
                     zones = true;
+                    continue;
+
+                // Not a session flag either, and for a stronger reason than --zones': a Road dump does
+                // not step the world at all. The graph is laid at world creation and nothing yet edits
+                // it, so there is no *after* picture to take.
+                case "--roads":
+                    roads = true;
                     continue;
 
                 // A run, for the same reason --census is: the guard is a property of stepping a world,
@@ -431,9 +451,38 @@ internal sealed class Options
             return false;
         }
 
+        if (roads && (zones || dump is not null))
+        {
+            complaint = "--roads asks for a third picture, and each of the three builds its own "
+                      + "world. Ask for one.";
+            return false;
+        }
+
+        // A road network is a Ruleset's content, so a Road dump with no [roads] would print an empty
+        // graph and read as a broken mechanism rather than an absent one. --zones' refusal exactly.
+        if (roads && rulesets.Count == 0)
+        {
+            complaint = "--roads needs --ruleset PATH. A road network is content, not a default: "
+                      + "without one there is no graph to show, and an empty picture would look "
+                      + "like a defect rather than like a Ruleset that declares no [roads].";
+            return false;
+        }
+
+        // Stronger than --zones' refusal of --log, and stated separately because the reason differs:
+        // a Zone dump runs a session and this one does not step the world at all, so every session
+        // flag is not merely in conflict with it but inert.
+        if (roads && (log is not null || session))
+        {
+            complaint = "--roads and the session flags disagree: the Road Graph is laid at world "
+                      + "creation and nothing edits it yet, so there is no run to take a picture "
+                      + "after. Drop the session flags, or ask for --zones instead.";
+            return false;
+        }
+
         options = new Options
         {
-            Mode = zones ? Mode.Zones
+            Mode = roads ? Mode.Roads
+                 : zones ? Mode.Zones
                  : dump is not null ? Mode.Layer
                  : session ? Mode.Run
                  : Mode.Report,
@@ -495,8 +544,12 @@ internal sealed class Options
           --zones               dump the Lot grid by permission and occupancy, before and
                                 after --ticks Ticks of sweeping, with what the sweep did.
                                 Needs --ruleset, because a sweep is a Ruleset's behaviour
-          --csv                 dump the Layer or the Lot grid as CSV rather than as an
-                                ASCII field
+          --roads               dump the Road Graph -- Segments by kind, the Arcs each mode
+                                admits, and the connected components of both subgraphs.
+                                Needs --ruleset, because a road network is content. Takes
+                                no session: the graph is laid at world creation
+          --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
+                                than as an ASCII field
 
         A replay whose Ruleset does not match refuses to run rather than diverging
         silently: a different Ruleset is a different simulation, and the divergence

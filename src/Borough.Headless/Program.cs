@@ -51,6 +51,9 @@ internal static class Program
                 case Mode.Zones:
                     return Session.DumpZones(options);
 
+                case Mode.Roads:
+                    return Session.DumpRoads(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

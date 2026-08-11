@@ -5,6 +5,8 @@ using Borough.Core.Input;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Space;
+using Borough.Tests.Space;
 using Borough.Core.Tables;
 using Borough.Tests.Golden;
 
@@ -462,6 +464,143 @@ public sealed class InvariantTierTests
     }
 
     /// <summary>Runs a whole staggered sweep, so a violation anywhere in the world is reached.</summary>
+    // ---- The Road Graph: invariants 31-34 ----
+
+    /// <summary>
+    /// A Segment whose endpoint has been freed is reported rather than quietly ignored.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the failure the Staggered tier exists to catch here, and nothing else in the project
+    /// would see it.</b> <c>RoadGraph.RebuildDerived</c> skips a Segment with a dangling endpoint —
+    /// correctly, because a rebuild also runs on the load path and must not throw on a half-read world
+    /// — so such a Segment folds into the State Hash while appearing in no adjacency. It is a road that
+    /// exists for the save and does not exist for a router.
+    /// </remarks>
+    [Fact]
+    public void A_segment_whose_node_is_gone_is_caught()
+    {
+        World world = WithRoads();
+        world.Roads.Nodes.Rows.Free(world.Roads.Nodes.Rows.At(0));
+
+        Assert.Equal(Invariant.RoadSegmentEndpointsExist, Caught(world));
+    }
+
+    /// <summary>A Segment joining a node to itself is reported.</summary>
+    /// <remarks>
+    /// A self-loop is not a road; it is a length of carriageway that leaves and arrives nowhere, and it
+    /// would give a search an Arc it can relax through for ever at zero benefit.
+    /// </remarks>
+    [Fact]
+    public void A_segment_that_loops_to_its_own_node_is_caught()
+    {
+        World world = WithRoads();
+        world.Roads.Segments.NodeA[0] = world.Roads.Segments.NodeB[0];
+
+        Assert.Equal(Invariant.RoadSegmentEndpointsExist, Caught(world));
+    }
+
+    /// <summary>A Segment of no length, or at no speed, is reported.</summary>
+    /// <remarks>
+    /// <b>Both halves are the same defect seen from two ends: a traversal whose cost is not a
+    /// duration.</b> <c>TravelTime.Over</c> divides length by speed, so a zero speed is a
+    /// <c>DivideByZeroException</c> in the middle of a Tick and a zero length is a free Arc — and a
+    /// free Arc is worse, because it does not crash. It makes two places the same place for every
+    /// router that will ever read this graph.
+    /// </remarks>
+    [Fact]
+    public void A_segment_with_no_length_is_caught()
+    {
+        World world = WithRoads();
+        world.Roads.Segments.LengthTiles[0] = Tiles.Zero;
+
+        Assert.Equal(Invariant.RoadSegmentIsTraversable, Caught(world));
+    }
+
+    /// <summary>
+    /// A Segment whose derived mask disagrees with the Arcs it was derived from is reported.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>adr/0072</c>'s decision, guarded.</b> The masks are saved per direction and the Segment's
+    /// is their union, so the two can only disagree if something wrote the derived column directly or
+    /// a rebuild did not run after an edit. Both are silent: the graph stays traversable, Severance
+    /// stays plausible, and the answer to <i>may a pedestrian use this Segment</i> stops matching the
+    /// answer to <i>may a pedestrian use either of its Arcs</i>.
+    /// </remarks>
+    [Fact]
+    public void A_segment_whose_mask_disagrees_with_its_arcs_is_caught()
+    {
+        World world = WithRoads();
+        world.Roads.Segments.Modes[0] = (byte)TravelMode.None;
+
+        Assert.Equal(Invariant.SegmentModesAreTheUnionOfItsArcs, Caught(world));
+    }
+
+    /// <summary>
+    /// An adjacency whose slices no longer tile the Arc array is reported at end of run.
+    /// </summary>
+    /// <remarks>
+    /// <b>The property no single Arc can see.</b> Every Arc here is individually a perfectly good
+    /// direction of a real Segment; what is wrong is the <em>partition</em> — one node's run now
+    /// overlaps the next one's, so an Arc belongs to two nodes and another belongs to none. That is
+    /// why this is one whole-world walk rather than a per-row check, and why it is the one Road Graph
+    /// invariant in the end-of-run tier.
+    /// </remarks>
+    [Fact]
+    public void An_adjacency_whose_slices_do_not_tile_the_arcs_is_caught()
+    {
+        World world = WithRoads();
+        world.Roads.Nodes.ArcCount[0]++;
+
+        Assert.Equal(Invariant.ArcsAreDirectionsOfTheirSegments, CaughtAtEnd(world));
+    }
+
+    /// <summary>An Arc naming a Segment that does not touch the node it hangs off is reported.</summary>
+    [Fact]
+    public void An_arc_that_is_not_a_direction_of_its_segment_is_caught()
+    {
+        World world = WithRoads();
+        world.Roads.Nodes.ArcStart.Span.Clear();
+        world.Roads.Nodes.ArcCount.Span.Clear();
+        world.Roads.Nodes.ArcCount[0] = world.Roads.Arcs.Count;
+
+        Assert.Equal(Invariant.ArcsAreDirectionsOfTheirSegments, CaughtAtEnd(world));
+    }
+
+    /// <summary>
+    /// A hand-built graph large enough for the checks above to have something to walk.
+    /// </summary>
+    /// <remarks>
+    /// Built through <see cref="RoadFixtures.Chain"/> and then damaged directly, which is this file's
+    /// standing method: the ordinary API cannot produce any of these states, so every one of them is
+    /// reached by writing to a column. A test that could reach them through the API would be reporting
+    /// a defect in the API instead.
+    /// </remarks>
+    private static World WithRoads()
+    {
+        // A Ruleset with a [roads] table, and not Built()'s bare World. Free-flow is derived from the
+        // Ruleset in force (adr/0064), so a world with no [roads] gives every Segment a speed of zero
+        // and the first rebuild divides by it -- which is TravelTime.Over refusing to answer a question
+        // with no answer, a Tick before the invariant would have said the same thing more politely.
+        World world = new(1_000, RoadFixtures.With(RoadFixtures.Roads()));
+
+        RoadGraph graph = world.Roads;
+        Handle<RoadNode> previous = graph.Nodes.Create(Tiles.Zero, Tiles.Zero);
+
+        for (int i = 1; i < 6; i++)
+        {
+            Handle<RoadNode> next = graph.Nodes.Create(new Tiles(i * 32), Tiles.Zero);
+
+            graph.Segments.Create(
+                previous, next, new Tiles(32), RoadKind.Street, TravelMode.Any, TravelMode.Any);
+
+            previous = next;
+        }
+
+        graph.RebuildDerived();
+
+        return world;
+    }
+
     private static void Sweep(World world)
     {
         // Advancing the world rather than handing the tier a Tick, which is the point of the Tick

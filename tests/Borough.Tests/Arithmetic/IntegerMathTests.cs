@@ -165,4 +165,109 @@ public class IntegerMathTests
             Assert.Equal(IntegerMath.FloorDiv(value, 8), IntegerMath.ShiftRight(value, 3));
         }
     }
+
+    /// <summary>
+    /// Perfect squares, and the values either side of them, across every magnitude the format holds.
+    /// </summary>
+    /// <remarks>
+    /// <b>The step either side is what the test is for.</b> A square root that is merely close is
+    /// indistinguishable from an exact one on <c>n²</c> alone; it is <c>n² - 1</c> that has to floor to
+    /// <c>n - 1</c> and <c>n² + 1</c> that has to stay at <c>n</c>. The largest triple is
+    /// <see cref="int.MaxValue"/> squared, which is 62 bits — the reason the parameter is a
+    /// <c>long</c> and the return is an <c>int</c>, since the answer never needs the width the
+    /// argument does.
+    /// </remarks>
+    [Theory]
+    [InlineData(1L, 1)]
+    [InlineData(2L, 1)]
+    [InlineData(3L, 1)]
+    [InlineData(4L, 2)]
+    [InlineData(5L, 2)]
+    [InlineData(8L, 2)]
+    [InlineData(9L, 3)]
+    [InlineData(10L, 3)]
+    [InlineData(15L, 3)]
+    [InlineData(16L, 4)]
+    [InlineData(17L, 4)]
+    // A Segment length on a 4096-Tile map: the diagonal squared, and its neighbours.
+    [InlineData(4_095L * 4_095L, 4_095)]
+    [InlineData((4_096L * 4_096L) - 1, 4_095)]
+    [InlineData(4_096L * 4_096L, 4_096)]
+    [InlineData((4_096L * 4_096L) + 1, 4_096)]
+    // A whole-map squared distance, where the sum of two squares needs more than 32 bits.
+    [InlineData(2L * 4_096L * 4_096L, 5_792)]
+    // The extremes of the format.
+    [InlineData((long)int.MaxValue, 46_340)]
+    [InlineData(((long)int.MaxValue * int.MaxValue) - 1, int.MaxValue - 1)]
+    [InlineData((long)int.MaxValue * int.MaxValue, int.MaxValue)]
+    public void SqrtFloor_is_the_exact_floor(long value, int expected) =>
+        Assert.Equal(expected, IntegerMath.SqrtFloor(value));
+
+    [Fact]
+    public void SqrtFloor_of_nothing_is_nothing() =>
+        Assert.Equal(0, IntegerMath.SqrtFloor(0));
+
+    /// <summary>
+    /// A negative squared distance is a bug upstream, not a case to handle.
+    /// </summary>
+    /// <remarks>
+    /// The same posture as <see cref="IntegerMath.Abs"/> and <see cref="IntegerMath.ShiftLeft(int,int)"/>:
+    /// there is no correct answer, so the loud wrong answer beats the quiet one — which here would be
+    /// to return 0 and let a caller price a Segment as free.
+    /// </remarks>
+    [Theory]
+    [InlineData(-1L)]
+    [InlineData(-4L)]
+    [InlineData(long.MinValue)]
+    public void SqrtFloor_rejects_a_negative(long value) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => IntegerMath.SqrtFloor(value));
+
+    /// <summary>
+    /// <b>The defining property, asserted rather than the answers.</b> <c>r</c> is the floor of the
+    /// square root of <c>v</c> exactly when <c>r² ≤ v</c> and <c>(r+1)² > v</c>.
+    /// </summary>
+    /// <remarks>
+    /// This is what makes the result <em>hashable</em>: adr/0003's substrate is exact, and the header
+    /// on <see cref="IntegerMath.SqrtFloor"/> says why exactness is the point — a Segment's arc length
+    /// divides into a traversal cost, and a cost is a hashed consequence rather than a heuristic, so an
+    /// approximation would be a second implementation's chance to disagree. The sweep spans every
+    /// magnitude a <c>long</c> input reaches, including the boundary where the restoring loop's
+    /// <c>Log2</c> seed is odd and gets masked even.
+    /// </remarks>
+    [Theory]
+    [InlineData(1L)]
+    [InlineData(1_000L)]
+    [InlineData(1_048_576L)]
+    [InlineData(4_294_967_296L)]
+    [InlineData(1_099_511_627_776L)]
+    [InlineData((long)int.MaxValue * int.MaxValue)]
+    public void SqrtFloor_brackets_its_answer(long scale)
+    {
+        foreach (long offset in new[] { -3L, -2L, -1L, 0L, 1L, 2L, 3L, 7L, 31L })
+        {
+            long value = scale + offset;
+            if (value < 0)
+            {
+                continue;
+            }
+
+            long root = IntegerMath.SqrtFloor(value);
+
+            Assert.True(root * root <= value, $"{root}^2 > {value}");
+            Assert.True((root + 1) * (root + 1) > value, $"({root}+1)^2 <= {value}");
+        }
+    }
+
+    /// <summary>The same property, swept densely over the small values where an off-by-one hides.</summary>
+    [Fact]
+    public void SqrtFloor_brackets_its_answer_over_every_small_value()
+    {
+        for (long value = 0; value <= 10_000; value++)
+        {
+            long root = IntegerMath.SqrtFloor(value);
+
+            Assert.True(root * root <= value, $"{root}^2 > {value}");
+            Assert.True((root + 1) * (root + 1) > value, $"({root}+1)^2 <= {value}");
+        }
+    }
 }

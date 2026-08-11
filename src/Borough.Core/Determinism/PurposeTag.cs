@@ -149,4 +149,39 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     PlacementCandidate = 6,
+
+    /// <summary>
+    /// Where a freeform Arterial enters the map — which edge, and how far along it.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="RoadArterialHeading"/> because an Arterial that entered at a corner
+    /// would otherwise correlate with the direction it set off in, and the pairing that produces is
+    /// the degenerate one: a road entering at a corner pointing back off the map.
+    /// </remarks>
+    RoadArterialOrigin = 7,
+
+    /// <summary>
+    /// Which way a freeform Arterial is pointing when it enters — its inward and cross components.
+    /// </summary>
+    RoadArterialHeading = 8,
+
+    /// <summary>
+    /// A freeform Arterial's gentle bend, redrawn every so many steps along its polyline.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the tag S2's generator got wrong, and the failure is the argument for the whole
+    /// enum.</b> The first capture drew one hash and sliced it for two coordinates by pre-shifting;
+    /// the reduction consumed the top bits, so the shifted half read zeroes and returned the same
+    /// value every time. Every Arterial took the same heading, left the map within one step, and
+    /// <b>the footprint table looked entirely healthy while it happened</b> — a graph with no
+    /// Arterials in it is still a graph. Distinct counters under one tag are the idiom; a second tag
+    /// is not what fixes it, but a shared tag is what would have hidden it.
+    /// </remarks>
+    RoadArterialCurvature = 9,
+
+    /// <summary>
+    /// Whether a block gets a foot-only cut-through. <c>CONTEXT.md</c> → Segment's <i>few, and they
+    /// are the edges Severance turns on</i>.
+    /// </summary>
+    RoadFootPath = 10,
 }

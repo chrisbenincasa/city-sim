@@ -129,6 +129,8 @@ public static class RulesetLoader
         private TableSyntaxBase? _layersTable;
         private TableSyntaxBase? _placementTable;
 
+        private TableSyntaxBase? _roadsTable;
+
         public RulesetLoadResult Read()
         {
             DocumentSyntax document = SyntaxParser.Parse(text, fileName, validate: true);
@@ -162,6 +164,7 @@ public static class RulesetLoader
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             LayerRuleset layers = ReadLayers();
             PlacementRuleset placement = ReadPlacement();
+            RoadRuleset roads = ReadRoads();
 
             if (_refusals.Count == 0)
             {
@@ -189,6 +192,7 @@ public static class RulesetLoader
                 {
                     Layers = layers,
                     Placement = placement,
+                    Roads = roads,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 });
@@ -270,11 +274,25 @@ public static class RulesetLoader
                         _placementTable = table;
                         break;
 
+                    case "roads":
+                        // Singular and optional, on [placement]'s reasoning. A world has one road
+                        // network, so two tables of numbers for it is ambiguous rather than additive.
+                        if (_roadsTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [roads] is declared. There is one Road Graph, so two "
+                                + "tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _roadsTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
-                            + "[[resource]], [[building]], [[rule]], [[zone_rule]], [layers] and "
-                            + "[placement].");
+                            + "[[resource]], [[building]], [[rule]], [[zone_rule]], [layers], "
+                            + "[placement] and [roads].");
                         break;
                 }
             }
@@ -1661,6 +1679,180 @@ public static class RulesetLoader
 
             return (int)candidates;
         }
+
+        // ---- roads ----------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[roads]</c> table — the shape and the speed of the road network.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The whole table is optional and its absence means there are no roads</b>, which is
+        /// <c>[placement]</c>'s polarity rather than <c>[layers]</c>'s and is chosen for the same
+        /// reason. A default would put eight hash-bearing numbers in the binary that nobody authored
+        /// (<c>adr/0052</c>), and the failure it hides is quiet: a city laced with roads its designer
+        /// never asked for, at a density that decides Segment count and therefore every routing figure
+        /// downstream. A world with no roads is loud — <c>--roads</c> refuses, no Lot has frontage, and
+        /// every catchment query still throws by name.
+        /// </para>
+        /// <para>
+        /// <b>Once the table is present every key inside it is required</b>, for the same reason: the
+        /// author has said the world has roads, and there is no number here the engine can derive.
+        /// That is the whole difference from <c>[layers]</c>, where every key defaults because a
+        /// Layer's behaviour predates the table that states it.
+        /// </para>
+        /// <para>
+        /// <b>Speeds are authored in km/h and capacities in Vehicles per hour, converted exactly
+        /// here.</b> <c>02 §2</c> is categorical that there are no seconds in the library and no
+        /// metres, so the conversion happens where a human authors a number and never at runtime —
+        /// which is the arrangement <c>adr/0071</c> carries over from the spike unchanged.
+        /// </para>
+        /// </remarks>
+        private RoadRuleset ReadRoads()
+        {
+            if (_roadsTable is null)
+            {
+                return RoadRuleset.None;
+            }
+
+            int block = RoadNumber("block_tiles", minimum: 1, maximum: CellGrid.WorldTiles,
+                "It is the Street grid spacing in Tiles — the block — so it is at least 1 Tile and "
+                + "at most the width of the map. A Cell is " + CellGrid.TilesPerCell
+                + " Tiles, so that is one Street on every Cell boundary.");
+
+            int arterials = RoadNumber("arterial_count", minimum: 0, maximum: 1_024,
+                "It is how many freeform Arterials cross the map, so 0 is legal and means a city of "
+                + "Streets alone — which is a city where Severance cannot happen.");
+
+            int junctions = RoadNumber("arterial_junction_tiles", minimum: 1,
+                maximum: CellGrid.WorldTiles,
+                "It is the Tiles of Arterial between two authored Junction pieces, which is that "
+                + "Arterial's Segment length, so it is at least 1 Tile.");
+
+            int crossings = RoadNumber("foot_crossing_every", minimum: 0, maximum: int.MaxValue,
+                "It keeps a pedestrian crossing at every nth Street an Arterial severs, so 0 means "
+                + "no crossings at all and a network cut in two for anybody on foot.");
+
+            int paths = RoadNumber("foot_paths_per_thousand_blocks", minimum: 0, maximum: 1_000,
+                "It is a count per thousand blocks, so it is between 0 and 1,000 inclusive; 1,000 "
+                + "would give every block a cut-through.");
+
+            Speed street = RoadSpeed("street_speed_kph");
+            Speed arterial = RoadSpeed("arterial_speed_kph");
+            Speed walk = RoadSpeed("walk_speed_kph");
+
+            int streetCapacity = RoadCapacity("street_capacity_per_hour");
+            int arterialCapacity = RoadCapacity("arterial_capacity_per_hour");
+            int pathCapacity = RoadCapacity("foot_path_capacity_per_hour");
+
+            // The one refusal that is a property of two numbers together rather than of either. An
+            // Arterial whose Junction spacing exceeds the map cannot place a second Junction, and an
+            // Arterial with one Junction on it has no Segment at all -- so the file would read as
+            // "rare Arterials" and behave as "no Arterials", with a Segment count that looks healthy
+            // because the Streets are all still there. That is the failure S2's first capture had and
+            // did not notice: a graph with no Arterials in it is still a graph.
+            if (arterials > 0 && junctions >= CellGrid.WorldTiles)
+            {
+                Refuse(LineOfRoad("arterial_junction_tiles"), null,
+                    $"arterial_junction_tiles = {junctions} is at least the map's width of "
+                    + $"{CellGrid.WorldTiles} Tiles, so no Arterial can reach a second Junction "
+                    + "piece and none of them will have a Segment. The Arterials would be laid, "
+                    + "counted, and absent from the graph.");
+            }
+
+            return new RoadRuleset(
+                block, arterials, junctions, crossings, paths,
+                street, arterial, walk,
+                streetCapacity, arterialCapacity, pathCapacity);
+        }
+
+        /// <summary>A required <c>[roads]</c> integer, refused when it is outside its range.</summary>
+        private int RoadNumber(string key, int minimum, int maximum, string range)
+        {
+            if (!TryInteger(_roadsTable!, key, out long value, required: true))
+            {
+                return minimum;
+            }
+
+            if (value < minimum || value > maximum)
+            {
+                Refuse(LineOfRoad(key), null, $"{key} = {value} is out of range. {range}");
+                return minimum;
+            }
+
+            return (int)value;
+        }
+
+        /// <summary>
+        /// A required <c>[roads]</c> speed, authored in km/h and stored as Q16.16 Tiles/Tick.
+        /// </summary>
+        /// <remarks>
+        /// <b>Hash-bearing and unratified, every one of them.</b> 50 km/h for a Street, 90 for an
+        /// Arterial and 5 for a walk are the figures S2 ran on, and <c>adr/0071</c> chose their
+        /// <em>representation</em> while stating in terms that choosing one ratifies no value.
+        /// <c>plans/0002</c> §D carries the rows.
+        /// </remarks>
+        private Speed RoadSpeed(string key)
+        {
+            if (!TryInteger(_roadsTable!, key, out long value, required: true))
+            {
+                return Speed.FromKilometresPerHour(1);
+            }
+
+            if (value < 1 || value > MaximumSpeedKph)
+            {
+                Refuse(LineOfRoad(key), null,
+                    $"{key} = {value} is out of range. It is a free-flow speed in km/h, so it is at "
+                    + $"least 1 — a road nobody can move along is a mode mask rather than a speed — "
+                    + $"and at most {MaximumSpeedKph}, where Q16.16 Tiles per Tick runs out (adr/0071).");
+                return Speed.FromKilometresPerHour(1);
+            }
+
+            return Speed.FromKilometresPerHour((int)value);
+        }
+
+        /// <summary>
+        /// A required <c>[roads]</c> flow capacity, authored in Vehicles per hour and stored per Day.
+        /// </summary>
+        /// <remarks>
+        /// <b>The conversion is exact and the unit is deliberate.</b> A Day is <c>CONTEXT.md</c>'s
+        /// only time unit above the Tick, so <c>× 24</c> loses nothing — where Q16.16 Vehicles per
+        /// Tick, which the spike used, would be a fourth quantity at a scale <c>adr/0071</c>
+        /// enumerates exactly three for.
+        /// </remarks>
+        private int RoadCapacity(string key)
+        {
+            if (!TryInteger(_roadsTable!, key, out long value, required: true))
+            {
+                return HoursPerDay;
+            }
+
+            if (value < 1 || value > IntegerMath.FloorDiv(int.MaxValue, HoursPerDay))
+            {
+                Refuse(LineOfRoad(key), null,
+                    $"{key} = {value} is out of range. It is a flow capacity in Vehicles per hour, so "
+                    + "it is at least 1 — a capacity of zero is a division by zero wherever "
+                    + "volume/capacity is evaluated, which is every Segment the volume-delay function "
+                    + "will touch — and at most "
+                    + $"{IntegerMath.FloorDiv(int.MaxValue, HoursPerDay)}, where the per-Day figure "
+                    + "stops fitting.");
+                return HoursPerDay;
+            }
+
+            return (int)value * HoursPerDay;
+        }
+
+        /// <summary>Hours in a Day. The exchange rate between an authored capacity and a stored one.</summary>
+        private const int HoursPerDay = 24;
+
+        /// <summary>
+        /// The fastest speed Q16.16 Tiles per Tick can hold, in km/h. ~682, and no road is near it.
+        /// </summary>
+        private const int MaximumSpeedKph = 682;
+
+        /// <summary>The line a <c>[roads]</c> key is on, or the table's.</summary>
+        private int LineOfRoad(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_roadsTable!, key) ?? _roadsTable!);
 
         /// <summary>
         /// <c>adr/0015</c>'s world-creation refusal, and it runs only on the reload entry point.

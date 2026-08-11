@@ -16,7 +16,30 @@ pointer with just enough shape to orient; the board is the view and the slice pl
 slice plans, and it was the copy that drifted (`plans/0012` *Cause 1*: every document that stores
 per-slice status drifted, and the only large one that did not stores none).
 
-**Phase 1's code is closed, and the code track is empty** — `0003`'s hash-moving queue emptied on
+**Phase 2 has started: `06` milestone 5a, the Road Graph, shipped 2026-08-11**
+([`plans/0020`](plans/0020-the-road-graph.md)). Nodes, Segments and a directed Arc adjacency are typed
+tables in the State Hash; the Arc carries a **mode mask**, which is what makes `03 §3.7`'s **Severance**
+a mechanism rather than a paragraph; a per-Segment **Epoch** implements `adr/0012`'s invalidation
+contract; a generator ported from the S2 harness runs off a new **`[roads]`** Ruleset table; union-find
+gives **per-mode connectivity components**, which is the deliverable the `pool` scope consumes; and
+`--roads` prints the graph. **1,060 tests green, both golden baselines re-recorded.** Two ADRs:
+[`adr/0071`](docs/adr/0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md) and
+[`adr/0072`](docs/adr/0072-the-mode-mask-is-saved-on-the-arc-and-the-segments-is-derived.md).
+
+**The slice's sharpest finding is about porting, not about roads.** The spike's `Modes.cs` argues at
+length that the mask must be **per direction** — one-way streets are the entire reason — and its
+`RoadGraph.cs` then saves the *Segment's* mask and derives the Arc's from it, backwards from its own
+argument. **The spike never generates a one-way street, so no measurement it ran could have noticed.**
+*A benchmark cannot refute a claim about a case it never constructs*, which is `adr/0043` seen from
+underneath: porting reasoning and porting code are different acts, and the second does not verify the
+first. Two more outlive the slice. **Severance is a property of the grid's fineness relative to the
+barrier**: an Arterial destroys the Streets it runs over, so on a coarse lattice everybody walks round
+the end of it, and the crossing dial does **nothing at all** until there is enough Arterial per unit of
+grid. And **a wholly-derived table cannot join `World._tables`** — `Rows.Fold` folds the allocator's
+four scalars before consulting any column's disposition, so such a table would hash its own rebuild
+count and two identical cities would disagree.
+
+**Phase 1's code is closed, and the Phase 1 code track is empty** — `0003`'s hash-moving queue emptied on
 2026-08-10, **reopened the same day** with session N task 2's
 [`adr/0068`](docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
 and [`adr/0069`](docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md).
@@ -85,10 +108,15 @@ session is now 2,048 Ticks and a test asserts both branches ran.
 root `performance` capture, a canonical R8 re-capture, and the bookkeeping. The only act left of S2 is
 **deleting its 33,000-line harness**, and R7 found the two gates holding it — session **M**'s
 invalidation contract and the question R6.3 put in front of it — **both cleared elsewhere**, into
-`adr/0012` and `adr/0061`, without either clearance reaching S2's plan. **That deletion is now ⚠ ON
-HOLD (2026-08-11)**: `spikes/S2.Routing/Graph/` is the **reference implementation of milestone 5a**,
-so the deletion moves to the end of the Road Graph slice and its closing condition becomes *the port
-is done and nothing reads the harness*. **Sessions A, B, C, M, D, eight and nine are closed.**
+`adr/0012` and `adr/0061`, without either clearance reaching S2's plan. **That deletion is ⚠ STILL BLOCKED (2026-08-11), and it is
+on its *second* gate rather than its first.** The 5a gate — `spikes/S2.Routing/Graph/` being the
+reference implementation of milestone 5a, so the deletion waits for *the port to be done and nothing
+to read the harness* — is **discharged**: 5a shipped, no project compiles against the harness, and the
+only references left are two doc-comments naming file paths. **The gate now is that another session is
+doing further research inside it**, so it is live work. Do not delete it, and **do not read the first
+gate's clearance as the second's** — a deletion held twice for unrelated reasons is the row that gets
+struck when the wrong one clears. It is **51 tracked C# files and 29,719 lines** (92 files and 42,914
+lines counting the `results/` reports), not the 33,000 named above. **Sessions A, B, C, M, D, eight and nine are closed.**
 
 **What runs today.** Typed tables with a per-field saved/derived declaration and a State Hash; a
 deterministic eight-phase Tick; an Input Log that replays to identical hashes; a crash artifact that
@@ -327,13 +355,13 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **70** decision records, numbered to **`0071`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **71** decision records, numbered to **`0072`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
 | `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0020` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015` and `0014` (task 11) are both closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped**. **`0019` is S5's**, the Lane kernel — run, two tripwires fired, **nothing published**. **`0020` is the Road Graph (`06` milestone 5a) and is the first Phase 2 slice brief** — not started; it is the document that found no session gates 5a |
+| `plans/0004`–`0020` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015`, `0014` (task 11) and `0020` are all closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped**. **`0019` is S5's**, the Lane kernel — run, two tripwires fired, **nothing published**. **`0020` is the Road Graph (`06` milestone 5a) and is the first Phase 2 slice brief** — **built 2026-08-11, all seven tasks**, and it is the document that found no session gates 5a. Its close-out carries four findings and the reason the S2 harness is still on disk |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8, **S0a and S0b** have all run |
@@ -500,6 +528,8 @@ dotnet run --project src/Borough.Headless -- \
 | Industrial pollution kernel | separable tent, 1,024 m (8 Cells) | world-creation, **Ruleset data** — `[layers] kernel_metres`, frozen at world creation and refused on reload (slice 8 task 3). **UNRATIFIED** — the 1–10 km band is 10× wide and wants a source, and moving a number into a file does not ratify it |
 | A `[[kind]]`'s occupancy | **3** in both shipped Rulesets | tuning, hot-reloadable, **hash-bearing** — `[[building]] occupants` (`adr/0068`). Derived from the Ruleset in force rather than frozen at construction, so lowering it **evicts** the overflow into the Unplaced Pool: a Bin has a consumer and occupancy has none. **UNRATIFIED**, but its named ratifier has run and did not refute |
 | Placement pacing | `interval = 32`, `revisit_ticks = 1024`, `candidates = 3` | tuning, hot-reloadable, **hash-bearing** — the `[placement]` table (`adr/0069`). The **sample is derived** from the duration (`adr/0059` again), the duration is not. `revisit_ticks` shipped at 8192 and left 45% of the housing stock empty; `candidates` is `02 §5.3`'s N and **nothing can ratify it** until there is a choice model to score with. All three **UNRATIFIED** |
+| Road Graph geometry | `block_tiles = 32`, `arterial_count = 8`, `arterial_junction_tiles = 512`, `foot_crossing_every = 4`, `foot_paths_per_thousand_blocks = 40` | world-creation, **Ruleset data**, **hash-bearing** — the `[roads]` table (5a). `block_tiles = 32` is one Street per Cell boundary and therefore **≈16.2 km/km²**, which reproduces S2 R0's density *by construction rather than by a second measurement*. **`foot_crossing_every` is Severance's dial and it does nothing below a threshold of Arterial length per unit of grid** — at 512-Tile blocks, or at two Arterials, moving it from every Street to none leaves the pedestrian network in one piece. All five **UNRATIFIED** |
+| Free-flow speeds and capacities | 50 / 90 / 5 km/h; 3,600 / 12,000 / 1,000 Vehicles per hour | tuning, hot-reloadable, **hash-bearing** — free-flow is `(derived AND rebuilt)` per `adr/0064`, so retuning a speed moves the **standing** city. The speeds are the one group here with a source outside the corpus; **the capacities are weaker and nothing reads them at all**, stored as whole Vehicles per Day so an unbuilt consumer does not dictate a representation (`adr/0070`). **UNRATIFIED** |
 | Map | 4096² Tiles, 2048² documented fallback | open |
 | Target population | 10,000 first hour / 1,000,000 late game | sizing |
 | Tick budget | 15.6 ms at 4× speed | |

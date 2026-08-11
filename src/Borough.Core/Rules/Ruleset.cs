@@ -509,6 +509,99 @@ public readonly record struct PlacementRuleset(uint Interval, int RevisitTicks, 
 }
 
 /// <summary>
+/// The <c>[roads]</c> table — <b>what a Ruleset says about the shape and speed of the road
+/// network</b>, realised by <c>Borough.Core.Space.RoadGenerator</c> and read on every rebuild of the
+/// Road Graph's derived columns.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Ruleset data rather than a parameter struct or a <c>const</c>, on the rule that put
+/// <c>[layers]</c> and <c>[placement]</c> in TOML</b> (<c>adr/0015</c>: <i>everything the designer
+/// would want to change lives in the Ruleset and is hot-reloadable</i>). The spike carried these as
+/// <c>GraphParameters</c>, a swept benchmark axis, which is the right shape for a measurement and the
+/// wrong one for content.
+/// </para>
+/// <para>
+/// <b>The whole table is optional and its absence means there are no roads</b>, which is
+/// <see cref="PlacementRuleset"/>'s polarity rather than <c>[layers]</c>'s. A default here would put
+/// eight hash-bearing numbers in the binary with nobody having authored them (<c>adr/0052</c>), and
+/// the failure that hides is quiet: a city laced with roads its author never asked for. A city with
+/// no roads is loud — <c>--roads</c> refuses to print, every catchment query still throws, and no Lot
+/// has frontage — which is <c>HONEST DEGRADATION</c> choosing the visible failure.
+/// </para>
+/// <para>
+/// <b>The speeds are authored in km/h and the capacities in Vehicles per hour, and both are converted
+/// exactly at load.</b> <c>02 §2</c> is categorical that there are no seconds in the library and no
+/// metres; the conversion therefore happens where a human authors a number and never at runtime,
+/// which is the arrangement <c>adr/0071</c> carries over from the spike unchanged.
+/// </para>
+/// <para>
+/// <b>Every number here is hash-bearing and none is ratified.</b> The three speeds and the road
+/// density have named ratifiers in <c>plans/0002</c> §D and no values; <c>adr/0071</c> chose their
+/// <em>representation</em> and states in terms that choosing one ratifies no value.
+/// </para>
+/// </remarks>
+/// <param name="BlockTiles">
+/// Street grid spacing in Tiles — the block, and <b>the axis that sets Segment count</b>. A Cell is
+/// 32 Tiles, so 32 is one Street on every Cell boundary.
+/// </param>
+/// <param name="ArterialCount">How many freeform Arterials cross the map.</param>
+/// <param name="ArterialJunctionTiles">Tiles of Arterial between authored Junction pieces.</param>
+/// <param name="FootCrossingEvery">
+/// Keep a foot crossing at every <i>n</i>th Street an Arterial severs. <b>Severance's dial</b> —
+/// between junctions an Arterial carries no pedestrian Arcs at all, so this decides whether a
+/// neighbourhood is cut off from the shops that served it.
+/// </param>
+/// <param name="FootPathsPerThousandBlocks">Foot-only block cut-throughs per thousand blocks.</param>
+/// <param name="StreetSpeed">A Street's free-flow speed.</param>
+/// <param name="ArterialSpeed">An Arterial's free-flow speed.</param>
+/// <param name="WalkSpeed">
+/// Walking pace. <b>Both a foot-only Segment's free-flow speed and the ceiling on the foot traversal
+/// of any Segment</b> — a pedestrian walks at walking pace on a boulevard and in a lane alike.
+/// </param>
+/// <param name="StreetCapacityPerDay">A Street's flow capacity, whole Vehicles per Day.</param>
+/// <param name="ArterialCapacityPerDay">An Arterial's flow capacity, whole Vehicles per Day.</param>
+/// <param name="FootPathCapacityPerDay">
+/// A foot-only Segment's flow capacity. Nominal and non-zero, so that <c>volume / capacity</c> is
+/// defined on a Segment no Vehicle can enter rather than dividing by zero.
+/// </param>
+public readonly record struct RoadRuleset(
+    int BlockTiles,
+    int ArterialCount,
+    int ArterialJunctionTiles,
+    int FootCrossingEvery,
+    int FootPathsPerThousandBlocks,
+    Speed StreetSpeed,
+    Speed ArterialSpeed,
+    Speed WalkSpeed,
+    int StreetCapacityPerDay,
+    int ArterialCapacityPerDay,
+    int FootPathCapacityPerDay)
+{
+    /// <summary>A Ruleset whose world has no roads.</summary>
+    public static RoadRuleset None => default;
+
+    /// <summary>Whether there are roads at all. <see cref="BlockTiles"/> is what a graph cannot lack.</summary>
+    public bool Runs => BlockTiles != 0;
+
+    /// <summary>The free-flow speed of a Segment of this kind, in the Ruleset currently in force.</summary>
+    public Speed SpeedFor(RoadKind kind) => kind switch
+    {
+        RoadKind.Arterial => ArterialSpeed,
+        RoadKind.FootPath => WalkSpeed,
+        _ => StreetSpeed,
+    };
+
+    /// <summary>The flow capacity of a Segment of this kind, in the Ruleset currently in force.</summary>
+    public int CapacityFor(RoadKind kind) => kind switch
+    {
+        RoadKind.Arterial => ArterialCapacityPerDay,
+        RoadKind.FootPath => FootPathCapacityPerDay,
+        _ => StreetCapacityPerDay,
+    };
+}
+
+/// <summary>
 /// The Ruleset the interpreter runs: ids and integers, validated, with no string anywhere in it.
 /// </summary>
 /// <remarks>
@@ -622,6 +715,19 @@ public sealed class Ruleset
     /// would put three hash-bearing numbers in the binary.
     /// </remarks>
     public PlacementRuleset Placement { get; init; } = PlacementRuleset.None;
+
+    /// <summary>
+    /// The shape and speed of the road network — <c>06</c> milestone 5a, <c>plans/0020</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>An init property on <see cref="Placement"/>'s precedent, and it takes the same polarity for
+    /// the same reason.</b> A Ruleset with no <c>[roads]</c> has no Road Graph, because there is no
+    /// earlier behaviour to preserve and inventing one would put eight hash-bearing numbers in the
+    /// binary that nobody authored. The difference from <c>[placement]</c> is only in how loudly the
+    /// absence reads: a city that houses nobody grows a Pool, and a city with no roads cannot answer a
+    /// catchment query at all.
+    /// </remarks>
+    public RoadRuleset Roads { get; init; } = RoadRuleset.None;
 
     /// <summary>
     /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.

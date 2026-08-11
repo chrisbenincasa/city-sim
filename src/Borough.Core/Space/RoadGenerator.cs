@@ -1,0 +1,488 @@
+using Borough.Core.Arithmetic;
+using Borough.Core.Determinism;
+using Borough.Core.Quantities;
+using Borough.Core.Rules;
+using Borough.Core.Tables;
+
+namespace Borough.Core.Space;
+
+/// <summary>
+/// Lays a world's roads — <b>grid-snapped Streets falling out of the Tile grid, freeform Arterials
+/// with authored Junction pieces, one graph with mode masks rather than two networks</b>
+/// (<c>adr/0014</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A generator rather than a player, and that is what makes 5a shippable without a
+/// <c>build_road</c> command.</b> <c>CommandKind.Connect</c> is declared and throws;
+/// <c>01 §2</c> counts road editing among the player's five verbs and the corpus calls it the
+/// player's core verb, and <b>nowhere specifies its command surface</b>. Giving the graph a producer
+/// that is not the player lets this slice retire its own risk — <i>geometry leaking into the
+/// simulation</i> — without also settling a command shape nobody has designed. That is 5a-bis, along
+/// with the Lot subdivider.
+/// </para>
+/// <para>
+/// <b>The Arterials genuinely sever, and that is this generator's one substantive claim.</b> An
+/// Arterial occupies the ground its polyline crosses, so every Street Segment it crosses is either
+/// deleted or kept as a designated crossing. This is not realism for its own sake: a generator whose
+/// Arterials politely overlay the grid produces a graph with no detours in it, and it is the only way
+/// <c>CONTEXT.md</c> → Severance can be observed at all. A kept crossing loses
+/// <see cref="TravelMode.Car"/> and keeps <see cref="TravelMode.Foot"/> — the road is gone, the
+/// footbridge is not — and that asymmetry is the whole of Severance.
+/// </para>
+/// <para>
+/// <b>Three things it deliberately does not model, named so nobody assumes they were forgotten.</b>
+/// There are no one-way streets: every Segment's two masks are written equal, though the columns are
+/// separate and would carry a difference (<c>adr/0072</c>). Arterial-to-Arterial crossings get no
+/// Junction piece, so two Arterials pass over one another; adding them is a parameter rather than a
+/// rewrite. And <see cref="RoadSegmentTable.Fidelity"/> is zero everywhere, because nothing moves yet.
+/// </para>
+/// <para>
+/// <b>Every draw takes a distinct counter under its own tag rather than slicing one hash.</b> S2's
+/// first capture sliced, the reduction consumed the bits the slice had zeroed, every Arterial drew the
+/// same heading and left the map within a step — and nothing in the report said so, because a graph
+/// with no Arterials in it is still a graph. See <see cref="PurposeTag.RoadArterialCurvature"/>.
+/// </para>
+/// </remarks>
+public static class RoadGenerator
+{
+    /// <summary>Tiles per polyline step. One, so no Arterial can skip a grid line it crosses.</summary>
+    private const int StepTiles = 1;
+
+    /// <summary>Steps between curvature perturbations. A gentle bend over hundreds of Tiles.</summary>
+    private const int CurvatureEverySteps = 48;
+
+    /// <summary>
+    /// Lays the whole network into <paramref name="graph"/>, then rebuilds everything derived.
+    /// </summary>
+    /// <param name="graph">The graph to fill. Expected empty; this is a world-creation pass.</param>
+    /// <param name="key">The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</param>
+    /// <exception cref="InvalidOperationException">The graph already has Segments.</exception>
+    public static void LayInto(RoadGraph graph, WorldKey key)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+
+        if (graph.Segments.Rows.LiveCount != 0)
+        {
+            throw new InvalidOperationException(
+                "this world already has roads. The generator is a world-creation pass and lays a "
+                + "whole network at once; editing a standing graph is CommandKind.Connect, which is "
+                + "5a-bis and has no command surface yet.");
+        }
+
+        RoadRuleset roads = graph.Ruleset;
+
+        if (!roads.Runs)
+        {
+            return;
+        }
+
+        new Layout(graph, roads, key).Run();
+        graph.RebuildDerived();
+    }
+
+    /// <summary>
+    /// The generation-time scaffolding. <b>A class rather than a struct because nothing here survives
+    /// into the graph</b>, which is tables.
+    /// </summary>
+    private sealed class Layout(RoadGraph graph, RoadRuleset roads, WorldKey key)
+    {
+        /// <summary>Node columns and rows in the Street grid.</summary>
+        private readonly int _grid = IntegerMath.FloorDiv(CellGrid.WorldTiles, roads.BlockTiles) + 1;
+
+        /// <summary>
+        /// Grid intersections, by <c>(row × grid) + column</c>. Held so severance can address a
+        /// Street Segment by position rather than by searching for one.
+        /// </summary>
+        private Handle<RoadNode>[] _intersections = [];
+
+        /// <summary>
+        /// Every Street Segment in laying order, so that <see cref="MarkSevered"/> can name one by
+        /// grid position. Nulled by severance, which is what makes deletion a decision not to keep.
+        /// </summary>
+        private Handle<RoadSegment>[] _streets = [];
+
+        private bool[] _severed = [];
+
+        public void Run()
+        {
+            LayStreets();
+            LayArterials();
+            ApplySeverance();
+            LayFootPaths();
+        }
+
+        // --- Streets -------------------------------------------------------------------------
+
+        /// <summary>
+        /// The grid-snapped Streets — <c>CONTEXT.md</c> → Street: <i>"the Road Graph falls out of the
+        /// Tile grid directly"</i>. Laid in a fixed order, every horizontal edge then every vertical
+        /// one, because severance addresses them by index.
+        /// </summary>
+        private void LayStreets()
+        {
+            _intersections = new Handle<RoadNode>[_grid * _grid];
+
+            for (int north = 0; north < _grid; north++)
+            {
+                for (int east = 0; east < _grid; east++)
+                {
+                    _intersections[(north * _grid) + east] = graph.Nodes.Create(
+                        new Tiles(east * roads.BlockTiles),
+                        new Tiles(north * roads.BlockTiles));
+                }
+            }
+
+            _streets = new Handle<RoadSegment>[2 * _grid * (_grid - 1)];
+            _severed = new bool[_streets.Length];
+
+            var length = new Tiles(roads.BlockTiles);
+
+            for (int north = 0; north < _grid; north++)
+            {
+                for (int east = 0; east < _grid - 1; east++)
+                {
+                    _streets[Horizontal(east, north)] = graph.Segments.Create(
+                        Intersection(east, north),
+                        Intersection(east + 1, north),
+                        length,
+                        RoadKind.Street,
+                        TravelMode.Any,
+                        TravelMode.Any);
+                }
+            }
+
+            for (int east = 0; east < _grid; east++)
+            {
+                for (int north = 0; north < _grid - 1; north++)
+                {
+                    _streets[Vertical(east, north)] = graph.Segments.Create(
+                        Intersection(east, north),
+                        Intersection(east, north + 1),
+                        length,
+                        RoadKind.Street,
+                        TravelMode.Any,
+                        TravelMode.Any);
+                }
+            }
+        }
+
+        private Handle<RoadNode> Intersection(int east, int north) =>
+            _intersections[(north * _grid) + east];
+
+        private int Horizontal(int east, int north) => (north * (_grid - 1)) + east;
+
+        private int Vertical(int east, int north) =>
+            (_grid * (_grid - 1)) + (east * (_grid - 1)) + north;
+
+        // --- Arterials -----------------------------------------------------------------------
+
+        private void LayArterials()
+        {
+            for (int arterial = 0; arterial < roads.ArterialCount; arterial++)
+            {
+                WalkArterial((ulong)arterial);
+            }
+        }
+
+        /// <summary>
+        /// Walks one Arterial as a polyline at one-Tile steps with a gentle hashed curvature, placing
+        /// a Junction piece at a fixed interval of <b>arc length</b> along it.
+        /// </summary>
+        /// <remarks>
+        /// <b>The Segment's length is the arc length, not the distance between its Junctions</b>, and
+        /// the gap is deliberate. A distance heuristic therefore underestimates on these Segments,
+        /// which is the safe direction; what is <em>not</em> safe is the other effect this same loop
+        /// produces — an Arterial at an arbitrary angle offers a diagonal shortcut across a grid where
+        /// Manhattan says there is none, which is the case that makes a tight heuristic inadmissible.
+        /// Both live here, and it is 5c's problem rather than this slice's.
+        /// </remarks>
+        private void WalkArterial(ulong arterial)
+        {
+            (int east, int north, int headingEast, int headingNorth) = Entry(arterial);
+
+            Handle<RoadNode> previous = default;
+            bool anchored = false;
+            int sinceJunction = 0;
+            int step = 0;
+
+            (int stepEast, int stepNorth) = UnitStep(headingEast, headingNorth);
+
+            int tileEast = Fixed.ToIntFloor(east);
+            int tileNorth = Fixed.ToIntFloor(north);
+
+            while (InBounds(tileEast, tileNorth))
+            {
+                // A Junction piece every so many Tiles of arc length. The first anchors the
+                // Arterial's first Segment; before it there is road with no graph edge, which is
+                // correct — an Arterial with no Junction on it is unreachable, and that is what a
+                // limited-access road is.
+                if (!anchored || sinceJunction >= roads.ArterialJunctionTiles)
+                {
+                    Handle<RoadNode> junction =
+                        graph.Nodes.Create(new Tiles(tileEast), new Tiles(tileNorth));
+
+                    ConnectToGrid(junction, tileEast, tileNorth);
+
+                    if (anchored)
+                    {
+                        graph.Segments.Create(
+                            previous,
+                            junction,
+                            new Tiles(sinceJunction * StepTiles),
+                            RoadKind.Arterial,
+                            TravelMode.Car,
+                            TravelMode.Car);
+                    }
+
+                    previous = junction;
+                    anchored = true;
+                    sinceJunction = 0;
+                }
+
+                if (step > 0 && (step % CurvatureEverySteps) == 0)
+                {
+                    headingEast += Bend(arterial, (ulong)step * 2);
+                    headingNorth += Bend(arterial, ((ulong)step * 2) + 1);
+                    (stepEast, stepNorth) = UnitStep(headingEast, headingNorth);
+                }
+
+                east += stepEast;
+                north += stepNorth;
+                step++;
+                sinceJunction++;
+
+                int nextEast = Fixed.ToIntFloor(east);
+                int nextNorth = Fixed.ToIntFloor(north);
+
+                MarkSevered(tileEast, tileNorth, nextEast, nextNorth);
+
+                tileEast = nextEast;
+                tileNorth = nextNorth;
+            }
+        }
+
+        /// <summary>A curvature perturbation in [-60, +60], drawn on its own counter.</summary>
+        private int Bend(ulong arterial, ulong counter) =>
+            (int)(Draw(arterial, counter, PurposeTag.RoadArterialCurvature) % 121ul) - 60;
+
+        /// <summary>
+        /// Where an Arterial enters the map and which way it is pointing. It starts on an edge and
+        /// heads inward, so every Arterial genuinely crosses the city rather than stubbing off it.
+        /// </summary>
+        private (int East, int North, int HeadingEast, int HeadingNorth) Entry(ulong arterial)
+        {
+            int edge = (int)(Draw(arterial, 0, PurposeTag.RoadArterialOrigin) % 4ul);
+            int along = (int)(Draw(arterial, 1, PurposeTag.RoadArterialOrigin)
+                % (ulong)CellGrid.WorldTiles);
+
+            // The inward component is strictly positive and the cross component is free, which is
+            // what makes the angle arbitrary rather than one of eight.
+            int inward = 300 + (int)(Draw(arterial, 0, PurposeTag.RoadArterialHeading) % 701ul);
+            int across = (int)(Draw(arterial, 1, PurposeTag.RoadArterialHeading) % 2001ul) - 1000;
+
+            int far = CellGrid.WorldTiles - 1;
+
+            return edge switch
+            {
+                0 => (Fixed.FromInt(0), Fixed.FromInt(along), inward, across),
+                1 => (Fixed.FromInt(far), Fixed.FromInt(along), -inward, across),
+                2 => (Fixed.FromInt(along), Fixed.FromInt(0), across, inward),
+                _ => (Fixed.FromInt(along), Fixed.FromInt(far), across, -inward),
+            };
+        }
+
+        /// <summary>
+        /// A Q16.16 step vector of length one Tile in the given direction. <b>No trigonometry and no
+        /// floating point</b> — a direction is an integer vector, and the step is that vector scaled
+        /// by its own magnitude.
+        /// </summary>
+        private static (int East, int North) UnitStep(int headingEast, int headingNorth)
+        {
+            long magnitude = IntegerMath.SqrtFloor(
+                ((long)headingEast * headingEast) + ((long)headingNorth * headingNorth));
+
+            if (magnitude == 0)
+            {
+                return (Fixed.One, 0);
+            }
+
+            return (
+                (int)IntegerMath.FloorDiv((long)headingEast * Fixed.One * StepTiles, magnitude),
+                (int)IntegerMath.FloorDiv((long)headingNorth * Fixed.One * StepTiles, magnitude));
+        }
+
+        private static bool InBounds(int east, int north) =>
+            east >= 0 && north >= 0 && east < CellGrid.WorldTiles && north < CellGrid.WorldTiles;
+
+        /// <summary>
+        /// Records every Street Segment the Arterial ran over between two consecutive polyline
+        /// positions. The step is one Tile, so at most one grid line of each orientation can be
+        /// crossed and neither can be skipped.
+        /// </summary>
+        private void MarkSevered(int fromEast, int fromNorth, int toEast, int toNorth)
+        {
+            int fromColumn = IntegerMath.FloorDiv(fromEast, roads.BlockTiles);
+            int toColumn = IntegerMath.FloorDiv(toEast, roads.BlockTiles);
+            int fromRow = IntegerMath.FloorDiv(fromNorth, roads.BlockTiles);
+            int toRow = IntegerMath.FloorDiv(toNorth, roads.BlockTiles);
+
+            if (fromColumn != toColumn)
+            {
+                int column = fromColumn > toColumn ? fromColumn : toColumn;
+
+                if (column >= 0 && column < _grid && fromRow >= 0 && fromRow < _grid - 1)
+                {
+                    _severed[Vertical(column, fromRow)] = true;
+                }
+            }
+
+            if (fromRow != toRow)
+            {
+                int row = fromRow > toRow ? fromRow : toRow;
+
+                if (row >= 0 && row < _grid && fromColumn >= 0 && fromColumn < _grid - 1)
+                {
+                    _severed[Horizontal(fromColumn, row)] = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The authored Junction piece's connection to the Street network — a ramp to the nearest
+        /// grid intersection.
+        /// </summary>
+        /// <remarks>
+        /// <b>The ramp carries cars and not pedestrians</b>, which is a modelling choice worth stating
+        /// rather than a detail. A pedestrian's ability to get from one side of an Arterial to the
+        /// other is then a property of the crossings alone, which is exactly the quantity
+        /// <c>[roads] foot_crossing_every</c> exists to move. Letting the ramp carry feet would put a
+        /// pedestrian route at every Junction and quietly make Severance unmeasurable.
+        /// </remarks>
+        private void ConnectToGrid(Handle<RoadNode> junction, int tileEast, int tileNorth)
+        {
+            int column = Clamp(IntegerMath.RoundDiv(tileEast, roads.BlockTiles), 0, _grid - 1);
+            int row = Clamp(IntegerMath.RoundDiv(tileNorth, roads.BlockTiles), 0, _grid - 1);
+
+            int length = Distance(
+                tileEast, tileNorth, column * roads.BlockTiles, row * roads.BlockTiles);
+
+            graph.Segments.Create(
+                junction,
+                Intersection(column, row),
+                new Tiles(length <= 0 ? StepTiles : length),
+                RoadKind.Arterial,
+                TravelMode.Car,
+                TravelMode.Car);
+        }
+
+        private static int Clamp(int value, int low, int high) =>
+            value < low ? low : value > high ? high : value;
+
+        /// <summary>Straight-line Tile distance, floored — which underestimates, the safe direction.</summary>
+        private static int Distance(int fromEast, int fromNorth, int toEast, int toNorth)
+        {
+            long east = (long)fromEast - toEast;
+            long north = (long)fromNorth - toNorth;
+
+            return IntegerMath.SqrtFloor((east * east) + (north * north));
+        }
+
+        // --- Severance -----------------------------------------------------------------------
+
+        /// <summary>
+        /// Frees the Street Segments the Arterials ran over, keeping every
+        /// <c>[roads] foot_crossing_every</c>th one as a pedestrian crossing.
+        /// </summary>
+        /// <remarks>
+        /// <b>A kept crossing becomes a <see cref="RoadKind.FootPath"/> and loses
+        /// <see cref="TravelMode.Car"/>.</b> Changing its kind rather than only its mask is what makes
+        /// its free-flow speed and capacity follow walking pace — those are derived from the kind
+        /// (<c>adr/0064</c>), so a crossing that kept <see cref="RoadKind.Street"/> would be a
+        /// footbridge cars drive at 50 km/h down.
+        /// </remarks>
+        private void ApplySeverance()
+        {
+            int severedSoFar = 0;
+
+            for (int street = 0; street < _streets.Length; street++)
+            {
+                if (!_severed[street])
+                {
+                    continue;
+                }
+
+                severedSoFar++;
+
+                int slot = graph.Segments.Rows.Resolve(_streets[street]);
+
+                if (roads.FootCrossingEvery > 0
+                    && severedSoFar % roads.FootCrossingEvery == 0)
+                {
+                    graph.Segments.Kind[slot] = (byte)RoadKind.FootPath;
+                    graph.Segments.ModesForward[slot] = (byte)TravelMode.Foot;
+                    graph.Segments.ModesBackward[slot] = (byte)TravelMode.Foot;
+                    graph.Segments.Edited(slot);
+                    continue;
+                }
+
+                graph.Segments.Rows.Free(_streets[street]);
+            }
+        }
+
+        // --- Foot-only Segments ----------------------------------------------------------------
+
+        /// <summary>
+        /// The block cut-throughs. <c>CONTEXT.md</c> → Segment: the foot-only Segments are <i>"few,
+        /// and they are the edges Severance turns on, so nothing may size the graph by omitting
+        /// them."</i>
+        /// </summary>
+        private void LayFootPaths()
+        {
+            if (roads.FootPathsPerThousandBlocks <= 0)
+            {
+                return;
+            }
+
+            var diagonal = new Tiles(Distance(0, 0, roads.BlockTiles, roads.BlockTiles));
+
+            for (int north = 0; north < _grid - 1; north++)
+            {
+                for (int east = 0; east < _grid - 1; east++)
+                {
+                    ulong block = (ulong)((north * _grid) + east);
+
+                    if (Draw(block, 0, PurposeTag.RoadFootPath) % 1000ul
+                        >= (ulong)roads.FootPathsPerThousandBlocks)
+                    {
+                        continue;
+                    }
+
+                    graph.Segments.Create(
+                        Intersection(east, north),
+                        Intersection(east + 1, north + 1),
+                        diagonal,
+                        RoadKind.FootPath,
+                        TravelMode.Foot,
+                        TravelMode.Foot);
+                }
+            }
+        }
+
+        // --- Draws ---------------------------------------------------------------------------
+
+        /// <summary>
+        /// One draw, on a counter distinct within its tag.
+        /// </summary>
+        /// <remarks>
+        /// <b>Generation happens at Tick zero and the entity coordinate carries the counter</b>, so
+        /// two draws of one Arterial differ in the coordinate <see cref="Randomness.Draw"/> mixes
+        /// first rather than in the one it mixes last. Mixing the pair rather than adding them keeps
+        /// <c>(arterial 1, counter 0)</c> and <c>(arterial 0, counter 1)</c> apart, which adding would
+        /// not.
+        /// </remarks>
+        private ulong Draw(ulong entity, ulong counter, PurposeTag purpose) =>
+            Randomness.Draw(
+                key, Randomness.Mix(entity ^ (counter << 32)), Ticks.Zero, purpose);
+    }
+}

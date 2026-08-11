@@ -34,6 +34,7 @@ public static class WorldInvariants
 
         invariants.Register(InvariantTier.Staggered, HouseholdsLiveSomewhereReal);
         invariants.Register(InvariantTier.Staggered, CitizensBelongToARealHousehold);
+        invariants.Register(InvariantTier.Staggered, SegmentsAreWellFormed);
 
         invariants.Register(InvariantTier.EndOfRun, EveryHandleResolves);
         invariants.Register(InvariantTier.EndOfRun, EveryoneIsInExactlyOnePlace);
@@ -45,6 +46,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, ThePoolIsDenseAndAgreesWithTheHouseholds);
         invariants.Register(InvariantTier.EndOfRun, NoWaiterSleepsOnANonBlockingBin);
         invariants.Register(InvariantTier.EndOfRun, BinCapacitiesMatchTheirDeclarations);
+        invariants.Register(InvariantTier.EndOfRun, TheAdjacencyDescribesTheSegments);
     }
 
     /// <summary>
@@ -798,5 +800,107 @@ public static class WorldInvariants
 
         total += value;
         return true;
+    }
+
+    /// <summary>
+    /// Every Segment names two live nodes, is traversable, and agrees with its own Arcs' masks.
+    /// </summary>
+    /// <remarks>
+    /// <b>Staggered rather than end-of-run, because the failure it catches is silent.</b>
+    /// <c>RoadGraph.RebuildDerived</c> skips a Segment whose endpoint is dangling — correctly, since a
+    /// rebuild runs on the load path — so such a Segment folds into the State Hash while appearing in
+    /// no adjacency. Nothing else in the project would ever report it, and a whole-world walk that ran
+    /// once at the end of a 100,000-Tick run would name the Tick it finished on rather than the Tick
+    /// it happened on.
+    /// </remarks>
+    internal static void SegmentsAreWellFormed(
+        World world, int slice, int slices, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        RoadSegmentTable segments = world.Roads.Segments;
+        RoadNodeTable nodes = world.Roads.Nodes;
+
+        (int from, int to) = InvariantRegistry.Range(slice, slices, segments.Rows.SlotCount);
+
+        for (int slot = from; slot < to; slot++)
+        {
+            if (!segments.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            bool endpoints = nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
+                && nodes.Rows.TryResolve(segments.NodeB[slot], out int b)
+                && a != b;
+
+            report.Require(endpoints, Invariant.RoadSegmentEndpointsExist, slot);
+
+            report.Require(
+                segments.LengthTiles[slot].Raw > 0 && segments.FreeFlow[slot].Raw > 0,
+                Invariant.RoadSegmentIsTraversable,
+                slot);
+
+            byte union = (byte)(segments.ModesForward[slot] | segments.ModesBackward[slot]);
+
+            report.Require(
+                segments.Modes[slot] == union,
+                Invariant.SegmentModesAreTheUnionOfItsArcs,
+                slot,
+                segments.Modes[slot]);
+        }
+    }
+
+    /// <summary>
+    /// The CSR slices partition the Arc array, and every Arc is a direction of the Segment it names.
+    /// </summary>
+    /// <remarks>
+    /// <b>The spike's <c>AssertWellFormed</c>, promoted from a sanity walk to the whole-world tier.</b>
+    /// It is one walk over every Arc plus one over every node, which is <c>02 §10</c>'s definition of
+    /// an end-of-run check; and it is the only place that can see the adjacency as a <em>structure</em>
+    /// rather than an Arc at a time, because the property being checked is that the slices tile the
+    /// array with no gap and no overlap.
+    /// </remarks>
+    internal static void TheAdjacencyDescribesTheSegments(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        RoadNodeTable nodes = world.Roads.Nodes;
+        RoadSegmentTable segments = world.Roads.Segments;
+        RoadArcs arcs = world.Roads.Arcs;
+
+        int expected = 0;
+
+        // The slices tile the array: walked in slot order, each live node's run begins exactly where
+        // the previous one ended. A gap would be an Arc nothing can reach and an overlap would be one
+        // two nodes both claim, and neither is visible from a single Arc.
+        for (int slot = 0; slot < nodes.Rows.SlotCount; slot++)
+        {
+            report.Require(
+                nodes.ArcStart[slot] == expected, Invariant.ArcsAreDirectionsOfTheirSegments, slot);
+
+            expected += nodes.ArcCount[slot];
+
+            for (int arc = nodes.ArcStart[slot]; arc < expected; arc++)
+            {
+                int segment = arcs.Segment[arc];
+                int target = arcs.Target[arc];
+
+                bool describes =
+                    segments.Rows.IsLive(segment)
+                    && target != slot
+                    && nodes.Rows.TryResolve(segments.NodeA[segment], out int a)
+                    && nodes.Rows.TryResolve(segments.NodeB[segment], out int b)
+                    && ((a == slot && b == target) || (b == slot && a == target));
+
+                report.Require(
+                    describes, Invariant.ArcsAreDirectionsOfTheirSegments, arc, segment);
+            }
+        }
+
+        report.Require(
+            expected == arcs.Count, Invariant.ArcsAreDirectionsOfTheirSegments, expected, arcs.Count);
     }
 }

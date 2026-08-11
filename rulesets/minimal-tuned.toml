@@ -247,3 +247,62 @@ kernel_metres         = 1024
 pollution_decay_ticks = 8192
 land_value_tau        = 8
 sealing_decay_tau     = 0
+
+# The road network. plans/0020 (milestone 5a), and the first section here that describes the
+# *ground* rather than what happens on it. adr/0014: Streets snap to the grid, Arterials are
+# freeform between authored Junction pieces, and the Road Graph is uniform regardless of which of
+# the two a road is -- the simulation never sees a spline.
+#
+# THE WHOLE SECTION IS OPTIONAL AND ITS ABSENCE MEANS THERE ARE NO ROADS, which is [placement]'s
+# polarity rather than [layers]'. A default would put eight hash-bearing numbers in the binary that
+# nobody authored (adr/0052), and the failure that hides is quiet: a city laced with roads its
+# designer never asked for, at a density that sets Segment count and therefore every routing figure
+# downstream. A world with no roads fails loudly instead -- `--roads` refuses to print, no Lot has
+# frontage, and every catchment query still throws by name. Once the section is present every key in
+# it is REQUIRED, because there is no number here the engine can derive.
+#
+# NOTHING MOVES ON THIS GRAPH YET. 5a delivers a graph that exists, hashes, saves and can be asked
+# what is connected to what. There are no Trips, no Legs, no routing and no Lanes, so `volume` is
+# zero everywhere and `fidelity` is a named hole -- which means the capacities below are stored,
+# hashed and READ BY NOTHING. They are here because CONTEXT -> Segment lists capacity among a
+# Segment's attributes and a schema change on a table with rows costs more than a column nobody
+# reads.
+#
+# `block_tiles` IS THE DENSITY AXIS AND IT IS A DENOMINATOR. It sets how many Segments a map of
+# fixed size holds, so everything divided by road density inherits its error. 32 is one Street on
+# every Cell boundary, which is the rung that reproduces CONTEXT -> Segment's ~30,000-Segment
+# placeholder; S2 R0 swept it and reports 16.20 km/km², UNRATIFIED, with plans/0002 recording that
+# nothing yet says whether that describes a real city.
+#
+# THE THREE SPEEDS ARE HASH-BEARING AND UNRATIFIED (plans/0002 §D1). 50 km/h for a Street, 90 for
+# an Arterial and 5 for a walk are the figures S2 ran on. adr/0071 settled how a speed is spelled --
+# Q16.16 Tiles per Tick, converted from km/h here, exactly, because 02 §2 says there are no seconds
+# in the library and no metres -- and it says in terms that CHOOSING A REPRESENTATION RATIFIES NO
+# VALUE. Authoring them in km/h is what lets a human check them against reality, which 02 §10
+# requires of any authored number.
+#
+# `foot_crossing_every` IS SEVERANCE'S DIAL AND IT IS THE INTERESTING NUMBER IN THIS SECTION.
+# Between Junction pieces an Arterial carries no pedestrian Arcs at all, so a Street it runs over is
+# either deleted or kept as a crossing -- and this decides which. At 4, every fourth severed Street
+# survives as a footbridge. At 0 there are no crossings and the pedestrian network is cut in two
+# while the car network is untouched, which is CONTEXT -> Severance's claim made observable: a city
+# can be perfectly well connected for cars and broken for people. It is the one number here whose
+# effect a test asserts in both directions.
+#
+# THE CAPACITIES ARE PER LANE-HOUR TIMES LANES, AND THEY ARE STORED PER DAY. A Street is 2 lanes at
+# 1,800 veh/h/lane and an Arterial 6 at 2,000; a foot path carries no Vehicles at all and gets a
+# nominal figure so that volume/capacity is defined rather than a division by zero. The loader
+# multiplies by 24 exactly -- a Day is CONTEXT's only time unit above the Tick, where Q16.16
+# Vehicles per Tick would be a fourth quantity at a scale adr/0071 enumerates exactly three for.
+[roads]
+block_tiles                    = 32
+arterial_count                 = 8
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000

@@ -744,6 +744,17 @@ It is the unit almost everything about movement is counted in, which is why it n
 
 _Avoid_: "road", "link", "edge" as loose synonyms — the first two are ambiguous between the Segment and the whole street a player drew, and "edge" is the graph-theoretic word for the same object and is fine in `05` but not in design prose.
 
+**Arc**
+**One permitted direction of travel along a Segment.** A Segment has two, and each carries the **mode mask** valid in that direction; the Segment's own mask is their union.
+
+**The Arc rather than the Segment is where a mask lives, and a one-way street is why.** It carries cars one way and pedestrians both, so a single mask per Segment forces a choice between a second edge set for foot — the two parallel networks this design rejects by name — and a street nobody may walk down. Holding the mask on the Arc is still *one graph, one Arc set, one Epoch*; the Segment's mask stays meaningful for every reader asking *what is this road for* rather than *may I go this way*. See [`docs/adr/0072`](docs/adr/0072-the-mode-mask-is-saved-on-the-arc-and-the-segments-is-derived.md).
+
+**It is derived, and it is the only part of the Road Graph that is.** An Arc is a function of the Segments — its target is one of their endpoints, its mask is that direction's, its traversal cost is a division of length by speed — so it is rebuilt rather than saved and never reaches the State Hash. That is what `adr/0040` means by the abstract routing structure being free to change forever.
+
+**Why the graph is directed at all**: the VDF is evaluated on one Segment's own `volume / capacity` and Lanes are directional queues, so `cost(A→B) ≠ cost(B→A)`. Three things follow and none is a local retrofit — a route cache key is an *ordered* node pair, a travel-time matrix is asymmetric and nothing may halve it by symmetry, and the adjacency stores two Arcs where an undirected graph would store one edge.
+
+_Avoid_: "half-edge", "directed edge" — the same object under the graph-theoretic names `05` may use and design prose may not.
+
 **Volume-Delay Function** (VDF)
 The formula that estimates a Segment's travel time from how busy it is — the standard being BPR, `free_flow × (1 + α(volume/capacity)^β)`. Cheap, and the mechanism behind every Statistical Segment.
 

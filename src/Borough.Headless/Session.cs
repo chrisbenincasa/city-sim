@@ -476,4 +476,18 @@ internal static class Session
         using var writer = new StreamWriter(options.OutPath);
         return ZoneDump.Run(options, writer);
     }
+
+    /// <summary>Slice 5a's artefact: the Road Graph, and its components per mode.</summary>
+    internal static int DumpRoads(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return RoadDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return RoadDump.Run(options, writer);
+    }
 }

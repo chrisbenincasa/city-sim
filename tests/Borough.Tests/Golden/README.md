@@ -62,6 +62,21 @@ to **1,024** to stay halfway; `The_golden_session_raises_buildings_as_well_as_co
 assertion that makes the new length mean something rather than being a number somebody once chose. If
 you shorten this session, that test is what will tell you.
 
+**Milestone 5a re-recorded all three artefacts, and the reason is worth separating into its two
+halves.** `world-hash.txt` and `session-trace.txt` moved because `road_node` and `road_segment` joined
+`World._tables`, so the composition order gained two tables at the end. Both **Ruleset content hashes**
+moved independently, because each file gained a `[roads]` table — which is why
+`GoldenFixtures.RulesetHash`, `GoldenFixtures.TunedRulesetHash` and the `ruleset` and `reload` lines
+*inside* `session.borough` all had to change before the trace could be regenerated at all. **Four
+literals in two files for one edit**, and the ordering is not optional: regenerating the trace against
+a log that still names the old Ruleset produces a green run of the wrong session.
+
+**`World.HashSeed`'s version byte did not move, and that is deliberate.** It is for a change to the
+*fold* — the composition order's rules, `Randomness.Mix`, what a column contributes — and not for a
+world that has more tables in it. Bumping it for an appended table would make the byte a change
+counter, at which point it stops distinguishing the one thing it exists to distinguish: a hash that
+means something different from a hash of something different.
+
 **Slice 10 task 7 arrived and the trigger named above turns out not to fire.** The session now
 demolishes Buildings, so it frees Building, Bin and Rule Instance rows and hands them back out —
 which is new coverage and is exactly what `world-hash.txt` was standing in for. It does **not** cover

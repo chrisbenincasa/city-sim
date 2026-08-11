@@ -13,7 +13,64 @@
 
 ## Status
 
-**NOT STARTED. This document is the brief.** Nothing in `src/` has been changed for it.
+**BUILT 2026-08-11. All seven tasks, and the definition of done is met but for its last bullet** —
+`spikes/S2.Routing/` is still on disk, deliberately, and the paragraph below says why. The suite is
+**1,060 green**; the graph is in the State Hash, `--roads` prints it, and the golden baseline has been
+re-recorded because two tables joined `World._tables` and both Rulesets changed content.
+
+**Four findings outlive the slice, and the first two are corrections to this brief.**
+
+**Task 1's *Arcs as typed tables* could not be built as written, and the reason is a property of the
+State Hash rather than a preference.** `Rows.Fold` folds the allocator's four scalars —
+`_slotCount`, `_liveCount`, `_freeHead`, `_nextId` — **before** it consults any column's disposition,
+so a wholly-derived table registered in `World._tables` folds its own rebuild history. Two worlds
+identical in every Segment would hash differently because one had rebuilt its adjacency more often
+than the other. The Arcs are therefore a **non-`[Table]` array holder** (`CellResidency`'s precedent),
+which costs the per-field declaration and buys a hash that is a function of the city. Recorded in
+`RoadArcs`'s own docstring, because the next person to reach for `[Table]` here will have the same
+good instinct.
+
+**Task 2's mode mask is saved on the *Arc*, and the spike had it backwards from its own argument.**
+`spikes/S2.Routing/Graph/Modes.cs` argues at length that the mask must be per direction — one-way
+streets are the whole reason — and `RoadGraph.cs` then saves the *Segment's* mask and derives the
+Arc's from it. **The spike never generates a one-way street, so no measurement it ran could have
+noticed.** Settled the other way by
+[`adr/0072`](../docs/adr/0072-the-mode-mask-is-saved-on-the-arc-and-the-segments-is-derived.md), with
+an invariant watching the two agree. *A benchmark cannot refute a claim about a case it never
+constructs* — which is `adr/0043` seen from underneath, and it is why porting reasoning is not the
+same act as porting code.
+
+**Severance is a property of the grid's fineness relative to the barrier, not of the barrier**, and
+the acceptance test found this by failing. Written first against a 512-Tile block with two Arterials
+it reported no Severance at *any* crossing density — correctly: an Arterial destroys the Streets it
+runs over, so on a coarse lattice it destroys a handful of enormous Streets and everybody walks round
+the end of it. **The crossing dial does nothing at all until there is enough Arterial per unit of
+grid, and then it does a great deal.** At 256 Tiles and eight Arterials the largest walkable component
+goes 72 → 289 of 353; at 512, or at two Arterials, it does not move. Both halves are now `§D1` rows.
+
+**A component count over a subgraph counts the *other* mode's nodes as isolated singletons.** The
+severance test's first version found a severed pair in every graph including the fully-crossed one,
+because an Arterial lays its own nodes, those carry no foot Arc, and a node with no foot Arc is
+trivially its own foot component. The pair it kept returning was *an intersection, and a point in the
+middle of a dual carriageway*. Severance is a claim about two places pedestrians **use** being cut
+apart, and that predicate has to be stated rather than inferred from a count — which is why
+`RoadConnectivity` reports `LargestFoot` beside `FootComponents` and why `--roads` prints the caveat.
+
+**Two mis-documented behaviours were found by tests written against prose rather than code**, both
+outside this slice's own surface and both fixed here. `TravelTime.Impassable`'s remarks claimed that
+adding to it *"would overflow, which is the correct failure"*; ambient arithmetic in `Borough.Core` is
+unchecked, so it wrapped to a large **negative** cost that a relaxation step would have preferred to
+every real route — `operator +` now saturates. And `Speed.FromKilometresPerHour`'s exception text put
+the format's ceiling at ~682 km/h when the guard enforces **44,739**; 682 is the loader's *sanity*
+bound, which is a different thing in a different place. **A documented failure mode with no
+implementation is `0012` *Cause 1* with the copy count set to zero.**
+
+**Why the harness is still on disk.** The deletion's closing condition — *the port is done and nothing
+reads the harness* — is met on both halves: nothing in `src/` or `tests/` compiles against
+`spikes/S2.Routing/`, and the only remaining references are two doc-comments citing files by path.
+**⚠ RE-BLOCKED 2026-08-11, on a new gate and not the old one.** Another session is doing further research *inside* `spikes/S2.Routing/`, so the harness is live work rather than a spent artefact. **The 5a gate is discharged and this is a different one**: the closing condition is no longer *the port is done and nothing reads the harness* — both halves of that are met — but **that session finishing with it**. Keep the two apart; a deletion blocked twice for unrelated reasons is exactly the kind of row that gets struck for the wrong one. It is a **29,719-line deletion across 51 tracked C# files** — 92 tracked
+files and 42,914 lines including the 36 `results/` reports. *(The first figure written here, 58 files
+and 29,934 lines, counted generated sources under `obj/`; a deletion is measured in what git tracks.)* `Borough.slnx` still lists the project.
 
 ---
 

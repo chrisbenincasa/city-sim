@@ -114,6 +114,7 @@ public sealed class World
         Households = new HouseholdTable(PerThousand(citizens, 360), Buildings);
         Citizens = new CitizenTable(citizens, Households, Buildings);
         Layers = new MapLayers(rules.Layers);
+        Roads = new RoadGraph(rules.Roads);
 
         // Sized for a city in trouble rather than a healthy one: the Pool is empty when everybody is
         // housed, and the table's job is to absorb a District emptying without reallocating mid-Tick.
@@ -142,7 +143,7 @@ public sealed class World
         _tables = [
             Lots.Rows, Buildings.Rows, Households.Rows, Citizens.Rows, Layers.Cells.Rows,
             Bins.Rows, RuleInstances.Rows, Wheel.Buckets.Rows, UnplacedPool.Rows, Clock.Rows,
-            RulesetTrail.Rows,
+            RulesetTrail.Rows, Roads.Nodes.Rows, Roads.Segments.Rows,
         ];
 
         WorldInvariants.RegisterAll(Invariants);
@@ -179,6 +180,18 @@ public sealed class World
 
     /// <summary>The coarse environment: one integer per Cell per Map Layer.</summary>
     public MapLayers Layers { get; }
+
+    /// <summary>
+    /// The routing abstraction: nodes and Segments, uniform regardless of how a road was drawn.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two of its three structures are registered above and the third is deliberately not.</b> The
+    /// nodes and the Segments are saved entities and fold; the Arcs are wholly derived, and a table
+    /// with no saved column still folds four allocator scalars — including <c>next_id</c>, which
+    /// counts every row ever allocated. Registering them would make the State Hash depend on how many
+    /// times the adjacency had been rebuilt. See <see cref="RoadArcs"/>.
+    /// </remarks>
+    public RoadGraph Roads { get; }
 
     /// <summary>The Bins, and their wait lists.</summary>
     public BinTable Bins { get; }
@@ -279,6 +292,7 @@ public sealed class World
 
         // Every refusal has run by here, so what follows cannot leave the world half-migrated.
         Layers.Adopt(rules.Layers);
+        Roads.Adopt(rules.Roads);
         Rules = rules;
 
         RulesetDegradation cost = migration is null ? default : Migrate(migration, now, key);
@@ -696,6 +710,7 @@ public sealed class World
     public void RebuildDerived()
     {
         Layers.RebuildDerived();
+        Roads.RebuildDerived();
 
         Buildings.OccupantHead.Span.Clear();
         Buildings.OccupantTail.Span.Clear();

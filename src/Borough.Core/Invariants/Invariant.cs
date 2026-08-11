@@ -434,4 +434,45 @@ public enum Invariant
     /// </para>
     /// </remarks>
     BuildingHasRoomForTheHousehold = 30,
+
+    /// <summary>A Segment's two endpoint handles both resolve to live nodes.</summary>
+    /// <remarks>
+    /// <b>The Road Graph's referential integrity, and the one failure that is silent rather than
+    /// loud.</b> <c>RoadGraph.RebuildDerived</c> skips a Segment whose endpoint is dangling rather
+    /// than throwing, because a rebuild runs on the load path and one that threw would take down a
+    /// load instead of a write. The skip is correct and the state that provoked it is not: the
+    /// Segment stays in the table, folds into the State Hash, and is absent from every adjacency —
+    /// a road that exists and that nothing can reach. This is the check that says so.
+    /// </remarks>
+    RoadSegmentEndpointsExist = 31,
+
+    /// <summary>A Segment has a positive length and a positive free-flow speed.</summary>
+    /// <remarks>
+    /// <b>Both are divisors.</b> A traversal cost is length ÷ speed, so a zero speed raises and a
+    /// zero length makes every route through the Segment free — which A* will then prefer to every
+    /// alternative, for ever. The loader refuses a speed below 1 km/h, so reaching this means a
+    /// Ruleset that did not come through it.
+    /// </remarks>
+    RoadSegmentIsTraversable = 32,
+
+    /// <summary>A Segment's derived mask is exactly the union of its two saved direction masks.</summary>
+    /// <remarks>
+    /// <b><c>adr/0072</c>'s consequence, checked rather than assumed.</b> The Arcs own the truth and
+    /// the Segment's mask is a derived <c>OR</c>; a derived column that has silently stopped agreeing
+    /// with its source is the defect the <c>(derived AND rebuilt)</c> declaration exists to make
+    /// impossible to hide, and the only way to see it is to recompute and compare.
+    /// </remarks>
+    SegmentModesAreTheUnionOfItsArcs = 33,
+
+    /// <summary>
+    /// The Arcs partition into the nodes' CSR slices, and each is a direction of the Segment it names.
+    /// </summary>
+    /// <remarks>
+    /// <b>The spike's <c>AssertWellFormed</c>, promoted from a sanity walk to an invariant.</b> A
+    /// generator that quietly emitted a self-looping or mis-grouped adjacency would produce routing
+    /// figures that look entirely fine and mean nothing — which is exactly what happened to S2's first
+    /// capture, where every Arterial left the map within a step and the footprint table stayed
+    /// healthy. Whole-world tier, because it is a walk over every Arc.
+    /// </remarks>
+    ArcsAreDirectionsOfTheirSegments = 34,
 }

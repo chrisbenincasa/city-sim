@@ -575,4 +575,92 @@ public sealed class RunnerTests
 
         Assert.Contains("runs its own populated session", complaint, StringComparison.Ordinal);
     }
+
+    /// <summary>Asking for the Road Graph selects its own mode, not a run and not the report.</summary>
+    [Fact]
+    public void Asking_for_roads_selects_the_road_dump()
+    {
+        Assert.True(Options.TryParse(
+            ["--roads", "--ruleset", "minimal.toml"], out Options options, out _));
+
+        Assert.Equal(Mode.Roads, options.Mode);
+    }
+
+    /// <summary>
+    /// <b>A road network is a Ruleset's content, so a Road dump with no <c>[roads]</c> is refused
+    /// rather than degraded.</b> <c>--zones</c>' refusal exactly, for the same reason.
+    /// </summary>
+    /// <remarks>
+    /// The degraded form is the dangerous one again: an empty graph would read as a broken mechanism
+    /// when what happened is that the file declares no roads. <c>HONEST DEGRADATION</c> in the
+    /// direction where the honest thing is not to degrade at all.
+    /// </remarks>
+    [Fact]
+    public void A_road_dump_with_no_ruleset_is_refused()
+    {
+        Assert.False(Options.TryParse(["--roads"], out _, out string? complaint));
+
+        Assert.Contains("--roads needs --ruleset", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>Three pictures of three different things, each building its own world.</summary>
+    [Fact]
+    public void A_road_dump_and_a_zone_dump_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--roads", "--ruleset", "minimal.toml", "--zones"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("Ask for one", complaint, StringComparison.Ordinal);
+    }
+
+    /// <inheritdoc cref="A_road_dump_and_a_zone_dump_disagree"/>
+    [Fact]
+    public void A_road_dump_and_a_layer_dump_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--roads", "--ruleset", "minimal.toml", "--layer", "pollution"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("Ask for one", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>Stronger than <c>--zones</c>' refusal of a session, and refused for a different reason.</b>
+    /// </summary>
+    /// <remarks>
+    /// A Zone dump runs a session because a sweep is a thing that happens <em>over time</em>; a Road
+    /// dump does not step the world at all, because the graph is laid at world creation and nothing
+    /// yet edits it. So a session flag here is not merely in conflict with the mode — it is inert, and
+    /// silently ignoring it would have the operator believe they had asked for an <em>after</em>
+    /// picture that does not exist. Both a recorded log and a fresh session are covered, because they
+    /// reach the refusal by different routes: <c>--log</c> directly, <c>--ticks</c> through the
+    /// <c>session</c> flag every run-implying option sets.
+    /// </remarks>
+    [Theory]
+    [InlineData("--log", "s.borough")]
+    [InlineData("--ticks", "8")]
+    [InlineData("--seed", "1")]
+    public void A_road_dump_and_the_session_flags_disagree(string flag, string value)
+    {
+        Assert.False(Options.TryParse(
+            ["--roads", "--ruleset", "minimal.toml", flag, value],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("no run to take a picture after", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A flag the usage text does not name is a flag nobody finds — <c>adr/0002</c>, the shell owns
+    /// every string a human reads.
+    /// </summary>
+    [Fact]
+    public void The_usage_text_names_the_road_dump()
+    {
+        Assert.Contains("--roads", Options.Usage, StringComparison.Ordinal);
+        Assert.Contains("Road Graph", Options.Usage, StringComparison.Ordinal);
+    }
 }

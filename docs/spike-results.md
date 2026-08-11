@@ -12,7 +12,7 @@ produced**. A spike that records data and no verdict has not finished.
 | Spike | Question | Status |
 |---|---|---|
 | **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. **K0–K6 recorded below and the verdict reached, all seven on two machines.** Owed: the deleting commit. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
-| **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Owns the pathfinding cluster; *informs* Chunk size (`adr/0040`) | **R0–R8 are all done and R7's tail closed 2026-08-11.** The map survives, the path source is chosen, the cluster is **8**, and R8 closed the congestion loop. Raw captures in `spikes/S2.Routing/results/`. **The one act left is deleting the harness — ⚠ ON HOLD**, because `spikes/S2.Routing/Graph/` is the reference implementation of milestone 5a. [`plans/0010`](../plans/0010-s2-routing.md) |
+| **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Owns the pathfinding cluster; *informs* Chunk size (`adr/0040`) | **R0–R8 are all done and R7's tail closed 2026-08-11.** The map survives, the path source is chosen, the cluster is **8**, and R8 closed the congestion loop. Raw captures in `spikes/S2.Routing/results/`. **The one act left is deleting the harness, and it is ⚠ STILL BLOCKED on its *second* gate.** The 5a gate is **discharged** — the port shipped 2026-08-11 and nothing compiles against the harness — but **another session is now doing further research inside it**, so it is live work. Do not read the first clearance as the second's. [`plans/0010`](../plans/0010-s2-routing.md) |
 | **S1** | Rendering ceiling — 20k Buildings via chunked `MultiMeshInstance3D` | not run |
 | **S3** | UI ceiling — one data panel with a live multi-series graph, and how long it took | not run |
 | **S0a** | The world at target size — 1M Citizens in `Borough.Headless`, footprint and the empty Tick | **done, and it found the runs had never had a city in them.** The tables hold 1M with an order of magnitude spare; **one State Hash costs 2.08 Tick budgets** and the Decide guard costs 4.9. Capture is `powersave` and owes a re-take. Recorded below |
@@ -1664,6 +1664,37 @@ S2 is the project's top risk and the only one argument cannot close. `adr/0020` 
 computation the binding constraint on world size — *"the map-size question is the routing question in
 disguise"* — and until R0 the corpus had never measured any part of it.
 
+### The port landed 2026-08-11, and it corrected the spike twice
+
+**Milestone 5a is built, and `spikes/S2.Routing/Graph/` was its reference implementation as the hold
+said it was.** `Borough.Core.Space` now holds `RoadNodeTable`, `RoadSegmentTable`, `RoadArcs` — the CSR
+adjacency — `RoadConnectivity`, union-find per mode, and `RoadGenerator`; `rulesets/minimal.toml` and
+`minimal-tuned.toml` both carry a `[roads]` table of eleven keys, and `--roads` prints the graph. The
+port is the first time anything the spike wrote has been read by a compiler that also compiles the
+simulation, and **two of the spike's own conclusions did not survive the reading**. Neither is a number.
+
+**The mode mask was on the wrong column, and the spike argues against itself in two files.**
+`Graph/Modes.cs` spends three paragraphs establishing that the mask belongs to the *arc* rather than to
+the Segment, and names the case that decides it: *"a one-way street… carries cars in one direction and
+pedestrians in both."* `Graph/RoadGraph.cs` then declares `SegmentModes` saved and `ArcModes`
+`Derived: true` — the converse of the argument one file over — and `Graph/GraphGenerator.cs` says in its
+own header that **there are no one-way streets**, every Segment's two arcs carrying the same mask.
+[`adr/0072`](adr/0072-the-mode-mask-is-saved-on-the-arc-and-the-segments-is-derived.md) settles it the
+other way and the shipped tables save the Arc's mask. **No measurement S2 ran could have caught this**,
+and that is the transferable part: eight rounds of benchmarking agreed with the wrong column because
+every graph the harness generated was bidirectional, so the two arrangements are the same bits at the
+same count. **A benchmark cannot refute a claim about a case it never constructs** — the sibling of
+`adr/0070` on the measurement side, where the premise is *the harness never showed this going wrong*
+rather than *the simulation does not do this*, and is worth exactly as little.
+
+**`Matrix/Connectivity.cs` is not the port source [`plans/0020`](../plans/0020-the-road-graph.md) named
+it as, and the mistake is a milestone boundary rather than a file.** That plan lists its 263 lines as
+*"the component test `pool` needs"*. It is not: it settles `adr/0020`'s Settlement against
+`CONTEXT.md`'s by computing **weak and strong components of a District travel-time matrix at a swept
+Commute Budget**, which needs a District graph and a Commute Budget and is therefore milestone **5c**
+work. What 5a actually needed out of it was `Find`, `Union` and `CountAndLargest` — **about 20 lines of
+263**, and generic ones. The rest stays owed to the milestone that has a matrix to run it on.
+
 ### The machine, and a capture defect closed rather than declared
 
 > **R7: the definition of *canonical* changed while the spike was running, and the capture named below
@@ -1984,10 +2015,10 @@ claimed to describe* — and this is the fourth, fifth and sixth instance.
 
 **Not decided, and owed.**
 
-- ~~**The cost unit.**~~ **CLOSED 2026-08-11 by [`adr/0071`](adr/0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md), the way the spike asked for** — by the corpus and not by a benchmark. Travel time is Q16.16 Ticks, speed is Q16.16 Tiles/Tick, each its own type, and **`05 §121` is amended in place**: Q16.16 is a *scale*, not a meaning. The spike's own restraint is what made the finding reachable — declining to settle it here is why anybody later noticed that `05 §121` and `02 §2` had been contradicting each other all along. *Original entry:* R0 routes in **Q16.16 Ticks**, and it had to: a Tick is ~10.5 in-world seconds and
+- ~~**The cost unit.**~~ **CLOSED 2026-08-11 by [`adr/0071`](adr/0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md), the way the spike asked for** — by the corpus and not by a benchmark. Travel time is Q16.16 Ticks, speed is Q16.16 Tiles/Tick, each its own type, and **`05 §3` is amended in place**: Q16.16 is a *scale*, not a meaning. The spike's own restraint is what made the finding reachable — declining to settle it here is why anybody later noticed that `05 §3` and `02 §2` had been contradicting each other all along. *Original entry:* R0 routes in **Q16.16 Ticks**, and it had to: a Tick is ~10.5 in-world seconds and
   a vehicle crosses about one Segment per Tick, so a cost accumulated in whole Ticks gives nearly every
   Segment a cost of 1 and A\* silently minimises **hop count** rather than time — while appearing to
-  route on time. But `05 §121` says *"Q16.16 is for sub-Tile positions and nothing else"*, and sub-Tick
+  route on time. But `05 §3` says *"Q16.16 is for sub-Tile positions and nothing else"*, and sub-Tick
   time is not a sub-Tile position. The alternative spelling — an integer count of a fixed fraction of a
   Tick — measures identically, so nothing here rests on it. **What is owed is whether the core acquires
   a second Q16.16 meaning, and that is the corpus's decision rather than a benchmark's.**
