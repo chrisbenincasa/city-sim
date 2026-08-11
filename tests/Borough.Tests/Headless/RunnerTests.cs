@@ -638,11 +638,16 @@ public sealed class RunnerTests
     /// picture that does not exist. Both a recorded log and a fresh session are covered, because they
     /// reach the refusal by different routes: <c>--log</c> directly, <c>--ticks</c> through the
     /// <c>session</c> flag every run-implying option sets.
+    /// <para>
+    /// <b>⚠ <c>--seed</c> was a row here until 2026-08-11 and is now the exception</b>, with a test of
+    /// its own below. The reasoning above does not reach it: a seed is not a claim about a run, it is
+    /// the world key the Arterial polyline is drawn from, so it is the one session flag a picture of
+    /// world creation can honour.
+    /// </para>
     /// </remarks>
     [Theory]
     [InlineData("--log", "s.borough")]
     [InlineData("--ticks", "8")]
-    [InlineData("--seed", "1")]
     public void A_road_dump_and_the_session_flags_disagree(string flag, string value)
     {
         Assert.False(Options.TryParse(
@@ -651,6 +656,41 @@ public sealed class RunnerTests
             out string? complaint));
 
         Assert.Contains("no run to take a picture after", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>A Road dump accepts a seed, and refusing one made every Severance number in the corpus a
+    /// single draw.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The Arterial polyline is drawn from the world key, so Severance — the milestone's flagship
+    /// emergent behaviour — is a function of the seed. With the seed unreachable through the one
+    /// instrument that reports it, every figure recorded about it was one sample described as though
+    /// it were a property of the <c>[roads]</c> table. It is not a small effect: the same Ruleset
+    /// strands 191 walkable nodes at seed 0 and 127 at seed 7, and at a nearby configuration it ranges
+    /// from 0 to 68.
+    /// </para>
+    /// <para>
+    /// <b>The general shape is worth more than the flag.</b> The refusal was correct about every other
+    /// session flag and was extended to this one by category — <i>a seed implies a fresh session</i> —
+    /// rather than by asking what the mode actually reads. <b>A generator whose output cannot be varied
+    /// cannot be characterised</b>, and the guard that prevented varying it was written to prevent
+    /// something else.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_road_dump_accepts_a_seed_because_the_graph_is_drawn_from_the_world_key()
+    {
+        Assert.True(
+            Options.TryParse(
+                ["--roads", "--ruleset", "minimal.toml", "--seed", "7"],
+                out Options? options,
+                out string? complaint),
+            complaint);
+
+        Assert.Equal(Mode.Roads, options!.Mode);
+        Assert.Equal(7UL, options.Seed);
     }
 
     /// <summary>

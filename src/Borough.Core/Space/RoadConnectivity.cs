@@ -17,9 +17,17 @@ namespace Borough.Core.Space;
 /// <c>CONTEXT.md</c> → Severance: <i>"a city can be perfectly well connected for cars and broken for
 /// people, and the game can say so."</i> A single component label would answer for whichever mode
 /// happened to be unioned and mislead silently about the other — and the mode it would mislead about
-/// is the one the design calls its flagship emergent behaviour. When
-/// <see cref="FootComponents"/> exceeds <see cref="CarComponents"/>, an Arterial has cut a
-/// neighbourhood off, and that inequality is the measurement.
+/// is the one the design calls its flagship emergent behaviour.
+/// </para>
+/// <para>
+/// <b>⚠ The measurement is <see cref="StrandedOnFoot"/>, and this paragraph originally named
+/// <c>FootComponents &gt; CarComponents</c> instead, which is wrong.</b> A component count over a
+/// subgraph counts every node the mode cannot use as an isolated singleton, so it rises with the
+/// size of the <em>other</em> mode's network rather than with Severance. <c>RoadSeveranceTests</c>
+/// found this on the day it was written and filtered it out with a <c>Walkable</c> predicate — and
+/// the filter never reached the runner, so <c>--roads</c> printed a <b>SEVERANCE</b> banner over the
+/// shipped Ruleset, which severs nothing, for as long as the instrument existed. <b>A predicate
+/// discovered in a test and left there is a correction with a blast radius of one call site.</b>
 /// </para>
 /// <para>
 /// <b>Union-find, so this is <em>weak</em> connectivity, and the gap is recorded rather than
@@ -46,14 +54,24 @@ public sealed class RoadConnectivity
     private int[] _parent = [];
     private int[] _label = [];
     private int[] _size = [];
+    private bool[] _touched = [];
 
     /// <summary>Components of the <see cref="TravelMode.Car"/> subgraph. Isolated nodes count.</summary>
     public int CarComponents { get; private set; }
 
     /// <summary>
-    /// Components of the <see cref="TravelMode.Foot"/> subgraph. <b>Greater than
-    /// <see cref="CarComponents"/> exactly when Severance has happened.</b>
+    /// Components of the <see cref="TravelMode.Foot"/> subgraph. Isolated nodes count, and here that
+    /// is most of them.
     /// </summary>
+    /// <remarks>
+    /// <b>⚠ This said "greater than <see cref="CarComponents"/> exactly when Severance has happened",
+    /// and it is false in both directions.</b> It is not sufficient: at the shipped <c>[roads]</c>
+    /// this reads <b>66</b> against the car network's <b>8</b> over a city whose pedestrian network
+    /// is in one piece, because 65 of the 66 are Arterial junctions nobody can walk to. It is not
+    /// necessary either: severing one node from a graph whose car network is already in eight pieces
+    /// moves nothing. <b>Use <see cref="StrandedOnFoot"/></b>, which is a count of places rather than
+    /// of labels.
+    /// </remarks>
     public int FootComponents { get; private set; }
 
     /// <summary>Nodes in the largest <see cref="TravelMode.Car"/> component.</summary>
@@ -71,14 +89,55 @@ public sealed class RoadConnectivity
     /// </remarks>
     public int LargestFoot { get; private set; }
 
+    /// <summary>Live nodes an admitting Segment touches — somewhere a Vehicle can actually be.</summary>
+    public int DrivableNodes { get; private set; }
+
+    /// <summary>
+    /// Live nodes at least one <see cref="TravelMode.Foot"/> Segment touches — <b>somewhere a
+    /// pedestrian can actually stand</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The denominator <see cref="FootComponents"/> needs, and its absence made the runner report
+    /// Severance where there is none.</b> An Arterial lays its own junction nodes; those carry no
+    /// foot Segment, so each is trivially its own foot component. At the shipped <c>[roads]</c> that
+    /// is <b>~65 motorway junctions</b> — the count rises with the Arterial count and never with
+    /// Severance — so <c>FootComponents &gt; CarComponents</c> is true of a city with a perfectly
+    /// intact pedestrian network, and <c>--roads</c> announced exactly that for a slice.
+    /// </remarks>
+    public int WalkableNodes { get; private set; }
+
+    /// <summary>
+    /// Walkable nodes cut off from the largest pedestrian piece. <b>This is Severance, as a number.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Zero at both shipped Rulesets, and that is a finding rather than a reassurance.</b> A sweep
+    /// of 240 <c>[roads]</c> configurations against an Arterial-free control found the shipped
+    /// 32-Tile lattice severed by nothing at any <c>foot_crossing_every</c> in <c>1..16</c> and at any
+    /// Arterial count up to 32 — see <c>plans/0020</c>.
+    /// </para>
+    /// <para>
+    /// <b>It measures disconnection and not detour</b>, which is the smaller half of what Severance
+    /// means. A pedestrian who must walk four hundred metres to the nearest crossing is severed in
+    /// every sense a player would recognise and is fully connected here. That half needs a shortest
+    /// path, and nothing in <c>Borough.Core</c> searches the graph yet.
+    /// </para>
+    /// </remarks>
+    public int StrandedOnFoot => WalkableNodes - LargestFoot;
+
+    /// <summary>Recomputes both labellings from the Segments.</summary>
     /// <summary>Recomputes both labellings from the Segments.</summary>
     internal void Rebuild(RoadNodeTable nodes, RoadSegmentTable segments)
     {
-        CarComponents = Label(nodes, segments, TravelMode.Car, nodes.CarComponent, out int car);
-        FootComponents = Label(nodes, segments, TravelMode.Foot, nodes.FootComponent, out int foot);
+        CarComponents = Label(
+            nodes, segments, TravelMode.Car, nodes.CarComponent, out int car, out int drivable);
+        FootComponents = Label(
+            nodes, segments, TravelMode.Foot, nodes.FootComponent, out int foot, out int walkable);
 
         LargestCar = car;
         LargestFoot = foot;
+        DrivableNodes = drivable;
+        WalkableNodes = walkable;
     }
 
     private int Label(
@@ -86,7 +145,8 @@ public sealed class RoadConnectivity
         RoadSegmentTable segments,
         TravelMode mode,
         Tables.Column<int> into,
-        out int largest)
+        out int largest,
+        out int usable)
     {
         int slots = nodes.Rows.SlotCount;
 
@@ -95,12 +155,14 @@ public sealed class RoadConnectivity
             _parent = new int[slots];
             _label = new int[slots];
             _size = new int[slots];
+            _touched = new bool[slots];
         }
 
         for (int slot = 0; slot < slots; slot++)
         {
             _parent[slot] = slot;
             _label[slot] = Unlabelled;
+            _touched[slot] = false;
         }
 
         for (int segment = 0; segment < segments.Rows.SlotCount; segment++)
@@ -123,6 +185,9 @@ public sealed class RoadConnectivity
             if (nodes.Rows.TryResolve(segments.NodeA[segment], out int a)
                 && nodes.Rows.TryResolve(segments.NodeB[segment], out int b))
             {
+                _touched[a] = true;
+                _touched[b] = true;
+
                 Union(a, b);
             }
         }
@@ -156,6 +221,16 @@ public sealed class RoadConnectivity
             if (_size[component] > largest)
             {
                 largest = _size[component];
+            }
+        }
+
+        usable = 0;
+
+        for (int slot = 0; slot < slots; slot++)
+        {
+            if (nodes.Rows.IsLive(slot) && _touched[slot])
+            {
+                usable++;
             }
         }
 

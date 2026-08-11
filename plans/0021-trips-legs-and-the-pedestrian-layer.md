@@ -476,9 +476,29 @@ as an `O(1)` write-site invariant, and the Budget as `[trips]` Ruleset data — 
 **7. `--trips`, and the Severance demonstration.** `--zones` and `--roads` set the precedent, including
 **refusing rather than degrading** when the Ruleset declares nothing. The picture worth printing is not a
 Trip count: it is a city where a neighbourhood cannot reach its shops on foot, and the same city with a
-crossing added. 5a's acceptance test already found the shape this must respect — **Severance is a
+crossing added. ~~5a's acceptance test already found the shape this must respect — **Severance is a
 property of the grid's fineness relative to the barrier**, and at 512-Tile blocks or two Arterials the
-crossing dial does nothing at all.
+crossing dial does nothing at all.~~
+
+> **⚠ CORRECTED 2026-08-11, and this task got a great deal easier and one degree harder.** The struck
+> sentence has the direction backwards; the sweep is in [`0020`](0020-the-road-graph.md)'s amendment.
+> Three things this task can now assume rather than discover:
+>
+> **The demonstration Ruleset exists** — `rulesets/severance.toml`, characterised over eight seeds, where
+> the shipped `minimal.toml` strands **zero** walkable nodes on seven of eight. This task does **not**
+> need to choose `[roads]` values, which §D1 forbids it from doing; it needs to load a file.
+>
+> **The `--roads` half of the picture is already correct.** `RoadConnectivity.StrandedOnFoot` is the
+> measurement and the runner prints it, so `--trips` is not the first honest Severance instrument — it is
+> the *second*, and it should agree with the first or say why.
+>
+> **The harder degree: `--trips` is the first thing that can measure the half nobody can measure yet.**
+> Everything shipped measures **disconnection** — *can a pedestrian get there at all*. The half that
+> decides whether a Building declines is **detour** — *how much further*, which is a Trip cost and needs
+> the search this slice builds. So the picture worth printing is a **cost distribution over a Ruleset
+> pair**, not a component count: the same city with and without crossings, and the difference in what a
+> walk costs. That is also the only thing that can ratify the Commute Budget, which is a percentile of
+> exactly that distribution.
 
 **8. Invariants, hash and the long run.** 100,000 Ticks, no collection and no magnitude trending
 (`adr/0006`), and — the standing warning from slice 10 task 11 — **assert that the branches under test

@@ -221,6 +221,144 @@ public sealed class RoadSeveranceTests
             + "was severed and the delete branch is uncovered.");
     }
 
+    /// <summary>
+    /// <b>The shipped Ruleset severs nothing, and <c>rulesets/severance.toml</c> exists because of
+    /// it.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the guard whose absence let <c>--roads</c> announce Severance over a city that has
+    /// none for the whole of slice 5a.</b> Every severance test above runs on
+    /// <see cref="RoadFixtures.Severing"/>, a fixture chosen to sever; nothing asserted anything
+    /// about the file the game actually ships, so the one configuration a reader would run first was
+    /// the one configuration under test by nothing. <b>A mechanism proven on a fixture built to
+    /// exhibit it is not thereby proven on the content.</b>
+    /// </para>
+    /// <para>
+    /// <b>The assertion is <em>not zero</em> but <em>negligible</em>, and the two nodes are real.</b>
+    /// A 240-configuration sweep against an Arterial-free control (<c>plans/0020</c>) puts the shipped
+    /// lattice at 0.0% at every <c>foot_crossing_every</c> in <c>1..16</c> and every Arterial count up
+    /// to 32; the residue here is two intersections an Arterial happens to strip completely. Asserting
+    /// exact zero would make this test a hostage to the Arterial polyline's dice.
+    /// </para>
+    /// </remarks>
+    /// <summary>
+    /// <b>The shipped Ruleset severs nothing, <c>rulesets/severance.toml</c> does, and both claims are
+    /// swept over seeds because neither is a property of the file alone.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the guard whose absence let <c>--roads</c> announce Severance over a city that has
+    /// none, for the whole of slice 5a.</b> Every other test in this file runs on
+    /// <see cref="RoadFixtures.Severing"/>, a fixture chosen to sever; nothing asserted anything about
+    /// the file the game actually ships, so the one configuration a reader would run first was the one
+    /// configuration under test by nothing. <b>A mechanism proven on a fixture built to exhibit it is
+    /// not thereby proven on the content.</b>
+    /// </para>
+    /// <para>
+    /// <b>Swept over seeds, and that is the load-bearing half.</b> The Arterial polyline is drawn from
+    /// the world key, so Severance is a function of the seed and not of the Ruleset — and until
+    /// 2026-08-11 <c>--roads</c> refused <c>--seed</c>, so every Severance figure in this corpus was
+    /// one draw reported as a property of the road table. The first draft of this test asserted a
+    /// single seed and passed or failed depending which: at eight Arterials the demonstration ranged
+    /// from 0 to 68 stranded nodes across twelve seeds. <b>A generator whose output cannot be varied
+    /// cannot be characterised, and a test on one draw of it is a coin toss with a stack trace.</b>
+    /// </para>
+    /// <para>
+    /// The shipped bound is <em>a tenth of a percent</em> rather than zero: measured, it strands
+    /// nothing on seven of these eight seeds and two nodes on the eighth, where an Arterial happens to
+    /// strip an intersection completely. Exact zero would be a hostage to the polyline's dice in the
+    /// other direction.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_shipped_ruleset_severs_nothing_and_the_demonstration_ruleset_does()
+    {
+        Ruleset shipped = Load("minimal.toml");
+        Ruleset demonstration = Load("severance.toml");
+
+        for (ulong seed = 0; seed < SeedsSwept; seed++)
+        {
+            RoadConnectivity intact = Laid(shipped.Roads, seed).Connectivity;
+            RoadConnectivity severed = Laid(demonstration.Roads, seed).Connectivity;
+
+            Assert.True(
+                intact.StrandedOnFoot * 1000 < intact.WalkableNodes,
+                $"at seed {seed} the shipped Ruleset strands {intact.StrandedOnFoot} of "
+                + $"{intact.WalkableNodes} walkable nodes, which is over a tenth of a percent. Either "
+                + "the generator changed or [roads] was retuned -- and if it was retuned deliberately, "
+                + "rulesets/severance.toml, plans/0002 §D1 and plans/0020 all say things that are now "
+                + "false.");
+
+            Assert.True(
+                severed.StrandedOnFoot * 10 > severed.WalkableNodes,
+                $"at seed {seed} rulesets/severance.toml strands {severed.StrandedOnFoot} of "
+                + $"{severed.WalkableNodes} walkable nodes, which is under a tenth. That file exists "
+                + "for one reason -- to be the rung where Severance is visible on every seed -- so if "
+                + "this fails the demonstration has stopped demonstrating and 5b has nothing to show.");
+
+            // Cars fine, pedestrians cut off. Without this a generator that had simply stopped laying
+            // Streets would satisfy both bounds above and read as a triumph.
+            Assert.True(
+                severed.LargestCar * 10 > severed.DrivableNodes * 9,
+                $"at seed {seed} the demonstration Ruleset's car network is itself in pieces "
+                + $"({severed.LargestCar} of {severed.DrivableNodes} drivable nodes), so it shows a "
+                + "broken city rather than a city broken for people.");
+        }
+    }
+
+    /// <summary>
+    /// Seeds each claim above is swept over. Eight, because the effect it characterises is a draw.
+    /// </summary>
+    private const ulong SeedsSwept = 8;
+
+    /// <summary>
+    /// <b>The component count is not the measurement, and at the shipped Ruleset it is not even
+    /// close.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>RoadConnectivity</c>'s remarks named <c>FootComponents &gt; CarComponents</c> as the
+    /// measurement, and <c>--roads</c> implemented it. This is that claim, as a test, failing —
+    /// which is the honest place for a retired predicate: kept in the suite watching itself be
+    /// wrong, on <c>LayerFieldsTests</c>' precedent for the in-place convolution.
+    /// </remarks>
+    [Fact]
+    public void The_retired_component_count_predicate_fires_on_a_city_that_severs_nothing()
+    {
+        RoadGraph shipped = Laid(Load("minimal.toml").Roads, seed: 0);
+
+        Assert.True(
+            shipped.Connectivity.FootComponents > shipped.Connectivity.CarComponents,
+            "the retired predicate no longer fires here, so this test has stopped recording why it "
+            + "was retired. Delete it or re-derive the example.");
+
+        Assert.True(
+            shipped.Connectivity.StrandedOnFoot * 1000 < shipped.Connectivity.WalkableNodes,
+            "...and the city it fires on is severed after all, which would make the predicate right.");
+    }
+
+    /// <summary>
+    /// Loads a shipped Ruleset by file name, from the copy the test project takes at build time.
+    /// </summary>
+    /// <summary>
+    /// Loads a shipped Ruleset by file name, from the copy the test project takes at build time.
+    /// </summary>
+    /// <remarks>
+    /// <b>The real file rather than a fixture reproducing it</b>, which is the whole point of the two
+    /// tests above: a fixture that agreed with the shipped <c>[roads]</c> would be a second copy of it
+    /// and would drift (<c>plans/0012</c> <i>Cause 1</i>).
+    /// </remarks>
+    private static Ruleset Load(string file)
+    {
+        string path = Path.Combine(AppContext.BaseDirectory, "Rulesets", file);
+        Borough.Formats.RulesetLoadResult result = Borough.Formats.RulesetLoader.Load(path);
+
+        return result.Ruleset
+            ?? throw new InvalidOperationException(
+                $"the shipped Ruleset {file} was refused, so this test cannot run:"
+                + $"\n{result.Describe()}");
+    }
+
     // --- The walk -----------------------------------------------------------------------------
 
     /// <summary>
@@ -369,11 +507,11 @@ public sealed class RoadSeveranceTests
         return false;
     }
 
-    private static RoadGraph Laid(RoadRuleset roads)
+    private static RoadGraph Laid(RoadRuleset roads, ulong seed = 0x5E_5E_5E)
     {
         World world = new(citizens: 100, RoadFixtures.With(roads));
 
-        SyntheticCity.PopulateInto(world, WorldKey.FromSeed(0x5E_5E_5E), Ticks.Zero);
+        SyntheticCity.PopulateInto(world, WorldKey.FromSeed(seed), Ticks.Zero);
 
         return world.Roads;
     }

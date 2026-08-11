@@ -591,6 +591,31 @@ file runs in surplus — it has no second producer and no sink — which is a di
       least as large as any producer's headroom deficit*. Its absence is why `minimal-tuned.toml` broke the
       headroom side the day it was written.
 
+**⚠ A second item joined this entry on 2026-08-11, and it shares the cause rather than merely the cost.**
+Both shipped Rulesets also say this, in the `[roads]` section:
+
+> *`foot_crossing_every` IS SEVERANCE'S DIAL AND IT IS THE INTERESTING NUMBER IN THIS SECTION. … At 0 there
+> are no crossings and the pedestrian network is cut in two while the car network is untouched … It is the
+> one number here whose effect a test asserts in both directions.*
+
+**Three clauses, and two are false at the values the same file sets.** At the shipped 32-Tile lattice the
+dial strands **0.0%** of walkable nodes at every value in `1..16`, and at *never* it reaches 2.0% — which
+is not *cut in two*. `foot_paths_per_thousand_blocks`, four lines above it and described as nothing in
+particular, moves the same case from 2.0% to **43.6%** and is therefore the interesting number in the
+section. The third clause was true and is now truer: a test does assert it in both directions, over eight
+seeds, on `rulesets/severance.toml` — which exists **because** this claim was wrong.
+
+- [ ] Rewrite the `foot_crossing_every` paragraph in both files: the dial is a **ratio** and what
+      reconnects a city is an **absolute count of crossings**, so its effect is a property of
+      `block_tiles` and `arterial_count` and not of itself. Name `foot_paths_per_thousand_blocks` as the
+      co-dial. Point at `rulesets/severance.toml` for the rung where it bites.
+
+**Two items now wait on one re-record, and that is an argument for paying rather than a coincidence.** The
+entry above declines to bundle *unrelated causes* behind one hash move. These two are not unrelated: the
+cause is identical — **a Ruleset comment is hashed content** — so one commit whose stated purpose is
+*"correct two false paragraphs in the shipped Rulesets"* has exactly one cause behind its hash move. The
+ledger's rule bites on mixing a correction with a *mechanism* change, not on batching corrections.
+
 **Why it is not struck in the commit that found it, which is the interesting half.** A Ruleset comment is
 **hashed content** — `RulesetFile.HashOfContent` normalises line endings *and nothing else*, and says so in
 its own remarks: *"whitespace, key order and comments are content."* So editing either header moves both

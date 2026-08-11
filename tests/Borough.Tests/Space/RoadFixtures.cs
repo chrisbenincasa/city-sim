@@ -80,6 +80,26 @@ internal static class RoadFixtures
     /// largest walkable piece goes from 72 nodes to 289 of 353 when the crossings come back; at 512
     /// Tiles, or at two Arterials, it does not move at all.
     /// </para>
+    /// <para>
+    /// <b>⚠ AMENDED 2026-08-11. The two paragraphs above are right about this fixture and wrong about
+    /// the direction, and the sentence that misleads is <i>"on a fine grid it destroys a long
+    /// contiguous run of them and behaves like a wall".</i></b> It does not. A sweep of 240
+    /// configurations found severance <b>monotone increasing in block size</b> at fixed Arterial
+    /// count — 0.0% at 32 Tiles, 58.0% at 512, dial held at 4 — so the <em>fine</em> grid is the safe
+    /// one and the shipped 32-Tile lattice severs nothing at any dial value in <c>1..16</c>. The
+    /// mechanism: the key states a <b>ratio</b> and what reconnects a city is an <b>absolute count</b>
+    /// of crossings kept, which falls 306 → 16 across that same range because a finer lattice hands an
+    /// Arterial more Streets to sever. The conclusion here came from two observations differing in two
+    /// variables — 512-with-two against 256-with-eight — and <b>attributed the difference to the wrong
+    /// one of them</b>. This fixture's own values are unaffected; only the explanation was wrong.
+    /// </para>
+    /// <para>
+    /// <b>And every number in this remark is one draw of the Arterial polyline.</b> The seed is the
+    /// world key, and at eight Arterials on this lattice twelve seeds range from 0.0% to 23.5% severed
+    /// with four under 1% — so <c>Severing</c> is a fixture that works at <see cref="Laid"/>'s seed
+    /// rather than a configuration that severs. <c>rulesets/severance.toml</c> is the characterised
+    /// one: sixteen Arterials, chosen so its floor across seeds is 32.3%.
+    /// </para>
     /// </remarks>
     internal static RoadRuleset Severing(int crossingEvery) =>
         Roads(blockTiles: 256, arterials: 8, junctionTiles: 512, crossingEvery, footPaths: 0);

@@ -216,6 +216,11 @@ internal sealed class Options
         bool force = false;
         bool census = false;
         bool session = false;
+
+        // Tracked apart from `session` for one reason: a Road dump is laid at world creation from the
+        // world key, so a seed is the one session flag that means something to it. See the refusal
+        // below, and `RoadDump`'s remarks on why varying it matters.
+        bool seeded = false;
         bool citizensGiven = false;
         bool csv = false;
         bool decideGuard = true;
@@ -328,7 +333,7 @@ internal sealed class Options
                         return false;
                     }
 
-                    session = true;
+                    seeded = true;
                     break;
 
                 case "--citizens":
@@ -386,7 +391,7 @@ internal sealed class Options
             return false;
         }
 
-        if (dump is not null && session)
+        if (dump is not null && (session || seeded))
         {
             complaint = "--layer and the session flags disagree: a Layer dump builds its own world "
                       + "with sources in it, because no session can place a source until Rules exist.";
@@ -475,9 +480,20 @@ internal sealed class Options
         {
             complaint = "--roads and the session flags disagree: the Road Graph is laid at world "
                       + "creation and nothing edits it yet, so there is no run to take a picture "
-                      + "after. Drop the session flags, or ask for --zones instead.";
+                      + "after. Drop the session flags, or ask for --zones instead. (--seed is the "
+                      + "exception and is accepted: see below.)";
             return false;
         }
+
+        // --seed IS accepted with --roads, and the refusal above deliberately does not catch it.
+        //
+        // It used to. The Arterial polyline is drawn from the world key, so the whole of Severance is
+        // a function of the seed -- and with the seed unreachable, every Severance number in this
+        // corpus was ONE DRAW of it, described as though it were a property of the [roads] table.
+        // The 2026-08-11 sweep found the same Ruleset stranding 46 of 285 walkable nodes at seed 0
+        // and 4 of 289 at another, which is the difference between a demonstration and a rounding
+        // error. A generator whose output cannot be varied cannot be characterised.
+        session = session || seeded;
 
         options = new Options
         {

@@ -48,6 +48,75 @@ the end of it. **The crossing dial does nothing at all until there is enough Art
 grid, and then it does a great deal.** At 256 Tiles and eight Arterials the largest walkable component
 goes 72 → 289 of 353; at 512, or at two Arterials, it does not move. Both halves are now `§D1` rows.
 
+> ### ⚠ AMENDED 2026-08-11 — the sentence above is right and the inference drawn from it is backwards
+>
+> **The conclusion `§D1` took from this — *"the shipped 32/8 sits well inside the regime where the
+> dial works"* — is false, and the shipped Ruleset severs nothing at all.** A sweep of **240**
+> `[roads]` configurations, each normalised against an Arterial-free control of the same lattice
+> (`--roads`, 2026-08-11), reads:
+>
+> | block / Arterials | crs=1 | crs=2 | crs=4 | crs=8 | crs=16 | *never* |
+> |---|---|---|---|---|---|---|
+> | **32 / 8** — **shipped** | 0.0% | 0.0% | **0.0%** | 0.0% | 0.1% | 2.0% |
+> | 32 / 32 | 0.0% | 0.0% | 0.2% | 0.7% | 2.7% | 78.1% |
+> | 128 / 8 | 0.0% | 0.0% | 0.1% | 0.4% | 0.5% | 35.3% |
+> | 256 / 8 | 0.0% | 0.0% | 0.7% | 17.3% | 67.8% | 75.1% |
+> | 512 / 8 | 0.0% | 0.0% | 46.9% | 61.7% | 80.2% | 81.5% |
+>
+> **Severance is monotone *increasing* in block size at fixed Arterial count**, and the two
+> observations this brief generalised from — *512 with two Arterials severs nothing, 256 with eight
+> severs a lot* — **differ in two variables**. Attributing the difference to Arterial-per-unit-grid
+> and concluding that finer is safer reads the confound in the wrong direction. ***Two observations
+> differing in two variables support no claim about either.***
+>
+> **The mechanism is now derived rather than observed, which is what makes the direction predictable.**
+> `foot_crossing_every` states a **ratio** and what reconnects a city is an **absolute count**. An
+> Arterial severs one Street per block it crosses, so halving the block size doubles the Streets it
+> severs and the same ratio leaves twice as many crossings standing. Measured, at eight Arterials and
+> a dial of 4:
+>
+> | block size | 32 | 64 | 128 | 256 | 512 |
+> |---|---|---|---|---|---|
+> | crossings kept | 306 | 150 | 73 | 35 | **16** |
+> | walkable nodes cut off | 0.0% | 0.0% | 0.1% | 0.7% | **58.0%** |
+>
+> Severance appears at **16 crossings and not at 35**, on both axes, which is why the Arterial count
+> and the block size are the same dial seen twice.
+>
+> **Three consequences, and the last is the largest.**
+>
+> **`--roads` announced Severance over a city that has none, for the whole of the slice.** Its verdict
+> was `FootComponents > CarComponents`, and the shipped world reads **66 against 8** because an
+> Arterial lays its own junction nodes, those carry no foot Segment, and a node with no foot Segment
+> is trivially its own foot component. **65 of the 66 are motorway junctions.** `RoadSeveranceTests`
+> found this on day one and filtered it out with a `Walkable` predicate — and **the filter never left
+> the test file**, so the runner kept the bug the suite had already diagnosed. *A predicate discovered
+> in a test and left there is a correction with a blast radius of one call site.*
+> `RoadConnectivity.StrandedOnFoot` is now the measurement and `--roads` prints it.
+>
+> **`foot_paths_per_thousand_blocks` is a second Severance dial and nothing named it as one.** At the
+> shipped lattice with crossings set to *never*, cut-throughs at 40 give **2.0%** and at 0 give
+> **43.6%** — a 22× difference, on the axis `CLAUDE.md` and `minimal.toml` both describe as though
+> `foot_crossing_every` were the only lever.
+>
+> **⚠ Every Severance figure in this corpus, the tables above included, was a single draw — because
+> `--roads` refused `--seed`.** The Arterial polyline comes from the world key, so Severance is a
+> function of the seed. It is not a small effect: at 256 Tiles and *eight* Arterials with the dial at
+> 8, twelve seeds range from **0.0% to 23.5%**, and **four of them are under 1%**. `--roads` now
+> accepts `--seed`; the tables above are still one draw per cell and their marginal rows should be
+> read as noise. Only `rulesets/severance.toml`'s own rows are characterised over seeds. ***A
+> generator whose output cannot be varied cannot be characterised***, and the guard that stopped it
+> being varied was written to refuse something else — a seed reached the refusal by category, as *a
+> flag that implies a fresh session*, rather than by anyone asking what a Road dump reads.
+>
+> **What the slice owes as a result.** `rulesets/severance.toml` is the demonstration rung — 256-Tile
+> blocks, 16 Arterials, a dial of 16 — chosen because its **floor across seeds is 32.3%** where eight
+> Arterials would have been a coin toss. `RoadSeveranceTests` asserts both files over eight seeds.
+> **And all of it measures *disconnection*, which is the smaller half**: a pedestrian who must walk
+> four hundred metres to the nearest crossing is severed in every sense a player would recognise and
+> is perfectly connected here. That half needs a shortest path over the foot subgraph, and **nothing
+> in `Borough.Core` searches the graph yet**, which is milestone 5b's first unowned decision.
+
 **A component count over a subgraph counts the *other* mode's nodes as isolated singletons.** The
 severance test's first version found a severed pair in every graph including the fully-crossed one,
 because an Arterial lays its own nodes, those carry no foot Arc, and a node with no foot Arc is

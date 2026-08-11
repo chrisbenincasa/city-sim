@@ -98,6 +98,15 @@ internal static class RoadDump
             + "components is a city in eight pieces or a city in one piece with seven stranded "
             + "corners, and those are opposite diagnoses.");
         output.WriteLine();
+        output.WriteLine(
+            $"Walkable nodes (a foot Segment touches them): {graph.Connectivity.WalkableNodes} of "
+            + $"{live}. The rest are Arterial junctions, which is why the foot component count above "
+            + "is roughly the number of Arterial junctions and moves with the Arterial count rather "
+            + "than with Severance.");
+        output.WriteLine(
+            $"Cut off from the largest pedestrian piece: {graph.Connectivity.StrandedOnFoot} "
+            + "walkable node(s). THIS is Severance.");
+        output.WriteLine();
         output.WriteLine(Severance(graph));
 
         if (options.Csv)
@@ -111,24 +120,67 @@ internal static class RoadDump
     }
 
     /// <summary>The reading, in a sentence, so the numbers above are not left to be interpreted.</summary>
+    /// <summary>The reading, in a sentence, so the numbers above are not left to be interpreted.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>⚠ This compared component <em>counts</em> until 2026-08-11, and it therefore announced
+    /// Severance over the shipped Ruleset, which severs nothing.</b> The count includes every
+    /// Arterial junction as its own foot component — 65 of the shipped world's 66 — so the banner
+    /// fired on a number that rises with the Arterial count and never with Severance. The type's own
+    /// caveat, printed two lines above, says the count alone cannot be read, and then it read it.
+    /// </para>
+    /// <para>
+    /// <b>No threshold, deliberately.</b> A share below which severance "does not count" would be a
+    /// hash-free number nobody ratified (<c>adr/0052</c>'s spirit on a diagnostic), and the honest
+    /// alternative is to print the count inside the sentence and let a reader see that two nodes is
+    /// two nodes.
+    /// </para>
+    /// </remarks>
     private static string Severance(RoadGraph graph)
     {
-        int car = graph.Connectivity.CarComponents;
-        int foot = graph.Connectivity.FootComponents;
+        int stranded = graph.Connectivity.StrandedOnFoot;
+        int walkable = graph.Connectivity.WalkableNodes;
 
-        if (foot > car)
+        if (stranded > 0)
         {
-            return $"SEVERANCE: the pedestrian network is in {foot} pieces where the road network is "
-                 + $"in {car}. Somewhere an Arterial has cut a neighbourhood off from the shops that "
-                 + "served it, and nobody deleted a pedestrian route — the mode mask simply never "
-                 + "granted one. Raise foot_crossing_every to see this get worse, or lower it to 1 "
-                 + "to see it go away.";
+            return $"SEVERANCE: {stranded} of {walkable} walkable nodes are cut off from the largest "
+                 + "pedestrian piece, and the car network reaches them. Nobody deleted a pedestrian "
+                 + "route — the mode mask simply never granted one. " + Dial + Detour;
         }
 
-        return "No Severance: every node the car network reaches, the pedestrian network reaches "
-             + "too. With Arterials on the map that means the crossings are dense enough to carry "
-             + "the foot network across every one of them.";
+        return $"No Severance: all {walkable} walkable nodes are in one pedestrian piece. " + Dial
+             + Detour;
     }
+
+    /// <summary>
+    /// How to move the number, stated as the mechanism rather than as advice about one dial.
+    /// </summary>
+    /// <remarks>
+    /// <b>The advice this replaces was <i>"raise foot_crossing_every to see this get worse"</i>, and
+    /// at the shipped Ruleset that is false.</b> A sweep of 240 configurations found the shipped
+    /// 32-Tile lattice unmoved by every value in <c>1..16</c>, because the dial states a ratio and
+    /// what reconnects a city is an absolute count. Printing a lever that does nothing is worse than
+    /// printing none: the reader concludes the mechanism is broken.
+    /// </remarks>
+    private const string Dial =
+        "What reconnects a city is the ABSOLUTE NUMBER of crossings kept, not the ratio "
+        + "foot_crossing_every states: an Arterial severs one Street per block it crosses, so a "
+        + "finer lattice hands it more Streets to sever and the same ratio leaves more crossings "
+        + "standing. At eight Arterials and a dial of 4 that is 306 crossings at block_tiles = 32 "
+        + "and 16 at 512. If the dial seems inert, the lattice is too fine for the Arterials on it; "
+        + "rulesets/severance.toml is a rung where it does graduated work. ";
+
+    /// <summary>The half of Severance this instrument cannot see, printed either way.</summary>
+    /// <remarks>
+    /// <b>Stated on the no-Severance branch as well, which is the branch that would otherwise
+    /// mislead.</b> <i>No Severance</i> over a metric that measures only disconnection reads as
+    /// <i>nobody is cut off</i>, and the claim it supports is much narrower.
+    /// </remarks>
+    private const string Detour =
+        "Note what this does and does not say: it measures DISCONNECTION, and the larger half of "
+        + "Severance is DETOUR — a crossing four hundred metres away severs a neighbourhood in every "
+        + "sense a player would recognise and is fully connected here. Measuring that needs a "
+        + "shortest path over the foot subgraph, and nothing searches this graph yet (milestone 5b).";
 
     /// <summary>How many Arcs admit a mode. Not twice the Segment count once one-way roads exist.</summary>
     private static int Arcs(RoadGraph graph, TravelMode mode)
