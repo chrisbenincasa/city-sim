@@ -132,12 +132,15 @@ routing's has never met a world.
   District) pair in the whole model. A design question, in [`0002`](0002-open-questions.md) §C.
 - **The synthetic city fixture and `World`'s table sizing disagree** and nothing checks that they
   agree; Households land at exactly capacity, so the first one the simulation creates grows the table.
-- **The governor was the wrong axis to worry about, and S2's re-capture found it.** *Every S2 and S0a
-  absolute is `powersave`, mis-pinned, or both* was the standing caveat; two `performance` captures now
-  show that **co-tenant load dominates the governor** at the rungs where absolutes are fragile — a
-  `powersave` run on an idle machine beat a `performance` run on a busy one — while cache-resident
-  figures reproduce to **±5% across six captures and both governors**. **No capture filename records
-  load.** S0a still owes its own re-capture, and it inherits the same correction.
+- **The governor was the wrong axis to worry about, and S2's re-captures proved it twice.** *Every S2
+  and S0a absolute is `powersave`, mis-pinned, or both* was the standing caveat; **co-tenant load
+  dominates the governor** where absolutes are fragile — a `powersave` run on an idle machine beat a
+  `performance` run on a busy one. **The R8 re-capture is the controlled version of the same
+  experiment**: two `performance` captures on *matched* machines (CPU stall 0.13% vs 0.11%) agree on
+  **724 of 744 cells within ±2%**, every non-timing figure **bit-identical**, worst case 1.157× —
+  against the mismatched R0–R4 pair's **1.77×**. *The variance S2 called run-to-run noise was almost
+  entirely machine state.* **No capture filename records load.** S0a still owes its own re-capture and
+  inherits the correction.
 - Several documents still describe behaviour that later measurement contradicted — see *Owed*, and
   [`0012`](0012-corpus-audit.md) for the corpus-wide sweep's half.
 

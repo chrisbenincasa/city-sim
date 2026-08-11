@@ -6040,9 +6040,56 @@ second time in this round. **The machine block now prints the hierarchy**, and i
 ```
 
 **Those two lines together are the finding, readable without any prose**: the run holds two processors
-and the cache it depends on is shared by all twelve. **The 12 MiB above is still unbacked until the
-next capture is taken**, and that is stated rather than quietly resolved — the fix is in the harness,
-not yet in an artefact, and *a repair is not a measurement*.
+and the cache it depends on is shared by all twelve. ~~**The 12 MiB above is still unbacked until the
+next capture is taken**~~ — **BACKED, 2026-08-11**, by the canonical R8 capture below, which is the
+first artefact in this corpus to record a cache hierarchy.
+
+### The R8 re-capture, and the first honest error bar S2 has ever had
+
+**Taken 2026-08-11 as root, `--loop`, on a deliberately quieted machine** — the editors and language
+servers that produced the load in the R0–R4 re-capture were closed first, on the strength of the
+finding immediately above. **The two R8 `performance` captures are the comparison the R0–R4 pair was
+supposed to be and was not:**
+
+| | R0–R4 pair | **R8 pair** |
+|---|---:|---:|
+| CPU stall over the run | 0.10% vs **1.66%** | 0.13% vs **0.11%** |
+| Memory stall | 0.00% both | 0.00% both |
+| Run duration | 194 s vs 401 s | 111.30 s vs **110.34 s** |
+| Comparable numeric cells within ±2% | 961 / 1,340 — **72%** | **724 / 744 — 97%** |
+| Worst divergence | **1.77×** | **1.157×** |
+
+**Every non-timing figure is bit-identical across four days and two builds** — ratio exactly 1.000 on
+every count, share, quantile and ladder value in the section, including all six verdict figures. **The
+only cells that move are timings**, and they span **3.5%–15.7%**: R8.3's `Refresh`, `Move` and `Sight`
+ns/Tick columns, and R8.6's next-hop read. The largest mover is the **control rung**, N = 0 in
+`Refresh ns/Tick`, at 359,012 → 415,545, which is the smallest absolute in the table and therefore the
+noisiest — the spread is inversely ordered by magnitude, which is what run-to-run noise looks like and
+is not what a machine-state artefact looks like.
+
+> **The sweep caught this paragraph, which is the fourth time this round and the first in a new
+> class.** The sentence above originally read *"359,012 → 415,545 ns"*, and the matcher could not find
+> either figure: **the capture writes the cell bare and puts the unit in the column header**
+> (`Refresh ns/Tick`). So quoting a figure out of such a table **necessarily adds a unit on
+> transcription**, and that addition is indistinguishable, to a quantity matcher, from the µs→ms
+> conversion that manufactured the `10.37 ms` false accusation. **A unit that lives in a header is
+> invisible to an instrument that reads cells.** The repair is to name the column instead of inlining
+> its unit, which is what the sentence now does — and the general form is the provenance rule's fourth
+> sentence with a rider: *a figure is looked up as a quantity, and its dimension may not be in the same
+> cell as its digits.*
+
+**So the variance S2 has been calling run-to-run noise was almost entirely machine state.** Matched
+machines reproduce this harness to a few per cent; mismatched ones diverge by 77%. **That is R7's
+finding demonstrated rather than argued**, and it is the strongest form of it available: the same
+harness, the same section, twice, with only the co-tenants different.
+
+**One published figure moves and it belongs to an ADR.** R8.6's next-hop table read is **391 ns** in
+the first capture and **424 ns** in the second — **3.18% of the Tick budget against 3.45%** — and
+[`adr/0047`](adr/0047-routing-never-keys-on-the-district.md) quotes the point estimate when arguing
+that the table's one real advantage is a free diversion. **The conclusion is untouched** and the
+argument does not depend on the third digit: against a stored route's 3,951% either reading is the
+same sentence. **It should be cited as a range, 3.18–3.45%**, on the rule this round has now applied
+four times — a maximum, a point estimate and a spread are three different claims.
 
 **Six captures now exist for R1.3, and read together they say the spread is a property of the rung.**
 At the **121-District anchor** the scattered read is **1.14 / 1.17 / 1.18 / 1.20 / 1.22 / 1.26 ns**
@@ -6175,9 +6222,11 @@ machine: re-measuring it under this load would raise it too, and widen the margi
   as a table**, so a document table and an artefact table disagreed about one quantity and the
   disagreement was invisible in both directions — *this* is what "assembled from capture prose" costs,
   measured rather than asserted. The harness now computes it **once**, in the unit both sites render,
-  and the two agree by construction at **92.28%**. **The retained R8 capture predates the fix**, so the
-  corpus's figure is the accurate one and becomes table-backed at the next `--loop` capture; that is
-  stated rather than quietly resolved, because *a repair is not a measurement*.
+  and the two agree by construction at **92.28%**. ~~The retained R8 capture predates the fix, so the
+  corpus's figure becomes table-backed at the next `--loop` capture.~~ **THE CAPTURE IS TAKEN**,
+  2026-08-11, canonical and on a quieted machine: all four renderings read **92.28%**, the
+  verdict-figures table carries every one of the six with its operands, and the `Cache` line gives
+  **12 MiB** its first artefact. *A repair is not a measurement — and this one now has one.*
 - ~~**The harness's contradicted prose, repaired at source.**~~ **DONE**, and the repair found two
   defects the sweep structurally could not — see *What repairing the prose at source then found*.
   `VectorReport`'s R4 verdict block was a stale generation throughout; `StormReport`'s **23.26×** was
