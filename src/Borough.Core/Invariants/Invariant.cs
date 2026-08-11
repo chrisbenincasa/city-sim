@@ -336,4 +336,48 @@ public enum Invariant
     /// </para>
     /// </remarks>
     AnArmedRowIsDueWithinOnePeriod = 27,
+
+    /// <summary>
+    /// A waiter is asleep on a Bin that has stopped blocking it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0033</c> names this as one of two mitigations it calls <em>both required</em>, and it
+    /// has been specified in three documents and built in none.</b> The wording there is <em>no Rule is
+    /// asleep with all inputs satisfiable</em>; <c>02 §10</c> lists it in the end-of-run tier and
+    /// <c>plans/0008</c> repeats it. Subscription's failure mode is silent where polling's was merely
+    /// slow — a Bin written without draining its wait list leaves every waiter asleep for ever with no
+    /// error and no timer to rescue it — so this is the only mechanism in the design that can notice it.
+    /// </para>
+    /// <para>
+    /// <b>It is deliberately narrower than that sentence in what it inspects, and stronger in what it
+    /// catches</b> (<c>adr/0063</c>). <em>Would this Rule fire</em> is blind to a waiter asleep on a Bin
+    /// that has stopped blocking it while a different Bin blocks it now: the drain should have woken it,
+    /// it would have re-checked, failed elsewhere, and <em>resubscribed to the Bin that actually blocks
+    /// it</em>. Left where it is, a deposit to that other Bin never reaches it — a livelock, not a slow
+    /// city — and the strict reading reports nothing. Checking the named Bin alone catches both that and
+    /// the plain missed wake, and costs one term walk instead of a whole evaluation.
+    /// </para>
+    /// <para>
+    /// <b>It was expected to be unfirable on today's content, and it fired on the committed golden
+    /// session within minutes of being registered.</b> The reasoning for the expectation was that a
+    /// violation needs a Bin written in instalments smaller than a waiter's requirement, which is what
+    /// the <c>pool</c> scope will be and what <c>local</c> cannot be — and that
+    /// <c>rulesets/minimal.toml</c> is safe because <c>restock</c>'s deficit is <b>1</b>, the smallest
+    /// quantity expressible, so any withdrawal covers it. Both halves are true and the conclusion was
+    /// still wrong: <b>the golden session reloads into <c>rulesets/minimal-tuned.toml</c> at Tick 128,
+    /// and the one number that file changes is <c>restock</c>'s output amount, 1 → 2.</b> A producer
+    /// whose deficit is 2, drawn down by the occupancy-1 Buildings a Zone Rule creates, is withdrawn
+    /// from one unit at a time and never woken. At Tick 256 the trace holds a <c>restock</c> asleep on
+    /// headroom <b>3</b> against a recorded shortfall of <b>2</b>.
+    /// </para>
+    /// <para>
+    /// <b>So the defect is live in the shipped baseline rather than waiting for <c>pool</c></b>, and
+    /// <c>minimal.toml</c>'s header states the condition that keeps it honest — <em>producing in a
+    /// quantum at least as large as any consumer's deficit</em> — without stating the mirror, which is
+    /// the one the tuned file breaks. The trickle fixtures in <c>BinWaitListTests</c> assert both
+    /// directions on purpose-built content; this member is what found the real instance.
+    /// </para>
+    /// </remarks>
+    WaiterIsBlockedByTheBinItNames = 28,
 }

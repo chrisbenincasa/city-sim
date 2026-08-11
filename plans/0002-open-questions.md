@@ -87,6 +87,7 @@ their bodies in the archive**, so a reader sees they were answered rather than d
 | `adr/0003`'s herding validation — *does the city feel herdy* | Phase 2 | Needs a running choice model. **The other half is discharged**: worst selection-probability divergence between the committed table and a double oracle is below 0.001 |
 | The **snapshot interchange format**'s marshalling cost | S1 / S3 | `adr/0002` names marshalling as its own revisit trigger and 1M Citizens is the load that would fire it |
 | `05 §5` role 3 — whether the Chunk partition survives **mobile** entities | ~~S0b~~ — **S0b ran and could not reach it**: nothing in the world moves, so there is no mobile entity to partition. **Re-owned by milestone 5b**, Trip generation | Answered for Phase 1 structurally (rows never move; the partition is a separate index). The measurement is owed, and `05 §5` still leans on the other answer |
+| **Does deriving a waiter's requirement cost less than the Bin write it accompanies?** | Slice 7's evaluation counters, plus an **S0b-class capture** with a Ruleset in force | **NEW, from [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md), and the ADR declines to declare it affordable.** The drain used to read one field per waiter examined; it now calls `RuleEngine.Requirement`, which is a partial `Check` — the band plus the term walk for the one blocking Bin. The drain stops at the first uncovered waiter, so the common case is **one derivation per Bin write**, on the hot path of every `Deposit` and `Withdraw`, in the subsystem that is already the largest priced row in [`0013`](0013-tick-budget.md). Against **82.84 ns** an evaluation synthetic and **552 ns** in a real 1M world, the refuting number is the per-write cost with the derivation against without. **If it is material the honest fix is the stored column returning with an explicit invalidation on reload** — this decision reversed on a number, which is the correct way to reverse it |
 | **Whether Bin Rule evaluation fits the Tick budget at 1M** | **S0b** | Slice 7 task 9 measured the unit and published the wire inverted: **82.84 ns an evaluation**, flat to 1.8% across two orders of magnitude, so **15.6 ms holds ~188,000 per Tick**. What it cannot settle is the multiplicand. Against `0002`'s own **450 Rule Instances per 1,000 Citizens** and `02 §4.3`'s rate of 8, a 1M city spends **~60% of a Tick on evaluation alone**. ~~**Since superseded by a whole-Tick measurement — 67% at 4×**~~ **and superseded again, this time by a measurement taken in a city rather than in a fixture** ([`0011`](0011-rule-engine-bins-and-rules.md) finding 42). Task 10a put a Ruleset in a 1M world for the first time: **~6.4 ms a Tick, 41% at 4×, at a measured 11,586 due**. The synthetic whole-Tick unit was **2.8× too low** and the guessed multiplicand ~5× too high, so the 67% was **right by cancellation** — the worst way for a number to be right. The wire is now *fewer than ~28,000 due Rules per Tick at 4×*, which against the 450 needs a **mean rate above ~15.9 Ticks** where the old wire needed 4.8, and `02 §4.3`'s bakery runs at 8. **What is still owed is unchanged and is now the only thing owed: the multiplicand.** 11,586 is measured for a Ruleset that models no city, so it settles nothing about a real one — that is **10b**'s, and S0b's for the rest of the Tick |
 
 ---
@@ -102,25 +103,33 @@ rule is **when something concrete is blocked on it, not because it is available.
 - **What "full" means for a Bin with no capacity.** `adr/0031` flagged the unbounded-Bin comparison as
   a determinism hazard and never resolved it. Slice 7 made the money Bin unbounded and refuses an
   authored ceiling, which settles the *storage* half and not the *comparison* half. Rule-engine work.
-- **Whether a wait list wakes on the arrival or on the state.** A subscription records the amount that
-  was **missing at the instant of failure**, and the drain wakes the head waiter only while the
-  **single arriving quantity** covers that recorded number. For the head the condition is exact; for a
-  Bin filled in instalments smaller than the deficit it is unreachable, so a consumer short of three
-  is never woken by three arrivals of one and both parties sleep for ever with the Bin full. **It is
-  not visible yet**: `02 §4.1`'s worked example is delivery-shaped (*"six flour arriving wakes exactly
-  the one bakery that needs six"*) and `local` is the only scope with a Bin behind it, so slice 7 task
-  10a sidestepped it by running its Ruleset in surplus (`0011` finding 41). A trickle-filled Bin is
-  what `pool` is, so **`pool` is the trigger**. Two candidate answers — decrement the recorded
-  shortfall as arrivals accumulate, or re-derive it from the Bin — and they differ in what they
-  promise the *second* waiter in the queue, which makes this a fairness question and therefore
-  arguable rather than measurable.
-  **Slice 8 gave it a second face and the same answer.** A reload that moves only numbers changes no
-  row, so a Rule asleep on a Bin keeps a shortfall recorded against the **old** Ruleset's quantities —
-  halve a Rule's input requirement and the bakery starving for the old amount is the one Building the
-  edit never reaches. That is `adr/0015`'s acceptance test failing on the shortage path, and it is
-  this question rather than a reload defect: *re-derive from the Bin* fixes both faces at once and
-  *decrement as arrivals accumulate* fixes neither. Recorded so the reload half is not solved
-  separately. (`plans/0015`, task 4 sub-task C, finding 3.)
+- ~~**Does a wait list wake on the arrival or on the state?**~~ **CLOSED 2026-08-10 by
+  [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)**
+  (session **N1**, [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md) task 1), and
+  implemented in the same pass. **The wake budget is the Bin's `level` — or its `headroom` — and the
+  requirement is derived at the drain; `RuleInstance.shortfall` is deleted.** Three things the entry
+  as filed had wrong are worth keeping, because each was a consequence of the framing rather than of
+  the answer.
+  **It was two bugs held as one question, and that concealed the answer.** The budget was one write's
+  delta and the requirement was computed under a Ruleset that may since have been reloaded — two
+  independent defects on two axes. Neither candidate this entry named was the fix: *re-derive the
+  shortfall* corrects the requirement while still comparing it against a single arrival, and `3 > 1`
+  holds however the 3 was obtained, so **the candidate the ledger favoured fixes nothing about the
+  trickle**; *decrement as arrivals accumulate* fixes the budget by writing a saved, hashed column on
+  every deposit for every waiter, where moving the budget to `level` fixes it with no writes at all.
+  **`pool` was not the trigger, and the entry said it was.** The defect was live in the committed
+  golden baseline the whole time: the golden session reloads into `rulesets/minimal-tuned.toml` at
+  Tick 128, that file's one changed number is `restock`'s output amount 1 → 2, and a producer with a
+  headroom deficit of 2 drawn down one unit at a time is never woken. Found by building `adr/0033`'s
+  satisfiability invariant, which had been specified in three documents and implemented in none.
+  **And the state was already illegal**, so this was never a choice between two behaviours — a
+  consumer asleep beside a Bin holding what it needs is `adr/0033`'s *no Rule is asleep with all
+  inputs satisfiable*.
+  **Slice 8's second face is discharged with it** (`plans/0015` finding 3): nothing stores a
+  requirement, so nothing can hold one against a Ruleset that has been reloaded, and `adr/0015`'s
+  acceptance test reaches the shortage path without a whole-world wake pass on a keystroke.
+  **One measurable is left behind and is routed to §B**: whether the derived requirement costs less
+  than the Bin write it accompanies.
 - **Whether a Bin's capacity is a property of the Bin as built or of the Ruleset in force.** A
   capacity is written onto the Bin row when the Building is raised and **nothing ever moves it again**
   — not a tuning reload, which changes no row by design, and not slice 8's migration, whose refit only
@@ -427,6 +436,18 @@ it would be scheduled rather than discovered.
   without it, same as Segment Stress.
 - **Evidence for composed fertility.** A farm's panel must decompose its own yield by source, or the
   whole `adr/0022` mechanic is inexplicable.
+- ~~**`adr/0033`'s satisfiability invariant** — *no Rule is asleep with all inputs satisfiable*,
+  specified in `adr/0033`, `02 §10` and [`0008`](0008-tick-and-replay.md), and built in none.~~
+  **DONE 2026-08-10**, as `Invariant.WaiterIsBlockedByTheBinItNames` in the end-of-run tier, and it
+  **found a live defect in the committed golden baseline within minutes of being registered** — which
+  reversed the sequencing twice and made it one commit with
+  [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)'s
+  wake predicate rather than the free hash-neutral item it was filed as. It is deliberately **narrower**
+  than `adr/0033`'s wording in what it inspects and **stronger** in what it catches: *asleep on a Bin
+  that has stopped blocking it* also catches a waiter resubscribed to the wrong Bin, which *would this
+  Rule fire* is blind to. **The general lesson belongs to this section rather than to the ADR: an
+  obligation specified in three documents and built in none is how `HouseholdHomeExists` came to be
+  reported by nothing, and this one paid for itself the day it existed.**
 - ~~**S0b — the Tick with work in it.** Blocked on slices 7, 9 and 10~~ **DONE**, three clauses of four.
   **8.72 ms a Tick at 1M — 55.9% of a 15.6 ms budget at 4×**, and it **split the way S0 did**: the
   routing load, pollution decay and `05 §5` role 3 are all unreachable for want of **content** rather

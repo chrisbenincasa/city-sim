@@ -10,10 +10,23 @@ namespace Borough.Tests.Rules;
 /// Slice 7 tasks 1 and 2: the Bin, the two wait lists, and the drain that decides who wakes.
 /// </summary>
 /// <remarks>
+/// <para>
 /// <b>The drain is the whole of the mechanism and most of what can be got wrong.</b> <c>02 §4.1</c>
-/// says omitting the shortfall <em>"silently deletes the whole mechanism"</em> — every waiter wakes,
-/// contends in Phase 3, and the sorted settle order picks a permanent winner — so the tests below are
-/// mostly about who is <em>not</em> woken.
+/// says omitting the requirement <em>"silently deletes the whole mechanism"</em> — every waiter wakes,
+/// and small waiters beat large ones on quantity — so the tests below are mostly about who is
+/// <em>not</em> woken.
+/// </para>
+/// <para>
+/// <b>Not on identity, which this comment used to claim.</b> The old wording had the sorted settle
+/// order picking a permanent winner; there is no sorted settle order, and <c>02 §1.1</c> says so —
+/// contention is a counter-based shuffle keyed on the Tick. Corrected under <c>adr/0063</c>, which
+/// found the same error in three places.
+/// </para>
+/// <para>
+/// <b>A waiter's requirement is a property of its Rule, not of its subscription</b> (<c>adr/0063</c>),
+/// so these fixtures choose <em>which Rule</em> a sleeper runs rather than passing a number to
+/// <c>Subscribe</c>. See <see cref="Needing"/> and <see cref="Filling"/>.
+/// </para>
 /// </remarks>
 public sealed class BinTests
 {
@@ -22,32 +35,73 @@ public sealed class BinTests
 
     private static readonly RuleId Bake = new(1);
 
+    /// <summary>The largest requirement any test below asks for.</summary>
+    private const int Widest = 95;
+
+    private const byte Kind = 1;
+
+    /// <summary>A Rule that needs <paramref name="level"/> flour on its own Bin to run at all.</summary>
+    private static RuleId Needing(int level) => new((ushort)(1 + level));
+
+    /// <summary>A Rule that needs <paramref name="headroom"/> room in its own bread Bin to run.</summary>
+    private static RuleId Filling(int headroom) => new((ushort)(1 + Widest + headroom));
+
     /// <summary>
-    /// A Ruleset that declares kind 1 and gives it <see cref="Bake"/>, and nothing else.
+    /// A Ruleset declaring kind 1, one term-free Rule, and a Rule per requirement the tests use.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>It declares no Bins, because these tests create theirs by hand, and it exists for one
     /// reason: <see cref="Invariant.DerelictBuildingRunsNoRules"/>.</b> A Building of an undeclared
     /// kind running a Rule Instance is dereliction with the Rules left armed, which is slice 8's
     /// migration defect — and a fixture that ran on <see cref="Ruleset.Empty"/> was that shape by
     /// accident, so it would have reported the defect for ever without one existing.
+    /// </para>
+    /// <para>
+    /// <b>The band carries the requirement and the term stays at one</b>, so <c>floor × |net|</c> is
+    /// the number the test names. Spelling it the other way round — one application of <c>n</c> — would
+    /// derive the same product, and this way a single pair of Term arrays serves every Rule.
+    /// </para>
+    /// <para>
+    /// <b>A Rule with no terms is kept, and it is not decoration.</b> Most of this suite is about the
+    /// Wheel, dereliction and queue hygiene rather than about quantities, and those fixtures should not
+    /// have to own a Bin to sleep on one.
+    /// </para>
     /// </remarks>
-    private static Ruleset Declaring() =>
-        new(
+    private static Ruleset Declaring()
+    {
+        var rules = new RuleDefinition[1 + (2 * Widest)];
+        var kindRules = new RuleId[rules.Length];
+
+        rules[0] = Definition(ApplyCount.Band(1, 1), inputs: 0, outputs: 0);
+
+        for (int amount = 1; amount <= Widest; amount++)
+        {
+            ApplyCount band = ApplyCount.Band(amount, amount);
+
+            rules[Needing(amount).Raw - 1] = Definition(band, inputs: 1, outputs: 0);
+            rules[Filling(amount).Raw - 1] = Definition(band, inputs: 0, outputs: 1);
+        }
+
+        for (int i = 0; i < kindRules.Length; i++)
+        {
+            kindRules[i] = new RuleId((ushort)(i + 1));
+        }
+
+        return new Ruleset(
             resources: [ResourceFamily.Good, ResourceFamily.Good],
-            rules:
-            [
-                new RuleDefinition(
-                    1, 8, ApplyCount.Band(1, 1), RuleId.None, false, default,
-                    ConditionId.None, 0, 0, 0, 0, 0, 0),
-            ],
-            kinds: [new KindDefinition(0, 0, 0, 1)],
-            inputs: [],
-            outputs: [],
+            rules: rules,
+            kinds: [new KindDefinition(0, 0, 0, rules.Length)],
+            inputs: [new Term(new BinRef(Scope.Local, Flour), 1)],
+            outputs: [new Term(new BinRef(Scope.Local, Bread), 1)],
             emissions: [],
             bins: [],
-            kindRules: [Bake],
+            kindRules: kindRules,
             zoneRules: []);
+    }
+
+    private static RuleDefinition Definition(ApplyCount band, int inputs, int outputs) =>
+        new(Kind, 8, band, RuleId.None, false, default, ConditionId.None, 0, inputs, 0, outputs, 0, 0);
 
     /// <summary>A world with one Building on one Lot, and nothing else of interest.</summary>
     private static (World World, Handle<Building> Building) Built()
@@ -56,19 +110,9 @@ public sealed class BinTests
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
 
-        return (world, world.Buildings.Create(world.Lots, lot, kind: 1));
+        return (world, world.Buildings.Create(world.Lots, lot, Kind));
     }
 
-    /// <summary>
-    /// A Rule Instance on neither queue, which is what Phase 1 hands Phase 2.
-    /// </summary>
-    /// <remarks>
-    /// <b>Armed and then drained, rather than fabricated asleep.</b> That is the only route a real one
-    /// takes — the Wheel pops it, Phase 2 evaluates it, and it either re-arms or subscribes — and a
-    /// helper that subscribed a still-armed row would leave it on two queues at once. Which is not a
-    /// hypothetical: the first spelling of this helper did exactly that, and
-    /// <see cref="Invariant.RuleInstanceIsArmedOrWaiting"/> is what noticed.
-    /// </remarks>
     /// <summary>
     /// The Tick a <see cref="Sleeper"/> was drained on, and so the earliest Tick anything may wake it.
     /// </summary>
@@ -82,10 +126,20 @@ public sealed class BinTests
     /// </remarks>
     private static readonly Ticks Woken = new(1);
 
-    private static Handle<RuleInstance> Sleeper(World world, Handle<Building> building)
+    /// <summary>
+    /// A Rule Instance on neither queue, which is what Phase 1 hands Phase 2.
+    /// </summary>
+    /// <remarks>
+    /// <b>Armed and then drained, rather than fabricated asleep.</b> That is the only route a real one
+    /// takes — the Wheel pops it, Phase 2 evaluates it, and it either re-arms or subscribes — and a
+    /// helper that subscribed a still-armed row would leave it on two queues at once. Which is not a
+    /// hypothetical: the first spelling of this helper did exactly that, and
+    /// <see cref="Invariant.RuleInstanceIsArmedOrWaiting"/> is what noticed.
+    /// </remarks>
+    private static Handle<RuleInstance> Sleeper(World world, Handle<Building> building, RuleId rule)
     {
         Handle<RuleInstance> instance =
-            world.CreateRuleInstance(building, Bake, Ticks.Zero, delay: 1);
+            world.CreateRuleInstance(building, rule, Ticks.Zero, delay: 1);
 
         world.Wheel.PopDue(new Ticks(1));
 
@@ -165,11 +219,11 @@ public sealed class BinTests
 
         Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
 
-        Handle<RuleInstance> needsSix = Sleeper(world, building);
-        Handle<RuleInstance> needsTen = Sleeper(world, building);
+        Handle<RuleInstance> needsSix = Sleeper(world, building, Needing(6));
+        Handle<RuleInstance> needsTen = Sleeper(world, building, Needing(10));
 
-        world.Subscribe(needsSix, flour, Blocking.Level, shortfall: 6);
-        world.Subscribe(needsTen, flour, Blocking.Level, shortfall: 10);
+        world.Subscribe(needsSix, flour, Blocking.Level);
+        world.Subscribe(needsTen, flour, Blocking.Level);
 
         world.Deposit(flour, 6, Woken);
 
@@ -192,11 +246,11 @@ public sealed class BinTests
 
         Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
 
-        Handle<RuleInstance> big = Sleeper(world, building);
-        Handle<RuleInstance> small = Sleeper(world, building);
+        Handle<RuleInstance> big = Sleeper(world, building, Needing(10));
+        Handle<RuleInstance> small = Sleeper(world, building, Needing(2));
 
-        world.Subscribe(big, flour, Blocking.Level, shortfall: 10);
-        world.Subscribe(small, flour, Blocking.Level, shortfall: 2);
+        world.Subscribe(big, flour, Blocking.Level);
+        world.Subscribe(small, flour, Blocking.Level);
 
         world.Deposit(flour, 6, Woken);
 
@@ -212,13 +266,13 @@ public sealed class BinTests
 
         Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
 
-        Handle<RuleInstance> first = Sleeper(world, building);
-        Handle<RuleInstance> second = Sleeper(world, building);
-        Handle<RuleInstance> third = Sleeper(world, building);
+        Handle<RuleInstance> first = Sleeper(world, building, Needing(3));
+        Handle<RuleInstance> second = Sleeper(world, building, Needing(3));
+        Handle<RuleInstance> third = Sleeper(world, building, Needing(3));
 
-        world.Subscribe(first, flour, Blocking.Level, shortfall: 3);
-        world.Subscribe(second, flour, Blocking.Level, shortfall: 3);
-        world.Subscribe(third, flour, Blocking.Level, shortfall: 3);
+        world.Subscribe(first, flour, Blocking.Level);
+        world.Subscribe(second, flour, Blocking.Level);
+        world.Subscribe(third, flour, Blocking.Level);
 
         world.Deposit(flour, 6, Woken);
 
@@ -243,8 +297,8 @@ public sealed class BinTests
         Handle<Bin> bread = world.CreateBin(building, Bread, capacity: BinCapacity.Of(20));
         world.Deposit(bread, 20, Ticks.Zero);
 
-        Handle<RuleInstance> blocked = Sleeper(world, building);
-        world.Subscribe(blocked, bread, Blocking.Headroom, shortfall: 4);
+        Handle<RuleInstance> blocked = Sleeper(world, building, Filling(4));
+        world.Subscribe(blocked, bread, Blocking.Headroom);
 
         // Nothing a deposit could do helps, and at capacity there is not even room to try.
         world.Deposit(bread, 0, Woken);
@@ -261,15 +315,14 @@ public sealed class BinTests
         (World world, Handle<Building> building) = Built();
 
         Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
-        Handle<RuleInstance> waiter = Sleeper(world, building);
+        Handle<RuleInstance> waiter = Sleeper(world, building, Needing(5));
 
-        world.Subscribe(waiter, flour, Blocking.Level, shortfall: 5);
+        world.Subscribe(waiter, flour, Blocking.Level);
         world.Deposit(flour, 5, new Ticks(40));
 
         int slot = SlotOf(world, waiter);
 
         Assert.Equal(new Ticks(41), world.RuleInstances.NextTick[slot]);
-        Assert.Equal(0, world.RuleInstances.Shortfall[slot]);
         Assert.True(world.RuleInstances.WaitingOn[slot].IsNone);
         Assert.Equal(slot, world.Wheel.PopDue(new Ticks(41)));
     }
@@ -282,13 +335,13 @@ public sealed class BinTests
 
         Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
 
-        Handle<RuleInstance> first = Sleeper(world, building);
-        Handle<RuleInstance> second = Sleeper(world, building);
+        Handle<RuleInstance> first = Sleeper(world, building, Needing(4));
+        Handle<RuleInstance> second = Sleeper(world, building, Needing(1));
 
         // The later subscriber asks for less, so a queue ordered by anything but arrival would
         // reach it first.
-        world.Subscribe(first, flour, Blocking.Level, shortfall: 4);
-        world.Subscribe(second, flour, Blocking.Level, shortfall: 1);
+        world.Subscribe(first, flour, Blocking.Level);
+        world.Subscribe(second, flour, Blocking.Level);
 
         world.Deposit(flour, 1, Woken);
 
@@ -303,12 +356,12 @@ public sealed class BinTests
         (World world, Handle<Building> building) = Built();
 
         Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
-        Handle<RuleInstance> waiter = Sleeper(world, building);
+        Handle<RuleInstance> waiter = Sleeper(world, building, Needing(5));
 
-        world.Subscribe(waiter, flour, Blocking.Level, shortfall: 5);
+        world.Subscribe(waiter, flour, Blocking.Level);
 
         Violation violation = Assert.Throws<InvariantViolationException>(
-            () => world.Subscribe(waiter, flour, Blocking.Level, shortfall: 5)).Violation;
+            () => world.Subscribe(waiter, flour, Blocking.Level)).Violation;
 
         Assert.Equal(Invariant.RuleInstanceIsArmedOrWaiting, violation.Invariant);
     }
@@ -329,11 +382,11 @@ public sealed class BinTests
         Handle<Building> neighbour = world.Buildings.Create(world.Lots, lot, kind: 1);
 
         Handle<Bin> flour = world.CreateBin(doomed, Flour, capacity: BinCapacity.Of(100));
-        Handle<RuleInstance> own = Sleeper(world, doomed);
-        Handle<RuleInstance> foreign = Sleeper(world, neighbour);
+        Handle<RuleInstance> own = Sleeper(world, doomed, Needing(50));
+        Handle<RuleInstance> foreign = Sleeper(world, neighbour, Bake);
 
-        world.Subscribe(own, flour, Blocking.Level, shortfall: 50);
-        world.Subscribe(foreign, flour, Blocking.Level, shortfall: 50);
+        world.Subscribe(own, flour, Blocking.Level);
+        world.Subscribe(foreign, flour, Blocking.Level);
 
         int foreignSlot = SlotOf(world, foreign);
 
@@ -368,11 +421,11 @@ public sealed class BinTests
         world.CreateBin(building, Bread, capacity: BinCapacity.Of(20));
         world.Deposit(flour, 30, Ticks.Zero);
 
-        Handle<RuleInstance> first = Sleeper(world, building);
-        Handle<RuleInstance> second = Sleeper(world, building);
+        Handle<RuleInstance> first = Sleeper(world, building, Needing(90));
+        Handle<RuleInstance> second = Sleeper(world, building, Needing(95));
 
-        world.Subscribe(first, flour, Blocking.Level, shortfall: 90);
-        world.Subscribe(second, flour, Blocking.Level, shortfall: 95);
+        world.Subscribe(first, flour, Blocking.Level);
+        world.Subscribe(second, flour, Blocking.Level);
 
         int buildingSlot = world.Buildings.Rows.Resolve(building);
         int binSlot = world.Bins.Rows.Resolve(flour);
@@ -430,9 +483,9 @@ public sealed class BinTests
         (World world, Handle<Building> building) = Built();
 
         Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
-        Handle<RuleInstance> orphan = Sleeper(world, building);
+        Handle<RuleInstance> orphan = Sleeper(world, building, Needing(5));
 
-        world.Subscribe(orphan, flour, Blocking.Level, shortfall: 5);
+        world.Subscribe(orphan, flour, Blocking.Level);
         world.LevelWaiters.PopFront(world.Bins.Rows.Resolve(flour));
 
         Assert.Equal(
@@ -562,9 +615,9 @@ public sealed class BinTests
 
         Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
         Handle<Bin> bread = world.CreateBin(building, Bread, capacity: BinCapacity.Of(20));
-        Handle<RuleInstance> waiter = Sleeper(world, building);
+        Handle<RuleInstance> waiter = Sleeper(world, building, Needing(5));
 
-        world.Subscribe(waiter, flour, Blocking.Level, shortfall: 5);
+        world.Subscribe(waiter, flour, Blocking.Level);
         world.RuleInstances.WaitingOn[SlotOf(world, waiter)] = bread;
 
         Assert.Equal(

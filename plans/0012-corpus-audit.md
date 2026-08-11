@@ -430,6 +430,35 @@ build that never implemented it.
       checks it before anything else about that id. Rulesets built in code keep positional identity, so
       no fixture moved
 
+### Both shipped Rulesets state a fixed defect as an engine property, and the fix is a baseline re-record
+
+**Found while implementing [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md),
+2026-08-10.** `rulesets/minimal.toml` and `rulesets/minimal-tuned.toml` carry the same header paragraph:
+
+> *THE SHORTAGE REGIME IS NOT AVAILABLE AND THAT IS AN ENGINE PROPERTY RATHER THAN A TASTE: a recorded
+> shortfall is a deficit at the instant of failure and the wait list wakes on the arriving quantity, so a
+> consumer short of 3 is never woken by three arrivals of 1. … See finding 41.*
+
+**Every clause of that is now false**, and finding 41 is struck. What survives is the *content* reason the
+file runs in surplus — it has no second producer and no sink — which is a different sentence.
+
+- [ ] Rewrite both headers, and add the **mirror the original never stated**: *consuming in a quantum at
+      least as large as any producer's headroom deficit*. Its absence is why `minimal-tuned.toml` broke the
+      headroom side the day it was written.
+
+**Why it is not struck in the commit that found it, which is the interesting half.** A Ruleset comment is
+**hashed content** — `RulesetFile.HashOfContent` normalises line endings *and nothing else*, and says so in
+its own remarks: *"whitespace, key order and comments are content."* So editing either header moves both
+Rulesets' content hashes, which moves `session.borough`'s recorded `reload` line, `GoldenFixtures`'
+`RulesetHash` and `TunedRulesetHash`, and every sample in `session-trace.txt`. Folding that into the
+predicate's re-record would put **two unrelated causes behind one hash move**, which is precisely what
+[`0003`](0003-build-plan.md) → *The hash-moving queue* refuses on the *right by cancellation* precedent:
+*a re-record is a command; a mis-attributed hash move is a bug hunt.*
+
+**This is a third shape of debt and worth naming.** Cause 1 is status stored in several places; Cause 2 is
+an ADR's writes not all landing. This is neither: **a correction whose cost is a baseline**, so the honest
+move is to file it rather than to bundle it. The ledger is where a correction waits for its own commit.
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and

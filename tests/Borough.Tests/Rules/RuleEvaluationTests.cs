@@ -153,7 +153,13 @@ public sealed class RuleEvaluationTests
         int instance = 0;
 
         Assert.Equal(Blocking.Level, world.RuleInstances.Blocked[instance]);
-        Assert.Equal(3, world.RuleInstances.Shortfall[instance]);
+
+        // What it waits for is derived rather than recorded (adr/0063), and it is the whole
+        // requirement rather than the deficit: six flour to fire, against the three in the Bin.
+        Assert.Equal(
+            6,
+            RuleEngine.Requirement(
+                world, instance, BinOf(world, building, Flour), Blocking.Level));
         Assert.Equal(
             BinOf(world, building, Flour),
             world.Bins.Rows.Resolve(world.RuleInstances.WaitingOn[instance]));
@@ -189,7 +195,11 @@ public sealed class RuleEvaluationTests
         Assert.Equal(
             BinOf(world, building, Bread),
             world.Bins.Rows.Resolve(world.RuleInstances.WaitingOn[0]));
-        Assert.Equal(4, world.RuleInstances.Shortfall[0]);
+
+        Assert.Equal(
+            6,
+            RuleEngine.Requirement(
+                world, 0, BinOf(world, building, Bread), Blocking.Level));
     }
 
     /// <summary>
@@ -210,7 +220,12 @@ public sealed class RuleEvaluationTests
         Assert.Equal(18, Level(world, building, Bread));
 
         Assert.Equal(Blocking.Headroom, world.RuleInstances.Blocked[0]);
-        Assert.Equal(2, world.RuleInstances.Shortfall[0]);
+
+        Assert.Equal(
+            4,
+            RuleEngine.Requirement(
+                world, 0, BinOf(world, building, Bread), Blocking.Headroom));
+
         Assert.Equal(
             BinOf(world, building, Bread),
             world.Bins.Rows.Resolve(world.RuleInstances.WaitingOn[0]));
@@ -314,9 +329,9 @@ public sealed class RuleEvaluationTests
     }
 
     /// <summary>
-    /// <b>Below <c>min</c> is a failure, and the shortfall is the floor's rather than the ceiling's.</b>
-    /// What the Rule waits on is the least that would let it fire at all — a Rule that subscribed for
-    /// its <em>max</em> would sleep through a delivery it could have used.
+    /// <b>Below <c>min</c> is a failure, and what it waits for is the floor's requirement rather than
+    /// the ceiling's.</b> A Rule that waited for its <em>max</em> would sleep through a delivery it
+    /// could have used.
     /// </summary>
     [Fact]
     public void A_greedy_rule_below_its_floor_fails_and_subscribes_on_the_floor()
@@ -331,7 +346,11 @@ public sealed class RuleEvaluationTests
         Assert.Equal(0, Level(world, building, Bread));
 
         Assert.Equal(Blocking.Level, world.RuleInstances.Blocked[0]);
-        Assert.Equal((2 * 6) - 9, world.RuleInstances.Shortfall[0]);
+
+        Assert.Equal(
+            2 * 6,
+            RuleEngine.Requirement(
+                world, 0, BinOf(world, building, Flour), Blocking.Level));
     }
 
     /// <summary>
@@ -749,7 +768,11 @@ public sealed class RuleEvaluationTests
 
         Assert.Equal(12, Level(world, building, Flour));
         Assert.Equal(Blocking.Level, world.RuleInstances.Blocked[0]);
-        Assert.Equal((4 * 6) - 12, world.RuleInstances.Shortfall[0]);
+
+        Assert.Equal(
+            4 * 6,
+            RuleEngine.Requirement(
+                world, 0, BinOf(world, building, Flour), Blocking.Level));
     }
 
     /// <summary>An id the simulation does not declare throws rather than counting zero.</summary>

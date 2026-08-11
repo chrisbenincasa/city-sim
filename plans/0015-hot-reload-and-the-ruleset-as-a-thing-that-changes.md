@@ -713,7 +713,17 @@ which is sub-task A's defect walking back in through the degradation written aft
 `HONEST DEGRADATION`, and the test states it rather than the prose.
 
 **3. A tuning reload never re-evaluates a sleeping Rule, so a shortfall recorded under the old numbers
-outlives the change.** `Compare == None` skips the pass, which is task 1's behaviour kept
+outlives the change.**
+
+> **⚠ DISCHARGED 2026-08-10 by [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md),
+> and by deletion rather than by a mechanism.** Nothing stores a requirement, so nothing can hold one
+> against a Ruleset that has since been reloaded — the drain derives `floor × |net|` from the Rules in
+> force at the moment it asks. **`adr/0015`'s acceptance test reaches the shortage path**, and it costs
+> none of the whole-world wake pass on a keystroke this finding rejected. Note what the fix was *not*:
+> the §C entry this was filed against named *re-derive from the Bin* as a candidate, and that alone
+> would have fixed this face and left the trickle untouched. **Two faces, two bugs, one of which this
+> finding could see.**
+ `Compare == None` skips the pass, which is task 1's behaviour kept
 deliberately — `02 §4.3` drops the wait lists because *a subscription taken under the old Ruleset may
 name a Bin the new one does not have*, and under `None` that demonstrably cannot happen. But there is
 a **second** reason the corpus never names: a designer who halves a Rule's input requirement does not

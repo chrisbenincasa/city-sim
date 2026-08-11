@@ -16,15 +16,18 @@ using Borough.Core.Tables;
 /// because there is only one link to be on a list with.
 /// </para>
 /// <para>
-/// <b><see cref="Shortfall"/> is a number the waiter already computed</b> (<c>02 §4.1</c>): the
-/// amount that was missing when it failed, <c>(min × amount) − available</c>. It is what makes the
-/// queue mean anything — draining by shortfall wakes the one waiter an arrival actually satisfies,
-/// where waking everybody would push the whole list into Phase 2 and let the sorted settle order pick
-/// a permanent winner.
+/// <b>A subscription records <em>which</em> Bin and <em>why</em>, and never <em>how much</em></b>
+/// (<c>adr/0063</c>). There was a <c>shortfall</c> column here — the deficit the waiter computed while
+/// failing, <c>(min × amount) − available</c> — and it was deleted rather than retyped: nothing
+/// downstream ever read it as an entitlement, it was a filter deciding whether to re-arm, and the Bin
+/// plus the Ruleset in force answer the same question at the moment the drain asks it. Storing it made
+/// the answer a fact about the past, so a tuning reload that halved a Rule's input never reached the
+/// Building starving for the old amount. See <see cref="Rules.RuleEngine.Requirement"/>.
 /// </para>
 /// <para>
-/// <b>It may go stale, and nothing special is needed.</b> If the waiter's own Bins moved while it
-/// slept, it re-checks atomicity in Phase 2, fails, and resubscribes.
+/// <b>Nothing here can go stale, which is the point.</b> A waiter whose own Bins moved while it slept
+/// re-checks atomicity in Phase 2, fails, and resubscribes; a waiter whose Ruleset moved under it is
+/// measured against the numbers in force, because there is no number of its own to measure against.
 /// </para>
 /// </remarks>
 [Table]
@@ -47,7 +50,6 @@ public sealed class RuleInstanceTable
         NextTick = _rows.Saved<Ticks>("next_tick", Touch.PerTick);
         WaitingOn = _rows.SavedHandle("waiting_on", bins.Rows, Touch.PerTick);
         Blocked = _rows.Saved<Blocking>("blocked", Touch.PerTick);
-        Shortfall = _rows.Saved<int>("shortfall");
         Reported = _rows.Saved<ConditionId>("reported", Touch.PerTick);
         StarvedSince = _rows.Saved<Ticks>("starved_since", Touch.PerTick);
         QueueNext = _rows.Saved<int>("queue_next", Touch.PerTick);
@@ -75,9 +77,6 @@ public sealed class RuleInstanceTable
     /// Why it is asleep, and therefore which of <see cref="WaitingOn"/>'s two lists it is on.
     /// </summary>
     public Column<Blocking> Blocked { get; }
-
-    /// <summary>What was missing when it failed. Meaningful only while <see cref="WaitingOn"/> is set.</summary>
-    public Column<int> Shortfall { get; }
 
     /// <summary>
     /// The condition the last <c>on_fail</c> walk terminated on, or <see cref="ConditionId.None"/>
@@ -153,7 +152,6 @@ public sealed class RuleInstanceTable
         Rule[slot] = rule;
         Blocked[slot] = Blocking.Nothing;
         WaitingOn[slot] = default;
-        Shortfall[slot] = 0;
         Reported[slot] = ConditionId.None;
         StarvedSince[slot] = default;
 

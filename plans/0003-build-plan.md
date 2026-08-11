@@ -120,6 +120,70 @@ become three.
 | **S0a** | The world at target size — 1M Citizens in `Borough.Headless` | cleared | **DONE.** The tables hold 1M in 86 MiB with an order of magnitude spare, and 100,000 Ticks at the target run in 11.75 s. It found that **run mode had never had a city in it** — capacity, zero rows — so every Tick figure before it was taken over an empty world. Numbers and six findings in [`spike-results`](../docs/spike-results.md) → *S0a* |
 | **S0b** | The Tick with work in it — Event Wheel, Bin Rules with wait lists, a Sweep Rule pass, a routing load | 🔴 slices **7**, **9**, **10** | **Not run, and not runnable.** [`0002`](0002-open-questions.md) specifies S0 as four clauses and only the first is reachable today. **This is the half that carries `06`'s stated risk** — the sizing question is closed and the Tick-budget question is not |
 
+### The hash-moving queue
+
+**Phase 1's code is no longer *closed but for task 11*: there are three items, and two of them re-record
+the same three golden baselines.** Session **N1** produced the second and third
+([`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md) task 1 →
+[`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)),
+which is the argument track moving work into the code track rather than generating more argument.
+**No gate is red on any of them.**
+
+> **✅ ITEMS 0 AND 2 SHIPPED 2026-08-10, together, as the correction below said they would have to.**
+> `Invariant.WaiterIsBlockedByTheBinItNames` is registered in the end-of-run tier and
+> [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)'s
+> predicate is in `World.Drain`: the budget is `LevelAt`/`HeadroomAt`, the requirement is
+> `RuleEngine.Requirement`, and `RuleInstance.shortfall` is gone. **Item 1 — slice 10 task 11 — is
+> what remains, and it is now the only thing in front of Phase 1's close.**
+>
+> **One prediction in the ADR did not hold, and it is recorded rather than quietly corrected.** It said
+> *all three golden baselines re-record*; **only `session-trace.txt` moved.** `world-hash.txt` is
+> unchanged because `GoldenFixtures.Build()` raises Buildings through `Buildings.Create` rather than
+> `World.CreateBuilding`, so that fixture holds **no Rule Instance rows at all** and the deleted column
+> was under no committed hash there. The observation worth keeping is the coverage one: **the
+> `rule_instance` table's saved columns are covered by the session trace alone**, and the artefact that
+> exists to cover what a session cannot reach does not reach them.
+>
+> **⚠ CORRECTED BY BUILDING IT. Items 0 and 2 are one commit, not two, and the evidence is empirical.**
+> This table first placed the invariant first *because it was free* — hash-neutral, and expected to pass
+> on all existing content. **It was built on 2026-08-10 and fired on the committed golden session.** The
+> golden session reloads into `rulesets/minimal-tuned.toml` at Tick 128; the one number that file changes
+> is `restock`'s output amount, **1 → 2**; and a producer with a headroom deficit of 2, drawn down one
+> unit at a time by the occupancy-1 Buildings a Zone Rule creates, is never woken. At Tick 256 the trace
+> holds a `restock` asleep on headroom **3** against a recorded shortfall of **2**.
+>
+> **So the invariant cannot be committed green without item 2**, and the two ship together. The
+> alternative — retuning `minimal-tuned.toml` to change a number that does not provoke it — is refused by
+> name: this corpus has already shipped **four** instances of a green suite agreeing with the code instead
+> of the claim, and editing a fixture to stop a real violation being reported would be the fifth.
+>
+> **The invariant paid for itself in minutes, which is the argument for building the specified-and-unbuilt
+> checks rather than the argument against.**
+
+| | Item | Moves the hash | Why this position |
+|---|---|---|---|
+| **0** | ~~**`adr/0033`'s satisfiability invariant**~~ — `Invariant.WaiterIsBlockedByTheBinItNames`, end-of-run tier — **DONE**, green with item 2 | no, on its own | **Ships with item 2**, for the reason in the correction above. Specified in **three** documents (`adr/0033`, `02 §10`, [`0008`](0008-tick-and-replay.md)) and built in none until now. It is narrower than `adr/0033`'s wording in what it inspects and stronger in what it catches: *asleep on a Bin that has stopped blocking it* also catches a waiter subscribed to the wrong Bin, which *would this Rule fire* is blind to |
+| **1** | **Slice 10 task 11 — `revisit_ticks`** ([`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)) | yes | **First of the two hash-movers, because it is the only defect of the three that is live *now*.** `sample` is an absolute count, so a Lot is visited once per 0.12 Day at 1,000 Citizens and once per **117 Days at 1M**, and at target scale the shipped Ruleset builds **nothing**. Already sequenced behind slice 8, which has re-recorded |
+| **2** | ~~**`adr/0063`'s wake predicate**~~ — derived requirement, level budget, `RuleInstance.shortfall` deleted — **DONE**, one baseline re-recorded | yes | **Ships with item 0**, which is red without it. ~~It cannot manifest until `pool` exists~~ — **struck: it is manifesting in the committed baseline now.** Acceptance is `BinWaitListTests`, which needs no `pool`: three `Deposit(1)` calls against a waiter requiring 3, plus the `Withdraw`/headroom mirror |
+
+~~**Whether items {0, 2} come before or after item 1 is now the only open ordering question.**~~
+**SETTLED by running them: {0, 2} went first, on the stated ground that a red suite outranks a defect at
+a scale nothing currently runs at.** Item 1 is unblocked and holds the queue alone.
+
+**Two baseline re-records rather than one combined pass, deliberately.** Combining items 1 and 2 would
+save a re-record and buy a hazard this project has already been bitten by: [`0013`](0013-tick-budget.md)'s
+Bin Rule row was **right by cancellation** — a unit cost 2.8× too low times a multiplicand ~5× too high —
+and [`0000`](0000-board.md) records that as **worse than being wrong**, because nothing would have noticed
+either factor moving. Two unrelated mechanisms moving one baseline in one commit is that hazard in the
+hash trace: if the new trace is wrong, it cannot be attributed. **A re-record is a command; a
+mis-attributed hash move is a bug hunt.**
+
+**One gap travelled with item 2 and it stands after the fact.** Deleting a saved column changes the
+**save format**, and **lint 6 — save/reload equivalence, the Factorio test — does not exist**; the
+machinery is still unbuilt. So the golden hash was the *only* check on that half — and it turned out to
+be a thinner check than expected, since `world-hash.txt` holds no Rule Instance rows and did not move.
+**One artefact covered the deleted column, and nothing else could have.**
+
 ---
 
 ## Why this order, and where it departs from `06`

@@ -16,11 +16,14 @@ pointer with just enough shape to orient; the board is the view and the slice pl
 slice plans, and it was the copy that drifted (`plans/0012` *Cause 1*: every document that stores
 per-slice status drifted, and the only large one that did not stores none).
 
-**Phase 1's code is closed.** Slices 0–10 are **all done** — **slice 8, hot reload, closed last**, and
-with it `adr/0015`'s acceptance test: *change a production ratio and see the effect in seconds* reads
-**0.70 s**, against the 60–120 second warm rebuild the ADR was written on. **No gate is red anywhere in
-the corpus.** The one open code item is **slice 10 task 11** — `adr/0059`'s `revisit_ticks` — sequenced
-deliberately *behind* slice 8, because both re-record the same golden baselines, and slice 8 has now
+**Phase 1's code is closed but for one item.** Slices 0–10 are **all done** — **slice 8, hot reload,
+closed last**, and with it `adr/0015`'s acceptance test: *change a production ratio and see the effect in
+seconds* reads **0.70 s**, against the 60–120 second warm rebuild the ADR was written on. **No gate is red
+anywhere in the corpus.** Session **N1** then put two items back on the code track and **both have
+shipped** (`adr/0063`): `adr/0033`'s satisfiability invariant — specified in three documents and built in
+none — and the wake predicate it found broken in the committed golden baseline within minutes. The one
+open code item is **slice 10 task 11** — `adr/0059`'s `revisit_ticks` — sequenced deliberately *behind*
+slice 8, because both re-record the same golden baselines, and slice 8 and `adr/0063` have both now
 re-recorded them.
 
 **Spikes:** S4, **S0a**, **S0b** and S2 R0–R8 have all run; what remains of S2 is R7's tail (a
@@ -185,12 +188,14 @@ populator for the first time, and all three baselines were re-recorded. **Two fi
 everything else.** The first Ruleset written **deadlocked in about two hundred Ticks** — every Bin
 full, every Rule failed on headroom, every Rule subscribed, nothing left that could drain a Bin to
 wake one — which turned the planning claim *sustained churn needs a sink* from an argument into a
-measurement, unprompted. And **the shortage regime is not expressible**: a recorded shortfall is the
+measurement, unprompted. And **the shortage regime was not expressible**: a recorded shortfall is the
 deficit at the instant of failure and the wait list wakes on the **arriving quantity**, so a consumer
 short of three is never woken by three arrivals of one and both parties sleep for ever with the Bin
 full. That is why the shipped Ruleset runs in **surplus** — the Rule that fails is the producer, on
-headroom — and it is a fairness question rather than a bug, filed to `0002` §C with **`pool` as its
-trigger**. The flow half of slice 5 task 7's trend assertion ships as **exact equality across the
+headroom — and it was filed to `0002` §C as a fairness question rather than a bug, with **`pool` as its
+trigger**. **`adr/0063` has since fixed it and the filing was wrong twice**: it is two bugs rather than
+one question, and `pool` was not the trigger — the defect was live in the committed golden baseline all
+along, on the headroom side. The flow half of slice 5 task 7's trend assertion ships as **exact equality across the
 tail** rather than a trend line, because the Ruleset's period is known.
 
 **Task 10a then made the first in-situ Tick capture possible, and every Rule-engine price in the
@@ -258,13 +263,13 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **58** decision records, numbered to **`0059`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **62** decision records, numbered to **`0063`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
 | `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0017` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **`0015` owns the slice in flight**; `0014` also owns task 11, sequenced behind it. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan |
+| `plans/0004`–`0018` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **`0015` owns the slice in flight**; `0014` also owns task 11, sequenced behind it. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; its task 1 is `adr/0063` and shipped |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8, **S0a and S0b** have all run |

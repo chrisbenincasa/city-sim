@@ -1033,7 +1033,20 @@ Building's own sentence, *a Building may hold Bins its Occupants draw from*. The
 under `local` turned out to be the domain-correct one.
 
 **41. A recorded shortfall is a deficit at the instant of failure, and the wait list wakes on the
-arriving quantity — so the shortage regime is not expressible today.** The two facts are individually
+arriving quantity — so the shortage regime is not expressible today.**
+
+> **⚠ FIXED 2026-08-10 by [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md),
+> and the finding was right about the mechanism and wrong about the reach.** The budget is now the
+> Bin's `level` — or `headroom` — and the requirement is derived at the drain; the column is deleted.
+> **Two things this finding got wrong are worth keeping.** It routed the question to `0002` typed
+> *arguable* with **two candidate answers, and neither was the fix**: re-deriving the requirement while
+> still comparing it against one arrival leaves `3 > 1` holding however the 3 was obtained. And it
+> concluded *"it becomes a real question the moment a Bin can be filled by a trickle, which is what
+> `pool` is"* — **the trickle was already in the committed golden baseline**, on the headroom side,
+> because `rulesets/minimal-tuned.toml` raises `restock`'s output to 2 and the occupancy-1 Buildings a
+> Zone Rule creates draw it down one unit at a time. *A defect deferred to a mechanism that does not
+> exist yet is worth checking against the content that does.*
+ The two facts are individually
 correct and their product is a constraint nobody had written down. `Check` subscribes with
 `(floor × amount) − available`, the *missing* amount; `Drain` wakes the head waiter only while the
 **single arriving quantity** covers that recorded number, and it never revisits it. So for the head

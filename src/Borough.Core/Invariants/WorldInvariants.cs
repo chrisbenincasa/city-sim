@@ -43,6 +43,76 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, NoBuildingRunsRulesItsKindDoesNotDeclare);
         invariants.Register(InvariantTier.EndOfRun, LotsAndBuildingsAgreeWhoIsWhere);
         invariants.Register(InvariantTier.EndOfRun, ThePoolIsDenseAndAgreesWithTheHouseholds);
+        invariants.Register(InvariantTier.EndOfRun, NoWaiterSleepsOnANonBlockingBin);
+    }
+
+    /// <summary>
+    /// No waiter is asleep on a Bin that has stopped blocking it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0033</c>'s second required mitigation, built at last</b> — see
+    /// <see cref="Invariant.WaiterIsBlockedByTheBinItNames"/> for why it is narrower than that ADR's
+    /// wording and stronger than the reading it invites. It is the <em>only</em> thing in the design
+    /// that can notice a missed wake, because a Rule asleep when it should be running leaves no trace
+    /// in a State Hash: the rows are all consistent, and what is wrong is that one of them is not moving.
+    /// </para>
+    /// <para>
+    /// <b>End of run, because that is what makes it affordable rather than because it is unimportant.</b>
+    /// <c>02 §10</c>'s tiering is by frequency: this is a whole-world walk of both wait lists on every
+    /// Bin, and there is one of them per run however long the run was. Per Tick it would be the
+    /// <c>O(world)</c> guard <c>S0a</c> found costing 95% of a run.
+    /// </para>
+    /// <para>
+    /// <b>Registered here rather than left to a caller, which is the mistake this file has already
+    /// made once.</b> <c>HouseholdHomeExists</c> was reported by nothing — the only orphan among 26
+    /// members — and was found by audit rather than by failure, so the registration line is the point
+    /// of the exercise and not the paperwork around it.
+    /// </para>
+    /// </remarks>
+    internal static void NoWaiterSleepsOnANonBlockingBin(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        CheckQueueStillBlocks(world, world.LevelWaiters, Blocking.Level, report);
+        CheckQueueStillBlocks(world, world.HeadroomWaiters, Blocking.Headroom, report);
+    }
+
+    /// <summary>Walks one of the two wait lists on every Bin, re-deriving what stopped each waiter.</summary>
+    private static void CheckQueueStillBlocks(
+        World world, IndexList waiters, Blocking blocking, InvariantRegistry report)
+    {
+        BinTable bins = world.Bins;
+
+        for (int bin = 0; bin < bins.Rows.SlotCount; bin++)
+        {
+            if (!bins.Rows.IsLive(bin))
+            {
+                continue;
+            }
+
+            foreach (int instance in waiters.Walk(bin))
+            {
+                // A row that is on the wrong list, or names a Bin other than this one, is
+                // WaiterIsQueuedOnTheBinItNames' violation and not this one. Deriving against a Bin the
+                // waiter never named would report a second violation for one defect, and the artifact
+                // would carry two ids for one cause.
+                if (!world.RuleInstances.Rows.IsLive(instance)
+                    || world.RuleInstances.Blocked[instance] != blocking
+                    || !bins.Rows.TryResolve(world.RuleInstances.WaitingOn[instance], out int named)
+                    || named != bin)
+                {
+                    continue;
+                }
+
+                report.Require(
+                    RuleEngine.BinStillBlocks(world, instance, bin, blocking),
+                    Invariant.WaiterIsBlockedByTheBinItNames,
+                    instance,
+                    bin);
+            }
+        }
     }
 
     /// <summary>

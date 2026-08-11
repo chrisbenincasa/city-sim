@@ -40,10 +40,14 @@ above are right.
 **What the project is.** A city-builder whose simulation is an ordinary C# library with no game engine
 inside it. Godot will be the display layer and has not been started.
 
-**Where it is.** **Phase 1's code is closed.** Slices 0–10 are **all done** — **slice 8, hot reload,
-closed last**, and with it `adr/0015`'s own acceptance test: *change a production ratio and see the
-effect in seconds* reads **0.70 s**, against the 60–120 second warm rebuild the ADR was written on.
-**No gate is red anywhere in the corpus**, and no session gates a slice any more. S4, S0a, S0b and S2 R0–R8 have
+**Where it is.** **Phase 1's code is closed but for one item.** Slices 0–10 are **all done** — **slice 8,
+hot reload, closed last**, and with it `adr/0015`'s own acceptance test: *change a production ratio and
+see the effect in seconds* reads **0.70 s**, against the 60–120 second warm rebuild the ADR was written
+on. **Session N1 then put two items back on the code track and both have shipped**
+([`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)):
+`adr/0033`'s satisfiability invariant, specified in three documents and built in none, and the wake
+predicate it immediately found broken in the committed golden baseline. **Slice 10 task 11 is what
+remains.** **No gate is red anywhere in the corpus**, and no session gates a slice any more. S4, S0a, S0b and S2 R0–R8 have
 run; sessions A, B, C, M, eight and nine are closed.
 
 **What you can run today.**
@@ -63,7 +67,9 @@ replays to identical hashes, and a crash artifact that replays back into its own
 diffusion and decay. Build-time analysers that turn the determinism rules into compiler errors. And
 **two Rule families** — Bin Rules moving Goods atomically, sleeping on the Bin that stopped them and
 walking a fallback chain that ends by recording why; Zone Rules sampling a Lot grid to build and
-condemn, with evicted Households keeping their money and waiting in the Unplaced Pool.
+condemn, with evicted Households keeping their money and waiting in the Unplaced Pool. **A waiter now
+wakes on what its Bin holds rather than on what just arrived**, and an end-of-run invariant refuses a
+Rule left asleep beside a Bin that has stopped blocking it.
 
 **What does not exist.** Two of the eight Tick phases are empty. There are no jobs, no money, no
 movement, no traffic, no roads and no renderer; Citizens are rows that do nothing. There is **no supply
@@ -120,7 +126,7 @@ sitting, the spike track is a machine running unattended — but **the code trac
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **Slice 10 task 11 — `revisit_ticks`.** The only open code item, and it was sequenced behind slice 8 because both re-record the same baselines. Slice 8 has now re-recorded them | [`0014`](0014-zone-rules-and-the-sweep-family.md), [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md) | A closed slice shipped a defect and its own tripwire hid it: `sample` is an **absolute** count, so a Lot is visited once per 0.12 Day at 1,000 Citizens and once per **117 Days at 1M**, and at target scale the shipped Ruleset builds **nothing** |
+| **1** | code | **Slice 10 task 11 — `revisit_ticks`.** The only open code item, and it was sequenced behind slice 8 because both re-record the same baselines. Slice 8 has re-recorded them, and so has `adr/0063`'s wake predicate — **so this is the third re-record of the same trace and deliberately its own commit** ([`0003`](0003-build-plan.md) → *The hash-moving queue*) | [`0014`](0014-zone-rules-and-the-sweep-family.md), [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md) | A closed slice shipped a defect and its own tripwire hid it: `sample` is an **absolute** count, so a Lot is visited once per 0.12 Day at 1,000 Citizens and once per **117 Days at 1M**, and at target scale the shipped Ruleset builds **nothing** |
 | **2** | spike | **S2 R7's tail.** The `performance` capture (**needs root**), the provenance sweep 217.36 ms turns out to need, three sentences on R8 results measured on a tree `adr/0047` deleted, and tripwire row 5 | [`0010`](0010-s2-routing.md) | It is the last thing between S2 and deletion, and **the harness is 33,000 lines — 1.7× the shipped simulation**. Runs unattended; does not contend with row 1 |
 
 | ~~**3**~~ | ~~argument~~ | ~~**Session D — `03 §5`, the traffic model.**~~ **DONE 2026-08-10 — all five tasks, in one sitting. → *Done / Sessions*.** *(Original row kept below the strike because it is the record of why a session was booked against a number.)* The first session ever booked against a **number** rather than against a document being ungrilled. **The brief is [`0017`](0017-session-d-the-traffic-model.md)**, and its typing pass is recorded there: eleven claims typed measurable, **one spike emitted (S5)**, two `adr/0007` defects filed to [`0012`](0012-corpus-audit.md). *(An earlier revision of this row read IN FLIGHT and was wrong: the parallel session in progress is **slice 8**, not D. Corrected rather than silently edited, because a board that reports a session as running is how two sittings end up on one document.)* | [`0002`](0002-open-questions.md) §A and §C | **The rule was applied, not suspended.** *An argument session runs when something concrete is blocked on it* — and what is blocked is [`0013`](0013-tick-budget.md)'s **dominant row**: routing is 60–67 of the ledger's 114 points at 4×, its multiplicand counts the wrong event, and **the only thing that can replace it is Trip generation, which is milestone 5b, which D gates.** So D is on the critical path to unguessing the one row that decides whether the simulation fits. **Book it as more than one sitting**; it now runs fully beside code, since the half that wanted S2's numbers has them |
@@ -424,11 +430,13 @@ re-filed to Phase 2** and 10a closed the slice. **The simulation now does someth
 state that holds for 100,000 Ticks. Two things came out of building it that no amount of planning had
 produced. **The first Ruleset deadlocked in about two hundred Ticks** — every Bin full, every Rule
 subscribed, nothing left that could wake one — which turned the planning finding *sustained churn
-needs a sink* from an argument into a measurement. And **the shortage regime turns out not to be
+needs a sink* from an argument into a measurement. And **the shortage regime turned out not to be
 expressible**: a recorded shortfall is the deficit at the instant of failure, the wait list wakes on
-the *arriving quantity*, so a consumer short of three is never woken by three arrivals of one. That is
-a fairness question, not a bug, and it is in [`0002`](0002-open-questions.md) §C with `pool` as its
-trigger. Four findings came out of the planning before a line was written, and one of
+the *arriving quantity*, so a consumer short of three is never woken by three arrivals of one.
+**Fixed 2026-08-10 by [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)**,
+and filed here at the time as *a fairness question, not a bug*, in `0002` §C **with `pool` as its
+trigger — which was the wrong trigger**. It was live in the committed golden baseline the whole time,
+on the headroom side, and building `adr/0033`'s invariant found it in minutes. Four findings came out of the planning before a line was written, and one of
 them was a live defect in slice 6: **a `map` emission accumulated with no sink**, so the corpus's own
 worked Rule grew a magnitude for ever — and slice 6's long-run test, the one built to catch exactly
 that, had been written to work around it in the fixture. Settled the same day by
@@ -772,7 +780,8 @@ the decision in its ADR; kept here is what each session **changed outside itself
       *"wait lists are rebuilt, never saved"* is half wrong and the code already disagreed with it** —
       `waiting_on`, `blocked`, `shortfall` and `queue_next` are all `Saved`, and they must be, because
       the same ADR calls the shortfall *"load-bearing, not an optimisation"* and dropping it breaks
-      **invariant 6, the Factorio test**. Nobody caught it because invariant 6's machinery does not
+      **invariant 6, the Factorio test**. *(`shortfall` has since been **deleted** by `adr/0063` — the
+      argument was about the wait list being history and it survives on the other three.)* Nobody caught it because invariant 6's machinery does not
       exist, so the check that would have fired has never run. The reload half stands and slice 8 is
       untouched. And **`02 §7` states a number nobody has measured** — *"a few hundred out of hundreds
       of thousands"* — now typed *measurable* under `adr/0043` with S0b named. One number was created:

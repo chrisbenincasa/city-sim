@@ -22,7 +22,6 @@ public readonly record struct RuleVerdict(
     int Applications,
     int Bin,
     Blocking Blocking,
-    int Shortfall,
     ConditionId Reported)
 {
     /// <summary>
@@ -39,12 +38,21 @@ public readonly record struct RuleVerdict(
 
     /// <summary>An evaluation that found every term satisfiable.</summary>
     public static RuleVerdict Fire(int instance, RuleId rule, int applications) =>
-        new(instance, rule, applications, Rows.NoSlot, Blocking.Nothing, 0, ConditionId.None);
+        new(instance, rule, applications, Rows.NoSlot, Blocking.Nothing, ConditionId.None);
 
-    /// <summary>An evaluation stopped by one Bin, carrying what it will subscribe with.</summary>
-    public static RuleVerdict Stopped(
-        int instance, RuleId rule, int bin, Blocking blocking, int shortfall) =>
-        new(instance, rule, 0, bin, blocking, shortfall, ConditionId.None);
+    /// <summary>
+    /// An evaluation stopped by one Bin, naming which Bin and in which direction.
+    /// </summary>
+    /// <remarks>
+    /// <b>It carries no quantity</b> (<c>adr/0063</c>). A subscription used to record the deficit the
+    /// waiter computed while failing, and the drain compared it against a single arrival; both halves
+    /// were wrong, and the amount was the half nothing downstream ever read as an entitlement. What
+    /// stops a Rule is <em>which</em> Bin and <em>why</em>; <em>how much</em> is a question the Bin and
+    /// the Ruleset in force can answer at the moment it is asked, which is
+    /// <see cref="RuleEngine.Requirement"/>.
+    /// </remarks>
+    public static RuleVerdict Stopped(int instance, RuleId rule, int bin, Blocking blocking) =>
+        new(instance, rule, 0, bin, blocking, ConditionId.None);
 }
 
 /// <summary>
@@ -452,7 +460,7 @@ public sealed class RuleEngine
         RuleDefinition definition = _world.Rules.Rule(rule);
         int building = _world.Buildings.Rows.Resolve(_world.RuleInstances.Building[instance]);
 
-        (int floor, int band) = Band(definition, building);
+        (int floor, int band) = Band(_world, definition, building);
 
         if (band < ceiling)
         {
@@ -463,12 +471,12 @@ public sealed class RuleEngine
 
         foreach (Term term in _world.Rules.Inputs(rule))
         {
-            Touch(Bin(building, term.Bin, rule), -term.Amount);
+            Touch(Bin(_world, building, term.Bin, rule), -term.Amount);
         }
 
         foreach (Term term in _world.Rules.Outputs(rule))
         {
-            Touch(Bin(building, term.Bin, rule), term.Amount);
+            Touch(Bin(_world, building, term.Bin, rule), term.Amount);
         }
 
         int applications = ceiling;
@@ -487,8 +495,7 @@ public sealed class RuleEngine
 
                 if (affordable < floor)
                 {
-                    return RuleVerdict.Stopped(
-                        instance, rule, bin, Blocking.Level, (floor * -delta) - level);
+                    return RuleVerdict.Stopped(instance, rule, bin, Blocking.Level);
                 }
             }
             else if (delta > 0)
@@ -498,8 +505,7 @@ public sealed class RuleEngine
 
                 if (affordable < floor)
                 {
-                    return RuleVerdict.Stopped(
-                        instance, rule, bin, Blocking.Headroom, (floor * delta) - headroom);
+                    return RuleVerdict.Stopped(instance, rule, bin, Blocking.Headroom);
                 }
             }
             else
@@ -602,8 +608,120 @@ public sealed class RuleEngine
         _world.Subscribe(
             _world.RuleInstances.Rows.At(verdict.Instance),
             _world.Bins.Rows.At(verdict.Bin),
-            verdict.Blocking,
-            verdict.Shortfall);
+            verdict.Blocking);
+    }
+
+    /// <summary>
+    /// What this Rule needs from one named Bin, in one direction, under the Ruleset in force.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Derived on demand rather than recorded when the waiter failed</b> (<c>adr/0063</c>). The
+    /// stored column this replaces was computed under the Ruleset in force at the moment of failure and
+    /// nothing ever re-derived it, so halving a Rule's input on a hot reload left the starving Building
+    /// as the one Building the edit never reached. Deriving it here makes a waiter's requirement a fact
+    /// about the world now, which is what <c>adr/0015</c>'s acceptance test needs on the shortage path.
+    /// </para>
+    /// <para>
+    /// <b>This is the engine's own arithmetic, exposed rather than restated.</b> It reuses
+    /// <see cref="Band"/> and <see cref="Bin"/>, and it yields <c>floor × |net delta|</c> — the
+    /// identical product <see cref="Check"/> compares against a level. Reimplementing affordability in
+    /// the caller would leave two spellings of atomicity that have to agree for ever, and the one that
+    /// drifts would be the one nothing exercises.
+    /// </para>
+    /// <para>
+    /// <b>It does not count.</b> <see cref="Check"/> increments <c>02 §4</c>'s evaluation counter,
+    /// which reaches the Census as a <em>flow</em> — read as a sum and a peak over the interval, and
+    /// drained by the reading. Calling <see cref="Check"/> from the drain or from a whole-world walk
+    /// would inflate that number with work no Rule evaluation did, so this derives the one Bin it was
+    /// asked about instead of evaluating the Rule.
+    /// </para>
+    /// <para>
+    /// <b>Net, because a Bin drawn from and returned to in equal measure bounds nothing</b> at any
+    /// apply count — the same reason <see cref="Check"/> skips a zero delta rather than treating it as
+    /// two constraints.
+    /// </para>
+    /// <para>
+    /// <b>Zero means <em>this Bin cannot block that way</em>, and both callers want that reading.</b> A
+    /// band of zero applications asks nothing of anything; a Bin the Rule only fills cannot be short of
+    /// level for it. A waiter in either state is on a list its own terms contradict — a mislabelled
+    /// subscription rather than a missed wake — and the honest response is to wake it and let Phase 2
+    /// resubscribe it correctly, which a requirement of zero produces at both call sites.
+    /// </para>
+    /// </remarks>
+    internal static int Requirement(World world, int instance, int binSlot, Blocking blocking)
+    {
+        RuleId rule = world.RuleInstances.Rule[instance];
+        RuleDefinition definition = world.Rules.Rule(rule);
+        int building = world.Buildings.Rows.Resolve(world.RuleInstances.Building[instance]);
+
+        (int floor, _) = Band(world, definition, building);
+
+        // Check reaches the same answer by `affordable < floor` being false for every non-negative
+        // affordable, and it is spelled out here because this method has no affordable to compare.
+        if (floor <= 0)
+        {
+            return 0;
+        }
+
+        int net = 0;
+
+        foreach (Term term in world.Rules.Inputs(rule))
+        {
+            if (Bin(world, building, term.Bin, rule) == binSlot)
+            {
+                net -= term.Amount;
+            }
+        }
+
+        foreach (Term term in world.Rules.Outputs(rule))
+        {
+            if (Bin(world, building, term.Bin, rule) == binSlot)
+            {
+                net += term.Amount;
+            }
+        }
+
+        if (blocking == Blocking.Level)
+        {
+            return net < 0 ? floor * -net : 0;
+        }
+
+        return net > 0 ? floor * net : 0;
+    }
+
+    /// <summary>
+    /// Whether the Bin a waiter named still blocks it, derived from the Bin's current state.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The same predicate <see cref="World"/>'s drain applies, asked after the fact</b>
+    /// (<c>adr/0063</c>). The drain wakes a waiter the moment the Bin can complete it; this asks
+    /// whether any waiter was left behind, and the two agree by sharing
+    /// <see cref="Requirement"/> rather than by two implementations being kept in step.
+    /// </para>
+    /// <para>
+    /// <b>One Bin, not the whole Rule, and that is the stronger check.</b> Asking <em>would this Rule
+    /// fire</em> misses a waiter asleep on a Bin that has stopped blocking it while a different Bin
+    /// blocks it now: the drain should have woken it, it would have re-checked, failed elsewhere and
+    /// <em>resubscribed to the Bin that actually blocks it</em>. Left where it is, a deposit to that
+    /// other Bin never reaches it, which is a livelock rather than a slow city.
+    /// </para>
+    /// </remarks>
+    internal static bool BinStillBlocks(World world, int instance, int binSlot, Blocking blocking)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        int requirement = Requirement(world, instance, binSlot, blocking);
+
+        if (requirement == 0)
+        {
+            return false;
+        }
+
+        return blocking == Blocking.Level
+            ? world.Bins.LevelAt(binSlot) < requirement
+            : world.Bins.HeadroomAt(binSlot) < requirement;
     }
 
     /// <summary>
@@ -630,14 +748,15 @@ public sealed class RuleEngine
     /// what the Rule decided, for the same reason a Bin that grew cannot.
     /// </para>
     /// </remarks>
-    private (int Floor, int Ceiling) Band(in RuleDefinition definition, int building)
+    private static (int Floor, int Ceiling) Band(
+        World world, in RuleDefinition definition, int building)
     {
         if (!definition.Apply.IsDerived)
         {
             return (definition.Apply.Min, definition.Apply.Max);
         }
 
-        int readout = Readouts.Read(_world, building, definition.Apply.Derived);
+        int readout = Readouts.Read(world, building, definition.Apply.Derived);
 
         // The percentage is 02 §4.1's own spelling: "one unit of money applied income × 15 / 100
         // times". Floor division, because a fraction of an application is not an application.
@@ -663,18 +782,18 @@ public sealed class RuleEngine
     /// for it.
     /// </para>
     /// </remarks>
-    private int Bin(int building, in BinRef reference, RuleId rule)
+    private static int Bin(World world, int building, in BinRef reference, RuleId rule)
     {
         switch (reference.Scope)
         {
             case Scope.Local:
-                int slot = _world.FindBin(building, reference.Resource);
+                int slot = world.FindBin(building, reference.Resource);
 
                 if (slot == Rows.NoSlot)
                 {
                     throw new InvalidOperationException(
                         $"rule {rule.Raw} names local Resource {reference.Resource.Raw}, and Building "
-                        + $"kind {_world.Buildings.Kind[building]} declares no Bin for it. The kind's "
+                        + $"kind {world.Buildings.Kind[building]} declares no Bin for it. The kind's "
                         + "Bin set and the Rules attached to it are stated in one file and could be "
                         + "checked against each other at load; no refusal does so yet.");
                 }

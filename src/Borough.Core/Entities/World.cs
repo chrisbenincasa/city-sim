@@ -1001,7 +1001,7 @@ public sealed class World
             amount <= Bins.HeadroomAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
 
         Bins.Move(slot, amount);
-        Drain(slot, Blocking.Level, amount, tick);
+        Drain(slot, Blocking.Level, tick);
     }
 
     /// <summary>
@@ -1023,17 +1023,23 @@ public sealed class World
             amount <= Bins.LevelAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
 
         Bins.Move(slot, -amount);
-        Drain(slot, Blocking.Headroom, amount, tick);
+        Drain(slot, Blocking.Headroom, tick);
     }
 
     /// <summary>
-    /// Puts a Rule Instance to sleep on the Bin that blocked it, carrying what it was short of.
+    /// Puts a Rule Instance to sleep on the Bin that blocked it, and in which direction.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>It does not re-arm, and that is the whole mechanism</b> (<c>02 §4.1</c>): a Rule that fails
     /// subscribes <em>instead of</em> retrying on a timer, so a starved District costs nothing at all
     /// until supply arrives. What wakes it is the mutator that writes the Bin.
+    /// </para>
+    /// <para>
+    /// <b>It records no quantity</b> (<c>adr/0063</c>). <em>Which</em> Bin and <em>why</em> are facts
+    /// about this row; <em>how much</em> is a question <see cref="Rules.RuleEngine.Requirement"/>
+    /// answers from the Bin and the Ruleset in force at the moment the drain asks it, which is what
+    /// keeps a waiter's requirement from being a fact about the Ruleset that has since been reloaded.
     /// </para>
     /// <para>
     /// <b>The caller must already have taken the row off the Wheel, and this cannot check it.</b>
@@ -1045,11 +1051,8 @@ public sealed class World
     /// invariant alone.
     /// </para>
     /// </remarks>
-    public void Subscribe(
-        Handle<RuleInstance> instance, Handle<Bin> bin, Blocking blocking, int shortfall)
+    public void Subscribe(Handle<RuleInstance> instance, Handle<Bin> bin, Blocking blocking)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(shortfall);
-
         if (blocking == Blocking.Nothing)
         {
             throw new ArgumentOutOfRangeException(
@@ -1064,7 +1067,6 @@ public sealed class World
 
         RuleInstances.WaitingOn[slot] = bin;
         RuleInstances.Blocked[slot] = blocking;
-        RuleInstances.Shortfall[slot] = shortfall;
 
         Waiters(blocking).Append(binSlot, slot);
     }
@@ -1135,38 +1137,69 @@ public sealed class World
         blocking == Blocking.Level ? LevelWaiters : HeadroomWaiters;
 
     /// <summary>
-    /// Wakes waiters from the head while the arriving quantity still covers their shortfalls.
+    /// Wakes waiters from the head while the Bin's own state can still complete them.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>From the head, and it stops rather than skips.</b> <c>02 §4.1</c>: <em>six flour arriving
-    /// wakes exactly the one bakery that needs six.</em> Skipping an uncovered waiter to reach a
-    /// smaller one behind it would starve every large waiter permanently; waking everybody instead
-    /// would push the whole list into Phase 2 and let the sorted settle order pick a winner that never
-    /// changes, which is the wait list being decorative.
+    /// <b>The budget is what the Bin holds, not what just arrived</b> (<c>adr/0063</c>). It read the
+    /// write's delta until then, which meant a requirement coarser than the granularity of supply was
+    /// never reached however much accumulated: a consumer short of three, fed by arrivals of one, slept
+    /// for ever against a Bin filling to its ceiling behind it. That is
+    /// <see cref="Invariant.WaiterIsBlockedByTheBinItNames"/>'s violation — <c>adr/0033</c>'s <em>no
+    /// Rule is asleep with all inputs satisfiable</em> — so the old predicate was not a policy this one
+    /// replaces but a state the corpus had already declared inadmissible.
     /// </para>
     /// <para>
-    /// <b>The budget is what arrived, not what the Bin now holds.</b> A shortfall was recorded against
-    /// the level at the moment of failure, so what decides whether it is covered is the change since —
-    /// and spending the budget down as waiters are woken is what lets six flour wake two bakeries
-    /// needing three each without also waking a third.
+    /// <b>The requirement is derived per waiter, and that is where this costs something.</b>
+    /// <see cref="Rules.RuleEngine.Requirement"/> is a partial <c>Check</c> — the band plus the term
+    /// walk for this one Bin — against a stored column that was one field read. The drain stops at the
+    /// first uncovered waiter, so the common case is <em>one</em> derivation per Bin write, and
+    /// <c>adr/0063</c> does not declare that affordable: the claim <em>it costs less than the Bin write
+    /// it accompanies</em> is measurable, unmeasured, and routed to <c>0002</c> §B.
+    /// </para>
+    /// <para>
+    /// <b>The spend-down is retained, and it is what bounds size bias.</b> Waking every subscriber
+    /// would let small waiters beat large ones on quantity — not on identity, since
+    /// <see cref="Rules.RuleEngine.Evaluate"/> keys Phase 3's order on a draw over
+    /// <c>(seed, instance, tick, purpose)</c> and no Building can hold a standing advantage. Deducting
+    /// each woken waiter's requirement means a budget of six against waiters needing six, four and two
+    /// wakes only the first. Stopping rather than skipping is the other half: skipping an uncovered
+    /// waiter to reach a smaller one behind it would starve every large waiter permanently.
+    /// </para>
+    /// <para>
+    /// <b>Servings stay atomic, and that is what preserves throughput rather than a conservatism.</b>
+    /// Three consumers each needing six against a supply of twelve: dividing each arrival gives four,
+    /// four and four — no firings and twelve units immobilised — where serving the head completely and
+    /// rotating gives two firings and immobilises nothing. <c>02 §4.1</c>'s gradient is evenness
+    /// <em>over time</em>, never within an arrival. Accumulating toward a threshold is a thing a
+    /// Ruleset may author, as an acquisition Rule feeding the consumer's own Bin.
     /// </para>
     /// </remarks>
-    private void Drain(int binSlot, Blocking blocking, int arriving, Ticks tick)
+    private void Drain(int binSlot, Blocking blocking, Ticks tick)
     {
         IndexList waiters = Waiters(blocking);
-        int remaining = arriving;
+
+        int remaining = blocking == Blocking.Level
+            ? Bins.LevelAt(binSlot)
+            : Bins.HeadroomAt(binSlot);
 
         while (true)
         {
             int head = waiters.PeekFront(binSlot);
 
-            if (head == Rows.NoSlot || RuleInstances.Shortfall[head] > remaining)
+            if (head == Rows.NoSlot)
             {
                 return;
             }
 
-            remaining -= RuleInstances.Shortfall[head];
+            int requirement = RuleEngine.Requirement(this, head, binSlot, blocking);
+
+            if (requirement > remaining)
+            {
+                return;
+            }
+
+            remaining -= requirement;
 
             waiters.PopFront(binSlot);
             Wake(head, tick);
@@ -1203,7 +1236,6 @@ public sealed class World
     {
         RuleInstances.Blocked[instanceSlot] = Blocking.Nothing;
         RuleInstances.WaitingOn[instanceSlot] = default;
-        RuleInstances.Shortfall[instanceSlot] = 0;
 
         Wheel.Arm(instanceSlot, tick, 1);
     }

@@ -462,7 +462,7 @@ these bugs are headless balance runs, millions of Ticks long, in **release**.
 |---|---|---|
 | **Per Tick** | every build | Only `O(1)` and `O(changed)` — no Bin negative or over capacity **at the write site**, parking occupancy conserved, no Trip without a Fate |
 | **Staggered** | every build, one slice per Tick | The `O(n)` sweeps, amortised the same way Sweep Rules are: Goods conserved, no Citizen in two places, every Household's home exists and lists them as an occupant |
-| **End of run** | headless suite | The whole-world walks: **money conserved** — the overflow detector `adr/0003` relies on — every cross-table handle valid, and *no Rule asleep with all its inputs satisfiable* |
+| **End of run** | headless suite | The whole-world walks: **money conserved** — the overflow detector `adr/0003` relies on — every cross-table handle valid, and *no Rule asleep with all its inputs satisfiable* — **the last of these was still unbuilt when this slice closed and stayed so until `adr/0063`; it is `WaiterIsBlockedByTheBinItNames`, and it found a live defect in the golden baseline the day it was registered** |
 
 Build the three registries and wire whatever exists. Most tiers will be nearly empty after this slice
 and that is correct; what matters is that the next mechanism has a tier to register into and cannot
