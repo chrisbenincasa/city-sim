@@ -151,7 +151,7 @@ path are still open, so do not write implementation code beyond the current slic
 
 ## The corpus, in numbers
 
-Roughly **28,000 lines of prose** — `docs/` design documents, 69 ADRs and `plans/` — against **~19,600
+Roughly **28,000 lines of prose** — `docs/` design documents, 72 ADRs and `plans/` — against **~19,600
 lines of simulation** and **~17,000 lines of tests**, plus a **33,000-line spike harness** awaiting
 deletion. The ratio is known, is on the board as a standing concern, and is why the board's rule is
 *an argument session runs when something concrete is blocked on it, never because it is available.*
@@ -355,7 +355,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **71** decision records, numbered to **`0072`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **72** decision records, numbered to **`0073`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
@@ -418,6 +418,24 @@ construction should fill a Building to capacity, a question that exists only bec
 placement step is unbuilt — and two ledger entries had already concluded that a **number** settled an
 equilibrium that a **mechanism** settles. **A design document is not a description of the build**, and
 where it could be read as one it says which parts exist.
+
+**A local workaround is not a discharge** (`adr/0073`). Not a fourth inference sibling — `0043`, `0052`
+and `0070` govern what a sitting may *conclude*, and this governs what a spike must *do with what it
+already found*, which puts it beside `adr/0042`. **When a spike measures something and the cause lies in
+code the spike does not own** — `Borough.Core`, the arithmetic substrate, a Ruleset, an analyser —
+**route the finding to that code or to a named document with an owner, on the day, and before working
+around it.** The order is the rule: the filing survives, the workaround makes the spike runnable, and
+doing the workaround first is how the filing stops feeling necessary. Route by class exactly as
+`adr/0070` routes absences: a **defect** → fix it there or `0003`; a **cost** → `0013`; a **question** →
+`0002`; a **document now wrong** → `0012`. *"Worth recording beyond this spike"* is not a fifth class.
+Why it exists: S2 R2 found `IntegerMath.FloorDiv` doing an unnecessary modulo, measured it at *most of*
+231 ns an expansion, hoisted it out of its own loop, and left the substrate defective for S5 — which met
+it in a kernel that cannot hoist, measured **1.50×**, and published a tripwire against `adr/0016`. **A
+local workaround removes the finder's own exposure, and with it the only pressure that would have fixed
+the source**, so the defect survived *because* a competent author fixed his own problem. Both spikes
+blamed a design commitment they happened to be exercising; the actual fix was **reordering two operands
+of an `&&`**. Corollary worth holding on its own: **a cost measured while exercising a decision is not
+thereby a cost of that decision** — read the primitive in the inner loop before writing the sentence.
 
 **Every significant decision cites a guiding concept** from `CONTEXT.md`'s tag table —
 `EMERGENCE`, `LEGIBLE CAUSE`, `UNIQUE INDIVIDUALS`, `BOUNDED KNOWLEDGE`,

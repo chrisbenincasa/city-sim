@@ -7002,6 +7002,16 @@ stated destiny is deletion. **A finding about shared infrastructure, made inside
 reach the infrastructure** — the spike's own instinct was right and its follow-through had nowhere to
 go, because *"worth recording beyond this spike"* names no document, no owner and no trigger.
 
+**That is now [`adr/0073`](adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)**,
+which adds the sharpest part of the diagnosis: **both spikes attributed the cost to a design commitment
+they happened to be exercising** — S2 to the time-valued cost function, S5 to `adr/0003`'s integer
+arithmetic, each a real decision with a real ADR — and **neither wrote *`FloorDiv` is doing a modulo it
+does not need*.** A spike exists to price a commitment, so the commitment is the nearest available
+explanation for any cost it meets while exercising one, and it is *plausible*, which is what makes it
+dangerous. The ADR also records what the local fix cost: S2's hoist gives up about **two parts in ten
+thousand** of heuristic tightness, a sound trade against a hardware division and a poor one against
+reordering two operands — and S2 could not have known which trade it was making.
+
 ### The tripwire, scored
 
 | # | Condition | Reading | Fired? |

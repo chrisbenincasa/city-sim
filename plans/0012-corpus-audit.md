@@ -86,6 +86,25 @@ a reader to open `adr/0015`. Session A closed `adr/0015` and produced `adr/0048`
 > catches none of these, and should not be extended to try. What catches them is the habit tasks 3–5
 > arrived at independently and `adr/0070` now states: **before recording that something does not exist,
 > name the file you looked in.**
+>
+> ---
+>
+> **A third form, found 2026-08-11: a fact with exactly one copy, in the wrong artefact.** It behaves
+> like no copy at all, because the artefact is invisible to every reader who is not already inside it.
+> S2 R2 measured a defect in `IntegerMath.FloorDiv` — *"four 64-bit hardware divisions per node … most
+> of the denominator"* — wrote ***"Worth recording beyond this spike"***, worked around it locally, and
+> recorded it nowhere but `spikes/S2.Routing/Routing/Heuristic.cs`, **a file whose stated destiny is
+> deletion**. S5 met the same defect three rounds later in a kernel that cannot work around it, and
+> published a tripwire against `adr/0016` blaming `adr/0003`.
+>
+> **The mechanism is new and it is not drift, absence or neglect: a local workaround removes the
+> finder's own exposure, and with it the only pressure that would have fixed the source.** The defect
+> survived *because* it was found by a competent author who fixed his own problem. Now a rule:
+> [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+> — **a local workaround is not a discharge**. It is not a fourth inference sibling; it governs what a
+> spike must *do* with a finding rather than what a sitting may *conclude*, which puts it next to
+> `adr/0042`. The habit it states is the counterpart of `adr/0070`'s: **before working around something
+> you do not own, name the document the finding goes to.**
 
 ### Cause 2 — ADRs issue writes to other documents and the writes do not all land
 
