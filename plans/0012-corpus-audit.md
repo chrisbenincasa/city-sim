@@ -23,10 +23,14 @@ enumerates lives in the binary*.
 
 ---
 
-## The diagnosis, which is two things and not one
+## The diagnosis, which is two things and not one — **and a third was added later**
 
 The sweep expected one failure mode and found two. They want different answers, and conflating them
 is why *"tidy the documents"* has never worked as an instruction.
+
+**Cause 3 was added on 2026-08-11 and was not found by the sweep**, which is itself worth noting: it
+was found by a spike round tripping over it. The sweep reads documents against each other and catches
+facts that disagree; Cause 3's documents **all agree**, and all three are wrong together.
 
 ### Cause 1 — status is stored in three places that disagree
 
@@ -96,6 +100,32 @@ same mechanism.
 The failure has a cheap mechanical tell that nobody was looking for: **`adr/0049` is cited by no
 document at all.** Not `CONTEXT.md`, not `docs/02`–`06`, not `plans/`, not `src/`. A decision with no
 inbound citation is a decision that governs nothing, and that is greppable.
+
+### Cause 3 — a blocked item cites a gate and then never re-reads it
+
+**Added 2026-08-11, by S2 R7, which found itself blocked on two gates that had both already cleared.**
+
+`plans/0010`'s R7 said deleting the 33,000-line S2 harness was *"not available"* because R6's
+invalidation half was gated on session **M**, and because R6.3 had put a second question in front of
+it. Session M ran and shipped that contract as an amendment to `adr/0012`. R6.3's question closed in
+session **D** task 1 into `adr/0061`. **Neither clearance reached S2's plan, `spike-results`'s S2
+section, or the board** — so three documents went on reporting a block that had stopped existing, and
+the last thing standing between a spike and closure was nothing at all.
+
+**This is not Cause 1 and it is not Cause 2.** Cause 1 is one fact stored twice, drifting; the repair
+is *one copy, or a check*. Cause 2 is a write that did not land; the tell is a decision with no inbound
+citation. **This is a read that was never repeated.** The blocked item was correct when written, cites
+its gate honestly, and needs no edit to become wrong — the world moves and the sentence stands still.
+It is the cheapest kind to write and the most expensive to catch, because **an item that names its gate
+looks rigorous**; the rigour is what stops you checking it.
+
+*A duplicated fact drifts, and a cited gate rots.* The difference matters for the repair: nothing about
+the blocked item's own text can fix this, because the text is not what went stale. **The check has to
+run the other way** — when a session or a spike round closes, sweep for documents citing it *as a gate*,
+which is greppable in the same way `adr/0049`'s orphaning was. R7's earlier repair to its own owed-list
+— *each entry carries its state explicitly, so "present" stops meaning "open"* — is Cause 1's medicine
+and does nothing here: the entry's state was recorded, and the state was `blocked`, and that was true of
+the entry and false of the world.
 
 ---
 
@@ -211,7 +241,7 @@ been the wrong repair — the pointer is not wrong about the past, it was only e
       pass. `04 §8` is the known instance: it listed a question `adr/0024` closed **in the document the
       ADR is about**
 
-- [ ] **`0002`'s *path source* row is closed by [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)
+- [x] **`0002`'s *path source* row is closed by [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)
       and still sits in the live ledger as session **M**'s — NEW, found by S2 R6.** The row reads *"a
       maintained table is wrong structurally — 16.58% detour uniform, 149.73% local, and it does not
       move across a storm deleting 1,021 Segments"*, and `adr/0047`'s own table carries **those three
@@ -222,7 +252,21 @@ been the wrong repair — the pointer is not wrong about the past, it was only e
       not gated on it. **This is `0000`'s own diagnostic — *a gate whose stated reason covers only
       part of what it blocks* — landing on a spike row rather than a slice row**, which is the third
       instance after `adr/0003`'s split debt and `06`'s ordering. Fix: strike the row from `0002`'s
-      ledger, and narrow `0000`'s *R6 gated on session M* to the invalidation half
+      ledger, and narrow `0000`'s *R6 gated on session M* to the invalidation half.
+      **PAID 2026-08-11.** Clause 1 was struck (`0002` §A, and the body archived). Clause 2 is
+      **superseded rather than done**: there is nothing left to narrow the gate *to*, because the whole
+      gate has since cleared — session M shipped the contract into `adr/0012`, R6.3's question closed
+      into `adr/0061`, and **nobody told S2**. That is **Cause 3**, which this item is the near miss of:
+      it caught the gate being *wider than its reason* and did not think to ask whether the reason still
+      held
+
+- [ ] **Run check 4 across the corpus once, and again whenever a session or spike round closes — NEW,
+      2026-08-11, and it is Cause 3's only repair.** The one-off pass has been run and S2 was its sole
+      casualty, but *once* is not the deliverable: the failure is generated by **closing** something, so
+      the sweep belongs to the closing act. Cheapest home is the board's *Done* tables, which already
+      list every closed session and round — the check is to grep the corpus for each of those names in
+      a blocking construction. **It does not need to be automated to be worth writing down**, but it
+      does need an owner, and the natural one is whoever strikes a row in *Done*
 
 - [ ] **`0000` and `docs/spike-results.md` both quote R5.5's *16 against 416* — NEW, found by S2 R6.**
       The 16 sums **four** cache rungs where the 416 is **one** control rung, so the comparison never
@@ -605,5 +649,15 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    prevent. The enumeration is four items long, so the check is cheap; `Borough.Analysers` is the
    natural home if it wants teeth.
 
+4. **Nothing is blocked on a session or a spike round that has closed.** Cause 3's check, and it is
+   greppable in the same way check 1 is: the blocking documents write the gate down — *"gated on
+   session **M**"*, *"blocked on **S1**"* — and the board's *Done* tables say which sessions and rounds
+   have closed. Cross them. Unlike checks 1–3 this one has **no false-negative cost worth managing**:
+   the corpus's whole set of gates is small enough to enumerate, and the failure it catches is a piece
+   of work sitting available and unnoticed for an unbounded time. **It would have fired on S2 the day
+   session M closed.**
+
 Neither is a substitute for the restructure. A check over three tables that disagree only tells you
-they disagree; the point of thinning is that there is one place to be right.
+they disagree; the point of thinning is that there is one place to be right. **Check 4 is the exception
+to that sentence** — thinning cannot help it, because its documents do not disagree with each other.
+They agree, and they are all stale against a third thing neither of them stores.

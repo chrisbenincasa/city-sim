@@ -1418,14 +1418,48 @@ of whichever O-D draw was used and the absolute is a property of the graph.*
 > **11.66×** for 24% more bytes, and **23.96×** on the monocentric draw, which is R8.0's concentration
 > showing up in the index. **If one is ever built, it is doubly linked.**
 
-### R7. The report, and the verdict — **IN PROGRESS**
+### R7. The report, and the verdict — **the tail closed 2026-08-11; one act left**
 
 Into `docs/spike-results.md`, in the form S4 established: the machine, the numbers, and — separately —
 **the decision each produced.** A spike that records data and no verdict has not finished.
 
-~~Then delete `spikes/S2.Routing/` and record the deleting commit's parent.~~ **Not available.** R6's
-invalidation half is gated on session **M**, typed *arguable* under `adr/0043`, so no measurement
-closes it and the harness stays. Deleting it is R7's last act and it is **not owed yet**.
+Then delete `spikes/S2.Routing/` and record the deleting commit's parent.
+
+> **⚠ HOLD, 2026-08-11 — do not delete it yet, and the reason is new rather than a re-litigation of
+> the old one.** The harness is not only a record of measurements; `Graph/` is the **reference
+> implementation of the thing milestone 5a has to build** — a directed CSR Road Graph with the mode
+> mask on the *arc*, the `(saved AND hashed)` / `(derived AND rebuilt)` split marked per column, the
+> generator that realises `adr/0014`'s grid-plus-Arterials with real severance, and `Matrix/Connectivity.cs`,
+> which is exactly the component test the District Pool's membership needs. That is ~1,600 lines that
+> eight rounds of measurement have already beaten on.
+>
+> **Deleting it before the port is not lossy in the git sense and is lossy in the working sense**: the
+> next person to build the graph would be reading it out of a deleted tree rather than out of `src/`.
+> **The deletion moves to the end of the Road Graph slice**, where it becomes *the port is done and the
+> harness has no reader left* — a stronger closing condition than *the report is written*.
+>
+> Nothing about R7's verdict changes. This is a sequencing hold on one act, recorded here because
+> [`0000`](0000-board.md) row 4 reads as available and, on its own wording, is.
+
+> ~~**Not available.** R6's invalidation half is gated on session **M**, typed *arguable* under
+> `adr/0043`, so no measurement closes it and the harness stays. Deleting it is R7's last act and it is
+> **not owed yet**.~~
+>
+> **⚠ WITHDRAWN 2026-08-11 — both gates had already cleared, and neither clearance reached this
+> document.** Session **M** ran and shipped the invalidation contract as an amendment to
+> [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md); the question R6.3 put *in front*
+> of it — *what does a diverting Traveller do about its route?* — closed in session **D** task 1 into
+> [`adr/0061`](../docs/adr/0061-a-diversion-rejoins-by-local-descent-and-a-rejoin-is-never-a-search.md).
+> R6.4 has run, all three sub-tasks, and every one of R7's seven owed items above is DONE or NOT OWED.
+> **Deleting the harness is available, and it is the only thing left of S2.**
+>
+> **This is `plans/0012` *Cause 1* on a new axis, and it is the axis that costs the most.** The repair
+> R7 made to the owed-list two paragraphs above was *each entry carries its state explicitly, so
+> present stops meaning open* — and it was not enough, because **the stale thing here is not an entry's
+> state but a gate's**. A blocked item records the gate it waits on and then never re-reads it; the
+> gate closes in the document that owns it, and the blocked item stays blocked for ever because nothing
+> walks the news back. **A duplicated fact drifts, and a cited gate rots** — the second needs the
+> citation checked at the moment the item is read, which is what an explicit state cannot do for you.
 
 **Done so far:** the re-pinned re-capture of R0/R0d/R1/R3/R4 and the one conclusion it moved (R3's
 break-even 85 → **112**, and the 8-versus-16 query advantage 1.31× → **1.61×**, which shifts the
@@ -1538,7 +1572,7 @@ explicitly rather than by being present, so *present* stops meaning *open*.
 | 4 | **One sentence each** on the three R8 results measured on the tree `adr/0047` deleted | ~~owed~~ **DONE 2026-08-11.** See below — **the three do not share a sign**, and the clause about `plans/0002` §D keeping the word *RATIFIED* was **already moot when it was actioned** |
 | 5 | Re-verify the absolutes R0–R4 publish | ~~open~~ **DONE 2026-08-11.** R3's disclaimer is **split, not lifted**: cache-resident absolutes reproduce to **±5% across six captures and both governors**; past L3 they span **1.61×–1.77×** and keep it. **The axis is co-tenant load, not the governor** — a `powersave` run on an idle box beat a `performance` run on a busy one — and **no capture filename records load**. Row 2's published `1.20`/`5.37 ns` turn out to be quoted from a `powersave` capture; the canonical readings are `1.17`/`5.25 ns`. **Verdict unmoved: the wire's worst reading ever is 0.59× of K2** |
 | 6 | **Row 5 of the tripwire** — *the route cache grows at steady state* | **NOT S2's, and this entry was the wrong owner.** `spike-results` has said so since the wire was scored — it *"wants a run with a sink and elapsed time in it, and that is Phase 2's"* — while this list carried it as R7's. Two documents, one item, two owners. **Re-filed to Phase 2**, and the wire row itself is now annotated so a reader of the table sees it |
-| 7 | The harness's deletion | **NOT OWED**, and never was by this list — the paragraph opening this section already says so. Its presence here was the defect, not the item |
+| 7 | The harness's deletion | ~~**NOT OWED**, and never was by this list — the paragraph opening this section already says so. Its presence here was the defect, not the item.~~ **REINSTATED the same day, and the entry was right for the wrong reason.** It does not belong to *this* list, which reconciles R7's report — but it is **owed**, and it became owed when session **M** and session **D** cleared its two gates in documents that never told this one. **The defect was the paragraph, not the entry**: see the withdrawal above |
 
 **What item 4 turned out to be, and it is worth more than the three sentences.** Filed as *three
 instances of one defect*, it is three instances of one **cause** with **three different signs**.

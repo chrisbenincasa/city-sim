@@ -1636,7 +1636,7 @@ harness is scheduled for deletion in task 11, and the raw captures are what surv
 
 ## S2 — the routing ceiling
 
-**R0 through R8 of [`plans/0010`](../plans/0010-s2-routing.md) are done, less R6's invalidation half.**
+**R0 through R8 of [`plans/0010`](../plans/0010-s2-routing.md) are done, and so is R7's tail.**
 R0: the synthetic Road Graph, the road density a 268 km² city implies, the uncached point-to-point
 denominator, and the heuristic ladder's verdict on admissibility. R1: the travel-time matrix, **and it
 carries the choice loop** — the finding R4 was made conditional on. R2: the path source, which revived
@@ -1644,10 +1644,16 @@ the task it was meant to retire. R3: HPA\* and the cluster it owns. R4: distance
 R5: the edit storm, the Parking Shed, and the TTL rotation. R6.0–R6.3: the key, the eviction policy,
 and the two consumers multiplied. R8: the congestion loop and `adr/0046`'s three layers.
 
-**R7 is this section's closing report and it is in progress.** What it cannot do is **close the
-spike**: R6's remaining half is the route cache's *invalidation contract*, which is session **M**'s and
-is typed *arguable* under `adr/0043` — no measurement settles it. So `spikes/S2.Routing/` is **not
-deleted**, and the deleting commit is not recorded here yet.
+**R7 is this section's closing report, and its tail closed on 2026-08-11.** `spikes/S2.Routing/` is
+still on disk and the deleting commit is not recorded here yet — but **the reason this section gave for
+that is withdrawn**.
+
+> ~~What R7 cannot do is **close the spike**: R6's remaining half is the route cache's *invalidation
+> contract*, which is session **M**'s and is typed *arguable* under `adr/0043` — no measurement settles
+> it.~~ **WITHDRAWN 2026-08-11.** Session **M** ran and shipped that contract as an amendment to
+> `adr/0012`, and the question R6.3 put in front of it closed in session **D** task 1 into `adr/0061`.
+> **Both gates cleared in the documents that own them, and neither clearance reached S2's plan or this
+> section.** Deleting the harness is available; it is the only thing left of S2.
 
 ~~Raw captures in `spikes/S2.Routing/results/`; both sections are owed a rewrite by R7~~ — raw captures
 are still in `spikes/S2.Routing/results/`, and **the rewrite is owed over every section rather than
@@ -6282,9 +6288,15 @@ machine: re-measuring it under this load would raise it too, and widen the margi
   The clause about *RATIFIED* was **already moot when it was actioned** — `plans/0002` §D withdrew the
   ratification on 2026-08-10 on a stronger and unrelated ground — which is the third time in this list
   that an owed item outlived the state of the thing it was owed against.
-- **S2 cannot close.** R6's invalidation half is gated on session **M**, which `adr/0043` types
+- ~~**S2 cannot close.** R6's invalidation half is gated on session **M**, which `adr/0043` types
   *arguable* — no measurement settles it — and R6.3 has since put a second question in front of it.
-  The harness therefore stays; deleting it is R7's last act and it is not owed yet.
+  The harness therefore stays; deleting it is R7's last act and it is not owed yet.~~ **WITHDRAWN
+  2026-08-11 — S2 can close, and had been able to for some time.** Both gates cleared elsewhere:
+  session **M** shipped the invalidation contract into `adr/0012`, and R6.3's question closed in
+  session **D** task 1 into `adr/0061`. **Neither clearance reached S2's plan or this section**, so
+  three documents went on reporting a block that no longer existed. *A duplicated fact drifts; a cited
+  gate rots* — and the second is worse, because the item looks correctly cautious right up until you
+  check the gate.
 
 ---
 

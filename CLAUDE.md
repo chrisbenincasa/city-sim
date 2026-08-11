@@ -81,9 +81,14 @@ every hash moved, every test passed, and half the mechanism went uncovered. **A 
 run *did*, so a change that narrows what the run *reaches* is invisible in it by construction.** The
 session is now 2,048 Ticks and a test asserts both branches ran.
 
-**Spikes:** S4, **S0a**, **S0b** and S2 R0–R8 have all run; what remains of S2 is R7's tail (a
-`performance` capture that needs root, plus bookkeeping) and it is what blocks deleting a 33,000-line
-harness. **Sessions A, B, C, M, eight and nine are closed.**
+**Spikes:** S4, **S0a**, **S0b** and S2 R0–R8 have all run, and **R7's tail closed 2026-08-11** — the
+root `performance` capture, a canonical R8 re-capture, and the bookkeeping. The only act left of S2 is
+**deleting its 33,000-line harness**, and R7 found the two gates holding it — session **M**'s
+invalidation contract and the question R6.3 put in front of it — **both cleared elsewhere**, into
+`adr/0012` and `adr/0061`, without either clearance reaching S2's plan. **That deletion is now ⚠ ON
+HOLD (2026-08-11)**: `spikes/S2.Routing/Graph/` is the **reference implementation of milestone 5a**,
+so the deletion moves to the end of the Road Graph slice and its closing condition becomes *the port
+is done and nothing reads the harness*. **Sessions A, B, C, M, D, eight and nine are closed.**
 
 **What runs today.** Typed tables with a per-field saved/derived declaration and a State Hash; a
 deterministic eight-phase Tick; an Input Log that replays to identical hashes; a crash artifact that
@@ -328,7 +333,7 @@ unless asked.
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
 | `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0018` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015` and `0014` (task 11) are both closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped** |
+| `plans/0004`–`0020` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015` and `0014` (task 11) are both closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped**. **`0019` is S5's**, the Lane kernel — run, two tripwires fired, **nothing published**. **`0020` is the Road Graph (`06` milestone 5a) and is the first Phase 2 slice brief** — not started; it is the document that found no session gates 5a |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8, **S0a and S0b** have all run |
