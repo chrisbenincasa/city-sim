@@ -102,6 +102,35 @@ internal static class Heuristic
     /// the SC4 argument, and this is the first measurement of what that commitment costs in the inner
     /// loop. The answer is *nothing, if you invert once per query, and a great deal if you do not*.
     /// </para>
+    /// <para>
+    /// <b>⚠ CORRECTED 2026-08-11, and the paragraph above is where this went wrong.</b> It was
+    /// recorded nowhere beyond this spike, and the diagnosis it states is the wrong one. The cost was
+    /// <b>not</b> the price of routing on time. <c>IntegerMath.FloorDiv</c> was evaluating its modulo
+    /// <i>unconditionally</i> — it sat as the left operand of an <c>&amp;&amp;</c> whose right operand
+    /// is a sign comparison — so every <c>Fixed.Div</c> in the project was two hardware divisions
+    /// where one would do. S5 met the same defect in a Lane kernel that <b>cannot</b> hoist, because
+    /// its divisors are a per-driver desired speed and a per-Tick gap; measured <b>1.50×</b>; and
+    /// published a tripwire against <c>adr/0016</c> blaming <c>adr/0003</c>'s integer arithmetic. The
+    /// fix is <b>reordering two operands</b>, is bit-identical by construction, and moved no State
+    /// Hash. <b>A cost measured while exercising a decision is not thereby a cost of that decision</b>
+    /// — both spikes blamed the commitment they happened to be pricing.
+    /// </para>
+    /// <para>
+    /// <b>The hoist below is a workaround for a defect that no longer exists, and it is not free.</b>
+    /// It gives up about two parts in ten thousand of tightness (previous paragraph), which was a
+    /// sound trade against a hardware division and a poor one against reordering two operands. <b>It
+    /// is now buyable back</b>: with the substrate fixed, <c>Fixed.Div</c> in the inner loop costs one
+    /// division rather than four, and whether that beats the multiply is a measurement this spike
+    /// would have to re-run. Do not remove the hoist on this note alone — <i>re-run the ladder</i>.
+    /// </para>
+    /// <para>
+    /// <b>The rule this file's history produced:</b>
+    /// <c>adr/0073</c> — <i>a local workaround is not a discharge, and a finding about shared code
+    /// must reach the shared code</i>. Filed to <c>docs/spike-results.md</c> → S5 → L5 and to
+    /// <c>plans/0012</c> → <i>Cause 1</i>, third form. The failure was not the workaround, which was
+    /// correct; it was that <i>"worth recording beyond this spike"</i> names no document, no owner and
+    /// no trigger, in a harness whose stated destiny is deletion.
+    /// </para>
     /// </remarks>
     public static int TicksPerTile(Modes mode) => Fixed.Div(Fixed.One, MaximumSpeed(mode));
 
