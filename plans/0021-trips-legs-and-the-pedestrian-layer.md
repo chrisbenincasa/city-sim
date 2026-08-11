@@ -265,9 +265,16 @@ shops*.
 **1. Access Points.** Every Building gets a pedestrian and a vehicle Access Point as
 `(Handle<RoadSegment>, offset)`. Saved and hashed — a Building's front door is a property of the city,
 not a cache. The offset makes this the query shape `CONTEXT.md` says *"everything downstream must be
-measured on"*, so getting it wrong here mis-measures 5c and 8 as well. **The Lot subdivider does not
-exist** (it is 5a-bis, [`0020`](0020-the-road-graph.md) → *What this excludes*), so the assignment is
-nearest-Segment-by-construction and says so in a docstring.
+measured on"*, so getting it wrong here mis-measures 5c and 8 as well.
+
+**⚠ This task's shape depends on whether 5a-bis has landed, and it should have.**
+[`0022`](0022-the-lot-subdivider-and-build-road.md) is **ungated and available now**, while this slice
+waits on session F — so the natural order is 5a-bis first. It produces **frontage**, and `CONTEXT.md` →
+Frontage puts the Access Point downstream of it: *"subdividing consumes frontage — narrow terraced Lots
+eat the available street edge to **buy one Access Point each**."* Run in that order, this task inherits
+real Access Points and the walk Leg's origin stops being a placeholder. Run without it, the assignment is
+nearest-Segment-by-construction and must say so in a docstring — every Access Point it invents is one the
+subdivider would have derived.
 
 **2. `Trip` and `Leg` tables.** `Borough.Core` — namespace is F's to name, since F names the Leg. A Trip
 carries origin and destination Access Points, a purpose, a Leg **head index**, and a Fate; a Leg carries

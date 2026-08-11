@@ -1,0 +1,272 @@
+# 0022 — The Lot subdivider and `build_road` (5a-bis)
+
+> The slice brief for **5a-bis**, the follow-on [`0020`](0020-the-road-graph.md) scoped and named and
+> which nothing then scheduled. It has **no milestone in [`06`](../docs/06-roadmap.md)** and it is not in
+> that document's *Mechanisms with no milestone* table either — [`0012`](0012-corpus-audit.md) flags the
+> gap and this brief is half of what closes it.
+> Decisions built: [`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md) (the frontage
+> rule), [`adr/0025`](../docs/adr/0025-density-is-a-cap-and-it-trades-land-for-materials.md) (the
+> subdivide/stack trade), [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md) (the Epoch,
+> finally driven), [`adr/0039`](../docs/adr/0039-the-text-formats-are-a-fifth-project-not-a-core-exception.md) (the log format).
+> Design realised: [`02 §2.2`](../docs/02-simulation-model.md), `CONTEXT.md` → Frontage, Lot, Access Point.
+>
+> **This is a planning document and therefore cites rather than owns**
+> ([`adr/0042`](../docs/adr/0042-a-planning-document-cites-and-a-design-document-owns.md)). Every figure
+> below names its owner. If this document and its owner disagree, the owner is right.
+
+## Status
+
+**NOT STARTED. Ungated, and available now.** Nothing in the argument track names it, its two design
+inputs (`02 §2.2` and `adr/0014`) are settled and detailed, and milestone 5a shipped the Street network
+it was waiting for. **It went on [`0000`](0000-board.md) as *Do these next* row 6 on 2026-08-11** — until
+that day it existed only as prose inside a closed slice's *What this excludes* section, which is a
+reasonable place to record a decision and a poor place to keep a task.
+
+**It does not contend with session F**, which is the other available row, and 5b wants it done first —
+see *What 5b inherits from this* below.
+
+---
+
+## Why this slice, and why now
+
+**Three claims in the corpus are currently true by accident, and 5a shipping is what made two of them
+false.**
+
+**1. *Every Building is on the Road Graph by construction* — true because there was no Road Graph.**
+`02 §2.2` records the admission in its own text, and `0012` restates the general form: *"a precondition
+stated in a design document is a hypothesis about the build until something enforces it. **Nothing has
+ever refused a Lot for want of frontage.**"* This is not a tidy-up. `CONTEXT.md` → Frontage leans on that
+claim to **delete the utility network entirely** — *"because every Lot has frontage by construction,
+every Building is on the Road Graph, which is what lets Utilities ride it with no second network to
+draw."* A load-bearing simplification is resting on a vacuous truth, and as of 5a the truth is no longer
+even vacuous: there is a Road Graph now, and nothing connects Lots to it.
+
+**2. `adr/0025` rejected a road-derived density cap on the ground that the simulation teaches the lesson
+instead — and the mechanism that teaches it is this one.** The ADR is emphatic: *"a road-derived cap
+would **pre-empt the lesson the engine exists to teach**"*, and *"a player who draws sparse streets does
+not get a refusal — they get **dead block interiors** and a funnel through one Access Point, and both of
+those are consequences that explain themselves."* Today the player gets **neither the refusal nor the
+lesson**, because block interiors do not exist: a Lot is painted wherever the `zone` command names, and
+frontage is not consulted. `02 §2.2` calls this out as the design's whole point — *"this is how bad
+street layouts punish the player **mechanically** rather than through a penalty number."* `LEGIBLE CAUSE`
+is doing no work at all until the subdivider does.
+
+**3. The Epoch has never been driven by anything a player did.** 5a task 3 built `adr/0012`'s per-Segment
+invalidation contract — the mechanism every later consumer inherits, and the one S2 R5 measured at 96%
+retention against a single counter's 9%. But the generator runs at world creation and **nothing in a
+running world edits the graph**, so the Epoch is exercised by unit tests and by nothing else. `adr/0012`'s
+contract is about *road addition* specifically — *"a stored route may be wrong about a Segment that was
+**added**"* — and **the project has never added one after startup.** Putting road edits in the Input Log
+is what makes replay drive the Epoch, which is the only way it meets the determinism harness rather than
+a hand-written fixture.
+
+**And the two halves are one slice for a mechanical reason, not for convenience.** `02 §2.2`'s last line:
+*"Re-subdivision happens when the street network changes, and must preserve existing Buildings — only
+vacant land re-parcels."* The subdivider needs an edit signal; the edit signal is the Epoch; the Epoch
+needs an editor. **Neither half is testable alone**, and a subdivider that only ever runs once is a
+subdivider whose hardest requirement is never exercised.
+
+**Why it is not part of 5a.** [`0020`](0020-the-road-graph.md) took the decision and gave the reason: 5a
+retires a risk about *the graph's uniformity* and this retires a different one about *Lots being honest*;
+folding them doubles the slice and couples two acceptance tests that fail for unrelated reasons. It also
+recorded that `Simulation.cs:311` already states the trade correctly — *"painting a **region** of Lots
+would stand in for more of 5a than painting one does, and every Lot it invented would be one the real
+subdivider would have refused."*
+
+**`0012` carries two unchecked boxes this slice discharges** — `06` owes the mechanism a home, and
+`02 §2.2` owes the same *this does not exist yet* note that `rulesets/minimal.toml` gave its own
+emptiness. The sibling entry immediately below them in that file, `02 §5.2` step 2, was *"the Lot
+subdivider entry above wearing a different mechanism — settled design, specified in full, owned by
+nobody"*, and it was closed by building it (`adr/0069`). Same shape, same remedy.
+
+---
+
+## What this slice is
+
+**Lots that a street layout can refuse, and a player who can move the streets.**
+
+| In | Why |
+|---|---|
+| **Frontage**, derived from the Road Graph per Lot | `CONTEXT.md` → Frontage: *"the geometric precondition for a Lot existing at all"* |
+| A **subdivider**: zoned land → parcels with frontage, land without it left unlotted | `02 §2.2`; it replaces `LotTable.Create`'s one-per-command painting |
+| **Re-subdivision on the Epoch**, preserving standing Buildings | `02 §2.2`; and it is what exercises `adr/0012` |
+| `CommandKind.Connect` — **applied**, not thrown | `01 §2`'s fifth verb; `Simulation.cs:332` |
+| Road edits in the **Input Log**, so replay drives them | `adr/0039`; the Epoch's only honest test |
+| A **vacancy reason** of *no frontage* | `CONTEXT.md` → Frontage: *"one of the four reasons a Lot is vacant"* |
+| `--zones` showing dead block interiors | `06` rule 2: something to *look at*, and it is the whole point |
+| Invariants, hash coverage, a long run | The definition of done |
+
+| Out | Owner |
+|---|---|
+| Trips, Legs, Access Point **consumers** | 5b, and it is gated on session F |
+| Routing, the travel-time matrix | 5c |
+| The `pool` scope | Blocked on conserved Money and prices, which have no milestone — **not on this** |
+| Terraforming, procedural terrain | `adr/0021`, unmilestoned |
+| The Junction piece **library** as content | `adr/0014` — *"content with three faces each"*; this slice needs the topology fragment, not the meshes |
+| Density bands as gameplay | `adr/0025`; this slice supplies the frontage arithmetic its trade rests on and no bands |
+
+---
+
+## Tasks
+
+**1. Frontage, derived and rebuilt.** A Lot's contact with a Street it can take access from. **Derived**,
+on the Epoch — a Lot does not save its frontage any more than an Arc saves its cost, because both are
+functions of the Segments. `adr/0014`'s asymmetry is the whole rule and it is already in the graph: only
+Streets grant frontage, **Arterials grant none**, and `RoadKind` distinguishes them. `CONTEXT.md` is
+explicit that this is arithmetic and not policy — *"**frontage is arithmetic, not a rule.** Block
+geometry decides how much land is in a parcel and whether it touches a street at all."*
+
+**2. The subdivider.** Zoned land carved against the Street network into parcels. `02 §2.2` gives three
+rules and this slice builds all three: frontage on at least one Street; depth and width targets varying
+by density band, *"and the subdivider fits what it can"*; and **land that cannot be given frontage stays
+unlotted and undevelopable.** The third is the one that matters and the one to write the test against.
+
+**⚠ This replaces the `zone` verb's meaning, and it is the largest hash-moving change since the Ruleset
+arrived.** `Simulation.cs:321` currently creates exactly one Lot at the command's coordinates;
+`SyntheticCity.cs:126` creates a grid of them. Both become callers of the subdivider, both baselines
+re-record, and `--zones` starts printing a different city. Budget the re-record, and read slice 10 task
+11's warning first: **a baseline records what a run *did*, so assert that the refusal branch was actually
+reached** — a golden session in which no Lot is ever refused for want of frontage covers half the
+mechanism while every hash moves.
+
+**3. Re-subdivision on the Epoch.** `02 §2.2`: *"re-subdivision happens when the street network changes,
+and must preserve existing Buildings — only vacant land re-parcels."* This is the hard half. A standing
+Building pins its Lot; the vacant land around it re-parcels; and a Lot that loses its frontage entirely
+while occupied is a case the design does not describe — see *Decisions*.
+
+**4. `CommandKind.Connect`, applied.** Declared at `Command.cs:18`, throws at `Simulation.cs:332` beside
+`Service` and `Govern`. What it *is* is decision 1 below, and it is not a small question.
+
+**5. The Input Log, and whether the format version bumps.** See decision 2. Whatever the answer, it is
+taken deliberately: `InputLogCodec.cs` already states the rule and the cost.
+
+**6. `--zones`, showing the thing.** The precedent is `--roads` and `--zones` itself, including refusing
+rather than degrading. What is worth printing here is **a block interior with no Lots in it**, and the
+same block after the player runs a street through it. That picture is `adr/0025`'s rejected road-derived
+cap, shown working the way the ADR said it would.
+
+**7. Invariants, hash and the long run.** Every Lot has frontage, checked whole-world; a Building's Lot
+survives re-subdivision, checked at the write site; 100,000 Ticks with road edits in the log, no
+collection and no magnitude trending (`adr/0006`), **and an assertion that a re-subdivision preserved an
+occupied Lot** — because that is the branch a run without demolition never reaches.
+
+---
+
+## Decisions this slice must close
+
+**1. ⚠ What a road-drawing command *is* — and the corpus specifies it nowhere.** [`0020`](0020-the-road-graph.md)
+says so plainly: `01 §2` counts `Connect` among the player's five verbs, the corpus calls road editing
+*the player's core verb*, and **nowhere specifies its command surface.** *Arguable* under `adr/0043` — no
+measurement settles it — so this slice may take it, and it must take it first, because decision 2 falls
+out of it.
+
+The shapes worth weighing, and they differ by more than ergonomics:
+
+| Shape | Payload | Fits today's `Command`? |
+|---|---|---|
+| One grid-snapped Street Tile per command, painted like `zone` | `(east, north)` + kind | **Yes** |
+| One Segment per command, endpoint to endpoint | two coordinate pairs + kind | **No** |
+| An Arterial spline | many control points | **No**, and not in one command at all |
+| A Junction piece | `(east, north)` + piece id + rotation | Fits if the piece id borrows the `zone` slot |
+
+`adr/0014` is what makes the first row plausible rather than a fudge: **Streets snap to the grid**, so a
+Street edit genuinely is a Tile-sized act and the Road Graph *"falls out of the Tile grid directly"*.
+Arterials are the freeform ones and they are *"deliberately rare"*.
+
+**Recommendation: Streets in this slice, Arterials and Junction pieces named as a hole that throws.** It
+keeps `Command` at twelve bytes, it keeps the log format at version 1, and it exercises the Epoch just as
+hard — an added Street is exactly `adr/0012`'s unsound edge. Splines want a command shape nobody has
+argued and they are the rare case; deferring them is `adr/0070`-clean because the absence would be
+*refused-for-now with a named successor*, not silently missing.
+
+**2. Whether the Input Log format bumps to version 2 — and two remarks in this project already
+disagree.** `Command.cs` and `InputLogCodec.cs` both claim the verbs' arrival is free:
+
+> *"All four verbs are encoded, though only Zone is applied… the log format has their slot today, so the
+> artefact a bug report is made of does not change shape when they arrive — **and this format version
+> does not have to be bumped for their arrival.**"*
+
+And thirty lines below that, the same file states the rule that would falsify it:
+
+> *"**What would bump it is a change to a line that already exists**: **a sixth field on a command**, a
+> second number on `citizens`, a different meaning for `seed`. Those an old reader parses happily and
+> gets wrong, which is exactly the case a version exists for."*
+
+**Both cannot be right, and which one is depends entirely on decision 1.** A verb whose payload fits
+`(east, north, zone)` costs nothing; a verb needing a second coordinate pair is *a sixth field on a
+command* by the codec's own definition, and the bump *"would cost every log ever written — including the
+committed golden baseline."* **Nobody could have caught this**, because no verb has ever needed a payload
+the four existing fields could not carry, and `Command`'s docstring pins the struct at *"twelve bytes,
+fully defined"* with no padding, checked by arithmetic.
+
+⚠ **Whichever way it goes, the two remarks get reconciled in this slice.** The claim *"does not have to
+be bumped for their arrival"* is either narrowed to *"for Zone, Service and Govern"* or struck. A
+sentence that is true of three verbs and asserted of four is `0012` *Cause 1* waiting to be quoted by the
+next reader.
+
+**3. Where the Access Point lives, and who assigns it.** `CONTEXT.md` → Frontage says subdividing
+*"consumes frontage — narrow terraced Lots eat the available street edge to **buy one Access Point
+each**"*, which puts the Access Point downstream of this slice. `adr/0025` says a Building *"has one
+vehicle and one pedestrian Access Point"* and, four lines later in its invariant, *"it may hold Bins,
+**one Access Point**, one Parking Shed"* — loose shorthand for the pair rather than a contradiction, but
+worth tightening while somebody is here. **Recommendation: this slice produces frontage and the Access
+Point's *location*; session F decides its *shape*** (the pedestrian/vehicle split is F's decision 3 in
+[`0021`](0021-trips-legs-and-the-pedestrian-layer.md)), **and 5b consumes it.** Build the column, let F
+say whether it is one row or two.
+
+**4. What happens to an occupied Lot that loses its frontage.** `02 §2.2` says re-subdivision *"must
+preserve existing Buildings"* and says nothing about a player bulldozing the only Street a Building
+fronted. The three candidates are: the Lot keeps its Access Point and the Building is stranded but
+standing; the Building starts accumulating failure pressure and declines through `adr/0053`'s existing
+machinery; or the edit is refused. **Recommendation: the second** — it needs no new mechanism, it is
+`LEGIBLE CAUSE` behaving exactly as `adr/0025` describes, and *refusing the edit* is the road-derived cap
+that ADR rejected, wearing a different hat. *Arguable*; take it here.
+
+**5. Lot depth and width targets by density band.** `02 §2.2` requires them and gives no values. **Two or
+more hash-bearing, world-creation numbers**, so under `adr/0052` each owes a *named* ratifier and a
+trigger on the day it is written, in `0002` §D. **Look for the derivation before reaching for a value** —
+that is tau's precedent and `adr/0059`'s, and the corpus has twice found there was no number to choose.
+The obvious candidate derivation is `block_tiles` and the density band's occupancy, both of which are
+already Ruleset data.
+
+---
+
+## What 5b inherits from this
+
+**5b wants this done first, which makes the ordering convenient rather than merely non-conflicting.**
+[`0021`](0021-trips-legs-and-the-pedestrian-layer.md) task 1 currently has to assign Access Points
+*nearest-Segment-by-construction* and say so in a docstring, precisely because the subdivider does not
+exist. If 5a-bis lands first, 5b inherits **real** Access Points derived from frontage, and the walk
+Leg's origin stops being a placeholder.
+
+It also sharpens 5b's headline test. Severance is *"a part of the city made unreachable **on foot**"* —
+and 5a's own acceptance work found that Severance is **a property of the grid's fineness relative to the
+barrier**, so the crossing dial does nothing until there is enough Arterial per unit of grid. A player
+who can *draw* an Arterial through a neighbourhood is the demonstration; a generator that places eight of
+them at world creation is a fixture.
+
+---
+
+## Definition of done
+
+`CLAUDE.md`'s cumulative list, plus:
+
+- Lots are generated from zoned land and the Street network, and **`02 §2.2`'s opening sentence becomes
+  true of the build** — with `0012`'s two boxes struck and `02 §2.2`'s *does not exist yet* note removed
+  rather than amended
+- **Land that cannot be given frontage stays unlotted**, with a test that watches a block interior stay
+  empty and the same interior fill after a Street is run through it
+- A road edit arrives through the Input Log, replays identically, and **bumps the Epoch of the Segments
+  it touched and no others**
+- Re-subdivision preserves every standing Building, asserted whole-world
+- *No frontage* is reportable as a vacancy reason
+- `--zones` shows a dead block interior, and refuses rather than degrading
+- 100,000 Ticks with road edits in the log, no collection and no magnitude trending, **and an assertion
+  that both the refusal and the re-subdivision branches were reached**
+- The two Input Log remarks agree with each other and with the code
+
+**Risk retired:** that a design document's precondition is a hypothesis about the build. After this slice
+frontage is enforced rather than assumed, so *every Building is on the Road Graph* is true **by
+construction** rather than by there being no Road Graph — and `CONTEXT.md` → Frontage's deletion of the
+utility network is standing on something. The secondary risk is `adr/0012`'s: an invalidation contract
+that has never been driven by a player is a contract nobody has tested.
