@@ -100,9 +100,26 @@ rule is **when something concrete is blocked on it, not because it is available.
 
 ### `02-simulation-model.md`
 
-- **What "full" means for a Bin with no capacity.** `adr/0031` flagged the unbounded-Bin comparison as
-  a determinism hazard and never resolved it. Slice 7 made the money Bin unbounded and refuses an
-  authored ceiling, which settles the *storage* half and not the *comparison* half. Rule-engine work.
+- ~~**What "full" means for a Bin with no capacity.**~~ **CLOSED 2026-08-10 by
+  [`adr/0065`](../docs/adr/0065-a-bin-holds-a-long-and-unbounded-names-a-ceiling-whose-approach-is-a-defect-rather-than-a-refusal.md)**
+  (session **N**, [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md) task 4). **A Bin's level
+  and capacity are `long`; *unbounded* is `long.MaxValue`; *full* stays uniform with no special case;
+  and an approach to any ceiling is `adr/0006`'s magnitude clause rather than a headroom refusal.**
+  Two things the entry as filed had wrong.
+  **It was filed as a semantic question and the answer was a width.** *Is full a state an unbounded Bin
+  can be in* is unanswerable while the ceiling is `int.MaxValue`, because the honest answer depends on
+  whether the ceiling is reachable — and at 360,000 Households a city-aggregating money Bin overflows a
+  signed 32-bit level at **5,965 units per Household**. The corpus had **already chosen `long`**:
+  `Money` is a `long` and `HouseholdTable` holds `Column<Money>`, so a payment into a Bin narrowed 64
+  bits to 32 and nobody had noticed. The decision is the Bin agreeing with a type the project already
+  had.
+  **The determinism half `adr/0031` flagged was never in danger** and needed recording rather than
+  deciding: the code has always written `capacity − level` through `HeadroomAt`, never
+  `level + delta > capacity`, so nothing overflowed and nothing inverted.
+  **It closed a live latent defect on the way**: `RuleEngine.Requirement`'s `floor × |net|` is an
+  unbounded `int` product, and on overflow a negative requirement makes the drain wake a waiter it
+  cannot satisfy and then *increase* its own budget. Unreachable only because the sole declared Readout
+  is `occupancy`.
 - ~~**Does a wait list wake on the arrival or on the state?**~~ **CLOSED 2026-08-10 by
   [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)**
   (session **N1**, [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md) task 1), and
@@ -130,19 +147,33 @@ rule is **when something concrete is blocked on it, not because it is available.
   acceptance test reaches the shortage path without a whole-world wake pass on a keystroke.
   **One measurable is left behind and is routed to §B**: whether the derived requirement costs less
   than the Bin write it accompanies.
-- **Whether a Bin's capacity is a property of the Bin as built or of the Ruleset in force.** A
-  capacity is written onto the Bin row when the Building is raised and **nothing ever moves it again**
-  — not a tuning reload, which changes no row by design, and not slice 8's migration, whose refit only
-  creates Bins it cannot find. So a designer retuning a capacity sees it on the next Building raised
-  and never on the ones standing, which is `adr/0015`'s acceptance test failing on a *second* number
-  after the production ratio it is written about. `RulesetShape` files capacity as *tuning* on the
-  explicit grounds that a Bin over its new ceiling is a later task's problem, and that later task
-  merged into the migration without picking it up. **The two consistent answers are both or neither**
-  — writing capacity in the refit alone would give one edit two behaviours depending on whether some
-  unrelated declaration also moved — and the second-order question is what happens to a Bin holding
-  more than its new ceiling, where clamping destroys Goods and leaving it over-full breaks
-  `Invariant.BinLevelIsWithinCapacity`. Arguable: no measurement decides whether a capacity is a
-  historical fact about a Building or a live property of the Rules. (`plans/0015`, finding 4.)
+- ~~**Whether a Bin's capacity is a property of the Bin as built or of the Ruleset in force.**~~
+  **CLOSED 2026-08-10 by
+  [`adr/0064`](../docs/adr/0064-a-bins-capacity-is-a-property-of-the-ruleset-in-force-and-an-over-full-bin-drains-rather-than-clamps.md)**
+  (session **N**, [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md) task 3). **Capacity is
+  `derived AND rebuilt` from the Ruleset in force, keyed on `(kind, Resource)`; an over-full Bin is
+  left to drain.** Three things the entry as filed had wrong, kept because each came from the framing
+  rather than from the answer.
+  **It named two positions and the answer was a third.** *As built* and *in force* were held as the
+  whole space, and both assume capacity is **state**. It is a function, so the question was never
+  *which value does the row hold* but *why is there a row at all* — the same move `adr/0063` made on
+  `shortfall` four hours earlier, and the session could name no property distinguishing the two
+  columns.
+  **The second-order question's second horn does not exist.** This entry said leaving a Bin over its
+  new ceiling *"breaks `Invariant.BinLevelIsWithinCapacity`"*. Id 14 lives at exactly two **write-site
+  guards**, in `Deposit` and `Withdraw`; there is no standing whole-world check. An over-full Bin has
+  negative headroom, refuses every deposit at the engine's own affordability test, accepts every
+  withdrawal, and **drains back under its ceiling on its own** — so the choice was never between
+  destroying Goods and violating an invariant, and the option that won was already implemented.
+  **The argument that decided it is not about reload.** Filed here as a hot-reload defect, and a
+  reload is design-time and rare. What settles it is the **patch**: a shipped Ruleset change under a
+  live city would leave Buildings raised before and after it permanently different in their ceilings,
+  identical in every declared respect, with the cause recoverable from no state the world holds.
+  **Two obligations leave with it**, and they ride with the implementation in
+  [`0003`](0003-build-plan.md)'s hash-moving queue rather than becoming ledger entries of their own: a
+  loader refusal making `(kind, Resource)` a key — which closes a defect that is live today, since
+  `Fit` builds one Bin where construction built two — and an end-of-run check that the derivation was
+  actually run. (`plans/0015`, finding 4.)
 - **How many Households a Building holds.** **A Building has no capacity anywhere** — not in
   `BuildingTable`, not in `KindDefinition`, not in the Ruleset — and the two things that populate a
   world already disagree about it: `SyntheticCity` puts **3** Households in every Building (S4 task 2's
@@ -397,7 +428,7 @@ the derivation.
 | **`k`, the number of Habit Route variants** | A `k`-shortest path source, which does not exist | **NEW, from session D task 1** ([`adr/0060`](../docs/adr/0060-a-habit-route-is-a-small-set-of-variants-and-which-one-you-take-is-who-you-are.md)), and hash-bearing — it decides which road a Citizen drives, for life. **Look for the derivation first**, on tau's precedent: a candidate is *the number of genuinely distinct corridors between two places* under `adr/0014`'s grid-plus-Arterials layout, which is a property of the road model rather than a preference. **Named ratifier: the first `06` 5b run that reports both R8's concentration column and the route cache's hit rate over a variant-supplied route set** — the two move in opposite directions and `k` is the only thing that trades them. **Reopens** if the hit rate comes back marginal, in which case `k` is the first thing given back, and `k = 1` restores exactly today's behaviour |
 | **The Rejoin crossing budget** | The traffic model | **NEW, from session D task 1** ([`adr/0061`](../docs/adr/0061-a-diversion-rejoins-by-local-descent-and-a-rejoin-is-never-a-search.md)), and hash-bearing. **R6.4.2's cliff at 3 Segments is the evidence and not the value** — rejoin success runs 19.14% → 85.74% there, identically on all five origin-destination rungs, because going round a block is three Segments. **It is not the Sight Horizon**, which `CONTEXT.md` defines as a lookahead *along* the Habit Route and which a Traveller that has left the route does not have; the two are the parameters R6.4.2 found wearing one name, and they are now named apart. **Named ratifier: rejoin success rate at `06` 5b on real demand**, since R6.4.2 measured it on an invented draw |
 | **The Aggravation threshold, and its per-Citizen spread** | The traffic model | **NEW, from session D task 1** ([`adr/0061`](../docs/adr/0061-a-diversion-rejoins-by-local-descent-and-a-rejoin-is-never-a-search.md)), and hash-bearing. Dimensionless by construction — a fraction of recent journeys, on `adr/0053`'s reasoning — so the number is a proportion and not a count. **The spread is not optional and the reason is Temperament's**: nothing yet damps a herd at the **switch**, so a population can tire of the same variant in the same week and move together; a stable base plus per-Citizen spread is the only tie-break the model has. **Named ratifier: the first 5b run long enough for a founding population to reach its first switch**, reporting switch rate against variant occupancy. **Reopens** if almost nobody reaches the threshold — in which case the counter is inert and `adr/0061` says delete it rather than tune it |
-| ~~**Zone Rule sample size**~~ **RETIRED by [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)** — there is no such number any more | Slice 10 task 4 | **The row is kept because its own history is the lesson**: the ratifier was named in advance, ran, bounded the value, and **passed** — and the number was still dimensionally wrong, because *a ratifier that runs at one city size cannot catch a number that is absolute*. **Full body in the archive below** → *Closed entries*. |
+| ~~**Zone Rule sample size**~~ **RETIRED by [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)**, which **shipped in slice 10 task 11 on 2026-08-10** — there is no such number any more, in the loader either: `sample` is refused **by name** | Slice 10 task 4 | **The row is kept because its own history is the lesson**: the ratifier was named in advance, ran, bounded the value, and **passed** — and the number was still dimensionally wrong, because *a ratifier that runs at one city size cannot catch a number that is absolute*. **Full body in the archive below** → *Closed entries*. |
 | **Zone Rule trigger interval** | Slice 10 task 3 | **Hash-bearing**, and `02 §4.2` names it Ruleset data rather than a scheduling knob — *"a Policy paying daily is a different city from one paying weekly"*. Same bounding ratifier as the sample size, and the two **compose into a single rate**: `N/I` is what the city feels, and they differ only in burstiness, which the Tick budget feels and the city does not |
 | **Condemnation threshold** | Slice 10 task 7 | **Hash-bearing.** Authored in **missed firings**, not Ticks ([`adr/0053`](../docs/adr/0053-failure-pressure-is-a-duration-not-a-tally.md)) — a Rule fires every `rate` Ticks when healthy, so the threshold is dimensionless and a Ruleset that halves every rate cannot silently double every Building's lifespan. Same bounding ratifier. **Its sibling was deleted rather than entered**: the decay rate this row would have had does not exist, because a duration does not accumulate |
 | **Microscopic Cap** | A built traffic model | Fixed world constant. Genuinely unsettable before the thing it caps exists. **AMENDED by session D task 3: it counts *Vehicles*, not Segments** ([`adr/0062`](../docs/adr/0062-the-microscopic-cap-counts-vehicles-and-nothing-is-ever-evicted.md)), which is `adr/0053` and `adr/0059`'s family arriving a third time — *state the quantity in the unit the thing paces in*. **The unit was wrong in three places at once** (`03 §3.9`, `CONTEXT.md` → Microscopic Cap, `CONTEXT.md` → Segment) and cost a sentence to repair because nothing is built on it; the Zone Rule precedent says what it costs after a balance pass. **This row is unset and therefore still a gap rather than a debt** — what changed is that the two numbers whose ratio it is are now both named: Vehicles affordable in 15.6 ms (**S5**) against Vehicles a real city stresses at once (`06` **5b**) |
@@ -569,6 +600,22 @@ named suspects, and the first place to look.
 | `0057` dereliction is derived, not recorded | 🟢 | Slice 8 |
 | `0058` the Tick is state, so the World holds it | 🟢 | Slice 9's planning. **`_phase` and `_inForce` are still in the position the Tick was in** — §C keeps that half open |
 | `0059` a Zone Rule's sample is a revisit period | 🟢 | S0b. **The ratifier was named in advance, ran, bounded the value and passed — and the number was still dimensionally wrong**, because a ratifier that runs at one city size cannot catch a number that is absolute |
+
+| `0060` a Habit Route is `k` variants | 🟢 | Session D task 1. **Arrived sideways**, out of *what does a frustrated driver recompute against* — and it is the structural answer to *the network runs out of routes, not road* |
+| `0061` a Rejoin is local descent and never a search | 🟢 | Session D task 1. Answers the corpus's largest number by **removing** the search rather than cheapening it. Emitted two unset hash-bearing numbers, both in §D2 |
+| `0062` the Microscopic Cap counts Vehicles | 🟢 | Session D task 3. **A wrong unit in three places at once**, including inside a `CONTEXT.md` list — which is how a wrong unit propagates with nobody deciding anything |
+| `0063` a wait list wakes on the Bin's state | 🟢 | Session N task 1, **shipped the same day**. Its defect was live in the committed golden baseline and was found by building `adr/0033`'s invariant, not by argument. One measurable routed to §B |
+| `0064` a Bin's capacity is a property of the Ruleset in force | 🟢 | Session N task 3, **decided and unshipped** — `0003`'s queue item 3. Names two obligations, one of which (`(kind, Resource)` as a key) closes a defect that is live today and independent of the decision |
+
+> **⚠ This map drifted again, within a day of being rebuilt.** It was promoted out of the archive on
+> 2026-08-10 on the finding that it had **stopped at `adr/0043`**; by that evening it had stopped at
+> **`0059`**, missing every ADR the same day produced. The five rows above were added on 2026-08-10 in
+> the sitting that noticed. **The lesson is not *be careful* — it is that a coverage map maintained by
+> hand at the end of a sitting is maintained by whoever remembers**, and neither session D nor session N
+> task 1 did. If it stops at some number a third time, the map wants generating from the directory
+> rather than writing.
+
+| `0065` a Bin holds a `long` | 🟢 | Session N task 4, **decided and unshipped** — ships with `0064`. Found the corpus holding **two widths for one quantity**: `Money` is a `long` and a Bin's level was an `int`, so every payment into a Bin narrowed 64 bits to 32 |
 
 ### What the map says now
 

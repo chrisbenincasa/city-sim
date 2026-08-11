@@ -17,8 +17,22 @@
 [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md),
 and SHIPPED the same day** — [`0003`](0003-build-plan.md)'s hash-moving queue items 0 and 2, together, as
 one commit.
-Its record is [below](#task-1s-record--the-predicate-was-wrong-on-both-sides). The sitting continues at
-**task 3** (Bin capacity) — task 2 is the occupancy question and belongs to the economy half.
+Its record is [below](#task-1s-record--the-predicate-was-wrong-on-both-sides).
+
+**Task 3 is DECIDED, by
+[`adr/0064`](../docs/adr/0064-a-bins-capacity-is-a-property-of-the-ruleset-in-force-and-an-over-full-bin-drains-rather-than-clamps.md),
+and is NOT shipped** — it is [`0003`](0003-build-plan.md)'s hash-moving queue **item 3**, behind slice 10
+task 11, because nothing it fixes is live until the game ships patches. Its record is
+[below](#task-3s-record--the-question-named-two-positions-and-the-answer-was-a-third).
+
+**Task 4 is DECIDED, by
+[`adr/0065`](../docs/adr/0065-a-bin-holds-a-long-and-unbounded-names-a-ceiling-whose-approach-is-a-defect-rather-than-a-refusal.md),
+and is NOT shipped** — it merges into queue **item 3** with `adr/0064`, because the two change the same
+two columns and a baseline that moved for both would be attributable to neither. Its record is
+[below](#task-4s-record--it-was-filed-as-a-semantic-question-and-the-answer-was-a-width).
+
+**The sitting continues at task 5** (`04 §6`, how a shortage becomes an unhappy person). Task 2 is the
+occupancy question and belongs to the economy half.
 
 **It is booked to run beside session D and shares no document with it.** D's brief claims the whole of
 `03` and `adr/0005`, `0007`, `0008`, `0009`, `0012`, `0016`, `0046`, `0047`; N claims `02 §4`–`§5`, `04`
@@ -187,7 +201,7 @@ is a missing sink**, and it is `adr/0006`'s shape wearing a bound instead of a c
 **9a** is *Households, the Unplaced Pool and Departure*, and `06` already notes 9a **"has the Pool and
 Departure but nothing says where Households come from"**.
 
-### 3. Is a Bin's capacity a property of the Bin as built, or of the Ruleset in force?
+### 3. Is a Bin's capacity a property of the Bin as built, or of the Ruleset in force? — **DECIDED 2026-08-10, `adr/0064`**
 
 **Defect 4, and the two consistent answers are both or neither** — writing capacity in the migration's
 refit alone would give one edit two behaviours depending on whether some *unrelated* declaration also
@@ -196,7 +210,7 @@ moved, which is worse than the gap. The second-order question is the one to argu
 `04 §2`'s *if a hundred units entered the District, a hundred must be accounted for* — and leaving it
 over-full breaks `Invariant.BinLevelIsWithinCapacity` (id 14).
 
-### 4. What "full" means for a Bin with no capacity
+### 4. What "full" means for a Bin with no capacity — **DECIDED 2026-08-10, `adr/0065`**
 
 **`adr/0031` flagged the unbounded-Bin comparison as a determinism hazard and never resolved it.** Slice
 7 settled the **storage** half — a money Bin is unbounded and the loader refuses an authored ceiling —
@@ -358,6 +372,99 @@ either header moves both content hashes, `session.borough`'s recorded reload lin
 `GoldenFixtures`, and every sample in the trace. Doing that in this commit would put two unrelated causes
 behind one hash move, which is `0003`'s stated reason for keeping re-records separable. **→
 [`0012`](0012-corpus-audit.md).**
+
+---
+
+## Task 3's record — the question named two positions and the answer was a third
+
+**Argued 2026-08-10. Settled by
+[`adr/0064`](../docs/adr/0064-a-bins-capacity-is-a-property-of-the-ruleset-in-force-and-an-over-full-bin-drains-rather-than-clamps.md).**
+Capacity is `derived AND rebuilt` from the Ruleset in force, keyed on `(kind, Resource)`; a Bin over its
+new ceiling is left to drain. Four things came out of the sitting that this brief's framing had hidden.
+
+**1. Both named positions assumed capacity is *state*, and it is a function.** *As built* and *in force*
+were held as the whole space. The third position — no saved column at all — was not in the brief, in
+`0002`, or in `plans/0015`, and it is the one that makes the brief's own *both or neither* rule come out
+right: **neither** path writes a saved capacity, because there is no saved capacity to write. It is the
+move [`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)
+made on `shortfall` four hours earlier, and the session could name **no property distinguishing the two
+columns**: neither is pointed at by live state, both are authored numbers, both are read on the hot path.
+
+**2. The second-order question's second horn does not exist, and it was checked rather than argued.**
+The brief said leaving a Bin over its ceiling *"breaks `Invariant.BinLevelIsWithinCapacity` (id 14)"*.
+Id 14 lives at exactly two **write-site guards**, in `Deposit` and `Withdraw`; there is no standing
+whole-world check. An over-full Bin has negative headroom, refuses every deposit at the engine's own
+affordability test, accepts every withdrawal, and **drains back under its ceiling unaided**. So the
+choice was never *destroy Goods or violate an invariant* — the winning option was already implemented
+and nobody had noticed.
+
+**3. The argument that decided it is not about hot reload.** Filed as a reload defect, and the objection
+that nearly reversed it is that a reload is design-time and rare. What answers that is the **patch**: a
+shipped Ruleset change under a live city, which is what `05 §7`'s provenance trail exists for. Under *as
+built*, a patch that retunes a capacity splits the city permanently into Buildings raised before and
+after it — identical in kind, different in their ceilings, with the cause recoverable from **no state the
+world holds**. A reload is how a designer would notice; a patch is where it bites.
+
+**4. The verification found the lint doing work nobody aimed it at.** The decision rests on `Deposit`'s
+assertion being unreachable, which was checked: `RuleEngine.Fire` is the only production caller, it
+applies **net** deltas, net-zero deltas are skipped on both sides, and `Check` refuses on negative
+headroom via `IntegerMath.FloorDiv`. That last one is load-bearing in a way that is easy to lose —
+`FloorDiv` rounds toward negative infinity, so a **derived floor of 0** against a headroom of −1 gives
+−1 and is refused, where C#'s truncating `/` would have given **0**, passed the guard and reached the
+assertion. **`BOR0203`, the raw-division lint, is what makes this safe.**
+
+**What it left behind.** Two obligations ride with the implementation as `0003`'s queue item 3 — a loader
+refusal making `(kind, Resource)` a key, and an end-of-run check that the rebuild was actually run. The
+first **closes a defect that is live today and independent of this decision**: `World.FindBin` returns
+the first Bin matching a Resource and `Fit` creates only Bins it cannot find, so a kind declaring one
+Resource twice makes a **refit build one Bin where construction built two**. And task 4 is left cheaper
+rather than closed: the row still holds an `int`, so *unbounded* still arrives as `int.MaxValue`, but an
+explicit marker can now be a second **derived** column at no cost in the save or the hash.
+
+---
+
+## Task 4's record — it was filed as a semantic question and the answer was a width
+
+**Argued 2026-08-10. Settled by
+[`adr/0065`](../docs/adr/0065-a-bin-holds-a-long-and-unbounded-names-a-ceiling-whose-approach-is-a-defect-rather-than-a-refusal.md).**
+A Bin's `level` and `capacity` are `long` along the whole write path; *unbounded* is `long.MaxValue`;
+*full* stays uniform with no special case; an approach to a ceiling is `adr/0006`'s magnitude clause.
+
+**1. The corpus had already chosen, and one half of it did not know.** `Money` is
+`readonly record struct Money(long Raw)` and `HouseholdTable` holds `Column<Money>`; `BinTable` held
+`Column<int>`. Since `adr/0031` puts money **in a Bin** and `adr/0050` makes every cross-boundary trade
+a payment, **a purchase narrowed 64 bits to 32**. The sitting spent its first exchanges arguing whether
+to widen, and the argument was already over — this is `adr/0062`'s shape (*a wrong unit in three places
+at once*) with the correct value present in the same assembly.
+
+**2. The semantic question could not be answered at the old width, which is why it had sat open.**
+*Is `full` a state an unbounded Bin can be in* depends entirely on whether the ceiling is reachable, and
+at `int.MaxValue` it was: a city-aggregating money Bin overflows at **5,965 units per Household** across
+360,000 Households, before `adr/0024`'s balance of payments accumulates anything. At `long.MaxValue` the
+same figure is ~2.5×10¹³ and the question dissolves. **The session's own first answer — skip the
+headroom branch for unbounded Bins — was withdrawn as a workaround for the width**, and it carried its
+own objection: removing the check moved the failure from *a rich seller sleeps* to *a rich seller
+crashes*.
+
+**3. Truly unbounded is architecturally unavailable rather than merely hard.** `BigInteger` is managed
+and allocates; lint 7 and `adr/0036` require `unmanaged`. So the honest sentence is *there is no
+unbounded, only a ceiling whose approach is a defect* — and the permanent escape hatch is
+**denomination**, since money's unit is a Ruleset choice. No future argument needs a 128-bit quantity.
+
+**4. Checking the arithmetic found one live latent defect and cleared two suspects.**
+`RuleEngine.Requirement`'s `floor × |net|` is an **unbounded `int` product** — on overflow the
+requirement goes negative, the drain wakes a waiter it cannot satisfy and then *increases* its budget by
+subtracting a negative. It is `adr/0063`'s own arithmetic, four hours old, and is unreachable only
+because the single declared Readout is `occupancy`. `Check`'s `delta × applications` is safe **by
+construction** and is recorded as such so nobody widens it as a precaution. And `Band`'s
+`readout × Percent` is *the door money walks through* — `Readouts.Read` returns `int` while `02 §4.1`'s
+spelling of a derived band is *income × 15 / 100*, so widening the Bin alone would have left the same
+contradiction one level up.
+
+**What it left behind.** Two deliberate absences, both under `adr/0052` and `adr/0043`: **no §B row** for
+*is 2⁶³ enough* — the standing long-run magnitude clause already watches it, and a row nobody will check
+is noise — and **no *nearly full* threshold**, because that would be a chosen constant with no ratifier
+where a trend needs none.
 
 ---
 
