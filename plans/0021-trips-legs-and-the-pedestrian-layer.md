@@ -520,7 +520,7 @@ what makes them runnable in parallel with [`0022`](0022-the-lot-subdivider-and-b
 
 | Built | Where | Against |
 |---|---|---|
-| **`Address`**, and `StreetSide` | `Core/Space/Address.cs` | `adr/0074`, `CONTEXT.md` → Address |
+| **`Address.AcrossTheStreetFrom`** — the crossing's scoping rule | `Core/Space/Address.cs` (5a-bis's type) | `adr/0074` |
 | **`TripFate`** (closed at four) and **`TripPurpose`** | `Core/Movement/` | `adr/0076` |
 | **`TripTable`**, **`LegTable`**, **`TravellerTable`** | `Core/Movement/` | `adr/0075` |
 | **`WalkRouting`** + `WalkScratch` — the walk Leg, resolved | `Core/Movement/` | `03 §3.7`, `adr/0072` |
@@ -531,6 +531,35 @@ Access Points themselves — this built the *type*, not the per-Building rows), 
 task 5 (volume and Phase 4), task 6 (the Census family and the Commute Budget as Ruleset data),
 task 7 (`--trips`) and task 8 (the long run). **No `[trips]` Ruleset table exists yet**, so the
 crossing cost is a required parameter with no default and nothing has chosen one.
+
+#### ⚠ Both slices wrote `Address` on the same day, from opposite ends, and neither was wrong
+
+**5a-bis and 5b each created `src/Borough.Core/Space/Address.cs`**, with incompatible spellings of the
+Segment reference, and the merge is the interesting part rather than the accident.
+
+| | 5b's | 5a-bis's (kept) |
+|---|---|---|
+| Segment | `Handle<RoadSegment>` | `int` slot, plus-one encoded |
+| Because | a Leg's endpoints are **`(saved AND hashed)`**, and a saved slot folds the city's demolition history into the State Hash | frontage is **`(derived AND rebuilt)`** on the Epoch (`adr/0078`), never outlives the graph it was read off, and `adr/0079` wants *a named absence rather than a stale handle* |
+
+**Both arguments are correct, and they are correct about different columns** — which is the corpus's
+own central axis arriving as a merge conflict. What resolves it is that the two are not competing
+representations of one thing: they are **the stored form and the passed form**, and the honest place
+to convert is the read.
+
+**5a-bis's type is kept whole.** The saved columns stay `HandleColumn` — hash-correct, and carrying
+the generation that a slot cannot. `LegTable.From` and `TripTable.Origin` take the Segment table,
+resolve, and return `Address.None` when the road has gone. **That single boundary is where a bulldozed
+Segment is noticed**, which is precisely where `adr/0079`'s named absence wants to be produced and
+where `adr/0076`'s *stranded* Fate is decided. Neither ADR needed amending, and there is one spelling
+of the term.
+
+**The general shape is worth keeping.** *A value type's representation is a property of its
+**storage class**, not of the concept* — so two consumers on opposite sides of the saved/derived line
+will derive different representations from the same ADR, each soundly, and the resolution is a
+conversion at the boundary rather than a winner. **`adr/0074` names the triple and does not name its
+encoding**, which is why both readings were available; whether that gap is worth closing in the ADR is
+a question for whoever next opens it, and 5b has not closed it.
 
 **Three findings, and two of them are about the tools rather than about movement.**
 
