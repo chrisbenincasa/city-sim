@@ -12,12 +12,12 @@ produced**. A spike that records data and no verdict has not finished.
 | Spike | Question | Status |
 |---|---|---|
 | **S4** | Kernel benchmark — the machine's response to the shapes this design makes | in progress. **K0–K6 recorded below and the verdict reached, all seven on two machines.** Owed: the deleting commit. [`plans/0004`](../plans/0004-s4-kernel-benchmark.md) |
-| **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Owns the pathfinding cluster; *informs* Chunk size (`adr/0040`) | in progress. **R0 and R1 done** — the graph and the denominator, then the matrix, which **carries the choice loop** and leaves R4 resting on R2 alone. Raw captures in `spikes/S2.Routing/results/`; both sections owed a rewrite by R7. R2 next. [`plans/0010`](../plans/0010-s2-routing.md) |
+| **S2** | Routing ceiling — travel-time matrix, then HPA\* versus DSDV distance-vector. Owns the pathfinding cluster; *informs* Chunk size (`adr/0040`) | **R0–R8 are all done and R7's tail closed 2026-08-11.** The map survives, the path source is chosen, the cluster is **8**, and R8 closed the congestion loop. Raw captures in `spikes/S2.Routing/results/`. **The one act left is deleting the harness — ⚠ ON HOLD**, because `spikes/S2.Routing/Graph/` is the reference implementation of milestone 5a. [`plans/0010`](../plans/0010-s2-routing.md) |
 | **S1** | Rendering ceiling — 20k Buildings via chunked `MultiMeshInstance3D` | not run |
 | **S3** | UI ceiling — one data panel with a live multi-series graph, and how long it took | not run |
 | **S0a** | The world at target size — 1M Citizens in `Borough.Headless`, footprint and the empty Tick | **done, and it found the runs had never had a city in them.** The tables hold 1M with an order of magnitude spare; **one State Hash costs 2.08 Tick budgets** and the Decide guard costs 4.9. Capture is `powersave` and owes a re-take. Recorded below |
-| **S0b** | The Tick with work in it — Event Wheel, Bin Rules with wait lists, a Sweep Rule pass, a routing load | **not run, and not runnable.** Three of the four are slices 9, 7 and 10. This is the half that carries `06`'s stated risk |
-| **S5** | **The Lane kernel** — Vehicles updated per Tick per core under `adr/0016`'s sorted 1-D queue, Overlaps and IDM, in **integer/Q16.16**; and from it *how many Microscopic Segments fit in 15.6 ms* | **not run. Opened 2026-08-10 by session D's typing pass**, which found `adr/0016` resting on **Eickhoff's ~400,000 cars on one core** — an external number off a **float** engine — and [`0013`](../plans/0013-tick-budget.md) holding **no row for the Microscopic tier at all**. S4-class: `spikes/`, arithmetic substrate only, no content and no Trip generation, so it **runs unattended and blocks on nothing** |
+| **S0b** | The Tick with work in it — Event Wheel, Bin Rules with wait lists, a Sweep Rule pass, a routing load | **done, in three of its four clauses.** **A Tick with work in it is 8.72 ms at 1M — 55.9% of the budget at 4×**, and it is the only Tick figure this project has ever taken from a real running city. The **routing load could not be measured in situ** and remains `0013`'s gap. Recorded below |
+| **S5** | **The Lane kernel** — Vehicles updated per Tick per core under `adr/0016`'s sorted 1-D queue, Overlaps and IDM, in **integer/Q16.16**; and from it *how many Microscopic Segments fit in 15.6 ms* | **done, all four rounds, twice, plus a BenchmarkDotNet cross-check. Two of five tripwires fired.** **~325,000–330,000 Vehicles per Tick per core** with Overlaps against `adr/0016`'s transplanted 400,000 (**T1**), and the queue pass is **26–29× a bare walk** rather than *"the constant of a `memcpy`"* (**T3**). The structure survives intact; **the gap is `adr/0003`'s arithmetic, not the structure**. Owes the canonical `performance` capture. Recorded below |
 
 ---
 
@@ -6610,3 +6610,320 @@ the Rule engine's worst Tick is its first. `06`'s stated risk was that the desig
 target scale. **What S0b found is narrower and more useful: the arithmetic survives, and two of the
 numbers in the Ruleset are the wrong *kind* of number** — absolute where the thing they pace is
 relative to the size of the city.
+
+---
+
+## S5 — the Lane kernel
+
+**Run 2026-08-10, all four rounds, twice, plus a BenchmarkDotNet cross-check.** Plan and tripwire in
+[`plans/0019`](../plans/0019-s5-lane-kernel.md), which stated every threshold before anything ran.
+Artefacts in `spikes/S5.Lanes/results/`. **Two of the five tripwires fired, and neither is the one
+that would have reached a design.**
+
+S5 measures what [`adr/0016`](adr/0016-the-lane-is-the-entity-not-the-car.md)'s structure costs in
+[`adr/0003`](adr/0003-deterministic-integer-simulation.md)'s arithmetic — a sorted one-dimensional
+queue per Lane, Overlaps exchanged once per Tick, IDM car-following, in Q16.16 through
+`Borough.Core.Arithmetic.Fixed` **including its `checked` narrowing**. It exists because session D's
+typing pass found `adr/0016` resting its affordability on Eickhoff's *"roughly 400,000 individually
+simulated cars on a single core"* — an external figure, measured in **floating point**, in a Rust
+engine, against a frame rather than against our Tick — while [`0013`](../plans/0013-tick-budget.md)
+held **no row for the Microscopic tier at all**, not even *unbuilt*, which the Event Wheel and Commit
+both get. The movement subsystem was priced in halves: routing carried 60–67 of the ledger's ≥114
+points at 4× and the Lane model carried nothing.
+
+### The machine, and the caveat that outranks every absolute below
+
+Intel i5-10400, 2 logical processors visible, Ubuntu 24.04.4, .NET 10.0.10, release, `taskset -c 2,8`.
+Governor **`powersave`**, turbo enabled. **Root was not taken, so this is not the canonical capture**:
+every absolute below is a **lower bound on this machine's ability**, and it joins the standing caveat
+the corpus already carries over every S2 and S0a absolute. `tools/lane-run.sh` run as root produces the
+`performance` capture and the labels say so.
+
+**The contention figure is recorded and cannot be read.** Both captures stamp the Linux PSI `cpu total`
+stall accumulated across the run — **227,644 µs and 239,891 µs** — as an **absolute with no
+denominator**, so it cannot be compared with R8's matched-machine pair at *0.13% and 0.11%*. This is
+the same defect one step along from R7's *no capture filename records load*: the load is now recorded
+and is still not readable. **The two rungs below where the captures disagree both look like co-tenant
+load**, which is consistent with a stall that large. `lane-run.sh` owes a run duration beside the stall.
+
+### The two captures, which is what makes any of it an error bar
+
+The captures ran 64 seconds apart, same pinning, same governor. **Every figure S5 publishes is
+therefore a range**, on `adr/0047`'s correction: *a point estimate off a single capture is a range
+published as a point.*
+
+| Quantity | Capture 1 | Capture 2 | Published |
+|---|---:|---:|---|
+| ns/Vehicle/Tick, no Overlaps | 41.12 | 40.90 | **40.9–41.1** |
+| ns/Vehicle/Tick, 2 Overlaps per Lane by cursor | 47.32 | 48.00 | **47.3–48.0** |
+| **Vehicles per Tick per core, no Overlaps** | 379,340 | 381,352 | **~379,000–381,000** |
+| **Vehicles per Tick per core, with Overlaps** | 329,656 | 324,945 | **~325,000–330,000** |
+| **Microscopic Segments in 15.6 ms, no Overlaps** | 5,268 | 5,296 | **~5,270–5,300** |
+| **Microscopic Segments in 15.6 ms, with Overlaps** | 4,578 | 4,513 | **~4,510–4,580** |
+| Promotion + demotion, ns/Vehicle | 67.89 | 69.48 | **67.9–69.5** |
+| L0 bare walk at the dividing rung, ns/Vehicle | 1.57 | 1.40 | **1.40–1.57** |
+| **T3 — queue pass over bare walk** | 26.19× | 29.19× | **26.2–29.2×** |
+
+**T3's 11% spread is entirely in its denominator.** The queue pass agrees to 0.5% across the two
+captures (41.12 against 40.90) and the bare walk it divides against moves **1.12×** (1.57 against
+1.40). Quoting *29×* as the headline would be attributing to the kernel a spread that belongs to the
+memory system it is measured against — which is the shape of `0011`'s findings 42–43 read backwards.
+**The verdict is unaffected: 4× is the threshold and the lowest reading is 26.2×.**
+
+### L0 — the fixture, the row, and the denominator
+
+**Every unit is derived from a document rather than chosen**, which is the part of this spike that
+would be worthless if it were not true.
+
+| Quantity | Value | Source |
+|---|---:|---|
+| Tile | 4 m | Cell = 32×32 Tiles ≈ 128 m |
+| Segment | 32 Tiles = 128 m | S2 R0; `CONTEXT` → Segment |
+| Lanes per Segment | 4 | `CONTEXT` → Segment |
+| Free-flow speed | 1.050 Tiles/Tick | `adr/0019`: 4.2 m per Tick at 8192 Ticks/Day |
+| Vehicle length | 1.250 Tiles | 5 m |
+| `s0` minimum gap | 0.500 Tiles | Treiber, 2 m |
+| `T` desired headway | 6.449 Ticks | Treiber 1.5 s ÷ 0.2326 s/Tick |
+| `a` / `b` | 0.018 / 0.027 Tiles/Tick² | Treiber 1.4 / 2.0 m/s² |
+| **Vehicles per Lane at a standstill** | **18** | derived, Segment ÷ jam spacing of 1.75 Tiles |
+| **Vehicles per Segment at a standstill** | **72** | 4 Lanes × 18 |
+
+**The Tick is the integration step and there is no substepping to price.** Worth stating because the
+arithmetic invites the opposite conclusion: 8192 Ticks against an 86,400-second day reads as 10.5
+simulated seconds per Tick, which no car-following model survives. That is the wrong ratio.
+`adr/0019` derives `TICKS_PER_DAY` **from** car-following resolution — 4.2 m per Tick is 12% of the
+~36 m safe following distance, against Treiber's Δt ≤ 0.5 s — so **the traffic model is upstream of
+the clock, and the clock it chose already satisfies it.**
+
+**The row is four `int` columns — position, velocity, desired speed, Traveller id — 16 bytes**, struct
+of arrays, one arena. Desired speed is per Vehicle because `UNIQUE INDIVIDUALS` means drivers differ,
+and because dropping it would understate the row by a quarter and flatter every bandwidth ratio
+downstream. A Segment at a standstill is therefore **1,152 bytes of queue**.
+
+**The denominator is measured here rather than divided against S4's recorded bandwidth**, because S4's
+figure was taken under a different governor on a different day and dividing across that is a ratio
+between two machines. The same walk over the same arrays with the arithmetic removed:
+
+| Lanes | Vehicles | ns/Vehicle | GB/s of Vehicle row |
+|---:|---:|---:|---:|
+| 64 | 1,152 | 1.24–1.26 | 12.6–12.8 |
+| 1,024 | 18,432 | 1.24 | 12.8 |
+| **16,384** | **294,912** | **1.40–1.57** | **10.2–11.4** |
+| 262,144 | 4,718,592 | 1.54–1.56 | 10.2–10.4 |
+
+The 16,384-Lane row is what L1 and L2 divide against, at a working set (4,608 KiB) past this machine's
+L2 and inside its L3.
+
+### L1 — the queue pass
+
+**Queue length is flat, and the flatness is the finding.** 294,912 Vehicles at every rung, redistributed
+across more or fewer Lanes — a sweep that varied queue length *and* working set together would report
+their product and call it the queue length, which is S0b's findings 42–43 taken as an instruction
+rather than as a warning. Across queue lengths of 4 to 4,096 Vehicles per Lane the pass reads
+**39.6–43.5 ns/Vehicle**, with no trend. **The rung that counts is 18** — what one Lane of a 128 m
+Segment holds at a standstill; every longer rung is a queue no Segment in this design has.
+
+**Regime is flat too, and capture 2's own table says otherwise for a reason that is not the kernel.**
+The kernel has three data-dependent branches — the interaction term going negative, the gap ratio
+hitting its cap, the velocity flooring at zero — so flatness across traffic states is a claim rather
+than an assumption. Capture 1 reads **41.00–42.64 ns across 25% to 100% occupancy, a 1.00–1.03× band**.
+Capture 2 reads 42.02–44.36 at every rung **except its 70% rung, which reads 57.24** — and because the
+table normalises against 70%, that single reading turns the whole column into *every regime is
+0.73–0.77× of 70%*, which reads as a 30% cost hump at the most interesting occupancy in traffic
+engineering. **There is no hump.** Capture 1's 70% rung is its *cheapest*. The 57.24 is a co-tenant
+spike sitting on the reference row, and **a normalised column whose reference is the noisy row inverts
+its own reading** — which is a reporting defect of the same family as R7's, and is why the flat verdict
+is published on both captures rather than on either.
+
+**Where the time goes, and it is the divisions.** The IDM as written divides **three times per Vehicle
+per Tick** and two of those denominators never vary — `2√(ab)` is a constant of the Ruleset and `v0` is
+a constant of the driver. A 64-bit integer division is tens of cycles and does not pipeline; a
+floating-point division is a handful and does. **That is precisely where a transplant from a float
+engine should be expected to cost**, so the two forms are measured rather than argued about.
+
+| Form | Divisions/Vehicle | Row | ns/Vehicle | Vehicles in 15.6 ms |
+|---|---:|---:|---:|---:|
+| As written | 3 | 16 B | 41.14–41.25 | 378,000–379,000 |
+| Reciprocal | 1 | 20 B | 23.59–25.20 | 619,000–661,000 |
+
+**Removing two of the three divisions moves the pass by 1.63–1.75×.** The third division, `s*/s`, has
+the gap to the vehicle in front as its denominator and no reciprocal exists for it — **that is the
+floor of what the substitution can buy, not an alternative implementation.**
+
+**Read this as an attribution and not as a recommendation.** A reciprocal changes the arithmetic, so it
+changes the State Hash, so under `CLAUDE.md`'s own test it is *a design change however it was
+motivated* — and the fifth column is 4 more bytes of state a promotion has to materialise. **What it
+settles is the shape of the gap from Citybound's figure**: the structure is not the cost, the
+**arithmetic** is, and `adr/0003` is the reason we pay it. That is a decision this project already took
+with its eyes open, now with a price attached.
+
+### L2 — the network, and the Overlap exchange
+
+Every Lane holds 18 Vehicles and the rung is the number of Lanes, because **the Microscopic tier's cost
+is a whole-network cost and a per-queue figure is a laboratory number until a network has produced
+one.** Across 16 to 262,144 Lanes — 4 KiB to 72 MiB of Vehicle rows — the pass reads **37.1–42.6
+ns/Vehicle**, a **1.00× network-to-queue ratio**.
+
+**T5 did not fire, at 1.00×, and it is the first negative sighting of scatter ≈1.5 in this corpus.**
+S0b findings 42–43, the Zone Rule tripwire and `0011` findings 42–43 are three sightings of a working
+set costing ~1.5× what its fixture predicted; a fourth would have stopped being a coincidence. The
+reason this kernel does not show it is legible and worth carrying: **it is arithmetic-bound, not
+memory-bound** — 41 ns of work against a 1.4 ns walk — so there is nothing for scatter to move. The
+pattern is a property of memory-bound passes, not a property of this project's fixtures.
+
+**The self-consistent rung is the one whose Vehicle count is closest to the count it says fits in a
+Tick** — 294,912 Vehicles at 40.9–41.1 ns. Reading any other row as the answer states a cost for a
+working set the answer does not have.
+
+**The Overlap exchange has no stated cost anywhere in the corpus**, because it depends on how a Lane
+finds the Vehicle near the conflict point and that is a data-structure decision nobody has taken. Both
+plausible answers are measured: **scan** walks the partner's queue from its head, which is what a first
+implementation writes; **cursor** keeps the index found last Tick, which is O(1) amortised.
+
+| Overlaps/Lane | Exchange | ns/Vehicle | vs no Overlaps |
+|---:|---|---:|---:|
+| 0 | — | 40.6–41.1 | 1.00× |
+| 1 | cursor | 45.2–46.5 | 1.09–1.14× |
+| 1 | scan | 47.6 | 1.15–1.17× |
+| **2** | **cursor** | **47.3–48.0** | **1.15–1.18×** |
+| 2 | scan | 49.3–51.3 | 1.20–1.26× |
+| 4 | cursor | 50.9–52.3 | 1.23–1.28× |
+| 4 | scan | 53.6–53.7 | 1.30–1.32× |
+
+**Two Overlaps per Lane is the row the headline carries**, and it is not S5's number to choose: a Lane
+on a four-Lane Segment has a Switch Lane on each side it is not on the edge of, plus whatever crosses
+it at the node, so one is optimistic and four is a busy intersection. **Nothing in the corpus states
+this number** — it is a property of the Road Graph the geometry pass produces, and that pass is
+milestone 5a's.
+
+**The cursor buys 3–7% and costs an entry in `03` invariant 3's enumeration.** That is the one place S5
+reaches a decision the corpus had left open, and it points the unexpected way: the O(1) structure beats
+the naive scan by less than the run-to-run spread at 4 Overlaps, because the scan it replaces is short.
+**A first implementation should write the scan**, and the cursor needs a Road Graph producing high
+Overlap counts before it earns the demotion-discard obligation it carries. Not filed as settled — the
+Overlap count is 5a's and this ordering could invert above ~4 per Lane.
+
+### L3 — promotion and demotion
+
+`adr/0016` names *"promotion cost dominating the traffic budget"* as a condition that would reopen it
+and **names no instrument that could evaluate it**. The condition is a ratio, so the answer is one:
+promotion plus demotion per Vehicle over the cost of running that Vehicle for one Tick is a
+**break-even residency** in Ticks. 2,592 Segments of 4 Lanes, 72 in-flight Travellers each, found
+through an **intrusive index list threaded in arrival order rather than in memory order** — the
+structure `CLAUDE.md` mandates and what a promotion will actually walk. Modelling it as a contiguous
+scan would have made promotion look free and would have been a fixture choice rather than a
+measurement.
+
+| Conversion | ns/Vehicle |
+|---|---:|
+| Promotion | 43.2–44.5 |
+| Demotion | 24.7–25.0 |
+| **Round trip** | **67.9–69.5** |
+
+**Break-even residency is 1 Tick, against a T4 threshold of 30** — one Segment traversal at free flow.
+A round trip costs about what 1.7 Ticks of simulation cost, so **a Segment that stays Microscopic for
+even a moment has paid for its own conversion.** `adr/0016`'s own revisit trigger does not fire, and
+`adr/0007`'s hysteresis window turns out to have no floor imposed from this direction — **it is free to
+be set on behavioural grounds alone**, which is session E's, and E now inherits that as a constraint
+removed rather than added.
+
+**The finding that outlives the number: a Segment demoted while jammed cannot say when its Vehicles
+arrive.** On the last demotion, **150,943 of 186,624 Vehicles had no arrival Tick to convert to** —
+they were at rest, and `distance / speed` is undefined for them. `03` invariant 3 requires what
+demotion discards to be enumerated, and it enumerates queue position, headway, and an in-progress
+Switch Lane traversal. **The arrival time itself is not in that list**, and it is the one thing the
+Statistical representation is made of. **The proportion is the fixture's and the phenomenon is not** —
+this Segment carries exactly jam density, so after settling almost everything is stopped, which is a
+real state and the worst one. Read the count as *this class of discard exists and is not enumerated*,
+never as a rate.
+
+### The BenchmarkDotNet cross-check
+
+The same kernels and fixtures under a different instrument, ShortRun, because **a self-timed loop is an
+instrument nobody has calibrated** and this corpus has three recorded machine-state defects a second
+instrument would have caught.
+
+| Kernel | BenchmarkDotNet | Self-timed | Agreement |
+|---|---:|---:|---:|
+| L0 bare walk | 1.52 ns/Vehicle | 1.41 | 1.08× |
+| L1/L2 queue pass | 44.25 | 40.90 | 1.08× |
+| L2 cursor exchange + pass, 2/Lane | 47.53 | 47.32 | 1.00× |
+| L3 promotion | 35.50 | 43.20 | 0.82× — **different fixture on purpose** |
+
+**Three of four agree inside 8%, and the direction is consistent**: BenchmarkDotNet's mean sits above
+the self-timed minimum, which is the relationship the two estimators are supposed to have. The
+self-timed loop is therefore **calibrated rather than merely internally consistent**. The fourth row is
+not a disagreement — BDN's promotion fixture is 256 Segments against L3's 2,592, 288 KiB against 2.9
+MiB, so the smaller is cheaper in the direction and roughly the amount L2's own working-set curve
+predicts. **It is left different on purpose: a cross-check that shares every fixture cannot detect a
+fixture that is wrong.**
+
+**Allocated: zero bytes on every kernel, including promotion.** The queue is an arena and the intrusive
+list is an index, so a Tick of the Lane model allocates nothing — which is what `adr/0036`'s GC
+argument requires of the hot path and what S4's K6 was about.
+
+### The tripwire, scored
+
+| # | Condition | Reading | Fired? |
+|---|---|---:|---|
+| **T1** | Vehicles/Tick/core below 400,000 | **325,000–330,000** with Overlaps; **379,000–381,000** without | **FIRED** |
+| T2 | Vehicles/Tick/core below 186,624 — 2,592 Segments × 72 | 325,000–330,000 | no |
+| **T3** | Queue pass worse than 4× the bare walk | **26.2–29.2×** | **FIRED** |
+| T4 | Break-even residency above 30 Ticks | **1 Tick** | no |
+| T5 | Network rung more than 1.50× the fixed-working-set queue rung | **1.00×** | no |
+
+**T1 fires on both readings, which is what makes it robust to the one number S5 declined to choose.**
+The Overlaps-per-Lane count is 5a's, and the verdict does not depend on it.
+
+**T1's firing is provisional on the governor and its response is not.** Every absolute here is a
+`powersave` lower bound; the no-Overlaps figure needs **1.05×** to clear 400,000 and the with-Overlaps
+figure needs **1.23×**, both inside the 1.77× the corpus has measured between mismatched captures. So
+**the honest statement is that `adr/0016`'s headline is not reproduced rather than that it is refuted**,
+and the canonical `performance` capture is owed before any constant from S5 is quoted as final. The
+response is identical either way: an amendment naming our own measurement and its conditions, and a
+`0013` row that did not exist.
+
+**T3 is the unambiguous one, and no governor can rescue it.** It is a ratio taken within one machine
+state, its spread lives in the denominator, and its lowest reading is **6.5× the threshold**.
+`adr/0016`'s *"O(n) … with the constant of a `memcpy`"* is **false in the letter**: the queue pass is
+26–29 times a bare walk over the same arrays. **The `O(n)` half is exactly right** — L1's queue-length
+sweep and L2's network sweep are both flat — and the constant is not a `memcpy`'s, it is three integer
+divisions'.
+
+**T2 not firing is the one that would have reached a decision and did not.** `adr/0007`'s *bounded by
+network stress, not by population* survives against the only adjacent count the corpus holds — with the
+caveat `0019` attached to the threshold in advance: 2,592 × 72 is a **fixture size and not a
+stressed-Segment count**, because S2 R2's `v/c` is unbounded and its rung is the uniform O-D draw.
+
+### The verdict
+
+**The Microscopic tier is affordable, at roughly a fifth below the figure the corpus had transplanted
+for it, and the gap is arithmetic rather than structure.** Every one of `adr/0016`'s structural claims
+survives the transplant intact — no spatial index, predecessor is the previous array element,
+scheduling granularity is the Lane, `O(n)` in the queue, zero allocation, determinism nearly free. The
+sentence that does not survive is the constant, and the reason it does not is `adr/0003`: **we pay
+about 1.7× for integer division where a float engine pays nothing**, and that is a decision this
+project took deliberately and can now price.
+
+**What S5 hands `0013` is a unit and explicitly not a multiplicand.** ~325,000–330,000 Vehicles per
+Tick per core with Overlaps, ~4,510–4,580 Microscopic Segments in 15.6 ms at 72 Vehicles each. **The
+Microscopic Cap is a ratio and S5 supplies one half of it** — `adr/0062` settled that the Cap counts
+Vehicles; how many Vehicles a real city stresses at once is milestone **5b's** and does not exist.
+**Supplying one side and stopping is the whole discipline here**, because this corpus has a recorded
+habit of a number becoming a decision by being the only number in the room.
+
+**Two things this spike found that nobody asked it for.** The **arrival Tick is a demotion discard that
+`03` invariant 3 does not enumerate**, and it is the one field the Statistical representation consists
+of. And the **cursor exchange — the clever structure — buys 3–7% over the naive scan** at the Overlap
+counts a four-Lane Segment produces, so the first implementation should write the scan and the corpus
+should stop assuming the O(1) answer is the cheap one before a Road Graph has said how many Overlaps a
+Lane has.
+
+### Owed by this section
+
+- **The canonical `performance` capture.** `tools/lane-run.sh` as root. **T1's verdict is provisional
+  on it**; T3, T4 and T5 are ratios within one machine state and are not.
+- **A run duration beside the PSI stall**, so a contention figure can be read as a percentage and
+  compared with R8's matched pair. Recording load without its denominator is R7's defect one step on.
+- **The deleting commit for `spikes/S5.Lanes/`**, on `plans/0004`'s and `plans/0010`'s precedent —
+  after the canonical re-capture, which needs the harness.

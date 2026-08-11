@@ -30,22 +30,61 @@ would say so.
 
 **Two of the five tripwires fired, and neither is the one that would have reached a design.**
 
-- **T1 FIRED.** ~327,000 Vehicles per Tick per core with Overlaps, ~380,000 without, against
-  `adr/0016`'s 400,000. **The order of magnitude survives the transplant and the figure does not.**
-- **T3 FIRED, and hard.** The queue pass is **29× the bare walk over the same arrays**, not the
+- **T1 FIRED.** **~325,000–330,000** Vehicles per Tick per core with Overlaps, **~379,000–381,000**
+  without, against `adr/0016`'s 400,000. **The order of magnitude survives the transplant and the
+  figure does not** — and because every absolute here is a `powersave` lower bound, the published
+  reading is *not reproduced* rather than *refuted*.
+- **T3 FIRED, and hard.** The queue pass is **26.2–29.2× the bare walk over the same arrays**, not the
   *"constant of a `memcpy`"* the ADR claims. L1's attribution says where it goes: the IDM divides
-  three times per Vehicle per Tick, and removing the two whose denominators never vary takes 41.14 ns
-  to 25.20 ns — **1.63×**, from one substitution.
+  three times per Vehicle per Tick, and removing the two whose denominators never vary takes it to
+  23.6–25.2 ns — **1.63–1.75×**, from one substitution.
 - **T2 did not fire**, T4 did not fire (break-even residency **1 Tick** against a threshold of 30),
   and **T5 did not fire — 1.00×**, which is the first time in this corpus that a whole-network rung
   has agreed with its fixed-working-set fixture. The scatter ≈1.5 pattern has a **negative** sighting
   at last, and the reason is legible: this kernel is arithmetic-bound, not memory-bound, so there is
   nothing for scatter to move.
 
-**Nothing here has been published.** `docs/spike-results.md`, `plans/0000-board.md`,
-[`0002`](0002-open-questions.md) and [`0013`](0013-tick-budget.md) are all untouched by this spike,
-and the `adr/0016` amendment T1 calls for has not been written. **Publishing a conclusion is a
-separate act that happens after review**, which is also why no ADR cites these numbers yet.
+## Published 2026-08-11
+
+**Everything above is now in the corpus**, and the publication pass is a separate act from the run for
+the reason this document already gave: *publishing a conclusion happens after review.* Where it went:
+
+| Document | What it took |
+|---|---|
+| [`spike-results`](../docs/spike-results.md) → *S5* | The full section — L0–L4, the cross-check, the tripwire scored, the verdict, and what the section owes |
+| [`spike-results`](../docs/spike-results.md) → summary table | S5's row, **and two others found stale while editing it** |
+| [`0013`](0013-tick-budget.md) | **The Microscopic tier row, which this table had never held** — unit measured, multiplicand a named gap, plus a sensitivity table and two notes |
+| [`adr/0016`](../docs/adr/0016-the-lane-is-the-entity-not-the-car.md) | **Four amendments** — the 400,000 and the `memcpy` together, the Overlap exchange priced, invariant 3's enumeration short by one, and the revisit trigger measured and not fired |
+
+**Review changed four things, and the review is why every S5 figure in the corpus is a range.**
+
+1. **Every published figure is a range across the two captures**, on `adr/0047`'s correction of exactly
+   this mistake eight days earlier: *a point estimate off a single capture is a range published as a
+   point.* T3 is the case that matters — **26.19× and 29.19×**, an 11% spread that is **entirely in the
+   denominator** (the bare walk moved 1.57 → 1.40 ns while the queue pass moved 41.12 → 40.90). Quoting
+   *29×* would attribute to the kernel a spread belonging to the memory system it divides against.
+2. **Capture 2's regime table is a reporting defect and its verdict is capture 1's.** Capture 2 reads
+   42.02–44.36 ns at every occupancy rung **except 70%, which reads 57.24** — and because the table
+   normalises *against* 70%, that one reading renders the whole column as *every regime is 0.73–0.77×
+   of 70%*, which reads as a 30% cost hump at the most interesting occupancy in traffic engineering.
+   **There is no hump**: capture 1 reads 41.00–42.64 across the sweep and its 70% rung is the
+   *cheapest*. **A normalised column whose reference row is the noisy one inverts its own reading** —
+   and the harness picks the reference by position rather than by stability. Same family as the
+   reporting defect S4's K6 sweep found in itself.
+3. **The contention stamp cannot be read.** Both captures record PSI `cpu total` stall as an absolute
+   — **227,644 µs and 239,891 µs** — with **no run duration beside it**, so it cannot be compared with
+   R8's matched pair at 0.13% and 0.11%. This is R7's *no capture filename records load* one step
+   along: the load is recorded and is still not readable. It is also the most likely cause of both
+   disagreeing rungs. **`tools/lane-run.sh` owes a duration.**
+4. **The cursor/scan comparison reaches a recommendation the capture did not draw.** The O(1) cursor
+   beats the naive scan by **3–7%** at the Overlap counts a four-Lane Segment produces, which is inside
+   the run-to-run spread at 4 per Lane — so **the first implementation should write the scan**, and the
+   cursor does not earn the `03` invariant 3 entry it costs until a Road Graph says otherwise.
+
+**Still owed, and both are on the section in `spike-results`.** The canonical **`performance`** capture
+— T1's verdict is provisional on it, T3/T4/T5 are ratios within one machine state and are not — and
+the deleting commit for `spikes/S5.Lanes/`, which must wait for that re-capture because it needs the
+harness.
 
 ---
 
