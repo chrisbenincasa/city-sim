@@ -8,7 +8,7 @@ Determinism is not a feature that can be added later. It is a property of every 
 
 The payoff is disproportionate for a solo developer, because the bugs that will actually cost us weeks are emergent, intermittent, and surface after hours of play. Those are exactly the bugs that are unreproducible without determinism and mechanically reproducible with it.
 
-**Integer and fixed-point throughout.** Money, Goods, population, Ticks and Tile coordinates are naturally integral. The only genuinely continuous quantity in the design is a sub-Tile position, which is Q16.16. Integer square root remains available where a distance is genuinely needed, since it is algebraic and exactly computable.
+**Integer and fixed-point throughout.** Money, Goods, population, Ticks and Tile coordinates are naturally integral. The only genuinely continuous quantity in the design is a sub-Tile position, which is Q16.16. **[`adr/0071`](0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md) adds two more at the same scale** — speed in Tiles/Tick and travel time in Ticks — each as its own type, on the finding that Q16.16 is a *scale* rather than a meaning. Integer square root remains available where a distance is genuinely needed, since it is algebraic and exactly computable.
 
 > **This ADR claimed *"zero transcendental functions — no `sin`, `exp` or `log` anywhere in the core"* and that is false.** It is repeated in `02 §1` and `05 §4`, and both are corrected. The design has needed `exp` since before this ADR was written:
 >
@@ -124,7 +124,7 @@ Money is conserved ([`0024`](0024-money-is-conserved-and-the-city-has-a-balance-
 
 **The real hazard is not width, it is Q16.16's *range*** — ±32,768, which is small, and which a product of two moderate quantities exceeds immediately. That is a **format** problem, and widening does not dissolve it the way it dissolves the integer problem: fixed×fixed multiplication inherently needs a 2N-bit intermediate, so Q32.32 in i64 requires an i128 intermediate (`Math.BigMul` plus recombination, ~2–3× the multiply). Roughly the price of the `checked` branch it would replace.
 
-**But the stated use of Q16.16 never multiplies at all.** `05 §3` names one: sub-Tile positions, updated as `position += velocity × ticks` — Q16.16 by *integer*, no intermediate widening, no shift. Positions are bounded by the map at 4096 against a ±32,768 format: 8× headroom, provably, forever.
+**But the stated use of Q16.16 never multiplies at all.** `05 §3` names one: sub-Tile positions, updated as `position += velocity × ticks` — Q16.16 by *integer*, no intermediate widening, no shift. Positions are bounded by the map at 4096 against a ±32,768 format: 8× headroom, provably, forever. **`adr/0071`'s two additions preserve this**: a travel time is produced by Tiles ÷ Speed through `Fixed.Div`, which widens to 64 bits and narrows `checked`, and is thereafter only ever *added* — so a path cost is an exact sum and the format is still never asked to multiply two absolutes.
 
 Fixed×fixed appears in exactly one place, and it is the place with powers in it: **IDM car-following** (`(v/v₀)⁴`, `(s*/s)²`) and the **VDF** (`t₀(1 + α(v/c)^β)`, β ≈ 4). Squaring an absolute quantity blows any fixed format — two 200-Tile distances multiplied is 40,000.
 

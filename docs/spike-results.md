@@ -1984,7 +1984,7 @@ claimed to describe* — and this is the fourth, fifth and sixth instance.
 
 **Not decided, and owed.**
 
-- **The cost unit.** R0 routes in **Q16.16 Ticks**, and it had to: a Tick is ~10.5 in-world seconds and
+- ~~**The cost unit.**~~ **CLOSED 2026-08-11 by [`adr/0071`](adr/0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md), the way the spike asked for** — by the corpus and not by a benchmark. Travel time is Q16.16 Ticks, speed is Q16.16 Tiles/Tick, each its own type, and **`05 §121` is amended in place**: Q16.16 is a *scale*, not a meaning. The spike's own restraint is what made the finding reachable — declining to settle it here is why anybody later noticed that `05 §121` and `02 §2` had been contradicting each other all along. *Original entry:* R0 routes in **Q16.16 Ticks**, and it had to: a Tick is ~10.5 in-world seconds and
   a vehicle crosses about one Segment per Tick, so a cost accumulated in whole Ticks gives nearly every
   Segment a cost of 1 and A\* silently minimises **hop count** rather than time — while appearing to
   route on time. But `05 §121` says *"Q16.16 is for sub-Tile positions and nothing else"*, and sub-Tick

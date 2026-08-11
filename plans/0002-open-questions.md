@@ -326,7 +326,17 @@ levers are Ruleset numbers section D already lists as unset:
 - **The Commute Budget's granularity.** A matrix entry is wrong by 11.32% (6.73 Ticks) against a true
   query. Whether that is free or disqualifying depends on a granularity nothing states. **R6 is owed
   the same question about its cache key and the two should be answered once.**
-- **The cost unit for routing.** R0 routes in Q16.16 Ticks and had to — a Tick is ~10.5 in-world
+- ~~**The cost unit for routing.**~~ **CLOSED 2026-08-11 by [`adr/0071`](../docs/adr/0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md)**
+  — travel time is **Q16.16 Ticks** and speed is **Q16.16 Tiles/Tick**, each its own type over an
+  `int`, and **`05 §121` is amended in place**: Q16.16 is a *scale*, not a meaning. Closed by argument
+  rather than routed to R7, correctly under `adr/0043` — the two candidate spellings are *the same
+  bits*, so no machine could distinguish them and nothing was owed to one. **What settled it was in
+  neither candidate**: `05 §121` and `02 §2` have contradicted each other since before the spike ran,
+  one forbidding the representation of a speed the other mandates, and `Units.cs` resolved it silently
+  in `02`'s favour. Applied literally the old sentence rounds a walking pace of 3.66 Tiles/Tick to 3.
+  The residual risk is named in the ADR and is **not** this question: a volume-delay function could
+  drive a jammed arc's cost toward the format's four-Day ceiling, which wants a saturating ceiling
+  with a stated meaning once the VDF exists. *Original body:* R0 routes in Q16.16 Ticks and had to — a Tick is ~10.5 in-world
   seconds and a vehicle crosses about one Segment per Tick, so whole-Tick costs make A\* minimise *hop
   count* while appearing to route on time. But `05` says Q16.16 is for sub-Tile positions and nothing
   else. An integer count of a fixed fraction of a Tick measures identically, so **no number rests on

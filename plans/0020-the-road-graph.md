@@ -129,6 +129,12 @@ free-flow, mode mask, and the Epoch. Derived and rebuilt: the whole CSR arc arra
 Segments. Fidelity is derived (`adr/0007` — it follows Stress, which does not exist yet, so it is a
 declared column with a constant writer and a named hole).
 
+**The traversal and speed columns are typed by
+[`adr/0071`](../docs/adr/0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md)**
+— Q16.16 Ticks and Q16.16 Tiles/Tick, each its own `readonly record struct` over an `int`, offering
+only dimensionally sound operations. The State Hash does not move: a record struct over an `int` folds
+what the `int` folded.
+
 **2. Mode masks on the arc, and severance.** `03 §3.7` — *pedestrian and vehicle edges live in one
 graph with mode masks*, and severance works because *Arterials carry no pedestrian edges except at
 authored junction pieces*. A test that walks the foot subgraph across an Arterial and fails without a
@@ -153,6 +159,11 @@ is.
 R0 swept it and reports **16.20 km/km²**, unratified, with `0002` recording that nothing yet says
 whether that describes a real city.
 
+**This task owes `0002` §D rows and `adr/0071` does not discharge them.** The free-flow speeds — 50
+km/h for a Street, 90 for an Arterial, 5 for a walk — are **hash-bearing** the moment they enter a
+Ruleset, and `adr/0052` wants a named ratifier beside each on the day it is written down. Choosing a
+representation ratifies no value. Road density is a fourth.
+
 **5. Connectivity components.** Port `Matrix/Connectivity.cs`. Union-find over the Segment set,
 derived and rebuilt on the Epoch. This is the task that turns *"a District whose internal Road Graph
 is broken must still fail to distribute"* (`04 §6`) from prose into something testable, and it is the
@@ -175,7 +186,16 @@ crossing branches were actually reached.**
 Three were open when the slice was scoped. **Two are settled by the prior art and one is genuinely
 open** — and the open one is *arguable* under `adr/0043`, so a sitting may close it and no spike is owed.
 
-**The cost unit — OPEN, and the spike explicitly declined to settle it.** `Units.cs` reasons it
+**The cost unit — CLOSED 2026-08-11 by [`adr/0071`](../docs/adr/0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md).**
+Travel time is **Q16.16 Ticks** and speed is **Q16.16 Tiles/Tick**, each as its own type over an
+`int`, sharing `Fixed`'s audited arithmetic; `05 §121` is amended in place to say that **Q16.16 is a
+scale rather than a meaning**. The finding that settled it was not in either candidate: `05 §121` and
+`02 §2` **have been contradicting each other since before the spike ran** — one forbids the
+representation of a speed that the other mandates — and `Units.cs` resolved it silently in `02`'s
+favour. Applied literally, the old sentence rounds a walking pace of 3.66 Tiles/Tick to 3. **The
+original text of this entry follows, because it is the reasoning the ADR was written against.**
+
+*Original entry:* **The cost unit — OPEN, and the spike explicitly declined to settle it.** `Units.cs` reasons it
 through and stops: the cost must be **time** (`02 §5.9`'s SC4 lesson — *the cost function used for
 routing must be the same quantity used to judge trip failure, and the same quantity shown to the
 player*); it must be **sub-Tick**, because a vehicle covers about one Segment per Tick so whole-Tick

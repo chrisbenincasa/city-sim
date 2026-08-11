@@ -1734,7 +1734,9 @@ but a source**: whether 16.20 km/km² describes a real city, against a target th
 citing Los Angeles. `CONTEXT.md` → Segment keeps its disclaimer until somebody checks it, and R7 must
 not record the debt as closed on a curve alone.
 
-**4a. The cost unit for routing — NEW, produced by R0.** R0 routes in **Q16.16 Ticks** and had to: a
+**4a. The cost unit for routing — CLOSED 2026-08-11 by [`adr/0071`](../docs/adr/0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md), and R7 no longer owes it.**
+Travel time is Q16.16 Ticks, speed is Q16.16 Tiles/Tick, each as its own type over an `int`, and
+`05 §121` is amended in place to say Q16.16 is a **scale** rather than a meaning. *Original entry, produced by R0:* R0 routes in **Q16.16 Ticks** and had to: a
 Tick is ~10.5 in-world seconds and R2a's own arithmetic puts a vehicle at about one Segment per Tick,
 so a cost accumulated in whole Ticks gives nearly every Segment a cost of 1 and A\* silently minimises
 **hop count** while appearing to route on time. But `05 §121` says *"Q16.16 is for sub-Tile positions
