@@ -1,18 +1,27 @@
 borough-log 1
 seed 0x0B07000000000EA1
 citizens 1000
-ruleset 0xF0C26F27CC66D789
-reload 1024 0xF0C26F27CC66D789 0x1B4686BBA6FA1B0F
+ruleset 0xFEB8A0A4A6FE9BAD
+reload 1024 0xFEB8A0A4A6FE9BAD 0x452E8D59E4A9D44E
 --
 0 populate 0 0 0
-0 zone 0 2 1
-1 zone 1 2 1
-1 zone 2 2 2
-2 zone 2 3 2
-9 zone 7 3 3
-17 zone 11 5 1
-17 zone 12 5 1
-33 zone 31 29 4
-64 zone 63 2 2
-65 zone 0 63 3
-97 zone 255 255 5
+0 zone 16 80 1
+1 zone 48 80 1
+1 zone 80 80 2
+2 zone 80 112 2
+9 zone 240 112 3
+17 zone 368 176 1
+17 zone 400 176 1
+33 zone 1008 944 4
+64 zone 2032 80 2
+65 zone 16 2032 3
+97 zone 4080 4080 5
+129 connect 1600 1600 2
+130 zone 1616 1616 1
+200 connect 1600 1600 0
+300 connect 1600 1600 2
+400 connect 1920 1920 2
+400 connect 1920 1952 2
+400 connect 1920 1920 3
+400 connect 1952 1920 3
+401 zone 1936 1936 4

@@ -19,16 +19,18 @@ are the only thing that can notice a change nobody was looking for.
 **Two further artefacts are not in this directory and are part of the baseline anyway**:
 **[`rulesets/minimal.toml`](../../../rulesets/minimal.toml)**, which the session opens on, and
 **[`rulesets/minimal-tuned.toml`](../../../rulesets/minimal-tuned.toml)**, which it **reloads into at
-Tick 128** (slice 8 task 10). Both are named by content hash, so editing either moves every sample
-here — `The_golden_ruleset_is_the_one_the_session_names` says so for the first with the number to
-paste in, and the second's hash lives in `GoldenFixtures.TunedRulesetHash` and in the log's `reload`
-line, which carries **both** hashes.
+Tick 1,024** (slice 8 task 10; it was Tick 128 until slice 10 task 11 lengthened the session and moved
+the reload to stay halfway, and this line went on saying 128 for two slices afterwards). Both are named
+by content hash, so editing either moves every sample here — and
+`The_golden_ruleset_is_the_one_the_session_names` says so for **both**, with the number to paste in.
+It covered only the first until 5a-bis, which is how the second's hash came to be wrong in this
+directory for a slice with nothing to notice it.
 
 **The second Ruleset is the first with one number changed, and two tests hold it there.**
 `The_two_golden_rulesets_differ_in_exactly_one_line` compares them with the comments stripped, so a
 copy that drifts fails with the diff in the message. And
 `The_committed_reload_moves_the_trace_and_only_after_it` is the one that makes *the golden session
-reloads* worth saying: every sample up to Tick 128 is identical to the same session with no
+reloads* worth saying: every sample up to Tick 1,024 is identical to the same session with no
 transition, and every sample after it differs. Without that line the baseline could be covering a
 reload that changed nothing.
 
@@ -41,7 +43,8 @@ and the baseline would be claiming coverage it does not have. When later slices 
 verbs that build a city, the session absorbs the world fixture's job and this file can go.
 
 **Slice 7 task 10a moved that boundary without dissolving it.** The session now opens with
-`populate`, so it raises 121 Buildings, 360 Households and 1,000 Citizens, gives every Building its
+`populate`, so it raises 121 Buildings, 360 Households and 1,000 Citizens on land the subdivider
+carved for it (13 blocks of lattice row 0), gives every Building its
 kind's Bins and Rule Instances, and runs the Rule engine for 2,048 Ticks — the first time the golden
 trace has covered any of that. What it does **not** cover is what `GoldenFixtures.Build()` was
 written for: a destroyed Household and a destroyed Citizen, so the allocator's free head and its
@@ -51,7 +54,7 @@ never-reused id counter are off their initial values. Nothing in a session can d
 **Slice 10 task 11 lengthened the session 256 → 2,048 Ticks, and it was to keep coverage rather than to
 gain any.**
 [`adr/0059`](../../../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)
-derives a Zone Rule's sample from the Lot count, and at this fixture's 132 Lots the shipped one-Day
+derives a Zone Rule's sample from the Lot count, and at that fixture's 132 Lots the shipped one-Day
 revisit period gives **one** Lot a trigger where the retired `sample = 4` gave four. Over the old eight
 triggers the session condemned and never once landed on a Lot demolition had cleared, so the committed
 trace **stopped covering `ZoneRuleEngine`'s create branch entirely** — and said nothing, because every
@@ -60,7 +63,9 @@ run *did*, so a change that narrows what the run *reaches* looks exactly like a 
 The cadence moved to **64** with the Tick count, holding the trace at thirty-two samples, and the reload
 to **1,024** to stay halfway; `The_golden_session_raises_buildings_as_well_as_condemning_them` is the
 assertion that makes the new length mean something rather than being a number somebody once chose. If
-you shorten this session, that test is what will tell you.
+you shorten this session, that test is what will tell you. **5a-bis widened the same margin without
+moving either number**: a real subdivider carves blocks, so the session peaks at **247** Lots against
+132 and the derived sample is **2** rather than 1.
 
 **Milestone 5a re-recorded all three artefacts, and the reason is worth separating into its two
 halves.** `world-hash.txt` and `session-trace.txt` moved because `road_node` and `road_segment` joined
@@ -70,6 +75,37 @@ moved independently, because each file gained a `[roads]` table — which is why
 *inside* `session.borough` all had to change before the trace could be regenerated at all. **Four
 literals in two files for one edit**, and the ordering is not optional: regenerating the trace against
 a log that still names the old Ruleset produces a green run of the wrong session.
+
+**5a-bis re-recorded all three again, and its lesson is about the session's *content* rather than its
+hashes.** The Ruleset files gained a `[lots]` table and `LotTable` gained a saved `side` column, so
+every number in this directory moved for reasons nobody needs telling. What needed telling is that
+**a straight re-record would have quietly retired the `zone` verb from the baseline.** Zoning a Tile
+now zones the *block* it falls in
+([`adr/0077`](../../../docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md)),
+and eight of the session's eleven Zone commands named Tiles 0–31 — which is **one** block, and one
+the populator had already carved. Eight of eleven commands would have become no-ops while the trace
+came back full of freshly correct hashes.
+
+**That is slice 10 task 11's finding on its second outing, so it is now a test rather than a
+paragraph.** `GoldenSessionCoverageTests` asserts what the session *reaches*: every Zone command
+carves a block nothing else has touched, a block stripped of frontage is refused, and a road edit
+re-subdivides in both directions. **If you move a command in this session, that file is what will
+tell you the move cost coverage** — `GoldenHashTests` structurally cannot.
+
+**The session gained road edits for the same reason.** `connect` is applied as of 5a-bis, so a
+committed session that never edits a road leaves the Epoch, re-subdivision and the frontage refusal
+outside every hash here. Seven `connect` lines now bulldoze a block face, restore it and strip
+another block entirely — four of them in one Tick, which is also the first time a per-Tick slice in
+this session has held more than a pair.
+
+**A guard existed for one Ruleset and not for its twin, and adding `[lots]` is what found it.**
+`The_golden_ruleset_is_the_one_the_session_names` checked `minimal.toml` alone;
+`GoldenFixtures.TunedRulesetHash` was a literal **nothing held to a file**. The catalogue pairs a
+*stated* hash with a *loaded* file, so a stale literal resolves to the new content and no test
+anywhere notices — the tuned hash had in fact been wrong from the moment the file was edited, and it
+was the failure of its twin that prompted anyone to look. It is a `[Theory]` over both files now.
+*A guard with no test is invisible to every future reader; a guard that covers one of two identical
+files is worse, because the one it covers is evidence that somebody thought about it.*
 
 **`World.HashSeed`'s version byte did not move, and that is deliberate.** It is for a change to the
 *fold* — the composition order's rules, `Randomness.Mix`, what a column contributes — and not for a

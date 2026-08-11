@@ -2,6 +2,7 @@ using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 using Borough.Formats;
 
@@ -44,7 +45,7 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0xF0C2_6F27_CC66_D789UL;
+    internal const ulong RulesetHash = 0xFEB8_A0A4_A6FE_9BADUL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>
@@ -57,7 +58,7 @@ internal static class GoldenFixtures
     /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
     /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
     /// </remarks>
-    internal const ulong TunedRulesetHash = 0x1B46_86BB_A6FA_1B0FUL;
+    internal const ulong TunedRulesetHash = 0x452E_8D59_E4A9_D44EUL;
 
     /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
     internal static string TunedRulesetPath =>
@@ -78,14 +79,23 @@ internal static class GoldenFixtures
     /// How far the session runs. Well past its last command, which is the ordinary case.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>256 until slice 10 task 11, and it was lengthened to keep coverage rather than to gain
-    /// any.</b> <c>adr/0059</c> derives a Zone Rule's sample from the Lot count, and at this fixture's
-    /// 132 Lots the shipped one-Day revisit period gives <b>one</b> Lot a trigger where the retired
-    /// <c>sample = 4</c> gave four. At 256 Ticks that is eight looks at the city, which condemns and
-    /// never happens to land on a Lot that demolition has cleared — so the committed trace would have
-    /// stopped covering <see cref="Borough.Core.Rules.ZoneRuleEngine"/>'s create path entirely, and
-    /// nothing would have said so. At 2,048 Ticks the session raises twelve Buildings and condemns
-    /// forty-nine, so both branches are under the baseline again.
+    /// any.</b> <c>adr/0059</c> derives a Zone Rule's sample from the Lot count, and at that
+    /// fixture's 132 Lots the shipped one-Day revisit period gave <b>one</b> Lot a trigger where the
+    /// retired <c>sample = 4</c> gave four. At 256 Ticks that is eight looks at the city, which
+    /// condemns and never happens to land on a Lot that demolition has cleared — so the committed
+    /// trace would have stopped covering <see cref="Borough.Core.Rules.ZoneRuleEngine"/>'s create
+    /// path entirely, and nothing would have said so.
+    /// </para>
+    /// <para>
+    /// <b>5a-bis widened the same margin without touching this number.</b> A real subdivider carves
+    /// blocks rather than painting Tiles, so the session now holds <b>247</b> Lots at its peak
+    /// against 132, and the derived sample is <b>2</b> rather than 1 — twice the looks per Day at
+    /// the same length. <c>The_golden_session_raises_buildings_as_well_as_condemning_them</c> is
+    /// still the assertion that makes the length mean something; if you shorten this session, that
+    /// is what will tell you.
+    /// </para>
     /// </remarks>
     internal const int Ticks = 2_048;
 
@@ -101,14 +111,28 @@ internal static class GoldenFixtures
     internal const int HashEvery = 64;
 
     /// <summary>
-    /// The golden session: a population, eleven Zone commands, then silence.
+    /// The Street lattice spacing the golden Ruleset states — <c>[roads] block_tiles</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A copy, and it is one on purpose.</b> It could be read off the loaded Ruleset, and then a
+    /// change to <c>rulesets/minimal.toml</c> would silently move every command in this session onto
+    /// different land while the fixture still read as unchanged. Stated here, that change breaks a
+    /// test instead — which is what the whole directory is for. <c>GoldenSessionCoverageTests</c>
+    /// holds the two to agreement.
+    /// </remarks>
+    internal const int BlockTiles = 32;
+
+    /// <summary>
+    /// The golden session: a population, twelve Zone commands, seven road edits, then silence.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>The shape is chosen for what it can go wrong on, not for realism.</b> Two commands share a
     /// Tick, so the per-Tick slice's lower bound is exercised rather than assumed; there are gaps, so
-    /// a run that applied commands by index rather than by Tick would diverge; the last command lands
-    /// at Tick 97 with the run going to 2,048, so most samples are of a city nobody is touching.
+    /// a run that applied commands by index rather than by Tick would diverge; Tick 400 holds
+    /// <em>four</em> commands, which is the first time that slice has been more than a pair; and the
+    /// last command lands at Tick 401 with the run going to 2,048, so most samples are of a city
+    /// nobody is touching.
     /// </para>
     /// <para>
     /// <b><see cref="CommandKind.Populate"/> arrives first, and it is what makes this baseline cover
@@ -119,15 +143,16 @@ internal static class GoldenFixtures
     /// saved state, and saved state that moves without somebody saying so is what this file is for.
     /// </para>
     /// <para>
-    /// <b>The Zone commands sit north of the populated rows.</b> The populator lays 121 Lots across
-    /// rows 0 and 1, and five of the original coordinates were inside that block — two Lots on one
-    /// Tile is a state nothing refuses today and a fixture whose docstring promises coherence should
-    /// not be the first to hold one. Nothing else about them moved.
+    /// <b>The Zone commands sit clear of the populated blocks.</b> The populator subdivides along
+    /// lattice row 0 and stops as soon as it has land for the Buildings it wants, so every command
+    /// here names a block in row 2 or above. Zoning a block the populator already carved is not an
+    /// error — the claim mask refuses it face by face — but it is a <em>no-op</em>, and a session
+    /// full of no-ops is a baseline that covers nothing while every hash in it still moves.
     /// </para>
     /// <para>
-    /// <b>Connect, Service and Govern are still declared and still throw on application.</b> When
-    /// they land they extend this session rather than replace it, and that extension is a deliberate
-    /// re-baseline.
+    /// <b>Connect is applied as of 5a-bis; Service and Govern are still declared and still throw.</b>
+    /// When they land they extend this session rather than replace it, and that extension is a
+    /// deliberate re-baseline — which is exactly what Connect's arrival was.
     /// </para>
     /// </remarks>
     internal static InputLog Session() => Session(reloads: true);
@@ -147,17 +172,45 @@ internal static class GoldenFixtures
 
         builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
 
-        Append(builder, tick: 0, east: 0, north: 2, zone: 1);
-        Append(builder, tick: 1, east: 1, north: 2, zone: 1);
-        Append(builder, tick: 1, east: 2, north: 2, zone: 2);
-        Append(builder, tick: 2, east: 2, north: 3, zone: 2);
-        Append(builder, tick: 9, east: 7, north: 3, zone: 3);
-        Append(builder, tick: 17, east: 11, north: 5, zone: 1);
-        Append(builder, tick: 17, east: 12, north: 5, zone: 1);
-        Append(builder, tick: 33, east: 31, north: 29, zone: 4);
-        Append(builder, tick: 64, east: 63, north: 2, zone: 2);
-        Append(builder, tick: 65, east: 0, north: 63, zone: 3);
-        Append(builder, tick: 97, east: 255, north: 255, zone: 5);
+        Append(builder, tick: 0, block: (0, 2), zone: 1);
+        Append(builder, tick: 1, block: (1, 2), zone: 1);
+        Append(builder, tick: 1, block: (2, 2), zone: 2);
+        Append(builder, tick: 2, block: (2, 3), zone: 2);
+        Append(builder, tick: 9, block: (7, 3), zone: 3);
+        Append(builder, tick: 17, block: (11, 5), zone: 1);
+        Append(builder, tick: 17, block: (12, 5), zone: 1);
+        Append(builder, tick: 33, block: (31, 29), zone: 4);
+        Append(builder, tick: 64, block: (63, 2), zone: 2);
+        Append(builder, tick: 65, block: (0, 63), zone: 3);
+        Append(builder, tick: 97, block: (127, 127), zone: 5);
+
+        // 5a-bis. The road editor, and it is here for coverage rather than for shape: a baseline
+        // records what a run did, so a committed session that never edits a road leaves the Epoch,
+        // re-subdivision and the refusal all outside every hash in this directory. Slice 10 task 11
+        // is the precedent -- a derived sample of 1 silently stopped reaching the Zone Rule's create
+        // branch and every test still passed.
+        //
+        // Four branches, in the order they can first be reached:
+        //
+        //   129  a face is bulldozed off a block nobody has zoned      -- the edit path, nothing freed
+        //   130  that block is zoned                                   -- 7 Lots, not 10: a short block
+        //   200  the face is laid back                                 -- re-subdivision CREATES
+        //   300  it is bulldozed again                                 -- re-subdivision FREES
+        //   400  all four faces of another block go                    -- four edits in one Tick
+        //   401  that block is zoned                                   -- REFUSED, 0 Lots
+        //
+        // GoldenSessionCoverageTests asserts each of those outcomes against the replayed world, so
+        // the coverage is a claim the suite checks rather than a comment.
+        Connect(builder, tick: 129, node: (50, 50), StreetAxis.East, ConnectAction.Bulldoze);
+        Append(builder, tick: 130, block: (50, 50), zone: 1);
+        Connect(builder, tick: 200, node: (50, 50), StreetAxis.East, ConnectAction.Lay);
+        Connect(builder, tick: 300, node: (50, 50), StreetAxis.East, ConnectAction.Bulldoze);
+
+        Connect(builder, tick: 400, node: (60, 60), StreetAxis.East, ConnectAction.Bulldoze);
+        Connect(builder, tick: 400, node: (60, 61), StreetAxis.East, ConnectAction.Bulldoze);
+        Connect(builder, tick: 400, node: (60, 60), StreetAxis.North, ConnectAction.Bulldoze);
+        Connect(builder, tick: 400, node: (61, 60), StreetAxis.North, ConnectAction.Bulldoze);
+        Append(builder, tick: 401, block: (60, 60), zone: 4);
 
         // Slice 8 task 10. A transition rather than a command -- there is no reload verb, because
         // Command is 12 bytes and could not carry a hash -- so it is appended here and not through
@@ -282,6 +335,41 @@ internal static class GoldenFixtures
         return world;
     }
 
-    private static void Append(InputLogBuilder builder, ulong tick, int east, int north, ushort zone) =>
-        builder.Append(new Ticks(tick), new Command(CommandKind.Zone, new Tiles(east), new Tiles(north), zone));
+    /// <summary>
+    /// Zones the block at <paramref name="block"/>, naming the Tile at its centre.
+    /// </summary>
+    /// <remarks>
+    /// <b>The block index is what the fixture states and the Tile is derived from it</b>, because
+    /// since 5a-bis zoning a Tile zones the block it falls in and a coordinate written by hand is now
+    /// a coordinate that silently collides. Eight of the eleven original commands named Tiles 0–31,
+    /// which is <em>one</em> block — so a straight re-record would have turned eight of them into
+    /// no-ops and retired the verb from the baseline without a single test going red. The centre
+    /// rather than the corner, so that nothing here depends on how <c>SubdivideAt</c> floors.
+    /// </remarks>
+    private static void Append(InputLogBuilder builder, ulong tick, (int Column, int Row) block, ushort zone) =>
+        builder.Append(
+            new Ticks(tick),
+            new Command(
+                CommandKind.Zone,
+                new Tiles((block.Column * BlockTiles) + (BlockTiles / 2)),
+                new Tiles((block.Row * BlockTiles) + (BlockTiles / 2)),
+                zone));
+
+    /// <summary>
+    /// Lays or bulldozes the Street leaving lattice intersection <paramref name="node"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The command carries the near endpoint and the orientation, and the far endpoint is
+    /// derived</b> (<c>adr/0077</c>) — so a fixture names a node and a direction, which is what a
+    /// player's drag would resolve to.
+    /// </remarks>
+    private static void Connect(
+        InputLogBuilder builder, ulong tick, (int Column, int Row) node, StreetAxis axis, ConnectAction action) =>
+        builder.Append(
+            new Ticks(tick),
+            new Command(
+                CommandKind.Connect,
+                new Tiles(node.Column * BlockTiles),
+                new Tiles(node.Row * BlockTiles),
+                new ConnectPayload(axis, action, RoadKind.Street).Encode()));
 }

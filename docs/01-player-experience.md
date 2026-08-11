@@ -33,9 +33,12 @@ There are five, and the list is short on purpose. `PLAYER GOVERNS`
 |---|---|---|
 | **Zone** | Paint a permission set over land — Residential, Commercial, Office, Industry-Extraction, Industry-Processing — with a density band | Place buildings. Zone Rules decide what actually gets built, and when. The band is a **ceiling**, never a floor |
 | **Connect** | Lay Streets on the grid, draw Arterials, place authored Junction pieces | Micromanage lanes, signals, or turn restrictions |
+| | ⚠ *As built (5a-bis): **Streets only**, one **Segment** per act — an origin intersection and an axis, lay or bulldoze ([`adr/0077`](../docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md)). Arterials and Junction pieces are **refused by name** with their successor written beside the refusal, because a spline is many control points and is not one command, and a Junction piece needs the authored library `adr/0014` calls content.* | |
 | **Service** | Place schools, utilities, health, fire, waste — buildings with a catchment | Guarantee that they are reached, or decide how many staff them |
 | **Govern** | Set taxes, service funding, transfers, and constraints; borrow. Globally by default, overridden per District | Directly set outcomes. Every Policy is a Rule with a named payer and named beneficiaries |
 | **Inspect** | Overlays, Evidence, Pin | Change anything |
+
+**The unit of a road edit is a Segment, not a Tile, and that is a property of the graph rather than of the interface.** `adr/0014` says Streets snap to the grid, which reads as though a Street were paintable Tile by Tile; the Road Graph puts nodes only at intersections a block apart, so one Street Segment spans an entire block face. A per-Tile command would either split Segments — which `CONTEXT` → Address refuses, because it is what holds the graph at ~30,000 rather than 150,000–300,000 — or accumulate dozens of commands into one edge and leave all but one of them meaning nothing. **What the player drags across the screen is a presentation question; what reaches the Input Log is one edge.**
 
 **`Fund` and `Regulate` were merged into `Govern`.** They were never different acts — both are *"set a parameter on a Rule the city then obeys"* — and the split was drawn on subject matter (money versus law) rather than on what the player does. `adr/0025` then emptied `Regulate` further by moving density caps into zoning, leaving a two-item verb. Constraint-versus-flow is a distinction *inside* Govern, not a division of the verb set.
 

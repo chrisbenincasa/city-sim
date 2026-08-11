@@ -14,10 +14,18 @@ namespace Borough.Core.Input;
 /// not an input.
 /// </para>
 /// <para>
-/// <b>Three of the four are declared and not yet applied</b>, which is deliberate in the way the
-/// phase list is. Connect needs a Road Graph, Service needs service Buildings and Govern needs
-/// Policy — none of which exist before slice 7. Declaring them now means the log format already has
+/// <b>Two of the four are declared and not yet applied.</b> Service needs service Buildings and
+/// Govern needs Policy, neither of which exists. Declaring them means the log format already has
 /// their slot, so the artefact a bug report is made of does not change shape when they arrive.
+/// </para>
+/// <para>
+/// ⚠ <b>That is a claim about the log's <em>shape</em> and never was a claim about its
+/// <em>version</em>.</b> This remark used to run on into <em>"and this format version does not have
+/// to be bumped for their arrival"</em>, which <c>InputLogCodec</c> states the refutation of in its
+/// own file: <em>what would bump it is a sixth field on a command</em>. Whether a verb's arrival is
+/// free depends entirely on whether its payload fits the four fields below — <c>Connect</c>'s was
+/// made to fit (<c>adr/0077</c>), and a verb carrying two coordinate pairs would not have.
+/// <b>Service and Govern have not been examined against that test.</b>
 /// </para>
 /// </remarks>
 public enum CommandKind : ushort
@@ -28,10 +36,18 @@ public enum CommandKind : ushort
     /// </summary>
     None = 0,
 
-    /// <summary>Paint a permission set over land. The only verb slice 5 applies.</summary>
+    /// <summary>
+    /// Paint a permission set over land. <b>Since 5a-bis it zones the <em>block</em> the named Tile
+    /// falls in</b>, and the subdivider carves it against the Street network — <c>02 §2.2</c>: Lots
+    /// are generated, not painted.
+    /// </summary>
     Zone = 1,
 
-    /// <summary>Lay Streets, draw Arterials, place Junction pieces. Slice 7 and the S2 spike.</summary>
+    /// <summary>
+    /// Lay Streets, draw Arterials, place Junction pieces. <b>Applied since 5a-bis, for Streets
+    /// only</b> — Arterials and Junction pieces are refused by name with their successor written
+    /// beside the refusal (<c>adr/0077</c>).
+    /// </summary>
     Connect = 2,
 
     /// <summary>Place a Building with a catchment — the design's one placement exception.</summary>
@@ -92,7 +108,8 @@ public readonly struct Command
     public CommandKind Kind { get; }
 
     /// <summary>
-    /// The permission set a <see cref="CommandKind.Zone"/> paints.
+    /// <b>The verb's payload word.</b> The permission set for <see cref="CommandKind.Zone"/>, and a
+    /// <see cref="ConnectPayload"/> for <see cref="CommandKind.Connect"/>.
     /// </summary>
     /// <remarks>
     /// <b>A set, not a kind</b> — <c>01 §2</c>'s verb paints a <em>permission set</em>, and a Lot
@@ -109,4 +126,48 @@ public readonly struct Command
 
     /// <summary>Where, northward.</summary>
     public Tiles North { get; }
+}
+
+/// <summary>What a <see cref="CommandKind.Connect"/> does to the edge it names.</summary>
+public enum ConnectAction : byte
+{
+    /// <summary>Put a road there. <c>adr/0012</c>'s <em>addition</em> — boundedly wrong.</summary>
+    Lay = 0,
+
+    /// <summary>Take the road away. <c>adr/0012</c>'s <em>removal</em> — never wrong.</summary>
+    Bulldoze = 1,
+}
+
+/// <summary>
+/// <see cref="CommandKind.Connect"/>'s payload, packed into <see cref="Command.Zone"/>'s sixteen bits.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>This is why the Input Log format stays at version 1</b> (<c>adr/0077</c>). The codec's own rule
+/// is that <em>a sixth field on a command</em> is what bumps a version; an origin, an axis, an action
+/// and a kind fit the four fields <see cref="Command"/> already has, so nothing is added. <b>The far
+/// endpoint is derived rather than carried</b> — an origin plus an axis names an adjacent lattice
+/// pair uniquely, because the grid spacing is <c>[roads] block_tiles</c> and the world already holds
+/// it. Carrying both endpoints would be carrying a fact the world has, at the price of a version bump
+/// that <em>"would cost every log ever written — including the committed golden baseline"</em>.
+/// </para>
+/// <para>
+/// <b>The kind travels even though only one value is accepted</b>, and that is <c>adr/0070</c>'s
+/// discipline rather than speculative generality: an Arterial is <b>refused by name</b>, with its
+/// successor written beside the refusal, so a later sitting reads <em>refused-for-now</em> rather than
+/// <em>silently missing</em>. Those are different premises and only one of them is evidence.
+/// </para>
+/// </remarks>
+public readonly record struct ConnectPayload(Space.StreetAxis Axis, ConnectAction Action, Space.RoadKind Kind)
+{
+    /// <summary>Reads a payload out of a <see cref="Command.Zone"/> word.</summary>
+    public static ConnectPayload Decode(ushort word) =>
+        new(
+            (Space.StreetAxis)(word & 1),
+            (ConnectAction)((word >> 1) & 1),
+            (Space.RoadKind)((word >> 8) & 0xFF));
+
+    /// <summary>Packs this payload into a <see cref="Command.Zone"/> word.</summary>
+    public ushort Encode() =>
+        (ushort)((int)Axis | ((int)Action << 1) | ((int)Kind << 8));
 }

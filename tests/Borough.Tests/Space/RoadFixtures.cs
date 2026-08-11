@@ -84,9 +84,42 @@ internal static class RoadFixtures
     internal static RoadRuleset Severing(int crossingEvery) =>
         Roads(blockTiles: 256, arterials: 8, junctionTiles: 512, crossingEvery, footPaths: 0);
 
-    /// <summary>A Ruleset carrying nothing but the <c>[roads]</c> table.</summary>
-    internal static Ruleset With(RoadRuleset roads) =>
-        new Ruleset([], [], [], [], [], [], [], [], []) { Roads = roads };
+    /// <summary>A Ruleset carrying the <c>[roads]</c> and <c>[lots]</c> tables.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Five Lots a Segment, matching both shipped Rulesets</b>, because the figure is
+    /// <c>CONTEXT.md</c> → Address's own and a fixture that disagreed with it would be testing a city
+    /// nothing ships (<c>adr/0078</c>).
+    /// </para>
+    /// <para>
+    /// <b>One method with a default rather than two overloads</b>, and that is a scar. 5a-bis added
+    /// the <c>[lots]</c> parameter as a second overload beside a one-argument <c>With(roads)</c>;
+    /// every existing call site is an exact match for the one-argument method, so overload resolution
+    /// kept choosing it and every subdivider test saw a Ruleset with no <c>[lots]</c> and produced no
+    /// Lots. <b>The symptom was indistinguishable from the subdivider not working</b>, which is a bad
+    /// hour to spend, and the default parameter makes the case unrepresentable.
+    /// </para>
+    /// </remarks>
+    internal static Ruleset With(RoadRuleset roads, int lotsPerSegment = 5) =>
+        new Ruleset([], [], [], [], [], [], [], [], [])
+        {
+            Roads = roads,
+            Lots = new LotRuleset(lotsPerSegment),
+        };
+
+    /// <summary>
+    /// A pure Street lattice — no Arterials, no cut-throughs, and therefore no severance.
+    /// </summary>
+    /// <remarks>
+    /// <b>What the subdivider's tests want, and the reason is that they are about frontage rather
+    /// than about the graph.</b> <see cref="Roads"/>' two Arterials delete whichever Streets they
+    /// happen to run over, which is exactly right for the severance tests and makes a block's face
+    /// count depend on a hashed polyline here. A lattice with nothing crossing it gives every block
+    /// four faces by construction, so a test that counts Lots is counting the subdivider rather than
+    /// the generator's dice.
+    /// </remarks>
+    internal static RoadRuleset Lattice(int blockTiles = 512) =>
+        Roads(blockTiles, arterials: 0, junctionTiles: blockTiles, crossingEvery: 0, footPaths: 0);
 
     /// <summary>
     /// <paramref name="nodes"/> nodes in a line, each joined to the next by an ordinary Street.

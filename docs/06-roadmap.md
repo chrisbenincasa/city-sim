@@ -70,6 +70,7 @@ No graphics. Everything is `Borough.Core`, `Borough.Tests`, `Borough.Headless`, 
 | # | Milestone | Risk retired |
 |---|---|---|
 | **5a** | Road Graph and Streets | That geometry leaks into the simulation and the routing graph stops being uniform |
+| **5a-bis** | The Lot subdivider and the road editor | That a design document's precondition is a hypothesis about the build. *Every Building is on the Road Graph by construction* was true because there **was** no Road Graph; frontage is enforced now, so [`adr/0014`](adr/0014-frontage-is-required-and-arterials-grant-none.md)'s asymmetry and `CONTEXT.md` → Frontage's deletion of the utility network are standing on something. Secondarily [`adr/0012`](adr/0012-routing-intent-lives-in-the-agent.md)'s: an invalidation contract no player has ever driven is a contract nobody has tested |
 | **5b** | Trips, Legs and the pedestrian layer | **The irreversible one.** A single-Leg Trip model propagates into Lot valuation, cost functions and every balance constant, and is what Citybound could never undo |
 | **5c** | Statistical resolution and the travel-time matrix | That routing intent leaks into the world ([`adr/0012`](adr/0012-routing-intent-lives-in-the-agent.md)) — the GlassBox failure |
 | **6** | Lane-as-entity traffic | That the vehicle becomes the entity, which costs a spatial index, cache locality, and roughly an order of magnitude ([`adr/0016`](adr/0016-the-lane-is-the-entity-not-the-car.md)) |

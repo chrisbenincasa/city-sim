@@ -3,7 +3,9 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
+using Borough.Core.Space;
 using Borough.Core.Tables;
+using Borough.Tests.Space;
 
 namespace Borough.Tests.Session;
 
@@ -14,6 +16,16 @@ namespace Borough.Tests.Session;
 public sealed class SimulationTests
 {
     private const int Population = 64;
+
+    /// <summary>
+    /// Lots one block yields on a lattice with all four faces — four faces at two or three each.
+    /// </summary>
+    /// <remarks>
+    /// Arithmetic rather than a constant to keep in step: <c>lots_per_segment</c> is 5, split by
+    /// parity between the two blocks sharing a Segment, so a block takes 3 from two of its faces and
+    /// 2 from the other two (<c>adr/0078</c>).
+    /// </remarks>
+    private const int LotsPerBlock = 10;
 
     [Fact]
     public void A_new_simulation_starts_at_tick_zero() =>
@@ -80,17 +92,175 @@ public sealed class SimulationTests
         return hash;
     }
 
+    /// <summary>
+    /// The <c>zone</c> verb subdivides the block it names, rather than painting one Lot on it.
+    /// </summary>
+    /// <remarks>
+    /// <b>The verb's meaning changed in 5a-bis and this is where that is asserted</b> —
+    /// <c>02 §2.2</c>: <i>Lots are <b>generated, not painted</b></i>. It used to create exactly one
+    /// Lot at the command's coordinates, which was honest while there was no Street network to carve
+    /// against and became a fiction the moment there was.
+    /// <para>
+    /// <b>Ten Lots, and the number is arithmetic rather than a magic constant.</b> A block has four
+    /// faces; a Segment carries <c>lots_per_segment = 5</c> split between the two blocks that share
+    /// it by parity, so each block takes three from one face and two from the next, alternating —
+    /// which is odd-and-even house numbering (<c>adr/0078</c>).
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void A_zone_command_paints_a_lot()
+    public void A_zone_command_subdivides_the_block_it_names()
     {
-        Simulation simulation = Build();
-        Command zone = Paint(east: 12, north: 8, permissions: 1);
+        Simulation simulation = Zoned();
+
+        simulation.Step(new TickInput([Paint(east: 12, north: 8, permissions: 1)], rulesetHash: 0));
+
+        LotTable lots = simulation.World.Lots;
+
+        Assert.Equal(LotsPerBlock, lots.Rows.LiveCount);
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            Assert.True(lots.Rows.IsLive(slot));
+            Assert.True(lots.HasFrontage(slot), $"Lot {slot} was carved with no frontage.");
+            Assert.True(lots.AddressOf(slot).Exists);
+        }
+    }
+
+    /// <summary>
+    /// Land with no Street on any face stays unlotted — <c>02 §2.2</c>'s third rule, and the one the
+    /// whole slice exists for.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is <c>adr/0025</c>'s rejected road-derived cap, shown working the way that ADR said it
+    /// would.</b> The player who zones land the streets do not reach is <em>not refused</em> — the
+    /// command applies, nothing throws, and what they get is a dead block interior that explains
+    /// itself. `LEGIBLE CAUSE`
+    /// </remarks>
+    [Fact]
+    public void Land_with_no_street_gets_no_lots()
+    {
+        Simulation simulation = Zoned();
+        StreetGrid streets = simulation.World.Roads.Streets;
+
+        // Strip block (1,1) of all four faces, which is what a player bulldozing round a block does.
+        foreach ((int column, int row, StreetAxis axis) in ((int, int, StreetAxis)[])[
+            (1, 1, StreetAxis.East), (1, 2, StreetAxis.East),
+            (1, 1, StreetAxis.North), (2, 1, StreetAxis.North)])
+        {
+            Assert.True(simulation.World.Roads.BulldozeStreet(column, row, axis));
+        }
+
+        int block = streets.BlockTiles;
+
+        simulation.Step(new TickInput(
+            [Paint(east: block + (block / 2), north: block + (block / 2), permissions: 1)],
+            rulesetHash: 0));
+
+        Assert.Equal(0, simulation.World.Lots.Rows.LiveCount);
+    }
+
+    /// <summary>
+    /// The same interior fills once a Street is run through it — the other half of the picture.
+    /// </summary>
+    /// <remarks>
+    /// <b>Neither half is testable alone, which is why <c>plans/0022</c> made the subdivider and the
+    /// road editor one slice.</b> A subdivider that only ever runs once never exercises its hardest
+    /// requirement; a road editor with nothing reading the graph proves only that a row changed.
+    /// </remarks>
+    [Fact]
+    public void A_street_run_through_dead_land_makes_it_developable()
+    {
+        Simulation simulation = Zoned();
+
+        foreach ((int column, int row, StreetAxis axis) in ((int, int, StreetAxis)[])[
+            (1, 1, StreetAxis.East), (1, 2, StreetAxis.East),
+            (1, 1, StreetAxis.North), (2, 1, StreetAxis.North)])
+        {
+            simulation.World.Roads.BulldozeStreet(column, row, axis);
+        }
+
+        int block = simulation.World.Roads.Streets.BlockTiles;
+        Command zone = Paint(east: block + (block / 2), north: block + (block / 2), permissions: 1);
 
         simulation.Step(new TickInput([zone], rulesetHash: 0));
+        Assert.Equal(0, simulation.World.Lots.Rows.LiveCount);
 
-        Assert.Equal(1, simulation.World.Lots.Rows.LiveCount);
-        Assert.Equal(new Tiles(12), simulation.World.Lots.East[0]);
-        Assert.Equal(new Tiles(8), simulation.World.Lots.North[0]);
+        // The player runs one Street back along the block's south face. That is one SIDE of one
+        // Segment, so it is a quarter of the block's faces and not a quarter of its Lots: a block
+        // takes the Left side of its south face, and Left is the even indices {0, 2, 4} of five --
+        // three Lots. Its four faces are 3, 2, 2, 3 rather than 2.5 each, because the sides alternate
+        // and five is odd. That asymmetry is odd-and-even house numbering and is not an artefact.
+        simulation.Step(new TickInput(
+            [Connect(east: block, north: block, StreetAxis.East), zone], rulesetHash: 0));
+
+        Assert.Equal(3, simulation.World.Lots.Rows.LiveCount);
+    }
+
+    /// <summary>
+    /// <b>A Building outlives its frontage: bulldozing its Street leaves it standing with no
+    /// Address</b> (<c>adr/0079</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>02 §2.2</c>: <i>"re-subdivision must preserve existing Buildings — only vacant land
+    /// re-parcels."</i></b> The rule is keyed on <b>occupancy</b> and not on frontage, and the
+    /// difference is the whole test: both Lots below lose their Street in the same edit, and the
+    /// occupied one stays while the vacant one goes.
+    /// </para>
+    /// <para>
+    /// <b>The brief proposed letting such a Building decline through <c>adr/0053</c>'s existing
+    /// machinery instead, and that is false in the code</b> — <c>ZoneRuleEngine.Condemn</c> is keyed
+    /// on a starving Rule Instance, and a bulldozed Street starves nothing. *Citing a mechanism is
+    /// not checking what it is keyed on.* What actually happens is 5b's: a Trip to an Address that
+    /// does not exist ends <i>no route found</i>, which is why <see cref="Address.None"/> is a value
+    /// the Lot can hold rather than a state that has to be refused.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_building_survives_losing_its_street_and_a_vacant_lot_beside_it_does_not()
+    {
+        Simulation simulation = Zoned();
+        World world = simulation.World;
+        int block = world.Roads.Streets.BlockTiles;
+
+        simulation.Step(new TickInput(
+            [Paint(east: block + (block / 2), north: block + (block / 2), permissions: 1)],
+            rulesetHash: 0));
+
+        // The south face of block (1,1) -- three Lots, on the Segment the edit below removes.
+        // Named through the lattice rather than through Frontage.Locate, because the intersection
+        // itself fronts nothing by design and (block, block) is an intersection.
+        int occupied = OnFace(world, world.Roads.Streets.Horizontal(1, 1));
+
+        Handle<Building> building = world.Buildings.Create(world.Lots, world.Lots.Rows.At(occupied), kind: 1);
+        world.Lots.Occupy(occupied, world.Buildings.Rows.Resolve(building));
+
+        int before = world.Lots.Rows.LiveCount;
+
+        simulation.Step(new TickInput(
+            [Connect(east: block, north: block, StreetAxis.East, ConnectAction.Bulldoze)], rulesetHash: 0));
+
+        Assert.True(world.Lots.Rows.IsLive(occupied), "an occupied Lot was freed by re-subdivision");
+        Assert.False(world.Lots.HasFrontage(occupied), "the Lot kept a Street that was bulldozed");
+        Assert.False(world.Lots.AddressOf(occupied).Exists);
+        Assert.True(world.Buildings.Rows.IsLive(world.Buildings.Rows.Resolve(building)));
+
+        // Two of the face's three Lots were vacant, and they are land again.
+        Assert.Equal(before - 2, world.Lots.Rows.LiveCount);
+    }
+
+    /// <summary>The slot of the first live Lot fronting <paramref name="segment"/>.</summary>
+    private static int OnFace(World world, int segment)
+    {
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (world.Lots.Rows.IsLive(slot) && world.Lots.FrontageSlot[slot] == segment + 1)
+            {
+                return slot;
+            }
+        }
+
+        throw new InvalidOperationException($"no Lot fronts Segment {segment}");
     }
 
     /// <summary>
@@ -112,7 +282,7 @@ public sealed class SimulationTests
     [Fact]
     public void A_zone_command_paints_its_whole_permission_set()
     {
-        Simulation simulation = Build();
+        Simulation simulation = Zoned();
         const ushort MixedUse = 0b1000_0001_0000_0101;
 
         simulation.Step(new TickInput(
@@ -121,17 +291,30 @@ public sealed class SimulationTests
         Assert.Equal(MixedUse, simulation.World.Lots.Zone[0]);
     }
 
+    /// <summary>
+    /// Two commands in one Tick land in the order they were issued.
+    /// </summary>
+    /// <remarks>
+    /// <b>Asserted through the permission set rather than through position</b>, because a block's Lots
+    /// are no longer at the coordinates the command named — the subdivider puts them on the block's
+    /// faces. The set is the one payload that travels from the command onto every Lot it produces, so
+    /// it is what distinguishes *which command made this row* now that one command makes many.
+    /// </remarks>
     [Fact]
     public void Commands_in_one_tick_are_applied_in_issue_order()
     {
-        Simulation simulation = Build();
+        Simulation simulation = Zoned();
+        int block = simulation.World.Roads.Streets.BlockTiles;
 
         simulation.Step(new TickInput(
-            [Paint(east: 1, north: 0, permissions: 1), Paint(east: 2, north: 0, permissions: 1)],
+            [
+                Paint(east: block / 2, north: block / 2, permissions: 0b0001),
+                Paint(east: block + (block / 2), north: block / 2, permissions: 0b0010),
+            ],
             rulesetHash: 0));
 
-        Assert.Equal(new Tiles(1), simulation.World.Lots.East[0]);
-        Assert.Equal(new Tiles(2), simulation.World.Lots.East[1]);
+        Assert.Equal(0b0001, simulation.World.Lots.Zone[0]);
+        Assert.Equal(0b0010, simulation.World.Lots.Zone[LotsPerBlock]);
     }
 
     /// <summary>
@@ -140,7 +323,6 @@ public sealed class SimulationTests
     /// </summary>
     [Theory]
     [InlineData(CommandKind.None)]
-    [InlineData(CommandKind.Connect)]
     [InlineData(CommandKind.Service)]
     [InlineData(CommandKind.Govern)]
     public void An_unapplied_verb_throws_rather_than_being_skipped(CommandKind kind)
@@ -210,6 +392,32 @@ public sealed class SimulationTests
 
     private static Command Paint(int east, int north, ushort permissions) =>
         new(CommandKind.Zone, new Tiles(east), new Tiles(north), permissions);
+
+    private static Command Connect(
+        int east, int north, StreetAxis axis, ConnectAction action = ConnectAction.Lay) =>
+        new(
+            CommandKind.Connect,
+            new Tiles(east),
+            new Tiles(north),
+            new ConnectPayload(axis, action, RoadKind.Street).Encode());
+
+    /// <summary>
+    /// A Simulation over a laid Street lattice, which is what the <c>zone</c> verb now needs.
+    /// </summary>
+    /// <remarks>
+    /// <b>The roads are laid directly rather than through <c>Populate</c></b>, because these tests are
+    /// about the verb rather than about the populator and a synthetic city at this size would be most
+    /// of their run time. The generator is the same one <c>Populate</c> calls.
+    /// </remarks>
+    private static Simulation Zoned()
+    {
+        var key = WorldKey.FromSeed(0xD0D0_CACA_0000_0001UL);
+        World world = new(Population, RoadFixtures.With(RoadFixtures.Lattice()));
+
+        RoadGenerator.LayInto(world.Roads, key);
+
+        return new Simulation(world, key);
+    }
 
     private static Simulation Build() =>
         new(new World(Population), WorldKey.FromSeed(0xD0D0_CACA_0000_0001UL));

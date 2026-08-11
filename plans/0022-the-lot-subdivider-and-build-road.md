@@ -16,7 +16,41 @@
 
 ## Status
 
-**NOT STARTED. Ungated, and available now.** Nothing in the argument track names it, its two design
+**✅ DONE 2026-08-11.** All seven tasks. The five decisions closed first and produced three ADRs —
+[`adr/0077`](../docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md),
+[`adr/0078`](../docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md),
+[`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md)
+— **and three of the five recommendations in this document were wrong**, which is recorded in place
+rather than silently edited, because a brief quietly corrected to agree with what was built stops being
+evidence about what was predicted. **1,073 tests green; all three golden baselines re-recorded.**
+
+**The slice's sharpest finding is about the re-record and not about Lots.** Zoning a Tile now zones the
+**block** it falls in, and eight of the golden session's eleven `zone` commands named Tiles 0–31 —
+which is *one* block, and one the populator had already carved. A straight re-record would have turned
+eight commands into no-ops and **retired the verb from the baseline while producing a full set of freshly
+correct hashes**. That is slice 10 task 11's finding on its second outing in three slices, so it is now a
+test — `GoldenSessionCoverageTests` asserts what the session *reaches* rather than what it hashes to.
+**A hash test structurally cannot see this**, and the second sighting is what makes it a standing rule
+rather than an anecdote.
+
+**Three more outlive the slice.** A **guard that covers one of two identical files is worse than no
+guard**: `The_golden_ruleset_is_the_one_the_session_names` checked `minimal.toml` and not its twin, so
+`TunedRulesetHash` was a literal nothing held to a file — and the catalogue pairs a *stated* hash with a
+*loaded* one, so the stale number resolved to the new content and nothing anywhere noticed. It had been
+wrong since the file was last edited. **A derived structure that caches a Ruleset value reads as
+*absent* rather than as *stale* before its first rebuild**, and absent is the state every guard is
+written against: `RoadGraph`'s constructor never called `RebuildDerived`, so a replayed world with
+`[roads]` and no generator run refused every `connect` with *"this world has no Street lattice"*. And
+the 100,000-Tick run found that **the lay/bulldoze cycle closes but is not synchronous** — a Building
+standing on the bulldozed face survives (`adr/0079`), so its Lot's freeing is deferred to whenever the
+Zone Rules condemn it. The first draft asserted equality across cycles and failed at 140 against 138;
+*a test that demands synchrony is testing the Zone Rule's cadence while claiming to test the
+subdivider.* It also surfaced a real defect — a Lot vacated by demolition while it had no frontage was
+never freed, because re-subdivision runs on a **road edit** and a Lot can be vacated on any Tick.
+`World` frees it at the demolition site now, and `Invariant.VacantLotHasFrontage` is true continuously
+rather than only immediately after an edit.
+
+*Original status:* **NOT STARTED. Ungated, and available now.** Nothing in the argument track names it, its two design
 inputs (`02 §2.2` and `adr/0014`) are settled and detailed, and milestone 5a shipped the Street network
 it was waiting for. **It went on [`0000`](0000-board.md) as *Do these next* row 6 on 2026-08-11** — until
 that day it existed only as prose inside a closed slice's *What this excludes* section, which is a
@@ -145,7 +179,9 @@ rather than degrading. What is worth printing here is **a block interior with no
 same block after the player runs a street through it. That picture is `adr/0025`'s rejected road-derived
 cap, shown working the way the ADR said it would.
 
-**7. Invariants, hash and the long run.** Every Lot has frontage, checked whole-world; a Building's Lot
+**7. Invariants, hash and the long run.** ~~Every Lot has frontage, checked whole-world~~ ⚠ **every
+*vacant* Lot has frontage** ([`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md)
+— the original is false under this document's own decision 4); a Building's Lot
 survives re-subdivision, checked at the write site; 100,000 Ticks with road edits in the log, no
 collection and no magnitude trending (`adr/0006`), **and an assertion that a re-subdivision preserved an
 occupied Lot** — because that is the branch a run without demolition never reaches.
@@ -231,6 +267,69 @@ already Ruleset data.
 
 ---
 
+## What the decisions closed
+
+**One sitting, 2026-08-11, five decisions, three ADRs — and the sitting's own finding is that a brief
+is evidence about what its author could see, not a specification.** Three of the five recommendations
+above were wrong, each in a different way, and all three failures are of a kind no amount of care in
+writing the brief would have caught.
+
+| | Decision | Outcome |
+|---|---|---|
+| **1** | What a road-drawing command is | **Recommendation refused.** [`adr/0077`](../docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md): one **Segment**, not one Tile. Streets only, Arterials and Junction pieces refused by name |
+| **2** | Whether the log format bumps | **Version 1 stands**, and the two remarks are reconciled — but *not* for the reason given above |
+| **3** | Where the Access Point lives | **Not this slice's to take.** Session **F** closed it |
+| **4** | An occupied Lot that loses its frontage | **Recommendation refused.** [`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md): the Building stands and its Address becomes a named absence |
+| **5** | Lot depth and width | **One number, and it was already in the corpus.** [`adr/0078`](../docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md). Depth deleted rather than chosen |
+
+**Decision 1 — a quotation can be accurate and its conclusion false.** The recommendation of *"one
+grid-snapped Street Tile per command"* rests on two correct quotations from `adr/0014` — *Streets snap
+to the grid*, and the Road Graph *"falls out of the Tile grid directly"*. But `RoadGenerator` puts nodes
+**only at grid intersections `block_tiles` apart**, so one Street Segment spans a whole block face and
+**there is no such thing as a Street Tile in the graph 5a built**. The brief reasoned from a design
+sentence without checking what was built under it — [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s
+shape on a third axis, since `0070` governs absences and this is a **presence** misread.
+
+**Decision 2 was right and its stated reason was not, which is the more useful half.** The brief says
+the version turns on whether the payload needs a second coordinate pair. It does not need one — but not
+because a Tile-sized edit is small. It is because **an origin plus an orientation names an adjacent pair
+uniquely**, the grid spacing being Ruleset data, so the far endpoint is *derived rather than carried*.
+Had the recommendation been implemented as written it would have reached the same version by a route
+that stops working the moment `block_tiles` is not the node spacing.
+
+**Decision 3 was closed by a session that ran after this brief was written, and the brief says so
+without knowing it.** *"It does not contend with session F"* reads as independence and was a
+**dependency that had already been discharged** — F settled the Access Point's shape completely in
+[`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md) and
+`CONTEXT.md` → Address. ***A brief's open question can be closed between its writing and its execution,
+and the brief will not say so*** — which is an argument for reading a plan's *status* against the board
+before taking its decisions, not for writing briefs differently.
+
+**Decision 4 — citing a mechanism is not checking what it is keyed on.** The recommendation is *decline
+through `adr/0053`'s existing machinery*, on the explicit ground that **"it needs no new mechanism"**.
+`ZoneRuleEngine.Condemn` walks a Building's **Rule Instances** and asks `IsStarving`; a Building whose
+Street was bulldozed **starves nothing**, so routing the case there needs a second pressure source and a
+threshold — exactly the new mechanism the recommendation claimed to avoid. Same shape as
+[`adr/0064`](../docs/adr/0064-a-bins-capacity-is-a-property-of-the-ruleset-in-force-and-an-over-full-bin-drains-rather-than-clamps.md)'s
+finding, one level up: the sentence was about the design and the answer was in the code.
+
+**Decision 5 — the third time this corpus has looked for a derivation and found the number already
+written down.** The brief predicts *"two or more hash-bearing world-creation numbers"*. It is **one**,
+and it is `CONTEXT.md` → Address's *"five Buildings share a Segment"* — the premise of the decision that
+keeps an Address off a Node, and therefore of the ~30,000-Segment figure the whole routing budget is
+priced against. 5a's graph gives **33,024** Street Segments against that *"~30,000"* **by construction
+rather than by arrangement**, so the Lot count is **165,120** — against `World`'s independently-chosen
+225 per 1,000 Citizens, or 225,000 at 1M. *Two figures that never met, agreeing within a quarter.*
+Depth is **deleted**: a Lot has no extent in `LotTable`, so a depth would be a hash-bearing number
+chosen for a consumer nobody has designed.
+
+⚠ **And this document contradicts itself, eight paragraphs apart.** Decision 4 asks what happens to an
+occupied Lot that loses its frontage; the *Definition of done* asks for **"Every Lot has frontage,
+checked whole-world"**. That invariant is **false** under every answer to decision 4 except *refuse the
+edit* — a preserved occupied Lot is a Lot without frontage by construction. The definition of done is
+the half that is wrong, and it is corrected below rather than deleted, because *an invariant that fails
+on the correct behaviour is worse than no invariant*: it is the tier that gets disabled to ship.
+
 ## What 5b inherits from this
 
 **5b wants this done first, which makes the ordering convenient rather than merely non-conflicting.**
@@ -258,8 +357,21 @@ them at world creation is a fixture.
   empty and the same interior fill after a Street is run through it
 - A road edit arrives through the Input Log, replays identically, and **bumps the Epoch of the Segments
   it touched and no others**
-- Re-subdivision preserves every standing Building, asserted whole-world
-- *No frontage* is reportable as a vacancy reason
+- ~~Every Lot has frontage, checked whole-world~~ ⚠ **CORRECTED by [`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md):
+  it is **every *vacant* Lot has frontage**, whole-world, plus a write-site check that a Lot is only
+  ever preserved without frontage when it is occupied. The original wording is false under decision 4
+  and was written against a subdivider that only ever ran forwards
+- Re-subdivision preserves every standing Building, asserted whole-world —
+  `SimulationTests.A_building_survives_losing_its_street_and_a_vacant_lot_beside_it_does_not` at the
+  write site, `LotLongRunTests` whole-world after 195 road edits
+- ~~*No frontage* is reportable as a vacancy reason~~ ⚠ **SUPERSEDED by
+  [`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md).**
+  The consequence of an Address that does not exist is a **Trip Fate** — *no route found*
+  ([`adr/0076`](../docs/adr/0076-the-trip-fate-set-is-closed-at-four-and-a-fate-names-the-journey.md),
+  a set closed at four) — and there is no vacancy-reason mechanism to report into. Adding one here
+  would have been a second, parallel way of saying the same thing, in a slice with no Trips in it.
+  This is `adr/0070` in its usual direction: the line was written against a reporting channel nobody
+  has built. **It belongs to 5b and is on that slice's inheritance list**
 - `--zones` shows a dead block interior, and refuses rather than degrading
 - 100,000 Ticks with road edits in the log, no collection and no magnitude trending, **and an assertion
   that both the refusal and the re-subdivision branches were reached**

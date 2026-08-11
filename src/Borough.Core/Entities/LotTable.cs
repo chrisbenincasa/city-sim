@@ -1,6 +1,7 @@
 namespace Borough.Core.Entities;
 
 using Borough.Core.Quantities;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 
 /// <summary>
@@ -43,7 +44,10 @@ public sealed class LotTable
         East = _rows.Saved<Tiles>("east");
         North = _rows.Saved<Tiles>("north");
         Zone = _rows.Saved<ushort>("zone");
+        Side = _rows.Saved<byte>("side");
         BuildingSlot = _rows.Derived<int>("building_slot");
+        FrontageSlot = _rows.Derived<int>("frontage_slot");
+        FrontageOffset = _rows.Derived<Tiles>("frontage_offset");
 
         _rows.Seal();
     }
@@ -118,8 +122,68 @@ public sealed class LotTable
     /// </remarks>
     public Column<int> BuildingSlot { get; }
 
+    /// <summary>
+    /// Which side of its Street this Lot sits on — <b>the one bit <c>adr/0074</c> puts on the place
+    /// rather than in the graph</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Saved, and it is the only part of the Lot's Address that is.</b> The Segment and the offset
+    /// are recoverable from <see cref="East"/> and <see cref="North"/> against the Street lattice, and
+    /// a side is not: a point on a line is on both sides of it. So this is exactly the residue —
+    /// <c>adr/0074</c>'s <i>"one saved bit on that place"</i>, arrived at from the other direction.
+    /// </para>
+    /// <para>
+    /// <b>Left or right of the Segment's A→B direction</b> (<see cref="Space.StreetSide"/>), which the
+    /// endpoint columns already fix, so no geometry is needed to interpret it and the simulation still
+    /// never sees a spline.
+    /// </para>
+    /// </remarks>
+    public Column<byte> Side { get; }
+
+    /// <summary>
+    /// The Segment this Lot fronts, as a slot index <b>plus one</b> — zero meaning no frontage.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>Derived</c>, on the Epoch</b> (<c>adr/0078</c>). A Lot no more stores its frontage than
+    /// an Arc stores its cost, because both are functions of the Segments — and the edit that would
+    /// not reach a stored copy is <b>the player bulldozing the Street</b>, which is the one edit this
+    /// slice exists to make possible.
+    /// </para>
+    /// <para>
+    /// <b>Plus one, for <see cref="BuildingSlot"/>'s reason exactly.</b> A freshly allocated or freed
+    /// row is zero-filled, so a <c>-1</c> sentinel would make every unfronted Lot read as fronting
+    /// <em>Segment slot 0</em> — the first Street in the city, silently claimed across the map, with
+    /// every hash moving and every test passing. Read it through <see cref="AddressOf"/> rather than
+    /// directly; the encoding is not meant to travel.
+    /// </para>
+    /// </remarks>
+    public Column<int> FrontageSlot { get; }
+
+    /// <summary>How far along its Segment this Lot sits, from the A endpoint.</summary>
+    public Column<Tiles> FrontageOffset { get; }
+
     /// <summary>Whether nothing stands here — <c>02 §2.2</c>'s other state.</summary>
     public bool IsVacant(int slot) => BuildingSlot[slot] == 0;
+
+    /// <summary>Whether this Lot touches a Street it can take access from.</summary>
+    public bool HasFrontage(int slot) => FrontageSlot[slot] != 0;
+
+    /// <summary>
+    /// This Lot's Address — <b>and therefore its Building's Access Point</b>, which is what
+    /// <c>CONTEXT.md</c> → Access Point means by <i>"where a Building meets a network"</i>.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Address.None"/> where the Lot has no frontage</b>, which is <c>adr/0079</c>'s
+    /// requirement and the state a Building reaches when its last Street is bulldozed. It is a value
+    /// and not a null precisely so that milestone 5b reads it and reports <em>no route found</em>
+    /// rather than dereferencing something.
+    /// </remarks>
+    public Address AddressOf(int slot) =>
+        FrontageSlot[slot] == 0
+            ? Address.None
+            : Address.On(FrontageSlot[slot] - 1, FrontageOffset[slot], (StreetSide)Side[slot]);
 
     /// <summary>
     /// The slot of the Building on this Lot, or <see cref="Rows.NoSlot"/> when it is vacant.
@@ -133,8 +197,19 @@ public sealed class LotTable
     /// <summary>Records that the Lot is clear again.</summary>
     public void Vacate(int slot) => BuildingSlot[slot] = 0;
 
-    /// <summary>Allocates a Lot at a position.</summary>
-    public Handle<Lot> Create(Tiles east, Tiles north, ushort zone)
+    /// <summary>
+    /// Allocates a Lot at a position, on a given side of the Street it fronts.
+    /// </summary>
+    /// <remarks>
+    /// <b>The subdivider is the intended caller and the tests are the other one</b> (<c>02 §2.2</c>:
+    /// <i>Lots are generated, not painted</i>). It does not set the frontage columns, because it does
+    /// not know the Segment — the subdivider does, and writes them at the same site, exactly as
+    /// <see cref="World.CreateBuilding"/> calls <see cref="Occupy"/> for the reverse index that
+    /// <see cref="World.RebuildDerived"/> also recomputes. <b>Two producers of a derived column is the
+    /// established pattern here rather than a hazard</b>: the write site keeps it cheap, the rebuild
+    /// keeps it recoverable, and a test that the two agree is what stops them drifting.
+    /// </remarks>
+    public Handle<Lot> Create(Tiles east, Tiles north, ushort zone, StreetSide side = StreetSide.Left)
     {
         Handle<Lot> handle = _rows.Allocate();
         int slot = _rows.Resolve(handle);
@@ -142,6 +217,7 @@ public sealed class LotTable
         East[slot] = east;
         North[slot] = north;
         Zone[slot] = zone;
+        Side[slot] = (byte)side;
 
         return handle;
     }

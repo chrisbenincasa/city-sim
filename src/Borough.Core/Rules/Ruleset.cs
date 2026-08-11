@@ -602,6 +602,35 @@ public readonly record struct RoadRuleset(
 }
 
 /// <summary>
+/// The <c>[lots]</c> table — <b>how zoned land is carved into parcels</b> (<c>adr/0078</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>One number, and it is the only one the subdivider takes.</b> <c>02 §2.2</c> asks for
+/// <i>"Lot depth and width targets"</i>; width is this, and <b>depth does not exist</b> — a Lot has
+/// no extent in <c>LotTable</c>, so a depth would be a hash-bearing world-creation number chosen for
+/// a consumer nobody has designed. Lots hang on Segments and everything else is block interior,
+/// structurally.
+/// </para>
+/// <para>
+/// <b><see cref="LotsPerSegment"/> is derived rather than chosen</b>, which is why this table has one
+/// key instead of the two <c>plans/0022</c> predicted. It is <c>CONTEXT.md</c> → Address's own working
+/// figure — <i>"five Buildings share a Segment"</i> — which is the premise of the decision that keeps
+/// an Address off a Node and therefore of the ~30,000-Segment figure every routing cost is priced
+/// against. If that figure moves, this moves with it and one sentence fixes both.
+/// </para>
+/// </remarks>
+/// <param name="LotsPerSegment">How many Lots one Street Segment carries, both sides together.</param>
+public readonly record struct LotRuleset(int LotsPerSegment)
+{
+    /// <summary>A Ruleset whose land cannot be subdivided at all.</summary>
+    public static LotRuleset None => default;
+
+    /// <summary>Whether the subdivider runs.</summary>
+    public bool Runs => LotsPerSegment > 0;
+}
+
+/// <summary>
 /// The Ruleset the interpreter runs: ids and integers, validated, with no string anywhere in it.
 /// </summary>
 /// <remarks>
@@ -728,6 +757,11 @@ public sealed class Ruleset
     /// catchment query at all.
     /// </remarks>
     public RoadRuleset Roads { get; init; } = RoadRuleset.None;
+
+    /// <summary>
+    /// The <c>[lots]</c> table in force — how zoned land is carved into parcels (<c>adr/0078</c>).
+    /// </summary>
+    public LotRuleset Lots { get; init; } = LotRuleset.None;
 
     /// <summary>
     /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.

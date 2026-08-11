@@ -193,6 +193,31 @@ public sealed class World
     /// </remarks>
     public RoadGraph Roads { get; }
 
+    /// <summary>
+    /// Every Lot's contact with the Street it takes access from — <b>derived, rebuilt on the Epoch,
+    /// and outside the State Hash</b> (<c>adr/0078</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Not a registered table, for <see cref="RoadArcs"/>'s reason.</b> It writes into
+    /// <see cref="LotTable"/>'s two derived columns and owns one array of its own — the per-Segment
+    /// claim mask — none of which is saved, so a table of its own would fold four allocator scalars
+    /// and make the hash depend on how many times frontage had been recomputed.
+    /// </remarks>
+    public Frontage Frontage { get; } = new();
+
+    /// <summary>
+    /// Whether this world has a Street lattice for a Lot to front.
+    /// </summary>
+    /// <remarks>
+    /// <b>A Ruleset with no <c>[roads]</c> is a world with no geography, and frontage is not a thing
+    /// it can be missing.</b> <c>SyntheticCity</c> lays rows with no frontage on purpose in that case
+    /// and says so at length — S0a's footprint capture is <c>--citizens</c> with no <c>--ruleset</c>,
+    /// and a populator that made no rows would answer the sizing question with an empty world. Every
+    /// rule about frontage is therefore conditioned on this rather than stated absolutely, which is
+    /// <c>adr/0070</c> at the site: the absence is <em>unbuilt geography</em>, not a defect.
+    /// </remarks>
+    public bool HasStreets => Roads.Streets.BlockTiles > 0;
+
     /// <summary>The Bins, and their wait lists.</summary>
     public BinTable Bins { get; }
 
@@ -726,7 +751,15 @@ public sealed class World
         Bins.BinNext.Span.Clear();
         RuleInstances.RuleNext.Span.Clear();
         Lots.BuildingSlot.Span.Clear();
+        Lots.FrontageSlot.Span.Clear();
+        Lots.FrontageOffset.Span.Clear();
         Bins.Capacity.Span.Clear();
+
+        // Frontage before the reverse indices below, because it reads only the Lot's saved position
+        // and the Street lattice — which Roads.RebuildDerived has just rebuilt — and nothing else
+        // here depends on it. A Lot whose Street is gone comes out of this with no Address and keeps
+        // its position, which is adr/0079.
+        Frontage.Rebuild(Lots, Roads.Streets);
 
         // The Lot's reverse index. Not ordered like the four lists below it — a Lot holds at most one
         // Building, so there is nothing to insert in order, and a second Building naming the same Lot
@@ -1379,6 +1412,20 @@ public sealed class World
         if (Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
         {
             Lots.Vacate(lotSlot);
+
+            // A Lot with no frontage outlived its Street only because something stood on it
+            // (adr/0079). With the Building gone there is nothing to keep it a parcel, so it goes
+            // back to being land -- and land with no Street re-parcels if one ever returns.
+            //
+            // Found by LotLongRunTests rather than reasoned out: re-subdivision runs on a road edit,
+            // and a Lot can be vacated at any Tick, so between a demolition and the next edit the
+            // world held a vacant Lot with no Street. That is exactly what
+            // Invariant.VacantLotHasFrontage forbids, and freeing it here is what makes the
+            // invariant true continuously rather than only immediately after an edit.
+            if (HasStreets && !Lots.HasFrontage(lotSlot))
+            {
+                Lots.Rows.Free(Lots.Rows.At(lotSlot));
+            }
         }
 
         Buildings.Rows.Free(building);

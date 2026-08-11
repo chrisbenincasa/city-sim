@@ -269,18 +269,30 @@ public sealed class GoldenHashTests
     /// beside the test assembly, or one loaded from the source tree instead, would make every other
     /// test here pass over a file the runner never reads.
     /// </para>
+    /// <para>
+    /// <b>Both files, since 5a-bis, and the second was the gap.</b> This guarded
+    /// <c>minimal.toml</c> alone while <c>minimal-tuned.toml</c>'s hash sat in the fixture as a
+    /// literal nothing held to a file — and the catalogue pairs a stated hash with a <em>loaded</em>
+    /// file, so a stale one resolves to the new content and nothing anywhere notices. Adding
+    /// <c>[lots]</c> to both files is what surfaced it: one number failed loudly and its twin moved
+    /// in silence.
+    /// </para>
     /// </remarks>
-    [Fact]
-    public void The_golden_ruleset_is_the_one_the_session_names()
+    [Theory]
+    [InlineData("minimal.toml", "RulesetHash")]
+    [InlineData("minimal-tuned.toml", "TunedRulesetHash")]
+    public void The_golden_ruleset_is_the_one_the_session_names(string file, string constant)
     {
-        ulong observed = RulesetFile.HashOf(GoldenFixtures.RulesetPath);
+        bool tuned = constant == "TunedRulesetHash";
+        ulong named = tuned ? GoldenFixtures.TunedRulesetHash : GoldenFixtures.RulesetHash;
+        ulong observed = RulesetFile.HashOf(
+            tuned ? GoldenFixtures.TunedRulesetPath : GoldenFixtures.RulesetPath);
 
         Assert.True(
-            observed == GoldenFixtures.RulesetHash,
-            $"the golden Ruleset hashes to 0x{observed:X16} and the session names "
-            + $"0x{GoldenFixtures.RulesetHash:X16}. If you meant to change the Ruleset, put that "
-            + "number in GoldenFixtures.RulesetHash and in session.borough, then re-baseline the "
-            + $"trace:\n\n  {Regenerate}");
+            observed == named,
+            $"{file} hashes to 0x{observed:X16} and the session names 0x{named:X16}. If you meant to "
+            + $"change it, put that number in GoldenFixtures.{constant} and in session.borough, then "
+            + $"re-baseline the trace:\n\n  {Regenerate}");
     }
 
     /// <summary>

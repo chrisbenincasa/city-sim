@@ -1,8 +1,10 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 
 namespace Borough.Core;
@@ -309,16 +311,23 @@ public sealed class Simulation
         switch (command.Kind)
         {
             case CommandKind.Zone:
-                // The permission set now arrives at full width — slice 10 widened the Lot's column to
-                // match this verb, so nothing authored here is lost on the way in.
+                // 02 §2.2: Lots are **generated, not painted**. Until 5a-bis this line created exactly
+                // one Lot at the command's coordinates, and said so -- there was no Street network to
+                // carve against, so painting a *region* would have stood in for more of 5a than
+                // painting one did, and every Lot it invented would have been one the real subdivider
+                // would have refused.
                 //
-                // It still paints exactly one Lot, and that is not a shortcut: 02 §2.2 says Lots are
-                // **generated, not painted**, by a subdivider that carves zoned land against the
-                // Street network and refuses frontage-less land. Streets are milestone 5a, which is
-                // Phase 2, so the generator cannot exist yet. Painting a *region* of Lots here would
-                // stand in for more of 5a than painting one does, and every Lot it invented would be
-                // one the real subdivider would have refused.
-                _world.Lots.Create(command.East, command.North, command.Zone);
+                // Now the verb zones the **block** the named Tile falls in, and the subdivider carves
+                // it against its own four faces. A block with no Street on any face yields **no Lots
+                // at all**, which is that section's third rule and the whole of what makes a bad
+                // street layout punish the player mechanically rather than through a penalty number.
+                LotSubdivider.SubdivideAt(_world, command.East, command.North, command.Zone);
+                break;
+
+            case CommandKind.Connect:
+                // 01 §2's fifth verb, declared since slice 5 and thrown until now. adr/0077 settles
+                // what it is: one Street Segment on the lattice edge leaving the named intersection.
+                ApplyConnect(command);
                 break;
 
             case CommandKind.Populate:
@@ -329,13 +338,79 @@ public sealed class Simulation
                 break;
 
             case CommandKind.None:
-            case CommandKind.Connect:
             case CommandKind.Service:
             case CommandKind.Govern:
             default:
                 throw new InvalidOperationException(
                     $"command kind {(ushort)command.Kind} is declared but not applied in this slice.");
         }
+    }
+
+    /// <summary>
+    /// Lays or bulldozes one Street, then re-parcels what the edit changed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the first thing in the project that edits the Road Graph in a running world</b>, and
+    /// therefore the first thing that has ever driven <c>adr/0012</c>'s per-Segment Epoch by anything
+    /// a player did. Until now the Epoch was exercised by unit tests and by nothing else, because the
+    /// generator runs at world creation.
+    /// </para>
+    /// <para>
+    /// <b>Re-subdivision runs only when the graph actually changed</b>, which is what makes a repeated
+    /// <c>connect</c> free. A log replays a player's clicks, and a player clicking a Tile that already
+    /// has a road on it is an ordinary event rather than an error to die on.
+    /// </para>
+    /// <para>
+    /// <b>Anything that is not a Street is refused by name.</b> An Arterial is a spline with many
+    /// control points and is not one command at all; a Junction piece needs a piece library
+    /// (<c>adr/0014</c>: <em>"content with three faces each"</em>). Both are deferred with a named
+    /// successor rather than silently missing, which is the distinction <c>adr/0070</c> exists to
+    /// keep — only a <em>refused</em> absence is evidence a later sitting may reason from.
+    /// </para>
+    /// </remarks>
+    private void ApplyConnect(Command command)
+    {
+        ConnectPayload payload = ConnectPayload.Decode(command.Zone);
+
+        if (payload.Kind != RoadKind.Street)
+        {
+            throw new InvalidOperationException(
+                $"connect names road kind {(int)payload.Kind}, and only Street is applied. "
+                + "adr/0077 defers Arterials and Junction pieces by name: an Arterial is a spline "
+                + "with many control points and is not one command, and a Junction piece needs the "
+                + "authored library adr/0014 calls content. Neither is missing by oversight.");
+        }
+
+        int block = _world.Roads.Streets.BlockTiles;
+
+        if (block <= 0)
+        {
+            throw new InvalidOperationException(
+                "connect names a Street lattice this world does not have. The spacing comes from "
+                + "the Ruleset's [roads] block_tiles, and a Ruleset that declares no [roads] is a "
+                + "world with no road network to edit.");
+        }
+
+        // Snapped down to the lattice, which is what adr/0014's "Streets snap to the grid" means once
+        // the graph is nodes at intersections rather than Tiles: the player names a place and the
+        // edit lands on the edge leaving the intersection at or below it.
+        int column = IntegerMath.FloorDiv(command.East.Raw, block);
+        int row = IntegerMath.FloorDiv(command.North.Raw, block);
+
+        bool changed = payload.Action == ConnectAction.Lay
+            ? _world.Roads.LayStreet(column, row, payload.Axis)
+            : _world.Roads.BulldozeStreet(column, row, payload.Axis);
+
+        if (!changed)
+        {
+            return;
+        }
+
+        // The graph edit has already rebuilt the Street lattice; frontage follows it, and only then
+        // can the subdivider tell which Lots have lost their Street and which faces have gained one.
+        _world.Frontage.Rebuild(_world.Lots, _world.Roads.Streets);
+        LotSubdivider.Resubdivide(_world);
     }
 
     /// <summary>Phase 1 — drain the Event Wheel bucket for this Tick.</summary>

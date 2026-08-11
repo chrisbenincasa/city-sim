@@ -205,6 +205,65 @@ public sealed class RoadGraphTests
     }
 
     /// <summary>
+    /// <b>A road edit moves no standing Segment's Epoch.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The assertion <c>RoadGraph.LayStreet</c>'s own docstring names, written down at last.</b>
+    /// S2 R5's finding is the reason it is a test rather than a remark: <b>a single-counter Epoch
+    /// <em>is</em> a global flush</b>, and an edit path that bumped every Segment would be exactly
+    /// that while wearing per-Segment storage — every route in the city invalidated by one player
+    /// laying one Street, with nothing in any hash or count to say so.
+    /// </para>
+    /// <para>
+    /// <b>Both directions, and the removal is the interesting one.</b> <c>adr/0012</c> permits an
+    /// addition to leave standing routes <em>suboptimal</em>, so a lay touching nothing is the
+    /// contract read literally. A bulldoze must be <i>never wrong about a removal</i> — and it is,
+    /// by freeing the row: a route naming a freed Segment fails to resolve rather than comparing
+    /// stale, which is a stronger guarantee than any Epoch could give.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_road_edit_moves_no_standing_segments_epoch()
+    {
+        var graph = new RoadGraph(RoadFixtures.Lattice(blockTiles: 512));
+
+        RoadGenerator.LayInto(graph, WorldKey.FromSeed(1));
+
+        uint[] before = Epochs(graph);
+
+        Assert.True(graph.BulldozeStreet(1, 1, StreetAxis.East), "the fixture has no Street to bulldoze");
+        Assert.True(graph.LayStreet(1, 1, StreetAxis.East), "the bulldozed Street did not come back");
+
+        uint[] after = Epochs(graph);
+
+        for (int slot = 0; slot < before.Length; slot++)
+        {
+            if (before[slot] == 0 || !graph.Segments.Rows.IsLive(slot))
+            {
+                // Never existed, or was the row the edit freed -- and the slot the lay took back is
+                // a NEW Segment, which opens at 1 like any other rather than inheriting a history.
+                continue;
+            }
+
+            Assert.Equal(before[slot], after[slot]);
+        }
+    }
+
+    /// <summary>Every Segment slot's Epoch, live or not.</summary>
+    private static uint[] Epochs(RoadGraph graph)
+    {
+        uint[] epochs = new uint[graph.Segments.Rows.SlotCount];
+
+        for (int slot = 0; slot < epochs.Length; slot++)
+        {
+            epochs[slot] = graph.Segments.Rows.IsLive(slot) ? graph.Segments.Epoch[slot] : 0;
+        }
+
+        return epochs;
+    }
+
+    /// <summary>
     /// The Epoch saturates rather than wrapping.
     /// </summary>
     /// <remarks>

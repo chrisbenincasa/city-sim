@@ -130,6 +130,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _placementTable;
 
         private TableSyntaxBase? _roadsTable;
+        private TableSyntaxBase? _lotsTable;
 
         public RulesetLoadResult Read()
         {
@@ -165,6 +166,7 @@ public static class RulesetLoader
             LayerRuleset layers = ReadLayers();
             PlacementRuleset placement = ReadPlacement();
             RoadRuleset roads = ReadRoads();
+            LotRuleset lots = ReadLots(roads);
 
             if (_refusals.Count == 0)
             {
@@ -193,6 +195,7 @@ public static class RulesetLoader
                     Layers = layers,
                     Placement = placement,
                     Roads = roads,
+                    Lots = lots,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 });
@@ -288,11 +291,25 @@ public static class RulesetLoader
                         _roadsTable = table;
                         break;
 
+                    case "lots":
+                        // Singular and optional, on [roads]'s reasoning exactly. Land is subdivided
+                        // one way, so two tables of numbers for it is ambiguous rather than additive.
+                        if (_lotsTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [lots] is declared. Land is subdivided one way, so two "
+                                + "tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _lotsTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [layers], "
-                            + "[placement] and [roads].");
+                            + "[placement], [roads] and [lots].");
                         break;
                 }
             }
@@ -1765,6 +1782,63 @@ public static class RulesetLoader
                 street, arterial, walk,
                 streetCapacity, arterialCapacity, pathCapacity);
         }
+
+        // ---- lots -----------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[lots]</c> table — how zoned land is carved into parcels (<c>adr/0078</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and its absence means land cannot be subdivided at all</b> — <c>[roads]</c>'s
+        /// polarity, for <c>[roads]</c>'s reason. A default would put a hash-bearing world-creation
+        /// number in the binary that nobody authored (<c>adr/0052</c>), and this one decides how many
+        /// Buildings a city can hold. The failure a default hides would be quiet; the failure this
+        /// causes is loud, because a world with no <c>[lots]</c> grows nothing and says so at the
+        /// first <c>zone</c>.
+        /// </para>
+        /// <para>
+        /// <b>One key, because there is only one number</b>. <c>02 §2.2</c> asks for depth and width
+        /// targets; the width is derived from <c>CONTEXT.md</c> → Address's <i>five Buildings share a
+        /// Segment</i>, and <b>depth does not exist</b> — a Lot has no extent, so a depth would be a
+        /// number chosen for a consumer nobody has designed. <c>plans/0022</c> predicted two or more
+        /// numbers here and there is one.
+        /// </para>
+        /// </remarks>
+        private LotRuleset ReadLots(RoadRuleset roads)
+        {
+            if (_lotsTable is null)
+            {
+                return LotRuleset.None;
+            }
+
+            if (!TryInteger(_lotsTable, "lots_per_segment", out long value, required: true))
+            {
+                return LotRuleset.None;
+            }
+
+            // The ceiling is the block, not an arbitrary cap: a Segment cannot carry more Lots than
+            // it has Tiles of frontage, because two Lots would land on one Tile and the derivation
+            // that recovers a Lot's Segment from its position would stop being one-to-one.
+            long ceiling = roads.Runs ? roads.BlockTiles : int.MaxValue;
+
+            if (value < 1 || value > ceiling)
+            {
+                Refuse(LineOfLot("lots_per_segment"), null,
+                    $"lots_per_segment = {value} is out of range. It is how many Lots one Street "
+                    + "Segment carries, both sides together, so it is at least 1 and at most the "
+                    + $"block's length in Tiles ({ceiling}) — beyond that two Lots would share a "
+                    + "Tile and a Lot's frontage would stop being recoverable from its position.");
+
+                return LotRuleset.None;
+            }
+
+            return new LotRuleset((int)value);
+        }
+
+        /// <summary>The line a <c>[lots]</c> key is on, or the table's.</summary>
+        private int LineOfLot(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_lotsTable!, key) ?? _lotsTable!);
 
         /// <summary>A required <c>[roads]</c> integer, refused when it is outside its range.</summary>
         private int RoadNumber(string key, int minimum, int maximum, string range)

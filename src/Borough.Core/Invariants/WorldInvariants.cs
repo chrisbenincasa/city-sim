@@ -47,6 +47,56 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, NoWaiterSleepsOnANonBlockingBin);
         invariants.Register(InvariantTier.EndOfRun, BinCapacitiesMatchTheirDeclarations);
         invariants.Register(InvariantTier.EndOfRun, TheAdjacencyDescribesTheSegments);
+        invariants.Register(InvariantTier.EndOfRun, VacantLandHasAStreetToBuildOff);
+    }
+
+    /// <summary>
+    /// Every vacant Lot fronts a Street that exists.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The occupied case is deliberately excluded and is not an oversight</b> —
+    /// <see cref="Invariant.VacantLotHasFrontage"/> carries the argument. A Building outlives its
+    /// frontage (<c>adr/0079</c>), so requiring frontage of every Lot would make a legal road edit
+    /// report a violation.
+    /// </para>
+    /// <para>
+    /// <b>Both directions, because a stale index and an absent one fail differently.</b> The Lot must
+    /// name a Segment, and that Segment must still be live: freeing a Segment without rebuilding
+    /// frontage would leave a Lot pointing at a recycled slot, which reads as perfectly valid and is
+    /// the exact defect the Epoch exists to prevent.
+    /// </para>
+    /// </remarks>
+    internal static void VacantLandHasAStreetToBuildOff(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        if (!world.HasStreets)
+        {
+            // No lattice, so no Lot in this world was ever meant to have frontage. Skipped rather
+            // than passed vacuously per Lot, because the distinction is worth being able to read off
+            // the code: this is a world without geography, not a world whose geography is broken.
+            return;
+        }
+
+        LotTable lots = world.Lots;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || !lots.IsVacant(slot))
+            {
+                continue;
+            }
+
+            int segment = lots.FrontageSlot[slot] - 1;
+
+            report.Require(
+                segment >= 0 && world.Roads.Segments.Rows.IsLive(segment),
+                Invariant.VacantLotHasFrontage,
+                slot,
+                segment);
+        }
     }
 
     /// <summary>

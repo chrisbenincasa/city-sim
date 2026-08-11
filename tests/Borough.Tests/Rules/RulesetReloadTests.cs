@@ -222,12 +222,20 @@ public sealed class RulesetReloadTests
 
         Step(simulation, HashA, ticks: 1);
 
-        // The Zone verb is the one this build has, so the Lot is painted in the reloading Tick and
-        // the Building is raised straight after it, still inside the same Tick's Phase 0 aftermath.
+        // A command in the reloading Tick, which is the whole premise: it is applied under the new
+        // Rules rather than the ones it was issued against. Zone is the verb this fixture has.
+        //
+        // It carves nothing, and that is correct rather than a broken fixture. Since 5a-bis the
+        // subdivider generates Lots against the Street network (02 §2.2), and this Ruleset declares
+        // no [roads] and no [lots] -- so there is no lattice, no frontage, and therefore no Lot.
+        // The Lot below is scaffolding for CreateBuilding and never was this test's subject, which is
+        // the Bin capacity a Building raised in the reloading Tick comes out with.
         simulation.Step(new TickInput(
             [new Command(CommandKind.Zone, new Tiles(0), new Tiles(0), 1)], HashB));
 
-        Handle<Lot> lot = world.Lots.Rows.At(0);
+        Assert.Equal(0, world.Lots.Rows.LiveCount);
+
+        Handle<Lot> lot = world.Lots.Create(Tiles.Zero, Tiles.Zero, zone: 1);
         Handle<Building> building = world.CreateBuilding(lot, House, simulation.Tick, simulation.Key);
 
         int slot = world.Bins.Rows.Resolve(

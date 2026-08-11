@@ -29,6 +29,14 @@ namespace Borough.Tests.Space;
 /// that appeared.
 /// </para>
 /// <para>
+/// <b>5a-bis built the mechanism this paragraph was waiting for, and the run below is deliberately
+/// unchanged.</b> <c>CommandKind.Connect</c> now edits the graph, so <i>nothing writes a Segment</i>
+/// has stopped being a property of the code and become a property of <em>this session</em>, which
+/// issues no commands. That is still the claim worth making here — a Tick phase reaching into the
+/// graph unbidden is a different defect from an editor that leaks — and the editing run lives beside
+/// it in <c>LotLongRunTests</c>. Splitting them keeps each failure attributable to one cause.
+/// </para>
+/// <para>
 /// <b>And it carries a vacuity guard on the other side.</b> <i>The graph did not move</i> is a claim
 /// about a static structure inside a churning city; if the city were not churning it would be a claim
 /// about nothing. The run therefore asserts that Buildings really were demolished and Households

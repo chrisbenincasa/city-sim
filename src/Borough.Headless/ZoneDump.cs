@@ -148,6 +148,14 @@ internal static class ZoneDump
             return;
         }
 
+        // One character per Tile until 5a-bis, and it stopped being able to show the thing the dump
+        // is now most worth having. A Lot hangs on a Segment (adr/0078), so at the shipped 32-Tile
+        // block the Lots sit on the block's border and the whole interior is empty -- and at one
+        // character per Tile that interior is 30 blank columns nobody can tell from unzoned land off
+        // the edge of the city. Scaled to eight characters a block it is a hollow square, which is
+        // 02 §2.2's "dead block interiors" as a picture rather than as a sentence.
+        int scale = Scale(world);
+
         int east = 0;
         int north = 0;
 
@@ -158,19 +166,40 @@ internal static class ZoneDump
                 continue;
             }
 
-            if (lots.East[slot].Raw > east)
+            int column = lots.East[slot].Raw / scale;
+            int row = lots.North[slot].Raw / scale;
+
+            if (column > east)
             {
-                east = lots.East[slot].Raw;
+                east = column;
             }
 
-            if (lots.North[slot].Raw > north)
+            if (row > north)
             {
-                north = lots.North[slot].Raw;
+                north = row;
             }
         }
 
+        // Clipped, and the clip is announced rather than silent. A subdivider carves whole blocks
+        // wherever the lattice reaches, so the populator's city is a strip 120 blocks long -- at
+        // eight characters a block that is a thousand columns, which is a picture nobody can read
+        // and therefore not a picture. The window is the corner nearest the origin, which is where
+        // the populator starts.
+        int clippedEast = east;
+        int clippedNorth = north;
+
+        if (east >= Window)
+        {
+            east = Window - 1;
+        }
+
+        if (north >= Window)
+        {
+            north = Window - 1;
+        }
+
         // Indexed by position rather than walked per row, because the Lot table is in creation order
-        // and nothing guarantees that is scan order — CONTEXT's Lot is a parcel, not a grid cell.
+        // and nothing guarantees that is scan order -- CONTEXT's Lot is a parcel, not a grid cell.
         char[] grid = new char[(east + 1) * (north + 1)];
         Array.Fill(grid, Unzoned);
 
@@ -185,8 +214,35 @@ internal static class ZoneDump
             }
 
             bool occupied = !lots.IsVacant(slot);
-            grid[(lots.North[slot].Raw * (east + 1)) + lots.East[slot].Raw] =
-                occupied ? Built : Vacant;
+            int column = lots.East[slot].Raw / scale;
+            int row = lots.North[slot].Raw / scale;
+
+            if (column > east || row > north)
+            {
+                // Outside the window. Still counted, because the tallies are about the city and only
+                // the picture is clipped -- a legend saying "877 built" over a grid holding 200 of
+                // them would be worse than either number on its own.
+                if (occupied)
+                {
+                    built++;
+                }
+                else
+                {
+                    vacant++;
+                }
+
+                continue;
+            }
+
+            int cell = (row * (east + 1)) + column;
+
+            // Built wins a shared cell. Scaling can only ever collapse Lots together, never split
+            // them, so the honest reading of a cell is "something here is built" -- a picture that
+            // reported the last writer would make occupancy depend on table order.
+            if (occupied || grid[cell] == Unzoned)
+            {
+                grid[cell] = occupied ? Built : Vacant;
+            }
 
             if (occupied)
             {
@@ -200,11 +256,54 @@ internal static class ZoneDump
 
         output.WriteLine(
             $"{built} built, {vacant} vacant. '{Built}' holds a Building, '{Vacant}' is a Lot with "
-            + "none, blank is no Lot at all.");
+            + "none, blank is no Lot at all."
+            + (scale == 1 ? string.Empty : Legend(scale, world.Roads.Streets.BlockTiles / scale))
+            + (clippedEast > east || clippedNorth > north
+                ? Clipped(east + 1, north + 1, clippedEast + 1, clippedNorth + 1)
+                : string.Empty));
 
         for (int row = north; row >= 0; row--)
         {
             output.WriteLine(new string(grid, row * (east + 1), east + 1).TrimEnd());
         }
+    }
+
+    /// <summary>
+    /// How wide and tall the picture may get, in characters.
+    /// </summary>
+    /// <remarks>
+    /// <b>A property of a terminal, not of the city</b>, which is why it is a shell constant and not
+    /// Ruleset data. At eight characters a block it is sixteen blocks each way — enough of a city to
+    /// read a sweep off, and the tallies above the picture are over the whole world regardless.
+    /// </remarks>
+    private const int Window = 128;
+
+    /// <summary>The third sentence of the legend, when the picture is clipped.</summary>
+    private static string Clipped(int shownEast, int shownNorth, int east, int north) => string.Create(
+        CultureInfo.InvariantCulture,
+        $" Showing the {shownEast}×{shownNorth} characters nearest the origin, of {east}×{north}; the counts above are over the whole city.");
+
+    /// <summary>The second sentence of the legend, when the picture is scaled.</summary>
+    private static string Legend(int scale, int blockCharacters) => string.Create(
+        CultureInfo.InvariantCulture,
+        $" One character is {scale}×{scale} Tiles, so a block is {blockCharacters} characters across and hollow, because Lots hang on Segments.");
+
+    /// <summary>
+    /// How many Tiles a character stands for.
+    /// </summary>
+    /// <remarks>
+    /// <b>Eight characters to a block, and the number is derived from the lattice rather than
+    /// chosen.</b> The five Lots on a block face sit at midpoints of equal shares
+    /// (<see cref="Frontage.OffsetOf"/>) — 3, 9, 16, 22 and 28 on a 32-Tile face — and eighths are
+    /// the coarsest scale on which no two of them collapse into one character. Coarser and the
+    /// picture starts under-reporting a face; finer and the interior it exists to show stops fitting
+    /// on a terminal. A world with no lattice keeps one character per Tile, because there are no
+    /// block faces to scale to.
+    /// </remarks>
+    private static int Scale(World world)
+    {
+        int block = world.Roads.Streets.BlockTiles;
+
+        return block >= 8 ? block / 8 : 1;
     }
 }

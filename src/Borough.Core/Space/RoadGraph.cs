@@ -37,6 +37,7 @@ public sealed class RoadGraph
     private readonly RoadSegmentTable _segments;
     private readonly RoadArcs _arcs = new();
     private readonly RoadConnectivity _connectivity = new();
+    private readonly StreetGrid _streets = new();
 
     private RoadRuleset _ruleset;
     private int[] _cursor = [];
@@ -49,6 +50,18 @@ public sealed class RoadGraph
         int nodes = ExpectedNodes(ruleset);
         _nodes = new RoadNodeTable(nodes);
         _segments = new RoadSegmentTable(nodes * 2, _nodes);
+
+        // The derived structures are built once here, on an empty graph, so that a world which never
+        // runs the generator still knows the lattice its Ruleset declares. Without this the Street
+        // index carries block_tiles = 0 until something else happens to rebuild it, and
+        // CommandKind.Connect on a fresh world -- which is exactly what a replayed session is, since
+        // a log's roads arrive as commands rather than from a generator -- would refuse on the ground
+        // that the world has no road network, when what it has is no *rebuild*.
+        //
+        // The general form is worth keeping in view: a derived structure that caches a Ruleset value
+        // reads as absent rather than as stale before its first rebuild, and absent is the state
+        // every guard is written against.
+        RebuildDerived();
     }
 
     /// <summary>The nodes. Registered with <c>World</c> and folded.</summary>
@@ -62,6 +75,12 @@ public sealed class RoadGraph
 
     /// <summary>The per-mode component labelling. Derived, rebuilt, and invisible to the hash.</summary>
     public RoadConnectivity Connectivity => _connectivity;
+
+    /// <summary>
+    /// Which Street lies on each edge of the block lattice. Derived, rebuilt, and the subdivider's
+    /// one entry point into the graph (<c>adr/0078</c>).
+    /// </summary>
+    public StreetGrid Streets => _streets;
 
     /// <summary>The <c>[roads]</c> table this graph's derived columns currently reflect.</summary>
     public RoadRuleset Ruleset => _ruleset;
@@ -123,6 +142,111 @@ public sealed class RoadGraph
     }
 
     /// <summary>
+    /// Lays one Street on the lattice edge leaving <c>(column, row)</c> — <c>CommandKind.Connect</c>'s
+    /// whole effect (<c>adr/0077</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Idempotent, and that is a property of the verb rather than a convenience.</b> A log that
+    /// replays must produce one Street from two identical <c>connect</c> lines, because the second is
+    /// the player clicking a Tile that already has a road on it. Returning <c>false</c> rather than
+    /// throwing is the honest reading: the edit was refused by the world already being in the
+    /// requested state, which is not an error the session should die on.
+    /// </para>
+    /// <para>
+    /// <b>The endpoints are created on demand and never freed.</b> A node is an intersection, and an
+    /// intersection with no Streets on it costs one row and is what makes the next lay cheap. Freeing
+    /// them would make <see cref="StreetGrid"/>'s node index churn for no gain, and would put a
+    /// recycled node slot underneath a Segment that outlived it.
+    /// </para>
+    /// <para>
+    /// <b>Nothing else's Epoch moves, and that is the assertion worth testing.</b> The new Segment
+    /// opens at Epoch 1 like any other; no standing Segment is touched, because under
+    /// <c>adr/0012</c> an addition cannot make an existing route <em>wrong</em> — only suboptimal,
+    /// which is the *boundedly wrong about an addition* half of the contract. S2 R5's finding is the
+    /// reason to check it rather than assume it: <b>a single-counter Epoch <em>is</em> a global
+    /// flush</b>, and an edit path that bumped every Segment would be exactly that, wearing per-Segment
+    /// storage.
+    /// </para>
+    /// </remarks>
+    /// <returns>Whether the graph changed.</returns>
+    public bool LayStreet(int column, int row, StreetAxis axis)
+    {
+        if (!OnLattice(column, row, axis) || _streets.SegmentOn(column, row, axis) != Rows.NoSlot)
+        {
+            return false;
+        }
+
+        (int toColumn, int toRow) = axis == StreetAxis.East ? (column + 1, row) : (column, row + 1);
+
+        _segments.Create(
+            NodeFor(column, row),
+            NodeFor(toColumn, toRow),
+            new Tiles(_ruleset.BlockTiles),
+            RoadKind.Street,
+            TravelMode.Any,
+            TravelMode.Any);
+
+        RebuildDerived();
+
+        return true;
+    }
+
+    /// <summary>
+    /// Bulldozes the Street on the lattice edge leaving <c>(column, row)</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the half of <c>adr/0012</c>'s contract that must never be wrong</b> — <i>never wrong
+    /// about a removal</i> — and it is the only thing in the project that has ever freed a Segment
+    /// from a running world. The row is freed rather than masked to zero modes, because a Segment
+    /// nothing may traverse is still a Segment an Address can name, and <c>adr/0079</c> needs the
+    /// distinction: a Building whose Street was bulldozed must end with **no** Address rather than one
+    /// pointing at an impassable ghost.
+    /// </remarks>
+    /// <returns>Whether the graph changed.</returns>
+    public bool BulldozeStreet(int column, int row, StreetAxis axis)
+    {
+        int slot = OnLattice(column, row, axis)
+            ? _streets.SegmentOn(column, row, axis)
+            : Rows.NoSlot;
+
+        if (slot == Rows.NoSlot)
+        {
+            return false;
+        }
+
+        _segments.Rows.Free(_segments.Rows.At(slot));
+        RebuildDerived();
+
+        return true;
+    }
+
+    /// <summary>Whether an edge named this way exists on the lattice at all.</summary>
+    private bool OnLattice(int column, int row, StreetAxis axis)
+    {
+        if (!_ruleset.Runs || _streets.Span == 0 || column < 0 || row < 0)
+        {
+            return false;
+        }
+
+        return axis == StreetAxis.East
+            ? column < _streets.Blocks && row < _streets.Span
+            : column < _streets.Span && row < _streets.Blocks;
+    }
+
+    /// <summary>The node at a lattice intersection, created if the lattice has none there.</summary>
+    private Handle<RoadNode> NodeFor(int column, int row)
+    {
+        int slot = _streets.NodeAt(column, row);
+
+        return slot != Rows.NoSlot
+            ? _nodes.Rows.At(slot)
+            : _nodes.Create(
+                new Tiles(column * _ruleset.BlockTiles),
+                new Tiles(row * _ruleset.BlockTiles));
+    }
+
+    /// <summary>
     /// Rebuilds the Segment's derived attributes, the CSR adjacency and the component labels.
     /// </summary>
     /// <remarks>
@@ -145,6 +269,7 @@ public sealed class RoadGraph
         DeriveSegmentAttributes();
         RebuildAdjacency();
         _connectivity.Rebuild(_nodes, _segments);
+        _streets.Rebuild(_nodes, _segments, _ruleset.BlockTiles);
     }
 
     private void DeriveSegmentAttributes()

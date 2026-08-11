@@ -1,5 +1,6 @@
 using Borough.Core.Input;
 using Borough.Core.Quantities;
+using Borough.Core.Space;
 using Borough.Formats;
 
 namespace Borough.Tests.Formats;
@@ -68,9 +69,14 @@ public sealed class InputLogCodecTests
     }
 
     /// <summary>
-    /// All four verbs survive the round trip, though only Zone is applied before slice 7 — so the
+    /// All four verbs survive the round trip, though Service and Govern are still unapplied — so the
     /// format does not have to change, or its version be bumped, when they arrive.
     /// </summary>
+    /// <remarks>
+    /// <b>Connect arrived in 5a-bis and the version did not move, which is the claim this line was
+    /// written to make in advance</b> (<c>adr/0077</c>). It cost nothing because the verb was
+    /// designed to fit the twelve bytes a <c>Command</c> already had rather than the other way round.
+    /// </remarks>
     [Theory]
     [InlineData(CommandKind.Zone)]
     [InlineData(CommandKind.Connect)]
@@ -84,6 +90,46 @@ public sealed class InputLogCodecTests
         InputLog restored = InputLogCodec.FromText(InputLogCodec.ToText(builder.Build()));
 
         Assert.Equal(kind, restored.Entry(0).Command.Kind);
+    }
+
+    /// <summary>
+    /// <b>A <c>connect</c> line survives with its payload intact, not merely with its verb.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>Every_declared_verb_survives_the_round_trip</c> asserts the <em>Kind</em> and nothing
+    /// else</b>, which was the whole truth while Zone's payload was a permission set the codec
+    /// carried as one number. Connect packs three fields into that same word (<c>adr/0077</c>), and
+    /// a codec that dropped the high byte would round-trip every verb, keep every hash it had, and
+    /// silently turn every road edit into a lay of a Street on the east axis — the only combination
+    /// whose encoding is zero.
+    /// </para>
+    /// <para>
+    /// <b>So the case that matters is the one furthest from zero in every field</b>: a bulldoze, on
+    /// the north axis, of a kind that is not Street. The last of those is a road edit the simulation
+    /// <em>refuses</em> — the player lays Streets only — and it is here on purpose: a refusal the
+    /// log cannot express is a refusal that cannot be replayed.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData(StreetAxis.East, ConnectAction.Lay, RoadKind.Street)]
+    [InlineData(StreetAxis.North, ConnectAction.Bulldoze, RoadKind.Street)]
+    [InlineData(StreetAxis.North, ConnectAction.Bulldoze, RoadKind.Arterial)]
+    [InlineData(StreetAxis.East, ConnectAction.Bulldoze, RoadKind.FootPath)]
+    public void A_connect_line_survives_with_its_payload(
+        StreetAxis axis, ConnectAction action, RoadKind kind)
+    {
+        ConnectPayload payload = new(axis, action, kind);
+
+        InputLogBuilder builder = new(1, new WorldConfiguration(8), rulesetHash: 0);
+        builder.Append(
+            new Ticks(7), new Command(CommandKind.Connect, new Tiles(64), new Tiles(96), payload.Encode()));
+
+        InputLog restored = InputLogCodec.FromText(InputLogCodec.ToText(builder.Build()));
+        Command command = restored.Entry(0).Command;
+
+        Assert.Equal(CommandKind.Connect, command.Kind);
+        Assert.Equal(payload, ConnectPayload.Decode(command.Zone));
     }
 
     /// <summary>

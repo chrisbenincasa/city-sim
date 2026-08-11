@@ -26,10 +26,26 @@ namespace Borough.Formats;
 /// abolish.
 /// </para>
 /// <para>
-/// <b>All four verbs are encoded, though only Zone is applied.</b> Connect, Service and Govern throw
-/// on application until slice 7, but the log format has their slot today, so the artefact a bug
-/// report is made of does not change shape when they arrive — and this format version does not have
-/// to be bumped for their arrival.
+/// <b>All four verbs are encoded; Zone and Connect are applied and Service and Govern throw.</b> The
+/// log format has had every verb's slot since slice 5, so the artefact a bug report is made of does
+/// not change shape when one arrives.
+/// </para>
+/// <para>
+/// ⚠ <b>This paragraph used to end <em>"and this format version does not have to be bumped for their
+/// arrival"</em>, and that was a claim about verbs when it should have been a claim about
+/// payloads.</b> It was true of Zone, Service and Govern by accident: no verb had ever needed a
+/// payload the four existing fields could not carry, so the sentence had never been tested against
+/// the rule <see cref="Version"/> states thirty lines below — <em>what would bump it is a sixth field
+/// on a command</em>. A verb needing a second coordinate pair <b>is</b> that sixth field, and would
+/// have bumped the version while this sentence said it could not.
+/// <para>
+/// <b>Connect arrived and did not bump it — but by design rather than by luck</b> (<c>adr/0077</c>).
+/// A road edit is one Segment named by an <em>origin and an axis</em>, so the far endpoint is derived
+/// from <c>[roads] block_tiles</c> rather than carried, and the payload fits
+/// <see cref="Command.Zone"/>'s sixteen bits. <b>The version is a property of what a verb carries,
+/// never of when it was declared.</b> Service and Govern have not been examined against this test and
+/// should be, before either is built.
+/// </para>
 /// </para>
 /// </remarks>
 public static class InputLogCodec
@@ -70,6 +86,16 @@ public static class InputLogCodec
     /// <b>What would bump it is a change to a line that already exists</b>: a sixth field on a
     /// command, a second number on <c>citizens</c>, a different meaning for <c>seed</c>. Those an old
     /// reader parses happily and gets wrong, which is exactly the case a version exists for.
+    /// </para>
+    /// <para>
+    /// <b>That rule is the one that governs, and 5a-bis is where it was tested.</b> The class remark
+    /// above used to assert that a declared verb's arrival could never bump the version, which
+    /// contradicts this paragraph the moment a verb needs a payload the four fields cannot hold.
+    /// <c>CommandKind.Connect</c> was the first verb with a real payload and it was <em>designed</em>
+    /// to fit — an origin plus an axis, with the far endpoint derived from the Ruleset's grid spacing
+    /// rather than carried (<c>adr/0077</c>). Had it been specified as two coordinate pairs, this
+    /// paragraph would have won and the bump <em>would</em> have cost every log ever written,
+    /// including the committed golden baseline.
     /// </para>
     /// </remarks>
     private const int Version = 1;

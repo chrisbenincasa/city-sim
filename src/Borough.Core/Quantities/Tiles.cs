@@ -48,4 +48,32 @@ public readonly record struct Tiles(int Raw) : IComparable<Tiles>
     public static bool operator <=(Tiles left, Tiles right) => left.Raw <= right.Raw;
 
     public static bool operator >=(Tiles left, Tiles right) => left.Raw >= right.Raw;
+
+    /// <summary>
+    /// The Tile count, for a human reading a diagnostic.
+    /// </summary>
+    /// <remarks>
+    /// <b>Declared because the compiler-generated one recurses for ever, and the recursion is
+    /// invisible until the worst possible moment.</b> A record's <c>PrintMembers</c> prints every
+    /// public property, <see cref="Magnitude"/> is a public property whose type is
+    /// <see cref="Tiles"/>, so the generated <c>ToString</c> printed a <see cref="Tiles"/> that
+    /// printed a <see cref="Tiles"/> — a stack overflow, reached only when something actually
+    /// formatted one.
+    /// <para>
+    /// <b>Nothing formats a quantity on a passing path</b>, so the only trigger is a <em>failing</em>
+    /// <c>Assert.Equal&lt;Tiles&gt;</c>, where xUnit formats both values to build the message. The
+    /// result was that a one-line assertion failure took down the whole test host with a stack
+    /// overflow and no failing test name — <b>the defect destroyed the report of the defect that
+    /// woke it</b>. Found in 5a-bis, fixed here rather than worked around, per <c>adr/0073</c>: the
+    /// finding belongs to the arithmetic substrate and not to the slice that tripped over it.
+    /// </para>
+    /// <para>
+    /// The general form is worth more than the fix: <b>a record with a computed property of its own
+    /// type has an infinitely recursive <c>ToString</c></b>. <see cref="Magnitude"/> is currently the
+    /// only one in <c>Borough.Core.Quantities</c>; adding a second to any quantity reintroduces this
+    /// unless that quantity also declares a <c>ToString</c>.
+    /// </para>
+    /// </remarks>
+    public override string ToString() =>
+        Raw.ToString(System.Globalization.CultureInfo.InvariantCulture) + " Tiles";
 }

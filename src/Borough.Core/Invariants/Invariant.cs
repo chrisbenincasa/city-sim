@@ -475,4 +475,26 @@ public enum Invariant
     /// healthy. Whole-world tier, because it is a walk over every Arc.
     /// </remarks>
     ArcsAreDirectionsOfTheirSegments = 34,
+
+    /// <summary>
+    /// A vacant Lot has frontage.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Every <em>vacant</em> Lot, and the qualifier is the invariant.</b> <c>plans/0022</c> task 7
+    /// asked for <i>"every Lot has frontage"</i>, which is false under that document's own decision 4:
+    /// a Building whose last Street is bulldozed keeps standing on a Lot that now has none
+    /// (<c>adr/0079</c>). What re-subdivision guarantees is the other half — land nobody has built on
+    /// re-parcels, so a vacant Lot with no Street is a Lot the freeing pass missed.
+    /// </para>
+    /// <para>
+    /// <b>It is also the only check that can notice frontage having silently stopped being derived.</b>
+    /// <c>World.RebuildDerived</c> recomputes every Lot's Segment from its saved position, and a
+    /// rebuild that quietly produced nothing would leave a coherent world, a moving State Hash and
+    /// every Lot unreachable — the failure has no other symptom until 5b tries to route to one.
+    /// Whole-world tier: it is a walk over every Lot, and a Lot loses frontage only when a road is
+    /// edited.
+    /// </para>
+    /// </remarks>
+    VacantLotHasFrontage = 35,
 }

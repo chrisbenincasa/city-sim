@@ -390,7 +390,14 @@ because the board's model of the three tracks is that they *do not contend*. The
 **Raised by slice 10's first sitting**, which went looking for the shape of its `zone` verb and found
 that the verb cannot have the shape `02` gives it until Phase 2.
 
-**⚠ IT HAS A BUILDER AS OF 2026-08-11 and both boxes below are its to strike:**
+**✅ STRUCK 2026-08-11. Both boxes below are done — 5a-bis shipped.** `06`'s Phase 2 table has a
+**5a-bis** row naming the mechanism and the risk it retires, and `02 §2.2` says the subdivider is built
+rather than that it does not exist. **The entry is kept rather than deleted for one sentence's worth of
+history**: it stayed open through milestone **5a**, whose own brief scoped 5a-bis and named it
+correctly, and *still* did not put it anywhere a reader looking for work would find it. A mechanism can
+be fully specified, correctly scoped, explicitly named by the slice next door, and owned by nobody.
+
+*Original:* **⚠ IT HAS A BUILDER AS OF 2026-08-11 and both boxes below are its to strike:**
 [`0022`](0022-the-lot-subdivider-and-build-road.md), **5a-bis**, which pairs the subdivider with
 `build_road` because `02 §2.2`'s re-subdivision clause needs an edit signal and the edit signal is
 `adr/0012`'s Epoch. **The gap was open for the reason the entry below names**: this is the same shape as
@@ -398,14 +405,14 @@ that the verb cannot have the shape `02` gives it until Phase 2.
 built. Note the entry stayed open through **milestone 5a**, whose brief scoped 5a-bis and named it
 correctly and still did not put it anywhere a reader would look for work.
 
-- [ ] `docs/06-roadmap.md` — the *Mechanisms with no milestone* table does not list **Lot
+- [x] `docs/06-roadmap.md` — the *Mechanisms with no milestone* table does not list **Lot
       subdivision**, and milestone **5a** is *"Road Graph and Streets"*, whose named risk is geometry
       leaking into the simulation. Neither names the thing that turns zoned land into parcels.
       `02 §2.2` specifies it — subdivision rules, depth and width varying by density band,
       re-subdivision on network change preserving existing Buildings — and `adr/0014` and `adr/0035`
       both reason *from* its frontage rule, so it is settled design with no builder. It belongs either
       in 5a explicitly or in the no-milestone table
-- [ ] `docs/02-simulation-model.md §2.2` — *"Lots are **generated, not painted**"* is true of the
+- [x] `docs/02-simulation-model.md §2.2` — *"Lots are **generated, not painted**"* is true of the
       design and **false of the build, in every world this project has ever run**. Every Lot in the
       tree is painted: one per `CommandKind.Zone`, or `SyntheticCity`'s grid. Slice 10 made this
       visible and deliberately did not fix it (`0014` → *The second collision*), because the fix is
@@ -414,10 +421,16 @@ correctly and still did not put it anywhere a reader would look for work.
       document and every number taken under it
 
 **The general shape is the one `0013` published about unit costs.** A precondition stated in a design
-document is a hypothesis about the build until something enforces it. Nothing has ever refused a Lot
+document is a hypothesis about the build until something enforces it. Nothing had ever refused a Lot
 for want of frontage, so *"every Building is on the Road Graph by construction"* — which `CONTEXT` →
-Frontage leans on to delete the utility network entirely — is currently true by there being no Road
-Graph rather than by construction.
+Frontage leans on to delete the utility network entirely — was true by there being no Road Graph rather
+than by construction. **As of 5a-bis something refuses**: a block with no Street on any face yields no
+Lots, and `SimulationTests.Land_with_no_street_gets_no_lots` is the test. ⚠ **And the enforced sentence
+is narrower than the one the corpus was leaning on** — a Building *outlives* its frontage
+([`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md)),
+so what is true by construction is *every Building was on the Road Graph when it was raised*, and the
+whole-world invariant is **every *vacant* Lot has frontage**. The stronger reading is false and always
+would have been, because a player can bulldoze.
 
 ### `02 §5.2` step 2 is Household placement, and of that section's six steps only step 5 is built
 

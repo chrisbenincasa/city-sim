@@ -120,11 +120,23 @@ public static class SyntheticCity
                 : UndeclaredOccupancy;
 
         int buildings = IntegerMath.FloorDiv(households, occupancy) + 1;
+        int lots = Subdivide(world, buildings);
+
+        // The populator must house what it creates, so the Building count follows the land the
+        // subdivider could actually give frontage rather than the other way round. On the shipped
+        // [roads] the map yields far more Lots than 1M Citizens need, so this binds only on a Ruleset
+        // whose street network is too sparse for its population -- which is a real city the fixture
+        // should be able to express rather than an error.
+        if (lots < buildings)
+        {
+            buildings = lots;
+        }
 
         for (int i = 0; i < buildings; i++)
         {
-            Handle<Lot> lot = world.Lots.Create(
-                new Tiles(i % LotsPerRow), new Tiles(IntegerMath.FloorDiv(i, LotsPerRow)), zone: 1);
+            // Sound only because the Lot table started empty, exactly as Dwelling's remark argues for
+            // Buildings: allocation appends while the free list is empty, so the nth Lot is slot n.
+            Handle<Lot> lot = world.Lots.Rows.At(i);
 
             // Through World's door rather than the table's, so the Building arrives with its kind's
             // Bins and its chain heads armed. Before this the populator built bare Buildings and the
@@ -149,6 +161,56 @@ public static class SyntheticCity
             world.Citizens.Workplace[world.Citizens.Rows.Resolve(citizen)] =
                 Dwelling(world, (i * 7) % buildings);
         }
+    }
+
+    /// <summary>
+    /// Carves enough zoned land to hold <paramref name="wanted"/> Buildings, block by block.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Through the real subdivider, so the fixture and the game agree about what a Lot is.</b>
+    /// Until 5a-bis this laid a 64-Tile strip of painted Lots, and that strip was the second half of
+    /// the disagreement <c>plans/0000</c> records — <i>the synthetic city fixture and <c>World</c>'s
+    /// table sizing disagree and nothing checks that they do</i>. It still does not check, but the
+    /// Lots are now the ones the subdivider would have produced, which is the half that was inventable.
+    /// </para>
+    /// <para>
+    /// <b>Blocks in lattice order, and it stops as soon as it has enough.</b> Adjacent blocks claim
+    /// <em>opposite</em> sides of the Segment they share, so walking in order costs nothing — a block
+    /// never finds its faces already taken by its neighbour.
+    /// </para>
+    /// </remarks>
+    private static int Subdivide(World world, int wanted)
+    {
+        int blocks = world.Roads.Streets.Blocks;
+
+        // ⚠ The fixture's one dishonest path, and it is named rather than hidden. With no [roads] or
+        // no [lots] there is no Street lattice, so there is no honest way to make a Lot at all --
+        // frontage is the geometric precondition for a Lot existing (CONTEXT.md → Frontage). But
+        // S0a's footprint capture is `--citizens` with no `--ruleset`, and a populator that made no
+        // rows would answer the sizing question with an empty world and report success. So it lays
+        // rows with no frontage and no Address, which is what they are: storage for measuring a
+        // table's footprint, and not a city. Nothing that reads frontage will find any here.
+        if (blocks <= 0 || !world.Rules.Lots.Runs)
+        {
+            for (int i = 0; i < wanted; i++)
+            {
+                world.Lots.Create(
+                    new Tiles(i % LotsPerRow), new Tiles(IntegerMath.FloorDiv(i, LotsPerRow)), zone: 1);
+            }
+
+            return wanted;
+        }
+
+        int made = 0;
+
+        for (int block = 0; block < blocks * blocks && made < wanted; block++)
+        {
+            made += LotSubdivider.SubdivideBlock(
+                world, block % blocks, IntegerMath.FloorDiv(block, blocks), zone: 1);
+        }
+
+        return made;
     }
 
     /// <summary>

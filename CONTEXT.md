@@ -82,6 +82,10 @@ The contact between a Lot and a Street it can take access from — the geometric
 
 **"No frontage" is an `Evidence` answer**, one of the four reasons a Lot is vacant, alongside no Household in the Unplaced Pool that would accept it, conditions below tolerance, and no capital. And because every Lot has frontage by construction, every Building is on the Road Graph — which is what lets Utilities ride it with no second network to draw.
 
+**Frontage is built as of 5a-bis, and it is `(derived AND rebuilt)` rather than saved** ([`docs/adr/0078`](docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md)). A Lot no more stores its frontage than an Arc stores its cost, because both are functions of the Segments — and the edit a stored copy would not reach is the player bulldozing the Street. The rebuild runs on the **Epoch**, which makes this the first consumer of `adr/0012`'s invalidation contract outside routing.
+
+⚠ **The clause above is *by construction* and not *for ever*, and the distinction only became reachable when the player could edit roads.** A Lot is only ever **created** with frontage; the Street it fronts can be bulldozed afterwards. A **vacant** Lot that loses its frontage is deleted and becomes land again; an **occupied** one is kept, its Building stands with its Occupants, and its Access Point becomes `Address.None` — a named absence rather than a stale handle, which milestone 5b reads and reports as *no route found* ([`docs/adr/0079`](docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md)). So the checkable invariant is ***every vacant Lot has frontage***, never *every Lot*: the stronger form fails on correct behaviour, and an invariant that does that is the one somebody disables to ship.
+
 **Density**
 How much Building a Lot may carry. The player sets a **ceiling**, never a floor — zoning for density is permission, not instruction, and a high band on land nothing wants to build on grows nothing. `PLAYER GOVERNS`
 

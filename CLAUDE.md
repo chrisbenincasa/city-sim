@@ -16,6 +16,39 @@ pointer with just enough shape to orient; the board is the view and the slice pl
 slice plans, and it was the copy that drifted (`plans/0012` *Cause 1*: every document that stores
 per-slice status drifted, and the only large one that did not stores none).
 
+**5a-bis shipped 2026-08-11 — the Lot subdivider and the road editor
+([`plans/0022`](plans/0022-the-lot-subdivider-and-build-road.md)), all seven tasks, 1,073 tests green
+and all three golden baselines re-recorded.** Zoning a Tile now zones the **block** it falls in and the
+block is carved against its four Street faces; `CommandKind.Connect` lays and bulldozes **one Street
+Segment** and re-subdivides what it touched; frontage and the Access Point are `(derived AND rebuilt)`
+on the Epoch; and a `[lots]` Ruleset table states **one** number, `lots_per_segment = 5`, taken from
+`CONTEXT.md` → Address's own *five Buildings share a Segment*. Three ADRs:
+[`0077`](docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md),
+[`0078`](docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md),
+[`0079`](docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md).
+**The code track now holds only 5b.**
+
+**The slice's sharpest finding is about the re-record, not about Lots — and it is the second sighting
+in three slices.** Eight of the golden session's eleven `zone` commands named Tiles 0–31, which is
+*one* block, and one the populator had already carved. A straight re-record would have turned eight
+commands into no-ops and **retired the verb from the baseline while producing a full set of freshly
+correct hashes**. That is slice 10 task 11's *a baseline records what a run did, so a change that
+narrows what the run reaches is invisible in it by construction* — so it is a test now rather than a
+paragraph: `GoldenSessionCoverageTests` asserts what the session **reaches**, which no hash test
+structurally can.
+
+**Three more outlive the slice.** **A guard that covers one of two identical files is worse than no
+guard**, because the file it covers is evidence somebody thought about it: the ruleset-hash check
+covered `minimal.toml` and not `minimal-tuned.toml`, so `TunedRulesetHash` was a literal **nothing held
+to a file** and had been wrong since the file was last edited — the catalogue pairs a *stated* hash with
+a *loaded* one, so a stale number resolves to the new content in silence. **A derived structure that
+caches a Ruleset value reads as *absent* rather than as *stale* before its first rebuild**, and absent
+is the state every guard is written against. And the 100,000-Tick run found the lay/bulldoze cycle
+**closes but is not synchronous** — a Building on the bulldozed face survives, so its Lot's freeing waits
+on the Zone Rules; *a test that demands synchrony is testing the Zone Rule's cadence while claiming to
+test the subdivider* — plus a real defect: a Lot vacated by demolition while unfronted was **never
+freed**, because re-subdivision runs on a *road edit* and a Lot can be vacated on any Tick.
+
 **Session F ran 2026-08-11 and milestone 5b is unblocked — the movement track is open and no session gates
 a slice any more.** F grilled [`adr/0008`](docs/adr/0008-walking-is-a-simulated-leg.md), *walking is a
 simulated Leg*, in one sitting: seven decisions, an amendment in place, and three ADRs —
@@ -234,7 +267,7 @@ where a mechanism was missing, and it led with the homelessness figure when the 
 construction. **The number that was evidence of a defect is the 45% vacancy** — places existing with
 nobody able to reach them. And closing
 task 8 was an audit rather than a change: **`HouseholdHomeExists` was reported by nothing**, the only
-orphan among 26 invariants, now bannered with its **id retired rather than reused**, because a crash
+orphan among 26 invariants (**35 as of 5a-bis**), now bannered with its **id retired rather than reused**, because a crash
 artifact carries the number. The slice's owed decision is settled *by measurement*: `adr/0044`
 makes the diffusion cadence **hash-bearing**, the **sixth claim in the corpus measured false and the
 first outside S2**. **That ADR then got its own second half wrong by argument** — it filed the cadence
@@ -380,13 +413,13 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **75** decision records, numbered to **`0076`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **78** decision records, numbered to **`0079`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
 | `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0022` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015`, `0014` (task 11) and `0020` are all closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped**. **`0019` is S5's**, the Lane kernel — run, two tripwires fired, **nothing published**. **`0020` is the Road Graph (`06` milestone 5a) and is the first Phase 2 slice brief** — **built 2026-08-11, all seven tasks**, and it is the document that found no session gates 5a. Its close-out carries four findings and the reason the S2 harness is still on disk. **`0021` is milestone 5b — Trips, Legs and the pedestrian layer — and it is ✅ UNBLOCKED (2026-08-11)**: it had **two** gates, **D** and **F**, and both are now clear — F ran on 2026-08-11, one sitting, seven decisions. The document is **F's brief, F's record, and then the slice**. *(It was ⚠ BLOCKED until that afternoon, and this file's own "milestone 5b, which D gates" obscured the second gate — corrected rather than silently deleted, because a gate struck for the wrong reason is the failure `0020` warns about for the S2 harness.)* **`0022` is 5a-bis — the Lot subdivider and `build_road` — and it is UNGATED and available**: `0020` scoped it, nothing scheduled it, and it has no milestone in `06` or in that document's no-milestone table either |
+| `plans/0004`–`0022` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015`, `0014` (task 11) and `0020` are all closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped**. **`0019` is S5's**, the Lane kernel — run, two tripwires fired, **nothing published**. **`0020` is the Road Graph (`06` milestone 5a) and is the first Phase 2 slice brief** — **built 2026-08-11, all seven tasks**, and it is the document that found no session gates 5a. Its close-out carries four findings and the reason the S2 harness is still on disk. **`0021` is milestone 5b — Trips, Legs and the pedestrian layer — and it is ✅ UNBLOCKED (2026-08-11)**: it had **two** gates, **D** and **F**, and both are now clear — F ran on 2026-08-11, one sitting, seven decisions. The document is **F's brief, F's record, and then the slice**. *(It was ⚠ BLOCKED until that afternoon, and this file's own "milestone 5b, which D gates" obscured the second gate — corrected rather than silently deleted, because a gate struck for the wrong reason is the failure `0020` warns about for the S2 harness.)* **`0022` is 5a-bis — the Lot subdivider and `build_road` — and it is ✅ DONE (2026-08-11)**, all seven tasks. `0020` scoped it and nothing scheduled it; `06` now has a **5a-bis** row, and `plans/0012`'s two subdivider boxes are struck. Its close-out carries four findings, of which the load-bearing one is about **re-recording a baseline** rather than about Lots |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8, **S0a and S0b** have all run |
@@ -572,7 +605,9 @@ dotnet run --project src/Borough.Headless -- \
 | A `[[kind]]`'s occupancy | **3** in both shipped Rulesets | tuning, hot-reloadable, **hash-bearing** — `[[building]] occupants` (`adr/0068`). Derived from the Ruleset in force rather than frozen at construction, so lowering it **evicts** the overflow into the Unplaced Pool: a Bin has a consumer and occupancy has none. **UNRATIFIED**, but its named ratifier has run and did not refute |
 | Placement pacing | `interval = 32`, `revisit_ticks = 1024`, `candidates = 3` | tuning, hot-reloadable, **hash-bearing** — the `[placement]` table (`adr/0069`). The **sample is derived** from the duration (`adr/0059` again), the duration is not. `revisit_ticks` shipped at 8192 and left 45% of the housing stock empty; `candidates` is `02 §5.3`'s N and **nothing can ratify it** until there is a choice model to score with. All three **UNRATIFIED** |
 | Road Graph geometry | `block_tiles = 32`, `arterial_count = 8`, `arterial_junction_tiles = 512`, `foot_crossing_every = 4`, `foot_paths_per_thousand_blocks = 40` | world-creation, **Ruleset data**, **hash-bearing** — the `[roads]` table (5a). `block_tiles = 32` is one Street per Cell boundary and therefore **≈16.2 km/km²**, which reproduces S2 R0's density *by construction rather than by a second measurement*. **`foot_crossing_every` is Severance's dial and it does nothing below a threshold of Arterial length per unit of grid** — at 512-Tile blocks, or at two Arterials, moving it from every Street to none leaves the pedestrian network in one piece. All five **UNRATIFIED** |
+| `lots_per_segment` | **5** | world-creation, **Ruleset data**, **hash-bearing** — the `[lots]` table (`adr/0078`). How many Buildings share one Street Segment, and therefore how many Lots a zoned block yields. **Derived rather than chosen**: it is `CONTEXT.md` → Address's own *"five Buildings share a Segment at the working figures"*, which is the **premise of the decision that keeps an Address off a Node** and therefore of the ~30,000-Segment figure every routing cost in `0013` is priced against. 5a's graph gives **33,024** Street Segments by construction, so the product is **165,120** Lots — against `World`'s independently-chosen 225 per 1,000 Citizens, or 225,000 at 1M: *two figures that never met, agreeing within a quarter.* **Lot depth does not exist and is not a second row** — a Lot has no extent in `LotTable`, so a depth would be a number chosen for a consumer nobody has designed. **UNRATIFIED**; ratifier is the first 5b run reporting a real Buildings-per-Segment distribution |
 | Free-flow speeds and capacities | 50 / 90 / 5 km/h; 3,600 / 12,000 / 1,000 Vehicles per hour | tuning, hot-reloadable, **hash-bearing** — free-flow is `(derived AND rebuilt)` per `adr/0064`, so retuning a speed moves the **standing** city. The speeds are the one group here with a source outside the corpus; **the capacities are weaker and nothing reads them at all**, stored as whole Vehicles per Day so an unbuilt consumer does not dictate a representation (`adr/0070`). **UNRATIFIED** |
+| Lots per Segment | **5** | world-creation, **Ruleset data**, **hash-bearing** — `[lots] lots_per_segment` (`adr/0078`). **Derived rather than chosen**: `CONTEXT.md` → Address already states *"five Buildings share a Segment"*, and it is the premise the *an Address is never a Node* refusal rests on. At the shipped `[roads]` it gives **33,024 Street Segments → 165,120 Lots**, against `World`'s independently-chosen 225 Lots per 1,000 Citizens = 225,000 at 1M — **two figures that never met, agreeing within a quarter**, which is the closest thing to corroboration this corpus has produced. **A Lot has no depth and there is no depth key**: a Lot has no extent in `LotTable`, so a depth would be a number chosen for a consumer nobody has designed (`adr/0070`). **UNRATIFIED**; the ratifier is the first Ruleset that models a city |
 | Map | 4096² Tiles, 2048² documented fallback | open |
 | Target population | 10,000 first hour / 1,000,000 late game | sizing |
 | Tick budget | 15.6 ms at 4× speed | |
