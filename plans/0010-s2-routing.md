@@ -1274,7 +1274,7 @@ has no numbers at all**:
 | | Memory at 1M | Diversion | Concentration |
 |---|---:|---|---|
 | **Per-Citizen stored path** | **~~unmeasured~~ 225.06 MiB compressed + 1,678.46 MiB index** | **~~unmeasured~~ 2.43 µs, 19.81% of a Tick** | none |
-| Shared next-hop tree | 7.70 MiB (R2.1) | free, 3.18% (R8.6) | **87.25% on 1%** (R8.0) |
+| Shared next-hop tree | 7.70 MiB (R2.1) | free, **3.18–3.45%** (R8.6, two captures) | **87.25% on 1%** (R8.0) |
 | Cached route | ~250 KiB + handles | needs **88.5%**, unattainable (R6.1b) | none |
 
 **Both blank cells are filled and both read against the row** — the memory figure by a factor of

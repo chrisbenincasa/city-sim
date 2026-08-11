@@ -4306,8 +4306,9 @@ the transition first.
 - **Settled: Temperament damps**, by 92.28% where a herd exists, on an instrument shown able to
   separate a maximal-herd positive control from every swept rung. **The wire stated on monotonicity is
   REFUTED as written** and the two readings stand side by side.
-- **Settled: a stored route cannot afford Sight.** 3,951% of the Tick budget against 3.18% for a
-  next-hop read. Session M's third axis.
+- **Settled: a stored route cannot afford Sight.** 3,951% of the Tick budget against **3.18–3.45%**
+  for a next-hop read — a range across two matched-machine captures, not a point. Session M's third
+  axis.
 - **Not settled, and it outranks the rest: what to do about the tree.** 87.25% of traffic on 1% of the
   road is a property of District-granular free-flow routing, not of the city, and no rung of the load
   sweep is both congested and resolvable. **This is decision 11 on a different axis** and it is not
@@ -6088,8 +6089,12 @@ the first capture and **424 ns** in the second — **3.18% of the Tick budget ag
 [`adr/0047`](adr/0047-routing-never-keys-on-the-district.md) quotes the point estimate when arguing
 that the table's one real advantage is a free diversion. **The conclusion is untouched** and the
 argument does not depend on the third digit: against a stored route's 3,951% either reading is the
-same sentence. **It should be cited as a range, 3.18–3.45%**, on the rule this round has now applied
-four times — a maximum, a point estimate and a spread are three different claims.
+same sentence. ~~**It should be cited as a range, 3.18–3.45%**~~ — **`adr/0047` is AMENDED, 2026-08-11**,
+and so are this document's R8.6 verdict and `plans/0010`'s path-source table. The rule this round has
+now applied four times: **a maximum, a point estimate and a spread are three different claims.** The
+R8.6 results table one section above is left reading `3.18%` deliberately — it is a faithful
+transcription of *one* capture's table, and rewriting a transcription to carry a later run's range is
+how a table stops being an artefact and becomes a summary.
 
 **Six captures now exist for R1.3, and read together they say the spread is a property of the rung.**
 At the **121-District anchor** the scattered read is **1.14 / 1.17 / 1.18 / 1.20 / 1.22 / 1.26 ns**
