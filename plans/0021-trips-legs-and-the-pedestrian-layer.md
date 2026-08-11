@@ -15,6 +15,12 @@
 
 ## Status
 
+**🔨 IN FLIGHT 2026-08-11. Tasks 1–3 are built; the slice is not done.** What exists is the
+**structural half** — the vocabulary type, the three tables and the walk Leg resolved end to end —
+and it stops deliberately short of everything that moves the State Hash. **1,084 tests green against
+5a's 1,060, and neither golden baseline was re-recorded**, because nothing is registered with `World`
+yet. See *What tasks 1–3 built* below for the record, and what remains.
+
 **✅ UNBLOCKED 2026-08-11. Session F has run — one sitting, all seven decisions — and 5b's second gate
 is discharged.** Both gates are now clear: **D** (the traffic model, 2026-08-10) and **F** (the Leg
 model, 2026-08-11). The slice below may be started.
@@ -505,6 +511,59 @@ crossing dial does nothing at all.~~
 were actually reached.** A baseline records what a run *did*, so a change that narrows what the run
 *reaches* is invisible in it by construction. For this slice that means asserting that a Trip failed, and
 that a walk Leg was severed, not merely that Trips ran.
+
+### What tasks 1–3 built — the record
+
+**Built 2026-08-11, in a worktree beside 5a-bis, and deliberately stopping at the hash.** Tasks 1, 2
+and 3 are the part of this slice that adds structure without adding behaviour to the Tick, which is
+what makes them runnable in parallel with [`0022`](0022-the-lot-subdivider-and-build-road.md).
+
+| Built | Where | Against |
+|---|---|---|
+| **`Address`**, and `StreetSide` | `Core/Space/Address.cs` | `adr/0074`, `CONTEXT.md` → Address |
+| **`TripFate`** (closed at four) and **`TripPurpose`** | `Core/Movement/` | `adr/0076` |
+| **`TripTable`**, **`LegTable`**, **`TravellerTable`** | `Core/Movement/` | `adr/0075` |
+| **`WalkRouting`** + `WalkScratch` — the walk Leg, resolved | `Core/Movement/` | `03 §3.7`, `adr/0072` |
+| 24 tests | `tests/Borough.Tests/Movement/` | the definition of done's first four bullets |
+
+**What is *not* done, and it is the majority of the slice**: task 1's Building assignment (the
+Access Points themselves — this built the *type*, not the per-Building rows), task 4 (the generator),
+task 5 (volume and Phase 4), task 6 (the Census family and the Commute Budget as Ruleset data),
+task 7 (`--trips`) and task 8 (the long run). **No `[trips]` Ruleset table exists yet**, so the
+crossing cost is a required parameter with no default and nothing has chosen one.
+
+**Three findings, and two of them are about the tools rather than about movement.**
+
+**⚠ An `Address` is passed as one value and stored as three columns, and the hash is why.** A column
+of `Address` would fold the Segment handle's **slot index**, which is identity: two runs building the
+same city with different allocation histories would disagree. `HandleColumn` exists precisely to fold
+the target's monotonic id instead, so every table holding an Address declares a `SavedHandle` plus an
+offset plus a side and assembles the struct at the boundary. **This is the shape milestone 8's parking
+Bin and 5a-bis's frontage-derived Access Points must both use**, and getting it wrong is invisible
+until two saves disagree.
+
+**⚠ `BOR0901` caught a defect on the first build that no reviewer would have been looking for.**
+`TripTable` was written holding a `LegTable` reference so that `LegList` could be a property — storage
+in a `[Table]` that is neither saved nor derived. The analyser named it, and the fix is the shape
+`World.Occupants` already had: compose the list at the call site from the two tables that own its
+columns. **This is `05 §4`'s lint 7 earning its keep in the negative direction** — the cost of the
+rule is one awkward signature, and it was paid by a build rather than by a save/reload divergence.
+
+**⚠ And a test passed while demonstrating nothing, which is slice 10 task 11's warning arriving in a
+unit test.** A path's cost is the **sum of per-Arc floors** rather than the floor of the total
+(`adr/0071`: *rounding is floor*, per division) — so an `n`-Arc path can sit up to `n` raw units below
+a single division over the same distance. The test asserting that bound was written against the
+standard fixture, where 32 Tiles at 5 km/h gives a fractional part of 0.306: **three of them sum to
+0.918, the floors agree, the gap is exactly zero and both assertions were vacuously true.** Rewritten
+against a 31-Tile chain, where the gap is 1 and the inequality is strict. *A bound that is never
+approached is not a bound anybody has checked*, and the general form is the one this corpus keeps
+re-deriving: **a test records what a run *did*, so a fixture that cannot reach the interesting case
+makes the assertion invisible rather than false.**
+
+**One thing task 1 must inherit rather than invent.** The Building-side Access Point is still
+unbuilt, and the note in *Tasks* above stands: run after 5a-bis and it inherits real frontage; run
+before and every Access Point it invents is one the subdivider would have derived. **The type is now
+ready either way**, which is the half that had to exist before the ordering mattered.
 
 ### Decisions this slice must close
 
