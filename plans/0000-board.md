@@ -221,6 +221,39 @@ exactly this order: 5a-bis produces **frontage**, and an Access Point is downstr
 now inherits **real Access Points** — an `Address` on every Lot, derived and rebuilt on the Epoch —
 instead of inventing them nearest-Segment-by-construction.
 
+> ### ⚠ Picking this up cold on or after 2026-08-11 — read this box first
+>
+> **5b is IN FLIGHT, not waiting.** Tasks **1, 2 and 3 shipped** (`18544ee`) from a worktree at
+> `.claude/worktrees/5b-trips-and-legs`, running in parallel with the row 7 sweep below — so two
+> sessions were writing that afternoon and **both landed on `main`**. `src/Borough.Core/Movement/`
+> now holds `TripTable`, `LegTable`, `TravellerTable`, `TripFate`, `TripPurpose`, and **`WalkRouting`
+> — a real Dijkstra over a binary heap**. `plans/0021` → *What tasks 1–3 built* is the record and is
+> authoritative over this box.
+>
+> **What is left is the majority of the slice**: task 1's per-Building Access Points (the *type*
+> shipped, not the rows), **task 4 the generator**, task 5 volume and Phase 4, task 6 the Census
+> family and the Commute Budget, task 7 `--trips`, task 8 the long run. **No `[trips]` table exists**,
+> so the crossing cost is a required parameter nobody has chosen.
+>
+> **Two things block task 4, and they are the next thing to deal with.** Both are now rows in
+> [`0002`](0002-open-questions.md) rather than prose here, because an open question is never written
+> on the board:
+>
+> - **§A — the generator's destination set does not exist.** `0021` decision 1 recommends *shopping*
+>   and calls it the rarest starting position a task here has had. That is true of its **design** and
+>   false of its **preconditions**: no Provider List, no shop in either Ruleset, `Scope.Pool` throws,
+>   and nothing schedules an occasion. *"Give every Household a synthetic shop"* is the compensating
+>   position `adr/0070` forbids and that the brief already refuses on the commute axis.
+> - **§B — the walk search has no `0013` row**, and now that `WalkRouting` exists the number is
+>   obtainable. The unmeasured product is **1.9–9.3 ms a Tick at 1M, 12–60% of the budget at 4×**,
+>   landing at Trip creation because `adr/0075` makes Legs eager.
+>
+> **An audit of 5b's unsettled decisions ran the same afternoon and is now mostly superseded by tasks
+> 1–3** — the search, the Fate set, the Purpose enum and the Leg structure all exist. **The two rows
+> above are what survived it**, and they survived because they are the parts tasks 1–3 deliberately
+> stopped short of. *Recorded because a superseded audit that is not marked superseded is read as
+> current, which is `0012` Cause 1 arriving through a stale finding rather than a stale status.*
+
 **Row 7 ran before 5b rather than inside it, and that ordering is the point.** 5b's stated payoff is a
 Severance demonstration; the Ruleset it would have demonstrated on severs nothing, and the instrument it
 would have trusted said otherwise. **A slice that had started on schedule would have found this while
