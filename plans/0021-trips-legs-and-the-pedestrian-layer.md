@@ -345,7 +345,7 @@ shops*.
 | In | Why |
 |---|---|
 | `Trip` and `Leg` as typed tables, Legs as an **intrusive index list** off the Trip | `CLAUDE.md`; `CONTEXT.md` → Trip is *"an ordered sequence of Legs"* |
-| A **pedestrian and a vehicle Access Point** per Building, each an `(Segment, offset)` | `CONTEXT.md` → Access Point; `adr/0008`'s third consequence |
+| A **pedestrian and a vehicle Access Point** per Building, each an **`Address`** — `(Segment, offset, side)`, `(derived AND rebuilt)` | `CONTEXT.md` → Access Point; `adr/0008`'s third consequence; `adr/0074`, `adr/0078` |
 | The **walk Leg, resolved end to end** — `distance / speed` over the foot subgraph | `03 §3.7`: for a walk Leg this *"is not an approximation, it is the exact answer"* |
 | A **Trip generator** — one, named, and argued | Nothing generates Trips; see *Decisions this slice must close* |
 | **Trip Fate**, recorded and reported | `CONTEXT.md` → Trip Fate; `02`'s per-Tick assertion *no Trip without a Fate* |
@@ -369,23 +369,55 @@ shops*.
 **1. Access Points.** Every Building gets a pedestrian and a vehicle Access Point, each an **Address** —
 ~~`(Handle<RoadSegment>, offset)`~~ **`(Handle<RoadSegment>, offset, side)`**, per
 [`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md).
-Saved and hashed — a Building's front door is a property of the city, not a cache. The offset makes this
-the query shape `CONTEXT.md` says *"everything downstream must be measured on"*, so getting it wrong here
-mis-measures 5c and 8 as well.
+~~Saved and hashed — a Building's front door is a property of the city, not a cache.~~
+⚠ **CORRECTED 2026-08-11 by
+[`adr/0078`](../docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md),
+which 5a-bis shipped after this line was written: an Access Point is `(derived AND rebuilt)` on the
+Epoch, and it is not saved.** The offset makes this the query shape `CONTEXT.md` says *"everything
+downstream must be measured on"*, so getting it wrong here mis-measures 5c and 8 as well.
+
+**The correction is narrower than it reads, and the original's *reason* survives intact.** A front door
+is still a property of the city rather than a cache — what is saved is the **Lot's position and its
+side**, which is a place on the ground and is exactly what a Building's front door is. What is *derived*
+is the pair `(Segment handle, offset)`, and that pair is a function of the graph, so saving it is not an
+option rather than a choice: `BulldozeStreet` **frees the Segment row**
+([`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md)),
+so a saved handle would outlive its target and the next lay would recycle the slot underneath it. ***A
+saved handle to a row a player can destroy is a dangling pointer with a save file behind it.***
+`Frontage.Locate` runs the derivation backwards from the saved position, and the two sets are disjoint —
+a Lot on a horizontal Street has `north ≡ 0 (mod block_tiles)`, one on a vertical Street the reverse —
+so the position names at most one lattice edge and nothing is lost by not storing it.
 
 **`Address` is a named value type and not a tuple spelled out at each site**, which is what makes
-milestone 8 a one-endpoint swap rather than a restructure. **Side** is left or right of the Segment's
+milestone 8 a one-endpoint swap rather than a restructure. **It exists as of 5a-bis** —
+`Borough.Core.Space.Address`, with `Address.None` as the *no front door* value `adr/0079` requires — so
+this task **consumes** the type rather than introducing it. **Side** is left or right of the Segment's
 forward direction — fixed A→B by its endpoints, so it needs no geometry — and it exists so that a walk
 between two Addresses on the same Segment and opposite sides pays a **crossing cost**. That cost is
 `[trips]` Ruleset data, hash-bearing, and **5b must not choose its value**: it is a new `0002` §D2 row
 with a named ratifier.
 
 **The two Addresses are written equal by construction**, and a docstring must say what makes them
-diverge — 5a-bis's subdivider, milestone 8's parking, `03 §6.6`'s freight. ⚠ **And the vehicle Address is
-never a fallback from a failed Parking Shed query**, which is milestone 8's rule written now: an
-exhausted Shed **widens**, because a full car park must not cost less than an empty one.
+diverge — ~~5a-bis's subdivider,~~ milestone 8's parking, `03 §6.6`'s freight. ⚠ **The subdivider is
+struck from that list because it shipped and does not do it**: `LotSubdivider` derives **one** Address
+per Lot, from the Lot's own position and side. That is not an omission — a second Address needs a second
+saved fact, and under `adr/0070` inventing one for a consumer that does not exist is the position this
+slice may not take. So *the two are equal* stops being an interim simplification and becomes **the
+built behaviour**, and the divergence list is genuinely two entries, both in later milestones.
+⚠ **And the vehicle Address is never a fallback from a failed Parking Shed query**, which is milestone
+8's rule written now: an exhausted Shed **widens**, because a full car park must not cost less than an
+empty one.
 
-**⚠ This task's shape depends on whether 5a-bis has landed, and it should have.**
+~~**⚠ This task's shape depends on whether 5a-bis has landed, and it should have.**~~ ✅ **IT HAS —
+2026-08-11, [`0022`](0022-the-lot-subdivider-and-build-road.md), all seven tasks.** So the branch this
+paragraph hedged against is closed: **the nearest-Segment-by-construction fallback is dead and must not
+be written.** Every Lot in a world with `[roads]` and `[lots]` carries a real, derived Address, and
+`Invariant.VacantLotHasFrontage` is the whole-world check that says so. What this task actually owes is
+therefore **smaller than the paragraph below predicted**: not an assignment, but *lifting a Lot's
+Address onto the Building that stands on it*, and deciding nothing except what a Building with
+`Address.None` does — which `adr/0079` already answers, *the Trip ends **no route found***.
+
+*Original hedge, kept because it is the record of a dependency that was real:*
 [`0022`](0022-the-lot-subdivider-and-build-road.md) is **ungated and available now**, while this slice
 waits on session F — so the natural order is 5a-bis first. It produces **frontage**, and `CONTEXT.md` →
 Frontage puts the Access Point downstream of it: *"subdividing consumes frontage — narrow terraced Lots
