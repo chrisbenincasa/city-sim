@@ -16,6 +16,15 @@ exactly one caller in the tree, inside `ZoneRuleEngine.Create`, at the instant o
 the Pool and puts it into a Building that already stands, and the Zone Rule has been doing placement's
 job as a side effect, one Household deep.
 
+**The visible symptom is a 45% vacancy, and the ledger recorded a homelessness figure instead.** Nearly
+half the declared housing stock stood empty while 70% of the population queued outside it — *places
+existing that nobody could reach* — and that is the number that is evidence of a missing mechanism,
+because no balance of rates produces it. The *five-sixths homeless* headline the ledger carried is
+mostly a property of the fixture: `rulesets/minimal.toml` condemns every dwelling 64 Ticks after raising
+it on purpose, so homelessness there is `1 − capacity ÷ population` over knobs that file chose, and it
+would have read the same at any occupancy. **Leading with it made a fixture's arithmetic look like a
+design problem, and hid the one number that was not.**
+
 That is what the *five-sixths homeless* equilibrium is. It was filed twice —
 [`0002`](../../plans/0002-open-questions.md) §B and §C — as a question about **occupancy**, and §B states
 outright that *"the number that settles it is an occupancy declared in a `[[kind]]`"*. **It is not, and
@@ -94,10 +103,12 @@ engaged: this mechanism has never had a family.
 **Four corrections, recorded here rather than amended away, because three of them are this ADR being
 wrong about what it was about to build.**
 
-**1. The equilibrium does not close, and saying it would was the same error this ADR was written to
-name.** *Five-sixths homeless* was 83%; it is now **53%**, and the residue is not a mechanism gap — it
-is `rulesets/minimal.toml` demolishing every dwelling it raises, which that file's header states at
-length and on purpose. **What the pass actually fixes is vacancy**: before it, **45% of the housing
+**1. The equilibrium does not close, saying it would was the same error this ADR was written to name,
+and the deeper mistake was quoting the figure at all.** *Five-sixths homeless* was 83%; it is now
+**53%**, and the residue is not a mechanism gap — it is `rulesets/minimal.toml` demolishing every
+dwelling it raises, which that file's header states at length and on purpose. At ~60 of ~120 Lots
+standing and 3 Occupants declared, 180 places for 360 Households **is** the answer, and no placement
+mechanism can improve on it. **What the pass actually fixes is vacancy**: before it, **45% of the housing
 stock stood empty** while 70% of the population queued; after it, **10%**, which is the floor a city
 that is continuously building carries. So the acceptance test asserts **vacancy and not homelessness** —
 `PlacementLongRunTests` — because *everybody is housed* is a property of a Ruleset's **balance**, and

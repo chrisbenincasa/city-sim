@@ -77,7 +77,8 @@ only dependency — closed with task 10a.
   rather than a fitted window. **The finding is what the numbers sit on**: the city settles at ~60 of
   121 Lots built and ~300 of 360 Households homeless, because demolition evicts a Building's whole
   occupancy and creation rehouses exactly one — **a Building has no occupancy at all**, filed to
-  `0002` §B.
+  `0002` §B. **⚠ The headline is amended below**: homelessness here is the fixture's own arithmetic, and
+  the finding is the **vacancy** beside it — half the places that existed stood empty.
 - **Task 11 — `revisit_ticks`, and the slice is closed a second time.**
   [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)
   shipped: a `[[zone_rule]]` authors a **duration** and `ZoneRuleDefinition.SampleFor` derives
@@ -758,6 +759,20 @@ failed to recycle would allocate thousands of rows over 100,000 Ticks and cross 
 almost immediately.
 
 #### The finding underneath the numbers: the city drains into the Pool, and it is not a leak
+
+> **⚠ AMENDED 2026-08-11 — this section records the right observation under the wrong headline, and the
+> headline travelled.** *Five-sixths homeless* is `1 − capacity ÷ population` over a fixture that
+> condemns every dwelling **on purpose** (`minimal.toml`'s `upkeep` draws on a Resource nothing produces),
+> so the homelessness figure is fixed by knobs this file chose and carries no information — it would have
+> read much the same at any occupancy. **The number that is evidence is the one this section states
+> second: nearly half the *declared places that existed* stood empty while the Pool held 300 people.**
+> Places existing that nobody can reach is not producible by any balance of rates. It was a missing door
+> — `02 §5.2` step 2 — built as
+> [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md),
+> after which vacancy is **10%** and homelessness is **53%**, the residue being this fixture's arithmetic.
+> The general form is in [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md) → *What shipping
+> task 2 found*, finding 1: **a long run reports the fixture's arithmetic in every quantity the fixture
+> determines.**
 
 **In steady state ~60 of 121 Lots hold a Building and ~300 of 360 Households are homeless.** Nothing
 trends, every table recycles, and the run passes — so this is not `adr/0006`. It is arithmetic:

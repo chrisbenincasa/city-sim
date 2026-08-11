@@ -64,7 +64,7 @@ of them tunable, and every one of them filed rather than fixed because the desig
 | | The defect | Owner |
 |---|---|---|
 | 1 | **The shortage regime is not expressible.** A recorded shortfall is the deficit at the *instant of failure*; a Bin drains from the head only while the **single arriving quantity** covers it. A consumer short of three is never woken by three arrivals of one, and both parties sleep for ever with the Bin full | [`0011`](0011-rule-engine-bins-and-rules.md) finding 41 |
-| 2 | **The city settles five-sixths homeless.** ~60 of 121 Lots built on, **~300 of 360 Households homeless**, nothing trending, every table recycling. Demolition evicts a Building's whole occupancy and creation rehouses **one**, so every cycle nets **+2** into the Pool. **A Building has no declared occupancy at all** | [`0014`](0014-zone-rules-and-the-sweep-family.md) task 10 |
+| 2 | ~~**The city settles five-sixths homeless.**~~ **RECORDED IN THE WRONG QUANTITY — see *What shipping task 2 found* finding 1.** The homelessness figure is `1 − capacity ÷ population` over a fixture that condemns every dwelling on purpose, so it carries no information. **The finding is the 45% vacancy**: ~60 of 121 Lots built on and nearly half the *declared places that existed* standing empty while 70% of the population queued outside them. Demolition evicts a Building's whole occupancy and creation rehouses **one**, so every cycle nets **+2** into the Pool. **A Building has no declared occupancy at all, and nothing can move a Household into a Building that already stands** | [`0014`](0014-zone-rules-and-the-sweep-family.md) task 10 |
 | 3 | **The first Ruleset deadlocked in about two hundred Ticks** — flour to 60, bread to 20, no sink: every Bin full, every Rule failed on headroom, every Rule subscribed, nothing left that could drain a Bin to wake one. Total, correct, honest deadlock, demonstrated rather than argued | [`0011`](0011-rule-engine-bins-and-rules.md) finding 40 |
 | 4 | **No reload of any kind moves a live Bin's capacity.** A retuned capacity reaches the next Building raised and never the ones standing — `adr/0015`'s acceptance test failing on a **second** number | [`0015`](0015-hot-reload-and-the-ruleset-as-a-thing-that-changes.md) finding 4 |
 
@@ -670,15 +670,33 @@ difficulty in writing a test. Recorded because the first sighting read as an acc
 **Both items shipped green and both ADRs are amended in place.** Five findings, ordered by how much
 they change what somebody should believe.
 
-**1. The five-sixths equilibrium does not close, and predicting that it would was this session's own
-error running forwards.** *Five-sixths homeless* was 83%; it is **53%**, and the residue is not a
-mechanism gap — `rulesets/minimal.toml` demolishes every dwelling it raises, which its header states at
-length and on purpose. **What the pass actually fixes is vacancy**: before it, **45% of the housing
-stock stood empty** while 70% of the population queued; after it, **10%**, which is the floor a city
-that is continuously building carries. So `PlacementLongRunTests` asserts **vacancy and not
-homelessness** — *everybody is housed* is a property of a Ruleset's **balance**, and the shipped Ruleset
-explicitly declines to have one. **The acceptance criterion written in the queue was a content
-prediction wearing a mechanism's clothes.**
+**1. The whole cluster was recorded in the wrong quantity, and this outranks everything else here.**
+The corpus carried *five-sixths homeless* as the finding for a slice — the board, `CLAUDE.md`, two
+ledger sections, an ADR and a slice plan. **It was never the number that was evidence of anything.**
+Homelessness in `rulesets/minimal.toml` is `1 − capacity ÷ population`, and that file gives every
+dwelling an `upkeep` Rule drawing on a Resource **nothing in it produces** — so every Building is
+condemnable 64 Ticks after it is raised, the Zone Rule's one-Lot sample rebuilds at the rate it
+demolishes, and the city sits at **~60 of ~120 Lots**. 180 places for 360 Households, by construction,
+stated in that file's own header at length. **It would have read much the same at any occupancy and
+against any placement mechanism**, which is exactly what the pass then demonstrated: 83% → **53%**, and
+the rest is the fixture's arithmetic.
+
+**The number that was evidence is the vacancy: 45% of the declared housing stock standing empty while
+70% of the population queued outside it.** *Places existing that nobody could reach* is not producible
+by any balance of rates — it is a missing door, and it was one. It is now **10%**, the floor a city that
+is continuously building carries, and it is what `PlacementLongRunTests` asserts.
+
+**The general form is worth more than the instance.** A long run against a fixture reports the
+**fixture's** arithmetic in every quantity the fixture determines, and the only readings that carry
+information are the ones it does **not** determine. `minimal.toml` fixes the demolition rate, the
+population and the Lot count, so it fixes homelessness; it does not fix whether the places it leaves
+standing get used. **Before recording a long-run number as a finding, ask which of the Ruleset's own
+knobs already decides it.** This is the sibling of [`0013`](0013-tick-budget.md)'s *a unit cost is a
+hypothesis until a real world has produced one*, on the output side instead of the input side.
+
+**And the ADR's stated acceptance was a content prediction wearing a mechanism's clothes** — *the
+equilibrium closes with no number tuned*, written from outside a mechanism that did not exist, which is
+`adr/0070` running forwards.
 
 **2. Three hash-bearing numbers, where the ADR predicted none.** `adr/0059`'s precedent derives the
 *sample* from a duration and that half held — but the **duration** is a free parameter and so is

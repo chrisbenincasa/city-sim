@@ -108,8 +108,14 @@ a draw rather than a queue in the first place.
   not make a counter worth keeping — `adr/0006`'s question of what keeps a counter true still has no
   answer that a walk needs.
 - **This does not settle the five-sixths equilibrium**, and nothing in it claims to. That is
-  [`adr/0069`](0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)'s.
-- **The number is unset**, with a named ratifier, per
+  [`adr/0069`](0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)'s. **⚠ And
+  `adr/0069` did not settle it either, because nothing could**: homelessness in the shipped fixture is
+  `1 − capacity ÷ population` over a Ruleset that condemns every dwelling on purpose, so it is that
+  file's arithmetic and not a mechanism's. **The quantity both ADRs were really about is the vacancy** —
+  45% of declared places standing empty, now 10%.
+- ~~**The number is unset**, with a named ratifier, per~~ **SET at 3 on 2026-08-11 in both shipped
+  Rulesets and moved to `0002` §D1. The named ratifier has run** — the first long run in which placement
+  and eviction both do — and did not refute. Per
   [`adr/0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md). See `0002` §D.
 
 ## What would trigger revisiting

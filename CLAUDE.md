@@ -28,13 +28,23 @@ somebody only by building them a house. **Both shipped 2026-08-11**, and item 5 
 that queue that built a **mechanism** rather than correcting one — a `[placement]` table in the Ruleset,
 a sampled Phase 6 pass ahead of the Zone Rules, and a fourth Census metric family.
 
-**Building it refuted both of its own ADR's predictions, and that is the finding.** The five-sixths
-equilibrium does **not** close: 83% homeless becomes **53%**, and the residue is `rulesets/minimal.toml`
-demolishing its whole housing stock on purpose, which its header says at length. **What the pass fixes is
-vacancy** — 45% of the housing stock stood empty while 70% of the population queued, and it is now
-**10%** — so the acceptance test asserts vacancy and not homelessness, because *everybody is housed* is a
-property of a Ruleset's **balance** and the shipped one declines to have one. And it needed **three**
-hash-bearing numbers where the ADR predicted none: `adr/0059`'s precedent derives the *sample* and leaves
+**The finding is a vacancy of 45%, and the corpus spent a slice calling it *five-sixths homeless*
+instead.** The defect was that **nothing in the simulation could move a Household into a Building that
+already stood** — `World.Place` had one caller, at construction — so 45% of the housing stock sat empty
+while 70% of the population queued outside it. **That is now 10%**, which is the floor a city that is
+continuously building carries, and it is what `PlacementLongRunTests` asserts.
+
+**The homelessness figure was mostly a property of the fixture, and quoting it buried the lede.**
+`rulesets/minimal.toml` gives every dwelling an `upkeep` Rule drawing on a Resource **nothing in the file
+produces**, so every Building is condemnable 64 Ticks after it is raised and the Zone Rule's one-Lot
+sample rebuilds at the rate it demolishes. The city therefore holds **~60 of ~120 Lots** at equilibrium —
+180 places for 360 Households — and homelessness is just `1 − capacity ÷ population` over knobs that file
+chose on purpose, and says so in its own header at length. 83% became **53%** and the rest is arithmetic,
+not a design problem. **Placement works**: `PlacementTests` drains a Pool to **zero** on a fixture that
+does not demolish itself. *Everybody is housed* is a property of a Ruleset's **balance**, and no Ruleset
+that models a city exists yet.
+
+And the pass needed **three** hash-bearing numbers where its ADR predicted none: `adr/0059`'s precedent derives the *sample* and leaves
 free the **duration** it is derived from, plus `candidates`. `revisit_ticks` shipped at one Day, copied
 from that default, and one Day is how often the *development industry surveys the city* — a family
 without a home looks more often than that; it is **1024**. **`adr/0070` runs forwards as well as
@@ -161,8 +171,10 @@ half for the first time — five of six tables dead flat across continuous demol
 **running maximum** bounded structurally by the population — and found the city settles **five-sixths
 homeless**, because demolition evicts a Building's whole occupancy and creation rehouses exactly one:
 **a Building has no declared occupancy at all**, filed to `0002` §B rather than tuned. **Both halves are
-built as of 2026-08-11** (`adr/0068`, `adr/0069`), and the filing was wrong: it named a number where a
-mechanism was missing. And closing
+built as of 2026-08-11** (`adr/0068`, `adr/0069`), and the filing was wrong **twice**: it named a number
+where a mechanism was missing, and it led with the homelessness figure when the fixture fixes that by
+construction. **The number that was evidence of a defect is the 45% vacancy** — places existing with
+nobody able to reach them. And closing
 task 8 was an audit rather than a change: **`HouseholdHomeExists` was reported by nothing**, the only
 orphan among 26 invariants, now bannered with its **id retired rather than reused**, because a crash
 artifact carries the number. The slice's owed decision is settled *by measurement*: `adr/0044`

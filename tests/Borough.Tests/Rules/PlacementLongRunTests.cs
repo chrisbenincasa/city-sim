@@ -13,12 +13,14 @@ namespace Borough.Tests.Rules;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The number this replaces.</b> Slice 10's 100,000-Tick run settled <em>five-sixths homeless</em>
-/// and the finding was filed as a question about how many Occupants a Building should hold. It was
-/// not: the populator put three Households in a Building and a Zone Rule put one, so every
-/// demolish-and-rebuild cycle netted two into the Pool, and <em>nothing in the simulation could ever
-/// move a Household into a Building that already stood</em>. <c>adr/0068</c> closed the first half by
-/// making occupancy declarable; this closes the second.
+/// <b>The number this replaces, and the number it replaces it with.</b> Slice 10's 100,000-Tick run was
+/// filed as <em>five-sixths homeless</em>, and that was the wrong quantity to record. Homelessness in
+/// this fixture is <c>1 − capacity ÷ population</c> over a Ruleset that condemns every dwelling 64
+/// Ticks after raising it on purpose, so it would have read much the same at any occupancy and against
+/// any placement mechanism. <b>The number that was evidence of a defect is the vacancy</b>: 45% of the
+/// declared housing stock stood empty while 70% of the population queued outside it, which no balance
+/// of rates produces. <c>adr/0068</c> made occupancy declarable and <c>adr/0069</c> built the door;
+/// vacancy is now 10%.
 /// </para>
 /// <para>
 /// <b>What is asserted is vacancy and not homelessness, and that distinction is the whole test.</b>
@@ -72,8 +74,8 @@ public sealed class PlacementLongRunTests
             vacant <= capacity / 4,
             $"{vacant} of {capacity} declared places stood empty on average while "
             + $"{Mean(tail, r => r.Pool)} Households queued. The housing stock is not being used, "
-            + "which is what adr/0069's pass exists to do -- and is what the five-sixths-homeless "
-            + "equilibrium of slice 10 actually was.");
+            + "which is what adr/0069's pass exists to do -- and is what slice 10 recorded as a "
+            + "homelessness figure when it was a vacancy.");
 
         // And the residue, stated the other way round: what is left in the Pool is explained by
         // there being nowhere to put them. Without this, a pass that housed one family and left the

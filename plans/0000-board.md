@@ -62,12 +62,15 @@ Building's occupancy is declared by its **kind** and derived from the Ruleset in
 Building **evicts** rather than draining because occupancy has no consumer, and **placement is a
 mechanism of its own** — `World.Place` had exactly **one** caller, at construction, so of `02 §5.2`'s six
 steps only step 5 existed and the city could only house somebody by building them a house. **Both
-shipped 2026-08-11, and both ADRs were wrong about what building them would do.** The five-sixths
-equilibrium does **not** close — 83% homeless becomes 53% — because the residue is the shipped Ruleset
-demolishing its whole housing stock on purpose. What the pass fixes is **vacancy**: 45% of the housing
-stock stood empty while 70% queued, and it is now **10%**. And it needed **three** hash-bearing numbers
-where the ADR predicted none, because `adr/0059`'s precedent derives the *sample* and leaves free the
-duration it is derived from.
+shipped 2026-08-11.** **The defect was a 45% vacancy, not a homelessness figure**: nearly half the
+housing stock stood empty while 70% of the population queued outside it, because nothing could move a
+Household into a Building that already stood. **That is now 10%.** The corpus called this *five-sixths
+homeless* for a slice and that buried the lede — homelessness in `rulesets/minimal.toml` is
+`1 − capacity ÷ population` over a file that condemns every dwelling 64 Ticks after raising it **on
+purpose**, so 83% became 53% and the rest is arithmetic. Placement drains a Pool to **zero** on a
+fixture that does not demolish itself. And the pass needed **three** hash-bearing numbers where its ADR
+predicted none, because `adr/0059`'s precedent derives the *sample* and leaves free the duration it is
+derived from.
 **No gate is red anywhere in the corpus**, and no session gates a slice any more. S4, S0a, S0b and S2 R0–R8 have
 run; sessions A, B, C, M, eight and nine are closed.
 
@@ -108,10 +111,19 @@ chain**, because a chain between Buildings crosses an ownership boundary, which 
 which is a named hole that throws — so the only shape available is a Building producing into and
 drawing from its own Bins. ~~And **a Building has no declared occupancy at all**, so a long run settles
 **five-sixths homeless**.~~ **Both halves are built** (`adr/0068`, `adr/0069`): a `[[kind]]` declares
-`occupants`, and a `[placement]` pass drains the Unplaced Pool into dwellings that already stand. A long
-run now settles at **53% queueing with 10% of the stock empty**, and the residue is the shipped Ruleset
-demolishing every dwelling it raises on purpose rather than anything unbuilt. **What is still missing is
-step 2b** — an acceptance filter — so a Household takes the first dwelling with room, whatever it is.
+`occupants`, and a `[placement]` pass drains the Unplaced Pool into dwellings that already stand, so
+**10%** of the housing stock stands empty where 45% did.
+
+**What is missing is step 2b, and it is the only part of placement that is not built.** A Household
+takes the first dwelling with room, whatever it is, because the acceptance filter — *affordable? at
+least one reachable job in budget?* — needs prices, jobs and a Commute Budget and none exist.
+
+**What is *not* missing is a housing mechanism, and the long run's 53% queueing should not be read as
+one.** `rulesets/minimal.toml` gives every dwelling an `upkeep` Rule drawing on a Resource nothing in
+the file produces, so every Building is condemnable 64 Ticks after it is raised and the city holds ~60
+of ~120 Lots at equilibrium — 180 places for 360 Households. **That is the fixture's arithmetic, stated
+in its own header, not a defect.** *Everybody is housed* is a property of a Ruleset's **balance**, and
+no Ruleset that models a city exists yet.
 
 ### The five numbers to hold in your head
 
