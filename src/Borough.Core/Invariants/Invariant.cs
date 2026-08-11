@@ -411,4 +411,27 @@ public enum Invariant
     /// </para>
     /// </remarks>
     BinCapacityMatchesItsDeclaration = 29,
+
+    /// <summary>A Building holds no more Occupants than its kind declares room for.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A write-site guard and not a standing check</b>, which is <c>adr/0064</c>'s id-14 finding
+    /// applied to the second capacity a Building has. <see cref="Entities.World.HasRoom"/> is the
+    /// *predicate* a caller asks before placing; reaching this member means somebody placed without
+    /// asking, which is a caller bug rather than a world in a bad state.
+    /// </para>
+    /// <para>
+    /// <b>An over-capacity Building is legal and does not report here</b>, because it is reachable
+    /// without anybody having written anything wrong: a Ruleset lowering a ceiling leaves standing
+    /// Buildings above it for exactly as long as it takes <c>Adopt</c> to run its eviction. What is
+    /// illegal is a *placement* into one, which is the direction this guard faces.
+    /// </para>
+    /// <para>
+    /// <b>Dereliction is not a violation either</b> (<c>adr/0068</c>). A Building whose kind the
+    /// incoming Ruleset dropped has no declared ceiling at all, keeps its Occupants — <c>CONTEXT</c>
+    /// → Derelict Building says so in its own words — and admits nobody new. Evicting on a kind
+    /// disappearing would empty a District because a designer deleted a paragraph.
+    /// </para>
+    /// </remarks>
+    BuildingHasRoomForTheHousehold = 30,
 }

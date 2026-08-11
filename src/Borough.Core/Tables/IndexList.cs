@@ -55,6 +55,26 @@ public readonly ref struct IndexList
     /// <summary>True when the owner has no elements.</summary>
     public bool IsEmpty(int owner) => _head[owner] == 0;
 
+    /// <summary>How many elements the owner has.</summary>
+    /// <remarks>
+    /// <b>A walk rather than a stored counter, and the reason is <c>adr/0006</c>'s question rather
+    /// than a cost argument.</b> A count column would be a second place for a fact the list already
+    /// holds, and the question *what keeps it true* has no answer a walk needs. The lists this is
+    /// asked of — a Building's Occupants, a Building's Bins — are a handful by construction, and the
+    /// one caller on a per-Tick path (<see cref="Rules.Readouts"/>) is reading exactly this.
+    /// </remarks>
+    public int Length(int owner)
+    {
+        int count = 0;
+
+        foreach (int _ in Walk(owner))
+        {
+            count++;
+        }
+
+        return count;
+    }
+
     /// <summary>Adds an element at the end, which is where a queue's order comes from.</summary>
     public void Append(int owner, int node)
     {

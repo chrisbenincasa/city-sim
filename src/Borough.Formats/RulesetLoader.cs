@@ -718,10 +718,34 @@ public static class RulesetLoader
                     }
                 }
 
+                // adr/0068's occupancy. Optional, and absent means this kind houses nobody -- which
+                // is what almost every kind means and what every Ruleset written before occupancy
+                // existed already meant. A negative one is refused rather than clamped, on
+                // condemn_after's reasoning: it reads as "evict everybody", and a Ruleset that
+                // emptied every Building it declared would be a sentence somebody meant to write and
+                // nobody would guess from the symptom.
+                int occupants = 0;
+
+                if (TryInteger(table, "occupants", out long holds, required: false, name))
+                {
+                    if (holds < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "occupants") ?? table), name,
+                            $"occupants is {holds}. It counts Households a Building of this kind may "
+                            + "hold, so it cannot be negative; omit it for a kind that houses "
+                            + "nobody.");
+                    }
+                    else
+                    {
+                        occupants = holds > int.MaxValue ? int.MaxValue : (int)holds;
+                    }
+                }
+
                 definitions[i] = new KindDefinition(
                     binFirst, allBins.Count - binFirst, ruleFirst, allRules.Count - ruleFirst)
                 {
                     CondemnAfter = condemnAfter,
+                    Occupants = occupants,
                 };
             }
 

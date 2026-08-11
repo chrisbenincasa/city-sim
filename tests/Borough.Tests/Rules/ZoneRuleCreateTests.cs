@@ -38,7 +38,7 @@ public sealed class ZoneRuleCreateTests
     private static Ruleset Zoned(params ZoneRuleDefinition[] zoneRules) => new(
         resources: [],
         rules: [],
-        kinds: [new KindDefinition(0, 0, 0, 0)],
+        kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = 1 }],
         inputs: [],
         outputs: [],
         emissions: [],

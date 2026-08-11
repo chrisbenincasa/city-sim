@@ -326,6 +326,34 @@ public readonly record struct KindDefinition(
     /// </para>
     /// </remarks>
     public int CondemnAfter { get; init; }
+
+    /// <summary>
+    /// How many Occupants a Building of this kind may hold. Zero means it houses nobody.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A property of the Ruleset in force rather than of the Building</b> (<c>adr/0068</c>), which
+    /// is <c>adr/0064</c> applied a second time: it is an authored number keyed on the kind, read at
+    /// a write site, pointed at by no live state — the same three properties that said a Bin's
+    /// ceiling should not be a saved column either. **There is no column at all here**, because the
+    /// Building already carries its kind and the only read is a guard that runs once per placement;
+    /// a Bin needed one because <c>HeadroomAt</c> is on the hot path and would have paid an owner
+    /// resolve and a walk on every check.
+    /// </para>
+    /// <para>
+    /// <b>Zero rather than absent, and most kinds mean it.</b> A factory declaring nothing houses
+    /// nobody, which is the common case and wants no ceremony. The failure it could hide is a
+    /// dwelling kind whose author forgot the line, and that surfaces immediately and loudly: nobody
+    /// can move in and the Unplaced Pool stops draining, which is the opposite of the silent
+    /// narrowing <c>02 §4.3</c>'s <c>apply</c> defect was.
+    /// </para>
+    /// <para>
+    /// <b>A kind the Ruleset does not declare at all is a different thing from one declaring zero</b>
+    /// — see <see cref="Entities.World.TryDeclaredOccupancy"/>. Dereliction must not evict, and the
+    /// two cases would be indistinguishable if this number were the only answer.
+    /// </para>
+    /// </remarks>
+    public int Occupants { get; init; }
 }
 
 /// <summary>

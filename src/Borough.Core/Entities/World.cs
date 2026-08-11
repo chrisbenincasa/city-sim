@@ -289,6 +289,12 @@ public sealed class World
         // creates others, and a rebuild before it would derive ceilings for rows about to move.
         RebuildCapacities();
 
+        // adr/0068's other half, and it runs after the rebuild for the same reason the rebuild runs
+        // after Migrate: this reads the kinds the incoming Ruleset declares, and a Building whose kind
+        // the migration is about to change would be measured against the wrong ceiling. A world that
+        // has no Buildings yet -- every world at construction -- walks a table of nothing.
+        EvictOverflow(now, key);
+
         // Recorded after the pass rather than before it, because a degradation this build refuses
         // half-way through would otherwise leave a trail entry claiming a transition that did not
         // happen -- and a provenance trail nobody can trust is worse than none, since the whole of its
@@ -571,6 +577,17 @@ public sealed class World
         // member into the vacated position, so a caller holding two positions and using both would
         // house the wrong Household with the second — and the swap makes that failure look like an
         // ordinary draw. Keyed on identity there is no stale value to hold.
+        // adr/0068. The predicate is HasRoom and every caller is expected to have asked it -- a full
+        // Building is an ordinary answer to placement and not a fault -- so reaching this is a caller
+        // that placed without asking. Report-and-return rather than Require, on the same reasoning as
+        // the check above: under Collect a Require records and falls through, which would house the
+        // family anyway and leave the violation describing a world the run then kept running in.
+        if (!HasRoom(buildingSlot))
+        {
+            Invariants.Report(Invariant.BuildingHasRoomForTheHousehold, slot, buildingSlot);
+            return;
+        }
+
         Handle<Household> left = UnplacedPool.Leave(Households, Households.PoolPosition(slot));
 
         Invariants.Require(left == household, Invariant.ThePoolNamesOnlyUnhousedHouseholds, slot);
@@ -995,6 +1012,129 @@ public sealed class World
 
             Bins.SetCapacity(slot, DeclaredCapacity(kind, Bins.Resource[slot]));
         }
+    }
+
+    /// <summary>
+    /// How many Occupants the Ruleset in force allows a Building of <paramref name="kind"/>, or
+    /// <c>false</c> where it declares no such kind at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The two negative cases are different and must stay so</b> (<c>adr/0068</c>). A declared
+    /// kind holding <c>occupants = 0</c> houses nobody, which is what a factory means. A kind the
+    /// Ruleset does not mention is <b>derelict</b> (<c>02 §4.3</c>), and it has no ceiling: it keeps
+    /// the Occupants it has and admits nobody new. Collapsing them would make a designer deleting a
+    /// paragraph evict a District — the loudest possible consequence for the quietest possible edit.
+    /// </para>
+    /// <para>
+    /// <b>There is no derived column behind this and that is deliberate.</b> <c>adr/0068</c> was
+    /// drafted saying <c>Rows.Derived</c>, by analogy with a Bin's ceiling, and the analogy does not
+    /// survive contact: a Bin needed the column because <see cref="Rules.BinTable.HeadroomAt"/> is on
+    /// the hot path and would otherwise resolve an owner and walk a declaration list on every check,
+    /// where this is read at a guard that runs once per placement and the Building already carries
+    /// its <see cref="BuildingTable.Kind"/>. A column here would be a second copy of a fact one field
+    /// away — which is the thing <c>adr/0064</c> was about.
+    /// </para>
+    /// </remarks>
+    internal bool TryDeclaredOccupancy(byte kind, out int occupants)
+    {
+        if (!Rules.Declares(kind))
+        {
+            occupants = 0;
+            return false;
+        }
+
+        occupants = Rules.Kind(kind).Occupants;
+        return true;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="buildingSlot"/> could take one more Household.
+    /// </summary>
+    /// <remarks>
+    /// <b>The predicate, where <see cref="Invariant.BuildingHasRoomForTheHousehold"/> is the guard.</b>
+    /// Placement asks this of every candidate it samples and moves on when the answer is no, which is
+    /// an ordinary outcome and not a fault; the guard exists for a caller that placed without asking.
+    /// Keeping the two apart is what stops a full city filling the invariant log.
+    /// </remarks>
+    public bool HasRoom(int buildingSlot) =>
+        TryDeclaredOccupancy(Buildings.Kind[buildingSlot], out int occupants)
+        && Occupants.Length(buildingSlot) < occupants;
+
+    /// <summary>
+    /// Evicts into the Unplaced Pool every Occupant a lowered ceiling has left over
+    /// (<c>adr/0068</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Eviction rather than <c>adr/0064</c>'s <em>leave it to drain</em>, and the transplant stops
+    /// here for one nameable reason: a Bin has a consumer and occupancy has none.</b> Nothing removes
+    /// a single Household from a standing Building — no housed departure, no moving — so a Building
+    /// left over its ceiling would sit there for the life of the city, consuming at the occupancy it
+    /// has while the Ruleset says another number. That is exactly the split city <c>adr/0064</c>
+    /// called its own deciding argument, and it is worse here, because a Bin's over-fullness spends
+    /// itself and this one never would.
+    /// </para>
+    /// <para>
+    /// <b>Which Occupants leave is a lottery, never list order.</b> Each holds a draw keyed on its own
+    /// monotonic id, and the highest lose. Evicting from the tail would be free and would remove the
+    /// same families from every Building on every patch, which is <c>02 §8</c> rule 5's argument — the
+    /// same one that made the Pool drain a draw rather than a queue. The tag is its own, because
+    /// sharing <see cref="PurposeTag.PoolDraw"/> would correlate *who is evicted* with *who is
+    /// rehoused* and quietly send the same families straight back.
+    /// </para>
+    /// <para>
+    /// <b>Off the Tick, <c>O(occupants)</c> per over-capacity Building, and usually zero of them.</b>
+    /// It runs where <see cref="RebuildCapacities"/> runs and for the same reason: a ceiling edit is a
+    /// <see cref="RulesetChange.None"/> change, so it skips the migration entirely.
+    /// </para>
+    /// </remarks>
+    internal void EvictOverflow(Ticks now, WorldKey key)
+    {
+        for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
+        {
+            if (!Buildings.Rows.IsLive(slot)
+                || !TryDeclaredOccupancy(Buildings.Kind[slot], out int allowed))
+            {
+                continue;
+            }
+
+            while (Occupants.Length(slot) > allowed)
+            {
+                Unplace(Households.Rows.At(Loser(slot, now, key)));
+            }
+        }
+    }
+
+    /// <summary>
+    /// The Occupant of <paramref name="buildingSlot"/> holding the highest draw, which is the one a
+    /// lowered ceiling evicts next.
+    /// </summary>
+    /// <remarks>
+    /// Keyed on the Household's <b>monotonic id</b> rather than its slot, for the reason a Zone Rule
+    /// keys its Pool draw the same way (<c>02 §8</c> rule 5's footnote): a slot is recycled when a row
+    /// is freed, so drawing against one would make an unrelated demolition change who keeps their
+    /// home. Re-drawn per eviction rather than sorted once — the list is a handful, and a sort here
+    /// would want an allocation on a path that must not have one.
+    /// </remarks>
+    private int Loser(int buildingSlot, Ticks now, WorldKey key)
+    {
+        int worst = Rows.NoSlot;
+        ulong highest = 0;
+
+        foreach (int household in Occupants.Walk(buildingSlot))
+        {
+            ulong draw = Randomness.Draw(
+                key, Households.Rows.IdAt(household), now, PurposeTag.OverflowEviction);
+
+            if (worst == Rows.NoSlot || draw > highest)
+            {
+                worst = household;
+                highest = draw;
+            }
+        }
+
+        return worst;
     }
 
     /// <summary>

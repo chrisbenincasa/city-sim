@@ -116,15 +116,12 @@ public static class Readouts
     /// and a counter column would be a second place for the same fact to be wrong — <c>adr/0006</c>'s
     /// question of what keeps it true has no answer that a walk needs.
     /// </remarks>
-    private static int Count(IndexList list, int owner)
-    {
-        int count = 0;
-
-        foreach (int _ in list.Walk(owner))
-        {
-            count++;
-        }
-
-        return count;
-    }
+    /// <summary>Length of an intrusive list, which is what a count Readout is.</summary>
+    /// <remarks>
+    /// A walk rather than a stored counter — see <see cref="IndexList.Length"/>, which is where the
+    /// argument lives now that a second caller wanted the same walk. This method existed first and
+    /// held its own copy of the loop; <c>adr/0068</c>'s occupancy guard is what made one of them a
+    /// duplicate.
+    /// </remarks>
+    private static int Count(IndexList list, int owner) => list.Length(owner);
 }

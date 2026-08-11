@@ -1,7 +1,19 @@
 # A Building's occupancy is declared by its kind, and an over-capacity Building evicts
 
+> **⚠ AMENDED BY BUILDING IT, 2026-08-10. This ADR said `derived AND rebuilt`, by analogy with a Bin's
+> ceiling, and there is no column at all.** The decision is unchanged and the implementation is *more*
+> of what the decision says, not less: occupancy is read straight off the kind at the one guard that
+> needs it. The analogy does not survive contact, and the property that breaks it is worth keeping —
+> a Bin's ceiling earned a column because `HeadroomAt` is on the hot path and would otherwise resolve
+> an owner and walk a declaration list **on every check**, where this is read at a guard that runs
+> **once per placement** and the Building already carries its `Kind`. A column here would have been a
+> second copy of a fact one field away, which is the thing `adr/0064` was about. **Two consequences
+> below are struck with it**: there is no rebuild to check at end of run, so the `Invariant`
+> mirroring id 29 is not owed — this section **loses an obligation rather than gaining one**, which
+> is `adr/0059`'s shape a third time.
+
 **How many Occupants a Building may hold is declared per `[[kind]]` in the Ruleset and is
-`derived AND rebuilt` from the Ruleset in force, exactly as a Bin's capacity is
+~~`derived AND rebuilt` from~~ **read directly from** the Ruleset in force, exactly as a Bin's capacity is
 ([`adr/0064`](0064-a-bins-capacity-is-a-property-of-the-ruleset-in-force-and-an-over-full-bin-drains-rather-than-clamps.md)).
 A density band expresses itself as **which kinds a Lot permits**, never as a second capacity mechanism.
 A Building standing over a newly lowered ceiling **evicts the overflow into the Unplaced Pool**, chosen
@@ -78,8 +90,20 @@ a draw rather than a queue in the first place.
   `CLAUDE.md`'s *no tuning number is a `const` in simulation source*. It is also half of `0002` §D's
   *Table sizing ratios* row, whose inconsistency is downstream of this constant.
 - **The cap is a write-site guard at `Place`, never a standing whole-world check**, which is `adr/0064`'s
-  id-14 finding transplanted: the guard belongs where the write is. What is owed as an end-of-run check
-  is that the **rebuild ran**, mirroring `Invariant.BinCapacityMatchesItsDeclaration` (id 29).
+  id-14 finding transplanted: the guard belongs where the write is. It is
+  `Invariant.BuildingHasRoomForTheHousehold`, id **30**, and `World.HasRoom` is the *predicate* beside
+  it — a full Building is an ordinary answer to placement, so the query is what callers ask and the
+  guard is what catches one that did not. ~~What is owed as an end-of-run check is that the **rebuild
+  ran**, mirroring `Invariant.BinCapacityMatchesItsDeclaration` (id 29).~~ **Struck: there is no
+  rebuild.** See the amendment at the head.
+- **The two negative cases are different and the code keeps them apart.** A declared `occupants = 0`
+  houses nobody, which a factory means; a kind the Ruleset does not declare at all is **derelict**, has
+  no ceiling, keeps its Occupants and admits nobody. Collapsing them would make a designer deleting a
+  `[[building]]` paragraph evict a District, against `CONTEXT` → Derelict Building's own sentence.
+- **It moved no State Hash.** The only committed line that changed is the recorded Ruleset content
+  hash, because `occupants = 3` restates what `SyntheticCity` was already doing and a Zone Rule's
+  single placement fits under it. **That is the decision being a no-op on today's content and not a
+  no-op on tomorrow's**, which is the same position `adr/0064` shipped in.
 - **`Readout.Occupancy` is unchanged** and stays a walk of the occupant list. Declaring a capacity does
   not make a counter worth keeping — `adr/0006`'s question of what keeps a counter true still has no
   answer that a walk needs.

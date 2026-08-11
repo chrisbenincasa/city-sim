@@ -78,6 +78,21 @@ bins = [
 ]
 condemn_after = 4
 
+# adr/0068. HOW MANY HOUSEHOLDS THIS HOLDS, and it is read by two things that used to disagree about
+# it: Borough.Core.Entities.SyntheticCity builds ceil(households / this) Buildings and fills each,
+# and the placement pass admits up to this many. Before it existed the populator put 3 in every
+# Building and a Zone Rule put 1, so each demolish-and-rebuild cycle netted +2 into the Unplaced Pool
+# and a 100,000-Tick run settled five-sixths homeless -- an equilibrium produced by a quantity this
+# file could not state. THREE keeps that populator's figure, which is S4 task 2's row ratio (360
+# Households against ~120 Buildings per 1,000 Citizens), so this line changes no world it did not
+# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D2: the first long run in which
+# placement and eviction both run.
+#
+# It is a property of the RULESET rather than of the Building, so lowering it here reaches every
+# dwelling already standing and evicts the overflow into the Pool -- where an over-full Bin is left to
+# drain, because a Bin has a consumer and occupancy has none.
+occupants = 3
+
 # Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
 # from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
 # `pool` draw in task 10b. Greedy because the actor works through whatever headroom it has, which is

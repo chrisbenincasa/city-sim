@@ -1052,4 +1052,63 @@ public sealed class RulesetLoaderTests
 
         Assert.Contains("[[zone_rule]]", refusal.Reason, StringComparison.Ordinal);
     }
+
+    // ---- occupancy, adr/0068 --------------------------------------------------------------------
+
+    /// <summary>
+    /// A kind that declares no <c>occupants</c> houses nobody, which is what almost every kind means.
+    /// </summary>
+    /// <remarks>
+    /// <b>The default is the load-bearing half of this pair.</b> Every Ruleset written before
+    /// occupancy existed omits the key, and all of them meant *this kind is not a home* — a bakery,
+    /// a factory, a farm. Making the absent case zero is what let <c>adr/0068</c> ship without
+    /// touching a single existing declaration.
+    /// </remarks>
+    [Fact]
+    public void A_kind_that_declares_no_occupants_houses_nobody()
+    {
+        Ruleset ruleset = Accepted(Bakery);
+
+        Assert.Equal(0, ruleset.Kind(1).Occupants);
+    }
+
+    /// <summary>A kind that declares <c>occupants</c> carries the number through to the core.</summary>
+    [Fact]
+    public void A_kind_that_declares_occupants_carries_the_number()
+    {
+        Ruleset ruleset = Accepted(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\noccupants = 5\n",
+            StringComparison.Ordinal));
+
+        Assert.Equal(5, ruleset.Kind(1).Occupants);
+    }
+
+    /// <summary>
+    /// A negative <c>occupants</c> is refused rather than clamped.
+    /// </summary>
+    /// <remarks>
+    /// <b>Written because the last thing this loader gained was a guard with no test</b>
+    /// (<c>plans/0018</c> → tasks 3 and 4's implementation record, finding 1): the duplicate
+    /// <c>(kind, Resource)</c> refusal had existed since slice 7 and <c>adr/0064</c> recorded it as
+    /// absent, because this file is where a reader looks to find out what the loader refuses and it
+    /// did not say so. The refusal being obvious is not a reason to skip it — that was exactly the
+    /// reasoning that produced the hole.
+    /// <para>
+    /// Clamping to zero would be worse than the negative: it reads as *evict everybody*, and a
+    /// Ruleset that emptied every Building it declared is a sentence somebody meant to write and
+    /// nobody would guess from the symptom.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_negative_occupants_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\noccupants = -1\n",
+            StringComparison.Ordinal));
+
+        Assert.Contains("occupants is -1", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("houses nobody", refusal.Reason, StringComparison.Ordinal);
+    }
 }

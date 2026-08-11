@@ -110,4 +110,24 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     PoolDraw = 4,
+
+    /// <summary>
+    /// Which Occupants a lowered occupancy ceiling evicts (<c>adr/0068</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Its own tag rather than <see cref="PoolDraw"/>'s, and the correlation it avoids is a
+    /// visible one.</b> Sharing would tie *who is evicted* to *who is rehoused*, so the families a
+    /// patch turned out of one Building would be the same families the next placement drew — the city
+    /// would appear to shuffle a fixed set of households between the same doors, and no readout would
+    /// say why. That is the failure the per-use tag rule exists for, arriving somewhere the rule's
+    /// usual example (two decisions about one entity) does not obviously reach.
+    /// </para>
+    /// <para>
+    /// <b>Keyed on the Household rather than on the Building</b>, so the draw is a lottery number each
+    /// Occupant holds rather than a position in a list. Evicting by list order costs nothing and
+    /// removes the same families from every Building on every patch, which is <c>02 §8</c> rule 5.
+    /// </para>
+    /// </remarks>
+    OverflowEviction = 5,
 }

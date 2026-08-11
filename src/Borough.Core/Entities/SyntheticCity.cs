@@ -41,11 +41,31 @@ using Borough.Core.Tables;
 /// </remarks>
 public static class SyntheticCity
 {
+    /// <summary>The kind this populator raises, and the only one it knows.</summary>
+    private const byte DwellingKind = 1;
+
     /// <summary>
-    /// Households per Building, from S4 task 2's row ratios: 360 Households and ~150 Buildings per
-    /// 1,000 Citizens.
+    /// Households per Building where the Ruleset declares no occupancy for
+    /// <see cref="DwellingKind"/>.
     /// </summary>
-    private const int HouseholdsPerBuilding = 3;
+    /// <remarks>
+    /// <para>
+    /// <b>Not a tuning number, and it is the reason this is not one</b> (<c>CLAUDE.md</c>: *no tuning
+    /// number is a <c>const</c> in simulation source*). Under <c>adr/0068</c> the figure comes from
+    /// the file; ~~<c>HouseholdsPerBuilding = 3</c>~~ used to live here as S4 task 2's row ratio and
+    /// was the second half of the disagreement that entry records — the populator put **3** in every
+    /// Building and a Zone Rule put **1**, and neither number was expressible.
+    /// </para>
+    /// <para>
+    /// <b>One is the arithmetic floor rather than a choice.</b> A populator must house what it
+    /// creates, so where the Ruleset states nothing the only assumption that houses everybody is the
+    /// smallest one: you cannot put two families in a thing that does not say it holds two. It is
+    /// reached only by a world running <see cref="Ruleset.Empty"/> — <c>--citizens</c> with no
+    /// <c>--ruleset</c>, which is S0a's footprint capture — and there the city is degenerate already,
+    /// since kind 1 gets no Bins and no Rules either.
+    /// </para>
+    /// </remarks>
+    private const int UndeclaredOccupancy = 1;
 
     /// <summary>Lots per row, before the strip wraps northward.</summary>
     private const int LotsPerRow = 64;
@@ -81,7 +101,17 @@ public static class SyntheticCity
 
         int population = world.Citizens.Rows.Capacity;
         int households = IntegerMath.FloorDiv(population * 360, 1_000);
-        int buildings = IntegerMath.FloorDiv(households, HouseholdsPerBuilding) + 1;
+
+        // adr/0068: the figure is the Ruleset's, and this is the site that used to hold the other
+        // half of a disagreement nothing could reconcile. A declared zero is treated as undeclared
+        // here rather than refused, because it would mean a populator that houses nobody and reports
+        // success -- and the honest floor is one per Building, not an empty city.
+        int occupancy =
+            world.TryDeclaredOccupancy(DwellingKind, out int declared) && declared > 0
+                ? declared
+                : UndeclaredOccupancy;
+
+        int buildings = IntegerMath.FloorDiv(households, occupancy) + 1;
 
         for (int i = 0; i < buildings; i++)
         {
@@ -91,7 +121,7 @@ public static class SyntheticCity
             // Through World's door rather than the table's, so the Building arrives with its kind's
             // Bins and its chain heads armed. Before this the populator built bare Buildings and the
             // Ruleset described a shape nothing constructed.
-            world.CreateBuilding(lot, kind: 1, now, key);
+            world.CreateBuilding(lot, DwellingKind, now, key);
         }
 
         for (int i = 0; i < households; i++)

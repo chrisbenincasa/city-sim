@@ -18,14 +18,43 @@ namespace Borough.Tests.Entities;
 /// </remarks>
 public sealed class UnplacedPoolTests
 {
-    private static World Built(int households = 8)
+    /// <summary>
+    /// One kind, with room for two Households where these fixtures put one.
+    /// </summary>
+    /// <remarks>
+    /// <b>A Ruleset where this used to be <see cref="Ruleset.Empty"/>, and the change is
+    /// <c>adr/0068</c> made visible.</b> Occupancy is a property of the Ruleset in force, so a world
+    /// running no Ruleset declares no kind, every Building in it is derelict, and nobody can move
+    /// into one — <see cref="World.Place"/> now refuses, where before it took anybody anywhere.
+    /// Declaring the kind is the only way to ask for a Building that houses somebody, which is the
+    /// same shape <c>adr/0064</c> imposed on <c>BinTests</c>: a fixture that can no longer be written
+    /// is the design claim enforcing itself.
+    /// <para>
+    /// <b>Two rather than one, because these tests re-house into an occupied Building on purpose.</b>
+    /// Every fixture here builds one Household per Building and then moves one somewhere that already
+    /// has a tenant, which is what makes the reverse index and the density claims worth asserting —
+    /// so the spare place is the fixture stating that it is testing the Pool and not the ceiling.
+    /// </para>
+    /// </remarks>
+    private static Ruleset Housing(int occupants) => new(
+        resources: [],
+        rules: [],
+        kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = occupants }],
+        inputs: [],
+        outputs: [],
+        emissions: [],
+        bins: [],
+        kindRules: [],
+        zoneRules: []);
+
+    private static World Built(int households = 8, int occupants = 2)
     {
-        var world = new World(1_000, Ruleset.Empty);
+        var world = new World(1_000, Housing(occupants));
 
         for (int i = 0; i < households; i++)
         {
             Handle<Lot> lot = world.Lots.Create(new Tiles(i), new Tiles(0), zone: 1);
-            Handle<Building> building = world.CreateBuilding(lot, kind: 0, Ticks.Zero, default);
+            Handle<Building> building = world.CreateBuilding(lot, kind: 1, Ticks.Zero, default);
 
             world.CreateHousehold(building, lifeStage: 0);
         }
@@ -276,7 +305,10 @@ public sealed class UnplacedPoolTests
     [Fact]
     public void Churn_reuses_slots_rather_than_growing_the_table()
     {
-        World world = Built(64);
+        // Room for nine, because this test re-houses the whole Pool into one Building every round.
+        // What it is watching is the Pool's slot recycling, so the ceiling is fixture scaffolding
+        // rather than the subject -- but it has to be stated now, which is adr/0068 working.
+        World world = Built(64, occupants: 9);
         Handle<Building> home = world.Households.Dwelling[world.Households.Rows.Resolve(
             Household(world, 63))];
 

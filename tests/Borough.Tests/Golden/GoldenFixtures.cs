@@ -44,7 +44,7 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0x0CC2_E0B2_5940_93CCUL;
+    internal const ulong RulesetHash = 0x6062_C27D_C2A7_2C7FUL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>
@@ -57,7 +57,7 @@ internal static class GoldenFixtures
     /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
     /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
     /// </remarks>
-    internal const ulong TunedRulesetHash = 0xC2A3_1CF1_5DAE_3B41UL;
+    internal const ulong TunedRulesetHash = 0x0728_36AF_3B84_6432UL;
 
     /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
     internal static string TunedRulesetPath =>
