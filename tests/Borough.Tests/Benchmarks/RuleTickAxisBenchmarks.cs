@@ -135,7 +135,7 @@ public class RuleTickAxisBenchmarks
 
             foreach (BinDeclaration bin in ruleset.BinsOf(Kind))
             {
-                Handle<Bin> slot = world.CreateBin(made[i], bin.Resource, bin.Capacity);
+                Handle<Bin> slot = world.CreateBin(made[i], bin.Resource);
 
                 // Stocked, so a balanced Rule's draw is affordable at every count. A Bin at zero
                 // would make the terms row measure a failing Rule, which stops at the first Bin and

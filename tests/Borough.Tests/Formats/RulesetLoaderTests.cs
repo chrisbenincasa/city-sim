@@ -661,6 +661,36 @@ public sealed class RulesetLoaderTests
     }
 
     /// <summary>
+    /// <b>One kind, one Resource, one Bin</b> — a duplicate pair is refused, because the second Bin is
+    /// unreachable through <c>FindBin</c> and, since <c>adr/0064</c>, the pair is the key the capacity
+    /// derivation looks a ceiling up by.
+    /// </summary>
+    /// <remarks>
+    /// <b>Written two slices late, and that is the finding.</b> The refusal has existed since slice 7
+    /// task 8 and was the one guard in this loader with no test, so <c>adr/0064</c> read the suite,
+    /// found nothing, and recorded in its Consequences that the loader refused nothing of the sort —
+    /// a live defect argued into existence from the shape of a missing test. Amended there.
+    /// </remarks>
+    [Fact]
+    public void A_kind_declaring_two_bins_of_one_resource_is_refused()
+    {
+        RulesetRefusal refusal = Refused("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "bakery"
+            bins = [
+              { resource = "flour", capacity = 60 },
+              { resource = "flour", capacity = 20 },
+            ]
+            """);
+
+        Assert.Contains("two Bins for one Resource", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// <b>The second parameter is a named hole, and the test is that it is named.</b> Nothing reads
     /// <c>storage</c>, so accepting the key would hand a designer a Power Resource that warehouses
     /// electricity — the hole hidden inside a plausible number rather than reported.

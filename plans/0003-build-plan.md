@@ -122,6 +122,11 @@ become three.
 
 ### The hash-moving queue
 
+> **✅ THE QUEUE IS EMPTY. All four items shipped 2026-08-10.** Item 3 closed last and Phase 1's code
+> column holds nothing. What the queue leaves behind is one standing gap rather than one standing item:
+> **lint 6, save/reload equivalence, is still unbuilt**, and three of the four items walked past it — see
+> the two paragraphs at the foot of this section.
+
 **Phase 1's code is no longer *closed but for task 11*: there were four items, three of them re-recording
 the same golden baselines, and only item 3 is left.** Session **N** produced the second, third and fourth
 ([`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md) task 1 →
@@ -165,12 +170,12 @@ which is the argument track moving work into the code track rather than generati
 | **0** | ~~**`adr/0033`'s satisfiability invariant**~~ — `Invariant.WaiterIsBlockedByTheBinItNames`, end-of-run tier — **DONE**, green with item 2 | no, on its own | **Ships with item 2**, for the reason in the correction above. Specified in **three** documents (`adr/0033`, `02 §10`, [`0008`](0008-tick-and-replay.md)) and built in none until now. It is narrower than `adr/0033`'s wording in what it inspects and stronger in what it catches: *asleep on a Bin that has stopped blocking it* also catches a waiter subscribed to the wrong Bin, which *would this Rule fire* is blind to |
 | **1** | ~~**Slice 10 task 11 — `revisit_ticks`**~~ ([`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)) — **DONE**, two baselines re-recorded | yes | **Was: the only defect of the three live *now*.** `sample` was an absolute count, so a Lot was visited once per 0.12 Day at 1,000 Citizens and once per **117 Days at 1M**, and at target scale the shipped Ruleset built **nothing**. It now raises **2,898 Buildings** in 2,000 Ticks at 1M, and the Tick got **8% cheaper** doing 117× the Lot evaluations. **Its own finding is the one to carry**: the golden session silently stopped covering the create branch, because a derived sample of 1 at 132 Lots never lands on a cleared Lot in eight triggers — so the session was lengthened 256 → 2,048 Ticks and a test now asserts both branches ran ([`0014`](0014-zone-rules-and-the-sweep-family.md) → *Task 11 as built*) |
 | **2** | ~~**`adr/0063`'s wake predicate**~~ — derived requirement, level budget, `RuleInstance.shortfall` deleted — **DONE**, one baseline re-recorded | yes | **Ships with item 0**, which is red without it. ~~It cannot manifest until `pool` exists~~ — **struck: it is manifesting in the committed baseline now.** Acceptance is `BinWaitListTests`, which needs no `pool`: three `Deposit(1)` calls against a waiter requiring 3, plus the `Withdraw`/headroom mirror |
-| **3** | **`adr/0064` + `adr/0065`, together** — `Bins.Capacity` becomes `derived AND rebuilt`, `level` and `capacity` widen to `long` along the whole write path, plus the `(kind, Resource)` loader refusal and the end-of-run derivation check | yes | **Last, and one commit rather than two, which is this queue's rule inverted for the reason the rule exists.** The two touch **the same two columns** — one changes a declaration, the other a width — so a baseline that moved for both is attributable to neither if they ship apart and the new trace is wrong. Nothing either fixes is live: `0064` fails under a **patch**, which cannot happen before the game ships patches, and `0065`'s overflow is unreachable while the only Readout is `occupancy`. **Two obligations are not optional and one is independently live** — a kind declaring a Resource twice makes `Fit` build one Bin where construction built two |
+| **3** | ~~**`adr/0064` + `adr/0065`, together**~~ — `Bins.Capacity` is `derived AND rebuilt`, `level` and `capacity` are `long` along the whole write path, the end-of-run derivation check is `Invariant.BinCapacityMatchesItsDeclaration` (id 29) — **DONE**, one baseline re-recorded | yes | **Last, and one commit rather than two, which is this queue's rule inverted for the reason the rule exists.** The two touch **the same two columns** — one changes a declaration, the other a width — so a baseline that moved for both is attributable to neither if they ship apart and the new trace is wrong. Nothing either fixes is live: `0064` fails under a **patch**, which cannot happen before the game ships patches, and `0065`'s overflow is unreachable while the only Readout is `occupancy`. ⚠ **One of the two obligations was already discharged and the ADR said otherwise**: the `(kind, Resource)` loader refusal has existed since slice 7 task 8 with **no test**, so `adr/0064` read the suite, found nothing and recorded a live defect that was not one. Amended there; the test ships here; the finding is in [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md) → *Tasks 3 and 4's implementation record* |
 
 ~~**Whether items {0, 2} come before or after item 1 is now the only open ordering question.**~~
 **SETTLED by running them: {0, 2} went first, on the stated ground that a red suite outranks a defect at
-a scale nothing currently runs at.** **Item 1 then ran and is done**; **item 3 holds the queue alone**,
-sequenced behind item 1 on the same rule that ordered the first pair — a defect that is live at a scale
+a scale nothing currently runs at.** **Item 1 then ran, then item 3, and the queue is empty** — item 3
+sequenced behind item 1 on the same rule that ordered the first pair: a defect that is live at a scale
 nothing runs at still outranks one that cannot occur until the game ships patches.
 
 **Two baseline re-records rather than one combined pass, deliberately.** Combining items 1 and 2 would
@@ -187,7 +192,7 @@ machinery is still unbuilt. So the golden hash was the *only* check on that half
 be a thinner check than expected, since `world-hash.txt` holds no Rule Instance rows and did not move.
 **One artefact covered the deleted column, and nothing else could have.**
 
-**Item 3 walks into the same gap, and further in.** `adr/0064` deletes a *second* saved column, and this
+**Item 3 walked into the same gap, and further in.** `adr/0064` deletes a *second* saved column, and this
 one is read by the Rule engine on every evaluation rather than only while a Rule sleeps — so the golden
 session covers it densely, which is the opposite of item 2's problem. What is not covered is the same
 half: with lint 6 unbuilt, **nothing checks that a world saved before the change and loaded after it
@@ -195,6 +200,13 @@ agrees with itself**, and under item 3 the loaded world's ceilings come from the
 the save. That is the intended behaviour and it is also exactly what a save/reload equivalence test would
 be for. **Two decisions have now shipped past the same missing lint**, which is the argument for building
 it that neither one on its own was.
+
+**And item 3 found item 2's coverage observation has a mirror image.** Item 2's note is that
+`world-hash.txt` holds no Rule Instance rows, so the session trace was the only artefact that could notice.
+Item 3 changed a column's *declaration* and its *width* and `world-hash.txt` again did not move — this time
+because `GoldenFixtures.Build()` holds **no Bins at all**. Three of the four items moved exactly one of the
+two committed baselines, and the same one each time. The file that exists to cover what a session cannot
+reach covers the four slice-4 tables and, on the evidence, very little that arrived after them.
 
 ---
 

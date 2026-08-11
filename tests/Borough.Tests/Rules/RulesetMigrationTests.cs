@@ -132,6 +132,72 @@ public sealed class RulesetMigrationTests
         outputs = [ { scope = "local", resource = "sundries", amount = 1 } ]
         """;
 
+    /// <summary>
+    /// A producer and a consumer of one Good, with room for twelve of it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Separate from <see cref="Both"/> because the over-full case needs a drain, and
+    /// <c>upkeep</c> is not one.</b> <c>upkeep</c> draws on a Resource nothing produces, which is what
+    /// makes it useful for wait lists and useless here: an over-full Bin that nothing consumes stays
+    /// over-full for ever and cannot show the difference between draining and clamping.
+    /// </remarks>
+    private const string Roomy = """
+        [[resource]]
+        name = "sundries"
+        family = "good"
+
+        [[building]]
+        name = "dwelling"
+        bins = [
+            { resource = "sundries", capacity = 12 },
+        ]
+
+        [[rule]]
+        name    = "restock"
+        kind    = "dwelling"
+        rate    = 8
+        apply   = { min = 1, max = 4 }
+        inputs  = []
+        outputs = [ { scope = "local", resource = "sundries", amount = 1 } ]
+
+        [[rule]]
+        name    = "eat"
+        kind    = "dwelling"
+        rate    = 16
+        apply   = { min = 1, max = 1 }
+        inputs  = [ { scope = "local", resource = "sundries", amount = 1 } ]
+        outputs = []
+        """;
+
+    /// <summary><see cref="Roomy"/> with the ceiling cut to two, and nothing else changed.</summary>
+    private const string Tighter = """
+        [[resource]]
+        name = "sundries"
+        family = "good"
+
+        [[building]]
+        name = "dwelling"
+        bins = [
+            { resource = "sundries", capacity = 2 },
+        ]
+
+        [[rule]]
+        name    = "restock"
+        kind    = "dwelling"
+        rate    = 8
+        apply   = { min = 1, max = 4 }
+        inputs  = []
+        outputs = [ { scope = "local", resource = "sundries", amount = 1 } ]
+
+        [[rule]]
+        name    = "eat"
+        kind    = "dwelling"
+        rate    = 16
+        apply   = { min = 1, max = 1 }
+        inputs  = [ { scope = "local", resource = "sundries", amount = 1 } ]
+        outputs = []
+        """;
+
     /// <summary>Both Resources, and no kind at all. Every Building in the city is derelict.</summary>
     private const string NoKinds = """
         [[resource]]
@@ -329,7 +395,7 @@ public sealed class RulesetMigrationTests
         (World world, _) = City(Load(Both));
 
         int sundries = world.FindBin(First, new ResourceId(1));
-        int level = world.Bins.LevelAt(sundries);
+        long level = world.Bins.LevelAt(sundries);
 
         Assert.True(level > 0, "restock produced nothing, so there is no stock to follow.");
 
@@ -546,5 +612,87 @@ public sealed class RulesetMigrationTests
         Assert.Equal(0, simulation.LastReload.BuildingsDerelicted);
 
         world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// A reload that lowers a ceiling lowers it on the Bins that already exist, and a Bin left above
+    /// the new one keeps its stock and drains through it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two claims of <c>adr/0064</c> in one run, because separating them would need a fixture that
+    /// cannot occur.</b> That the ceiling moves at all is the derived column being rebuilt at the swap;
+    /// that the level does not is <em>drains rather than clamps</em>. A test for the first alone would
+    /// pass on an implementation that clamped, since a clamped Bin also reports the new ceiling.
+    /// </para>
+    /// <para>
+    /// <b>Nothing here refuses anything, which is the point.</b> A capacity is a number
+    /// (<see cref="RulesetShape"/>), so this is a <c>numbers only</c> reload with no migration and no
+    /// degradation — the over-full state arrives through the door <c>adr/0015</c> exists to keep open,
+    /// not through an error path.
+    /// </para>
+    /// <para>
+    /// <b>The producer stops without being told to.</b> Headroom goes to −10 and
+    /// <c>FloorDiv</c> rounds toward negative infinity, so <c>restock</c>'s affordable count is negative
+    /// and below its floor; <c>eat</c> reads a level of twelve and is untouched. Neither Rule knows the
+    /// Ruleset changed, and the asymmetry is arithmetic rather than a branch.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_lowered_ceiling_reaches_standing_bins_and_the_stock_above_it_drains()
+    {
+        Ruleset opening = Load(Roomy);
+
+        (World world, Simulation simulation) = City(
+            opening, RulesetCatalogue.Of([HashA, HashB], [opening, Load(Tighter)]));
+
+        int sundries = world.FindBin(First, new ResourceId(1));
+
+        Assert.Equal(12, world.Bins.Capacity[sundries]);
+        Assert.Equal(12, world.Bins.LevelAt(sundries));
+
+        simulation.Step(new TickInput(default, HashB));
+
+        Assert.Equal(1, simulation.Reloads);
+        Assert.Equal(0, simulation.LastReload.BinsDropped);
+        Assert.Equal(0, simulation.LastReload.RuleInstancesRearmed);
+
+        Assert.Equal(2, world.Bins.Capacity[sundries]);
+        Assert.True(world.Bins.LevelAt(sundries) > 2,
+            "the swap clamped the level to the new ceiling instead of leaving it to drain.");
+        Assert.True(world.Bins.HeadroomAt(sundries) < 0, "headroom above a lowered ceiling is negative.");
+
+        for (int i = 0; i < 512; i++)
+        {
+            simulation.Step(new TickInput(default, HashB));
+        }
+
+        Assert.InRange(world.Bins.LevelAt(sundries), 0, 2);
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// The stale-capacity invariant fires when the staleness is written by hand, rather than only
+    /// passing.
+    /// </summary>
+    /// <remarks>
+    /// <b>A derived column nobody rebuilt is the failure this check exists for, and it cannot be
+    /// provoked through any public verb</b> — which is exactly why it needs writing by hand. Every path
+    /// that produces a Bin runs the derivation, so a suite that only ran the real paths would report a
+    /// permanently green check and could not distinguish it from one that never looked.
+    /// </remarks>
+    [Fact]
+    public void The_stale_capacity_check_fires_when_a_ceiling_is_left_behind()
+    {
+        (World world, _) = City(Load(Roomy));
+
+        world.Bins.SetCapacity(world.FindBin(First, new ResourceId(1)), 11);
+
+        Violation violation = Assert.Throws<InvariantViolationException>(
+            () => world.Invariants.RunEndOfRun(world)).Violation;
+
+        Assert.Equal(Invariant.BinCapacityMatchesItsDeclaration, violation.Invariant);
+        Assert.Equal(11, violation.Other);
     }
 }

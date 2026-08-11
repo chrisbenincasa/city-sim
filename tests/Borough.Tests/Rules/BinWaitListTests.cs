@@ -109,7 +109,7 @@ public sealed class BinWaitListTests
 
         foreach (BinDeclaration bin in ruleset.BinsOf(Kind))
         {
-            world.CreateBin(building, bin.Resource, bin.Capacity);
+            world.CreateBin(building, bin.Resource);
         }
 
         foreach (RuleId rule in ruleset.RulesOf(Kind))

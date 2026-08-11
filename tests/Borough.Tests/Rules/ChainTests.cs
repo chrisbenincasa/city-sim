@@ -79,7 +79,7 @@ public sealed class ChainTests
 
         foreach (BinDeclaration bin in ruleset.BinsOf(Bakery))
         {
-            world.CreateBin(building, bin.Resource, bin.Capacity);
+            world.CreateBin(building, bin.Resource);
         }
 
         foreach (RuleId rule in ruleset.RulesOf(Bakery))
@@ -93,7 +93,7 @@ public sealed class ChainTests
     private static int BinOf(World world, Handle<Building> building, ResourceId resource) =>
         world.FindBin(world.Buildings.Rows.Resolve(building), resource);
 
-    private static int Level(World world, Handle<Building> building, ResourceId resource) =>
+    private static long Level(World world, Handle<Building> building, ResourceId resource) =>
         world.Bins.LevelAt(BinOf(world, building, resource));
 
     /// <remarks>

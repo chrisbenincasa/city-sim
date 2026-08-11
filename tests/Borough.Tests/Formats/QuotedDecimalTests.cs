@@ -256,7 +256,7 @@ public sealed class QuotedDecimalTests
             inputs = [ { scope = "local", resource = "flour", amount = 6 } ]
             """;
 
-        static (int Capacity, uint Rate, int Max, int Amount) Read()
+        static (long Capacity, uint Rate, int Max, int Amount) Read()
         {
             RulesetLoadResult result = RulesetLoader.Parse(Ruleset, "culture.toml");
             Assert.True(result.Ok, result.Describe());

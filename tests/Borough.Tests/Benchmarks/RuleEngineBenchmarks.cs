@@ -149,7 +149,7 @@ internal static class RuleEngineFixture
 
             foreach (BinDeclaration bin in ruleset.BinsOf(Bakery))
             {
-                Handle<Bin> slot = world.CreateBin(building, bin.Resource, bin.Capacity);
+                Handle<Bin> slot = world.CreateBin(building, bin.Resource);
 
                 if (shape is RuleEngineBenchmarks.Load.Fires)
                 {

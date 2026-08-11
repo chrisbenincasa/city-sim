@@ -235,8 +235,9 @@ public static class RulesetShape
 
         for (int i = 0; i < wasBins.Length; i++)
         {
-            // The Resource is structure — a live Bin row holds it. The capacity is a number, and a
-            // Bin over its new capacity is task 5's problem rather than a reason to refuse.
+            // The Resource is structure — a live Bin row holds it. The capacity is a number, and it
+            // stayed one when adr/0064 made it derived: no row points at it, the swap rebuilds it,
+            // and a Bin left over its new ceiling drains rather than being a reason to refuse.
             if (wasBins[i].Resource != nowBins[i].Resource)
             {
                 return RulesetChange.KindBins;

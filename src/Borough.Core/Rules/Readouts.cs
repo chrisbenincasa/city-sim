@@ -92,7 +92,7 @@ public static class Readouts
     /// <param name="world">The tables to read.</param>
     /// <param name="building">The Building row the Rule is attached to.</param>
     /// <param name="id">A declared Readout.</param>
-    public static int Read(World world, int building, ReadoutId id)
+    public static long Read(World world, int building, ReadoutId id)
     {
         ArgumentNullException.ThrowIfNull(world);
 

@@ -222,7 +222,36 @@ Note that defect 3's deadlock had **both** failure modes in front of it: bounded
 **unbounded ran for ever and grew a magnitude without bound**, failing the half of acceptance the first
 one passed.
 
-### 5. `04 §6` — how a shortage becomes an unhappy person
+### 5. `04 §6` — how a shortage becomes an unhappy person — **PARTLY DECIDED 2026-08-10, and still running**
+
+> **Three things settled so far, and one ADR that the task found underneath itself.**
+>
+> **Step 4 is a Trip.** A Household travels to a shop on its Provider List; `adr/0032` is the precedent
+> — *a Service reaches people by someone making a journey* — and Goods have the stronger claim, since a
+> grocery's Bin is a physical stock in a place. The consequence is uncomfortable and is accepted: every
+> Household's shopping is **Trip generation**, so `04 §6` is a load on milestone 5b rather than an
+> economy question with a cost of its own.
+>
+> **Step 5 costs one Trip per shopping occasion, not `N`.** A Household that finds nothing goes home;
+> the Need degrades, and it tries a different entry at the *next* occasion. `04 §6` as written reads
+> sequential, which would make the shortage path amplify itself by the list length at exactly the moment
+> the city is failing — shortage → shopping Trips → congestion → Trip failures → Failure Pressure →
+> abandonment. **The lag this introduces is accepted as realism**: a Household with three known
+> groceries takes three occasions to discover the District is dry.
+>
+> **Trip Fate has four outcomes and none of them is *arrived and the shelf was empty*.** The
+> enumeration is about the **journey**; this is about the **transaction**, and the journey succeeded.
+> S0a's own Household field list already carries *"failed-attempt counter, refusal reason"*, so the
+> footprint model has been assuming this for longer than the design has said it.
+>
+> **And the task found [`adr/0066`](../docs/adr/0066-the-provider-list-is-an-intrusive-index-list-and-its-ruleset-length-is-a-cap-rather-than-an-allocation.md)
+> underneath itself**: the Provider List is the only per-entity collection in the design ever modelled
+> as an inline fixed array, against `05 §4`'s rule that every variable-length collection is an intrusive
+> index list. It suspends two of S0a's conclusions and turns the cap into a behavioural bound rather
+> than a memory parameter.
+>
+> **Still open**: what a Household remembers about a failed purchase, and `04 §6`'s correction to steps
+> 4 and 5.
 
 **Never grilled, and it is the chain the whole economy exists to produce.** Seven steps, each of which
 must be individually inspectable through Evidence. `LEGIBLE CAUSE`
@@ -465,6 +494,58 @@ contradiction one level up.
 *is 2⁶³ enough* — the standing long-run magnitude clause already watches it, and a row nobody will check
 is noise — and **no *nearly full* threshold**, because that would be a chosen constant with no ratifier
 where a trend needs none.
+
+---
+
+## Tasks 3 and 4's implementation record — one commit, and five findings
+
+**Shipped 2026-08-10**, as [`0003`](0003-build-plan.md)'s hash-moving queue item 3, and as **one commit**
+for the reason `adr/0065` gives: the two decisions touch the same two columns, so a baseline that moved
+for both would be attributable to neither if they shipped apart. Everything both ADRs specify is built —
+capacity is `Rows.Derived<long>`, `World.CreateBin` no longer takes a ceiling, `RebuildCapacities` runs at
+load and inside `Adopt`, the level and the whole write path are `long`, and the end-of-run check is
+`Invariant.BinCapacityMatchesItsDeclaration`, id **29**.
+
+**1. `adr/0064` recorded a live defect that was fixed two slices before it was written, and the reason is
+a missing test.** Its Consequences said *"`RulesetLoader` refuses nothing of the sort today"* about a
+duplicate `(kind, Resource)` Bin declaration. It has refused it since slice 7 task 8, in its own words —
+*"this kind declares two Bins for one Resource"*. The refusal was the **one guard in that loader with no
+test**, `RulesetLoaderTests` is where you look to find out what the loader refuses, and the sitting looked
+there. So the reasoning that reached the key was sound and the claim about the code was never checked
+against the code. **This is `plans/0012` *Cause 1* on a different axis**: not a second copy of a fact
+drifting from the first, but a fact with **no copy at all** being re-derived wrongly from the shape of its
+absence. Amended in the ADR; the test ships here. The generalisation worth keeping: *a guard with no test
+is invisible to every future reader, including the one who is about to decide it does not exist.*
+
+**2. The world fixture's baseline did not move, and that is a coverage statement rather than a relief.**
+This change removed a column from the State Hash and doubled another's width, and `world-hash.txt` was
+byte-identical — because `GoldenFixtures.Build()` builds a city with **no Bins at all**. Only
+`session-trace.txt` noticed. The two artefacts are supposed to be complementary (`Golden/README.md`), and
+on this change one of them was simply blind; nothing is wrong with it, but a reader who saw one file move
+and one hold still could reasonably have concluded the change was narrower than it was.
+
+**3. The over-full drain could not be tested with the fixture that was there, for an instructive reason.**
+`RulesetMigrationTests`' `Both` declares `upkeep`, a Rule drawing on a Resource **nothing produces** — which
+is what makes it useful for wait lists and useless here: an over-full Bin that nothing consumes stays
+over-full for ever and cannot distinguish draining from clamping. A producer-and-consumer pair
+(`Roomy`/`Tighter`) was needed, and with it the composition `adr/0064` predicts is directly observable:
+the ceiling falls 12 → 2 under a **numbers-only** reload with no migration and no degradation, the level
+stays above it, `restock` stops because `FloorDiv` makes negative headroom unaffordable, `eat` is untouched,
+and the Bin comes back into range by being spent.
+
+**4. `long` reached a boundary the ADRs did not name: the Map Layer.** `RuleEngine.Emit` computes
+`emission.Amount × applications` and hands it to `Layers.EmitPollution`, whose cell is an `int`. Widening
+the applications count turned an `int` product into a `long` one crossing into a narrower store, and the
+answer is a **loud guard** rather than a cast — a Rule emitting more than `int.MaxValue` into a Layer
+throws with the number in the message. `adr/0065` enumerated three products inside the Rule engine and
+this is a fourth, at the engine's edge; the lesson is that *the whole write path* includes the paths that
+leave.
+
+**5. The test suite stopped being able to ask for a capacity, which is the ADR made visible.** `BinTests`
+built its Bins by hand with `capacity: BinCapacity.Of(100)` and its fixture Ruleset deliberately *declared
+no Bins*. Under `adr/0064` there is nowhere for that argument to go: the only way to ask for a Bin holding
+100 is to declare one. The fixture now declares both Bins and every assertion below is unchanged — a
+compile error standing in for the design claim, which is the cheapest form of enforcement available.
 
 ---
 

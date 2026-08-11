@@ -46,7 +46,7 @@ public sealed class BinTable
     /// <summary>
     /// The level. Private, so that <see cref="World.Deposit"/> is the only way to move it.
     /// </summary>
-    private readonly Column<int> _level;
+    private readonly Column<long> _level;
 
     /// <param name="capacity">Initial slot count.</param>
     /// <param name="buildings">The table this one's <see cref="Owner"/> handles address.</param>
@@ -58,8 +58,8 @@ public sealed class BinTable
 
         Owner = _rows.SavedHandle("owner", buildings.Rows);
         Resource = _rows.Saved<ResourceId>("resource");
-        _level = _rows.Saved<int>("level", Touch.PerTick);
-        Capacity = _rows.Saved<int>("capacity");
+        _level = _rows.Saved<long>("level", Touch.PerTick);
+        Capacity = _rows.Derived<long>("capacity");
         LevelHead = _rows.Saved<int>("level_wait_head", Touch.PerTick);
         LevelTail = _rows.Saved<int>("level_wait_tail", Touch.PerTick);
         HeadroomHead = _rows.Saved<int>("headroom_wait_head", Touch.PerTick);
@@ -78,8 +78,35 @@ public sealed class BinTable
     /// <summary>Which Resource this Bin stores. One Bin, one Resource.</summary>
     public Column<ResourceId> Resource { get; }
 
-    /// <summary>The ceiling. An output that would exceed it fails the whole Rule.</summary>
-    public Column<int> Capacity { get; }
+    /// <summary>
+    /// The ceiling. An output that would exceed it fails the whole Rule.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Derived and rebuilt, never saved and hashed</b> (<c>adr/0064</c>). It is a pure function of
+    /// <c>(Building kind, Resource)</c> against the Ruleset in force, so it is rebuilt at world load
+    /// and at every Ruleset swap — and a retuned ceiling therefore reaches every Building standing
+    /// rather than only the next one raised.
+    /// </para>
+    /// <para>
+    /// <b>It was saved, and the alternative to deriving it was a sweep that writes the same numbers at
+    /// the same moments.</b> The difference is not cost — <see cref="RuleEngine"/> makes the same array
+    /// access either way, and both walk every Bin off the Tick. It is that a saved column periodically
+    /// overwritten by a reload is <em>a cache of a derived fact</em>, so <em>the stored ceiling
+    /// disagrees with the Ruleset</em> stays a representable state that merely happens to be false.
+    /// Here it is not representable, which is the whole purpose of <c>adr/0003</c>'s per-field
+    /// declaration and exactly what <c>BOR0901</c> exists to stop somebody writing.
+    /// </para>
+    /// <para>
+    /// <b>The argument is the patch rather than the reload.</b> A reload is design-time and rare; a
+    /// shipped Ruleset change under a live city is not. Under <em>as built</em> a retuned capacity
+    /// would leave the city permanently divided into Buildings raised before and after the patch,
+    /// identical in kind and in every declared respect, different in their ceilings — with the cause
+    /// recoverable from no state the world holds. That is `LEGIBLE CAUSE` failing in the one way no
+    /// Evidence panel can rescue, because the fact needed is not there to find.
+    /// </para>
+    /// </remarks>
+    public Column<long> Capacity { get; }
 
     /// <summary>Head of the Rule Instances asleep waiting for this Bin's <see cref="LevelAt"/>.</summary>
     public Column<int> LevelHead { get; }
@@ -97,19 +124,34 @@ public sealed class BinTable
     public Column<int> BinNext { get; }
 
     /// <summary>How much is in the Bin. Read freely; a read cannot forget to wake anybody.</summary>
-    public int LevelAt(int slot) => _level[slot];
+    public long LevelAt(int slot) => _level[slot];
 
     /// <summary>
     /// How much more this Bin can take before its capacity refuses.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b><c>capacity − level</c> is the form <c>CONTEXT</c> → Resource prescribes, and the reason is
     /// this method.</b> An unbounded Bin — every Money Bin and nothing else — carries
-    /// <see cref="int.MaxValue"/> underneath, so a headroom computed as a subtraction from a
+    /// <see cref="long.MaxValue"/> underneath, so a headroom computed as a subtraction from a
     /// non-negative level is always in range, where <c>level + delta &gt; capacity</c> would overflow.
-    /// Nothing else in the codebase may reconstruct the comparison the other way round.
+    /// Nothing else in the codebase may reconstruct the comparison the other way round. That is
+    /// <c>adr/0031</c>'s named determinism hazard, and <c>adr/0065</c> records that it was never in
+    /// danger: the code has always subtracted, so nothing overflowed and nothing inverted.
+    /// </para>
+    /// <para>
+    /// <b>This may return a negative, and a caller that assumes otherwise is wrong rather than
+    /// unlucky</b> (<c>adr/0064</c>). Capacity is derived from the Ruleset in force, so a retuned
+    /// ceiling can land under a Bin's current level — and the design answer is that the Bin bleeds
+    /// down and heals itself. Negative headroom stops every producer at
+    /// <see cref="RuleEngine"/>'s own affordability test and leaves every consumer untouched, which
+    /// works because <see cref="Borough.Core.Arithmetic.IntegerMath.FloorDiv"/> rounds toward
+    /// negative infinity: any negative headroom yields <c>affordable ≤ −1</c>, below even a derived
+    /// floor of zero. Under C#'s truncating <c>/</c> that case would have passed the guard, so
+    /// <c>BOR0203</c> is load-bearing here, in a place nobody aimed it.
+    /// </para>
     /// </remarks>
-    public int HeadroomAt(int slot) => Capacity[slot] - _level[slot];
+    public long HeadroomAt(int slot) => Capacity[slot] - _level[slot];
 
     /// <summary>Allocates an empty Bin on a Building. Linking it in is <see cref="World"/>'s.</summary>
     /// <summary>Allocates a Bin on a Building, empty.</summary>
@@ -123,22 +165,35 @@ public sealed class BinTable
     /// a defect. The wait-list columns need no such line — <see cref="IndexList"/> encodes an empty
     /// list as zero, so a fresh slot is already empty and a drained one is empty again.
     /// </remarks>
-    internal Handle<Bin> Create(Handle<Building> owner, ResourceId resource, BinCapacity capacity)
+    internal Handle<Bin> Create(Handle<Building> owner, ResourceId resource, long capacity)
     {
         Handle<Bin> handle = _rows.Allocate();
         int slot = _rows.Resolve(handle);
 
         Owner[slot] = owner;
         Resource[slot] = resource;
-        Capacity[slot] = capacity.Units;
+        Capacity[slot] = capacity;
         _level[slot] = 0;
 
         return handle;
     }
 
     /// <summary>
+    /// Writes a Bin's derived ceiling. <see cref="World.RebuildCapacities"/> is the only caller.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Capacity"/> is a public <see cref="Column{T}"/> and this method still exists</b>,
+    /// which looks redundant and is not: it is where the *one writer* lives, so that the derivation
+    /// has a single spelling and a search for it finds one site rather than an assignment anybody
+    /// could have made. That is <see cref="Move"/>'s argument applied to the other column — the level
+    /// hides behind a method because a write must drain a wait list, and the ceiling hides behind one
+    /// because a write must come from the Ruleset (<c>adr/0064</c>).
+    /// </remarks>
+    internal void SetCapacity(int slot, long units) => Capacity[slot] = units;
+
+    /// <summary>
     /// Moves the level. The one writer, and it is <see langword="internal"/> so that the drain cannot
     /// be skipped by anything outside <see cref="World"/>.
     /// </summary>
-    internal void Move(int slot, int delta) => _level[slot] += delta;
+    internal void Move(int slot, long delta) => _level[slot] += delta;
 }

@@ -63,7 +63,7 @@ public sealed class RuleEvaluationTests
 
         foreach (BinDeclaration bin in ruleset.BinsOf(Bakery))
         {
-            world.CreateBin(building, bin.Resource, bin.Capacity);
+            world.CreateBin(building, bin.Resource);
         }
 
         foreach (RuleId rule in ruleset.RulesOf(Bakery))
@@ -77,7 +77,7 @@ public sealed class RuleEvaluationTests
     private static int BinOf(World world, Handle<Building> building, ResourceId resource) =>
         world.FindBin(world.Buildings.Rows.Resolve(building), resource);
 
-    private static int Level(World world, Handle<Building> building, ResourceId resource) =>
+    private static long Level(World world, Handle<Building> building, ResourceId resource) =>
         world.Bins.LevelAt(BinOf(world, building, resource));
 
     /// <summary>Runs to the end of Tick 1, which is the Tick the helper arms for.</summary>
@@ -580,7 +580,7 @@ public sealed class RuleEvaluationTests
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, Bakery);
 
-        world.CreateBin(building, Flour, capacity: BinCapacity.Of(60));
+        world.CreateBin(building, Flour);
 
         for (int tick = 0; tick < offset; tick++)
         {

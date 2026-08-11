@@ -16,22 +16,29 @@ pointer with just enough shape to orient; the board is the view and the slice pl
 slice plans, and it was the copy that drifted (`plans/0012` *Cause 1*: every document that stores
 per-slice status drifted, and the only large one that did not stores none).
 
-**Phase 1's code is closed but for one item.** Slices 0–10 are **all done** — **slice 8, hot reload,
-closed last**, and with it `adr/0015`'s acceptance test: *change a production ratio and see the effect in
-seconds* reads **0.70 s**, against the 60–120 second warm rebuild the ADR was written on. **No gate is red
-anywhere in the corpus.** Session **N1** then put two items back on the code track and **both have
-shipped** (`adr/0063`): `adr/0033`'s satisfiability invariant — specified in three documents and built in
-none — and the wake predicate it found broken in the committed golden baseline within minutes. **Task 3
-has since added a third, decided and unshipped** (`adr/0064`): a Bin's capacity is `derived AND rebuilt`
-from the Ruleset in force rather than frozen at the moment the Building was raised. **Slice 10 task 11 —
-`adr/0059`'s `revisit_ticks` — has shipped**: a `[[zone_rule]]` authors a **duration** and the engine
-derives `sample = ceil(Lots × interval ÷ revisit_ticks)`, so at 1M the shipped Ruleset raises **2,898
-Buildings** where it raised none, and the Tick got **8% cheaper** doing 117× the Lot evaluations. **Task 4 then added a
-fourth** (`adr/0065`): a Bin's `level` and `capacity` are `long`, because the corpus was holding **two
-widths for one quantity** — `Money` is a `long` and a Bin's level was an `int`, so every payment into a
-Bin narrowed 64 bits to 32. **One code item is open** — `adr/0064` and `adr/0065` together, as one
-commit since they change the same two columns, last in the hash-moving queue because nothing either
-fixes is live yet.
+**Phase 1's code is closed, and the code track is empty.** Slices 0–10 are **all done** — **slice 8, hot
+reload, closed last**, and with it `adr/0015`'s acceptance test: *change a production ratio and see the
+effect in seconds* reads **0.70 s**, against the 60–120 second warm rebuild the ADR was written on. **No
+gate is red anywhere in the corpus.** Session **N** then put four items back on the code track — the
+hash-moving queue in `plans/0003` — and **all four have shipped**. `adr/0063`: `adr/0033`'s
+satisfiability invariant, specified in three documents and built in none, and the wake predicate it found
+broken in the committed golden baseline within minutes. **Slice 10 task 11**, `adr/0059`'s
+`revisit_ticks`: a `[[zone_rule]]` authors a **duration** and the engine derives
+`sample = ceil(Lots × interval ÷ revisit_ticks)`, so at 1M the shipped Ruleset raises **2,898 Buildings**
+where it raised none, and the Tick got **8% cheaper** doing 117× the Lot evaluations. And `adr/0064` +
+`adr/0065`, **one commit** because they change the same two columns: a Bin's capacity is
+`derived AND rebuilt` from the Ruleset in force rather than frozen when the Building was raised, an
+over-full Bin **drains rather than clamps**, and a Bin's `level` and `capacity` are `long` — the corpus
+was holding **two widths for one quantity**, since `Money` is a `long` and a Bin's level was an `int`, so
+every payment into a Bin narrowed 64 bits to 32.
+
+**That last commit's finding is an ADR being wrong about the code, and the cause is a missing test.**
+`adr/0064` recorded a live defect on the ground that `RulesetLoader` refused nothing for a duplicate
+`(kind, Resource)` Bin declaration. It has refused it since slice 7 task 8 — and that refusal was the
+**one guard in the loader with no test**, so the suite you read to find out what the loader refuses did
+not name it. **`plans/0012` *Cause 1* on a different axis**: not a second copy of a fact drifting from
+the first, but a fact with **no copy at all**, re-derived wrongly from the shape of its absence. *A guard
+with no test is invisible to every future reader, including the one about to decide it does not exist.*
 
 **The finding task 11 leaves behind is about the baseline, not the sampler, and it generalises.** A
 derived sample of 1 at the golden fixture's 132 Lots never lands on a Lot demolition has cleared inside
@@ -277,13 +284,13 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **64** decision records, numbered to **`0065`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **65** decision records, numbered to **`0066`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
 | `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0018` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **`0015` owns the slice in flight**; `0014` also owns task 11, sequenced behind it. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; its task 1 is `adr/0063` and shipped |
+| `plans/0004`–`0018` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015` and `0014` (task 11) are both closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 3 and 4 are `adr/0063`–`0065` and all three have shipped |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8, **S0a and S0b** have all run |

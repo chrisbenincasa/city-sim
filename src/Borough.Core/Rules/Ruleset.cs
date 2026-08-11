@@ -233,23 +233,36 @@ public enum ResourceFamily : byte
 /// </remarks>
 public readonly record struct BinCapacity
 {
-    private BinCapacity(int units, bool unbounded)
+    private BinCapacity(long units, bool unbounded)
     {
         Units = units;
         IsUnbounded = unbounded;
     }
 
-    /// <summary>The ceiling in units. Meaningless, and never authored, when unbounded.</summary>
-    public int Units { get; }
+    /// <summary>
+    /// The ceiling in units. <b>Meaningful even when unbounded, which is <c>adr/0065</c>.</b>
+    /// </summary>
+    /// <remarks>
+    /// The old wording here was <em>meaningless, and never authored, when unbounded</em>, and it was
+    /// half true: never authored is still right, and meaningless was the sentence that let a sentinel
+    /// escape. <c>adr/0031</c> asked for an explicit unbounded marker precisely so that <em>a very
+    /// large number pretending to be a bound</em> would not reach anything that divides by it, and it
+    /// escaped anyway — <see cref="Borough.Core.Rules.BinTable.Create"/> writes this and drops
+    /// <see cref="IsUnbounded"/>, so every consumer downstream has only ever seen the sentinel.
+    /// <b>Under <c>adr/0065</c> the sentinel is honest instead of hidden</b>: there is no unbounded,
+    /// only a ceiling far enough away that approaching it is a defect rather than a design limit, and
+    /// <see cref="long.MaxValue"/> is ~10⁸× beyond any plausible city total.
+    /// </remarks>
+    public long Units { get; }
 
-    /// <summary>Whether this Bin has no ceiling.</summary>
+    /// <summary>Whether this Bin has no ceiling a Ruleset authored.</summary>
     public bool IsUnbounded { get; }
 
     /// <summary>A Bin with no ceiling, which is every Money Bin and nothing else.</summary>
-    public static BinCapacity Unbounded => new(int.MaxValue, unbounded: true);
+    public static BinCapacity Unbounded => new(long.MaxValue, unbounded: true);
 
     /// <summary>A Bin holding at most <paramref name="units"/>.</summary>
-    public static BinCapacity Of(int units)
+    public static BinCapacity Of(long units)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(units);
         return new BinCapacity(units, unbounded: false);

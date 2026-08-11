@@ -19,7 +19,7 @@ using Borough.Core.Tables;
 public readonly record struct RuleVerdict(
     int Instance,
     RuleId Rule,
-    int Applications,
+    long Applications,
     int Bin,
     Blocking Blocking,
     ConditionId Reported)
@@ -37,7 +37,7 @@ public readonly record struct RuleVerdict(
     public bool Succeeded => Bin == Rows.NoSlot;
 
     /// <summary>An evaluation that found every term satisfiable.</summary>
-    public static RuleVerdict Fire(int instance, RuleId rule, int applications) =>
+    public static RuleVerdict Fire(int instance, RuleId rule, long applications) =>
         new(instance, rule, applications, Rows.NoSlot, Blocking.Nothing, ConditionId.None);
 
     /// <summary>
@@ -146,7 +146,7 @@ public sealed class RuleEngine
     /// <c>const</c> here rather than a Ruleset value under <c>adr/0015</c>. The Rule's own <c>max</c>
     /// is the number a designer changes.
     /// </remarks>
-    private const int Unbounded = int.MaxValue;
+    private const long Unbounded = long.MaxValue;
 
     private readonly World _world;
     private readonly WorldKey _key;
@@ -161,7 +161,7 @@ public sealed class RuleEngine
     // The net delta per distinct Bin of the Rule currently being checked. Filled by Check and read
     // straight afterwards by Apply, which is why the two are never interleaved across Rules.
     private int[] _touchedBin = new int[8];
-    private int[] _touchedDelta = new int[8];
+    private long[] _touchedDelta = new long[8];
     private int _touchedCount;
 
     // 02 §4's counters. The first three are the Tick in flight; CloseTick folds them into the second
@@ -399,7 +399,7 @@ public sealed class RuleEngine
     /// the link's deposit wakes it through the Bin's wait list, which is <c>02 §7</c>'s
     /// <em>mutators wake observers</em> rather than a retry.
     /// </remarks>
-    private RuleVerdict Walk(int instance, RuleId head, int ceiling)
+    private RuleVerdict Walk(int instance, RuleId head, long ceiling)
     {
         RuleVerdict verdict = Check(instance, head, ceiling);
 
@@ -449,7 +449,7 @@ public sealed class RuleEngine
         return head;
     }
 
-    private RuleVerdict Check(int instance, RuleId rule, int ceiling)
+    private RuleVerdict Check(int instance, RuleId rule, long ceiling)
     {
         // 02 §4's first counter, and this is the only place it can be taken honestly: a head, a link
         // below one, and Phase 3's re-check all arrive here and all cost the same walk. Counting due
@@ -460,7 +460,7 @@ public sealed class RuleEngine
         RuleDefinition definition = _world.Rules.Rule(rule);
         int building = _world.Buildings.Rows.Resolve(_world.RuleInstances.Building[instance]);
 
-        (int floor, int band) = Band(_world, definition, building);
+        (long floor, long band) = Band(_world, definition, building);
 
         if (band < ceiling)
         {
@@ -479,15 +479,15 @@ public sealed class RuleEngine
             Touch(Bin(_world, building, term.Bin, rule), term.Amount);
         }
 
-        int applications = ceiling;
+        long applications = ceiling;
 
         for (int i = 0; i < _touchedCount; i++)
         {
             int bin = _touchedBin[i];
-            int delta = _touchedDelta[i];
-            int level = _world.Bins.LevelAt(bin);
+            long delta = _touchedDelta[i];
+            long level = _world.Bins.LevelAt(bin);
 
-            int affordable;
+            long affordable;
 
             if (delta < 0)
             {
@@ -500,7 +500,7 @@ public sealed class RuleEngine
             }
             else if (delta > 0)
             {
-                int headroom = _world.Bins.Capacity[bin] - level;
+                long headroom = _world.Bins.Capacity[bin] - level;
                 affordable = IntegerMath.FloorDiv(headroom, delta);
 
                 if (affordable < floor)
@@ -553,7 +553,7 @@ public sealed class RuleEngine
         for (int i = 0; i < _touchedCount; i++)
         {
             Handle<Bin> bin = _world.Bins.Rows.At(_touchedBin[i]);
-            int delta = _touchedDelta[i];
+            long delta = _touchedDelta[i];
 
             if (delta < 0)
             {
@@ -649,13 +649,13 @@ public sealed class RuleEngine
     /// resubscribe it correctly, which a requirement of zero produces at both call sites.
     /// </para>
     /// </remarks>
-    internal static int Requirement(World world, int instance, int binSlot, Blocking blocking)
+    internal static long Requirement(World world, int instance, int binSlot, Blocking blocking)
     {
         RuleId rule = world.RuleInstances.Rule[instance];
         RuleDefinition definition = world.Rules.Rule(rule);
         int building = world.Buildings.Rows.Resolve(world.RuleInstances.Building[instance]);
 
-        (int floor, _) = Band(world, definition, building);
+        (long floor, _) = Band(world, definition, building);
 
         // Check reaches the same answer by `affordable < floor` being false for every non-negative
         // affordable, and it is spelled out here because this method has no affordable to compare.
@@ -664,7 +664,7 @@ public sealed class RuleEngine
             return 0;
         }
 
-        int net = 0;
+        long net = 0;
 
         foreach (Term term in world.Rules.Inputs(rule))
         {
@@ -712,7 +712,7 @@ public sealed class RuleEngine
     {
         ArgumentNullException.ThrowIfNull(world);
 
-        int requirement = Requirement(world, instance, binSlot, blocking);
+        long requirement = Requirement(world, instance, binSlot, blocking);
 
         if (requirement == 0)
         {
@@ -748,7 +748,7 @@ public sealed class RuleEngine
     /// what the Rule decided, for the same reason a Bin that grew cannot.
     /// </para>
     /// </remarks>
-    private static (int Floor, int Ceiling) Band(
+    private static (long Floor, long Ceiling) Band(
         World world, in RuleDefinition definition, int building)
     {
         if (!definition.Apply.IsDerived)
@@ -756,11 +756,11 @@ public sealed class RuleEngine
             return (definition.Apply.Min, definition.Apply.Max);
         }
 
-        int readout = Readouts.Read(world, building, definition.Apply.Derived);
+        long readout = Readouts.Read(world, building, definition.Apply.Derived);
 
         // The percentage is 02 §4.1's own spelling: "one unit of money applied income × 15 / 100
         // times". Floor division, because a fraction of an application is not an application.
-        int count = IntegerMath.FloorDiv(readout * definition.Apply.Percent, 100);
+        long count = IntegerMath.FloorDiv(readout * definition.Apply.Percent, 100);
 
         return (count, count);
     }
@@ -833,7 +833,7 @@ public sealed class RuleEngine
     /// emission would mean inventing a semantic for it here, which is a design change wearing a
     /// switch statement.
     /// </remarks>
-    private void Emit(int building, in MapEmission emission, int applications)
+    private void Emit(int building, in MapEmission emission, long applications)
     {
         Handle<Lot> lot = _world.Buildings.Lot[building];
         int lotSlot = _world.Lots.Rows.Resolve(lot);
@@ -849,7 +849,23 @@ public sealed class RuleEngine
                 + "footprint, so neither is a quantity a Rule adds per application.");
         }
 
-        _world.Layers.EmitPollution(east, north, emission.Amount * applications);
+        // The one place a Bin-side quantity meets a Map Layer, and the two widths differ on purpose.
+        // adr/0065 widened what a Bin holds; a Layer Cell is an int and has its own magnitude bound
+        // (Invariant.LayerMagnitudesAreBounded), so the narrowing happens here or nowhere. It is
+        // loud rather than silent for IntegerMath.ShiftLeft's reason: there is no correct answer, so
+        // the wrong answer that throws beats the one that wraps and reads as a clean field for ever.
+        // Unreachable while every declared Readout is a count -- see adr/0065's third product.
+        long emitted = emission.Amount * applications;
+
+        if (emitted > int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"a Rule emitted {emitted} into a Map Layer, which is more than a Cell can hold. An "
+                + "emission is per application and an application count is derived from a Readout, so "
+                + "this is a Readout returning a stock where the Layer expects a count.");
+        }
+
+        _world.Layers.EmitPollution(east, north, (int)emitted);
     }
 
     /// <summary>Accumulates a delta against a Bin, merging a Bin already named by this Rule.</summary>
@@ -857,7 +873,7 @@ public sealed class RuleEngine
     /// A linear scan because a Rule's term list is a handful — <c>02 §4.3</c>'s bakery has two — so
     /// anything cleverer would cost more to set up than the scan costs to run.
     /// </remarks>
-    private void Touch(int bin, int delta)
+    private void Touch(int bin, long delta)
     {
         for (int i = 0; i < _touchedCount; i++)
         {

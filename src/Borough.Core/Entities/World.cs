@@ -283,6 +283,12 @@ public sealed class World
 
         RulesetDegradation cost = migration is null ? default : Migrate(migration, now, key);
 
+        // adr/0064, and it runs for every swap rather than only a structural one. A capacity edit is
+        // a RulesetChange.None change, so it skips Migrate entirely -- which is exactly how the edit
+        // used to reach no Building already standing. After Migrate, because that pass frees Bins and
+        // creates others, and a rebuild before it would derive ceilings for rows about to move.
+        RebuildCapacities();
+
         // Recorded after the pass rather than before it, because a degradation this build refuses
         // half-way through would otherwise leave a trail entry claiming a transition that did not
         // happen -- and a provenance trail nobody can trust is worse than none, since the whole of its
@@ -688,6 +694,7 @@ public sealed class World
         Bins.BinNext.Span.Clear();
         RuleInstances.RuleNext.Span.Clear();
         Lots.BuildingSlot.Span.Clear();
+        Bins.Capacity.Span.Clear();
 
         // The Lot's reverse index. Not ordered like the four lists below it — a Lot holds at most one
         // Building, so there is nothing to insert in order, and a second Building naming the same Lot
@@ -747,6 +754,8 @@ public sealed class World
                 buildingBins.InsertOrdered(buildingSlot, slot);
             }
         }
+
+        RebuildCapacities();
 
         IndexList buildingRules = BuildingRules;
         for (int slot = 0; slot < RuleInstances.Rows.SlotCount; slot++)
@@ -880,7 +889,7 @@ public sealed class World
         {
             if (FindBin(buildingSlot, bin.Resource) == Rows.NoSlot)
             {
-                CreateBin(building, bin.Resource, bin.Capacity);
+                CreateBin(building, bin.Resource);
             }
         }
 
@@ -926,7 +935,18 @@ public sealed class World
         return 1u + (uint)(draw % rate);
     }
 
-    public Handle<Bin> CreateBin(Handle<Building> owner, ResourceId resource, BinCapacity capacity)
+    /// <summary>
+    /// Puts a Bin for <paramref name="resource"/> on <paramref name="owner"/>, empty, at the ceiling
+    /// its kind declares.
+    /// </summary>
+    /// <remarks>
+    /// <b>It takes no capacity, and that is <c>adr/0064</c> rather than a convenience.</b> A ceiling
+    /// is a function of <c>(kind, Resource)</c> against the Ruleset in force, so a caller passing one
+    /// would be writing a number the next rebuild overwrites — which is the *stale is silent* failure
+    /// the decision exists to make unrepresentable. This applies the same derivation
+    /// <see cref="RebuildCapacities"/> does, from the same place, so a Bin is never briefly wrong.
+    /// </remarks>
+    public Handle<Bin> CreateBin(Handle<Building> owner, ResourceId resource)
     {
         int buildingSlot = Buildings.Rows.Resolve(owner);
 
@@ -936,11 +956,88 @@ public sealed class World
             buildingSlot,
             resource.Raw);
 
-        Handle<Bin> handle = Bins.Create(owner, resource, capacity);
+        Handle<Bin> handle = Bins.Create(
+            owner, resource, DeclaredCapacity(Buildings.Kind[buildingSlot], resource));
 
         BuildingBins.InsertOrdered(buildingSlot, Bins.Rows.Resolve(handle));
 
         return handle;
+    }
+
+    /// <summary>
+    /// Writes every live Bin's ceiling from the Ruleset in force (<c>adr/0064</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Run at world load and at every Ruleset swap, including a swap that moved no structure.</b>
+    /// The swap case is the one that matters: a capacity edit is a <see cref="RulesetChange.None"/>
+    /// change, so it skips the migration entirely — which is precisely how the edit used to reach
+    /// nothing standing.
+    /// </para>
+    /// <para>
+    /// <b>Off the Tick, and <c>O(bins)</c>.</b> It is the same walk the rejected sweep would have
+    /// made, at the same moments, writing the same numbers; what the derivation buys over the sweep is
+    /// that the column stops being state a reload periodically corrects.
+    /// </para>
+    /// </remarks>
+    internal void RebuildCapacities()
+    {
+        for (int slot = 0; slot < Bins.Rows.SlotCount; slot++)
+        {
+            if (!Bins.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            byte kind = Buildings.Rows.TryResolve(Bins.Owner[slot], out int buildingSlot)
+                ? Buildings.Kind[buildingSlot]
+                : (byte)0;
+
+            Bins.SetCapacity(slot, DeclaredCapacity(kind, Bins.Resource[slot]));
+        }
+    }
+
+    /// <summary>
+    /// The ceiling the Ruleset declares for <paramref name="resource"/> on <paramref name="kind"/>,
+    /// or zero where it declares none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Zero rather than <em>leave it alone</em>, because the derivation has to be total.</b> A
+    /// derived column is legal only while it is a pure function of saved state; one that skipped rows
+    /// it had no declaration for would not survive a save and a load, which is the one thing
+    /// <see cref="RebuildDerived"/> exists to prove.
+    /// </para>
+    /// <para>
+    /// <b>The rows it reaches are a derelict Building's</b> — a kind the incoming Ruleset dropped
+    /// (<c>02 §4.3</c>). Such a Building runs no Rules, so nothing reads or writes these Bins; zero
+    /// says *the Ruleset declares no store of this here*, leaves the stock in place rather than
+    /// destroying it (<c>04 §2</c>), and gives the Bin negative headroom, which refuses a deposit that
+    /// cannot arrive anyway. **It does not drain**, unlike <c>adr/0064</c>'s over-full case, because
+    /// nothing is left to withdraw from it — dereliction is where the self-healing argument stops, and
+    /// it stops harmlessly because the Building is inert by then.
+    /// </para>
+    /// <para>
+    /// <b>A linear walk of a handful.</b> A kind's declared Bins are its whole set and
+    /// <c>(kind, Resource)</c> is a key the loader enforces, so the first match is the only match.
+    /// </para>
+    /// </remarks>
+    internal long DeclaredCapacity(byte kind, ResourceId resource)
+    {
+        if (!Rules.Declares(kind))
+        {
+            return 0;
+        }
+
+        foreach (BinDeclaration declared in Rules.BinsOf(kind))
+        {
+            if (declared.Resource.Raw == resource.Raw)
+            {
+                return declared.Capacity.Units;
+            }
+        }
+
+        return 0;
     }
 
     /// <summary>
@@ -991,7 +1088,7 @@ public sealed class World
     /// with no error and no timer to rescue it.</em> There is no level column to assign, so there is
     /// no second spelling in which the drain can be forgotten.
     /// </remarks>
-    public void Deposit(Handle<Bin> bin, int amount, Ticks tick)
+    public void Deposit(Handle<Bin> bin, long amount, Ticks tick)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
 
@@ -1013,7 +1110,7 @@ public sealed class World
     /// rescues a Rule whose output Bin was full, and a withdrawal that did not drain would strand
     /// those waiters exactly as a deposit that did not drain strands the others.
     /// </remarks>
-    public void Withdraw(Handle<Bin> bin, int amount, Ticks tick)
+    public void Withdraw(Handle<Bin> bin, long amount, Ticks tick)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
 
@@ -1179,7 +1276,7 @@ public sealed class World
     {
         IndexList waiters = Waiters(blocking);
 
-        int remaining = blocking == Blocking.Level
+        long remaining = blocking == Blocking.Level
             ? Bins.LevelAt(binSlot)
             : Bins.HeadroomAt(binSlot);
 
@@ -1192,7 +1289,7 @@ public sealed class World
                 return;
             }
 
-            int requirement = RuleEngine.Requirement(this, head, binSlot, blocking);
+            long requirement = RuleEngine.Requirement(this, head, binSlot, blocking);
 
             if (requirement > remaining)
             {

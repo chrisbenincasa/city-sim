@@ -111,7 +111,7 @@ public sealed class RuleCounterTests
 
         foreach (BinDeclaration bin in world.Rules.BinsOf(Bakery))
         {
-            world.CreateBin(building, bin.Resource, bin.Capacity);
+            world.CreateBin(building, bin.Resource);
         }
 
         foreach (RuleId rule in world.Rules.RulesOf(Bakery))

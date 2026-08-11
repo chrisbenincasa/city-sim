@@ -141,13 +141,31 @@ at all, and the two decisions compose without either knowing about the other.
 
 ## Consequences
 
-**`(kind, Resource)` becomes a key, and the refusal closes a defect that is already live.** The
-derivation requires one declaration per pair. `RulesetLoader` refuses nothing of the sort today, and
-`World.FindBin` returns the **first** Bin matching a Resource — so a kind declaring two Bins of one
-Resource creates a second Bin that is unreachable, unwritable, dead storage. Worse and independent of
-this decision: `Fit` creates a Bin only when `FindBin` returns `NoSlot`, so **a refit builds one Bin
-where construction built two**, and the same kind ends up with different Bin counts depending on how
-the Building came to exist. The loader must refuse the duplicate declaration by name.
+**`(kind, Resource)` becomes a key, and it already was one — this paragraph said otherwise and was
+wrong.** ⚠ *Amended in implementation.* The derivation requires one declaration per pair, and the
+sitting concluded from the argument that `RulesetLoader` refused nothing of the sort. It has refused it
+since slice 7 task 8, in the loader's own words — *"this kind declares two Bins for one Resource. One
+Bin, one Resource: two would make the local scope draw from whichever the list reached first, which is a
+balance outcome decided by allocation order"* — so the reasoning that reached the key was sound and the
+claim about the code was **not checked against the code**. What follows from that: the defect described
+next was never live through a loaded Ruleset, and this decision **inherits** a key rather than
+establishing one.
+
+The defect the paragraph described is still worth recording, because it is what the key buys and it
+remains reachable by a `Ruleset` built in code. `World.FindBin` returns the **first** Bin matching a
+Resource, so a kind declaring two Bins of one Resource gets a second that is unreachable, unwritable,
+dead storage — and `Fit` creates a Bin only when `FindBin` returns `NoSlot`, so **a refit builds one Bin
+where construction built two**, and the same kind ends up with different Bin counts depending on how the
+Building came to exist. Under this decision the consequence is sharper than dead storage: the capacity
+derivation is a lookup by `(kind, Resource)`, and a duplicate makes the ceiling itself
+allocation-ordered.
+
+**The refusal had no test, which is how a two-slice-old guard came to be reported as absent.**
+`RulesetLoaderTests`' stated discipline is that every refusal has a test writing the malformed Ruleset
+and watching it fire; this one was the exception, so nothing in the suite named it and reading the suite
+was enough to conclude it did not exist. The test ships with this decision. **The general shape is
+`plans/0012` *Cause 1* on a different axis** — not a second copy of a fact drifting, but a fact with no
+copy at all being re-derived wrongly from the shape of its absence.
 
 **A derived column that nobody rebuilt is stale, and stale is silent.** This is the class of failure
 `adr/0063` had to build an invariant to notice, and it is the honest price of the position rather than

@@ -267,7 +267,7 @@ public sealed class CrashArtifact
             throw lines.Complain($"'{fields[0]}' is not an invariant this build knows.");
         }
 
-        return new Violation(invariant, panic, Signed(lines, fields[1]), Signed(lines, fields[2]));
+        return new Violation(invariant, panic, Signed(lines, fields[1]), Wide(lines, fields[2]));
     }
 
     /// <summary>Reads a keyed line and returns everything after the key.</summary>
@@ -322,6 +322,12 @@ public sealed class CrashArtifact
         int.TryParse(field, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int value)
             ? value
             : throw lines.Complain($"'{field}' is not a row.");
+
+    /// <summary>A signed 64-bit detail: a row, or a quantity a Bin's level could reach.</summary>
+    private static long Wide(Cursor lines, string field) =>
+        long.TryParse(field, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long value)
+            ? value
+            : throw lines.Complain($"'{field}' is not a row or a quantity.");
 
     private static string Line(FormattableString content) =>
         content.ToString(CultureInfo.InvariantCulture) + "\n";

@@ -14,8 +14,14 @@ namespace Borough.Core.Invariants;
 /// <param name="Invariant">Which invariant.</param>
 /// <param name="Tick">The Tick the run was on.</param>
 /// <param name="Slot">The row the violation was found at, or <c>-1</c>.</param>
-/// <param name="Other">The second row involved, where there is one, or <c>-1</c>.</param>
-public readonly record struct Violation(Invariant Invariant, Ticks Tick, int Slot, int Other)
+/// <param name="Other">
+/// The second row involved, where there is one, or the quantity that would have broken the invariant,
+/// or <c>-1</c>. <b>A <see cref="long"/> because a Bin's level is one</b> (<c>adr/0065</c>):
+/// <see cref="Invariant.BinLevelIsWithinCapacity"/> reports the amount that overran, and a detail
+/// field narrower than the quantity it details would be a truncating lie in exactly the case worth
+/// reading.
+/// </param>
+public readonly record struct Violation(Invariant Invariant, Ticks Tick, int Slot, long Other)
 {
     /// <summary>Nothing to report.</summary>
     public static Violation None => new(Invariant.None, default, -1, -1);

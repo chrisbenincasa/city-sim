@@ -157,7 +157,7 @@ public sealed class InvariantRegistry
     /// <param name="invariant">Which invariant, if it is not.</param>
     /// <param name="slot">The row being written.</param>
     /// <param name="other">A second row involved, where there is one.</param>
-    public void Require(bool held, Invariant invariant, int slot = -1, int other = -1)
+    public void Require(bool held, Invariant invariant, int slot = -1, long other = -1)
     {
         if (!held)
         {
@@ -167,7 +167,7 @@ public sealed class InvariantRegistry
 
     /// <summary>Records or throws, according to <see cref="Collect"/>.</summary>
     /// <exception cref="InvariantViolationException">A violation, and the run is not collecting.</exception>
-    public void Report(Invariant invariant, int slot = -1, int other = -1)
+    public void Report(Invariant invariant, int slot = -1, long other = -1)
     {
         var violation = new Violation(invariant, Tick, slot, other);
 

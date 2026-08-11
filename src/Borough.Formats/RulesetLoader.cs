@@ -967,7 +967,11 @@ public static class RulesetLoader
                         continue;
                     }
 
-                    if (capacity < 1 || capacity > int.MaxValue)
+                    // The upper bound is the representation's and it moved with adr/0065: a Bin holds
+                    // a long, so a ceiling authored at long.MaxValue is indistinguishable from an
+                    // unbounded one -- which that ADR permits rather than refuses, because there is no
+                    // unbounded, only a ceiling far enough away that approaching it is a defect.
+                    if (capacity < 1)
                     {
                         Refuse(LineOf(inline), kind,
                             $"capacity {capacity} is not a positive quantity. A Bin of capacity zero "
@@ -976,7 +980,7 @@ public static class RulesetLoader
                         continue;
                     }
 
-                    declared = BinCapacity.Of((int)capacity);
+                    declared = BinCapacity.Of(capacity);
                 }
 
                 if (into.Skip(first).Any(b => b.Resource == resource))

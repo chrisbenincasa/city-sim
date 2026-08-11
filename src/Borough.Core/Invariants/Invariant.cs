@@ -380,4 +380,35 @@ public enum Invariant
     /// </para>
     /// </remarks>
     WaiterIsBlockedByTheBinItNames = 28,
+
+    /// <summary>
+    /// A live Bin's capacity is what the Ruleset in force declares for its Building's kind.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The honest price of <c>adr/0064</c> rather than an extra.</b> Capacity became <em>derived
+    /// and rebuilt</em>, and a derived column nobody rebuilt is <b>stale</b> — which is silent, because
+    /// every row stays self-consistent and the only wrong thing is a number that agrees with a Ruleset
+    /// nobody is running any more. That is the same class of failure <c>adr/0063</c> had to build
+    /// <see cref="WaiterIsBlockedByTheBinItNames"/> to notice, arriving one column over.
+    /// </para>
+    /// <para>
+    /// <b>It should be unfirable, and that is what makes it worth registering.</b> Two sites write the
+    /// ceiling — construction and the rebuild — and both read the same declaration. If this fires, the
+    /// fault is not the arithmetic but the rebuild's <em>placement</em>, and the thing to look for is a
+    /// path on which a Ruleset reaches a <see cref="Borough.Core.Entities.World"/> without passing
+    /// through the swap.
+    /// </para>
+    /// <para>
+    /// <b>A derelict Building's Bins are in scope, at a declared ceiling of zero.</b> A kind the
+    /// Ruleset dropped declares no store of anything, so zero is the derivation's answer rather than an
+    /// exemption — and exempting them is how a whole class of rows would stop being checked at exactly
+    /// the moment a reload had touched them.
+    /// </para>
+    /// <para>
+    /// <b>End of run, per <c>02 §10</c>'s frequency tiering.</b> It is a whole-world walk of every Bin
+    /// with a lookup per row, and there is one of them per run however long the run was.
+    /// </para>
+    /// </remarks>
+    BinCapacityMatchesItsDeclaration = 29,
 }

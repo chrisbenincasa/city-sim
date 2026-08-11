@@ -51,11 +51,17 @@ public sealed class BinTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>It declares no Bins, because these tests create theirs by hand, and it exists for one
-    /// reason: <see cref="Invariant.DerelictBuildingRunsNoRules"/>.</b> A Building of an undeclared
-    /// kind running a Rule Instance is dereliction with the Rules left armed, which is slice 8's
-    /// migration defect — and a fixture that ran on <see cref="Ruleset.Empty"/> was that shape by
+    /// <b>It exists for <see cref="Invariant.DerelictBuildingRunsNoRules"/>.</b> A Building of an
+    /// undeclared kind running a Rule Instance is dereliction with the Rules left armed, which is slice
+    /// 8's migration defect — and a fixture that ran on <see cref="Ruleset.Empty"/> was that shape by
     /// accident, so it would have reported the defect for ever without one existing.
+    /// </para>
+    /// <para>
+    /// <b>It now declares the two Bins as well, because since <c>adr/0064</c> a capacity is not a thing
+    /// a caller may pass.</b> These tests used to hand <c>CreateBin</c> the ceiling they wanted, which
+    /// is exactly the arrangement that ADR removed: the ceiling is derived from the Ruleset in force, so
+    /// the only way to ask for 100 flour is to declare 100 flour. The numbers are unchanged and every
+    /// assertion below still names them.
     /// </para>
     /// <para>
     /// <b>The band carries the requirement and the term stays at one</b>, so <c>floor × |net|</c> is
@@ -91,11 +97,13 @@ public sealed class BinTests
         return new Ruleset(
             resources: [ResourceFamily.Good, ResourceFamily.Good],
             rules: rules,
-            kinds: [new KindDefinition(0, 0, 0, rules.Length)],
+            kinds: [new KindDefinition(0, 2, 0, rules.Length)],
             inputs: [new Term(new BinRef(Scope.Local, Flour), 1)],
             outputs: [new Term(new BinRef(Scope.Local, Bread), 1)],
             emissions: [],
-            bins: [],
+            bins: [
+                new BinDeclaration(Flour, BinCapacity.Of(100)),
+                new BinDeclaration(Bread, BinCapacity.Of(20))],
             kindRules: kindRules,
             zoneRules: []);
     }
@@ -154,8 +162,8 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
-        world.CreateBin(building, Bread, capacity: BinCapacity.Of(20));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
+        world.CreateBin(building, Bread);
 
         int buildingSlot = world.Buildings.Rows.Resolve(building);
 
@@ -169,10 +177,10 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
+        world.CreateBin(building, Flour);
 
         Violation violation = Assert.Throws<InvariantViolationException>(
-            () => world.CreateBin(building, Flour, capacity: BinCapacity.Of(50))).Violation;
+            () => world.CreateBin(building, Flour)).Violation;
 
         Assert.Equal(Invariant.BuildingHasOneBinPerResource, violation.Invariant);
     }
@@ -182,7 +190,7 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
         int slot = world.Bins.Rows.Resolve(flour);
 
         world.Deposit(flour, 40, Ticks.Zero);
@@ -200,7 +208,7 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
         world.Deposit(flour, 50, Ticks.Zero);
 
         Violation violation = Assert.Throws<InvariantViolationException>(
@@ -217,7 +225,7 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
 
         Handle<RuleInstance> needsSix = Sleeper(world, building, Needing(6));
         Handle<RuleInstance> needsTen = Sleeper(world, building, Needing(10));
@@ -244,7 +252,7 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
 
         Handle<RuleInstance> big = Sleeper(world, building, Needing(10));
         Handle<RuleInstance> small = Sleeper(world, building, Needing(2));
@@ -264,7 +272,7 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
 
         Handle<RuleInstance> first = Sleeper(world, building, Needing(3));
         Handle<RuleInstance> second = Sleeper(world, building, Needing(3));
@@ -294,7 +302,7 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> bread = world.CreateBin(building, Bread, capacity: BinCapacity.Of(20));
+        Handle<Bin> bread = world.CreateBin(building, Bread);
         world.Deposit(bread, 20, Ticks.Zero);
 
         Handle<RuleInstance> blocked = Sleeper(world, building, Filling(4));
@@ -314,7 +322,7 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
         Handle<RuleInstance> waiter = Sleeper(world, building, Needing(5));
 
         world.Subscribe(waiter, flour, Blocking.Level);
@@ -333,7 +341,7 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
 
         Handle<RuleInstance> first = Sleeper(world, building, Needing(4));
         Handle<RuleInstance> second = Sleeper(world, building, Needing(1));
@@ -355,7 +363,7 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
         Handle<RuleInstance> waiter = Sleeper(world, building, Needing(5));
 
         world.Subscribe(waiter, flour, Blocking.Level);
@@ -381,7 +389,7 @@ public sealed class BinTests
         Handle<Lot> lot = world.Lots.Create(new Tiles(9), new Tiles(9), zone: 1);
         Handle<Building> neighbour = world.Buildings.Create(world.Lots, lot, kind: 1);
 
-        Handle<Bin> flour = world.CreateBin(doomed, Flour, capacity: BinCapacity.Of(100));
+        Handle<Bin> flour = world.CreateBin(doomed, Flour);
         Handle<RuleInstance> own = Sleeper(world, doomed, Needing(50));
         Handle<RuleInstance> foreign = Sleeper(world, neighbour, Bake);
 
@@ -417,8 +425,8 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
-        world.CreateBin(building, Bread, capacity: BinCapacity.Of(20));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
+        world.CreateBin(building, Bread);
         world.Deposit(flour, 30, Ticks.Zero);
 
         Handle<RuleInstance> first = Sleeper(world, building, Needing(90));
@@ -482,7 +490,7 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
         Handle<RuleInstance> orphan = Sleeper(world, building, Needing(5));
 
         world.Subscribe(orphan, flour, Blocking.Level);
@@ -613,8 +621,8 @@ public sealed class BinTests
     {
         (World world, Handle<Building> building) = Built();
 
-        Handle<Bin> flour = world.CreateBin(building, Flour, capacity: BinCapacity.Of(100));
-        Handle<Bin> bread = world.CreateBin(building, Bread, capacity: BinCapacity.Of(20));
+        Handle<Bin> flour = world.CreateBin(building, Flour);
+        Handle<Bin> bread = world.CreateBin(building, Bread);
         Handle<RuleInstance> waiter = Sleeper(world, building, Needing(5));
 
         world.Subscribe(waiter, flour, Blocking.Level);

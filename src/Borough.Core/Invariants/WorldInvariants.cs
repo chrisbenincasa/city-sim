@@ -44,6 +44,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, LotsAndBuildingsAgreeWhoIsWhere);
         invariants.Register(InvariantTier.EndOfRun, ThePoolIsDenseAndAgreesWithTheHouseholds);
         invariants.Register(InvariantTier.EndOfRun, NoWaiterSleepsOnANonBlockingBin);
+        invariants.Register(InvariantTier.EndOfRun, BinCapacitiesMatchTheirDeclarations);
     }
 
     /// <summary>
@@ -112,6 +113,50 @@ public static class WorldInvariants
                     instance,
                     bin);
             }
+        }
+    }
+
+    /// <summary>
+    /// Every live Bin's capacity is what the Ruleset in force declares for its Building's kind.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The check <c>adr/0064</c> owes for making capacity derived.</b> See
+    /// <see cref="Invariant.BinCapacityMatchesItsDeclaration"/> for why a stale derived column is silent:
+    /// every row stays self-consistent, and the only wrong thing is a ceiling that agrees with a Ruleset
+    /// nobody is running. Re-deriving from the same source the two write sites read is what makes it a
+    /// check on the <em>rebuild's placement</em> rather than on its arithmetic.
+    /// </para>
+    /// <para>
+    /// <b>A Bin whose owner has gone is checked at zero, like a dropped kind.</b> Both reduce to
+    /// <em>declares no store of this Resource</em>, which is the derivation's answer and not an
+    /// exemption — and the alternative, skipping such rows, would stop checking exactly the rows a
+    /// reload has just disturbed.
+    /// </para>
+    /// </remarks>
+    internal static void BinCapacitiesMatchTheirDeclarations(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        BinTable bins = world.Bins;
+
+        for (int bin = 0; bin < bins.Rows.SlotCount; bin++)
+        {
+            if (!bins.Rows.IsLive(bin))
+            {
+                continue;
+            }
+
+            byte kind = world.Buildings.Rows.TryResolve(bins.Owner[bin], out int building)
+                ? world.Buildings.Kind[building]
+                : (byte)0;
+
+            report.Require(
+                bins.Capacity[bin] == world.DeclaredCapacity(kind, bins.Resource[bin]),
+                Invariant.BinCapacityMatchesItsDeclaration,
+                bin,
+                bins.Capacity[bin]);
         }
     }
 
