@@ -66,8 +66,10 @@ engaged: this mechanism has never had a family.
   the ordering is the decision rather than a scheduling convenience.
 - **`ZoneRuleEngine.Create` stops calling `World.Place`, and `PurposeTag.PoolDraw` moves with it.** The
   create predicate still reads `UnplacedPool.Count`; it no longer draws from it.
-- **The demolish-and-rebuild cycle balances with nothing tuned**, because eviction and re-housing use the
-  same door. That is what closes the five-sixths equilibrium, and it closes it without choosing a number.
+- ~~**The demolish-and-rebuild cycle balances with nothing tuned**, because eviction and re-housing use
+  the same door. That is what closes the five-sixths equilibrium, and it closes it without choosing a
+  number.~~ **Struck by the build; see *What building it found* below. Both halves were wrong — the
+  equilibrium does not close, and three numbers had to be chosen.**
 - **A Building may stand empty, and that is legal.** `HouseholdHomeExists` was already qualified by
   `adr/0054` to *a Household is housed or is in the Pool*; nothing in the invariant set constrains a
   Building from the other side.
@@ -84,6 +86,45 @@ engaged: this mechanism has never had a family.
   [`adr/0059`](0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)'s
   precedent holds**: author a revisit period over the Pool and derive the count, in which case `0002` §D
   gains no row. The precedent is named here and the derivation is owed to whichever slice builds it.
+  **Half right.** The `sample` is derived, and that half held. But the *duration* it is derived from is a
+  free number and so is `candidates`, so `0002` §D gained **three** rows rather than none.
+
+## What building it found
+
+**Four corrections, recorded here rather than amended away, because three of them are this ADR being
+wrong about what it was about to build.**
+
+**1. The equilibrium does not close, and saying it would was the same error this ADR was written to
+name.** *Five-sixths homeless* was 83%; it is now **53%**, and the residue is not a mechanism gap — it
+is `rulesets/minimal.toml` demolishing every dwelling it raises, which that file's header states at
+length and on purpose. **What the pass actually fixes is vacancy**: before it, **45% of the housing
+stock stood empty** while 70% of the population queued; after it, **10%**, which is the floor a city
+that is continuously building carries. So the acceptance test asserts **vacancy and not homelessness** —
+`PlacementLongRunTests` — because *everybody is housed* is a property of a Ruleset's **balance**, and
+the shipped Ruleset explicitly declines to have one. **Predicting a content outcome from a mechanism
+change is `adr/0070`'s error running forwards instead of backwards.**
+
+**2. The draw is over Lots, not over Buildings.** The first implementation sampled
+`Buildings.Rows.SlotCount`, which is a **recycling** table: under the shipped Ruleset roughly 55% of
+Building slots stand freed at any instant, so three candidates bought about **1.3** real looks and
+lowering the demolition rate would have silently raised the effective candidate count. A Lot is a place
+in the city and the Lot table's slot count is the size of the city, so `candidates` means what the file
+says. A look landing on a vacant Lot **found nothing**, which is a thing that happens to somebody
+looking for somewhere to live.
+
+**3. Three numbers, not none.** `interval`, `revisit_ticks` and `candidates` are all hash-bearing and
+all now in [`0002`](../../plans/0002-open-questions.md) §D2. `revisit_ticks` shipped at **8192** — one
+Day, copied from `adr/0059`'s derived default — and that value left **45% of the stock empty**, because
+a Day is the cadence at which the *development industry surveys the city* and a family without a home
+looks more often than that. It is **1024**, eight occasions a Day, chosen against that measurement and
+unratified.
+
+**4. The Census gained a fourth metric family, and writing it exposed that the third has no test.**
+`considered` and `placed` are two flows for the reason `evaluations − due` are: a queue being looked at
+and not housed is a city out of dwellings, and a queue not being looked at is a mechanism that has
+stopped, and one counter cannot tell them apart. Nothing in the suite reads a `ZoneCounter` back
+through a `Census` — `adr/0064`'s id-29 shape, a block written and never read — so the placement family
+ships with one and the Sweep family's gap is filed.
 
 ## What would trigger revisiting
 
@@ -93,6 +134,10 @@ engaged: this mechanism has never had a family.
   stops being a subset of a population fixed at world creation, the give-up bound becomes load-bearing,
   and a placement pass draining a Pool that is being refilled is a different mechanism from one draining
   a Pool that is not. This is `adr/0054`'s own named trigger, inherited.
+- **A Ruleset whose content makes the residue interesting.** The equilibrium above is measured against
+  a fixture that demolishes its whole housing stock on purpose, so *53% homeless* says almost nothing
+  about the design. The first Ruleset that models a city is what makes the number mean something, and it
+  is also what would ratify the three `0002` §D2 rows.
 - **The residual lagging badly enough that Zone Rules still overbuild.** If a slow placement cadence
   means the Pool the create predicate reads is stale by more than a trigger interval, the cadence becomes
   load-bearing and wants a number and a ratifier rather than a derivation.

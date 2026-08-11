@@ -582,17 +582,21 @@ Adapted from UrbanSim's architecture, which has been the operational design of a
 > and nothing here chooses one; what is settled is that the rung written above is not available.
 
 > **Which of these six steps exist, stated here because this section has twice been read as a
-> description of the build.** Only **step 5, development**, is built — as slice 10's Zone Rules. **Step 2
-> is decided and unbuilt** ([`adr/0069`](adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)):
+> description of the build.** **Steps 2 and 5 are built**; steps 1, 3, 4 and 6 are not, and step 6's
+> *dirty regions only* is separately unsound, below. Step 5 is slice 10's Zone Rules. **Step 2 shipped
+> 2026-08-11** ([`adr/0069`](adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)):
 > a sampled Phase 6 pass ahead of the Zone Rules, draining the Pool into vacant capacity declared by a
 > Building's kind ([`adr/0068`](adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)),
-> **blind** for `adr/0054`'s stated reasons — step 2b's hard filter needs a price surface and a Commute
-> Budget, and has neither. Steps 1, 3, 4 and 6 do not exist; step 6's *dirty regions only* is separately
-> unsound, below.
+> stated in a Ruleset's `[placement]` table and **blind** for `adr/0054`'s stated reasons — **step 2b's
+> hard filter is the one part of step 2 that does not exist**, because it needs a price surface and a
+> Commute Budget and has neither. A seeker looks at `candidates` Lots and takes the first dwelling with
+> room.
 >
 > **What the omission cost is worth recording.** Until session N task 2, `World.Place` had exactly one
 > caller, inside the Zone Rule's create predicate — so construction was doing placement's job one
-> Household deep, and a 100,000-Tick run settled at ~300 of 360 Households homeless. **Two ledger entries
+> Household deep, and a 100,000-Tick run settled at ~300 of 360 Households homeless — with **45% of the
+> housing stock standing empty**, which is the figure that says it was a mechanism and not a number.
+> Building it moved that to 10%. **Two ledger entries
 > read that as a missing *number*** (an occupancy nobody had declared) rather than as a missing
 > *mechanism*, because an unbuilt step in a specified loop does not look like a gap. It looks like a
 > constraint. → [`plans/0012`](../plans/0012-corpus-audit.md).

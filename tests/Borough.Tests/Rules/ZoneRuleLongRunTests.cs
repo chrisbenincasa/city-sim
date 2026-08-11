@@ -44,8 +44,8 @@ namespace Borough.Tests.Rules;
 /// high-water mark is reached at world creation and flatness is testable from the first reading. The
 /// Pool's slot count is a running <em>maximum</em> over a stochastic quantity — how many Households
 /// happen to be homeless at once — so it creeps upward while the run is still finding the largest
-/// eviction cohort it will ever see, and it did: 300, 304, 305, 309, 311, 312, then 312 for the last
-/// 37,000 Ticks. Two things are asserted instead. The <b>ceiling</b>, which is the population, because
+/// eviction cohort it will ever see, and it did: 218, 223, 231, then 235 for the last 230,000 Ticks
+/// of a 300,000-Tick measurement. Two things are asserted instead. The <b>ceiling</b>, which is the population, because
 /// a Household is in the Pool at most once — a structural bound rather than an observed one, and the
 /// reason <c>adr/0006</c> holds here for a reason that has nothing to do with a sink. And
 /// <b>convergence as a rate</b>, because the plateau arrives just past the midpoint of the tail, so
@@ -134,32 +134,35 @@ public class ZoneRuleLongRunTests
         }
 
         // The convergence, stated as a rate rather than as a window. The plateau in this run arrives
-        // at tail reading 26 of 45 — just past the midpoint — so any "flat after reading N" would be
-        // an N chosen because the data has that shape, which is the thing a tripwire must not be.
-        // A rate has no such freedom: a running maximum that has converged grows by a fraction of a
-        // percent across the back half of a run, and a table that is leaking rows grows by orders of
+        // at tail reading 31 of 45 — past the midpoint — so any "flat after reading N" would be an N
+        // chosen because the data has that shape, which is the thing a tripwire must not be. A rate
+        // has no such freedom: a running maximum that has converged grows by a fraction of a percent
+        // across the back half of a run, and a table that is leaking rows grows by orders of
         // magnitude, because a hundred thousand Ticks of demolition would allocate thousands.
+        //
+        // THE TOLERANCE MOVED FROM 1/32 TO 1/16 WHEN adr/0069'S PLACEMENT PASS LANDED, and it is
+        // worth saying why rather than quietly. The Pool used to drain one Household per Building
+        // raised, so its live count tracked construction closely; it is now a queue that placement
+        // works off at a rate, so its excursions are wider and the largest one is sampled later —
+        // the plateau arrived at 37,000 Ticks and now arrives at 70,000. Measured out to 300,000
+        // Ticks, the high-water mark holds at 235 from 70,000 onward, so the shape is unchanged and
+        // it is only the 100,000-Tick window that now straddles the knee. The tripwire keeps its
+        // power: what it is aimed at grows by orders of magnitude, not by six percent.
         int firstHalf = Max(tail[..(tail.Length / 2)], r => r.Pool.Slots);
         int secondHalf = Max(tail[(tail.Length / 2)..], r => r.Pool.Slots);
 
         Assert.True(
-            secondHalf <= firstHalf + (firstHalf / 32),
+            secondHalf <= firstHalf + (firstHalf / 16),
             $"the Unplaced Pool's high-water mark went from {firstHalf} rows over the first half of "
             + $"the tail to {secondHalf} over the second. A running maximum over a bounded quantity "
             + "converges; one that is still climbing after 50,000 Ticks is freed rows not being "
             + "handed back out.");
 
-        // And the Pool as a *level*, which is the one thing here that is about the city rather than
-        // about the tables. A Household leaves the Pool only when a Zone Rule builds somewhere it
-        // can go, so a Pool that fills monotonically is rehousing having quietly stopped — visible
-        // in no slot count, because the rows were already allocated.
-        long earlyPool = Mean(tail[..(tail.Length / 2)], r => r.Pool.Live);
-        long latePool = Mean(tail[(tail.Length / 2)..], r => r.Pool.Live);
-
-        Assert.True(
-            latePool <= earlyPool + (earlyPool / 32),
-            $"the Unplaced Pool held {earlyPool} Households on average over the first half of the "
-            + $"tail and {latePool} over the second. The city is evicting faster than it rehouses.");
+        // The Pool as a *level* used to be asserted here too, and adr/0069 moved it rather than
+        // deleting it. A Household left the Pool only when a Zone Rule built somewhere it could go,
+        // so the level was a statement about this engine; it is now the placement pass that drains
+        // the Pool, and construction houses nobody. The assertion lives in PlacementLongRunTests
+        // with the mechanism it is about. What stays here is everything above, which is about rows.
 
         // On the Simulation that ran, not a fresh one: a new Simulation's _tick is 0, so this tier
         // stamped every violation Tick 0 on a world 100,000 Ticks old. See RuleLongRunTests.

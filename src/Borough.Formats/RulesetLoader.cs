@@ -127,6 +127,7 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
 
         private TableSyntaxBase? _layersTable;
+        private TableSyntaxBase? _placementTable;
 
         public RulesetLoadResult Read()
         {
@@ -160,6 +161,7 @@ public static class RulesetLoader
                 out RuleId[] kindRules);
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             LayerRuleset layers = ReadLayers();
+            PlacementRuleset placement = ReadPlacement();
 
             if (_refusals.Count == 0)
             {
@@ -186,6 +188,7 @@ public static class RulesetLoader
                     zoneRules)
                 {
                     Layers = layers,
+                    Placement = placement,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 });
@@ -252,10 +255,26 @@ public static class RulesetLoader
                         _layersTable = table;
                         break;
 
+                    case "placement":
+                        // Singular and optional, on [layers]' reasoning. A city has one way of
+                        // housing the people waiting in it, so two tables of numbers for it is
+                        // ambiguous rather than additive.
+                        if (_placementTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [placement] is declared. There is one placement pass, so "
+                                + "two tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _placementTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
-                            + "[[resource]], [[building]], [[rule]], [[zone_rule]] and [layers].");
+                            + "[[resource]], [[building]], [[rule]], [[zone_rule]], [layers] and "
+                            + "[placement].");
                         break;
                 }
             }
@@ -1531,6 +1550,116 @@ public static class RulesetLoader
             }
 
             return (int)value;
+        }
+
+        // ---- placement ------------------------------------------------------------------------
+
+        /// <summary>
+        /// Reads <c>[placement]</c>: how often the Unplaced Pool is drained into standing dwellings,
+        /// how long it takes to look at everybody waiting, and how many dwellings one family sees
+        /// (<c>adr/0069</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The whole table is optional and its absence means the pass does not run</b>, which is the
+        /// opposite of <c>[layers]</c>'s default-bearing absence and is deliberate. A default here would
+        /// put three hash-bearing numbers in the binary with nobody having authored them
+        /// (<c>adr/0052</c>), and the failure it would hide is quiet: a Ruleset that houses people at a
+        /// cadence its author never wrote. A Ruleset that houses nobody is loud — the Pool grows without
+        /// bound and the Census says so — which is <c>HONEST DEGRADATION</c> choosing the visible
+        /// failure.
+        /// </para>
+        /// <para>
+        /// <b>Once the table is present every key inside it is required</b>, for the same reason: the
+        /// author has said the pass runs, and the pass has no number it can derive. <c>revisit_ticks</c>
+        /// is the exception and is <c>adr/0059</c>'s exception — a Day is derived from the scale the
+        /// rest of the Ruleset is denominated in rather than picked.
+        /// </para>
+        /// </remarks>
+        private PlacementRuleset ReadPlacement()
+        {
+            if (_placementTable is null)
+            {
+                return PlacementRuleset.None;
+            }
+
+            uint interval = ReadInterval(_placementTable, null);
+            int revisit = ReadPlacementRevisit(interval);
+            int candidates = ReadCandidates();
+
+            return new PlacementRuleset(interval, revisit, candidates);
+        }
+
+        /// <summary>
+        /// How long the placement pass takes to look at everybody waiting, in Ticks.
+        /// </summary>
+        /// <remarks>
+        /// <b><c>adr/0059</c> a second time, and the sampled quantity is the Pool rather than the Lot
+        /// grid.</b> An absolute count of seekers per trigger would house a fixed number of families a
+        /// Day however many were waiting, so the fraction of a housing queue cleared per cycle would
+        /// shrink as the queue grew — which is the failure mode <c>adr/0059</c> measured on Lots, in a
+        /// collection whose growth is the thing being fixed.
+        /// </remarks>
+        private int ReadPlacementRevisit(uint interval)
+        {
+            if (!TryInteger(_placementTable!, "revisit_ticks", out long revisit, required: true))
+            {
+                return Ticks.PerDay;
+            }
+
+            if (revisit < 1 || revisit > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "revisit_ticks")
+                        ?? _placementTable!), null,
+                    $"a revisit period of {revisit} is not a duration this world can hold. It is how "
+                    + "long the placement pass takes to look at everybody in the Unplaced Pool once, "
+                    + $"in Ticks, so it is at least 1 and at most {int.MaxValue} -- the engine divides "
+                    + "by it. If the intent is to house nobody, delete the [placement] table.");
+                return Ticks.PerDay;
+            }
+
+            // Refusal 9's shape against a third denominator: a revisit period shorter than the
+            // interval it is delivered in asks one trigger to consider more seekers than are waiting.
+            if (revisit < interval)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "revisit_ticks")
+                        ?? _placementTable!), null,
+                    $"revisit_ticks = {revisit} is shorter than the interval of {interval} it would be "
+                    + "delivered in, so one trigger would be asked to consider more seekers than the "
+                    + "Pool holds. A revisit period is a duration spread over triggers; shorten the "
+                    + "interval or lengthen the period.");
+                return (int)interval;
+            }
+
+            return (int)revisit;
+        }
+
+        /// <summary>How many dwellings one Household looks at before waiting for its next occasion.</summary>
+        /// <remarks>
+        /// <b><c>02 §5.3</c>'s N, and it is a behaviour model rather than a budget</b> — a family that
+        /// sees three flats and takes the first with room is not an optimiser being approximated. It is
+        /// <b>hash-bearing and unratified</b>: <c>0002</c> §D carries the row, and the ratifier is the
+        /// first time the housing queue is looked at with a choice model in front of it, because until
+        /// then every candidate scores the same and the number is only a rate.
+        /// </remarks>
+        private int ReadCandidates()
+        {
+            if (!TryInteger(_placementTable!, "candidates", out long candidates, required: true))
+            {
+                return 1;
+            }
+
+            if (candidates < 1 || candidates > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "candidates")
+                        ?? _placementTable!), null,
+                    $"candidates = {candidates} is out of range. It is how many dwellings a Household "
+                    + "looks at on one occasion, so it is at least 1 -- a seeker that looks at none "
+                    + "never moves, and the pass would run at full cost housing nobody.");
+                return 1;
+            }
+
+            return (int)candidates;
         }
 
         /// <summary>

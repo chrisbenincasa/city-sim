@@ -38,6 +38,7 @@ public sealed class Simulation
     private readonly WorldKey _key;
     private readonly RuleEngine _rules;
     private readonly ZoneRuleEngine _zoning;
+    private readonly PlacementEngine _placement;
     private readonly RulesetCatalogue _rulesets;
 
     private TickPhase _phase = TickPhase.Commit;
@@ -87,6 +88,7 @@ public sealed class Simulation
         _key = key;
         _rules = new RuleEngine(world, key);
         _zoning = new ZoneRuleEngine(world, key);
+        _placement = new PlacementEngine(world, key);
         _rulesets = rulesets;
     }
 
@@ -111,6 +113,20 @@ public sealed class Simulation
     /// between them look like a flag, which is exactly what the ADR says it is not.
     /// </remarks>
     public ZoneRuleEngine Zoning => _zoning;
+
+    /// <summary>
+    /// <c>02 §5.2</c> step 2: the Unplaced Pool draining into standing vacancy, in phase 6 ahead of
+    /// <see cref="Zoning"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A third engine rather than a step inside the second, and the reason is not symmetry.</b>
+    /// Placement is not a Rule of either family — nothing declares it, no Ruleset chooses whether a
+    /// city houses people, and it acts on Households where a Zone Rule acts on Lots. Folding it into
+    /// <see cref="ZoneRuleEngine"/> would put a mechanism the Ruleset does not author inside the class
+    /// that exists to interpret what the Ruleset does author, and would re-create the coupling
+    /// <c>adr/0069</c> exists to break: construction and placement doing each other's jobs.
+    /// </remarks>
+    public PlacementEngine Placement => _placement;
 
     /// <summary>The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</summary>
     public WorldKey Key => _key;
@@ -451,6 +467,14 @@ public sealed class Simulation
     private void Growth(Ticks tick)
     {
         _phase = TickPhase.Growth;
+
+        // adr/0069, and the ORDER is the decision rather than the presence. 02 §1.1 calls the phase
+        // ordering the determinism contract, and this line is inside a phase rather than beside it:
+        // placement drains the Pool into standing vacancy first, so the Pool a Zone Rule then reads is
+        // the RESIDUAL -- the Households the existing stock could not house. That is what makes the
+        // create predicate a statement about vacancy rather than about population, and it is what
+        // replaces the self-limiting property construction used to supply by housing one itself.
+        _placement.Place(tick);
 
         _zoning.Sweep(tick);
     }

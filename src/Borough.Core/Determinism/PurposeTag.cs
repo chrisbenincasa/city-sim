@@ -130,4 +130,23 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     OverflowEviction = 5,
+
+    /// <summary>
+    /// Which dwellings a Household in the Unplaced Pool looks at this occasion (<c>adr/0069</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Distinct from <see cref="PoolDraw"/> even though one pass uses both</b>, and the pair is the
+    /// same shape as <see cref="ZoneRuleSample"/> beside <see cref="PoolDraw"/> already is. They
+    /// answer <em>whom do we look at</em> and <em>what do they look at</em>; sharing a tag would
+    /// correlate the two, so the families considered earliest would be the ones shown the same
+    /// dwellings, and a District would appear to be offered to the same people every pass.
+    /// </para>
+    /// <para>
+    /// <b>Keyed on the Household rather than on the pass</b>, so that who a family looks at does not
+    /// change because somebody ahead of them in the draw was housed first. A tag keyed on position
+    /// would make one placement re-roll every candidate list behind it.
+    /// </para>
+    /// </remarks>
+    PlacementCandidate = 6,
 }

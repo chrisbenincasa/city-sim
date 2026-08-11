@@ -35,7 +35,21 @@ public sealed class ZoneRuleCreateTests
     /// <summary>The permission set a Lot needs to admit <see cref="House"/>.</summary>
     private const ushort Housing = 1 << HousingBit;
 
-    private static Ruleset Zoned(params ZoneRuleDefinition[] zoneRules) => new(
+    /// <summary>
+    /// A Ruleset with Zone Rules and <b>no placement pass</b>, which is what most of this file wants.
+    /// </summary>
+    /// <remarks>
+    /// <b>Since <c>adr/0069</c> the two halves of the growth loop are separable, and separating them
+    /// is what these tests are for.</b> Construction houses nobody, so with no <c>[placement]</c> the
+    /// Pool is a demand signal that creation reads and never touches — which is exactly the fixture a
+    /// test of the <em>create predicate</em> wants. The three tests about the loop closing ask for a
+    /// placement pass by name.
+    /// </remarks>
+    private static Ruleset Zoned(params ZoneRuleDefinition[] zoneRules) =>
+        Zoned(PlacementRuleset.None, zoneRules);
+
+    private static Ruleset Zoned(
+        PlacementRuleset placement, params ZoneRuleDefinition[] zoneRules) => new(
         resources: [],
         rules: [],
         kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = 1 }],
@@ -44,7 +58,19 @@ public sealed class ZoneRuleCreateTests
         emissions: [],
         bins: [],
         kindRules: [],
-        zoneRules: zoneRules);
+        zoneRules: zoneRules)
+    {
+        Placement = placement,
+    };
+
+    /// <summary>A placement pass that looks at everybody waiting, every trigger.</summary>
+    /// <remarks>
+    /// <c>revisit_ticks</c> equal to the interval is the fastest legal survey, and <c>candidates</c>
+    /// as wide as the fixtures' Lot count means a seeker that fails found nothing rather than looked
+    /// too narrowly. Both make the loop tests statements about the <em>loop</em>.
+    /// </remarks>
+    private static PlacementRuleset Placing(uint interval = 4, int candidates = 64) =>
+        new(interval, (int)interval, candidates);
 
     /// <summary>
     /// A world with <paramref name="vacant"/> empty Lots and <paramref name="seeking"/> Households
@@ -166,45 +192,68 @@ public sealed class ZoneRuleCreateTests
     // ---- what a create does ----------------------------------------------------------------------
 
     /// <summary>
-    /// Every Building built houses exactly one Household out of the Pool.
+    /// <b>Construction houses nobody</b> (<c>adr/0069</c>).
     /// </summary>
     /// <remarks>
-    /// <b>The conservation statement, and it is what makes growth self-limiting.</b> Creation drains
-    /// the signal that authorised it, so a Ruleset cannot build past its demand however wide its
-    /// sample — which is the property that would otherwise need a cap somebody chose.
+    /// <para>
+    /// <b>This test asserted the opposite until <c>adr/0069</c>, and the sentence it asserted was the
+    /// bug.</b> A Building used to take one Household out of the Pool as it was raised, which read as
+    /// a conservation law — creation drains the signal that authorised it — and was really the whole
+    /// of <c>02 §5.2</c> step 2 compressed into step 5. It housed one family per Building whatever the
+    /// kind declared it held, so a demolition returning three Occupants was answered by a rebuild
+    /// taking one, and a 100,000-Tick run settled five-sixths homeless.
+    /// </para>
+    /// <para>
+    /// <b>Growth is still self-limiting and the limit now runs through the Pool rather than around
+    /// it.</b> The create predicate reads the Pool and the placement pass drains it, so a Ruleset
+    /// still cannot build past its demand — one placement cycle later instead of instantly, which is
+    /// what <c>Growth_stops_when_everybody_is_housed</c> asserts.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void Creating_drains_the_pool_by_exactly_one_each_time()
+    public void Creating_houses_nobody()
     {
         (World world, Simulation simulation) = Built(Zoned(Rule()), seeking: 6);
 
         ZoneActivity activity = Run(simulation, 256);
 
-        Assert.Equal(6, activity.Created.Sum);
-        Assert.Equal(0, world.UnplacedPool.Count);
+        Assert.True(activity.Created.Sum > 0);
+        Assert.Equal(6, world.UnplacedPool.Count);
 
-        // Six seed Buildings, whose Households were evicted into the Pool, plus the six built to
-        // rehouse them. The Pool is what conserves the two numbers against each other.
-        Assert.Equal(12, world.Buildings.Rows.LiveCount);
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (!world.Buildings.Rows.IsLive(slot) || slot < 6)
+            {
+                continue;
+            }
+
+            Assert.Equal(0, world.Occupants.Length(slot));
+        }
     }
 
     /// <summary>Growth stops when demand is met, and stays stopped.</summary>
+    /// <remarks>
+    /// <b>The self-limit, and it needs both halves of the loop to exist.</b> The placement pass drains
+    /// the Pool into what has been built, the create predicate reads the Pool, and the two together
+    /// are what stops a wide sample building a city for nobody.
+    /// </remarks>
     [Fact]
-    public void Growth_stops_when_the_pool_empties()
+    public void Growth_stops_when_everybody_is_housed()
     {
-        (_, Simulation simulation) = Built(Zoned(Rule()), seeking: 3);
+        (World world, Simulation simulation) = Built(Zoned(Placing(), Rule()), seeking: 3);
 
-        Assert.Equal(3, Run(simulation, 512).Created.Sum);
+        Assert.True(Run(simulation, 512).Created.Sum > 0);
+        Assert.Equal(0, world.UnplacedPool.Count);
         Assert.Equal(0, Run(simulation, 512).Created.Sum);
     }
 
     /// <summary>
-    /// Every Household taken from the Pool ends up living in the Building that took it.
+    /// Every Household the loop houses ends up living in the Building that admitted it.
     /// </summary>
     [Fact]
     public void Everybody_housed_by_growth_lives_where_they_were_placed()
     {
-        (World world, Simulation simulation) = Built(Zoned(Rule()), seeking: 5);
+        (World world, Simulation simulation) = Built(Zoned(Placing(), Rule()), seeking: 5);
 
         Run(simulation, 256);
 
@@ -267,7 +316,10 @@ public sealed class ZoneRuleCreateTests
         // trigger. Exactly four Buildings appear, so the second Rule found what the first had taken.
         Assert.Equal(4, activity.Created.Sum);
         Assert.Equal(12, world.Buildings.Rows.LiveCount);
-        Assert.Equal(4, world.UnplacedPool.Count);
+
+        // And the Pool is untouched, because there is no placement pass here and construction houses
+        // nobody: the eight seekers authorised the four Buildings and none of them moved in.
+        Assert.Equal(8, world.UnplacedPool.Count);
 
         world.Invariants.RunEndOfRun(world);
     }
@@ -285,29 +337,6 @@ public sealed class ZoneRuleCreateTests
         Assert.Equal(first.HashState(), second.HashState());
     }
 
-    /// <summary>
-    /// Who moves in is drawn rather than taken from the front of the queue.
-    /// </summary>
-    /// <remarks>
-    /// <b><c>02 §8</c> rule 5's reason, reaching a case its wording does not cover.</b> Nothing is
-    /// contested here — any member would take the house — but a Pool that never fully drains is what
-    /// a housing shortage <em>is</em>, and under any fixed order the same Households would stay
-    /// unhoused for the life of the city with nothing to explain why. Housing strictly more than the
-    /// first-arrived would-be tenants is what this asserts.
-    /// </remarks>
-    [Fact]
-    public void Who_moves_in_is_drawn_rather_than_queued()
-    {
-        (World world, Simulation simulation) = Built(Zoned(Rule(revisit: 20)), vacant: 2, seeking: 8);
-        Handle<Household> first = world.UnplacedPool.At(0);
-
-        Run(simulation, 64);
-
-        Assert.Equal(6, world.UnplacedPool.Count);
-
-        // The two houses went to somebody, and a strict queue would have started with this one.
-        bool housed = !world.Households.IsUnplaced(world.Households.Rows.Resolve(first));
-
-        Assert.False(housed);
-    }
+    // Who moves in is drawn rather than taken from the front of the queue -- which used to be a
+    // Zone Rule's property and is the placement pass's since adr/0069. It lives in PlacementTests.
 }

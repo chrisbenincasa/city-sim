@@ -65,8 +65,14 @@ public sealed class Census
     /// </summary>
     private const int RuleMetrics = RuleCounters * AggregatesPerRuleCounter;
 
+    /// <summary>The members of <see cref="PlacementCounter"/>.</summary>
+    private const int PlacementCounters = 2;
+
     /// <summary>The Sweep family's share of one reading, on the same terms.</summary>
     private const int ZoneMetrics = ZoneCounters * AggregatesPerRuleCounter;
+
+    /// <summary>The placement pass's share, on the same terms.</summary>
+    private const int PlacementMetrics = PlacementCounters * AggregatesPerRuleCounter;
 
     /// <summary>
     /// Readings held before the oldest is overwritten.
@@ -86,6 +92,9 @@ public sealed class Census
 
     /// <summary>Where the Sweep family's begin, which is where the Rule engine's end.</summary>
     private readonly int _zoneBase;
+
+    /// <summary>Where the placement pass's begin, which is where the Sweep family's end.</summary>
+    private readonly int _placementBase;
 
     private readonly int _metrics;
     private readonly int _capacity;
@@ -117,7 +126,8 @@ public sealed class Census
         _tables = world.Tables.Length;
         _ruleBase = _tables * CountersPerTable;
         _zoneBase = _ruleBase + RuleMetrics;
-        _metrics = _zoneBase + ZoneMetrics;
+        _placementBase = _zoneBase + ZoneMetrics;
+        _metrics = _placementBase + PlacementMetrics;
         _capacity = capacity;
         _ticks = new ulong[capacity];
         _values = new long[capacity * _metrics];
@@ -170,7 +180,11 @@ public sealed class Census
         ArgumentNullException.ThrowIfNull(simulation);
 
         Observe(
-            simulation.World, simulation.Tick, simulation.Rules.Drain(), simulation.Zoning.Drain());
+            simulation.World,
+            simulation.Tick,
+            simulation.Rules.Drain(),
+            simulation.Zoning.Drain(),
+            simulation.Placement.Drain());
     }
 
     /// <summary>
@@ -188,7 +202,13 @@ public sealed class Census
     /// <param name="tick">The Tick to stamp the reading with.</param>
     /// <param name="activity">The Rule engine's interval since the previous reading, already drained.</param>
     /// <param name="zoning">The Sweep family's interval since the previous reading, already drained.</param>
-    public void Observe(World world, Ticks tick, RuleActivity activity, ZoneActivity zoning = default)
+    /// <param name="placement">The placement pass's interval since the previous reading, already drained.</param>
+    public void Observe(
+        World world,
+        Ticks tick,
+        RuleActivity activity,
+        ZoneActivity zoning = default,
+        PlacementActivity placement = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -223,6 +243,9 @@ public sealed class Census
         Write(_values, at + _zoneBase, (int)ZoneCounter.Occupied, zoning.Occupied);
         Write(_values, at + _zoneBase, (int)ZoneCounter.Created, zoning.Created);
         Write(_values, at + _zoneBase, (int)ZoneCounter.Demolished, zoning.Demolished);
+
+        Write(_values, at + _placementBase, (int)PlacementCounter.Considered, placement.Considered);
+        Write(_values, at + _placementBase, (int)PlacementCounter.Placed, placement.Placed);
 
         _ticks[_next] = tick.Raw;
         _next = (_next + 1) % _capacity;
@@ -322,6 +345,20 @@ public sealed class Census
         {
             throw new ArgumentOutOfRangeException(
                 nameof(metric), metric.Aggregate, "not a reduction this census takes.");
+        }
+
+        if (metric.Source is MetricSource.Placement)
+        {
+            if (metric.PlacementCounter is not (PlacementCounter.Considered or PlacementCounter.Placed))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.PlacementCounter,
+                    "not a placement counter this census reads.");
+            }
+
+            return _placementBase
+                + ((int)metric.PlacementCounter * AggregatesPerRuleCounter)
+                + (int)metric.Aggregate;
         }
 
         if (metric.Source is MetricSource.Zones)

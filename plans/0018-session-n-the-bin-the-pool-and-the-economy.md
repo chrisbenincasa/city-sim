@@ -34,10 +34,18 @@ two columns and a baseline that moved for both would be attributable to neither.
 **Task 2 is DECIDED, by
 [`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
 and [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md),
-and is NOT shipped** — it reopens [`0003`](0003-build-plan.md)'s hash-moving queue, which had been empty
-since 2026-08-10. **The second ADR is the one the task found underneath itself**, and it is the answer:
+and SHIPPED 2026-08-11** as [`0003`](0003-build-plan.md)'s hash-moving queue items **4** and **5**, in
+two commits — the queue had been empty since 2026-08-10 and this task reopened it. **The second ADR is the one the task found underneath itself**, and it is the answer:
 the occupancy question was never an occupancy question. Its record is
 [below](#task-2s-record--the-question-was-filed-twice-and-both-filings-had-the-wrong-subject).
+
+**What shipping task 2 found is [below](#what-shipping-task-2-found--the-adr-was-wrong-about-the-outcome-and-about-the-numbers),
+and it is the session's second methodological finding.** Both ADRs made a prediction that the build
+refuted: `adr/0068` predicted a derived column that turned out not to be needed, and `adr/0069` predicted
+an equilibrium that does not close and a number count of zero that turned out to be three. **That is
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) running forwards** —
+the rule was written for absences generating design *positions*, and an absence generating a *prediction*
+has the same base rate.
 
 **The sitting continues at task 6** (`04 §8`'s three genuinely open questions).
 
@@ -656,6 +664,57 @@ difficulty in writing a test. Recorded because the first sighting read as an acc
 - **Whether an evicted Household is preferred over a chooser when placement runs.** The Pool records no
   entry route and `CONTEXT` → Unplaced Pool says all four enter **on equal terms**, which is a decision
   already taken. Raising it here would have reopened it for a convenience.
+
+### What shipping task 2 found — the ADR was wrong about the outcome, and about the numbers
+
+**Both items shipped green and both ADRs are amended in place.** Five findings, ordered by how much
+they change what somebody should believe.
+
+**1. The five-sixths equilibrium does not close, and predicting that it would was this session's own
+error running forwards.** *Five-sixths homeless* was 83%; it is **53%**, and the residue is not a
+mechanism gap — `rulesets/minimal.toml` demolishes every dwelling it raises, which its header states at
+length and on purpose. **What the pass actually fixes is vacancy**: before it, **45% of the housing
+stock stood empty** while 70% of the population queued; after it, **10%**, which is the floor a city
+that is continuously building carries. So `PlacementLongRunTests` asserts **vacancy and not
+homelessness** — *everybody is housed* is a property of a Ruleset's **balance**, and the shipped Ruleset
+explicitly declines to have one. **The acceptance criterion written in the queue was a content
+prediction wearing a mechanism's clothes.**
+
+**2. Three hash-bearing numbers, where the ADR predicted none.** `adr/0059`'s precedent derives the
+*sample* from a duration and that half held — but the **duration** is a free parameter and so is
+**`candidates`**, and neither is derivable from anything. `0002` §D gained three rows rather than losing
+a question. `revisit_ticks` shipped at **8192**, one Day, copied from `adr/0059`'s default — and one Day
+is how often the *development industry surveys the city*, where a family without a home looks more often
+than that. At 8192 it left 45% of the stock empty; it is **1024**.
+
+**3. The candidate draw is over Lots, not Buildings, and the first implementation had it wrong.** The
+Building table is a **recycling** table: under the shipped Ruleset roughly 55% of Building slots stand
+freed at any instant, so three candidates bought about **1.3** real looks, and lowering the demolition
+rate would have silently raised the effective candidate count. A Lot is a place in the city and the Lot
+table's slot count is the size of the city. **A number whose meaning moves with an unrelated rate is not
+a number a designer can author**, which is `adr/0059`'s finding in a second shape.
+
+**4. `adr/0068`'s derived column was not needed, and the ADR is amended.** It predicted
+`derived AND rebuilt` on the strength of `adr/0064`'s Bin capacity. A Bin needed a column because
+`HeadroomAt` is hot-path; occupancy is read at a guard that runs once per placement, and the Building
+already carries its `Kind`. **The row loses an obligation rather than gaining one** — the end-of-run
+derivation check mirroring id 29 is struck.
+
+**5. The Census gained a fourth metric family, and writing it exposed that the third has no test.**
+`considered` and `placed` are two flows for the reason `evaluations − due` are: a queue looked at and
+not housed is a city out of dwellings, a queue not looked at is a mechanism that has stopped, and one
+counter cannot separate them. Nothing in the suite reads a `ZoneCounter` back through a `Census` —
+**`adr/0064`'s id-29 shape**, a block written and never read — so placement ships with one and the Sweep
+family's gap is filed. **Two sightings of *a thing with no test is invisible* in two days.**
+
+**One tripwire moved and it is recorded rather than quietly widened.** `ZoneRuleLongRunTests`' Pool
+high-water convergence tolerance went from 1/32 to 1/16. The Pool used to drain one Household per
+Building raised; it is now a queue worked off at a rate, so its excursions are wider and the largest is
+sampled later — the plateau arrived at 37,000 Ticks and now arrives at 70,000. **Measured out to
+300,000 Ticks the mark holds at 235 from 70,000 onward**, so the shape is unchanged and only the
+100,000-Tick window straddles the knee. And the same file's Pool **level** assertion was **moved rather
+than deleted**: a Household left the Pool only when a Zone Rule built, so the level was a statement
+about that engine; it is placement's now, and it lives in `PlacementLongRunTests`.
 
 ---
 

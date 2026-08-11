@@ -16,16 +16,31 @@ pointer with just enough shape to orient; the board is the view and the slice pl
 slice plans, and it was the copy that drifted (`plans/0012` *Cause 1*: every document that stores
 per-slice status drifted, and the only large one that did not stores none).
 
-**Phase 1's code is closed, and the code track holds two items** — `0003`'s hash-moving queue, which
-emptied on 2026-08-10 and **reopened the same day** with session N task 2's
+**Phase 1's code is closed, and the code track is empty** — `0003`'s hash-moving queue emptied on
+2026-08-10, **reopened the same day** with session N task 2's
 [`adr/0068`](docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
 and [`adr/0069`](docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md).
 A Building's occupancy is declared by its **kind** and derived from the Ruleset in force; an
 over-capacity Building **evicts** rather than draining, because a Bin has a consumer and occupancy has
 none; and **placement is a mechanism of its own** — `World.Place` had exactly **one** caller, inside the
 Zone Rule's create predicate, so of `02 §5.2`'s six steps only step 5 existed and the city could house
-somebody only by building them a house. **Item 5 is the first entry in that queue that builds a mechanism
-rather than correcting one.** The rest of this section describes the state before those two. Slices 0–10 are **all done** — **slice 8, hot
+somebody only by building them a house. **Both shipped 2026-08-11**, and item 5 was the first entry in
+that queue that built a **mechanism** rather than correcting one — a `[placement]` table in the Ruleset,
+a sampled Phase 6 pass ahead of the Zone Rules, and a fourth Census metric family.
+
+**Building it refuted both of its own ADR's predictions, and that is the finding.** The five-sixths
+equilibrium does **not** close: 83% homeless becomes **53%**, and the residue is `rulesets/minimal.toml`
+demolishing its whole housing stock on purpose, which its header says at length. **What the pass fixes is
+vacancy** — 45% of the housing stock stood empty while 70% of the population queued, and it is now
+**10%** — so the acceptance test asserts vacancy and not homelessness, because *everybody is housed* is a
+property of a Ruleset's **balance** and the shipped one declines to have one. And it needed **three**
+hash-bearing numbers where the ADR predicted none: `adr/0059`'s precedent derives the *sample* and leaves
+free the **duration** it is derived from, plus `candidates`. `revisit_ticks` shipped at one Day, copied
+from that default, and one Day is how often the *development industry surveys the city* — a family
+without a home looks more often than that; it is **1024**. **`adr/0070` runs forwards as well as
+backwards**: a mechanism that does not exist cannot be predicted from outside either.
+
+The rest of this section describes the state before those two. Slices 0–10 are **all done** — **slice 8, hot
 reload, closed last**, and with it `adr/0015`'s acceptance test: *change a production ratio and see the
 effect in seconds* reads **0.70 s**, against the 60–120 second warm rebuild the ADR was written on. **No
 gate is red anywhere in the corpus.** Session **N** then put four items back on the code track — the
@@ -93,7 +108,7 @@ path are still open, so do not write implementation code beyond the current slic
 
 ## The corpus, in numbers
 
-Roughly **28,000 lines of prose** — `docs/` design documents, 58 ADRs and `plans/` — against **~19,600
+Roughly **28,000 lines of prose** — `docs/` design documents, 69 ADRs and `plans/` — against **~19,600
 lines of simulation** and **~17,000 lines of tests**, plus a **33,000-line spike harness** awaiting
 deletion. The ratio is known, is on the board as a standing concern, and is why the board's rule is
 *an argument session runs when something concrete is blocked on it, never because it is available.*
@@ -145,7 +160,9 @@ scatter ≈1.5 after `0011`'s findings 42–43. The 100,000-Tick run discharged 
 half for the first time — five of six tables dead flat across continuous demolition, the sixth a
 **running maximum** bounded structurally by the population — and found the city settles **five-sixths
 homeless**, because demolition evicts a Building's whole occupancy and creation rehouses exactly one:
-**a Building has no declared occupancy at all**, filed to `0002` §B rather than tuned. And closing
+**a Building has no declared occupancy at all**, filed to `0002` §B rather than tuned. **Both halves are
+built as of 2026-08-11** (`adr/0068`, `adr/0069`), and the filing was wrong: it named a number where a
+mechanism was missing. And closing
 task 8 was an audit rather than a change: **`HouseholdHomeExists` was reported by nothing**, the only
 orphan among 26 invariants, now bannered with its **id retired rather than reused**, because a crash
 artifact carries the number. The slice's owed decision is settled *by measurement*: `adr/0044`
@@ -299,7 +316,7 @@ unless asked.
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
 | `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0018` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015` and `0014` (task 11) are both closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 3 and 4 are `adr/0063`–`0065` and all three have shipped |
+| `plans/0004`–`0018` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015` and `0014` (task 11) are both closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped** |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8, **S0a and S0b** have all run |
@@ -464,6 +481,8 @@ dotnet run --project src/Borough.Headless -- \
 | Map Layer cadence | pollution every 64 Ticks at offset 0; land value every 256 at offset 16 | tuning, hot-reloadable, **hash-bearing** — the designer's number and not the profiler's, measured in `adr/0044`. **Stated by `rulesets/minimal.toml`'s `[layers]` since slice 8 task 8**, and `adr/0044`'s claim now runs end to end from TOML text to State Hash. Still **unratified**: stating a number is not choosing it |
 | Provenance trail cap (`N`) | **16** transitions retained in full, older ones aggregated to counts | world-creation, saved and **hash-bearing**. `RulesetTrailTable.Retained`. **UNRATIFIED** — the ratifier is the first real cross-patch diagnosis, and nothing can produce the refuting number until patches exist. A `const` rather than Ruleset data because a designer must not be able to reload a smaller window: the file whose adoption the history is about would be truncating that history |
 | Industrial pollution kernel | separable tent, 1,024 m (8 Cells) | world-creation, **Ruleset data** — `[layers] kernel_metres`, frozen at world creation and refused on reload (slice 8 task 3). **UNRATIFIED** — the 1–10 km band is 10× wide and wants a source, and moving a number into a file does not ratify it |
+| A `[[kind]]`'s occupancy | **3** in both shipped Rulesets | tuning, hot-reloadable, **hash-bearing** — `[[building]] occupants` (`adr/0068`). Derived from the Ruleset in force rather than frozen at construction, so lowering it **evicts** the overflow into the Unplaced Pool: a Bin has a consumer and occupancy has none. **UNRATIFIED**, but its named ratifier has run and did not refute |
+| Placement pacing | `interval = 32`, `revisit_ticks = 1024`, `candidates = 3` | tuning, hot-reloadable, **hash-bearing** — the `[placement]` table (`adr/0069`). The **sample is derived** from the duration (`adr/0059` again), the duration is not. `revisit_ticks` shipped at 8192 and left 45% of the housing stock empty; `candidates` is `02 §5.3`'s N and **nothing can ratify it** until there is a choice model to score with. All three **UNRATIFIED** |
 | Map | 4096² Tiles, 2048² documented fallback | open |
 | Target population | 10,000 first hour / 1,000,000 late game | sizing |
 | Tick budget | 15.6 ms at 4× speed | |

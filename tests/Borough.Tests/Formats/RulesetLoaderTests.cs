@@ -1111,4 +1111,88 @@ public sealed class RulesetLoaderTests
         Assert.Contains("occupants is -1", refusal.Reason, StringComparison.Ordinal);
         Assert.Contains("houses nobody", refusal.Reason, StringComparison.Ordinal);
     }
+    // ---- [placement] (adr/0069) --------------------------------------------------------------------
+
+    /// <summary>A Ruleset with no <c>[placement]</c> loads, and houses nobody.</summary>
+    /// <remarks>
+    /// <b>The absence is the statement, and it is the opposite of <c>[layers]</c>'s.</b> A defaulted
+    /// placement would put three hash-bearing numbers into the binary with nobody having authored them
+    /// (<c>adr/0052</c>), and a city housing people at a cadence its designer never wrote is a quiet
+    /// failure. A city housing nobody is a loud one.
+    /// </remarks>
+    [Fact]
+    public void A_ruleset_with_no_placement_table_does_not_run_the_pass()
+    {
+        Assert.False(Accepted(Bakery).Placement.Runs);
+    }
+
+    /// <summary>The three numbers reach the Ruleset.</summary>
+    [Fact]
+    public void A_placement_table_carries_its_three_numbers()
+    {
+        PlacementRuleset placement = Accepted(
+            Bakery + "\n[placement]\ninterval = 32\nrevisit_ticks = 1024\ncandidates = 3\n").Placement;
+
+        Assert.True(placement.Runs);
+        Assert.Equal(32u, placement.Interval);
+        Assert.Equal(1024, placement.RevisitTicks);
+        Assert.Equal(3, placement.Candidates);
+
+        // And the sample the pair derives, which is the number the engine actually uses.
+        Assert.Equal(4, placement.SampleFor(128));
+    }
+
+    /// <summary>
+    /// A revisit period shorter than the interval it is delivered in is refused.
+    /// </summary>
+    /// <remarks>
+    /// <c>adr/0059</c>'s refusal 9 against a third denominator: one trigger would be asked to consider
+    /// more seekers than are waiting. Individually sane numbers, jointly not.
+    /// </remarks>
+    [Fact]
+    public void A_placement_revisit_shorter_than_its_interval_is_refused()
+    {
+        RulesetRefusal refusal = Refused(
+            Bakery + "\n[placement]\ninterval = 32\nrevisit_ticks = 16\ncandidates = 3\n");
+
+        Assert.Contains("shorter than the interval", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>A seeker that looks at nothing never moves, so zero candidates is refused.</summary>
+    [Fact]
+    public void A_placement_with_no_candidates_is_refused()
+    {
+        RulesetRefusal refusal = Refused(
+            Bakery + "\n[placement]\ninterval = 32\nrevisit_ticks = 1024\ncandidates = 0\n");
+
+        Assert.Contains("candidates = 0", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("never moves", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A second <c>[placement]</c> is refused, on <c>[layers]</c>'s reasoning.
+    /// </summary>
+    [Fact]
+    public void A_second_placement_table_is_refused()
+    {
+        RulesetRefusal refusal = Refused(
+            Bakery
+            + "\n[[placement]]\ninterval = 32\nrevisit_ticks = 1024\ncandidates = 3\n"
+            + "\n[[placement]]\ninterval = 64\nrevisit_ticks = 1024\ncandidates = 3\n");
+
+        Assert.Contains("second [placement]", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A <c>[placement]</c> missing a key it has no way to derive is refused.
+    /// </summary>
+    /// <remarks>
+    /// <b>Present-and-incomplete is a different statement from absent</b>, which is why the table is
+    /// optional and its contents are not: an author who wrote the section has said the pass runs.
+    /// </remarks>
+    [Fact]
+    public void A_placement_missing_candidates_is_refused()
+    {
+        Refused(Bakery + "\n[placement]\ninterval = 32\nrevisit_ticks = 1024\n");
+    }
 }

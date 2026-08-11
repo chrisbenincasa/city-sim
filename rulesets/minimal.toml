@@ -158,6 +158,35 @@ zone          = 0
 interval      = 32
 revisit_ticks = 8192
 
+# adr/0069. THE UNPLACED POOL DRAINING INTO DWELLINGS THAT ALREADY STAND, which is 02 §5.2 step 2 and
+# is the mechanism this file spent its whole life without. Before it existed the ONLY way to be housed
+# was for a [[zone_rule]] to raise you a house and put you in it -- one Household, once, at
+# construction -- so a Building demolished with three Occupants sent three to the Pool and its
+# replacement took one back. That is where the five-sixths-homeless equilibrium of the 100,000-Tick
+# run came from: not a number wanting tuning, a step of the loop nobody had built (adr/0070).
+#
+# IT RUNS AHEAD OF THE [[zone_rule]] AND THE ORDER IS THE DECISION. 02 §1.1 calls the phase ordering
+# the determinism contract, and placing first is what makes a developer's create branch a statement
+# about VACANCY rather than about population: a Household still in the Pool when the industry looks is
+# one the standing stock could not house. A developer does not build while there are empty flats.
+#
+# `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED (adr/0059, a second time). It is how long
+# the pass takes to look at everybody waiting, and the engine derives
+# `sample = ceil(Pool × interval ÷ revisit_ticks)` per trigger. Stating an absolute count of seekers
+# would house a fixed number of families a Day however many were queueing, so the fraction of the
+# queue cleared per cycle would shrink as the queue grew -- in the one collection whose growth is the
+# thing being fixed.
+#
+# `candidates` IS 02 §5.3'S N AND IT IS THE ONE FREE NUMBER HERE. A family looks at this many
+# dwellings and takes the first with room. It is a BEHAVIOUR MODEL rather than a budget -- bounded
+# knowledge, not an optimiser being approximated -- and it is hash-bearing and UNRATIFIED
+# (plans/0002 §D2). Nothing can ratify it yet: with no rent, no commute and no tolerance every
+# candidate with room scores identically, so today it is only a rate.
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
 # The Map Layers, stated rather than defaulted. Slice 8 task 8 of plans/0015, and it is the slice's
 # externally-stated definition of done: adr/0015 says every tuning number lives in a file, and until
 # this section existed the cadence was LayerRuleset.Default with a Ruleset that could not reach it.

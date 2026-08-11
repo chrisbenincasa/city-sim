@@ -83,6 +83,22 @@ internal static class CensusReport
         (ZoneCounter.Demolished, Aggregate.Peak, "demolished peak"),
     ];
 
+    /// <summary>
+    /// The placement pass's counters (<c>adr/0069</c>), on the same terms as the blocks above.
+    /// </summary>
+    /// <remarks>
+    /// <b>Both are printed because the gap between them is the reading.</b> <c>considered</c> without
+    /// <c>placed</c> is a queue being looked at and not housed, which is a city out of dwellings;
+    /// <c>placed</c> alone cannot tell that from a pass that has stopped running.
+    /// </remarks>
+    private static readonly (PlacementCounter Counter, Aggregate Aggregate, string Name)[]
+        PlacementCounters =
+    [
+        (PlacementCounter.Considered, Aggregate.Sum, "considered"),
+        (PlacementCounter.Placed, Aggregate.Sum, "placed"),
+        (PlacementCounter.Placed, Aggregate.Peak, "placed peak"),
+    ];
+
     public static void Print(TextWriter writer, World world, Census census, ulong ticks)
     {
         ArgumentNullException.ThrowIfNull(writer);
@@ -137,6 +153,14 @@ internal static class CensusReport
             truncated |= !series.Complete;
 
             WriteRow(writer, "zones", label, series);
+        }
+
+        foreach ((PlacementCounter counter, Aggregate aggregate, string label) in PlacementCounters)
+        {
+            Series series = census.Series(Metric.Of(counter, aggregate), window);
+            truncated |= !series.Complete;
+
+            WriteRow(writer, "placement", label, series);
         }
 
         if (truncated)

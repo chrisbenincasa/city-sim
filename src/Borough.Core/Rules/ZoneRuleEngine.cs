@@ -240,19 +240,19 @@ public sealed class ZoneRuleEngine
             return;
         }
 
-        Handle<Building> building = _world.CreateBuilding(
-            _world.Lots.Rows.At(lot), definition.Kind, tick, _key);
+        _world.CreateBuilding(_world.Lots.Rows.At(lot), definition.Kind, tick, _key);
 
-        // Keyed on the Lot's monotonic id rather than its slot. 02 §8 rule 5's own footnote: a slot
-        // is recycled when a row is freed, so drawing against one would make demolishing an unrelated
-        // Lot change who moves in downtown.
-        ulong value = Randomness.Draw(
-            _key, _world.Lots.Rows.IdAt(lot), tick, PurposeTag.PoolDraw);
-
-        int position = (int)(value % (ulong)(uint)_world.UnplacedPool.Count);
-
-        _world.Place(_world.UnplacedPool.At(position), building);
-
+        // adr/0069: construction houses NOBODY. This used to draw a Pool member and place them here,
+        // which was placement's job done one Household deep by the only mechanism that existed --
+        // World.Place had exactly one caller and it was this line. The new Building stands empty and
+        // PlacementEngine fills it over the following Days, which is what makes its declared capacity
+        // reachable at all and what balances the demolish-and-rebuild cycle: eviction and re-housing
+        // now use the same door.
+        //
+        // The Pool is still read, one line above, and that reading is what changed character. It is no
+        // longer a population count that this method then decrements; it is the RESIDUAL left after
+        // placement ran earlier in the same phase, so a member of it is somebody the standing stock
+        // could not house. A developer does not build while there are empty flats.
         _tickCreated++;
     }
 

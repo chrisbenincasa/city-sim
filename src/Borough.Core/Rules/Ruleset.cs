@@ -446,6 +446,69 @@ public readonly record struct ZoneRuleDefinition(byte Kind, byte Zone, uint Inte
 }
 
 /// <summary>
+/// Everything the placement pass takes from the Ruleset: how often it runs, how long it takes to
+/// look at everybody, and how many dwellings a Household considers per occasion.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b><c>02 §5.2</c> step 2, which had no implementation and no owner until <c>adr/0069</c>.</b>
+/// Placement drains the Unplaced Pool into vacant declared capacity in Buildings that already stand,
+/// which is the thing that was missing when a Zone Rule raising a Building was the only door into a
+/// dwelling in the entire simulation.
+/// </para>
+/// <para>
+/// <b>Absent means the city does not house people</b>, which is a coherent Ruleset and is what every
+/// fixture written before this meant. It is <em>not</em> given working defaults: the numbers below
+/// are hash-bearing and <c>CLAUDE.md</c>'s rule is that a tuning value belongs in the file rather
+/// than in the binary, so a default here would be the <c>const</c> that rule forbids wearing a
+/// different hat. <see cref="LayerRuleset.Default"/> can have one because its default *is* the prior
+/// behaviour; there is no prior behaviour here.
+/// </para>
+/// </remarks>
+/// <param name="Interval">Ticks between passes. Zero means placement does not run.</param>
+/// <param name="RevisitTicks">How long the pass takes to look at every member of the Pool once.</param>
+/// <param name="Candidates">Dwellings a Household considers per occasion — <c>02 §5.3</c>'s <c>N</c>.</param>
+public readonly record struct PlacementRuleset(uint Interval, int RevisitTicks, int Candidates)
+{
+    /// <summary>A Ruleset whose city houses nobody.</summary>
+    public static PlacementRuleset None => default;
+
+    /// <summary>Whether placement runs at all.</summary>
+    public bool Runs => Interval != 0;
+
+    /// <summary>
+    /// How many Pool members one pass considers, given <paramref name="pool"/> of them.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>adr/0059</c>'s derivation, over the Pool instead of over the Lot table.</b> The file
+    /// states a <em>duration</em> — how long a Household waits between being looked at — and the count
+    /// falls out of it, so the mechanism does not silently stop existing as the city grows. That is
+    /// the defect <c>adr/0059</c> was written for, and placement would have had it in the identical
+    /// form: an absolute count against a Pool that scales with the population is a city that houses a
+    /// steadily smaller fraction of the people waiting.
+    /// <para>
+    /// The ceiling is load-bearing for the same reason it is there: flooring returns <b>zero</b> for
+    /// any Pool smaller than <c>revisit_ticks ÷ interval</c>, which is every fixture in the suite and
+    /// every city a player opens on, so placement would appear not to exist on small worlds.
+    /// </para>
+    /// </remarks>
+    /// <param name="pool">How many Households are unplaced.</param>
+    public int SampleFor(int pool)
+    {
+        if (RevisitTicks < Interval)
+        {
+            throw new InvalidOperationException(
+                $"placement has a revisit period of {RevisitTicks} Ticks and an interval of "
+                + $"{Interval}. The period is how long the pass takes to look at every unplaced "
+                + "Household once, so it divides; the loader refuses anything below the interval, "
+                + "and this Ruleset was not built by it.");
+        }
+
+        return (int)IntegerMath.CeilDiv((long)pool * Interval, RevisitTicks);
+    }
+}
+
+/// <summary>
 /// The Ruleset the interpreter runs: ids and integers, validated, with no string anywhere in it.
 /// </summary>
 /// <remarks>
@@ -547,6 +610,18 @@ public sealed class Ruleset
     /// </para>
     /// </remarks>
     public LayerRuleset Layers { get; init; } = LayerRuleset.Default;
+
+    /// <summary>
+    /// How the Pool is drained into standing vacancy — <c>02 §5.2</c> step 2, <c>adr/0069</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>An init property on <see cref="Layers"/>' precedent, and the default is the opposite one.</b>
+    /// A Ruleset with no <c>[placement]</c> houses nobody, where a Ruleset with no <c>[layers]</c>
+    /// diffuses on the standing schedule. The difference is that a Layer default is the behaviour every
+    /// earlier Ruleset already had, and placement has no earlier behaviour to preserve — inventing one
+    /// would put three hash-bearing numbers in the binary.
+    /// </remarks>
+    public PlacementRuleset Placement { get; init; } = PlacementRuleset.None;
 
     /// <summary>
     /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.

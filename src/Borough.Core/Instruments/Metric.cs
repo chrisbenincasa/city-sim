@@ -150,6 +150,35 @@ public enum ZoneCounter : byte
 }
 
 /// <summary>
+/// The counters the placement pass exposes to the <see cref="Census"/> (<c>adr/0069</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Two counters rather than one, because the interesting quantity is the gap between them.</b>
+/// <see cref="Considered"/> against <see cref="Placed"/> is the housing shortage stated as a rate: a
+/// Pool that is being looked at and not housed is a city out of dwellings, where a Pool that is not
+/// being looked at is a mechanism that has stopped. A single <em>placed</em> counter reads identically
+/// in both cases — which is the shape slice 7 task 9 already found once in
+/// <c>evaluations − due</c>, and it is worth not finding a third time.
+/// </para>
+/// <para>
+/// <b>A fourth family rather than more <see cref="ZoneCounter"/>s.</b> Placement and the Zone Rules
+/// share a Tick phase and nothing else: one drains the Unplaced Pool into what stands, the other
+/// builds and condemns. Counting a seeker's occasion alongside a developer's trigger would be the
+/// arithmetic saying they are the same kind of event, which is <see cref="MetricSource.Zones"/>'
+/// reasoning applied a second time.
+/// </para>
+/// </remarks>
+public enum PlacementCounter : byte
+{
+    /// <summary>Pool members given an occasion to look — the sample, summed over the interval.</summary>
+    Considered,
+
+    /// <summary>Of those, the ones that found a dwelling with room.</summary>
+    Placed,
+}
+
+/// <summary>
 /// How a flow counter's Ticks are reduced into one reading.
 /// </summary>
 /// <remarks>
@@ -204,6 +233,14 @@ public enum MetricSource : byte
     /// the reading the ADR exists to refuse.
     /// </remarks>
     Zones,
+
+    /// <summary>One counter of the placement pass: a flow, accumulated and drained.</summary>
+    /// <remarks>
+    /// A fourth family on <see cref="Zones"/>' reasoning. Placement shares Tick phase 6 with the Zone
+    /// Rules and shares no event with them: <c>adr/0069</c> separates the mechanism that houses people
+    /// from the mechanism that builds, and a shared counter would put them back together.
+    /// </remarks>
+    Placement,
 }
 
 /// <summary>
@@ -270,12 +307,18 @@ public readonly record struct Metric
         ? (ZoneCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not carry a Zone counter.");
 
+    /// <summary>Which of the placement pass's counters.</summary>
+    public PlacementCounter PlacementCounter => Source is MetricSource.Placement
+        ? (PlacementCounter)_counter
+        : throw new InvalidOperationException($"a {Source} metric does not carry a placement counter.");
+
     /// <summary>How the counter's Ticks are reduced into one reading.</summary>
     /// <remarks>
     /// Meaningful only for a flow. A table counter is read at an instant, so there is nothing over
     /// which to take a sum or a peak and asking is a mistake rather than a default.
     /// </remarks>
-    public Aggregate Aggregate => Source is MetricSource.Rules or MetricSource.Zones
+    public Aggregate Aggregate =>
+        Source is MetricSource.Rules or MetricSource.Zones or MetricSource.Placement
         ? (Aggregate)_aggregate
         : throw new InvalidOperationException($"a {Source} metric is a level and is not aggregated.");
 
@@ -296,4 +339,10 @@ public readonly record struct Metric
     /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
     public static Metric Of(ZoneCounter counter, Aggregate aggregate) =>
         new(MetricSource.Zones, 0, (byte)counter, (byte)aggregate);
+
+    /// <summary>One counter of the placement pass, under one reduction.</summary>
+    /// <param name="counter">Which of the pass's counters.</param>
+    /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
+    public static Metric Of(PlacementCounter counter, Aggregate aggregate) =>
+        new(MetricSource.Placement, 0, (byte)counter, (byte)aggregate);
 }
