@@ -36,6 +36,7 @@ internal static class Capture
             $"- **Runtime** {RuntimeInformation.FrameworkDescription}",
             $"- **Governor** {Governor()}",
             $"- **Processors allowed** {AffinityList()} of {MachineProcessors()}",
+            $"- **Cache** {CacheSizes()}",
             $"- **Build** {Configuration()}",
         };
 
@@ -338,6 +339,116 @@ internal static class Capture
         {
             return "unreadable";
         }
+    }
+
+    /// <summary>
+    /// The cache hierarchy, each level with the processors that share it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>R7 needed the L3 size to state a conclusion and no capture held it.</b> Two <c>performance</c>
+    /// captures of the same benchmarks agree within ±2% on 961 of 1,340 cells and diverge by up to
+    /// 1.77×, and the split is exactly whether the working set fits in L3 — R1.3's scattered read moves
+    /// 2.81 → 4.96 ns at 15.64 MiB and only 1.71 → 2.00 ns at 4.00 MiB. Stating that required the
+    /// number 12 MiB, which came off <c>lscpu</c> because it was in no artefact, and the provenance
+    /// sweep duly flagged it as the one figure in that write-up with nothing behind it. <b>A machine
+    /// block that omits the constant its own conclusions turn on is the defect this class exists to
+    /// prevent</b>, one level in from the timestamp S4 was missing.
+    /// </para>
+    /// <para>
+    /// The sharing list is printed beside each size because it is the half that explains the finding:
+    /// L3 is shared by every processor on this machine, so pinning to one physical core protects
+    /// cycles and does <i>not</i> protect residency. That is the exposure the surrounding prose has
+    /// asserted since S4 without ever printing the evidence for it.
+    /// </para>
+    /// </remarks>
+    private static string CacheSizes()
+    {
+        const string Root = "/sys/devices/system/cpu/cpu0/cache";
+
+        try
+        {
+            if (!Directory.Exists(Root))
+            {
+                return "unavailable on this platform";
+            }
+
+            var levels = new List<string>();
+            string[] indices = Directory.GetDirectories(Root, "index*");
+            Array.Sort(indices, StringComparer.Ordinal);
+
+            foreach (string index in indices)
+            {
+                string level = ReadSysfs(Path.Combine(index, "level"));
+                string type = ReadSysfs(Path.Combine(index, "type"));
+                string size = ReadSysfs(Path.Combine(index, "size"));
+                string shared = ReadSysfs(Path.Combine(index, "shared_cpu_list"));
+
+                if (level.Length == 0 || size.Length == 0)
+                {
+                    continue;
+                }
+
+                // L1 splits into data and instruction caches and the two are separate entries; every
+                // level above it is unified, so the suffix would be noise there rather than detail.
+                string name = type switch
+                {
+                    "Data" => $"L{level}d",
+                    "Instruction" => $"L{level}i",
+                    _ => $"L{level}",
+                };
+
+                levels.Add(shared.Length == 0
+                    ? $"{name} {CacheSize(size)}"
+                    : $"{name} {CacheSize(size)} (shared by {shared})");
+            }
+
+            return levels.Count == 0 ? "unavailable on this platform" : string.Join(", ", levels);
+        }
+        catch (IOException)
+        {
+            return "unreadable";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return "unreadable";
+        }
+    }
+
+    private static string ReadSysfs(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? File.ReadAllText(path).Trim() : string.Empty;
+        }
+        catch (IOException)
+        {
+            return string.Empty;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Renders sysfs's cache size — always kibibytes, with a <c>K</c> suffix — in the unit the corpus
+    /// quotes it in, so the figure can be looked up as written rather than converted on transcription.
+    /// Converting on transcription is precisely what manufactured the sweep's false accusation against
+    /// 10.37 ms.
+    /// </summary>
+    private static string CacheSize(string sysfs)
+    {
+        string digits = sysfs.TrimEnd('K', 'k');
+
+        if (!int.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out int kibibytes))
+        {
+            return sysfs;
+        }
+
+        return kibibytes >= 1024 && kibibytes % 1024 == 0
+            ? $"{(kibibytes / 1024).ToString(CultureInfo.InvariantCulture)} MiB"
+            : $"{kibibytes.ToString(CultureInfo.InvariantCulture)} KiB";
     }
 
     /// <summary>

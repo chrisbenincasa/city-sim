@@ -416,9 +416,13 @@ internal static class HabitReport
             + "branch-point-compressed store and pretending otherwise would price the winning "
             + "representation using the losing one's data structure.");
         report.AppendLine();
-        report.AppendLine(
-            "| O-D rung | Horizon | Attempted | Rejoined | Suffix mark | Search alone | **Total** "
-            + "| p50 | p90 | max | × 1,269 diversions | of 15.6 ms |");
+        // The multiplier is interpolated rather than typed, in the header as well as in the sentence
+        // below the table. It was typed in both, beside a column that computes from the constant —
+        // so changing the constant would have left the heading and the explanation describing a
+        // multiplication the numbers underneath were no longer doing.
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"| O-D rung | Horizon | Attempted | Rejoined | Suffix mark | Search alone | **Total** "
+            + $"| p50 | p90 | max | × {DiversionsPerTick:N0} diversions | of 15.6 ms |"));
         report.AppendLine("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
 
         var excluded = new StringBuilder();
@@ -468,7 +472,8 @@ internal static class HabitReport
         report.Append(excluded);
         report.AppendLine();
         report.AppendLine(string.Create(CultureInfo.InvariantCulture,
-            $"*× 1,269 diversions* multiplies by R8.3's measured **{DiversionsPerTick:N0} diversions "
+            $"*× {DiversionsPerTick:N0} diversions* multiplies by R8.3's measured "
+            + $"**{DiversionsPerTick:N0} diversions "
             + $"per Tick** at N = 1, uniform, 40,000 Travellers — which is a figure from a different "
             + $"fleet size than the 1M store above, and is printed because R6.4.2's own threshold is "
             + $"stated as a product against it. The flat denominator this section could have used "

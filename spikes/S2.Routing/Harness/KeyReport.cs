@@ -229,13 +229,15 @@ internal static class KeyReport
         }
 
         report.AppendLine();
-        report.AppendLine(
-            "**Every row reads 1.00×, and that is the result rather than a disappointment.** Adding "
-            + "Buildings to a Segment mints more Access Points; it does not make two trips *end on the "
-            + "same Segment*, which is the only thing a node-keyed entry can collapse. With 512 pairs "
-            + "drawn over 33,018 Segments — 512 draws from about a billion Segment pairs — no two "
-            + "share one, whatever sits on them. **The column cannot move on this axis**, so it is "
-            + "evidence of nothing on its own and is published beside an axis where it does move.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"**Every row reads 1.00×, and that is the result rather than a disappointment.** Adding "
+            + $"Buildings to a Segment mints more Access Points; it does not make two trips *end on "
+            + $"the same Segment*, which is the only thing a node-keyed entry can collapse. With 512 "
+            + $"pairs drawn over {graph.Segments:N0} Segments — 512 draws from about a billion "
+            + $"Segment pairs — no two share one, whatever sits on them. **The column cannot move on "
+            + $"this axis**, so it is evidence of nothing on its own and is published beside an axis "
+            + $"where it does move."));
         report.AppendLine();
         report.AppendLine(
             "**The hit column is not idle, though, and it corroborates R5.3 from outside.** It sits "
@@ -247,7 +249,7 @@ internal static class KeyReport
         report.AppendLine();
 
         AppendConcentration(report, concentrated);
-        AppendKeySpaceProse(report, rows, concentrated);
+        AppendKeySpaceProse(report, graph, rows, concentrated);
     }
 
     /// <summary>
@@ -823,20 +825,22 @@ internal static class KeyReport
     }
 
     private static void AppendKeySpaceProse(
-        StringBuilder report, List<Spaced> rows, List<Spaced> concentrated)
+        StringBuilder report, RoadGraph graph, List<Spaced> rows, List<Spaced> concentrated)
     {
         var exact = concentrated.Where(r => r.Key == RouteKey.AccessPoint).ToList();
         var nodeA = concentrated.Where(r => r.Key == RouteKey.NodeA).ToList();
 
-        report.AppendLine(
-            "**The collapse column reads 1.00× on every row of both tables, and after two attempts to "
-            + "move it that is the section's finding rather than its failure.** A node-keyed entry "
-            + "collapses two Trips only when they share a Segment at **both** ends. Concentrating "
-            + "destinations onto 8 sites leaves 512 distinct origins, so the pairs stay distinct; "
-            + "adding Buildings to a Segment mints Access Points without making two Trips end "
-            + "together. **Collapse is a property of the ratio between the Trip population and the "
-            + "Segment-pair space**, and this graph has 33,018 Segments — about 1.09 × 10⁹ ordered "
-            + "pairs. No pool S2 can draw is dense in that.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"**The collapse column reads 1.00× on every row of both tables, and after two attempts "
+            + $"to move it that is the section's finding rather than its failure.** A node-keyed "
+            + $"entry collapses two Trips only when they share a Segment at **both** ends. "
+            + $"Concentrating destinations onto 8 sites leaves 512 distinct origins, so the pairs "
+            + $"stay distinct; adding Buildings to a Segment mints Access Points without making two "
+            + $"Trips end together. **Collapse is a property of the ratio between the Trip "
+            + $"population and the Segment-pair space**, and this graph has {graph.Segments:N0} "
+            + $"Segments — about {(long)graph.Segments * graph.Segments / 1_000_000L:N0} million "
+            + $"ordered pairs. No pool S2 can draw is dense in that."));
         report.AppendLine();
 
         report.AppendLine(

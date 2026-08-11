@@ -172,13 +172,18 @@ routes per Tick** against a plan that said 232.
   the corpus names and never sizes.** Same precedent as zone count and the Microscopic Cap: report a
   curve, do not pick a number.
 - **Every S2 figure is reported at peak, with the mean as a secondary column.**
-- **The 37k–111k in-flight band conflates two axes and must be re-derived on both.** It is presented as
-  sensitivity to *mean Trip duration*, but 56,000 × a 2–3× peaking factor is 110,000–170,000 — so the
-  top of that band is roughly the **provisional** duration figure at peak rather than the pessimistic
-  duration at mean. Two independent uncertainties are wearing one range, and the range understates the
-  combination. **`spike-results` is owed the correction**, because a figure known to be wrong and left
-  standing in the authoritative document is the exact failure this corpus already names about the ~400k
-  Trips/Day figure.
+- ~~**The 37k–111k in-flight band conflates two axes and must be re-derived on both.**~~ **DONE by R7,
+  2026-08-11, and it was worse than this bullet stated.** In-flight is `Trips/Day × duration × peaking
+  ÷ TICKS_PER_DAY`, so the two axes enter as a **product** and **no figure in the band can be
+  attributed to either factor**. The conflation is demonstrable rather than arguable: on the corrected
+  surface **111,000 appears three times** — 160×3, 240×2 and 480×1 — so the published ceiling is
+  simultaneously three different cities. The real top is **334,000, 3.0× the published one**, and the
+  band covers the bottom third of a 9× range while reading as a whole 3× one. **It also found the
+  reconciliation built on the band to be unsound**: `adr/0019`'s ≈120,000, dismissed as *too high*, is
+  the provisional duration at a **2.16×** peak and sits inside the corrected surface — *a contradiction
+  resolved by a model with a missing variable will always resolve.* Correction in
+  [`spike-results`](../docs/spike-results.md) → *Trips in flight*. **This item was owed by the board and
+  was never in R7's own owed list**, which is the same defect the list's reconciliation records.
 - **R2a's crossover is evaluated across the peaking sweep**, because only one side of it moves — direct
   attribution scales with vehicles in flight and is peak-sensitive; aggregate scales with
   `zone count² × route length` and is not. **Report the peaking factor at which the crossover inverts.**
@@ -1515,14 +1520,36 @@ them, so *"R2.1's detour columns are correctness content"* and *"the crossing ra
 now carry the detour means, p90s and sample count, and the crossing rate as a **range across all three
 path sources** — which is the shape that makes a disagreement between them visible.
 
-**Still owed:** a **second** `performance` capture, because one is an assertion and two are an error
-bar, and R5.6 and R6.1–R6.4 are all still `powersave`; **re-running R5's worst-Tick sweep** so
-`10.37 ms` either has an artefact or is struck from `0013` and `CLAUDE.md`; **repairing the harness's
-contradicted prose at source** and printing tables for the unbacked figures; **one sentence each** on the three R8 results measured on the District-granular
-tree `adr/0047` deleted, of which `plans/0002` §D's Habit row is the one that cannot keep the word
-*RATIFIED* without it; re-verifying the absolutes R0–R4 publish; **row 5 of the tripwire**, which no
-round owns and which wants a run with a sink and elapsed time in it; and the harness's deletion,
-which is **not available** while R6 cannot finish.
+**Still owed, reconciled 2026-08-11 — and reconciling it is the finding.** The list below had **four of
+its seven entries stale**, two of them contradicted by paragraphs in this very section, and one of them
+(*the harness's deletion*) contradicted by the sentence **five lines above the list** that says it is not
+owed yet. **This is the second time R7's owed-list has been caught holding two states at once** — the
+first was the duplicated R2 reconciliation, recorded above at the cost of a paragraph, and the lesson
+drawn there was that *an owed-list is a status-bearing document*. **That lesson did not stick, because
+nothing was changed except the entry.** A status-bearing document needs the property `0012` *Cause 1*
+keeps naming: **one copy, or a check.** The repair is that each entry below now carries its state
+explicitly rather than by being present, so *present* stops meaning *open*.
+
+| | Owed | State |
+|---|---|---|
+| 1 | A **second** `performance` capture — one is an assertion, two are an error bar; **R5.6 and R6.1–R6.4 are all still `powersave`** | ~~open~~ **DONE 2026-08-11**, twelve sections, and R5.5/R5.6/R6.1–R6.4 are canonical for the first time. **It did not produce an error bar**: the second machine was 4× busier, so the pair agrees within ±2% on 961 of 1,340 cells and diverges up to **1.77×** past L3. *Two captures are an error bar only if the machine is the same twice* |
+| 2 | Re-run R5's worst-Tick sweep so `10.37 ms` has an artefact or is struck | ~~owed~~ **DONE.** The outcome was a **third** option this entry did not offer: table-backed (`10370.13 µs`) *and* a maximum, so it was neither struck nor merely backed — it became a **range, ~9.4–10.5 ms**, and [`0013`](0013-tick-budget.md) and `CLAUDE.md` already read it that way |
+| 3 | Repair the harness's contradicted prose at source, **and print tables for the unbacked figures** | ~~half done~~ **DONE 2026-08-11.** `LoopReport` gets `VectorReport`'s `Measured` record and prints **the figures this section's verdicts quote** — six rows, each with its **operands** beside the quotient; R6.4's prose-assembled table is marked in place; every typed copy in an **emitted** string now reads its own source. ⚠ **The find is that the audit named as unbacked the one figure that was already backed**: the net fall had a harness tripwire row all along at **92.27%** against the corpus's **92.28%** — one quantity divided once in prose and twice in the table. **Now computed once**; the two agree at 92.28% |
+| 4 | **One sentence each** on the three R8 results measured on the tree `adr/0047` deleted | ~~owed~~ **DONE 2026-08-11.** See below — **the three do not share a sign**, and the clause about `plans/0002` §D keeping the word *RATIFIED* was **already moot when it was actioned** |
+| 5 | Re-verify the absolutes R0–R4 publish | ~~open~~ **DONE 2026-08-11.** R3's disclaimer is **split, not lifted**: cache-resident absolutes reproduce to **±5% across six captures and both governors**; past L3 they span **1.61×–1.77×** and keep it. **The axis is co-tenant load, not the governor** — a `powersave` run on an idle box beat a `performance` run on a busy one — and **no capture filename records load**. Row 2's published `1.20`/`5.37 ns` turn out to be quoted from a `powersave` capture; the canonical readings are `1.17`/`5.25 ns`. **Verdict unmoved: the wire's worst reading ever is 0.59× of K2** |
+| 6 | **Row 5 of the tripwire** — *the route cache grows at steady state* | **NOT S2's, and this entry was the wrong owner.** `spike-results` has said so since the wire was scored — it *"wants a run with a sink and elapsed time in it, and that is Phase 2's"* — while this list carried it as R7's. Two documents, one item, two owners. **Re-filed to Phase 2**, and the wire row itself is now annotated so a reader of the table sees it |
+| 7 | The harness's deletion | **NOT OWED**, and never was by this list — the paragraph opening this section already says so. Its presence here was the defect, not the item |
+
+**What item 4 turned out to be, and it is worth more than the three sentences.** Filed as *three
+instances of one defect*, it is three instances of one **cause** with **three different signs**.
+`adr/0047`'s cache and `adr/0060`'s variants disperse the same demand the District tree concentrated, so
+the fire rate (**14.08%**) and R8.5's self-correction are both made **conservative** by the change,
+while Temperament's **92.28%** is made **unquotable** by it — a damping ratio is measured against a
+herd, and the deleted structure manufactured the largest herd this model can produce. **A blanket
+sentence would have carried the safe direction onto the one figure that does not have it**, which is
+exactly what *"one sentence each"* stops being once the three are grouped under one heading. Full text
+in [`spike-results`](../docs/spike-results.md) → *Which direction the deleted structure pushes each of
+the three*; the two orphan numbers carry it in [`0002`](0002-open-questions.md) §B and the third in §D.
 
 **R7 also closed a reconciliation it was handed rather than one it inherited**: R6.4.3's two-order
 contradiction of R5.5.4 was an `int` overflow in R6.4's own harness, and correcting it leaves
@@ -1543,7 +1570,7 @@ meaning depends on an unstated machine is not a threshold** — so each row name
 | ~~The travel-time matrix read costs **more than S4's K2 random gather**, at the District count the design needs, on the *desktop* (i5-10400, DDR4-2133)~~ **MEASURED by R1, and it does not fire** | Larger than S2. `02 §5.8`'s rule is unenforceable and the choice loop's design reopens. **The wire fires at 13.66 ns and reads 1.14 ns at the working anchor, 5.00 ns at 4,096 Districts** — approached on the axis the plan named, and not reached. `02 §5.8` is enforceable |
 | Either router needs a **global flush** on a Road Graph edit | That candidate is out on a design commitment, not on a number |
 | An attribution scheme **cannot report a jam within the congestion cycle it happens in** (R2b) | That scheme is out on a design commitment, not on a number. `03 §3.4`'s self-correcting circularity is the load-bearing assumption of the fidelity model and a lagging detector breaks it |
-| The route cache **grows at steady state** with no bound | `adr/0006` violated. Fix the cache, not the ADR |
+| The route cache **grows at steady state** with no bound — **UNSCORABLE by S2, and re-filed to Phase 2** | `adr/0006` violated. Fix the cache, not the ADR. **It was never testable here**: every harness this spike built made its cache **fixed-capacity by construction** (R5.3 at 1,024 entries, R6.2 direct-mapped at one slot per index), and a structure that evicts cannot grow without bound. **The row was not tested and found safe; it was never representable.** Three nearby objects *are* shown bounded and none is the one the row names — reading any of them as a discharge would be the `adr/0006` mistake slice 6 already made. What it wants is **a run with a sink and elapsed time in it**, which needs Trips generated rather than drawn from an invented family: `06` **5b** |
 | The congestion loop **does not close** — an over-used Segment's volume never recovers under Sight (R8.5) | `03 §3.4`'s self-correction is then a property of a scheme nobody has built, not of the design. An adaptive Habit refresh is forced, and with it a hash-bearing cadence, `adr/0015`'s membership test, and R4.6's break-even selecting an algorithm. **This is the row `adr/0046` is most exposed to** |
 | ~~DSDV's routing tables exceed the **whole world's 172.3 MiB footprint**~~ **MEASURED by R4, and it does not fire — at the granularity the design can use** | Distance-vector is out on memory alone. **At the 121-District anchor DSDV is 23.12 MiB, 0.13× the world; at node granularity it is 3.11 GiB, 18.51×.** So the wire fires on *granularity* and not on the protocol, and sequence numbers neither cause it nor would removing them fix it. **Distance-vector went out on cost instead** — 2.13× a full rebuild — which no row here anticipated |
 

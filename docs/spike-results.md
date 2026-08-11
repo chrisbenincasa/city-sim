@@ -503,11 +503,56 @@ worth stating plainly, because it is the whole disagreement:
 | **240 Ticks (½, provisional)** | **56,000** |
 | 480 Ticks (all cross-town) | 111,000 |
 
-This resolves the corpus's 5× contradiction by explaining both ends. **`adr/0037`'s ~23,000 is not
-independent evidence** — it is exactly `400k × 480 ÷ 8192`, the same unratified figure restated, and
-it is too low because it omits the return journey. **`adr/0019`'s ~12% (≈120,000) is too high**
-because it prices every journey at cross-town. The derived figure sits between them, which is where
-it should be.
+> **⚠ CORRECTED by R7, 2026-08-11. The table above is one axis of two, and the band it publishes is a
+> range over a *product* presented as a sensitivity to one *factor*.** Every figure in it is taken at
+> **mean** demand; the morning peak is an independent 2–3× multiplier, and in-flight count is
+> `Trips/Day × duration × peaking ÷ TICKS_PER_DAY`. **Duration and peaking enter as a product, so no
+> in-flight figure can be attributed to either one.** Corrected surface, same derivation:
+>
+> | Mean Trip duration | mean demand | ×2 peak | ×3 peak |
+> |---|---|---|---|
+> | 160 Ticks (⅓ cross-town) | 37,000 | 74,000 | **111,000** |
+> | **240 Ticks (½, provisional)** | **56,000** | **111,000** | 167,000 |
+> | 480 Ticks (all cross-town) | **111,000** | 223,000 | **334,000** |
+>
+> **The conflation is visible rather than argued: 111,000 appears three times.** It is simultaneously
+> the pessimistic duration at mean demand, the provisional duration at a 2× peak, and the optimistic
+> duration at a 3× peak — three different cities wearing one number, because `160×3 = 240×2 = 480×1`.
+> **A published band whose endpoint is degenerate across the very axes it claims to separate is not a
+> sensitivity analysis.**
+>
+> **The real top of the surface is 334,000 — 3.0× the published band's ceiling** — and the published
+> 37k–111k covers the bottom third of a 9× range while reading as though it covered the whole of a 3×
+> one. **The correction propagates multiplicatively into everything divided by this band**, of which
+> the loudest is tripwire row 1: R6.3's diversion cost of *795.91%–2,387.73%* is stated across the
+> published band, so the true ceiling is near **7,160%**. **The verdict does not move** — the row
+> already fires by 80×–239× and `adr/0061` answers it by removing the search — but the corpus should
+> stop quoting 2,387.73% as a maximum.
+>
+> **The provenance sweep could not have caught any of this, and the reason generalises.** Its window
+> runs from `## S2 — the routing ceiling` to `## S0a`, and **this band lives above it, in S4's
+> section** — so *the figure S2 divides by most* sits outside the sweep that checks S2's figures.
+> Widening the window is the wrong fix, because these figures would then be matched against S2's
+> captures and every one would read *not found*. **The real gap is a class rather than a range: the
+> band is derived corpus arithmetic whose operands are assumptions, not measurements**, and the sweep's
+> benign class — *arithmetic over table-backed operands* — does not distinguish the two. `1.9M` is a
+> derived population; `240 Ticks` is a *provisional* halving of a cross-town figure; the 2–3× peak is
+> unmeasured. **An instrument that traces figures to captures is blind to the figures that were never
+> going to be in one**, which is [`0013`](../plans/0013-tick-budget.md)'s *measured multiplicand versus
+> guessed* column arriving at the sweep — and the sweep has no such column.
+
+~~This resolves the corpus's 5× contradiction by explaining both ends.~~ **It resolves it on one axis,
+and R7 found that the resolution convicted a witness using evidence it had not admitted.**
+**`adr/0037`'s ~23,000 is not independent evidence** — it is exactly `400k × 480 ÷ 8192`, the same
+unratified figure restated, and it is too low because it omits the return journey; that half stands.
+~~**`adr/0019`'s ~12% (≈120,000) is too high** because it prices every journey at cross-town. The
+derived figure sits between them, which is where it should be.~~ **STRUCK. ≈120,000 is not too high and
+it is not a cross-town artefact**: it is the *provisional* duration at a **2.16× peak**, which sits
+squarely inside the corrected surface and inside the peaking range the corpus itself uses. **The
+reconciliation dismissed a figure on an axis it had left out**, and it read as sound precisely because
+the omitted axis was omitted from both sides of the comparison. **A contradiction resolved by a model
+with a missing variable will always resolve**, and the tell is that the resolution had a spare end to
+explain away.
 
 **Legs — ~140,000 in flight.** `adr/0008` requires a car commute to be *"never fewer than three
 Legs — `walk → drive → walk`"*, and says the Trip count *"roughly triples"*. At a mean 2.5 Legs per
@@ -5047,6 +5092,14 @@ free list and are reissued, so the entry arrays are a running maximum bounded by
 than by elapsed time — `adr/0006`'s sink, and live entries read **0** against a high water of 225,505
 after the eviction pass.
 
+> **⚠ ASSEMBLED, not transcribed.** The table below was built here out of figures the R6.4 capture
+> prints as **prose**; the harness emits no table of this shape. Every figure is real and none is in
+> doubt — what is missing is the property a table normally carries, that a reader can find the same
+> grid in the artefact. **The corpus's own formatting launders the provenance**, which is why this is
+> marked rather than quietly left: the same laundering produced a measurable defect one section over,
+> where R8.4's net fall was rendered as a corpus table from capture prose and disagreed with the
+> harness's own table in the last digit. Marked 2026-08-11 by R7.
+
 | Rung | Memberships | Per route | Singly linked | vs store | Insert | Evict, singly | Evict, doubly |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | uniform | 225,505 | **110** | 3.98 MiB | **8.15×** | 5.92 µs | **22.94 µs** / 6,951 steps | **1.96 µs** / 110 steps |
@@ -5582,16 +5635,74 @@ chose, and **three live results inherit it**:
 **What survives, and it is most of it.** Row 1's verdict is untouched: it fires by 80×–239×, and no
 plausible movement in the fire rate closes two orders of magnitude. R8.5's ratification is very likely
 safe and probably strengthened — more candidate routes means more places for a jam to redistribute to,
-so self-correction should close at least as easily — **but that is an argument, and it is not the one
+so self-correction should close at least as easily — ~~**but that is an argument, and it is not the one
 on file.** The ratification currently rests on *R8.5 ran and did not refute*, with no statement that
-the run's structure was subsequently deleted.
+the run's structure was subsequently deleted.~~ **Both halves of that clause are now false, by two
+different routes, and the sentence is struck rather than deleted because *which* half went first is the
+finding.** The argument **is** on file, below. And the ratification does not rest on anything: it was
+**withdrawn on 2026-08-10**, one day before the argument defending it was written — so the sentence
+spent its last day protecting a word that had already been given up. **What survives is the *claim*,
+not the ratification**, and those were never the same object; conflating them is what let this
+paragraph read as current for as long as it did.
 
-**What is owed is small and it is not a re-run.** Each of the three needs one sentence saying which
+~~**What is owed is small and it is not a re-run.** Each of the three needs one sentence saying which
 direction the superseded basis pushes it, and `plans/0002` §D's Habit row needs that sentence before it
-can keep the word *RATIFIED* — because `adr/0052`'s whole point is that a ratifier is named, and a
-ratifier that measured a deleted structure has not been checked, only cited. **This is `adr/0044`'s
-closing finding once more — citing is not applying — arriving this time at a ratification rather than
-at a decision.**
+can keep the word *RATIFIED*~~ — **WRITTEN, 2026-08-11, and the leverage clause expired before the
+sentences did.** `plans/0002` §D withdrew the ratification on **2026-08-10**, by session D task 5 and on
+an unrelated and stronger ground — `adr/0060` makes a Habit exactly the multi-candidate scheme R8's own
+limit clause forbids carrying its fire rate to — so the second half of that sentence was moot by the
+time anybody acted on it. **The three sentences are still owed and are written below**, because a
+qualification does not stop being open when the row it qualified stops making the claim.
+
+#### Which direction the deleted structure pushes each of the three
+
+**One change sets all three directions, and it does not push them the same way.** The tree put 87.25%
+of the traffic on 1% of the carriageway; `adr/0047`'s cache and `adr/0060`'s `k` variants disperse the
+**same demand** over the same road. So all three were measured against a concentration the design has
+since removed on purpose — and **dispersal is favourable to two of them and unfavourable to the
+third**, which is why *one sentence each* was the right unit and one blanket sentence would have been
+wrong.
+
+- **The diversion fire rate, 14.08% of crossings → the direction is DOWN, and the figure is an upper
+  bound.** Sight fires when the arc ahead reads congested, and on the tree that congestion was
+  **manufactured by route degeneracy rather than by demand** — 90.87% of the carriageway was *empty* at
+  13% of holding capacity, so the arcs doing the firing were busy because they were the only arcs on
+  offer. Dispersing the same Travellers across `k` variants unloads precisely those arcs, so a
+  variant-supplied route set fires **at most** as often. **Row 1's verdict does not move**: it fires by
+  80×–239×, no movement in a rate closes two orders of magnitude, and `adr/0061` answers it by removing
+  the search rather than by lowering the rate.
+- **R8.5's self-correction → the direction is UP, and the loop closes at least as easily.** Correction
+  works by traffic leaving an over-used Segment, and more candidate routes is more places for it to go;
+  the population is also dispersed *before* any congestion response, so the loop has less to correct in
+  the first place. **The one effect running the other way does not reach it**: `adr/0061`'s rejoin can
+  fail, at R6.4.2's 19.14% below the Horizon-3 cliff — but a Traveller whose rejoin fails **has still
+  left the Segment**, so what a failed rejoin costs is the journey and not the relief. This is the
+  argument `plans/0002` §D recorded as *likely and unmade*; it is now made, and it discharges the
+  `adr/0047` qualification rather than restoring the withdrawn word.
+- **Temperament's 92.28% damping → the magnitude is an upper bound and the RATIO DOES NOT TRANSFER.
+  This is the unsafe one.** Damping is measured *against a herd*, and the tree manufactured the largest
+  herd this model can produce: every Citizen commuting between the same two places held the
+  **identical** route, met the same arc and reacted identically. `adr/0060` disperses that population
+  **by construction**, so the residual herd is smaller before Temperament acts on it at all — and **a
+  mechanism's efficacy measured against a maximal disturbance is not evidence about a small one.** So
+  the number is defensible read as *what damping can do at most*, and unsupported read as *what damping
+  will do* — which is how a constants table reads a percentage.
+
+**The finding is the asymmetry, not the three verdicts.** The same structural change makes two of these
+figures conservative and the third unquotable, and **nothing in the shape of the owed item predicted
+that**: it was filed as three instances of one defect, and it is three instances of one *cause* with
+three different signs. Discharging it with a single blanket sentence — which is what *"one sentence
+each"* invites once the three are grouped under one heading — **would have carried the safe direction
+onto the one figure that does not have it.**
+
+**Two of the three now need nothing further, and the third needs a re-run that is already booked.**
+[`plans/0002`](../plans/0002-open-questions.md) §D's **Temperament base and spread** row names R8.4's
+own instrument as the ratifier and already requires the **variant** structure and **both** herds live —
+`adr/0061` added a second herd at the switch that nothing in R8 damps. So R7 owes the sentence and the
+number owes a measurement to a round that is not S2's. **This is `adr/0044`'s closing finding once more
+— citing is not applying — arriving at a ratification rather than at a decision**, and arriving with a
+corollary: **the direction a superseded basis pushes a figure is a property of the figure, not of the
+basis.**
 
 **The general form is worth more than the three fixes.** `adr/0047` is a *decision-track* act that
 invalidated a *measurement-track* basis, which is the second instance in this spike after R6.3 found
@@ -5878,18 +5989,133 @@ and printing the range is what makes a disagreement visible instead of hiding it
 cannot cite a measurement does not merely risk going stale; it argues qualitatively about things it
 has the numbers for.**
 
+### The second `performance` capture, and what an error bar turned out to measure
+
+**Taken 2026-08-11, as root, twelve sections** — R0, R0d, R1, R2, R3, R4 **and**, for the first time
+under the canonical configuration, R5.5, R5.6 and R6.1–R6.4. That discharges the *second capture* R7
+has owed since the first one, and it answers *re-verify the absolutes R0–R4 publish*. **It does not
+answer it the way the owed item assumed, and the difference is the finding.**
+
+**The two `performance` captures are not two measurements of one thing.** Their machine blocks
+disagree by more than their numbers do:
+
+| | 2026-08-09 | 2026-08-11 |
+|---|---:|---:|
+| Load average at start | 1.56 | **6.69** |
+| CPU stall over the run | 0.10% | **1.66%** |
+| Memory stall | 0.00% | 0.00% |
+| Duration | 194.06 s | 400.61 s |
+
+**So the honest question is not *do they agree* but *where* do they agree** — and the answer is a clean
+function of working set. Of **1,340 comparable numeric cells**, 961 agree within **±2%** and 1,017
+within ±5%. What does not agree is concentrated, and R1.3 isolates it because **the same table reads
+the same data two ways**:
+
+| Districts | Resident | Row scan, A→B | Scattered, A→B |
+|---:|---:|---:|---:|
+| 121 | 57.19 KiB | 0.53 → 0.54 ns (1.02×) | 1.17 → 1.22 ns (**1.04×**) |
+| 256 | 256.00 KiB | 0.49 → 0.52 ns (1.06×) | 1.31 → 1.38 ns (**1.05×**) |
+| 400 | 625.00 KiB | 0.52 → 0.54 ns (1.04×) | 1.55 → 1.74 ns (**1.12×**) |
+| 1,024 | 4.00 MiB | 0.61 → 0.64 ns (1.05×) | 1.71 → 2.00 ns (**1.17×**) |
+| 2,025 | 15.64 MiB | 0.58 → 0.61 ns (1.05×) | 2.81 → 4.96 ns (**1.77×**) |
+| 4,096 | 64.00 MiB | 0.61 → 0.65 ns (1.07×) | 5.25 → 8.06 ns (**1.54×**) |
+
+**The sequential column is flat at every working set and the scattered column diverges past L3, which
+is 12 MiB on this machine, shared by all twelve processors.** That pairing is a control, not a coincidence: a machine that was simply
+slower would have moved both columns. Only the access pattern that depends on cache residency moved,
+and it moved only where residency was lost. **This is the first empirical confirmation of the exposure
+the harness's own machine block has been declaring since S4** — *"pinning stops another process
+stealing cycles; it does nothing about L3 eviction or DRAM bandwidth"* — which until now was a stated
+risk that nothing had ever demonstrated.
+
+**And the sweep caught the write-up you are reading.** Stating that conclusion required the number
+**12 MiB**, which came off `lscpu` because **no capture recorded a cache size**, and the sweep flagged
+it as the one figure here with no artefact behind it — an instrument catching its own author, for the
+second time in this round. **The machine block now prints the hierarchy**, and it prints the
+**sharing list** with it, because that is the half that carries the explanation:
+
+```
+- **Processors allowed** 2,8 of 12
+- **Cache** L1d 32 KiB (shared by 0,6), L1i 32 KiB (shared by 0,6), L2 256 KiB (shared by 0,6), L3 12 MiB (shared by 0-11)
+```
+
+**Those two lines together are the finding, readable without any prose**: the run holds two processors
+and the cache it depends on is shared by all twelve. **The 12 MiB above is still unbacked until the
+next capture is taken**, and that is stated rather than quietly resolved — the fix is in the harness,
+not yet in an artefact, and *a repair is not a measurement*.
+
+**Six captures now exist for R1.3, and read together they say the spread is a property of the rung.**
+At the **121-District anchor** the scattered read is **1.14 / 1.17 / 1.18 / 1.20 / 1.22 / 1.26 ns**
+across every capture, governor and load — a ±5% band. At **2,025** five captures span 2.81–3.26 and the
+sixth reads **4.96**; at **4,096** five span 5.00–5.77 and the sixth reads **8.06**. **The outlier is
+the same capture in both cases and it is the busy one.**
+
+**The consequence inverts the assumption the whole re-capture programme rests on.** The corpus treats
+`powersave` as the defect and `performance` as canonical, and at the memory-bound rungs **that is the
+smaller effect of the two**: the `powersave` capture of 2026-08-09 reads **3.14 ns** at 2,025 on a quiet
+machine, and the `performance` capture of 2026-08-11 reads **4.96 ns** on a busy one. **A `powersave`
+run on an idle box beats a `performance` run on a loaded one, on the figures that are hardest to
+reproduce.** Governor is the axis that was labelled; co-tenant load is the axis that dominates where it
+matters, and **no capture filename records it** — the label carries governor, turbo and CPU set, and
+says nothing about what else was running.
+
+**So R3's disclaimer is lifted in part and strengthened in part, rather than discharged.** *"No absolute
+nanosecond figure in this section should be quoted outside it"* can be **lifted for every rung whose
+working set is cache-resident**, which is reproducible to ±5% across six captures spanning both
+governors. It must be **kept, and now for a measured reason rather than a suspected one, for every rung
+past L3**, where the observed spread is **1.61×–1.77×** and tracks the machine's other tenants.
+
+#### A third defect in the provenance sweep, and it is the same shape as the first two
+
+**Tripwire row 2 publishes `1.20 ns` and `5.37 ns`, and both come from a `powersave` capture** — the
+2026-08-09 `r0+r0d+r1+r3+r4` run — while `tools/routing-run.sh` says in its own header that a non-root
+capture *"is not the one the report should quote if a root capture exists."* A root capture existed
+before either figure was published. The canonical `performance` readings are **1.17 ns** and **5.25 ns**.
+
+**The sweep marked both TABLE-BACKED**, and it was right to: they *are* table rows. **It has no notion
+of *which* capture a figure should have come from.** It answers *does this quantity appear in some
+artefact* where the question is *does this quantity come from the artefact this report claims to be
+quoting* — so **a figure can be table-backed, correct, and still be quoted from the wrong run.** That
+is the third defect found in this instrument and it rhymes exactly with the first two: the string match
+compared across a unit boundary, `s` matched the leading letter of *"searches"*, and now the corpus
+match ignores provenance *within* the capture set. **Each time, the matcher answered a weaker question
+than the one being asked, and each time the weaker answer was clean.**
+
+**The rule therefore gains a fifth sentence: *a figure is looked up in the capture it claims, not in the
+set of all captures*.** The four before it are: quote from a table and not from prose; tokenise on
+number boundaries; trailing zeros are a precision claim; and a figure is looked up as a quantity, not
+as a string.
+
+**What none of this moves is the verdict.** Tripwire row 2 does not fire in any of the six captures:
+against S4's K2 gather at **13.66 ns**, the worst reading ever taken is **8.06 ns — 0.59×**, on the
+busiest machine at the largest District count the design has no use for. At the anchor it is **0.09×**.
+And the comparison is **conservative by construction**, because K2 was itself measured on an idle
+machine: re-measuring it under this load would raise it too, and widen the margin rather than close it.
+`02 §5.8` remains enforceable, and it remains enforceable on the number rather than on the argument.
+
 ### What R7 still owes
 
-- ~~**The `performance` capture.**~~ **TAKEN**, 2026-08-09, all six sections — see above. **What
-  remains is a second run of it**, because one capture is an assertion and two are an error bar, and
-  **R5.6, R6.1, R6.2 and R6.3 are still `powersave`**. Those four publish no timing figure that a
-  conclusion rests on, which is why they are last rather than urgent.
+- ~~**The `performance` capture.**~~ **TAKEN**, 2026-08-09, all six sections. ~~**What remains is a
+  second run of it**, because one capture is an assertion and two are an error bar, and **R5.6, R6.1,
+  R6.2 and R6.3 are still `powersave`**.~~ **THE SECOND IS TAKEN, 2026-08-11 — twelve sections, and
+  R5.5, R5.6 and R6.1–R6.4 have a canonical capture for the first time.** See *The second `performance`
+  capture, and what an error bar turned out to measure*. **It did not produce the error bar it was taken
+  for**: the second run's machine was 4× busier (load 1.56 → 6.69, CPU stall 0.10% → 1.66%), so the two
+  captures agree within ±2% on 961 of 1,340 cells and diverge by up to **1.77×** on exactly the rungs
+  whose working set exceeds L3. **Two captures are an error bar only if the machine is the same twice**,
+  and nothing in the capture filename records load.
 - ~~**R2's reconciliation.**~~ **CLOSED** — the two figures were never the same operation, and the
   1.82× move on the one that did shift matches R4's independently measured 1.80× artefact.
-- **Re-verify the absolutes R0–R4 publish**, now that a canonical capture exists to verify them
+- ~~**Re-verify the absolutes R0–R4 publish**, now that a canonical capture exists to verify them
   against. R3 already disclaims its own — *"until it exists no absolute nanosecond figure in this
   section should be quoted outside it"* — and that disclaimer can now be lifted or discharged rather
-  than carried.
+  than carried.~~ **DONE 2026-08-11, and the disclaimer is neither lifted nor discharged — it is
+  SPLIT.** Cache-resident absolutes reproduce to **±5% across six captures spanning both governors**
+  and are quotable; absolutes past L3 span **1.61×–1.77%** and must keep the disclaimer, now for a
+  measured reason rather than a suspected one. **The axis is not the governor**: a `powersave` capture
+  on an idle machine beat a `performance` capture on a busy one at the very rungs the caveat exists to
+  protect. **And two of tripwire row 2's own published figures turned out to be quoted from a
+  `powersave` capture** while a root capture existed — table-backed, correct, and from the wrong run.
 - **Whether R0's struck `EuclideanFloor` claim stands.** True under canonical conditions; struck for a
   reason that no longer applies. A claim struck for a bad reason can still be true.
 - **Row 5 of the tripwire, which no round owns.** Recorded above as unscorable rather than clear. It
@@ -5937,23 +6163,45 @@ has the numbers for.**
   false *clearances* this bullet suspected: `1814.08 µs`, `8.15 Ticks` and `913.69 µs` were being
   counted as provenance for `14.08`, `8.15` and `13.69`, and tokenising on number boundaries removes
   them. It also found one defect nothing else could have — see *The sweep as a quantity match*.
-- **Three tables in this document were assembled from capture prose** — R5's machine table, R6.4's
-  reverse-index table and R8.4's. The figures are real; the *rendering* claims a provenance they do
-  not have, which is the one member of this family that is the corpus's fault rather than the
-  harness's. Either mark them or make the harness print the tables.
+- ~~**Three tables in this document were assembled from capture prose** — R5's machine table, R6.4's
+  reverse-index table and R8.4's. Either mark them or make the harness print the tables.~~ **DONE
+  2026-08-11, by both halves — and doing it proved the defect was not cosmetic.** R6.4's is **marked**
+  in place; **R8's figures are now printed by the harness** as *the figures this section's verdicts
+  quote*, one row each with **numerator and denominator beside the quotient**, so the family can be
+  recomputed rather than merely read. **The find is what the R8.4 case turned out to contain.** The
+  corpus's tripwire table reads **92.28%**; the harness's own tripwire table reads **92.27%**. Both
+  were right: the prose divided once and the table divided twice, through a Q16.16 share that
+  truncated going in and again coming out. **The corpus had transcribed the sentence and rendered it
+  as a table**, so a document table and an artefact table disagreed about one quantity and the
+  disagreement was invisible in both directions — *this* is what "assembled from capture prose" costs,
+  measured rather than asserted. The harness now computes it **once**, in the unit both sites render,
+  and the two agree by construction at **92.28%**. **The retained R8 capture predates the fix**, so the
+  corpus's figure is the accurate one and becomes table-backed at the next `--loop` capture; that is
+  stated rather than quietly resolved, because *a repair is not a measurement*.
 - ~~**The harness's contradicted prose, repaired at source.**~~ **DONE**, and the repair found two
   defects the sweep structurally could not — see *What repairing the prose at source then found*.
   `VectorReport`'s R4 verdict block was a stale generation throughout; `StormReport`'s **23.26×** was
   stale against 23.28×/22.61× and quoted ten times in the corpus; `LoopReport`'s *"mean journey of
   order 80"* belonged to a retired load and reads ~240 at the one R8 settled on. All three now
-  interpolate what their own sections measured. Beneath those sit the latent copies — `33,018` three
+  interpolate what their own sections measured. ~~Beneath those sit the latent copies — `33,018` three
   times, `66,036` twice, `64` eleven times **including inside table headers**, and a `1,269` typed
-  beside its own interpolation in the same sentence — each of which has a live source in the same file
-  that the prose declines to read. **Those are still owed**, and they are a smaller class than they
-  look: a count that has not changed since R0 goes stale silently rather than loudly.
-- **R8's verdicts are unbacked as a family**, including the **92.28%** that `CLAUDE.md` records as a
-  named ratifier. Nothing is known to be wrong with them and nothing can be checked against a table,
-  which is a different sentence from the one the constants table is currently carrying.
+  beside its own interpolation in the same sentence.~~ **DONE 2026-08-11**: every one of those in an
+  **emitted** string now reads its own source — `graph.Segments`, `graph.Arcs`, `graph.Volume.Length`
+  and `DiversionsPerTick`. The copies left are in `//` and `///` comments, which are commentary rather
+  than published claims and are deliberately not swept. **The `1,269` was the instructive one**: it sat
+  in a table *header* — `× 1,269 diversions` — directly above a column computed from the constant, so
+  changing the constant would have left the heading and the sentence explaining it describing a
+  multiplication the numbers underneath were no longer doing. **A header is prose that looks like
+  structure**, which is the same confusion, one row up.
+- ~~**R8's verdicts are unbacked as a family**, including the **92.28%** that `CLAUDE.md` records as a
+  named ratifier.~~ **DONE 2026-08-11.** `LoopReport` now carries a `Measured` record — `VectorReport`'s
+  pattern, arriving at the round that needed it most, since the 2026-08-10 repair gave R4 the record
+  and gave R8 only a one-off fix — and prints **87.25%**, the holding-capacity share, the **14.08%**
+  fire rate, the **21.64%** ceiling, the **15.59×** cliff and the net fall as table rows **with their
+  operands**. A verification run reproduces every published figure exactly. ⚠ **The bullet named the
+  one member of the family that was already table-backed**: 92.28% had a harness tripwire row all
+  along — at 92.27% — which is how the transcription defect above was found. *An audit that lists its
+  examples from prose inherits the defect it is auditing.*
 - **The row label that carried the R2 resolution is wrong, and the resolution survives it.** *What did
   not move* tabulates R2.1's 195.44 ms beside R4.3's 195.42 ms and R4.4's 194.94 ms as *"121 backward
   Dijkstras — the shared route store build"*, three measurements agreeing to **0.3%**. R2.1's rung is
@@ -5971,9 +6219,15 @@ has the numbers for.**
   answered inside the same document by R6.0's re-baseline note, and the argument that convicted R5 was
   a **physical plausibility check**, which cannot distinguish a wrong number from a right one when the
   story told about the gesture is itself wrong.
-- **The three results measured on a structure `adr/0047` deleted.** One sentence each on which
+- ~~**The three results measured on a structure `adr/0047` deleted.** One sentence each on which
   direction the superseded basis pushes them, and **`plans/0002` §D's Habit row needs that sentence
-  before it can keep the word *RATIFIED*.** See *The reconciliation R7 owes*.
+  before it can keep the word *RATIFIED*.**~~ **DONE, 2026-08-11** — see *Which direction the deleted
+  structure pushes each of the three*. **The three do not share a sign**: the fire rate and the
+  self-correction result are both made *conservative* by dispersal, and **Temperament's 92.28% is made
+  unquotable by it**, because that number is a ratio against a herd the deleted structure maximised.
+  The clause about *RATIFIED* was **already moot when it was actioned** — `plans/0002` §D withdrew the
+  ratification on 2026-08-10 on a stronger and unrelated ground — which is the third time in this list
+  that an owed item outlived the state of the thing it was owed against.
 - **S2 cannot close.** R6's invalidation half is gated on session **M**, which `adr/0043` types
   *arguable* — no measurement settles it — and R6.3 has since put a second question in front of it.
   The harness therefore stays; deleting it is R7's last act and it is not owed yet.

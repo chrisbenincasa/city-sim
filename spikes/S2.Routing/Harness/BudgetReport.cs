@@ -75,12 +75,15 @@ internal static class BudgetReport
         report.AppendLine();
         report.AppendLine(Capture.Stamp());
         report.AppendLine();
-        report.AppendLine(
-            "**Every budget figure in this corpus counts Trip starts.** R3's tripwire counts them and "
-            + "`plans/0013`'s routing row counts them. But `adr/0046` introduced **Sight**, R8 measured "
-            + "**1,269.51 diversions per Tick at 40,000 Travellers**, and `adr/0047` then deleted the "
-            + "next-hop table — the one path source that served a diversion cheaply. **Nobody has "
-            + "multiplied those together.** This section does.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"**Every budget figure in this corpus counts Trip starts.** R3's tripwire counts them "
+            + $"and `plans/0013`'s routing row counts them. But `adr/0046` introduced **Sight**, R8 "
+            + $"measured **{R8DiversionsPerTickHundredths / 100:N0}."
+            + $"{R8DiversionsPerTickHundredths % 100:D2} diversions per Tick at "
+            + $"{R8Travellers:N0} Travellers**, and `adr/0047` then deleted the next-hop table — the "
+            + $"one path source that served a diversion cheaply. **Nobody has multiplied those "
+            + $"together.** This section does."));
         report.AppendLine();
 
         var basis = MeasureBasis(graph, distribution);

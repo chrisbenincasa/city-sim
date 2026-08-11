@@ -198,6 +198,7 @@ internal static class LoopReport
     {
         var report = new StringBuilder();
         var caps = new List<string>();
+        var measured = new Measured();
 
         var graph = GraphGenerator.Build(GraphParameters.Working);
         var reverse = ReverseArcs.Of(graph);
@@ -258,7 +259,8 @@ internal static class LoopReport
         Mark("R8.0 the load sweep");
         int load = AppendLoad(
             report, graph, districts, nextHop, freeFlow, representativeArc, funnelImmediate,
-            funnelZone, anchorPool, anchorRung, caps, out int retiredLoad, out string headline);
+            funnelZone, anchorPool, anchorRung, caps, measured, out int retiredLoad,
+            out string headline);
 
         Mark("R8.2 the instrument check");
         var control = Measure(
@@ -295,7 +297,7 @@ internal static class LoopReport
                     load, rung, DraftThreshold, spreadShare: 0, blend: 0));
         }
 
-        int selected = AppendSweep(report, sweep, floor, load);
+        int selected = AppendSweep(report, graph, sweep, floor, load);
 
         Mark("R8.3 the origin-destination cross-check");
         var crossCheck = new List<LoopOutcome>();
@@ -337,7 +339,7 @@ internal static class LoopReport
         Mark("R8.4 the improvement distribution");
         int[] quantiles = AppendImprovement(
             report, graph, districts, nextHop, freeFlow, anchorPool, anchorRung, load, selected,
-            atSelected);
+            atSelected, measured);
 
         // Distinct values only. A concentrated distribution puts several quantiles in one octave,
         // and running the same threshold five times would print five identical rows that read as
@@ -397,7 +399,7 @@ internal static class LoopReport
             selected, baseThreshold: 0, spreadShare: 0, blend: 0);
 
         bool herdMetricValidated =
-            AppendTemperament(report, temperament, positive, selected, selectedBase, load);
+            AppendTemperament(report, graph, temperament, positive, selected, selectedBase, load);
 
         // The positive control herds two orders above every swept rung, so the switch happened
         // somewhere the sweep did not look. Which side of the transition the spread ladder was sited
@@ -424,6 +426,7 @@ internal static class LoopReport
         long denominatorLast = MeasureFlatDenominator(graph, freeFlow, denominatorPool);
 
         AppendDenominator(report, denominatorFirst, denominatorLast);
+        AppendVerdictFigures(report, measured, temperament8);
         AppendTripwires(
             report, control, instrument, sweep, temperament, thresholds, floor, oneTraveller, load,
             herdMetricValidated, surgeContrast, crossLoad, herdLadder, positive, temperament8);
@@ -723,6 +726,7 @@ internal static class LoopReport
         Pool pool,
         OdRung rung,
         List<string> caps,
+        Measured measured,
         out int retired,
         out string headline)
     {
@@ -773,7 +777,7 @@ internal static class LoopReport
         report.AppendLine();
         report.AppendLine(
             "| Travellers | " + RungHeadings("v/c") + " | Zero-volume share | "
-            + "Mean v/c, top-64 | Past the clamp | Arrivals/Tick | Mean journey, Ticks | Steady |");
+            + $"Mean v/c, top-{TopIndices} | Past the clamp | Arrivals/Tick | Mean journey, Ticks | Steady |");
         report.AppendLine("|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:-:|");
 
         var outcomes = new List<LoadOutcome>();
@@ -801,7 +805,7 @@ internal static class LoopReport
         report.AppendLine();
         report.AppendLine(
             "| Travellers | v/c p99, all | p99, 1-hop funnel out | p99, 4-hop zone out | "
-            + "v/c max, all | max, 1-hop out | max, 4-hop out | Zone share of top-64 |");
+            + $"v/c max, all | max, 1-hop out | max, 4-hop out | Zone share of top-{TopIndices} |");
         report.AppendLine("|---:|---:|---:|---:|---:|---:|---:|---:|");
 
         foreach (LoadOutcome outcome in outcomes)
@@ -862,7 +866,8 @@ internal static class LoopReport
                     + "a finding about this network and it is not tuned away.")}"));
         report.AppendLine();
         report.AppendLine(string.Create(CultureInfo.InvariantCulture,
-            $"**Does the load move when the knee is read on p99 rather than on the top-64 clamp "
+            $"**Does the load move when the knee is read on p99 rather than on the top-{TopIndices} "
+            + $"clamp "
             + $"share?** The retired criterion selects "
             + $"{(byClampShare >= 0 ? $"{byClampShare:N0}" : "nothing")} and the stated one selects "
             + $"{selected:N0}, so the answer is "
@@ -916,7 +921,7 @@ internal static class LoopReport
             report.AppendLine();
         }
 
-        headline = AppendMeaning(report, graph, representativeArc, outcomes, selected);
+        headline = AppendMeaning(report, graph, representativeArc, outcomes, selected, measured);
         AppendLoadVerdict(report, outcomes, selected);
 
         caps.Add(string.Create(CultureInfo.InvariantCulture,
@@ -957,7 +962,8 @@ internal static class LoopReport
         RoadGraph graph,
         int[] representativeArc,
         List<LoadOutcome> outcomes,
-        int operating)
+        int operating,
+        Measured measured)
     {
         report.AppendLine("#### What an operating load of this size means");
         report.AppendLine();
@@ -1038,6 +1044,11 @@ internal static class LoopReport
                 chosen = outcome;
             }
         }
+
+        measured.HoldingCapacity = holding;
+        measured.HoldingShare = share;
+        measured.OperatingLoad = operating;
+        measured.HeadShare = chosen?.HeadShare ?? 0;
 
         report.AppendLine(string.Create(CultureInfo.InvariantCulture,
             $"Summed over all {carIndices:N0} car-carrying indices, the network holds "
@@ -1566,7 +1577,7 @@ internal static class LoopReport
             + $"is that the control cannot respond."));
         report.AppendLine();
         report.AppendLine(
-            "| Rung | " + RungHeadings("v/c") + " | Mean v/c, top-64 | Oscillation w1 | w2 | Steady "
+            "| Rung | " + RungHeadings("v/c") + $" | Mean v/c, top-{TopIndices} | Oscillation w1 | w2 | Steady "
             + "| Diversions/Tick | Crossings/Tick |");
         report.AppendLine("|---|---:|---:|---:|---:|---:|---:|---:|---:|:-:|---:|---:|");
         AppendInstrumentRow(report, "control, N=0", control);
@@ -1689,7 +1700,7 @@ internal static class LoopReport
     private static readonly long SaturatedArcTicks = (87L * 394 * Fixed.One) / 1000;
 
     private static int AppendSweep(
-        StringBuilder report, List<LoopOutcome> sweep, int floor, int load)
+        StringBuilder report, RoadGraph graph, List<LoopOutcome> sweep, int floor, int load)
     {
         report.AppendLine("### R8.3 — the Sight sweep");
         report.AppendLine();
@@ -1703,7 +1714,7 @@ internal static class LoopReport
             + $"reading is taken on **p99** and the maximum is carried alongside it."));
         report.AppendLine();
         report.AppendLine(
-            "| N | " + RungHeadings("v/c") + " | Mean v/c, top-64 | Past the BPR clamp | Oscillation "
+            "| N | " + RungHeadings("v/c") + $" | Mean v/c, top-{TopIndices} | Past the BPR clamp | Oscillation "
             + "| Diversions/Tick | No alternative | Mean journey, Ticks | Refresh ns/Tick | "
             + "Move ns/Tick | Sight ns/Tick | of 15.6 ms |");
         report.AppendLine(
@@ -1806,17 +1817,19 @@ internal static class LoopReport
         report.AppendLine();
 
         report.AppendLine(monotoneOnP99
-            ? "**On p99, `v/c` falls with every step up the Horizon ladder, and that settles a "
-                + "question the previous capture got wrong.** That capture reported the ladder "
-                + "non-monotone and built an explanation on top of the non-monotonicity — an "
-                + "asymmetry between a live lookahead bounded by the clamp and a lagged remainder "
-                + "bounded by nothing, which it offered as the best available account of why a "
-                + "longer Horizon could make things worse. **It was reading a maximum over 33,018 "
-                + "indices.** The non-monotonicity was a property of that statistic and not of the "
-                + "mechanism, and the asymmetry argument is withdrawn: it is not refuted, it is "
-                + "unsupported, because the column it stood on no longer says what it said. Sight "
-                + "behaves like a monotone knob on the distribution, which is what `adr/0046` "
-                + "claims for it."
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"**On p99, `v/c` falls with every step up the Horizon ladder, and that settles a "
+                + $"question the previous capture got wrong.** That capture reported the ladder "
+                + $"non-monotone and built an explanation on top of the non-monotonicity — an "
+                + $"asymmetry between a live lookahead bounded by the clamp and a lagged remainder "
+                + $"bounded by nothing, which it offered as the best available account of why a "
+                + $"longer Horizon could make things worse. **It was reading a maximum over "
+                + $"{graph.Volume.Length:N0} indices.** The non-monotonicity was a property of that "
+                + $"statistic and not of the mechanism, and the asymmetry argument is withdrawn: it "
+                + $"is not refuted, it is unsupported, because the column it stood on no longer says "
+                + $"what it said. Sight behaves like a monotone knob on the distribution, which is "
+                + $"what `adr/0046` claims for it.")
             : string.Create(
                 CultureInfo.InvariantCulture,
                 $"**On p99, `v/c` still does not fall monotonically in `N`, so the asymmetry "
@@ -1841,32 +1854,35 @@ internal static class LoopReport
             $"The maximum column is {(monotoneOnMax ? "also monotone" : "**not** monotone")}, which "
             + $"is stated for completeness and carries no argument either way: it is one arc."));
         report.AppendLine();
-        report.AppendLine(
-            "**The `Refresh` column is a finding on its own, and at this load it is the dominant "
-            + "one.** Recomputing the live cost array is `O(arcs)`, touches nothing else, and costs "
-            + "**more than the entire traveller loop** at every Horizon below 8 — before a single "
-            + "Traveller has looked at anything. It does not scale with the fleet, so it does not "
-            + "get better at 1M; it gets relatively cheaper only against work that grows. **The "
-            + "conclusion is not that the sweep is expensive. It is that a sweep is the wrong shape: "
-            + "cost updates have to be incremental and local.** Under `adr/0041` volume is written "
-            + "by Travellers entering and leaving arcs, so the set of arcs whose cost actually moved "
-            + "in a Tick is exactly the set of arcs somebody crossed — a few hundred, not 66,036 — "
-            + "and it is already enumerated by the loop that caused it. A per-Tick VDF sweep over "
-            + "every arc in the world recomputes a number that did not change for something like "
-            + "ninety-nine arcs in a hundred, which is the same shape of mistake as diffusing a Map "
-            + "Layer that nothing has touched. Whatever ships must update the arcs the Tick wrote "
-            + "and leave the rest alone; a staggered cadence would bound the cost but would also "
-            + "make a driver's Sight depend on which stagger bucket the arc in front of him fell "
-            + "into, which is `adr/0044`'s hash-bearing problem arriving in the routing layer.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"**The `Refresh` column is a finding on its own, and at this load it is the dominant "
+            + $"one.** Recomputing the live cost array is `O(arcs)`, touches nothing else, and costs "
+            + $"**more than the entire traveller loop** at every Horizon below 8 — before a single "
+            + $"Traveller has looked at anything. It does not scale with the fleet, so it does not "
+            + $"get better at 1M; it gets relatively cheaper only against work that grows. **The "
+            + $"conclusion is not that the sweep is expensive. It is that a sweep is the wrong shape: "
+            + $"cost updates have to be incremental and local.** Under `adr/0041` volume is written "
+            + $"by Travellers entering and leaving arcs, so the set of arcs whose cost actually moved "
+            + $"in a Tick is exactly the set of arcs somebody crossed — a few hundred, not "
+            + $"{graph.Arcs:N0} — and it is already enumerated by the loop that caused it. A "
+            + $"per-Tick VDF sweep over "
+            + $"every arc in the world recomputes a number that did not change for something like "
+            + $"ninety-nine arcs in a hundred, which is the same shape of mistake as diffusing a Map "
+            + $"Layer that nothing has touched. Whatever ships must update the arcs the Tick wrote "
+            + $"and leave the rest alone; a staggered cadence would bound the cost but would also "
+            + $"make a driver's Sight depend on which stagger bucket the arc in front of him fell "
+            + $"into, which is `adr/0044`'s hash-bearing problem arriving in the routing layer."));
         report.AppendLine();
-        report.AppendLine(
-            "**The Sight column is a difference and never a product.** It is this rung's measured "
-            + "`Move` cost minus the control's, which charges Sight for exactly the work Horizon 0 "
-            + "does not do. `plans/0010`'s R3 rule — *invert the derivation until what is published "
-            + "is measured* — refuses the alternative of a per-decision cost times a guessed decision "
-            + "rate. The `Refresh` column is separate for the same reason: it is `O(arcs)` and "
-            + "independent of fleet size, so folding it into the traveller loop would charge the "
-            + "Sight sweep for 66,036 arcs it never looked at.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"**The Sight column is a difference and never a product.** It is this rung's measured "
+            + $"`Move` cost minus the control's, which charges Sight for exactly the work Horizon 0 "
+            + $"does not do. `plans/0010`'s R3 rule — *invert the derivation until what is published "
+            + $"is measured* — refuses the alternative of a per-decision cost times a guessed "
+            + $"decision rate. The `Refresh` column is separate for the same reason: it is `O(arcs)` "
+            + $"and independent of fleet size, so folding it into the traveller loop would charge "
+            + $"the Sight sweep for {graph.Arcs:N0} arcs it never looked at."));
         report.AppendLine();
 
         // Selection: the lowest p99 v/c, ties to the smaller Horizon, and never the control. It was
@@ -1913,7 +1929,7 @@ internal static class LoopReport
             + "under a different draw.");
         report.AppendLine();
         report.AppendLine(
-            "| O-D rung | " + RungHeadings("v/c") + " | Mean v/c, top-64 | Oscillation | "
+            "| O-D rung | " + RungHeadings("v/c") + $" | Mean v/c, top-{TopIndices} | Oscillation | "
             + "Diversions/Tick | No alternative | Mean journey, Ticks | Steady |");
         report.AppendLine("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:-:|");
 
@@ -1965,7 +1981,7 @@ internal static class LoopReport
             + $"resolve. Nothing is selected off this table."));
         report.AppendLine();
         report.AppendLine(
-            "| N | " + RungHeadings("v/c") + " | Mean v/c, top-64 | Past the BPR clamp | Oscillation "
+            "| N | " + RungHeadings("v/c") + $" | Mean v/c, top-{TopIndices} | Past the BPR clamp | Oscillation "
             + "| Diversions/Tick | No alternative | Mean journey, Ticks | Steady |");
         report.AppendLine("|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:-:|");
 
@@ -2100,7 +2116,8 @@ internal static class LoopReport
         OdRung rung,
         int load,
         int selected,
-        LoopOutcome atSelected)
+        LoopOutcome atSelected,
+        Measured measured)
     {
         var fleet = NewFleet(
             graph, districts, nextHop, freeFlow, pool, load, selected, DraftThreshold,
@@ -2133,6 +2150,11 @@ internal static class LoopReport
 
         long offeredNothing = histogram.Length > 0 ? histogram[0] : 0;
         long offeredSomething = fleet.ImprovementSamples - offeredNothing;
+
+        measured.OfferedSomething = offeredSomething;
+        measured.ImprovementSamples = fleet.ImprovementSamples;
+        measured.Diversions = atSelected.Diversions;
+        measured.Crossings = atSelected.Crossings;
 
         report.AppendLine(
             "| Quantile | Over every decision | Over decisions offered anything at all | "
@@ -2267,7 +2289,7 @@ internal static class LoopReport
         report.AppendLine();
         report.AppendLine(
             "| Base threshold | Quantile | Oscillation | " + RungHeadings("v/c")
-            + " | Mean v/c, top-64 | Diversions/Tick | Mean journey, Ticks | Steady |");
+            + $" | Mean v/c, top-{TopIndices} | Diversions/Tick | Mean journey, Ticks | Steady |");
         report.AppendLine("|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|:-:|");
 
         for (int i = 0; i < outcomes.Count && i < baseLabels.Length; i++)
@@ -2349,6 +2371,7 @@ internal static class LoopReport
 
     private static bool AppendTemperament(
         StringBuilder report,
+        RoadGraph graph,
         List<LoopOutcome> outcomes,
         LoopOutcome positive,
         int selected,
@@ -2491,14 +2514,16 @@ internal static class LoopReport
             + "If that number is large, the network is not herding for reasons that have nothing to "
             + "do with the layer under test, and no setting of the spread could show otherwise.");
         report.AppendLine();
-        report.AppendLine(
-            "**One pattern in this table was odd enough to name in the previous capture and is "
-            + "reported here as retired.** The blend-0.50 rows carried visibly higher *peak* `v/c` "
-            + "than either endpoint at the same spread, which is the opposite of what `adr/0046` "
-            + "predicts. That reading was a maximum over 33,018 indices — the highest-variance "
-            + "column in the report — and the ladder is what it should have been read on. Whether "
-            + "anything survives at p99 is visible above; a three-row pattern in a thirteen-row "
-            + "table is exactly the size of thing that turns out to be nothing, and it was.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"**One pattern in this table was odd enough to name in the previous capture and is "
+            + $"reported here as retired.** The blend-0.50 rows carried visibly higher *peak* `v/c` "
+            + $"than either endpoint at the same spread, which is the opposite of what `adr/0046` "
+            + $"predicts. That reading was a maximum over {graph.Volume.Length:N0} indices — the "
+            + $"highest-variance column in the report — and the ladder is what it should have been "
+            + $"read on. Whether anything survives at p99 is visible above; a three-row pattern in a "
+            + $"thirteen-row table is exactly the size of thing that turns out to be nothing, and it "
+            + $"was."));
         report.AppendLine();
         report.AppendLine(
             "**Amplitude must fall monotonically in spread across at least the first three rungs.** "
@@ -2541,11 +2566,55 @@ internal static class LoopReport
         int TotalSteps,
         long NetFrom,
         long NetTo,
-        long NetShare)
+        int NetShareHundredths,
+        long CliffFrom,
+        long CliffTo)
     {
         public static TemperamentReading None(TemperamentVerdict verdict) =>
             new(verdict, MonotoneFirstThree: false, Resolution: 0, BreakingStep: 0,
-                UnresolvableSteps: 0, TotalSteps: 0, NetFrom: 0, NetTo: 0, NetShare: 0);
+                UnresolvableSteps: 0, TotalSteps: 0, NetFrom: 0, NetTo: 0, NetShareHundredths: 0,
+                CliffFrom: 0, CliffTo: 0);
+    }
+
+    /// <summary>
+    /// Every figure R8's verdicts quote, carried from the section that measured it to the table that
+    /// publishes it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is <c>VectorReport.Measured</c>'s pattern, arriving at the round that needed it most.</b>
+    /// The repair of 2026-08-10 gave R4 a record so its verdict could cite a measurement instead of
+    /// remembering one; R8 got a one-off fix and not the record, and R7's audit then found <i>"R8's
+    /// verdicts are unbacked as a family"</i> — 87.25% on 1%, the holding-capacity share, the diversion
+    /// fire rate, the share offered any alternative, and the first-rung cliff were all real numbers
+    /// that appeared only in prose. A reader could not check one against a table because there was no
+    /// table to check it against.
+    /// </para>
+    /// <para>
+    /// <b>The columns are the operands, not just the result</b>, because the sweep's one genuine find
+    /// was a figure read off the wrong row — a real value from a real table, paired with an addend
+    /// from a different rung. Publishing numerator and denominator beside the quotient is what makes
+    /// that arithmetic checkable rather than merely visible.
+    /// </para>
+    /// </remarks>
+    private sealed class Measured
+    {
+        /// <summary>Q16.16 share of all volume on the busiest one per cent of indices.</summary>
+        public long HeadShare;
+
+        /// <summary>Q16.16 vehicles the network can hold at once.</summary>
+        public long HoldingCapacity;
+
+        /// <summary>Q16.16 share of holding capacity the operating load represents.</summary>
+        public long HoldingShare;
+
+        public int OperatingLoad;
+
+        public long Diversions;
+        public long Crossings;
+
+        public long OfferedSomething;
+        public long ImprovementSamples;
     }
 
     /// <summary>What R8.4 was able to conclude about <c>adr/0046</c>'s third layer.</summary>
@@ -2772,10 +2841,21 @@ internal static class LoopReport
         bool variationDamps = inRegimeZero > 0
             && spreadGap * 10_000 >= inRegimeZero * HerdMarginHundredths;
 
+        // ONE computation of the net fall, shared with the tripwire table. It used to be two: this
+        // sentence divided once (`Percent(gap, from)`) and the tripwire row divided twice, through a
+        // Q16.16 `NetShare` that truncated on the way in and again on the way out. The two renderings
+        // of one quantity therefore disagreed in the last digit — 92.28% here against 92.27% in the
+        // table — and R7 found the corpus had transcribed the *prose* one into a document table,
+        // which is the laundering that makes such a gap invisible. Neither figure was wrong; having
+        // two was. Hundredths is the unit both sites render, so it is the unit the value is held in.
+        int netFallHundredths = inRegimeZero == 0
+            ? 0
+            : (int)((spreadGap * 10_000) / inRegimeZero);
+
         report.AppendLine(string.Create(CultureInfo.InvariantCulture,
             $"**Reading (ii).** Inside the herding regime, oscillation goes {Fix(inRegimeZero)} at "
             + $"spread 0 to {Fix(inRegimeLargest)} at the largest spread — "
-            + $"{Percent(spreadGap, inRegimeZero == 0 ? 1 : inRegimeZero)} against a stated bar of "
+            + $"{Hundredths(netFallHundredths)}% against a stated bar of "
             + $"{Hundredths(HerdMarginHundredths)}%. **Per-Citizen variation "
             + $"{(variationDamps ? "does" : "does not")} damp** where there is something to damp."));
         report.AppendLine();
@@ -2920,7 +3000,14 @@ internal static class LoopReport
             }
         }
 
-        long netShare = netFrom == 0 ? 0 : IntegerMath.FloorDiv(netGap * Fixed.One, netFrom);
+        // Hundredths rather than Q16.16, and one division rather than two — see the note beside
+        // `netFallHundredths` in AppendHerdRegime, which computes the same quantity for the prose.
+        // A share held in Q16.16 and then rendered as a percentage truncates twice, and the second
+        // truncation is what put this figure one hundredth below the sentence describing it.
+        int netShareHundredths = netFrom == 0 ? 0 : (int)((netGap * 10_000) / netFrom);
+
+        long cliffFrom = series.Count > 0 ? series[0] : 0;
+        long cliffTo = series.Count > 1 ? series[1] : 0;
 
         if (monotone || worst is null)
         {
@@ -2933,7 +3020,8 @@ internal static class LoopReport
             return new TemperamentReading(
                 TemperamentVerdict.NotRefuted, monotoneFirstThree, Resolution: 0,
                 BreakingStep: breakingStep, UnresolvableSteps: 0,
-                TotalSteps: series.Count - 1, netFrom, netTo, netShare);
+                TotalSteps: series.Count - 1, netFrom, netTo, netShareHundredths, cliffFrom,
+                cliffTo);
         }
 
         report.AppendLine(string.Create(CultureInfo.InvariantCulture,
@@ -3108,19 +3196,21 @@ internal static class LoopReport
             + $"shape this phenomenon does not have, so the wire fires on the *saturation* rather "
             + $"than on any failure of the layer."));
         report.AppendLine();
-        report.AppendLine(
-            "**That is the same class of defect as the other two this section found, and three "
-            + "instances make it the pattern rather than the anecdote.** A maximum over 33,018 "
-            + "volume indices was chosen before anyone knew the distribution was nine parts empty. "
-            + "An unconditioned p99 was chosen before anyone knew the same thing. A monotonicity "
-            + "test was chosen before anyone knew the response was a cliff. **Each was a statistic "
-            + "chosen before the shape of what it would measure was known**, and each survived "
-            + "into a published wire because nothing in the process asks that question. `adr/0043` "
-            + "requires a claim a measurement could settle to name the number that would refute it; "
-            + "R8's experience adds a second requirement to that — **name the shape you expect, "
-            + "because a number read off the wrong shape is not evidence.** A wire should be "
-            + "re-derived once the first measurement shows what the response looks like, and the "
-            + "re-derivation stated and scored separately rather than swapped in.");
+        report.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"**That is the same class of defect as the other two this section found, and three "
+            + $"instances make it the pattern rather than the anecdote.** A maximum over "
+            + $"{graph.Volume.Length:N0} "
+            + $"volume indices was chosen before anyone knew the distribution was nine parts empty. "
+            + $"An unconditioned p99 was chosen before anyone knew the same thing. A monotonicity "
+            + $"test was chosen before anyone knew the response was a cliff. **Each was a statistic "
+            + $"chosen before the shape of what it would measure was known**, and each survived "
+            + $"into a published wire because nothing in the process asks that question. `adr/0043` "
+            + $"requires a claim a measurement could settle to name the number that would refute it; "
+            + $"R8's experience adds a second requirement to that — **name the shape you expect, "
+            + $"because a number read off the wrong shape is not evidence.** A wire should be "
+            + $"re-derived once the first measurement shows what the response looks like, and the "
+            + $"re-derivation stated and scored separately rather than swapped in."));
         report.AppendLine();
         report.AppendLine(
             "**And the siting lesson beside it, which is this section's most transferable finding.** "
@@ -3136,7 +3226,7 @@ internal static class LoopReport
 
         return new TemperamentReading(
             TemperamentVerdict.NotRefuted, monotoneFirstThree, resolution, breakingStep,
-            unresolvable, series.Count - 1, netFrom, netTo, netShare);
+            unresolvable, series.Count - 1, netFrom, netTo, netShareHundredths, cliffFrom, cliffTo);
     }
 
     /// <summary>
@@ -3812,6 +3902,83 @@ internal static class LoopReport
         report.AppendLine();
     }
 
+    /// <summary>
+    /// Every headline figure R8's verdicts quote, in one table, with the operands each was divided
+    /// from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>R7's audit found R8's verdicts unbacked as a family</b>: every one of these was a real
+    /// measurement that existed only inside a sentence, so the corpus quoted them from capture prose
+    /// and then re-rendered some of them as document tables — which launders the provenance, because
+    /// a table in the corpus reads as a table from the harness. That is not hypothetical. R8.4's net
+    /// fall was transcribed into a corpus table from this report's prose while this report's own
+    /// tripwire table carried a different last digit, and nobody could see it.
+    /// </para>
+    /// <para>
+    /// <b>The operand columns are the point.</b> A quotient alone can be checked for plausibility and
+    /// nothing else; a quotient beside its numerator and denominator can be recomputed. The sweep's
+    /// single genuine find was a percentage read off the wrong row — real value, wrong rung — and that
+    /// is the class this shape defends against.
+    /// </para>
+    /// </remarks>
+    private static void AppendVerdictFigures(
+        StringBuilder report, Measured measured, TemperamentReading temperament)
+    {
+        report.AppendLine("### R8 — the figures this section's verdicts quote");
+        report.AppendLine();
+        report.AppendLine(
+            "**Every number R8's prose argues from, with what it was divided from.** Quote from this "
+            + "table and not from the sentences above it: a sentence can go stale against its own "
+            + "measurement, and this round has caught that happening three times.");
+        report.AppendLine();
+        report.AppendLine("| Figure | Value | Numerator | Denominator | Owner |");
+        report.AppendLine("|---|---:|---:|---:|---|");
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"| Traffic on the busiest 1% of indices | {Percent(measured.HeadShare, Fixed.One)} | "
+            + $"— | — | R8.0 |"));
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"| Operating load against holding capacity | "
+            + $"{Percent(measured.HoldingShare, Fixed.One)} | {measured.OperatingLoad:N0} Travellers "
+            + $"| {IntegerMath.ShiftRight(measured.HoldingCapacity, Fixed.FractionalBits):N0} "
+            + $"vehicles | R8.0 |"));
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"| Diversion fire rate | {Percent(measured.Diversions, measured.Crossings)} | "
+            + $"{measured.Diversions:N0} diversions | {measured.Crossings:N0} crossings | R8.3 |"));
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"| Decisions offered any alternative — the ceiling on the row above | "
+            + $"{Percent(measured.OfferedSomething, measured.ImprovementSamples)} | "
+            + $"{measured.OfferedSomething:N0} offered | {measured.ImprovementSamples:N0} samples | "
+            + $"R8.4 |"));
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"| First-rung cliff in oscillation amplitude | "
+            + $"{Ratio(temperament.CliffFrom, temperament.CliffTo == 0 ? 1 : temperament.CliffTo)} | "
+            + $"{Fix(temperament.CliffFrom)} | {Fix(temperament.CliffTo)} | R8.4 |"));
+
+        report.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"| Net fall in amplitude across the spread ladder | "
+            + $"{Hundredths(temperament.NetShareHundredths)}% | {Fix(temperament.NetFrom)} | "
+            + $"{Fix(temperament.NetTo)} | R8.4 |"));
+
+        report.AppendLine();
+        report.AppendLine(
+            "**The last row is the one to read carefully, and not because of its value.** It is a "
+            + "ratio measured *against a herd*, and the structure that produced that herd — one "
+            + "free-flow tree per District, so every Citizen on a pair held the identical route — is "
+            + "the structure `adr/0047` deleted. A damping ratio measured against a maximal "
+            + "disturbance is not evidence about a small one, so this figure is an upper bound on "
+            + "what damping can do rather than a statement of what it will do. The two rows above it "
+            + "inherit the same deleted basis and are made *conservative* by it; see "
+            + "`docs/spike-results.md` → *Which direction the deleted structure pushes each of the "
+            + "three*.");
+        report.AppendLine();
+    }
+
     private static void AppendTripwires(
         StringBuilder report,
         LoopOutcome control,
@@ -3953,7 +4120,7 @@ internal static class LoopReport
             + $"{(temperament8.Verdict == TemperamentVerdict.NotRefuted
                 ? string.Create(CultureInfo.InvariantCulture,
                     $"{Fix(temperament8.NetFrom)} → {Fix(temperament8.NetTo)}, "
-                    + $"{Percent(temperament8.NetShare, Fixed.One)} against a "
+                    + $"{Hundredths(temperament8.NetShareHundredths)}% against a "
                     + $"{Hundredths(HerdMarginHundredths)}% bar stated before the run. A claim "
                     + $"about the ladder's **endpoints**; the wire above was a claim about its "
                     + $"**steps**. The response is a cliff — the first rung alone carries it — and "
