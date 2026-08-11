@@ -385,11 +385,27 @@ downstream must be measured on"*, so getting it wrong here mis-measures 5c and 8
 **The correction is narrower than it reads, and the original's *reason* survives intact.** A front door
 is still a property of the city rather than a cache — what is saved is the **Lot's position and its
 side**, which is a place on the ground and is exactly what a Building's front door is. What is *derived*
-is the pair `(Segment handle, offset)`, and that pair is a function of the graph, so saving it is not an
-option rather than a choice: `BulldozeStreet` **frees the Segment row**
-([`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md)),
-so a saved handle would outlive its target and the next lay would recycle the slot underneath it. ***A
-saved handle to a row a player can destroy is a dangling pointer with a save file behind it.***
+is the pair `(Segment, offset)`, and that pair is a function of the graph, so saving it is not an
+option rather than a choice: ***laying a new Street can give a Lot a better front door without touching
+the old one, so a saved copy is simply wrong, with nothing invalidated and nothing to notice.*** That is
+[`adr/0064`](../docs/adr/0064-a-bins-capacity-is-a-property-of-the-ruleset-in-force-and-an-over-full-bin-drains-rather-than-clamps.md)'s
+argument for a Bin's capacity and
+[`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)'s
+for a Building's occupancy, reaching a third row.
+
+⚠ **This paragraph first gave the reason as danglingness — *a saved handle to a row a player can destroy
+is a dangling pointer with a save file behind it* — and that is false about a `Handle`, which is the one
+sentence here worth correcting rather than softening.** `Rows.FreeSlot` bumps a slot's **generation**
+before recycling it (`Rows.cs:326`, whose comment records slice 4's lifecycle test catching exactly this),
+so a stale handle fails to resolve rather than silently addressing the next road laid there;
+`Reference.Severable` is the standing declaration for a target the design expects to disappear. The
+sentence describes a saved **slot**, which has no generation and would indeed dangle. **The distinction is
+load-bearing two paragraphs later**: a **Leg**'s endpoints *are* saved handles, because a Leg's plan
+cannot be re-derived — the graph state it was searched over is gone
+([`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md)) — so a rule forbidding
+saved handles outright would leave a Trip in flight unable to survive save/reload, which is lint 6. The
+**conclusion** for the Access Point is untouched: it can be re-derived, so it is.
+
 `Frontage.Locate` runs the derivation backwards from the saved position, and the two sets are disjoint —
 a Lot on a horizontal Street has `north ≡ 0 (mod block_tiles)`, one on a vertical Street the reverse —
 so the position names at most one lattice edge and nothing is lost by not storing it.
