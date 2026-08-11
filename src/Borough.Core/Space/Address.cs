@@ -54,6 +54,23 @@ public enum StreetSide : byte
 /// read as <em>absent</em> rather than as <em>Segment slot 0</em> — the first Street in the city,
 /// silently claimed by every unfronted Building.
 /// </para>
+/// <para>
+/// ⚠ <b>This is how an Address is <em>passed</em>, and never how one is <em>stored</em> in a saved
+/// column.</b> The slot above is safe because every Address is read off the live graph and used
+/// within the Tick that read it — but a saved column of these would fold a slot index into the State
+/// Hash, and a slot index is a function of the entire demolition history of the city, so two runs
+/// building the same city would disagree. A table persisting a place therefore declares a
+/// <see cref="Tables.HandleColumn{TTarget}"/> for the Segment beside plain columns for the offset and
+/// the side, and assembles this struct at the read boundary — which is also the one place a bulldozed
+/// Segment can be turned into <see cref="None"/>. <see cref="Movement.LegTable.From"/> is the pattern.
+/// </para>
+/// <para>
+/// <b>That boundary is what reconciles this type's two consumers</b>, which arrived from opposite
+/// directions on the same day: frontage is <c>(derived AND rebuilt)</c> and wants a slot, a Leg's
+/// endpoints are <c>(saved AND hashed)</c> and want a handle, and both are right. Resolving once, at
+/// the point of read, gives the derived consumer the cheap value it wants and puts the staleness
+/// check exactly where the answer is <c>adr/0079</c>'s named absence rather than a stale reference.
+/// </para>
 /// </remarks>
 public readonly record struct Address
 {
@@ -93,4 +110,24 @@ public readonly record struct Address
     /// <summary>Names a place on a Segment.</summary>
     public static Address On(int segmentSlot, Tiles offset, StreetSide side) =>
         new(segmentSlot + 1, offset, side);
+
+    /// <summary>
+    /// Whether two Addresses share a Segment and differ in side — <b>the one condition under which a
+    /// crossing cost applies</b> (<c>adr/0074</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Scoped to one Segment on purpose, and this is the clause most likely to be widened by a
+    /// later reader who thinks it is an oversight.</b> Side is defined relative to a single Segment's
+    /// own A→B direction, so two Addresses on <em>different</em> Segments share no frame in which
+    /// <i>opposite</i> is a fact — <i>the same side</i> stops meaning anything once a route turns a
+    /// corner. Charging a crossing there would invent precision the model does not have.
+    /// </para>
+    /// <para>
+    /// <b>Two Addresses that do not exist are not across the street from one another</b>, which keeps
+    /// this total: a cost function may call it without first proving the graph still holds either.
+    /// </para>
+    /// </remarks>
+    public bool AcrossTheStreetFrom(Address other) =>
+        Exists && other.Exists && Segment == other.Segment && Side != other.Side;
 }
