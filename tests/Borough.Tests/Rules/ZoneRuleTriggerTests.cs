@@ -28,6 +28,17 @@ public sealed class ZoneRuleTriggerTests
 {
     private const byte House = 1;
 
+    /// <summary>
+    /// The shipped revisit period, and the default a Ruleset that states none is given.
+    /// </summary>
+    /// <remarks>
+    /// <b>Most of these fixtures do not care what it is, which is the point of naming it once.</b>
+    /// A Zone Rule authors a duration and the engine derives the sample from the Lot count
+    /// (<c>adr/0059</c>), so the tests about the <em>schedule</em> want a period that is simply not
+    /// interesting; the two that are about the sample state their own.
+    /// </remarks>
+    private const int Day = Ticks.PerDay;
+
     private static Ruleset Zoned(params ZoneRuleDefinition[] zoneRules) => new(
         resources: [],
         rules: [],
@@ -75,7 +86,7 @@ public sealed class ZoneRuleTriggerTests
     [Fact]
     public void A_zone_rule_fires_on_its_interval_and_not_between()
     {
-        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 64, 4)));
+        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 64, Day)));
 
         ZoneActivity activity = Run(simulation, 256);
 
@@ -89,7 +100,7 @@ public sealed class ZoneRuleTriggerTests
     [Fact]
     public void An_interval_of_one_fires_every_tick()
     {
-        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 1, 2)));
+        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 1, Day)));
 
         Assert.Equal(32, Run(simulation, 32).Triggers.Sum);
     }
@@ -106,8 +117,8 @@ public sealed class ZoneRuleTriggerTests
     public void Two_zone_rules_keep_their_own_intervals()
     {
         (_, Simulation simulation) = Built(Zoned(
-            new ZoneRuleDefinition(House, 0, 8, 2),
-            new ZoneRuleDefinition(House, 0, 32, 2)));
+            new ZoneRuleDefinition(House, 0, 8, Day),
+            new ZoneRuleDefinition(House, 0, 32, Day)));
 
         ZoneActivity activity = Run(simulation, 64);
 
@@ -138,12 +149,33 @@ public sealed class ZoneRuleTriggerTests
     [Fact]
     public void An_interval_of_zero_is_refused_rather_than_divided_by()
     {
-        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 0, 4)));
+        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 0, Day)));
 
         InvalidOperationException thrown =
             Assert.Throws<InvalidOperationException>(() => simulation.Step(TickInput.Empty));
 
         Assert.Contains("interval of 0", thrown.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The same two-sided check for the revisit period, which is the other thing that divides.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>adr/0059</c> gave this family a second denominator and it needs the same pair of
+    /// refusals.</b> The loader refuses a revisit period below the interval, so it can never reach
+    /// zero through a file; a Ruleset built in code has been through none of that, and dividing by it
+    /// would be a <see cref="DivideByZeroException"/> from inside <c>IntegerMath</c> with nothing
+    /// naming the Rule.
+    /// </remarks>
+    [Fact]
+    public void A_revisit_period_of_zero_is_refused_rather_than_divided_by()
+    {
+        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, 0)));
+
+        InvalidOperationException thrown =
+            Assert.Throws<InvalidOperationException>(() => simulation.Step(TickInput.Empty));
+
+        Assert.Contains("revisit period of 0", thrown.Message, StringComparison.Ordinal);
     }
 
     // ---- adr/0033's observable difference --------------------------------------------------------
@@ -163,7 +195,7 @@ public sealed class ZoneRuleTriggerTests
     [Fact]
     public void A_zone_rule_has_no_wheel_entry_and_no_due_count()
     {
-        (World world, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, 8)));
+        (World world, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, Day)));
 
         ZoneActivity zoning = Run(simulation, 64);
         RuleActivity bins = simulation.Rules.Drain();
@@ -189,7 +221,7 @@ public sealed class ZoneRuleTriggerTests
     [Fact]
     public void An_empty_city_offers_only_vacant_lots()
     {
-        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, 8)));
+        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, Day)));
 
         ZoneActivity activity = Run(simulation, 64);
 
@@ -202,7 +234,7 @@ public sealed class ZoneRuleTriggerTests
     [Fact]
     public void A_fully_built_city_offers_only_occupied_lots()
     {
-        (World world, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, 8)));
+        (World world, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, Day)));
 
         for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
         {
@@ -217,26 +249,73 @@ public sealed class ZoneRuleTriggerTests
     }
 
     /// <summary>
-    /// A sample never evaluates more Lots than it declares, however many Rules are running.
+    /// A trigger evaluates exactly its derived sample, and the derivation is the Ruleset's arithmetic.
     /// </summary>
     /// <remarks>
-    /// <b>The tripwire's claim in its weakest testable form.</b> <c>02 §5.7</c> says a Zone Rule's
-    /// cost is independent of Zone size; task 9 measures that, and this asserts the structural half —
-    /// the per-trigger evaluation count is bounded by the Ruleset and by nothing about the city.
+    /// <para>
+    /// <b>This used to say <em>never more Lots than it declares</em>, and it was the wrong claim to
+    /// hold.</b> A Ruleset declared an absolute count, so a bound stated against it was trivially true
+    /// at any city size and said nothing at all — which is the shape of the defect <c>adr/0059</c>
+    /// fixes. What is asserted now is that the engine evaluates what <c>SampleFor</c> says, so the
+    /// scale property in the test below is a property of the running engine rather than of a formula
+    /// nothing calls.
+    /// </para>
+    /// <para>
+    /// <b>Exactly, rather than at most.</b> Every Lot here is live, so no draw is discarded, and
+    /// sampling is with replacement (task 11c) so no draw is dropped as a repeat either.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void A_trigger_never_evaluates_more_lots_than_its_sample()
+    public void A_trigger_evaluates_exactly_its_derived_sample()
     {
-        (_, Simulation small) = Built(Zoned(new ZoneRuleDefinition(House, 0, 8, 6)), lots: 20);
-        (_, Simulation large) = Built(Zoned(new ZoneRuleDefinition(House, 0, 8, 6)), lots: 5_000);
+        var rule = new ZoneRuleDefinition(House, 0, 8, Day);
 
-        ZoneActivity thin = Run(small, 80);
-        ZoneActivity wide = Run(large, 80);
+        (_, Simulation small) = Built(Zoned(rule), lots: 2_048);
+        (_, Simulation large) = Built(Zoned(rule), lots: 204_800);
 
-        Assert.Equal(10, thin.Triggers.Sum);
-        Assert.Equal(10, wide.Triggers.Sum);
-        Assert.True(thin.Evaluated <= 10 * 6);
-        Assert.True(wide.Evaluated <= 10 * 6);
+        Assert.Equal(2, rule.SampleFor(2_048));
+        Assert.Equal(200, rule.SampleFor(204_800));
+
+        Assert.Equal(10 * 2, Run(small, 80).Evaluated);
+        Assert.Equal(10 * 200, Run(large, 80).Evaluated);
+    }
+
+    /// <summary>
+    /// <b>The scale test, and the reason task 11 exists.</b> Two cities three orders of magnitude
+    /// apart revisit a Lot on the same period.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>What the shipped Ruleset used to do instead.</b> <c>sample</c> was an absolute count of Lots
+    /// per trigger, so the quantity a city actually feels — the fraction of itself looked at per cycle
+    /// — was inversely proportional to its size: S0b measured one visit per Lot every 968 Ticks at
+    /// 1,000 Citizens and every 960,008 at 1,000,000, and at target scale the Ruleset built nothing at
+    /// all in 2,000 Ticks. The failure was invisible to every test in this file, because every test in
+    /// this file ran at one city size.
+    /// </para>
+    /// <para>
+    /// <b>The lot counts divide exactly, and that is a fixture decision worth stating.</b> The
+    /// derivation takes a ceiling (<c>ZoneRuleDefinition.SampleFor</c> says why), so a city whose exact
+    /// sample is fractional is surveyed slightly <em>faster</em> than its file asks for — bounded by
+    /// one Lot a trigger, and unbounded as a ratio on a city small enough. Choosing counts that divide
+    /// is what lets this assert an equality rather than a tolerance nobody could read.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData(2_048)]
+    [InlineData(204_800)]
+    public void The_revisit_period_is_the_same_at_every_city_size(int lots)
+    {
+        const uint Interval = 8;
+        const int Ticks = 800;
+
+        (World world, Simulation simulation) = Built(
+            Zoned(new ZoneRuleDefinition(House, 0, Interval, Day)), lots);
+
+        long evaluated = Run(simulation, Ticks).Evaluated;
+
+        // Ticks × Lots ÷ evaluations: how long a city of this size takes to look at itself once.
+        Assert.Equal(Day, (int)(Ticks * (long)world.Lots.Rows.SlotCount / evaluated));
     }
 
     // ---- the instrument ------------------------------------------------------------------------
@@ -245,7 +324,7 @@ public sealed class ZoneRuleTriggerTests
     [Fact]
     public void A_reading_drains_the_interval()
     {
-        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, 8)));
+        (_, Simulation simulation) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, Day)));
 
         Assert.True(Run(simulation, 32).Triggers.Sum > 0);
         Assert.Equal(0, simulation.Zoning.Drain().Triggers.Sum);
@@ -257,8 +336,8 @@ public sealed class ZoneRuleTriggerTests
     [Fact]
     public void The_sweep_is_reproducible()
     {
-        (_, Simulation first) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, 8)));
-        (_, Simulation second) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, 8)));
+        (_, Simulation first) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, Day)));
+        (_, Simulation second) = Built(Zoned(new ZoneRuleDefinition(House, 0, 4, Day)));
 
         Assert.Equal(Run(first, 64), Run(second, 64));
     }
@@ -268,18 +347,30 @@ public sealed class ZoneRuleTriggerTests
     /// again.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The one allocation this engine can make is its scratch buffer, grown to the widest sample any
-    /// Zone Rule declares. Measuring from the second trigger is what separates <em>grown once</em>
+    /// Zone Rule reaches. Measuring from the second trigger is what separates <em>grown once</em>
     /// from <em>grown every time</em>, which are indistinguishable in a total.
+    /// </para>
+    /// <para>
+    /// <b>What bounds it changed under <c>adr/0059</c> and the test did not have to.</b> The widest
+    /// sample used to be the largest number in the Ruleset; it is now derived from the Lot count, so
+    /// a city that is still being painted grows the buffer as it grows. The Lot table here is fixed
+    /// after the arrange, which is the condition this asserts under — and the honest statement of the
+    /// property is <em>allocates nothing while the city is not gaining Lots</em>.
+    /// </para>
     /// </remarks>
     [Fact]
     public void Sweeping_allocates_nothing_after_the_first_trigger()
     {
+        // Two Rules whose derived samples differ, so that "the widest" is a real choice rather than
+        // a tie: at 200 Lots these are 2 and 20.
         (_, Simulation simulation) = Built(Zoned(
-            new ZoneRuleDefinition(House, 0, 1, 4),
-            new ZoneRuleDefinition(House, 0, 2, 16)));
+            new ZoneRuleDefinition(House, 0, 1, 100),
+            new ZoneRuleDefinition(House, 0, 2, 20)));
 
-        // Two Ticks: the first grows the buffer to 4, the second to 16, which is the widest.
+        // Two Ticks: both Rules fire on Tick 0 and the buffer reaches the wider of the two; Tick 1
+        // fires only the first, which must not shrink or regrow it.
         simulation.Step(TickInput.Empty);
         simulation.Step(TickInput.Empty);
 

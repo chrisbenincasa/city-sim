@@ -94,6 +94,38 @@ public class IntegerMathTests
         }
     }
 
+    [Fact]
+    public void CeilDiv_on_long_matches_the_int_overload()
+    {
+        for (int n = -20; n <= 20; n++)
+        {
+            for (int d = -5; d <= 5; d++)
+            {
+                if (d != 0)
+                {
+                    Assert.Equal(IntegerMath.CeilDiv(n, d), (int)IntegerMath.CeilDiv((long)n, d));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The reason the overload exists: the product overflows an <c>int</c> and the answer does not.
+    /// </summary>
+    /// <remarks>
+    /// A Zone Rule's sample is <c>ceil(Lots × interval ÷ revisit_ticks)</c>, and 900,000 Lots at an
+    /// interval of 8,191 is 7.4e9 — three and a half times what an <c>int</c> holds, for a sample that
+    /// fits in one comfortably.
+    /// </remarks>
+    [Fact]
+    public void CeilDiv_on_long_survives_a_numerator_no_int_could_hold()
+    {
+        const long Numerator = 900_000L * 8_191L;
+
+        Assert.True(Numerator > int.MaxValue);
+        Assert.Equal(899_891L, IntegerMath.CeilDiv(Numerator, 8_192L));
+    }
+
     /// <summary>
     /// The bug this helper exists to make impossible: the hardware masks the count, so a raw
     /// `1 &lt;&lt; 32` is `1`, not `0`, and nothing ever throws.

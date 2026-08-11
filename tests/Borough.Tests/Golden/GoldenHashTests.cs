@@ -1,5 +1,7 @@
+using Borough.Core;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Rules;
 using Borough.Core.Quantities;
 using Borough.Formats;
 
@@ -40,7 +42,7 @@ public sealed class GoldenHashTests
     private const string Regenerate =
         "dotnet run --project src/Borough.Headless -- "
         + "--log tests/Borough.Tests/Golden/session.borough --ruleset rulesets/minimal.toml "
-        + "--ruleset rulesets/minimal-tuned.toml --ticks 256 --hash-every 8 "
+        + "--ruleset rulesets/minimal-tuned.toml --ticks 2048 --hash-every 64 "
         + "--out tests/Borough.Tests/Golden/session-trace.txt";
 
     /// <summary>
@@ -119,6 +121,39 @@ public sealed class GoldenHashTests
             .Select(line => line.Trim())
             .Where(line => line.Length > 0 && !line.StartsWith('#')),
     ];
+
+    /// <summary>
+    /// The committed session raises Buildings <em>and</em> condemns them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A baseline that stops covering a branch says nothing when it does, which is what this
+    /// exists to fix.</b> Slice 10 task 11 derived a Zone Rule's sample from the Lot count
+    /// (<c>adr/0059</c>), which at this fixture's 132 Lots took the sample from four a trigger to one
+    /// — and at the session's then length of 256 Ticks the create branch stopped running entirely.
+    /// Every hash still moved, every test still passed, and the committed trace quietly covered half
+    /// the mechanism. <see cref="GoldenFixtures.Ticks"/> was lengthened rather than the loss being
+    /// accepted, and this is the line that makes the lengthening mean something.
+    /// </para>
+    /// <para>
+    /// <b>It asserts <em>non-zero</em> rather than the counts</b>, because the counts are the
+    /// baseline's job and repeating them here would be a second copy of a number that already fails
+    /// loudly. What this owns is the weaker and more durable claim: both branches ran at all.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_golden_session_raises_buildings_as_well_as_condemning_them()
+    {
+        InputLog session = GoldenFixtures.Session();
+        Simulation simulation = Replay.Start(session, GoldenFixtures.Catalogue());
+
+        Replay.Trace(simulation, session, new Ticks(GoldenFixtures.Ticks), GoldenFixtures.Ticks, []);
+
+        ZoneActivity swept = simulation.Zoning.Drain();
+
+        Assert.True(swept.Created.Sum > 0, "the golden session raised no Building; the create branch is uncovered");
+        Assert.True(swept.Demolished.Sum > 0, "the golden session condemned nothing; the condemn branch is uncovered");
+    }
 
     /// <summary>
     /// The committed session still produces the committed trace, sample for sample.

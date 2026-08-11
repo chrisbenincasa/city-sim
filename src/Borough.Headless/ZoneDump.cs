@@ -70,9 +70,14 @@ internal static class ZoneDump
         for (int i = 0; i < rules.ZoneRules.Length; i++)
         {
             ZoneRuleDefinition rule = rules.ZoneRules[i];
+
+            // Both numbers, because only one of them is in the file. adr/0059 states the revisit
+            // period and derives the sample from the city, so a dump that printed the authored number
+            // alone would leave the reader to do the arithmetic that is the whole subject of the ADR.
             output.WriteLine(
                 $"#   rule {i}: kind {rule.Kind}, admits bit {rule.Zone}, every {rule.Interval} "
-                + $"Ticks, {rule.Sample} Lots a trigger.");
+                + $"Ticks, {rule.SampleFor(world.Lots.Rows.SlotCount)} Lots a trigger — one visit per "
+                + $"Lot every {rule.RevisitTicks} Ticks.");
         }
 
         output.WriteLine();

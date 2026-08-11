@@ -615,6 +615,8 @@ We should sit deliberately below 30.
 
 Two implementation notes: **sample without replacement** (UrbanSim's own code samples *with* replacement, which double-counts an alternative's weight — a real if minor defect), and **sample at the Lot or Building level rather than the individual-dwelling level**, which sidesteps most of the substitution-pattern problem discussed in 5.4.
 
+> **The Zone Rule's sampler does draw with replacement, and that is not this rule being broken.** The defect above is a doubled **weight**, which needs a score to double; `§5.7`'s create predicate is a boolean that admits or declines, so a repeated draw there costs one wasted evaluation and biases nothing. The rule stated here governs **this** sampler — a Household ranking dwellings — and it becomes binding on the Zone Rule the day `§5.4`'s choice model gives it something to rank. Recorded because the two samplers are one sentence apart in this document and the distinction between them is a *scored* choice, not a scale.
+
 ### 5.4 The choice itself
 
 Score each surviving candidate, then pick probabilistically rather than deterministically:
@@ -724,8 +726,13 @@ Growth is paced by four mechanisms, all diegetic:
 >
 > **The cost claim is true and stronger than stated.** Raising the sample **117×** at 1,000,000
 > Citizens — enough to look at every one of 120,001 Lots once a Day — cost nothing outside noise. Cost
-> has never been the constraint here, and `ZoneSample.Draw`'s `O(sample²)` duplicate scan is amortised
-> by the interval.
+> has never been the constraint here. ~~and `ZoneSample.Draw`'s `O(sample²)` duplicate scan is
+> amortised by the interval.~~ **Struck: the scan is gone** — it was quadratic in a quantity that is
+> now proportional to the map, and deduplicating within a trigger never bought coverage in the first
+> place, only a skipped second look at a Lot. Sampling is with replacement, which `02 §5.3`'s
+> criticism of UrbanSim permits here and only here: a duplicate costs an evaluation and not a
+> **weight**, because this create predicate is a boolean with no score. `§5.4`'s choice model is what
+> would reverse that.
 >
 > **The pacing claim does not survive.** `sample ÷ interval` is an **absolute** throughput while the
 > population it draws from is the Lot table, so the period in which a given Lot is looked at once is

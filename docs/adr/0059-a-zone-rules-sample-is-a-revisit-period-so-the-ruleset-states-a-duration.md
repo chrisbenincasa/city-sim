@@ -84,15 +84,32 @@ feel decision — but the default is forced, so shipping requires no ratificatio
 
 ## Consequences
 
-- **Every hash moves, because the city's trajectory changes at every size.** The three golden baselines
-  are re-recorded. `World.HashSeed`'s version byte is **not** bumped: the fold is unchanged and this is a
-  behaviour change, which is exactly the case the byte exists to distinguish *from*.
+- **Every hash moves, because the city's trajectory changes at every size.** ~~The three golden
+  baselines are re-recorded.~~ **Two, as built** — `world-hash.txt` is a hand-built world with no
+  Ruleset over it and no Zone Rule ever swept across it, so nothing here can move it, and re-recording
+  it would have been a re-record of nothing. `World.HashSeed`'s version byte is **not** bumped: the fold
+  is unchanged and this is a behaviour change, which is exactly the case the byte exists to distinguish
+  *from*.
+- **AMENDED BY THE CODE: the golden *session* had to be lengthened, and this ADR did not see it coming.**
+  At the fixture's 132 Lots the derived sample is **1** where the retired `sample = 4` was four, so over
+  the session's eight triggers it condemned and never landed on a Lot demolition had cleared: the
+  committed trace **stopped covering the create branch entirely**, silently, because every hash moved
+  anyway. 256 → **2,048** Ticks at a cadence of **64**, reload at **1,024**, plus a test asserting both
+  branches ran. **The general form is worth more than the fix**: a baseline records what a run *did*, so
+  a change that narrows what the run *reaches* is invisible in it by construction — which is the same
+  shape as this ADR's own origin, where a tripwire confirmed the stated claim while the unstated one
+  failed.
 - **`ZoneSample.Draw`'s duplicate scan must go.** It is `O(sample²)` and justified in its own remarks by
   *"a sample is a handful of Lots, and a set would allocate, hash, and be walked in an order `05 §4`
   lint 3 bans"*. The premise dies here. At a one-Day revisit the scan is ~110,000 comparisons a trigger
   at 1M, amortised to ~3,400 a Tick and therefore affordable *today* — but it is quadratic in a quantity
   that is now proportional to the map, so it is a measured-affordable defect rather than a safe one, and
-  it is replaced rather than carried.
+  it is replaced rather than carried. **As built it is *deleted* rather than replaced**: deduplicating
+  within a trigger never bought coverage — the same slots come up either way and the scan only skipped
+  the second look — and `02 §5.3`'s objection is to a doubled **weight**, which a boolean predicate has
+  none of. The measured duplicate rate is ~0.2%, and because `sample ÷ lots` is now exactly
+  `interval ÷ revisit_ticks` it is a property of the *file* rather than of the city, so one measurement
+  settles every city size. `02 §5.4`'s choice model is the trigger for a stamp array.
 - **`ZoneRuleEngine`'s scratch buffer changes what bounds it.** Its remark says *"bounded by the Ruleset
   rather than by elapsed time"*; it becomes bounded by the **Lot count**, hence by the map. Still
   `adr/0006`-safe — the map does not grow with elapsed time — but the stated reason is different and the

@@ -182,8 +182,8 @@ public static class RulesetShape
             ZoneRuleDefinition was = current.ZoneRules[i];
             ZoneRuleDefinition now = replacement.ZoneRules[i];
 
-            // Interval and sample are pacing and may move freely; the kind it raises and the bit it
-            // admits are what decide *which city* it builds, and nothing in the world points at them.
+            // Interval and revisit period are pacing and may move freely; the kind it raises and the
+            // bit it admits decide *which city* it builds, and nothing in the world points at them.
             // They are here because a Zone Rule's identity is its position in declaration order
             // (02 §4.2's tie-break), so silently repurposing entry 3 would move the tie-break too.
             if (was.Kind != now.Kind || was.Zone != now.Zone)

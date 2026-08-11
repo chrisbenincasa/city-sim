@@ -1,6 +1,7 @@
 namespace Borough.Core.Rules;
 
 using Borough.Core.Arithmetic;
+using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
@@ -334,15 +335,22 @@ public readonly record struct KindDefinition(
 /// <para>
 /// <b><see cref="Interval"/> is Ruleset data rather than a scheduling knob</b>, which <c>02 §4.2</c>
 /// settles in one sentence — *a Policy paying daily is a different city from one paying weekly*. It is
-/// hash-bearing, and so is <see cref="Sample"/>; both are in <c>plans/0002</c> §D with a named
-/// ratifier, per <c>adr/0052</c>.
+/// hash-bearing, and it is in <c>plans/0002</c> §D with a named ratifier, per <c>adr/0052</c>.
+/// </para>
+/// <para>
+/// <b><see cref="RevisitTicks"/> is a duration and the sample is derived from it</b> (<c>adr/0059</c>).
+/// It replaces an absolute count of Lots per trigger, which was the wrong unit: a constant count makes
+/// the quantity the city actually feels — a fraction of the city per cycle — inversely proportional to
+/// the size of the city, so the shipped Ruleset visited a Lot once per 0.12 Day at 1,000 Citizens and
+/// once per 117 Days at 1,000,000, and built nothing at all at target scale. It is hash-bearing and
+/// needs no ratifier, because its default is <see cref="Ticks.PerDay"/> and therefore derived.
 /// </para>
 /// </remarks>
 /// <param name="Kind">The Building kind this Rule builds. Never zero — the loader refuses that.</param>
 /// <param name="Zone">Which permission bit admits <paramref name="Kind"/> here.</param>
 /// <param name="Interval">Ticks between triggers.</param>
-/// <param name="Sample">How many Lots one trigger evaluates.</param>
-public readonly record struct ZoneRuleDefinition(byte Kind, byte Zone, uint Interval, int Sample)
+/// <param name="RevisitTicks">How long the industry takes to look at every Lot once.</param>
+public readonly record struct ZoneRuleDefinition(byte Kind, byte Zone, uint Interval, int RevisitTicks)
 {
     /// <summary>The permission set a Lot must carry for this Rule to build on it.</summary>
     /// <remarks>
@@ -352,6 +360,48 @@ public readonly record struct ZoneRuleDefinition(byte Kind, byte Zone, uint Inte
     /// this is the second side of that check, and the analyser is what insisted on it.
     /// </remarks>
     public ushort Admits => (ushort)IntegerMath.ShiftLeft(1, Zone);
+
+    /// <summary>
+    /// How many Lots one trigger evaluates in a city of <paramref name="lots"/> Lot slots.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>ceil(lots × interval ÷ revisit_ticks)</c>, and the ceiling is the half that matters</b>
+    /// (<c>adr/0059</c>). Flooring returns <b>zero</b> for any city smaller than
+    /// <c>revisit_ticks ÷ interval</c> Lots — 256 at the defaults, which is every fixture in the suite
+    /// and every city a player opens on — so it would make the mechanism silently stop existing on
+    /// small worlds. That is the defect this derivation replaces, wearing the opposite sign.
+    /// </para>
+    /// <para>
+    /// <b>The ceiling is also why a small city revisits <em>faster</em> than the file asks for</b>,
+    /// rather than within rounding of it: at 132 Lots and the defaults the exact answer is 0.52 and the
+    /// answer given is 1, so the industry surveys that city roughly twice a Day. The error is bounded
+    /// by one Lot a trigger and its sign is toward doing the work, which is the direction a rounding
+    /// error in a mechanism nobody can see should point.
+    /// </para>
+    /// <para>
+    /// <b>In <see cref="long"/> because the product overflows an <see cref="int"/> and the answer does
+    /// not.</b> 900,000 Lots at an interval of 8,191 is 7.4e9. The result is bounded by
+    /// <paramref name="lots"/> wherever the loader has been through the file, since it refuses a
+    /// revisit period shorter than the interval.
+    /// </para>
+    /// </remarks>
+    /// <param name="lots">The Lot table's <em>slot</em> count, which is the population sampled from.</param>
+    /// <exception cref="InvalidOperationException">
+    /// <see cref="RevisitTicks"/> is not positive, which only a Ruleset built in code can be.
+    /// </exception>
+    public int SampleFor(int lots)
+    {
+        if (RevisitTicks < 1)
+        {
+            throw new InvalidOperationException(
+                $"a Zone Rule has a revisit period of {RevisitTicks}. It is how long the development "
+                + "industry takes to look at every Lot once, so it divides; the loader refuses "
+                + "anything below the trigger interval, and this Ruleset was not built by it.");
+        }
+
+        return (int)IntegerMath.CeilDiv((long)lots * Interval, RevisitTicks);
+    }
 }
 
 /// <summary>

@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Borough.Core;
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
@@ -133,7 +134,20 @@ internal static class ZoneRuleFixture
     /// <summary>The permission set the Lots carry, which is deliberately not <see cref="Admits"/>.</summary>
     internal const ushort Painted = 1;
 
-    /// <summary>Lots evaluated per trigger. Held fixed across the sweep — it is the controlled quantity.</summary>
+    /// <summary>
+    /// Lots evaluated per trigger. Held fixed across the sweep — it is the controlled quantity.
+    /// </summary>
+    /// <remarks>
+    /// <b>Holding it fixed now takes work, and that is <c>adr/0059</c> rather than an inconvenience.</b>
+    /// A Ruleset states <c>revisit_ticks</c> and the engine derives the sample from the Lot count, so a
+    /// fixture that stated one number would have a sample proportional to its rung and would be timing
+    /// the very thing it means to control. <see cref="Arrange"/> therefore inverts the derivation per
+    /// rung. The tripwire's question is unchanged — <em>is a trigger's cost <c>O(sample)</c> or
+    /// <c>O(Zone)</c></em> — and it is worth being explicit that this is the *cost* half of
+    /// <c>02 §5.7</c>'s bullet. The *pacing* half, which the same bullet used to carry, is what
+    /// <c>adr/0059</c> found false, and no benchmark could have caught it: this fixture was measuring
+    /// scale-freedom in cost and passing, while the mechanism's time constant was the city.
+    /// </remarks>
     internal const int Sample = 16;
 
     /// <summary>The bottom rung, and the denominator every ratio is taken over.</summary>
@@ -160,7 +174,7 @@ internal static class ZoneRuleFixture
         // Sizing is per Citizen at 225 Lots per 1,000, so ask for the population that carries the Lot
         // count rather than growing the table in the middle of the arrange.
         int citizens = lots * 1_000 / 225;
-        var world = new World(citizens < 1_000 ? 1_000 : citizens, Inert());
+        var world = new World(citizens < 1_000 ? 1_000 : citizens, Inert(lots));
         var simulation = new Simulation(world, WorldKey.FromSeed(0x2011_0900_0000_0001UL));
 
         for (int i = 0; i < lots; i++)
@@ -188,7 +202,12 @@ internal static class ZoneRuleFixture
     /// than none at all — a threshold of zero would return before the chain walk and quietly measure
     /// less than a trigger does.
     /// </remarks>
-    private static Ruleset Inert() => new(
+    /// <param name="lots">
+    /// The rung, which the revisit period is derived backwards from so that <see cref="Sample"/> Lots
+    /// are evaluated per trigger at every rung. The interval is 1, so the period is simply
+    /// <c>lots ÷ Sample</c>, and every rung divides exactly.
+    /// </param>
+    private static Ruleset Inert(int lots) => new(
         resources: [ResourceFamily.Good],
         rules:
         [
@@ -202,5 +221,5 @@ internal static class ZoneRuleFixture
         emissions: [],
         bins: [new BinDeclaration(new ResourceId(1), BinCapacity.Of(4))],
         kindRules: [new RuleId(1)],
-        zoneRules: [new ZoneRuleDefinition(House, AdmittedBit, 1, Sample)]);
+        zoneRules: [new ZoneRuleDefinition(House, AdmittedBit, 1, IntegerMath.FloorDiv(lots, Sample))]);
 }

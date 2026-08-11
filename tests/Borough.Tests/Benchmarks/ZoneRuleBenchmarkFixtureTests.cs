@@ -13,9 +13,9 @@ namespace Borough.Tests.Benchmarks;
 /// <b>The tripwire divides two timings, so the thing that has to be equal is what each timing did.</b>
 /// A per-trigger cost at 256,000 Lots divided by one at 256 Lots says nothing about Zone size if the
 /// two triggers evaluated different numbers of Lots — the ratio would then be measuring the sample,
-/// which is the one quantity the task holds fixed. Sampling discards a draw that lands on a Lot it has
-/// already seen (<c>ZoneSample</c>), and a duplicate is likelier in a small Zone, so the counts are
-/// checked rather than assumed equal.
+/// which is the one quantity the task holds fixed. Holding it fixed is now the fixture's own work
+/// rather than the Ruleset's, because <c>adr/0059</c> derives the sample from the Lot count, so the
+/// counts are checked rather than assumed equal.
 /// </para>
 /// <para>
 /// <b>The second assertion is the one that makes the benchmark legitimate at all.</b> A trigger is
@@ -96,15 +96,17 @@ public sealed class ZoneRuleBenchmarkFixtureTests
     }
 
     /// <summary>
-    /// <b>The denominator and the numerator evaluate the same number of Lots</b>, to within the
-    /// duplicate draws a small Zone makes likelier.
+    /// <b>The denominator and the numerator evaluate the same number of Lots</b>, exactly.
     /// </summary>
     /// <remarks>
-    /// <b>The bound is on the small end and one-sided on purpose.</b> Duplicates can only lose draws,
-    /// and they are rarer as the Zone grows, so the smallest Zone is the one that can evaluate fewer
-    /// Lots per trigger — which would flatter the ratio by shrinking its divisor's work. Stating the
-    /// bound here is what lets <c>plans/0014 §9</c> publish a ratio as a per-trigger cost rather than
-    /// as a cost per <em>evaluated Lot</em>, which would need this number in the divisor too.
+    /// <b>It used to be a one-sided bound and task 11c made it an equality.</b> While the sampler
+    /// discarded a repeated draw, the smallest Zone could evaluate fewer Lots per trigger than the
+    /// largest — collisions being likelier in a small population — which would have flattered the
+    /// ratio by shrinking its divisor's work, so the bound was stated at 97% on that end. Sampling is
+    /// now with replacement (<c>adr/0059</c>, and <c>ZoneSample</c> says why), so a trigger evaluates
+    /// its sample and nothing about the Zone's size can change that. Stating it here is what lets
+    /// <c>plans/0014 §9</c> publish a ratio as a per-trigger cost rather than as a cost per
+    /// <em>evaluated Lot</em>, which would need this number in the divisor too.
     /// </remarks>
     [Fact]
     public void The_smallest_zone_evaluates_what_the_largest_does()
@@ -116,10 +118,6 @@ public sealed class ZoneRuleBenchmarkFixtureTests
         long large = largest.Vacant.Sum + largest.Occupied.Sum;
 
         Assert.Equal(Triggers * ZoneRuleFixture.Sample, (int)large);
-        Assert.True(
-            small * 100 >= large * 97,
-            $"the smallest Zone evaluated {small} Lots against the largest's {large}; the ratio the "
-            + "tripwire publishes is per trigger, and that holds only while the two triggers do "
-            + "comparable work");
+        Assert.Equal(large, small);
     }
 }

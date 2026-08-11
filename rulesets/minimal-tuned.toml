@@ -134,20 +134,33 @@ apply   = { min = 1, max = 1 }
 inputs  = [ { scope = "local", resource = "repairs", amount = 1 } ]
 outputs = []
 
-# The first [[zone_rule]] in the project, and the thing that closes the loop. It samples 4 Lots every
-# 32 Ticks out of the whole Lot table: a vacant one it may build on, an occupied one it reads the
-# pressure of. Both branches run against the same sample, which is 02 §5.7's claim that a Zone Rule's
-# cost is its sample size and not its Zone's size — the tripwire task 9 holds fixed.
+# The first [[zone_rule]] in the project, and the thing that closes the loop. Every 32 Ticks it looks
+# at a share of the Lot table: a vacant one it may build on, an occupied one it reads the pressure of.
+# Both branches run against the same sample, which is 02 §5.7's claim that a Zone Rule's cost is its
+# sample size and not its Zone's size — the tripwire task 9 holds fixed.
+#
+# `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED FROM IT (adr/0059, slice 10 task 11). It is
+# how long the development industry takes to look at every Lot once, and the engine derives
+# `sample = ceil(Lots × interval ÷ revisit_ticks)` per trigger. This file used to say `sample = 4`, an
+# absolute count, which made the quantity the city actually feels — a fraction of the city per cycle —
+# shrink as the city grew: a Lot was visited once per 0.12 Day at 1,000 Citizens and once per 117 Days
+# at 1,000,000, where the shipped Ruleset built nothing at all. It is `pollution_decay_ticks`'s shape
+# below, against the Lot count instead of the cadence.
+#
+# 8192 IS TICKS_PER_DAY AND STATING IT IS NOT CHOOSING IT. It is the loader's default and it is derived
+# rather than picked — a Day is what the rest of the simulation is denominated in, and every `rate`
+# above is 8–32 Ticks, so a Day is comfortably the coarser scale. It is written down for [layers]'s
+# reason: a designer cannot tune a number they cannot find.
 #
 # `zone = 0` is a bit INDEX, not a mask; SyntheticCity paints every Lot with bit 0. And under adr/0055
 # that bit scopes only what this Rule may BUILD: it condemns without consulting it, so repainting a
 # Lot cannot make the Building standing on it immortal.
 [[zone_rule]]
-name     = "housing"
-kind     = "dwelling"
-zone     = 0
-interval = 32
-sample   = 4
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 8192
 
 # The Map Layers, stated rather than defaulted. Slice 8 task 8 of plans/0015, and it is the slice's
 # externally-stated definition of done: adr/0015 says every tuning number lives in a file, and until

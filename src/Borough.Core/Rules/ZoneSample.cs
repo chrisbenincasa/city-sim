@@ -26,10 +26,10 @@ using Borough.Core.Tables;
 public static class ZoneSample
 {
     /// <summary>
-    /// Fills <paramref name="into"/> with the distinct live Lot slots one trigger evaluates.
+    /// Fills <paramref name="into"/> with the live Lot slots one trigger evaluates.
     /// </summary>
     /// <param name="lots">The Lot table, whose slot count is the population.</param>
-    /// <param name="into">Where to write the slots. Its length is the Ruleset's sample size.</param>
+    /// <param name="into">Where to write the slots. Its length is the trigger's derived sample.</param>
     /// <param name="key">The world key.</param>
     /// <param name="tick">The Tick this trigger fires on, which is what makes each one differ.</param>
     /// <param name="rule">The Zone Rule's index in declaration order.</param>
@@ -41,8 +41,8 @@ public static class ZoneSample
     /// simplification. A retry loop would need an attempt budget; an attempt budget is a number that
     /// changes which Lots get built on, so it is hash-bearing, so under <c>adr/0052</c> it would need a
     /// named ratifier — for a quantity nobody has ever wanted to reason about. Discarding instead costs
-    /// nothing and is <em>already the model</em>: a draw landing on a freed slot or on a Lot this
-    /// trigger has seen is a parcel the developer looked at and could not use.
+    /// nothing and is <em>already the model</em>: a draw landing on a freed slot is a parcel the
+    /// developer looked at and could not use.
     /// </para>
     /// <para>
     /// <b>So the return value can be less than the sample size, and that is not a degradation.</b> The
@@ -51,12 +51,31 @@ public static class ZoneSample
     /// of the city.
     /// </para>
     /// <para>
-    /// <b>Duplicates are discarded rather than counted twice, which is <c>02 §5.3</c>'s one criticism
-    /// of UrbanSim.</b> It samples *with* replacement and double-counts an alternative's weight; the
-    /// section calls that a real if minor defect. Copying it knowingly would be worse than copying it
-    /// unknowingly. The scan that finds a duplicate is linear over what has been drawn so far, which is
-    /// the right shape at these sizes — a sample is a handful of Lots, and a set would allocate,
-    /// hash, and be walked in an order <c>05 §4</c> lint 3 bans.
+    /// <b>Sampling is with replacement, and a repeated draw is evaluated twice</b> — task 11c of
+    /// <c>plans/0014</c>, and it reverses what this method used to do. The scan that found a duplicate
+    /// was linear in what had been drawn so far, so quadratic in the sample, and it was justified by
+    /// <em>a sample is a handful of Lots</em>. <c>adr/0059</c> killed that premise: the sample is now
+    /// <c>lots × interval ÷ revisit_ticks</c> and therefore proportional to the map — 469 draws at
+    /// 120,001 Lots, and quadratic in a quantity that grows with the city is a defect whether or not
+    /// today's profile can afford it.
+    /// </para>
+    /// <para>
+    /// <b>What decided it was that the scan never bought coverage.</b> Deduplicating <em>within</em> a
+    /// trigger does not make a trigger reach more Lots than drawing with replacement does — the same
+    /// slots come up either way and the scan only skipped the second look — so the per-Lot revisit
+    /// period is unchanged by removing it. What it bought was avoiding a doubled *evaluation*, and
+    /// <c>02 §5.3</c>'s criticism of UrbanSim is about a doubled *weight*: that model samples with
+    /// replacement and double-counts an alternative when scoring it. Here the create predicate is a
+    /// boolean with no score, so a duplicate costs one wasted evaluation and biases nothing. <b>That
+    /// stops being true the day <c>02 §5.4</c>'s choice model arrives</b>, and it is the trigger for
+    /// putting a stamp array in rather than the scan back.
+    /// </para>
+    /// <para>
+    /// <b>And the measured rate is negligible and scale-free</b>, which is the number the choice wanted
+    /// rather than the argument above. The duplicate fraction depends on <c>sample ÷ lots</c>, which
+    /// <c>adr/0059</c> makes exactly <c>interval ÷ revisit_ticks</c> — a property of the file and not of
+    /// the city — so one measurement settles every city size at once.
+    /// <c>Duplicates_are_negligible_at_the_shipped_revisit_period</c> is where it lives.
     /// </para>
     /// <para>
     /// <b>Allocation-free and <c>O(sample)</c> exactly</b>, with no dependence on the Lot count in
@@ -87,7 +106,7 @@ public static class ZoneSample
 
             int slot = (int)(value % (ulong)(uint)slots);
 
-            if (!lots.Rows.IsLive(slot) || Contains(into[..found], slot))
+            if (!lots.Rows.IsLive(slot))
             {
                 continue;
             }
@@ -96,19 +115,5 @@ public static class ZoneSample
         }
 
         return found;
-    }
-
-    /// <summary>Whether this trigger has already drawn that slot.</summary>
-    private static bool Contains(ReadOnlySpan<int> drawn, int slot)
-    {
-        foreach (int seen in drawn)
-        {
-            if (seen == slot)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

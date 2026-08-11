@@ -44,7 +44,7 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0x6AD0_FE11_16FB_1316UL;
+    internal const ulong RulesetHash = 0x0CC2_E0B2_5940_93CCUL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>
@@ -57,7 +57,7 @@ internal static class GoldenFixtures
     /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
     /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
     /// </remarks>
-    internal const ulong TunedRulesetHash = 0xBCFA_9ADF_32F4_C043UL;
+    internal const ulong TunedRulesetHash = 0xC2A3_1CF1_5DAE_3B41UL;
 
     /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
     internal static string TunedRulesetPath =>
@@ -72,13 +72,33 @@ internal static class GoldenFixtures
     /// transition is the Tick after it, which is what makes the failure message name the right window
     /// when this moves.
     /// </remarks>
-    internal const int ReloadAt = 128;
+    internal const int ReloadAt = 1_024;
 
-    /// <summary>How far the session runs. Well past its last command, which is the ordinary case.</summary>
-    internal const int Ticks = 256;
+    /// <summary>
+    /// How far the session runs. Well past its last command, which is the ordinary case.
+    /// </summary>
+    /// <remarks>
+    /// <b>256 until slice 10 task 11, and it was lengthened to keep coverage rather than to gain
+    /// any.</b> <c>adr/0059</c> derives a Zone Rule's sample from the Lot count, and at this fixture's
+    /// 132 Lots the shipped one-Day revisit period gives <b>one</b> Lot a trigger where the retired
+    /// <c>sample = 4</c> gave four. At 256 Ticks that is eight looks at the city, which condemns and
+    /// never happens to land on a Lot that demolition has cleared — so the committed trace would have
+    /// stopped covering <see cref="Borough.Core.Rules.ZoneRuleEngine"/>'s create path entirely, and
+    /// nothing would have said so. At 2,048 Ticks the session raises twelve Buildings and condemns
+    /// forty-nine, so both branches are under the baseline again.
+    /// </remarks>
+    internal const int Ticks = 2_048;
 
-    /// <summary>The trace's sampling cadence.</summary>
-    internal const int HashEvery = 8;
+    /// <summary>
+    /// The trace's sampling cadence.
+    /// </summary>
+    /// <remarks>
+    /// <b>Eight until slice 10 task 11, and it moved with <see cref="Ticks"/> to hold the trace at
+    /// thirty-two samples.</b> The sample count is what the bisection message is worth reading for;
+    /// a longer session at the old cadence would have been a 256-line artefact whose diff nobody
+    /// reads, and the window a failure names would have got no narrower for it.
+    /// </remarks>
+    internal const int HashEvery = 64;
 
     /// <summary>
     /// The golden session: a population, eleven Zone commands, then silence.
@@ -88,7 +108,7 @@ internal static class GoldenFixtures
     /// <b>The shape is chosen for what it can go wrong on, not for realism.</b> Two commands share a
     /// Tick, so the per-Tick slice's lower bound is exercised rather than assumed; there are gaps, so
     /// a run that applied commands by index rather than by Tick would diverge; the last command lands
-    /// at Tick 97 with the run going to 256, so most samples are of a city nobody is touching.
+    /// at Tick 97 with the run going to 2,048, so most samples are of a city nobody is touching.
     /// </para>
     /// <para>
     /// <b><see cref="CommandKind.Populate"/> arrives first, and it is what makes this baseline cover

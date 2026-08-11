@@ -48,22 +48,45 @@ public sealed class ZoneSampleTests
     }
 
     /// <summary>
-    /// <c>02 §5.3</c>'s criticism of UrbanSim: sampling with replacement double-counts an
-    /// alternative, so a repeated draw is discarded rather than evaluated twice.
+    /// The duplicate rate at the shipped revisit period, which is the measurement task 11c wanted
+    /// before deleting the scan that used to prevent one.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This test is a number rather than a property, and the number is what settled a choice.</b>
+    /// <c>ZoneSample.Draw</c> used to scan what it had drawn so far and discard a repeat, which is
+    /// <c>O(sample²)</c> and was justified by <em>a sample is a handful of Lots</em>. <c>adr/0059</c>
+    /// makes the sample proportional to the map, so the premise died and the two ways out — a stamp
+    /// array per Lot, or accepting duplicates — wanted measuring rather than arguing.
+    /// </para>
+    /// <para>
+    /// <b>It is scale-free, which is why one measurement is enough.</b> The duplicate rate depends on
+    /// <c>sample ÷ lots</c>, and <c>adr/0059</c> makes that ratio exactly
+    /// <c>interval ÷ revisit_ticks</c> — a property of the file, not of the city. At the shipped
+    /// <c>32 ÷ 8192</c> it is 1 in 256, and the expected duplicate fraction is half of that whatever
+    /// the city size. <b>The bound is deliberately loose against a measured ~0.2%</b>: this exists to
+    /// catch the rate becoming a real cost, not to pin an arithmetic identity nothing can move.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void One_trigger_never_draws_a_lot_twice()
+    public void Duplicates_are_negligible_at_the_shipped_revisit_period()
     {
-        LotTable lots = Lots(40);
+        const int Count = 120_000;
+        const int Size = Count * 32 / 8192;   // ZoneRuleDefinition.SampleFor, at the shipped numbers
 
-        // A sample close to the population size, which is where collisions are common enough that a
-        // sampler with replacement would show them almost every trigger.
+        LotTable lots = Lots(Count);
+        int drawn = 0;
+        int repeats = 0;
+
         for (ulong tick = 1; tick <= 64; tick++)
         {
-            int[] drawn = Sample(lots, 32, tick);
+            int[] sample = Sample(lots, Size, tick);
 
-            Assert.Equal(drawn.Length, drawn.Distinct().Count());
+            drawn += sample.Length;
+            repeats += sample.Length - sample.Distinct().Count();
         }
+
+        Assert.True(repeats * 100 < drawn, $"{repeats} repeats in {drawn} draws is above 1%.");
     }
 
     [Fact]
@@ -140,16 +163,23 @@ public sealed class ZoneSampleTests
     }
 
     /// <summary>
-    /// A sample larger than the live population returns the population, not a hang.
+    /// A sample larger than the live population is bounded by the draws, not by a hang.
     /// </summary>
+    /// <remarks>
+    /// <b>Bounded by the sample rather than by the city, which is the reverse of what it used to
+    /// be.</b> While duplicates were discarded, drawing 64 times against 3 Lots could return at most
+    /// 3; with replacement it returns 64, every one of them one of those 3. The loader refuses the
+    /// Ruleset that would ask for this — a revisit period below the interval — so it is a property of
+    /// the primitive rather than a shape a city reaches.
+    /// </remarks>
     [Fact]
-    public void A_sample_wider_than_the_city_is_bounded_by_the_city()
+    public void A_sample_wider_than_the_city_names_only_the_city()
     {
         LotTable lots = Lots(3);
         int[] drawn = Sample(lots, 64, tick: 8);
 
-        Assert.True(drawn.Length <= 3);
-        Assert.Equal(drawn.Length, drawn.Distinct().Count());
+        Assert.Equal(64, drawn.Length);
+        Assert.All(drawn, slot => Assert.InRange(slot, 0, 2));
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using System.Text;
 using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -733,7 +734,7 @@ public static class RulesetLoader
         // ---- zone rules -----------------------------------------------------------------------
 
         /// <summary>
-        /// Reads the <c>[[zone_rule]]</c> tables, and runs refusals 6, 7 and 8.
+        /// Reads the <c>[[zone_rule]]</c> tables, and runs refusals 6 to 10.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -744,8 +745,9 @@ public static class RulesetLoader
         /// <b>Every refusal here is a Ruleset that would load clean and do nothing</b>, which is the
         /// class this build has already been bitten by — <c>apply = {min=1,max=4}</c> behaving as
         /// <c>{1,1}</c> got through because a silent narrowing is indistinguishable from a quiet
-        /// design. A Zone Rule naming an undeclared kind, an unpaintable bit, or a sample of zero all
-        /// produce the same symptom: a city that never grows, and no sentence anywhere saying why.
+        /// design. A Zone Rule naming an undeclared kind, an unpaintable bit, a revisit period of zero
+        /// or a retired <c>sample</c> key all produce the same symptom: a city that never grows, and no
+        /// sentence anywhere saying why.
         /// </para>
         /// </remarks>
         private ZoneRuleDefinition[] ReadZoneRules()
@@ -795,29 +797,10 @@ public static class RulesetLoader
                     }
                 }
 
-                // Refusal 8 — a sample of zero loads clean and sweeps nothing. Stated as its own
-                // refusal rather than folded into a range check because the message is the point: the
-                // author wrote a Zone Rule, so they meant it to do something.
-                int sample = 0;
-
-                if (TryInteger(table, "sample", out long size, required: true, name))
-                {
-                    if (size < 1)
-                    {
-                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "sample") ?? table), name,
-                            $"a sample of {size} evaluates no Lots, so this Zone Rule would trigger "
-                            + "on schedule for ever and never build anything. If the intent is to "
-                            + "disable it, delete it.");
-                    }
-                    else
-                    {
-                        sample = (int)size;
-                    }
-                }
-
                 uint interval = ReadInterval(table, name);
+                int revisit = ReadRevisit(table, name, interval);
 
-                definitions.Add(new ZoneRuleDefinition(kind, zone, interval, sample));
+                definitions.Add(new ZoneRuleDefinition(kind, zone, interval, revisit));
             }
 
             return [.. definitions];
@@ -849,6 +832,83 @@ public static class RulesetLoader
             }
 
             return (uint)interval;
+        }
+
+        /// <summary>
+        /// A Zone Rule's revisit period, and refusals 8, 9 and 10 (<c>adr/0059</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, defaulting to <see cref="Ticks.PerDay"/>.</b> The default is <em>derived</em>
+        /// rather than picked — a Day is the period the rest of the simulation is denominated in, and
+        /// every <c>rate</c> a Ruleset states is 8–32 Ticks, so a Day is comfortably the coarser scale.
+        /// That is what lets this ship without an <c>adr/0052</c> ratifier: there is no free parameter
+        /// to ratify. A designer may still author one, because <em>how often the industry surveys the
+        /// city</em> is legitimately a feel decision.
+        /// </para>
+        /// <para>
+        /// <b>Refusal 9 is <c>pollution_decay_ticks</c>'s refusal against a different denominator.</b>
+        /// A decay shorter than the cadence it runs at rounds to zero updates; a revisit period shorter
+        /// than the interval it is delivered in asks for more Lots per trigger than the city holds. The
+        /// second is the less obvious of the two and was found by reasoning rather than by a test
+        /// failing, which is the case for copying it.
+        /// </para>
+        /// <para>
+        /// <b>Refusal 10 refuses the retired key by name, and that is the whole point of it.</b> Every
+        /// Ruleset on disk when <c>adr/0059</c> landed carried a <c>sample</c>, and a key the loader
+        /// silently ignores is how a designer's tuning stops taking effect with nothing saying so —
+        /// which is the same failure class as refusals 6 to 8, arriving from the direction of a
+        /// document rather than of a file.
+        /// </para>
+        /// </remarks>
+        private int ReadRevisit(TableSyntaxBase table, string? name, uint interval)
+        {
+            // Refusal 10 — the key adr/0059 retired. Checked first, because an author who wrote a
+            // sample has not written a revisit period, and refusal 8 would otherwise fire on the
+            // default and say something confusing about a key they never touched.
+            if (Find(table, "sample") is { } retired)
+            {
+                Refuse(LineOf(retired), name,
+                    "sample was replaced by revisit_ticks (adr/0059) and is no longer read. It was an "
+                    + "absolute count of Lots per trigger, so the fraction of the city a Zone Rule "
+                    + "covered per cycle shrank as the city grew -- at 1,000,000 Citizens a Lot was "
+                    + $"visited once per 117 Days. Write revisit_ticks = {Ticks.PerDay} (one Day, the "
+                    + "default) for how long the development industry takes to look at every Lot once.");
+            }
+
+            long revisit = Ticks.PerDay;
+
+            if (Find(table, "revisit_ticks") is not null
+                && !TryInteger(table, "revisit_ticks", out revisit, required: true, name))
+            {
+                return Ticks.PerDay;
+            }
+
+            // Refusal 8 -- the old sample-of-zero refusal, one level up: a revisit period of zero is
+            // a division rather than a slow sweep. The upper bound is the representation's rather
+            // than the design's, and it is checked because TOML integers are 64-bit and this is not.
+            if (revisit < 1 || revisit > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "revisit_ticks") ?? table), name,
+                    $"a revisit period of {revisit} is not a duration this world can hold. It is how "
+                    + $"long this Zone Rule takes to look at every Lot once, in Ticks, so it is at "
+                    + $"least 1 and at most {int.MaxValue} -- the engine divides by it. If the intent "
+                    + "is to disable the Rule, delete it.");
+                return Ticks.PerDay;
+            }
+
+            // Refusal 9 -- the two numbers are individually sane and jointly are not.
+            if (revisit < interval)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "revisit_ticks") ?? table), name,
+                    $"revisit_ticks = {revisit} is shorter than the interval of {interval} it would be "
+                    + "delivered in, so one trigger would be asked to evaluate more Lots than the city "
+                    + "holds. A revisit period is a duration spread over triggers; shorten the "
+                    + "interval or lengthen the period.");
+                return Ticks.PerDay;
+            }
+
+            return (int)revisit;
         }
 
         private void ReadBins(TableSyntaxBase table, string? kind, List<BinDeclaration> into)

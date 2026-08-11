@@ -1,5 +1,6 @@
 using System.Globalization;
 using Borough.Core.Entities;
+using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -848,7 +849,7 @@ public sealed class RulesetLoaderTests
         Assert.Throws<ArgumentOutOfRangeException>(() => ruleset.Kind(9));
     }
 
-    // ---- Zone Rules, and refusals 6, 7 and 8 ----------------------------------------------------
+    // ---- Zone Rules, and refusals 6 to 10 -------------------------------------------------------
 
     private const string Zoned = """
         [[building]]
@@ -856,11 +857,11 @@ public sealed class RulesetLoaderTests
         bins = []
 
         [[zone_rule]]
-        name     = "housing"
-        kind     = "dwelling"
-        zone     = 3
-        interval = 64
-        sample   = 4
+        name          = "housing"
+        kind          = "dwelling"
+        zone          = 3
+        interval      = 64
+        revisit_ticks = 4096
         """;
 
     [Fact]
@@ -873,10 +874,26 @@ public sealed class RulesetLoaderTests
         Assert.Equal(1, zone.Kind);
         Assert.Equal(3, zone.Zone);
         Assert.Equal(64u, zone.Interval);
-        Assert.Equal(4, zone.Sample);
+        Assert.Equal(4096, zone.RevisitTicks);
 
         // The bit is stored as an index and read as a set, because a Lot's Zone is a set.
         Assert.Equal(0b1000, zone.Admits);
+    }
+
+    /// <summary>
+    /// The revisit period is optional and its default is one Day (<c>adr/0059</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The default is what lets this ship without an <c>adr/0052</c> ratifier</b>, so a test that
+    /// only ever loaded files stating the key would be leaving the unratified path uncovered.
+    /// </remarks>
+    [Fact]
+    public void A_zone_rule_stating_no_revisit_period_gets_a_day()
+    {
+        Ruleset ruleset = Accepted(Zoned.Replace(
+            "\nrevisit_ticks = 4096", string.Empty, StringComparison.Ordinal));
+
+        Assert.Equal(Ticks.PerDay, Assert.Single(ruleset.ZoneRules.ToArray()).RevisitTicks);
     }
 
     /// <summary>
@@ -890,7 +907,7 @@ public sealed class RulesetLoaderTests
     public void A_zone_rule_naming_an_undeclared_kind_is_refused()
     {
         RulesetRefusal refusal = Refused(Zoned.Replace(
-            @"kind     = ""dwelling""", @"kind     = ""tower""", StringComparison.Ordinal));
+            @"kind          = ""dwelling""", @"kind          = ""tower""", StringComparison.Ordinal));
 
         Assert.Contains("tower", refusal.Reason, StringComparison.Ordinal);
         Assert.Equal("housing", refusal.Rule);
@@ -910,28 +927,74 @@ public sealed class RulesetLoaderTests
     public void A_zone_rule_naming_an_unpaintable_bit_is_refused(int bit)
     {
         RulesetRefusal refusal = Refused(Zoned.Replace(
-            "zone     = 3",
-            string.Create(CultureInfo.InvariantCulture, $"zone     = {bit}"),
+            "zone          = 3",
+            string.Create(CultureInfo.InvariantCulture, $"zone          = {bit}"),
             StringComparison.Ordinal));
 
         Assert.Contains("permission", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>
-    /// Refusal 8 — a sample of zero loads clean and sweeps nothing.
+    /// Refusal 8 — a revisit period of zero is a division rather than a slow sweep.
     /// </summary>
     /// <remarks>
     /// <b>The <c>apply = {min=1,max=4}</c> behaving as <c>{1,1}</c> defect, arriving in the second
     /// family.</b> That one got through because a silent narrowing looks exactly like a quiet design
-    /// decision; this refusal exists so the second instance cannot.
+    /// decision; this refusal exists so the second instance cannot. It was written against
+    /// <c>sample = 0</c> and <c>adr/0059</c> moved it one level up, to the number the sample is now
+    /// derived from.
     /// </remarks>
-    [Fact]
-    public void A_zone_rule_sampling_no_lots_is_refused()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData((long)int.MaxValue + 1)]
+    public void A_zone_rule_whose_revisit_period_is_not_a_duration_is_refused(long revisit)
     {
         RulesetRefusal refusal = Refused(Zoned.Replace(
-            "sample   = 4", "sample   = 0", StringComparison.Ordinal));
+            "revisit_ticks = 4096",
+            string.Create(CultureInfo.InvariantCulture, $"revisit_ticks = {revisit}"),
+            StringComparison.Ordinal));
 
-        Assert.Contains("no Lots", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("not a duration", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Refusal 9 — a revisit period shorter than the interval that would deliver it.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>pollution_decay_ticks</c>'s refusal against a different denominator.</b> A decay shorter
+    /// than its cadence rounds to zero updates and reads as <em>never</em>; a revisit period shorter
+    /// than its interval asks one trigger for more Lots than the city holds. Neither was found by a
+    /// test failing — both are two numbers that are individually sane and jointly are not, which is
+    /// the class of refusal a loader has to reason its way to.
+    /// </remarks>
+    [Fact]
+    public void A_zone_rule_revisiting_faster_than_it_triggers_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Zoned.Replace(
+            "revisit_ticks = 4096", "revisit_ticks = 63", StringComparison.Ordinal));
+
+        Assert.Contains("shorter than the interval", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Refusal 10 — <c>sample</c> is refused by name rather than ignored (<c>adr/0059</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Silence is the failure being refused here.</b> Every Ruleset on disk carried a
+    /// <c>sample</c> when the key was retired, and a designer who edits a number the loader no longer
+    /// reads gets a city that does not change and no sentence saying why — which is the same failure
+    /// class as refusals 6 to 8, reached from the direction of a document rather than of a file.
+    /// </remarks>
+    [Fact]
+    public void A_zone_rule_still_carrying_a_sample_is_refused_by_name()
+    {
+        RulesetRefusal refusal = Refused(Zoned.Replace(
+            "revisit_ticks = 4096", "sample        = 4", StringComparison.Ordinal));
+
+        Assert.Contains("sample was replaced by revisit_ticks", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("adr/0059", refusal.Reason, StringComparison.Ordinal);
+        Assert.Equal("housing", refusal.Rule);
     }
 
     /// <summary>An interval is bounded like a rate, and for the same Event Wheel reason.</summary>
@@ -939,8 +1002,8 @@ public sealed class RulesetLoaderTests
     public void A_zone_rule_triggering_beyond_the_wheel_is_refused()
     {
         RulesetRefusal refusal = Refused(Zoned.Replace(
-            "interval = 64",
-            string.Create(CultureInfo.InvariantCulture, $"interval = {EventWheel.Size}"),
+            "interval      = 64",
+            string.Create(CultureInfo.InvariantCulture, $"interval      = {EventWheel.Size}"),
             StringComparison.Ordinal));
 
         Assert.Contains("WHEEL_SIZE", refusal.Reason, StringComparison.Ordinal);

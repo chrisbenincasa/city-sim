@@ -176,7 +176,11 @@ public sealed class ZoneRuleEngine
 
             _tickTriggers++;
 
-            Span<int> into = Scratch(definition.Sample);
+            // adr/0059: the sample is derived from the revisit period and the city, per trigger, so
+            // it moves as Lots are painted. SlotCount rather than LiveCount for the reason
+            // ZoneSample.Draw already draws against it -- the draw is over slots and discards the
+            // ones that are not live, so a denominator of live rows would systematically over-sample.
+            Span<int> into = Scratch(definition.SampleFor(_world.Lots.Rows.SlotCount));
             int drawn = ZoneSample.Draw(_world.Lots, into, _key, tick, rule);
 
             for (int i = 0; i < drawn; i++)
@@ -351,10 +355,26 @@ public sealed class ZoneRuleEngine
 
     /// <summary>A span of at least <paramref name="size"/>, growing the buffer once if it must.</summary>
     /// <remarks>
-    /// <b>The only allocation this class can make, and it happens on the first trigger of the widest
-    /// Rule.</b> Sizing from the Ruleset instead would need the widest sample computed at
-    /// construction and recomputed on every hot reload; growing on demand is the same bound reached
-    /// lazily, and it survives a Ruleset swap without being told one happened.
+    /// <para>
+    /// <b>The only allocation this class can make.</b> Sizing from the Ruleset instead would need the
+    /// widest sample computed at construction and recomputed on every hot reload; growing on demand is
+    /// the same bound reached lazily, and it survives a Ruleset swap without being told one happened.
+    /// </para>
+    /// <para>
+    /// <b>It is bounded by the Lot count, hence by the map — and it did not used to be</b> (task 11d
+    /// of <c>plans/0014</c>). The remark here said <em>bounded by the Ruleset rather than by elapsed
+    /// time</em>, which was true when a sample was an absolute number a file stated.
+    /// <c>adr/0059</c> derives the sample from the city, so the Ruleset no longer bounds anything: the
+    /// buffer grows to <c>lots × interval ÷ revisit_ticks</c>, which is at most one <c>int</c> per Lot
+    /// and reaches that only where the revisit period equals the interval.
+    /// </para>
+    /// <para>
+    /// <b>Still <c>adr/0006</c>-safe, and for a different reason than before.</b> A map does not grow
+    /// with elapsed time, so neither does this — but the bound is now a property of the world rather
+    /// than of the file, and the day a map extends procedurally is the day this needs a ceiling. A
+    /// remark that is true by accident is how the next person gets it wrong, which is why this says so
+    /// rather than being left to be re-derived.
+    /// </para>
     /// </remarks>
     private Span<int> Scratch(int size)
     {

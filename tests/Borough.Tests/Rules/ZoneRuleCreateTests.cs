@@ -87,8 +87,19 @@ public sealed class ZoneRuleCreateTests
         return simulation.Zoning.Drain();
     }
 
-    private static ZoneRuleDefinition Rule(int sample = 8, uint interval = 4) =>
-        new(House, HousingBit, interval, sample);
+    /// <summary>
+    /// A Zone Rule surveying the whole city every trigger.
+    /// </summary>
+    /// <remarks>
+    /// <b>The revisit period equals the interval, which is the fastest survey a Ruleset can legally
+    /// author</b> (<c>adr/0059</c>: the loader refuses a shorter one). It derives a sample of one draw
+    /// per Lot per trigger, which is what these fixtures want — the predicate is what is under test,
+    /// and a sampler that had to find the one interesting Lot would be testing the sampler. Drawing is
+    /// with replacement, so a trigger still misses about a third of the Lots; the runs are long enough
+    /// for that not to matter, and the two tests that care about being missed say so.
+    /// </remarks>
+    private static ZoneRuleDefinition Rule(int revisit = 4, uint interval = 4) =>
+        new(House, HousingBit, interval, revisit);
 
     // ---- the three terms, removed one at a time --------------------------------------------------
 
@@ -130,7 +141,7 @@ public sealed class ZoneRuleCreateTests
     public void A_rule_whose_bit_is_unpainted_builds_nothing()
     {
         (World world, Simulation simulation) = Built(
-            Zoned(new ZoneRuleDefinition(House, 7, 4, 8)));
+            Zoned(new ZoneRuleDefinition(House, 7, 4, 4)));
 
         Assert.Equal(0, Run(simulation, 64).Created.Sum);
         Assert.Equal(4, world.Buildings.Rows.LiveCount);
@@ -248,7 +259,7 @@ public sealed class ZoneRuleCreateTests
     public void Two_rules_contending_for_one_lot_settle_by_declaration_order()
     {
         (World world, Simulation simulation) = Built(
-            Zoned(Rule(sample: 24), Rule(sample: 24)), vacant: 4, seeking: 8);
+            Zoned(Rule(), Rule()), vacant: 4, seeking: 8);
 
         ZoneActivity activity = Run(simulation, 128);
 
@@ -287,7 +298,7 @@ public sealed class ZoneRuleCreateTests
     [Fact]
     public void Who_moves_in_is_drawn_rather_than_queued()
     {
-        (World world, Simulation simulation) = Built(Zoned(Rule(sample: 2)), vacant: 2, seeking: 8);
+        (World world, Simulation simulation) = Built(Zoned(Rule(revisit: 20)), vacant: 2, seeking: 8);
         Handle<Household> first = world.UnplacedPool.At(0);
 
         Run(simulation, 64);

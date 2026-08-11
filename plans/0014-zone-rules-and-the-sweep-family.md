@@ -27,8 +27,9 @@ families for performance. Building the second family is what puts it at risk of 
 
 ## Status
 
-**All ten tasks shipped. The slice is closed.** The gate was clear and slice 7 — its only dependency —
-closed with task 10a.
+**All eleven tasks shipped. The slice is closed twice** — once at task 10, and again at task 11, which
+reopened it after S0b found a defect the closed slice had shipped. The gate was clear and slice 7 — its
+only dependency — closed with task 10a.
 
 - **Task 1** — the Lot's permission set at full width. Its second half, *a `zone` verb that paints an
   area*, was **cut**: see *The second collision*.
@@ -77,6 +78,12 @@ closed with task 10a.
   121 Lots built and ~300 of 360 Households homeless, because demolition evicts a Building's whole
   occupancy and creation rehouses exactly one — **a Building has no occupancy at all**, filed to
   `0002` §B.
+- **Task 11 — `revisit_ticks`, and the slice is closed a second time.**
+  [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)
+  shipped: a `[[zone_rule]]` authors a **duration** and `ZoneRuleDefinition.SampleFor` derives
+  `ceil(Lots × interval ÷ revisit_ticks)` per trigger. At 1,000,000 Citizens the shipped Ruleset now
+  raises **2,898 Buildings** where it raised **none**, and the Tick got **cheaper** while doing 117×
+  the Lot evaluations. Three findings outlive it, below.
 
 ---
 
@@ -1015,3 +1022,54 @@ unchanged and a design change otherwise* — this is a design change, deliberate
 - **The Tick price does not move measurably** at 1M against S0b's 8.72 ms, which is the cost claim this
   fix leans on and the one thing that would invalidate it.
 - **Every Ruleset on disk loads**, or is refused **by name** for carrying `sample`. Silence is failure.
+
+### Task 11 as built — **done**, and what it found
+
+**Acceptance, against the list above.**
+
+| Claim | Result |
+|---|---|
+| The scale test | **Met, and asserted rather than captured.** `The_revisit_period_is_the_same_at_every_city_size` runs 2,048 and 204,800 Lots — a 100× span — and both observe a per-Lot revisit period of **exactly 8,192 Ticks**. It is an equality rather than a tolerance because the fixture's Lot counts divide exactly; see below on why that is not a dodge |
+| A 1M run creates Buildings | **Met.** `--zones --citizens 1000000 --ticks 2000`: **2,898 raised**, against S0b's **0**. 63 triggers, 469 Lots a trigger, one visit per Lot every 8,192 Ticks |
+| `created` still equals `vacant` | **Met, exactly** — 2,898 evaluated vacant, 2,898 raised. The create predicate has still never declined a candidate at scale |
+| The Tick price does not move | **Met, and it moved the *other* way.** Same binary, same world, two Rulesets differing only in `revisit_ticks`: 960,008 (which reproduces the retired `sample = 4` at this Lot count) ran 2,000 Ticks in **26.3 s and 26.2 s**; the shipped 8,192 ran **24.0 s and 24.4 s**. **117× the Lot evaluations for 8% less wall clock**, because 25,213 demolitions take that many Buildings' Rule Instances out of the Rule engine. S0b saw the same sign at a smaller magnitude |
+| Every Ruleset on disk loads, or is refused by name | **Met.** Both files carry `revisit_ticks`; refusal 10 fires on a `sample`, by name and with the ADR in the message |
+
+**Finding 1 — the acceptance criterion this list was written with is not satisfiable, and the reason is
+the ceiling that had to be there.** *"The per-Lot revisit period is within one interval of
+`revisit_ticks` at both"* cannot hold at 1,000 Citizens: 132 Lots at an interval of 32 want a sample of
+**0.52**, the ceiling gives **1**, and the city is therefore surveyed roughly **twice a Day** rather
+than once. That is not a rounding error to be tightened — flooring is what gives **zero** below
+`revisit_ticks ÷ interval` Lots and deletes the mechanism on every small world, which is 11b's own
+argument. **So the derived sample is exact only where `Lots × interval` divides by `revisit_ticks`, and
+below that it errs toward doing the work.** The criterion should have said *the error is bounded by one
+Lot a trigger and its sign is toward surveying*, which is a statement a small city can satisfy.
+
+**Finding 2 — the duplicate scan never bought coverage, and that is what retired it rather than the
+measurement.** 11c asked for a number before choosing between a stamp array and accepting duplicates,
+and the number is small and **scale-free**: the duplicate rate depends on `sample ÷ lots`, which
+`adr/0059` makes exactly `interval ÷ revisit_ticks` — a property of the *file* and not of the city — so
+one measurement settles every city size at once, and at the shipped `32 ÷ 8192` it is ~0.2%.
+`Duplicates_are_negligible_at_the_shipped_revisit_period` holds it. **But the argument that actually
+decides it is structural**: deduplicating *within* a trigger never made a trigger reach more Lots, since
+the same slots come up either way and the scan only skipped the second look. It bought avoiding a
+doubled **evaluation**, where `02 §5.3`'s criticism of UrbanSim is about a doubled **weight** — and the
+create predicate is a boolean with no score. **The day `02 §5.4`'s choice model arrives that stops being
+true**, and the answer then is the stamp array rather than the scan.
+
+**Finding 3 — the golden session stopped covering the create branch, and nothing would have said so.**
+At 132 Lots the derived sample is **1** where `sample = 4` was four, so over the session's eight
+triggers it condemned and never once landed on a Lot demolition had cleared: **0 raised against 3
+before.** Every hash still moved, every test still passed, and the committed trace quietly covered half
+the mechanism. The session was lengthened **256 → 2,048 Ticks** at a cadence of **64** (holding the
+trace at thirty-two samples) with the reload moved to **1,024**, which gives 12 raised and 49 condemned;
+and `The_golden_session_raises_buildings_as_well_as_condemning_them` is the line that makes the
+lengthening mean something rather than being a number somebody once chose. **The general shape is
+`0012`'s *Cause 1* in a fixture rather than in a document**: a baseline records what a run *did*, so a
+change that narrows what the run *reaches* is invisible in it by construction.
+
+**Two smaller things.** `IntegerMath` gained a `CeilDiv(long, long)`, because `Lots × interval` reaches
+40 bits at a large map and a long interval while the answer fits an `int` comfortably. And
+`ZoneRuleBenchmarks` now inverts the derivation per rung to hold its sample at 16 — the tripwire's
+question is unchanged, and the fixture having to work at it is `adr/0059` in miniature: the benchmark
+was measuring scale-freedom in **cost** and passing, while the mechanism's time constant was the city.

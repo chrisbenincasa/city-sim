@@ -13,7 +13,7 @@ are the only thing that can notice a change nobody was looking for.
 | File | What it is | Recorded from |
 |---|---|---|
 | `session.borough` | The session itself, as the Input Log the runner replays | hand-written; checked against `GoldenFixtures.Session()` |
-| `session-trace.txt` | Thirty-two State Hash samples from that 256-Tick session | `Borough.Headless --out` |
+| `session-trace.txt` | Thirty-two State Hash samples from that 2,048-Tick session | `Borough.Headless --out` |
 | `world-hash.txt` | One State Hash over a hand-built city, with its row counts | `GoldenFixtures.Build()` |
 
 **Two further artefacts are not in this directory and are part of the baseline anyway**:
@@ -42,11 +42,25 @@ verbs that build a city, the session absorbs the world fixture's job and this fi
 
 **Slice 7 task 10a moved that boundary without dissolving it.** The session now opens with
 `populate`, so it raises 121 Buildings, 360 Households and 1,000 Citizens, gives every Building its
-kind's Bins and Rule Instances, and runs the Rule engine for 256 Ticks — the first time the golden
+kind's Bins and Rule Instances, and runs the Rule engine for 2,048 Ticks — the first time the golden
 trace has covered any of that. What it does **not** cover is what `GoldenFixtures.Build()` was
 written for: a destroyed Household and a destroyed Citizen, so the allocator's free head and its
 never-reused id counter are off their initial values. Nothing in a session can destroy a row yet.
 `world-hash.txt` goes when slice 10's Zone Rules can demolish a Building, and not before.
+
+**Slice 10 task 11 lengthened the session 256 → 2,048 Ticks, and it was to keep coverage rather than to
+gain any.**
+[`adr/0059`](../../../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)
+derives a Zone Rule's sample from the Lot count, and at this fixture's 132 Lots the shipped one-Day
+revisit period gives **one** Lot a trigger where the retired `sample = 4` gave four. Over the old eight
+triggers the session condemned and never once landed on a Lot demolition had cleared, so the committed
+trace **stopped covering `ZoneRuleEngine`'s create branch entirely** — and said nothing, because every
+hash moved anyway. **That is the failure mode a baseline is structurally blind to**: it records what a
+run *did*, so a change that narrows what the run *reaches* looks exactly like a change that moved it.
+The cadence moved to **64** with the Tick count, holding the trace at thirty-two samples, and the reload
+to **1,024** to stay halfway; `The_golden_session_raises_buildings_as_well_as_condemning_them` is the
+assertion that makes the new length mean something rather than being a number somebody once chose. If
+you shorten this session, that test is what will tell you.
 
 **Slice 10 task 7 arrived and the trigger named above turns out not to fire.** The session now
 demolishes Buildings, so it frees Building, Bin and Rule Instance rows and hands them back out —
@@ -86,7 +100,7 @@ A failure here is a question — *did you mean to do that?* — and the answer i
      --log tests/Borough.Tests/Golden/session.borough \
      --ruleset rulesets/minimal.toml \
      --ruleset rulesets/minimal-tuned.toml \
-     --ticks 256 --hash-every 8 \
+     --ticks 2048 --hash-every 64 \
      --out tests/Borough.Tests/Golden/session-trace.txt
    ```
 

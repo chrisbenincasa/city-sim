@@ -86,8 +86,16 @@ public sealed class ZoneRuleDemolishTests
             zoneRules: zones);
 
     /// <summary>A Zone Rule that may build on these Lots, so it both raises and condemns.</summary>
-    private static ZoneRuleDefinition Sweeping(int sample = 8, uint interval = 4) =>
-        new(House, HousingBit, interval, sample);
+    /// <remarks>
+    /// <b>The revisit period equals the interval, which is the fastest survey a Ruleset can legally
+    /// author</b> (<c>adr/0059</c>: the loader refuses a shorter one). It derives a sample of one draw
+    /// per Lot per trigger — the whole city looked at every cycle, which is what these fixtures want,
+    /// since what is under test is the condemn predicate rather than the sampler's pacing. Drawing is
+    /// with replacement, so one trigger still misses about a third of the Lots and the runs below are
+    /// long enough for that not to matter.
+    /// </remarks>
+    private static ZoneRuleDefinition Sweeping(int revisit = 4, uint interval = 4) =>
+        new(House, HousingBit, interval, revisit);
 
     /// <summary>
     /// A Zone Rule whose permission bit no Lot in the fixture carries, so it condemns and never
@@ -101,8 +109,8 @@ public sealed class ZoneRuleDemolishTests
     /// just cleared, within the same run, and a live-Building count says nothing about whether
     /// anything was demolished at all.
     /// </remarks>
-    private static ZoneRuleDefinition Watching(int sample = 8, uint interval = 4) =>
-        new(House, HousingBit + 1, interval, sample);
+    private static ZoneRuleDefinition Watching(int revisit = 4, uint interval = 4) =>
+        new(House, HousingBit + 1, interval, revisit);
 
     /// <summary>A world of <paramref name="houses"/> Buildings, each with one Household in it.</summary>
     private static (World World, Simulation Simulation) Built(Ruleset ruleset, int houses = 4)

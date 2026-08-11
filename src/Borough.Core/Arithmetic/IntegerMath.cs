@@ -86,6 +86,16 @@ public static class IntegerMath
     public static int CeilDiv(int numerator, int denominator) =>
         -FloorDiv(-numerator, denominator);
 
+    /// <inheritdoc cref="CeilDiv(int,int)"/>
+    /// <remarks>
+    /// <b>Widened for a sizing case whose product does not fit in 32 bits.</b> A Zone Rule's sample is
+    /// <c>ceil(Lots × interval ÷ revisit_ticks)</c> (<c>adr/0059</c>), and the numerator alone reaches
+    /// 40 bits at a large map and a long interval — so the multiply has to happen in a
+    /// <see cref="long"/> and the division has to meet it there.
+    /// </remarks>
+    public static long CeilDiv(long numerator, long denominator) =>
+        -FloorDiv(-numerator, denominator);
+
     /// <summary>
     /// Divides, rounding half away from zero. Use only where a designer would expect
     /// "round the number"; it is not the default because it is not the cheapest.
