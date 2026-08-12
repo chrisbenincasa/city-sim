@@ -151,15 +151,26 @@ public static class SyntheticCity
 
         for (int i = 0; i < population; i++)
         {
-            Handle<Citizen> citizen = world.CreateCitizen(
+            // NOBODY IS GIVEN A WORKPLACE HERE, and the deletion is 5b-bis task 2's finding rather
+            // than task 4's plan. This loop used to assign one on a stride coprime with the Building
+            // count -- `(i * 7) % buildings` -- so that the commute matrix would not be the
+            // identity, on the ground that nothing read the column before Phase 2 and that leaving
+            // it null would make the first thing that did measure a city where nobody works.
+            //
+            // THE CEILING IS WHAT DELETED IT. `[[building]] jobs` makes employment a quantity the
+            // Ruleset grants, and no shipped Ruleset grants any: `dwelling` declares no jobs, so
+            // every one of those strided workplaces was a job that did not exist. It was invisible
+            // while nothing could count jobs, and the first Ruleset adoption after the ceiling
+            // arrived dismissed all 1,000 of them at once -- which is the mechanism reporting the
+            // fixture correctly, at the first moment it was able to.
+            //
+            // So the argument for the stride survives and the stride does not: task 4 acquires a
+            // Workplace by a mechanism, and two ways to get a job is plans/0012 Cause 1 with both
+            // copies executing. Until then a Citizen's Workplace is the unset handle, which is
+            // exactly what CONTEXT.md -> Unemployment describes and is an honest state rather than a
+            // hole.
+            world.CreateCitizen(
                 world.Households.Rows.At(i % households), new Ticks((ulong)i % 8192));
-
-            // A workplace that is not the dwelling, on a stride coprime with the Building count, so
-            // that the commute matrix is not the identity. Nothing reads it before Phase 2 of the
-            // roadmap; leaving it null would make the first thing that does measure a city where
-            // nobody works.
-            world.Citizens.Workplace[world.Citizens.Rows.Resolve(citizen)] =
-                Dwelling(world, (i * 7) % buildings);
         }
     }
 

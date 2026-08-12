@@ -795,11 +795,31 @@ public static class RulesetLoader
                     }
                 }
 
+                // adr/0068's rule applied to employment (milestone 5b-bis task 2). Optional on
+                // occupants' reasoning and refused negative on the same: it reads as "sack
+                // everybody", which is a sentence somebody meant to write.
+                int jobs = 0;
+
+                if (TryInteger(table, "jobs", out long employs, required: false, name))
+                {
+                    if (employs < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "jobs") ?? table), name,
+                            $"jobs is {employs}. It counts Citizens a Building of this kind employs, "
+                            + "so it cannot be negative; omit it for a kind that employs nobody.");
+                    }
+                    else
+                    {
+                        jobs = employs > int.MaxValue ? int.MaxValue : (int)employs;
+                    }
+                }
+
                 definitions[i] = new KindDefinition(
                     binFirst, allBins.Count - binFirst, ruleFirst, allRules.Count - ruleFirst)
                 {
                     CondemnAfter = condemnAfter,
                     Occupants = occupants,
+                    Jobs = jobs,
                 };
             }
 

@@ -549,4 +549,37 @@ public enum Invariant
     /// </para>
     /// </remarks>
     SegmentVolumeIsConserved = 37,
+
+    /// <summary>A Citizen is not already on the worker list of the Building employing them.</summary>
+    /// <remarks>
+    /// <b><see cref="HouseholdIsNotAlreadyInThisBuilding"/> on the employment axis, and a write-site
+    /// guard for the same reason.</b> <see cref="Entities.World.Employ"/> unlists the Citizen's
+    /// previous Workplace before it links the new one, so reaching this means the two ends disagreed
+    /// — a Workplace handle that did not resolve to the list the Citizen was actually on. The
+    /// consequence is a doubly-linked Citizen, which walks as two workers and fills one job twice.
+    /// </remarks>
+    CitizenIsNotAlreadyEmployedHere = 38,
+
+    /// <summary>
+    /// A Citizen appears on exactly one Building's worker list, or on none if they hold no job.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The whole-world half of <see cref="CitizenIsNotAlreadyEmployedHere"/></b>, and the check
+    /// that licenses <see cref="Entities.CitizenTable.WorkerNext"/>'s
+    /// <see cref="Tables.Disposition.Derived"/> declaration in production rather than only in a test.
+    /// A derived list folds into no hash, so a maintained list that has drifted from the saved
+    /// handles it is derived from is invisible to replay, to the golden baseline and to save/reload
+    /// alike — every one of those compares hashes, and this column is in none of them.
+    /// </para>
+    /// <para>
+    /// <b>Absent is legal for an unemployed Citizen and for a severed one alike, and the exemption is
+    /// two-sided.</b> A Citizen with no Workplace holds no job; a Citizen whose Workplace was
+    /// demolished holds a handle that no longer resolves, which
+    /// <c>CONTEXT.md</c> → Trip Fate's own reasoning makes <em>the job stopped existing</em> rather
+    /// than a break. Either one appearing on a list anyway is the corruption that would let a
+    /// demolished employer keep staff.
+    /// </para>
+    /// </remarks>
+    CitizenIsInExactlyOneWorkplace = 39,
 }

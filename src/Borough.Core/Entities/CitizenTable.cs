@@ -51,16 +51,18 @@ public sealed class CitizenTable
 
         HouseholdOf = _rows.SavedHandle("household", households.Rows);
         // Severable, and slice 10 is what forced the declaration. A Citizen's Workplace is somebody
-        // else's Building, so demolition can free it out from under this handle — and clearing it
-        // would need a Building-to-workers reverse index that does not exist and belongs to the labour
-        // system rather than to Zone Rules. A workplace that no longer resolves is the job no longer
-        // existing, which is the fact and not a break in it.
+        // else's Building, so demolition can free it out from under this handle — and a workplace
+        // that no longer resolves is the job no longer existing, which is the fact and not a break
+        // in it. The reverse index this note once said did not exist is `WorkerNext` below, built by
+        // milestone 5b-bis task 2; it does not make the handle unseverable, because it is derived
+        // *from* the handle and a demolition still leaves the Citizen pointing at a freed row.
         Workplace = _rows.SavedHandle(
             "workplace", buildings.Rows, reference: Reference.Severable);
         Experience = _rows.Saved<long>("experience");
         SkillTier = _rows.Saved<byte>("skill_tier");
         Employment = _rows.Saved<byte>("employment");
         MemberNext = _rows.Derived<int>("member_next");
+        WorkerNext = _rows.Derived<int>("worker_next");
 
         Age = _rows.Saved<ushort>("age", Touch.Cold);
         Health = _rows.Saved<byte>("health", Touch.Cold);
@@ -101,6 +103,18 @@ public sealed class CitizenTable
 
     /// <summary>Link in the Household's member list.</summary>
     public Column<int> MemberNext { get; }
+
+    /// <summary>
+    /// Link in the Workplace's worker list — see <see cref="BuildingTable.WorkerHead"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Disposition.Derived"/>, and the order is recoverable rather than merely the
+    /// membership</b>, which is the test <c>05 §3</c> states and the one a list has to pass to be
+    /// declared this way. Membership follows from <see cref="Workplace"/>; the order follows because
+    /// the rebuild inserts by monotonic id rather than appending, so a Building that lost a worker
+    /// and gained another into the recycled slot lists them in the same order either way.
+    /// </remarks>
+    public Column<int> WorkerNext { get; }
 
     /// <summary>Age, in Days.</summary>
     public Column<ushort> Age { get; }

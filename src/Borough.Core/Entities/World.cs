@@ -750,6 +750,11 @@ public sealed class World
             Members.Remove(householdSlot, slot);
         }
 
+        // And off the employer's list, for the reason the member list is unlinked: a freed row still
+        // threaded into a live list is what Invariant.NoFreedRowIsStillLinked exists to catch, and
+        // the next allocation of this slot would be inserted into a list it is already in.
+        Unlist(slot);
+
         Citizens.Rows.Free(citizen);
     }
 
@@ -768,6 +773,7 @@ public sealed class World
         int member = Members.PopFront(slot);
         while (member != Rows.NoSlot)
         {
+            Unlist(member);
             Citizens.Rows.Free(Citizens.Rows.At(member));
             member = Members.PopFront(slot);
         }
@@ -797,6 +803,9 @@ public sealed class World
 
         Buildings.OccupantHead.Span.Clear();
         Buildings.OccupantTail.Span.Clear();
+        Buildings.WorkerHead.Span.Clear();
+        Buildings.WorkerTail.Span.Clear();
+        Citizens.WorkerNext.Span.Clear();
         Buildings.BinHead.Span.Clear();
         Buildings.BinTail.Span.Clear();
         Buildings.RuleHead.Span.Clear();
@@ -864,6 +873,21 @@ public sealed class World
             }
         }
 
+        // The worker list, and the TryResolve is doing more work here than it does above. A
+        // Workplace handle is Reference.Severable, so a demolished Building leaves live Citizens
+        // pointing at a freed row -- and this walk drops them, which is the same answer the write
+        // path gives at DestroyBuilding. A Citizen whose workplace no longer resolves is in no
+        // Building's worker list under either route, which is what makes the two agree.
+        IndexList workers = Workers;
+        for (int slot = 0; slot < Citizens.Rows.SlotCount; slot++)
+        {
+            if (Citizens.Rows.IsLive(slot)
+                && Buildings.Rows.TryResolve(Citizens.Workplace[slot], out int workplaceSlot))
+            {
+                workers.InsertOrdered(workplaceSlot, slot);
+            }
+        }
+
         // The Bin and Rule Instance lists are derived; the wait lists threaded through the same rows
         // are not, and are untouched here. That asymmetry is the point of the two declarations: which
         // Bins a Building has follows from the Bins' own owner column, and the order a queue was
@@ -909,6 +933,11 @@ public sealed class World
     /// <inheritdoc cref="Occupants"/>
     public IndexList Members =>
         new(Households.MemberHead, Households.MemberTail, Citizens.MemberNext);
+
+    /// <summary>The Citizens who work in each Building.</summary>
+    /// <inheritdoc cref="Occupants"/>
+    public IndexList Workers =>
+        new(Buildings.WorkerHead, Buildings.WorkerTail, Citizens.WorkerNext);
 
     /// <summary>The Bins on each Building.</summary>
     /// <inheritdoc cref="Occupants"/>
@@ -1259,15 +1288,31 @@ public sealed class World
     {
         for (int slot = 0; slot < Buildings.Rows.SlotCount; slot++)
         {
-            if (!Buildings.Rows.IsLive(slot)
-                || !TryDeclaredOccupancy(Buildings.Kind[slot], out int allowed))
+            if (!Buildings.Rows.IsLive(slot))
             {
                 continue;
             }
 
-            while (Occupants.Length(slot) > allowed)
+            byte kind = Buildings.Kind[slot];
+
+            if (TryDeclaredOccupancy(kind, out int allowed))
             {
-                Unplace(Households.Rows.At(Loser(slot, now, key)));
+                while (Occupants.Length(slot) > allowed)
+                {
+                    Unplace(Households.Rows.At(Loser(slot, now, key)));
+                }
+            }
+
+            // Asked separately rather than inside the branch above, because the two ceilings have
+            // independent derelict cases: a kind is either declared or it is not, and both readings
+            // of that come from the same two-compare predicate, but a Building that houses nobody
+            // and employs a hundred is an ordinary kind rather than a corner.
+            if (TryDeclaredJobs(kind, out int posts))
+            {
+                while (Workers.Length(slot) > posts)
+                {
+                    Dismiss(Citizens.Rows.At(LosingWorker(slot, now, key)));
+                }
             }
         }
     }
@@ -1296,6 +1341,155 @@ public sealed class World
             if (worst == Rows.NoSlot || draw > highest)
             {
                 worst = household;
+                highest = draw;
+            }
+        }
+
+        return worst;
+    }
+
+    /// <summary>
+    /// How many Citizens the Ruleset in force lets a Building of <paramref name="kind"/> employ, or
+    /// <c>false</c> where it declares no such kind at all.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="TryDeclaredOccupancy"/>'s two negative cases, on the employment axis</b>
+    /// (<c>adr/0068</c>'s rule, milestone 5b-bis task 2). A declared kind at <c>jobs = 0</c> employs
+    /// nobody, which is what a dwelling means and is every kind in every shipped Ruleset today. A
+    /// kind the Ruleset does not mention is <b>derelict</b> and has no ceiling at all: it keeps the
+    /// workers it has and takes nobody new, because a designer deleting a paragraph must not sack a
+    /// District. There is no derived column behind this for the reason there is none behind
+    /// occupancy — it is read at a guard, and the Building already carries its
+    /// <see cref="BuildingTable.Kind"/>.
+    /// </remarks>
+    internal bool TryDeclaredJobs(byte kind, out int jobs)
+    {
+        if (!Rules.Declares(kind))
+        {
+            jobs = 0;
+            return false;
+        }
+
+        jobs = Rules.Kind(kind).Jobs;
+        return true;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="buildingSlot"/> has a job nobody holds.
+    /// </summary>
+    /// <remarks>
+    /// <b>The predicate the assignment pass asks of every candidate it samples</b>, and
+    /// <see cref="HasRoom"/>'s exact shape: a full employer is an ordinary answer rather than a
+    /// fault, so this is where the cost of asking is paid and there is no invariant behind it.
+    /// </remarks>
+    public bool HasJob(int buildingSlot) =>
+        TryDeclaredJobs(Buildings.Kind[buildingSlot], out int jobs)
+        && Workers.Length(buildingSlot) < jobs;
+
+    /// <summary>
+    /// Gives a Citizen a Workplace, linking them into that Building's worker list.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The one door onto <see cref="CitizenTable.Workplace"/>, and that is what the reverse index
+    /// costs.</b> Writing the handle without linking leaves a Building whose worker list disagrees
+    /// with the Citizens pointing at it — and the disagreement is invisible, because the list is
+    /// derived and therefore folds into no hash. It would surface as a reloaded city employing
+    /// people a continuously-run one did not.
+    /// </para>
+    /// <para>
+    /// <b>It does not ask <see cref="HasJob"/>, and <see cref="CreateHousehold"/> is the precedent
+    /// rather than <see cref="Place"/>.</b> A ceiling guard belongs at the door a *sampling* caller
+    /// comes through, where refusing is an ordinary outcome it already handles; a bare mutator that
+    /// refused would leave its caller believing a write happened. The assignment pass asks the
+    /// predicate; this maintains the list.
+    /// </para>
+    /// <para>
+    /// <b>A Citizen who already works somewhere leaves that list first.</b> Taking a second job
+    /// silently is the failure a one-directional write would produce, and it is the same shape as a
+    /// Household housed twice — the difference being that a Household has an invariant counting its
+    /// appearances and this now has one too.
+    /// </para>
+    /// </remarks>
+    public void Employ(Handle<Citizen> citizen, Handle<Building> workplace)
+    {
+        int slot = Citizens.Rows.Resolve(citizen);
+        int buildingSlot = Buildings.Rows.Resolve(workplace);
+
+        Unlist(slot);
+
+        Citizens.Workplace[slot] = workplace;
+
+        Invariants.Require(
+            !Lists(Workers, buildingSlot, slot),
+            Invariant.CitizenIsNotAlreadyEmployedHere,
+            slot,
+            buildingSlot);
+
+        Workers.InsertOrdered(buildingSlot, slot);
+    }
+
+    /// <summary>
+    /// Takes a Citizen's Workplace away, leaving everything else about them alone.
+    /// </summary>
+    /// <remarks>
+    /// <b>The handle is cleared rather than left severed, and that is the difference between this and
+    /// demolition.</b> A Building demolished out from under a worker leaves the handle pointing at a
+    /// freed row, which reads as <em>the job stopped existing</em> and is the fact. A ceiling lowered
+    /// under one leaves the Building standing, so a severed handle would be a lie — the employer is
+    /// right there. Clearing it is also what puts the Citizen back in front of the assignment pass,
+    /// which is <c>adr/0054</c>'s answer for a demolished dwelling read across.
+    /// </remarks>
+    public void Dismiss(Handle<Citizen> citizen)
+    {
+        int slot = Citizens.Rows.Resolve(citizen);
+
+        Unlist(slot);
+        Citizens.Workplace[slot] = default;
+    }
+
+    /// <summary>
+    /// Takes <paramref name="citizenSlot"/> off its Workplace's worker list, if it is on one.
+    /// </summary>
+    /// <remarks>
+    /// <b>Silent where the handle does not resolve, and that is the severable case rather than an
+    /// error.</b> <see cref="DestroyBuilding"/> unlists its workers before freeing the row, so a
+    /// Citizen whose <see cref="CitizenTable.Workplace"/> is dangling is already off every list —
+    /// which is the same state <see cref="RebuildDerived"/> produces for it, and the reason the two
+    /// agree.
+    /// </remarks>
+    private void Unlist(int citizenSlot)
+    {
+        if (Buildings.Rows.TryResolve(Citizens.Workplace[citizenSlot], out int workplaceSlot))
+        {
+            Workers.Remove(workplaceSlot, citizenSlot);
+        }
+    }
+
+    /// <summary>
+    /// The worker of <paramref name="buildingSlot"/> holding the highest draw, which is the one a
+    /// lowered <c>jobs</c> ceiling dismisses next.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="Loser"/> on the employment axis, keyed on the Citizen's monotonic id and drawn
+    /// against its own tag.</b> Sharing <see cref="PurposeTag.OverflowEviction"/> would tie *who is
+    /// sacked* to *who is evicted from their home*, so a patch that lowered both ceilings would turn
+    /// the same families out of both — a correlation with no cause in the city and no readout that
+    /// could say where it came from.
+    /// </remarks>
+    private int LosingWorker(int buildingSlot, Ticks now, WorldKey key)
+    {
+        int worst = Rows.NoSlot;
+        ulong highest = 0;
+
+        foreach (int citizen in Workers.Walk(buildingSlot))
+        {
+            ulong draw = Randomness.Draw(
+                key, Citizens.Rows.IdAt(citizen), now, PurposeTag.JobEviction);
+
+            if (worst == Rows.NoSlot || draw > highest)
+            {
+                worst = citizen;
                 highest = draw;
             }
         }
@@ -1506,6 +1700,21 @@ public sealed class World
         {
             Unplace(Households.Rows.At(occupant));
             occupant = Occupants.PeekFront(slot);
+        }
+
+        // The workers next, and they are unlisted rather than dismissed. Clearing the Workplace
+        // handle would be a write to a saved column, so demolition would move the State Hash for a
+        // reason that has nothing to do with the demolition -- and the handle is Severable precisely
+        // so that a dangling one can say `the job stopped existing`, which is the fact here.
+        // Unlisting alone is what makes the write path agree with RebuildDerived, whose TryResolve
+        // drops exactly these Citizens.
+        //
+        // Drained rather than Clear()ed, because the Citizens stay live: IndexList.Clear drops the
+        // heads without touching the elements' next links, which is correct only when they are about
+        // to be freed or re-linked and neither is true here.
+        IndexList workers = Workers;
+        while (workers.PopFront(slot) != Rows.NoSlot)
+        {
         }
 
         // The Rules next, so that any of them asleep on this Building's own Bins are off those wait

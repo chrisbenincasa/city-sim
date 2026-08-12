@@ -592,6 +592,20 @@ public static class WorldInvariants
             Invariant.HouseholdIsInExactlyOneBuilding,
             report,
             absentIsLegal: world.Households.IsUnplaced);
+
+        // Milestone 5b-bis task 2. Unemployment is the common case rather than the exception here --
+        // no shipped Ruleset declares a job -- so the exemption carries almost every row, and what
+        // it is actually checking is the other direction: that nobody is on a list they have no
+        // handle for. The predicate is a handle resolve rather than a flag, because a Workplace is
+        // Severable and a demolished employer leaves the Citizen holding a dangling one.
+        Count(
+            world.Workers,
+            world.Buildings.Rows,
+            world.Citizens.Rows,
+            Invariant.CitizenIsInExactlyOneWorkplace,
+            report,
+            absentIsLegal: slot =>
+                !world.Buildings.Rows.TryResolve(world.Citizens.Workplace[slot], out _));
     }
 
     /// <summary>

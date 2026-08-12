@@ -188,7 +188,12 @@ public class StateHashTests
         for (int i = 0; i < 3; i++)
         {
             Handle<Citizen> citizen = world.CreateCitizen(household, new Ticks((ulong)(100 + i)));
-            world.Citizens.Workplace[world.Citizens.Rows.Resolve(citizen)] = building;
+
+            // Through the mutator so the worker list matches the handles. The two tests below write
+            // the column raw on purpose -- they are about what the hash does with a handle, and one
+            // of them wants a deliberately inconsistent world -- but the fixture they start from
+            // should not be one.
+            world.Employ(citizen, building);
         }
 
         return world;

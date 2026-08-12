@@ -31,6 +31,8 @@ public sealed class BuildingTable
         Kind = _rows.Saved<byte>("kind");
         OccupantHead = _rows.Derived<int>("occupant_head");
         OccupantTail = _rows.Derived<int>("occupant_tail");
+        WorkerHead = _rows.Derived<int>("worker_head");
+        WorkerTail = _rows.Derived<int>("worker_tail");
         BinHead = _rows.Derived<int>("bin_head", Touch.PerTick);
         BinTail = _rows.Derived<int>("bin_tail");
         RuleHead = _rows.Derived<int>("rule_head");
@@ -55,6 +57,21 @@ public sealed class BuildingTable
 
     /// <summary>Tail of the occupant list, so a Household appends rather than push-fronts.</summary>
     public Column<int> OccupantTail { get; }
+
+    /// <summary>
+    /// Head of the worker list — see <see cref="CitizenTable.WorkerNext"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The Building-to-workers reverse index <see cref="CitizenTable.Workplace"/> was declared
+    /// without</b>, and its absence is why that handle is <see cref="Tables.Reference.Severable"/>.
+    /// It is the occupant list on a second axis and it is derived for the same reason: which
+    /// Citizens work here follows from their own saved <c>workplace</c> handles, so nothing here is
+    /// state.
+    /// </remarks>
+    public Column<int> WorkerHead { get; }
+
+    /// <summary>Tail of the worker list, so a Citizen appends rather than push-fronts.</summary>
+    public Column<int> WorkerTail { get; }
 
     /// <summary>
     /// Head of this Building's Bins — see <see cref="Rules.BinTable.BinNext"/>.

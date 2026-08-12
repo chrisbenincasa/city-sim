@@ -1111,6 +1111,79 @@ public sealed class RulesetLoaderTests
         Assert.Contains("occupants is -1", refusal.Reason, StringComparison.Ordinal);
         Assert.Contains("houses nobody", refusal.Reason, StringComparison.Ordinal);
     }
+
+    // ---- employment, adr/0068's rule on a second axis (5b-bis task 2) ---------------------------
+
+    /// <summary>
+    /// A kind that declares no <c>jobs</c> employs nobody.
+    /// </summary>
+    /// <remarks>
+    /// <b>The default is load-bearing here in a way it was not for occupancy</b>, because it is the
+    /// state of every kind in every shipped Ruleset rather than of most of them. It is also what
+    /// deleted <c>SyntheticCity</c>'s workplace stride: the populator handed out employment that no
+    /// declaration granted, which was expressible only once this key existed to contradict it.
+    /// </remarks>
+    [Fact]
+    public void A_kind_that_declares_no_jobs_employs_nobody()
+    {
+        Ruleset ruleset = Accepted(Bakery);
+
+        Assert.Equal(0, ruleset.Kind(1).Jobs);
+    }
+
+    /// <summary>A kind that declares <c>jobs</c> carries the number through to the core.</summary>
+    [Fact]
+    public void A_kind_that_declares_jobs_carries_the_number()
+    {
+        Ruleset ruleset = Accepted(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\njobs = 12\n",
+            StringComparison.Ordinal));
+
+        Assert.Equal(12, ruleset.Kind(1).Jobs);
+    }
+
+    /// <summary>
+    /// A negative <c>jobs</c> is refused rather than clamped.
+    /// </summary>
+    /// <remarks>
+    /// Clamped to zero it reads as <em>sack everybody</em>, which is a sentence somebody meant to
+    /// write and nobody would guess from the symptom — <c>occupants</c>'s reasoning exactly, and
+    /// written rather than inherited because a guard with no test is invisible to the next reader.
+    /// </remarks>
+    [Fact]
+    public void A_negative_jobs_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\njobs = -1\n",
+            StringComparison.Ordinal));
+
+        Assert.Contains("jobs is -1", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("employs nobody", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A kind declares occupancy and employment independently, and one does not default from
+    /// the other.
+    /// </summary>
+    /// <remarks>
+    /// <b>The case a single shared number could not express</b>, and the one that says why this is a
+    /// fourth key rather than a reading of the third: a workplace houses nobody and employs a
+    /// hundred, a dwelling the reverse, and a mixed-use Building both. Reaching for occupancy where
+    /// employment was meant is the kind of collapse a test notices and a reviewer does not.
+    /// </remarks>
+    [Fact]
+    public void Occupancy_and_employment_are_declared_independently()
+    {
+        Ruleset ruleset = Accepted(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\noccupants = 0\njobs = 9\n",
+            StringComparison.Ordinal));
+
+        Assert.Equal(0, ruleset.Kind(1).Occupants);
+        Assert.Equal(9, ruleset.Kind(1).Jobs);
+    }
     // ---- [placement] (adr/0069) --------------------------------------------------------------------
 
     /// <summary>A Ruleset with no <c>[placement]</c> loads, and houses nobody.</summary>

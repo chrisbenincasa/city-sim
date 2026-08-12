@@ -184,4 +184,17 @@ public enum PurposeTag : ulong
     /// are the edges Severance turns on</i>.
     /// </summary>
     RoadFootPath = 10,
+
+    /// <summary>
+    /// Which workers a lowered <c>jobs</c> ceiling dismisses (milestone 5b-bis task 2).
+    /// </summary>
+    /// <remarks>
+    /// <b>Its own tag rather than <see cref="OverflowEviction"/>'s, and the correlation it avoids is
+    /// the one that tag's own note describes arriving a second time.</b> A Ruleset patch may lower
+    /// occupancy and employment together; share the tag and the families turned out of their homes
+    /// are the same people turned out of their jobs, in every Building, on every patch. Two
+    /// misfortunes with one cause is a story the city never told, and no readout could say where it
+    /// came from.
+    /// </remarks>
+    JobEviction = 11,
 }

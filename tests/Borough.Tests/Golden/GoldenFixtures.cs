@@ -318,7 +318,18 @@ internal static class GoldenFixtures
                 new Ticks((ulong)((i * 401) % 8192)));
 
             int slot = world.Citizens.Rows.Resolve(citizens[i]);
-            world.Citizens.Workplace[slot] = buildings[(i * 3) % buildings.Length];
+
+            // Through World.Employ rather than the column, because the worker list is derived from
+            // this handle and a direct write leaves the two disagreeing -- which
+            // Invariant.CitizenIsInExactlyOneWorkplace reports, and which this fixture exists to be
+            // clean of. It moves no hash: the handle written is the same one.
+            //
+            // The stride stays here where SyntheticCity's went, and the difference is the Ruleset.
+            // This world runs on Ruleset.Empty, so every kind is derelict, no ceiling exists, and
+            // nothing can dismiss anybody -- where the populator's city runs on a Ruleset that
+            // declares `dwelling` and grants it no jobs. A fixture whose whole job is to hold one
+            // live row of every shape wants an employed Citizen among them.
+            world.Employ(citizens[i], buildings[(i * 3) % buildings.Length]);
             world.Citizens.Activity[slot] = (byte)(i % 7);
             world.Citizens.SkillTier[slot] = (byte)(i % 4);
             world.Citizens.Employment[slot] = (byte)(i % 3);

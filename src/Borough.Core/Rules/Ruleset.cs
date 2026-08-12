@@ -354,6 +354,35 @@ public readonly record struct KindDefinition(
     /// </para>
     /// </remarks>
     public int Occupants { get; init; }
+
+    /// <summary>
+    /// How many Citizens a Building of this kind employs. Zero means it employs nobody.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Occupants"/>'s rule a second time, and it transplants for the reason that one
+    /// did rather than by analogy</b> (<c>adr/0068</c>, milestone 5b-bis task 2). It is an authored
+    /// number keyed on the kind, read at a write site, and pointed at by no live state — so it is a
+    /// property of the Ruleset in force, and lowering it reaches every Building already standing.
+    /// The overflow is <b>dismissed</b> rather than left to drain: <c>adr/0064</c>'s <em>leave it to
+    /// drain</em> turns on a Bin having a consumer, and a job has a holder and no consumer exactly as
+    /// occupancy does — nothing would ever spend a Building's surplus employment down.
+    /// </para>
+    /// <para>
+    /// <b>Zero rather than absent, and most kinds mean it.</b> A dwelling employs nobody, which is
+    /// every kind in every shipped Ruleset at the time this was written, and it wants no ceremony. A
+    /// kind the Ruleset does not declare at all is a different thing again — see
+    /// <see cref="Entities.World.TryDeclaredJobs"/> — because dereliction must not sack a District.
+    /// </para>
+    /// <para>
+    /// <b>It counts Citizens and never Households</b>, which is the one place this is not a copy of
+    /// <see cref="Occupants"/>. <c>CONTEXT.md</c> → Household holds the Provider List and the money;
+    /// employment is on the <see cref="Entities.Citizen"/>, with <c>Experience</c> and
+    /// <c>SkillTier</c> beside it, and a Household with two adults working different sides of the
+    /// city is the case a per-Household count could not express.
+    /// </para>
+    /// </remarks>
+    public int Jobs { get; init; }
 }
 
 /// <summary>
