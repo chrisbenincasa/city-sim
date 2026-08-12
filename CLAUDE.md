@@ -518,6 +518,9 @@ thereby a cost of that decision** — read the primitive in the inner loop befor
 **Prose style is British** — modelled, behaviour, optimise, serialisation, sterilise. Documents
 cross-reference by section (`02 §4.1`) and link relatively. The register is dense and
 argumentative: state the claim, then the reasoning that survives objection. Match it.
+**This governs documents only.** Chat replies to the user are plain English — lead with the answer,
+explain each term and citation inline as you use it, and debrief at the end of a chunk of work.
+Do not carry the corpus's register into the terminal.
 
 **Superseded documents get a banner, never a deletion.** See the top of
 `docs/adr/0005-two-fidelity-tiers.md` for the form.
