@@ -364,6 +364,107 @@ public class TravelTimeTests
         Assert.True(Speed.Zero.CompareTo(Speed.FromKilometresPerHour(1)) < 0);
     }
 
+    // ---- the authored conversions, 5b-bis task 3 ------------------------------------------------
+
+    /// <summary>Seconds in an in-world Day. The exchange rate both conversions below run on.</summary>
+    private const long SecondsPerDay = 86_400;
+
+    /// <summary>Clock minutes in an in-world Day.</summary>
+    private const long MinutesPerDay = 1_440;
+
+    /// <summary>
+    /// <b>A Day authored in seconds is a Day of Ticks, exactly</b> — which is the only place the two
+    /// clocks have to agree and the one that fixes every other value.
+    /// </summary>
+    /// <remarks>
+    /// The same derivation <see cref="Speed.FromKilometresPerHour"/> runs: 86,400 s over
+    /// <see cref="Ticks.PerDay"/> Ticks, so a Tick is 10.546875 s. If one of these two ever moves the
+    /// other has to move with it, and this is the assertion that says so.
+    /// </remarks>
+    [Fact]
+    public void A_day_of_authored_seconds_is_a_day_of_ticks()
+    {
+        Assert.Equal(
+            TravelTime.FromTicks((int)Ticks.PerDay), TravelTime.FromSeconds((int)SecondsPerDay));
+    }
+
+    /// <summary><b>A Day of authored clock minutes is the same Day.</b></summary>
+    [Fact]
+    public void A_day_of_authored_minutes_is_a_day_of_ticks()
+    {
+        Assert.Equal(
+            TravelTime.FromTicks((int)Ticks.PerDay), TravelTime.FromMinutes((int)MinutesPerDay));
+    }
+
+    /// <summary>
+    /// <b>The two authored units are the same clock</b>, which is what lets a Ruleset state a
+    /// crossing in seconds and a Commute Budget in minutes without the file holding two time scales.
+    /// </summary>
+    [Fact]
+    public void A_minute_and_sixty_seconds_are_the_same_duration()
+    {
+        Assert.Equal(TravelTime.FromSeconds(60), TravelTime.FromMinutes(1));
+    }
+
+    /// <summary>
+    /// <b>An authored duration floors rather than rounding up</b>, so it never overstates.
+    /// </summary>
+    /// <remarks>
+    /// A second is not a whole number of Q16.16 Ticks — 6,213.78 of them — so the conversion has a
+    /// rounding direction and it is <see cref="Fixed"/>'s throughout. Asserted as the inequality
+    /// rather than against a raw literal, because a literal here would be a second copy of the
+    /// derivation that could drift from it.
+    /// </remarks>
+    [Fact]
+    public void An_authored_second_is_floored_rather_than_rounded_up()
+    {
+        long raw = TravelTime.FromSeconds(1).Raw;
+
+        Assert.True(raw * SecondsPerDay <= TravelTime.FromTicks((int)Ticks.PerDay).Raw);
+        Assert.True((raw + 1) * SecondsPerDay > TravelTime.FromTicks((int)Ticks.PerDay).Raw);
+    }
+
+    /// <summary><b>Zero is a duration, and both units say so.</b></summary>
+    /// <remarks>
+    /// It matters for the crossing cost specifically: zero is <c>adr/0074</c>'s rung 1, a city where
+    /// the shop opposite is the shop next door, and it has to be authorable for the Ruleset's absent
+    /// table to mean something different from it.
+    /// </remarks>
+    [Fact]
+    public void Zero_authored_in_either_unit_is_no_time_at_all()
+    {
+        Assert.Equal(TravelTime.Zero, TravelTime.FromSeconds(0));
+        Assert.Equal(TravelTime.Zero, TravelTime.FromMinutes(0));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(int.MinValue)]
+    public void A_negative_authored_duration_throws(int authored)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => TravelTime.FromSeconds(authored));
+        Assert.Throws<ArgumentOutOfRangeException>(() => TravelTime.FromMinutes(authored));
+    }
+
+    /// <summary>
+    /// <b>The boundary is accepted and the value past it throws</b>, on
+    /// <c>A_speed_refuses_to_leave_the_format_and_accepts_the_boundary</c>'s precedent.
+    /// </summary>
+    /// <remarks>
+    /// Just under four Days either way — 345,599 s and 5,759 minutes — which is a property of Q16.16
+    /// Ticks rather than a statement about journeys. A Ruleset never reaches it: the loader's own
+    /// ceilings are an hour and four Days.
+    /// </remarks>
+    [Fact]
+    public void An_authored_duration_that_leaves_the_format_throws_and_the_boundary_does_not()
+    {
+        TravelTime.FromSeconds(345_599);
+        TravelTime.FromMinutes(5_759);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => TravelTime.FromSeconds(345_600));
+        Assert.Throws<ArgumentOutOfRangeException>(() => TravelTime.FromMinutes(5_760));
+    }
+
     // ---------------------------------------------------------------------------------------------
     // The type discipline. adr/0071: "This is the whole benefit and it is a compile-time one."
     // ---------------------------------------------------------------------------------------------

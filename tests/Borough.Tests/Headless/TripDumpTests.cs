@@ -142,6 +142,70 @@ public sealed class TripDumpTests
         }
     }
 
+    /// <summary>
+    /// <b>A Ruleset with no <c>[trips]</c> is refused rather than walked at a crossing cost of
+    /// zero.</b>
+    /// </summary>
+    /// <remarks>
+    /// The same polarity as the <c>[roads]</c> refusal above and for a sharper reason: an absent road
+    /// network produces an obviously empty picture, whereas an unauthored crossing cost produces a
+    /// full and plausible one. Zero is <c>adr/0074</c>'s rung 1 and a legitimate authored value, so a
+    /// zero standing in for <em>nobody chose</em> would be a number this instrument had chosen — which
+    /// <c>adr/0052</c> forbids it to do, and which no reader of the output could detect.
+    /// </remarks>
+    [Fact]
+    public void A_ruleset_with_no_trips_is_refused_rather_than_walked_at_a_free_crossing()
+    {
+        string shipped = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml"));
+        int trips = shipped.IndexOf("[trips]", StringComparison.Ordinal);
+
+        Assert.True(trips > 0, "minimal.toml no longer declares [trips]; this fixture is stale.");
+
+        string path = Path.Combine(Path.GetTempPath(), $"borough-no-trips-{Environment.ProcessId}.toml");
+
+        try
+        {
+            File.WriteAllText(path, shipped[..trips]);
+
+            Assert.True(
+                Options.TryParse(
+                    ["--trips", "--ruleset", path, "--citizens", Population],
+                    out Options? options,
+                    out string? complaint),
+                complaint);
+
+            var writer = new StringWriter();
+
+            Assert.Equal(3, TripDump.Run(options!, writer));
+            Assert.Contains("declares no [trips]", writer.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// <b>The header names the crossing cost it ran at and says the city has no Commute Budget.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>This is half of the crossing cost's named ratifier, and the half that makes the other half
+    /// legible.</b> <c>plans/0002</c> §D asks for the walk-Leg distribution <i>with the term at zero
+    /// and at a candidate value</i> — two runs, compared — and a report that does not say which value
+    /// it ran at cannot be one of the two. The Budget line is the same discipline pointed at an
+    /// absence: the distribution below is a percentile's source only while nothing is censoring it.
+    /// </remarks>
+    [Fact]
+    public void The_header_names_the_crossing_cost_and_the_absent_budget()
+    {
+        string report = Dump("minimal.toml");
+
+        Assert.Contains("crossing_seconds", report, StringComparison.Ordinal);
+        Assert.Contains("UNRATIFIED", report, StringComparison.Ordinal);
+        Assert.Contains("no Commute Budget", report, StringComparison.Ordinal);
+    }
+
     /// <summary>The pair count the verdict reports as having no route at all.</summary>
     /// <remarks>
     /// <b>Parsed rather than substring-matched, because the substring lies.</b> The first version of

@@ -362,3 +362,12 @@ foot_path_capacity_per_hour    = 1000
 # LotTable, so a depth would be a hash-bearing world-creation number chosen for a consumer
 # nobody has designed. Lots hang on Segments and the rest of the block is interior.
 lots_per_segment = 5
+
+[trips]
+# Identical to minimal.toml's, and deliberately so: this file differs from that one in three
+# [roads] numbers and in nothing else, because a demonstration that varies two things at once
+# demonstrates neither. The crossing cost matters here for a reason it does not there -- a severed
+# city is one where the other side of the street is sometimes the only side you can reach -- but
+# the term applies only to two Addresses on one Segment, so it moves the first band and leaves
+# Severance to the mode mask, which is where the mechanism actually lives.
+crossing_seconds = 30

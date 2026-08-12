@@ -451,15 +451,36 @@ public sealed class Simulation
     /// case this verb exists to be able to produce on demand.
     /// </para>
     /// <para>
-    /// <b>The crossing cost is <see cref="TravelTime.Zero"/> and this is not a choice of its value.</b>
-    /// It is <c>[trips]</c> Ruleset data, hash-bearing and unset, and no part of milestone 5b may choose
-    /// it (<c>adr/0052</c>). It is passed rather than looked up, so passing zero costs one addition and
-    /// decides nothing — the same position <c>--trips</c> took, and it says so there too.
+    /// <b>The crossing cost and the Commute Budget are read from the <c>[trips]</c> table</b>
+    /// (5b-bis task 3), which is what turns this from a Trip that is always made into a Trip that can
+    /// be refused. A Ruleset declaring no <c>[trips]</c> is refused outright rather than costed at
+    /// zero: zero is a legitimate crossing cost — <c>adr/0074</c>'s rung 1, what the corpus had by
+    /// omission — so a zero standing in for <em>nobody has authored one</em> is the placeholder
+    /// session F named, indistinguishable from a decision.
+    /// </para>
+    /// <para>
+    /// <b>A city with no Commute Budget refuses nothing for its length</b>, which is what an omitted
+    /// <c>commute_budget_minutes</c> states. That is the city whose cost distribution this milestone
+    /// has to measure before the number can be chosen, so
+    /// <see cref="TripFate.ExceededCommuteBudget"/> is reachable here and unreached until a Ruleset
+    /// states one.
     /// </para>
     /// </remarks>
     private void ApplyTrip(Command command, Ticks tick)
     {
         TripPayload payload = TripPayload.Decode(command.Zone);
+
+        TripRuleset trips = _world.Rules.Trips;
+
+        if (!trips.Runs)
+        {
+            throw new InvalidOperationException(
+                "trip is commanded against a Ruleset that declares no [trips] table, so what a "
+                + "crossing costs and where the Commute Budget falls are both unauthored. The verb "
+                + "refuses rather than costing the journey at zero, because zero is a legitimate "
+                + "crossing cost -- a city where the shop opposite is the shop next door -- and a "
+                + "placeholder inside the range of legitimate answers cannot announce itself.");
+        }
 
         int block = _world.Roads.Streets.BlockTiles;
 
@@ -519,7 +540,7 @@ public sealed class Simulation
             return;
         }
 
-        TravelTime cost = WalkRouting.Cost(_world.Roads, from, to, TravelTime.Zero, _walk);
+        TravelTime cost = WalkRouting.Cost(_world.Roads, from, to, trips.CrossingCost, _walk);
 
         // Eagerly, per adr/0075: every Leg of a Trip is created at Trip creation, which is what makes
         // mean-Legs-per-Trip countable at all. One Leg here because 5b resolves walk Legs only.
@@ -532,6 +553,17 @@ public sealed class Simulation
         if (cost.IsImpassable)
         {
             _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound, legSlot);
+            return;
+        }
+
+        // The Budget is judged on the whole Trip before anybody sets off, which is what a budget is:
+        // a person who can see the journey is too long does not make two thirds of it and stop. The
+        // Leg exists either way, because adr/0075 creates every Leg at Trip creation and the cost of
+        // the journey not taken is the diagnosis -- "32 can't reach a job inside their Commute
+        // Budget" needs the number that failed, not just the count.
+        if (!trips.WithinBudget(cost))
+        {
+            _world.Trips.Resolve(tripSlot, TripFate.ExceededCommuteBudget, legSlot);
             return;
         }
 

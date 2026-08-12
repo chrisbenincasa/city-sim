@@ -300,3 +300,40 @@ foot_path_capacity_per_hour    = 1000
 # LotTable, so a depth would be a hash-bearing world-creation number chosen for a consumer
 # nobody has designed. Lots hang on Segments and the rest of the block is interior.
 lots_per_segment = 5
+
+[trips]
+# What travelling costs, and what makes a journey fail. Two numbers, both hash-bearing, and they
+# are unset in two DIFFERENT senses -- which is the whole reason one of them is here and the
+# other is not.
+#
+# THE CROSSING COST IS CHOSEN WITH A NAMED RATIFIER, which adr/0052 permits and which the Budget
+# below cannot use. It is what it costs on foot to reach the other side of a Segment (adr/0074),
+# charged exactly when two Addresses share a Segment and differ in side and silent everywhere
+# else -- because "the same side" stops meaning anything once a route turns a corner. Zero is a
+# legitimate value for it: that is rung 1, what this corpus had by omission, the city where the
+# shop opposite is the shop next door.
+#
+# 30 SECONDS, AND THE DERIVATION WAS LOOKED FOR BEFORE THE VALUE. plans/0002 §D asks for one and
+# gives its shape -- half a signal period, which is a property of a junction rather than a
+# preference. This simulation has no signals and a Segment has no width, so neither derivation is
+# available; both need a mechanism nobody has built, and under adr/0070 that absence is evidence
+# of nothing. What is left is the band the row states: large enough that the shop opposite is not
+# the shop next door, small enough that it does not dominate a Leg made of blocks. A block is 32
+# Tiles = 128 m and takes 92 s to walk at 5 km/h, so this is a third of one block. Half a
+# 60-second signal cycle arrives at the same number from the other end, which is the most this
+# corpus can honestly say for it.
+#
+# ITS RATIFIER IS THIS MILESTONE'S OWN LONG RUN, and that run is made twice: the walk-Leg cost
+# distribution with the term at zero and at this value. `--trips` prints the distribution and
+# names the value it ran at, so the pair is comparable rather than remembered.
+#
+# THERE IS NO commute_budget_minutes, AND THE OMISSION IS THE STATEMENT RATHER THAN AN OVERSIGHT.
+# The Budget is a percentile of a Trip-cost distribution, so it is meaningless before one exists,
+# and a value here today would be exactly what adr/0052 forbids -- a hash-bearing number chosen
+# because the schema wanted one. An omitted key is a city with NO CEILING: nothing is refused for
+# its length, the Trip Fate "exceeded commute budget" stays unreachable, and the Census says so.
+# That is also the only city whose cost distribution is uncensored, which is the one this
+# milestone has to measure before it can state the number. The loader refuses a zero rather than
+# reading it as "nobody travels", because the intent a zero would be reaching for is the intent
+# deleting the key already states.
+crossing_seconds = 30

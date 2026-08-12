@@ -90,6 +90,20 @@ internal static class TripDump
             return 3;
         }
 
+        TripRuleset trips = rules.Trips;
+
+        if (!trips.Runs)
+        {
+            output.WriteLine(
+                "This Ruleset declares no [trips], so what a crossing costs is unauthored and this "
+                + "instrument may not choose it (adr/0052). It refuses rather than walking at zero: "
+                + "zero is a legitimate crossing cost -- adr/0074's rung 1, the city where the shop "
+                + "opposite is the shop next door -- so a zero standing in for an unauthored number "
+                + "would be indistinguishable from a decision in every figure below.");
+
+            return 3;
+        }
+
         Address[] doors = Doors(world, out int homeless);
 
         if (doors.Length < 2)
@@ -102,9 +116,9 @@ internal static class TripDump
             return 3;
         }
 
-        Header(output, world, graph, doors.Length, homeless);
+        Header(output, world, graph, trips, doors.Length, homeless);
 
-        var census = new Census(graph, doors);
+        var census = new Census(graph, doors, trips.CrossingCost);
 
         census.Walk(out bool exhaustive);
 
@@ -120,7 +134,7 @@ internal static class TripDump
     }
 
     private static void Header(
-        TextWriter output, World world, RoadGraph graph, int doors, int homeless)
+        TextWriter output, World world, RoadGraph graph, TripRuleset trips, int doors, int homeless)
     {
         RoadRuleset roads = graph.Ruleset;
 
@@ -143,9 +157,21 @@ internal static class TripDump
         }
 
         output.WriteLine(
-            "# The crossing cost is ZERO here and this instrument may not choose it: it is [trips] "
-            + "Ruleset data, hash-bearing and unratified (adr/0052, plans/0002 §D2). It applies only "
-            + "to two Addresses on one Segment and opposite sides, so it moves no band below.");
+            $"# The crossing cost is {Minutes(trips.CrossingCost.Raw)} min, from [trips] "
+            + "crossing_seconds -- hash-bearing and UNRATIFIED (adr/0052, plans/0002 §D2), and this "
+            + "run is half of what ratifies it: the distribution below at a candidate value against "
+            + "the same distribution at zero. It applies only to two Addresses on one Segment and "
+            + "opposite sides, so it moves the first band and nothing beyond it.");
+
+        output.WriteLine(
+            trips.HasCommuteBudget
+                ? $"# The Commute Budget is {Minutes(trips.CommuteBudget.Raw)} min. This census does "
+                    + "not apply it -- every pair is walked -- so what is below is geometry rather "
+                    + "than behaviour, and it is the distribution the Budget should have been read "
+                    + "off rather than a check on the value."
+                : "# This city has no Commute Budget: [trips] states no commute_budget_minutes, "
+                    + "which is a city where a Trip's length refuses nothing. That is the state the "
+                    + "number is measured FROM -- it is a percentile of the distribution below.");
     }
 
     /// <summary>Every Building's pedestrian Access Point, and how many have none.</summary>
@@ -188,7 +214,7 @@ internal static class TripDump
     }
 
     /// <summary>Walks the pairs and holds what they cost.</summary>
-    private sealed class Census(RoadGraph graph, Address[] doors)
+    private sealed class Census(RoadGraph graph, Address[] doors, TravelTime crossing)
     {
         private readonly Band[] _bands = [.. Bands.Select(_ => new Band())];
         private readonly WalkScratch _scratch = new();
@@ -244,7 +270,7 @@ internal static class TripDump
                 return;
             }
 
-            TravelTime cost = WalkRouting.Cost(graph, from, to, TravelTime.Zero, _scratch);
+            TravelTime cost = WalkRouting.Cost(graph, from, to, crossing, _scratch);
 
             if (cost.IsImpassable)
             {

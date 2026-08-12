@@ -5,6 +5,8 @@ using Borough.Core.Input;
 using Borough.Core.Instruments;
 using Borough.Core.Movement;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
+using Borough.Formats;
 using Borough.Tests.Golden;
 
 namespace Borough.Tests.Movement;
@@ -167,6 +169,126 @@ public sealed class TripCommandTests
     }
 
     /// <summary>
+    /// <b>A Trip commanded against a Ruleset with no <c>[trips]</c> is refused rather than costed at
+    /// zero.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>The refusal exists because zero is a legitimate crossing cost.</b> It is
+    /// <c>adr/0074</c>'s rung 1 — the city where the shop opposite is the shop next door — so a zero
+    /// standing in for <em>nobody authored one</em> would be indistinguishable from a decision, which
+    /// is session F's finding that <i>a placeholder inside the range of legitimate answers cannot
+    /// announce itself</i>. Every other endpoint refusal in this verb has the same shape: an answer
+    /// that looks like an answer is worse than no answer.
+    /// </remarks>
+    [Fact]
+    public void A_trip_commanded_against_a_ruleset_with_no_trips_table_is_refused()
+    {
+        Blocks blocks = TwoOccupiedBlocks();
+
+        InvalidOperationException refusal = Assert.Throws<InvalidOperationException>(
+            () => RunWith(
+                Trip(
+                    blocks.Origin.East,
+                    blocks.Origin.North,
+                    new TripPayload(
+                        (sbyte)(blocks.Destination.East - blocks.Origin.East),
+                        (sbyte)(blocks.Destination.North - blocks.Origin.North))),
+                Departure + 1,
+                RulesWithTripsTable(null)));
+
+        Assert.Contains("no [trips]", refusal.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>A Trip longer than the Commute Budget ends <see cref="TripFate.ExceededCommuteBudget"/>,
+    /// which nothing in this repository could reach until the Budget was Ruleset data.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The Fate was declared by <c>adr/0076</c> and structurally unreachable: the set is closed at
+    /// four and one of the four had no producer, so a third of the Trip model's failure vocabulary
+    /// was documentation. The Budget in this fixture is <b>one minute</b>, which no Trip between two
+    /// blocks can make — a block is 32 Tiles and takes a minute and a half to walk at 5 km/h.
+    /// </para>
+    /// <para>
+    /// <b>No shipped Ruleset states a Budget</b>, so this Fate stays unreached in the golden baseline
+    /// and in every long run until this milestone has measured the percentile it is. That is the
+    /// intended state and not an omission: a Budget authored before the distribution exists is the
+    /// number <c>adr/0052</c> forbids.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_trip_beyond_the_commute_budget_ends_over_budget_rather_than_completing()
+    {
+        Blocks blocks = TwoOccupiedBlocks();
+
+        Simulation simulation = RunWith(
+            Trip(
+                blocks.Origin.East,
+                blocks.Origin.North,
+                new TripPayload(
+                    (sbyte)(blocks.Destination.East - blocks.Origin.East),
+                    (sbyte)(blocks.Destination.North - blocks.Origin.North))),
+            Departure + 64,
+            RulesWithTripsTable("""
+                [trips]
+                crossing_seconds = 30
+                commute_budget_minutes = 1
+                """));
+
+        var census = new Census(simulation.World);
+        census.Observe(simulation);
+
+        Series overBudget = census.Series(
+            Metric.Of(TripCounter.ExceededCommuteBudget, Aggregate.Sum), new Ticks(1));
+        Series completed = census.Series(
+            Metric.Of(TripCounter.Completed, Aggregate.Sum), new Ticks(1));
+
+        Assert.Equal(1L, overBudget.Samples.Span[0].Value);
+        Assert.Equal(0L, completed.Samples.Span[0].Value);
+        Assert.Equal(0, simulation.World.Travellers.Rows.LiveCount);
+    }
+
+    /// <summary>
+    /// <b>The same Trip under the shipped Ruleset completes</b>, which is what makes the assertion
+    /// above about the Budget rather than about the fixture.
+    /// </summary>
+    /// <remarks>
+    /// A control, and it is not redundant with
+    /// <c>A_commanded_trip_ends_and_every_row_it_used_goes_back</c>: that one runs the shipped
+    /// Ruleset through the shipped path, and this one runs the <em>same substitution machinery</em>
+    /// with a Budget generous enough to pass. Without it, a substitution that quietly produced a
+    /// broken world would read as the Budget working.
+    /// </remarks>
+    [Fact]
+    public void The_same_trip_under_a_generous_budget_completes()
+    {
+        Blocks blocks = TwoOccupiedBlocks();
+
+        Simulation simulation = RunWith(
+            Trip(
+                blocks.Origin.East,
+                blocks.Origin.North,
+                new TripPayload(
+                    (sbyte)(blocks.Destination.East - blocks.Origin.East),
+                    (sbyte)(blocks.Destination.North - blocks.Origin.North))),
+            Departure + 64,
+            RulesWithTripsTable("""
+                [trips]
+                crossing_seconds = 30
+                commute_budget_minutes = 1440
+                """));
+
+        var census = new Census(simulation.World);
+        census.Observe(simulation);
+
+        Series completed = census.Series(
+            Metric.Of(TripCounter.Completed, Aggregate.Sum), new Ticks(1));
+
+        Assert.Equal(1L, completed.Samples.Span[0].Value);
+    }
+
+    /// <summary>
     /// <b>The payload survives the sixteen bits it is packed into, negatives included.</b>
     /// </summary>
     /// <remarks>
@@ -216,14 +338,47 @@ public sealed class TripCommandTests
                     (sbyte)(blocks.Destination.North - blocks.Origin.North))));
     }
 
-    private static Simulation RunWith(Command command, int ticks)
+    private static Simulation RunWith(Command command, int ticks) =>
+        RunWith(command, ticks, GoldenFixtures.Rules());
+
+    private static Simulation RunWith(Command command, int ticks, Ruleset rules)
     {
         InputLog log = With(command);
-        Simulation simulation = Replay.Start(log, GoldenFixtures.Rules());
+        Simulation simulation = Replay.Start(log, rules);
 
         Replay.Trace(simulation, log, new Ticks((ulong)ticks), HashEvery, []);
 
         return simulation;
+    }
+
+    /// <summary>
+    /// The golden Ruleset with its <c>[trips]</c> table replaced by <paramref name="table"/>, or
+    /// deleted when it is <c>null</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A substitution on the shipped file rather than a Ruleset written here</b>, on
+    /// <c>RoadRulesetLoadTests</c>' reasoning: a test that asks what the shipped city does with one
+    /// number changed is asking about the city this repository has, and a hand-rolled Ruleset is
+    /// asking about a different one. The table is last in the file and the assertion below is what
+    /// keeps that true — a table added after it would otherwise be silently deleted here, which is a
+    /// fixture that stops testing what it says.
+    /// </remarks>
+    private static Ruleset RulesWithTripsTable(string? table)
+    {
+        string toml = File.ReadAllText(GoldenFixtures.RulesetPath);
+        int marker = toml.IndexOf("\n[trips]", StringComparison.Ordinal);
+
+        Assert.True(marker > 0, "the golden Ruleset no longer declares a [trips] table.");
+        Assert.DoesNotContain(
+            toml[(marker + 1)..].Split('\n').Skip(1),
+            line => line.TrimStart().StartsWith('['));
+
+        RulesetLoadResult result = RulesetLoader.Parse(
+            table is null ? toml[..marker] : $"{toml[..marker]}\n{table}", "test.toml");
+
+        Assert.True(result.Ok, result.Describe());
+
+        return result.Ruleset!;
     }
 
     private static InputLog With(Command command)

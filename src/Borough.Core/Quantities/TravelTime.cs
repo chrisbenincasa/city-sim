@@ -78,6 +78,78 @@ public readonly record struct TravelTime(int Raw) : IComparable<TravelTime>
     public static TravelTime FromTicks(int ticks) => new(Fixed.FromInt(ticks));
 
     /// <summary>
+    /// Converts an authored duration in in-world seconds. <b>For the Ruleset loader, not for a
+    /// Tick.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The exchange rate from seconds lives outside the simulation</b>, exactly as
+    /// <see cref="Speed.FromKilometresPerHour"/>'s does and for the same reason: <c>02 §2</c> is
+    /// categorical that there are no seconds in the library, so the conversion happens where a human
+    /// authors a number and never in a Tick. A Day is 86,400 s over <see cref="Ticks.PerDay"/> Ticks,
+    /// so a Tick is 10.546875 s — the same derivation <see cref="Speed"/> runs, and if one moves both
+    /// move.
+    /// </para>
+    /// <para>
+    /// <b>Unlike km/h this conversion is not exact, and the rounding is stated rather than
+    /// incidental.</b> A second is 6,213.78 Q16.16 Ticks, so an authored second lands within
+    /// 1/65,536 Tick — about 0.16 ms of in-world time — of its true duration, floored. Flooring is
+    /// <see cref="Fixed"/>'s convention throughout and it is the safe direction for a cost that will
+    /// be compared against a ceiling.
+    /// </para>
+    /// </remarks>
+    /// <param name="seconds">In-world seconds. Zero is a duration, not an absence.</param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The duration is negative, or exceeds what Q16.16 Ticks can hold — 345,599 s, just under four
+    /// Days.
+    /// </exception>
+    public static TravelTime FromSeconds(int seconds)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(seconds);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            seconds, (int)IntegerMath.FloorDiv(Fixed.MaxValue * SecondsPerDay, RawPerDay));
+
+        return new TravelTime((int)IntegerMath.FloorDiv(seconds * RawPerDay, SecondsPerDay));
+    }
+
+    /// <summary>
+    /// Converts an authored duration in in-world clock minutes. <b>For the Ruleset loader, not for a
+    /// Tick.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Minutes because that is the currency a Commute Budget is authored and displayed in</b>
+    /// (<c>CONTEXT.md</c> → Commute Budget, session F: clock minutes, one currency across modes, no
+    /// per-mode weight), and <b>the rate is <c>adr/0082</c>'s ratified one — 5.6889 Ticks a clock
+    /// minute</b>, which is the same 8,192-Ticks-to-24-in-world-hours calendar
+    /// <see cref="Speed.FromKilometresPerHour"/> runs on rather than a second reading of it. The point of the refusal that settled the unit is that the quantity scored
+    /// and the quantity shown must be the same one, so the conversion between them is a single
+    /// function in a single direction — <c>Borough.Headless</c>'s reporting side runs it backwards
+    /// and nothing else converts at all.
+    /// </remarks>
+    /// <param name="minutes">In-world clock minutes; 1,440 of them to a Day.</param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The duration is negative, or exceeds what Q16.16 Ticks can hold — 5,759 minutes, just under
+    /// four Days.
+    /// </exception>
+    public static TravelTime FromMinutes(int minutes)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(minutes);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            minutes, (int)IntegerMath.FloorDiv(Fixed.MaxValue * MinutesPerDay, RawPerDay));
+
+        return new TravelTime((int)IntegerMath.FloorDiv(minutes * RawPerDay, MinutesPerDay));
+    }
+
+    /// <summary>Q16.16 Ticks in an in-world Day. The numerator both conversions above share.</summary>
+    private const long RawPerDay = (long)Fixed.One * Ticks.PerDay;
+
+    /// <summary>Seconds in an in-world Day.</summary>
+    private const long SecondsPerDay = 86_400;
+
+    /// <summary>Clock minutes in an in-world Day.</summary>
+    private const long MinutesPerDay = 1_440;
+
+    /// <summary>
     /// The time to cover a distance at a speed. <b>The one construction a traversal cost has.</b>
     /// </summary>
     /// <remarks>

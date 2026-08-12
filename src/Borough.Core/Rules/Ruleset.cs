@@ -660,6 +660,74 @@ public readonly record struct LotRuleset(int LotsPerSegment)
 }
 
 /// <summary>
+/// The <c>[trips]</c> table — <b>what a Ruleset says about travelling</b>: what a crossing costs
+/// (<c>adr/0074</c>) and where the Commute Budget falls (<c>CONTEXT.md</c> → Commute Budget).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Two numbers, both hash-bearing, and they are unset in different senses.</b> The crossing cost
+/// is <em>chosen with a named ratifier</em> under <c>adr/0052</c> — a candidate value the first long
+/// run reports the walk-Leg distribution at, against zero. The Commute Budget cannot be chosen the
+/// same way, because it is a <b>percentile of a distribution that does not exist until commutes
+/// do</b>, and picking one now would fabricate the thing the milestone exists to measure.
+/// </para>
+/// <para>
+/// <b>So an omitted budget means there is no ceiling, and that is a stated city rather than a
+/// placeholder.</b> Session F's finding is the constraint: <i>a placeholder whose value sits inside
+/// the range of legitimate answers cannot announce itself</i>. Every minute count is a legitimate
+/// budget, so no minute count can mean <i>unset</i> — <see cref="TravelTime.Impassable"/> can,
+/// because it is outside the range and nothing can author it. A city with no Budget refuses no Trip
+/// for its length, <see cref="Movement.TripFate.ExceededCommuteBudget"/> stays structurally
+/// unreachable, and the Census says so. <b>That is also the only city in which the unconditioned
+/// cost distribution can be measured</b>, since a Budget in force censors the distribution it would
+/// be a percentile of.
+/// </para>
+/// <para>
+/// <b>The absent table means the city has no Trip model at all</b>, which is <c>[roads]</c>'s
+/// polarity rather than <c>[layers]</c>'s. It is carried as an impassable <em>crossing</em> rather
+/// than as a flag because every other optional table has a key that cannot legitimately be zero and
+/// this one does not: zero is a perfectly good crossing cost — it is rung 1, what the corpus had by
+/// omission — so <c>crossing == 0</c> could never have meant <i>absent</i>. Under the sentinel a
+/// consumer that skips the refusal produces an impassable Leg rather than a silently free crossing,
+/// which fails loudly in the direction <c>HONEST DEGRADATION</c> asks for.
+/// </para>
+/// </remarks>
+/// <param name="CrossingCost">
+/// What it costs on foot to reach the other side of a Segment. <b>Charged exactly when two Addresses
+/// share a Segment and differ in side</b> (<c>adr/0074</c>) and silent everywhere else, because
+/// <i>the same side</i> stops meaning anything once a route turns a corner.
+/// </param>
+/// <param name="CommuteBudget">
+/// The line between a Trip that completes and one whose Fate is <i>exceeded commute budget</i>, or
+/// <see cref="TravelTime.Impassable"/> for a city that has no such line.
+/// </param>
+public readonly record struct TripRuleset(TravelTime CrossingCost, TravelTime CommuteBudget)
+{
+    /// <summary>
+    /// A Ruleset whose city does not travel. <b>Not <c>default</c></b> — see the type's remarks: a
+    /// zeroed crossing cost is a legitimate authored value, so absence needs the sentinel.
+    /// </summary>
+    public static TripRuleset None => new(TravelTime.Impassable, TravelTime.Impassable);
+
+    /// <summary>Whether there is a Trip model at all.</summary>
+    public bool Runs => !CrossingCost.IsImpassable;
+
+    /// <summary>Whether a Trip's length can make it fail.</summary>
+    public bool HasCommuteBudget => !CommuteBudget.IsImpassable;
+
+    /// <summary>
+    /// Whether a Trip costing <paramref name="cost"/> is one this city's people will make.
+    /// </summary>
+    /// <remarks>
+    /// <b>An impassable cost answers <c>false</c> and it is not over budget</b> — it is no route, a
+    /// different Fate with a different diagnosis, and the caller tests for it first. Answering
+    /// <c>false</c> here as well is a backstop rather than the meaning: a caller that forgot must not
+    /// send somebody down a route that does not exist.
+    /// </remarks>
+    public bool WithinBudget(TravelTime cost) => !cost.IsImpassable && cost <= CommuteBudget;
+}
+
+/// <summary>
 /// The Ruleset the interpreter runs: ids and integers, validated, with no string anywhere in it.
 /// </summary>
 /// <remarks>
@@ -791,6 +859,16 @@ public sealed class Ruleset
     /// The <c>[lots]</c> table in force — how zoned land is carved into parcels (<c>adr/0078</c>).
     /// </summary>
     public LotRuleset Lots { get; init; } = LotRuleset.None;
+
+    /// <summary>
+    /// The <c>[trips]</c> table in force — the crossing cost and the Commute Budget (5b-bis task 3).
+    /// </summary>
+    /// <remarks>
+    /// <b>An init property on <see cref="Roads"/>' precedent, and it takes the same polarity.</b> A
+    /// Ruleset with no <c>[trips]</c> has no Trip model, so the <c>trip</c> command and
+    /// <c>--trips</c> refuse rather than costing a journey against numbers nobody authored.
+    /// </remarks>
+    public TripRuleset Trips { get; init; } = TripRuleset.None;
 
     /// <summary>
     /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.

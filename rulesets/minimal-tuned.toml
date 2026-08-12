@@ -319,3 +319,12 @@ foot_path_capacity_per_hour    = 1000
 # LotTable, so a depth would be a hash-bearing world-creation number chosen for a consumer
 # nobody has designed. Lots hang on Segments and the rest of the block is interior.
 lots_per_segment = 5
+
+[trips]
+# Identical to minimal.toml's, and it must stay identical: this file is that one with a single
+# number changed, and a test holds it to a one-line difference. See minimal.toml for why 30 s and
+# why there is no commute_budget_minutes -- the short version is that the crossing cost is a
+# hash-bearing number chosen with a named ratifier (adr/0052), and the Commute Budget is a
+# percentile of a distribution that does not exist yet, so omitting it states a city with no
+# ceiling rather than defaulting one.
+crossing_seconds = 30

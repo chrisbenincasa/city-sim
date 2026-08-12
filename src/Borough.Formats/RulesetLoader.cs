@@ -131,6 +131,7 @@ public static class RulesetLoader
 
         private TableSyntaxBase? _roadsTable;
         private TableSyntaxBase? _lotsTable;
+        private TableSyntaxBase? _tripsTable;
 
         public RulesetLoadResult Read()
         {
@@ -167,6 +168,7 @@ public static class RulesetLoader
             PlacementRuleset placement = ReadPlacement();
             RoadRuleset roads = ReadRoads();
             LotRuleset lots = ReadLots(roads);
+            TripRuleset trips = ReadTrips();
 
             if (_refusals.Count == 0)
             {
@@ -196,6 +198,7 @@ public static class RulesetLoader
                     Placement = placement,
                     Roads = roads,
                     Lots = lots,
+                    Trips = trips,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 });
@@ -305,11 +308,25 @@ public static class RulesetLoader
                         _lotsTable = table;
                         break;
 
+                    case "trips":
+                        // Singular and optional, on [lots]'s reasoning exactly. A city has one Trip
+                        // model, so two tables of numbers for it is ambiguous rather than additive.
+                        if (_tripsTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [trips] is declared. There is one Trip model, so two "
+                                + "tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _tripsTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [layers], "
-                            + "[placement], [roads] and [lots].");
+                            + "[placement], [roads], [lots] and [trips].");
                         break;
                 }
             }
@@ -1860,6 +1877,143 @@ public static class RulesetLoader
         private int LineOfLot(string key) =>
             LineOf((SyntaxNodeBase?)Find(_lotsTable!, key) ?? _lotsTable!);
 
+        /// <summary>
+        /// The <c>[trips]</c> table: what a crossing costs and where the Commute Budget falls.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The whole table is optional and its absence means the city does not travel</b>, which
+        /// is <c>[roads]</c>'s polarity. The <c>trip</c> command and <c>--trips</c> refuse against
+        /// such a Ruleset rather than costing a journey against numbers nobody authored — the
+        /// <c>Scope.Pool</c> and <c>--zones</c> precedent, and the loud failure rather than the quiet
+        /// one.
+        /// </para>
+        /// <para>
+        /// <b>Once the table is present <c>crossing_seconds</c> is required and
+        /// <c>commute_budget_minutes</c> is not</b>, which departs from <c>[placement]</c>'s
+        /// every-key-required rule and does so on a stated ground: the two numbers are unset in
+        /// different senses. A crossing cost is <em>chosen with a named ratifier</em> under
+        /// <c>adr/0052</c>; a Commute Budget is a <b>percentile of a cost distribution</b>, and no
+        /// distribution exists until commutes do. <b>An omitted budget is therefore a city with no
+        /// ceiling</b> — a coherent city, the only one whose cost distribution is uncensored, and the
+        /// one this milestone must measure before it can state the number.
+        /// </para>
+        /// </remarks>
+        private TripRuleset ReadTrips()
+        {
+            if (_tripsTable is null)
+            {
+                return TripRuleset.None;
+            }
+
+            return new TripRuleset(ReadCrossingCost(), ReadCommuteBudget());
+        }
+
+        /// <summary>
+        /// What it costs on foot to reach the other side of a Segment, authored in in-world seconds.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Hash-bearing and unratified</b> (<c>adr/0074</c>, <c>plans/0002</c> §D): it changes a
+        /// walk Leg's cost, therefore the Commute Budget, therefore a Trip Fate, therefore the city.
+        /// The named ratifier is the first run that reports the walk-Leg cost distribution with the
+        /// term at zero and at a candidate value, which is this milestone's own long run.
+        /// </para>
+        /// <para>
+        /// <b>Zero is legitimate and is not an absence.</b> It is rung 1 of <c>adr/0074</c>'s table —
+        /// what the corpus had by omission, a city where a shop opposite is the shop next door — so
+        /// it is authorable and says so. What cannot be authored is the absence, which is why the
+        /// key is required once the table exists.
+        /// </para>
+        /// <para>
+        /// <b>The ceiling is an in-world hour, and the refusal names the mechanism that belongs
+        /// instead.</b> Rung 2's whole approximation is that a Street may be crossed wherever you
+        /// like at a constant cost; a road you wait an hour to cross is not that road, and the design
+        /// already models the uncrossable road — it is an <b>Arterial</b>, whose Arcs carry no foot
+        /// bit at all and whose crossings are authored Junction pieces. That is <c>adr/0074</c>'s own
+        /// revisit trigger read forwards.
+        /// </para>
+        /// </remarks>
+        private TravelTime ReadCrossingCost()
+        {
+            if (!TryInteger(_tripsTable!, "crossing_seconds", out long value, required: true))
+            {
+                return TravelTime.Zero;
+            }
+
+            if (value < 0 || value > MaximumCrossingSeconds)
+            {
+                Refuse(LineOfTrip("crossing_seconds"), null,
+                    $"crossing_seconds = {value} is out of range. It is what it costs on foot to "
+                    + "reach the other side of a Segment, in in-world seconds, so it is at least 0 "
+                    + "-- a city where crossing is free is a city -- and at most "
+                    + $"{MaximumCrossingSeconds}. A road somebody waits longer than an hour to cross "
+                    + "is not a Street that may be crossed at will; it is an Arterial, which carries "
+                    + "no pedestrian Arcs between its Junction pieces and is how this design models "
+                    + "a road you cannot walk over.");
+
+                return TravelTime.Zero;
+            }
+
+            return TravelTime.FromSeconds((int)value);
+        }
+
+        /// <summary>
+        /// The line between a Trip that completes and one whose Fate is <i>exceeded commute
+        /// budget</i>, authored in in-world clock minutes — or nothing, for a city with no such line.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The one optional key in a table that is otherwise required, and the reason is that this
+        /// number cannot be authored yet.</b> It is a percentile of a Trip-cost distribution
+        /// (<c>plans/0002</c> §D, session F) and is meaningless before one exists, so a value here
+        /// today would be the thing <c>adr/0052</c> forbids: a hash-bearing number chosen because the
+        /// schema wanted one.
+        /// </para>
+        /// <para>
+        /// <b>Minutes, one currency across every mode, and there is no per-mode weight</b>
+        /// (<c>CONTEXT.md</c> → Commute Budget). A weight would make the quantity scored differ from
+        /// the quantity displayed, which is SC4's unlearnability failure and the thing the Budget
+        /// exists to prevent; distaste for walking belongs to the choice model.
+        /// </para>
+        /// <para>
+        /// <b>Zero is refused rather than read as <i>nobody travels</i>.</b> A ceiling of no minutes
+        /// fails every Trip in the city, which is not a city anybody meant to author — and the intent
+        /// it would most likely be reaching for, <i>length never refuses a Trip</i>, is what omitting
+        /// the key already says.
+        /// </para>
+        /// </remarks>
+        private TravelTime ReadCommuteBudget()
+        {
+            if (!TryInteger(_tripsTable!, "commute_budget_minutes", out long value, required: false))
+            {
+                // No ceiling. Not a default and not a placeholder: it is outside the range of
+                // legitimate minute counts, so nothing downstream can mistake it for a chosen value,
+                // and it is the only city whose cost distribution is uncensored by the number it is
+                // waiting for.
+                return TravelTime.Impassable;
+            }
+
+            if (value < 1 || value > MaximumBudgetMinutes)
+            {
+                Refuse(LineOfTrip("commute_budget_minutes"), null,
+                    $"commute_budget_minutes = {value} is out of range. It is how long a journey may "
+                    + "take before the person making it gives up, in in-world clock minutes, so it "
+                    + $"is at least 1 and at most {MaximumBudgetMinutes} -- just under four Days, "
+                    + "which is what a travel time can hold. If the intent is that a Trip's length "
+                    + "never refuses it, delete the key: an omitted commute_budget_minutes is a city "
+                    + "with no Commute Budget, which is stated rather than defaulted.");
+
+                return TravelTime.Impassable;
+            }
+
+            return TravelTime.FromMinutes((int)value);
+        }
+
+        /// <summary>The line a <c>[trips]</c> key is on, or the table's.</summary>
+        private int LineOfTrip(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_tripsTable!, key) ?? _tripsTable!);
+
         /// <summary>A required <c>[roads]</c> integer, refused when it is outside its range.</summary>
         private int RoadNumber(string key, int minimum, int maximum, string range)
         {
@@ -1943,6 +2097,19 @@ public static class RulesetLoader
         /// The fastest speed Q16.16 Tiles per Tick can hold, in km/h. ~682, and no road is near it.
         /// </summary>
         private const int MaximumSpeedKph = 682;
+
+        /// <summary>
+        /// The longest crossing this loader accepts, in in-world seconds. An hour — beyond it the
+        /// road being described is an Arterial, and the mechanism is Severance rather than a cost
+        /// term.
+        /// </summary>
+        private const int MaximumCrossingSeconds = 3_600;
+
+        /// <summary>
+        /// The longest Commute Budget a travel time can hold, in in-world clock minutes. Just under
+        /// four Days, and it is a format ceiling rather than a statement about commuting.
+        /// </summary>
+        private const int MaximumBudgetMinutes = 5_759;
 
         /// <summary>The line a <c>[roads]</c> key is on, or the table's.</summary>
         private int LineOfRoad(string key) =>
