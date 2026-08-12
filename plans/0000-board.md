@@ -264,9 +264,11 @@ instead of inventing them nearest-Segment-by-construction.
 >   false of its **preconditions**: no Provider List, no shop in either Ruleset, `Scope.Pool` throws,
 >   and nothing schedules an occasion. *"Give every Household a synthetic shop"* is the compensating
 >   position `adr/0070` forbids and that the brief already refuses on the commute axis.
-> - **§B — the walk search has no `0013` row**, and now that `WalkRouting` exists the number is
->   obtainable. The unmeasured product is **1.9–9.3 ms a Tick at 1M, 12–60% of the budget at 4×**,
->   landing at Trip creation because `adr/0075` makes Legs eager.
+> - ~~**§B — the walk search has no `0013` row**~~ **MEASURED 2026-08-11, and it half-closes: a walk
+>   search has no unit cost.** 86.2 ns at 128 m to 38.4 µs at 4.10 km — a **446× span** — because the
+>   search settles a *disc*, at a flat 35–40 ns a settled node. **The lever is the walk-length
+>   distribution, not the route count**, and no document states one; that half is **§A's**. The
+>   **severed** case is **14.9 ns flat**, the cheapest query in the model. `0013` has the row.
 >
 > **An audit of 5b's unsettled decisions ran the same afternoon and is now mostly superseded by tasks
 > 1–3** — the search, the Fate set, the Purpose enum and the Leg structure all exist. **The two rows

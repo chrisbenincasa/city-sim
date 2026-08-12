@@ -606,7 +606,69 @@ a Tick comes from an origin-destination model [`0013`](0013-tick-budget.md) alre
 until Trip generation exists. **The row will not close, and saying so up front is the point** — half a
 measured row quoted as a whole one is how `0013`'s Bin Rule row came to be *right by cancellation*.
 
-**Next**: benchmark `WalkRouting.Cost` over a generated graph at real rungs, then `--trips` as a **cost
+#### §B, measured — and a walk search turned out not to have a unit cost
+
+**Shipped 2026-08-11: `WalkSearchBenchmarks`, `WalkSearchFixture`, five fixture tests.** Run on the
+shipped 32-Tile lattice — **16,700 nodes, 32,890 Segments**, which *is* the million-Citizen city's
+graph and not a scaled-down stand-in. Full numbers and caveats in
+[`0013`](0013-tick-budget.md) → *the walk search is not a unit cost*.
+
+| Distance | Cost | Settled nodes |
+|---|---|---|
+| 128 m | **86.2 ns** | 2 |
+| 256 m | 117.3 ns | 3 |
+| 512 m | **347.5 ns** | 10 |
+| 1.02 km | **1.43 µs** | 40 |
+| 2.05 km | **5.99 µs** | 149 |
+| 4.10 km | **38.4 µs** | 591 |
+| across the street | **16.8 ns** | 0 |
+| **severed** | **14.9 ns** | 0 |
+
+**The span is 446× and the mechanism is measured rather than argued**: a Dijkstra over a 2-D lattice
+settles a **disc**, so settled nodes go as the *square* of the distance — ~4× a doubling, exactly as
+observed — at a flat **35–40 ns a settled node**. **The durable unit is the settled node**, and the
+search costs `≈ 37 ns × distance²`. Zero allocation on every path at every rung.
+
+***The consequence outranks the number: the ledger's row was one figure standing where two unknowns
+live.*** Everyone reached for the **route count** as the multiplicand — 464 a Tick — and the
+**distance distribution** is the stronger lever, because halving the mean walk length **quarters** the
+bill where halving the count halves it. **No document in the corpus states a walk-length
+distribution**, and none can before a Trip generator exists. So §B's answer is that **§A owns the
+half that decides the row**, which is the ordering this slice chose being vindicated from the other
+end: 464 routes at 512 m is **1.0%** of the Tick at 4×, and at 4.1 km it is **114% on its own**.
+
+**This is the second time in two slices that this subsystem's named parameter was not the one that
+moves the outcome** — `foot_crossing_every` against `foot_paths_per_thousand_blocks` was the first
+(`plans/0020`'s amendment). Worth holding as a pattern rather than as two coincidences.
+
+**⚠ The severed case is the cheapest query in the model, and the intuition was backwards.** *No route
+exists* reads like an exhausted search over a whole component; it is **14.9 ns flat**, because
+union-find components over the foot subgraph answer it by comparison — **~2,600× under a 4 km walk**.
+**The failure milestone 5b exists to report costs nothing to report**, so task 4's generator need not
+design around producing unreachable Trips, and `--trips` gets its Severance verdict for free.
+
+**⚠ Two caveats, recorded because the numbers will be quoted.** The run was **in-process**: a git
+worktree checked out inside the repo gives BenchmarkDotNet a second `Borough.Tests.csproj` and it
+refuses to build its harness. **That breaks every benchmark in the repo**, `.gitignore` now excludes
+`.claude/worktrees/`, and the real fix is worktrees **outside** the repo root, because the glob is
+over the filesystem and knows nothing about gitignore — **an out-of-process re-run is owed.** And
+these are one draw of the Arterial polyline, at the seed below.
+
+#### ⚠ The shipped lattice strands a pocket at the seed the whole suite runs on
+
+**Found by writing the assertion the other way round and watching it fail.** `plans/0020`'s amendment
+says the shipped 32-Tile lattice strands zero walkable nodes **on seven of eight seeds**; the eighth
+is `0xD0D0_CACA_0000_0001`, which every Road Graph fixture in the suite lays from. **Seven of 16,641
+walkable nodes** sit in a pocket with no pedestrian route out — **0.04%**, which reports as 0.0%.
+
+**S2 R0.5's distinction, arriving in a different subsystem.** *The shipped Ruleset severs nothing* is
+a claim about a **table**; what any particular world does is a claim about a **draw** of a polyline
+hashed off the world key. The corpus has now read one as the other twice. **The operational
+consequence is in the fixture**: `WalkSearchFixture.Apart` establishes reachability *by running the
+search* rather than by trusting the lattice, because a pair drawn blind from that pocket would have
+returned in constant time and been published as the cost of a walk search.
+
+**Next**: ~~benchmark `WalkRouting.Cost` over a generated graph at real rungs, then~~ `--trips` as a **cost
 instrument** — a distribution over Building pairs, run against `minimal.toml` and `severance.toml`, which
 is the first thing in the project that can measure **detour** rather than **disconnection**. It needs no
 `[trips]` table: `WalkRouting.Cost` takes the crossing cost as an argument, and a crossing applies only

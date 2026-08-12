@@ -499,3 +499,12 @@ spikes/**/results/bdn/
 
 # Serena's per-machine project cache and language-server state. Tooling, not corpus.
 .serena/
+
+# Agent worktrees. A git worktree checked out INSIDE the repo is a second copy of every project
+# file, which `dotnet build` survives -- Borough.slnx lists its projects by path -- and
+# BenchmarkDotNet does not: it globs the repo root for a uniquely named .csproj to build its
+# harness against, finds two `Borough.Tests.csproj`, and refuses. That breaks every benchmark in
+# the repo, from a directory nothing in the build references. Ignoring it keeps the copies out of
+# git; keeping benchmarks runnable needs the worktree OUTSIDE the repo root, because the glob is
+# over the filesystem and knows nothing about gitignore.
+.claude/worktrees/

@@ -64,6 +64,54 @@ the durable half of the document.
 | **Pollution diffusion**, whole map | **1.01 ms** | — | as above |
 | One **State Hash** at 1M | **32.47 ms** | — | [S0a](../docs/spike-results.md) |
 | **One routing worst Tick** at 16 Trip starts | **~9.4–10.5 ms** (published as 10.37) | — | [S2 R5](../docs/spike-results.md), five pinned captures |
+| ⚠️ **One walk search**, 128 m | **86.2 ns** | **no, and this is the finding — see below** | `WalkSearchBenchmarks`, 5b |
+| ⚠️ **One walk search**, 512 m | **347.5 ns** | — | as above |
+| ⚠️ **One walk search**, 1.02 km | **1.43 µs** | — | as above |
+| ⚠️ **One walk search**, 2.05 km | **5.99 µs** | — | as above |
+| ⚠️ **One walk search**, 4.10 km | **38.4 µs** | — | as above |
+| One walk search, **one settled node** | **35–40 ns**, rising to 65 at 4.10 km | **yes, and it is the durable one** | as above |
+| One walk **across the street** (same Segment) | **16.8 ns** | yes — flat at every rung | as above |
+| One walk search, **severed** (no route exists) | **14.9 ns** | yes — flat at every rung | as above |
+
+### ⚠️ The walk search is not a unit cost, and the row that treated it as one hid the stronger lever
+
+**Measured 2026-08-11 on the shipped 32-Tile lattice — 16,700 nodes, 32,890 Segments, which *is* the
+million-Citizen city's graph rather than a scaled-down stand-in.** Zero allocation on every path at
+every rung.
+
+**The five rows above are one function, not five measurements**, and the spread is **446×** across
+distances a person actually walks. The mechanism is measured rather than inferred: the search settles
+**2, 3, 10, 40, 149 and 591** nodes at 1, 2, 4, 8, 16 and 32 blocks, which is **~4× per doubling** —
+Dijkstra over a 2-D lattice settles a *disc*, so settled nodes go as the **square** of the distance,
+and cost per settled node is flat at 35–40 ns. **So the durable unit here is the settled node, and
+the walk search's cost is `≈ 37 ns × (distance)²`.** At 4.10 km it touches 591 of 16,700 nodes — 3.5%
+of the city — so the early exit works and this is not an exhausted search.
+
+**The ledger's 4–20 µs was not wrong so much as it was a point on a curve, and it is the point at
+1.5–2.5 km.** Below 1 km the search is an order of magnitude cheaper than the low end; at 4 km it is
+twice the high end. **A single number for a quantity spanning 446× is a row that cannot be checked**,
+and every share it produced was really a statement about a walk-length distribution nobody wrote down.
+
+***A route count is the multiplicand everybody reached for, and the distance distribution is the
+stronger lever nobody named.*** Halving the mean walk length **quarters** the bill; halving the route
+count halves it. That is the same shape as `foot_paths_per_thousand_blocks` turning out to be a
+stronger Severance dial than `foot_crossing_every` — **the named parameter was not the one that
+moves the outcome**, twice in two slices, in the same subsystem.
+
+**⚠️ And the severed case is the cheapest query in the model, which is backwards from the intuition
+the design was built on.** *No route exists* reads like the worst case — an exhausted search over a
+whole component — and it is instead **14.9 ns, flat**, because union-find components over the foot
+subgraph answer it by comparison. It is **~2,600× cheaper than a 4 km walk**. The severed Trip is the
+one milestone 5b exists to report, so this is a cost the Trip generator does **not** have to design
+around, and `--trips` can report Severance for nothing.
+
+**Two caveats, stated because the row will be quoted.** The run was **in-process**
+(`--inProcess`), because BenchmarkDotNet refuses to build its harness while a git worktree inside the
+repo supplies a second `Borough.Tests.csproj`; the controls are flat across all six rungs and the
+error bars are ~1%, so the numbers are self-consistent, but **an out-of-process re-run is owed** once
+worktrees move outside the repo root. And these are **one draw** of the Arterial polyline, at the
+suite's own seed — which is the draw that strands seven walkable nodes, the one seed in eight that
+strands any.
 
 **The two marked rows are the same quantities measured in a running city rather than in a fixture,
 and they are 2.8× and 4.0× the synthetic ones.** They arrived after slice 7 task 10a put a Ruleset in
@@ -146,6 +194,7 @@ multiplicand**, which is why that column sits next to it rather than in a footno
 | **Bin Rule engine**, whole Tick, **in situ** | 1–3 | **6.4 ms** | 11,586 due — **measured, on a toy Ruleset** | 82% | **41%** | 20% | 10% |
 | **Routing** | 4 Move | **~9.4–10.5 ms** — unit **measured**, a *maximum* | 16 Trip starts — **guessed, and the wrong event** | **120–135%** | **60–67%** | **30–34%** | **15–17%** |
 | **Microscopic Lane model** | 4 Move | **27.4–29.3 ns a Vehicle** — unit **measured** (S5 L5), a `powersave` **lower bound** | **the Microscopic Cap — unset, and 5b's** | — | — | — | — |
+| ⚠️ **Walk search** (pedestrian Legs) | 4 Move | **0.04 → 17.8 ms** — unit **measured**, and it is a **curve in trip distance**, not a number | 464 routes — **guessed**, *and the distance distribution is a second guess nobody had named* | 0.5–229% | **0.3–114%** | 0.1–57% | 0.06–29% |
 | **Map Layer diffusion**, on the Tick it lands | 5 Layers | 0.03–1.01 ms | dirty region — **measured range** | 0.4–13% | 0.2–6.5% | 0.1–3.2% | 0.05–1.6% |
 | **Zone Rules**, worst aligned Tick | 6 Growth | **0.012 ms** | 16 Rules triggering together — **guessed**; unit **measured** | 0.15% | **0.08%** | 0.04% | 0.02% |
 | **Event Wheel, general** | 1 Wake | **unbuilt** — slice 9 | — | — | — | — | — |
@@ -180,6 +229,17 @@ said so. The row above contributes **no share**, because its multiplicand is the
 the Cap is unset. **That is a gap and not a debt** (`adr/0052`'s distinction): nothing accretes on a
 value that does not exist. What it now does is make the absence visible to anyone reading the sum.
 
+> **⚠ The walk-search row's span is the whole point of it, and it must not be collapsed to quote.**
+> Its low end assumes a 128 m mean walk and its high end 4.10 km, and the arithmetic between them is
+> `464 × cost(distance)`: **0.04 ms** at 128 m (0.3% at 4×), **0.16 ms** at 512 m (1.0%), **0.66 ms**
+> at 1.02 km (4.2%), **2.78 ms** at 2.05 km (17.8%), **17.8 ms** at 4.10 km (**114% on its own**). The
+> unmeasured product this row replaces — 1.9–9.3 ms, 12–60% — is the band at 1.5–2.5 km, so **the
+> question was never *what does a walk search cost* but *how far do people walk*, and no document
+> asks it.** A realistic pedestrian trip is well under a kilometre, which puts the row nearer **1%**
+> than 60%; a model that walks people across town puts it over budget by itself. **Nothing in the
+> corpus constrains this**, and it cannot be constrained before a Trip generator exists — which is
+> `0002` §A, and is why 5b ran §B first.
+>
 > **⚠ The unit above moved 1.64× on 2026-08-11, and not because the kernel changed.** S5's L5 found
 > `IntegerMath.FloorDiv` evaluating its modulo unconditionally, so **every `Fixed.Div` in this project
 > was two 64-bit divisions**. Correcting it is bit-identical — 1,060 tests green, no golden baseline
