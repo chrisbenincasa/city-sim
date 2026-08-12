@@ -15,10 +15,28 @@ namespace Borough.Core.Quantities;
 /// walking pace of 3.66 to 3 — a 20% error on the mode the whole pedestrian layer is made of.
 /// </para>
 /// <para>
-/// <b>The exchange rate from km/h lives outside the simulation.</b> <c>02 §2</c> is categorical —
-/// <i>"There are no seconds in the library and no metres"</i> — so <see cref="FromKilometresPerHour"/>
-/// exists for the loader, where a human authors a number, and nothing in a Tick calls it. The factor
-/// is exact and carries no rounding of its own; see that method for the derivation.
+/// <b>The exchange rate from km/h runs outside a Tick, but the assumption behind it does not, and
+/// those are different claims.</b> <see cref="FromKilometresPerHour"/> exists for the loader, where a
+/// human authors a number; the conversion runs once at load and its output then runs in every Tick.
+/// So <c>02 §2</c>'s <i>"there are no seconds in the library and no metres"</i> is true of this
+/// file's <em>arithmetic</em> and false of its <em>premise</em> — a fact this comment used to elide by
+/// quoting the rule it depends on breaking, on the same screen.
+/// </para>
+/// <para>
+/// <b>A Tick's duration in seconds is DERIVED, not free</b> (<c>adr/0082</c>). The Ruleset authors
+/// speeds in km/h, <c>05 §26</c> fixes a Tile at ~4 m, and <c>02 §2</c> mandates Tiles/Tick — three
+/// quantities that determine the fourth. A Tick is <b>10.546875 s of in-world time</b>, because a Day
+/// is 24 in-world hours over <see cref="Ticks.PerDay"/>. What remains genuinely free is the
+/// <em>other</em> Ticks→seconds rate, the host's wall-clock one, which is the speed ladder and which
+/// nothing here reads. <c>adr/0019</c> had one table row where there are two rates, which is how a
+/// Tick came to have three different durations across the corpus.
+/// </para>
+/// <para>
+/// <b>A Tick is a behavioural unit and car-following does not use it.</b> At 10.546875 s a car clears
+/// a 128 m Segment in 0.9 Ticks, which is far too coarse for Lane queues to form. The Lane kernel
+/// therefore takes an integer <b>sub-step ratio</b> inside Tick phase 4 (<c>adr/0082</c>); making that
+/// resolution global costs 108× the measured Tick budget. Walking needs nothing from this — a walk Leg
+/// is a departure, an arrival and a cost (<c>03 §3.8</c>).
 /// </para>
 /// <para>
 /// <b>It does not multiply by its own kind.</b> A speed times a speed is not a quantity this design
@@ -35,8 +53,14 @@ public readonly record struct Speed(int Raw) : IComparable<Speed>
     /// A Tile is ~4 m (<c>05 §26</c>: <i>"268 km² (4096² Tiles @ ~4 m)"</i>) and a Day is 86,400 s
     /// over <see cref="Ticks.PerDay"/> Ticks, so a Tick is 10.546875 s. Then
     /// <c>Tiles/Tick = (km/h) × (1000/3600) × 10.546875 ÷ 4 = (km/h) × 0.732421875</c>, and
-    /// <c>× 65536</c> gives <b>48,000 exactly</b>. The two exchange rates appear in this comment and
-    /// nowhere that runs.
+    /// <c>× 65536</c> gives <b>48,000 exactly</b>.
+    /// <para>
+    /// <b>This factor is correct and is ratified by observation</b> (<c>adr/0082</c>): at
+    /// <c>walk_speed_kph = 5</c> a pedestrian covers 3.66 Tiles/Tick, and <c>--trips</c> over
+    /// <c>minimal.toml</c> reports a median walk of 1.4 min at 128 m and 18.3 min at 2,048 m — 5 km/h
+    /// to the digit. When this file and a design document disagreed about how long a Tick is, <b>this
+    /// file was the one that was right</b>, which is the reverse of the corpus's usual direction.
+    /// </para>
     /// </remarks>
     private const int PerKilometrePerHour = 48_000;
 

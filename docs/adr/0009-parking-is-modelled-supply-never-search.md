@@ -39,7 +39,13 @@ Parking capacity per building type is Ruleset data, not code. The player's lever
 
 ## Consequences
 
-- **Occupancy is conserved state, and leaks are permanent.** A Traveller that disappears without releasing its space silently destroys capacity forever. This is an [`0006`](0006-no-collection-grows-with-elapsed-time.md)-class defect and needs an explicit invariant plus a headless test asserting that total occupied spaces equals total parked vehicles at every Tick.
+- **Occupancy is conserved state, and leaks are permanent.** A Traveller that disappears without releasing its space silently destroys capacity forever. This is an [`0006`](0006-no-collection-grows-with-elapsed-time.md)-class defect and needs ~~an explicit invariant plus a headless test asserting that total occupied spaces equals total parked vehicles at every Tick~~ **two invariants, neither of them per-Tick — [`0084`](0084-parking-occupancy-is-two-checks-and-an-invariant-over-absent-state-cannot-be-written.md).**
+
+  > **⚠ AMENDED 2026-08-12 by session H.** The defect is real and the `0006` classification is right; what changes is the count and the tier. **A release is checked at its write site**, `O(1)` — *this Traveller holds this Bin, exactly once* — which catches a double release or a release of a Bin never acquired. **The conservation sum is end-of-run**, on the precedent of `SegmentVolumeIsConserved` (37) and `BinCapacityMatchesItsDeclaration` (29), both of which were written as every-Tick obligations and both of which landed whole-world: `02 §10` sorts tiers **by frequency, never by importance**, and *what holds every Tick is conservation **structurally**, from increment and decrement being paired — the sum is the check that the pairing was not broken.* This ADR was written before either precedent existed.
+  >
+  > **Neither can be written early, and the reason is not scheduling.** Milestone 5b shipped a *vacuously satisfied* invariant on purpose, which is the obvious precedent to copy — but it was writable because the **volume column existed**, so both sides were defined and merely zero. Parking has no Bin, no occupancy column and no parked-Traveller state anywhere in `src/`, so both sides would be **undefined**. ***A vacuously-satisfied invariant needs its state to exist. Zero is a value; undefined is not.***
+  >
+  > **The obligation is at four documents and zero builds** — here, `02 §10`, `05 §60` and `06`'s milestone 8 risk — which is `HouseholdHomeExists`'s shape at a larger count. **The fix is not a fifth statement**; it is a mechanical check comparing `02 §10`'s named list against the `Invariant` enum, routed to [`plans/0012`](../../plans/0012-corpus-audit.md).
 - **A Trip must remember where it parked** in order to walk back to the car. Small state, but it must exist, and it must survive save/load.
 - **Residential parking is mostly static occupancy** — a household's car sits at home overnight. Residential sheds will look very different from commercial ones, which is realistic and probably good, but it means the two must be balanced separately.
 - **Car ownership becomes a question worth asking.** Parking demand is determined by how many Households own cars, and if ownership were itself a choice influenced by walkability, parking pressure would feed back into it. Not decided here; noted as the natural next layer.
@@ -47,5 +53,13 @@ Parking capacity per building type is Ruleset data, not code. The player's lever
 
 ## What would trigger revisiting
 
-- **Shed queries showing up in profiles.** The mitigation is a smaller shed radius or cached per-Building shed membership invalidated by the Road Graph Epoch — not reintroducing search.
+- ~~**Shed queries showing up in profiles.** The mitigation is a smaller shed radius or cached per-Building shed membership invalidated by the Road Graph Epoch — not reintroducing search.~~
+
+  > **⚠ DISCHARGED IN ADVANCE 2026-08-12 by [`0083`](0083-a-sheds-use-is-the-arrival-query-and-a-stale-shed-is-wrong-by-a-bounded-walk.md), and the caching is a data-layout item rather than a contingency** — which this ADR's own superseding note above already asked for, and which `05 §3` had taken. S2 R5.6 measured the invalidation **before any profile existed**: the rung is **per-Segment witnessed by the walk paths to the Bins the shed kept**, at **0.10% of a Tick** against a single counter's **1,638.20%**.
+  >
+  > **The phrase *"invalidated by the Road Graph Epoch"* says when you pay, not what survives**, and the two must not be read as one. A single counter carries no location, so **every edit anywhere invalidates all 159,825 sheds** — and because this ADR pays the query *on arrival*, laziness converts one 255.560 ms stall into a **stampede across arriving vehicles**.
+  >
+  > **A shed's *use* is the arrival query and there is no second occasion**, so it inherits [`0012`](0012-routing-intent-lives-in-the-agent.md)'s invalidation *shape* and **not** its parameter: **no `T`, no rotation, no proximity wake**. A stale shed returns a Bin that exists and has capacity and is merely not the nearest — an error bounded by the shed radius and already priced by the Commute Budget, where a stale **route**'s error is unbounded. *The two consumers differ in the **magnitude** of the addition error, not in the geometry of the witness.*
+  >
+  > **The radius itself is still unset and now has a named ratifier**, which it never had under [`0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md): milestone 8's first run reporting the **walk-Leg length distribution as shed occupancy approaches 1**. **Not reintroducing search** stands, untouched.
 - **Playtesting showing parking dominates attention.** If players spend more time on parking than on zoning, the balance is wrong, and the fix is generosity in the Ruleset rather than deleting the system.

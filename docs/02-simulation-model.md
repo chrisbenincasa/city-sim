@@ -64,7 +64,11 @@ The core holds exactly two quantities relating to time and space: an integer **T
 Seconds and metres arrive from two exchange rates, both invented outside the simulation, both free to change, and **neither visible to the simulation**:
 
 - **Ticks → real seconds** is the host deciding how often to call `step()`. That is the speed control.
-- **Tiles → metres** is the artist deciding how large to draw a building. Declaring a Tile to be 4 m rather than 8 m means redrawing everything half-size, and the screen is identical. Nothing in the game reads the metre.
+- **Tiles → metres** is the artist deciding how large to draw a building. Declaring a Tile to be 4 m rather than 8 m means redrawing everything half-size, and the screen is identical. ~~Nothing in the game reads the metre.~~
+
+> **⚠ AMENDED 2026-08-12 by [`adr/0082`](adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md): neither rate is free any more, and the Ruleset is what spent them.** Keep the distinction above — the core's *arithmetic* still holds only Ticks and Tiles, and that is what the paragraph is for. But the `[roads]` table authors speeds in **km/h**, `05 §26` fixes a Tile at **~4 m**, and `02 §2` mandates that speed be stored in **Tiles per Tick**. Three of those four quantities determine the fourth, so **a Tick's duration in seconds is derived**: 86,400 s over `TICKS_PER_DAY` is **10.546875 s**, and `Speed.FromKilometresPerHour` reads the metre on every Ruleset load. ***A degree of freedom is spent by the first document that uses it, and nothing announces the spending.***
+>
+> **A Tick is a behavioural unit.** Car-following needs ~45× finer and takes a **sub-step ratio** inside Tick phase 4; making it global costs **108×** the measured Tick budget. See `adr/0082`.
 
 #### The one number that is not an exchange rate
 
@@ -85,8 +89,8 @@ That figure is invariant under both exchange rates. It is the only time-related 
 | `TICKS_PER_DAY` | **8192** | world-creation; baked into the save | Not hot-reloadable. Changing it reinterprets every scheduled event |
 | Reference tick rate | **16 Ticks/s** | host-side, runtime | Defines the default speed. Invisible to the simulation |
 | `WHEEL_SIZE` | **8192** Ticks | world-creation | Set by the longest *common* event horizon, which is one Day — so it equals `TICKS_PER_DAY` for an independent reason, not by definition. Overflow tier handles multi-Day countdowns |
-| Vehicle free-flow speed | **~0.5 Tile/Tick** | Ruleset; per road class | The car-following ceiling. Above ~1 Tile/Tick, Lane queues stop being meaningful |
-| Cross-town trip | **~480 Ticks** | derived | 5.9% of a Day |
+| Vehicle free-flow speed | ~~**~0.5 Tile/Tick**~~ **Ruleset `*_speed_kph`; 50 / 90 / 5 km/h shipped, which is 36.6 / 65.9 / 3.66 Tiles/Tick** | Ruleset; per road class | ⚠ **CORRECTED 2026-08-12 ([`adr/0082`](adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md)).** Two claims were welded here. **The car-following ceiling is real** — above ~1 Tile/Tick Lane queues stop being meaningful — but it is a constraint on the **Lane kernel's sub-step**, not on a Tick, and it does not set this row. The **~0.5** was derived from the *reads as* column below, which is 65× adrift of its own `Day` column, and it was **73× off the shipped speeds**. It cannot be rescued by scaling the pedestrian down to match: at 0.5 Tile/Tick a walker is 0.05 and a 3 km walk is **1.8 Days** — and the walk-to-drive ratio is the exact quantity `adr/0008`'s single-currency Commute Budget exists to compare, so Severance would stop costing anything. *Under the old row you could have a realistic walk or a realistic mode choice, not both.* |
+| Cross-town trip | ~~**~480 Ticks**~~ **~112 Ticks** — the full 16.4 km map width at 50 km/h | derived | ⚠ **CORRECTED 2026-08-12, and it moves `adr/0019`'s headline ratio by 4.3×.** The 480 was self-consistent with ~0.5 Tile/Tick and travelled with it: at that speed *"cross-town"* was **~1 km**, a District rather than a town, and the row predates the 4096² map. Corrected, a one-way crossing is **1.4% of a Day**, not 5.9% — **2.7% both ways against a stated 11.7%**. Since *share of life in transit* is the same quantity as *share of the population on the road at any instant*, **the corpus has been assuming ~4× the standing traffic the shipped numbers produce.** Name the speed when quoting this: a real commute is shorter than a map crossing and mixes 50 with 90 km/h arterials, so treat 112 as an upper bound on the *distance* and a rough one on the *speed* |
 | Cell | **32×32** Tiles | world-creation; baked into the save | **Design constant.** It is the resolution of pollution, so it changes the State Hash. Never tuned — [`adr/0034`](adr/0034-fields-are-sorted-by-source-geometry.md) |
 | Chunk | **≥ 32×32** Tiles, a multiple of the Cell | tuning; unvalidated | Hash-preserving, so it is a measurement. Probably wants to be larger. See [`05 §5`](05-technical-architecture.md) |
 | Map Layer diffusion | pollution every **64** Ticks at offset 0; land value every **256** at offset 16 | tuning; **hash-bearing** | **The designer's number, not the profiler's** — measured, not argued, in [`adr/0044`](adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md). Hot-reloadable; the dirty set is what makes a mid-run change lossless. §2.4 |
@@ -94,14 +98,20 @@ That figure is invariant under both exchange rates. It is the only time-related 
 
 Derived, for orientation only — none of these are inputs:
 
-| Speed | Ticks/s | Day | Cross-town trip | Traffic reads as |
+| Speed | Ticks/s | Day | Fast-forward | Cross-town trip (16.4 km) |
 |---|---|---|---|---|
-| **Study** (½×) | 8 | 17m04s | 60 s | ~65 km/h — **visually honest** |
-| **Normal** (1×) — default | 16 | **8m32s** | 30 s | ~130 km/h |
-| **Fast** (2×) | 32 | 4m16s | 15 s | time-lapse |
-| **Very fast** (4×) | 64 | 2m08s | 7.5 s | time-lapse |
+| **Study** (½×) | 8 | 17m04s | 84.4× | 14.0 s |
+| **Normal** (1×) — default | 16 | **8m32s** | **168.75×** | 7.0 s |
+| **Fast** (2×) | 32 | 4m16s | 337.5× | 3.5 s |
+| **Very fast** (4×) | 64 | 2m08s | 675× | 1.7 s |
 
-Traffic looks true at exactly the speed where the player slows down to inspect it — the same principle as [`adr/0007`](adr/0007-stress-driven-simulation-detail.md), arriving free on a different axis.
+> **⚠ The *Traffic reads as* column was deleted 2026-08-12, not restated** ([`adr/0082`](adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md); diagnosed in [`plans/0012`](../plans/0012-corpus-audit.md)). It claimed ~65 km/h at Study and ~130 at Normal, marking the first *"visually honest"*. **It was 65× adrift of the `Day` column beside it**, and an orientation figure that disagrees with the row next to it orients nobody. The **fast-forward** column replaces it because that is the quantity the `Day` column actually implies: once a Day of 86,400 s is shown in 512 s, *everything* on screen moves at 168.75×, and a 50 km/h car reads as ~8,400 km/h.
+>
+> **The deleted claim rested on a category error worth keeping.** Appearance was treated as a **constraint on the simulated speed** when it is a **consequence of the calendar rate** — and the calendar rate was already spent by `TICKS_PER_DAY` and the reference tick rate, so there was no freedom left to buy a car that looks like a car. ***A speed picked to satisfy appearance is bought with currency the pacing decision had already spent.*** The compensation is uniform, so the **ratios survive** — a car still reads as ten times a pedestrian — and only the absolute claim was false.
+>
+> ⚠ **This is the failure [`01`](01-player-experience.md) diagnoses in another game, committed in our own table.** `01` → *time is an arc, not a clock*: *"Cities: Skylines' calendar runs 112× faster than its own day/night cycle, which is why its players report cars taking 'weeks' to cross town."* This table committed the same mismatch at 65×, three documents from the paragraph naming it. **`01`'s remedy is intact** — a sun arc makes no numeric claim, so nothing shown to a *player* was lying. What was lying is a table a **developer** reads.
+
+~~Traffic looks true at exactly the speed where the player slows down to inspect it — the same principle as [`adr/0007`](adr/0007-stress-driven-simulation-detail.md), arriving free on a different axis.~~ **Struck with the column it describes.** [`adr/0007`](adr/0007-stress-driven-simulation-detail.md)'s principle is untouched and reappears instead in the place `adr/0082` puts it: **resolution arriving where the physics needs it**, via the Lane kernel's sub-step, rather than detail arriving where the camera is.
 
 #### Rules that follow
 

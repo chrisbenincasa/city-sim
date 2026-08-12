@@ -375,7 +375,12 @@ because the board's model of the three tracks is that they *do not contend*. The
 
 ### `05 §3` describes the shed's invalidation the way `CONTEXT.md` used to
 
-- [ ] `05 §3:136` — *"cached Parking Shed membership per Building … **invalidated by the Road Graph
+- [x] **PAID 2026-08-12 by session H** ([`adr/0083`](../docs/adr/0083-a-sheds-use-is-the-arrival-query-and-a-stale-shed-is-wrong-by-a-bounded-walk.md)).
+      `05 §3:136` now states the rung — **per-Segment witnessed by the walk paths to the Bins the shed
+      kept** — carries the *when you pay / what survives* correction and R5.6's four rungs, and adds the
+      half this box did not know was owed: **the shed needs no staleness parameter**, because its
+      addition error is bounded by the radius and already priced by the Commute Budget. *Original:*
+      `05 §3:136` — *"cached Parking Shed membership per Building … **invalidated by the Road Graph
       Epoch**"* is owed the correction `CONTEXT.md` → Epoch already took. **The phrase says when the
       rebuild is paid, not how much survives**, and S2 R5.6 measured what it costs under one counter:
       all **159,825** sheds at **255.560 ms — 1,638.20% of a Tick** — and `adr/0009` pays it *on
@@ -742,7 +747,29 @@ expensive regime the hedge gestures at **has no door into it**. F did not take i
 routing rule. *Note the shape: four copies of one claim, two categorical and two hedged, and the
 difference between the readings is a whole mechanism.*
 
-### `02 §1.2`'s derived table sets the calendar and the vehicles to two different clocks, 65× apart
+### ~~`02 §1.2`'s derived table sets the calendar and the vehicles to two different clocks, 65× apart~~ — **PAID 2026-08-12**
+
+> **All five rows below are discharged**, by the sitting that closed `0002` §A's *how long is a Tick*
+> into [`adr/0082`](../docs/adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md).
+> `02 §1.2`'s *reads as* column is **deleted** and replaced by the fast-forward the `Day` column
+> implies; the `~0.5 Tile/Tick` row is **split**, the ceiling kept and the number struck; `adr/0019` is
+> **amended in place**, not bannered; and `Speed.cs`'s comment now states that a Tick's duration in
+> seconds is **derived**. **No State Hash moved and no baseline was re-recorded** — the number was right
+> and only the reason was wrong.
+>
+> ⚠ **One row was worse than this ledger recorded, and it was found by checking the arithmetic rather
+> than by reading.** The `Cross-town trip` row is not merely *self-consistent with a struck number* — a
+> 16.4 km crossing at 50 km/h is **112 Ticks, not 480**, so `adr/0019`'s headline *5.9% of a life spent
+> driving* is **1.4%**, and the corpus has been assuming **~4× the standing traffic** the shipped numbers
+> produce. **The cause is that `adr/0019` has one exchange-rate row where there are two Ticks→seconds
+> rates** — the host's wall-clock one, genuinely free, and the in-world one, derived — which is why it
+> believed the ratio was invariant. Re-derivation is filed to `0013` and **5b-bis**, not applied.
+>
+> **The general shape this entry named was right and is worth keeping**: two *derivations* of one fact
+> that never met. What it could not see is **why** neither author was careless — `adr/0019` declares both
+> exchange rates free, and the `[roads]` table spent one years of documents later, in another file, with
+> no edit making the ADR wrong. ***A degree of freedom is spent by the first document that uses it, and
+> nothing announces the spending.***
 
 *(Found while pricing 5b's walk Leg, which needed a Tick to have a duration. Routed under
 [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md);
@@ -940,6 +967,29 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    pads every cell in a column to the widest and that table holds a 4,166-character cell. Hence
    `.prettierignore` and `[markdown]` in `.vscode/settings.json`, both of which carry the measurement
    as their comment so the next person does not re-derive it.
+
+7. **Every invariant `02 §10` names has a member of the `Invariant` enum, and every member is either
+   registered or explicitly marked unbuilt with the milestone that owes it.** **Filed 2026-08-12 by
+   session H** ([`adr/0084`](../docs/adr/0084-parking-occupancy-is-two-checks-and-an-invariant-over-absent-state-cannot-be-written.md)),
+   which found *parking occupancy is conserved* specified in **four** documents — `adr/0009`, `02 §10`,
+   `05 §60` and `06`'s milestone 8 risk — and built in **none**. **This is check 5's shape pointed at
+   the invariant tiers instead of the ADR directory**, and it is the *third* observation of the same
+   mechanism: `HouseholdHomeExists` was reported by nothing and found only by an audit; `adr/0033`'s
+   satisfiability invariant sat specified across three documents until session N built it and it found
+   a live defect in the committed golden baseline **within minutes**; and this one is at four and
+   counting. ***An obligation with no member reads as absent rather than as owed***, which is exactly
+   check 5's argument about a missing row.
+
+   **Two design notes, because the naive version of this check is a fifth copy of the obligation and
+   would therefore be the defect it is meant to catch.** The list must be **read from `02 §10`** or the
+   enum must carry the marking — never a hand-written array in the test mirroring the document, which
+   is `plans/0012` *Cause 1* arriving inside the instrument. And the *unbuilt* marking is the load-bearing
+   half: `HouseholdHomeExists` shows the project already knows how to keep a member visible while it is
+   not live (retired, `[Obsolete]`, **id never reused**, because an id travels in a crash artifact), so
+   the same technique carries an invariant that does not exist yet. ⚠ **It must not force the member to
+   be *written* early**: `adr/0084` finds that an invariant over **absent** state cannot be written at
+   all — *zero is a value; undefined is not* — so what the check asserts is that the gap is **declared**,
+   not that it is closed.
 
 Neither is a substitute for the restructure. A check over three tables that disagree only tells you
 they disagree; the point of thinning is that there is one place to be right. **Check 4 is the exception
