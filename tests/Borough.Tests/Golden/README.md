@@ -107,6 +107,17 @@ was the failure of its twin that prompted anyone to look. It is a `[Theory]` ove
 *A guard with no test is invisible to every future reader; a guard that covers one of two identical
 files is worse, because the one it covers is evidence that somebody thought about it.*
 
+**5b-bis task 4 re-recorded all three, and its lesson is that a re-record can be complete and still
+leave a branch uncovered.** Both Ruleset files gained a `[jobs]` table, a `commute_budget_minutes` and a
+`[[building]] jobs`, so both content hashes moved and every sample here moved with them — four literals
+in two files again, in the order the 5a note gives. What the fresh numbers do **not** cover is the
+Commute Budget refusing anything. The Budget is read off `--trips` over the shipped `[roads]`, which is a
+property of the *map*; this session is 1,000 Citizens on ~120 Buildings in one contiguous strip, and every
+pair in it is within twenty minutes' walk. At 10,000 Citizens the same Ruleset refuses a steady 48 walks a
+census interval. **So the trace is entirely correct and the branch the number exists for is unreached** —
+slice 10 task 11's finding arriving from a new direction, and `JobAssignmentTests` asserts the zero as
+well as the mechanism so that the day the fixture changes, somebody has to read the note.
+
 **`World.HashSeed`'s version byte did not move, and that is deliberate.** It is for a change to the
 *fold* — the composition order's rules, `Randomness.Mix`, what a column contributes — and not for a
 world that has more tables in it. Bumping it for an appended table would make the byte a change

@@ -356,12 +356,22 @@ public sealed class TripCommandTests
     /// deleted when it is <c>null</c>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>A substitution on the shipped file rather than a Ruleset written here</b>, on
     /// <c>RoadRulesetLoadTests</c>' reasoning: a test that asks what the shipped city does with one
     /// number changed is asking about the city this repository has, and a hand-rolled Ruleset is
-    /// asking about a different one. The table is last in the file and the assertion below is what
-    /// keeps that true — a table added after it would otherwise be silently deleted here, which is a
-    /// fixture that stops testing what it says.
+    /// asking about a different one.
+    /// </para>
+    /// <para>
+    /// <b>Everything after <c>[trips]</c> goes with it, and <c>[jobs]</c> is the only thing there —
+    /// which is not an accident of ordering but a constraint of the schema.</b> A <c>[jobs]</c> table
+    /// is refused in a Ruleset with no <c>commute_budget_minutes</c>, because the assignment pass
+    /// derives its search box from the Budget, so the two cannot be separated: replacing the
+    /// <c>[trips]</c> table while keeping <c>[jobs]</c> would produce a Ruleset the loader rejects for
+    /// half of this file's cases. The assertion below is what keeps the deletion honest — a
+    /// <em>third</em> table added after these would otherwise be silently dropped, which is a fixture
+    /// that stops testing what it says.
+    /// </para>
     /// </remarks>
     private static Ruleset RulesWithTripsTable(string? table)
     {
@@ -369,9 +379,13 @@ public sealed class TripCommandTests
         int marker = toml.IndexOf("\n[trips]", StringComparison.Ordinal);
 
         Assert.True(marker > 0, "the golden Ruleset no longer declares a [trips] table.");
-        Assert.DoesNotContain(
-            toml[(marker + 1)..].Split('\n').Skip(1),
-            line => line.TrimStart().StartsWith('['));
+        Assert.Equal(
+            ["[jobs]"],
+            toml[(marker + 1)..]
+                .Split('\n')
+                .Skip(1)
+                .Select(line => line.TrimEnd())
+                .Where(line => line.StartsWith('[')));
 
         RulesetLoadResult result = RulesetLoader.Parse(
             table is null ? toml[..marker] : $"{toml[..marker]}\n{table}", "test.toml");

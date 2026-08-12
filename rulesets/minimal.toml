@@ -93,6 +93,28 @@ condemn_after = 4
 # drain, because a Bin has a consumer and occupancy has none.
 occupants = 3
 
+# 5b-bis task 4, and the ratifier plans/0002 §D2 named for this key: the first Ruleset that grants
+# employment. HOW MANY CITIZENS THIS BUILDING EMPLOYS -- Citizens, never Households, because a job
+# has one holder (adr/0068 on a second axis).
+#
+# IT IS ON THE DWELLING RATHER THAN ON A WORKPLACE KIND, AND THAT IS THIS FILE'S FIRST LINE BEING
+# OBEYED RATHER THAN A SHORTCUT. A second kind needs a second [[zone_rule]] to raise it, a second
+# decline Rule so that it churns rather than accumulating until the city is all offices, and a
+# land-use split -- which is three decisions about CONTENT, and content is what this file says it
+# does not make. Living above the shop is the smallest arrangement in which the assignment pass
+# has somewhere to send anybody, and it claims nothing: the geography still binds, because the pass
+# draws from a box around home and the Commute Budget still refuses what the Road Graph cannot
+# deliver. A city with districts is a Ruleset that models a city, and none exists.
+#
+# EIGHT IS DERIVED FROM THE ROW RATIOS, not chosen. SyntheticCity builds 360 Households per 1,000
+# Citizens (S4 task 2) and `occupants` above puts 3 in a Building, so a dwelling holds 1000/360 x 3
+# = 8.33 Citizens. Eight is the floor of that, which makes the city hold 0.96 jobs per resident:
+# FULL EMPLOYMENT IS JUST OUT OF REACH BY CONSTRUCTION. That is deliberate -- a ceiling nobody can
+# hit is a ceiling doing nothing, and `seeking - employed` in the census would read zero for a city
+# with no shortage and for a mechanism that had stopped, which is the reading PlacementCounter's
+# own remark exists to refuse.
+jobs = 8
+
 # Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
 # from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
 # `pool` draw in task 10b. Greedy because the actor works through whatever headroom it has, which is
@@ -337,3 +359,54 @@ lots_per_segment = 5
 # reading it as "nobody travels", because the intent a zero would be reaching for is the intent
 # deleting the key already states.
 crossing_seconds = 30
+
+# THE COMMUTE BUDGET, MEASURED RATHER THAN CHOSEN, and the paragraph above is now history: it said
+# this key is absent because the Budget is a percentile of a distribution that does not exist. The
+# distribution exists. `--trips` walks every Building pair in this city and prints it by
+# grid-ideal band, and these are its numbers -- p90 walks of 2.5 min at 1 block, 7.0 at 4, 13.7 at
+# 8, and 71.2 at 16, over 1,201 Buildings on the network [roads] above describes.
+#
+# 20 MINUTES IS THE RUNG WHERE IT BINDS. It admits the whole eight-block neighbourhood at p90 and
+# refuses half of the sixteen-block one, which is the property the number has to have: a Budget
+# above the longest walk in the city refuses nothing and is not a Budget, and one below the
+# shortest refuses everything. plans/0023 §B rules out the MEDIAN specifically -- the median detour
+# is 100% of the grid ideal in a severed city and an intact one alike, so a Budget read off it
+# cannot tell the two apart, which is the one job the Severance demonstration needs it to do.
+#
+# ITS RATIFIER IS TASK 8'S LONG RUN AND THE REFUTING NUMBERS ARE NAMED. The census prints
+# `jobs beyond budget`, which counts vacancies found inside the search box and refused by the walk.
+# ZERO of them means this number is not binding and is doing nothing; `seeking - employed` staying
+# at the whole population means it is too tight to employ anybody. Either reading moves it.
+#
+# IT ALSO SIZES THE SEARCH, and that is why [jobs] below refuses to exist without it: the box a
+# Citizen draws candidates from is what a walk within this Budget covers -- 20 min at
+# walk_speed_kph = 5 is 1.67 km, 417 Tiles, 14 Cells -- so raising this makes people look further
+# as well as accept more, which is one number doing one thing rather than two.
+commute_budget_minutes = 20
+
+# adr/0081, and 02 §5.2 step 2b arriving from the other side. HOW A CITIZEN WITH NO WORKPLACE COMES
+# TO HAVE ONE: every `interval` Ticks the pass looks at a share of the population, and somebody with
+# no job draws `candidates` Buildings from the box above and takes the first with a vacancy it can
+# walk to inside the Budget. First rather than best (adr/0017) -- satisficing, never optimising.
+#
+# THREE KEYS, PREDICTED RATHER THAN DISCOVERED. adr/0069 is the standing counter-example: placement's
+# ADR predicted no numbers, the pass needed exactly these three, and the first of them shipped at a
+# value copied from a default that meant something else and left 45% of the housing stock empty.
+# This is the same shape of pass, so it is the same three keys, and all three are hash-bearing and
+# UNRATIFIED in plans/0002 §D2 with a named ratifier each.
+#
+# `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED (adr/0059, a third time): it is how long
+# the pass takes to look at every Citizen once, and the engine derives
+# `sample = ceil(Citizens x interval / revisit_ticks)`. It is REQUIRED rather than defaulting to a
+# Day, unlike a [[zone_rule]]'s, because a Day is derived from the scale a `rate` is denominated in
+# and nothing here is denominated in anything -- how often somebody out of work looks for some is a
+# feel decision with no derivation behind it.
+#
+# 1024 IS [placement]'S, AND THE COPY IS AN ARGUMENT RATHER THAN A CONVENIENCE: a person without a
+# job and a family without a home are looking at the same rate for the same reason, and nothing in
+# this project yet distinguishes them. It is its own key so that they can diverge without one
+# retuning the other, which is why this is a table and not three more lines of [placement].
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3

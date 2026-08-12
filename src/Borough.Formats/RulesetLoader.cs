@@ -132,6 +132,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _roadsTable;
         private TableSyntaxBase? _lotsTable;
         private TableSyntaxBase? _tripsTable;
+        private TableSyntaxBase? _jobsTable;
 
         public RulesetLoadResult Read()
         {
@@ -169,6 +170,7 @@ public static class RulesetLoader
             RoadRuleset roads = ReadRoads();
             LotRuleset lots = ReadLots(roads);
             TripRuleset trips = ReadTrips();
+            JobRuleset jobs = ReadJobs(trips);
 
             if (_refusals.Count == 0)
             {
@@ -199,6 +201,7 @@ public static class RulesetLoader
                     Roads = roads,
                     Lots = lots,
                     Trips = trips,
+                    Jobs = jobs,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 });
@@ -322,11 +325,25 @@ public static class RulesetLoader
                         _tripsTable = table;
                         break;
 
+                    case "jobs":
+                        // Singular and optional, on [placement]'s reasoning exactly. There is one
+                        // assignment pass, so two cadences for it is ambiguous rather than additive.
+                        if (_jobsTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [jobs] is declared. There is one job assignment pass, so "
+                                + "two tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _jobsTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [layers], "
-                            + "[placement], [roads], [lots] and [trips].");
+                            + "[placement], [roads], [lots], [trips] and [jobs].");
                         break;
                 }
             }
@@ -2013,6 +2030,130 @@ public static class RulesetLoader
         /// <summary>The line a <c>[trips]</c> key is on, or the table's.</summary>
         private int LineOfTrip(string key) =>
             LineOf((SyntaxNodeBase?)Find(_tripsTable!, key) ?? _tripsTable!);
+
+        // ---- jobs -------------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[jobs]</c> table: how often a Citizen with no Workplace looks for one, how long the
+        /// pass takes to look at everybody, and how many places one person sees (<c>adr/0081</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b><c>[placement]</c>'s three keys, <c>[placement]</c>'s polarity and
+        /// <c>[placement]</c>'s reasoning</b>, because this is the same shape of pass over a different
+        /// population: a sampled sweep looking for something with room. The absence means nobody is
+        /// ever assigned work, which is loud — no Citizen has a Workplace and the Census says so —
+        /// rather than a city employing people at a cadence its author never wrote.
+        /// </para>
+        /// <para>
+        /// <b>A <c>[jobs]</c> table with no <c>[trips] commute_budget_minutes</c> above it is
+        /// refused, and that cross-table refusal is the decision this reader carries.</b> The pass has
+        /// no search radius of its own: the box it draws candidates from is <em>what a walk within the
+        /// Commute Budget can reach</em>, derived from the Budget and the walking speed. Take the
+        /// Budget away and there is no bound at all — and the bound that would have to be invented in
+        /// its place is exactly the fabricated number this milestone exists to avoid, because an
+        /// unbounded draw is S2 R4's uniform origin-destination distribution, which R4 measured is a
+        /// different city rather than a noisier one. <c>ReadLots(roads)</c> is the precedent for
+        /// reading one table against another; this is the stronger form, where the second table is not
+        /// merely a ceiling but the only source of the first's geometry.
+        /// </para>
+        /// </remarks>
+        private JobRuleset ReadJobs(TripRuleset trips)
+        {
+            if (_jobsTable is null)
+            {
+                return JobRuleset.None;
+            }
+
+            if (!trips.HasCommuteBudget)
+            {
+                Refuse(LineOf(_jobsTable), null,
+                    "[jobs] is declared in a Ruleset with no [trips] commute_budget_minutes. The "
+                    + "assignment pass has no search radius of its own -- the places a Citizen looks "
+                    + "at are the ones a walk within the Commute Budget can reach -- so with no "
+                    + "Budget stated there is no bound on the search, and an unbounded one draws a "
+                    + "workplace from anywhere in the city. State a commute_budget_minutes, or "
+                    + "delete [jobs] and let the city assign nobody.");
+
+                return JobRuleset.None;
+            }
+
+            uint interval = ReadInterval(_jobsTable, null);
+            int revisit = ReadJobRevisit(interval);
+            int candidates = ReadJobCandidates();
+
+            return new JobRuleset(interval, revisit, candidates);
+        }
+
+        /// <summary>How long the assignment pass takes to look at every Citizen once, in Ticks.</summary>
+        /// <remarks>
+        /// <b><c>adr/0059</c> a third time</b>, and required rather than defaulted to a Day:
+        /// <c>ReadZoneRevisit</c> may derive a Day because a Day is the scale a Zone Rule's
+        /// <c>rate</c> keys are denominated in, and nothing here is. How often a person without work
+        /// looks for some is a feel decision with no derivation behind it, so it is authored or the
+        /// table is absent.
+        /// </remarks>
+        private int ReadJobRevisit(uint interval)
+        {
+            if (!TryInteger(_jobsTable!, "revisit_ticks", out long revisit, required: true))
+            {
+                return Ticks.PerDay;
+            }
+
+            if (revisit < 1 || revisit > int.MaxValue)
+            {
+                Refuse(LineOfJob("revisit_ticks"), null,
+                    $"a revisit period of {revisit} is not a duration this world can hold. It is how "
+                    + "long the assignment pass takes to look at every Citizen once, in Ticks, so it "
+                    + $"is at least 1 and at most {int.MaxValue} -- the engine divides by it. If the "
+                    + "intent is to employ nobody, delete the [jobs] table.");
+                return Ticks.PerDay;
+            }
+
+            if (revisit < interval)
+            {
+                Refuse(LineOfJob("revisit_ticks"), null,
+                    $"revisit_ticks = {revisit} is shorter than the interval of {interval} it would be "
+                    + "delivered in, so one trigger would be asked to consider more Citizens than the "
+                    + "city holds. A revisit period is a duration spread over triggers; shorten the "
+                    + "interval or lengthen the period.");
+                return (int)interval;
+            }
+
+            return (int)revisit;
+        }
+
+        /// <summary>How many workplaces one Citizen looks at before waiting for the next occasion.</summary>
+        /// <remarks>
+        /// <b><c>02 §5.3</c>'s N on the employment axis, and <c>adr/0017</c>'s satisficing rule is
+        /// what makes it a behaviour model rather than a budget</b>: a person who sees three places
+        /// with a vacancy and takes the first one near enough to walk to is not an optimiser being
+        /// approximated. <b>Hash-bearing and unratified</b> — <c>0002</c> §D carries the row, and its
+        /// ratifier is the first run that reports what fraction of looks find nothing, because a
+        /// number that never fails to find work is a number doing no work.
+        /// </remarks>
+        private int ReadJobCandidates()
+        {
+            if (!TryInteger(_jobsTable!, "candidates", out long candidates, required: true))
+            {
+                return 1;
+            }
+
+            if (candidates < 1 || candidates > int.MaxValue)
+            {
+                Refuse(LineOfJob("candidates"), null,
+                    $"candidates = {candidates} is out of range. It is how many workplaces a Citizen "
+                    + "looks at on one occasion, so it is at least 1 -- a seeker that looks at none "
+                    + "never finds work, and the pass would run at full cost employing nobody.");
+                return 1;
+            }
+
+            return (int)candidates;
+        }
+
+        /// <summary>The line a <c>[jobs]</c> key is on, or the table's.</summary>
+        private int LineOfJob(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_jobsTable!, key) ?? _jobsTable!);
 
         /// <summary>A required <c>[roads]</c> integer, refused when it is outside its range.</summary>
         private int RoadNumber(string key, int minimum, int maximum, string range)

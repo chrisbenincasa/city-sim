@@ -70,6 +70,18 @@ public sealed class BuildingResidency
 
     private readonly int[] _tail = new int[CellGrid.WorldCellCount];
 
+    /// <summary>
+    /// How many Buildings each Cell holds. <b>A cached list length, and it is one so that a fair draw
+    /// over a box costs a read per Cell instead of a walk per Cell.</b>
+    /// </summary>
+    /// <remarks>
+    /// Derived from the lists it counts, maintained alongside them, and rebuilt with them — so it is
+    /// exactly as recoverable from saved state as the index is, and no more. A third array is 64 KB on
+    /// top of the 128 KB already here, which is the same fixed cost of the map rather than of the
+    /// city.
+    /// </remarks>
+    private readonly int[] _count = new int[CellGrid.WorldCellCount];
+
     /// <summary>The list threaded through this index. Composed at the call site, never stored.</summary>
     private IndexList List(BuildingTable buildings) =>
         new(_head.AsSpan(), _tail.AsSpan(), buildings.CellNext);
@@ -90,6 +102,7 @@ public sealed class BuildingResidency
 
         Array.Clear(_head);
         Array.Clear(_tail);
+        Array.Clear(_count);
         buildings.CellNext.Span.Clear();
 
         IndexList list = List(buildings);
@@ -99,6 +112,7 @@ public sealed class BuildingResidency
             if (buildings.Rows.IsLive(slot) && Cell(buildings, lots, slot, out int cell))
             {
                 list.InsertOrdered(cell, slot);
+                _count[cell]++;
             }
         }
     }
@@ -118,6 +132,7 @@ public sealed class BuildingResidency
         if (Cell(buildings, lots, building, out int cell))
         {
             List(buildings).InsertOrdered(cell, building);
+            _count[cell]++;
         }
     }
 
@@ -137,6 +152,7 @@ public sealed class BuildingResidency
         if (Cell(buildings, lots, building, out int cell))
         {
             List(buildings).Remove(cell, building);
+            _count[cell]--;
         }
     }
 
@@ -195,6 +211,100 @@ public sealed class BuildingResidency
         }
 
         return written;
+    }
+
+    /// <summary>
+    /// How many Buildings stand in a box of Cells. <b>The denominator of a fair draw over it.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This pair is the <em>sampling</em> entry point, where <see cref="In"/> is the
+    /// <em>enumeration</em> one, and they exist because those are different questions.</b>
+    /// <see cref="In"/> truncates from the box's north-west corner, which is right for a consumer that
+    /// wants some Buildings and wrong for one that wants a fair draw — a Citizen sampling a box the
+    /// size of a commute would only ever see its corner. A count and an ordinal give a caller a draw
+    /// that is uniform over the Buildings in the box without materialising a list of them.
+    /// </para>
+    /// <para>
+    /// <b>Uniform over Buildings rather than over Cells, and the alternative was tried first.</b>
+    /// Drawing a Cell and then a Building inside it is the cheaper query and reads better on paper —
+    /// a look that lands on empty ground <em>found nothing</em>, which is what looking for work in a
+    /// city with none near you is. It is wrong here for a reason that is a fact about this project
+    /// rather than about cities: the shipped Rulesets hold on the order of sixty Buildings across
+    /// 16,384 Cells, so a Cell-uniform draw finds a Building roughly one occasion in four hundred and
+    /// the mechanism would be unobservable in the only worlds anybody runs. It also makes job density
+    /// stop attracting workers, which is a claim about labour nobody argued.
+    /// </para>
+    /// <para>
+    /// <b>Both walk the box's counts rather than its lists, which is what the count array buys.</b>
+    /// The cost is one <c>int</c> read per Cell in the box rather than one per Building — a box is
+    /// bounded by the Commute Budget and a caller pays it once per look.
+    /// </para>
+    /// </remarks>
+    /// <param name="area">The box, in Cells. Clamped to the map.</param>
+    /// <returns>The count, which is zero for an empty or off-map box.</returns>
+    public int CountIn(CellRect area)
+    {
+        CellRect box = area.Clamp();
+        int total = 0;
+
+        for (int north = box.North.Raw; north < box.NorthEnd.Raw; north++)
+        {
+            for (int east = box.East.Raw; east < box.EastEnd.Raw; east++)
+            {
+                total += _count[CellGrid.Index(new Cells(east), new Cells(north))];
+            }
+        }
+
+        return total;
+    }
+
+    /// <summary>The Building at a given position in a box, counting row-major then by slot.</summary>
+    /// <remarks>
+    /// <b><see cref="In"/>'s order, addressed rather than enumerated</b> — ascending Cell, then
+    /// ascending slot within a Cell. So an ordinal names the same Building on a continuously-run world
+    /// and on a reloaded one, which is what <see cref="IndexList.InsertOrdered"/> is used for in the
+    /// first place. It is an <em>address</em> and not a <em>ranking</em>: nearest-first belongs to
+    /// something that moves (<c>CONTEXT.md</c> → there is no proximity scope).
+    /// </remarks>
+    /// <param name="area">The box, in Cells. Clamped to the map.</param>
+    /// <param name="buildings">The table whose slots come back.</param>
+    /// <param name="ordinal">A position from zero, below <see cref="CountIn"/>.</param>
+    /// <returns>The Building's slot, or <see cref="Rows.NoSlot"/> when the position is past the end.</returns>
+    public int NthIn(CellRect area, BuildingTable buildings, int ordinal)
+    {
+        ArgumentNullException.ThrowIfNull(buildings);
+        ArgumentOutOfRangeException.ThrowIfNegative(ordinal);
+
+        CellRect box = area.Clamp();
+        Span<int> next = buildings.CellNext.Span;
+        int remaining = ordinal;
+
+        for (int north = box.North.Raw; north < box.NorthEnd.Raw; north++)
+        {
+            for (int east = box.East.Raw; east < box.EastEnd.Raw; east++)
+            {
+                int cell = CellGrid.Index(new Cells(east), new Cells(north));
+                int here = _count[cell];
+
+                if (remaining >= here)
+                {
+                    remaining -= here;
+                    continue;
+                }
+
+                int encoded = _head[cell];
+
+                for (int i = 0; i < remaining; i++)
+                {
+                    encoded = next[encoded - 1];
+                }
+
+                return encoded - 1;
+            }
+        }
+
+        return Rows.NoSlot;
     }
 
     /// <summary>

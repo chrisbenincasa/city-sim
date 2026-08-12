@@ -158,7 +158,7 @@ internal static class TripDump
 
         output.WriteLine(
             $"# The crossing cost is {Minutes(trips.CrossingCost.Raw)} min, from [trips] "
-            + "crossing_seconds -- hash-bearing and UNRATIFIED (adr/0052, plans/0002 §D2), and this "
+            + "crossing_seconds -- hash-bearing and UNRATIFIED (adr/0052, plans/0002 §D1), and this "
             + "run is half of what ratifies it: the distribution below at a candidate value against "
             + "the same distribution at zero. It applies only to two Addresses on one Segment and "
             + "opposite sides, so it moves the first band and nothing beyond it.");

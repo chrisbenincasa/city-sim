@@ -81,6 +81,12 @@ public sealed class Census
     /// <summary>Tick phase 4's share, on the same terms.</summary>
     private const int TripMetrics = TripCounters * AggregatesPerRuleCounter;
 
+    /// <summary>The members of <see cref="JobCounter"/>.</summary>
+    private const int JobCounters = 4;
+
+    /// <summary>The job assignment pass's share, on the same terms.</summary>
+    private const int JobMetrics = JobCounters * AggregatesPerRuleCounter;
+
     /// <summary>
     /// Readings held before the oldest is overwritten.
     /// </summary>
@@ -105,6 +111,9 @@ public sealed class Census
 
     /// <summary>Where Tick phase 4's begin, which is where the placement pass's end.</summary>
     private readonly int _tripBase;
+
+    /// <summary>Where the job assignment pass's begin, which is where Tick phase 4's end.</summary>
+    private readonly int _jobBase;
 
     private readonly int _metrics;
     private readonly int _capacity;
@@ -138,7 +147,8 @@ public sealed class Census
         _zoneBase = _ruleBase + RuleMetrics;
         _placementBase = _zoneBase + ZoneMetrics;
         _tripBase = _placementBase + PlacementMetrics;
-        _metrics = _tripBase + TripMetrics;
+        _jobBase = _tripBase + TripMetrics;
+        _metrics = _jobBase + JobMetrics;
         _capacity = capacity;
         _ticks = new ulong[capacity];
         _values = new long[capacity * _metrics];
@@ -196,7 +206,8 @@ public sealed class Census
             simulation.Rules.Drain(),
             simulation.Zoning.Drain(),
             simulation.Placement.Drain(),
-            simulation.Trips.Drain());
+            simulation.Trips.Drain(),
+            simulation.Employment.Drain());
     }
 
     /// <summary>
@@ -216,13 +227,15 @@ public sealed class Census
     /// <param name="zoning">The Sweep family's interval since the previous reading, already drained.</param>
     /// <param name="placement">The placement pass's interval since the previous reading, already drained.</param>
     /// <param name="trips">Tick phase 4's interval since the previous reading, already drained.</param>
+    /// <param name="jobs">The assignment pass's interval since the previous reading, already drained.</param>
     public void Observe(
         World world,
         Ticks tick,
         RuleActivity activity,
         ZoneActivity zoning = default,
         PlacementActivity placement = default,
-        TripActivity trips = default)
+        TripActivity trips = default,
+        EmploymentActivity jobs = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -267,6 +280,11 @@ public sealed class Census
             _values, at + _tripBase,
             (int)TripCounter.ExceededCommuteBudget, trips.ExceededCommuteBudget);
         Write(_values, at + _tripBase, (int)TripCounter.Stranded, trips.Stranded);
+
+        Write(_values, at + _jobBase, (int)JobCounter.Considered, jobs.Considered);
+        Write(_values, at + _jobBase, (int)JobCounter.Seeking, jobs.Seeking);
+        Write(_values, at + _jobBase, (int)JobCounter.Employed, jobs.Employed);
+        Write(_values, at + _jobBase, (int)JobCounter.Beyond, jobs.Beyond);
 
         _ticks[_next] = tick.Raw;
         _next = (_next + 1) % _capacity;
@@ -379,6 +397,20 @@ public sealed class Census
 
             return _tripBase
                 + ((int)metric.TripCounter * AggregatesPerRuleCounter)
+                + (int)metric.Aggregate;
+        }
+
+        if (metric.Source is MetricSource.Jobs)
+        {
+            if (metric.JobCounter is not (JobCounter.Considered or JobCounter.Seeking
+                or JobCounter.Employed or JobCounter.Beyond))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.JobCounter, "not a job counter this census reads.");
+            }
+
+            return _jobBase
+                + ((int)metric.JobCounter * AggregatesPerRuleCounter)
                 + (int)metric.Aggregate;
         }
 

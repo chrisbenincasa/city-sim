@@ -42,6 +42,7 @@ public sealed class Simulation
     private readonly RuleEngine _rules;
     private readonly ZoneRuleEngine _zoning;
     private readonly PlacementEngine _placement;
+    private readonly EmploymentEngine _employment;
     private readonly TripEngine _trips;
     private readonly RulesetCatalogue _rulesets;
 
@@ -98,6 +99,7 @@ public sealed class Simulation
         _rules = new RuleEngine(world, key);
         _zoning = new ZoneRuleEngine(world, key);
         _placement = new PlacementEngine(world, key);
+        _employment = new EmploymentEngine(world, key);
 
         // No WorldKey: nothing in Phase 4 draws. A Traveller advances when its Leg's arrival Tick has
         // come, which is arithmetic over state the log already determines, so there is no decision here
@@ -141,6 +143,20 @@ public sealed class Simulation
     /// <c>adr/0069</c> exists to break: construction and placement doing each other's jobs.
     /// </remarks>
     public PlacementEngine Placement => _placement;
+
+    /// <summary>
+    /// <c>adr/0081</c>: a Citizen with no Workplace taking one near home, in phase 6 behind
+    /// <see cref="Placement"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A fourth engine on <see cref="Placement"/>'s reasoning exactly</b>, and behind it on
+    /// <see cref="Placement"/>'s ordering argument read one step further: a commute is anchored at a
+    /// dwelling, so somebody housed this Tick can look for work on the same Tick rather than waiting a
+    /// whole interval for an address they already have. The reverse order would make the delay between
+    /// being housed and being employed an artefact of phase ordering, which is the class of coupling
+    /// <c>02 §1.1</c> calls the determinism contract and asks to be stated rather than inherited.
+    /// </remarks>
+    public EmploymentEngine Employment => _employment;
 
     /// <summary>Tick phase 4, and the Trip Fate counters the Census drains.</summary>
     public TripEngine Trips => _trips;
@@ -782,6 +798,12 @@ public sealed class Simulation
         // create predicate a statement about vacancy rather than about population, and it is what
         // replaces the self-limiting property construction used to supply by housing one itself.
         _placement.Place(tick);
+
+        // adr/0081, and behind placement rather than in front of it: a commute is anchored at a
+        // dwelling, so a Household housed a line above can look for work on the same Tick. Ahead of
+        // the Zone Rules for a second reason of its own -- a Building condemned this Tick should not
+        // acquire a worker first, and taking a job in a doomed Building is a churn nothing reports.
+        _employment.Assign(tick);
 
         _zoning.Sweep(tick);
     }

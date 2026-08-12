@@ -360,3 +360,109 @@ Trip model sits outside the golden trace. That is slice 10 task 11's finding on 
 ratifier rule is `adr/0052`'s, the placeholder rule is session F's, and the treatment of the two
 missing derivations is `adr/0070`'s. What task 3 added is their application to a schema, which is
 what a slice plan's record is for.
+
+
+### Task 4 — the assignment pass, built
+
+`EmploymentEngine` in Tick phase 6, **behind placement and ahead of the Zone Rules**, plus the
+`[jobs]` Ruleset table, a `JobCounter` Census family and the `[trips] commute_budget_minutes` the
+pass cannot run without. A Citizen with no Workplace and a home to search from draws `candidates`
+Buildings from a box around that home and takes **the first with a free job slot it can walk to
+inside the Commute Budget** — `adr/0017`, satisficing, never nearest and never best. It writes
+`CitizenTable.Workplace` through `World.Employ`, which is the door task 2 built. **Twenty-five tests,
+1,217 green against task 3's 1,192, and all three golden baselines re-recorded.**
+
+**The shipped Rulesets gained four numbers and a fifth was already there**: `[[building]] jobs = 8`
+on `dwelling`, `[trips] commute_budget_minutes = 20`, and `[jobs]` with `interval = 32`,
+`revisit_ticks = 1024`, `candidates = 3`. All five are hash-bearing, all five are in `0002` §D1 with
+a named ratifier, and **two of them are derived rather than chosen** — see below.
+
+**Ordering.** Behind placement because a commute is anchored at a dwelling, so somebody housed a line
+above can look for work on the same Tick rather than waiting a whole interval for an address they
+already have; ahead of the Zone Rules because a Building condemned this Tick should not acquire a
+worker first, and taking a job in a doomed Building is a churn nothing reports.
+
+**The search box is derived from the Commute Budget and there is no radius key, which is the
+decision this task turns on.** A radius chosen freely would be a hash-bearing number with no
+ratifier, and worse: an unbounded or over-wide draw is **S2 R4's uniform origin-destination
+distribution**, which R4 measured to be *a different city* rather than a noisier one — a
+District-granular route's detour goes from 18.52% to 128.82% between the two draws. So the box is
+what a walk within the Budget can cover, and **the loader refuses a `[jobs]` table in a Ruleset with
+no `commute_budget_minutes`**. That is `ReadLots(roads)`'s cross-table precedent in a stronger form:
+there the second table supplies a ceiling, here it supplies the first table's entire geometry. One
+number does one thing, and the alternative — an authored radius *and* an authored Budget — is two
+numbers that can contradict each other **silently**: a radius smaller than the Budget makes the
+Budget inert, and one larger wastes the search.
+
+**Two stages, and merging them would delete the reading the milestone is for.** Task 1's own remark
+already said it — *the box supplies candidates and the walk decides acceptability* — and this is the
+consumer it was written for. A vacancy the Road Graph cannot deliver inside the Budget is counted
+as **`beyond`** and left, which is the only counter in the Census that reports the shape of the
+network rather than the state of the economy. A pass that pre-filtered candidates by reachability
+would employ exactly the same people and report zero.
+
+**Four flows rather than two, and the third and fourth are the ones worth having.** `PlacementCounter`
+records why a single *placed* counter is not enough: a queue nobody is looking at and a queue with
+nowhere to go read identically. This pass has a **third** way to do nothing, so *considered − seeking*
+is the price of sampling the population instead of maintaining a list of the unemployed,
+*seeking − employed* is the shortage, and *beyond* is the geography. That is slice 7 task 9's
+`evaluations − due` lesson applied **before** the fact rather than after it.
+
+#### The findings
+
+**The load-bearing one is that the Cell-uniform draw is right on paper and wrong in this repository,
+and only a measurement could say so.** The first implementation drew a **Cell** from the box and then
+a Building inside it, which is `PlacementEngine`'s own Lots-not-Buildings argument transplanted to a
+grid — *a look that lands on empty ground found nothing*, which is what looking for work in a city
+with none near you is, and it keeps the geography in the answer rather than in a filter. It is
+unusable here: the shipped Rulesets hold on the order of **1,200 Buildings across 16,384 Cells**, so
+a Cell-uniform look finds an employer roughly **one occasion in four hundred** and the mechanism
+would be unobservable in every world anybody runs. ***An argument about what a draw means is
+independent of whether the draw ever hits anything***, and the second question is a property of the
+fixture rather than of the design. The draw is uniform over the Buildings in the box, which also
+makes job density attract workers — a claim rather than a default, and the honest one.
+
+**A Budget chosen against the map is not thereby exercised by every world on it, and the golden
+fixture is the world where it is inert.** Twenty minutes is read off `--trips` over the shipped
+`[roads]`, which is a property of the *map*; the golden session is 1,000 Citizens, which the
+populator houses in ~120 Buildings on one contiguous strip of blocks, and **every pair in it is
+within twenty minutes' walk**. So `beyond` is **0** there and a steady **48 per census interval** at
+10,000 Citizens on the same Ruleset. That is slice 10 task 11's finding for the **fourth** time —
+*a baseline records what a run did* — arriving from a new direction: not a change that narrowed what
+the run reaches, but a number whose binding case the run never contained. It is a test in both
+directions rather than a paragraph: `A_vacancy_the_walk_cannot_reach_is_counted_and_not_taken` runs
+at a two-minute Budget, and `The_shipped_budget_is_inert_on_a_world_this_small` asserts the zero, so
+the day the fixture changes somebody has to read the note.
+
+**`[[building]] jobs` landed on the `dwelling` kind rather than on a workplace kind, and `0002` §D2
+predicted otherwise.** A second kind needs a second `[[zone_rule]]` to raise it, a second decline
+Rule so that it **churns rather than accumulating until the city is all offices**, and a land-use
+split — three decisions about *content*, in a file whose first line says it makes none. Living above
+the shop is the smallest arrangement in which the pass has somewhere to send anybody, and it claims
+nothing: the geography still binds, because the box is still a box and the Budget still refuses what
+the Road Graph cannot deliver. The row is amended rather than quietly satisfied.
+
+**Two of the five numbers are derived, which is the corpus's fourth and fifth successful search for a
+derivation.** `jobs = 8` is the floor of `1000/360 × 3` — S4 task 2's Household ratio through
+`occupants` — giving **0.96 jobs per resident**, so full employment is out of reach *by construction*
+and the shortage flow is never trivially zero. `revisit_ticks` and `interval` are `[placement]`'s own,
+and the copy is an argument: a person without a job and a family without a home look at the same rate
+for the same reason, and nothing in this project yet distinguishes them. Only `candidates` is free —
+**and it is ratifiable here for the first time**, because placement's copy scores every candidate
+identically while this one filters on a real walk.
+
+**The cost is measured and it is a burst, which is filed to [`0013`](0013-tick-budget.md) rather than
+tuned here.** Wall-clock delta against the same Ruleset with `[jobs]` deleted, at 100,000 Citizens:
+**7.0 ms per pass at steady state and 48 ms at cold start**, all of it landing in one Tick in
+thirty-two. Linearly that is **~70 ms against a 15.6 ms budget in the pass Tick** at 1M, and **31×**
+during the transient. Two things about it are worth carrying: the **box walk and the routing are the
+same order** — 841 Cells counted four times against three ~5 µs searches — so the obvious thing to
+optimise is not obviously the right one; and **the cost falls as the city settles**, because a look
+that lands on somebody already employed costs one handle resolve, which makes the transient rather
+than the trend the number to design against. Shortening `interval` against a fixed `revisit_ticks`
+spreads the identical work and cuts the peak without touching the mean, which is the lever `0013`
+names first.
+
+**No ADR.** `adr/0081` is the decision and this is its construction; the box derivation is a refusal
+to open a number rather than a new one, and `adr/0052`, `adr/0059`, `adr/0069` and `adr/0070` supply
+the rest of the reasoning unchanged.

@@ -225,6 +225,83 @@ public sealed class BuildingResidencyTests
             world.CreateBuilding(lot, kind: 1, Ticks.Zero, WorldKey.FromSeed(1)));
     }
 
+    // ---- the sampling pair ------------------------------------------------------------------------
+
+    /// <summary>
+    /// <b><c>CountIn</c> and <c>NthIn</c> address exactly what <c>In</c> enumerates, in the same
+    /// order.</b>
+    /// </summary>
+    /// <remarks>
+    /// The property that makes the pair a fair draw: <c>CountIn</c> is the denominator and
+    /// <c>NthIn(n)</c> is the nth thing <c>In</c> would have written. Asserted against <c>In</c>
+    /// rather than against a literal, because a literal here would be a second copy of the traversal
+    /// order and the two would drift — which is the failure the ordered insert exists to prevent one
+    /// level down.
+    /// </remarks>
+    [Fact]
+    public void The_sampling_pair_addresses_what_the_enumeration_walks()
+    {
+        var world = new World(1_000);
+
+        Build(world, east: 1, north: 1);
+        Build(world, east: 30, north: 2);
+        Build(world, east: 33, north: 1);
+        Build(world, east: 1, north: 33);
+
+        var box = new CellRect(Cells.Zero, Cells.Zero, new Cells(2), new Cells(2));
+        int[] walked = Query(world, box);
+
+        Assert.Equal(4, world.BuildingsInCells.CountIn(box));
+
+        for (int i = 0; i < walked.Length; i++)
+        {
+            Assert.Equal(walked[i], world.BuildingsInCells.NthIn(box, world.Buildings, i));
+        }
+    }
+
+    /// <summary>An ordinal past the end is a named absence rather than a wrong answer.</summary>
+    /// <remarks>
+    /// <b>The case a caller reaches by racing its own denominator</b>, which is ordinary here: a
+    /// sampling caller counts once and looks several times, and a demolition between the two shrinks
+    /// the box. <c>Rows.NoSlot</c> is what the caller already tests for, so this is the cheap outcome
+    /// rather than an exception at a write site.
+    /// </remarks>
+    [Fact]
+    public void An_ordinal_past_the_end_of_the_box_is_no_slot()
+    {
+        var world = new World(1_000);
+
+        Build(world, east: 1, north: 1);
+
+        var box = CellRect.At(Cells.Zero, Cells.Zero);
+
+        Assert.Equal(1, world.BuildingsInCells.CountIn(box));
+        Assert.Equal(Rows.NoSlot, world.BuildingsInCells.NthIn(box, world.Buildings, 1));
+    }
+
+    /// <summary>An empty box holds nothing, and a demolition takes its Building out of the count.</summary>
+    /// <remarks>
+    /// The count is a cached list length, so it is maintained in three places rather than derived on
+    /// read — and a cache that only ever grows is the defect this asserts against. The rebuild
+    /// agreeing with the maintained count is <c>A_rebuild_reproduces_the_maintained_index</c>'s
+    /// business, which walks the same lists.
+    /// </remarks>
+    [Fact]
+    public void A_demolished_building_leaves_the_count()
+    {
+        var world = new World(1_000);
+        int building = Build(world, east: 1, north: 1);
+
+        var box = CellRect.At(Cells.Zero, Cells.Zero);
+
+        Assert.Equal(1, world.BuildingsInCells.CountIn(box));
+
+        world.DestroyBuilding(world.Buildings.Rows.At(building), Ticks.Zero);
+
+        Assert.Equal(0, world.BuildingsInCells.CountIn(box));
+        Assert.Equal(Rows.NoSlot, world.BuildingsInCells.NthIn(box, world.Buildings, 0));
+    }
+
     private static int[] Query(World world, CellRect area)
     {
         int[] into = new int[64];

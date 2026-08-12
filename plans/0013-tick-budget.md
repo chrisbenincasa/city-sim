@@ -72,6 +72,54 @@ the durable half of the document.
 | One walk search, **one settled node** | **35–40 ns**, rising to 65 at 4.10 km | **yes, and it is the durable one** | as above |
 | One walk **across the street** (same Segment) | **16.8 ns** | yes — flat at every rung | as above |
 | One walk search, **severed** (no route exists) | **14.9 ns** | yes — flat at every rung | as above |
+| ⚠️ **One job assignment pass**, steady state | **7.0 ms per pass at 100,000 Citizens** | **no — it is a burst, see below** | [`0023`](0023-jobs-and-the-commute.md) task 4 |
+| ⚠️ **One job assignment pass**, cold start | **48 ms per pass at 100,000 Citizens** | — | as above |
+
+### ⚠️ The job assignment pass is a burst, and the interval is what concentrates it
+
+**Measured 2026-08-12 by wall-clock delta on the headless runner — `rulesets/minimal.toml` with and
+without its `[jobs]` table, at 100,000 Citizens, release build, `--no-decide-guard`.** Not
+BenchmarkDotNet, so it is a **first measurement rather than a unit cost**, and it is filed here on
+`adr/0073`'s rule that a cost goes to this document on the day it is found.
+
+| Run | Without `[jobs]` | With | Delta | Per Tick | **Per pass** |
+|---|---|---|---|---|---|
+| 2,000 Ticks (cold start) | 5.19 s | 8.22 s | 3.03 s | 1.51 ms | **48 ms** |
+| 20,000 Ticks | 9.10 s | 16.08 s | 6.98 s | 0.349 ms | 11.2 ms |
+| the 18,000 in between (steady state) | — | — | 3.95 s | 0.219 ms | **7.0 ms** |
+
+**The per-pass column is the one that matters and the per-Tick column is the one that will get
+quoted.** The pass runs on `interval = 32`, so its whole cost lands in **one Tick in thirty-two**:
+the amortised figure is comfortable and the Tick it actually runs in is not. Scaled linearly to 1M
+Citizens that is **~70 ms in the pass Tick against a 15.6 ms budget — 4.5×** at steady state and
+**~480 ms, 31×,** at cold start. `Aggregate.Peak` exists for exactly this shape (`02 §4`: *burstiness
+is authored under this design*), and this is the first consumer in the ledger whose peak and mean
+differ by the interval itself.
+
+**Where it goes is not the search.** A seeker pays `CountIn` over the box once and `NthIn` plus a
+walk search per candidate: at the shipped 20-minute Budget the box is a 14-Cell radius, so 841 Cells,
+and `CountIn` + three `NthIn` is **~3,400 `int` reads before any routing happens**. Three walk
+searches at the 1.67 km the Budget reaches are ~5 µs each by the curve above. So the box walk and the
+routing are the same order, which is worth knowing before anybody optimises the obvious one.
+
+**The cold-start figure is 6.9× the steady-state one and that is the mechanism working.** Everybody
+is unemployed on Tick 0, so every drawn Citizen is a seeker and every seeker routes; at equilibrium
+most looks land on somebody who already works and cost one handle resolve. **A pass whose cost falls
+as the city settles is the opposite of the collections `adr/0006` watches for**, and it means the
+number to design against is the transient rather than the trend.
+
+**Three things would move it, in descending order of how much.** The **Commute Budget** — the box is
+its square, so halving the Budget quarters the box *and* quarters the search by the walk curve's own
+squared law, which is the same *distance beats count* lesson the walk-search section states one level
+up. **`interval` against `revisit_ticks`** — the product is fixed by the revisit period, so shortening
+the interval spreads the identical work over more Ticks and cuts the peak without changing the mean.
+And **`candidates`**, which multiplies the routing and not the box walk.
+
+**Two caveats, stated because the row will be quoted.** These are wall-clock deltas on a whole
+process, so they include the Census and the process's own noise; the run-to-run spread was ~8%, and
+the deltas are 1.9–2.3× that. And the 1M figures are **linear extrapolations**, which the pass's own
+shape supports — the sample is derived from the population and the box is not — but which no
+measurement in this project has ever left intact.
 
 ### ⚠️ The walk search is not a unit cost, and the row that treated it as one hid the stronger lever
 

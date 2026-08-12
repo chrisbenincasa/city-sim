@@ -728,6 +728,74 @@ public readonly record struct TripRuleset(TravelTime CrossingCost, TravelTime Co
 }
 
 /// <summary>
+/// The <c>[jobs]</c> table — <b>how a Citizen with no Workplace comes to have one</b>
+/// (<c>adr/0081</c>, <c>adr/0017</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Three numbers, and they are <see cref="PlacementRuleset"/>'s three because this is
+/// <see cref="PlacementRuleset"/>'s shape</b>: a sampled sweep over a population, looking for
+/// something with room. <c>adr/0069</c> is the standing warning that such a pass needs exactly these
+/// and that its ADR will predict none of them — so they are named in advance here rather than
+/// discovered, and each carries a <c>plans/0002</c> §D row.
+/// </para>
+/// <para>
+/// <b>They are their own table rather than <c>[placement]</c>'s</b>, because a Household looks for a
+/// home at a different rate than a person looks for work, and one cadence could not be retuned for
+/// either without moving the other. What they share is the <em>derivation</em>: the file states a
+/// <b>duration</b> and the engine derives the sample from it (<c>adr/0059</c>), so the mechanism does
+/// not silently stop existing as the city grows.
+/// </para>
+/// <para>
+/// <b>There is no search radius here, and that absence is the decision.</b> A candidate has to come
+/// from somewhere near home or the commute distribution is S2 R4's uniform draw — the fabricated
+/// number this milestone's named risk is about. The box is <b>derived from the Commute Budget and
+/// the walking speed</b>: it is what a walk within the Budget can reach, so looking outside it is
+/// looking where nothing could be accepted. That is why the loader refuses a <c>[jobs]</c> table in
+/// a Ruleset with no <c>commute_budget_minutes</c> — the pass would have no bound, and the bound
+/// nobody authored is the one that would have to be invented.
+/// </para>
+/// </remarks>
+/// <param name="Interval">Ticks between passes. Zero means nobody is ever assigned work.</param>
+/// <param name="RevisitTicks">How long the pass takes to look at every Citizen once.</param>
+/// <param name="Candidates">Places a Citizen looks at per occasion — <c>02 §5.3</c>'s <c>N</c>.</param>
+public readonly record struct JobRuleset(uint Interval, int RevisitTicks, int Candidates)
+{
+    /// <summary>A Ruleset whose city assigns nobody to work.</summary>
+    public static JobRuleset None => default;
+
+    /// <summary>Whether the assignment pass runs at all.</summary>
+    public bool Runs => Interval != 0;
+
+    /// <summary>
+    /// How many Citizens one pass considers, given <paramref name="citizens"/> of them.
+    /// </summary>
+    /// <remarks>
+    /// <b>Over the whole population rather than over the unemployed, which is <c>adr/0059</c>'s own
+    /// shape rather than <see cref="PlacementRuleset.SampleFor"/>'s.</b> A Zone Rule's revisit period
+    /// is how long it takes to look at every <em>Lot</em>, not every vacant one, and this is the same
+    /// choice for the same reason: there is no list of the unemployed to draw from, and maintaining
+    /// one would be a derived collection whose only consumer is a denominator. A look that lands on
+    /// somebody who already works is a look that found nothing, exactly as a look at an occupied Lot
+    /// is — and the *considered* flow counts it, so the waste is reported rather than hidden.
+    /// </remarks>
+    /// <param name="citizens">How many Citizens the city holds.</param>
+    public int SampleFor(int citizens)
+    {
+        if (RevisitTicks < Interval)
+        {
+            throw new InvalidOperationException(
+                $"job assignment has a revisit period of {RevisitTicks} Ticks and an interval of "
+                + $"{Interval}. The period is how long the pass takes to look at every Citizen once, "
+                + "so it divides; the loader refuses anything below the interval, and this Ruleset "
+                + "was not built by it.");
+        }
+
+        return (int)IntegerMath.CeilDiv((long)citizens * Interval, RevisitTicks);
+    }
+}
+
+/// <summary>
 /// The Ruleset the interpreter runs: ids and integers, validated, with no string anywhere in it.
 /// </summary>
 /// <remarks>
@@ -869,6 +937,17 @@ public sealed class Ruleset
     /// <c>--trips</c> refuse rather than costing a journey against numbers nobody authored.
     /// </remarks>
     public TripRuleset Trips { get; init; } = TripRuleset.None;
+
+    /// <summary>
+    /// <b>How a Citizen with no Workplace comes to have one</b> — the <c>[jobs]</c> table.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="JobRuleset.None"/> when the file states no <c>[jobs]</c>, and that is a city where
+    /// nobody is ever assigned work rather than one where everybody is. <b>A <c>[jobs]</c> table is
+    /// refused in a Ruleset with no <c>[trips] commute_budget_minutes</c></b>: the pass's search box
+    /// is derived from the Budget, so without one it has no bound at all.
+    /// </remarks>
+    public JobRuleset Jobs { get; init; } = JobRuleset.None;
 
     /// <summary>
     /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.

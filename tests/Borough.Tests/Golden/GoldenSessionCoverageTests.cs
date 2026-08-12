@@ -149,6 +149,62 @@ public sealed class GoldenSessionCoverageTests
         Assert.Equal(LotsPerBlock - 3, LotsOn(At(session, new Ticks(301)), Edited));
     }
 
+    /// <summary>
+    /// <b>The committed session employs somebody, and it condemns a Building somebody works in.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>What this file exists for, applied to 5b-bis's mechanism.</b> Every hash in the baseline
+    /// would stay green if the assignment pass stopped running — a change that narrows what a run
+    /// *reaches* produces a full set of freshly correct numbers, which is slice 10 task 11's finding
+    /// and the reason this class was written. So the session is held to <em>reaching</em> the pass
+    /// rather than to any particular hash it produces.
+    /// </para>
+    /// <para>
+    /// <b>The second assertion is the one worth having.</b> Employment on its own would be satisfied
+    /// by a city that hires everybody once and never changes; what makes the baseline cover the
+    /// interesting path is that this session <b>demolishes</b>, so a Workplace handle is severed under
+    /// a worker and the Citizen re-enters assignment. That is the asymmetry task 2 decided — a
+    /// bulldozed employer leaves a severed handle where a lowered ceiling clears one — and it is
+    /// executed here rather than only asserted in a unit test.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What the session does <em>not</em> reach is the Commute Budget refusing a walk</b>, and
+    /// that is asserted in <c>JobAssignmentTests</c> instead, in both directions. This world is 1,000
+    /// Citizens on one contiguous strip of blocks, so nothing in it is twenty minutes from anything.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_session_employs_people_and_bulldozes_an_employer()
+    {
+        World world = At(GoldenFixtures.Session(), new Ticks(GoldenFixtures.Ticks));
+
+        int employed = 0;
+        int severed = 0;
+
+        for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
+        {
+            if (!world.Citizens.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            Handle<Building> workplace = world.Citizens.Workplace[slot];
+
+            if (world.Buildings.Rows.IsValid(workplace))
+            {
+                employed++;
+            }
+            else if (!workplace.Equals(default))
+            {
+                severed++;
+            }
+        }
+
+        Assert.True(employed > 0, "nobody in the committed session holds a job.");
+        Assert.True(severed > 0, "the committed session never bulldozes an employer.");
+    }
+
     /// <summary>How many Lots one block of the lattice carries when all four of its faces are Streets.</summary>
     private const int LotsPerBlock = 10;
 

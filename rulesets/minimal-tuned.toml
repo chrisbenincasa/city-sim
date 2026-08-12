@@ -112,6 +112,10 @@ condemn_after = 4
 # drain, because a Bin has a consumer and occupancy has none.
 occupants = 3
 
+# Identical to minimal.toml's. See there for why `jobs` sits on the dwelling kind rather than on a
+# workplace kind of its own, and why 8 is the floor of 1000/360 x 3 rather than a chosen number.
+jobs = 8
+
 # Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
 # from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
 # `pool` draw in task 10b. Greedy because the actor works through whatever headroom it has, which is
@@ -328,3 +332,16 @@ lots_per_segment = 5
 # percentile of a distribution that does not exist yet, so omitting it states a city with no
 # ceiling rather than defaulting one.
 crossing_seconds = 30
+
+# Identical to minimal.toml's, and it must stay identical. See there for why 20 minutes -- the
+# short version is that it is read off the walk-cost distribution --trips prints, at the rung
+# where it admits an eight-block neighbourhood and refuses half a sixteen-block one, and that it
+# also sizes the box the assignment pass draws candidates from.
+commute_budget_minutes = 20
+
+# Identical to minimal.toml's. adr/0081's assignment pass: [placement]'s three keys on the
+# employment axis, with the sample derived from the duration (adr/0059).
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3

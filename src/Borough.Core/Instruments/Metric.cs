@@ -215,6 +215,44 @@ public enum TripCounter : byte
 }
 
 /// <summary>
+/// One counter per outcome of the job assignment pass: how looking for work went over the interval.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Four rather than two, and the third and fourth are the ones worth having.</b>
+/// <see cref="PlacementCounter"/>'s remark records why a single <em>placed</em> counter is not enough:
+/// a queue that is not being looked at and a queue with nowhere to go read identically. This pass has
+/// a <em>third</em> way to do nothing — the candidate existed, had a vacancy, and could not be reached
+/// inside the Commute Budget — and collapsing that into the shortage would make a severed city
+/// indistinguishable from an unemployed one.
+/// </para>
+/// <para>
+/// <b><see cref="Beyond"/> is the only counter in the Census that reports the shape of the Road
+/// Graph.</b> <c>03 §3.7</c>'s Severance is a mechanism rather than a paragraph because the mode mask
+/// exists; it becomes a mechanism anybody can <em>observe</em> because this counts what it costs.
+/// </para>
+/// <para>
+/// <b>It is counted per <em>look</em> where the other three are per Citizen</b>, which is stated here
+/// because the units differ and nothing else says so: one seeker rejecting three unreachable
+/// employers moves <see cref="Beyond"/> by three and <see cref="Seeking"/> by one.
+/// </para>
+/// </remarks>
+public enum JobCounter : byte
+{
+    /// <summary>Live Citizens the pass looked at — the sample, summed over the interval.</summary>
+    Considered,
+
+    /// <summary>Of those, the ones with no Workplace and a home to search from.</summary>
+    Seeking,
+
+    /// <summary>Of those, the ones who took a job.</summary>
+    Employed,
+
+    /// <summary>Candidate vacancies rejected because the walk exceeded the Commute Budget.</summary>
+    Beyond,
+}
+
+/// <summary>
 /// How a flow counter's Ticks are reduced into one reading.
 /// </summary>
 /// <remarks>
@@ -286,6 +324,15 @@ public enum MetricSource : byte
     /// <c>adr/0075</c> keep apart into one arithmetic.
     /// </remarks>
     Trips,
+
+    /// <summary>One counter of the job assignment pass: a flow, accumulated and drained.</summary>
+    /// <remarks>
+    /// A sixth family on <see cref="Placement"/>'s reasoning exactly. The two passes share Tick phase
+    /// 6 and share no event: one puts a family in a dwelling, the other puts a person in a job, and
+    /// <c>adr/0081</c> keeps them apart for the same reason <c>adr/0069</c> kept placement out of the
+    /// Zone Rules.
+    /// </remarks>
+    Jobs,
 }
 
 /// <summary>
@@ -362,6 +409,11 @@ public readonly record struct Metric
         ? (TripCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not carry a Trip counter.");
 
+    /// <summary>Which of the job assignment pass's counters.</summary>
+    public JobCounter JobCounter => Source is MetricSource.Jobs
+        ? (JobCounter)_counter
+        : throw new InvalidOperationException($"a {Source} metric does not carry a job counter.");
+
     /// <summary>How the counter's Ticks are reduced into one reading.</summary>
     /// <remarks>
     /// Meaningful only for a flow. A table counter is read at an instant, so there is nothing over
@@ -369,7 +421,7 @@ public readonly record struct Metric
     /// </remarks>
     public Aggregate Aggregate =>
         Source is MetricSource.Rules or MetricSource.Zones or MetricSource.Placement
-            or MetricSource.Trips
+            or MetricSource.Trips or MetricSource.Jobs
         ? (Aggregate)_aggregate
         : throw new InvalidOperationException($"a {Source} metric is a level and is not aggregated.");
 
@@ -402,4 +454,10 @@ public readonly record struct Metric
     /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
     public static Metric Of(TripCounter counter, Aggregate aggregate) =>
         new(MetricSource.Trips, 0, (byte)counter, (byte)aggregate);
+
+    /// <summary>One counter of the job assignment pass, under one reduction.</summary>
+    /// <param name="counter">Which of the pass's counters.</param>
+    /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
+    public static Metric Of(JobCounter counter, Aggregate aggregate) =>
+        new(MetricSource.Jobs, 0, (byte)counter, (byte)aggregate);
 }

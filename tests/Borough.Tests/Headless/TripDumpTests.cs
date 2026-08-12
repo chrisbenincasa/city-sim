@@ -187,23 +187,34 @@ public sealed class TripDumpTests
     }
 
     /// <summary>
-    /// <b>The header names the crossing cost it ran at and says the city has no Commute Budget.</b>
+    /// <b>The header names the crossing cost it ran at and the Commute Budget the city states.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>This is half of the crossing cost's named ratifier, and the half that makes the other half
     /// legible.</b> <c>plans/0002</c> §D asks for the walk-Leg distribution <i>with the term at zero
     /// and at a candidate value</i> — two runs, compared — and a report that does not say which value
-    /// it ran at cannot be one of the two. The Budget line is the same discipline pointed at an
-    /// absence: the distribution below is a percentile's source only while nothing is censoring it.
+    /// it ran at cannot be one of the two.
+    /// </para>
+    /// <para>
+    /// <b>The Budget line flipped branch on 2026-08-12 and the discipline behind it did not.</b> This
+    /// test asserted <i>no Commute Budget</i> until 5b-bis task 4 set one, which is exactly what task
+    /// 3 said would happen: the Budget is a percentile of this distribution, so it could not be
+    /// authored until the distribution existed, and authoring it does not make this census apply it.
+    /// <b>Every pair is still walked</b> — the report says so — because the source of a percentile
+    /// must stay uncensored by the number read off it. That sentence is what the assertion is really
+    /// holding in place.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_header_names_the_crossing_cost_and_the_absent_budget()
+    public void The_header_names_the_crossing_cost_and_the_commute_budget()
     {
         string report = Dump("minimal.toml");
 
         Assert.Contains("crossing_seconds", report, StringComparison.Ordinal);
         Assert.Contains("UNRATIFIED", report, StringComparison.Ordinal);
-        Assert.Contains("no Commute Budget", report, StringComparison.Ordinal);
+        Assert.Contains("The Commute Budget is", report, StringComparison.Ordinal);
+        Assert.Contains("does not apply it", report, StringComparison.Ordinal);
     }
 
     /// <summary>The pair count the verdict reports as having no route at all.</summary>

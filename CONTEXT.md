@@ -479,7 +479,13 @@ Departure rate is a distinct demand signal from Pool size: Pool size is a *stock
 Departure is permanent. No departed Household is retained in any form — see `docs/adr/0006-no-collection-grows-with-elapsed-time.md`.
 
 **Unemployment**
-A Household with no workplace. A real state, not an instant Departure — losing a job starts a decline the player can watch rather than an event they are told about. Savings drain, discretionary spending stops first, the housing search widens, and destitution is the terminal case.
+A Citizen with no Workplace — and a Household in which nobody holds one. **The two halves are
+different objects on purpose, and this entry said only the second until 5b-bis.** A job has exactly
+one holder, so employment is a property of a **Citizen** and `[[building]] jobs` counts Citizens;
+money is a **Household**'s, so everything below — savings, discretionary spending, the widening
+housing search — is the Household's state and follows from how many of its members earn. A Household
+is unemployed when the count reaches zero, which is a derived reading rather than a second field. A
+real state, not an instant Departure — losing a job starts a decline the player can watch rather than an event they are told about. Savings drain, discretionary spending stops first, the housing search widens, and destitution is the terminal case.
 
 **Destitution is a reachability failure wearing a money costume.** The Household has no money *because* it cannot reach work, so the exits are the things that change reachability — and only one of them is a transfer:
 

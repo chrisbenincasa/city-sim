@@ -99,6 +99,26 @@ internal static class CensusReport
         (PlacementCounter.Placed, Aggregate.Peak, "placed peak"),
     ];
 
+    /// <summary>
+    /// The job assignment pass's counters, all four (<c>adr/0081</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>All four rather than a selection, because each pair of them is a different subtraction and
+    /// every one of those subtractions is a reading.</b> <c>considered − seeking</c> is what sampling
+    /// the whole population costs against keeping a list of the unemployed; <c>seeking − employed</c>
+    /// is the job shortage; and <c>beyond</c> is the only line in this report that describes the
+    /// <em>network</em> — vacancies that existed, were found, and could not be walked to inside the
+    /// Commute Budget. Printing three of the four would leave one of those unavailable.
+    /// </remarks>
+    private static readonly (JobCounter Counter, Aggregate Aggregate, string Name)[] JobCounters =
+    [
+        (JobCounter.Considered, Aggregate.Sum, "considered"),
+        (JobCounter.Seeking, Aggregate.Sum, "seeking"),
+        (JobCounter.Employed, Aggregate.Sum, "employed"),
+        (JobCounter.Employed, Aggregate.Peak, "employed peak"),
+        (JobCounter.Beyond, Aggregate.Sum, "beyond budget"),
+    ];
+
     public static void Print(TextWriter writer, World world, Census census, ulong ticks)
     {
         ArgumentNullException.ThrowIfNull(writer);
@@ -161,6 +181,14 @@ internal static class CensusReport
             truncated |= !series.Complete;
 
             WriteRow(writer, "placement", label, series);
+        }
+
+        foreach ((JobCounter counter, Aggregate aggregate, string label) in JobCounters)
+        {
+            Series series = census.Series(Metric.Of(counter, aggregate), window);
+            truncated |= !series.Complete;
+
+            WriteRow(writer, "jobs", label, series);
         }
 
         if (truncated)

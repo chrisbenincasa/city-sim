@@ -197,4 +197,28 @@ public enum PurposeTag : ulong
     /// came from.
     /// </remarks>
     JobEviction = 11,
+
+    /// <summary>
+    /// Which Citizens the assignment pass looks at this trigger (<c>adr/0081</c>, 5b-bis task 4).
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="PoolDraw"/>'s tag on the employment axis, and distinct from it for the reason
+    /// that one is distinct from <see cref="ZoneRuleSample"/>.</b> Both sweeps run in Tick phase 6 on
+    /// their own cadences, and sharing a tag would make <em>who looks for a job today</em> a function
+    /// of <em>who looked for a home today</em> — two decisions correlated invisibly, which is exactly
+    /// what a distinct tag per use exists to prevent.
+    /// </remarks>
+    JobSeeker = 12,
+
+    /// <summary>
+    /// Which places a Citizen looks at for work on one occasion (<c>adr/0017</c>, <c>adr/0081</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="PlacementCandidate"/>'s pair, and the same argument holds one axis over</b>: the
+    /// seeker draw picks who looks and this picks what they see, so a shared tag would tie a
+    /// Citizen's candidate set to their position in the sweep. It draws a <em>Cell</em> in the box
+    /// the Commute Budget reaches and then a Building standing in it, so one occasion consumes two
+    /// draws per look and the look ordinal separates them.
+    /// </remarks>
+    JobCandidate = 13,
 }
