@@ -125,6 +125,19 @@ become three.
 > is **blocked again on a different gate**: another session is doing further research inside the
 > harness, so it is live work rather than a spent artefact. The 5a gate is discharged; this one
 > is not, and the two must not be confused for each other.
+>
+> **What 5b-bis changes for the rows above is nothing, and that is worth writing down because it looks
+> like it should.** `06` gained milestone **5b-bis** on 2026-08-12 ([`adr/0081`](../docs/adr/0081-the-commute-is-the-first-trip-generator-and-a-job-is-taken-by-satisficing-on-distance.md)),
+> and it puts a **second `[[building]]` kind** in a shipped Ruleset for the first time — which reads
+> like the thing **slice 7 item 10b** has been waiting for. **It is not.** 10b was re-filed to Phase 2
+> because it asked for a production chain over two or three Goods, which is `pool`, which this plan's
+> own *decisions owed* item 3 made a named hole that throws. The §A sitting **considered the path
+> through `pool` and declined it**: shopping was the fully specified generator and was refused because
+> its preconditions include the `Scope.Pool` market, whose own refusal site warns that getting it wrong
+> *"ships an unconserved economy, and no refusal can catch that."* **5b-bis builds job slots, not a
+> market**, so 10b's gate is untouched and `pool` still throws. *A milestone that moves near a blocked
+> row without clearing it is exactly the shape `0012` Cause 3 is about — a gate cited once and never
+> re-read — so the non-clearance is recorded rather than left to be inferred.*
 
 **Running in parallel, on their own track:**
 
