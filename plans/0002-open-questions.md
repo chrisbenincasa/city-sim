@@ -584,6 +584,7 @@ named suspects, and the first place to look.
 | `06-roadmap.md` | 🟢 | Session nine → `adr/0042`. **Stores no status, and is [`0012`](0012-corpus-audit.md)'s control case** — the only large document that came back clean. **K2, the Phase 2 ordering, is what remains**, and it is deliberately last |
 | `deferred.md` | 🟢 | Maintained rather than grilled, which is correct — it is a record, not a design |
 | `references.md` | 🟢 | §9 closed the genre prior-art gap |
+| `docs/movement-primer.md` | — | **Not a coverage row and deliberately so.** It owns nothing and stores no status; `03`, `CONTEXT.md` and the ADRs win against it always, so *has it been grilled* is not a question about it. Listed only because a document absent from this map reads as **unexamined**, and this one is **exempt** |
 | `PROCESS.md` | 🟢 | The vocabulary of the project, as `CONTEXT.md` is the vocabulary of the city |
 | `plans/0001` | 🟡 | The origin document, **stale**. Its research sections hold; `06` supersedes its build order |
 

@@ -15,11 +15,28 @@
 
 ## Status
 
-**🔨 IN FLIGHT 2026-08-11. Tasks 1–3 are built; the slice is not done.** What exists is the
-**structural half** — the vocabulary type, the three tables and the walk Leg resolved end to end —
-and it stops deliberately short of everything that moves the State Hash. **1,084 tests green against
-5a's 1,060, and neither golden baseline was re-recorded**, because nothing is registered with `World`
-yet. See *What tasks 1–3 built* below for the record, and what remains.
+**🔨 IN FLIGHT. Tasks 1, 2, 3 and 7 are built; one task is left, and it is task 5.** What exists is the
+**structural half** — the vocabulary type, the three tables and the walk Leg resolved end to end, plus
+`--trips` — and it stops deliberately short of everything that moves the State Hash. **Neither golden
+baseline has been re-recorded**, because nothing is registered with `World` yet; task 5 is where that
+changes. **1,122 tests green** against 5a's 1,060.
+
+**⚠ RE-SCOPED 2026-08-12, and the remit shrank rather than the blockers clearing.** The §A sitting found
+the question **void as posed** under [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md):
+**tasks 4, 6 and 8 each measure an origin-destination *distribution*, and Phase 2 as sequenced never
+produced a destination** — all seven Trip generators the corpus names sit in `06`'s *Mechanisms with no
+milestone*. So they left for a new milestone **5b-bis**, and **5b closes on tasks 1, 2, 3, 5 and 7**.
+`06`'s *the irreversible one* risk was retired by
+[`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) and tasks 1–3 — a
+single-Leg model is not expressible in the three-way split — **not by the generator**. Record in *The §A
+sitting ran 2026-08-12* below;
+[`adr/0080`](../docs/adr/0080-phase-4-does-not-wait-on-a-trip-generator-and-a-trip-is-entered-by-command.md),
+[`adr/0081`](../docs/adr/0081-the-commute-is-the-first-trip-generator-and-a-job-is-taken-by-satisficing-on-distance.md).
+
+*(This block read "Tasks 1–3 are built… 1,084 tests green" until 2026-08-12, two days after task 7
+shipped and one after the re-scope, both of which were recorded further down this file. A Status block
+that a reader trusts and a record that is right is `plans/0012` Cause 1 inside one document — the same
+shape this slice's own decision 3 row was corrected for.)*
 
 **✅ UNBLOCKED 2026-08-11. Session F has run — one sitting, all seven decisions — and 5b's second gate
 is discharged.** Both gates are now clear: **D** (the traffic model, 2026-08-10) and **F** (the Leg
@@ -375,7 +392,6 @@ shops*.
 | **Volume** on the Segment, incremented on entry and decremented on exit | `03 §3.3` and `adr/0041`; it is what unblocks Stress and therefore Fidelity |
 | `--trips` in the headless runner, and a **Severance demonstration** | `06` rule 2: there is something to *look at*, and Severance is this milestone's stated payoff |
 | Census metric family, invariants, State Hash coverage, a long run | The definition of done |
-
 | Out | Owner |
 |---|---|
 | Routing on the vehicle graph, the travel-time matrix, the route cache | **5c** — and S2 has measured all of it |

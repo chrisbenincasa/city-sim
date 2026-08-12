@@ -1464,7 +1464,27 @@ Then delete `spikes/S2.Routing/` and record the deleting commit's parent.
 > of it — *what does a diverting Traveller do about its route?* — closed in session **D** task 1 into
 > [`adr/0061`](../docs/adr/0061-a-diversion-rejoins-by-local-descent-and-a-rejoin-is-never-a-search.md).
 > R6.4 has run, all three sub-tasks, and every one of R7's seven owed items above is DONE or NOT OWED.
-> **Deleting the harness is available, and it is the only thing left of S2.**
+> ~~**Deleting the harness is available, and it is the only thing left of S2.**~~
+>
+> **⚠ NOT AVAILABLE — and it is now on its *third* gate rather than its first. Do not delete
+> `spikes/S2.Routing/`.** Recorded here 2026-08-12, because the board and
+> [`spike-results`](../docs/spike-results.md) have both carried it since 2026-08-11 and **this
+> document — which both of them name as the record — did not**. Read that twice: the gate above was
+> withdrawn precisely because a clearance never reached this file, and the *replacement* gate then
+> failed to reach it the same way, from the other direction.
+>
+> - **Gate 2 — milestone 5a.** `Graph/` was the **reference implementation** of the Road Graph, so the
+>   deletion waited for *the port to be done and nothing to read the harness*. **DISCHARGED 2026-08-11**:
+>   5a shipped, no project compiles against the harness, and the only references left are two
+>   doc-comments naming file paths.
+> - **Gate 3 — another session is doing further research inside it.** It is **live work**, and that is
+>   the gate today.
+>
+> **Do not read gate 2's clearance as gate 3's.** *A deletion held twice for unrelated reasons is the
+> row that gets struck when the wrong one clears* — which is what this box already demonstrates once,
+> and the whole reason it is written out as a numbered list rather than a sentence. The harness is **51
+> tracked C# files and 29,719 lines** (92 files and 42,914 lines counting `results/`), not the 33,000
+> named elsewhere.
 >
 > **This is `plans/0012` *Cause 1* on a new axis, and it is the axis that costs the most.** The repair
 > R7 made to the owed-list two paragraphs above was *each entry carries its state explicitly, so

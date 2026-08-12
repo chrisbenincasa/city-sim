@@ -26,7 +26,9 @@ on the Epoch; and a `[lots]` Ruleset table states **one** number, `lots_per_segm
 [`0077`](docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md),
 [`0078`](docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md),
 [`0079`](docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md).
-**The code track now holds only 5b.**
+~~**The code track now holds only 5b.**~~ **It holds two rows as of 2026-08-12** — what is left of 5b
+(task 5, Phase 4 behind a command) and the new milestone **5b-bis**. 5b's remit *shrank* rather than its
+blockers clearing; see the 5b entry below.
 
 **The slice's sharpest finding is about the re-record, not about Lots — and it is the second sighting
 in three slices.** Eight of the golden session's eleven `zone` commands named Tiles 0–31, which is
@@ -195,8 +197,12 @@ lines counting the `results/` reports), not the 33,000 named above. **Sessions A
 deterministic eight-phase Tick; an Input Log that replays to identical hashes; a crash artifact that
 replays back into its own crash; Map Layers with diffusion; build-time analysers that make the
 determinism rules compiler errors; and **two Rule families** — Bin Rules moving Goods atomically with
-wait lists and fallback chains, and Zone Rules building and condemning on a sampled Lot grid. **Two of
-the eight Tick phases are still empty**, and there are no jobs, money, movement, roads or renderer.
+wait lists and fallback chains, and Zone Rules building and condemning on a sampled Lot grid. **A Road
+Graph** — Nodes, Segments, a directed Arc adjacency with a mode mask, Lots carved against Street faces,
+and an Access Point on every Building. **Two of the eight Tick phases are still empty**, and there are
+no jobs, money, traffic or renderer. **Movement is built and unwired**: `Borough.Core.Movement` holds
+`TripTable`, `LegTable`, `TravellerTable` and a real Dijkstra, none of it in `World._tables` and
+nothing in the Tick calling it — Phase 4 is still `_ = tick`. That is 5b task 5's whole job.
 
 **The three numbers to hold in your head.** S0b measured a Tick *with work in it* at **8.72 ms at 1M —
 55.9% of the budget at 4×**, and that is the only Tick figure ever taken from a real running city.
@@ -420,6 +426,7 @@ unless asked.
 | Path | What it is |
 |---|---|
 | `CONTEXT.md` | **The domain vocabulary. Authoritative.** Every term, with exactly one meaning |
+| `PROCESS.md` | **The project vocabulary. Authoritative**, and the sibling of `CONTEXT.md` — slice, spike, gate, session. `CONTEXT.md` names the city; this names the calendar. Neither describes the other |
 | `docs/00-vision.md` | Pillars, anti-goals, the argument against this design and the answer |
 | `docs/01-player-experience.md` | Verbs, panels, notifications, overlays |
 | `docs/02-simulation-model.md` | World model, Tick phases, Rule families, determinism rules, testing strategy |
@@ -482,7 +489,7 @@ being readable.
 reasons from, *this does not happen*. Before deciding anything on the ground that the simulation does not
 do something, **name the mechanism and classify the absence**: *unbuilt* (specified, no builder),
 *undesigned* (no specification), or *refused* (a decision says no). **Only *refused* is evidence.** This
-project is young and most of it does not exist — no jobs, money, movement, roads, prices, bid, choice
+project is young and most of it does not exist — no jobs, money, traffic, prices, bid, choice
 model, immigration or renderer — so *the simulation does not do X* almost always means **nobody has built
 X**, and a rule of inference whose premise is usually false is inverted rather than weak. The symptom to
 watch for is a question of the form *given X does not exist, should Y compensate?*: if X is unbuilt, the
