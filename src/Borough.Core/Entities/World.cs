@@ -251,6 +251,19 @@ public sealed class World
     public Frontage Frontage { get; } = new();
 
     /// <summary>
+    /// Which Buildings stand in a given Cell. The query from a place to the things on it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Not a registered table, for <see cref="Frontage"/>'s reason</b>, and it is the same
+    /// argument once more: it owns two arrays over the Cell grid and writes one derived column on
+    /// <see cref="BuildingTable"/>, none of it saved, so a table of its own would fold the allocator's
+    /// four scalars and make the State Hash depend on how many times the index had been rebuilt —
+    /// which is `plans/0020`'s finding that a wholly-derived table cannot join
+    /// <see cref="Tables"/>.
+    /// </remarks>
+    public BuildingResidency BuildingsInCells { get; } = new();
+
+    /// <summary>
     /// Whether this world has a Street lattice for a Lot to front.
     /// </summary>
     /// <remarks>
@@ -867,6 +880,11 @@ public sealed class World
 
         RebuildCapacities();
 
+        // After the Lot reverse index above, because it reads a Building's Lot handle -- and it
+        // clears its own arrays and CellNext rather than being cleared with the block at the top,
+        // because its head and tail are not columns and the block above is a list of columns.
+        BuildingsInCells.Rebuild(Buildings, Lots);
+
         IndexList buildingRules = BuildingRules;
         for (int slot = 0; slot < RuleInstances.Rows.SlotCount; slot++)
         {
@@ -995,6 +1013,8 @@ public sealed class World
         Invariants.Require(Lots.IsVacant(lotSlot), Invariant.LotIsNotAlreadyBuiltOn, lotSlot);
 
         Handle<Building> building = Buildings.Create(Lots, lot, kind);
+
+        BuildingsInCells.Add(Buildings, Lots, Buildings.Rows.Resolve(building));
 
         Fit(building, kind, now, key);
 
@@ -1505,6 +1525,12 @@ public sealed class World
             Bins.Rows.Free(Bins.Rows.At(bin));
             bin = BuildingBins.PopFront(slot);
         }
+
+        // Before the Lot is freed below, because BuildingResidency reads the Lot's position through
+        // the Building's Lot handle -- so a Building removed after its Lot has gone would not find
+        // the Cell it is listed in and would leave a dangling entry for the next allocation of this
+        // slot to be inserted into twice.
+        BuildingsInCells.Remove(Buildings, Lots, slot);
 
         // Before the row is freed, because the Lot handle is read off it.
         if (Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))

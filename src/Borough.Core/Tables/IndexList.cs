@@ -52,6 +52,36 @@ public readonly ref struct IndexList
         _next = next.Span;
     }
 
+    /// <summary>
+    /// The same list over an owner that is not a table row.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>For an owner indexed by <em>coordinate</em> rather than by slot.</b>
+    /// <see cref="Space.BuildingResidency"/> is the case: its owner is a Cell, of which there are
+    /// 16,384 whether or not any of them holds anything, so the head and tail live in flat arrays
+    /// beside the table. A column would have to invent 16,384 rows to avoid two arrays, and
+    /// <c>BOR0901</c> would reject them in a <c>[Table]</c> type anyway — the same argument
+    /// <see cref="Space.CellResidency"/> makes for the sparse Layer index.
+    /// </para>
+    /// <para>
+    /// <b>The element side is still a column</b>, because an element <em>is</em> a row and its
+    /// <c>next</c> is per-row storage. The asymmetry is the point rather than a compromise: what
+    /// makes this an index list is the threading, not where the head happens to be kept.
+    /// </para>
+    /// </remarks>
+    /// <param name="head">The owner's first element, encoded. Indexed by whatever the owner is.</param>
+    /// <param name="tail">The owner's last element, encoded.</param>
+    /// <param name="next">A column on the element table: the following element, encoded.</param>
+    public IndexList(Span<int> head, Span<int> tail, Column<int> next)
+    {
+        ArgumentNullException.ThrowIfNull(next);
+
+        _head = head;
+        _tail = tail;
+        _next = next.Span;
+    }
+
     /// <summary>True when the owner has no elements.</summary>
     public bool IsEmpty(int owner) => _head[owner] == 0;
 

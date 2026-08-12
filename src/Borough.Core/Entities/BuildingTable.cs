@@ -36,6 +36,8 @@ public sealed class BuildingTable
         RuleHead = _rows.Derived<int>("rule_head");
         RuleTail = _rows.Derived<int>("rule_tail");
 
+        CellNext = _rows.Derived<int>("cell_next");
+
         _rows.Seal();
     }
 
@@ -74,6 +76,18 @@ public sealed class BuildingTable
 
     /// <summary>Tail of the Rule Instance list.</summary>
     public Column<int> RuleTail { get; }
+
+    /// <summary>
+    /// The next Building in the same Cell. The element side of
+    /// <see cref="Space.BuildingResidency"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The head is not here and could not be.</b> This list's owner is a <em>Cell</em>, not a row,
+    /// so its head and tail live in flat arrays beside the table — see
+    /// <see cref="Space.BuildingResidency"/> for why that is the correct shape rather than a dodge.
+    /// What is per-row is the threading, and that is this column.
+    /// </remarks>
+    public Column<int> CellNext { get; }
 
     /// <summary>Allocates a Building on a Lot.</summary>
     /// <summary>Allocates a Building on a Lot, and records it on the Lot.</summary>
