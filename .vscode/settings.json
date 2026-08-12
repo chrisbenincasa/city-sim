@@ -1,0 +1,18 @@
+{
+    // Markdown opens in preview because this repository is mostly prose.
+    "workbench.editorAssociations": {
+        "*.md": "vscode.markdown.preview.editor"
+    },
+
+    // Do not format markdown. The global editor.formatOnSave sends .md to Prettier, which cannot
+    // produce house style (*emphasis* is rewritten to _emphasis_ with no option to prevent it) and
+    // whose table padding takes plans/0000-board.md from 82 KB to 182 KB, because it pads every
+    // cell in a column to the widest and that table has a 4,166-character cell.
+    //
+    // .prettierignore carries the same refusal for Prettier run any other way. House style is
+    // enforced by tests/Borough.Tests/Corpus/MarkdownStyleTests.cs.
+    "[markdown]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    }
+}

@@ -1,0 +1,16 @@
+# Prettier must not touch the prose corpus, and the reason is measured rather than stylistic.
+#
+# 1. It cannot produce house style. The corpus writes emphasis as *emphasis*; Prettier rewrites it
+#    to _emphasis_ and has NO option to stop it — verified against the installed 3.7.4, whose
+#    markdown options are printWidth, proseWrap, tabWidth, useTabs, endOfLine and the pragma pair.
+#    Emphasis style is deliberately not configurable upstream.
+#
+# 2. Its table padding is destructive here. Prettier pads every cell in a column to the width of the
+#    widest cell. `plans/0000-board.md` has a 4,166-character cell, so formatting it takes the file
+#    from 82,450 to 182,405 bytes — +100 KB, almost all of it trailing spaces — and every short cell
+#    in that column becomes four thousand blanks.
+#
+# House style is enforced instead by tests/Borough.Tests/Corpus/MarkdownStyleTests.cs, which checks
+# the two things that have actually gone wrong rather than reformatting the file.
+
+*.md

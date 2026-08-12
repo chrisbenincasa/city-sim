@@ -891,10 +891,14 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    of work sitting available and unnoticed for an unbounded time. **It would have fired on S2 the day
    session M closed.**
 
-5. **`0002` §F2 has a row for every file in `docs/adr/`.** Added 2026-08-12, and it is the **sibling of
+5. ~~**`0002` §F2 has a row for every file in `docs/adr/`.**~~ **BUILT the same day** —
+   `tests/Borough.Tests/Corpus/CoverageMapTests.cs`. It is the **sibling of
    check 1 pointed the other way**: check 1 asks whether an ADR is cited from outside `docs/adr/`, this
    asks whether the corpus's one **coverage map** knows the ADR exists. Same directory, same shape of
-   test, and `CitationTests.cs` is the natural home. **Filed because §F2's own drift box wrote the
+   test. **It asserts only the row, never the mark** — *State* and *Note* are judgements no test can
+   make, and the whole value is that an unassessed decision then reads as **unexamined** rather than as
+   **absent**. Grouped rows are ranges (`` `0023`–`0027` ``) and are expanded, so `0028` being reserved
+   and unwritten is correct rather than a false positive. **Filed because §F2's own drift box wrote the
    trigger and the trigger fired**: the map was rebuilt on 2026-08-10 on the finding that it had
    *stopped at `adr/0043`*, stopped at `0059` by that evening, and the box then said in as many words
    that a third stop meant *"the map wants generating from the directory rather than writing"*. On
@@ -911,6 +915,31 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    and over four sittings nobody did, three times running. **This is Cause 1 with the second copy
    missing rather than wrong** — the failure mode `adr/0064`'s missing loader test had already
    demonstrated, where a fact with no copy at all is re-derived from the shape of its absence.
+
+6. ~~**A markdown table renders, and emphasis is `*asterisk*`.**~~ **BUILT 2026-08-12** —
+   `tests/Borough.Tests/Corpus/MarkdownStyleTests.cs`. **The odd one out in this list, because it
+   checks the corpus against *itself as rendered* rather than against another document or the source**
+   — and it is here because a defect of that class had gone undetected for an unknown time in the most
+   read file in the project. **The board's *Do these next* table was split by seven blank lines**, so
+   everything from row 2 onward rendered as literal pipe text; `0002` §F2 was in **three** fragments,
+   two orphaned by an interleaved blockquote. **Nobody saw it, because in a plain-text read the rows
+   look perfect** — the corpus is written and reviewed as text and consumed as HTML, and nothing had
+   ever compared the two.
+
+   **The rule is stated as *every run of table rows begins with a header and a separator*, not as *no
+   blank line inside a table*.** The second phrasing cannot see the blockquote case, whose fragment is
+   not adjacent to a blank line at all — so the invariant is asserted rather than the symptom, which is
+   the same move `adr/0063` made on the wake predicate. The emphasis half was **checked against the
+   corpus before being imposed on it**, as check 1's own note requires: four exceptions in 118 files,
+   all `_Avoid_:` lines in `CONTEXT.md`, normalised rather than exempted.
+
+   **What it is really guarding is not style but *invisible churn*.** A global `formatOnSave` sent the
+   board through Prettier on 2026-08-12 and rewrote ~150 lines of emphasis inside the same diff as a
+   deliberate 999-line deletion. **Prettier cannot be configured to house style** — emphasis is not an
+   option in it — and its table padding takes the board from **82,450 to 182,405 bytes**, because it
+   pads every cell in a column to the widest and that table holds a 4,166-character cell. Hence
+   `.prettierignore` and `[markdown]` in `.vscode/settings.json`, both of which carry the measurement
+   as their comment so the next person does not re-derive it.
 
 Neither is a substitute for the restructure. A check over three tables that disagree only tells you
 they disagree; the point of thinning is that there is one place to be right. **Check 4 is the exception

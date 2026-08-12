@@ -35,7 +35,7 @@ The atomic unit of ground. Integer coordinates. Carries terrain type, zone desig
 The resolution at which the city's environment varies: a 32×32 block of Tiles (≈128 m), and the storage unit of every Map Layer.
 
 The Cell is a **design constant and is never available for tuning.** Its size *is* the resolution of pollution, which feeds Fertility, Desirability and therefore the choice model — so changing it changes the State Hash. It was split from the Chunk, the technical partition it used to share a number with, precisely because that partition *is* tunable and this one is not. See `docs/adr/0034-fields-are-sorted-by-source-geometry.md`.
-_Avoid_: Chunk (a purely technical partition, defined in `docs/05-technical-architecture.md` §5), grid square, layer cell.
+*Avoid*: Chunk (a purely technical partition, defined in `docs/05-technical-architecture.md` §5), grid square, layer cell.
 
 **District**
 A contiguous named region, either player-drawn or automatically derived. A District is the boundary within which Goods pool without physical transport, and the scope a Policy may be overridden per. Typically hundreds of Cells.
@@ -781,7 +781,7 @@ The routing abstraction: nodes and edges, uniform regardless of how a road was d
 
 **Nothing in the city is located at a Node.** A Building's Access Point is an **Address** — an offset along a Segment — and never a Node, because promoting places to Nodes would split every Segment by the number of Buildings on it. So the graph's vertices are junctions and only junctions, which is what keeps the Segment count at its working figure.
 
-_Avoid_: "vertex", "intersection" as a synonym — the first is the graph-theoretic word `05` may use and design prose may not, and the second is true only of Streets.
+*Avoid*: "vertex", "intersection" as a synonym — the first is the graph-theoretic word `05` may use and design prose may not, and the second is true only of Streets.
 
 **Segment**
 **An edge of the Road Graph: one run of road between two adjacent Nodes.** For Streets the nodes are intersections and both fall out of the Tile grid directly; for Arterials they are the authored Junction pieces. A Segment carries the attributes every other system reads off it — capacity, free-flow speed, mode mask, current volume, and its **Fidelity**.
@@ -792,7 +792,7 @@ It is the unit almost everything about movement is counted in, which is why it n
 
 **Walking does not add Segments.** The mode mask is *an edge property, not a second edge set* (`03 §3.7`), so a Street's footway is the same Segment with the foot bit set, and the pedestrian network is a **subgraph** rather than an addition. The figure is therefore not inflated by `adr/0008`'s walk Legs. What *is* additional and unsized is the small set of **foot-only Segments** — crossings at authored Junction pieces, paths, pedestrian precincts. They are few and they are the edges **Severance** turns on, so nothing may size the graph by omitting them.
 
-_Avoid_: "road", "link", "edge" as loose synonyms — the first two are ambiguous between the Segment and the whole street a player drew, and "edge" is the graph-theoretic word for the same object and is fine in `05` but not in design prose.
+*Avoid*: "road", "link", "edge" as loose synonyms — the first two are ambiguous between the Segment and the whole street a player drew, and "edge" is the graph-theoretic word for the same object and is fine in `05` but not in design prose.
 
 **Arc**
 **One permitted direction of travel along a Segment.** A Segment has two, and each carries the **mode mask** valid in that direction; the Segment's own mask is their union.
@@ -803,7 +803,7 @@ _Avoid_: "road", "link", "edge" as loose synonyms — the first two are ambiguou
 
 **Why the graph is directed at all**: the VDF is evaluated on one Segment's own `volume / capacity` and Lanes are directional queues, so `cost(A→B) ≠ cost(B→A)`. Three things follow and none is a local retrofit — a route cache key is an *ordered* node pair, a travel-time matrix is asymmetric and nothing may halve it by symmetry, and the adjacency stores two Arcs where an undirected graph would store one edge.
 
-_Avoid_: "half-edge", "directed edge" — the same object under the graph-theoretic names `05` may use and design prose may not.
+*Avoid*: "half-edge", "directed edge" — the same object under the graph-theoretic names `05` may use and design prose may not.
 
 **Volume-Delay Function** (VDF)
 The formula that estimates a Segment's travel time from how busy it is — the standard being BPR, `free_flow × (1 + α(volume/capacity)^β)`. Cheap, and the mechanism behind every Statistical Segment.
