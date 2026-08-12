@@ -241,10 +241,19 @@ instead of inventing them nearest-Segment-by-construction.
 > Access Point is derived is `adr/0064`-style **staleness**, not danglingness. The conclusion never
 > moved; the general rule the old wording implied would have forbidden saving a Trip at all.
 >
-> **What is left is the majority of the slice**: task 1's per-Building Access Points (the *type*
-> shipped, not the rows), **task 4 the generator**, task 5 volume and Phase 4, task 6 the Census
-> family and the Commute Budget, task 7 `--trips`, task 8 the long run. **No `[trips]` table exists**,
-> so the crossing cost is a required parameter nobody has chosen.
+> **Task 1 closed 2026-08-11 and added no columns** — a Building's Access Point resolves through its
+> Lot, which already derives one, so the task moved **no State Hash and no baseline**. Decision 3's row
+> in [`0021`](0021-trips-legs-and-the-pedestrian-layer.md) still read *two saved columns* against its
+> own task body's `adr/0078` correction, which is `0012` *Cause 1* inside one document. **1,103 green.**
+>
+> **What is left**: **task 4 the generator**, task 5 volume and Phase 4, task 6 the Census family and
+> the Commute Budget, task 7 `--trips`, task 8 the long run. **No `[trips]` table exists**, so the
+> crossing cost is a required parameter nobody has chosen.
+>
+> **⚠ The slice is being run out of order on purpose: §B before §A.** Task 4 is blocked (below) and its
+> §B sibling is not, so the walk-search cost and the walk-cost *distribution* are being measured first —
+> because **§B's answer can change what §A may choose.** Reasoning in
+> [`0021`](0021-trips-legs-and-the-pedestrian-layer.md) → *Task 1, built*.
 >
 > **Two things block task 4, and they are the next thing to deal with.** Both are now rows in
 > [`0002`](0002-open-questions.md) rather than prose here, because an open question is never written

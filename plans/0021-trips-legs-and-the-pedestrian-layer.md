@@ -235,7 +235,7 @@ sharpen the instrument and may not report a number. It did not.
 | **1** | The amendment `adr/0072` forces | **Split, not substituted.** The *sidewalk edges* half is refused and becomes the foot bit on the Arc; the *crossing edges* half **stands literally** as foot-only Segments. *"Real work, not a free consequence"* is **true and already discharged — by 5a** | `adr/0008` |
 | **1b** | The revisit trigger's mitigation | **Already spent.** *One edge per block face* is what the graph is. The lever is the **search**, not the topology: cache the walk route, or straight-line plus a detour factor | `adr/0008` |
 | **2** | What a Leg is | **A three-way split.** Trip owns purpose and Fate, **Leg is the plan**, **Traveller is the cursor**. A Leg stores a **cost, never a path**; Legs are created **eagerly** | [`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) |
-| **3** | The pedestrian Access Point | **Two Addresses on the Building**, pedestrian and vehicle, two saved columns, **equal by construction** today | [`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md) |
+| **3** | The pedestrian Access Point | **Two Addresses on the Building**, pedestrian and vehicle, ~~two saved columns~~ **two accessors over no columns at all** (⚠ corrected 2026-08-11, see *task 1, built*), **equal by construction** today | [`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md), [`adr/0078`](../docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md) |
 | **4** | Is the Commute Budget one currency | **Yes, literally — clock minutes, no per-mode weight.** Distaste for walking belongs to the choice model, on a Provider List entry's mode | `adr/0008`, `CONTEXT.md` |
 | **5** | Always or almost always Statistical | **Categorical.** 5b builds no foot promotion path and owes no hole for one | `adr/0008` |
 | **6** | The no-parking placeholder | **The vehicle Address, as 5c's *sole* path and never a fallback**, plus the milestone-8 prohibition, plus the direction of error | `adr/0008` |
@@ -542,11 +542,76 @@ what makes them runnable in parallel with [`0022`](0022-the-lot-subdivider-and-b
 | **`WalkRouting`** + `WalkScratch` — the walk Leg, resolved | `Core/Movement/` | `03 §3.7`, `adr/0072` |
 | 24 tests | `tests/Borough.Tests/Movement/` | the definition of done's first four bullets |
 
-**What is *not* done, and it is the majority of the slice**: task 1's Building assignment (the
-Access Points themselves — this built the *type*, not the per-Building rows), task 4 (the generator),
-task 5 (volume and Phase 4), task 6 (the Census family and the Commute Budget as Ruleset data),
-task 7 (`--trips`) and task 8 (the long run). **No `[trips]` Ruleset table exists yet**, so the
-crossing cost is a required parameter with no default and nothing has chosen one.
+**What is *not* done**: ~~task 1's Building assignment (the Access Points themselves — this built the
+*type*, not the per-Building rows),~~ **✅ task 1 closed 2026-08-11, see immediately below**, task 4
+(the generator), task 5 (volume and Phase 4), task 6 (the Census family and the Commute Budget as
+Ruleset data), task 7 (`--trips`) and task 8 (the long run). **No `[trips]` Ruleset table exists yet**,
+so the crossing cost is a required parameter with no default and nothing has chosen one.
+
+#### Task 1, built — and it needed no columns, which is the finding
+
+**Shipped 2026-08-11: `World.PedestrianAccessPoint` and `World.VehicleAccessPoint`, three tests, 1,103
+green, and no baseline re-recorded.** The last clause is the summary of the whole task: **it moved no
+State Hash**, because it added no state.
+
+**The per-Building rows this task was written to add should not exist.** `LotTable.AddressOf` already
+returns a Lot's derived Address and `BuildingTable.Lot` already links the two, so a Building's Access
+Point is a **resolve through the Lot** — one expression, no column, no rebuild hook, no entry in the
+field declaration. Storing it would be a second copy of a fact the Lot re-derives on the Epoch, and the
+failure mode is the quiet one this corpus now has three instances of (`adr/0064` a Bin's capacity,
+`adr/0068` a Building's occupancy, and `adr/0078` frontage itself): **laying a Street can give a Lot a
+better front door without touching the old one, so the copy is wrong with nothing invalidated and
+nothing to notice.**
+
+**The paragraph that predicted the work had already said so, and the decision table above had not.**
+Task 1's own body carries the ⚠ correction from `adr/0078` — *an Access Point is `(derived AND rebuilt)`
+and it is not saved* — while decision 3's row two hundred lines up still read **two saved columns**,
+written before 5a-bis shipped and never revisited. Struck rather than deleted, because the shape is
+`plans/0012` *Cause 1* at its smallest: **one fact, two copies in one document, and the copy that
+drifted was the one in the summary table rather than the one in the body.** A reader who trusts a
+decision table over a task body — which is what a decision table is *for* — would have built the
+columns.
+
+**What the tests hold, and one of them is written to be deleted.**
+`A_bulldozed_street_takes_the_buildings_access_point_with_it` is the load-bearing one: it asserts the
+Access Point exists, bulldozes the Street through the ordinary `Connect` verb, and asserts the Building
+is **still live** with `Address.None`. **Nothing in that path writes to `BuildingTable`** — re-subdivision
+is keyed on occupancy (`02 §2.2`), so a column would still hold the removed Segment and the test would
+pass while the Building answered with a road that is gone. `The_two_access_points_are_equal_by_construction`
+carries a docstring saying it is **expected to be deleted rather than weakened** the day milestone 8's
+parking or `03 §6.6`'s freight makes the two diverge.
+
+#### The slice is being run §B before §A, and the ordering is a decision rather than an accident
+
+**Task 4 has no destination set that exists, and the fallback `0002` §A offers does not exist
+either.** The shopping generator needs four absent things (no shop kind in either Ruleset, no Provider
+List, `Scope.Pool` throws, nothing schedules an occasion). §A's stated alternative is *a return-home
+Trip, whose destination is a Building that demonstrably exists* — and the **origin** is what is
+missing: a Household holds a `Dwelling` handle and no other position (`HouseholdTable.cs:53`), so a
+Household in the Unplaced Pool has no location at all. **Checked in the code rather than inferred**, and
+it moves §A from *which generator* to *no generator's preconditions exist*.
+
+**So §B runs first, and the reason is not that it is unblocked — it is that its answer can change what
+§A may choose.** §B is the walk search's missing [`0013`](0013-tick-budget.md) row: an unmeasured
+**1.9–9.3 ms a Tick at 1M, 12–60% of the budget at 4×**, landing all at once at Trip creation because
+`adr/0075` makes Legs eager. If the unit lands high, *every Household shops once a Day* is unaffordable
+and the generator has to be shaped around a cache or a cheaper cost — which is a constraint on task 4's
+**design**, not a tuning note afterwards. **Choosing the mechanism and pricing it later is the order
+this corpus has already been wrong in**, and `0013`'s own organising column is the lesson: *a unit cost
+is a hypothesis until a real world has produced one.*
+
+**What §B can and cannot close.** The **unit** becomes real — it is currently 4–20 µs inherited from
+S2's synthetic harness, which is the suspect half. The **multiplicand** stays a guess: ~464 walk routes
+a Tick comes from an origin-destination model [`0013`](0013-tick-budget.md) already flags as invented
+until Trip generation exists. **The row will not close, and saying so up front is the point** — half a
+measured row quoted as a whole one is how `0013`'s Bin Rule row came to be *right by cancellation*.
+
+**Next**: benchmark `WalkRouting.Cost` over a generated graph at real rungs, then `--trips` as a **cost
+instrument** — a distribution over Building pairs, run against `minimal.toml` and `severance.toml`, which
+is the first thing in the project that can measure **detour** rather than **disconnection**. It needs no
+`[trips]` table: `WalkRouting.Cost` takes the crossing cost as an argument, and a crossing applies only
+to two Addresses sharing a Segment on opposite sides, so the instrument passes **zero and says so**
+rather than choosing a hash-bearing number this slice is forbidden to choose.
 
 #### ⚠ Both slices wrote `Address` on the same day, from opposite ends, and neither was wrong
 

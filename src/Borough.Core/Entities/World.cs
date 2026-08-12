@@ -864,6 +864,59 @@ public sealed class World
     /// <inheritdoc cref="Occupants"/>
     public IndexList HeadroomWaiters => new(Bins.HeadroomHead, Bins.HeadroomTail, RuleInstances.QueueNext);
 
+    /// <summary>Where a pedestrian arrives at this Building — its front door on the Road Graph.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Resolved through the Lot, and stored nowhere.</b> <c>adr/0078</c> makes frontage
+    /// <c>(derived AND rebuilt)</c> on the Segment's Epoch, so the Lot re-derives its
+    /// <see cref="Address"/> whenever the roads change. A column on the Building would be a second
+    /// copy of that fact, and the failure is the quiet one: laying a new Street can give a Lot a
+    /// better front door without touching the old one, so the copy is simply wrong, with nothing
+    /// invalidated and nothing to notice. That is <c>adr/0064</c>'s argument for a Bin's capacity and
+    /// <c>adr/0068</c>'s for a Building's occupancy, reaching a third row.
+    /// </para>
+    /// <para>
+    /// <b><see cref="Address.None"/> is a named absence, not a failure.</b> A Building whose Lot has
+    /// no frontage has no front door — <c>adr/0079</c> — and a Trip to it ends <em>no route found</em>
+    /// rather than taking a long walk. A Building outlives its frontage, so this is a state the city
+    /// reaches in normal running and not only through a bug.
+    /// </para>
+    /// </remarks>
+    public Address PedestrianAccessPoint(int buildingSlot) => AccessPointOf(buildingSlot);
+
+    /// <summary>Where a Vehicle arrives at this Building.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Equal to <see cref="PedestrianAccessPoint"/> by construction, and that is built behaviour
+    /// rather than an interim simplification.</b> <c>adr/0074</c> gives a Building two Access Points
+    /// because side of street is a property of the Address; <see cref="LotSubdivider"/> derives
+    /// <em>one</em> Address per Lot, from the Lot's own position and side. A second would need a
+    /// second saved fact, and inventing one for a consumer that does not exist is the position
+    /// <c>adr/0070</c> forbids. The two diverge when something makes them: milestone 8's parking, and
+    /// <c>03 §6.6</c>'s freight.
+    /// </para>
+    /// <para>
+    /// <b>This is never a fallback from an exhausted Parking Shed.</b> Milestone 8's rule, written
+    /// now because the shape is easier to forbid than to remove: a full car park must not cost less
+    /// than an empty one, so a Shed with no room <em>widens</em> its search rather than resolving to
+    /// the Building's own kerb at zero cost.
+    /// </para>
+    /// </remarks>
+    public Address VehicleAccessPoint(int buildingSlot) => AccessPointOf(buildingSlot);
+
+    /// <summary>The Address of the Lot a Building stands on, or <see cref="Address.None"/>.</summary>
+    /// <remarks>
+    /// The handle resolve is not defensive: <see cref="LotTable"/> is earlier in declaration order
+    /// than <see cref="BuildingTable"/> and a Lot outlives the Building on it, so a failure here is a
+    /// referential-integrity break rather than a demolition. It still answers with the absence,
+    /// because the caller's next act is a route search and <c>adr/0079</c> has already said what a
+    /// Building with no front door does to one.
+    /// </remarks>
+    private Address AccessPointOf(int buildingSlot) =>
+        Lots.Rows.TryResolve(Buildings.Lot[buildingSlot], out int lotSlot)
+            ? Lots.AddressOf(lotSlot)
+            : Address.None;
+
     /// <summary>Gives a Building a Bin, per its kind's declaration in the Ruleset.</summary>
     /// <summary>
     /// Builds a Building and fits it out with its kind's Bins and Rule Instances.
