@@ -39,9 +39,11 @@ A **Settlement** is a connected component of the District graph, where an edge e
 
 Nothing about it is authored. Settlements **appear, merge, and split** as consequences:
 
+> **AMENDED 2026-08-12 by [`0085`](0085-nothing-on-this-map-is-far-away-so-a-settlement-is-made-by-a-gap.md), on the first row.** *"Out of range of the existing centre"* cannot happen by **range** on a 4096² map. [`0082`](0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md) fixed a Tick at 10.546875 s of in-world time, which puts a corner-to-corner drive at **112–224 Ticks** — under forty clock minutes — and S2 R1.5's own Budget sweep returns **one Settlement holding all 121 Districts at every rung from 40 Ticks up**, against a 30-minute Commute Budget of **171**. A connected component does not fragment because a graph is large; it fragments because an **edge is missing**. So a Settlement appears where development is **discontinuous** — unbuilt ground with no road across it, a Severance barrier (`03 §3.7`), or a mode the Household does not have — and never because two places are far apart. The merge row is unaffected. **The split row becomes the only congestion-driven entry and therefore the only mechanism by which a mature contiguous city fragments**, which raises its stakes considerably and it has never been measured: every S2 round that touched Settlements ran on the frozen cost basis.
+
 | Event | Cause | What the player sees |
 |---|---|---|
-| A Settlement appears | Jobs cluster somewhere out of range of the existing centre | A second downtown, on the region map |
+| A Settlement appears | Development is discontinuous — no built corridor, a Severance barrier, or a mode nobody there has | A second downtown, on the region map |
 | Two Settlements merge | A new road brings them inside the Budget of each other | *"Northfield and Millbrook merged when Ridge Road opened"* |
 | A Settlement splits | Congestion pushes travel times past the Budget | The city tearing in two, traceable to specific Segments |
 

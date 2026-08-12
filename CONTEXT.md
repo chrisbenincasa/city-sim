@@ -109,7 +109,9 @@ Nothing needs to grant permission for height based on road capacity — a tower 
 **Settlement**
 A maximal set of Districts mutually reachable within the Commute Budget. **Derived, never drawn** — a connected component of the District graph, recomputed when the travel-time matrix rebuilds.
 
-Settlements appear when jobs cluster out of range of the existing centre, **merge** when a new road brings two inside the Budget of each other, and **split** when congestion pushes travel times past it. The region view is therefore a *diagram of the commute sheds the city actually has*, not a menu of tiles anyone chose.
+Settlements appear where development is **discontinuous** — unbuilt ground with no road across it, a Severance barrier, or a mode nobody there has — **merge** when a new road brings two inside the Budget of each other, and **split** when congestion pushes travel times past it. The region view is therefore a *diagram of the commute sheds the city actually has*, not a menu of tiles anyone chose.
+
+**Never by distance.** A corner-to-corner drive on the 4096² map is under forty clock minutes, so at any Commute Budget that also bounds a Trip a *contiguous* city is **one** Settlement — a connected component fragments because an edge is **missing**, not because the graph is large (`adr/0085`). The mode clause above is load-bearing rather than decorative: the same crossing is **27.3% of a Day on foot against 1.4% by car**, so a Household without a car inhabits a materially smaller map on the same ground.
 
 A Settlement is a **reporting and diagnosis unit, not a simulation unit**. Nothing pools by Settlement, nothing is budgeted by Settlement, and no Rule reads one — Districts remain the granularity of Goods pooling. They are **not** the granularity of the travel-time matrix; `adr/0047` removed that role from the District entirely. See `docs/adr/0020-one-live-world-and-settlements-are-derived.md`.
 
@@ -187,7 +189,11 @@ A Building the **Ruleset in force cannot describe** — its kind is not declared
 **Outside Connection**
 A special Building at the map edge representing the rest of the world. Absorbs surplus Goods and supplies deficits, at a price. The pressure-release valve that keeps the economy from having to balance perfectly.
 
-It is also **the city's gate**. Households arrive and depart through it as ordinary Trips, so immigration is physical, located, and congestion-bearing rather than a number added to a pool. Its throughput is what bounds arrivals — infrastructure the player built, not a constant someone chose.
+It is also **the city's gate**. Households arrive and depart through it as ordinary Trips, so immigration is physical, located, and congestion-bearing rather than a number added to a pool.
+
+**It is an ordinary Building and needs no representation of its own** (`adr/0088`): a `[[building]]` kind with a Bin set, an Access Point on a Segment like every other Building since 5a-bis, and a placement constrained to an edge. Road, rail and port are **one abstraction** — three kinds differing in throughput ceiling, price, favoured Goods, and the mode mask their Arc carries.
+
+**Its throughput is two ceilings and the binding one is the diagnosis**: the lower of the kind's declared ceiling and the capacity of the Segment its Access Point sits on. *Your port is at capacity* and *your port is fine and the road to it is not* are different problems with different fixes, and one number would report them identically.
 
 **Hinterland**
 The economy behind one map edge, shared by every Outside Connection on that edge. Not a simulated place — never Ticked, never rendered — but a small configuration described in **the same units a District exposes**: median rent, median wage, **a price per Good**, service levels, a commute figure. It is **the one authored anchor under every price in the design** — Goods, rents and wages all bound to it, so a designer authors four objects and never writes a price anywhere else (`adr/0026`, `adr/0050`). Prospective Households compare it against the city using the identical utility function residents use, so the Outside is an ordinary alternative in the choice model rather than a special case. Authoring it in domain units instead of utility units is the whole point: *"is §620 the right rent out there"* is a question a designer can answer and a player can read off a panel, and `V = 4.7` is not.
@@ -196,7 +202,7 @@ A Hinterland is **a stock the city spends** — the third instance of the patter
 
 **There is no population ceiling.** Drawdown is a gradient, not a wall — exceed the recovery rate and you are spending the stock, exactly as with Timber, and the readout says so in the same words. What runs out is *cheap* immigration, never immigration.
 
-Four edges means four Hinterlands drifting independently, which is what makes the Outside legible: a single hidden anchor has no referent, but four comparable markets are each other's referent. It also gives Outside Connection placement real stakes — a second road on the same edge buys throughput into a market you are already draining; a port on the far edge buys a different economy, at the cost of longer hauls.
+Four edges means four Hinterlands drifting independently, which is what makes the Outside legible: a single hidden anchor has no referent, but four comparable markets are each other's referent. It also gives Outside Connection placement real stakes — a second road on the same edge buys throughput into a market you are already draining; a port on the far edge buys a different economy, **and the price of the far edge is paid in your own traffic** (`adr/0088`). ~~At the cost of longer hauls.~~ There are no long hauls here: the far edge is under forty free-flow minutes away (`adr/0085`), so a distance tariff would be a number nobody can read, pricing a journey congestion already prices. What a distant Hinterland actually costs is that every Shipment from it is a Vehicle on every Segment between there and the consumer, for the whole journey, every time — nearly free on an empty map, which is correct, and the dominant cost on a mature one, which is `adr/0022`'s arc.
 
 **The map edge is load-bearing, and this is why the world is bounded.** No edge means no import and no export. It is also what converts the two resource ratchets — permanent Sealing and slow Woodland regrowth — from collapse into expense: a mature city is a net importer of Food and Materials, which is a bill rather than a wall.
 

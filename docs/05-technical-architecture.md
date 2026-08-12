@@ -294,15 +294,21 @@ Pathfinding is the first kind. Walking Citizen records to check whether anything
 
 **A save is array dumps.** This is the direct payoff of typed tables ([`adr/0004`](adr/0004-typed-tables-over-ecs.md)): each hot and cold table is a contiguous run of value types, and serialising one is a length plus a block of bytes. There is no object graph to walk, no reference cycle to break, and no reflection-driven serialiser whose behaviour changes when a field is reordered.
 
-The file is:
+**Nothing authors the layout.** [`adr/0086`](adr/0086-a-save-has-no-schema-of-its-own-and-the-field-declaration-is-the-format.md) settles that the file **is** `§4`'s per-field declaration, read out in the order the State Hash already folds it: for each table in declaration order, the allocator's four scalars, then every column whose disposition is `Saved`, over the full slot range. The `header / global / chunks / tables` listing this section used to carry is **deleted rather than corrected** — it was a second copy of a fact the declaration owns, it had no reader, and by the time anyone read it against the code it was wrong in four of its five lines.
 
-```
-header      magic, format version, Ruleset version, world seed, Tick
-global      treasury and global Bins, the Event Wheel, Road Graph + Epoch,
-            District definitions, the travel-time matrix (or a rebuild flag)
-chunks      per-Chunk: Tiles, Lots, Buildings, Map Layer cells, Lanes
-tables      Citizens, Households, Businesses, Trips in flight, Shipments
-```
+Three properties follow, and none of them is obvious from *"array dumps"*:
+
+- **The save's content set is the State Hash's coverage set** — same tables, same columns, same slot range, because both answer one question. There is one ordering rule, `§4`'s, and the file does not get a second.
+- **The save is slot-exact.** The free list and the monotonic id counter are hashed, and every slot in `[0, slotCount)` is folded including recycled ones holding a dead row's residue. **Compaction on save is therefore forbidden**: it moves the hash, so under `§4` it is a design change and not a size optimisation, however it was motivated.
+- **A migration is a pure function over *saved* columns only.** A derived column is rebuilt on load, so adding, removing or altering one needs no migration whatsoever — which is where most schema churn lands.
+
+**Three version numbers, not one.** [`adr/0021`](adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) requires three and this section long implied two. They are separate because they fail in three different ways and are repaired in three different ways:
+
+| Number | Versions | Repaired by |
+|---|---|---|
+| **Format version** | the declaration set — which tables, which columns, which disposition | the migration chain below |
+| **Ruleset content hash** | the content the Rules are made of | the two policies below, plus degradation and the provenance trail |
+| **Generator version** | the generator's terrain output for a given seed | nothing. It is **pinned**, because a moved landscape has no migration |
 
 **Version header plus a migration chain.** Each save records the format version it was written under; loading an older save runs the migrations from that version forward, one step at a time, each migration being a small pure function from version *n* to version *n+1*. Migrations are never rewritten to skip steps and are never deleted, because the chain is the only thing that makes an old save loadable at all.
 
@@ -335,9 +341,17 @@ run N+M ticks                              →  hash B
 assert A == B
 ```
 
-What this finds is **unsaved state** — a cached value, a dirty flag, an accumulator, a lazily-built index that was never written to the file and never restored. Such a bug produces no error, no crash, and no visible symptom until hours later when the reloaded city drifts imperceptibly away from the one that was never saved. Two runs and a hash comparison find it in seconds. It belongs in CI from the first save format, not after the first bug report.
+**What it finds has changed, and the sentence that used to be here is now describing an impossible bug.** The original class was *unsaved state* — a cached value, a dirty flag, an accumulator, a lazily-built index never written to the file and never restored. Every item on that list is now a declared column: `Saved`, in which case it is in the file by construction, or `Derived`, in which case it was never meant to be, and `BOR0901` is a build error on storage that is neither. `adr/0086` makes the omission unrepresentable.
 
-**Saves are written asynchronously from the Past.** The Past is immutable and known-consistent, so the serialiser can walk it on a background thread while the simulation continues computing the Future. Autosave costs no hitch, which matters more than it sounds: an autosave that stutters is an autosave the player turns off, and a save nobody has is a bug report nobody can reproduce.
+What survives is the other half, and it is live:
+
+> **A derived column that does not rebuild to the value it had.**
+
+A reload lands a world in exactly the pre-rebuild state where that fails, and 5a-bis already sighted one — *a derived structure caching a Ruleset value reads as **absent** rather than as **stale** before its first rebuild*, and absent is the state every guard is written against. So the test measures the **rebuild**, not the write. It still produces no error, no crash and no visible symptom until the city drifts hours later; two runs and a hash comparison still find it in seconds; and it still belongs in CI from the first save format rather than after the first bug report.
+
+**Saves are written asynchronously from a copy taken at a phase boundary.** The conclusion is unchanged and the mechanism is not: [`adr/0037`](adr/0037-the-world-is-single-buffered-and-hazards-are-per-table.md) deleted the full-world double buffer, so there is no immutable Past for a serialiser to walk — see `§3`, which already gives the saver *one real copy at save time*. [`adr/0087`](adr/0087-a-save-is-copied-at-save-cadence-not-read-from-a-past-that-no-longer-exists.md) prices that copy and settles when it is taken: at the **end of Phase 7**, which is serial, is where hashes are already written, and is the one moment both double-buffered tables have settled. The copy blocks for ~10 ms at the 1M target; the serialise-and-write blocks nothing.
+
+**The arithmetic is the part that was missing, and it is a denominator rather than a saving.** `adr/0037` deleted the per-Tick copy at 50–100% of the budget at 4×. The same bytes at one copy per in-world Day amortise to **0.008% of a Tick** — the structure is identical and the frequency differs by four orders of magnitude. Autosave therefore costs no hitch, which matters more than it sounds: an autosave that stutters is an autosave the player turns off, and a save nobody has is a bug report nobody can reproduce.
 
 ---
 
