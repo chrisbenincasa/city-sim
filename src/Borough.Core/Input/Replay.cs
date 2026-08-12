@@ -103,8 +103,10 @@ public static class Replay
                 nameof(rulesets));
         }
 
-        var world = new World(log.Configuration.Citizens, rulesets.Opening);
-        return new Simulation(world, WorldKey.FromSeed(log.Seed), rulesets);
+        WorldKey key = WorldKey.FromSeed(log.Seed);
+        var world = new World(log.Configuration.Citizens, rulesets.Opening, key);
+
+        return new Simulation(world, key, rulesets);
     }
 
     /// <summary>

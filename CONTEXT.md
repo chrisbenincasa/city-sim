@@ -697,6 +697,8 @@ It also records **which Leg failed**, which is the difference between *no route 
 
 *Spell the purpose **Trip Purpose** and never abbreviate it: `purpose_tag` is the counter-based RNG tag, an unrelated concept one word away.*
 
+**A Trip's occasion is a *phase*, not a schedule, wherever it recurs on a fixed period.** The **commute** — the first generated Trip in the project (`adr/0081`, 5b-bis) — recurs every Day, and the **Event Wheel is exactly a Day long**, so a Citizen armed for it would never leave the bucket it started in. A bucketing on a constant is **derived**, so which Tick of the Day somebody leaves for work is a pure function of their id, the world seed and the Ruleset in force, and nothing about it is saved. Departures spread uniformly over a **window at the start of the Day**, and the window is the **morning peak seen from the other side**: under a uniform window of `W` Ticks the instantaneous departure rate is `TICKS_PER_DAY ÷ W` times the daily average, so the Ruleset states the peak multiplier and the engine derives the window.
+
 **Leg**
 One mode-homogeneous segment of a Trip: a mode, two **Addresses**, a travel time, and the next Leg. **Walking and driving are both implemented Legs**; transit is a Leg type that may or may not ever be added. A car commute is never fewer than three Legs — `walk → drive → walk` — because Buildings connect to the pedestrian network rather than directly to the Road Graph.
 

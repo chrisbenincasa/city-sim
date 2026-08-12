@@ -311,6 +311,26 @@ public sealed class TripCommandTests
     }
 
     /// <summary>Runs the golden world with one Trip in it, to the given Tick.</summary>
+    /// <summary>
+    /// The commanded Trip, in a city that generates none of its own.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>The <c>[jobs]</c> deletion is what makes <em>one</em> Trip a countable thing, and before
+    /// 5b-bis task 5 it was countable because nothing in the simulation could generate a Trip at
+    /// all.</b> <c>A_commanded_trip_ends_and_every_row_it_used_goes_back</c> read the table's live
+    /// count and <c>The_fate_outlives_the_row_it_was_recorded_on</c> read a Census sum, and both were
+    /// true <em>by absence</em> — the commute generator made the shipped Ruleset produce Trips of its
+    /// own on the same Ticks, and both assertions started measuring two mechanisms at once.
+    /// </para>
+    /// <para>
+    /// <b>The isolation is the honest fix rather than a widened assertion.</b> What these two tests
+    /// claim is that a commanded Trip's rows come back and its Fate outlives them — claims about
+    /// <em>this</em> Trip. Asserting <c>≥ 1</c> against a city that also commutes would keep them
+    /// green while measuring nothing in particular, which is the failure
+    /// <c>GoldenSessionCoverageTests</c>' preamble is about.
+    /// </para>
+    /// </remarks>
     private static Simulation RunWithTrip(int ticks)
     {
         Blocks blocks = TwoOccupiedBlocks();
@@ -322,7 +342,23 @@ public sealed class TripCommandTests
                 new TripPayload(
                     (sbyte)(blocks.Destination.East - blocks.Origin.East),
                     (sbyte)(blocks.Destination.North - blocks.Origin.North))),
-            ticks);
+            ticks,
+            WithoutJobs());
+    }
+
+    /// <summary>The golden Ruleset with its <c>[jobs]</c> table deleted, and with it nothing else.</summary>
+    private static Ruleset WithoutJobs()
+    {
+        string toml = File.ReadAllText(GoldenFixtures.RulesetPath);
+        int marker = toml.IndexOf("\n[jobs]", StringComparison.Ordinal);
+
+        Assert.True(marker > 0, "the golden Ruleset no longer declares a [jobs] table.");
+
+        RulesetLoadResult result = RulesetLoader.Parse(toml[..marker], "test.toml");
+
+        Assert.True(result.Ok, result.Describe());
+
+        return result.Ruleset!;
     }
 
     private static InputLog SessionWithTrip()

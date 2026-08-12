@@ -345,3 +345,17 @@ commute_budget_minutes = 20
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
+
+# THE MORNING PEAK, AND IT IS THE ONLY NUMBER THIS FILE STATES THAT SOMEBODY ELSE MEASURED. Everybody
+# with a Workplace walks to it once a Day, and departures spread uniformly over a window at the start
+# of the Day. Under a uniform window of W Ticks the instantaneous departure rate is TICKS_PER_DAY / W
+# times the daily average -- so the peaking multiplier and the window are ONE NUMBER SEEN FROM TWO
+# SIDES, and this file states the side S2 R7 has evidence for: a morning peak of 2-3x over the Day
+# mean. adr/0059 a fourth time -- state what a designer has a reason for, derive what the engine needs
+# (`window = ceil(TICKS_PER_DAY / commute_peak_factor)`, JobRuleset.CommuteWindow).
+#
+# 3 IMPLIES AN EIGHT-HOUR DEPARTURE WINDOW, WHICH IS WIDE FOR A RUSH HOUR AND IS EXACTLY WHAT 3x
+# MEANS. A taller, narrower peak is a question about the SHAPE of the distribution, and the corpus has
+# measured its HEIGHT and nothing else -- so a tapered profile here would be a curve invented at the
+# write site. 1 is a Day with no peak at all, which is the control this can be run against.
+commute_peak_factor = 3

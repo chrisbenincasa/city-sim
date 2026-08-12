@@ -3,6 +3,7 @@ namespace Borough.Core.Entities;
 using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Invariants;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -109,12 +110,13 @@ public sealed class World
     /// said. One source is what closes that; <see cref="Ruleset.WithLayers"/> is how a caller holding
     /// only a cadence still gets a world.
     /// </remarks>
-    public World(int citizens, Ruleset rules)
+    public World(int citizens, Ruleset rules, WorldKey key = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(citizens);
         ArgumentNullException.ThrowIfNull(rules);
 
         Rules = rules;
+        Key = key;
 
         Lots = new LotTable(PerThousand(citizens, 225));
         Buildings = new BuildingTable(PerThousand(citizens, 150), Lots);
@@ -285,6 +287,46 @@ public sealed class World
     /// <summary>Slice 7's minimal Event Wheel: a bucket per Tick, an arming, and a drain.</summary>
     public EventWheel Wheel { get; }
 
+    /// <summary>
+    /// Which Citizens leave for work on which Tick of the Day (<c>adr/0081</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Not on the <see cref="Wheel"/>, and the reason is that it would never move.</b> A commute
+    /// recurs every Day and the Wheel is exactly a Day long, so an armed Citizen sits in one bucket
+    /// for life — which makes the bucket a partition on a constant, and therefore derivable. See
+    /// <see cref="CommuteRoster"/>.
+    /// </remarks>
+    public CommuteRoster Commutes { get; } = new();
+
+    /// <summary>
+    /// The world seed, as <c>Randomness.Draw</c>'s first coordinate.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Held here because a derived structure needs it and nothing was passing it in.</b>
+    /// <see cref="Commutes"/> is a pure function of the Ruleset in force and of each Citizen's
+    /// <em>id</em> hashed against this key, so <see cref="RebuildDerived"/> — which takes no
+    /// arguments and must not start taking them — cannot reproduce the maintained list without it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Every other mutator on this class takes a <c>WorldKey</c> as a parameter, and that is now
+    /// redundant rather than wrong.</b> A world has one seed; passing a second one to
+    /// <see cref="CreateBuilding"/> would make the arming stagger disagree with the commute roster
+    /// about which world this is. The threading predates this property and removing it is a sweep
+    /// rather than a task-5 edit — filed to <c>plans/0012</c> rather than done here, because a
+    /// signature change across nine call sites in the middle of a milestone is how an unrelated
+    /// defect gets committed under a feature's name.
+    /// </para>
+    /// <para>
+    /// <b>Zero is the default and it is a legitimate seed rather than a placeholder.</b> That is safe
+    /// here in the way session F's rule requires — not because zero is outside the range, but because
+    /// there is exactly <em>one</em> of these per world, so a wrong value gives a different city and
+    /// never an inconsistent one. The failure a placeholder causes is disagreement between two
+    /// readers, and there is only one reader.
+    /// </para>
+    /// </remarks>
+    public WorldKey Key { get; }
+
     /// <summary>The Households seeking housing, and the only demand signal this design has.</summary>
     /// <remarks>
     /// <b>Named <c>UnplacedPool</c> in full because <c>CONTEXT</c> holds two Pools and they are
@@ -396,6 +438,13 @@ public sealed class World
         // half-way through would otherwise leave a trail entry claiming a transition that did not
         // happen -- and a provenance trail nobody can trust is worse than none, since the whole of its
         // value is being believed about a Tick nobody can replay to.
+        // 5a-bis's trap, and the reason this line is here rather than left to the next write: a
+        // derived structure that caches a Ruleset value reads as *absent* rather than as *stale*
+        // before its first rebuild, and absent is the state every guard is written against. The
+        // departure window is derived from [jobs] commute_peak_factor, so retuning the peak moves
+        // the standing city's departures -- adr/0064's disposition, on a third axis.
+        Commutes.Rebuild(Citizens, Key, rules.Jobs);
+
         RulesetTrail.Record(now, contentHash, cost);
 
         return cost;
@@ -723,6 +772,10 @@ public sealed class World
 
         Members.InsertOrdered(householdSlot, slot);
 
+        // The departure bucket, and it is joined here for the reason the member list is: a derived
+        // index maintained at the door is the only kind RebuildDerived can be checked against.
+        Commutes.Add(Citizens, Key, Rules.Jobs, slot);
+
         return handle;
     }
 
@@ -744,6 +797,9 @@ public sealed class World
     public void DestroyCitizen(Handle<Citizen> citizen)
     {
         int slot = Citizens.Rows.Resolve(citizen);
+
+        // Before the row is freed, because the phase is derived from the id the row carries.
+        Commutes.Remove(Citizens, Key, Rules.Jobs, slot);
 
         if (Households.Rows.TryResolve(Citizens.HouseholdOf[slot], out int householdSlot))
         {
@@ -806,6 +862,7 @@ public sealed class World
         Buildings.WorkerHead.Span.Clear();
         Buildings.WorkerTail.Span.Clear();
         Citizens.WorkerNext.Span.Clear();
+        Citizens.CommuteNext.Span.Clear();
         Buildings.BinHead.Span.Clear();
         Buildings.BinTail.Span.Clear();
         Buildings.RuleHead.Span.Clear();
@@ -918,6 +975,11 @@ public sealed class World
                 buildingRules.InsertOrdered(buildingSlot, slot);
             }
         }
+
+        // The commute roster, which clears its own head and tail for BuildingsInCells' reason: they
+        // are arrays over the Day rather than columns over a table, so the block at the top of this
+        // method -- which is a list of columns -- cannot reach them.
+        Commutes.Rebuild(Citizens, Key, Rules.Jobs);
     }
 
     /// <summary>The Households living in each Building.</summary>

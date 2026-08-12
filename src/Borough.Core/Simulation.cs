@@ -44,12 +44,12 @@ public sealed class Simulation
     private readonly PlacementEngine _placement;
     private readonly EmploymentEngine _employment;
     private readonly TripEngine _trips;
+    private readonly CommuteEngine _commutes;
     private readonly RulesetCatalogue _rulesets;
 
     // Reusable search state for every walk this simulation resolves. It is not simulation state and
     // folds nothing: WalkScratch.Begin grows its arrays and bumps a generation stamp rather than
     // clearing, so holding one costs a high-water mark of nodes and saves a whole allocation per Leg.
-    private readonly WalkScratch _walk = new();
 
     private TickPhase _phase = TickPhase.Commit;
     private ulong _inForce;
@@ -105,6 +105,7 @@ public sealed class Simulation
         // come, which is arithmetic over state the log already determines, so there is no decision here
         // for a purpose_tag to separate. If one ever appears, it needs its own tag (BOR0801-BOR0803).
         _trips = new TripEngine(world);
+        _commutes = new CommuteEngine(world, _trips);
         _rulesets = rulesets;
     }
 
@@ -541,56 +542,12 @@ public sealed class Simulation
                 + "Citizen's journey (adr/0075) and there is nobody here to be one.");
         }
 
-        Address from = _world.PedestrianAccessPoint(origin);
-        Address to = _world.PedestrianAccessPoint(destination);
-
-        Handle<Trip> trip = _world.Trips.Create(
-            _world.Roads.Segments, TripPurpose.Commanded, from, to);
-        int tripSlot = _world.Trips.Rows.Resolve(trip);
-
-        // adr/0079. A Building whose Street was bulldozed still stands and still holds people; what it
-        // has lost is a way in. That is a Fate, reported, and not an exception.
-        if (!from.Exists || !to.Exists)
-        {
-            _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound);
-            return;
-        }
-
-        TravelTime cost = WalkRouting.Cost(_world.Roads, from, to, trips.CrossingCost, _walk);
-
-        // Eagerly, per adr/0075: every Leg of a Trip is created at Trip creation, which is what makes
-        // mean-Legs-per-Trip countable at all. One Leg here because 5b resolves walk Legs only.
-        Handle<Leg> leg = _world.Legs.Create(
-            _world.Roads.Segments, TravelMode.Foot, from, to, cost);
-        int legSlot = _world.Legs.Rows.Resolve(leg);
-
-        _world.Trips.Append(_world.Legs, tripSlot, legSlot);
-
-        if (cost.IsImpassable)
-        {
-            _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound, legSlot);
-            return;
-        }
-
-        // The Budget is judged on the whole Trip before anybody sets off, which is what a budget is:
-        // a person who can see the journey is too long does not make two thirds of it and stop. The
-        // Leg exists either way, because adr/0075 creates every Leg at Trip creation and the cost of
-        // the journey not taken is the diagnosis -- "32 can't reach a job inside their Commute
-        // Budget" needs the number that failed, not just the count.
-        if (!trips.WithinBudget(cost))
-        {
-            _world.Trips.Resolve(tripSlot, TripFate.ExceededCommuteBudget, legSlot);
-            return;
-        }
-
-        // Floor, and a sub-Tick walk therefore arrives on the Tick it departed. That is adr/0071 being
-        // taken literally rather than a rounding convenience: travel time is sub-Tick and Q16.16 is a
-        // scale, so a walk across the street genuinely costs less than one integration step. Phase 4
-        // runs after Phase 0 in the same Tick, so such a Trip is created and completed without ever
-        // being observed in flight -- which is correct, and is why the in-flight count is not a proxy
-        // for the number of Trips a run made.
-        _world.Travellers.Create(
-            _world.Citizens.Rows.At(citizen), trip, legSlot, tick + cost.ToTicksFloor());
+        _trips.Start(
+            citizen,
+            _world.PedestrianAccessPoint(origin),
+            _world.PedestrianAccessPoint(destination),
+            TripPurpose.Commanded,
+            tick);
     }
 
     /// <summary>
@@ -731,6 +688,12 @@ public sealed class Simulation
     private void Move(Ticks tick)
     {
         _phase = TickPhase.Move;
+
+        // Generation before advance, and the ordering is what makes a sub-Tick walk arrive on the Tick
+        // it departed rather than a Tick later. adr/0071: travel time is sub-Tick, so a walk across the
+        // street genuinely costs less than one integration step, and a phase that advanced first would
+        // hold such a Trip in flight for a whole Tick for no reason in the city.
+        _commutes.Generate(tick);
 
         // Serially, though the phase permits parallel. Phases.Runs states that permission as an upper
         // bound rather than an instruction, and plans/0021 task 5 says to take it as one: a parallel

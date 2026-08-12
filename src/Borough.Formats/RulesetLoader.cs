@@ -2081,8 +2081,9 @@ public static class RulesetLoader
             uint interval = ReadInterval(_jobsTable, null);
             int revisit = ReadJobRevisit(interval);
             int candidates = ReadJobCandidates();
+            int peak = ReadCommutePeak();
 
-            return new JobRuleset(interval, revisit, candidates);
+            return new JobRuleset(interval, revisit, candidates, peak);
         }
 
         /// <summary>How long the assignment pass takes to look at every Citizen once, in Ticks.</summary>
@@ -2149,6 +2150,55 @@ public static class RulesetLoader
             }
 
             return (int)candidates;
+        }
+
+        /// <summary>
+        /// How much busier the morning peak is than a Day spread flat — the commute's departure
+        /// schedule, and the one number in this table that is about <em>travelling</em> to work
+        /// rather than about finding it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The file states the peaking factor and the engine derives the departure window</b>
+        /// (<c>JobRuleset.CommuteWindow</c>, <c>adr/0059</c>). The two are exactly reciprocal —
+        /// <c>window = TICKS_PER_DAY ÷ peaking</c> — so this is a choice about which side to author,
+        /// and the peaking factor is the side <b>S2 R7 measured</b>, at <b>2–3×</b> mean demand. A
+        /// window authored directly would be a number in Ticks that nobody has ever measured, sitting
+        /// next to a corpus figure it silently restates.
+        /// </para>
+        /// <para>
+        /// <b>It lives in <c>[jobs]</c> rather than in <c>[trips]</c>, and the split is: <c>[trips]</c>
+        /// is what travelling costs, <c>[jobs]</c> is how work happens</b> — finding it, and going to
+        /// it. It is also where the generator's other precondition already is, since a <c>[jobs]</c>
+        /// table is refused without a Commute Budget.
+        /// </para>
+        /// <para>
+        /// <b>One is a legitimate city and the floor is therefore 1, not 2.</b> A factor of one is a
+        /// Day with no peak in it: everybody still commutes once, departures spread over the whole
+        /// Day, and the peak equals the mean. That is the control any peak measurement needs, so it
+        /// has to be authorable. Zero is refused because a window of infinite length is not a city.
+        /// </para>
+        /// </remarks>
+        private int ReadCommutePeak()
+        {
+            if (!TryInteger(_jobsTable!, "commute_peak_factor", out long peak, required: true))
+            {
+                return 1;
+            }
+
+            if (peak < 1 || peak > MaximumCommutePeak)
+            {
+                Refuse(LineOfJob("commute_peak_factor"), null,
+                    $"commute_peak_factor = {peak} is out of range. It is how much busier the morning "
+                    + "peak is than a Day spread flat, and the engine divides a Day by it to get the "
+                    + $"window commutes depart in -- so it is at least 1, which is a Day with no peak "
+                    + $"in it, and at most {MaximumCommutePeak}. Beyond that the window is shorter "
+                    + "than the journeys inside it, and the peak stops being the reciprocal of the "
+                    + "window at all.");
+                return 1;
+            }
+
+            return (int)peak;
         }
 
         /// <summary>The line a <c>[jobs]</c> key is on, or the table's.</summary>
@@ -2251,6 +2301,14 @@ public static class RulesetLoader
         /// four Days, and it is a format ceiling rather than a statement about commuting.
         /// </summary>
         private const int MaximumBudgetMinutes = 5_759;
+
+        /// <summary>
+        /// The largest peaking factor a Day can express. <b>A Day over this is 16 Ticks, which is
+        /// under three in-world minutes</b> — shorter than the shortest walk in any measured band, so
+        /// the window would no longer bound the in-flight count and the reciprocal derivation would
+        /// stop holding. It is a limit of the arithmetic rather than a statement about cities.
+        /// </summary>
+        private const int MaximumCommutePeak = 512;
 
         /// <summary>The line a <c>[roads]</c> key is on, or the table's.</summary>
         private int LineOfRoad(string key) =>

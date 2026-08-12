@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -203,6 +204,51 @@ public sealed class GoldenSessionCoverageTests
 
         Assert.True(employed > 0, "nobody in the committed session holds a job.");
         Assert.True(severed > 0, "the committed session never bulldozes an employer.");
+    }
+
+    /// <summary>
+    /// <b>The committed session generates commute Trips, and until task 5 it contained no Trip at
+    /// all.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This closes a hole task 3 opened and named.</b> The <c>[trips]</c> table shipped with the
+    /// whole Trip model sitting outside the committed baseline — the golden session holds no
+    /// <c>trip</c> command, so nothing in the trace exercised <c>TripEngine</c>, the Traveller cursor
+    /// or a Fate. A generator fixes that without a command, which is the difference between
+    /// <c>adr/0080</c>'s door and <c>adr/0081</c>'s mechanism.
+    /// </para>
+    /// <para>
+    /// <b>Read in flight rather than at release, because a Fate frees the row.</b> A Trip that has
+    /// ended is gone by the end of the Tick it ended on, so the only Trips a finished run can be asked
+    /// about are the ones still walking — which is also why this asserts an inequality rather than a
+    /// count.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What this cannot tell you is whether the window is covered.</b> The session is 2,048 Ticks
+    /// and the departure window at <c>commute_peak_factor = 3</c> is 2,731, so the baseline reaches
+    /// three quarters of the departure phases and no Citizen in it departs twice. <b>Lengthening the
+    /// session past a Day is what would cover the second departure</b>, and that is a change to the
+    /// baseline rather than a line here.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_session_sends_people_to_work_without_a_trip_command()
+    {
+        World world = At(GoldenFixtures.Session(), new Ticks(GoldenFixtures.Ticks));
+
+        int commuting = 0;
+
+        for (int slot = 0; slot < world.Trips.Rows.SlotCount; slot++)
+        {
+            if (world.Trips.Rows.IsLive(slot)
+                && (TripPurpose)world.Trips.Purpose[slot] == TripPurpose.Commute)
+            {
+                commuting++;
+            }
+        }
+
+        Assert.True(commuting > 0, "the committed session generates no commute Trip.");
     }
 
     /// <summary>How many Lots one block of the lattice carries when all four of its faces are Streets.</summary>

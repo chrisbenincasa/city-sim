@@ -9,18 +9,18 @@ namespace Borough.Core.Movement;
 /// <para>
 /// <b>This enumeration is deliberately short, and its shortness is a statement about the build
 /// rather than about the design.</b> The corpus names seven Trip generators, each owned by a
-/// decision that is settled: the <b>commute</b> (<c>CONTEXT.md</c> → Provider List), <b>school</b>
-/// (<c>adr/0032</c>), <b>dispatch</b> (<c>adr/0030</c>), <b>immigration</b> (<c>adr/0023</c>),
-/// <b>Office export</b>, and <b>freight</b> (<c>03 §6.6</c>). None of them has a mechanism, so under
-/// <c>adr/0070</c> each is <em>unbuilt</em> rather than refused — and a value here for a Trip nothing
-/// can generate would be a taxonomy invented at the write site, which is not this slice's to invent.
-/// <b>Each arrives with the slice that builds its generator.</b>
+/// decision that is settled: the <b>commute</b> (<c>adr/0081</c>), <b>shopping</b>
+/// (<c>adr/0067</c>), <b>school</b> (<c>adr/0032</c>), <b>dispatch</b> (<c>adr/0030</c>),
+/// <b>immigration</b> (<c>adr/0023</c>), <b>Office export</b>, and <b>freight</b> (<c>03 §6.6</c>).
+/// All but one still lack a mechanism, so under <c>adr/0070</c> each is <em>unbuilt</em> rather than
+/// refused — and a value here for a Trip nothing can generate would be a taxonomy invented at the
+/// write site. <b>Each arrives with the slice that builds its generator.</b>
 /// </para>
 /// <para>
-/// <b>The obvious first purpose is the commute and it is unavailable: there are no jobs.</b> No
-/// Office, no wages, no labour market — <c>06</c>'s no-milestone table lists them as
-/// settled-and-unplaced. <i>Give every Household a synthetic workplace</i> is precisely the
-/// compensating design position <c>adr/0070</c> forbids.
+/// <b><see cref="Commute"/> arrived first, and the paragraph this replaces said it could not.</b> It
+/// read <i>"the obvious first purpose is the commute and it is unavailable: there are no jobs"</i> —
+/// true when it was written, and an <c>adr/0070</c> absence rather than a refusal, which is exactly
+/// the kind that ends by somebody building the missing mechanism. Milestone 5b-bis built it.
 /// </para>
 /// </remarks>
 public enum TripPurpose : byte
@@ -75,11 +75,40 @@ public enum TripPurpose : byte
     /// failure with both copies live in one file.
     /// </para>
     /// <para>
-    /// <b>It is expected to be deleted</b> — the same sentence <c>CommandKind.Populate</c> carries, for
-    /// the same reason. When milestone 5b-bis's commute generator lands (<c>adr/0081</c>), the verb
-    /// becomes a test affordance rather than the only door, and a Trip with this purpose in a real run
-    /// is a Trip nobody meant to make.
+    /// ⚠ <b>It was scheduled for deletion and it is kept, and the reason is that its job changed
+    /// rather than ended.</b> <c>plans/0023</c> task 5 says to delete this value when the commute
+    /// generator lands; the sentence it rests on — <c>adr/0080</c>'s — says the verb <i>"becomes a
+    /// test affordance rather than the only door"</i>, which is a **demotion**. And the value is
+    /// worth more after the generator than before it: while every Trip was commanded it distinguished
+    /// nothing, and now it is the only thing that tells a fixture's Trips from a city's. The sentence
+    /// above — <i>a Trip with this purpose in a real run is a Trip nobody meant to make</i> — became
+    /// **checkable** on the day it stopped being vacuous. Deleting it would have left
+    /// <see cref="CommandKind.Trip"/> either untagged or lying about its purpose.
     /// </para>
     /// </remarks>
     Commanded = 2,
+
+    /// <summary>
+    /// A Citizen travelling from home to their Workplace. <b>The first generated Trip in the
+    /// project</b> (<c>adr/0081</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One a Day, home to work, and the return journey is deliberately absent.</b>
+    /// <c>plans/0023</c> scopes the milestone to one Workplace and one Trip a Day; a Citizen's day
+    /// becomes a <em>schedule</em> rather than a repeated Trip the moment <c>adr/0067</c>'s shopping
+    /// or <c>adr/0032</c>'s school exists, and that is the point at which the daily occasion stops
+    /// being a sweep. Modelling the evening leg now would be building half of that schedule with no
+    /// way to say what the other half is.
+    /// </para>
+    /// <para>
+    /// <b>The occasion is a <em>phase</em> rather than a schedule, and that is what keeps it off the
+    /// Event Wheel.</b> A commute recurs every Day and the Wheel is exactly a Day long, so a Citizen
+    /// armed once would sit in the same bucket for life — which makes the bucket a partition of the
+    /// population by a constant, and a partition on a constant is derivable rather than scheduled.
+    /// <c>CommuteRoster</c> is that partition, <c>(derived AND rebuilt)</c>, and the Wheel is left
+    /// carrying only the thing whose next firing genuinely varies.
+    /// </para>
+    /// </remarks>
+    Commute = 3,
 }

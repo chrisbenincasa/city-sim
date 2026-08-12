@@ -1,6 +1,7 @@
 using Borough.Core.Entities;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
+using Borough.Core.Space;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
 
@@ -51,6 +52,16 @@ public sealed class TripEngine
     private RuleFlow _overBudgetFlow;
     private RuleFlow _strandedFlow;
 
+    /// <summary>
+    /// The Dijkstra's scratch, reused across every Trip this engine starts.
+    /// </summary>
+    /// <remarks>
+    /// <b>One per engine rather than one per call</b>, which is what keeps <see cref="Start"/>
+    /// allocation-free on the hot path — the commute generator calls it once per departing Citizen
+    /// and there are as many of those a Day as there are workers.
+    /// </remarks>
+    private readonly WalkScratch _walk = new();
+
     /// <param name="world">The world whose Travellers this advances.</param>
     public TripEngine(World world)
     {
@@ -79,6 +90,92 @@ public sealed class TripEngine
         _strandedFlow = default;
 
         return activity;
+    }
+
+    /// <summary>
+    /// Puts one Citizen on the road between two Addresses: the Trip, its Leg, its Fate if it has one
+    /// already, and its Traveller if it has not.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One door, and it is here because there are two callers now rather than because there might
+    /// be.</b> <c>CommandKind.Trip</c> was the only way a Trip could exist for the whole of milestone
+    /// 5b (<c>adr/0080</c>), and 5b-bis's commute generator is the second — so the body that decides
+    /// what a Trip <em>is</em> moved out of <c>Simulation.ApplyTrip</c> on the day the second caller
+    /// appeared. <c>TripPurpose.Commanded</c>'s own rule says why the alternative is worse: nothing
+    /// downstream may branch on the purpose, and two copies of the creation path are exactly the
+    /// branch, written in the one place a reader would not look for one.
+    /// </para>
+    /// <para>
+    /// <b>The purpose is a parameter and nothing in here reads it.</b> It is written to the row and
+    /// counted; the Fate, the Budget test and the cursor are identical for every purpose, which is
+    /// the invariant this method exists to make structural rather than remembered.
+    /// </para>
+    /// <para>
+    /// <b>Both endpoints may be holes and that is a Fate rather than a refusal</b> (<c>adr/0079</c>):
+    /// a Building outlives its frontage, so an Address with no Segment is a
+    /// <see cref="TripFate.NoRouteFound"/> the model reports. The caller has already decided the two
+    /// Buildings are the ones it meant.
+    /// </para>
+    /// </remarks>
+    /// <param name="citizen">The slot of the Citizen travelling.</param>
+    /// <param name="from">Where the journey starts.</param>
+    /// <param name="to">Where it is meant to end.</param>
+    /// <param name="purpose">Why it is being made, recorded and never branched on.</param>
+    /// <param name="tick">The Tick the journey starts on.</param>
+    /// <returns>
+    /// The Fate the Trip already has, or <see cref="TripFate.InFlight"/> if it set off.
+    /// </returns>
+    public TripFate Start(int citizen, Address from, Address to, TripPurpose purpose, Ticks tick)
+    {
+        TripRuleset rules = _world.Rules.Trips;
+
+        Handle<Trip> trip = _world.Trips.Create(_world.Roads.Segments, purpose, from, to);
+        int tripSlot = _world.Trips.Rows.Resolve(trip);
+
+        if (!from.Exists || !to.Exists)
+        {
+            _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound);
+            return TripFate.NoRouteFound;
+        }
+
+        TravelTime cost = WalkRouting.Cost(_world.Roads, from, to, rules.CrossingCost, _walk);
+
+        // Eagerly, per adr/0075: every Leg of a Trip is created at Trip creation, which is what makes
+        // mean-Legs-per-Trip countable at all. One Leg here because 5b resolves walk Legs only.
+        Handle<Leg> leg = _world.Legs.Create(
+            _world.Roads.Segments, TravelMode.Foot, from, to, cost);
+        int legSlot = _world.Legs.Rows.Resolve(leg);
+
+        _world.Trips.Append(_world.Legs, tripSlot, legSlot);
+
+        if (cost.IsImpassable)
+        {
+            _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound, legSlot);
+            return TripFate.NoRouteFound;
+        }
+
+        // The Budget is judged on the whole Trip before anybody sets off, which is what a budget is:
+        // a person who can see the journey is too long does not make two thirds of it and stop. The
+        // Leg exists either way, because adr/0075 creates every Leg at Trip creation and the cost of
+        // the journey not taken is the diagnosis -- "32 can't reach a job inside their Commute
+        // Budget" needs the number that failed, not just the count.
+        if (!rules.WithinBudget(cost))
+        {
+            _world.Trips.Resolve(tripSlot, TripFate.ExceededCommuteBudget, legSlot);
+            return TripFate.ExceededCommuteBudget;
+        }
+
+        // Floor, and a sub-Tick walk therefore arrives on the Tick it departed. That is adr/0071 being
+        // taken literally rather than a rounding convenience: travel time is sub-Tick and Q16.16 is a
+        // scale, so a walk across the street genuinely costs less than one integration step. Phase 4
+        // runs after Phase 0 in the same Tick, so such a Trip is created and completed without ever
+        // being observed in flight -- which is correct, and is why the in-flight count is not a proxy
+        // for the number of Trips a run made.
+        _world.Travellers.Create(
+            _world.Citizens.Rows.At(citizen), trip, legSlot, tick + cost.ToTicksFloor());
+
+        return TripFate.InFlight;
     }
 
     /// <summary>

@@ -221,4 +221,17 @@ public enum PurposeTag : ulong
     /// draws per look and the look ordinal separates them.
     /// </remarks>
     JobCandidate = 13,
+
+    /// <summary>
+    /// Which Tick of the Day a Citizen leaves for work on (<c>adr/0081</c>, <c>CommuteRoster</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The first tag in this enumeration whose Tick coordinate is always <see cref="Ticks.Zero"/>,
+    /// and that is the point of it rather than an oversight.</b> Every other draw here answers <i>what
+    /// happens now</i>; this one answers <i>what sort of person is this</i>, and a departure time that
+    /// moved with the clock would re-roll every morning a decision <c>CONTEXT.md</c> → Provider List
+    /// says is made once. Sharing <see cref="JobSeeker"/> would tie <em>when</em> somebody commutes to
+    /// <em>whether</em> they were sampled for work, which is a correlation with no cause in the city.
+    /// </remarks>
+    CommuteDeparture = 14,
 }

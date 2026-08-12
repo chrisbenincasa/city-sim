@@ -73,7 +73,7 @@ public class StateHashTests
         World world = Build();
         ulong before = world.HashState();
 
-        world.Citizens.WheelNext[0] = 12_345;
+        world.Citizens.CommuteNext[0] = 12_345;
         world.Buildings.OccupantHead[0] = 999;
 
         Assert.Equal(before, world.HashState());

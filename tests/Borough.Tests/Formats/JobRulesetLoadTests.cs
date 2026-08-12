@@ -61,9 +61,10 @@ public sealed class JobRulesetLoadTests
 
     /// <summary>A well-formed <c>[jobs]</c> body.</summary>
     private const string Whole = """
-        interval      = 32
-        revisit_ticks = 1024
-        candidates    = 3
+        interval            = 32
+        revisit_ticks       = 1024
+        candidates          = 3
+        commute_peak_factor = 3
         """;
 
     // ---- the absent table -----------------------------------------------------------------------
@@ -97,6 +98,69 @@ public sealed class JobRulesetLoadTests
         Assert.Equal(32u, jobs.Interval);
         Assert.Equal(1_024, jobs.RevisitTicks);
         Assert.Equal(3, jobs.Candidates);
+        Assert.Equal(3, jobs.PeakFactor);
+    }
+
+    /// <summary>
+    /// <b>The departure window is derived from the peak factor, and the two are one quantity seen
+    /// from two sides.</b>
+    /// </summary>
+    /// <remarks>
+    /// Under a uniform departure window of <c>W</c> Ticks the instantaneous departure rate is
+    /// <c>TICKS_PER_DAY / W</c> times the daily average — so the peaking multiplier <em>is</em> the
+    /// reciprocal of the window. S2 R7 measured the multiplier (2–3× on in-flight Travellers) and
+    /// nothing has ever measured a window, so the file states the side with evidence and this derives
+    /// the other. <c>adr/0059</c> a fourth time.
+    /// </remarks>
+    [Theory]
+    [InlineData(1, 8_192)]
+    [InlineData(2, 4_096)]
+    [InlineData(3, 2_731)]
+    public void The_departure_window_is_derived_from_the_peak(int factor, int window)
+    {
+        JobRuleset jobs = Accepted(With($"""
+            interval            = 32
+            revisit_ticks       = 1024
+            candidates          = 3
+            commute_peak_factor = {factor}
+            """)).Jobs;
+
+        Assert.Equal(window, jobs.CommuteWindow);
+    }
+
+    /// <summary>
+    /// <b>A <c>[jobs]</c> table with no peak factor is refused rather than departing everybody at
+    /// once.</b>
+    /// </summary>
+    /// <remarks>
+    /// The polarity every key inside a present table has, and here the placeholder argument is sharp:
+    /// an unstated factor read as 1 is a Day with no peak, which is a <em>legitimate</em> authored
+    /// value and the control the demonstration runs against — so a default could not announce itself,
+    /// and reading it as 8192 would put the whole city on the road on one Tick of the Day.
+    /// </remarks>
+    [Fact]
+    public void A_jobs_table_with_no_peak_factor_is_refused()
+    {
+        RulesetRefusal refusal = Refused(With("""
+            interval      = 32
+            revisit_ticks = 1024
+            candidates    = 3
+            """));
+
+        Assert.Contains("commute_peak_factor", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_peak_factor_of_zero_is_refused()
+    {
+        RulesetRefusal refusal = Refused(With("""
+            interval            = 32
+            revisit_ticks       = 1024
+            candidates          = 3
+            commute_peak_factor = 0
+            """));
+
+        Assert.Contains("out of range", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>

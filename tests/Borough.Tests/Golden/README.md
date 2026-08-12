@@ -118,6 +118,20 @@ census interval. **So the trace is entirely correct and the branch the number ex
 slice 10 task 11's finding arriving from a new direction, and `JobAssignmentTests` asserts the zero as
 well as the mechanism so that the day the fixture changes, somebody has to read the note.
 
+**5b-bis task 5 re-recorded all three again, and it closed a hole task 4's re-record could not.** Both
+Ruleset files gained a `commute_peak_factor`, so both content hashes moved; the trace moved for a second
+and better reason, which is that **the city now generates Trips**. Task 3 shipped the whole Trip model
+outside the committed baseline — this session contains no `trip` command and never has — so `TripEngine`,
+the Traveller cursor and every Fate were covered by unit tests alone. A *generator* fixes that without a
+command, and `GoldenSessionCoverageTests.The_session_sends_people_to_work_without_a_trip_command` is what
+says so.
+
+⚠ **What it still does not cover is a second departure.** Everybody with a Workplace leaves once a Day,
+spread over a window of `ceil(8192 / commute_peak_factor)` = **2,731** Ticks, and this session is **2,048**.
+So the baseline reaches three quarters of the departure phases and **no Citizen in it departs twice**.
+Covering that means lengthening the session past a Day — a change to the baseline rather than a line in a
+test — and the note is here so that whoever lengthens it knows what they are buying.
+
 **`World.HashSeed`'s version byte did not move, and that is deliberate.** It is for a change to the
 *fold* — the composition order's rules, `Randomness.Mix`, what a column contributes — and not for a
 world that has more tables in it. Bumping it for an appended table would make the byte a change

@@ -135,9 +135,15 @@ where *acceptable* means **within the Commute Budget on foot**. It writes `Citiz
 
 **5. The commute generator, and the daily occasion.** A Citizen with a Workplace generates a commute Trip
 on a daily occasion, through the same door 5b built: the Trip, its Legs and its Traveller, resolved in
-Tick phase 4 by `TripEngine`, which needs **no change** for this. `TripPurpose.Commanded` is deleted here
+Tick phase 4 by `TripEngine`, which needs **no change** for this. ~~`TripPurpose.Commanded` is deleted here
 — it exists so that the absence of a generator was legible in data, and its own doc comment says it is
-expected to go.
+expected to go.~~ **⚠ IT IS KEPT (2026-08-12), and the reason is that its job changed rather than
+ended.** The sentence this rests on is `adr/0080`'s, and that ADR says the verb *"becomes a test
+affordance rather than the only door"* — a **demotion**, which is not a deletion. The value is worth
+*more* after the generator than before it: while every Trip was commanded it distinguished nothing, and
+now it is the only thing that tells a fixture's Trips from a city's, so its own rule — *a Trip with this
+purpose in a real run is a Trip nobody meant to make* — became **checkable** on the day it stopped being
+vacuous. Deleting it would have left `CommandKind.Trip` either untagged or lying.
 
 > **The occasion is this milestone's one open design question, and `adr/0081` says it is small.** A
 > commute is **scheduled and periodic**, so the sampled-sweep shape the Zone Rule and placement already
@@ -466,3 +472,96 @@ names first.
 **No ADR.** `adr/0081` is the decision and this is its construction; the box derivation is a refusal
 to open a number rather than a new one, and `adr/0052`, `adr/0059`, `adr/0069` and `adr/0070` supply
 the rest of the reasoning unchanged.
+
+### Task 5 — the commute generator and the daily occasion, built
+
+`CommuteEngine` in Tick phase 4, ahead of `TripEngine.Advance`, plus `CommuteRoster` — a
+`(derived AND rebuilt)` partition of the population by departure phase — `TripPurpose.Commute`, and a
+`[jobs] commute_peak_factor` the departure window is derived from. **A Citizen with a Workplace and a
+home walks to work once a Day, and it is the first Trip in this project nobody asked for.**
+`TripEngine` needed no change, which was `adr/0080`'s stated bet and is now a measurement rather than
+a prediction: the cursor, the Fate, the release and the Census all ran a generated Trip unedited.
+
+**One number, one enum value, one derived structure, one shared entry point.**
+`Simulation.ApplyTrip`'s Trip-creation body moved to `TripEngine.Start` on the day the second caller
+appeared, so a Trip has exactly one door — which is what `TripPurpose.Commanded`'s own rule
+(*nothing downstream may branch on the purpose*) would otherwise have been quietly violated by, in
+the one place a reader would not look for a branch.
+
+#### The occasion: a phase, not a schedule
+
+**This is the task's one design question and it answers itself once the two constants are put side by
+side.** A commute recurs **every Day**; `EventWheel.Size` is **exactly a Day** (`Ticks.PerDay`, 8192).
+So a Citizen armed on the Wheel re-arms at `+8192` for ever and **never leaves the bucket it started
+in** — which makes the bucket a partition of the population by a *constant*, and ***a bucketing on a
+constant is derivable rather than scheduled***. The Wheel route would have cost a saved column, a
+per-Tick re-arm and a generalisation of the Wheel to a second table, and bought a structure that never
+changes. `adr/0081` says generalising the Wheel is *not required*; this is why it would not have
+helped either.
+
+So `CommuteRoster` is `(derived AND rebuilt)`, 128 KB of head/tail arrays over the Day plus
+`CitizenTable.CommuteNext` — **a column declared in slice 4 for a Wheel that never carried a Citizen
+and read by nothing for five slices**, renamed from `WheelNext` here and load-bearing for the first
+time.
+
+**The phase is drawn from the Citizen's monotonic id, not from its slot, and the difference is a
+spatial wave.** A slot-derived phase would need no index at all — bucket `b` is the arithmetic
+progression `b, b + window, …` — and it would be wrong here, because `SyntheticCity` assigns Citizen
+`i` to Household `i mod H` and Household `j` to Building `j mod B`. **Slot order is a fixed stride
+through the Building table**, so a phase read off it sends whole streets to work together for a reason
+with no cause in the city. That is `02 §8` rule 5, and it is the failure the Unplaced Pool's draw
+already exists to avoid.
+
+#### The finding: the peak and the window are one number seen from two sides
+
+**`commute_peak_factor` was going to be a fifth free hash-bearing number and it turned out to be a
+restatement of one somebody had already measured.** Under a uniform departure window of `W` Ticks the
+instantaneous departure rate is `TICKS_PER_DAY ÷ W` times the daily average — so the **peaking
+multiplier** and the **window** are the same quantity. S2 R7 measured the morning peak as an
+independent **2–3×** multiplier on in-flight Travellers; it did not measure a window, and nothing in
+the corpus ever has. So the Ruleset states the side with evidence and `JobRuleset.CommuteWindow`
+derives the side the engine needs: `window = ceil(TICKS_PER_DAY ÷ commute_peak_factor)`. **That is
+`adr/0059` a fourth time** — state what a designer has a reason for, derive what the loop consumes —
+and it is the corpus's **sixth successful search for a derivation**, against task 3's failed one.
+
+**3 implies an eight-hour departure window, which is wide for a rush hour and is exactly what 3×
+means.** The temptation is to narrow it because *rush hour* is a shorter thing than that; narrowing it
+without moving the factor is impossible, and moving the factor is asserting a peak height nobody has
+measured. **A taller, narrower peak is a claim about the *shape* of the distribution, and the corpus
+has measured its *height* and nothing else** — so a tapered profile would be a curve invented at the
+write site, which is what task 4's Cell-uniform draw was nearly the mirror of. A factor of **1** is a
+Day with no peak at all and is the control the demonstration can be run against.
+
+**No `peak_offset`, and the absence is a decision.** Tick zero of the Day is the first departure Tick.
+An offset would be a second hash-bearing number whose only consumer is a clock nothing else reads —
+no Rule, no Layer, no Zone Rule asks what time of day it is — so *when* within the Day the peak falls
+is **unobservable**, and choosing it would be `adr/0052`'s prohibition exactly: a number with no
+ratifier and no consequence.
+
+#### Two smaller ones
+
+**Nobody can be in flight when their next departure comes round, and it is the *loader* that
+guarantees it.** The generator has no overlap guard and needs none: a Trip that is not `InFlight` on
+creation never gets a Traveller, one that is has passed the Commute Budget, and `RulesetLoader`
+refuses `[jobs]` in a Ruleset with no `commute_budget_minutes` (task 4). A Budget is stated in minutes
+and a Day is 24 in-world hours, so the overlap is **arithmetically unreachable rather than merely
+unlikely** — and it is unreachable because of a refusal written for an entirely different reason,
+which is worth knowing before somebody relaxes that refusal.
+
+**The golden session now contains Trips, which closes the hole task 3 shipped and named.** That task
+recorded that the committed baseline held **no `trip` command at all**, so the whole Trip model sat
+outside it. A generator fixes that without a command.
+`GoldenSessionCoverageTests.The_session_sends_people_to_work_without_a_trip_command` is the assertion,
+and it carries the limit it cannot check: the session is **2,048 Ticks against a 2,731-Tick window**,
+so the baseline reaches three quarters of the departure phases and **no Citizen in it departs twice**.
+Covering the second departure means lengthening the session past a Day, which is a change to the
+baseline rather than a line in a test.
+
+**Thirteen tests, 1,230 green against task 4's 1,217, and the two session baselines re-recorded** — both
+Ruleset content hashes moved because `[jobs]` gained a key, and `session-trace.txt` moved for a second
+and better reason: the city now makes Trips. **`world-hash.txt` did not move**, and that is the
+declaration working — a hand-built world states no `[jobs]`, and the roster is derived either way.
+
+**No ADR.** `adr/0081` is the decision and this is its construction; the phase-not-schedule argument is
+a refusal to open a mechanism rather than a new decision, and `adr/0059`, `adr/0064` and `adr/0080`
+supply the rest unchanged.

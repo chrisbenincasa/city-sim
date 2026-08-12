@@ -46,7 +46,7 @@ public sealed class CitizenTable
         _rows = new Rows<Citizen>("citizen", capacity, Buffering.OneCopy);
 
         NextEventTick = _rows.Saved<Ticks>("next_event_tick", Touch.PerTick);
-        WheelNext = _rows.Derived<int>("wheel_next", Touch.PerTick);
+        CommuteNext = _rows.Derived<int>("commute_next", Touch.PerTick);
         Activity = _rows.Saved<byte>("activity", Touch.PerTick);
 
         HouseholdOf = _rows.SavedHandle("household", households.Rows);
@@ -76,8 +76,22 @@ public sealed class CitizenTable
     /// <summary>The Tick this Citizen next wakes on. The Event Wheel's bucket key.</summary>
     public Column<Ticks> NextEventTick { get; }
 
-    /// <summary>Link in the Event Wheel bucket. Rebuilt from <see cref="NextEventTick"/>.</summary>
-    public Column<int> WheelNext { get; }
+    /// <summary>
+    /// Link in this Citizen's departure bucket — see <c>Movement.CommuteRoster</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Declared in slice 4 as <c>wheel_next</c>, for an Event Wheel that never carried a Citizen,
+    /// and read by nothing for five slices.</b> Renamed rather than twinned when 5b-bis task 5 needed
+    /// exactly this shape: a second column beside a dead one of the same type is 4 MB at 1M Citizens
+    /// and a name that means two things. The Rule engine's Wheel threads
+    /// <c>RuleInstanceTable.QueueNext</c> and never wanted this.
+    /// <para>
+    /// It is <b>not</b> a Wheel link now, and the distinction is the whole of task 5's design: a
+    /// commute recurs every Day, the Wheel is a Day long, so an armed Citizen would never change
+    /// bucket — which makes the bucket a partition on a constant rather than a schedule.
+    /// </para>
+    /// </remarks>
+    public Column<int> CommuteNext { get; }
 
     /// <summary>What the Citizen is doing. What a wake mutates.</summary>
     public Column<byte> Activity { get; }

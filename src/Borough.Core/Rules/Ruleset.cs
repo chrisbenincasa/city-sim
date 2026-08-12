@@ -759,10 +759,46 @@ public readonly record struct TripRuleset(TravelTime CrossingCost, TravelTime Co
 /// <param name="Interval">Ticks between passes. Zero means nobody is ever assigned work.</param>
 /// <param name="RevisitTicks">How long the pass takes to look at every Citizen once.</param>
 /// <param name="Candidates">Places a Citizen looks at per occasion — <c>02 §5.3</c>'s <c>N</c>.</param>
-public readonly record struct JobRuleset(uint Interval, int RevisitTicks, int Candidates)
+/// <param name="PeakFactor">
+/// How much busier the morning peak is than a Day spread flat. <b>The commute's departure schedule,
+/// stated as the quantity S2 measured rather than as the window it implies.</b>
+/// </param>
+public readonly record struct JobRuleset(
+    uint Interval, int RevisitTicks, int Candidates, int PeakFactor)
 {
     /// <summary>A Ruleset whose city assigns nobody to work.</summary>
     public static JobRuleset None => default;
+
+    /// <summary>
+    /// The span of Ticks inside a Day that commutes depart in. <b>Derived from
+    /// <see cref="PeakFactor"/> and never authored.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0059</c> a fourth time, and this one is the cleanest of the four because the two
+    /// quantities are exactly reciprocal.</b> S2 R7's in-flight derivation is
+    /// <c>Trips/Day × duration × peaking ÷ TICKS_PER_DAY</c>; departures spread uniformly over a
+    /// window <c>W</c> put <c>N × duration ÷ W</c> in flight at the peak. Equate them and
+    /// <c>peaking = TICKS_PER_DAY ÷ W</c> exactly, for any Trip shorter than the window. <b>So the
+    /// window and the peaking factor are one number seen from two sides</b>, and the file states the
+    /// side somebody has measured: R7 puts the morning peak at <b>2–3×</b> mean demand.
+    /// </para>
+    /// <para>
+    /// <b>A factor of 1 is a Day with no peak in it, and it is a city rather than an absence.</b>
+    /// Departures spread over the whole Day, everybody still commutes once, and the peak equals the
+    /// mean — which is the control any peak measurement needs, and the reason the floor is 1 rather
+    /// than 2.
+    /// </para>
+    /// <para>
+    /// <b>The Day begins at the peak, and that is a convention rather than a second number.</b> A Day
+    /// has to start somewhere and nothing observable depends on where; putting the window at
+    /// <c>[0, CommuteWindow)</c> spends the freedom instead of opening a <c>peak_offset</c> nobody
+    /// could ratify. <c>01 §7</c>'s sun arc is what a player sees, and it makes no numeric claim by
+    /// design, so it cannot supply a boundary either.
+    /// </para>
+    /// </remarks>
+    public int CommuteWindow =>
+        PeakFactor <= 0 ? Ticks.PerDay : (int)IntegerMath.CeilDiv(Ticks.PerDay, PeakFactor);
 
     /// <summary>Whether the assignment pass runs at all.</summary>
     public bool Runs => Interval != 0;
