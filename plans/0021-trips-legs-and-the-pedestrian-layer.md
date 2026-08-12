@@ -15,11 +15,16 @@
 
 ## Status
 
-**🔨 IN FLIGHT. Tasks 1, 2, 3 and 7 are built; one task is left, and it is task 5.** What exists is the
-**structural half** — the vocabulary type, the three tables and the walk Leg resolved end to end, plus
-`--trips` — and it stops deliberately short of everything that moves the State Hash. **Neither golden
-baseline has been re-recorded**, because nothing is registered with `World` yet; task 5 is where that
-changes. **1,122 tests green** against 5a's 1,060.
+**✅ DONE (2026-08-12). Tasks 1, 2, 3, 5 and 7 are built, and that is the whole of the re-scoped
+slice.** Task 5 shipped `CommandKind.Trip`, Tick phase 4, the Trip Fate Census family and two
+invariants; the three Movement tables joined `World._tables`, so **all three golden baselines are
+re-recorded**. **1,136 tests green** against 5a's 1,060.
+
+**Task 5 owed one thing it could not deliver, and the brief had the wrong reason for it.**
+`adr/0041`'s **volume attribution is not built** — see *Task 5's findings* below. The brief expected it
+*"nearly vacuous… `adr/0041` increments on vehicular Legs only, and 5b has none"*, which is true and is
+not the binding constraint: a vehicular Leg would not have made it work either. The invariant ships and
+is tested; the increment is 5c's, and the ledger row says so.
 
 **⚠ RE-SCOPED 2026-08-12, and the remit shrank rather than the blockers clearing.** The §A sitting found
 the question **void as posed** under [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md):
@@ -919,6 +924,62 @@ makes the assertion invisible rather than false.**
 unbuilt, and the note in *Tasks* above stands: run after 5a-bis and it inherits real frontage; run
 before and every Access Point it invents is one the subdivider would have derived. **The type is now
 ready either way**, which is the half that had to exist before the ordering mattered.
+
+### Task 5's findings — the slice closes
+
+**Built:** `CommandKind.Trip`, a Trip entering through the Input Log on `CommandKind.Populate`'s
+precedent; `TripEngine` in Tick phase 4, advancing the Traveller cursor and releasing what has ended;
+a fourth Census metric family, four `TripCounter` flows read as a sum and a peak with the reading
+draining them; `Invariant.TripHasAFate` at the release site and `Invariant.SegmentVolumeIsConserved`
+at end of run; and the three Movement tables joining `World._tables`, which is what moved all three
+baselines.
+
+**⚠ `adr/0041` cannot be built by anything that stores a cost instead of a route, and `adr/0075` is
+that decision.** This is the finding that outlives the task. The brief expected volume to be *"nearly
+vacuous in this slice by construction: `adr/0041` increments on **vehicular** Legs only, and 5b has
+none"* — true, and **not the constraint that binds**. `adr/0041`'s own S2 R2 amendment states the
+requirement precisely: *"direct attribution needs a **next Segment** every Tick, and a path is only one
+way to supply one."* A Leg supplies no next Segment at all —
+[`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) gives it **a cost and no
+path**, deliberately — and there is no next-hop table anywhere in `Borough.Core`. **So adding a
+vehicular Leg tomorrow would not make volume work**; what it waits on is a **path source**, which is
+`plans/0010` decision 11 and the routing cluster in `0002` §B. The two ADRs do not conflict; the second
+**defers** the first, and nothing in either says so. *The general shape: a decision that removes a
+representation defers every decision that reads it, and neither document is the place a reader would
+look.* Filed to [`0012`](0012-corpus-audit.md) as an amendment owed to `adr/0041`.
+
+**The invariant ships anyway, and that is the disagreement worth being explicit about.**
+`SegmentVolumeIsConserved` is **vacuously satisfied through the whole slice** — both sides are zero —
+which is normally the argument for *not* writing it (slice 5 task 7 shipped its instrument and withheld
+its trend assertion for exactly that reason). The difference is that this assertion is the **correct
+one, temporarily trivial**, rather than one whose shape is wrong until the world changes: it becomes
+load-bearing the moment a vehicular Leg exists, with no edit. The test that writes the violation by hand
+is what makes it more than an intention, and it is the countermeasure to 5a-bis's *a guard with no test
+is invisible to every future reader, including the one about to decide it does not exist.*
+
+**⚠ The State Hash version byte's rule had been decided twice in silence, in opposite-looking
+directions.** `World.HashSeed`'s only recorded precedent is the clock joining the composition, which
+**bumped**. 5a appended two Road Graph tables and **did not**; 5b appends three Movement tables and does
+not either. The distinction is real and was nowhere written: the byte signs *the same city hashing
+differently*, and the clock was **existing state re-composed**, where a new table is **new state** and
+therefore a design change under `05 §4` — signing it would file a real change as a bookkeeping one. Now
+a comment on the constant. *A precedent set silently is a precedent nobody can follow*, and this one had
+survived two slices with a 50% chance of being read backwards.
+
+**A Trip's destination could not go in the log without a sixth field, so it went in `Command.Zone`.**
+The Input Log codec is text and its stated rule is that a new field bumps the version, which would cost
+every log ever written including the committed golden baseline. `TripPayload` packs a **signed block
+delta** into the sixteen bits `ConnectPayload` already established as a per-verb payload word.
+**Its range is a property of the Ruleset and not of the map**: at `[roads] block_tiles = 32` the map is
+128 blocks a side and `-128..127` spans it whole; at 8 it reaches a quarter of it. Recorded on the type
+rather than left to be discovered.
+
+**`Simulation.OccupiedBuildingIn` is `O(Lots)` and is left that way on purpose.** It is the call site of
+the *place → nearby Buildings* query the sitting found nobody had named, which is
+[`adr/0081`](../docs/adr/0081-the-commute-is-the-first-trip-generator-and-a-job-is-taken-by-satisficing-on-distance.md)'s
+**first** task. Under [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md) a local
+index here would remove the only exposure that gets the shared one built — the finding is routed and the
+scan stays, on one command per session.
 
 ### Decisions this slice must close
 

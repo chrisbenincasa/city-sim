@@ -26,9 +26,39 @@ on the Epoch; and a `[lots]` Ruleset table states **one** number, `lots_per_segm
 [`0077`](docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md),
 [`0078`](docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md),
 [`0079`](docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md).
-~~**The code track now holds only 5b.**~~ **It holds two rows as of 2026-08-12** — what is left of 5b
-(task 5, Phase 4 behind a command) and the new milestone **5b-bis**. 5b's remit *shrank* rather than its
-blockers clearing; see the 5b entry below.
+~~**The code track now holds only 5b.**~~ ~~**It holds two rows as of 2026-08-12**~~ **It holds one:
+milestone 5b-bis.** 5b closed the same day; see the next section.
+
+**Milestone 5b shipped 2026-08-12 ([`plans/0021`](plans/0021-trips-legs-and-the-pedestrian-layer.md)) —
+tasks 1, 2, 3, 5 and 7, 1,136 tests green, all three golden baselines re-recorded.**
+`Borough.Core.Movement` holds the three tables, `WalkRouting` (a real Dijkstra over a binary heap), and
+**`TripEngine` in Tick phase 4**, which had been an empty method since the Tick was written. A Trip enters
+through the Input Log on `CommandKind.Populate`'s precedent
+([`adr/0080`](docs/adr/0080-phase-4-does-not-wait-on-a-trip-generator-and-a-trip-is-entered-by-command.md)),
+because **the §A sitting found that no milestone in Phase 2 ever produced a Trip destination**: all seven
+generators the corpus names sit in `06`'s *Mechanisms with no milestone*, so tasks 4, 6 and 8 — each of
+which measures a *distribution* — left for a new milestone **5b-bis**
+([`adr/0081`](docs/adr/0081-the-commute-is-the-first-trip-generator-and-a-job-is-taken-by-satisficing-on-distance.md)),
+jobs and the commute. **5b-bis's first task is not the generator**: there is **no query from a place to the
+Buildings near it** anywhere in `Borough.Core`, and all three candidate generators needed one.
+
+**5b's sharpest finding is that one of its own consequences turned out unbuildable, and the reason everybody
+had was not the one that binds.**
+[`adr/0041`](docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md)'s Segment volume
+was expected to be *"nearly vacuous — `adr/0041` increments on **vehicular** Legs only, and 5b has none"*.
+True, and it predicts that a vehicular Leg would fix it. **It would not**: that ADR's own amendment requires
+*"a **next Segment** every Tick"*, and [`adr/0075`](docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md)
+gives a Leg **a cost and no path**, with no next-hop table anywhere. Volume therefore waits on a **path
+source**, which is 5c. ***A decision that removes a representation defers every decision that reads it***,
+and neither ADR said so — `adr/0075` issued a write to `adr/0041` it did not know it was issuing, which is
+`plans/0012` *Cause 2* running backwards. The columns and the conservation invariant exist; nothing
+increments them. **Two smaller ones.** The State Hash **version byte's rule had been decided twice in
+silence** — the clock bumped `World.HashSeed` and the five tables 5a and 5b appended did not, and the
+distinction (*existing state re-composed* against *new state, which is a design change under `05 §4`*) was
+written nowhere; *a precedent set silently is a precedent nobody can follow.* And a **vacuously-satisfied
+invariant shipped on purpose**, against slice 5 task 7's precedent of withholding one: the difference is
+between an assertion whose *shape* is wrong until the world changes and one that is **correct and
+temporarily trivial**, which becomes load-bearing with no edit.
 
 **The slice's sharpest finding is about the re-record, not about Lots — and it is the second sighting
 in three slices.** Eight of the golden session's eleven `zone` commands named Tiles 0–31, which is
@@ -441,7 +471,7 @@ unless asked.
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
 | `plans/0002-open-questions.md` | ***What needs answering.*** One ledger, every entry typed *measurable* or *arguable* and grouped by what is blocked on it, with the session-by-session record archived beneath it |
 | `plans/0003-build-plan.md` | The ordered slice ledger for Phase 0 and Phase 1, with a gate board. **Start here when picking up the *code* cold.** Supersedes `06`'s Phase 0/1 ordering |
-| `plans/0004`–`0022` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015`, `0014` (task 11) and `0020` are all closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped**. **`0019` is S5's**, the Lane kernel — run, two tripwires fired, **nothing published**. **`0020` is the Road Graph (`06` milestone 5a) and is the first Phase 2 slice brief** — **built 2026-08-11, all seven tasks**, and it is the document that found no session gates 5a. Its close-out carries four findings and the reason the S2 harness is still on disk. **`0021` is milestone 5b — Trips, Legs and the pedestrian layer — and it is ✅ UNBLOCKED (2026-08-11)**: it had **two** gates, **D** and **F**, and both are now clear — F ran on 2026-08-11, one sitting, seven decisions. The document is **F's brief, F's record, and then the slice**. *(It was ⚠ BLOCKED until that afternoon, and this file's own "milestone 5b, which D gates" obscured the second gate — corrected rather than silently deleted, because a gate struck for the wrong reason is the failure `0020` warns about for the S2 harness.)* **⚠ RE-SCOPED 2026-08-12 by the §A sitting**: tasks **4, 6 and 8 left the slice** for a new milestone **5b-bis** (jobs and the commute), because each measures an origin-destination **distribution** and **all seven Trip generators the corpus names sit in `06`'s *Mechanisms with no milestone*** — so Phase 2 as sequenced never produced a destination and §A was **void as posed** under `adr/0070`. 5b's *irreversible* risk was retired by `adr/0075` and tasks 1–3, not by the generator. `adr/0080`, `adr/0081`. **`0022` is 5a-bis — the Lot subdivider and `build_road` — and it is ✅ DONE (2026-08-11)**, all seven tasks. `0020` scoped it and nothing scheduled it; `06` now has a **5a-bis** row, and `plans/0012`'s two subdivider boxes are struck. Its close-out carries four findings, of which the load-bearing one is about **re-recording a baseline** rather than about Lots |
+| `plans/0004`–`0022` | One plan document per slice, spike **or session**: S4, the arithmetic substrate, the analysers, typed tables, the Tick and replay, Map Layers, S2 routing, the Rule engine, Zone Rules (`0014`), hot reload (`0015`), the Event Wheel (`0016`), **session D's brief (`0017`)**. **No slice is in flight**; `0015`, `0014` (task 11), `0020`, `0021` and `0022` are all closed. **`0017` is the first brief written for a *session* rather than for code** — D is more than one sitting, which is the same criterion that gives a slice a plan. **`0018` is session N's**, the Bin/Pool/economy cluster; tasks 1, 2, 3 and 4 are `adr/0063`–`0065` and `adr/0068`–`0070`, and **all have shipped**. **`0019` is S5's**, the Lane kernel — run, two tripwires fired, **nothing published**. **`0020` is the Road Graph (`06` milestone 5a) and is the first Phase 2 slice brief** — **built 2026-08-11, all seven tasks**, and it is the document that found no session gates 5a. Its close-out carries four findings and the reason the S2 harness is still on disk. **`0021` is milestone 5b — Trips, Legs and the pedestrian layer — and it is ✅ UNBLOCKED (2026-08-11)**: it had **two** gates, **D** and **F**, and both are now clear — F ran on 2026-08-11, one sitting, seven decisions. The document is **F's brief, F's record, and then the slice**. *(It was ⚠ BLOCKED until that afternoon, and this file's own "milestone 5b, which D gates" obscured the second gate — corrected rather than silently deleted, because a gate struck for the wrong reason is the failure `0020` warns about for the S2 harness.)* **⚠ RE-SCOPED 2026-08-12 by the §A sitting**: tasks **4, 6 and 8 left the slice** for a new milestone **5b-bis** (jobs and the commute), because each measures an origin-destination **distribution** and **all seven Trip generators the corpus names sit in `06`'s *Mechanisms with no milestone*** — so Phase 2 as sequenced never produced a destination and §A was **void as posed** under `adr/0070`. 5b's *irreversible* risk was retired by `adr/0075` and tasks 1–3, not by the generator. `adr/0080`, `adr/0081`. **✅ DONE 2026-08-12** on tasks 1, 2, 3, 5 and 7. Its close-out carries three findings, of which the load-bearing one is that **`adr/0041`'s volume attribution is not buildable against `adr/0075`'s Leg** — a cost and no path — so it waits on 5c's path source rather than on vehicles. **`0022` is 5a-bis — the Lot subdivider and `build_road` — and it is ✅ DONE (2026-08-11)**, all seven tasks. `0020` scoped it and nothing scheduled it; `06` now has a **5a-bis** row, and `plans/0012`'s two subdivider boxes are struck. Its close-out carries four findings, of which the load-bearing one is about **re-recording a baseline** rather than about Lots |
 | `plans/0012-corpus-audit.md` | The corpus audit's debt ledger. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | **What a Tick costs.** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `docs/spike-results.md` | Recorded spike numbers and the decision each produced. S4, S2 R0–R8, **S0a and S0b** have all run |

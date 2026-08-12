@@ -3,6 +3,7 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Invariants;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -610,6 +611,56 @@ public sealed class InvariantTierTests
             world.Invariants.RunStaggered(world);
             world.Advance();
         }
+    }
+
+    /// <summary>
+    /// <b>Volume on a road nobody is driving on is caught.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>adr/0041</c>'s failure mode, written by hand: <i>"a Traveller that vanishes without
+    /// decrementing destroys the reading permanently … a road that looks busy forever."</i> Nothing in
+    /// milestone 5b increments volume — walk Legs contribute nothing and there are no others — so this
+    /// is the only way the check can be seen to work at all, and it is worth seeing before the first
+    /// vehicular Leg is written rather than after.
+    /// </remarks>
+    [Fact]
+    public void A_segment_carrying_volume_no_traveller_accounts_for_is_caught()
+    {
+        World world = WithRoads();
+        world.Roads.Segments.VolumeForward[0]++;
+
+        Assert.Equal(Invariant.SegmentVolumeIsConserved, CaughtAtEnd(world));
+    }
+
+    /// <summary>
+    /// <b>A Trip released while still in flight is caught at the write site.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>02 §10</c>'s <em>no Trip without a Fate</em>. <see cref="TripEngine.Release"/> is called
+    /// directly because nothing else can reach it in this state — the sweep filters
+    /// <see cref="TripFate.InFlight"/> out before freeing, so the guard is unreachable through
+    /// <see cref="TripEngine.Advance"/> by construction.
+    /// </para>
+    /// <para>
+    /// <b>That is the argument for the test, not against it.</b> The condition the guard protects holds
+    /// today because there is exactly one release site; what it is written for is the second one, and a
+    /// test that could only exercise the first would pass identically if the guard were deleted.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_trip_released_without_a_fate_is_caught()
+    {
+        World world = WithRoads();
+        var engine = new TripEngine(world);
+
+        Handle<Trip> trip = world.Trips.Create(
+            world.Roads.Segments, TripPurpose.Commanded, Address.None, Address.None);
+
+        Assert.Equal(
+            Invariant.TripHasAFate,
+            Assert.Throws<InvariantViolationException>(
+                () => engine.Release(world.Trips.Rows.Resolve(trip))).Violation.Invariant);
     }
 
     private static Invariant Caught(World world) =>

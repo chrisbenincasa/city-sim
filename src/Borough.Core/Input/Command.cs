@@ -70,6 +70,34 @@ public enum CommandKind : ushort
     /// <b>It is expected to be deleted</b> when the player can grow a city instead of declaring one.
     /// </remarks>
     Populate = 5,
+
+    /// <summary>
+    /// Send somebody from the Building here to the Building a block-offset away. <c>adr/0080</c>'s
+    /// verb, and — like <see cref="Populate"/> — an instrument rather than one of <c>01 §2</c>'s five.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Phase 4 is built before anything generates a Trip, so a Trip has to enter through a door.</b>
+    /// Every generator the corpus names is unmilestoned (<c>adr/0080</c>), and a sampled stand-in would
+    /// have fabricated the one thing every measurement downstream is a property of — the
+    /// origin-destination distribution. A commanded Trip asserts nothing about the city, and being in
+    /// the Input Log means replay reproduces it <em>by construction</em>, which is exactly why
+    /// <see cref="Populate"/> is a verb rather than a runner switch.
+    /// </para>
+    /// <para>
+    /// <b>Payload: <see cref="TripPayload"/> in <see cref="Command.Zone"/>'s sixteen bits</b>, so the
+    /// log format version does not move — <c>InputLogCodec.Version</c>'s rule is that a <em>sixth
+    /// field</em> bumps it, and this adds none. <see cref="Command.East"/> and
+    /// <see cref="Command.North"/> name the origin Tile; the payload names the destination as a signed
+    /// block delta, which is <see cref="ConnectPayload"/>'s pattern of deriving the far endpoint from
+    /// an origin plus a descriptor the world can resolve.
+    /// </para>
+    /// <para>
+    /// <b>It is expected to be deleted</b>, on <see cref="Populate"/>'s terms: when milestone 5b-bis
+    /// ships the commute generator (<c>adr/0081</c>), this stops being the only way a Trip exists.
+    /// </para>
+    /// </remarks>
+    Trip = 6,
 }
 
 /// <summary>
@@ -170,4 +198,42 @@ public readonly record struct ConnectPayload(Space.StreetAxis Axis, ConnectActio
     /// <summary>Packs this payload into a <see cref="Command.Zone"/> word.</summary>
     public ushort Encode() =>
         (ushort)((int)Axis | ((int)Action << 1) | ((int)Kind << 8));
+}
+
+/// <summary>
+/// <see cref="CommandKind.Trip"/>'s payload: where the destination is, relative to the origin, in
+/// whole blocks of the Street lattice.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A delta rather than a second coordinate pair, and the reason is the format version.</b>
+/// <c>InputLogCodec</c>'s rule is that a <em>sixth field on a command</em> is what bumps it, and a
+/// bump <em>"would cost every log ever written — including the committed golden baseline"</em>. Two
+/// absolute Tile pairs are six fields; an origin plus this is four.
+/// </para>
+/// <para>
+/// <b>A signed byte per axis reaches every block on the map, and that is arithmetic rather than
+/// luck.</b> The map is 4,096 Tiles a side and <c>[roads] block_tiles</c> ships at 32, so the lattice
+/// is <b>128 blocks</b> a side and <c>-128..127</c> spans it whole. <b>It is a property of the
+/// Ruleset, not a constant</b> — a coarser <c>block_tiles</c> makes the reach longer in Tiles and a
+/// finer one makes it shorter, and at <c>block_tiles = 8</c> the range covers only a quarter of the
+/// map. That is the same dependence <see cref="ConnectPayload"/> already carries, stated here because
+/// this one can silently under-reach where that one cannot.
+/// </para>
+/// <para>
+/// <b>Blocks rather than Tiles, because a Lot is a property of a block.</b> The subdivider carves a
+/// block against its four Street faces, so <em>the Building one block east</em> is a thing the world
+/// can resolve and <em>the Building seventeen Tiles east</em> is not. A Tile delta of the same width
+/// would reach ±127 Tiles — about four blocks — which does not span a neighbourhood, let alone a city.
+/// </para>
+/// </remarks>
+public readonly record struct TripPayload(sbyte BlocksEast, sbyte BlocksNorth)
+{
+    /// <summary>Reads a payload out of a <see cref="Command.Zone"/> word.</summary>
+    public static TripPayload Decode(ushort word) =>
+        new((sbyte)(word & 0xFF), (sbyte)((word >> 8) & 0xFF));
+
+    /// <summary>Packs this payload into a <see cref="Command.Zone"/> word.</summary>
+    public ushort Encode() =>
+        (ushort)((BlocksEast & 0xFF) | ((BlocksNorth & 0xFF) << 8));
 }

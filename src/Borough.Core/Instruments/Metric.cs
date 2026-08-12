@@ -179,6 +179,42 @@ public enum PlacementCounter : byte
 }
 
 /// <summary>
+/// One counter per <see cref="Movement.TripFate"/>: how journeys ended over the interval.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A Fate rather than a Trip count, because <c>02</c>'s rule is <i>no Trip without a Fate</i> and
+/// the Fate is the thing worth keeping.</b> A Trip row lives for as long as the journey and then goes
+/// back to the allocator (<c>adr/0006</c>), so the count of Trips is a level that is always about to
+/// be wrong; how they <em>ended</em> is an event, and an event survives its row only if something
+/// counts it on the way out.
+/// </para>
+/// <para>
+/// <b>All four, including the two nothing can currently produce.</b> <c>adr/0076</c> closes the set at
+/// four, so this enumeration is closed with it and needs no edit when the missing conditions arrive.
+/// <see cref="ExceededCommuteBudget"/> waits on the Commute Budget existing as <c>[trips]</c> Ruleset
+/// data — milestone 5b-bis, <c>adr/0081</c>.
+/// </para>
+/// </remarks>
+public enum TripCounter : byte
+{
+    /// <summary>Reached the destination. <b>Running out of Legs is what arriving means.</b></summary>
+    Completed,
+
+    /// <summary>
+    /// No walkable route existed — including the case where an endpoint had no front door at all,
+    /// which <c>adr/0079</c> makes a reported hole rather than an error.
+    /// </summary>
+    NoRouteFound,
+
+    /// <summary>The journey was possible and cost more than the Commute Budget allows.</summary>
+    ExceededCommuteBudget,
+
+    /// <summary>The network changed underneath the Trip and left it with nowhere to go.</summary>
+    Stranded,
+}
+
+/// <summary>
 /// How a flow counter's Ticks are reduced into one reading.
 /// </summary>
 /// <remarks>
@@ -241,6 +277,15 @@ public enum MetricSource : byte
     /// from the mechanism that builds, and a shared counter would put them back together.
     /// </remarks>
     Placement,
+
+    /// <summary>One counter of Tick phase 4: a flow, accumulated and drained.</summary>
+    /// <remarks>
+    /// A fifth family on <see cref="Zones"/>' reasoning, and the first that is not a Rule family at
+    /// all. A Trip Fate is not something a Rule did — it is how a journey ended — so folding it in
+    /// beside <see cref="RuleCounter"/> would put the two mechanisms <c>adr/0033</c> and
+    /// <c>adr/0075</c> keep apart into one arithmetic.
+    /// </remarks>
+    Trips,
 }
 
 /// <summary>
@@ -312,6 +357,11 @@ public readonly record struct Metric
         ? (PlacementCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not carry a placement counter.");
 
+    /// <summary>Which of Tick phase 4's Fate counters.</summary>
+    public TripCounter TripCounter => Source is MetricSource.Trips
+        ? (TripCounter)_counter
+        : throw new InvalidOperationException($"a {Source} metric does not carry a Trip counter.");
+
     /// <summary>How the counter's Ticks are reduced into one reading.</summary>
     /// <remarks>
     /// Meaningful only for a flow. A table counter is read at an instant, so there is nothing over
@@ -319,6 +369,7 @@ public readonly record struct Metric
     /// </remarks>
     public Aggregate Aggregate =>
         Source is MetricSource.Rules or MetricSource.Zones or MetricSource.Placement
+            or MetricSource.Trips
         ? (Aggregate)_aggregate
         : throw new InvalidOperationException($"a {Source} metric is a level and is not aggregated.");
 
@@ -345,4 +396,10 @@ public readonly record struct Metric
     /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
     public static Metric Of(PlacementCounter counter, Aggregate aggregate) =>
         new(MetricSource.Placement, 0, (byte)counter, (byte)aggregate);
+
+    /// <summary>One Trip Fate counter, under one reduction.</summary>
+    /// <param name="counter">Which Fate.</param>
+    /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
+    public static Metric Of(TripCounter counter, Aggregate aggregate) =>
+        new(MetricSource.Trips, 0, (byte)counter, (byte)aggregate);
 }

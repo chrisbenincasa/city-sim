@@ -47,6 +47,13 @@ public sealed class World
     // 02: the clock joined the composition. The Tick moved out of Simulation and into ClockTable, so
     // every hash in the project moved at once on account of the composition rather than the city —
     // which is exactly the case this byte exists to distinguish from a regression.
+    //
+    // A NEW table joining _tables does not bump this, and the line is worth stating because it has
+    // now been drawn twice in silence: 5a appended the two Road Graph tables and 5b the three
+    // Movement ones, neither with a bump. What this byte signs is *the same city hashing
+    // differently* -- the clock was state that already existed, re-composed. New state is a design
+    // change under 05 §4: the city genuinely has more in it, the baselines move because the world
+    // moved, and signing that would file a real change as a bookkeeping one.
     private const ulong HashSeed = 0x426F_726F_7567_6802UL;
 
     private readonly Rows[] _tables;
@@ -128,6 +135,22 @@ public sealed class World
         Clock = new ClockTable();
         RulesetTrail = new RulesetTrailTable();
 
+        // The three Movement tables, and their capacity is deliberately NOT a function of population.
+        //
+        // plans/0021 -> "Decisions this slice must close" 3 is explicit about why: adr/0008 says the
+        // Trip table "must be sized for this rather than for a Leg-per-Trip assumption", the ratio it
+        // means (0002 §B-17, mean Legs per Trip) has never been measured, and 0002 §D1 already carries
+        // table sizing ratios as a LIVE INCONSISTENCY -- World allocates 225 Lots and 150 Buildings per
+        // 1,000 while the populator builds 120 of each. The instruction is "do not add a fourth guessed
+        // ratio to that row".
+        //
+        // So this is a capacity hint that says only "a handful", and Rows grows. The number that
+        // replaces it comes from milestone 5b-bis measuring what a real generator produces, at a
+        // recorded rung -- not from arithmetic done here.
+        Trips = new Movement.TripTable(64, Roads.Segments);
+        Legs = new Movement.LegTable(64, Roads.Segments);
+        Travellers = new Movement.TravellerTable(64, Citizens, Trips);
+
         // The registry is built before the Wheel rather than after the tables, because EventWheel.Arm
         // reports a double arming through it, and after the Clock, because it reads the Tick from this
         // world rather than being told one. Ordering only — the registry folds nothing.
@@ -144,10 +167,32 @@ public sealed class World
             Lots.Rows, Buildings.Rows, Households.Rows, Citizens.Rows, Layers.Cells.Rows,
             Bins.Rows, RuleInstances.Rows, Wheel.Buckets.Rows, UnplacedPool.Rows, Clock.Rows,
             RulesetTrail.Rows, Roads.Nodes.Rows, Roads.Segments.Rows,
+
+            // Appended, which this comment's own rule says is the one edit that moves no row relative
+            // to another. They were built by 5b tasks 1-3 and left out of this list, so until now they
+            // were outside the State Hash entirely -- declared columns with a saved/derived disposition
+            // that nothing folded. adr/0080 wires them because Phase 4 is what constructs a row in them.
+            Trips.Rows, Legs.Rows, Travellers.Rows,
         ];
 
         WorldInvariants.RegisterAll(Invariants);
     }
+
+    /// <summary>
+    /// Trips in flight and Trips resolved but not yet read out. <c>adr/0075</c>'s <em>what</em>.
+    /// </summary>
+    public Movement.TripTable Trips { get; }
+
+    /// <summary>
+    /// Every Leg of every live Trip. <c>adr/0075</c>'s <em>plan</em> — a cost, never a path.
+    /// </summary>
+    public Movement.LegTable Legs { get; }
+
+    /// <summary>
+    /// Citizens currently on the road. <c>adr/0075</c>'s <em>cursor</em>, and a view rather than an
+    /// owner: no conserved quantity lives here.
+    /// </summary>
+    public Movement.TravellerTable Travellers { get; }
 
     /// <summary>The world's position in time, as one saved row.</summary>
     public ClockTable Clock { get; }

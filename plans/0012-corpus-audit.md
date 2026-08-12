@@ -826,6 +826,32 @@ from Phase 2 for as long as Phase 2 has been written down**, and it took a slice
 it. *An internal contradiction in a planning document is not a tidiness problem; it is two readers being
 told different things about what the plan will produce.*
 
+### `adr/0041` states a mechanism that `adr/0075` has since made unbuildable, and neither ADR says so
+
+*(Found 2026-08-12 by `plans/0021` task 5, which owed the mechanism and could not build it. Owner:
+[`adr/0041`](../docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md); an
+amendment block, not a rewrite — the decision is untouched and its **schedule** is what is wrong.)*
+
+`adr/0041` requires a Segment's volume to be incremented *"when a Traveller enters it"*, and its S2 R2
+amendment says exactly what that needs: *"direct attribution needs a **next Segment** every Tick, and a
+path is only one way to supply one."* The rungs it names are a stored path and a **next-hop table**.
+
+**[`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) supplies neither.** A
+Leg holds **a cost and no path** — on purpose, and rightly — and nothing in `Borough.Core` holds a
+next-hop table. So volume attribution is not merely unimplemented; it is **not expressible** against the
+structures 5b shipped, and will stay that way until a path source lands (`plans/0010` decision 11).
+
+**What made this hard to see is that a true reason was already available for the same absence.**
+`adr/0041` increments on **vehicular** Legs only and 5b resolves walk Legs only, so `plans/0021` recorded
+volume as *"nearly vacuous in this slice by construction"* — correct, and load-bearing on nothing.
+**A sufficient reason that happens to be the wrong one is worse than no reason**, because it predicts
+that adding a vehicle fixes it, and the next slice will believe that.
+
+**The shape is Cause 2 in reverse.** Cause 2 is *an ADR issues a write to another document and the write
+does not land*. Here `adr/0075` issued a write it did not know it was issuing: **a decision that removes
+a representation defers every decision that reads it**, and a consumer three ADRs away has no reason to
+be re-read. Nothing in the corpus asks *what else was reading the thing I just deleted*.
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and

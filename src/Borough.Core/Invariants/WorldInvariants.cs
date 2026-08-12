@@ -1,5 +1,6 @@
 using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -48,6 +49,65 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, BinCapacitiesMatchTheirDeclarations);
         invariants.Register(InvariantTier.EndOfRun, TheAdjacencyDescribesTheSegments);
         invariants.Register(InvariantTier.EndOfRun, VacantLandHasAStreetToBuildOff);
+        invariants.Register(InvariantTier.EndOfRun, TrafficIsConserved);
+    }
+
+    /// <summary>
+    /// Every Traveller on the road is on exactly one Segment's volume, and nobody else is.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0041</c>'s invariant, in the tier a whole-graph sum belongs to. The argument for it is
+    /// on <see cref="Invariant.SegmentVolumeIsConserved"/>; the argument for it being written while
+    /// both sides are structurally zero is there too.
+    /// </para>
+    /// <para>
+    /// <b>The right-hand side counts <em>vehicular</em> Travellers, and that qualifier is the whole
+    /// reason the check has content.</b> A Traveller on foot contributes nothing —
+    /// <c>CONTEXT.md</c> → Fidelity keeps pedestrians out of Stress entirely — so a version that
+    /// counted every in-flight Traveller would fail on a walking city and would have to be weakened by
+    /// whoever met it first.
+    /// </para>
+    /// </remarks>
+    internal static void TrafficIsConserved(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        RoadSegmentTable segments = world.Roads.Segments;
+
+        long onTheRoad = 0;
+
+        for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
+        {
+            if (!segments.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            onTheRoad += segments.VolumeForward[slot] + segments.VolumeBackward[slot];
+        }
+
+        long driving = 0;
+
+        TravellerTable travellers = world.Travellers;
+        LegTable legs = world.Legs;
+
+        for (int slot = 0; slot < travellers.Rows.SlotCount; slot++)
+        {
+            if (!travellers.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if ((TravelMode)legs.Mode[travellers.CurrentLeg[slot]] != TravelMode.Foot)
+            {
+                driving++;
+            }
+        }
+
+        report.Require(
+            onTheRoad == driving, Invariant.SegmentVolumeIsConserved, (int)onTheRoad, (int)driving);
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -41,7 +42,13 @@ public sealed class Simulation
     private readonly RuleEngine _rules;
     private readonly ZoneRuleEngine _zoning;
     private readonly PlacementEngine _placement;
+    private readonly TripEngine _trips;
     private readonly RulesetCatalogue _rulesets;
+
+    // Reusable search state for every walk this simulation resolves. It is not simulation state and
+    // folds nothing: WalkScratch.Begin grows its arrays and bumps a generation stamp rather than
+    // clearing, so holding one costs a high-water mark of nodes and saves a whole allocation per Leg.
+    private readonly WalkScratch _walk = new();
 
     private TickPhase _phase = TickPhase.Commit;
     private ulong _inForce;
@@ -91,6 +98,11 @@ public sealed class Simulation
         _rules = new RuleEngine(world, key);
         _zoning = new ZoneRuleEngine(world, key);
         _placement = new PlacementEngine(world, key);
+
+        // No WorldKey: nothing in Phase 4 draws. A Traveller advances when its Leg's arrival Tick has
+        // come, which is arithmetic over state the log already determines, so there is no decision here
+        // for a purpose_tag to separate. If one ever appears, it needs its own tag (BOR0801-BOR0803).
+        _trips = new TripEngine(world);
         _rulesets = rulesets;
     }
 
@@ -129,6 +141,9 @@ public sealed class Simulation
     /// <c>adr/0069</c> exists to break: construction and placement doing each other's jobs.
     /// </remarks>
     public PlacementEngine Placement => _placement;
+
+    /// <summary>Tick phase 4, and the Trip Fate counters the Census drains.</summary>
+    public TripEngine Trips => _trips;
 
     /// <summary>The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</summary>
     public WorldKey Key => _key;
@@ -306,8 +321,6 @@ public sealed class Simulation
     /// </remarks>
     private void Apply(Command command, Ticks tick)
     {
-        _ = tick;
-
         switch (command.Kind)
         {
             case CommandKind.Zone:
@@ -335,6 +348,14 @@ public sealed class Simulation
                 // It is applied like any other because that is the point of it: a population that
                 // arrived any other way would be outside the log that claims to describe the session.
                 SyntheticCity.PopulateInto(_world, _key, tick);
+                break;
+
+            case CommandKind.Trip:
+                // adr/0080's verb. Phase 4 is built ahead of anything that generates a Trip, because
+                // every generator the corpus names is unmilestoned -- so a Trip enters through the log
+                // exactly as a population does, and for the same reason: what arrives any other way is
+                // a state change no replay reproduces.
+                ApplyTrip(command, tick);
                 break;
 
             case CommandKind.None:
@@ -413,6 +434,180 @@ public sealed class Simulation
         LotSubdivider.Resubdivide(_world);
     }
 
+    /// <summary>
+    /// <c>adr/0080</c>'s verb: put one Citizen on the road between two Buildings the operator names.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Every refusal here is a refusal rather than a degradation</b>, on the <c>Scope.Pool</c> and
+    /// <c>--zones</c> precedent. A command naming an empty block could plausibly be answered with
+    /// <em>the nearest Building instead</em>, and that answer would make an operator's typo indis­tin­guish­able
+    /// from a Trip they meant — which is the whole class of defect a commanded Trip exists to avoid.
+    /// </para>
+    /// <para>
+    /// <b>What is <em>not</em> a refusal is a Building with no front door.</b> <c>adr/0079</c> settles
+    /// that a Building outlives its frontage and an Address that has none is <em>a hole the Trip model
+    /// reports</em> — so that is a Trip whose Fate is <see cref="TripFate.NoRouteFound"/>, and it is the
+    /// case this verb exists to be able to produce on demand.
+    /// </para>
+    /// <para>
+    /// <b>The crossing cost is <see cref="TravelTime.Zero"/> and this is not a choice of its value.</b>
+    /// It is <c>[trips]</c> Ruleset data, hash-bearing and unset, and no part of milestone 5b may choose
+    /// it (<c>adr/0052</c>). It is passed rather than looked up, so passing zero costs one addition and
+    /// decides nothing — the same position <c>--trips</c> took, and it says so there too.
+    /// </para>
+    /// </remarks>
+    private void ApplyTrip(Command command, Ticks tick)
+    {
+        TripPayload payload = TripPayload.Decode(command.Zone);
+
+        int block = _world.Roads.Streets.BlockTiles;
+
+        if (block <= 0)
+        {
+            throw new InvalidOperationException(
+                "trip names a Street lattice this world does not have. A Building's Access Point is "
+                + "derived through its Lot, a Lot is carved out of a block, and the spacing comes from "
+                + "the Ruleset's [roads] block_tiles -- so a Ruleset declaring no [roads] is a world "
+                + "in which nobody has an address to travel between.");
+        }
+
+        int column = IntegerMath.FloorDiv(command.East.Raw, block);
+        int row = IntegerMath.FloorDiv(command.North.Raw, block);
+
+        int origin = OccupiedBuildingIn(column, row);
+        int destination = OccupiedBuildingIn(column + payload.BlocksEast, row + payload.BlocksNorth);
+
+        if (origin < 0 || destination < 0)
+        {
+            throw new InvalidOperationException(
+                $"trip from block ({column}, {row}) to block ({column + payload.BlocksEast}, "
+                + $"{row + payload.BlocksNorth}) names a block with no occupied Building in it. The "
+                + "verb refuses rather than substituting a nearby one, because a substituted endpoint "
+                + "makes a mistyped command indistinguishable from the Trip somebody meant.");
+        }
+
+        if (origin == destination)
+        {
+            throw new InvalidOperationException(
+                "trip names one Building as both endpoints. A Trip to where you already are is not a "
+                + "degenerate Trip, it is a command with a wrong payload -- the block delta is zero, or "
+                + "both blocks resolved to the same Building because only one is occupied.");
+        }
+
+        int citizen = FirstResidentOf(origin);
+
+        if (citizen < 0)
+        {
+            throw new InvalidOperationException(
+                "trip names an origin Building with no Citizen in it. A Traveller is a cursor over a "
+                + "Citizen's journey (adr/0075) and there is nobody here to be one.");
+        }
+
+        Address from = _world.PedestrianAccessPoint(origin);
+        Address to = _world.PedestrianAccessPoint(destination);
+
+        Handle<Trip> trip = _world.Trips.Create(
+            _world.Roads.Segments, TripPurpose.Commanded, from, to);
+        int tripSlot = _world.Trips.Rows.Resolve(trip);
+
+        // adr/0079. A Building whose Street was bulldozed still stands and still holds people; what it
+        // has lost is a way in. That is a Fate, reported, and not an exception.
+        if (!from.Exists || !to.Exists)
+        {
+            _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound);
+            return;
+        }
+
+        TravelTime cost = WalkRouting.Cost(_world.Roads, from, to, TravelTime.Zero, _walk);
+
+        // Eagerly, per adr/0075: every Leg of a Trip is created at Trip creation, which is what makes
+        // mean-Legs-per-Trip countable at all. One Leg here because 5b resolves walk Legs only.
+        Handle<Leg> leg = _world.Legs.Create(
+            _world.Roads.Segments, TravelMode.Foot, from, to, cost);
+        int legSlot = _world.Legs.Rows.Resolve(leg);
+
+        _world.Trips.Append(_world.Legs, tripSlot, legSlot);
+
+        if (cost.IsImpassable)
+        {
+            _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound, legSlot);
+            return;
+        }
+
+        // Floor, and a sub-Tick walk therefore arrives on the Tick it departed. That is adr/0071 being
+        // taken literally rather than a rounding convenience: travel time is sub-Tick and Q16.16 is a
+        // scale, so a walk across the street genuinely costs less than one integration step. Phase 4
+        // runs after Phase 0 in the same Tick, so such a Trip is created and completed without ever
+        // being observed in flight -- which is correct, and is why the in-flight count is not a proxy
+        // for the number of Trips a run made.
+        _world.Travellers.Create(
+            _world.Citizens.Rows.At(citizen), trip, legSlot, tick + cost.ToTicksFloor());
+    }
+
+    /// <summary>
+    /// The first occupied Building in a block of the Street lattice, or <c>-1</c> if it holds none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>This is an <c>O(Lots)</c> scan, and it is the call site of the query milestone 5b-bis has
+    /// to build.</b> There is no index from a place to the Buildings near it anywhere in
+    /// <c>Borough.Core</c> — <see cref="Space.CellResidency"/> indexes Map Layer cells rather than
+    /// entities, and <see cref="Space.Frontage"/> maps a Lot to its Segment in one direction only. The
+    /// §A sitting found that all three candidate Trip generators need one and no document had named it
+    /// (<c>adr/0081</c>).
+    /// </para>
+    /// <para>
+    /// <b>It is affordable here for a reason that will not survive a generator.</b> This runs in Phase 0,
+    /// once per command a human wrote, so the scan is paid per keystroke rather than per Tick. A
+    /// generator runs per Household per occasion, and the same scan there is <c>O(Lots x Households)</c>
+    /// — which is why the index is 5b-bis's <em>first</em> task rather than a detail inside its
+    /// generator. <b>Left deliberately un-optimised</b>: a local index built here would remove the
+    /// pressure that gets the shared one built, which is <c>adr/0073</c>'s finding exactly.
+    /// </para>
+    /// <para>
+    /// <b>Slot order is a deterministic total order and the scan takes the first match</b>, which is the
+    /// discipline <see cref="World"/>'s own rebuild loops use. It is not an identity — nothing stores
+    /// the slot — so <c>BOR0206</c> is not in play.
+    /// </para>
+    /// </remarks>
+    private int OccupiedBuildingIn(int column, int row)
+    {
+        int block = _world.Roads.Streets.BlockTiles;
+        LotTable lots = _world.Lots;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot) || lots.IsVacant(slot))
+            {
+                continue;
+            }
+
+            if (IntegerMath.FloorDiv(lots.East[slot].Raw, block) == column
+                && IntegerMath.FloorDiv(lots.North[slot].Raw, block) == row)
+            {
+                return lots.BuildingOn(slot);
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// The first Citizen living in a Building, or <c>-1</c> if nobody does.
+    /// </summary>
+    /// <remarks>
+    /// Two intrusive lists deep — a Building's Households, then a Household's members — and taking the
+    /// head of each, because both are kept in slot order by <c>InsertOrdered</c> and the head is
+    /// therefore a stable choice rather than an arbitrary one.
+    /// </remarks>
+    private int FirstResidentOf(int building)
+    {
+        int household = _world.Occupants.PeekFront(building);
+
+        return household < 0 ? -1 : _world.Members.PeekFront(household);
+    }
+
     /// <summary>Phase 1 — drain the Event Wheel bucket for this Tick.</summary>
     /// <remarks>
     /// <b>Serial, and the only phase that takes rows off the Wheel.</b> Slice 7's wheel carries Rule
@@ -487,8 +682,13 @@ public sealed class Simulation
     /// </remarks>
     private void Move(Ticks tick)
     {
-        _ = tick;
         _phase = TickPhase.Move;
+
+        // Serially, though the phase permits parallel. Phases.Runs states that permission as an upper
+        // bound rather than an instruction, and plans/0021 task 5 says to take it as one: a parallel
+        // Phase 4 is one of adr/0037's two double-buffered tables, and neither the buffering nor the
+        // measurement that would justify it exists.
+        _trips.Advance(tick);
     }
 
     /// <summary>Phase 5 — Map Layer diffusion for whatever is scheduled this Tick.</summary>

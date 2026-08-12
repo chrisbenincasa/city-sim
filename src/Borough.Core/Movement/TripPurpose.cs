@@ -53,4 +53,33 @@ public enum TripPurpose : byte
     /// </para>
     /// </remarks>
     Shopping = 1,
+
+    /// <summary>
+    /// A Trip somebody asked for through <see cref="Input.CommandKind.Trip"/>. <b>Not a claim about
+    /// what any resident does</b>, and the only purpose in this enumeration that never will be.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It exists so that the absence of a generator is legible in the data rather than only in a
+    /// plan.</b> <c>adr/0080</c> builds Phase 4 ahead of anything that generates a Trip, because every
+    /// generator the corpus names is unmilestoned — so the Trips that exercise the Traveller cursor,
+    /// Fate resolution and the Census enter through the Input Log on <c>CommandKind.Populate</c>'s
+    /// precedent. A Trip a human asked for is reproduced by replay <em>by construction</em> and makes
+    /// no assertion about the city, which is the property a sampled generator could not have had.
+    /// </para>
+    /// <para>
+    /// <b>Nothing downstream may branch on this value, and that is the load-bearing rule.</b> Phase 4,
+    /// volume attribution, Fate resolution and the Census must treat a commanded Trip exactly as they
+    /// will treat a generated one. Reading it to <em>count</em> is fine; reading it to <em>decide</em>
+    /// would leave a second code path waiting for the generator to arrive into, which is the drifted-copy
+    /// failure with both copies live in one file.
+    /// </para>
+    /// <para>
+    /// <b>It is expected to be deleted</b> — the same sentence <c>CommandKind.Populate</c> carries, for
+    /// the same reason. When milestone 5b-bis's commute generator lands (<c>adr/0081</c>), the verb
+    /// becomes a test affordance rather than the only door, and a Trip with this purpose in a real run
+    /// is a Trip nobody meant to make.
+    /// </para>
+    /// </remarks>
+    Commanded = 2,
 }

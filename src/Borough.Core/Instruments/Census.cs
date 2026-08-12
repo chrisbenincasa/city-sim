@@ -1,4 +1,5 @@
 using Borough.Core.Entities;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
@@ -74,6 +75,12 @@ public sealed class Census
     /// <summary>The placement pass's share, on the same terms.</summary>
     private const int PlacementMetrics = PlacementCounters * AggregatesPerRuleCounter;
 
+    /// <summary>The members of <see cref="TripCounter"/>, which <c>adr/0076</c> closes at four.</summary>
+    private const int TripCounters = 4;
+
+    /// <summary>Tick phase 4's share, on the same terms.</summary>
+    private const int TripMetrics = TripCounters * AggregatesPerRuleCounter;
+
     /// <summary>
     /// Readings held before the oldest is overwritten.
     /// </summary>
@@ -95,6 +102,9 @@ public sealed class Census
 
     /// <summary>Where the placement pass's begin, which is where the Sweep family's end.</summary>
     private readonly int _placementBase;
+
+    /// <summary>Where Tick phase 4's begin, which is where the placement pass's end.</summary>
+    private readonly int _tripBase;
 
     private readonly int _metrics;
     private readonly int _capacity;
@@ -127,7 +137,8 @@ public sealed class Census
         _ruleBase = _tables * CountersPerTable;
         _zoneBase = _ruleBase + RuleMetrics;
         _placementBase = _zoneBase + ZoneMetrics;
-        _metrics = _placementBase + PlacementMetrics;
+        _tripBase = _placementBase + PlacementMetrics;
+        _metrics = _tripBase + TripMetrics;
         _capacity = capacity;
         _ticks = new ulong[capacity];
         _values = new long[capacity * _metrics];
@@ -184,7 +195,8 @@ public sealed class Census
             simulation.Tick,
             simulation.Rules.Drain(),
             simulation.Zoning.Drain(),
-            simulation.Placement.Drain());
+            simulation.Placement.Drain(),
+            simulation.Trips.Drain());
     }
 
     /// <summary>
@@ -203,12 +215,14 @@ public sealed class Census
     /// <param name="activity">The Rule engine's interval since the previous reading, already drained.</param>
     /// <param name="zoning">The Sweep family's interval since the previous reading, already drained.</param>
     /// <param name="placement">The placement pass's interval since the previous reading, already drained.</param>
+    /// <param name="trips">Tick phase 4's interval since the previous reading, already drained.</param>
     public void Observe(
         World world,
         Ticks tick,
         RuleActivity activity,
         ZoneActivity zoning = default,
-        PlacementActivity placement = default)
+        PlacementActivity placement = default,
+        TripActivity trips = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -246,6 +260,13 @@ public sealed class Census
 
         Write(_values, at + _placementBase, (int)PlacementCounter.Considered, placement.Considered);
         Write(_values, at + _placementBase, (int)PlacementCounter.Placed, placement.Placed);
+
+        Write(_values, at + _tripBase, (int)TripCounter.Completed, trips.Completed);
+        Write(_values, at + _tripBase, (int)TripCounter.NoRouteFound, trips.NoRouteFound);
+        Write(
+            _values, at + _tripBase,
+            (int)TripCounter.ExceededCommuteBudget, trips.ExceededCommuteBudget);
+        Write(_values, at + _tripBase, (int)TripCounter.Stranded, trips.Stranded);
 
         _ticks[_next] = tick.Raw;
         _next = (_next + 1) % _capacity;
@@ -345,6 +366,20 @@ public sealed class Census
         {
             throw new ArgumentOutOfRangeException(
                 nameof(metric), metric.Aggregate, "not a reduction this census takes.");
+        }
+
+        if (metric.Source is MetricSource.Trips)
+        {
+            if (metric.TripCounter is not (TripCounter.Completed or TripCounter.NoRouteFound
+                or TripCounter.ExceededCommuteBudget or TripCounter.Stranded))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.TripCounter, "not a Trip counter this census reads.");
+            }
+
+            return _tripBase
+                + ((int)metric.TripCounter * AggregatesPerRuleCounter)
+                + (int)metric.Aggregate;
         }
 
         if (metric.Source is MetricSource.Placement)

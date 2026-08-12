@@ -497,4 +497,56 @@ public enum Invariant
     /// </para>
     /// </remarks>
     VacantLotHasFrontage = 35,
+
+    /// <summary>
+    /// No Trip is released without a Fate.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>02 §10</c> named this and could not build it: <i>"no Trip without a Fate needs Trips"</i>.
+    /// Trips exist as of milestone 5b, so it does now.
+    /// </para>
+    /// <para>
+    /// <b>A write-site check on a condition that currently holds by construction, which is exactly
+    /// when it is worth writing.</b> <see cref="Movement.TripEngine"/> is the only code that frees a
+    /// Trip row and it releases nothing still <see cref="Movement.TripFate.InFlight"/>, so this cannot
+    /// fire today. What it guards is the <em>second</em> release site — a generator cancelling a Trip,
+    /// a Household evicted mid-journey, a bulldozed Segment taking its Travellers with it — each of
+    /// which is a plausible future edit that frees a row without going through the sweep.
+    /// </para>
+    /// <para>
+    /// <b>A Trip freed without a Fate is an <c>adr/0006</c>-class defect that presents as good
+    /// news</b>: the Census counts Fates, not rows, so the lost Trip does not appear as a failure. It
+    /// appears as a city whose Trips all succeed.
+    /// </para>
+    /// </remarks>
+    TripHasAFate = 36,
+
+    /// <summary>
+    /// Summed Segment volume equals the number of in-flight vehicular Travellers.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0041</c> asks for it by name — <i>"a new invariant belongs with the definition of done:
+    /// summed Segment volume equals the number of in-flight vehicular Travellers, every Tick"</i> —
+    /// on the ground that <i>"a Traveller that vanishes without decrementing destroys the reading
+    /// permanently, which is an <c>adr/0006</c>-class defect that presents as a road that looks busy
+    /// forever."</i>
+    /// </para>
+    /// <para>
+    /// <b>Whole-world tier rather than per-Tick, which is a narrower claim than the ADR's sentence.</b>
+    /// The sum is a walk over every Segment — ~33,024 at the shipped <c>[roads]</c> — and <c>02 §10</c>
+    /// sorts by frequency rather than by importance, with S0a's <c>O(world)</c> Decide guard as the
+    /// standing evidence: on by default, it was 95% of a run. What holds every Tick is conservation
+    /// <em>structurally</em>, from increment and decrement being paired; this is the check that the
+    /// pairing was not broken.
+    /// </para>
+    /// <para>
+    /// <b>It is vacuously satisfied through the whole of milestone 5b, and it is written now on
+    /// purpose.</b> Both sides are zero: 5b resolves walk Legs only and <c>adr/0041</c> increments on
+    /// <b>vehicular</b> Legs alone. The alternative is a check written by whoever adds the first
+    /// vehicular Leg, at the moment they are least able to notice they have got the pairing wrong.
+    /// </para>
+    /// </remarks>
+    SegmentVolumeIsConserved = 37,
 }

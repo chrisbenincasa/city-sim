@@ -133,6 +133,28 @@ is the [`05 §4`](../05-technical-architecture.md) rule applied by name: the two
 - **The District loses its last physics role and becomes what `CONTEXT.md` says it is**: Goods pooling,
   reporting, and the granularity of the travel-time matrix. Redrawing one can no longer change the
   State Hash through traffic. The matrix remains District-granular; only *attribution* leaves.
+> **⚠ AMENDED 2026-08-12 by milestone 5b task 5. This decision is untouched; its *schedule* was wrong,
+> and the two Consequences below are built to different depths as a result.**
+>
+> **The columns exist and the increment cannot.** 5a built `VolumeForward` and `VolumeBackward` as
+> `(saved AND hashed)` per-Tick state, discharging the first bullet below in full. 5b built the
+> invariant in the second — `Invariant.SegmentVolumeIsConserved`, whole-world tier. **Nothing
+> increments either column, and nothing can**: the amendment at the top of this ADR says direct
+> attribution *"needs a **next Segment** every Tick, and a path is only one way to supply one"*, and
+> [`adr/0075`](0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) gives a Leg **a cost and no path**
+> while no next-hop table exists anywhere in `Borough.Core`. **Volume waits on a path source**
+> (`plans/0010` decision 11), not on vehicles.
+>
+> **The distinction matters because a second, true reason was in the way.** Only vehicular Legs
+> increment and 5b resolves walk Legs only, so *"nearly vacuous in this slice"* is what 5b's brief
+> carried — correct, and predicting that a vehicular Leg would make it work. It would not. Filed in
+> [`plans/0012`](../../plans/0012-corpus-audit.md).
+>
+> **The invariant is written and vacuously satisfied, deliberately.** Both sides are zero and the check
+> has a test that writes the violation by hand, because the alternative is a conservation check authored
+> by whoever adds the first vehicular Leg, at the moment they are least able to notice the pairing is
+> wrong.
+
 - **Segment volume becomes hot per-Tick state on the Segment table**, `(saved AND hashed)` under
   `adr/0003`'s single declaration, incremented and decremented on Segment boundary crossings. It is a
   count of Travellers present, so it is conserved by construction and testable as such.

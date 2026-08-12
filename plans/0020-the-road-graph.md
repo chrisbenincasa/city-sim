@@ -1,10 +1,10 @@
 # 0020 — The Road Graph (milestone 5a)
 
 > The slice brief for [`06`](../docs/06-roadmap.md) milestone **5a**, *Road Graph and Streets*.
-> Decisions built: [`adr/0014`](../docs/adr/0014-streets-snap-arterials-are-freeform.md),
-> [`adr/0040`](../docs/adr/0040-the-pathfinding-cluster-is-a-multiple-of-the-chunk.md),
+> Decisions built: [`adr/0014`](../docs/adr/0014-grid-streets-with-freeform-arterials.md),
+> [`adr/0040`](../docs/adr/0040-the-pathfinding-cluster-is-a-multiple-of-the-chunk-not-the-chunk.md),
 > [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md),
-> [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-traveller.md) (the Epoch half only).
+> [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md) (the Epoch half only).
 > Design realised: [`02 §2`](../docs/02-simulation-model.md), [`03 §3.7`](../docs/03-agent-architecture.md).
 >
 > **This is a planning document and therefore cites rather than owns**
