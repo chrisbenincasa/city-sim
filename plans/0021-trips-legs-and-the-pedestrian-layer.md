@@ -785,6 +785,63 @@ larger half of `0013`'s row**, so a generator that walks people across town is a
 not only a content one. And task 5's volume remains nearly vacuous in this slice by construction:
 `adr/0041` increments on **vehicular** Legs only, and 5b has none.
 
+### The §A sitting ran 2026-08-12, and the slice ends here
+
+**§A closed by being void as posed**, and with it this slice.
+[`adr/0080`](../docs/adr/0080-phase-4-does-not-wait-on-a-trip-generator-and-a-trip-is-entered-by-command.md)
+and [`adr/0081`](../docs/adr/0081-the-commute-is-the-first-trip-generator-and-a-job-is-taken-by-satisficing-on-distance.md)
+carry it.
+
+**The fact that settled it is one this brief nearly had.** *Decisions this slice must close* → 1 works
+through all seven candidate generators, establishes that each is owned by a decision that is not about
+Trips, and concludes correctly that the commute is unavailable and shopping is the only fully specified
+one. **What it did not check is whether any milestone would ever produce a destination.** All seven sit
+in [`06`](../docs/06-roadmap.md) → *Mechanisms with no milestone*, and Phase 2 as sequenced —
+5b → 5c → 6 → 7a → 7b → 8 → 9a → 9b → 10 — **never produces a place a person would go.** So the question
+has no answer at any point in the plan, no reordering supplies one, and under
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) it is the void form:
+*given X does not exist, should Y compensate?* → **build X**, which nothing was scheduled to do. *The
+brief reached the right verdict and took one step too many — **therefore not shopping** was available;
+**therefore shopping** was not.*
+
+**Three consequences.**
+
+- **`06` gains milestone 5b-bis** — jobs, the commute, and the first Trip generator — half-discharging
+  the *Office, wages, the labour market, Skill Tiers, schooling* row. It takes the **assignment** half
+  and not the wage half, so a Citizen satisfices onto the first acceptable job on distance and
+  [`adr/0026`](../docs/adr/0026-wages-are-posted-locally-and-never-cleared.md) is still owed a milestone.
+- **This slice closes on tasks 1, 2, 3, 5 and 7.** `06` calls 5b *the irreversible one* because *"a
+  single-Leg Trip model propagates"* — and that risk was retired by
+  [`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) and tasks 1–3, which
+  built a structure a single-Leg model is **not expressible in**. It never depended on the generator.
+  **Tasks 4, 6 and 8 move to 5b-bis**, because each measures a *distribution*.
+- **Task 5 is not blocked and ships here**, through a new `CommandKind.Trip` — a Trip in the Input Log
+  on `CommandKind.Populate`'s precedent, so replay reproduces it by construction. That carries the
+  Traveller cursor, volume attribution, Fate resolution, the Census sink `adr/0006` requires, and the
+  three Movement tables entering `World._tables` **at all** — they are outside the State Hash today, and
+  nothing in the simulation has ever constructed a Trip row.
+
+**Two findings outlive the sitting.**
+
+**1. The sampler was refused on a warrant that would have refused `--trips` too.** This brief refuses
+one by citing [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)
+— *a number does not settle what a mechanism settles* — which is the right instinct and the wrong
+reason, since task 7 shipped a sampler on purpose four days earlier. **The specific reason is that every
+measurement tasks 4, 6 and 8 exist for is a property of the origin-destination distribution**: §B-16's
+pedestrian density, the Commute Budget percentile, §B-17's Legs per Trip, and — the one §B has already
+measured — `0013`'s walk-search multiplicand, where cost is ≈37 ns × distance² and the **length
+distribution is the entire lever**. And the experiment has been run: **S2 R4 found its uniform draw
+*"had been hiding a conclusion"***, 18.52% detour against 128.82% on a local draw, *"a different city"*.
+*A sampler here would not approximate the answer; it would fabricate one with the right shape.*
+
+**2. The precondition all three candidates shared was named by nobody, including this brief.** There is
+**no query from a place to the Buildings near it** anywhere in `Borough.Core` — `CellResidency` indexes
+Map Layer cells rather than entities, and `Frontage` maps a Lot to its Segment in one direction only.
+Job assignment needs it, `adr/0067`'s Provider List acquisition will need it, `adr/0032`'s Attended
+services will need it, and `02 §5.3`'s candidate sampling already assumes it. It is **5b-bis's first
+task** rather than the generator's implementation detail, because a piece this widely shared, built
+inside one consumer, acquires that consumer's shape and is then rewritten twice.
+
 #### ⚠ Both slices wrote `Address` on the same day, from opposite ends, and neither was wrong
 
 **5a-bis and 5b each created `src/Borough.Core/Space/Address.cs`**, with incompatible spellings of the
@@ -848,6 +905,16 @@ before and every Access Point it invents is one the subdivider would have derive
 ready either way**, which is the half that had to exist before the ordering mattered.
 
 ### Decisions this slice must close
+
+~~**1. What generates a Trip**~~ **CLOSED 2026-08-12 by the sitting on `0002` §A → see *The §A sitting
+ran 2026-08-12* below. It closed by being VOID AS POSED, and this section's recommendation of shopping
+is the one step it took too far** — the analysis below is correct through *"the obvious choice is the
+commute and it is unavailable"* and stops being correct at *"the candidate that survives is shopping"*,
+because **all seven candidates are unmilestoned** and `06` therefore never produces a destination for
+any of them. [`adr/0080`](../docs/adr/0080-phase-4-does-not-wait-on-a-trip-generator-and-a-trip-is-entered-by-command.md),
+[`adr/0081`](../docs/adr/0081-the-commute-is-the-first-trip-generator-and-a-job-is-taken-by-satisficing-on-distance.md).
+*Kept unstruck below rather than deleted: the enumeration is the sitting's own evidence, and the
+recommendation is the record of how close a correct analysis can get to a wrong conclusion.*
 
 **1. What generates a Trip — and the corpus has no answer, which is a finding rather than an oversight.**
 **No document defines a Trip generator.** Not `03`, not `movement-primer`, not `CONTEXT.md`. What exists

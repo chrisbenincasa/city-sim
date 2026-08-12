@@ -261,15 +261,25 @@ instead of inventing them nearest-Segment-by-construction.
 > because **§B's answer can change what §A may choose.** Reasoning in
 > [`0021`](0021-trips-legs-and-the-pedestrian-layer.md) → *Task 1, built*.
 >
-> **Two things block task 4, and they are the next thing to deal with.** Both are now rows in
+> **⚠ NOTHING BLOCKS 5b ANY MORE, AND THE SLICE'S REMIT SHRANK RATHER THAN ITS BLOCKERS CLEARING
+> (2026-08-12).** The §A sitting moved **tasks 4, 6 and 8 out of 5b** into a new milestone — each
+> measures a *distribution*, and no generator exists or was ever scheduled to. **What is left of 5b is
+> task 5**, and it ships behind a command. `06`'s *the irreversible one* risk was retired by `adr/0075`
+> and tasks 1–3, not by the generator. **The next code is task 5; the next milestone is 5b-bis.**
+>
+> **Two things blocked task 4, and both are now settled.** Both were rows in
 > [`0002`](0002-open-questions.md) rather than prose here, because an open question is never written
 > on the board:
 >
-> - **§A — the generator's destination set does not exist.** `0021` decision 1 recommends *shopping*
->   and calls it the rarest starting position a task here has had. That is true of its **design** and
->   false of its **preconditions**: no Provider List, no shop in either Ruleset, `Scope.Pool` throws,
->   and nothing schedules an occasion. *"Give every Household a synthetic shop"* is the compensating
->   position `adr/0070` forbids and that the brief already refuses on the commute axis.
+> - ~~**§A — the generator's destination set does not exist.**~~ **CLOSED 2026-08-12 by a sitting, and
+>   it closed by being VOID AS POSED.** All seven generators the corpus names sit in `06`'s
+>   *Mechanisms with no milestone*, and Phase 2 as sequenced **never produces a place a person would
+>   go** — so no reordering unblocks it and `adr/0070`'s answer is *build X*, which nothing was
+>   scheduled to do. **`06` gains milestone 5b-bis** (jobs and the commute), **5b closes on tasks 1, 2,
+>   3, 5 and 7**, and **Phase 4 ships now** behind a `CommandKind.Trip` on `Populate`'s precedent.
+>   [`adr/0080`](../docs/adr/0080-phase-4-does-not-wait-on-a-trip-generator-and-a-trip-is-entered-by-command.md),
+>   [`adr/0081`](../docs/adr/0081-the-commute-is-the-first-trip-generator-and-a-job-is-taken-by-satisficing-on-distance.md);
+>   record in [`0021`](0021-trips-legs-and-the-pedestrian-layer.md) → *The §A sitting ran 2026-08-12*.
 > - ~~**§B — the walk search has no `0013` row**~~ **MEASURED 2026-08-11, and it half-closes: a walk
 >   search has no unit cost.** 86.2 ns at 128 m to 38.4 µs at 4.10 km — a **446× span** — because the
 >   search settles a *disc*, at a flat 35–40 ns a settled node. **The lever is the walk-length

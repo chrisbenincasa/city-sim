@@ -798,6 +798,34 @@ apart, but two *derivations* of one fact — a Tick's duration — that never me
 pacing table and the other in a units comment. Nothing checks that a Day's length and a vehicle's
 speed tell the same story, and **the corpus's own worked example of that failure is quoted in `01`**.
 
+### ~~`06` says Phase 2 produces commuting and that nobody is employed, two paragraphs apart~~ — **PAID**
+
+*(Found 2026-08-12 by the sitting on [`0002`](0002-open-questions.md) §A, and **paid in the sitting** —
+`06` → *What Phase 2 as written would actually produce* carries the note. Recorded here because the
+**shape** is worth more than the correction.)*
+
+`06` → *What Phase 2 as written would actually produce* says the ten milestones build Households that
+*"form, look for housing, fail with recorded reasons, move in, **commute** on multi-Leg Trips, park, age
+through Life Stages"*. **Two paragraphs later, the same section says the result has *"no money in it,
+nobody employed, and no way for anyone to arrive."*** Both are `06`'s own, in one section, and **the
+second is the true one** — no milestone in the table above it employed anybody, so the commute in the
+first sentence had nothing to commute to.
+
+**This is Cause 1 with both copies in one section, which is the cheapest sighting yet** — cheaper than
+session F's *"same author, same sitting, same hour"*, because it is same author, same section, same
+screen. The mechanism is the one that explains most of this ledger: **the milestone list was checked
+for its ordering and read for its prose.** The first paragraph is a *summary* of the table, so a reader
+verifying `06` checks the table; the second is a *judgement about* the table, so a reader checks the
+judgement. Nobody checks a summary against a judgement, because neither is the source.
+
+**The consequence was not cosmetic.** `plans/0021` typed §A as *which generator has a destination set
+that exists today* and answered *none*, which was correct. It did not go on to check whether any
+milestone would ever produce one — and the sentence that would have told it, in the document that owns
+sequencing, was sitting two paragraphs from a sentence asserting the opposite. **A milestone was missing
+from Phase 2 for as long as Phase 2 has been written down**, and it took a slice being blocked to find
+it. *An internal contradiction in a planning document is not a tidiness problem; it is two readers being
+told different things about what the plan will produce.*
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and

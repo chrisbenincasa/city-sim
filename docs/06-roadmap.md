@@ -70,8 +70,9 @@ No graphics. Everything is `Borough.Core`, `Borough.Tests`, `Borough.Headless`, 
 | # | Milestone | Risk retired |
 |---|---|---|
 | **5a** | Road Graph and Streets | That geometry leaks into the simulation and the routing graph stops being uniform |
-| **5a-bis** | The Lot subdivider and the road editor | That a design document's precondition is a hypothesis about the build. *Every Building is on the Road Graph by construction* was true because there **was** no Road Graph; frontage is enforced now, so [`adr/0014`](adr/0014-frontage-is-required-and-arterials-grant-none.md)'s asymmetry and `CONTEXT.md` → Frontage's deletion of the utility network are standing on something. Secondarily [`adr/0012`](adr/0012-routing-intent-lives-in-the-agent.md)'s: an invalidation contract no player has ever driven is a contract nobody has tested |
-| **5b** | Trips, Legs and the pedestrian layer | **The irreversible one.** A single-Leg Trip model propagates into Lot valuation, cost functions and every balance constant, and is what Citybound could never undo |
+| **5a-bis** | The Lot subdivider and the road editor | That a design document's precondition is a hypothesis about the build. *Every Building is on the Road Graph by construction* was true because there **was** no Road Graph; frontage is enforced now, so [`adr/0014`](adr/0014-grid-streets-with-freeform-arterials.md)'s asymmetry and `CONTEXT.md` → Frontage's deletion of the utility network are standing on something. Secondarily [`adr/0012`](adr/0012-routing-intent-lives-in-the-agent.md)'s: an invalidation contract no player has ever driven is a contract nobody has tested |
+| **5b** | Trips, Legs and the pedestrian layer | **The irreversible one.** A single-Leg Trip model propagates into Lot valuation, cost functions and every balance constant, and is what Citybound could never undo. **⚠ RETIRED 2026-08-12 by [`adr/0075`](adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) and tasks 1–3**, which built the three-way split with an intrusive Leg list and eager Leg creation — a single-Leg model is not expressible in that structure. What remained of the milestone was **measurement**, which is not what makes a milestone irreversible, and it moved to 5b-bis ([`adr/0080`](adr/0080-phase-4-does-not-wait-on-a-trip-generator-and-a-trip-is-entered-by-command.md)) |
+| **5b-bis** | Jobs, the commute, and the first Trip generator | **That every number milestone 5b was to produce is taken against a fabricated origin-destination draw and lands in [`0013`](../plans/0013-tick-budget.md) and [`0002`](../plans/0002-open-questions.md) as measured fact.** S2 R4 already ran that experiment: a uniform draw put a District-granular route's detour at 18.52% where a local-trip draw puts it at **128.82%**, *"which under `05 §4` is a different city"*. 5b's tasks 4, 6 and 8 each measure a **distribution** — peak pedestrian density, the Commute Budget percentile, the walk-search multiplicand — so each is void without a generator, and **this document had scheduled none**: every generator the corpus names sits in *Mechanisms with no milestone* below. [`adr/0080`](adr/0080-phase-4-does-not-wait-on-a-trip-generator-and-a-trip-is-entered-by-command.md), [`adr/0081`](adr/0081-the-commute-is-the-first-trip-generator-and-a-job-is-taken-by-satisficing-on-distance.md) |
 | **5c** | Statistical resolution and the travel-time matrix | That routing intent leaks into the world ([`adr/0012`](adr/0012-routing-intent-lives-in-the-agent.md)) — the GlassBox failure |
 | **6** | Lane-as-entity traffic | That the vehicle becomes the entity, which costs a spatial index, cache locality, and roughly an order of magnitude ([`adr/0016`](adr/0016-the-lane-is-the-entity-not-the-car.md)) |
 | **7a** | Stress-driven Fidelity with hysteresis | That fidelity depends on the camera, which makes observation change outcomes and destroys replay |
@@ -89,6 +90,15 @@ Not *"a city that is alive"* — that claim stood here for a long time and is fa
 
 It has **no money in it, nobody employed, and no way for anyone to arrive.** That is not a criticism of the ordering; it is the measure of how much the design gained after the ordering was written, and it is the work the re-derivation has to place.
 
+> **⚠ Those two paragraphs contradicted each other for as long as they have both existed, and the
+> sitting on `0002` §A found it by walking the milestone list looking for a destination.** The first
+> says Phase 2 produces Households that *"**commute** on multi-Leg Trips"*; the second says
+> *"**nobody employed**"*. Both are this document's, two paragraphs apart, and **the second is the true
+> one** — no milestone in the table above employed anybody, so the commute in the first sentence had
+> nothing to commute to. It is now true for 5b-bis onwards and false before it, and the first paragraph
+> is left as written with this note rather than silently corrected, because *the milestone list was
+> checked for its ordering and read for its prose* is the whole reason it survived.
+
 ---
 
 ## Mechanisms with no milestone
@@ -100,7 +110,7 @@ It has **no money in it, nobody employed, and no way for anyone to arrive.** Tha
 | Conserved Money, treasury, balance of payments, borrowing | [`adr/0024`](adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md), [`adr/0031`](adr/0031-one-resource-abstraction-and-depth-not-count.md) | a milestone |
 | Hinterlands, arrival through an Outside Connection, rejected-arrival reasons | [`adr/0023`](adr/0023-immigration-arrives-through-the-gate.md), [`adr/0020`](adr/0020-one-live-world-and-settlements-are-derived.md) | a milestone. 9a has the Pool and Departure but nothing says where Households come from |
 | Settlements — commute-shed components, merge and split | [`adr/0020`](adr/0020-one-live-world-and-settlements-are-derived.md) | a milestone |
-| Office, wages, the labour market, Skill Tiers, schooling | [`adr/0026`](adr/0026-wages-are-posted-locally-and-never-cleared.md) | a milestone |
+| Office, wages, the labour market, Skill Tiers, schooling | [`adr/0026`](adr/0026-wages-are-posted-locally-and-never-cleared.md) | **HALF PLACED 2026-08-12.** ~~a milestone~~ — **5b-bis takes the *assignment* half and not the wage half** ([`adr/0081`](adr/0081-the-commute-is-the-first-trip-generator-and-a-job-is-taken-by-satisficing-on-distance.md)): a kind declares job slots and a Citizen satisfices onto one on distance, with no wage read. **Office, wages, Skill Tiers and schooling still owe a milestone.** The row is struck in half rather than deleted, because a row deleted on the strength of a part shipping is `plans/0012` *Cause 3* |
 | Density as a cap; subdivide versus stack | [`adr/0025`](adr/0025-density-is-a-cap-and-it-trades-land-for-materials.md) | a milestone |
 | Services delivered by Trips — Attended, Dispatched, Networked | [`adr/0032`](adr/0032-services-are-delivered-by-trips-not-by-coverage.md) | a milestone. Service *coverage* survives here only as an overlay, which is what `0032` demoted it to |
 | Crime and Incidents; dispatch response Trips | [`adr/0030`](adr/0030-crime-is-an-incident-with-no-perpetrator.md) | a milestone |
