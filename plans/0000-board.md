@@ -276,6 +276,19 @@ instead of inventing them nearest-Segment-by-construction.
 >   distribution, not the route count**, and no document states one; that half is **§A's**. The
 >   **severed** case is **14.9 ns flat**, the cheapest query in the model. `0013` has the row.
 >
+> **⚠ A third row joined §A on 2026-08-12, found while §B was being read back: *how long is a Tick*, and
+> the shipped code answers it 73× away from two design documents.** `Speed.FromKilometresPerHour`
+> converts every authored `*_speed_kph` using *a Day is 86,400 s over 8192 Ticks*; `adr/0019` says there
+> are **no seconds in the library** and derives `TICKS_PER_DAY` **from** car-following at 4.2 m/Tick;
+> `02 §1.2` states ~0.5 Tile/Tick. **It does not block 5b's remaining tasks** — a walk Leg needs the
+> number, not the argument — **but the Commute Budget (task 6) is denominated in whichever wins**, so it
+> is owed before that task and not before task 4. The likely shape is **the behavioural clock globally
+> with the Lane kernel sub-stepping inside phase 4**, which costs the Microscopic Cap ~35× and is S5's to
+> price. Row in [`0002`](0002-open-questions.md) §A; the document corrections in
+> [`0012`](0012-corpus-audit.md), whose load-bearing one is that **`02 §1.2`'s own derived table prices
+> the calendar at 168.75× and the vehicles at 2.6×** — the Cities: Skylines mismatch [`01`](../docs/01-player-experience.md)
+> diagnoses at 112×, committed in our own table three documents away from the paragraph naming it.
+>
 > **An audit of 5b's unsettled decisions ran the same afternoon and is now mostly superseded by tasks
 > 1–3** — the search, the Fate set, the Purpose enum and the Leg structure all exist. **The two rows
 > above are what survived it**, and they survived because they are the parts tasks 1–3 deliberately

@@ -296,6 +296,21 @@ walk time a person can call implausible**. Corrected in place. *The row bundled 
 share a source and then gave them one ratifier because they shared a row, which is the granularity defect
 `plans/0012` names.*
 
+> **⚠ That ratifier fired on 2026-08-12, and what it refuted was not `walk_speed_kph`.** *"5b is the
+> first thing that produces a walk time a person can call implausible"* is exactly what happened, and the
+> implausible thing turned out to be **the Tick**, not the speed. `walk_speed_kph = 5` is authored
+> through `Speed.FromKilometresPerHour`, whose factor is derived from *a Day is 86,400 s over 8192
+> Ticks* — a conversion [`adr/0019`](../docs/adr/0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md)
+> says **does not exist**, and which puts the shipped speeds **73×** from `02 §1.2`'s stated figure. The
+> question is [`0002`](0002-open-questions.md) §A → *how long is a Tick*; the document corrections are in
+> [`0012`](0012-corpus-audit.md). **It is owed before task 6 and not before task 4**: a walk Leg needs
+> the number and not the argument, but **the Commute Budget is denominated in whichever answer wins** —
+> and decision 4 above settles it as *clock minutes*, which is the one unit that is unavailable if
+> `adr/0019` is upheld. **The pedestrian layer itself is unaffected either way**, because `03 §3.8`
+> makes walker positions interpolated permanently and a walk Leg is a departure, an arrival and a path.
+> *The row was right that this slice was the ratifier and wrong about which number it would refute,
+> which is the useful half of naming one in advance.*
+
 **One §D row that was refused rather than opened.** A per-mode weight in the Commute Budget would have
 been hash-bearing and would have owed a row. F refused it on `adr/0008`'s own ground, so the section got
 **smaller** by an argument — the same direction as `adr/0059`.

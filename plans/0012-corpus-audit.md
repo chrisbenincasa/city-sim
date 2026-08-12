@@ -742,6 +742,54 @@ expensive regime the hedge gestures at **has no door into it**. F did not take i
 routing rule. *Note the shape: four copies of one claim, two categorical and two hedged, and the
 difference between the readings is a whole mechanism.*
 
+### `02 §1.2`'s derived table sets the calendar and the vehicles to two different clocks, 65× apart
+
+*(Found while pricing 5b's walk Leg, which needed a Tick to have a duration. Routed under
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md);
+the question itself is [`0002`](0002-open-questions.md) §A → *how long is a Tick*. **This entry is the
+document correction only** — it is owed whichever way that question is answered.)*
+
+`02 §1.2`'s *Derived, for orientation only* table states, in one row, that at Normal speed a Day is
+**8m32s** of wall clock and that traffic **"reads as ~130 km/h"**. Those are two rates for one world:
+
+- A Day of 86,400 s shown in 512 s is a **168.75×** fast-forward. That is the pacing decision, and it
+  is the same 168.75 as `Speed.cs`'s 10.546875 s Tick over a 1/16 s wall Tick — necessarily, because
+  it is the same fact.
+- A car whose real speed is 50 km/h, shown at 168.75×, **reads as ~8,400 km/h**. The table says 130.
+
+**The two columns are inconsistent by 65×, and the neighbouring `~0.5 Tile/Tick` row is derived from
+the wrong one of them** — it is the speed that makes a vehicle *look* right at 1× while the calendar
+beside it runs 65× faster still.
+
+**This is the exact failure [`01`](../docs/01-player-experience.md) diagnoses in another game, in our
+own table, uncaught.** `01` → *time is an arc, not a clock*: *"Cities: Skylines' calendar runs 112×
+faster than its own day/night cycle, which is why its players report cars taking 'weeks' to cross
+town."* `02 §1.2` commits the same mismatch at 65×, three documents away from the paragraph that names
+it. **`01`'s remedy is intact and this does not threaten it** — a sun arc makes no numeric claim, so
+nothing shown to a player is currently lying. What is lying is a table a *developer* reads.
+
+**The cause is a category error worth stating separately, because it is what makes the row look
+reasonable.** Appearance was treated as a **constraint on the simulated speed**, when it is a
+**consequence of the calendar rate**, and the calendar rate was already chosen by `TICKS_PER_DAY` and
+the reference tick rate. Once a Day is 8m32s, *everything* on screen moves at 168.75× and there is no
+freedom left to spend on making a car look like a car. The compensation is uniform — a car still reads
+as ten times a pedestrian — so the ratios survive and only the absolute claim is false. **A speed
+picked to satisfy appearance is a number bought with currency the pacing decision had already
+spent.**
+
+| Where | What it says | What is owed |
+|---|---|---|
+| `02 §1.2` → *Derived, for orientation only* | `Traffic reads as` — ~65 km/h at Study, ~130 at Normal, the first marked *"visually honest"* | The column is 65× low against its own `Day` column. Either restate it at the fast-forward the Day implies, or **delete it** — it is marked *orientation only*, and an orientation figure that disagrees with the row beside it orients nobody |
+| `02 §1.2` → *Normative values* | `Vehicle free-flow speed` — **~0.5 Tile/Tick**, *"the car-following ceiling"* | Two claims welded together. The **car-following ceiling is real** and belongs to the Lane kernel; the **~0.5** is derived from the *"reads as"* column above and is 73× off the shipped `[roads]` speeds. Split them: the ceiling survives the correction, the number does not |
+| `02 §1.2` → *Normative values* | `Cross-town trip` — **~480 Ticks**, *"5.9% of a Day"* | Self-consistent with ~0.5 Tile/Tick and travels with it. At that speed *"cross-town"* is **1.08 km** on a 16.4 km map, which is a District rather than a town — worth checking whether the row predates the map size |
+| `adr/0019` | *"There are no seconds in the library"*; Ticks → real seconds owned by *the host*, value **"none"** | Not wrong, but **contradicted by shipped code** it does not know about. Needs a banner pointing at `0002` §A either way, and an amendment if the sub-stepping answer is taken — its derivation chain propagates one sub-model's requirement to the global tick rate |
+| `src/Borough.Core/Quantities/Speed.cs` | Quotes *"There are no seconds in the library and no metres"* in one paragraph and derives `PerKilometrePerHour = 48_000` from *"a Day is 86,400 s… so a Tick is 10.546875 s"* in the next | **The file cites the rule it breaks, on the same screen.** Its defence — *"the exchange rate lives outside the simulation… nothing in a Tick calls it"* — is true of the **arithmetic** and false of the **assumption**: the conversion runs once at load, and its output then runs in every Tick |
+
+**The shape is Cause 1 with the copies in different units.** Not two statements of one fact drifting
+apart, but two *derivations* of one fact — a Tick's duration — that never met, because one lives in a
+pacing table and the other in a units comment. Nothing checks that a Day's length and a vehicle's
+speed tell the same story, and **the corpus's own worked example of that failure is quoted in `01`**.
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and
