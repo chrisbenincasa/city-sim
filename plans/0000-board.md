@@ -280,7 +280,10 @@ instead of inventing them nearest-Segment-by-construction.
 > the shipped code answers it 73× away from two design documents.** `Speed.FromKilometresPerHour`
 > converts every authored `*_speed_kph` using *a Day is 86,400 s over 8192 Ticks*; `adr/0019` says there
 > are **no seconds in the library** and derives `TICKS_PER_DAY` **from** car-following at 4.2 m/Tick;
-> `02 §1.2` states ~0.5 Tile/Tick. **It does not block 5b's remaining tasks** — a walk Leg needs the
+> `02 §1.2` states ~0.5 Tile/Tick. **Nothing shipped is wrong and this is not an outage**: `--trips`
+> reports a median walk of 1.4 min at 128 m and 18.3 min at 2,048 m, which is 5 km/h to the digit, so
+> **the code is right and the documents are not** — the reverse of `0012`'s usual direction. **It does
+> not block 5b's remaining tasks** — a walk Leg needs the
 > number, not the argument — **but the Commute Budget (task 6) is denominated in whichever wins**, so it
 > is owed before that task and not before task 4. The likely shape is **the behavioural clock globally
 > with the Lane kernel sub-stepping inside phase 4**, which costs the Microscopic Cap ~35× and is S5's to

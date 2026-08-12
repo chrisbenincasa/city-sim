@@ -749,6 +749,14 @@ difference between the readings is a whole mechanism.*
 the question itself is [`0002`](0002-open-questions.md) §A → *how long is a Tick*. **This entry is the
 document correction only** — it is owed whichever way that question is answered.)*
 
+**Nothing shipped is wrong. The code is right and the documents are not, which is the reverse of this
+ledger's usual direction and is the first thing to establish**, because the entry reads as an outage
+otherwise. At `walk_speed_kph = 5` a pedestrian covers **3.66 Tiles/Tick**, and `--trips` over
+`minimal.toml` reports a median walk of **1.4 min at 128 m, 10.0 min at 1,024 m and 18.3 min at
+2,048 m** — each landing just under its band's ceiling, at exactly 5 km/h. **A person walks at walking
+pace in this simulation today.** What is wrong is the table a developer reads to find out what that
+number should have been, and the correction is owed to the table.
+
 `02 §1.2`'s *Derived, for orientation only* table states, in one row, that at Normal speed a Day is
 **8m32s** of wall clock and that traffic **"reads as ~130 km/h"**. Those are two rates for one world:
 
@@ -780,7 +788,7 @@ spent.**
 | Where | What it says | What is owed |
 |---|---|---|
 | `02 §1.2` → *Derived, for orientation only* | `Traffic reads as` — ~65 km/h at Study, ~130 at Normal, the first marked *"visually honest"* | The column is 65× low against its own `Day` column. Either restate it at the fast-forward the Day implies, or **delete it** — it is marked *orientation only*, and an orientation figure that disagrees with the row beside it orients nobody |
-| `02 §1.2` → *Normative values* | `Vehicle free-flow speed` — **~0.5 Tile/Tick**, *"the car-following ceiling"* | Two claims welded together. The **car-following ceiling is real** and belongs to the Lane kernel; the **~0.5** is derived from the *"reads as"* column above and is 73× off the shipped `[roads]` speeds. Split them: the ceiling survives the correction, the number does not |
+| `02 §1.2` → *Normative values* | `Vehicle free-flow speed` — **~0.5 Tile/Tick**, *"the car-following ceiling"* | Two claims welded together. The **car-following ceiling is real** and belongs to the Lane kernel; the **~0.5** is derived from the *"reads as"* column above and is 73× off the shipped `[roads]` speeds. Split them: the ceiling survives the correction, the number does not. **And the number cannot be rescued by scaling the pedestrian back up, which is the obvious patch** — at 0.5 Tile/Tick for a car a walker is 0.05 and a 3 km walk is **1.8 Days**, so the temptation is to break the ratio instead. **The walk-to-drive ratio is the quantity [`adr/0008`](../docs/adr/0008-walking-is-a-simulated-leg.md)'s single-currency Commute Budget exists to compare**, so a pedestrian fast enough to be plausible here is a pedestrian nobody would ever drive instead of, and Severance stops costing anything. Under this row you may have **a realistic walk or a realistic mode choice, not both** |
 | `02 §1.2` → *Normative values* | `Cross-town trip` — **~480 Ticks**, *"5.9% of a Day"* | Self-consistent with ~0.5 Tile/Tick and travels with it. At that speed *"cross-town"* is **1.08 km** on a 16.4 km map, which is a District rather than a town — worth checking whether the row predates the map size |
 | `adr/0019` | *"There are no seconds in the library"*; Ticks → real seconds owned by *the host*, value **"none"** | Not wrong, but **contradicted by shipped code** it does not know about. Needs a banner pointing at `0002` §A either way, and an amendment if the sub-stepping answer is taken — its derivation chain propagates one sub-model's requirement to the global tick rate |
 | `src/Borough.Core/Quantities/Speed.cs` | Quotes *"There are no seconds in the library and no metres"* in one paragraph and derives `PerKilometrePerHour = 48_000` from *"a Day is 86,400 s… so a Tick is 10.546875 s"* in the next | **The file cites the rule it breaks, on the same screen.** Its defence — *"the exchange rate lives outside the simulation… nothing in a Tick calls it"* — is true of the **arithmetic** and false of the **assumption**: the conversion runs once at load, and its output then runs in every Tick |
