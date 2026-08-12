@@ -865,6 +865,27 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    of work sitting available and unnoticed for an unbounded time. **It would have fired on S2 the day
    session M closed.**
 
+5. **`0002` §F2 has a row for every file in `docs/adr/`.** Added 2026-08-12, and it is the **sibling of
+   check 1 pointed the other way**: check 1 asks whether an ADR is cited from outside `docs/adr/`, this
+   asks whether the corpus's one **coverage map** knows the ADR exists. Same directory, same shape of
+   test, and `CitationTests.cs` is the natural home. **Filed because §F2's own drift box wrote the
+   trigger and the trigger fired**: the map was rebuilt on 2026-08-10 on the finding that it had
+   *stopped at `adr/0043`*, stopped at `0059` by that evening, and the box then said in as many words
+   that a third stop meant *"the map wants generating from the directory rather than writing"*. On
+   2026-08-12 it was found **stopped at `0070`**, missing `0071`–`0081` — slice 5a, session F, slice
+   5a-bis and the §A sitting, four pieces of work, none of which added a row — while the header went on
+   claiming *"69 written, numbered to `0070`"*.
+
+   **Only the ADR column is generable, and that is the whole value of the check.** *State* and *Note*
+   are judgements and must stay hand-written; what the generator supplies is the **row**, so a decision
+   nobody has assessed reads as **unexamined** rather than as **absent**. That distinction is what the
+   map exists to make, and a missing row destroys it silently — `adr/0043` cites §F's 🟢 marks as
+   evidence, and a map that omits eleven ADRs *reads as complete*. **Three observations of one
+   mechanism now agree**: a hand-maintained index of a directory is maintained by whoever remembers,
+   and over four sittings nobody did, three times running. **This is Cause 1 with the second copy
+   missing rather than wrong** — the failure mode `adr/0064`'s missing loader test had already
+   demonstrated, where a fact with no copy at all is re-derived from the shape of its absence.
+
 Neither is a substitute for the restructure. A check over three tables that disagree only tells you
 they disagree; the point of thinning is that there is one place to be right. **Check 4 is the exception
 to that sentence** — thinning cannot help it, because its documents do not disagree with each other.

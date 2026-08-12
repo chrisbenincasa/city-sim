@@ -589,7 +589,7 @@ named suspects, and the first place to look.
 
 ### F2 — ADRs
 
-**69 written, numbered to `0070`; `0028` is reserved and unwritten.** Grouped by what grilled them.
+**80 written, numbered to `0081`; `0028` is reserved and unwritten.** Grouped by what grilled them.
 
 | ADR | State | Note |
 |---|---|---|
@@ -600,7 +600,7 @@ named suspects, and the first place to look.
 | `0005` two fidelity tiers | 🔴 | **Written from research, never argued.** Session **E**, with `0007` |
 | `0006` no collection grows with elapsed time | 🟡 | **Session C did not challenge it and did not need to** — what it added is *why* the Wheel satisfies it, which is **partition rather than accumulation**. Its collection half was **discharged by measurement** in slice 10; the magnitude half by slice 6 |
 | `0007` stress-driven detail | 🔴 | Research. Session **E** — one session with `0005`, because `0007` moved Fidelity from person to **place** and `0005`'s tiers are what it moved |
-| `0008` walking is a simulated Leg | 🔴 ⚠ | Research. Session **F**. Makes 5b *the irreversible milestone*, so it is owed **before** the Leg model is built |
+| `0008` walking is a simulated Leg | 🟢 | **Session F, 2026-08-11 — one sitting, seven decisions, amended in place**, and it was grilled *before* the Leg model was built as this row demanded. Emitted `0074`–`0076`. **Its ⚠ was discharged by refusal rather than by a number**: F declined the per-mode Commute Budget weight, so the quantitative claim went away instead of acquiring a value. **Two findings outlive it** — *an `and` in a consequence is two consequences* (the sidewalk half is refused by `0072`, the crossing half is correct and 5a had already built it), and *a revisit trigger can be spent before it is written* |
 | `0009` parking is modelled supply | 🔴 ⚠ | Research. Session **H**. Its `adr/0006`-class occupancy leak is named and its invariant unspecified |
 | `0010` one clock, demographics by sorting | 🟢 | Sessions one and two, three superseding notes since |
 | `0011` life stages and self-generating population | 🟢 ⚫ | Sessions one and two — **and its arithmetic was never checked.** Session C found it schedules Life Stages in **Days** while the Wheel's period is exactly one Day, so **every transition it specifies was unrepresentable on the wheel it was specified to run on** |
@@ -631,9 +631,6 @@ named suspects, and the first place to look.
 | `0044` the Layer cadence is the designer's number | 🟢 ⚫ | Slice 6, **by measurement, and the sixth claim in the corpus measured false**. **Its own second half was then wrong by argument and withdrawn** — *citing an ADR is not applying it* |
 | `0045` a fallback chain is a source ladder | 🟢 | Session B. A published depth cap of 5 was **withdrawn** because R3's tripwire rule had not been run |
 | `0046` habit, sight and temperament | 🟢 ⚫ | Sets no parameter; **R8 measured all three layers and all three survive**. ~~**⚠ Two qualifications open**~~ **Both closed by session D task 5, in opposite directions.** The topology one was never a hole — two claims, two owners, both stated (`adr/0012` owns it). The other ended in **the first ratification this corpus has ever withdrawn**: R8 forbade carrying its fire rate to *"any scheme that gives a Traveller more than one candidate route"* and `adr/0060` is that scheme, so *static Habit suffices* is **unratified** and re-runnable. **Its Sight row then gained a ceiling** — the horizon is **derived at 1**, floor and ceiling meeting, so it sets one *fewer* parameter than it did |
-| `0060` a Habit Route is a small set of variants | 🟢 | **Session D task 1**, and it arrived sideways — out of *what does a frustrated driver recompute against*. Makes `adr/0046`'s own first row true, and is the structural answer to *the network runs out of routes, not road*. **It spends part of the route cache's hit rate**, which is the one quantity routing rests on and nobody has measured |
-| `0061` a diversion rejoins by local descent | 🟢 | **Session D task 1.** Answers the corpus's largest number by removing the search rather than cheapening it. **Designed a classification and then deleted it** — the Aggravation counter needs none |
-| `0062` the Microscopic Cap counts Vehicles | 🟢 | **Session D task 3.** The unit was wrong in three places at once. **Four of its forks were routed rather than closed**, all to `03 §5.1`'s acceptance suite — including one claim the session made and withdrew |
 | `0047` routing never keys on the District | 🟢 | S2 R6 |
 | `0048` the Ruleset is validated where it is parsed | 🟢 | Session A. Enumerated three refusals; **the build has five**, both extra ones arriving while writing it |
 | `0049` apply count is decided against the past | 🟢 | Slice 7. **[`0012`](0012-corpus-audit.md) found it is cited by no document at all** — a decision with no inbound citation governs nothing, and that is greppable |
@@ -647,12 +644,28 @@ named suspects, and the first place to look.
 | `0057` dereliction is derived, not recorded | 🟢 | Slice 8 |
 | `0058` the Tick is state, so the World holds it | 🟢 | Slice 9's planning. **`_phase` and `_inForce` are still in the position the Tick was in** — §C keeps that half open |
 | `0059` a Zone Rule's sample is a revisit period | 🟢 | S0b. **The ratifier was named in advance, ran, bounded the value and passed — and the number was still dimensionally wrong**, because a ratifier that runs at one city size cannot catch a number that is absolute |
-
 | `0060` a Habit Route is `k` variants | 🟢 | Session D task 1. **Arrived sideways**, out of *what does a frustrated driver recompute against* — and it is the structural answer to *the network runs out of routes, not road* |
 | `0061` a Rejoin is local descent and never a search | 🟢 | Session D task 1. Answers the corpus's largest number by **removing** the search rather than cheapening it. Emitted two unset hash-bearing numbers, both in §D2 |
 | `0062` the Microscopic Cap counts Vehicles | 🟢 | Session D task 3. **A wrong unit in three places at once**, including inside a `CONTEXT.md` list — which is how a wrong unit propagates with nobody deciding anything |
 | `0063` a wait list wakes on the Bin's state | 🟢 | Session N task 1, **shipped the same day**. Its defect was live in the committed golden baseline and was found by building `adr/0033`'s invariant, not by argument. One measurable routed to §B |
 | `0064` a Bin's capacity is a property of the Ruleset in force | 🟢 | Session N task 3, **decided and unshipped** — `0003`'s queue item 3. Names two obligations, one of which (`(kind, Resource)` as a key) closes a defect that is live today and independent of the decision |
+| `0065` a Bin holds a `long` | 🟢 | Session N task 4, **decided and unshipped** — ships with `0064`. Found the corpus holding **two widths for one quantity**: `Money` is a `long` and a Bin's level was an `int`, so every payment into a Bin narrowed 64 bits to 32 |
+| `0066` the Provider List is an intrusive index list | 🟢 | Session N task 5, and **an excavation rather than a decision** — `05 §4`'s collection rule had required it all along and one structure was modelled past it, in a spike. Suspends two of S0a's conclusions pending §B |
+| `0067` a shopping attempt is a Trip, one provider per occasion | 🟢 | Session N task 5. Typed apart a claim the corpus had welded, so half closed and half went to §B. Puts `04 §6`'s cost in **5b's** column rather than inventing one, and bounds a feedback loop that ran the wrong way |
+| `0068` a Building's occupancy is declared by its kind | 🟢 | Session N task 2, **decided and unshipped** — `0003`'s queue item 4. `adr/0064` applied a second time, and the **transplant stops at the over-capacity case**: a Bin has a consumer and occupancy has none, so it evicts rather than draining. Found `adr/0025` had already decided the thing two documents recorded as absent |
+| `0069` placement is a mechanism of its own | 🟢 | Session N task 2, **decided and unshipped** — `0003`'s queue item 5, and the first queue item that **builds** a mechanism rather than correcting one. `World.Place` had one caller, at construction. **Its ordering is the decision**: placement ahead of the Zone Rules makes the create predicate a statement about vacancy rather than population, which is stronger than what it replaces |
+| `0070` an unbuilt mechanism is not a design constraint | 🟢 | **Session N task 2, and it outranks the task that produced it.** The third sibling of `0043` (claims) and `0052` (numbers), governing **absences** — name the mechanism, classify it *unbuilt* / *undesigned* / *refused*, and only the third is evidence. Written because a sitting spent its first exchanges on *given placement does not exist, should construction compensate?* |
+| `0071` travel time is sub-Tick and Q16.16 is a scale | 🟢 | **Slice 5a.** Built rather than argued, which is what a 🟢 from the code column means here |
+| `0072` the mode mask is saved on the Arc | 🟢 ⚫ | **Slice 5a, and it is the slice's sharpest finding.** The spike's `Modes.cs` argues at length that the mask must be **per direction** — one-way streets are the whole reason — and its `RoadGraph.cs` then saves the *Segment's*, backwards from its own argument. **No measurement it ran could have caught it: the spike never generates a one-way street.** *A benchmark cannot refute a claim about a case it never constructs* |
+| `0073` a local workaround is not a discharge | 🟢 | **Slice 5a's process sibling**, beside `0042` rather than beside `0043`/`0052`/`0070` — it governs what a spike must *do* with a finding, not what a sitting may *conclude*. Written because S2 R2 fixed `IntegerMath.FloorDiv` in its own loop and left the substrate defective for S5, which met it in a kernel that cannot hoist |
+| `0074` side of street is a property of the Access Point | 🟢 | **Session F.** Kept side of street by **separating two questions the brief had collapsed** — whether it is *modelled* is independent of whether it is *in the graph*. One bit on the Address, not a second footway edge set. ⚠ **It names the triple and never its encoding**, which is why two sessions wrote different `Address` representations on the same day; closing that gap is still open |
+| `0075` a Leg is a plan and a Traveller is a cursor | 🟢 | **Session F**, and it is what **retired milestone 5b's *irreversible* risk** — a single-Leg model is not expressible in the three-way split, so the risk was retired by structure rather than by measurement (`06`, 2026-08-12) |
+| `0076` the Trip Fate set is closed at four | 🟢 | **Session F.** A Fate names the **journey**, on a two-clause rule; *stranded* is the Fate and the lost-driver condition is renamed *a Rejoin is abandoned* |
+| `0077` a road edit is one Segment and the player lays Streets only | 🟢 | **Slice 5a-bis.** Refused the brief's *"one grid-snapped Street **Tile**"*, which rested on two **accurate** `adr/0014` quotations and a graph that does not exist — `RoadGenerator` puts nodes only at intersections, so a Segment is a whole block face. ***A quotation can be accurate and its conclusion false*** — `0070` on a presence rather than an absence |
+| `0078` frontage is derived on the Epoch | 🟢 | **Slice 5a-bis.** `lots_per_segment = 5` is **derived, not chosen**: it is `CONTEXT.md` → Address's own *five Buildings share a Segment*. Gives 165,120 Lots against `World`'s independently-chosen 225,000 — **two figures that never met, agreeing within a quarter** |
+| `0079` a Building outlives its frontage | 🟢 | **Slice 5a-bis.** An Address with no frontage is a **named hole the Trip model reports**, not a deletion. Refused the brief's *"declines through `adr/0053`'s existing machinery"* — `Condemn` is keyed on a starving **Rule Instance** and a bulldozed Street starves nothing, so ***citing a mechanism is not checking what it is keyed on*** |
+| `0080` Phase 4 does not wait on a Trip generator | 🟢 | **The §A sitting, 2026-08-12.** A Trip is **entered by command**, on `CommandKind.Populate`'s precedent, so replay reproduces it by construction. What unblocked Phase 4 was noticing the *milestone* was mis-scoped, not finding a generator |
+| `0081` the commute is the first Trip generator | 🟢 | **The §A sitting, 2026-08-12**, and it **created milestone 5b-bis**. §A was **void as posed** under `0070`: all seven generators the corpus names sit in `06`'s *Mechanisms with no milestone*, so Phase 2 as sequenced never produced a destination and the answer was *build X*. Half-discharges `0026`'s row in `06` — the **assignment** half, not the wage half |
 
 > **⚠ This map drifted again, within a day of being rebuilt.** It was promoted out of the archive on
 > 2026-08-10 on the finding that it had **stopped at `adr/0043`**; by that evening it had stopped at
@@ -661,34 +674,51 @@ named suspects, and the first place to look.
 > hand at the end of a sitting is maintained by whoever remembers**, and neither session D nor session N
 > task 1 did. If it stops at some number a third time, the map wants generating from the directory
 > rather than writing.
-
-| `0070` an unbuilt mechanism is not a design constraint | 🟢 | **Session N task 2, and it outranks the task that produced it.** The third sibling of `0043` (claims) and `0052` (numbers), governing **absences** — name the mechanism, classify it *unbuilt* / *undesigned* / *refused*, and only the third is evidence. Written because a sitting spent its first exchanges on *given placement does not exist, should construction compensate?* |
-| `0068` a Building's occupancy is declared by its kind | 🟢 | Session N task 2, **decided and unshipped** — `0003`'s queue item 4. `adr/0064` applied a second time, and the **transplant stops at the over-capacity case**: a Bin has a consumer and occupancy has none, so it evicts rather than draining. Found `adr/0025` had already decided the thing two documents recorded as absent |
-| `0069` placement is a mechanism of its own | 🟢 | Session N task 2, **decided and unshipped** — `0003`'s queue item 5, and the first queue item that **builds** a mechanism rather than correcting one. `World.Place` had one caller, at construction. **Its ordering is the decision**: placement ahead of the Zone Rules makes the create predicate a statement about vacancy rather than population, which is stronger than what it replaces |
-| `0067` a shopping attempt is a Trip, one provider per occasion | 🟢 | Session N task 5. Typed apart a claim the corpus had welded, so half closed and half went to §B. Puts `04 §6`'s cost in **5b's** column rather than inventing one, and bounds a feedback loop that ran the wrong way |
-| `0066` the Provider List is an intrusive index list | 🟢 | Session N task 5, and **an excavation rather than a decision** — `05 §4`'s collection rule had required it all along and one structure was modelled past it, in a spike. Suspends two of S0a's conclusions pending §B |
-| `0065` a Bin holds a `long` | 🟢 | Session N task 4, **decided and unshipped** — ships with `0064`. Found the corpus holding **two widths for one quantity**: `Money` is a `long` and a Bin's level was an `int`, so every payment into a Bin narrowed 64 bits to 32 |
+>
+> **⚠⚠ IT STOPPED A THIRD TIME, and the trigger this box wrote for itself has fired (2026-08-12).** It
+> stopped at **`0070`**, missing **`0071`–`0081`** — every ADR from slice 5a, session F, slice 5a-bis
+> and the §A sitting, eleven of them, while the header went on claiming *"69 written, numbered to
+> `0070`"*. Four separate pieces of work each added ADRs and none added a row. **This is now three
+> observations of one mechanism and they agree**: a hand-maintained index of a directory is maintained
+> by whoever remembers, and across four sittings nobody did, three times running.
+>
+> **So the instruction above is no longer a contingency but a debt**, and it is filed as one in
+> [`0012`](0012-corpus-audit.md) rather than left here — a box that predicts its own failure and then
+> absorbs it is how a corrected document goes on being wrong politely. **The ADR column of this table
+> should be generated from `docs/adr/`**; the *State* and *Note* columns cannot be, and that is the
+> point of the split — the generator supplies the row, and a missing note then reads as **unexamined**
+> instead of as **absent**, which is the distinction the whole map exists to make.
 
 ### What the map says now
 
 **The old summary — *we have argued what the city does thoroughly and how it is built not at all* — is
 no longer true, and it is worth saying why.** It was written after session five, when the technical
-layer had never been examined. Since then **thirty-one ADRs have come out of building rather than
-arguing** (`0038`–`0059`, plus `0036`, `0037` and the S2 pair), and they are concentrated in exactly
-the layer the summary called untouched. **The gap did not close by argument; it closed by code and
-spikes producing decisions.**
+layer had never been examined. Since then ~~**thirty-one**~~ **thirty-eight ADRs have come out of
+building rather than arguing** (`0038`–`0059`, plus `0036`, `0037`, the S2 pair, and `0071`–`0073` and
+`0077`–`0079` from Phase 2's first two slices), and they are concentrated in exactly the layer the
+summary called untouched. **The gap did not close by argument; it closed by code and spikes producing
+decisions.**
 
 **What replaces it is narrower and worse.** The remaining 🔴 is almost entirely **one cluster**:
-`03 §5` and the six research-written ADRs around it — `0005`, `0007`, `0008`, `0009`, `0012`, `0016` —
-which together are the traffic and movement model. That is **one wall, not many small gaps**, it gates
-every Phase 2 milestone, and **it is where the largest measured number in the corpus lands** (the
-861.87% diversion figure). Session **D** is promoted against it; **E** through **I** are the rest of it.
+`03 §5` and the research-written ADRs around it — ~~`0005`, `0007`, `0008`, `0009`, `0012`, `0016`~~
+**`0005`, `0007`, `0009`, `0012`, `0016`, since session D closed `03 §5` itself and session F closed
+`0008`** — which together are the traffic and movement model. That is **one wall, not many small
+gaps**, it gates every Phase 2 milestone, and **it is where the largest measured number in the corpus
+lands** (the 861.87% diversion figure). Sessions **D** and **F** have run; **E**, **G**, **H** and
+**I** are the rest of it.
 
-**The three ⚠ rows are the actionable part.** `adr/0016`, `adr/0009` and `adr/0008` each read as
-decided, each carry a quantitative claim, and **none has a number**. `adr/0043`'s own evidence is that
-this exact shape has already produced two false claims from 🟢 rows. **Type them before grilling them**
-— if the refuting number and the machine can be named, they are measurable and a session must not
-close them.
+**The ⚠ rows are the actionable part, and there are ~~three~~ two.** `adr/0016` and `adr/0009` each
+read as decided, each carry a quantitative claim, and **none has a number**. `adr/0043`'s own evidence
+is that this exact shape has already produced two false claims from 🟢 rows. **Type them before
+grilling them** — if the refuting number and the machine can be named, they are measurable and a
+session must not close them.
+
+**`adr/0008` was the third, and how it left the list is worth keeping.** Session F did not find its
+number; it **refused the quantity** — the per-mode Commute Budget weight — on the ground that a
+weighted score makes the compared quantity differ from the **displayed** one. So the ⚠ discharged
+because the claim went away, not because it acquired a value. **That is a third disposition this
+legend does not have a mark for**, alongside *measured* and *still owed*, and it is `adr/0059`'s
+direction: a number deleted rather than chosen.
 
 # Archive — the session record
 
