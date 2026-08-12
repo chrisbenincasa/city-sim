@@ -151,6 +151,30 @@ become three.
 
 ### The hash-moving queue
 
+> ⚠ **REOPENED AGAIN 2026-08-12 by session J, with item 6 — and this one is a gate on a decision that is
+> already taken.** [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)
+> settles the map at **`CellGrid.WorldCells = 512`** — 16384² Tiles, 65.5 km — and the constant **has not
+> been flipped**, because flipping it today would generate **525,312 Street Segments and 2,626,560 Lots**
+> against the **225,000** Lots `World` allocates for a 1M city.
+>
+> **Item 6 is `RoadGenerator` scoping its lattice to developed land**, and it is a defect before it is a
+> feature: `adr/0021` states that *"memory and save size scale with developed area, not with map area"*,
+> and the generator is the one structure in the build that makes that false. It lays
+> `(WorldTiles ÷ block_tiles + 1)²` nodes at world creation regardless of what is built. At 128 Cells it
+> could not be noticed, because a 16 km map is one a city genuinely does pave. ***A structure that
+> contradicts a claim only at a scale nobody has run is a claim with no test.***
+>
+> **It is gated in turn, and the gate is a design question rather than code.** What the generator should
+> lay at Tick zero is `plans/0002` **ledger #2** — *open map, or progressive land unlock* — which has
+> carried a recommendation (*unlock by serviceability*) and no decision since session three. Under
+> [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) the unlock rule is
+> **undesigned, not refused**, so the answer is to design it. **Do not cap the generator and move on** —
+> that is precisely the local workaround [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+> forbids, and it would remove the only pressure that gets the unlock rule written.
+>
+> Item 6 moves every State Hash and re-records all three golden baselines, so it is one commit of its own
+> and it must not ride along with a slice.
+
 > ~~**✅ THE QUEUE IS EMPTY. All four items shipped 2026-08-10.**~~ **REOPENED the same day by session N
 > task 2, with items 4 and 5 — and ✅ BOTH SHIPPED 2026-08-11, so it is empty again.** They were [`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
 > and [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md).

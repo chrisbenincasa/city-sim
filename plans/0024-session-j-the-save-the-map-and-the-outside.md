@@ -10,6 +10,42 @@
 > Hinterland, `06`'s milestone 10 row, and both of `plans/0002` ledger #1's tables.
 >
 > **It touched no code**, which is why it could run beside the 5b-bis session.
+>
+> ⚠ **RE-OPENED THE SAME DAY on its map-size half, with the user in the room, into
+> [`0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)** — the map goes to
+> **512 Cells, 16384² Tiles, 65.5 km**, and `0085` is superseded on its decision. **The reason the
+> session had to be re-opened is the most useful thing in this document and it is recorded in full
+> below, under *The process failure*.**
+
+## The process failure, recorded first because it is the finding
+
+**This session was run without the user, and it should not have been.** A session in this project is a
+*design* act — `PROCESS.md` says so and the board's whole argument track is built on it — and I treated
+it as an execution task: one scoping question at the start, then four ADRs and eleven document
+amendments taken alone.
+
+**Two of the five decisions I took unilaterally were wrong, and both were overturned within minutes of
+the user seeing them.** Neither needed new information:
+
+| What I decided alone | What the user said | Cost of not asking |
+|---|---|---|
+| The map stays at 4096², and the job is to find another mechanism that produces separate towns | *"It is up to the player whether they settle on several small towns, fewer larger ones, or one blob"* | **The whole frame was wrong.** The question was never *which mechanism*; it was *does the player have the choice*. They do not, and that is the defect |
+| A bigger map is dead on density — 233/km² at 1M is rural | *"We could make the map larger, why not?"* | **`adr/0021` already answers it**: unbuilt ground is a null, so the density to check is the developed one. I cited that ADR twice in the same sitting and did not apply it |
+
+And a third, which the user reached by simply asking *why*: **why is it so short?** Because a Tile is 4 m
+and 4096 × 4 m is 16.4 km. I had the number in three tables and never said the sentence.
+
+***The failure mode is specific and worth naming: an agent working alone optimises for a defensible
+answer, and a defensible answer to the wrong question is the most expensive thing it can produce.***
+`adr/0085` is internally sound, cites correctly, survives its own revisit triggers, and is wrong. It
+would have read as settled to every later reader — which is exactly the property the corpus's ADR
+discipline is supposed to guarantee, working against it.
+
+The corollary for this corpus: **`adr/0043` types a claim as measurable or arguable, and there is a third
+type it does not name — a claim that is the user's to make.** *Whether the late game is one city or
+several* is not a measurement and not an argument; it is a preference about what the game is, and no
+amount of rigour substitutes for asking. The typing pass below caught two claims I had no right to settle
+by argument and missed the one I had no right to settle at all.
 
 ## The typing pass, run before anything was argued
 
@@ -39,8 +75,8 @@ routine.
 
 | | Question | Answer |
 |---|---|---|
-| 1 | How big is the map? | **4096², on density alone.** The travel ground is withdrawn and the 2048² fallback is struck |
-| 2 | What makes a Settlement, then? | **A missing edge** — unbuilt ground, Severance, or a mode nobody has. Never a distance |
+| 1 | How big is the map? | ~~4096², on density alone~~ → **`WorldCells = 512`, 16384² Tiles, 65.5 km** (`adr/0089`), sized by *commutes across*. **Not yet flipped** — gated on hash-moving-queue item 6. The 2048² fallback is struck either way |
+| 2 | What makes a Settlement, then? | **A missing edge** — unbuilt ground, Severance, a mode nobody has, congestion, **and, once the map moves, distance**. `adr/0085`'s *never a distance* was true only of the small map |
 | 3 | What is in a save? | **The field declaration**, in the hash's fold order. Nothing authors a layout |
 | 4 | How many version numbers? | **Three** — declaration set, Ruleset content hash, generator. `06`'s debt paid |
 | 5 | May a save compact? | **No.** The hash folds every slot and the free list, so compaction is a design change under `05 §4` |
@@ -150,6 +186,14 @@ one wrong citation is a typo, and the same wrong citation in two files is a tran
   the largest unargued thing left in that document.
 
 ## What is unblocked
+
+**One new blocker, created here.** Hash-moving-queue **item 6** in [`0003`](0003-build-plan.md):
+`RoadGenerator` must scope its lattice to developed land before `WorldCells` can move to 512. It is a
+defect against `adr/0021` before it is a feature, and it is itself gated on `plans/0002` **ledger #2**,
+*open map or progressive land unlock* — which has carried a recommendation and no decision since session
+three, and which the full lattice has been silently answering all along. **Do not cap the generator**;
+that is the workaround `adr/0073` forbids, and it would remove the only pressure that gets the unlock
+rule written.
 
 **Milestone 10.** All three of its named blockers are closed, and the milestone came out **smaller than
 `06` described it**: no authored file format, no new Outside Connection subsystem, and a risk that has

@@ -23,10 +23,14 @@ Every decision below is justified by *scale*, and for a long time the scale was 
 
 ```
 target = map_area × mature_density × buildable_fraction
-       = 268 km² (4096² Tiles @ ~4 m) × ~3,700/km² × ~1.0   ≈  1,000,000
+       = 4,295 km² (16384² Tiles @ ~4 m) × ~3,700/km² × ~0.063  ≈  1,000,000
 ```
 
-~3,700/km² is Los Angeles — sprawl rather than density, which is the point. The same million on 2048² would need 15,000/km² (Paris) and would fit in one 8 km blob, and on 1024² it would need 59,500/km², which is denser than Manhattan across every Tile including roads and parks. That is why the map is 4096² and not smaller.
+~3,700/km² is Los Angeles — sprawl rather than density, which is the point, and it is the **developed** density rather than the map-wide one. The buildable fraction is what changed on 2026-08-12: [`adr/0089`](adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) takes the map to **16384² Tiles, 65.5 km a side**, so a 1M city occupies **270 km² — the whole of the old map — on 6.3% of the new one.** The city does not change size; it acquires a region around it. Unbuilt ground is a null ([`adr/0021`](adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md)), so the other 94% costs four derived `int[]` arrays totalling 4.2 MB.
+
+**The term this derivation was missing is distance, and it is why the map moved.** Area and density do not say how far apart two places are, and every mechanism the map is load-bearing for — the Commute Budget, Settlements, Severance, Hinterland edge choice — is a claim about travel. At 4096² the whole map is **0.9 Commute Budgets** across, so no Trip can exceed the Budget and the decline mechanism it exists to drive is inert everywhere; at 16384² it is **3.7–5.2**. A map is therefore sized by *how many commutes fit across it*, and the area figure is a consequence.
+
+⚠ **The constant has not moved.** `CellGrid.WorldCells` is still 128, gated on road generation being scoped to developed land — `RoadGenerator` currently paves the whole map, which is the one place `adr/0021`'s *developed area, not map area* is false. See `plans/0002` ledger #2.
 
 **What makes a map this large survivable is decided elsewhere and is load-bearing here:** progressive unlock by serviceability plus `adr/0021`'s sparse Chunks mean unbuilt land costs nothing, so map size is decoupled from early-game sparsity. Without both, 4096² would be an unplayable first hour.
 

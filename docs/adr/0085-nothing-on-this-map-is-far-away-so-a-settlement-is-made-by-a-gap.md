@@ -1,5 +1,27 @@
 # Nothing on this map is far away, so a Settlement is made by a gap
 
+> **⚠ SUPERSEDED ON ITS DECISION 2026-08-12, the same day, by
+> [`0089`](0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) — *the map is sized by how many
+> commutes fit across it*. The map goes to **512 Cells, 65.5 km**, and the reasoning below that refused a
+> larger map is wrong.** This ADR argued that growing the map was dead on density — 4,295 km² is 233/km²
+> at 1M, which is rural. That assumed the map must be **filled**, and
+> [`0021`](0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) says plainly it must
+> not be: unbuilt ground is a null and costs nothing, so the density to check is the **developed** one,
+> which does not move. The check that should have been run and was not is *what actually scales with map
+> area* — four derived `int[]` arrays, 262 KB to 4.2 MB.
+>
+> **Its findings stand and are not superseded**: the corner-to-corner figure being out by 52–73×, S2
+> R1.5 having already measured one Settlement across all 121 Districts in a column nobody read, and *a
+> connected component fragments because an edge is **missing***. What changes is that at 65.5 km
+> **distance is one of the things that makes an edge missing**, which at 16.4 km it was not — so the
+> title is a true statement about the old map and a false one about the new.
+>
+> **It is also the record of a process failure worth keeping.** This ADR was written without the user in
+> the room, and the two things that reversed it — *the player should decide whether the city is one blob
+> or several towns* and *why is it so short in the first place* — were both raised in the first two
+> minutes of the conversation that should have happened first. See
+> [`plans/0024`](../../plans/0024-session-j-the-save-the-map-and-the-outside.md).
+
 **The map stays at 4096² Tiles and it is sized by density alone.** The corner-to-corner figure
 [`plans/0002`](../../plans/0002-open-questions.md) ledger #1 gave as its second ground is withdrawn: a
 full crossing costs **112–224 Ticks by car**, which is **1.4–2.7% of a Day**, against the **141%** that
