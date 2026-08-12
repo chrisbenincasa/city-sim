@@ -703,4 +703,89 @@ public sealed class RunnerTests
         Assert.Contains("--roads", Options.Usage, StringComparison.Ordinal);
         Assert.Contains("Road Graph", Options.Usage, StringComparison.Ordinal);
     }
+
+    /// <summary>Asking what a walk costs selects its own mode, not a run and not the report.</summary>
+    [Fact]
+    public void Asking_for_trips_selects_the_trip_dump()
+    {
+        Assert.True(Options.TryParse(
+            ["--trips", "--ruleset", "minimal.toml"], out Options options, out _));
+
+        Assert.Equal(Mode.Trips, options.Mode);
+    }
+
+    /// <summary>
+    /// <b>The Streets a walk uses are a Ruleset's content, so a Trip dump with no <c>[roads]</c> is
+    /// refused rather than degraded.</b> <c>--roads</c>' refusal exactly.
+    /// </summary>
+    [Fact]
+    public void A_trip_dump_with_no_ruleset_is_refused()
+    {
+        Assert.False(Options.TryParse(["--trips"], out _, out string? complaint));
+
+        Assert.Contains("--trips needs --ruleset", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>Four pictures of four different things, each building its own world.</summary>
+    [Theory]
+    [InlineData("--roads")]
+    [InlineData("--zones")]
+    public void A_trip_dump_and_another_picture_disagree(string other)
+    {
+        Assert.False(Options.TryParse(
+            ["--trips", "--ruleset", "minimal.toml", other],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("Ask for one", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>A session flag is inert here for a reason stronger than <c>--roads</c>'.</b>
+    /// </summary>
+    /// <remarks>
+    /// A Road dump does not step the world because the graph is laid at world creation; a Trip dump
+    /// has that reason <em>and</em> a second one — <b>nothing generates a Trip</b>
+    /// (<c>plans/0002</c> §A), so a Tick produces no walk for an <em>after</em> picture to contain.
+    /// Ignoring the flag silently would have the operator believe they had asked for a run whose
+    /// output would differ, and it would not.
+    /// </remarks>
+    [Theory]
+    [InlineData("--log", "s.borough")]
+    [InlineData("--ticks", "8")]
+    public void A_trip_dump_and_the_session_flags_disagree(string flag, string value)
+    {
+        Assert.False(Options.TryParse(
+            ["--trips", "--ruleset", "minimal.toml", flag, value],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("no run to take a picture after", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A Trip dump accepts a seed, for the reason the Road dump does: the Arterials are drawn from
+    /// the world key, and detour is a function of where they fell.
+    /// </summary>
+    [Fact]
+    public void A_trip_dump_accepts_a_seed()
+    {
+        Assert.True(
+            Options.TryParse(
+                ["--trips", "--ruleset", "minimal.toml", "--seed", "7"],
+                out Options? options,
+                out string? complaint),
+            complaint);
+
+        Assert.Equal(Mode.Trips, options!.Mode);
+        Assert.Equal(7UL, options.Seed);
+    }
+
+    /// <inheritdoc cref="The_usage_text_names_the_road_dump"/>
+    [Fact]
+    public void The_usage_text_names_the_trip_dump()
+    {
+        Assert.Contains("--trips", Options.Usage, StringComparison.Ordinal);
+        Assert.Contains("DETOUR", Options.Usage, StringComparison.Ordinal);
+    }
 }

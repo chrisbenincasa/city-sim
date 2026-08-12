@@ -44,6 +44,18 @@ internal enum Mode
     /// mechanism rather than as a file that declares no <c>[roads]</c>.
     /// </remarks>
     Roads,
+
+    /// <summary>
+    /// Print what it costs to walk across this city, and how much further than the grid. 5b's.
+    /// </summary>
+    /// <remarks>
+    /// A sixth mode on <see cref="Roads"/>' reasoning exactly — it does not step the world, because
+    /// nothing generates a Trip yet and the graph it walks is laid at world creation. It is the
+    /// <em>second</em> Severance instrument rather than the first: <see cref="Roads"/> measures
+    /// disconnection and says in its own output that the larger half is <b>detour</b>, which needs a
+    /// shortest path and is what milestone 5b built.
+    /// </remarks>
+    Trips,
 }
 
 /// <summary>
@@ -226,6 +238,7 @@ internal sealed class Options
         bool decideGuard = true;
         bool zones = false;
         bool roads = false;
+        bool trips = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -261,6 +274,13 @@ internal sealed class Options
                 // it, so there is no *after* picture to take.
                 case "--roads":
                     roads = true;
+                    continue;
+
+                // Not a session flag, for --roads' reason and one more: a Trip dump walks a graph
+                // that nothing edits, between Buildings that nothing moves, so stepping the world
+                // would change none of its numbers and would only make it slower.
+                case "--trips":
+                    trips = true;
                     continue;
 
                 // A run, for the same reason --census is: the guard is a property of stepping a world,
@@ -485,6 +505,38 @@ internal sealed class Options
             return false;
         }
 
+        if (trips && (zones || roads || dump is not null))
+        {
+            complaint = "--trips asks for a fourth picture, and each of the four builds its own "
+                      + "world. Ask for one.";
+            return false;
+        }
+
+        // --roads' refusal, for --roads' reason: the Streets a walk uses are content. A Trip dump
+        // with no [roads] would print a table of dashes, and a table of dashes reads as a broken
+        // instrument rather than as a Ruleset that declares no network.
+        if (trips && rulesets.Count == 0)
+        {
+            complaint = "--trips needs --ruleset PATH. The Streets a walk uses are content, not a "
+                      + "default: without them there is nothing to walk on, and an empty table "
+                      + "would look like a defect rather than like a Ruleset that declares no "
+                      + "[roads].";
+            return false;
+        }
+
+        // --roads' refusal again, and the reason is if anything stronger. A Trip dump walks a graph
+        // nothing edits, between Buildings nothing moves, so a session would change none of its
+        // numbers. It cannot even be defended as slow-but-honest: a Trip that a Tick produced would
+        // be a different measurement, and no Tick produces one (plans/0002 §A).
+        if (trips && (log is not null || session))
+        {
+            complaint = "--trips and the session flags disagree: nothing generates a Trip yet, and "
+                      + "the graph a walk uses is laid at world creation, so there is no run to "
+                      + "take a picture after. Drop the session flags. (--seed is the exception "
+                      + "and is accepted, for --roads' reason: the Arterials are drawn from it.)";
+            return false;
+        }
+
         // --seed IS accepted with --roads, and the refusal above deliberately does not catch it.
         //
         // It used to. The Arterial polyline is drawn from the world key, so the whole of Severance is
@@ -497,7 +549,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = roads ? Mode.Roads
+            Mode = trips ? Mode.Trips
+                 : roads ? Mode.Roads
                  : zones ? Mode.Zones
                  : dump is not null ? Mode.Layer
                  : session ? Mode.Run
@@ -564,6 +617,10 @@ internal sealed class Options
                                 admits, and the connected components of both subgraphs.
                                 Needs --ruleset, because a road network is content. Takes
                                 no session: the graph is laid at world creation
+          --trips               dump what a walk costs between this city's Buildings, by
+                                distance, and the DETOUR over the grid ideal -- the half of
+                                Severance --roads says it cannot see. Needs --ruleset, takes
+                                no session. Compare two Rulesets to read it
           --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
                                 than as an ASCII field
 

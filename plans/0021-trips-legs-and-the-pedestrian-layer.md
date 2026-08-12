@@ -668,12 +668,107 @@ consequence is in the fixture**: `WalkSearchFixture.Apart` establishes reachabil
 search* rather than by trusting the lattice, because a pair drawn blind from that pocket would have
 returned in constant time and been published as the cost of a walk search.
 
-**Next**: ~~benchmark `WalkRouting.Cost` over a generated graph at real rungs, then~~ `--trips` as a **cost
-instrument** — a distribution over Building pairs, run against `minimal.toml` and `severance.toml`, which
-is the first thing in the project that can measure **detour** rather than **disconnection**. It needs no
-`[trips]` table: `WalkRouting.Cost` takes the crossing cost as an argument, and a crossing applies only
-to two Addresses sharing a Segment on opposite sides, so the instrument passes **zero and says so**
-rather than choosing a hash-bearing number this slice is forbidden to choose.
+#### Task 7, built as an instrument — and detour is measured for the first time
+
+**Shipped 2026-08-11: `--trips`, `TripDump`, eleven tests, 1,122 green.** `--roads` says in its own
+output that it measures **disconnection** and that the larger half of Severance is **detour** — *"a
+crossing four hundred metres away severs a neighbourhood in every sense a player would recognise and
+is fully connected here"*. That half now has a number.
+
+**`rulesets/minimal.toml` — the shipped city:**
+
+```
+  up to        metres     pairs   p50 walk   p90 walk    detour p50   p90   no route
+   1 blocks         128     11865     1.4 min     2.5 min         100%   140%         0
+   4 blocks         512     22445     5.4 min     7.0 min         100%   117%         0
+   8 blocks        1024     43723    10.4 min    13.7 min         100%   127%         0
+  16 blocks        2048     82715    20.4 min    71.2 min         100%   317%         0
+  32 blocks        4096     27822    29.4 min    81.0 min         105%   295%         0
+
+0 pair(s) had no pedestrian route at all, against 200000 that did.
+DETOUR: p50 100%, p90 140%, p99 663%, worst 4466% of the grid ideal.
+```
+
+**`rulesets/severance.toml` — the demonstration:**
+
+```
+   1 blocks        1024     15041    12.1 min    19.5 min         100%   142%       758
+   4 blocks        4096     19203    49.0 min   201.8 min         100%   422%     20915
+   8 blocks        8192     14407   137.6 min   263.1 min         177%   363%     49786
+  32 blocks       32768         —  NOT ONE of this band's 1170 pairs had a route
+
+135767 pair(s) had no pedestrian route at all, against 64233 that did.
+DETOUR: p50 100%, p90 306%, p99 913%, worst 2991% of the grid ideal.
+```
+
+***The shape of the answer is the finding: Severance is a tail, not a median.*** The **median** walk
+is the grid ideal — **100%** — in five of six bands of the shipped city *and in three of six of the
+severed one*. A mean or a median over the whole city says almost nothing changed. What moves is
+**p90 and p99**: 140% → 306% and 663% → 913%. **A resident does not experience an average**, so the
+number a panel eventually shows must be a **percentile**, and the Commute Budget being *a percentile
+of a Trip-cost distribution* (`adr/0008`) is now a measured requirement rather than a stylistic
+preference — a Budget set at the median would be blind to Severance by construction.
+
+**The baseline is the grid, not the crow.** Detour is the real walk against `|Δeast| + |Δnorth|` at
+walking pace — the shortest route a perfect lattice with a crossing everywhere would give. Straight
+line would charge the lattice for not having diagonals, which is true of every grid city and is not
+Severance. It also needs no square root.
+
+**⚠ It is a census of the city, not a sample of anybody's Trips**, and the docstring says so at
+length. Nothing generates a Trip (§A), so these are Building pairs walked by stride. That matters
+because S2 R4 found a uniform origin-destination draw is the **longest-trip distribution available**,
+so the aggregate is an **upper bound** and *the per-band rows are the part that transfers*. Same
+reason `0013`'s row is a curve.
+
+**Three things the build itself turned up.**
+
+**⚠ The time unit was wrong first time, and it was wrong inside the range of legitimate answers.** A
+Tick is **1/16 s of wall clock** — that is `0013`'s world and the 15.6 ms budget's — **and 10.546875 s
+of in-world time**, because a Day is 86,400 s over `Ticks.PerDay`. A walk is a thing a *resident*
+does, so it is the second. The first read a 3 km walk as **13 seconds**: wrong by 169× and *small
+rather than absurd*. **That is session F's placeholder finding arriving in an instrument**, and the
+general form is sharper than the bug — **two rates, both real, both correct about different things,
+and the code cannot tell which one you meant.**
+
+**⚠ A band where every pair was unreachable printed as a band where walking was free.** Percentiles
+of an empty list are zero, so the severed city's longest band read **`0.0 min`, `0%` detour** — *instant,
+and a perfect route*, over a band nobody could cross at all. Two different nothings printed the same
+way. The test that holds it is **not** *this band says NOT ONE* — whether a band comes out wholly
+unreachable depends on the population and the dice — but ***no band ever reports a walk of no time at
+all***, which is true at every population because two distinct Buildings are never zero minutes apart.
+
+**⚠ And a test asserting the severed city severs something failed because `"220 pair(s)"` contains
+`"0 pair(s)"`.** A correctly severed city failed its own test on a substring. **The claim was about a
+number, so the test now reads a number** — worth recording because the assertion looked exact and was
+a prefix match, which is the class of test that passes for years and then reports the opposite of the
+truth.
+
+**The two instruments are cross-checked in the output**, and the check is deliberately one-directional:
+stranded nodes with no unreachable pair is ordinary (the pocket may hold no Building), but an
+unreachable pair with nothing stranded cannot happen. If they ever disagree the dump says
+`THEY DISAGREE` and names it a defect in one of them rather than a fact about the city.
+
+~~**Next**: benchmark `WalkRouting.Cost` over a generated graph at real rungs, then `--trips` as a
+cost instrument — a distribution over Building pairs, run against `minimal.toml` and
+`severance.toml`, which is the first thing in the project that can measure **detour** rather than
+**disconnection**. It needs no `[trips]` table: `WalkRouting.Cost` takes the crossing cost as an
+argument, and a crossing applies only to two Addresses sharing a Segment on opposite sides, so the
+instrument passes zero and says so rather than choosing a hash-bearing number this slice is forbidden
+to choose.~~ **BOTH DONE 2026-08-11 — see the two sections above.** The `[trips]`-table prediction
+held: no crossing cost was chosen, and the instrument prints zero and says why.
+
+**What is left of the slice, and what has changed about it.** Task 4 (the generator, blocked on §A),
+task 5 (volume and Phase 4), task 6 (the Census family and the Commute Budget), task 8 (the long run).
+**Task 7 is done in its instrument half and owes nothing further**; the Severance demonstration `06`
+rule 2 asks for is above.
+
+**Two of those got easier and one got a constraint.** Task 6's **Commute Budget** now has the
+distribution it is a percentile *of*, and §B says which percentile it must not be: **not the median**,
+which is 100% of the grid ideal in a severed city and an intact one alike. Task 4's generator is no
+longer free in one respect it looked free in — **the walk-length distribution it produces is the
+larger half of `0013`'s row**, so a generator that walks people across town is a budget decision and
+not only a content one. And task 5's volume remains nearly vacuous in this slice by construction:
+`adr/0041` increments on **vehicular** Legs only, and 5b has none.
 
 #### ⚠ Both slices wrote `Address` on the same day, from opposite ends, and neither was wrong
 

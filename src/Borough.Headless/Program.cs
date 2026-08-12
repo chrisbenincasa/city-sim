@@ -54,6 +54,9 @@ internal static class Program
                 case Mode.Roads:
                     return Session.DumpRoads(options);
 
+                case Mode.Trips:
+                    return Session.DumpTrips(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

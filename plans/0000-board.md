@@ -246,9 +246,15 @@ instead of inventing them nearest-Segment-by-construction.
 > in [`0021`](0021-trips-legs-and-the-pedestrian-layer.md) still read *two saved columns* against its
 > own task body's `adr/0078` correction, which is `0012` *Cause 1* inside one document. **1,103 green.**
 >
+> **`--trips` shipped 2026-08-11 and *detour* has a number for the first time.** `--roads` measures
+> disconnection and says the larger half is detour; that half now reads **p90 140% → 306%** and
+> **p99 663% → 913%** between `minimal.toml` and `severance.toml`, while the **median is 100% of the
+> grid ideal in both**. ***Severance is a tail, not a median***, which makes the Commute Budget's
+> being a **percentile** a measured requirement rather than a preference.
+>
 > **What is left**: **task 4 the generator**, task 5 volume and Phase 4, task 6 the Census family and
-> the Commute Budget, task 7 `--trips`, task 8 the long run. **No `[trips]` table exists**, so the
-> crossing cost is a required parameter nobody has chosen.
+> the Commute Budget, task 8 the long run. **No `[trips]` table exists**, so the crossing cost is a
+> required parameter nobody has chosen — and `--trips` did not choose it, passing zero and saying so.
 >
 > **⚠ The slice is being run out of order on purpose: §B before §A.** Task 4 is blocked (below) and its
 > §B sibling is not, so the walk-search cost and the walk-cost *distribution* are being measured first —
