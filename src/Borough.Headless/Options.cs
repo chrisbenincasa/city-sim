@@ -600,8 +600,11 @@ internal sealed class Options
           --force-ruleset       run against a Ruleset the session does not name, and
                                 stamp the trace hash-broken
           --out PATH            write the trace to a file instead of standard output
-          --census              sample every collection's size on the trace cadence and
-                                print first/last/low/high per collection at the end
+          --census              sample every collection's size and every counter the
+                                simulation keeps, on the trace cadence, and print
+                                first/last/low/high for each at the end. Seven
+                                families: tables, rules, zones, placement, jobs,
+                                Trip Fates, and the Trip cost histogram
           --crash PATH          where to write the crash artifact if the run panics.
                                 One is always written; this only names where
           --no-decide-guard     stop proving every Tick that Phase 2 wrote nothing.

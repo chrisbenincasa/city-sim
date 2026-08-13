@@ -119,6 +119,63 @@ internal static class CensusReport
         (JobCounter.Beyond, Aggregate.Sum, "beyond budget"),
     ];
 
+    /// <summary>
+    /// The four Trip Fates, and <b>they were built in 5b and printed by nothing until 5b-bis task
+    /// 6.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>A Census family with no reader is a family nobody can see.</b> Milestone 5b added
+    /// <c>TripCounter</c>, wired all four flows through <c>Census.Observe</c> and tested them — and
+    /// left this report untouched, so the only way to read a Trip Fate was to write a test. That is
+    /// the shape of <c>adr/0064</c>'s finding on a different axis: not a fact with two copies that
+    /// drifted, but a mechanism whose <em>only</em> consumer was the suite, which is a consumer no
+    /// operator has.
+    /// </para>
+    /// <para>
+    /// <b>All four, including the two a walking-only city cannot produce.</b> <c>adr/0076</c> closes
+    /// the Fate set at four, so a row each is the shape that needs no edit when the missing conditions
+    /// arrive — and a zero beside a nonzero is informative in a way a missing row is not.
+    /// </para>
+    /// </remarks>
+    private static readonly (TripCounter Counter, Aggregate Aggregate, string Name)[] TripCounters =
+    [
+        (TripCounter.Completed, Aggregate.Sum, "completed"),
+        (TripCounter.Completed, Aggregate.Peak, "completed peak"),
+        (TripCounter.NoRouteFound, Aggregate.Sum, "no route"),
+        (TripCounter.ExceededCommuteBudget, Aggregate.Sum, "over budget"),
+        (TripCounter.Stranded, Aggregate.Sum, "stranded"),
+    ];
+
+    /// <summary>
+    /// The Trip cost histogram, one row per band of clock minutes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Sums only, and the omission is the point.</b> A bucket's peak is <em>the busiest single Tick
+    /// in that band</em>, which is a statement about the departure window rather than about how far
+    /// anybody walks — and the departure window is already stated by the Ruleset. Printing fourteen
+    /// rows to say what <c>commute_peak_factor</c> says would be the report competing with the file.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This is not the distribution the Commute Budget is a percentile of.</b> A commute exists
+    /// only because the assignment pass already accepted the job at the other end of it, inside the
+    /// Budget — so the ceiling is <em>upstream</em> and this distribution is censored by the number it
+    /// would be used to ratify. The uncensored one is <c>--trips</c>, which walks every Building pair
+    /// and had to be taken before a Budget existed.
+    /// </para>
+    /// </remarks>
+    private static readonly (TripCostBucket Bucket, string Name)[] TripCosts =
+    [
+        (TripCostBucket.UnderOneMinute, "under 1 min"),
+        (TripCostBucket.UnderTwoMinutes, "1-2 min"),
+        (TripCostBucket.UnderFourMinutes, "2-4 min"),
+        (TripCostBucket.UnderEightMinutes, "4-8 min"),
+        (TripCostBucket.UnderSixteenMinutes, "8-16 min"),
+        (TripCostBucket.UnderThirtyTwoMinutes, "16-32 min"),
+        (TripCostBucket.ThirtyTwoMinutesOrMore, "32 min or none"),
+    ];
+
     public static void Print(TextWriter writer, World world, Census census, ulong ticks)
     {
         ArgumentNullException.ThrowIfNull(writer);
@@ -189,6 +246,22 @@ internal static class CensusReport
             truncated |= !series.Complete;
 
             WriteRow(writer, "jobs", label, series);
+        }
+
+        foreach ((TripCounter counter, Aggregate aggregate, string label) in TripCounters)
+        {
+            Series series = census.Series(Metric.Of(counter, aggregate), window);
+            truncated |= !series.Complete;
+
+            WriteRow(writer, "trips", label, series);
+        }
+
+        foreach ((TripCostBucket bucket, string label) in TripCosts)
+        {
+            Series series = census.Series(Metric.Of(bucket, Aggregate.Sum), window);
+            truncated |= !series.Complete;
+
+            WriteRow(writer, "trip cost", label, series);
         }
 
         if (truncated)

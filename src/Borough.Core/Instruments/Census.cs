@@ -87,6 +87,12 @@ public sealed class Census
     /// <summary>The job assignment pass's share, on the same terms.</summary>
     private const int JobMetrics = JobCounters * AggregatesPerRuleCounter;
 
+    /// <summary>The members of <see cref="TripCostBucket"/>.</summary>
+    private const int TripCostCounters = 7;
+
+    /// <summary>The Trip cost histogram's share, on the same terms.</summary>
+    private const int TripCostMetrics = TripCostCounters * AggregatesPerRuleCounter;
+
     /// <summary>
     /// Readings held before the oldest is overwritten.
     /// </summary>
@@ -114,6 +120,9 @@ public sealed class Census
 
     /// <summary>Where the job assignment pass's begin, which is where Tick phase 4's end.</summary>
     private readonly int _jobBase;
+
+    /// <summary>Where the Trip cost histogram's begin, which is where the job pass's end.</summary>
+    private readonly int _tripCostBase;
 
     private readonly int _metrics;
     private readonly int _capacity;
@@ -148,7 +157,8 @@ public sealed class Census
         _placementBase = _zoneBase + ZoneMetrics;
         _tripBase = _placementBase + PlacementMetrics;
         _jobBase = _tripBase + TripMetrics;
-        _metrics = _jobBase + JobMetrics;
+        _tripCostBase = _jobBase + JobMetrics;
+        _metrics = _tripCostBase + TripCostMetrics;
         _capacity = capacity;
         _ticks = new ulong[capacity];
         _values = new long[capacity * _metrics];
@@ -286,6 +296,11 @@ public sealed class Census
         Write(_values, at + _jobBase, (int)JobCounter.Employed, jobs.Employed);
         Write(_values, at + _jobBase, (int)JobCounter.Beyond, jobs.Beyond);
 
+        for (int bucket = 0; bucket < TripCostCounters; bucket++)
+        {
+            Write(_values, at + _tripCostBase, bucket, trips.Costs[(TripCostBucket)bucket]);
+        }
+
         _ticks[_next] = tick.Raw;
         _next = (_next + 1) % _capacity;
         _taken++;
@@ -397,6 +412,19 @@ public sealed class Census
 
             return _tripBase
                 + ((int)metric.TripCounter * AggregatesPerRuleCounter)
+                + (int)metric.Aggregate;
+        }
+
+        if (metric.Source is MetricSource.TripCosts)
+        {
+            if ((uint)metric.TripCostBucket >= TripCostCounters)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.TripCostBucket, "not a cost bucket this census reads.");
+            }
+
+            return _tripCostBase
+                + ((int)metric.TripCostBucket * AggregatesPerRuleCounter)
                 + (int)metric.Aggregate;
         }
 

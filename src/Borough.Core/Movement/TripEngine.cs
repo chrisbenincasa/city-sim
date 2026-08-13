@@ -2,6 +2,7 @@ using Borough.Core.Entities;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Space;
+using Borough.Core.Instruments;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
 
@@ -53,6 +54,23 @@ public sealed class TripEngine
     private RuleFlow _strandedFlow;
 
     /// <summary>
+    /// The cost histogram's flows, one per <see cref="TripCostBucket"/>, and this Tick's counts.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two arrays because the fold is per Tick and the bucketing is per Trip.</b> A
+    /// <see cref="RuleFlow"/>'s peak is <em>the largest single Tick</em>, so a bucket incremented
+    /// directly would record a peak of one for ever. The per-Tick counts are folded in
+    /// <see cref="Advance"/>, which runs after generation in the same phase and after Phase 0's
+    /// commands — so a commanded Trip and a generated one land in the same interval, as they should.
+    /// </remarks>
+    private readonly RuleFlow[] _costFlows = new RuleFlow[Buckets];
+
+    private readonly int[] _tickCosts = new int[Buckets];
+
+    /// <summary>How many bands the cost histogram has.</summary>
+    private const int Buckets = (int)TripCostBucket.ThirtyTwoMinutesOrMore + 1;
+
+    /// <summary>
     /// The Dijkstra's scratch, reused across every Trip this engine starts.
     /// </summary>
     /// <remarks>
@@ -82,12 +100,20 @@ public sealed class TripEngine
     public TripActivity Drain()
     {
         var activity = new TripActivity(
-            _completedFlow, _noRouteFlow, _overBudgetFlow, _strandedFlow);
+            _completedFlow,
+            _noRouteFlow,
+            _overBudgetFlow,
+            _strandedFlow,
+            new TripCostProfile(
+                _costFlows[0], _costFlows[1], _costFlows[2], _costFlows[3],
+                _costFlows[4], _costFlows[5], _costFlows[6]));
 
         _completedFlow = default;
         _noRouteFlow = default;
         _overBudgetFlow = default;
         _strandedFlow = default;
+
+        Array.Clear(_costFlows);
 
         return activity;
     }
@@ -135,11 +161,21 @@ public sealed class TripEngine
 
         if (!from.Exists || !to.Exists)
         {
+            // Impassable rather than uncounted, so that the cost histogram's buckets sum to the Trips
+            // that were made. adr/0079's hole is a journey nobody can take, and there is no honest
+            // duration for it -- which is what the sentinel means.
+            _tickCosts[(int)BucketOf(TravelTime.Impassable)]++;
             _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound);
+
             return TripFate.NoRouteFound;
         }
 
         TravelTime cost = WalkRouting.Cost(_world.Roads, from, to, rules.CrossingCost, _walk);
+
+        // Counted here rather than at completion, so a Trip refused for its length is in the
+        // distribution with the cost that refused it. A histogram of completed Trips would be censored
+        // twice -- once by the assignment pass's Budget upstream, and again by the Fate.
+        _tickCosts[(int)BucketOf(cost)]++;
 
         // Eagerly, per adr/0075: every Leg of a Trip is created at Trip creation, which is what makes
         // mean-Legs-per-Trip countable at all. One Leg here because 5b resolves walk Legs only.
@@ -186,6 +222,44 @@ public sealed class TripEngine
     {
         AdvanceTravellers(tick);
         ReleaseEnded();
+        CloseTick();
+    }
+
+    /// <summary>Rolls this Tick's cost buckets into their flows and resets them.</summary>
+    /// <remarks>
+    /// <b>Called from <see cref="Advance"/> rather than from <see cref="Start"/>, because a Tick is
+    /// what a flow's peak is denominated in</b> and <see cref="Start"/> has no idea whether it is the
+    /// last call of the Tick. Phase 4 is the last phase that creates a Trip, so this is where the Tick
+    /// closes.
+    /// </remarks>
+    private void CloseTick()
+    {
+        for (int bucket = 0; bucket < Buckets; bucket++)
+        {
+            _costFlows[bucket] = _costFlows[bucket].Fold(_tickCosts[bucket]);
+            _tickCosts[bucket] = 0;
+        }
+    }
+
+    /// <summary>
+    /// Which band of the cost histogram a journey of <paramref name="cost"/> falls in.
+    /// </summary>
+    /// <remarks>
+    /// <b>A geometric ladder in clock minutes, and an impassable cost lands in the last band.</b>
+    /// <see cref="TripCostBucket"/> carries the argument for both: the ruler must not be denominated
+    /// in the Commute Budget, and <em>a journey nobody would make</em> covers the impossible one,
+    /// which <see cref="TripCounter.NoRouteFound"/> already counts exactly.
+    /// </remarks>
+    internal static TripCostBucket BucketOf(TravelTime cost)
+    {
+        if (cost < TravelTime.FromMinutes(1)) { return TripCostBucket.UnderOneMinute; }
+        if (cost < TravelTime.FromMinutes(2)) { return TripCostBucket.UnderTwoMinutes; }
+        if (cost < TravelTime.FromMinutes(4)) { return TripCostBucket.UnderFourMinutes; }
+        if (cost < TravelTime.FromMinutes(8)) { return TripCostBucket.UnderEightMinutes; }
+        if (cost < TravelTime.FromMinutes(16)) { return TripCostBucket.UnderSixteenMinutes; }
+        if (cost < TravelTime.FromMinutes(32)) { return TripCostBucket.UnderThirtyTwoMinutes; }
+
+        return TripCostBucket.ThirtyTwoMinutesOrMore;
     }
 
     /// <summary>
@@ -334,4 +408,48 @@ public sealed class TripEngine
 /// </para>
 /// </remarks>
 public readonly record struct TripActivity(
-    RuleFlow Completed, RuleFlow NoRouteFound, RuleFlow ExceededCommuteBudget, RuleFlow Stranded);
+    RuleFlow Completed,
+    RuleFlow NoRouteFound,
+    RuleFlow ExceededCommuteBudget,
+    RuleFlow Stranded,
+    TripCostProfile Costs = default);
+
+/// <summary>
+/// The Trip cost histogram over one Census interval: one flow per <see cref="TripCostBucket"/>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Seven named fields rather than an array, because a Census family is a fixed shape and an array
+/// is a variable one.</b> Every other activity record here is positional and read by name at the
+/// write site, which is what makes a mis-ordered write a compiler error rather than a silently wrong
+/// column — and a histogram is exactly where an off-by-one would be least visible, since every bucket
+/// holds a plausible count.
+/// </para>
+/// <para>
+/// <b>The buckets sum to the Trips created in the interval</b>, including the ones refused for their
+/// length and the ones with no front door. That property is what makes the family readable beside
+/// <see cref="TripActivity"/>'s Fates, whose four counters sum to the Trips that <em>ended</em>.
+/// </para>
+/// </remarks>
+public readonly record struct TripCostProfile(
+    RuleFlow UnderOneMinute,
+    RuleFlow UnderTwoMinutes,
+    RuleFlow UnderFourMinutes,
+    RuleFlow UnderEightMinutes,
+    RuleFlow UnderSixteenMinutes,
+    RuleFlow UnderThirtyTwoMinutes,
+    RuleFlow ThirtyTwoMinutesOrMore)
+{
+    /// <summary>One band's flow.</summary>
+    public RuleFlow this[TripCostBucket bucket] => bucket switch
+    {
+        TripCostBucket.UnderOneMinute => UnderOneMinute,
+        TripCostBucket.UnderTwoMinutes => UnderTwoMinutes,
+        TripCostBucket.UnderFourMinutes => UnderFourMinutes,
+        TripCostBucket.UnderEightMinutes => UnderEightMinutes,
+        TripCostBucket.UnderSixteenMinutes => UnderSixteenMinutes,
+        TripCostBucket.UnderThirtyTwoMinutes => UnderThirtyTwoMinutes,
+        TripCostBucket.ThirtyTwoMinutesOrMore => ThirtyTwoMinutesOrMore,
+        _ => throw new ArgumentOutOfRangeException(nameof(bucket)),
+    };
+}

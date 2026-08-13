@@ -156,6 +156,14 @@ already exist and are already read; what this adds is the **cost distribution** 
 percentile of, and `TripFate.ExceededCommuteBudget` becoming reachable for the first time — it is
 structurally unreachable until the Budget exists as Ruleset data.
 
+> **⚠ Two corrections, both found on 2026-08-12 while building it.** *"Already read"* was **false**: the
+> four flows reached the Census and reached `--census` through nothing at all, so for a whole milestone
+> a Trip Fate was readable only by writing a test. And the Fate was made reachable in **task 4**, when
+> the Budget was set, not here — it is reached in an ordinary run by the *placement* pass moving a
+> Household after the job was accepted. **The distribution this task builds cannot ratify the Budget**,
+> because a commute exists only where the Budget already admitted one; the uncensored distribution is
+> `--trips`', which is why task 3 refused to set a Budget before taking it.
+
 **7. Something to look at.** `--zones`, `--roads` and `--trips` set the precedent, including **refusing
 rather than degrading** when the Ruleset declares nothing. The picture worth printing is not a Trip
 count: it is **where people work against where they live**, and the same city after the jobs move.
@@ -565,3 +573,77 @@ declaration working — a hand-built world states no `[jobs]`, and the roster is
 **No ADR.** `adr/0081` is the decision and this is its construction; the phase-not-schedule argument is
 a refusal to open a mechanism rather than a new decision, and `adr/0059`, `adr/0064` and `adr/0080`
 supply the rest unchanged.
+
+### Task 6 — the Trip Census family and the cost distribution, built
+
+`TripCostBucket`, a **seventh Census family** and the corpus's first histogram: seven bands of clock
+minutes, filled at Trip **creation**, drained on reading like every other flow. Plus the four Trip
+Fates reaching `--census` at last. **Thirty-two tests, 1,262 green against task 5's 1,230, and no
+baseline moved** — the Census folds into nothing.
+
+**The task's stated content was already half-built, and finding that out is the first thing worth
+recording.** The plan said this task adds *the cost distribution* and makes
+`TripFate.ExceededCommuteBudget` *reachable for the first time*. The second was done in task 4, when
+the Commute Budget was set — and it is not merely reachable, it is **reached in an ordinary run**, by
+a mechanism nothing predicted: **the placement pass moves a Household into a different dwelling after
+the job at the other end was accepted**, so a commute that was inside the Budget when it was chosen is
+outside it the next morning. That is the only route to the Fate this milestone has, and it is a real
+one rather than a contrivance.
+
+#### The finding: a family with no reader is a family nobody can see
+
+**Milestone 5b built `TripCounter`, wired all four Fate flows through `Census.Observe`, tested them,
+and never added them to `--census`.** For a whole milestone the only way to read a Trip Fate was to
+write a test — *a consumer no operator has*. Nothing was wrong: the counters were correct, the
+addressing was correct, the tests were green. What was missing was the last ten lines, in a file
+neither the ADR nor the plan mentions.
+
+That is `adr/0064`'s finding on a different axis. There, a guard existed and had no test, so the suite
+you would read to find out what the loader refuses did not name it. Here a *mechanism* existed and had
+no reader, so the report you would read to find out what the city does did not name it. **Both are the
+same failure — a fact with no copy at all, rather than two copies that drifted** — and both are
+invisible to every test that passes. `CensusReportTests` is now the guard, and it asserts a **family**
+appears rather than a number, because no test of a counter can notice that the counter is unprinted.
+
+#### The finding: this distribution cannot ratify the number it is about
+
+**A commute exists only because the assignment pass already accepted the job at the other end of it,
+inside the Commute Budget.** So the ceiling is **upstream**, and the distribution of realised commutes
+is censored by the number it would be used to ratify. The intuitive experiment — *lower the Budget and
+watch the Trips pile up above it* — does not work, and the way it fails is the sharp part: at a
+one-minute Budget the golden fixture makes twenty commutes and **every one of them is under a minute**.
+The distribution **collapses into its shortest band rather than growing a tail**, because what a lower
+Budget removes is the *acceptances*, not the journeys.
+
+***A distribution censored by a number is not evidence about that number.*** The uncensored one is
+`--trips`' geometric census over every Building pair, which task 3 insisted be taken *before* any
+Budget was set — and this is the proof that the insistence was right, because there is **now no way to
+take that reading again from inside a run**. Task 3 recorded the reason as *the source of a percentile
+must stay uncensored by the number read off it*; that was an argument then and it is a measurement now.
+
+#### Two smaller ones
+
+**The ladder is geometric in clock minutes and is deliberately *not* derived from the Commute
+Budget**, which was the tempting choice and would have needed no free numbers at all — `adr/0059`'s
+shape, six buckets stated as fractions of `commute_budget_minutes`. It would have been **useless for
+the one job the family has**: the ratifier compares runs at *different* Budgets, and a distribution
+measured in units of the number under test has the same shape at every value of it. ***A ruler must not
+move with the thing it measures.***
+
+**The bucket edges are free numbers and need no ratifier, and that is worth stating because every
+other number in this milestone needed one.** `adr/0052` governs *hash-bearing and world-creation*
+numbers; a Census bucket edge is neither, because the Census is read-only and folds into nothing.
+Changing an edge changes what a report looks like and no city anywhere. **It is an instrument's
+resolution, and `0002` §D would be the wrong home for it** — a §D that accreted instrument settings
+would stop being readable as the list of numbers the city depends on.
+
+**One thing seen and deliberately not changed.** `[[building]] jobs` sits on the `dwelling` kind (task
+4), so a Citizen can be employed in the Building they live in, and the generator makes that a Trip of
+essentially no length. It is not wrong — living above the shop is the arrangement task 4 chose on
+purpose — but it puts non-journeys in the first band. **Refusing it would be a behaviour change made
+inside an instrumentation task**, which is how an unrelated edit gets committed under a feature's name
+(`adr/0073`'s ordering rule, read the other way round). Filed for task 7's picture, which is where a
+commute of zero will be visible as a dot on top of its own home.
+
+**No ADR.** `adr/0076` closes the Fate set and `adr/0081` owns the milestone; a histogram of an
+existing quantity decides nothing.

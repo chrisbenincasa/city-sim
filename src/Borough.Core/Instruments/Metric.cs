@@ -215,6 +215,80 @@ public enum TripCounter : byte
 }
 
 /// <summary>
+/// A Trip's cost, bucketed. The shape of what the city actually walks.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The corpus's first histogram, and the first Census family that is one metric rather than
+/// several.</b> Every other family here names distinct quantities that happen to share an owner —
+/// <c>due</c> and <c>evaluations</c> mean different things. These seven are one quantity at seven
+/// resolutions, and the reason it needs seven is that <b>the Commute Budget is a <em>percentile</em></b>
+/// (`0002` §D), and a mean cannot locate a percentile: a city of short walks with a long tail and a
+/// city of uniform medium walks have the same mean and want different Budgets.
+/// </para>
+/// <para>
+/// <b>The ladder is geometric in clock minutes and is not derived from the Commute Budget, which was
+/// the tempting choice.</b> Buckets stated as fractions of the Budget would need no free numbers at
+/// all — <c>adr/0059</c>'s shape — and they would be <b>useless for the one job this family has</b>:
+/// the ratifier compares runs at <em>different</em> Budgets, and a distribution measured in units of
+/// the number under test has the same shape at every value of it. <b>A ruler must not move with the
+/// thing it measures.</b>
+/// </para>
+/// <para>
+/// <b>The edges are free numbers and need no ratifier, which is worth stating because every other
+/// number in this milestone needed one.</b> <c>adr/0052</c> governs <em>hash-bearing and
+/// world-creation</em> numbers; a Census bucket edge is neither. The Census is read-only, folds into
+/// nothing, and changing an edge changes what a report looks like and no city anywhere. It is an
+/// instrument's resolution.
+/// </para>
+/// <para>
+/// ⚠ <b>This is not the distribution the Commute Budget is a percentile of, and the difference is the
+/// whole of 5b-bis task 6's finding.</b> These are Trips the city <em>made</em>, and a commute exists
+/// only because the assignment pass already accepted the job at the other end of it — inside the
+/// Budget. So the ceiling is upstream: this distribution is <b>censored by the number it would be
+/// used to ratify</b>. The uncensored one is <c>--trips</c>' geometric census over every Building
+/// pair, which had to be taken <em>before</em> a Budget existed and was — task 3 refused to set one
+/// for exactly this reason, and this family is the evidence that the refusal was right, because there
+/// is now no way to take that reading again.
+/// </para>
+/// <para>
+/// <b>Counted at creation rather than at completion</b>, so a Trip refused for its length is in here
+/// with its cost. A histogram of completed Trips only would be censored a second time, by the Fate.
+/// </para>
+/// </remarks>
+public enum TripCostBucket : byte
+{
+    /// <summary>Under one minute. On foot at 5 km/h that is under 83 m — the other side of a Lot.</summary>
+    UnderOneMinute,
+
+    /// <summary>One to two minutes. About one 128 m block, which is 92 s at walking pace.</summary>
+    UnderTwoMinutes,
+
+    /// <summary>Two to four minutes.</summary>
+    UnderFourMinutes,
+
+    /// <summary>Four to eight minutes.</summary>
+    UnderEightMinutes,
+
+    /// <summary>Eight to sixteen minutes.</summary>
+    UnderSixteenMinutes,
+
+    /// <summary>Sixteen to thirty-two minutes. <b>The shipped 20-minute Budget falls inside this one.</b></summary>
+    UnderThirtyTwoMinutes,
+
+    /// <summary>
+    /// Thirty-two minutes or more, <b>and every Trip with no route at all</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>An impassable cost is <c>Fixed.MaxValue</c> and lands here rather than in a bucket of its
+    /// own</b>, because <see cref="TripCounter.NoRouteFound"/> already counts it exactly and a second
+    /// counter of the same event is <c>plans/0012</c> <i>Cause 1</i>. What this bucket claims is
+    /// <em>a journey nobody would make</em>, and an impossible one qualifies.
+    /// </remarks>
+    ThirtyTwoMinutesOrMore,
+}
+
+/// <summary>
 /// One counter per outcome of the job assignment pass: how looking for work went over the interval.
 /// </summary>
 /// <remarks>
@@ -333,6 +407,16 @@ public enum MetricSource : byte
     /// Zone Rules.
     /// </remarks>
     Jobs,
+
+    /// <summary>One bucket of the Trip cost histogram: a flow, accumulated and drained.</summary>
+    /// <remarks>
+    /// <b>A seventh family rather than seven more <see cref="TripCounter"/>s, because a Fate and a
+    /// cost are different questions about the same journey.</b> Every Trip contributes to exactly one
+    /// counter in each family, so folding them together would produce a family whose counters do not
+    /// sum to the Trips that happened — which is the one property a reader of a Census family relies
+    /// on without being told.
+    /// </remarks>
+    TripCosts,
 }
 
 /// <summary>
@@ -414,6 +498,11 @@ public readonly record struct Metric
         ? (JobCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not carry a job counter.");
 
+    /// <summary>Which bucket of the Trip cost histogram.</summary>
+    public TripCostBucket TripCostBucket => Source is MetricSource.TripCosts
+        ? (TripCostBucket)_counter
+        : throw new InvalidOperationException($"a {Source} metric does not name a cost bucket.");
+
     /// <summary>How the counter's Ticks are reduced into one reading.</summary>
     /// <remarks>
     /// Meaningful only for a flow. A table counter is read at an instant, so there is nothing over
@@ -421,7 +510,7 @@ public readonly record struct Metric
     /// </remarks>
     public Aggregate Aggregate =>
         Source is MetricSource.Rules or MetricSource.Zones or MetricSource.Placement
-            or MetricSource.Trips or MetricSource.Jobs
+            or MetricSource.Trips or MetricSource.Jobs or MetricSource.TripCosts
         ? (Aggregate)_aggregate
         : throw new InvalidOperationException($"a {Source} metric is a level and is not aggregated.");
 
@@ -460,4 +549,10 @@ public readonly record struct Metric
     /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
     public static Metric Of(JobCounter counter, Aggregate aggregate) =>
         new(MetricSource.Jobs, 0, (byte)counter, (byte)aggregate);
+
+    /// <summary>One bucket of the Trip cost histogram, under one reduction.</summary>
+    /// <param name="bucket">Which band of clock minutes.</param>
+    /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
+    public static Metric Of(TripCostBucket bucket, Aggregate aggregate) =>
+        new(MetricSource.TripCosts, 0, (byte)bucket, (byte)aggregate);
 }
