@@ -334,8 +334,12 @@ Which also moves the arithmetic: the gap is **1.8× at 8192 and 7.3× at 2048** 
 27–58× and not nothing. ***A caveat is a claim, so it travels exactly as badly as a number does*** — do
 not compress a disqualifier to fit a table column.
 
-**Then two more figures were registered on request — `3,700` and `10.37` — and the first paid off
-again.** `plans/0012` had filed the developed density's debt by hand and named **two** sites; the check
+**Then two more figures were registered on request — the developed density, `3,700/km²`, *an output of
+the 1M target*, and routing's `10.37 ms`, which is a maximum over a `9.4–10.5` spread — and the first
+paid off again.** ⚠ *Both were written into this paragraph bare on the first attempt, and check 6 failed
+on it within the minute. **The instrument caught its own author describing why not to do the thing, while
+doing it.** That is the strongest evidence in this file that the failure is a reflex rather than a lapse:
+naming a number is simply shorter than naming what it measures, and nothing but a machine pushes back.* `plans/0012` had filed the developed density's debt by hand and named **two** sites; the check
 named **four**, adding `05 §1`'s budget block, where the circular derivation is most load-bearing, and
 `adr/0085`, which divides the density back out of the map it came from. ***A debt filed by reading is a
 lower bound on the debt.*** And this section's parent entry in `plans/0012` had recorded the density as
@@ -343,6 +347,25 @@ the case where *the qualifier was never written at all* — it is written twice,
 `docs/spike-results.md`, so the sighting is the **same pure form** as the first and not a third variety.
 That correction matters beyond the row: a missing qualifier is a writing failure with no repair
 available, and this is a reading failure with a mechanical one.
+
+**A sweep for 186,624's siblings then added four rows, and the fourth is the largest thing the session
+found after the Cap.** `2,592` is 186,624's own factor, so registering the product alone left the ratio
+rebuildable from its parts. `18.52` is R2's next-hop detour, which is **18.52% on a uniform
+origin-destination draw and 128.82% on a local one** — a property of the draw as much as of the path
+source, and `adr/0041` decided volume attribution on it with no draw named. `82.84` is a **synthetic**
+Rule-evaluation unit that met a real world at 552 ns, still quoted as a budget in `02 §4.1` beneath the
+corpus's own coined *a unit cost is a hypothesis until a real world has produced one*.
+
+**And `861.87%` is right by cancellation.** It is a bill of **134.135 ms** over the **15.6 ms budget at
+4×**. [`adr/0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)
+reprices it at the design speed — **214.6%** — and
+[`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+multiplies routing by four — **858.5%**. Within 0.4% of the published figure, on two grounds that were
+both replaced *by this session*, and nothing flagged it. `plans/0013` had already coined the lesson about
+its own Bin Rule row — ***right by cancellation is worse than being wrong, because any change moving one
+factor without the other would go unnoticed*** — and then it happened to the row directly beneath.
+***Carry the bill, not the percentage***: 134.135 ms is a measurement and 861.87% is a measurement
+divided by a product decision.
 
 **Two smaller notes on the same episode.** The user's *"the new number is clearly untenable"* was the
 correct reading of what I had written and the wrong reading of the world, which is what an unqualified

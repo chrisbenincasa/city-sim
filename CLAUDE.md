@@ -239,7 +239,9 @@ nothing in the Tick calling it — Phase 4 is still `_ = tick`. That is 5b task 
 [`plans/0013`](plans/0013-tick-budget.md) sums the ledger to **≥114% at 4×**, of which **60–67 points
 are routing** — a row whose unit came off a synthetic harness and whose multiplicand R6.3 found counts
 **the wrong event**. And the correction with a known direction points *up*: a diverting Traveller
-re-searching costs **861.87% of the Tick budget** at target scale, which is a design question
+re-searching costs **861.87% of the 15.6 ms budget at 4×** at target scale — a bill of **134.135 ms**,
+and carry the bill rather than the percentage, because `adr/0096` and `adr/0094` have since moved both
+terms in opposite directions and it is now **right by cancellation** — which is a design question
 (`03 §5`, session **D**) and not an algorithm.
 
 **The direction of surprise has been consistent**: every time a fixture was replaced by a real world,

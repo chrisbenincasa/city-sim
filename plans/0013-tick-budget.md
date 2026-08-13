@@ -307,6 +307,23 @@ event** — R6.3 found that under static Habit a Trip start is a lookup and the 
 direction points sharply up.** This document has priced everything except the row that decides the
 answer.
 
+> **⚠ 861.87% is right by cancellation, 2026-08-13 — and this table has already recorded once what that
+> costs.** The figure is a bill of **134.135 ms** at R8's rung over the **15.6 ms budget at 4×**. Both
+> terms have since moved in opposite directions:
+> [`adr/0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)
+> holds that a capability is priced at the design speed's **62.5 ms** — 214.6% — and
+> [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+> multiplies every routing count by **4** — back to **858.5%**. Within 0.4% of where it started, for two
+> reasons neither of which was the original one.
+>
+> **That is the second sighting of this table's own lesson.** The Bin Rule row was *right by
+> cancellation* — a unit 2.8× too low against a multiplicand ~5× too high — and this note says of it:
+> ***which is worse than being wrong, because any change moving one factor without the other would have
+> gone unnoticed***. Exactly that happened here, twice, in two days, and nothing flagged it. **The repair
+> is to carry the bill and not the percentage**: 134.135 ms is a measurement, 861.87% is a measurement
+> divided by a product decision. `plans/0012` **Cause 5**, and the disqualifier registered for this
+> figure is its **denominator**.
+
 **The sum fell from ≥140% to ≥114% at 4×, and that is not good news.** It moved because the Bin Rule
 row stopped being a guess, and the correction happened to point down; the *unit* underneath it moved
 **up** by 2.8× at the same time. What the fall actually measures is how much slack there was in a

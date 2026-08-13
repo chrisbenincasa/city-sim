@@ -25,7 +25,13 @@ measures it ([`plans/0010`](../../plans/0010-s2-routing.md) R2).
 >
 > **Correctness content, first count: the detour, which is statistical.** A route shared per District
 > pair costs **36.01%** mean detour (p90 **71.39%**) and a next-hop table **18.52%** (p90 **40.70%**),
-> against a per-Trip search's zero. The gap between the two is structural rather than incidental: a
+> against a per-Trip search's zero. ⚠ **Both figures are taken on S2 R2's *uniform* origin-destination
+> draw, and R4 later showed that draw is the longest-trip distribution available**: on a local draw the
+> next-hop table's 18.52% becomes **128.82%**, which R4 calls *"a different city"*. The comparison below
+> survives — both schemes were measured on the same draw — but neither number may be carried out of it
+> as *the* cost of a path source. `plans/0012` **Cause 5**.
+>
+> The gap between the two is structural rather than incidental: a
 > shared route is coarse at *both* ends, since the Traveller must reach the origin representative
 > before the stored route means anything, while a next-hop table is followed from wherever the
 > Traveller actually is and is coarse only on the destination side — worth almost exactly half the

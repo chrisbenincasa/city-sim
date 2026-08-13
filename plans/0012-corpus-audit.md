@@ -295,6 +295,42 @@ other prose document containing the figure contains the phrase too**.
 | `532,750` | `532750` | `one core` | `plans/0013-tick-budget.md` |
 | `3,700` | `3,731` | `of the 1M target` | `plans/0002-open-questions.md` |
 | `10.37` | `10370` | `9.4–10.5` `9.37 to 10.51` `9.37–10.51` | `plans/0013-tick-budget.md` |
+| `2,592` | `2592` | `upper bound` | `docs/adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md` |
+| `18.52` | | `uniform` | `docs/spike-results.md` |
+| `82.84` | | `synthetic` | `plans/0011-rule-engine-bins-and-rules.md` |
+| `861.87` | | `15.6 ms` | `docs/spike-results.md` |
+
+**The last four rows were added by a sweep for 186,624's siblings**, on 2026-08-13, and each is the
+same shape: a figure that is **one half of a ratio**, quoted into an argument, whose scope clause lives
+in one document and not in the others.
+
+- **`2,592`** is 186,624's own **factor** — 2,592 stressed Segments × 72 Vehicles. Registering the product
+  and not the factor leaves the ratio rebuildable from its parts, and S5 had already sized its L3 fixture
+  from it. It carries the *same* disqualification as the product, deliberately: a row about a factor must
+  not say something weaker than the row about what it multiplies into.
+- **`18.52`** is the purest example in the corpus. R2's next-hop detour is **18.52% on a uniform
+  origin-destination draw and 128.82% on a local one**, which R4 calls *"a different city"* — so the
+  number is a property of the draw at least as much as of the path source. `adr/0041` decided volume
+  attribution partly on it, with no draw named.
+- **`861.87`** is the sharpest of the four and the only one whose disqualifier is a **denominator**
+  rather than a scope. It is a bill of **134.135 ms** over the **15.6 ms budget at 4×**, and both terms
+  have since moved in opposite directions — `adr/0096` prices at the design speed's 62.5 ms (214.6%),
+  `adr/0094` multiplies routing by 4 (back to 858.5%). ***It is now right by cancellation, which is the
+  second sighting of a lesson `plans/0013` coined about its own Bin Rule row.*** `adr/0012` and
+  `adr/0061` both decided something on it with no denominator named at all.
+- **`82.84`** is a **synthetic** unit that met a real world at **552 ns**. `plans/0011`'s own finding is
+  ***a unit cost is a hypothesis until a real world has produced one***, coined about this figure, and
+  `02 §4.1` was still quoting the laboratory number as a budget.
+
+⚠ **And the check failed on `plans/0025` the same minute, against a paragraph written to explain the
+registry** — which had named `3,700` and `10.37` by their digits while arguing that figures must not be
+named by their digits. It is the sharpest evidence this file has that Cause 5 is a **reflex** and not a
+lapse: a number is shorter than a description of a number, so the wrong form is always the easy one, and
+nothing except a machine pushes back at the moment of writing.
+
+**Registering the four cost six sentences**, one or two documents each. That is the argument for doing it early:
+the phrase is cheap while the sites are few, and every future document that needs the number inherits the
+scope for free.
 
 **The phrase cell may hold several spellings of *one* disqualification and any satisfies** — a caveat is
 prose and is legitimately worded two ways, `9.4–10.5` in a summary and `9.37 to 10.51` where the five
@@ -321,6 +357,15 @@ check asking *is this number qualified somewhere nearby* would have **passed** e
 one that dropped the clause that mattered. **Owning documents are preferred to summarising ones for the
 same reason**: a summary is where a caveat gets compressed, and a compressed caveat is the thing that
 went wrong above.
+
+**The instrument has been defeated twice by typography and never yet by content**, which is worth
+recording because both failures produced *false positives* against clean documents and both looked like
+findings. The first parser split the alternates cell on commas and turned `186,600` into `186` and `600`;
+the second compared phrases against unflattened text, so a caveat hard-wrapped across a line break read
+as absent. **Both fixes are in the matcher and neither is in the prose** — the alternative was to forbid
+digit grouping and to reflow paragraphs to suit a test, which is a check bending the corpus around
+itself. *A guard that makes people rewrite true sentences to keep it quiet is a guard that will be
+switched off.*
 
 **The table is small by construction and that is the answer to the obvious objection.** Check 5's design
 note warns that a hand-maintained list inside an instrument is *Cause 1 arriving inside the check* — true

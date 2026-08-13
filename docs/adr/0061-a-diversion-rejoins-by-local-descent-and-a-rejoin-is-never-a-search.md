@@ -12,6 +12,14 @@
 
 ### This is the answer to the largest number in the corpus
 
+> ⚠ **The denominator, added 2026-08-13.** Every percentage below is against the **15.6 ms budget at
+> 4×**. [`0096`](0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)
+> has since held that a capability must be priced at the **design speed's 62.5 ms**, and
+> [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+> multiplies every routing count by 4. **The two cancel to within 0.4%** — 861.87% → 214.6% → 858.5% —
+> so the figure survives on grounds that have both been replaced. It is a **bill in milliseconds**
+> (134.135 ms at R8's rung) and that is the form to carry. `plans/0012` **Cause 5**.
+
 [`adr/0046`](0046-a-driver-routes-on-habit-sight-and-temperament-never-on-current-cost.md) made diversion **routine** — an every-junction possibility for the whole fleet — and [`adr/0047`](0047-routing-never-keys-on-the-district.md) then deleted the one path source under which a mid-journey diversion was free. **Nobody had multiplied the two.** S2 R6.3 did: at 40,000 Travellers on a 7-Day Habit, a diverting Traveller that re-searches costs **861.87% of the Tick budget**, which is 99.76% of routing's entire bill. The route cache cannot rescue it — it would need an **88.5%** hit rate on the input it is worst at, since a diversion's origin is *wherever congestion happened to be*.
 
 Session M settled the principle — *rejoin rather than re-search* — and nobody had made it a mechanism. This is the mechanism, and the reason it is affordable is that **it is not a cheaper search. There is no search.**

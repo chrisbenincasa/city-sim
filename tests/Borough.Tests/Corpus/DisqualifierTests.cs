@@ -159,12 +159,28 @@ public sealed class DisqualifierTests
         }
     }
 
+    private static readonly Regex Whitespace =
+        new(@"\s+", RegexOptions.Compiled, TimeSpan.FromSeconds(5));
+
+    /// <summary>
+    /// Collapses every run of whitespace to one space, applied to <b>both</b> sides of the phrase
+    /// comparison. Markdown here is hard-wrapped at about 100 columns, so a disqualifying phrase is
+    /// routinely split across a line break — and a raw <c>Contains</c> then reports a document that
+    /// carries the caveat perfectly well. That happened on the day the third batch of rows was added,
+    /// against a paragraph whose entire subject was this registry. <b>An instrument defeated by line
+    /// wrapping is one that teaches people to reflow prose in order to satisfy it</b>, which would make
+    /// the check a nuisance rather than a guard — and it is the second time this test has been defeated
+    /// by typography rather than by content, after digit grouping.
+    /// </summary>
+    private static string Flatten(string text) => Whitespace.Replace(text, " ");
+
     private static bool Mentions(string text, Entry entry) =>
         entry.Spellings.Prepend(entry.Figure)
             .Any(spelling => text.Contains(spelling, StringComparison.Ordinal));
 
     private static bool Disqualified(string text, Entry entry) =>
-        entry.Phrases.Any(phrase => text.Contains(phrase, StringComparison.OrdinalIgnoreCase));
+        entry.Phrases.Any(phrase =>
+            Flatten(text).Contains(Flatten(phrase), StringComparison.OrdinalIgnoreCase));
 
     private static string Wanted(Entry entry) =>
         string.Join(" / ", entry.Phrases.Select(phrase => $"\"{phrase}\""));
