@@ -465,7 +465,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **87** decision records, numbered to **`0088`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **92** decision records, numbered to **`0093`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — *what is next*, plus done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question** |
@@ -529,8 +529,26 @@ placement step is unbuilt — and two ledger entries had already concluded that 
 equilibrium that a **mechanism** settles. **A design document is not a description of the build**, and
 where it could be read as one it says which parts exist.
 
-**A local workaround is not a discharge** (`adr/0073`). Not a fourth inference sibling — `0043`, `0052`
-and `0070` govern what a sitting may *conclude*, and this governs what a spike must *do with what it
+**A description of the build is where to look, and never what you found** (`adr/0093`). The **fourth
+inference sibling**: `adr/0043` governs **claims**, `adr/0052` **numbers**, `adr/0070` **absences**, and
+this governs **what the build does** — the input every sitting reasons from constantly (*the loader
+already refuses this*, *that pressure source would cover it*) and the one nothing governed. Before
+deciding on the strength of what the build does, **open the mechanism**: a sentence about it, in an ADR,
+a plan, a doc-comment, or implied by what a test suite covers, tells you which symbol to read and never
+what is in it. Where such a sentence is wrong it is wrong about the **trigger** — what fires it, what it
+is keyed on, when it runs — because a description explains a mechanism's *purpose* and a purpose is not
+a trigger. **Four sightings in three days, each costing a decision**: `adr/0064` read the test suite and
+found a live defect that was not one (the loader's one untested guard); `adr/0079` read an ADR's summary
+and recommended a pressure source keyed on something else; `adr/0091` read a plan's own recommendation
+that *the Zone Rule condemns in its own time*, which `Condemn` never does; `adr/0090` read a doc-comment
+saying `RoadGenerator` lays *"at world creation"*, when its one production call site is `SyntheticCity`.
+**The writing half is what compounds: name a symbol, never a time.** *"At world creation"* cannot be
+checked without already knowing the answer; *"when `SyntheticCity` runs"* is one grep. This corpus cannot
+catch the failure any other way — its three mechanical checks are all document-to-document.
+`plans/0012` **Cause 4**.
+
+**A local workaround is not a discharge** (`adr/0073`). Not an inference sibling — `0043`, `0052`, `0070`
+and `0093` govern what a sitting may *conclude*, and this governs what a spike must *do with what it
 already found*, which puts it beside `adr/0042`. **When a spike measures something and the cause lies in
 code the spike does not own** — `Borough.Core`, the arithmetic substrate, a Ruleset, an analyser —
 **route the finding to that code or to a named document with an owner, on the day, and before working

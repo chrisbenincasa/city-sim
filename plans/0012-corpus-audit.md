@@ -23,7 +23,7 @@ enumerates lives in the binary*.
 
 ---
 
-## The diagnosis, which is two things and not one — **and a third was added later**
+## The diagnosis, which is two things and not one — **and a third and a fourth were added later**
 
 The sweep expected one failure mode and found two. They want different answers, and conflating them
 is why *"tidy the documents"* has never worked as an instruction.
@@ -31,6 +31,21 @@ is why *"tidy the documents"* has never worked as an instruction.
 **Cause 3 was added on 2026-08-11 and was not found by the sweep**, which is itself worth noting: it
 was found by a spike round tripping over it. The sweep reads documents against each other and catches
 facts that disagree; Cause 3's documents **all agree**, and all three are wrong together.
+
+**Cause 4 was added on 2026-08-12 and the sweep could not have found it either**, for a sharper reason:
+its disagreement is not between two documents at all. It is between a document and **the code**, and
+nothing in this corpus checks that — `CitationTests` checks links resolve, `CoverageMapTests` checks rows
+exist, `MarkdownStyleTests` checks markdown renders, and **all three are document-to-document**.
+
+Read the four together and they are ordered by how hard they are to catch, which is the opposite of the
+order they were found in:
+
+| | What went wrong | The tell | Repair |
+|---|---|---|---|
+| **1** | one fact stored twice, drifting | the copies disagree | one copy, or a check |
+| **2** | a write that did not land | a decision with no inbound citation | sweep for citations when a decision ships |
+| **3** | a read never repeated — true when written, and the world moved | an item that names its gate | check the other way: when a gate clears, sweep for who cites it |
+| **4** | **the text was never true** — it describes a mechanism and was wrong on the day | **nothing** | open the mechanism; write names rather than times |
 
 ### Cause 1 — status is stored in three places that disagree
 
@@ -145,6 +160,45 @@ which is greppable in the same way `adr/0049`'s orphaning was. R7's earlier repa
 — *each entry carries its state explicitly, so "present" stops meaning "open"* — is Cause 1's medicine
 and does nothing here: the entry's state was recorded, and the state was `blocked`, and that was true of
 the entry and false of the world.
+
+### Cause 4 — a decision is taken from a description of the code, and the description is wrong about the trigger
+
+**Added 2026-08-12 by session P, with four sightings across three consecutive days.** The rule is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) —
+***a description of the build is where to look, and never what you found*** — and it is the fourth member
+of the `adr/0043` / `0052` / `0070` family: those govern what a sitting may conclude from **claims**,
+**numbers** and **absences**, and this governs what it may conclude from **what the build does**, which
+every sitting reasons from constantly and nothing has ever governed.
+
+| | The description consulted | What it said | What the code said |
+|---|---|---|---|
+| `adr/0064` | **the test suite** | `RulesetLoader` refuses nothing for a duplicate `(kind, Resource)` Bin | it has refused since slice 7 task 8 — and that refusal was the **one guard in the loader with no test** |
+| `adr/0079` | **an ADR's summary sentence** | route a stranded Building through `adr/0053`'s pressure, *"it needs no new mechanism"* | that pressure is a duration of **Rule Instance starvation**, and a bulldozed Street starves nothing |
+| `adr/0091` | **a plan's own recommendation** | *"re-zone and wait — the Zone Rule condemns in its own time"* | `ZoneRuleEngine.Condemn` never reads the permission set, so a healthy Building never falls |
+| `adr/0090` | **a doc-comment, inside the code** | `RoadGenerator` *"lays a complete Street lattice over the whole map at world creation"* | one production call site, `SyntheticCity`, reached only by `Populate` — a player's world has had no roads since 5a |
+
+**All four are wrong about the *trigger* and none about the behaviour** — the loader's refusal, the
+pressure's key, the condemn predicate's terms, the generator's caller. A sentence written to explain a
+mechanism explains its **purpose**, and a purpose is not a trigger, so that is the half a description
+reliably omits and the half a decision usually turns on.
+
+**This is not Cause 1, 2 or 3, and it is the only one no re-reading finds.** Cause 1's copies disagree;
+Cause 2 leaves a decision with no inbound citation; Cause 3's text was true when written. Here **the text
+was never true**, there is no second copy to disagree with, no missing citation to spot, and no gate to
+re-check. It is also the only one this corpus is structurally unable to check, per the table above.
+
+**The repair is to write a name where a time is written**, and it is why this cause has a cheaper answer
+than its position in the table suggests. *"At world creation"* states a moment, and moments are not in the
+code; ***"when `SyntheticCity` runs"*** states a symbol, and one grep settles it. Three of the four
+sightings would have been self-refuting had the sentence named a caller. Reading side: a description tells
+you which symbol to open — open it. Writing side: name a **symbol**, never a time, a phase, or a stage of
+the project.
+
+**The corpus coined this twice and left it as commentary both times** — `adr/0044`'s *citing an ADR is not
+applying it* and `adr/0079`'s *citing a mechanism is not checking what it is keyed on*, the second offered
+explicitly as the first's sibling. Two ADRs reached for the same sentence independently, neither made it
+binding, and the failure recurred twice afterwards. ***An aside is not a rule, and the evidence is that
+this one was written down twice and did not hold.***
 
 ---
 

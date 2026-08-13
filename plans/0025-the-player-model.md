@@ -93,6 +93,14 @@ resolve.
 | whether the player may clear land at all | `CONTEXT.md` → Derelict, since `adr/0057`: *"it stands until the player clears it"* — a vocabulary entry asserting a player act the verb list did not contain |
 | that the District-scale clearing tool is `Govern` | `01 §6`, which lists *clearance of abandoned stock* among the recovery levers and then says of that list *"per §2 they are ordinary **Policies**"* |
 
+**Nine by the end of the session, and three of the last four were not in prose at all** — a doc-comment,
+a plan's own recommendation, and an ADR's summary sentence, each describing a mechanism and each wrong
+about its **trigger**. That is a different failure from the one above, and it is now
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+and `plans/0012` **Cause 4**: the others are a fact with two copies drifting, or a write that did not
+land, or a read never repeated, and **this one was never true when it was written**. It is also the only
+one the corpus cannot check, because all three of its mechanical checks are document-to-document.
+
 The generalisation is worth keeping: ***a claim about distance is not always a claim that says so***, and
 more broadly, **a corpus this size fails by non-reading long before it fails by non-writing**. Session J
 found the same thing twice on the same day (`05 §3` contradicting `05 §7` inside one file, and S2 R1.5's
