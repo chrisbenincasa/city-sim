@@ -960,6 +960,34 @@ somewhere held this. That is `adr/0073` failing at its own first step: *route th
 and before working around it*. **A citation is not a filing, and the document that would have caught it
 is the one being cited.** The only thing that found it was somebody asking what was outstanding.
 
+### The developed density every map decision is priced against is circular, and nothing says so
+
+*(Found 2026-08-13 by session P while grilling `01 §4`, and it is a **correction to how a figure is
+cited**, not to the figure. Owner: [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)
+and `CLAUDE.md`'s Map row.)*
+
+**3,700 people per km² is quoted as the design's developed density and it was obtained by dividing the
+target population by the old map's area.** 1,000,000 ÷ 268 km² = 3,731. So it is not an independent
+figure that the map was checked against — it is **the map**, restated in different units, and every
+sentence of the form *the density is unchanged, so the map can grow* is using the old map to justify the
+new one.
+
+**The number is not thereby wrong**, which is why this is a citation defect rather than a measurement
+one. Two figures derived from the build bracket it: `[lots] lots_per_segment = 5` over 5a's 33,024
+Street Segments gives 165,120 Lots on 268 km², and `World`'s independently-chosen 225 Lots per 1,000
+Citizens gives 225,000 — **2,738 and 5,136 per km²** at the shipped occupancy, with 3,731 between them.
+So the figure survives; what has to stop is quoting it as evidence.
+
+- [ ] **`adr/0089`** — say where the density came from wherever it is cited as a check, and cite the two
+  bracketing figures instead. The ADR's conclusion does not move.
+- [ ] **`CLAUDE.md`'s Map row** — *"1M and the 3,700/km² density are unchanged"* reads as two independent
+  facts holding and is one fact stated twice.
+
+⚠ **This is `plans/0012` *Cause 1* in its purest form and the copies do not disagree** — they cannot,
+because one is arithmetic on the other. **The tell that usually finds Cause 1 is absent by construction
+here**, which is why it took a third document (the two build-derived figures) to notice, and it is worth
+holding: *a derived copy that can never drift is the one no drift check will ever surface.*
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and

@@ -1,7 +1,12 @@
-# The player model — grilling `01 §1` and `§3`
+# The player model — grilling `01 §1`, `§3` and `§4`
 
-⚠ **PINNED MID-SESSION 2026-08-12.** Ten decisions taken and written; one question open and stated
-verbatim at the bottom. This document is the resumption point.
+✅ **DONE 2026-08-13.** Twenty-three decisions, six ADRs
+([`0090`](../docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)–[`0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)),
+and **every section of `01-player-experience.md` has now been examined** — §4 was the last, and it was
+never on the session's plan.
+
+*(Pinned mid-session on 2026-08-12 with ten decisions and one open question; the pin was lifted the same
+day and the document ran to the end.)*
 
 ## Why this session exists
 
@@ -42,6 +47,11 @@ view, not the record.
 | 16 | **The region view is a zoom level of the one map**, not a second screen — zoom out and the ground stops being drawn and the Settlement graph is drawn at true positions. A toggled view is refused because SC4's region screen was a different *game state*, which `adr/0020` refuses, and because a screen you switch *to* reads as a menu of places when the property that makes the diagram honest is that nobody chose what is on it | `adr/0092`, `01 §1` |
 | 17 | **A trajectory is reported first at the place its mechanism makes.** Settlement → District, one hierarchy and not two axes, because a Settlement *is* a set of Districts. Commute-shed failures (Gridlock, Labour mismatch, Retention) at the Settlement; policy and pooling failures at the District | `adr/0092`, `01 §6` |
 | 18 | **`§3` step 1 is reading the edges, so the first verb used is `Inspect`.** Every Outside Connection is live from Tick 0 and carries its own Hinterland's figures, so the gates are not interchangeable and the choice is real. `§5.6` already called this *"the opening's real reconnaissance"* and `§3` had no such step | `01 §3` |
+| 19 | **`TICKS_PER_DAY = 2048`.** A Tick is 42.1875 s of in-world time, a Day is 2m08s at 1×, and a twenty-hour campaign holds **562 Days** against 140 — which `§4`'s Replacement Rate marker needs and which no Life Stage length could have supplied at 8192. Taken on `adr/0019`'s explicitly forbidden ground, **pacing**, because `adr/0082` deleted the premise that forbade it | `adr/0094`, `01 §1`, `§4` |
+| 20 | **What rescales is decided by one question: what is the quantity denominated in?** Ticks are kept at their number; in-world time is unchanged and there is four times more of it per real second; Days are unchanged and four times faster in real time. **Only Goods quantities rescale, ×4.** The alternative — divide every Tick cadence by four — holds the in-world meaning and quadruples the cost, and the authored intent was the **visible pace** | `adr/0094` |
+| 21 | **The speed ladder keeps 2× and 4× and gains 3×.** `§1`'s *no 8×* rule reads as a floor on Day length and is keyed on **events the player can perceive per second**, which did not move. What moved is that **Day-scaled phenomena have a lower top watchable speed than everything else** — the commute peak is 11 seconds at 4× — which is `§7`'s Study argument one rung up, not a new problem. 4× is *getting somewhere*, not watching | `01 §1` |
+| 22 | **A Commute Budget is three rungs — fast 20, moderate 40, unsavoury 50 — and only the ceiling refuses.** A single threshold makes a cliff out of `adr/0017`, and reports **zero** while every commute in the city creeps from twelve minutes to nineteen. The **unsavoury** rung is where `§4`'s *housed* Departures come from, and no fifth Trip Fate is opened | `adr/0095`, `01 §4` |
+| 23 | **The map stays at `WorldCells = 512`, on a recomputed ratio rather than the one it was granted.** `adr/0089` sized it at 3.7–5.2 crossings for a 30-minute Budget, and 30 minutes is a rung that no longer exists: **5.6–7.8 at the fast rung, 2.2–3.1 at the ceiling**, and the ceiling governs. Two or three separable settlements is not the blob that ADR exists to prevent | `adr/0095`, `adr/0089` |
 
 ## What was written
 
@@ -75,6 +85,28 @@ Then, after the pin was lifted:
 - **`docs/adr/0022`** — the forest amendment's *"there is no sixth verb"* corrected: one exists and does
   not reach ground.
 - **`plans/0002`** — two coverage-map rows, and a §D2 row for the compulsory purchase price.
+
+Then, on 2026-08-13, grilling `§4`:
+
+- **`docs/adr/0094`** — a Day is 2048 Ticks, because Ticks per Day is a sampling rate and not a length of
+  life. **`docs/adr/0095`** — a Commute Budget is three rungs and only the last one refuses.
+- **`docs/adr/0019`** — amended a **second** time, and this time the **conclusion** falls: *Why shortening
+  the Day is not a pacing change* struck in full, the *"free in another currency"* claim struck, the speed
+  ladder superseded, and the revisit trigger marked as pointing backwards.
+- **`docs/adr/0082`** — its *"`TICKS_PER_DAY = 8192` stands"* clause superseded, and a banner naming the
+  two live consequences it left standing on the premise it deleted.
+- **`docs/adr/0089`** — the *Buildable for 1M* column renamed to **Occupied by 1M**, and the 30-minute
+  ratio restated at two rungs.
+- **`docs/01-player-experience.md`** — `§1` gains a five-rung speed ladder with Tick budgets, the restated
+  refusal rule and the `plans/0013` ×4; `§4` gains the graded commute, the Bill-axis reconciliation and
+  the recomputed twenty-hour marker; `§5.1` gains *two scarcities read as long commutes*; `§5.5`'s *"§3
+  removes budget pressure"* is struck.
+- **`CLAUDE.md`** — three constants rows rewritten, the Commute Budget row reshaped, the ADR count 92 → 94.
+- **`plans/0002`** — two coverage rows, the `01` row closed, three new §D2 rows (`TICKS_PER_DAY`, a
+  Household's life in Days, which rung governs separability) and two amended.
+- **`plans/0003`** — hash-moving queue **item 7**, ungated and not urgent.
+- **`plans/0012`** — the developed density is circular, filed as Cause 1 with the tell absent by
+  construction.
 
 Corpus tests green throughout (`CitationTests`, `CoverageMapTests`, `MarkdownStyleTests`), all links
 resolve.
@@ -198,6 +230,47 @@ which question the cap belonged to.
 Downstream of those, on the code track: `plans/0003` hash-moving-queue **item 6** — scope `RoadGenerator`
 to developed land, then flip `WorldCells` to 512 and re-record all three golden baselines. One commit of
 its own, and it is `adr/0089`'s named blocker.
+
+## Closed — `§4`, which was never on the plan
+
+**Grilled 2026-08-13. Decisions 19–23, [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+and [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md).**
+
+`§4` is two sentences long and states two markers. **Both were unsupportable and for opposite reasons.**
+The two-hour marker rests on the Commute Budget and the Budget was a **step function**, so the signal it
+produces arrives at the moment a spatial fix has stopped being cheap. The twenty-hour marker rests on
+**Replacement Rate**, a quantity that takes generations, and a twenty-hour campaign contained **140
+Days** — no generation at any plausible Life Stage length. *The deepest skill the game asks for was
+scheduled to arrive after the campaign ended*, and the section had said so in plain words since it was
+written.
+
+**The finding is that `adr/0082` deleted a premise and left two consequences standing on it.** It
+inverted `adr/0019`'s clock — a Tick's duration became **derived from** `TICKS_PER_DAY` — and the section
+titled *Why shortening the Day is not a pacing change* needs the opposite. Its argument, *"same city,
+same population, same roads, twice the vehicles"*, requires a commute to be a fixed number of Ticks; under
+the new chain a commute is **1.39% of a Day at 8192 and 1.39% at 2048**, so the constant cancels and there
+is no rebalancing at all. `adr/0082` kept the number and never re-derived what stood on it, which is
+`adr/0089`'s ***the obligation a deletion creates is a re-derivation, not a retraction*** for the **third
+time in two days**.
+
+**And it left a live wrong instruction in a revisit trigger.** `adr/0019` says that if vehicles cost too
+much, *"4096 with doubled vehicle speed is the correct response"*. Under two clocks that makes the problem
+worse by exactly the factor it is reached for to improve: the vehicles in flight do not move, and the
+**sub-step ratio** does. That is `adr/0093`'s failure on an axis `adr/0093` does not cover — not a
+description of the **build** going stale, but a **consequence** whose premise was replaced in another
+file.
+
+**Two smaller ones, and both are about a sentence I nearly acted on.** `§1`'s *no 8×* rule is stated as a
+threshold on Day length and is **keyed on events per second**, which is a different quantity; reading it
+as written would have deleted 2× and 4× from the ladder for no reason. And `§4`'s *"the fix is not more
+money — it is geography"* looked like a flat contradiction of `§5.1`'s *"buyable out of? Yes, always"* and
+is not one: they are about where money must be **pointed** and about whether a priced route **exists**.
+**Neither section could have said so when it was written** — the route that reconciles them is
+`Demolish`, which is a day old.
+
+*(One correction landed the other way. `§5.5`'s *"§3 removes budget pressure"* is simply stale: this
+session's own decision 4 says §3 removes budget **failure**, so the Bill is expressed from the first
+purchase and the opening is **not** nearly identical at every dial setting.)*
 
 ## Small debt
 

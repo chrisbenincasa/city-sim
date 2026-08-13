@@ -190,6 +190,29 @@ become three.
 > Item 6 moves every State Hash and re-records all three golden baselines, so it is one commit of its own
 > and it must not ride along with a slice.
 
+> ⚠ **ITEM 7, added 2026-08-13 by session P: `TICKS_PER_DAY` and `WHEEL_SIZE` go to 2048.**
+> [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md).
+> `Ticks.PerDay` and `EventWheel.Size`, two `const`s, and **the change is one line each and the
+> consequences are not**. Every hash-bearing number denominated in **Ticks** keeps its value and changes
+> its in-world meaning, which is a design change under `05 §4` even though no Ruleset text is edited —
+> so all three golden baselines re-record.
+>
+> **It carries a second, separable edit that must not share the commit**: the Ruleset **Goods quantities
+> scale ×4**, because a Rule moving *n* units every 64 Ticks now moves them over four times more in-world
+> time. Cadences do not move and quantities do; keeping the two commits apart is what makes the split
+> auditable afterwards, and it is the same reason item 6 stands alone.
+>
+> **Three things to check rather than assume.** `CommuteRoster` allocates `Ticks.PerDay` buckets and
+> should simply get smaller. `LayerSchedule.DefaultPollutionDecayTicks = Ticks.PerDay` is Day-denominated
+> and correct unchanged. And `TravelTime`'s `RawPerDay` is the conversion every Commute Budget goes
+> through — **1.4222 Ticks per clock minute**, down from 5.6889 — so `--trips`' finest resolvable
+> duration goes from 0.176 to 0.70 min, and 5b-bis task 7's sub-Tick truncation defect would be four
+> times larger if it had not been fixed at the source.
+>
+> **It is not gated and it is not urgent.** Nothing downstream is blocked on it; what it unblocks is a
+> playtest, which is the only instrument that can ratify the value. Do it before the first play session
+> and not before that.
+
 > ~~**✅ THE QUEUE IS EMPTY. All four items shipped 2026-08-10.**~~ **REOPENED the same day by session N
 > task 2, with items 4 and 5 — and ✅ BOTH SHIPPED 2026-08-11, so it is empty again.** They were [`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
 > and [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md).
