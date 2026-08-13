@@ -136,12 +136,23 @@ four times faster. [`plans/0013`](../plans/0013-tick-budget.md) sums to ≥114% 
 its unit is a maximum with a 9.4–10.5 ms spread — but ×4 on the largest uncertain row is not nothing, and
 it is recorded here rather than discovered later.
 
-**The Microscopic Cap falls 4×.** The sub-step band goes **21–45 → 84–180**, taking the Cap from
-`plans/0002` §D2's ~12,600–27,100 Vehicles to **~3,200–6,800**, against S2 R2's ~186,600 demand estimate.
-The gap widens from 7–15× to **27–58×**. This does not block anything — the Lane kernel is unbuilt, the
-Cap is unset, and [`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) forbids treating
-either as a constraint — but it is the loudest consequence of the change and what it presses on is
-[`0007`](0007-stress-driven-simulation-detail.md)'s *"it scales"* clause rather than the Cap's value.
+**The Microscopic Cap's per-Tick cost rises 4×.** The sub-step band goes **21–45 → 84–180**, so a Vehicle
+held Microscopic costs four times more per Tick.
+
+> **⚠ CORRECTED 2026-08-13, the same day, by [`0096`](0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md) — this paragraph originally claimed a gap of 27–58× and there is no gap, because there is no denominator.**
+>
+> **The demand figure was 186,624, which is S2 R2's synthetic *fleet* and not a stressed count**, and
+> `plans/0013` labels it so in the table cell and warns in the same section that *"a number becoming a
+> decision by being the only number in the room"* is where that table would fail. It did, here, one day
+> later. **And the supply figure was priced at 15.6 ms while the clock moved**, which double-counts: the
+> budget scales on the same ladder. At the design speed the Cap's supply side is **~25,400 Vehicles on
+> one core**, which is *exactly* what the old clock gave at its own top rung — so under `0096`'s basis
+> this change moves the Cap by **nothing**, and every figure is still one core with a 2- and 4-thread
+> measurement owed.
+>
+> What remains true is the sentence above it: the per-Tick cost quadruples, the Lane kernel is unbuilt,
+> the Cap is unset, and [`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) forbids
+> treating any of it as a constraint until a real stressed-Vehicle count exists.
 
 **Within-Day scheduling resolution falls 4×, and it is the whole of what sets this constant.** `adr/0082`
 found that of `adr/0019`'s three reasons for declining a shorter Day, visual honesty falls with the
@@ -211,11 +222,11 @@ window: below about 512 Ticks a Day the commute peak stops being a spread and be
 or anything else that asks what is happening inside 42 in-world seconds refutes the section that carries
 this decision, and it should be reopened on that rather than on cost.
 
-**The Lane kernel being built and the Microscopic Cap turning out to bind in ordinary play.** The 27–58×
-gap above is against an unbuilt mechanism and a demand figure drawn from S2 R2's uniform origin-destination
-draw, which R4 showed is the longest-trip distribution available. If a real traffic model measures the
-gap and `adr/0007`'s *"it scales"* clause fails, the sub-step ratio is the first lever and this constant
-is the second — in that order, per `adr/0082`.
+**The Lane kernel being built and the Microscopic Cap turning out to bind in ordinary play.** No gap has
+been measured — see `0096` — because the Cap's demand side does not exist. If a real traffic model
+produces a stressed-Vehicle count above the supply figure and `adr/0007`'s *"it scales"* clause fails,
+the levers in order are **threading** (unmeasured, up to 4× on the supply side), then the **sub-step
+ratio** per `adr/0082`, then this constant.
 
 **Routing measured in a real city.** `plans/0013`'s routing row has never met a running world. If a
 measurement lands near its guess, ~305% at 4× makes 4× a rung a large city withdraws early, which is

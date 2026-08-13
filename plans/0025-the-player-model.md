@@ -51,6 +51,7 @@ view, not the record.
 | 20 | **What rescales is decided by one question: what is the quantity denominated in?** Ticks are kept at their number; in-world time is unchanged and there is four times more of it per real second; Days are unchanged and four times faster in real time. **Only Goods quantities rescale, ×4.** The alternative — divide every Tick cadence by four — holds the in-world meaning and quadruples the cost, and the authored intent was the **visible pace** | `adr/0094` |
 | 21 | **The speed ladder keeps 2× and 4× and gains 3×.** `§1`'s *no 8×* rule reads as a floor on Day length and is keyed on **events the player can perceive per second**, which did not move. What moved is that **Day-scaled phenomena have a lower top watchable speed than everything else** — the commute peak is 11 seconds at 4× — which is `§7`'s Study argument one rung up, not a new problem. 4× is *getting somewhere*, not watching | `01 §1` |
 | 22 | **A Commute Budget is three rungs — fast 20, moderate 40, unsavoury 50 — and only the ceiling refuses.** A single threshold makes a cliff out of `adr/0017`, and reports **zero** while every commute in the city creeps from twelve minutes to nineteen. The **unsavoury** rung is where `§4`'s *housed* Departures come from, and no fifth Trip Fate is opened | `adr/0095`, `01 §4` |
+| 24 | **The Microscopic Cap derives from the design speed's 62.5 ms, not the top rung's 15.6 ms.** Pricing it at 4× chooses `03 §3.9`'s **simulation** degradation — every player permanently less accurate — to avoid its **hardware** one, which is one machine dilating and saying so. That is the section's own table read backwards, and `01 §1` makes 4× the rung a large city withdraws anyway. **Recorded rather than decided beside it**: a fallback tier below Microscopic is **foreseen and deliberately undesigned**, and a **2- and 4-thread** Lane kernel measurement is owed to S5 | `adr/0096`, `03 §3.9` |
 | 23 | **The map stays at `WorldCells = 512`, on a recomputed ratio rather than the one it was granted.** `adr/0089` sized it at 3.7–5.2 crossings for a 30-minute Budget, and 30 minutes is a rung that no longer exists: **5.6–7.8 at the fast rung, 2.2–3.1 at the ceiling**, and the ceiling governs. Two or three separable settlements is not the blob that ADR exists to prevent | `adr/0095`, `adr/0089` |
 
 ## What was written
@@ -271,6 +272,43 @@ is not one: they are about where money must be **pointed** and about whether a p
 *(One correction landed the other way. `§5.5`'s *"§3 removes budget pressure"* is simply stale: this
 session's own decision 4 says §3 removes budget **failure**, so the Bill is expressed from the first
 purchase and the opening is **not** nearly identical at every dial setting.)*
+
+## The session's own worst moment, and it is the sharpest finding
+
+**`adr/0094` shipped with a ratio whose denominator does not exist, and the document it was borrowed from
+had predicted that failure in writing, in the paragraph directly beneath the number.**
+
+The claim was that the clock change opens a **27–58×** gap between what the Lane kernel can afford and
+what a city demands. The demand figure — 186,624 — is S2 R2's synthetic **fleet**.
+[`plans/0013`](0013-tick-budget.md) says so **in the table cell itself**:
+
+> | 186,624 — S2 R2's fixture, **not a stressed count** |
+
+and closes that section:
+
+> *"How many Vehicles a real city stresses at once is milestone 5b's and does not exist, which is why **no
+> row in this table claims a share for it**. A number becoming a decision by being the only number in the
+> room is a habit this corpus has already recorded, and **this table is where it would happen**."*
+
+**The Cap counts Vehicles in *stressed* Segments and 186,624 is a whole fleet**, so the two were never
+comparable. And the supply side was quoted at 15.6 ms while the clock moved, which double-counts, because
+the Tick budget scales on the same ladder — at the **design speed** the figure is **~25,400 Vehicles on
+one core, identical to what the old clock produced at its own top rung**.
+
+***A caveat attached to a number does not travel with it.*** The annotation was correct, in the right
+place, and had been read hours earlier; what crossed into the ADR was the digits. This is not
+`plans/0012`'s Cause 1 — nothing drifted, the two copies never disagreed — and it is not Cause 4, since
+no description of the build was involved. **It is a third thing: a number quoted away from the sentence
+that qualifies it**, and the corpus is structurally worse at catching it than at catching the others,
+because a figure repeated verbatim looks *more* reliable each time it appears.
+
+**Two smaller notes on the same episode.** The user's *"the new number is clearly untenable"* was the
+correct reading of what I had written and the wrong reading of the world, which is what an unqualified
+number does — it recruits the reader into acting on it. And the repair produced a decision that was worth
+taking on its own merits ([`adr/0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)'s
+budget basis) and **nearly produced a mechanism nobody needs**: designing a fallback tier against an
+unmeasured shortfall is `adr/0070`'s void question in its exact stated form, and the session got to the
+edge of it before checking the denominator.
 
 ## Small debt
 

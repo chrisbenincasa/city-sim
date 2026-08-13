@@ -363,6 +363,23 @@ slower of L5's two readings — one core:
 | 186,624 — S2 R2's fixture, **not a stressed count** | 5.47 ms | 70% | **35%** | 18% | 8.7% |
 | **532,750** | **15.6 ms** | 200% | **100%** | 50% | 25% |
 
+> ⚠ **AMENDED 2026-08-13, and this table's own closing warning came true one day after it was last read.**
+> Two things. **The whole table is pre-sub-stepping**: [`adr/0082`](../docs/adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md)
+> gives car-following its own clock inside phase 4, so a Vehicle costs the ratio times a row's figure —
+> **84–180** at [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)'s
+> clock, and the last row's ceiling of 532,750 becomes **~6,300 at 4× and ~25,400 at 1×**.
+> [`adr/0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)
+> makes **1×** the rung the Cap derives against, so the **4× column stops being the one to read** for this
+> row.
+>
+> **And the 186,624 row was borrowed as a denominator, exactly as the paragraph below forbids.** `adr/0094`
+> published a 27–58× gap against it; it is a synthetic *fleet* and this table says so in the cell. The
+> ratio is withdrawn. ***A caveat attached to a number does not travel with it*** — the annotation was in
+> the right place, was read, and did not survive being quoted somewhere else.
+>
+> **Every figure here is one core.** A 2- and 4-thread Lane kernel measurement is owed to S5 and is the
+> largest unclaimed multiple in the row.
+
 **Read the last row as the ceiling and none of the others as a prediction.** It rose from 324,945 to
 532,750 on the `FloorDiv` correction, which is worth noticing for what it says about ceilings quoted
 from unaudited substrates rather than for the number. The Cap is a ratio
