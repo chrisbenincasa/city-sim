@@ -227,15 +227,22 @@ between them can see anything wrong.
 |---|---|---|---|
 | **`adr/0094`**, 2026-08-13 | **186,624**, quoted as **~186,600** | `adr/0082`'s *"heavily caveated… it is an **upper bound**"*, and `plans/0013`'s *"S2 R2's fixture"* | used as a bare **denominator** for the Microscopic Cap, and at the **4×** budget rather than the design speed's, producing **27–58×** where the same numbers give **7.3×** |
 | **the correction**, hours later | the **caveat**, not the number | `plans/0013`'s three words *"not a stressed count"*, which mean *not a **real city's** stressed count* | read literally, producing the claim that 186,624 *"is a whole fleet"*. It is **2,592 stressed Segments × 72 Vehicles** and was derived carefully in `adr/0082`. Corrected in this file, `adr/0094`, `adr/0096`, `plans/0025` and `CLAUDE.md` |
-| **the developed density**, ongoing | **3,700 / km²** | *none — the qualifier was never written* | cited as an **independent check** that the map may grow, when it is 1,000,000 ÷ 268 km² and therefore the old map restated. See *The developed density every map decision is priced against is circular* below |
+| **the developed density**, ongoing | **3,700 / km²** | `plans/0002` §D's *"an **output** of the 1M target — §1's column is headed *1M implies*"*, and `docs/spike-results.md` saying it again | cited in four documents as an **independent check** that the map may grow, when it is 1,000,000 ÷ 268 km² and therefore the old map restated. See *The developed density every map decision is priced against is circular* below |
 
-**Three sightings, and each is a different way for the same thing to go wrong.** In the first the
-qualifier existed, was correct, was in the right place, and had been read **hours earlier by the same
-sitting**. In the second **the qualifier was itself the thing quoted away from its context** — a
-three-word compression that is true where it sits and false when carried, which produced a *wrong
-correction to the first*. In the third no qualifier was ever written, so there was nothing to leave
-behind. **The effect on a reader is identical in all three**: a bare figure offered as evidence, with
+**Three sightings, and the middle one is the odd one out.** The first and the third are the **pure
+form**, twice: a qualifier that exists, is correct, sits in the right place, and is simply not carried —
+in the first it had been read **hours earlier by the same sitting**, and in the third it is written twice
+over, in `plans/0002` §D and in `docs/spike-results.md`, while four other documents quote the digits
+alone. In the second **the qualifier was itself the thing quoted away from its context** — a three-word
+compression that is true where it sits and false when carried, which produced a *wrong correction to the
+first*. **The effect on a reader is identical in all three**: a bare figure offered as evidence, with
 nothing in the quotation to say whether it can bear the weight.
+
+⚠ **The third sighting was originally written into this table as *no qualifier was ever written*, and
+that was false** — the clause was there, in two documents, and the sweep that filed the debt had not
+looked. Corrected 2026-08-13. It matters because a missing qualifier is a **writing** failure with no
+repair available, and this is a **reading** failure with an obvious one, which is the whole reason check
+6 can exist: *there is nothing for an instrument to point at until somebody has written the sentence.*
 
 ***The second sighting is the one to remember, because it happened while writing this section.*** A
 caveat is a claim, so it travels exactly as badly as a number does, and compressing one for a table cell
@@ -286,6 +293,13 @@ other prose document containing the figure contains the phrase too**.
 |---|---|---|---|
 | `186,624` | `186,600` | `upper bound` | `docs/adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md` |
 | `532,750` | `532750` | `one core` | `plans/0013-tick-budget.md` |
+| `3,700` | `3,731` | `of the 1M target` | `plans/0002-open-questions.md` |
+| `10.37` | `10370` | `9.4–10.5` `9.37 to 10.51` `9.37–10.51` | `plans/0013-tick-budget.md` |
+
+**The phrase cell may hold several spellings of *one* disqualification and any satisfies** — a caveat is
+prose and is legitimately worded two ways, `9.4–10.5` in a summary and `9.37 to 10.51` where the five
+captures are listed. **They must name the same disqualification.** Two different caveats in one cell is
+the substituted-caveat hole reopened, which is the thing this check exists to close.
 
 ⚠ **This table's first row was authored wrong, and the check caught it on its first run — which is the
 best evidence for it in this file and is why the mistake is kept rather than tidied.** The phrase
@@ -315,11 +329,17 @@ actually been caught by. An entry is authored by whoever writes the caveat, on t
 obligation on the person who already knows the answer; and the owner-side assertion means a reworded
 caveat fails loudly rather than orphaning the row.
 
-**Two candidates are named and deliberately not registered yet.** The developed density (`3,700`) is the
-second row of the table above and waits on the two corrections owed for it further down this file —
-registering it now would make the check red against a debt already filed, which reports the same fact
-twice. And routing's `10.37 ms`, whose disqualifier is that it has **never met a real world**, wants five
-documents amended first. *The registry earns entries from sightings, not from a scan.*
+**The two candidates named here as *not yet registered* were registered the same day, and doing it
+found something.** `3,700` was held back on the ground that the corrections owed for it further down this
+file should land first; registering it instead showed **the filed debt was incomplete**. The two boxes
+name `adr/0089` and `CLAUDE.md`; the check named **four** sites, adding `05 §1`'s budget block — which is
+where the circular derivation actually lives — and `adr/0085`, which divides the density back out of the
+map it came from. ***A debt filed by reading is a lower bound on the debt.*** All four are paid.
+
+`10.37 ms` cost nothing at all: every site already carried the spread, so the row is a **trap set before
+anybody stepped in it**, which is the one entry here not earned by a sighting. That is allowed and should
+stay rare — *the registry earns entries from sightings, not from a scan*, because a row costs a phrase in
+every future document that legitimately needs the number.
 
 **Unlike Cause 4, this one is mechanically checkable**, and cheaply, because both ends are documents.
 See check 6 in *What the mechanical check should be* — **including what was specified there first, and
@@ -1103,13 +1123,20 @@ Street Segments gives 165,120 Lots on 268 km², and `World`'s independently-chos
 Citizens gives 225,000 — **2,738 and 5,136 per km²** at the shipped occupancy, with 3,731 between them.
 So the figure survives; what has to stop is quoting it as evidence.
 
-- [ ] **`adr/0089`** — say where the density came from wherever it is cited as a check, and cite the two
-  bracketing figures instead. The ADR's conclusion does not move.
-- [ ] **`CLAUDE.md`'s Map row** — *"1M and the 3,700/km² density are unchanged"* reads as two independent
-  facts holding and is one fact stated twice.
+- [x] **`adr/0089`** — say where the density came from wherever it is cited as a check, and cite the two
+  bracketing figures instead. The ADR's conclusion does not move. **Done 2026-08-13.**
+- [x] **`CLAUDE.md`'s Map row** — *"1M and the 3,700/km² density are unchanged"* reads as two independent
+  facts holding and is one fact stated twice. **Done 2026-08-13.**
+- [x] **`05 §1`'s budget block and `adr/0085`** — ⚠ **neither was in this list**, and both were found by
+  check 6 when the figure was registered. `05` states the derivation `map_area × mature_density ×
+  buildable_fraction` with the density as an *input*, which is the circularity in its most load-bearing
+  form; `adr/0085` divides 3,700 back out of 268 km² as though that confirmed something. **Done
+  2026-08-13**, and the fact that a hand sweep found half the sites is the argument for the check.
 
-⚠ **This is *Cause 5*, in the form where the qualifier was never written at all** — see the second row of
-that section's table. It reads like *Cause 1* and is not: the copies cannot disagree, because one is
+⚠ **This is *Cause 5* in its pure form** — the qualifier **is** written, in `plans/0002` §D and in
+`docs/spike-results.md`, and four other documents quote the digits without it. *(This paragraph said the
+qualifier was never written, until 2026-08-13; the sweep had not looked, which is the same failure one
+level up.)* It reads like *Cause 1* and is not: the copies cannot disagree, because one is
 arithmetic on the other, so **the tell that usually finds Cause 1 is absent by construction** and it took
 a third document (the two build-derived figures) to notice. *A derived copy that can never drift is the
 one no drift check will ever surface* — and the reason it did damage is Cause 5's: the figure travelled

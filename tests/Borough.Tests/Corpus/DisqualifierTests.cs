@@ -65,7 +65,14 @@ public sealed class DisqualifierTests
     private static readonly Regex Cell =
         new(@"`(?<value>[^`]+)`", RegexOptions.Compiled, TimeSpan.FromSeconds(5));
 
-    private sealed record Entry(string Figure, string[] Spellings, string Phrase, string Owner);
+    /// <summary>
+    /// One registered trap. <see cref="Phrases"/> holds alternative spellings of the <em>same</em>
+    /// disqualification and any one satisfies — a caveat is prose and is legitimately worded two ways
+    /// (<c>9.4–10.5</c> in a summary, <c>9.37 to 10.51</c> where the captures are listed). This does not
+    /// weaken the pinning that makes the check work: the alternatives must all name the same
+    /// disqualification, never two different ones, or the row is back to accepting a substituted caveat.
+    /// </summary>
+    private sealed record Entry(string Figure, string[] Spellings, string[] Phrases, string Owner);
 
     /// <summary>
     /// Reads the registry out of <c>plans/0012</c>, starting at the marker comment so that prose above
@@ -109,15 +116,15 @@ public sealed class DisqualifierTests
 
             string[] figures = [.. Cell.Matches(cells[1]).Select(match => match.Groups["value"].Value)];
             string[] alternates = [.. Cell.Matches(cells[2]).Select(match => match.Groups["value"].Value)];
-            string[] phrase = [.. Cell.Matches(cells[3]).Select(match => match.Groups["value"].Value)];
+            string[] phrases = [.. Cell.Matches(cells[3]).Select(match => match.Groups["value"].Value)];
             string[] owner = [.. Cell.Matches(cells[4]).Select(match => match.Groups["value"].Value)];
 
-            if (figures.Length != 1 || phrase.Length != 1 || owner.Length != 1)
+            if (figures.Length != 1 || phrases.Length == 0 || owner.Length != 1)
             {
                 continue;
             }
 
-            entries.Add(new Entry(figures[0], alternates, phrase[0], owner[0]));
+            entries.Add(new Entry(figures[0], alternates, phrases, owner[0]));
         }
 
         Assert.NotEmpty(entries);
@@ -156,6 +163,12 @@ public sealed class DisqualifierTests
         entry.Spellings.Prepend(entry.Figure)
             .Any(spelling => text.Contains(spelling, StringComparison.Ordinal));
 
+    private static bool Disqualified(string text, Entry entry) =>
+        entry.Phrases.Any(phrase => text.Contains(phrase, StringComparison.OrdinalIgnoreCase));
+
+    private static string Wanted(Entry entry) =>
+        string.Join(" / ", entry.Phrases.Select(phrase => $"\"{phrase}\""));
+
     /// <summary>
     /// The registry cannot point at a caveat that is not there. This is what stops the table becoming a
     /// second copy that drifts: reword the owner's clause and this fails, rather than the row quietly
@@ -183,9 +196,9 @@ public sealed class DisqualifierTests
             {
                 broken.Add($"{entry.Figure}: owner {entry.Owner} does not contain the figure");
             }
-            else if (!text.Contains(entry.Phrase, StringComparison.OrdinalIgnoreCase))
+            else if (!Disqualified(text, entry))
             {
-                broken.Add($"{entry.Figure}: owner {entry.Owner} no longer says \"{entry.Phrase}\"");
+                broken.Add($"{entry.Figure}: owner {entry.Owner} no longer says {Wanted(entry)}");
             }
         }
 
@@ -215,10 +228,10 @@ public sealed class DisqualifierTests
 
             foreach (Entry entry in registry)
             {
-                if (Mentions(text, entry) && !text.Contains(entry.Phrase, StringComparison.OrdinalIgnoreCase))
+                if (Mentions(text, entry) && !Disqualified(text, entry))
                 {
                     bare.Add($"{Path.GetRelativePath(root, path).Replace('\\', '/')} quotes "
-                        + $"{entry.Figure} without \"{entry.Phrase}\"");
+                        + $"{entry.Figure} without {Wanted(entry)}");
                 }
             }
         }

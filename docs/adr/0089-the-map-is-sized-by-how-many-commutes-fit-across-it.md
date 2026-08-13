@@ -116,7 +116,7 @@ assumed the map must be **filled**, and `0021` says plainly that it must not be 
 is a null, not an array. Memory and save size therefore scale with developed area, not with map area — a
 4096² map with a city on 5% of it costs what a 1024² map with the same city costs."*
 
-So the density figure to check is the **developed** one, which stays at 3,700/km² by construction. The
+So the density figure to check is the **developed** one, which stays at 3,700/km² by construction. ⚠ **And *by construction* is the whole of it — this is not evidence.** 3,700 is an **output of the 1M target** (`plans/0002` §1's column reads *"1M implies"*), so *the developed density is unchanged* says only that neither of the two numbers it is made of has moved. The figures that do bracket it come from the build — **2,738 and 5,136/km²**, from `lots_per_segment` over 5a's Segment count and from `World`'s Lots-per-Citizen — and 3,700 sits between them, which is the closest thing to corroboration available. `plans/0012` **Cause 5**. The
 map-wide figure is not a density; it is a statement about how much open ground there is, and open ground
 is the mechanism.
 

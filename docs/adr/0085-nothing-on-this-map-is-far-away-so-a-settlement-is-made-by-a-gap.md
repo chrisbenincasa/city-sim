@@ -138,7 +138,10 @@ specification 5c will build from and settles nothing about the structure —
 ### The density argument is untouched, and it is now the whole of the case
 
 Nothing above reaches the first ground. 268 km² at 1M is 3,700/km² whatever a Tick is worth, because
-neither term is a duration. 2048² would be 15,000/km² — Paris — which is a different game and not the one
+neither term is a duration. ⚠ **It is also an arithmetic restatement rather than a check**: 3,700 is an
+**output of the 1M target** and this sentence divides it back out, so it confirms the map it was taken
+from (`plans/0012` **Cause 5**). The comparison to Paris below is real, because 15,000/km² comes from
+somewhere else. 2048² would be 15,000/km² — Paris — which is a different game and not the one
 `0022`'s macro-arc or `0020`'s polycentricity describe. So the decision survives and **both of the
 reasons it was given have been replaced**: the density ground stands alone where it used to be half of a
 pair, and the travel ground is gone.

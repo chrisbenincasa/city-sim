@@ -334,6 +334,16 @@ Which also moves the arithmetic: the gap is **1.8× at 8192 and 7.3× at 2048** 
 27–58× and not nothing. ***A caveat is a claim, so it travels exactly as badly as a number does*** — do
 not compress a disqualifier to fit a table column.
 
+**Then two more figures were registered on request — `3,700` and `10.37` — and the first paid off
+again.** `plans/0012` had filed the developed density's debt by hand and named **two** sites; the check
+named **four**, adding `05 §1`'s budget block, where the circular derivation is most load-bearing, and
+`adr/0085`, which divides the density back out of the map it came from. ***A debt filed by reading is a
+lower bound on the debt.*** And this section's parent entry in `plans/0012` had recorded the density as
+the case where *the qualifier was never written at all* — it is written twice, in `plans/0002` §D and in
+`docs/spike-results.md`, so the sighting is the **same pure form** as the first and not a third variety.
+That correction matters beyond the row: a missing qualifier is a writing failure with no repair
+available, and this is a reading failure with a mechanical one.
+
 **Two smaller notes on the same episode.** The user's *"the new number is clearly untenable"* was the
 correct reading of what I had written and the wrong reading of the world, which is what an unqualified
 number does — it recruits the reader into acting on it. And the repair produced a decision that was worth
