@@ -61,6 +61,10 @@ Zone families follow the Goods chain rather than a tradition. Industry splits by
 | **Industry — Extraction** | the **ground**: Fertility, Woodland. Not a market decision at all |
 | **Industry — Processing** | **reachability** of inputs and buyers |
 
+**The ground carries resources, and developing over one without extracting it forfeits it.** A player may zone anything anywhere — Woodland is ordinary ground with something standing on it, not a barrier to route around. Zone Residential over forest and the trees go when the houses are built and the Timber is simply never harvested; zone Industry — Extraction and it is. Nothing is refused, and nothing is reported after the fact: the ground is legible *before* the act through an overlay, and a game that told you about the Timber you forfeited would be issuing a verdict on a choice it had already allowed. `NO VERDICT` The rule is stated over *resources* rather than over Woodland so that any later ground-pinned resource inherits it without a second decision.
+
+**Doing both in sequence is intended play, and what it costs is time rather than permission.** Zone Extraction, harvest, re-zone — which is what land development actually does. What stops that being a free chore is that the harvest takes Days in which the block is not housing anybody, and the Unplaced Pool does not wait: the Households who would have lived there have gone somewhere else. The trade is **speed against value**, it is temporal rather than spatial, and its answer differs between a city short of Materials and a city short of housing without any rule saying so.
+
 Agriculture is not a special case needing its own verb; it is Extraction, and it needs *protection* rather than placement. A farm can never outbid housing, so an agricultural Zone is the player overriding an auction farms always lose — which is the counter-force `adr/0022` flagged as missing, and what a greenbelt actually is.
 
 **Nobody paints nuisance.** Dirty industry is not a band the player selects; it is where Materials come from, and Materials gate all construction — so **pollution is the price of growth and importing is the price of clean air**, with no configuration avoiding both. The player's levers are where the inputs are, what they regulate, and what bill they accept.
@@ -80,7 +84,20 @@ The contact between a Lot and a Street it can take access from — the geometric
 
 **It is also a stock the player spends.** Subdividing consumes frontage — narrow terraced Lots eat the available street edge to buy one Access Point each — where stacking preserves it and funnels every Trip through a point. That is one half of the density trade above.
 
-**"No frontage" is an `Evidence` answer**, one of the four reasons a Lot is vacant, alongside no Household in the Unplaced Pool that would accept it, conditions below tolerance, and no capital. And because every Lot has frontage by construction, every Building is on the Road Graph — which is what lets Utilities ride it with no second network to draw.
+**"No frontage" is an `Evidence` answer**, one of the ~~four~~ **six** reasons a Lot is vacant — and this list is the one canonical copy of them:
+
+| Reason | What it means |
+|---|---|
+| **No frontage** | no Street edge, therefore no Access Point, therefore nothing can reach it |
+| **Nobody in the Unplaced Pool would accept it** | there is no demand for this, here, at this price |
+| **Conditions below tolerance** | there is demand, and this place is not good enough for it |
+| **No capital** | the city cannot afford to raise anything |
+| **No permitted kind** | the permission set and the Ruleset's `[[building]]` kinds do not intersect — a content error, not a city condition |
+| **Not looked at yet** | the Zone Rule's sample has not reached this Lot. A **transient**, and the only one of the six that resolves itself |
+
+The last two were added 2026-08-12 by the `01 §1`/`§3` session. *Not looked at yet* is the load-bearing addition: without it a player cannot tell *nobody wants this* from *nobody has checked*, and since the speed at which a Lot fills is this design's entire demand signal, an unreadable silence is an unreadable signal. It is also the only entry that is a property of the **engine's cadence** rather than of the city.
+
+And because every Lot has frontage by construction, every Building is on the Road Graph — which is what lets Utilities ride it with no second network to draw.
 
 **Frontage is built as of 5a-bis, and it is `(derived AND rebuilt)` rather than saved** ([`docs/adr/0078`](docs/adr/0078-frontage-is-derived-on-the-epoch-and-a-lots-width-is-the-segments-own-building-count.md)). A Lot no more stores its frontage than an Arc stores its cost, because both are functions of the Segments — and the edit a stored copy would not reach is the player bulldozing the Street. The rebuild runs on the **Epoch**, which makes this the first consumer of `adr/0012`'s invalidation contract outside routing.
 
@@ -142,7 +159,7 @@ The record of development on the ground: the count of Tiles in a Cell ever built
 Agricultural capacity. **Composed at the point of use, never stored:** `terrain suitability − Sealing − pollution`. All land begins fertile and development degrades it, so fertility is a fact the player *makes* rather than one the generator deals. Farms in turn emit into pollution, so agriculture and housing repel each other without any rule saying so. See `docs/adr/0022-land-is-a-stock-the-city-spends.md`.
 
 **Woodland**
-The one generated resource. Forest Tiles are not farmable while wooded; clearing yields Timber as a one-time harvest and leaves fertile ground behind. Woodland regrows slowly on unsealed, unoccupied land, so land use is cyclical and the extraction frontier migrates outward on its own through ordinary Building decline.
+The one generated resource. Forest Tiles are not farmable while wooded; clearing yields Timber as a one-time harvest and leaves fertile ground behind. Woodland regrows slowly on unsealed, unoccupied land, so land use is cyclical and the extraction frontier migrates outward on its own through ordinary Building decline. **It is not a clearing verb and not an obstacle** — see Zone, *the ground carries resources*: building over forest clears it and forfeits the harvest, which is a cost and never a refusal.
 
 **Water Body**
 A pond, lake, river, bay or stretch of coast. Generated once and immutable (`adr/0021`), so the water network and its flow directions are generator output and are never read inside a Tick. Every Water Body is a **Bin holding the Waste family** (`adr/0031`) with two parameters: a **capacity**, and an **outflow rate** to the next body downstream — terminating in a Hinterland off the map edge.
@@ -185,10 +202,12 @@ What a Building accumulates when the city stops working for it. Three sources: *
 
 **The accumulated condition is retained and readable** — *"abandoned: 74% of work trips exceeded commute budget over 30 days"*, never a sad-face icon. An abandonment nobody can explain is the thing this whole design exists to refuse. `LEGIBLE CAUSE`
 
+**An abandoned Building is emptied and left standing on its Lot** (`adr/0091`). It is not demolished, and its Lot does not return to vacant: the shell is what **carries** the contagion — an abandoned Building feeds the desirability composition negatively, and bare ground has no term to feed it with — and it is what the retained condition above is retained *on*. It leaves by redevelopment when land value falls far enough to pencil, by the player's `Demolish`, or by a `Govern` clearance programme, so the stock is bounded by the Lot count rather than by elapsed time (`adr/0006`). `02 §5.9` asserted both readings and the build took the wrong one.
+
 **Derelict**
 A Building the **Ruleset in force cannot describe** — its kind is not declared, so it holds whatever Bins survived, houses whoever lived there, and runs nothing at all. It is **derived, never recorded**: there is no derelict flag, and the state is read off the kind (`adr/0057`).
 
-**It is not abandonment and shares none of its machinery.** Abandonment is what the *city* does to a Building — Failure Pressure past a threshold, with a sentence naming the cause. Dereliction is what a **Ruleset edit** does to one, and the only true sentence about it is *the Rules no longer describe this*, which is a statement about a file rather than about the city. A derelict Building therefore has no failure pressure and cannot be condemned by it; it stands until the player clears it. `PLAYER GOVERNS`
+**It is not abandonment and shares none of its machinery.** Abandonment is what the *city* does to a Building — Failure Pressure past a threshold, with a sentence naming the cause. Dereliction is what a **Ruleset edit** does to one, and the only true sentence about it is *the Rules no longer describe this*, which is a statement about a file rather than about the city. A derelict Building therefore has no failure pressure and cannot be condemned by it; it stands until the player clears it — with `Demolish`, `01 §2`'s sixth verb, which this sentence asserted for two milestones before there was a verb behind it (`adr/0091`). `PLAYER GOVERNS`
 
 **Nothing a player does can produce it**, which is the reason the two must not be conflated. The Ruleset changes under a live city only when a designer is balancing (`adr/0015`) or when a save meets a different Ruleset (`05 §7`) — so this is **development-time state**, and it is in this vocabulary because the code and `02 §4.3` both name it, not because a player will ever meet one.
 

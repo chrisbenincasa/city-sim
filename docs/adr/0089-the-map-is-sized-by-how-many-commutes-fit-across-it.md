@@ -158,6 +158,13 @@ unlock rule is *undesigned*, not refused, so the answer is to design it rather t
   quietly updated: the Commute Budget's decline mechanism, Severance's cost, `0088`'s edge choice and
   `0020`'s Settlements all acquire a working range they did not have. They should be re-read after the
   flip, not before.
+  > **Amended 2026-08-12: that list missed the largest one.**
+  > [`0022`](0022-land-is-a-stock-the-city-spends.md)'s macro-arc — farms retreat outward as development
+  > degrades fertility, until farm workers fall out of the commute shed and the farm village becomes its
+  > own Settlement — is a distance claim that **cannot complete at 16.4 km**, because the far corner is
+  > under thirty minutes from town. The four claims named above are mechanisms; this is the whole late
+  > game, and it was inert. It was missed because the claim is worded in *retreat* and *reachability* and
+  > never in metres: ***a claim about distance is not always a claim that says so***.
 - **`0085` is superseded on its decision and stands on its findings.** The 73× correction, S2 R1.5's
   unread column, and *a connected component fragments because an edge is missing* are all still true —
   what changes is that at 65.5 km, **distance is one of the things that makes an edge missing**, which at

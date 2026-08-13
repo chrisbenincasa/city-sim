@@ -83,6 +83,30 @@ The two chains stay asymmetric even though both end in imports, which is what ke
 - **`04-economy-and-goods.md` §1 needed a correction**: Timber was listed as produced by "Forestry, quarries," and a quarry producing Timber is incoherent. Quarries are dropped. Adding Stone as a sixth Good is the option that document's own resource discipline forbids.
 - **Sustainable yield is a first-class readout** — *"consumption 40 Timber/Day, regrowth 25/Day — you are drawing down the stock"* — which turns an invisible slow decline into something a player can see coming.
 
+## Amended 2026-08-12: how the player clears forest, and the distance the arc needs
+
+Two things this ADR asserted have now been settled where they belong, and both are recorded here because a
+future reader would otherwise re-open them from this file.
+
+**Clearing is not an act and there is no sixth verb.** This ADR says the first ten minutes gain *"a real
+decision: clear for lumber now, or keep the forest and import"*, and `01 §3` had no such step, which read
+as though a clearing tool were owed. It is not. `CONTEXT.md` → Zone now states the general rule — **the
+ground carries resources, and developing over one without extracting it forfeits it** — so the player zones
+anything anywhere, Woodland is ordinary ground with something standing on it, and Timber is captured by
+zoning **Industry — Extraction** or lost by building over it. Sequencing the two is intended play and is
+priced in Days rather than in permission, because the Unplaced Pool does not wait. The rule is stated over
+*resources* so a later ground-pinned one inherits it. `01 §3` carries the step.
+
+**The macro-arc was inert on the old map, and nobody noticed because the arc is a *distance* claim.**
+*Farms retreat outward until farm workers fall out of the commute shed, at which point the farm village
+becomes its own Settlement* cannot happen at 16.4 km across: the far corner is under thirty minutes from
+town, so no retreat is ever far enough.
+[`0089`](0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) takes the map to 65.5 km and the arc
+becomes reachable for the first time. That ADR's consequence list named four distance-dependent claims it
+re-opened and missed this one, which is the largest of them — the others are mechanisms, this is the whole
+late game. ***A claim stated in retreat and reachability is a claim about distance however it is worded***,
+and grepping for the word would not have found it.
+
 ## What would trigger revisiting
 
 - **Playtesting showing the ratchet is unfun rather than dramatic** — specifically, players describing the late game as bookkeeping. The first response is more reboot levers, not faster regrowth; regrowth speed is the load-bearing constant and loosening it deletes the arc.

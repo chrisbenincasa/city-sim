@@ -18,16 +18,129 @@ Each step has a home in the interface:
 |---|---|
 | **Observe** | Map overlays and the aggregate panels |
 | **Diagnose** | **Evidence** — drilling from any aggregate to its named constituents |
-| **Intervene** | The five verbs (§2) |
+| **Intervene** | The six verbs (§2) |
 | **Wait** | The city, running |
 
-The loop is deliberately slower than a builder's. This is not a game about laying track efficiently; it is a game about forming a hypothesis and testing it against a city that will not lie to you.
+**One turn of the loop is about an in-world Day.** That is not a target imposed on the simulation; it is
+what the simulation's own cadences already are. Placement, job assignment and the Zone Rules look at every
+candidate once per **1,024 Ticks** — an eighth of a Day — and a commute recurs **daily**, so a Day is the
+shortest interval over which a change can be made, noticed, acted on and observed.
+
+The speeds exist to make that interval watchable, and **1× is the speed the game is designed to be played
+at**:
+
+| Speed | One in-world Day | What it is for |
+|---|---|---|
+| **Pause** | — | Planning. The verbs work while paused |
+| 0.5× | 17m 04s | Slowing down to watch one thing happen |
+| **1×** | **8m 32s** | **The design speed. The game must be enjoyable here** |
+| 2× | 4m 16s | Comfortable once a city is settled |
+| 4× | 2m 08s | A speedup, and the first thing a large city may stop offering |
+
+There is no 8×. At 8× a Day is sixty-four seconds and `Observe` has nothing left to observe, which
+contradicts the loop rather than accelerating it.
+
+**A consequence for [`plans/0013`](../plans/0013-tick-budget.md), which had assumed otherwise.** That
+ledger is summed against a 15.6 ms budget, which is 4×, and reads as an existential problem because it
+exceeds it. Against the design speed the same work is **~28% of a 62.5 ms Tick**. The simulation as priced
+fits where the game is played and fails where it is hurried — so an over-budget figure at 4× is a
+statement about which speedups a city of that size offers, which is `HONEST DEGRADATION`, and not a
+statement that the game does not run.
+
+### Waiting and getting nothing is the reading
+
+**Nothing bounds how fast the city responds to the player, and nothing may.** How quickly a zoned Lot
+fills *is* the demand signal: build where the city needs something and it appears within seconds, which is
+the reward and the confirmation; build where it does not and the ground stays empty for as long as that
+remains true. §2 states the same thing from the verb's side — *when a zoned Lot stays empty, that is
+information* — and it is why this design has no RCI meter. **A stated maximum latency between an action
+and its consequence would be a demand meter through the back door**, obliging the city to answer on a
+clock whether or not anybody wanted the thing.
+
+What the cadences bound is **perception, not response**. `revisit_ticks` is how long before the city has
+*looked* at a Lot, and the player must be able to tell *nobody wants this* from *nobody has checked yet*,
+or the silence carries no information at all. That distinction is load-bearing and was nearly lost:
+[`adr/0069`](adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)'s
+`revisit_ticks` shipped at one Day — **eight and a half minutes at 1×** — and was lowered to 1,024 Ticks
+for an equilibrium reason, that 45% of the housing stock stood empty. The number is right and its recorded
+justification is half of why.
+
+### The Unplaced Pool is shown as a count and read as a population
+
+The Pool is this design's demand signal and there is no other one, so what `Observe` does with it decides
+whether the game has an RCI meter by another name. **It does not, and the reason is not that the number is
+hidden — the number is shown.**
+
+**An RCI meter is a synthesised scalar with no constituents.** Nothing in SC4 *is* the RCI value; it is a
+formula's output drawn as a bar, and it cannot be interrogated when it is wrong, which is what makes it
+prescriptive. **The Pool count is a count of real records**: 1,240 means 1,240 Households exist and every
+one of them is named, with money, a work requirement and a reason it left the last place. `CLAUDE.md`'s
+rule is *do not **add** a demand scalar* — this one is not added, it is counted. Withholding a number the
+simulation knows would sit badly beside a design whose whole promise is a city that will not lie to you.
+
+Two constraints on how it is shown, and they are where this could still go wrong:
+
+- **It must not read as an error state.** A healthy city always has people arriving, and a Pool of zero
+  means immigration has stopped, which is usually the worse condition. Rendered as a warning that clears
+  when satisfied, it teaches a false goal — a verdict smuggled in through styling. It is a **level**, like
+  a Bin's, and never an outstanding-work queue. `NO VERDICT`
+- **It is decomposed by default rather than shown as one figure.** *"1,240 waiting"* reads as *build 1,240
+  units*; the truth is usually *these 900 need cheap housing near the industrial district and your new
+  suburb is forty minutes away*. Same information, grouped so it can be acted on. The count is the head of
+  the list, never a substitute for it, and the drill-through is `§5`'s existing facility pointed at a
+  queue. `UNIQUE INDIVIDUALS`
+
+**The build already distinguishes the two readings and this document did not.** `PlacementEngine`'s Census
+family reports *considered* against *placed*, and its own comment gives the reason: a Pool being looked at
+and not housed is a city out of dwellings, where a Pool not being looked at is a different condition
+entirely. That is the perception-versus-response distinction above, reached from the instrumentation side
+before it was reached from here.
+
+### Diagnose has two halves, and only one of them is built
+
+**Evidence** explains what happened: it drills from an aggregate to the named constituents behind it (§5).
+It cannot explain a **non-event**, and under the paragraph above the non-event is the design's most common
+signal.
+
+Hence the second half: **selecting an empty Lot re-runs the Zone Rule's predicate against it and reports
+which clause failed.** `CONTEXT.md` → Frontage owns the list and there are six; this section deliberately
+does not repeat them. What matters here is that they **present identically as bare ground**, that several
+are player mistakes with fixes rather than statements about demand, and that one of them — *not looked at
+yet* — is a transient produced by the engine's own cadence. Leaving them indistinguishable would fail
+`LEGIBLE CAUSE` at the exact moment the design leans hardest on it.
+
+**The reason is recomputed on the click and never recorded.** It costs no column, no State Hash coverage
+and nothing inside `step()` — a cold path in `05 §4`'s sense — and it cannot drift from the behaviour it
+describes, because it *is* the predicate. The one thing it cannot answer is why the city declined an hour
+ago, which differs from why it would decline now only during a transient; the repair is to report **when
+the Lot was last looked at**, and that is the only piece of stored state this whole facility needs.
+
+### The hour markers are expectations, not a script
+
+**This is a simulation sandbox, not a story.** §3 and §4 describe what we *expect* to emerge at roughly
+certain points, and the game is tuned to trend that way — but **nothing enforces them and nothing should**.
+A player who meets the first spatial constraint at forty minutes, or never, has not found a bug. They have
+played differently, which is the proposition. `NO VERDICT`
+
+The distinction changes what a pacing claim licenses. *"The first genuine constraint should be spatial"*
+(§4) is a statement about what the simulation makes **likely** — put housing and jobs apart and commutes
+lengthen — and it is discharged by the mechanism existing and biting when the conditions occur. It is
+**not** a licence to detect the two-hour mark and arrange for something to happen. Any mechanism that would
+*guarantee* the curve is out of bounds for exactly the reason a demand meter is: it substitutes the
+designer's intention for the city's answer.
+
+So read every duration in §3 and §4 as a prediction the design is accountable for making *plausible*, and
+never as a promise it is accountable for *keeping*.
+
+The loop is deliberately slower than a builder's. This is not a game about laying track *efficiently* —
+the qualifier is the whole sentence, since the player lays every metre of it (§3) — it is a game about
+forming a hypothesis and testing it against a city that will not lie to you.
 
 ---
 
 ## 2. The player's verbs
 
-There are five, and the list is short on purpose. `PLAYER GOVERNS`
+There are six, and the list is short on purpose. `PLAYER GOVERNS`
 
 | Verb | What it does | What it does *not* do |
 |---|---|---|
@@ -36,17 +149,33 @@ There are five, and the list is short on purpose. `PLAYER GOVERNS`
 | | ⚠ *As built (5a-bis): **Streets only**, one **Segment** per act — an origin intersection and an axis, lay or bulldoze ([`adr/0077`](../docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md)). Arterials and Junction pieces are **refused by name** with their successor written beside the refusal, because a spline is many control points and is not one command, and a Junction piece needs the authored library `adr/0014` calls content.* | |
 | **Service** | Place schools, utilities, health, fire, waste — buildings with a catchment | Guarantee that they are reached, or decide how many staff them |
 | **Govern** | Set taxes, service funding, transfers, and constraints; borrow. Globally by default, overridden per District | Directly set outcomes. Every Policy is a Rule with a named payer and named beneficiaries |
+| **Demolish** | Remove a Street or a Building, at a price ([`adr/0091`](adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md)) | Yield anything for free, or decide what replaces it |
 | **Inspect** | Overlays, Evidence, Pin | Change anything |
 
 **The unit of a road edit is a Segment, not a Tile, and that is a property of the graph rather than of the interface.** `adr/0014` says Streets snap to the grid, which reads as though a Street were paintable Tile by Tile; the Road Graph puts nodes only at intersections a block apart, so one Street Segment spans an entire block face. A per-Tile command would either split Segments — which `CONTEXT` → Address refuses, because it is what holds the graph at ~30,000 rather than 150,000–300,000 — or accumulate dozens of commands into one edge and leave all but one of them meaning nothing. **What the player drags across the screen is a presentation question; what reaches the Input Log is one edge.**
 
 **`Fund` and `Regulate` were merged into `Govern`.** They were never different acts — both are *"set a parameter on a Rule the city then obeys"* — and the split was drawn on subject matter (money versus law) rather than on what the player does. `adr/0025` then emptied `Regulate` further by moving density caps into zoning, leaving a two-item verb. Constraint-versus-flow is a distinction *inside* Govern, not a division of the verb set.
 
-**One honest cost, recorded so nobody later "fixes" it:** the `PLAYER GOVERNS` pillar's own wording is that *"the player zones, connects, funds, and regulates"* — so in the pillar's sense, **all five verbs are governing**, and naming one of them Govern overlaps. That is accepted. Govern is the best available word for *the things you set*, and the pillar text should not be narrowed to match, because the pillar is about the relationship between player and city, not about one menu.
+**One honest cost, recorded so nobody later "fixes" it:** the `PLAYER GOVERNS` pillar's own wording is that *"the player zones, connects, funds, and regulates"* — so in the pillar's sense, **all six verbs are governing**, and naming one of them Govern overlaps. That is accepted. Govern is the best available word for *the things you set*, and the pillar text should not be narrowed to match, because the pillar is about the relationship between player and city, not about one menu.
 
 **`Service` is the design's acknowledged placement exception.** Pillar 3 is govern-don't-place, and a fire station appearing wherever the simulation likes is bad play — so the player places service Buildings, and only those. Note what the player still does *not* control: staffing is demand-determined by catchment, so the number of teachers is set by the number of children (see `adr/0026`).
 
 **The player never places a Building that Citizens live or work in.** That is the line that separates this from a city *builder*, and it is what makes the city's growth an answer rather than an instruction. When a zoned Lot stays empty, that is information.
+
+**Removing one is not placing one, which is why `Demolish` costs the pillar nothing.** The player still cannot author what stands anywhere — only veto what does, which is an ordinary governing act and is compulsory purchase with no road attached. The verb was a **sixth** rather than a mode of `Connect` because `Connect` had been carrying an unnamed demolition since [`adr/0077`](adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md) gave it a lay-or-bulldoze flag: keeping the count at five would have preserved a number rather than a distinction, and left one verb meaning *lay a road*, *unlay a road* and *remove a house*. That is a verb drawn on subject matter rather than on what the player does, which is the split this section already records collapsing once when `Fund` and `Regulate` became `Govern`.
+
+**Clearing is bought rather than taken, and there are four routes to it** ([`adr/0091`](adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md)). They differ in scale and in who is displaced, and only the first two pay anybody:
+
+| Route | Verb | Over what | Price |
+|---|---|---|---|
+| **Demolish** | `Demolish` | anything the player selects | market value, from the land value Layer, paid to the displaced |
+| **Compulsory purchase** | `Connect` (Arterial), `Service` | whatever stands in the way of the act | the same price, charged as part of the act |
+| **Clearance programme** | `Govern` | abandoned stock only | funded from the treasury; nobody left to compensate |
+| **Withdraw replacement** | `Zone` | nothing standing | free, and it clears nothing in a healthy district |
+
+**No act in this design yields empty ground, and that is what stops the priced routes being a cheap bulldozer.** Compulsory purchase under `Connect` leaves an Arterial; under `Service` it leaves a service Building with a footprint and an upkeep obligation. `Demolish` is the one act that produces a cleared Lot and it is the one that pays full market value for it.
+
+**Withdrawing a permission removes *replacement*, never the Building.** Repainting does nothing immediate to what already stands — [`adr/0055`](adr/0055-a-zone-rules-permission-set-scopes-what-it-builds-never-which-lots-it-looks-at.md), and `02 §5.9` states it deliberately, because scoping a Zone Rule's population by permission would be immortality by paintbrush. So a churning district empties itself instead of rebuilding, and a healthy one is not cleared this way at any speed. It is a real lever and it is the slowest one.
 
 **Inspect is a first-class verb, not a menu.** Roughly half the play time should be spent here, and the interface should be built as though that were true.
 
@@ -56,18 +185,75 @@ There are five, and the list is short on purpose. `PLAYER GOVERNS`
 
 The opening must teach the causal chain, not the controls.
 
-1. A road from the **Outside Connection** inward. Immediately, the map has an inside and an outside.
+**The map starts empty.** The generator places a small number of **Outside Connections** on the map edges
+([`adr/0088`](adr/0088-the-price-of-a-far-hinterland-is-paid-in-your-own-traffic.md)), each with a short
+stub of road running inward so that a gate is something to connect *to* rather than a marker to guess at,
+and **nothing else stands anywhere on the map**. No starting hamlet, no pre-laid grid, no unlock boundary:
+the player may build anywhere from the first second and is responsible for every metre of it. That is the
+genre's own opening — SC4's edge highway, rail and pylons; Cities: Skylines' single motorway ramp — and it
+is what `PLAYER GOVERNS` amounts to when the player is also the one building.
+
+**What makes the player start somewhere in particular is a consequence, not a fence.** An Outside
+Connection is the only object on the map that does anything: it is where Citizens and Goods enter and the
+only door Money comes through
+([`adr/0024`](adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md)). A city founded
+fifty kilometres from one is a city nothing arrives at, and *why* is legible on inspection. Nothing forbids
+it. This replaces the reason `adr/0088` originally gave, which rested on unlock-by-serviceability — a
+boundary the design has since refused — and it is the stronger of the two, because a consequence teaches
+and a fence only stops.
+
+1. **A road inward from an Outside Connection.** The map acquires an inside.
 2. Zone a few Residential Lots. Nothing happens for a moment — then Households from the **Unplaced Pool** choose them, and buildings appear *because someone chose to live there*.
 3. Zone Commercial. A shop opens, and its shelves are visibly empty until Goods arrive.
 4. Click a Household. See where they live, where they work, what they need, and where their last Trip went.
 
-Step 4 is the one that has to land. It is the moment the player learns that everything on screen is made of people, and that the game will always answer *why*.
+Step 4 is the one that has to land. It is the moment the player learns that everything on screen is made
+of people, and that the game will always answer *why*.
 
-**What is deliberately absent from the first ten minutes:** budget pressure, shocks, and any failure state. The opening teaches the loop; pressure arrives once the loop is understood.
+**On a forested seed there is a fifth step, and it is the first one without an obvious answer.**
+[`adr/0022`](adr/0022-land-is-a-stock-the-city-spends.md) puts a decision in the opening that this section
+did not have: *clear for lumber now, or keep the forest and import.* It needs no sixth verb and no
+terrain-editing tool, because under `CONTEXT.md` → Zone the player may zone anything anywhere and Woodland
+is ordinary ground with something standing on it. Build over it and the Timber is forfeited; zone
+**Industry — Extraction** and it is harvested; do both in sequence and you pay for the harvest in Days the
+block houses nobody, while the Unplaced Pool goes elsewhere.
+
+It earns its place in the first ten minutes precisely because the other four steps each have one right
+answer and this one does not. The trade is **speed against value**, and it reads differently to a city
+short of Materials than to a city short of housing, with nothing in the game saying which you are.
+
+**The city is founded with money and the player did not ask for it.** Money's only door is the Outside
+Connection, so a city that exports nothing earns nothing and a founding balance of zero is a game that
+cannot start. The balance is therefore granted automatically at world creation, and the opening says
+nothing about where it came from. Whether it is a **gift** or a **loan to be serviced** is the natural axis
+for a difficulty setting and is deliberately left open; making the player choose a borrowing figure before
+they have laid a road would put a number in front of them before any of the numbers mean anything.
+
+**It must be enough to get started and not enough to win.** Those are the two ends the figure is chosen
+between, and both are observable rather than argued: a balance is too small if the player cannot reach a
+first housed Household, and too large if a city grows to self-sufficiency without the player having made a
+single spatial decision. It is world-creation state that enters the treasury Bin, so it is hash-bearing and
+needs a named ratifier under [`adr/0052`](adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md);
+the ratifier is the first real play session and the two refuting observations are the ones just named.
+**It is not ratified by a player failing to meet §4's two-hour mark**, which under the previous section is
+not a promise.
+
+**What is deliberately absent from the first ten minutes:** shocks, and any failure state.
+
+**Budget pressure is not absent, and the earlier draft of this section was wrong to say so.** The founding
+balance is finite and infrastructure is paid for three times — in Money, Materials and Land
+([`adr/0035`](adr/0035-infrastructure-is-priced-by-what-it-consumes.md)) — so a player laying road on a
+blank map is spending from the first act. What is absent is budget *failure*, for the reason `CONTEXT.md` →
+Resource already gives: a deficit becomes a debt burden and never a stop. You can overspend in the first
+ten minutes and you will feel it; you cannot lose. The opening teaches the loop; *failure* arrives once the
+loop is understood.
 
 ---
 
 ## 4. Two hours, and twenty
+
+⚠ **Read this section under §1's *the hour markers are expectations, not a script*.** Every duration below
+is a prediction the design must make plausible, not a curve it is entitled to enforce.
 
 **Around two hours** the first genuine constraint bites, and it should be a *spatial* one rather than a financial one. The classic shape: housing and jobs have grown in different places, commutes lengthen, and Trips start failing their **Commute Budget**. Businesses whose customers cannot reach them decline. The fix is not more money — it is geography, and the player has to read the map to find it.
 
@@ -261,7 +447,9 @@ Every indicator above is a single number for the whole city, which was sufficien
 
 So **every trajectory must be expandable by District.** This is `Evidence` gaining a spatial axis rather than a new system: asking *"why is my tax base shrinking"* must decompose to a place, not stop at an average.
 
-**No trajectory is terminal.** A District with no population, no land value, and full Sealing still has a recovery path, assembled from levers that exist for other reasons: remediation (pay to unseal), clearance of abandoned stock, a District tax override to zero, a service funding override upward, running transit in, and rezoning to a lower band so cheaper uses can bid. **The dead end is expensive, not closed** — consistent with scarcity being a gradient everywhere else in this design. None of these are unlocked or hidden; per §2 they are ordinary Policies whose preview simply reads *"applies to 0 Tiles"* until there is something to act on.
+**No trajectory is terminal.** A District with no population, no land value, and full Sealing still has a recovery path, assembled from levers that exist for other reasons: remediation (pay to unseal), clearance of abandoned stock, a District tax override to zero, a service funding override upward, running transit in, and rezoning to a lower band so cheaper uses can bid.
+
+⚠ **Two of those levers had no referent until [`adr/0091`](adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md), and this paragraph is where the gap was found.** *Clearance of abandoned stock* presumes abandoned Buildings **stand**, and `02 §5.9` said in one line that abandonment returns the Lot to vacant and in another that the condition is *retained on the Building* — the build implemented the first, so there was nothing to clear and abandonment contagion had no carrier. The shell stands, and the sustained-detection duration below — derived from *the time contagion takes to reach neighbours* — has a mechanism to be derived from again. **The lever is `Govern`**, exactly as the sentence after this list says: a District-scoped, treasury-funded clearance programme, not a click on a Building. The retail act is the `Demolish` verb (§2), which is a different tool with a different price. **The dead end is expensive, not closed** — consistent with scarcity being a gradient everywhere else in this design. None of these are unlocked or hidden; per §2 they are ordinary Policies whose preview simply reads *"applies to 0 Tiles"* until there is something to act on.
 
 ### Notification, and what earns one
 

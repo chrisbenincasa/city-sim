@@ -816,7 +816,11 @@ A Building accumulates **failure pressure** from:
 - Rules repeatedly hitting their terminal fallback (input starvation)
 - Local conditions falling below its occupants' tolerance
 
-Past a threshold, it **loses occupancy and quality**. Past a further threshold, it is abandoned and its Lot returns to vacant.
+Past a threshold, it **loses occupancy and quality**. Past a further threshold, it is **abandoned — emptied, and left standing on its Lot.**
+
+⚠ **This line said *"its Lot returns to vacant"* and contradicted the paragraph twelve lines below it, which is the reading that stands** ([`adr/0091`](adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md)). A condition cannot be *"retained on the Building"* by a Building whose Lot has gone back to vacant, and the build implemented the wrong half — `World.DestroyBuilding` frees everything. Three things depend on the shell standing: contagion needs a **carrier**, since bare ground has no dereliction term in the desirability composition; `01 §6`'s sustained-detection duration is *derived from* how long contagion takes to reach neighbours, so with no contagion it is somebody's guess again; and `01 §6` and §5.2 above both treat clearance of abandoned stock as a lever separate from rezoning, which needs something to clear. The **sink** that keeps standing abandoned stock inside [`adr/0006`](adr/0006-no-collection-grows-with-elapsed-time.md) is the one an occupied Lot already has — redevelopment when land value falls far enough to pencil (§5.5), plus the player's `Demolish` and the `Govern` clearance programme. It is bounded by the Lot count, never by elapsed time.
+
+**An abandoned Building is not a *derelict* one and the two share no machinery.** `CONTEXT.md` → Derelict is what a **Ruleset edit** does to a Building whose kind is no longer declared ([`adr/0057`](adr/0057-dereliction-is-a-design-time-state-and-it-is-derived-rather-than-recorded.md)); abandonment is what the **city** does to one, and only the second has a cause worth reporting.
 
 **Pressure is a *duration*, not a tally of failure events** ([`adr/0053`](adr/0053-failure-pressure-is-a-duration-not-a-tally.md)). It measures how long the Building has been continuously failing, and it resets the instant the Building stops — so recovery is total rather than a debt worked off, and it needs no decay rate to stay bounded because nothing accumulates.
 
