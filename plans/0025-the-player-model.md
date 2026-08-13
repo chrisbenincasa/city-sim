@@ -39,6 +39,9 @@ view, not the record.
 | 13 | **No act in this design yields empty ground except the one that pays full price.** Compulsory purchase under `Connect` leaves an Arterial, under `Service` a service Building with an upkeep obligation. That is what stops the priced routes being a cheap bulldozer, structurally rather than by pricing | `adr/0091`, `01 §2` |
 | 14 | **Re-zoning withdraws *replacement*, never the Building.** `ZoneRuleEngine.Condemn` is keyed on Rule Instance starvation and never reads the permission set (`adr/0055`), so a churning district empties itself and a healthy one is not cleared this way at any speed. Stated as *the Zone Rule condemns in its own time* it would have been a second pressure source, which `adr/0079` closes | `adr/0091`, `01 §2` |
 | 15 | **Abandonment leaves the shell standing.** `02 §5.9` said both, twelve lines apart, and the build took the wrong half. The shell is what **carries** contagion, what `01 §6`'s detection duration is *derived from*, and what the clearance lever clears. It is **not** *derelict* — that term is a Ruleset-edit state and shares none of its machinery | `02 §5.9`, `CONTEXT.md` → Failure Pressure, `adr/0091` |
+| 16 | **The region view is a zoom level of the one map**, not a second screen — zoom out and the ground stops being drawn and the Settlement graph is drawn at true positions. A toggled view is refused because SC4's region screen was a different *game state*, which `adr/0020` refuses, and because a screen you switch *to* reads as a menu of places when the property that makes the diagram honest is that nobody chose what is on it | `adr/0092`, `01 §1` |
+| 17 | **A trajectory is reported first at the place its mechanism makes.** Settlement → District, one hierarchy and not two axes, because a Settlement *is* a set of Districts. Commute-shed failures (Gridlock, Labour mismatch, Retention) at the Settlement; policy and pooling failures at the District | `adr/0092`, `01 §6` |
+| 18 | **`§3` step 1 is reading the edges, so the first verb used is `Inspect`.** Every Outside Connection is live from Tick 0 and carries its own Hinterland's figures, so the gates are not interchangeable and the choice is real. `§5.6` already called this *"the opening's real reconnaissance"* and `§3` had no such step | `01 §3` |
 
 ## What was written
 
@@ -54,6 +57,24 @@ view, not the record.
   **inert at 16.4 km**.
 - **`docs/adr/0089`** — consequence list amended to name `adr/0022`, the largest distance-dependent claim
   it missed.
+
+Then, after the pin was lifted:
+
+- **`docs/adr/0091`** — clearing land is bought rather than taken, and `Demolish` is the sixth verb.
+- **`docs/adr/0092`** — the region view is the map from far away, and a trajectory names the place it is
+  reported at.
+- **`docs/01-player-experience.md`** — `§1`'s `Observe` row names four surfaces and gains *the region view
+  is a zoom level*; `§2` becomes **six verbs** with the four clearing routes and the removing-is-not-placing
+  paragraph; `§3` step 1 becomes **read the edges** and the list renumbers to six; `§6`'s spatial axis
+  becomes the Settlement → District hierarchy with a level column, and its clearance lever gets its
+  referent back.
+- **`docs/02-simulation-model.md` §5.9** — the abandoned shell **stands**; the *"Lot returns to vacant"*
+  half is corrected in place with the three things that depended on the other half.
+- **`CONTEXT.md`** — → Failure Pressure gains the standing shell and its `adr/0006` sink; → Derelict's
+  *"it stands until the player clears it"* acquires the verb it had been asserting since `adr/0057`.
+- **`docs/adr/0022`** — the forest amendment's *"there is no sixth verb"* corrected: one exists and does
+  not reach ground.
+- **`plans/0002`** — two coverage-map rows, and a §D2 row for the compulsory purchase price.
 
 Corpus tests green throughout (`CitationTests`, `CoverageMapTests`, `MarkdownStyleTests`), all links
 resolve.
@@ -104,13 +125,29 @@ reads the permission set. And `02 §5.9` **contradicts itself twelve lines apart
 abandoned Building stands — the build took the half that leaves contagion with no carrier and `01 §6`'s
 derived detection duration with nothing to derive from.
 
-### Still unexamined in these two sections
+## Closed — `Observe`, and `§3` step 1
 
-- **`§1`'s `Observe` step** — *"map overlays and the aggregate panels"*, never questioned, and a 65.5 km
-  map with a city on 6% of it makes overview a real problem rather than a UI detail.
-- **`§3` step 1 on an open map**: there are several Outside Connections and all are live from Tick 0, so
-  the map has four outsides and no inside until the player makes one. Probably better than what `§3` said;
-  unconfirmed.
+**Both examined 2026-08-12. Decisions 16–18, and [`adr/0092`](../docs/adr/0092-the-region-view-is-the-map-from-far-away-and-a-trajectory-names-the-place-it-is-reported-at.md) for the first two.**
+
+`Observe`'s row read *"map overlays and the aggregate panels"* and was missing a view **five other places
+describe in identical words** — the region view, *a diagram of the commute sheds the city actually has*
+(`adr/0020`, `adr/0085`, `02 §2.1`, `CONTEXT.md` → Settlement, and `00-vision.md`, which calls it one of
+the two things belonging in a vision). A view named everywhere except in the document that owns what the
+player looks at is a view with **no owner**, and the two questions an owner has to answer are the two
+nobody describing it ever had to: is it a screen, and what unit does it report at.
+
+`§3` step 1 gained the step `§5.6` had already named. That section says a player *"faces four outside
+economies of different character, discovered by reading the world, **which is the opening's real
+reconnaissance**"* — and `§3`'s opening had no reading step at all. Same shape as `adr/0022` writing a
+forestry step into `§3` that `§3` never had, which was finding 4 of the original five.
+
+**The largest of the three findings is that `01 §6` had made a decision it could not have made.** *Every
+trajectory must be expandable by District* was not District chosen over Settlement; at 16.4 km the map is
+one Settlement and the alternative had **no instances**, which `adr/0085` found S2 R1.5 had already
+measured. ***A decision taken when the alternative had no instances is re-decided rather than defended***,
+and nothing in the corpus flags such a decision when the map changes underneath it — `adr/0089` re-opened
+four distance-dependent claims by name and this was not among them, which is the second time in two days
+that ADR's consequence list has come up one short.
 
 ## Parked from earlier the same day, not abandoned
 

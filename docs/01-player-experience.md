@@ -16,7 +16,7 @@ Each step has a home in the interface:
 
 | Step | Where it happens |
 |---|---|
-| **Observe** | Map overlays and the aggregate panels |
+| **Observe** | The map, the **region view** it becomes when zoomed out, the overlays over both, and the aggregate panels |
 | **Diagnose** | **Evidence** — drilling from any aggregate to its named constituents |
 | **Intervene** | The six verbs (§2) |
 | **Wait** | The city, running |
@@ -46,6 +46,33 @@ exceeds it. Against the design speed the same work is **~28% of a 62.5 ms Tick**
 fits where the game is played and fails where it is hurried — so an over-budget figure at 4× is a
 statement about which speedups a city of that size offers, which is `HONEST DEGRADATION`, and not a
 statement that the game does not run.
+
+### The region view is a zoom level, not a second screen
+
+[`adr/0092`](adr/0092-the-region-view-is-the-map-from-far-away-and-a-trajectory-names-the-place-it-is-reported-at.md).
+
+**This document had never mentioned the region view, and five other places in the corpus had.**
+[`adr/0020`](adr/0020-one-live-world-and-settlements-are-derived.md), [`adr/0085`](adr/0085-nothing-on-this-map-is-far-away-so-a-settlement-is-made-by-a-gap.md), `02 §2.1`, `CONTEXT.md` → Settlement
+and `00-vision.md` all describe it in the same words — ***a diagram of the commute sheds the city actually
+has, not a menu of tiles anyone chose*** — and the vision document lists it among the two outcomes that
+belong in a vision rather than a technical file. `Observe`'s row named overlays and panels and stopped
+there.
+
+**Zoom out far enough and the ground stops being drawn; the Settlement graph is drawn in its place.** One
+camera and one continuous gesture, which is what `adr/0020` priced this at — *"UI over derived state, so
+it costs a camera and a stats panel, not a subsystem"*. A Settlement's position on that diagram is its real
+position, so nothing has to be laid out: the diagram is what the map looks like from far away.
+
+**A separate toggled view was refused, and the reason is SimCity 4's.** Its region screen was a different
+*game state*, which is the thing [`adr/0020`](adr/0020-one-live-world-and-settlements-are-derived.md)
+decided against when it made one world live at all times — and a screen the player switches *to* invites
+reading the diagram as a menu of places, when the whole property that makes it honest is that nobody chose
+what is on it. Under `adr/0089` the map is 65.5 km across and a 1M city occupies 6.3% of it, so this is not
+a convenience: **the thing the player navigates by cannot be the ground.**
+
+Overlays follow the camera rather than stopping at it. At map zoom an overlay tints Cells; at region zoom
+it tints Settlements, which is the same figure aggregated to the unit being drawn, and it inherits §7's two
+rules unchanged — never sharper than the player can act on, never sharper than the simulation underneath.
 
 ### Waiting and getting nothing is the reading
 
@@ -202,24 +229,31 @@ it. This replaces the reason `adr/0088` originally gave, which rested on unlock-
 boundary the design has since refused — and it is the stronger of the two, because a consequence teaches
 and a fence only stops.
 
-1. **A road inward from an Outside Connection.** The map acquires an inside.
-2. Zone a few Residential Lots. Nothing happens for a moment — then Households from the **Unplaced Pool** choose them, and buildings appear *because someone chose to live there*.
-3. Zone Commercial. A shop opens, and its shelves are visibly empty until Goods arrive.
-4. Click a Household. See where they live, where they work, what they need, and where their last Trip went.
+1. **Read the edges, and pick one.** Every Outside Connection is live from Tick 0 and each carries its own
+   Hinterland's authored figures — price level, wage, depth, recovery rate, favoured Goods
+   ([`adr/0023`](adr/0023-immigration-arrives-through-the-gate.md),
+   [`adr/0026`](adr/0026-wages-are-posted-locally-and-never-cleared.md)) — so the map has several outsides
+   and no inside, and they are not interchangeable. The panels are readable before anything is built, which
+   makes the first verb used **`Inspect`** rather than `Connect`.
+2. **A road inward from the gate you chose.** The map acquires an inside.
+3. Zone a few Residential Lots. Nothing happens for a moment — then Households from the **Unplaced Pool** choose them, and buildings appear *because someone chose to live there*.
+4. Zone Commercial. A shop opens, and its shelves are visibly empty until Goods arrive.
+5. Click a Household. See where they live, where they work, what they need, and where their last Trip went.
 
-Step 4 is the one that has to land. It is the moment the player learns that everything on screen is made
+Step 5 is the one that has to land. It is the moment the player learns that everything on screen is made
 of people, and that the game will always answer *why*.
 
-**On a forested seed there is a fifth step, and it is the first one without an obvious answer.**
+**On a forested seed there is a sixth step, and it is the first one without an obvious answer.**
 [`adr/0022`](adr/0022-land-is-a-stock-the-city-spends.md) puts a decision in the opening that this section
-did not have: *clear for lumber now, or keep the forest and import.* It needs no sixth verb and no
-terrain-editing tool, because under `CONTEXT.md` → Zone the player may zone anything anywhere and Woodland
-is ordinary ground with something standing on it. Build over it and the Timber is forfeited; zone
+did not have: *clear for lumber now, or keep the forest and import.* **No verb clears it and no terrain-editing tool
+exists** — `Demolish` removes Streets and Buildings and never ground — because under `CONTEXT.md` → Zone
+the player may zone anything anywhere and Woodland is ordinary ground with something standing on it. Build over it and the Timber is forfeited; zone
 **Industry — Extraction** and it is harvested; do both in sequence and you pay for the harvest in Days the
 block houses nobody, while the Unplaced Pool goes elsewhere.
 
-It earns its place in the first ten minutes precisely because the other four steps each have one right
-answer and this one does not. The trade is **speed against value**, and it reads differently to a city
+It earns its place in the first ten minutes precisely because the other five steps each have one right
+answer and this one does not — with the partial exception of step 1, which is a choice between edges
+rather than a puzzle with a solution, and which the player makes before they know enough to be wrong. The trade is **speed against value**, and it reads differently to a city
 short of Materials than to a city short of housing, with nothing in the game saying which you are.
 
 **The city is founded with money and the player did not ask for it.** Money's only door is the Outside
@@ -445,7 +479,20 @@ The general rule, worth holding: **a trajectory names something happening to the
 
 Every indicator above is a single number for the whole city, which was sufficient while the city was economically uniform. It no longer is, and it was made non-uniform deliberately: District-scoped Policy, abandonment contagion, and wage surfaces that differ by location. **A city can therefore score acceptably on every citywide indicator while containing a District in freefall** — aggregates hide exactly that, because it is what aggregates are for.
 
-So **every trajectory must be expandable by District.** This is `Evidence` gaining a spatial axis rather than a new system: asking *"why is my tax base shrinking"* must decompose to a place, not stop at an average.
+So **every trajectory must be expandable by place.** This is `Evidence` gaining a spatial axis rather than a new system: asking *"why is my tax base shrinking"* must decompose to a place, not stop at an average.
+
+**The place is a Settlement, and then a District inside it — one hierarchy, not two axes** ([`adr/0092`](adr/0092-the-region-view-is-the-map-from-far-away-and-a-trajectory-names-the-place-it-is-reported-at.md)). The containment is free and structural: a Settlement *is* a maximal set of Districts mutually reachable inside the Commute Budget, so drilling from one to the other costs nothing and invents nothing. `02 §2.1` already designates a Settlement *"a reporting unit only"*, which is exactly what a panel needs and no more than a panel needs.
+
+⚠ **This section originally said *by District* and that was decided when it could not have been decided correctly.** At 16.4 km the whole map is one Settlement — [`adr/0085`](adr/0085-nothing-on-this-map-is-far-away-so-a-settlement-is-made-by-a-gap.md) found S2 R1.5 had already measured it, one Settlement holding all 121 Districts at every Budget rung — so District was not chosen over Settlement, it was the only unit that existed. Under [`adr/0089`](adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) there can be several, and the two units answer different questions: a District is authored, is where Goods pool without transport, and is a Policy's scope; a Settlement is derived and is a **commute shed**. Decomposing a labour failure by District can therefore read as healthy while a whole Settlement is starved of workers, which is this section's own hiding-in-aggregates failure one level up from where this section caught it.
+
+**Each trajectory names the level it is *first* reported at**, because that level is a property of the mechanism producing it and not a preference:
+
+| Reported first at | Trajectories | Why |
+|---|---|---|
+| **Settlement** | Gridlock, Labour mismatch, Retention failure | commute-shed facts. Each is produced by travel time, and a commute shed is what travel time makes |
+| **District** | Insolvency, Trade deficit, Quality failure, Capacity failure, Demographic stall, Immiseration | policy and pooling facts. Each is produced by something a District bounds — a tax rate, a Goods pool, a service catchment |
+
+Both remain reachable from either end; what the level decides is where the game looks *by default*, which is the only thing that decides whether a failure is found before it is expensive.
 
 **No trajectory is terminal.** A District with no population, no land value, and full Sealing still has a recovery path, assembled from levers that exist for other reasons: remediation (pay to unseal), clearance of abandoned stock, a District tax override to zero, a service funding override upward, running transit in, and rezoning to a lower band so cheaper uses can bid.
 

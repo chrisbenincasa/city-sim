@@ -88,7 +88,7 @@ The two chains stay asymmetric even though both end in imports, which is what ke
 Two things this ADR asserted have now been settled where they belong, and both are recorded here because a
 future reader would otherwise re-open them from this file.
 
-**Clearing is not an act and there is no sixth verb.** This ADR says the first ten minutes gain *"a real
+**Clearing forest is not an act, and the verb list grew for an unrelated reason that does not reach it.** [`0091`](0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md) has since made `Demolish` `01 §2`'s sixth verb — it removes **Streets and Buildings**, never ground, so no verb clears Woodland and this paragraph stands as written. *(It originally read "there is no sixth verb", which was true of the verb list on the day and is no longer the reason.)* This ADR says the first ten minutes gain *"a real
 decision: clear for lumber now, or keep the forest and import"*, and `01 §3` had no such step, which read
 as though a clearing tool were owed. It is not. `CONTEXT.md` → Zone now states the general rule — **the
 ground carries resources, and developing over one without extracting it forfeits it** — so the player zones
