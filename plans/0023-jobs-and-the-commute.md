@@ -734,3 +734,87 @@ stated.
 **No ADR, and no new number that needs one.** The balance band is a quarter and the window is 128
 characters; both are properties of a terminal rather than of a city, on the Census histogram's
 standing — the dump folds into nothing, so changing either changes a report and no city anywhere.
+
+### Task 8 — the 100,000-Tick run, done
+
+**`tests/Borough.Tests/Movement/CommuteLongRunTests.cs`, plus two headless captures at 10,000
+Citizens.** `06`'s definition of done on the three Movement tables, and 5b's transferred task 4 — peak
+pedestrian density — which is the measurement the whole re-scope was about.
+
+#### The collection half closes, and it is the first time these three tables have met a long run
+
+`TripTable`, `LegTable` and `TravellerTable` joined `World._tables` in milestone 5b, and for the whole
+of that milestone the only Trips in existence were the ones a human typed. Asserted on **slots**
+rather than on live rows, for `PlacementLongRunTests`' reason: a live count is flat in a city that
+leaks, because a leaked row is live, and what `adr/0006` is about is the high-water mark of
+simultaneous demand.
+
+At 10,000 Citizens over 100,000 Ticks all three read **22 / 145 / 22 / 145** (first, last, low, high)
+against a live count that swings **22 / 53 / 0 / 138**. A **50,000-Tick control gives an identical
+high-water mark of 145**, so doubling the run did not raise the peak: the free lists are doing their
+job and nothing accumulates. The three tables move in lockstep because 5b built them that way — one
+Leg and one Traveller per Trip — which is worth saying because it means the assertion is one fact
+tested three times rather than three facts.
+
+#### The peak was measured wrongly first, and the correction is the task's main finding
+
+**A ratio of peak to mean in-flight Travellers reads 10 against a stated `commute_peak_factor` of 3**,
+and the first form of this test asserted it and failed. The reading is not a refutation. `peak ÷
+day-mean` is the product of two terms — the structural one, which is the stated factor, and
+**`max-of-N ÷ in-window mean`, which is 1 only in the limit of large counts.** At 1,000 Citizens about
+440 hold a job, they leave over 2,731 Ticks, and a commute lasts tens of Ticks, so **about four people
+are walking at any instant**; the largest of 116 samples of a mean-4 count is about 10 by arithmetic
+that has nothing to do with cities. **The test was measuring its own sample size.**
+
+> ***A maximum is a statistic of the sample as well as of the thing sampled, so a peak asserted
+> against a mean is an assertion about the population it was taken at.*** This is `adr/0043`'s
+> territory from an angle the corpus has not hit before: the claim *is* measurable, the machine *did*
+> produce a number, and the number still could not settle it — because the quantity the assertion
+> names is not the quantity the instrument returns until the counts are large. It is the same shape as
+> slice 10 task 11 and 5a-bis's re-record finding, one level down: **a run reaches what it reaches, and
+> a sample resolves what it resolves.**
+
+**The quiet fraction states the same claim with no such term.** If departures are uniform over
+`TICKS_PER_DAY ÷ factor` Ticks and a commute is short against that window, nobody is in flight for
+`1 − 1 ÷ factor` of the Day — a **proportion over every sample** rather than a **maximum over them**,
+so it converges as the run lengthens instead of growing. That is what ships.
+
+**It needed a bigger city too, and the control is what exposed that.** A factor of 1 is a Day with no
+peak, so its quiet fraction should vanish — and at 1,000 Citizens it read **24%**, because in-flight
+averages 1.34 and a count with a mean of 1.34 is zero **26%** of the time. Widening the band until it
+passed would have been admitting the noise the test was made of. The peak test therefore runs at
+**4,000 Citizens over 50,000 Ticks** — four times the population at a fifth of the length, which costs
+less than the run it sits beside, because a trend needs Ticks and a peak needs samples inside a window.
+
+At 4,000, with 1,848 employed: **factor 3 → quiet 64% against a predicted 67%, peak 32, day-mean 6;
+factor 1 → quiet 0% against a predicted 0%, peak 17, day-mean 7.** The peak is asserted **one-sided**
+(`peak ≥ factor × mean`) and on purpose: every term above inflates a measured maximum and none
+deflates it, so that direction is safe at any population and its converse is not.
+
+#### What the 10,000-Citizen run says about the four unratified numbers
+
+Reported rather than acted on. Each of these is a hash-bearing number whose named ratifier is this run,
+and **choosing a different one is a designer's decision, not this task's.**
+
+| Number | Reading | What it means |
+|---|---|---|
+| Commute Budget, **20 min** | `jobs beyond budget` **296 / 27 / 5 / 296** — never zero | **Binding.** `0002` §D's refuting number for *not binding* is a zero here, and it does not occur at any point in 100,000 Ticks |
+| Commute Budget, **20 min** | **4,561 of 10,000** hold a job against **9,608 posts declared** | Binding **hard**: more than half the posts in the city are unreachable inside 20 minutes on foot. `0002` §D's other refuting number — `seeking − employed` at the whole population — does not occur either, so it is inside the stated band and near its tight end |
+| `[[building]] jobs = 8` | 9,608 posts for 10,000 Citizens = **0.96 per resident** | Exactly the derivation task 2 stated, reproduced from the file. Full employment is out of reach by construction and the shortage flow is never trivially zero, which was the point |
+| `[jobs]` pacing | `jobs considered` **1,252 flat**; `seeking` falls **1,181 → 229** | The sample is derived and holds; the queue drains and settles rather than growing |
+| `commute_peak_factor = 3` | quiet fraction **64%** against a predicted **67%** at 4,000 | The derivation holds. The **value** is untouched — a factor of 3 is an eight-hour departure window, and nothing here says whether that is the right shape |
+
+**Two readings that are not about a number.** `trips no route` and `trips stranded` are **0 throughout**
+— every commute the generator made was routable, which is what a fully-connected pedestrian graph on
+the shipped lattice predicts, and it means **two of `adr/0076`'s four Fates are still unexercised by any
+run**. And **1,109 of 10,902 Trips land in the 32-minutes-or-none band with `no route` at zero**, so they
+are genuine 32-minute-plus walks rather than failures wearing the same band: those are commutes whose
+**home moved under them** after the job was taken, which the Zone Rule's demolition does continuously.
+
+#### The coverage warning task 3 left, restated rather than discharged
+
+**The golden session still contains no `trip` command**, so the whole Trip model — the crossing cost,
+the Budget, the four Fates, the cost histogram — sits outside the committed baseline. This run
+exercises it and **a run is not a baseline**. Task 3 filed this as task 8's remedy; task 8 finds that
+the remedy is not a `trip` command either, because a commanded Trip would fix the coverage and still
+not exercise a generator. **It is a golden-session question and it outlives this milestone.**
