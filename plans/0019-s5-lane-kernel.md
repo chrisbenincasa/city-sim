@@ -33,7 +33,7 @@ would say so.
 - ~~**T1 FIRED.**~~ **WITHDRAWN 2026-08-11 by L5 — see below.** It read ~325,000–330,000 Vehicles per
   Tick per core with Overlaps against `adr/0016`'s 400,000, and the correct reading is
   **532,750–569,550**. The tripwire was measuring `IntegerMath.FloorDiv`'s spelling and reporting it
-  as a property of `adr/0003`'s arithmetic.
+  as a property of `adr/0003`'s arithmetic. **Every figure in this document is one core**, and a 2- and 4-thread re-run is owed ([`adr/0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)).
 - **T3 FIRED, and hard.** The queue pass is **26.2–29.2× the bare walk over the same arrays**, not the
   *"constant of a `memcpy`"* the ADR claims. L1's attribution says where it goes: the IDM divides
   three times per Vehicle per Tick, and removing the two whose denominators never vary takes it to

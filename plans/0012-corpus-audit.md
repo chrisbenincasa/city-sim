@@ -225,14 +225,22 @@ between them can see anything wrong.
 
 | | The number | The qualifier it left behind | What was then done with it |
 |---|---|---|---|
-| **`adr/0094`**, 2026-08-13 | **186,624** | `plans/0013`'s table cell: *"S2 R2's fixture, **not a stressed count**"*, and the paragraph beneath: *"no row in this table claims a share for it"* | used as the **denominator** of the Microscopic Cap's ratio, producing a 27–58× gap. The Cap counts Vehicles in **stressed Segments**; 186,624 is a whole synthetic fleet. Withdrawn by [`adr/0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md) |
+| **`adr/0094`**, 2026-08-13 | **186,624**, quoted as **~186,600** | `adr/0082`'s *"heavily caveated… it is an **upper bound**"*, and `plans/0013`'s *"S2 R2's fixture"* | used as a bare **denominator** for the Microscopic Cap, and at the **4×** budget rather than the design speed's, producing **27–58×** where the same numbers give **7.3×** |
+| **the correction**, hours later | the **caveat**, not the number | `plans/0013`'s three words *"not a stressed count"*, which mean *not a **real city's** stressed count* | read literally, producing the claim that 186,624 *"is a whole fleet"*. It is **2,592 stressed Segments × 72 Vehicles** and was derived carefully in `adr/0082`. Corrected in this file, `adr/0094`, `adr/0096`, `plans/0025` and `CLAUDE.md` |
 | **the developed density**, ongoing | **3,700 / km²** | *none — the qualifier was never written* | cited as an **independent check** that the map may grow, when it is 1,000,000 ÷ 268 km² and therefore the old map restated. See *The developed density every map decision is priced against is circular* below |
 
-**The first is the pure form and the second is the degenerate one.** In the first the qualifier existed,
-was correct, was in the right place, and had been read **hours earlier by the same sitting**. In the
-second no qualifier was ever written, so there was nothing to leave behind — which is worth keeping in
-the same section because the *effect on a reader is identical*: a bare figure quoted as evidence, with no
-way to tell from the quotation whether it can bear the weight.
+**Three sightings, and each is a different way for the same thing to go wrong.** In the first the
+qualifier existed, was correct, was in the right place, and had been read **hours earlier by the same
+sitting**. In the second **the qualifier was itself the thing quoted away from its context** — a
+three-word compression that is true where it sits and false when carried, which produced a *wrong
+correction to the first*. In the third no qualifier was ever written, so there was nothing to leave
+behind. **The effect on a reader is identical in all three**: a bare figure offered as evidence, with
+nothing in the quotation to say whether it can bear the weight.
+
+***The second sighting is the one to remember, because it happened while writing this section.*** A
+caveat is a claim, so it travels exactly as badly as a number does, and compressing one for a table cell
+is how it acquires the ambiguity that makes it dangerous elsewhere. **Do not compress a disqualifier to
+fit a column** — put it in the prose beneath and let the cell point at it.
 
 **The tell is worse than nothing, and that is what distinguishes this from Cause 4.** Cause 4's tell is
 *nothing* — a wrong sentence looks like a right one. Cause 5's tell is **negative**: each time a figure is
@@ -264,8 +272,58 @@ carried the correct warning about this since `adr/0062` — *it is a ratio and S
 — and the failure still happened, because the warning lives with the **Cap** and the number that got
 borrowed lives in a benchmark table.
 
+#### The disqualifier registry
+
+**Built 2026-08-13 as check 6 —** `tests/Borough.Tests/Corpus/DisqualifierTests.cs` **reads the table
+below.** Each row names a figure, every rounding it is known to travel as, the **exact phrase** that must
+accompany it, and the document that owns the caveat. The test asserts two things: that the **owner**
+contains both the figure and the phrase, so this table cannot drift from it in silence; and that **every
+other prose document containing the figure contains the phrase too**.
+
+<!-- disqualifier-registry -->
+
+| Figure | Also written as | The phrase that must accompany it | Owner |
+|---|---|---|---|
+| `186,624` | `186,600` | `upper bound` | `docs/adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md` |
+| `532,750` | `532750` | `one core` | `plans/0013-tick-budget.md` |
+
+⚠ **This table's first row was authored wrong, and the check caught it on its first run — which is the
+best evidence for it in this file and is why the mistake is kept rather than tidied.** The phrase
+originally required was `plans/0013`'s *"not a stressed count"*. Following the check's own failure report
+into `adr/0082` showed that **186,624 is 2,592 Segments over an 80% stress threshold × 72 Vehicles a
+Microscopic Segment** — a stressed-Vehicle estimate, arrived at carefully, and **not the whole fleet the
+correcting sitting had called it**. `plans/0013`'s three words mean *not a real city's stressed count*,
+and compressed that far they say something else when read alone.
+
+***So the caveat itself travelled without its context, and produced a wrong correction to the error it
+was correcting.*** Cause 5 twice over on one figure, on consecutive turns: first the number quoted with no
+clause at all, then the clause quoted with no number behind it. The registry now names the substantive
+disqualification — **it is an upper bound**, because R2's uniform origin-destination draw is the
+longest-trip distribution available (R4) — and points at the document that derives it rather than the one
+that summarises it.
+
+**Pinning the *particular* phrase is the whole design, and it is what the refuted version lacked.** A
+check asking *is this number qualified somewhere nearby* would have **passed** every site, including the
+one that dropped the clause that mattered. **Owning documents are preferred to summarising ones for the
+same reason**: a summary is where a caveat gets compressed, and a compressed caveat is the thing that
+went wrong above.
+
+**The table is small by construction and that is the answer to the obvious objection.** Check 5's design
+note warns that a hand-maintained list inside an instrument is *Cause 1 arriving inside the check* — true
+of a directory index, which changes weekly, and not of this, which holds only figures somebody has
+actually been caught by. An entry is authored by whoever writes the caveat, on the day, which puts the
+obligation on the person who already knows the answer; and the owner-side assertion means a reworded
+caveat fails loudly rather than orphaning the row.
+
+**Two candidates are named and deliberately not registered yet.** The developed density (`3,700`) is the
+second row of the table above and waits on the two corrections owed for it further down this file —
+registering it now would make the check red against a debt already filed, which reports the same fact
+twice. And routing's `10.37 ms`, whose disqualifier is that it has **never met a real world**, wants five
+documents amended first. *The registry earns entries from sightings, not from a scan.*
+
 **Unlike Cause 4, this one is mechanically checkable**, and cheaply, because both ends are documents.
-See check 6 in *What the mechanical check should be*.
+See check 6 in *What the mechanical check should be* — **including what was specified there first, and
+measured false**.
 
 ---
 
@@ -1169,25 +1227,36 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    all — *zero is a value; undefined is not* — so what the check asserts is that the gap is **declared**,
    not that it is closed.
 
-6. **A distinctive figure appearing in more than one document carries the same qualifying clause in
-   each.** Cause 5's check, added 2026-08-13, and it is **the cheapest of the six and the only one whose
-   defect is invisible to every other check here**, because the two copies of a travelling number agree
-   to the last digit.
+6. ~~**A distinctive figure appearing in more than one document carries the same qualifying clause in
+   each.**~~ **BUILT the same day it was specified, in a different shape, because the specified shape was
+   measured and refuted** — `tests/Borough.Tests/Corpus/DisqualifierTests.cs`, reading the registry in
+   *Cause 5*. **What ships asserts that a registered trap figure never appears without its exact
+   disqualifying phrase.**
 
-   **What makes it tractable is that the interesting figures are near-unique.** A four-or-more
-   significant-digit number — `186,624`, `532,750`, `29.3 ns`, `8.72 ms` — occurring in two files is
-   almost never a coincidence, so the candidate set is small enough to enumerate and eyeball. The
-   minimum useful version does not need to understand the clause at all: **flag every distinctive figure
-   that appears in more than one document and report where**, and let a human read the two sentences
-   side by side. That would have fired on 186,624 the moment `adr/0094` was written.
+   ⚠ **Three measurements killed the original and each is worth keeping**, because this is the first
+   check in this list to be specified by argument and refuted before it was written — `adr/0043` reaching
+   the instruments rather than the design.
 
-   **Two design notes.** It must **not** demand that the clauses match textually — a number legitimately
-   means the same thing in two different sentences, and a string comparison would produce noise until
-   it was switched off, which is worse than not having it. And it should carry an **allow-list of
-   figures known to be shared**, because `TICKS_PER_DAY`, the Tick budget and the target population are
-   quoted everywhere on purpose; the list being short and hand-maintained is acceptable here in a way
-   check 5 showed it is not for a directory index, because these figures change once a year and a
-   directory changes weekly.
+   **① The number did not travel exactly.** `plans/0013` holds **186,624**; what `adr/0094` quoted was
+   **~186,600**, rounded once in `plans/0002` and quoted from there. An exact-digit check over
+   distinctive figures **would never have fired on its own motivating case**. *The precision fell with
+   the caveat, which in hindsight is the sharper tell and is not one a string comparison can see.*
+
+   **② The obvious repair is worse than the disease.** Normalising to three significant figures does
+   catch it, and it also collapses `1017`, `1020.92`, `1021` and `1024` into one group — **107 such
+   groups across the corpus**, nearly all coincidental collisions between unrelated measurements. A
+   check that noisy gets switched off, which is worse than not having one.
+
+   **③ The caveat was not dropped, it was substituted**, and that is what defeats every *generic*
+   detector. `plans/0002` does not quote the figure bare: it carries *"R2's uniform draw is the
+   longest-trip distribution available"*, a real caveat, correctly stated, and **not the one that
+   mattered**. Anything asking *is there a qualification nearby* passes it. So the check has to pin the
+   **particular** disqualification, which is what a registry does and what detection cannot.
+
+   **The reporting-only variant was considered and refused.** A file listing all 255 four-plus-digit
+   figures that appear in more than one document is where the next registry entry would come from, and
+   it is also a 255-line artefact nobody reads, rotting in the repository — which is the failure this
+   whole cause is about, committed by the instrument built to catch it.
 
 Neither is a substitute for the restructure. A check over three tables that disagree only tells you
 they disagree; the point of thinning is that there is one place to be right. **Checks 4 and 6 are the

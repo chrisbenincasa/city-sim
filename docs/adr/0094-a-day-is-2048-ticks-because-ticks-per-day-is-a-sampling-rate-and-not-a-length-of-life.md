@@ -139,20 +139,20 @@ it is recorded here rather than discovered later.
 **The Microscopic Cap's per-Tick cost rises 4×.** The sub-step band goes **21–45 → 84–180**, so a Vehicle
 held Microscopic costs four times more per Tick.
 
-> **⚠ CORRECTED 2026-08-13, the same day, by [`0096`](0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md) — this paragraph originally claimed a gap of 27–58× and there is no gap, because there is no denominator.**
+> **⚠ CORRECTED 2026-08-13, the same day, by [`0096`](0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md) — this paragraph originally claimed a gap of 27–58×. It is 7.3×.**
 >
-> **The demand figure was 186,624, which is S2 R2's synthetic *fleet* and not a stressed count**, and
-> `plans/0013` labels it so in the table cell and warns in the same section that *"a number becoming a
-> decision by being the only number in the room"* is where that table would fail. It did, here, one day
-> later. **And the supply figure was priced at 15.6 ms while the clock moved**, which double-counts: the
-> budget scales on the same ladder. At the design speed the Cap's supply side is **~25,400 Vehicles on
-> one core**, which is *exactly* what the old clock gave at its own top rung — so under `0096`'s basis
-> this change moves the Cap by **nothing**, and every figure is still one core with a 2- and 4-thread
-> measurement owed.
+> **Two errors, and neither was the figure.** 186,624 was quoted here as *"~186,600 demand estimate"*
+> with **no clause at all**: it is 2,592 Segments over an 80% stress threshold × 72 Vehicles a
+> Microscopic Segment, and it is an **upper bound**, because R2's uniform origin-destination draw is the
+> longest-trip distribution available — a qualification `adr/0082` and `plans/0002` both state and this
+> paragraph dropped. **And the supply side was priced at 15.6 ms while the clock moved**, which
+> double-counts, since the budget scales on the same ladder.
 >
-> What remains true is the sentence above it: the per-Tick cost quadruples, the Lane kernel is unbuilt,
-> the Cap is unset, and [`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) forbids
-> treating any of it as a constraint until a real stressed-Vehicle count exists.
+> At `0096`'s basis — the **design speed**, one core — the ratio is **1.8× at 8192 and 7.3× at 2048**.
+> So the sentence above is right that this change costs 4× here; what was wrong is where it lands. A 7.3×
+> gap against an upper bound, on one core, for an unbuilt kernel, with a 2- and 4-thread measurement
+> owed, is a thing to watch and not a crisis — and [`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)
+> still forbids designing against it until a real stressed-Vehicle count exists.
 
 **Within-Day scheduling resolution falls 4×, and it is the whole of what sets this constant.** `adr/0082`
 found that of `adr/0019`'s three reasons for declining a shorter Day, visual honesty falls with the

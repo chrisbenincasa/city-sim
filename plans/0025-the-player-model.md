@@ -1,9 +1,9 @@
 # The player model — grilling `01 §1`, `§3` and `§4`
 
-✅ **DONE 2026-08-13.** Twenty-three decisions, six ADRs
-([`0090`](../docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)–[`0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)),
-and **every section of `01-player-experience.md` has now been examined** — §4 was the last, and it was
-never on the session's plan.
+✅ **DONE 2026-08-13.** Twenty-four decisions, seven ADRs
+([`0090`](../docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)–[`0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)),
+**every section of `01-player-experience.md` examined** — §4 was the last and was never on the plan —
+and `plans/0012` gains **Cause 5** and **check 6**, the latter built and green.
 
 *(Pinned mid-session on 2026-08-12 with ten decisions and one open question; the pin was lifted the same
 day and the document ran to the end.)*
@@ -24,8 +24,8 @@ The user's own framing, which is the reason this ran before the road write-up it
 
 ## What was decided
 
-Ten, in the order they were taken. Every one of them is written into the corpus already; this table is a
-view, not the record.
+In the order they were taken. Every one is written into the corpus already; this table is a view, not
+the record.
 
 | # | Decision | Where it lives |
 |---|---|---|
@@ -290,10 +290,13 @@ and closes that section:
 > row in this table claims a share for it**. A number becoming a decision by being the only number in the
 > room is a habit this corpus has already recorded, and **this table is where it would happen**."*
 
-**The Cap counts Vehicles in *stressed* Segments and 186,624 is a whole fleet**, so the two were never
-comparable. And the supply side was quoted at 15.6 ms while the clock moved, which double-counts, because
-the Tick budget scales on the same ladder — at the **design speed** the figure is **~25,400 Vehicles on
-one core, identical to what the old clock produced at its own top rung**.
+**Two errors, and neither was the figure.** 186,624 is 2,592 Segments over an 80% stress threshold × 72
+Vehicles a Microscopic Segment — a real stressed-Vehicle estimate — and it carries one clause that
+decides what it is worth: it is an **upper bound**, because R2's uniform draw is the longest-trip
+distribution available. That clause stayed behind. And the supply side was quoted at 15.6 ms while the
+clock moved, which double-counts, because the Tick budget scales on the same ladder. At the **design
+speed** the ratio is **1.8× at 8192 and 7.3× at 2048** — so the clock really does cost 4× here, and the
+published figure was four times too alarming.
 
 ***A caveat attached to a number does not travel with it.*** The annotation was correct, in the right
 place, and had been read hours earlier; what crossed into the ADR was the digits. This is not
@@ -307,9 +310,29 @@ is right and was left behind — and the two have the **same ending**: both were
 commentary, twice each, and left non-binding, and both then happened to a sitting that had just read the
 coining. `plans/0002`'s *an unratified number is more dangerous than an open question* and `plans/0013`'s
 *a number becoming a decision by being the only number in the room* are this cause, written down and not
-made a rule. ***An aside is not a rule*** is now evidenced on two causes rather than one. Unlike Cause 4
-it **is** mechanically checkable, because both ends of a travelling number are documents, and `plans/0012`
-gains **check 6** on the back of it.
+made a rule. ***An aside is not a rule*** is now evidenced on two causes rather than one.
+
+### The check was built, and it caught this section being wrong
+
+**Check 6 was specified by argument, measured, refuted, redesigned and built in one sitting** —
+`tests/Borough.Tests/Corpus/DisqualifierTests.cs`. Three things killed the specified form. The number had
+travelled **rounded** (186,624 → ~186,600), so exact matching would never have fired on its own motivating
+case. Three-significant-figure matching catches it and merges `1017`, `1021` and `1024` across 107 groups
+of unrelated measurements. And the caveat was **substituted** rather than dropped, so every *generic*
+detector passes. What ships instead is a **registry** in `plans/0012`: a figure, its roundings, the exact
+phrase that must accompany it, and the document that owns the caveat.
+
+⚠ **On its first run it failed against `adr/0082`, and following the failure showed that this section's
+own account of the error was wrong.** 186,624 is not a fixture population: it is **2,592 Segments over an
+80% stress threshold × 72 Vehicles**, a real stressed-Vehicle estimate whose one qualification is that it
+is an **upper bound**. `plans/0013`'s *"not a stressed count"* means *not a **real city's** stressed
+count*, and read out of its table it says something else — so the **caveat travelled without its context
+and produced a wrong correction to the error it was correcting.** Cause 5 twice on one figure, on
+consecutive turns.
+
+Which also moves the arithmetic: the gap is **1.8× at 8192 and 7.3× at 2048** at the design speed, not
+27–58× and not nothing. ***A caveat is a claim, so it travels exactly as badly as a number does*** — do
+not compress a disqualifier to fit a table column.
 
 **Two smaller notes on the same episode.** The user's *"the new number is clearly untenable"* was the
 correct reading of what I had written and the wrong reading of the world, which is what an unqualified

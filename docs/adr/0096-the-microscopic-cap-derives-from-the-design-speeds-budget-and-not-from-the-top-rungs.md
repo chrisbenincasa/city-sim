@@ -44,34 +44,55 @@ requires it to be *"derived from the world rather than being a bare number"*; wh
 **basis of that derivation** and nothing else. A world small enough to offer 4× is a world whose stressed
 Vehicle count is nowhere near any of these figures.
 
-### The number that made this look urgent was a ratio with no denominator
+### The number that made this look urgent was quoted bare, and at the wrong rung
 
 The trigger for this sitting was a claimed gap of **27–58×** between what the Lane kernel can afford and
-what a city demands. **The demand side of that ratio does not exist.** The figure used — 186,624 — is
-S2 R2's synthetic fixture population, and [`plans/0013`](../../plans/0013-tick-budget.md) labels it in
-the table cell itself:
+what a city demands. **The gap is real, is an upper bound, and is 7.3×.**
 
-> | 186,624 — S2 R2's fixture, **not a stressed count** |
+The demand figure — **186,624** — is not a bare fixture size, and this ADR said so wrongly in its first
+version. [`0082`](0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md) derives
+it: S2 R2 puts **2,592 of 33,018 Segments over an 80% stress threshold**, and at S5's **72 Vehicles a
+Microscopic Segment** that is 186,624. It is a stressed-Vehicle estimate, carefully arrived at, and it
+carries the one clause that decides how much it is worth — it is an **upper bound**, because R2's uniform
+origin-destination draw is the *longest-trip distribution available* and R4 measured that a local draw is
+a different city.
 
-and closes that section with the warning the ratio then walked into:
+**Two things went wrong in [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+and neither was the figure.** It was quoted as *"~186,600 demand estimate"* with **no clause at all** —
+the upper-bound qualification stayed behind in `adr/0082` and `plans/0002`, both of which state it
+correctly — and it was divided into a supply figure priced at **15.6 ms**, which is 4×, while the clock
+change that quadrupled the sub-step ratio was the very thing being measured. Both errors push the same
+way:
 
-> *"How many Vehicles a real city stresses at once is milestone 5b's and does not exist, which is why **no
-> row in this table claims a share for it**. A number becoming a decision by being the only number in the
-> room is a habit this corpus has already recorded, and **this table is where it would happen**."*
+| Basis, one core, 29.3 ns a Vehicle a sub-step | 8192 | 2048 |
+|---|---:|---:|
+| **1× — 62.5 ms**, the rung this ADR decides on | **1.8×** | **7.3×** |
+| 4× — 15.6 ms | 7.3× | 29.4× |
 
-It happened, in [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md),
-one day after that paragraph was last read. **The Cap counts Vehicles in *stressed* Segments and 186,624
-is a whole fleet**, so the two quantities are not comparable at all and the ratio was never a ratio.
+So `0094` was right that the clock widens this fourfold and wrong about where it lands. **7.3× against an
+upper bound, on one core, for an unbuilt kernel** is a thing to watch rather than a crisis — and
+threading, which nobody has measured, plausibly covers most of it.
 
 ***A caveat attached to a number does not travel with it.*** This is now
 [`plans/0012`](../../plans/0012-corpus-audit.md) **Cause 5**, filed on this sighting: a figure is quoted
 correctly, its qualifying clause is left where it was, and **the two documents agree to the last digit**,
 so no comparison between them can see anything wrong. It is Cause 4's sibling with the polarity reversed —
 there the source sentence is wrong, here it is right and was abandoned — and its tell is *worse* than
-nothing, because a bare figure accumulates apparent authority every time it is repeated. The corpus had
-coined the lesson twice already, in `plans/0002` (*an unratified number is more dangerous than an open
-question*) and in the paragraph above, and left it as commentary both times. ***An aside is not a rule***,
-now evidenced on two separate causes.
+nothing, because a bare figure accumulates apparent authority every time it is repeated.
+
+⚠ **And it happened a second time, to this ADR, while correcting the first.** `plans/0013`'s cell reads
+*"S2 R2's fixture, **not a stressed count**"* — three words that mean *not a **real city's** stressed
+count*, and that say something else entirely when carried out of the table. Read literally they produced
+the claim, published in this ADR's first version, that 186,624 *"is a whole fleet"*. It is not. **A
+caveat is a claim, so it travels exactly as badly as a number does**, and compressing one to fit a column
+is how it acquires the ambiguity that does the damage somewhere else. `plans/0012`'s registry now names
+the substantive disqualifier and points at the document that **derives** the number rather than at the
+one that summarises it. *It was the check built for Cause 5 that caught this, on its first run.*
+
+*The corpus had coined the underlying lesson twice already — `plans/0002`'s* an unratified number is more
+dangerous than an open question *and `plans/0013`'s* a number becoming a decision by being the only number
+in the room *— and left it as commentary both times.* ***An aside is not a rule***, now evidenced on two
+separate causes.
 
 ### And the comparison held the budget fixed while the clock moved
 
@@ -113,11 +134,13 @@ which §3.2 establishes is *structurally wrong* exactly where the Cap binds. Tha
 one place accuracy was supposed to matter most, and the shape of the repair is fairly obvious — a cheaper
 middle tier, a queue without full car-following, between the two.
 
-**It is not designed here and must not be.** The demand side is unmeasured, so *given the Cap is too
-small, should something compensate?* is [`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s
-void question in its exact stated form, and the Lane kernel it would sit beside is unbuilt. What is
-recorded is the **expectation**, so that a third tier arrives as a foreseen obligation rather than as a
-discovery — and so that the two things which would make it unnecessary are named and can be watched.
+**It is not designed here and must not be.** The only demand figure is an **upper bound** from a
+synthetic fixture, so *given the Cap is too small, should something compensate?* is
+[`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s void question in its stated form,
+and the Lane kernel it would sit beside is unbuilt. What is recorded is the **expectation**, so that a
+third tier arrives as a foreseen obligation rather than as a discovery — and so that the two things
+which would make it unnecessary are named and can be watched. **7.3× at the design speed is what makes
+this a probability rather than a certainty**: threading alone covers 2–4× of it.
 
 ## Consequences
 
@@ -125,7 +148,7 @@ discovery — and so that the two things which would make it unnecessary are nam
 **~25,400 Vehicles**; at 27.4 ns, ~27,100. Neither is the Cap — the Cap is a ratio and this is one side
 of it — and both figures are `powersave` lower bounds owed a re-take.
 
-**`adr/0094`'s 27–58× claim is withdrawn, and its ÷4 stands with a rider.** The sub-step ratio really does
+**`adr/0094`'s 27–58× claim is restated as 7.3×, and its ÷4 stands.** The sub-step ratio really does
 go 21–45 → 84–180 and the per-Tick cost really does quadruple; what is withdrawn is the comparison
 against 186,624 and the pricing at 15.6 ms. `plans/0002` §D2, `plans/0013`, `CLAUDE.md` and
 `plans/0000-board.md` all carry the corrected form.
@@ -142,9 +165,10 @@ with those two rungs named. It is the largest unclaimed multiple on the Cap's su
 expectation with no design attached. Two things would retire it: the threading measurement coming back
 near-linear, or a real stressed-Vehicle count landing under the supply figure.
 
-**The Cap stays unset.** Its demand half has never been measured and nothing here measures it. What
-changes is that the supply half is now quoted at a defensible rung and the ratio is no longer quoted at
-all.
+**The Cap stays unset.** Its demand half has only an **upper bound** from a synthetic fixture and
+nothing here improves it. What changes is that the supply half is quoted at a defensible rung, and the
+ratio is quoted **with the clause that says what it is worth** — which is the whole of `plans/0012`
+Cause 5.
 
 ## What would trigger revisiting
 
