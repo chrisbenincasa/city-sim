@@ -21,31 +21,53 @@ Each step has a home in the interface:
 | **Intervene** | The six verbs (§2) |
 | **Wait** | The city, running |
 
-**One turn of the loop is about an in-world Day.** That is not a target imposed on the simulation; it is
-what the simulation's own cadences already are. Placement, job assignment and the Zone Rules look at every
-candidate once per **1,024 Ticks** — an eighth of a Day — and a commute recurs **daily**, so a Day is the
-shortest interval over which a change can be made, noticed, acted on and observed.
+**One turn of the loop is about a minute or two of real time, and that is what a Day is.** It is not a
+target imposed on the simulation; it is what the simulation's own cadences already are. Placement, job
+assignment and the Zone Rules look at every candidate once per **1,024 Ticks** — 64 seconds at 1× — and a
+commute recurs **daily**, which is **2,048 Ticks**, or 128 seconds. So a change can be made, noticed,
+acted on and observed inside about two minutes, and the Day is the outer edge of that window.
 
 The speeds exist to make that interval watchable, and **1× is the speed the game is designed to be played
 at**:
 
-| Speed | One in-world Day | What it is for |
-|---|---|---|
-| **Pause** | — | Planning. The verbs work while paused |
-| 0.5× | 17m 04s | Slowing down to watch one thing happen |
-| **1×** | **8m 32s** | **The design speed. The game must be enjoyable here** |
-| 2× | 4m 16s | Comfortable once a city is settled |
-| 4× | 2m 08s | A speedup, and the first thing a large city may stop offering |
+| Speed | Ticks/s | One in-world Day | Tick budget | What it is for |
+|---|---|---|---|---|
+| **Pause** | 0 | — | — | Planning. The verbs work while paused |
+| 0.5× | 8 | 4m 16s | 125 ms | Slowing down to watch one thing happen. **Traffic is visually truthful here** (§7) |
+| **1×** | 16 | **2m 08s** | **62.5 ms** | **The design speed. The game must be enjoyable here** |
+| 2× | 32 | 1m 04s | 31.25 ms | Comfortable once a city is settled |
+| 3× | 48 | 42 s | 20.8 ms | Fast-forward that still shows a commute peak |
+| 4× | 64 | 32 s | 15.6 ms | **Getting somewhere, not watching.** The first thing a large city stops offering |
 
-There is no 8×. At 8× a Day is sixty-four seconds and `Observe` has nothing left to observe, which
-contradicts the loop rather than accelerating it.
+The Day lengths follow from `TICKS_PER_DAY = 2048`
+([`adr/0094`](adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)),
+and a Day at 1× is four times shorter than it was, because the twenty-hour marker in §4 asks the player to
+read a demographic quantity and the old constant put **140 Days** in a twenty-hour campaign. It now puts
+**562**.
+
+**The rule that stops the ladder is about events, not about the calendar**, and it was written the other
+way round on the day the ladder was: *at 8× a Day is sixty-four seconds and `Observe` has nothing left to
+observe*. That reads as a floor on Day length and it is not one. What the player can observe is governed
+by **how many events arrive per real second**, which is set by the tick rate and by cadences authored in
+Ticks — and neither of those moved when the Day did. A Rule firing every 64 Ticks still fires every four
+seconds at 1×.
+
+**What a shorter Day does change is that Day-scaled phenomena have a lower top watchable speed than
+everything else.** The commute peak spreads over a third of a Day, so it is a 43-second event at 1× and an
+11-second one at 4×. That is not a defect and it is not new: §7 already says the slowest speed is *"the
+speed at which rendered traffic is visually truthful"*, and this is the same observation one rung up.
+**Different phenomena stay legible to different speeds, and the ladder's job is to say which** — which is
+why 3× exists and why 4× is described as getting somewhere rather than as watching.
 
 **A consequence for [`plans/0013`](../plans/0013-tick-budget.md), which had assumed otherwise.** That
 ledger is summed against a 15.6 ms budget, which is 4×, and reads as an existential problem because it
-exceeds it. Against the design speed the same work is **~28% of a 62.5 ms Tick**. The simulation as priced
-fits where the game is played and fails where it is hurried — so an over-budget figure at 4× is a
-statement about which speedups a city of that size offers, which is `HONEST DEGRADATION`, and not a
-statement that the game does not run.
+exceeds it. It should be read against the **design** speed, where the same work is a fraction of a 62.5 ms
+Tick — so an over-budget figure at 4× is a statement about which speedups a city of that size offers,
+which is `HONEST DEGRADATION`, and not a statement that the game does not run. ⚠ **`adr/0094` moves the
+routing row ×4** — route searches fire per Trip, Trips are daily, and Days now arrive four times faster —
+which takes the ledger to roughly **305% at 4× and 76% at 1×**. The conclusion survives and the margin
+does not: the simulation as priced now fits at 1× and not at 2×, on a row whose multiplicand R6.3 found
+counts the wrong event.
 
 ### The region view is a zoom level, not a second screen
 
@@ -289,11 +311,37 @@ loop is understood.
 ⚠ **Read this section under §1's *the hour markers are expectations, not a script*.** Every duration below
 is a prediction the design must make plausible, not a curve it is entitled to enforce.
 
-**Around two hours** the first genuine constraint bites, and it should be a *spatial* one rather than a financial one. The classic shape: housing and jobs have grown in different places, commutes lengthen, and Trips start failing their **Commute Budget**. Businesses whose customers cannot reach them decline. The fix is not more money — it is geography, and the player has to read the map to find it.
+**Around two hours** the first genuine constraint bites, and it is a *spatial* one. The classic shape: housing and jobs have grown in different places, commutes lengthen, and Trips slide down the **Commute Budget**'s rungs. Businesses whose customers cannot reach them decline. What the player has to do is read the map.
 
-This is also when the first Departures appear, and the distinction between **unhoused** (a capacity failure — build more) and **housed** (a quality failure — fix what you have) does real teaching work.
+**The commute degrades before it fails, and that is the whole of what this marker teaches.**
+[`adr/0095`](adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md) grades a commute
+**fast** to 20 clock minutes, **moderate** to 40 and **unsavoury** to 50, and only the ceiling refuses.
+A single threshold would report **zero** while every commute in the city crept from twelve minutes to
+nineteen, and then report a cliff — the signal arriving exactly when the geography has already gone
+wrong and a spatial fix has stopped being cheap. The rungs make the intervening period the readable
+thing. `LEGIBLE CAUSE`
 
-**Around twenty hours** the city is large enough that the demographic engine becomes the main event. Two independent forces are running:
+This is also when the first Departures appear, and the distinction between **unhoused** (a capacity failure — build more) and **housed** (a quality failure — fix what you have) does real teaching work. The **unsavoury** rung is where the second kind comes from: a Citizen who has a home and a fifty-minute walk to work is the cleanest quality failure the design has.
+
+⚠ **This is a Bill-axis scarcity, and §5.1's *buyable out of? Yes, always* is not contradicted by the
+paragraph above.** The two sentences read as opposites and are about different things. What money cannot
+do here is be *spent at the problem* — there is no import that shortens a distance, which is why the fix
+is geography. What money can do is buy the **remedy**, and since
+[`adr/0091`](adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md) there
+are three priced ones: `Demolish` and rebuild nearer, an Arterial laid by compulsory purchase, or new
+development zoned where the jobs are. So the axis is right and §5.1's leading clause — *"everything
+physical is importable or buildable at a price"* — is carried by its **second** half. *(Neither section
+could have said this when it was written; the third route did not exist.)*
+
+**Around twenty hours** the city is large enough that the demographic engine becomes the main event. At
+1× that is **about 562 Days** ([`adr/0094`](adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)),
+where under the old clock it was 140 — and 140 does not contain one generation at any plausible Life
+Stage length, so this marker was scheduled to arrive after the campaign ended. ⚠ **It still constrains
+[`adr/0011`](adr/0011-household-life-stages-and-self-generating-population.md) rather than being
+satisfied by the clock alone**: three generations inside a campaign needs a Household life under about
+190 Days, which is shorter than the arc that ADR describes. The number is not chosen here.
+
+Two independent forces are running:
 
 - **Sorting** — who chooses to arrive and leave
 - **Life Stages** — the population the city generates for itself
@@ -316,6 +364,14 @@ Every trajectory in §6 bottoms out in one of exactly two scarcities, and the di
 | **The Clock** | People, and the skills they carry | A Hinterland recovers at a rate. A Life Stage takes Days. Tier 1 → 2 is an Event Wheel countdown; tier 2 → 3 needs schooling. | Vacancies unfilled, Retention falling, Replacement Rate under 2.0, arrivals skewing cheap | **No.** No amount of money exceeds a recovery rate |
 
 This is the through-line stated generally: **Goods are price-constrained; people are rate-constrained.** An earlier draft split pressure into Economic, Logistics, and Shocks, which failed two ways — logistics failures resolve into money, so those two were one axis wearing two hats, and seven of §6's nine trajectories had no home at all.
+
+**Two different scarcities read as *long commutes*, and both are Bill.** *Congestion* is road capacity and
+is bought directly — more road, better road. *Separation* is distance, and no purchase is aimed at it;
+what money buys is the **remedy**, which is `Demolish` and rebuild, an Arterial through compulsory
+purchase, or development zoned where the jobs are. So *buyable out of? Yes, always* holds for both, and it
+holds on this table's **second** clause — *"or buildable at a price"* — rather than its first. §4's *"the
+fix is not more money — it is geography"* is about where the money has to be **pointed**, not about
+whether it works, and the two sentences have read as a contradiction since both were written.
 
 **The two axes are not independent, and [`adr/0035`](adr/0035-infrastructure-is-priced-by-what-it-consumes.md) is the first mechanism that couples them.** Infrastructure Upkeep is an automatic draw; borrowing is a player action rather than an automatic overdraft; so a treasury that empties leaves the maintenance Rule unable to draw, and unrenewed road life lowers capacity and free-flow speed. **An unpaid bill lengthens every commute.** The Bill becomes the Clock — not by a rule saying so, but because the thing money was buying was travel time all along. It is also what makes a fiscal crisis legible on the map rather than only in a number. `LEGIBLE CAUSE`
 
@@ -414,7 +470,7 @@ The bound this accepts, recorded so nobody later relaxes it: the dial **cannot**
 
 It also cannot be escaped. [`adr/0022`](adr/0022-land-is-a-stock-the-city-spends.md) makes a mature city a permanent net importer, [`adr/0024`](adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md) makes the gate money's only source and sink, and `adr/0023` makes it the only way people arrive. There is no border-closing strategy that opts out.
 
-One consequence worth knowing when tuning: **the opening is nearly identical at every setting**, since §3 removes budget pressure and failure states from the first ten minutes and the Bill and Clock have nothing to act on until a mistake exists to price. Acts of God is therefore the dial's only early expression, and the one that makes a chosen setting feel chosen. Bill bites on §4's two-hour schedule; Clock on its twenty-hour one.
+⚠ ~~One consequence worth knowing when tuning: **the opening is nearly identical at every setting**, since §3 removes budget pressure and failure states from the first ten minutes and the Bill and Clock have nothing to act on until a mistake exists to price. Acts of God is therefore the dial's only early expression, and the one that makes a chosen setting feel chosen.~~ **Struck 2026-08-13: §3 removes budget *failure*, never budget *pressure*, and this paragraph was written against the earlier draft that confused them.** The balance is finite from the first second and infrastructure is paid for three times ([`adr/0035`](adr/0035-infrastructure-is-priced-by-what-it-consumes.md)), so the **Bill has something to act on from the first purchase** — a harsher price level is felt while laying the opening road, not two hours later. So the opening is *not* nearly identical at every setting, and Acts of God is not the dial's only early expression; it is only the most **visible** one, which is a different claim and the one worth keeping. Bill bites from the first minute and *binds* on §4's two-hour schedule; Clock on its twenty-hour one.
 
 ### 5.6 Modes, and what a lock is for
 

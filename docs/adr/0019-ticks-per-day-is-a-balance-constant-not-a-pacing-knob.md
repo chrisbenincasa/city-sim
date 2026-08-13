@@ -1,5 +1,31 @@
 # Ticks per Day is a balance constant, not a pacing knob
 
+> **⚠ AMENDED A SECOND TIME 2026-08-13 by [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md) — and this time the *conclusion* falls. `TICKS_PER_DAY = 2048`.**
+>
+> **The title's claim is withdrawn.** Under `0082`'s clock a Tick's duration is **derived from**
+> `TICKS_PER_DAY`, so a commute's length in Ticks scales with the constant and the ratio this ADR calls
+> *"the only time-related quantity in the design that is about the world"* is **invariant** — 1.39% of a
+> Day at 8192 and 1.39% at 2048. `TICKS_PER_DAY` is a **sampling rate**, and lowering it buys four times
+> as much world per real second at no cost to any balance.
+>
+> **Four things below are struck.** *Why shortening the Day is not a pacing change* in its entirety,
+> including **"same city, same population, same roads, twice the vehicles"** — the premise it needs is a
+> Tick with a duration fixed independently of the Day, which is what this ADR believed and what `0082`
+> replaced. The *"free in another currency"* claim closing *Why we do not compensate*: the speed ladder
+> buys world by running **more Ticks**, and a Tick costs what a Tick costs, so the two are
+> interchangeable only for what is Tick-denominated. The **speed ladder table**'s Day column, superseded
+> by `01 §1`'s five-rung ladder. And the revisit trigger's **direction**, which is now backwards — see
+> the banner there.
+>
+> **What survives is the prohibition and the third bullet.** *Traffic pressure has two legitimate levers
+> and one illegitimate one* still binds: the Day must never be used to tune a system-wide **outcome**,
+> and `0094` does not — it changes how fast the world is stepped through, not what the world does. And
+> *within-Day scheduling resolution*, which `0082` promoted from makeweight to sole criterion, is the
+> whole of the argument `0094` had to make.
+>
+> **State Hashes move and all three golden baselines are re-recorded**, which is the difference from the
+> first amendment.
+
 > **AMENDED 2026-08-12 by [`0082`](0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md), on measurement. The decision stands and the derivation does not.**
 >
 > **`TICKS_PER_DAY = 8192` survives, and so does everything this ADR concludes about pacing.** What is
@@ -67,13 +93,15 @@ So the causal chain runs one way only:
 >
 > **The chain now reads the other way**: behavioural scheduling resolution → `TICKS_PER_DAY` → a Tick's duration in seconds → **and car-following takes a sub-step ratio inside phase 4**, visible to nothing outside the Lane kernel. **Behaviour is upstream of the clock, and the traffic model is the one process that does not inherit it.** The paragraph below — *"if vehicles did not exist, this simulation could run at 24 Ticks per Day and nothing would suffer"* — is the observation that makes this work, and it is this ADR's own.
 
-## Why shortening the Day is not a pacing change
+## ~~Why shortening the Day is not a pacing change~~
 
-A commute takes 480 Ticks because of distance and speed. It does not know what a Day is and does not change when the Day changes.
+> **⚠ STRUCK IN FULL by [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md).** The section is valid reasoning from a premise `0082` deleted: it needs *"a commute takes 480 Ticks"* to be a fact about the world, and under a Tick whose duration is derived from `TICKS_PER_DAY` it is a fact about the **sampling rate**. A commute is 20 clock minutes; that is 114 Ticks at 8192 and 28 Ticks at 2048, and **1.39% of a Day in both**. The constant cancels. There is no doubling of vehicles, no earlier congestion and no wider road. ***A section can be internally sound and load-bearing on a premise another document removed, and nothing recomputes it when that happens*** — `0089`'s *the obligation a deletion creates is a re-derivation, not a retraction*, third sighting in two days.
 
-Halving `TICKS_PER_DAY` therefore does not shorten the drive — it shortens **the life around the unchanged drive**. The commute goes from 11.7% of a Citizen's day (both directions) to 23%. And "share of life in transit" is the same quantity as "share of the population on the road at any instant."
+~~A commute takes 480 Ticks because of distance and speed. It does not know what a Day is and does not change when the Day changes.~~
 
-**Same city, same population, same roads, twice the vehicles.** Congestion arrives twice as early, the Microscopic Segment budget is exhausted twice as fast, and every road needs to be twice as wide. That is a different game, not a faster one.
+~~Halving `TICKS_PER_DAY` therefore does not shorten the drive — it shortens **the life around the unchanged drive**. The commute goes from 11.7% of a Citizen's day (both directions) to 23%. And "share of life in transit" is the same quantity as "share of the population on the road at any instant."~~
+
+~~**Same city, same population, same roads, twice the vehicles.** Congestion arrives twice as early, the Microscopic Segment budget is exhausted twice as fast, and every road needs to be twice as wide. That is a different game, not a faster one.~~
 
 ## Why we do not compensate by doubling vehicle speed
 
@@ -91,9 +119,13 @@ So 4096 with doubled vehicle speed is a real option, not an impossible one. We d
 - ~~**Queue fidelity.**~~ **MOVED by `0082`**, and it is correct where it now lives: 12% → 23% of following distance per Tick coarsens shockwave propagation and stop-and-go waves, which is the phenomenon Microscopic Segments exist to show. **That is a constraint on the sub-step ratio and no longer one on `TICKS_PER_DAY`.** Treiber's Δt ≤ 0.5 s is the ceiling — a ratio of **21** — and this ADR's 12% figure is a ratio of **45**.
 - **Within-Day scheduling resolution** halves, chunking the rush-hour departure spread. **⚠ This is the only one of the three left standing, and under `0082` it is the *whole* of what sets `TICKS_PER_DAY`.** *The argument listed third and looking like a makeweight was the load-bearing one all along.*
 
-And what it buys — a Day half as long in real seconds — **the speed ladder already provides for free**. Never pay in fidelity for something available free in another currency.
+~~And what it buys — a Day half as long in real seconds — **the speed ladder already provides for free**. Never pay in fidelity for something available free in another currency.~~
 
-## The speed ladder
+> **⚠ STRUCK by [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md), and it is this ADR's one substantive error of fact.** The speed ladder buys world by running **more Ticks per second**, and a Tick costs what a Tick costs; `TICKS_PER_DAY` buys world by putting more of it **inside** a Tick. They are interchangeable only for what is Tick-denominated, and the twenty-hour marker `01 §4` is built on is denominated in **Days**.
+
+## ~~The speed ladder~~
+
+> **⚠ SUPERSEDED by `01 §1`'s five-rung ladder** (`0094`). The `Day` column is stated at 8192 and the *"traffic reads as"* column was struck by `0082`. The two riders below the table survive whole and are the only part still current.
 
 The host runs Ticks at whatever rate it likes. The simulation is unaffected, because it only ever sees Ticks.
 
@@ -120,6 +152,10 @@ Two riders. **64 Ticks/s is Factorio's rate**, so the top rung is a performance 
 
 > **⚠ [`0082`](0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md) gives this trigger a cheaper lever first.** The vehicle count is still the expensive thing and halving `TICKS_PER_DAY` still halves it — but under two clocks the **sub-step ratio** is the dial that prices the Lane kernel, and it moves without touching the calendar, the Event Wheel or a single scheduled event. **Reach for the ratio before the Day.** Only one of the two fidelity costs below is still payable: visual honesty is struck, and queue fidelity is now the ratio's constraint rather than the Day's.
 
-**Performance.** The ratio fixes the vehicle count, and the vehicle count is the expensive thing. If profiling shows 8192 Ticks/Day of vehicles-in-flight is unaffordable, then 4096 with doubled vehicle speed is not a compromise — it is the correct response, because it halves Tick throughput while changing neither the ratio nor the traffic load. The price is the two fidelity costs enumerated above, and they should be paid consciously.
+> **⚠ THE DIRECTION BELOW IS BACKWARDS, struck by [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md).** Under `0082`'s clock, lowering `TICKS_PER_DAY` makes the vehicle cost **worse by the factor it is reached for to improve**. Vehicles in flight is `arrival rate × journey duration`, both invariant in in-world terms, so the population on the road does not move; what moves is the **sub-step ratio**, since car-following needs a fixed in-world Δt and a longer Tick must integrate more sub-steps inside it. Halving the Day doubles the vehicle cost. **This instruction has stood unread since `0082` inverted the chain** — `plans/0012` *Cause 2*, with the write landing in one half of a file and not the other.
 
-Nothing about pacing, session length, or "days feel too long" should ever reopen this. Those live in the speed ladder.
+~~**Performance.** The ratio fixes the vehicle count, and the vehicle count is the expensive thing. If profiling shows 8192 Ticks/Day of vehicles-in-flight is unaffordable, then 4096 with doubled vehicle speed is not a compromise — it is the correct response, because it halves Tick throughput while changing neither the ratio nor the traffic load. The price is the two fidelity costs enumerated above, and they should be paid consciously.~~
+
+~~Nothing about pacing, session length, or "days feel too long" should ever reopen this. Those live in the speed ladder.~~
+
+> **⚠ STRUCK by `0094`, which reopened it on exactly that ground and was right to.** What survives is the narrower prohibition in the last consequence bullet: the Day must never tune a system-wide **outcome**, because that is a hidden global with no causal story and `00-vision.md` pillar 1 forbids it. Changing how fast the world is stepped through is not an outcome.

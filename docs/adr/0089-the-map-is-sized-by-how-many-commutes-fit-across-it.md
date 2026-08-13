@@ -71,12 +71,29 @@ had quietly removed.
 
 ### The measurement, and what a rung buys
 
-| `WorldCells` | Across | Land | Buildable for 1M | Commutes across (30 min) | Foot crossing |
+| `WorldCells` | Across | Land | Occupied by 1M | Commutes across (30 min) | Foot crossing |
 |---|---|---|---|---|---|
 | 128 — today | 16.4 km | 268 km² | ~100% | **0.9** | 3.3 h |
 | 256 | 32.8 km | 1,074 km² | 25% | 1.9–2.6 | 6.6 h |
 | 384 | 49.2 km | 2,416 km² | 11% | 2.8–4.0 | 9.8 h |
 | **512** | **65.5 km** | **4,295 km²** | **6.3%** | **3.7–5.2** | **18.5–26.2 h** |
+
+> **⚠ Two corrections to the table, 2026-08-13.**
+>
+> **The fourth column was headed *Buildable for 1M* and that is the wrong word.** It is the share of the
+> map a 1M city **occupies** at the developed density, not a share the player is permitted to build on —
+> nothing restricts where anybody builds, and [`0090`](0090-the-generator-makes-land-and-the-player-makes-every-road.md)
+> makes that explicit. Renamed rather than recomputed; the numbers were right and the heading invited the
+> opposite reading of the whole ADR.
+>
+> **The fifth column's 30-minute Budget no longer exists**
+> ([`0095`](0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)), and the ratio has two
+> values now: at 512, **5.6–7.8** crossings at the *fast* rung of 20 minutes and **2.2–3.1** at the
+> ceiling of 50. **The ceiling is the one that governs**, because two places are one labour market exactly
+> when somebody will take the commute between them. So this ADR's figure for the shipped design is
+> **2.2–3.1** — below the 3.7–5.2 it was granted, far above the 0.9 it was written against, and therefore
+> still several settlements rather than one blob. *Which rung governs is filed to `plans/0002` as
+> measurable rather than settled here.*
 
 Corner to corner at 512 is **633 Ticks** Euclidean and **895** Manhattan, against **171** for a
 30-minute Budget — 7.7% and 10.9% of a Day. Real routes fall between, because Arterials at 90 km/h exist.

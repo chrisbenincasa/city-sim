@@ -1,7 +1,11 @@
 # The behavioural clock is global and car-following sub-steps inside it
 
-**The Tick is a behavioural unit. `TICKS_PER_DAY = 8192` stands, a Day is 24 in-world hours, and a
-Tick is therefore 10.546875 s of in-world time — a derived quantity, not a free one.** Car-following
+> **⚠ AMENDED 2026-08-13 by [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md). `TICKS_PER_DAY = 2048`, and a Tick is 42.1875 s.** The *"8192 stands"* clause is superseded and **nothing else here is**: the two-clock structure — behaviour globally, car-following sub-stepping inside phase 4 — is exactly what makes a shorter Day cost no balance, because it is what makes a Tick's duration **derived** from the constant. The sub-step ratio's band moves with it, **21–45 → 84–180**.
+>
+> **This ADR left two live consequences standing on the premise it deleted**, and neither was marked: `adr/0019`'s *Why shortening the Day is not a pacing change*, which needs a Tick whose duration is fixed independently of the Day, and that ADR's revisit trigger, whose stated direction is now inverted. ***Replacing a derivation obliges re-deriving what stood on it, in the file where it stands*** — `adr/0089`'s finding, met here from the other side.
+
+**The Tick is a behavioural unit. ~~`TICKS_PER_DAY = 8192` stands~~, a Day is 24 in-world hours, and a
+Tick is therefore ~~10.546875 s~~ of in-world time — a derived quantity, not a free one.** Car-following
 gets its own finer clock, taken as an integer **sub-step ratio** inside Tick phase 4 and visible to
 nothing outside the Lane kernel. [`0019`](0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md)'s
 conclusion survives whole; its **derivation is replaced**, and the sentence *the traffic model is
