@@ -647,3 +647,90 @@ commute of zero will be visible as a dot on top of its own home.
 
 **No ADR.** `adr/0076` closes the Fate set and `adr/0081` owns the milestone; a histogram of an
 existing quantity decides nothing.
+
+### Task 7 — something to look at, built
+
+`--commute`: **where people work against where they live, by block, before and after the jobs are
+taken**, with the run's cost distribution underneath it. The **seventh runner mode** and the **second
+that steps the world** — `--zones` is the first, and for the same reason: employment is a thing that
+happens over time, so unlike `--roads` and `--trips` this picture has a real *before*. That before is
+the control, and it is the strongest thing in the output: **a city at Tick 0 has nobody employed
+anywhere**, so every block exports its whole population and none takes anybody in. **Eleven tests,
+1,273 green against task 6's 1,262.**
+
+**The quantity is a *balance*, not a count, and that is what makes it a new picture.** A grid of
+worker counts is a grid of population, which `--zones` already shows. What is new is the **direction
+people move in the morning**: a block reads as exporting workers, importing them, or within a quarter
+of parity. A city where nobody moves and a city where everybody moves are then two different pictures
+rather than two similar ones.
+
+**It refuses a Ruleset with no `[jobs]` rather than printing a city of the unemployed**, which is
+`--zones`' polarity for a sharper reason than usual: *a grid of universal export is what this dump
+prints on purpose in its first frame*, so printing it in the second would make **a broken assignment
+pass and a file that grants no work indistinguishable**. Employment is content twice over — `[jobs]`
+states the cadence, `[[building]] jobs` states the posts — and the option-layer complaint names both,
+because a reader who supplies one gets the other refusal and the two have to lead to the same place.
+
+#### The finding: an instrument printed every duration short, and only a round number showed it
+
+**`--trips`' minute formatter dropped the sub-Tick fraction before converting**, so every figure that
+instrument has ever printed was short by up to one Tick — **10.546875 s of in-world time**. It
+surfaced because this dump prints the Commute Budget in its header and the shipped `20` came out as
+**19.9**. On a round number that is a rounding artefact nobody looks twice at; on `--trips`' own
+2.5-minute band it is **7%**, and on the 1-block p90 that *task 3's crossing-cost ratifier is read
+off* it is the same 7%.
+
+***A defect that only shows on a value you happen to know is a defect that hides in every value you
+do not.*** The corpus's own instance of this is `adr/0074`'s placeholder rule — *a value inside the
+range of legitimate answers cannot announce itself* — and 19.9 minutes is squarely inside it. What
+made it visible was **printing a number the file had also stated**, which is a property worth
+designing for rather than getting lucky with. Fixed at the source per `adr/0073`: the multiplication
+now happens before the shift, in `TripDump.Minutes`, which this dump calls rather than copies.
+
+**And fixing it broke a test in the way that test's own doc comment warns about.**
+`No_band_reports_a_walk_of_no_time_at_all` asserted the report does not contain the substring
+`0.0 min` — and the corrected header prints `20.0 min`, which does. Three paragraphs below it in the
+same file, `Unreachable`'s remark already says *parsed rather than substring-matched, because the
+substring lies*, recorded when `0 pair(s) had no pedestrian route` turned out to be a substring of
+`220 pair(s)`. ***A rule written down beside the code it governs is not thereby applied to the code
+next to it***, which is `adr/0044`'s *citing an ADR is not applying it* at the scale of one file. It is
+a digit-boundary match now.
+
+
+#### What the picture says about the city we have
+
+**Near-total parity: at 10,000 Citizens, 222 blocks of 228 come out within a quarter of parity, 4
+export and 2 import.** That is not a defect and it is worth reading carefully — it is exactly what
+`jobs` on the `dwelling` kind produces. Every Building has the same 8 posts and the same 3 occupants,
+so **there is no land use in this city at all**, and the commute is a shuffle rather than a flow. Task
+4 recorded the choice and its reason (a workplace kind needs a second `[[zone_rule]]` and a second
+decline Rule, which is content); this is the first time the consequence has been **visible** rather
+than argued. The picture will be worth looking at again the day a second kind exists, and it will look
+completely different.
+
+**29 of 6,107 employed Citizens work in the Building they live in**, which task 6 saw and deliberately
+did not change. It is counted here because nothing else can count it: the Census counts the Trip, the
+State Hash folds it, and **neither can say the journey went nowhere**.
+
+#### The cost task 5 owed and task 7 paid
+
+**`adr/0073` says route a cost to [`0013`](0013-tick-budget.md) on the day it is found, and task 5's
+was two days late.** The generator starts one walk search per departing Citizen and nothing measured
+it. Three Rulesets at 100,000 Citizens over 20,000 Ticks: **no `[jobs]` 8.24 s; `[jobs]` with
+`[[building]] jobs = 0` 9.31 s; the shipped file 21.32 s.**
+
+**The middle run is the isolation, and it exists because `jobs = 0` loads** — the pass samples, draws
+candidates and never routes, because `World.HasJob` fails first. So the sampling machinery on its own
+is **1.7 ms in the one Tick in thirty-two it runs in**, and everything else is routing.
+
+**Routing is 12.01 s across 369,727 searches — ~32.5 µs each, the first walk-search figure this corpus
+has taken from a real world** rather than from a microbenchmark over a warm graph. On a count
+attribution, commute generation is 29% of it: **0.175 ms a Tick amortised, ~0.52 ms in a departure
+Tick**, and departures land on one Tick in three. At 1M that is **~5.2 ms against a 15.6 ms budget in a
+departure Tick, 33%** — and unlike the assignment pass it **does not fall away as the city settles**,
+because everybody with a job commutes every Day for ever. Filed with its method and its coupling
+stated.
+
+**No ADR, and no new number that needs one.** The balance band is a quarter and the window is 128
+characters; both are properties of a terminal rather than of a city, on the Census histogram's
+standing — the dump folds into nothing, so changing either changes a report and no city anywhere.

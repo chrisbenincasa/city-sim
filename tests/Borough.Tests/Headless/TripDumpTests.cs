@@ -82,11 +82,20 @@ public sealed class TripDumpTests
     /// population is that two distinct Buildings are never a zero-minute walk apart.
     /// </para>
     /// </remarks>
+    /// <remarks>
+    /// ⚠ <b>Matched with a digit boundary, and the plain substring failed on 2026-08-12 — three
+    /// paragraphs below the note warning about exactly this.</b> <see cref="Unreachable"/> already
+    /// says <i>parsed rather than substring-matched, because the substring lies</i>, about a different
+    /// assertion in this same file. This one then broke the moment the header's Commute Budget started
+    /// printing as <c>20.0 min</c>, which contains <c>0.0 min</c>. <b>A rule written down beside the
+    /// code it governs is not thereby applied to the code next to it</b> — which is the corpus's own
+    /// <i>citing an ADR is not applying it</i> (<c>adr/0044</c>) at the scale of one file.
+    /// </remarks>
     [Theory]
     [InlineData("severance.toml")]
     [InlineData("minimal.toml")]
     public void No_band_reports_a_walk_of_no_time_at_all(string ruleset) =>
-        Assert.DoesNotContain("0.0 min", Dump(ruleset), StringComparison.Ordinal);
+        Assert.DoesNotMatch(@"(?<!\d)0\.0 min", Dump(ruleset));
 
     /// <summary>
     /// The detour figure exists, which is the half <c>--roads</c> states it cannot measure.

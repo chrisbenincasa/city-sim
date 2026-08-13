@@ -879,6 +879,33 @@ does not land*. Here `adr/0075` issued a write it did not know it was issuing: *
 a representation defers every decision that reads it**, and a consumer three ADRs away has no reason to
 be re-read. Nothing in the corpus asks *what else was reading the thing I just deleted*.
 
+### A world's seed has two sources, and the doc comment that says this is filed here is what filed it
+
+*(Found 2026-08-12 by `plans/0023` task 5, which added the second source, and by the user asking on the
+same day what needed reviewing. Owner: `src/Borough.Core/Entities/World.cs`; a signature sweep, not a
+design change.)*
+
+`World` now holds a `Key` — `Randomness.Draw`'s first coordinate — because `CommuteRoster` is
+`(derived AND rebuilt)` from it and `RebuildDerived()` takes no arguments and must not start taking
+them. **Every other mutator on the class still takes a `WorldKey` as a parameter**: `CreateBuilding`,
+`DestroyBuilding`, `Adopt` and the rest, nine call sites in all. So one world has **two sources for one
+seed**, and nothing checks that they agree — a caller passing a different key would make the arming
+stagger disagree with the commute roster about which world it is in, and both would look correct in
+isolation.
+
+**It is redundant rather than wrong today**, because every live call site threads the same key. That is
+exactly the state `plans/0012` exists to catch: a fact stored twice, currently consistent, with no
+mechanism keeping it so.
+
+⚠ **The reason this entry is worth its own heading is the way it nearly did not get written.** The
+`World.Key` doc comment says the sweep is *"filed to `plans/0012` rather than done here, because a
+signature change across nine call sites in the middle of a milestone is how an unrelated defect gets
+committed under a feature's name."* The reasoning is right and **the filing did not happen** — the
+comment shipped, the entry did not, and for two commits the codebase asserted in prose that a ledger
+somewhere held this. That is `adr/0073` failing at its own first step: *route the finding on the day,
+and before working around it*. **A citation is not a filing, and the document that would have caught it
+is the one being cited.** The only thing that found it was somebody asking what was outstanding.
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and

@@ -498,10 +498,17 @@ internal static class TripDump
     /// which is session F's finding arriving in an instrument.
     /// </para>
     /// </remarks>
-    private static string Minutes(long rawTicks)
+    internal static string Minutes(long rawTicks)
     {
-        long ticks = rawTicks >> 16;
-        long tenths = IntegerMath.RoundDiv(ticks * MinutesPerDay * 10, Core.Quantities.Ticks.PerDay);
+        // Scaled BEFORE the fraction is dropped, and the order is the whole of the correction. This
+        // read `rawTicks >> 16` first, which floors to a whole Tick -- 10.546875 s of in-world time --
+        // and only then converted, so every figure this instrument printed was short by up to that
+        // much. It showed up as the shipped 20-minute Commute Budget printing as 19.9, which is a
+        // rounding artefact nobody would look twice at; on a 2.5-minute band it is 7%. The
+        // denominator is Ticks.PerDay in Q16.16, and the numerator peaks near 3.1e13 for a
+        // Fixed.MaxValue cost, comfortably inside a long.
+        long tenths = IntegerMath.RoundDiv(
+            rawTicks * MinutesPerDay * 10, (long)Core.Quantities.Ticks.PerDay << 16);
 
         return $"{tenths / 10}.{tenths % 10}";
     }

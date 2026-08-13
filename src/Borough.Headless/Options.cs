@@ -56,6 +56,19 @@ internal enum Mode
     /// shortest path and is what milestone 5b built.
     /// </remarks>
     Trips,
+
+    /// <summary>
+    /// Print where people work against where they live, before and after the jobs are taken. 5b-bis's.
+    /// </summary>
+    /// <remarks>
+    /// A seventh mode, and it is <see cref="Zones"/>' shape rather than <see cref="Trips"/>': it
+    /// <b>steps the world</b>, because employment is a thing that happens over time and a city at
+    /// Tick 0 has nobody employed at all — so unlike the two pictures before it, this one has a real
+    /// <em>before</em>. It refuses without a Ruleset for every picture's reason, and refuses a
+    /// Ruleset with no <c>[jobs]</c> for <see cref="Zones"/>' exactly: employment is content, and a
+    /// grid of unemployment would read as a broken pass rather than as a file that grants no work.
+    /// </remarks>
+    Commute,
 }
 
 /// <summary>
@@ -239,6 +252,7 @@ internal sealed class Options
         bool zones = false;
         bool roads = false;
         bool trips = false;
+        bool commute = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -281,6 +295,14 @@ internal sealed class Options
                 // would change none of its numbers and would only make it slower.
                 case "--trips":
                     trips = true;
+                    continue;
+
+                // A session flag, and the only picture that is one besides --zones. Employment is a
+                // thing that happens over time -- a city at Tick 0 has nobody employed at all -- so
+                // this dump has a real *before* where --roads and --trips have none.
+                case "--commute":
+                    commute = true;
+                    session = true;
                     continue;
 
                 // A run, for the same reason --census is: the guard is a property of stepping a world,
@@ -476,6 +498,17 @@ internal sealed class Options
             return false;
         }
 
+        // Ahead of every session-flag refusal below, and the ordering is load-bearing rather than
+        // tidy. --commute IS a session, so `roads && session` would fire first and complain that the
+        // Road Graph has no *after* -- which is true, and is not what the operator got wrong. The
+        // most specific complaint wins.
+        if (commute && (zones || roads || trips || dump is not null))
+        {
+            complaint = "--commute asks for a fifth picture, and each of the five builds its own "
+                      + "world. Ask for one.";
+            return false;
+        }
+
         if (roads && (zones || dump is not null))
         {
             complaint = "--roads asks for a third picture, and each of the three builds its own "
@@ -509,6 +542,31 @@ internal sealed class Options
         {
             complaint = "--trips asks for a fourth picture, and each of the four builds its own "
                       + "world. Ask for one.";
+            return false;
+        }
+
+        // --zones' refusal for --zones' reason, and one more of its own. Employment is content twice
+        // over: [jobs] states the cadence and [[building]] jobs states the posts, so a Ruleset that
+        // declares neither produces a city in which nobody can ever be employed -- and a grid of
+        // unemployment would read as a broken assignment pass rather than as a file that grants no
+        // work.
+        if (commute && rulesets.Count == 0)
+        {
+            complaint = "--commute needs --ruleset PATH. Employment is content: [jobs] states how "
+                      + "often the assignment pass looks and [[building]] jobs states how many "
+                      + "posts a Building has, and neither has a default. A city with no jobs is a "
+                      + "picture of nothing.";
+            return false;
+        }
+
+        // Accepted with --log, unlike every other picture, and the asymmetry is the point: this one
+        // runs a session, so a recorded one is a legitimate thing to take a picture of.
+        if (commute && log is not null)
+        {
+            complaint = "--commute and --log disagree, though not for the usual reason. The dump "
+                      + "populates its own world and steps it, so a recorded session would be "
+                      + "replayed and then over-populated. Drop --log, or ask for --census on the "
+                      + "replay instead.";
             return false;
         }
 
@@ -549,7 +607,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = trips ? Mode.Trips
+            Mode = commute ? Mode.Commute
+                 : trips ? Mode.Trips
                  : roads ? Mode.Roads
                  : zones ? Mode.Zones
                  : dump is not null ? Mode.Layer
@@ -624,6 +683,10 @@ internal sealed class Options
                                 distance, and the DETOUR over the grid ideal -- the half of
                                 Severance --roads says it cannot see. Needs --ruleset, takes
                                 no session. Compare two Rulesets to read it
+          --commute             dump where people work against where they live, by block,
+                                before and after the jobs are taken, with what the run's
+                                commutes cost. Needs --ruleset with a [jobs] table, and
+                                runs a session because employment takes time
           --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
                                 than as an ASCII field
 

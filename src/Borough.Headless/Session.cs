@@ -504,4 +504,18 @@ internal static class Session
         using var writer = new StreamWriter(options.OutPath);
         return TripDump.Run(options, writer);
     }
+
+    /// <summary>Milestone 5b-bis's artefact: where people work against where they live.</summary>
+    internal static int DumpCommute(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return CommuteDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return CommuteDump.Run(options, writer);
+    }
 }

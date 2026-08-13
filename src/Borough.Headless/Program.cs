@@ -57,6 +57,9 @@ internal static class Program
                 case Mode.Trips:
                     return Session.DumpTrips(options);
 
+                case Mode.Commute:
+                    return Session.DumpCommute(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

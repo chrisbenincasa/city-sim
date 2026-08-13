@@ -74,6 +74,8 @@ the durable half of the document.
 | One walk search, **severed** (no route exists) | **14.9 ns** | yes — flat at every rung | as above |
 | ⚠️ **One job assignment pass**, steady state | **7.0 ms per pass at 100,000 Citizens** | **no — it is a burst, see below** | [`0023`](0023-jobs-and-the-commute.md) task 4 |
 | ⚠️ **One job assignment pass**, cold start | **48 ms per pass at 100,000 Citizens** | — | as above |
+| **One walk search, in a real world** | **~32.5 µs** | **no — it is an attribution, see below** | [`0023`](0023-jobs-and-the-commute.md) task 7 |
+| ⚠️ **Commute generation**, in a departure Tick | **0.52 ms at 100,000 Citizens** | **no — it runs on a third of Ticks** | as above |
 
 ### ⚠️ The job assignment pass is a burst, and the interval is what concentrates it
 
@@ -120,6 +122,48 @@ process, so they include the Census and the process's own noise; the run-to-run 
 the deltas are 1.9–2.3× that. And the 1M figures are **linear extrapolations**, which the pass's own
 shape supports — the sample is derived from the population and the box is not — but which no
 measurement in this project has ever left intact.
+
+### ⚠️ Commute generation is the first continuous per-Tick consumer this milestone added
+
+**Measured 2026-08-12 by wall-clock delta on the headless runner, three Rulesets at 100,000 Citizens
+over 20,000 Ticks, release build, `--no-decide-guard`.** Owed by `plans/0023` task 5 and not filed
+until task 7 — `adr/0073` says route a cost on the day, and this one was two days late.
+
+| Ruleset | What runs | Wall clock | Delta |
+|---|---|---|---|
+| **A** — no `[jobs]` table | nothing | **8.24 s** | — |
+| **B** — `[jobs]`, with `[[building]] jobs = 0` | the pass samples and never finds a vacancy | **9.31 s** | **+1.07 s** over A |
+| **C** — the shipped file | the pass hires, and the hired commute | **21.32 s** | **+12.01 s** over B |
+
+**B is the isolation that makes this readable, and it exists because `jobs = 0` loads.** A Ruleset that
+grants no posts still runs the whole pass — the sample, the box, the candidate draw — and never routes,
+because `World.HasJob` fails before `WalkRouting` is reached. So **B − A is the cost of looking with
+nothing to find: 0.054 ms a Tick, 1.7 ms in the one Tick in thirty-two the pass runs in.** That is the
+`interval` machinery on its own and it is cheap.
+
+**C − B is routing, and it is two consumers that this method cannot separate.** Over the run the Census
+counts **262,125 assignment routes** (166,704 that hired plus 95,421 refused for length — every
+candidate that had a vacancy) and **107,602 commute Trips**, each one search. Attributing the 12.01 s
+across all 369,727 gives **~32.5 µs a search in a real world**, which is the first walk-search figure
+taken from anything but a microbenchmark — against `0013`'s own **14.9 ns** severed and sub-µs
+connected rows, which were BenchmarkDotNet over a warm graph. ***A unit cost is a hypothesis until a
+real world has produced one***, for the fourth time in this ledger.
+
+**On that attribution, commute generation is 29% of the routing — 3.50 s, 0.175 ms a Tick amortised.**
+Amortised is the wrong number to design against, because departures are spread over
+`ceil(8192 / commute_peak_factor)` = **2,731 Ticks of a 8,192-Tick Day**, so the work lands on **one
+Tick in three** and the departure Tick carries **~0.52 ms**. Scaled linearly to 1M Citizens that is
+**~5.2 ms in a departure Tick against a 15.6 ms budget — 33%, on a third of all Ticks**, and unlike the
+assignment pass it does not fall away as the city settles: everybody with a job commutes every Day for
+ever.
+
+**Two things this does not say.** It is a **delta between whole runs**, not a profile, so the split
+between the two routing consumers is an attribution by count rather than a measurement — if a commute
+search is systematically longer than an assignment search (it may well be: the assignment pass rejects
+by cost and therefore stops early more often), the commute share is **understated**. And the levers are
+the ones `adr/0081` already names: `candidates` multiplies the assignment side and nothing else,
+`commute_peak_factor` moves the peak against the mean without changing the total, and **the Commute
+Budget moves both**, because it is the box's side as well as the acceptance test.
 
 ### ⚠️ The walk search is not a unit cost, and the row that treated it as one hid the stronger lever
 

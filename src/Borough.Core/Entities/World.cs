@@ -315,7 +315,9 @@ public sealed class World
     /// about which world this is. The threading predates this property and removing it is a sweep
     /// rather than a task-5 edit — filed to <c>plans/0012</c> rather than done here, because a
     /// signature change across nine call sites in the middle of a milestone is how an unrelated
-    /// defect gets committed under a feature's name.
+    /// defect gets committed under a feature's name. <b>The entry exists; the first version of this
+    /// sentence claimed it did two commits before it was written, which is its own entry in that
+    /// ledger — a citation is not a filing.</b>
     /// </para>
     /// <para>
     /// <b>Zero is the default and it is a legitimate seed rather than a placeholder.</b> That is safe
