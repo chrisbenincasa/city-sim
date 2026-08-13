@@ -386,6 +386,37 @@ budget basis) and **nearly produced a mechanism nobody needs**: designing a fall
 unmeasured shortfall is `adr/0070`'s void question in its exact stated form, and the session got to the
 edge of it before checking the denominator.
 
+## What this session leaves, and who owns each piece
+
+**Nothing here blocks a slice.** Every row is a decision taken and not yet built, which is the normal
+state of this corpus and is why `06`'s pacing rule puts the code track in front. The list exists so that
+*decided* is never mistaken for *done* — [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+is this session's own ADR about exactly that confusion, and three of the five rows below are things a
+future sitting could easily read as already true.
+
+| What | State | Owner |
+|---|---|---|
+| **`TICKS_PER_DAY` and `WHEEL_SIZE` → 2048** ([`0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)) | **decided, not flipped. The code still says 8192.** Goods quantities rescale ×4 and must be a *separate* commit | [`plans/0003`](0003-build-plan.md) hash-moving queue **item 7**, which names the three things to check |
+| **The Commute Budget's three rungs** ([`0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)) | **decided, not built.** `commute_budget_minutes` becomes the ceiling and two keys join it; only the ceiling refuses | 5b-bis or its successor — it is Ruleset content plus one comparison, not a mechanism |
+| **The map at `WorldCells = 512`** ([`0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md), session J, restated by `0095`) | **decided, blocked.** `RoadGenerator` paves the whole map — 525,312 Segments at 512 against 225,000 Lots allocated for 1M | `plans/0002` **ledger #2**, *open map or progressive unlock*, which has carried a recommendation and no decision since session three |
+| **A 2- and 4-thread Lane kernel measurement** ([`0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)) | **owed.** It is the largest unclaimed multiple on the Microscopic Cap's supply side and every published Lane figure is one core | **S5**, and it is a re-run of an existing harness rather than a new spike |
+| **A fallback tier below Microscopic** ([`0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)) | **foreseen and deliberately undesigned** | `adr/0070` — the demand side does not exist, so designing against the shortfall is the void question in its stated form. **Do not design it until 5b-bis task 8 has run** |
+
+**The Microscopic Cap is still unset and both halves are now named.** Supply is S5's threaded
+measurement against the design speed's 62.5 ms; demand is 5b-bis task 8's real stressed-Vehicle count.
+The session's contribution was to fix the **denominator** and to stop the corpus quoting an upper bound
+as though it were a fleet — not to close the ratio.
+
+## What this session did not touch, on purpose
+
+**The governability problem.** *268 km² of individually-placed service Buildings* is a **playtest**
+question under `adr/0043` — you cannot argue your way to whether a city that size is enjoyable to
+administer — and grilling it would have manufactured a mechanism to solve a problem nobody has felt.
+It stays in `01 §4` as written.
+
+**`01 §8`'s open questions.** They are `plans/0002`'s, and a session that answers questions from the
+document it is grilling is a session writing its own marking scheme.
+
 ## Small debt
 
 `adr/0082` and `CONTEXT.md` both cite **`05 §26`**; `docs/05-technical-architecture.md` has eleven

@@ -16,6 +16,26 @@ pointer with just enough shape to orient; the board is the view and the slice pl
 slice plans, and it was the copy that drifted (`plans/0012` *Cause 1*: every document that stores
 per-slice status drifted, and the only large one that did not stores none).
 
+**Session P closed 2026-08-13 — the player model ([`plans/0025`](plans/0025-the-player-model.md)),
+twenty-four decisions and seven ADRs, [`0090`](docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)–[`0096`](docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md).**
+It grilled `01 §1`, `§3` and `§4`, which is **every remaining section of the document nobody had read**
+while `02`–`05`, the ADRs and ~19,600 lines were built on them. The map starts **empty**; `Demolish` is a
+sixth verb and clearing land is **bought rather than taken**; **1× is the design speed**; and two of `01
+§4`'s markers were unsupportable for opposite reasons, giving the Commute Budget **three rungs** and the
+Day **2048 Ticks**. ⚠ **Three of its decisions are decided and not built** — the clock, the rungs and
+`adr/0089`'s map — and the list with owners is `plans/0025` → *What this session leaves*.
+
+**Its sharpest finding is a rule about quotation, and the session produced it by committing the
+error twice on consecutive turns.** ***A caveat attached to a number does not travel with it*** —
+`plans/0012` **Cause 5**, the one failure in this corpus whose two copies **agree to the last digit**.
+`adr/0094` built a 27–58× Microscopic Cap gap on a figure `plans/0013` disclaims **in the cell**; the
+correction then quoted the *caveat* out of its context and was wrong in the other direction. Both are
+withdrawn ([`adr/0096`](docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)),
+and what survives is machinery: **check 6**, a **disqualifier registry** of seven figures that a test
+holds every prose document to, and the rule ***carry the bill, not the percentage*** — a share of a Tick
+budget is a measurement over a **product decision**, and `plans/0013`'s ≥229% / ≥114% / ≥57% / ≥29% are
+one bill of **≥17.8 ms** read four times. The registry caught its own author within the hour.
+
 **5a-bis shipped 2026-08-11 — the Lot subdivider and the road editor
 ([`plans/0022`](plans/0022-the-lot-subdivider-and-build-road.md)), all seven tasks, 1,073 tests green
 and all three golden baselines re-recorded.** Zoning a Tile now zones the **block** it falls in and the
