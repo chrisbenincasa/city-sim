@@ -217,7 +217,16 @@ this one was written down twice and did not hold.***
 **Added 2026-08-13 by session P, on a sighting the session committed itself**, which is why it is here
 rather than in a ledger of other people's mistakes.
 
-***A caveat attached to a number does not travel with it.*** A figure is written down correctly, with a
+*⚠ **Cause 4's fifth sighting, 2026-08-13, and it is the board.** An hour after 5b-bis closed in this
+tree, a sitting answered *what is next* by reading `plans/0000-board.md`'s *the code track holds one row:
+5b-bis* and reported a task that had been committed ninety minutes earlier. `git log` would have settled
+it in one command. **The board is the document in this corpus most likely to be read instead of the
+build**, which is exactly what its own opening calls *a view, never a source* — so `adr/0093` binds
+hardest on the file whose whole purpose is to describe status. The general form, worth holding beside the
+*name a symbol, never a time* rule: ***a status line is a claim about the present tense and nothing in a
+document can keep one true.*** Struck rather than deleted on the board, with the correction beside it.
+
+**A caveat attached to a number does not travel with it.*** A figure is written down correctly, with a
 clause saying what it measures and what it must not be used for. Somebody later needs a number of roughly
 that shape, finds it, and copies **the digits**. The clause stays where it was, still correct, still
 findable, and now doing nothing — and because the two documents agree to the last digit, no comparison
