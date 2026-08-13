@@ -7,7 +7,7 @@ known-consistent"* names a structure
 survives the deletion, and its conclusion is unchanged**: `0037`'s cost argument is a **per-Tick**
 argument, the copy a save needs is paid **once per autosave**, and dividing the one number by the other
 was never done. At one copy per in-world Day the amortised cost is **under a hundredth of a percent of a
-Tick**, against the **50–100% of the budget at 4×** that got the per-Tick copy deleted.
+Tick**, against the **8–15.6 ms a Tick** — 50–100% of a 4× budget — that got the per-Tick copy deleted.
 
 `FAST ITERATION` `HONEST DEGRADATION`
 

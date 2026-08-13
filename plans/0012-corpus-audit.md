@@ -273,6 +273,16 @@ contains for writing a rule down rather than observing it well.
   denominator. This is `adr/0059`'s move again — state the thing that is checkable and let the rest be
   derived — and `adr/0093`'s *name a symbol, never a time* on the numeric axis.
 
+**A percentage of a budget is the special case, and it has its own rule: *carry the bill, not the
+percentage*.** A share is a measurement divided by a **product decision** — which speed rung, which
+clock — so it is two facts glued together and only one of them is about the code. `plans/0013`'s whole
+last row is the demonstration: ≥229%, ≥114%, ≥57% and ≥29% are **≥17.8 ms** over four candidate budgets,
+and reading them as four results is reading one measurement four times. **The failure mode is specific
+and it has happened**: `861.87%` survived `adr/0096` repricing its denominator *and* `adr/0094`
+multiplying its numerator, to within 0.4%, because the two moved in opposite directions — invisible as a
+percentage, obvious as **134.135 ms**. ***A percentage hides which side moved.*** Swept through the
+corpus on 2026-08-13; every budget share now states its milliseconds first.
+
 **And a number that is one half of a ratio should say which half.** Every sighting of this cause so far
 is a figure being used as the other side of a comparison it was never a side of. The Microscopic Cap has
 carried the correct warning about this since `adr/0062` — *it is a ratio and S5 supplies one half of it*

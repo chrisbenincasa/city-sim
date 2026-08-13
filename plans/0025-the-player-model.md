@@ -367,6 +367,17 @@ factor without the other would go unnoticed*** — and then it happened to the r
 ***Carry the bill, not the percentage***: 134.135 ms is a measurement and 861.87% is a measurement
 divided by a product decision.
 
+**The rule that came out of it was then swept through the corpus.** ***Carry the bill, not the
+percentage.*** A share of a Tick budget is a measurement divided by a **product decision** — which speed
+rung, which clock — so it is two facts glued together and only one is about the code. `plans/0013`'s
+last row is the cleanest demonstration: **≥229%, ≥114%, ≥57% and ≥29% are one bill of ≥17.8 ms** read
+against four candidate budgets, and the four-column table that looks like a sensitivity analysis is a
+single measurement divided four ways. Nine sites now state milliseconds first — the ledger's sum and
+routing row, `01 §1`, `adr/0094`, `adr/0087`, `05 §7`, `02 §4.1`, `plans/0011`, the board and this
+file's cold-start summary. **Most sites already did it**, which is the useful half of the finding: the
+defect concentrated in exactly the sentences that were *summarising*, which is where `adr/0093` and
+Cause 5 both say to look.
+
 **Two smaller notes on the same episode.** The user's *"the new number is clearly untenable"* was the
 correct reading of what I had written and the wrong reading of the world, which is what an unqualified
 number does — it recruits the reader into acting on it. And the repair produced a decision that was worth

@@ -293,17 +293,35 @@ multiplicand**, which is why that column sits next to it rather than in a footno
 | **Commit** | 7 | **unbuilt** | — | — | — | — | — |
 | | | | | **≥229%** | **≥114%** | **≥57%** | **≥29%** |
 
+> **⚠ The last row is one number, not four — carry the bill, not the percentage.** ≥229%, ≥114%, ≥57%
+> and ≥29% are **≥17.8 ms** divided by four different budgets. Nothing about the simulation changes
+> across that row; what changes is a speed rung, which is a product decision. **Every percentage in this
+> file is a measurement over a decision, and only the measurement is a fact about the code.**
+>
+> This is not a stylistic preference. On 2026-08-13 the corpus's largest figure —
+> [`adr/0061`](../docs/adr/0061-a-diversion-rejoins-by-local-descent-and-a-rejoin-is-never-a-search.md)'s
+> **861.87%** — survived two independent changes to its own denominator to within 0.4%, because they
+> happened to move in opposite directions, and **nothing could see it** while the number was carried as a
+> percentage. Held as **134.135 ms** the same two changes are visible immediately: one of them multiplies
+> the bill and the other does not touch it. *A percentage hides which side moved.*
+>
+> So: **state the milliseconds first and let the share follow.** Where a row below gives only a share,
+> that is a defect in this file, not a shorthand.
+
 **Read the last row across, not down.** The headline is not *we are over budget*; it is that **the
 simulation as priced fits at 2× and does not fit at 4×** — and the difference between those is a
-product decision nobody has made, not an engineering problem anybody has to solve.
+product decision nobody has made, not an engineering problem anybody has to solve. **Stated as a bill it
+is one sentence: the simulation as priced costs ≥17.8 ms a Tick, and a 4× rung gives it 15.6.**
 
-**⚠ The row carrying most of that sum is the weakest one in the table.** At 4×, routing is **60–67
-points of the ≥114** — more than every other priced consumer put together, and without it the ledger
-reads **42–48%**, which fits at 4× with room. So the headline *fits at 2×, does not fit at 4×* **is a
+**⚠ The row carrying most of that sum is the weakest one in the table.** Routing is **9.4–10.5 ms of the
+≥17.8** — more than every other priced consumer put together, and without it the ledger reads **7.3–8.4
+ms**, which fits a 4× rung with room. *(Those are the same figures the 4× column states as 60–67 points
+of ≥114; the millisecond form is the one that survives a change of rung, and the routing row's own unit
+**is** its share of a 4× budget, which is how the two came to look like different facts.)* So the headline *fits at 2×, does not fit at 4×* **is a
 statement about routing and almost nothing else.** Its unit is measured, is a **maximum** rather than
 a mean, and spans 9.37–10.51 ms across five pinned captures; its **multiplicand counts the wrong
 event** — R6.3 found that under static Habit a Trip start is a lookup and the expensive event is a
-**diversion**, priced at 861.87% of the budget on its own. **So the one correction with a known
+**diversion**, priced at **134.135 ms** on its own — 861.87% of a 4× budget. **So the one correction with a known
 direction points sharply up.** This document has priced everything except the row that decides the
 answer.
 
@@ -324,7 +342,7 @@ answer.
 > divided by a product decision. `plans/0012` **Cause 5**, and the disqualifier registered for this
 > figure is its **denominator**.
 
-**The sum fell from ≥140% to ≥114% at 4×, and that is not good news.** It moved because the Bin Rule
+**The sum fell from ≥21.8 ms to ≥17.8 ms — ≥140% to ≥114% at 4× — and that is not good news.** It moved because the Bin Rule
 row stopped being a guess, and the correction happened to point down; the *unit* underneath it moved
 **up** by 2.8× at the same time. What the fall actually measures is how much slack there was in a
 figure everybody quoted. **At 114% the conclusion is now marginal rather than comfortable** — a single

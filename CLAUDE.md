@@ -236,9 +236,11 @@ nothing in the Tick calling it — Phase 4 is still `_ = tick`. That is 5b task 
 
 **The three numbers to hold in your head.** S0b measured a Tick *with work in it* at **8.72 ms at 1M —
 55.9% of the budget at 4×**, and that is the only Tick figure ever taken from a real running city.
-[`plans/0013`](plans/0013-tick-budget.md) sums the ledger to **≥114% at 4×**, of which **60–67 points
-are routing** — a row whose unit came off a synthetic harness and whose multiplicand R6.3 found counts
-**the wrong event**. And the correction with a known direction points *up*: a diverting Traveller
+[`plans/0013`](plans/0013-tick-budget.md) sums the ledger to **≥17.8 ms a Tick**, of which **9.4–10.5 ms
+is routing** — a row whose unit came off a synthetic harness and whose multiplicand R6.3 found counts
+**the wrong event**. ⚠ ***Carry the bill, not the percentage***: ≥17.8 ms is a fact about the code, and
+≥114% at 4× / ≥57% at 2× / ≥29% at 1× are that one fact over a product decision. A percentage hides
+which side moved, which is how the figure below survived two changes to its own denominator. And the correction with a known direction points *up*: a diverting Traveller
 re-searching costs **861.87% of the 15.6 ms budget at 4×** at target scale — a bill of **134.135 ms**,
 and carry the bill rather than the percentage, because `adr/0096` and `adr/0094` have since moved both
 terms in opposite directions and it is now **right by cancellation** — which is a design question
@@ -370,8 +372,8 @@ and a peak over the interval and the reading drains it. Measured: **82.84 ns an 
 **53.6 ns**, two-thirds of the head that failed, which is the first evidence behind `02 §4`'s claim
 that depth is not the cost driver — and it retires session B's withdrawn depth cap by pointing the
 other way. **The uncomfortable half**: against `0002`'s own unratified 450 Rule Instances per 1,000
-Citizens and `02 §4.3`'s rate of 8, a 1M city spends **~67% of a 15.6 ms Tick on the Rule engine
-alone** — a whole-Tick figure that supersedes an earlier Phase-2-only estimate of 60%, and still a
+Citizens and `02 §4.3`'s rate of 8, a 1M city spends **~10.5 ms a Tick on the Rule engine alone — ~67%
+of a 15.6 ms budget** — a whole-Tick figure that supersedes an earlier Phase-2-only estimate of 60%, and still a
 floor. Filed to `0002` as **S0b's**, and summed with every other priced consumer in
 `plans/0013-tick-budget.md`, **which prices the same rows against 1×, 2×, 4× and 8× — because the
 speed multiplier is a product decision nobody has argued, and the whole simulation as priced fits at
@@ -559,7 +561,11 @@ habit of quoting across documents is what makes it worse. Two halves, and the wr
 **reading** — quote the *sentence*, never the digits, and a number arriving with no clause saying what it
 measures is a coincidence of magnitude rather than evidence; **writing** — **name a number after what it
 measures, not after where it sits**, because *"186,624"* travels freely and *"R2's fixture fleet"* cannot
-be silently made a denominator. And **a number that is one half of a ratio says which half**: every
+be silently made a denominator. **A percentage of a budget is the special case: *carry the bill, not the percentage*** — a share is a
+measurement over a **product decision** (which speed rung, which clock), so `plans/0013`'s ≥229% / ≥114%
+/ ≥57% / ≥29% are one bill of **≥17.8 ms** read four times, and `861.87%` survived two independent
+changes to its own denominator to within 0.4% because a percentage hides which side moved. State the
+milliseconds first and let the share follow. And **a number that is one half of a ratio says which half**: every
 sighting so far is a figure used as the other side of a comparison it was never a side of. Why it exists:
 `adr/0094` built a 27–58× Microscopic Cap gap on `plans/0013`'s 186,624, which that table labels *not a
 stressed count* **in the cell** and warns about **in the paragraph beneath** — quoted a day after the

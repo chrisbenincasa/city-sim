@@ -850,8 +850,8 @@ knows it.
 **32. The tripwire's own arithmetic is more alarming than the tripwire, and the alarming half rests
 on a number nobody ratified.** 188,000 evaluations per Tick sounds generous until it meets the
 corpus's **450 Rule Instances per 1,000 Citizens** (finding 5) and `02 §4.3`'s own bakery rate of 8:
-1M Citizens is 450,000 instances, 56,250 due per Tick, **112,500 evaluations, ~60% of the budget
-before a Bin is written.** Below a mean rate of about **4.8 Ticks** there is no budget left at all.
+1M Citizens is 450,000 instances, 56,250 due per Tick, **112,500 evaluations — 9.3 ms, or ~60% of a
+15.6 ms budget, before a Bin is written.** Below a mean rate of about **4.8 Ticks** there is no budget left at all.
 
 **It is a floor, not an estimate, and each reason it is a floor is worse than the last.** Phase 3 is
 unmeasured and **sorts** its intents, so it carries an `O(n log n)` term over the same due set. The

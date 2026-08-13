@@ -65,7 +65,8 @@ exceeds it. It should be read against the **design** speed, where the same work 
 Tick — so an over-budget figure at 4× is a statement about which speedups a city of that size offers,
 which is `HONEST DEGRADATION`, and not a statement that the game does not run. ⚠ **`adr/0094` moves the
 routing row ×4** — route searches fire per Trip, Trips are daily, and Days now arrive four times faster —
-which takes the ledger to roughly **305% at 4× and 76% at 1×**. The conclusion survives and the margin
+which takes the ledger to roughly **47.6 ms a Tick** — 305% of a 4× budget and 76% of a 1× one, which
+are one bill and two rungs. The conclusion survives and the margin
 does not: the simulation as priced now fits at 1× and not at 2×, on a row whose multiplicand R6.3 found
 counts the wrong event.
 

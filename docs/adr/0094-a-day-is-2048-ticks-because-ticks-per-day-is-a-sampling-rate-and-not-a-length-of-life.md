@@ -129,9 +129,10 @@ not. **This is the only rescaling in the change**, and it is a Ruleset edit rath
 ### The costs, in full, and two of them are large
 
 **Routing costs 4× per real second.** A route search fires per Trip, Trips are per-Day, and Days arrive
-four times faster. [`plans/0013`](../plans/0013-tick-budget.md) sums to ≥114% of a 15.6 ms budget with
-60–67 of those points routing; holding everything else flat, the ledger reads **~305% at 4× and ~76% at
-1×**. The simulation as priced still fits where the game is designed to be played and no longer fits at
+four times faster. [`plans/0013`](../plans/0013-tick-budget.md) sums to **≥17.8 ms** — ≥114% of a
+15.6 ms budget — with **9.4–10.5 ms** of it routing; holding everything else flat, the ledger becomes
+**~47.6 ms**, which is **~305% at 4× and ~76% at 1×**. ⚠ *Those are one bill and two rungs, not two
+results: **carry the bill, not the percentage** (`plans/0013`).* The simulation as priced still fits where the game is designed to be played and no longer fits at
 2×. That row is the ledger's weakest — R6.3 found its multiplicand counts the wrong event and R7 found
 its unit is a maximum with a 9.4–10.5 ms spread — but ×4 on the largest uncertain row is not nothing, and
 it is recorded here rather than discovered later.
