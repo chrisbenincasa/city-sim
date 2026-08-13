@@ -62,10 +62,16 @@ and closes that section with the warning the ratio then walked into:
 It happened, in [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md),
 one day after that paragraph was last read. **The Cap counts Vehicles in *stressed* Segments and 186,624
 is a whole fleet**, so the two quantities are not comparable at all and the ratio was never a ratio.
-***A caveat attached to a number does not travel with it***, and this corpus has now seen the failure
-in both directions on consecutive days — `adr/0089`'s *Buildable for 1M* column was a correct number
-under a heading that invited the wrong reading, and this is a correct number under a caveat nobody
-carried.
+
+***A caveat attached to a number does not travel with it.*** This is now
+[`plans/0012`](../../plans/0012-corpus-audit.md) **Cause 5**, filed on this sighting: a figure is quoted
+correctly, its qualifying clause is left where it was, and **the two documents agree to the last digit**,
+so no comparison between them can see anything wrong. It is Cause 4's sibling with the polarity reversed —
+there the source sentence is wrong, here it is right and was abandoned — and its tell is *worse* than
+nothing, because a bare figure accumulates apparent authority every time it is repeated. The corpus had
+coined the lesson twice already, in `plans/0002` (*an unratified number is more dangerous than an open
+question*) and in the paragraph above, and left it as commentary both times. ***An aside is not a rule***,
+now evidenced on two separate causes.
 
 ### And the comparison held the budget fixed while the clock moved
 

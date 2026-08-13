@@ -298,9 +298,18 @@ one core, identical to what the old clock produced at its own top rung**.
 ***A caveat attached to a number does not travel with it.*** The annotation was correct, in the right
 place, and had been read hours earlier; what crossed into the ADR was the digits. This is not
 `plans/0012`'s Cause 1 — nothing drifted, the two copies never disagreed — and it is not Cause 4, since
-no description of the build was involved. **It is a third thing: a number quoted away from the sentence
-that qualifies it**, and the corpus is structurally worse at catching it than at catching the others,
-because a figure repeated verbatim looks *more* reliable each time it appears.
+no description of the build was involved. **It is a fifth thing and it is now `plans/0012` Cause 5**: a
+number quoted away from the sentence that qualifies it, whose tell is *worse* than nothing, because a
+figure repeated verbatim accumulates apparent authority each time it appears.
+
+**Cause 5 is Cause 4's sibling with the polarity reversed** — there the source sentence is wrong, here it
+is right and was left behind — and the two have the **same ending**: both were coined in the corpus as
+commentary, twice each, and left non-binding, and both then happened to a sitting that had just read the
+coining. `plans/0002`'s *an unratified number is more dangerous than an open question* and `plans/0013`'s
+*a number becoming a decision by being the only number in the room* are this cause, written down and not
+made a rule. ***An aside is not a rule*** is now evidenced on two causes rather than one. Unlike Cause 4
+it **is** mechanically checkable, because both ends of a travelling number are documents, and `plans/0012`
+gains **check 6** on the back of it.
 
 **Two smaller notes on the same episode.** The user's *"the new number is clearly untenable"* was the
 correct reading of what I had written and the wrong reading of the world, which is what an unqualified

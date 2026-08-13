@@ -23,7 +23,7 @@ enumerates lives in the binary*.
 
 ---
 
-## The diagnosis, which is two things and not one — **and a third and a fourth were added later**
+## The diagnosis, which is two things and not one — **and a third, a fourth and a fifth were added later**
 
 The sweep expected one failure mode and found two. They want different answers, and conflating them
 is why *"tidy the documents"* has never worked as an instruction.
@@ -37,8 +37,13 @@ its disagreement is not between two documents at all. It is between a document a
 nothing in this corpus checks that — `CitationTests` checks links resolve, `CoverageMapTests` checks rows
 exist, `MarkdownStyleTests` checks markdown renders, and **all three are document-to-document**.
 
-Read the four together and they are ordered by how hard they are to catch, which is the opposite of the
-order they were found in:
+**Cause 5 was added on 2026-08-13 and it is the one the sweep was best placed to find and least likely
+to**, because its two copies **agree perfectly**. A figure is quoted correctly and its qualifying clause
+is left behind, so the defect is not in either document — it is in the gap between them, and every
+occurrence of the digits is identical.
+
+Read the five together and they are ordered by how hard they are to catch, which is roughly the opposite
+of the order they were found in:
 
 | | What went wrong | The tell | Repair |
 |---|---|---|---|
@@ -46,6 +51,13 @@ order they were found in:
 | **2** | a write that did not land | a decision with no inbound citation | sweep for citations when a decision ships |
 | **3** | a read never repeated — true when written, and the world moved | an item that names its gate | check the other way: when a gate clears, sweep for who cites it |
 | **4** | **the text was never true** — it describes a mechanism and was wrong on the day | **nothing** | open the mechanism; write names rather than times |
+| **5** | a **number** is quoted away from the sentence that qualifies it | **worse than nothing** — repetition makes a bare figure read as *more* settled | name the number after what it measures; quote the sentence, never the digits |
+
+**Causes 4 and 5 are siblings and the difference is worth holding.** Both are about a decision taken from
+something that looked like established fact. Cause 4's source sentence is **wrong**; Cause 5's source
+sentence is **right and was left behind**. That makes 4 uncheckable by this corpus and 5 checkable by
+machinery it already has, since both ends of a travelling number are in documents — which is why 5 sits
+at the bottom of the table and has the cheapest available fix.
 
 ### Cause 1 — status is stored in three places that disagree
 
@@ -199,6 +211,61 @@ applying it* and `adr/0079`'s *citing a mechanism is not checking what it is key
 explicitly as the first's sibling. Two ADRs reached for the same sentence independently, neither made it
 binding, and the failure recurred twice afterwards. ***An aside is not a rule, and the evidence is that
 this one was written down twice and did not hold.***
+
+### Cause 5 — a number is quoted away from the sentence that qualifies it
+
+**Added 2026-08-13 by session P, on a sighting the session committed itself**, which is why it is here
+rather than in a ledger of other people's mistakes.
+
+***A caveat attached to a number does not travel with it.*** A figure is written down correctly, with a
+clause saying what it measures and what it must not be used for. Somebody later needs a number of roughly
+that shape, finds it, and copies **the digits**. The clause stays where it was, still correct, still
+findable, and now doing nothing — and because the two documents agree to the last digit, no comparison
+between them can see anything wrong.
+
+| | The number | The qualifier it left behind | What was then done with it |
+|---|---|---|---|
+| **`adr/0094`**, 2026-08-13 | **186,624** | `plans/0013`'s table cell: *"S2 R2's fixture, **not a stressed count**"*, and the paragraph beneath: *"no row in this table claims a share for it"* | used as the **denominator** of the Microscopic Cap's ratio, producing a 27–58× gap. The Cap counts Vehicles in **stressed Segments**; 186,624 is a whole synthetic fleet. Withdrawn by [`adr/0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md) |
+| **the developed density**, ongoing | **3,700 / km²** | *none — the qualifier was never written* | cited as an **independent check** that the map may grow, when it is 1,000,000 ÷ 268 km² and therefore the old map restated. See *The developed density every map decision is priced against is circular* below |
+
+**The first is the pure form and the second is the degenerate one.** In the first the qualifier existed,
+was correct, was in the right place, and had been read **hours earlier by the same sitting**. In the
+second no qualifier was ever written, so there was nothing to leave behind — which is worth keeping in
+the same section because the *effect on a reader is identical*: a bare figure quoted as evidence, with no
+way to tell from the quotation whether it can bear the weight.
+
+**The tell is worse than nothing, and that is what distinguishes this from Cause 4.** Cause 4's tell is
+*nothing* — a wrong sentence looks like a right one. Cause 5's tell is **negative**: each time a figure is
+repeated it accumulates apparent authority, so the corpus's own habit of quoting numbers across documents
+is the mechanism that makes the defect worse. `plans/0002` says this in as many words —
+***an unratified number is more dangerous than an open question; it arrives as an illustration and is
+repeated until it reads as settled*** — and `plans/0013` says it again in the very paragraph the 186,624
+was taken from: *"a number becoming a decision by being the only number in the room is a habit this corpus
+has already recorded, and **this table is where it would happen**."*
+
+**So this is Cause 4's ending repeated exactly**: coined twice, left as commentary both times, and it then
+happened — in an ADR written by the sitting that had just read the second coining. ***An aside is not a
+rule*** is now evidenced twice over, on two different causes, which is the strongest argument this ledger
+contains for writing a rule down rather than observing it well.
+
+**The repair has two halves and the writing half is the one that compounds**, on `adr/0093`'s pattern:
+
+- **Reading**: quote the **sentence**, never the digits. If a number arrives in a decision without a
+  clause saying what it measures and where it came from, it is not yet evidence — it is a coincidence of
+  magnitude.
+- **Writing**: **name a number after what it measures, not after where it sits.** *"186,624"* is a bare
+  integer and travels freely; *"R2's fixture fleet"* carries its own scope and cannot be silently made a
+  denominator. This is `adr/0059`'s move again — state the thing that is checkable and let the rest be
+  derived — and `adr/0093`'s *name a symbol, never a time* on the numeric axis.
+
+**And a number that is one half of a ratio should say which half.** Every sighting of this cause so far
+is a figure being used as the other side of a comparison it was never a side of. The Microscopic Cap has
+carried the correct warning about this since `adr/0062` — *it is a ratio and S5 supplies one half of it*
+— and the failure still happened, because the warning lives with the **Cap** and the number that got
+borrowed lives in a benchmark table.
+
+**Unlike Cause 4, this one is mechanically checkable**, and cheaply, because both ends are documents.
+See check 6 in *What the mechanical check should be*.
 
 ---
 
@@ -983,10 +1050,12 @@ So the figure survives; what has to stop is quoting it as evidence.
 - [ ] **`CLAUDE.md`'s Map row** — *"1M and the 3,700/km² density are unchanged"* reads as two independent
   facts holding and is one fact stated twice.
 
-⚠ **This is `plans/0012` *Cause 1* in its purest form and the copies do not disagree** — they cannot,
-because one is arithmetic on the other. **The tell that usually finds Cause 1 is absent by construction
-here**, which is why it took a third document (the two build-derived figures) to notice, and it is worth
-holding: *a derived copy that can never drift is the one no drift check will ever surface.*
+⚠ **This is *Cause 5*, in the form where the qualifier was never written at all** — see the second row of
+that section's table. It reads like *Cause 1* and is not: the copies cannot disagree, because one is
+arithmetic on the other, so **the tell that usually finds Cause 1 is absent by construction** and it took
+a third document (the two build-derived figures) to notice. *A derived copy that can never drift is the
+one no drift check will ever surface* — and the reason it did damage is Cause 5's: the figure travelled
+into three decisions as **evidence**, with nothing in the quotation to say it could not bear that.
 
 ### Not a defect — recorded so it is not re-raised
 
@@ -1100,7 +1169,29 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    all — *zero is a value; undefined is not* — so what the check asserts is that the gap is **declared**,
    not that it is closed.
 
+6. **A distinctive figure appearing in more than one document carries the same qualifying clause in
+   each.** Cause 5's check, added 2026-08-13, and it is **the cheapest of the six and the only one whose
+   defect is invisible to every other check here**, because the two copies of a travelling number agree
+   to the last digit.
+
+   **What makes it tractable is that the interesting figures are near-unique.** A four-or-more
+   significant-digit number — `186,624`, `532,750`, `29.3 ns`, `8.72 ms` — occurring in two files is
+   almost never a coincidence, so the candidate set is small enough to enumerate and eyeball. The
+   minimum useful version does not need to understand the clause at all: **flag every distinctive figure
+   that appears in more than one document and report where**, and let a human read the two sentences
+   side by side. That would have fired on 186,624 the moment `adr/0094` was written.
+
+   **Two design notes.** It must **not** demand that the clauses match textually — a number legitimately
+   means the same thing in two different sentences, and a string comparison would produce noise until
+   it was switched off, which is worse than not having it. And it should carry an **allow-list of
+   figures known to be shared**, because `TICKS_PER_DAY`, the Tick budget and the target population are
+   quoted everywhere on purpose; the list being short and hand-maintained is acceptable here in a way
+   check 5 showed it is not for a directory index, because these figures change once a year and a
+   directory changes weekly.
+
 Neither is a substitute for the restructure. A check over three tables that disagree only tells you
-they disagree; the point of thinning is that there is one place to be right. **Check 4 is the exception
-to that sentence** — thinning cannot help it, because its documents do not disagree with each other.
-They agree, and they are all stale against a third thing neither of them stores.
+they disagree; the point of thinning is that there is one place to be right. **Checks 4 and 6 are the
+exceptions to that sentence**, for opposite reasons — thinning cannot help check 4, because its
+documents do not disagree with each other but are all stale against a third thing neither stores; and it
+cannot help check 6 either, because there the documents are both *correct* and the defect is in what one
+of them declined to copy.

@@ -547,6 +547,24 @@ checked without already knowing the answer; *"when `SyntheticCity` runs"* is one
 catch the failure any other way — its three mechanical checks are all document-to-document.
 `plans/0012` **Cause 4**.
 
+**A caveat attached to a number does not travel with it** (`plans/0012` **Cause 5**). Not an inference
+sibling and not a rule about reasoning — a rule about **quotation**, and the one failure in this corpus
+whose two copies **agree to the last digit**. A figure is written down correctly with a clause saying what
+it measures and what it must not be used for; somebody later needs a number of that shape, finds it, and
+copies the **digits**. The clause stays where it was, still correct, doing nothing. **The tell is worse
+than nothing**: a bare figure accumulates apparent authority every time it is repeated, so the corpus's
+habit of quoting across documents is what makes it worse. Two halves, and the writing one compounds:
+**reading** — quote the *sentence*, never the digits, and a number arriving with no clause saying what it
+measures is a coincidence of magnitude rather than evidence; **writing** — **name a number after what it
+measures, not after where it sits**, because *"186,624"* travels freely and *"R2's fixture fleet"* cannot
+be silently made a denominator. And **a number that is one half of a ratio says which half**: every
+sighting so far is a figure used as the other side of a comparison it was never a side of. Why it exists:
+`adr/0094` built a 27–58× Microscopic Cap gap on `plans/0013`'s 186,624, which that table labels *not a
+stressed count* **in the cell** and warns about **in the paragraph beneath** — quoted a day after the
+paragraph was read, and withdrawn by `adr/0096`. The lesson had already been coined twice as commentary
+(`plans/0002`'s *an unratified number is more dangerous than an open question*), which is `adr/0093`'s
+***an aside is not a rule*** arriving on a second cause.
+
 **A local workaround is not a discharge** (`adr/0073`). Not an inference sibling — `0043`, `0052`, `0070`
 and `0093` govern what a sitting may *conclude*, and this governs what a spike must *do with what it
 already found*, which puts it beside `adr/0042`. **When a spike measures something and the cause lies in
