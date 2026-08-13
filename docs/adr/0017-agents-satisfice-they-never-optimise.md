@@ -42,7 +42,33 @@ It also reinforces the `UNIQUE INDIVIDUALS` commitment in [`0005`](0005-two-fide
 - **Switching must be reportable.** A Household that changed shops recorded why — the old one was starved of Goods, the commute grew — because that chain is what an inspector shows when the player asks why a Business is failing.
 
 - **A rule this ADR owes and does not yet state: a failed Trip must demote the option that produced
-  it.** [`adr/0047`](0047-routing-never-keys-on-the-district.md) names the defect precisely — this ADR
+  it.**
+  > ⚠ **NARROWED 2026-08-13 by [`adr/0097`](0097-a-reach-failure-is-counted-on-the-citizen-and-a-stock-failure-is-not-remembered-at-all.md),
+  > and half of it had been discharged since 2026-08-10 without this note knowing.** **The sentence
+  > below covers two different failures.** An option can fail because it is **full** — the shelf is
+  > empty, the post is taken — or because it is **unreachable**, which is the entry-error case
+  > `adr/0047` was actually writing about.
+  > **[`adr/0067`](0067-a-shopping-attempt-is-a-trip-and-a-household-tries-one-provider-per-occasion.md)
+  > settled the stock half three days after the debt was filed**: a consecutive-failed-occasions count
+  > plus a cursor that advances on failure and resets on success, skipping a provider for exactly one
+  > occasion — *"a duration derived from the mechanism rather than chosen"*. **The tell that this note
+  > always meant the other half is its own candidate list**, which offers a demotion, a cooldown and
+  > Habit's weight, and **not a cursor**.
+  > **The reachability half is now `adr/0097`** for the **job** case, where a Citizen's candidate is
+  > refused by the Commute Budget after a real walk search: it is **counted on the Citizen**, resets on
+  > employment, drives nothing yet, and its consumer is milestone 9a's Departure. **For the *provider*
+  > case this note describes, the question is void as posed** under
+  > [`adr/0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) — the Provider List is unbuilt
+  > with no milestone, `Scope.Pool` is a named hole that throws, no Ruleset declares a shop, and the
+  > matrix is 5c's — so what survives here is **the reachability half of the provider case, and nothing
+  > else**. ⚠ **And `adr/0047`'s loop is not reachable in the build**: the job pass draws candidates on a
+  > key containing the **Tick**, so every occasion looks at different Buildings. The loop needs
+  > *deterministic* re-evaluation, which is 5c; what is live today is the same defect as a **recurring
+  > search bill** rather than as a loop.
+  > *Original note follows, unchanged, because it is the record of a debt that was filed correctly and
+  > read as one thing for three days.*
+
+  [`adr/0047`](0047-routing-never-keys-on-the-district.md) names the defect precisely — this ADR
   re-evaluates *"immediately on a failed Trip"* against the same information, which still says the
   same wrong thing, so a Household can choose, fail, re-evaluate and **choose the same unreachable
   option for ever**. At S2's worst-case entry error of 77.62 Ticks that is a different Trip, not an

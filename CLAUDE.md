@@ -568,8 +568,14 @@ that *the Zone Rule condemns in its own time*, which `Condemn` never does; `adr/
 saying `RoadGenerator` lays *"at world creation"*, when its one production call site is `SyntheticCity`.
 **The writing half is what compounds: name a symbol, never a time.** *"At world creation"* cannot be
 checked without already knowing the answer; *"when `SyntheticCity` runs"* is one grep. This corpus cannot
-catch the failure any other way — its three mechanical checks are all document-to-document.
-`plans/0012` **Cause 4**.
+catch the failure any other way — its ~~three~~ **five** mechanical checks are all document-to-document.
+`plans/0012` **Cause 4**. ⚠ **And `adr/0093` committed its own defect in the sentence that listed them**,
+found 2026-08-13: it said `CitationTests` *"checks that links resolve"*, which it does not — it regex-matches
+`adr/\d{4}` and **never opens a target**, so a link to a file that did not exist passed every check there
+was. Amended there, and the repair is `plans/0012` **check 8** (`LinkResolutionTests`, green at 2,292 links).
+***A false description of a guard is worse than no guard, because it is the reason nobody builds the real
+one*** — and *a count of the instruments is itself a fact stored in prose*, so name each check by what it
+**opens**, never by what it is called.
 
 **A caveat attached to a number does not travel with it** (`plans/0012` **Cause 5**). Not an inference
 sibling and not a rule about reasoning — a rule about **quotation**, and the one failure in this corpus

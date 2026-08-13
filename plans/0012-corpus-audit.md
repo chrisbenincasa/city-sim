@@ -96,6 +96,26 @@ should be the input to that sweep, not a substitute for it.** Filed as a candida
 9**: an ADR naming a ledger entry by number, against a ledger entry not struck. Both ends are documents,
 which is the property that makes it checkable at all.
 
+#### ✅ Check 8 — link resolution. **BUILT 2026-08-13**, `tests/Borough.Tests/Corpus/LinkResolutionTests.cs`
+
+**Green on the day it was written, at 2,292 links across `docs/`, `plans/` and the three root files, and
+verified in both directions** — a deliberately dead link makes it red, removing it makes it green again,
+which is the corpus's own *write the violation and watch it fire* rule applied to a check rather than to
+an analyser. It ships with a companion `[Fact]` that exercises the extractor on synthetic text, because a
+file-scanning assertion cannot demonstrate its own failure without committing a broken document; that
+companion also pins the three exclusions (an absolute URL, a bare anchor, a link inside a fence) so that a
+later widening cannot silently turn them into failures.
+
+**Two design notes worth keeping.** The worktree exclusion is **structural, not a predicate**: the check
+enumerates `docs/` and `plans/` from the repository root, so a stale corpus under `.claude/worktrees/` is
+*unreachable* rather than *skipped* and cannot be re-admitted by somebody relaxing a filter — which is the
+exact failure mode `CitationTests`' two false-green revisions had. And **the anchor is deliberately not
+checked**: `#a-heading` is a much weaker claim than a file existing, its slugification is renderer-specific,
+and folding them together would make a strong check fail for a weak reason.
+
+*The section below is the original proposal and the measurement behind it, kept because the measurement is
+the argument.*
+
 #### ⚠ Check 8 is a different and much cheaper one, and the sitting found it by committing the defect
 
 **Nothing in this corpus checks that a relative link resolves.** The four checks that exist are

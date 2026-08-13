@@ -118,6 +118,23 @@ the arming stagger, `adr/0059`'s deletion and `adr/0063`'s.
 
 ## Consequences
 
+⚠ **AMENDED 2026-08-13 by [`adr/0097`](0097-a-reach-failure-is-counted-on-the-citizen-and-a-stock-failure-is-not-remembered-at-all.md):
+the cursor covers an *empty* shelf and not an *unreachable* one, and this ADR discharged half a debt it
+never knew it was discharging.** [`adr/0047`](0047-routing-never-keys-on-the-district.md) had filed *a
+failed Trip must demote the option that produced it* three days before this decision was taken, and
+[`adr/0017`](0017-agents-satisfice-they-never-optimise.md) recorded it as owed. **The cursor answers it
+for the failure this ADR is about** — the shelf is empty — **and cannot answer it for the failure
+`adr/0047` meant**, which is an option the Road Graph cannot deliver inside the Commute Budget.
+
+**The asymmetry is why, and it is one sentence: a shelf refills on its own and a road does not move on
+its own.** *Skipped for exactly one occasion* is derived from a stock level that recovers without
+anybody acting, so applying it to a reachability failure would skip an option for one occasion and then
+re-pay a full search to be told the same thing by a graph that has not changed. **`adr/0097` therefore
+counts rather than skips**, and its memory is invalidated by a road edit rather than by an occasion.
+
+*Nothing in this ADR moves.* What is added is the boundary: **a cursor is the right answer to a failure
+that heals with time, and the wrong one to a failure that does not.**
+
 **`04 §6` is owed a correction on steps 4 and 5**, filed to [`0012`](../../plans/0012-corpus-audit.md):
 step 4 must say it is a Trip, and step 5 must say *at the next occasion* rather than reading as a
 sequence within one. The document owns the chain and this ADR owns the mechanism, per `adr/0042`.

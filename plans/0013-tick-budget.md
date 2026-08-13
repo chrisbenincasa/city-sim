@@ -110,6 +110,34 @@ most looks land on somebody who already works and cost one handle resolve. **A p
 as the city settles is the opposite of the collections `adr/0006` watches for**, and it means the
 number to design against is the transient rather than the trend.
 
+> ⚠ **AMENDED 2026-08-13 — the paragraph above is right about the peak and wrong about the floor, and
+> the run that refutes it had already been taken.** *"Falls as the city settles"* implies it falls
+> **toward zero**. It does not: 5b-bis task 8's 100,000-Tick run reports `jobs beyond budget` **never
+> reaching zero**, with **4,561 of 10,000 employed against 9,608 posts declared** — so ~5,400 Citizens
+> are excluded by **distance rather than supply** and remain seekers permanently. Every one of them
+> re-runs up to `candidates` walk searches every time the sample draws them, for ever.
+>
+> **So the pass has a standing cost proportional to the *permanently excluded* population, not merely a
+> transient one**, and that floor is invisible in the wall-clock deltas above because they were taken at
+> 2,000 and 20,000 Ticks — *before the exclusion had separated itself from the cold start.* The two
+> measurements do not disagree; the second one simply runs long enough to show a term the first could
+> not. ***A cost that decays and a cost that decays to a floor are different rows***, and only the
+> second needs designing against.
+>
+> **What it is a floor of is a design question, not a tuning one**, which is why this is an amendment
+> rather than a re-measurement: the excluded population is set by the Commute Budget against the map,
+> and [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)
+> has since made the Budget **three rungs** with only the ceiling refusing — which moves this floor and
+> has not been re-measured at any rung. [`adr/0097`](../docs/adr/0097-a-reach-failure-is-counted-on-the-citizen-and-a-stock-failure-is-not-remembered-at-all.md)
+> is what makes the floor **countable**: it puts the reach failure on the Citizen, so the excluded
+> population stops being an aggregate nobody can name. **It does not reduce the bill** — a count is a
+> memory and nothing reads it — and the repair that *would* cut the work is that ADR's rejected
+> Epoch-stamped option, which becomes correct when 5c makes the choice deterministic.
+>
+> ⚠ **Owed: re-take the wall-clock delta at ≥100,000 Ticks**, at each of `adr/0095`'s three rungs. The
+> refuting number is a steady-state per-pass cost that does **not** flatten — which would mean the floor
+> is still growing and the exclusion is not an equilibrium at all.
+
 **Three things would move it, in descending order of how much.** The **Commute Budget** — the box is
 its square, so halving the Budget quarters the box *and* quarters the search by the walk curve's own
 squared law, which is the same *distance beats count* lesson the walk-search section states one level

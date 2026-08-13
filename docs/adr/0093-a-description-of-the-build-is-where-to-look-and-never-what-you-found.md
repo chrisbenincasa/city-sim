@@ -33,7 +33,31 @@ Three ADRs govern what a sitting may conclude, and each names a different input:
 
 This is none of them, and the difference is not academic: **the text was never true.** There is no second copy to disagree with, no missing citation to notice, and no gate to re-check. The disagreement is between a document and **the code**, and it was there on the day the sentence was written.
 
-**The corpus is structurally unable to catch it.** Its three mechanical checks — `CitationTests`, `CoverageMapTests`, `MarkdownStyleTests` — check that links resolve, that rows exist, and that markdown renders. **All three are document-to-document or document-to-directory.** Nothing anywhere checks that a sentence about `RoadGenerator` is true of `RoadGenerator`, and no such check is proposed here, because a general one would be a natural-language proof obligation. What is available instead is a discipline with a checkable output, which is the next section.
+**The corpus is structurally unable to catch it.** Its ~~three~~ **five** mechanical checks — `CitationTests`, `CoverageMapTests`, `MarkdownStyleTests`, `DisqualifierTests` and `LinkResolutionTests` — check that every ADR is **cited somewhere**, that rows exist, that markdown renders, that a disqualified figure is not quoted bare, and that a relative link resolves. **All five are document-to-document or document-to-directory.** Nothing anywhere checks that a sentence about `RoadGenerator` is true of `RoadGenerator`, and no such check is proposed here, because a general one would be a natural-language proof obligation. What is available instead is a discipline with a checkable output, which is the next section.
+
+> ⚠ **AMENDED 2026-08-13, and this ADR had committed its own defect in the sentence above.** It read
+> *"`CitationTests`, `CoverageMapTests`, `MarkdownStyleTests` — **check that links resolve**, that rows
+> exist, and that markdown renders."* **`CitationTests` does not check that links resolve.** It matches
+> the regex `adr/\d{4}` across the citing documents and asserts every ADR number appears in at least one
+> of them; **it never opens a target**, and until 2026-08-13 nothing in the corpus did — a link to a file
+> that did not exist passed every check there was.
+>
+> **The sentence is `adr/0093`'s own failure mode, in `adr/0093`, about the checks it cites as evidence
+> for `adr/0093`.** It describes a mechanism from its **name** — a thing called `CitationTests` sounds
+> like it validates citations — and is wrong about the **trigger**, which is this rule's stated signature:
+> *where such a sentence is wrong it is wrong about what fires it, because a description explains a
+> mechanism's purpose and a purpose is not a trigger.*
+>
+> **It was found by being believed.** A sitting on 2026-08-13 read this line, repeated it to the user as
+> *"citations resolve"*, wrote a dead link to `adr/0017` under a plausible-but-wrong filename, ran the
+> suite, and watched it go green. ***A false description of a guard is worse than no guard, because it
+> is the reason nobody builds the real one*** — and the repair the sitting produced is
+> `plans/0012` **check 8**, `LinkResolutionTests`, green at 2,292 links on the day it was written.
+>
+> **The count was also stale**, at three where `DisqualifierTests` had made it four the same week. *A
+> count of the things that check the corpus is itself a fact stored in prose*, which is Cause 1 with the
+> subject matter turned on the instruments — and it is why the list above now names each check by what it
+> **opens** rather than by what it is called.
 
 ### The repair is to write a name where a time is written
 
