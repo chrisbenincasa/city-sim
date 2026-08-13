@@ -16,14 +16,69 @@
 
 ## Status
 
-**🔨 IN FLIGHT (2026-08-12), and nothing gates it.** Milestone 5b closed the same day
-([`0021`](0021-trips-legs-and-the-pedestrian-layer.md)); this milestone was created by the sitting that
-closed it, and both of its ADRs were written then. There is no session in front of it and no measurable
-claim it must wait on.
+**✅ DONE 2026-08-13.** All eight tasks. **1,276 tests green** against 5b's 1,136, and all three golden
+baselines re-recorded — in tasks 2, 4 and 5 rather than at the end, because the stride deletion, the
+Commute Budget and the departure phase each moved the hash and each said so where it happened. Two ADRs,
+both written before the first line of code by the sitting that closed 5b:
+[`adr/0080`](../docs/adr/0080-phase-4-does-not-wait-on-a-trip-generator-and-a-trip-is-entered-by-command.md)
+and [`adr/0081`](../docs/adr/0081-the-commute-is-the-first-trip-generator-and-a-job-is-taken-by-satisficing-on-distance.md).
+Nothing gated it and nothing was waiting on it.
 
-**It inherits three tasks from 5b** — the generator, the Trip Census family with the Commute Budget, and
+**It inherited three tasks from 5b** — the generator, the Trip Census family with the Commute Budget, and
 the 100,000-Tick run — because each measures an origin-destination **distribution** and 5b had none to
-measure.
+measure. All three are built, and **the re-scope was correct in the strong sense**: the Budget was set
+off a real distribution, the histogram exists, and the long run reports peak pedestrian density. What no
+longer holds is the reason each of them was thought to be a measurement — see below.
+
+**The milestone's findings are about instruments rather than about jobs, and that is four tasks out of
+eight.** Task 3 looked for a derivation of the crossing cost and found there is none to be had, which is
+a result rather than a failure to find one. Task 6 built the Trip cost histogram and found it **cannot
+ratify the number it is about**, because a commute exists only where the Budget already admitted one.
+Task 7 printed the Commute Budget beside the file's own `20`, read **19.9**, and found `--trips`' minute
+formatter had been dropping the sub-Tick fraction in every duration it had ever printed. Task 8 measured
+a peak of 10× against a stated 3× and found **the test was measuring its own sample size**. Stated
+together:
+
+> ***An instrument answers the question its construction admits, and that is not always the question it
+> was pointed at.*** The four cases are a missing derivation, a censored distribution, a lossy
+> conversion and a small-sample maximum — different mechanisms with one consequence, which is that a
+> number came back and could not settle what it was taken to settle. `adr/0043` types a claim by
+> *whether a machine could produce the number*; every one of these produced it.
+
+**The bias `adr/0081` stated in advance held for the whole milestone and is still attached.** Job choice
+is wage **and** commute ([`adr/0026`](../docs/adr/0026-wages-are-posted-locally-and-never-cleared.md)),
+this builds the second term only, and nothing makes a Citizen travel past a nearer acceptable job — so
+every commute here is **too short** and every quantity derived from one is biased **low**. Task 7's
+picture is what that looks like from above: 222 blocks of 228 within a quarter of parity, because every
+Building has the same posts and the same occupants and **this city has no land use at all**.
+
+### ⚠ What this milestone leaves owed
+
+**Bookkeeping, and it is deliberately not done in this commit** — a session was live in the same working
+tree and these are its files.
+
+- **`plans/0002` §D1 has five rows whose named ratifier is task 8's run, and none has been updated.** The
+  Commute Budget, `[[building]] jobs = 8`, the `[jobs]` pacing and `commute_peak_factor` each name it;
+  the run's readings are in the task 8 record below and **none of the four stated refuting numbers
+  occurred**. Whether that promotes any of them from *unratified* is a designer's decision and this
+  milestone declined to take it.
+- **One of those five ratifiers is stated in a form task 8 showed cannot be measured.** The
+  `commute_peak_factor` row says *"a measured peak that is not ~3× the mean means the factor is wrong"* —
+  which is the assertion that failed for sampling reasons at 1,000 Citizens and would fail again at any
+  population where few people are walking at once. The refuting statistic is the **quiet fraction**, and
+  the row needs amending rather than ticking.
+- **The crossing cost's ratifier is still half-run.** Its §D row says the geometric half is `--trips`' and
+  *"the behavioural half waits on task 8's run"*. Task 8 did not take it — it reports Fates and
+  densities, and nothing in it varies `crossing_seconds`. **That half is owed and is not owed to this
+  milestone**, since it needs a run at two values of the term rather than a longer one at the shipped
+  value.
+- **`plans/0000-board.md` row 9, `CLAUDE.md` and `docs/06-roadmap.md`'s 5b-bis row still read as in
+  flight**, and the roadmap row carries no findings.
+- **The golden session's Trip coverage question outlives the milestone.** Task 5 put commutes into the
+  session at last, but at **2,048 Ticks against a 2,731-Tick departure window nobody in it departs
+  twice**, and two of `adr/0076`'s four Fates — `NoRouteFound` and `Stranded` — are unexercised by any
+  run, committed or otherwise. `TripEngine`'s own doc comment says why: `Stranded` needs a Segment to
+  vanish under a Trip, which nothing yet does.
 
 ## Why this milestone exists, in one paragraph
 
