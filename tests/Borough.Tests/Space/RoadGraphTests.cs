@@ -228,7 +228,7 @@ public sealed class RoadGraphTests
     {
         var graph = new RoadGraph(RoadFixtures.Lattice(blockTiles: 512));
 
-        RoadGenerator.LayInto(graph, WorldKey.FromSeed(1));
+        RoadGenerator.LayInto(graph, WorldKey.FromSeed(1), CellGrid.WorldTiles);
 
         uint[] before = Epochs(graph);
 
@@ -374,7 +374,7 @@ public sealed class RoadGraphTests
         World world = Laid(RoadFixtures.Roads());
 
         InvalidOperationException failure = Assert.Throws<InvalidOperationException>(
-            () => RoadGenerator.LayInto(world.Roads, WorldKey.FromSeed(1)));
+            () => RoadGenerator.LayInto(world.Roads, WorldKey.FromSeed(1), CellGrid.WorldTiles));
 
         Assert.Contains("already has roads", failure.Message, StringComparison.Ordinal);
     }

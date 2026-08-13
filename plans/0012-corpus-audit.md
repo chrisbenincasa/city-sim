@@ -59,6 +59,71 @@ sentence is **right and was left behind**. That makes 4 uncheckable by this corp
 machinery it already has, since both ends of a travelling number are in documents — which is why 5 sits
 at the bottom of the table and has the cheapest available fix.
 
+### ⚠ Cause 2's worst sighting, 2026-08-13 — **the closure named its own consumers by number and still did not land**
+
+Recorded here rather than as a new cause, because it is not one: it is **Cause 2 with the usual excuse
+removed**, and it sharpens the repair rather than adding to the list.
+
+[`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) closed four ledger entries and
+**said so in itself, by number** — *"ledger entries 10, 11, 13 and 15 close together, which is what they
+were circling"* — and named the one that did **not** close, *"decision 8 does not; it turned out to be a
+different question."* [`plans/0010`](0010-s2-routing.md) applied it: decisions 11 and 13 carry
+*CLOSED by `adr/0047`* in their own text. **[`0002`](0002-open-questions.md) and
+[`0000`](0000-board.md) did not**, and an audit run beside `0003` queue item 6 found **five stale rows
+across two sections** — §A's *how coarse a routing destination may be*, three of the five bullets in §C's
+*Routing — session M's cluster*, and the board's session **I** row, which was serving as milestone 5c's
+gate. **The gate had been discharged for two days.**
+
+Three things make it worth the space.
+
+- **The sibling test failed at one row's distance.** §A's *path source* row was struck by this same ADR,
+  and its archived body quotes the ADR back. The row directly beneath it, on the same decision, in the
+  same table, was not. *A reader who strikes one row has not thereby swept the table, and nothing marks
+  the difference.*
+- **The retyping is the dangerous half, not the staleness.** `adr/0047` did not merely close §A's
+  question — it **retyped the survivor**, from *arguable* onto a different object that is
+  **measurable and unset** (the routing partition's size, machine named). The stale `A` row therefore sat
+  open **inviting a session to close by argument the exact thing [`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
+  forbids closing by argument**, and the successor was in no ledger at all. ***A closure that retypes what
+  survives it writes two obligations, and only the first one looks like an obligation.***
+- **It is what the corpus's own uncatchable-by-machine argument says should be catchable.** Cause 4 is
+  uncheckable here because it is document-to-**code**. This is document-to-document, in a corpus with
+  three mechanical document-to-document checks, and none of them looks for it.
+
+**The repair is Cause 3's, run in the direction Cause 3 already prescribes** — *when a gate clears, sweep
+for who cites it* — with one addition this sighting earns: **an ADR that enumerates the entries it closes
+should be the input to that sweep, not a substitute for it.** Filed as a candidate for **mechanical check
+9**: an ADR naming a ledger entry by number, against a ledger entry not struck. Both ends are documents,
+which is the property that makes it checkable at all.
+
+#### ⚠ Check 8 is a different and much cheaper one, and the sitting found it by committing the defect
+
+**Nothing in this corpus checks that a relative link resolves.** The four checks that exist are
+`CitationTests` (every ADR is cited by ≥1 document outside `docs/adr`, matched as the **regex `adr/\d{4}`**
+— it never opens the target), `CoverageMapTests` (every ADR has a §F row), `MarkdownStyleTests` (tables
+render, emphasis uses asterisks) and `DisqualifierTests` (check 6). **A link to a file that does not exist
+passes all four.** The sitting discovered this by writing one — `adr/0017` cited as
+*households-satisfice-they-do-not-optimise*, which is the ADR's **claim** rather than its **filename**
+(*agents-satisfice-they-never-optimise*) — running the suite, and watching it go green. ⚠ **And the same
+sitting had already told the user those tests mean *"citations resolve"***, which is `adr/0093` on a
+**test name**: the check was described from what it is called rather than from what it opens.
+
+**Measured before proposing, because a check nobody can pass is a cleanup project wearing a ratchet's
+clothes.** Across every `.md` in the tree: **4,064 relative links, 5 dead — and 4 of those are in a stale
+`.claude/worktrees/5b-trips-and-legs` copy**, not the live corpus. **The live corpus had exactly one**:
+`adr/0094:132` pointing at `../plans/0013-tick-budget.md` from inside `docs/adr/`, one `../` short, written
+2026-08-13. Fixed in the same sitting.
+
+**That measurement is the argument for building it.** One dead link in 4,064 means the discipline has been
+manual and has *worked*, so the check goes green on the day it is written and every future breakage is a
+red build rather than an audit — which is the property `adr/0003`'s per-field declaration has and
+*"remember to check your links"* does not. **It is also the cheapest check in this file by a wide margin**:
+no registry, no ledger parsing, no judgement about what a document means. Resolve the path, or fail.
+⚠ **Two scope notes it must ship with**, both learned from `CitationTests`' two false-green revisions:
+**exclude `.claude/worktrees/`**, which holds stale corpus copies that are somebody's in-flight work and
+not the corpus; and **check the anchor separately or not at all**, since a `#heading` fragment is a
+different and much weaker claim than a file existing.
+
 ### Cause 1 — status is stored in three places that disagree
 
 **The same six facts live in `0003`'s ledger, `0003`'s gate board, and `0002`'s Readiness table.**

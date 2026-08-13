@@ -53,10 +53,18 @@ public sealed class LotLongRunTests
     private const int EditEvery = 512;
 
     /// <summary>The block whose south face is laid and bulldozed for the length of the run.</summary>
-    private const int Column = 60;
+    /// <remarks>
+    /// <b>(60, 60) until 2026-08-13, and the generator stopped reaching it.</b> Since
+    /// <c>SyntheticCity</c> paves the ground its Lots need rather than the map, a 1,000-Citizen world
+    /// has a <b>5×5</b> block lattice, and block 60 is bare land — so the lay carved nothing and the
+    /// run asserted equality over an edit that never happened. The vacuity guard below caught it,
+    /// which is the whole reason that guard exists. (3, 3) is inside the lattice and outside the
+    /// blocks the populator subdivides, which walks row-major and stops partway through row 2.
+    /// </remarks>
+    private const int Column = 3;
 
     /// <summary>The lattice row of that face.</summary>
-    private const int Row = 60;
+    private const int Row = 3;
 
     /// <summary>
     /// A hundred thousand Ticks of road editing leaves the city no larger than one cycle did.
@@ -82,14 +90,23 @@ public sealed class LotLongRunTests
         // No upward trend, stated as a comparison of quarters. A leak of k rows per cycle makes the
         // last quarter exceed the first by roughly k times a quarter of the edits, which is well
         // clear of the oscillation the deferred freeing produces.
+        // ⚠ THE OSCILLATION'S OWN AMPLITUDE IS ALLOWED FOR, since 2026-08-13, and it should have been
+        // from the start: this file declares LotsOnAFace as "the whole amplitude this run's
+        // oscillation can have" and then compared two maxima with no tolerance at all, so it was
+        // asserting that the larger of the two happened to land in the first half. It did, until the
+        // generator stopped paving the map and the edited block moved from (60, 60) to (3, 3); then
+        // it read 133 against 132 and called a one-row oscillation a leak. A LEAK IS NOT A ROW: the
+        // comment below states the arithmetic -- k rows per cycle puts the last quarter roughly
+        // k x 48 above the first over this run's 195 edits -- so a bound of 3 costs the tripwire
+        // nothing and removes an assertion about which half a maximum fell in.
         Assert.True(
-            Peak(afterLay, half: true) <= Peak(afterLay, half: false),
+            Peak(afterLay, half: true) <= Peak(afterLay, half: false) + LotsOnAFace,
             $"the Lot count after a lay peaks at {Peak(afterLay, half: true)} in the second half of "
             + $"the run against {Peak(afterLay, half: false)} in the first. A lay/bulldoze cycle that "
             + "does not close leaks a few rows per edit, and this is the only test that can see it.");
 
         Assert.True(
-            Peak(afterBulldoze, half: true) <= Peak(afterBulldoze, half: false),
+            Peak(afterBulldoze, half: true) <= Peak(afterBulldoze, half: false) + LotsOnAFace,
             $"the Lot count after a bulldoze peaks at {Peak(afterBulldoze, half: true)} in the second "
             + $"half against {Peak(afterBulldoze, half: false)} in the first.");
 

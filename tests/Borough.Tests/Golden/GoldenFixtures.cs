@@ -33,7 +33,24 @@ internal static class GoldenFixtures
     internal const ulong Seed = 0x0B07_0000_0000_0EA1UL;
 
     /// <summary>The golden session's Citizen sizing, and the golden world's.</summary>
-    internal const int Population = 1_000;
+    /// <remarks>
+    /// <b>1,000 until 2026-08-13, and what raised it was the map rather than the population.</b>
+    /// <see cref="Borough.Core.Entities.SyntheticCity"/> now paves the ground its Lots need instead
+    /// of the whole map, so the lattice a fixture gets is a function of its Citizen count: at 1,000
+    /// it is <b>5×5 blocks</b>, of which the populator subdivides about 13, leaving <b>12</b> — and
+    /// this session issues <b>13</b> zone commands. It did not fit, and shrinking the session is the
+    /// wrong repair: <see cref="GoldenSessionCoverageTests"/> exists because
+    /// <em>a baseline records what a run did, so a change that narrows what the run reaches is
+    /// invisible in it by construction</em>, and quietly dropping a command is that failure by hand.
+    /// <para>
+    /// 4,000 gives a <b>10×10</b> lattice with about 51 free blocks, so the session keeps the spread
+    /// it was authored for — adjacent blocks, distant blocks, a far corner, and two road edits with
+    /// room around them. <b>It is not the smallest fixture that exercises the verbs any more</b>, and
+    /// that is the cost: the committed trace is four times the city it was. 5b-bis task 8 landed on
+    /// 4,000 independently, for the unrelated reason that a peak statistic needs a population.
+    /// </para>
+    /// </remarks>
+    internal const int Population = 4_000;
 
     /// <summary>
     /// The content hash of <see cref="RulesetPath"/>, as the session records it.
@@ -45,7 +62,7 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0x39FC_FA85_BE23_97C9UL;
+    internal const ulong RulesetHash = 0x4406_415B_C349_8036UL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>
@@ -58,7 +75,7 @@ internal static class GoldenFixtures
     /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
     /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
     /// </remarks>
-    internal const ulong TunedRulesetHash = 0x2CA2_5A69_0686_A6A6UL;
+    internal const ulong TunedRulesetHash = 0xF871_0D1E_DE78_C292UL;
 
     /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
     internal static string TunedRulesetPath =>
@@ -172,17 +189,17 @@ internal static class GoldenFixtures
 
         builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
 
-        Append(builder, tick: 0, block: (0, 2), zone: 1);
-        Append(builder, tick: 1, block: (1, 2), zone: 1);
-        Append(builder, tick: 1, block: (2, 2), zone: 2);
-        Append(builder, tick: 2, block: (2, 3), zone: 2);
-        Append(builder, tick: 9, block: (7, 3), zone: 3);
-        Append(builder, tick: 17, block: (11, 5), zone: 1);
-        Append(builder, tick: 17, block: (12, 5), zone: 1);
-        Append(builder, tick: 33, block: (31, 29), zone: 4);
-        Append(builder, tick: 64, block: (63, 2), zone: 2);
-        Append(builder, tick: 65, block: (0, 63), zone: 3);
-        Append(builder, tick: 97, block: (127, 127), zone: 5);
+        Append(builder, tick: 0, block: (0, 5), zone: 1);
+        Append(builder, tick: 1, block: (1, 5), zone: 1);
+        Append(builder, tick: 1, block: (2, 5), zone: 2);
+        Append(builder, tick: 2, block: (2, 6), zone: 2);
+        Append(builder, tick: 9, block: (7, 6), zone: 3);
+        Append(builder, tick: 17, block: (3, 7), zone: 1);
+        Append(builder, tick: 17, block: (4, 7), zone: 1);
+        Append(builder, tick: 33, block: (8, 8), zone: 4);
+        Append(builder, tick: 64, block: (9, 5), zone: 2);
+        Append(builder, tick: 65, block: (0, 9), zone: 3);
+        Append(builder, tick: 97, block: (9, 9), zone: 5);
 
         // 5a-bis. The road editor, and it is here for coverage rather than for shape: a baseline
         // records what a run did, so a committed session that never edits a road leaves the Epoch,
@@ -201,16 +218,16 @@ internal static class GoldenFixtures
         //
         // GoldenSessionCoverageTests asserts each of those outcomes against the replayed world, so
         // the coverage is a claim the suite checks rather than a comment.
-        Connect(builder, tick: 129, node: (50, 50), StreetAxis.East, ConnectAction.Bulldoze);
-        Append(builder, tick: 130, block: (50, 50), zone: 1);
-        Connect(builder, tick: 200, node: (50, 50), StreetAxis.East, ConnectAction.Lay);
-        Connect(builder, tick: 300, node: (50, 50), StreetAxis.East, ConnectAction.Bulldoze);
+        Connect(builder, tick: 129, node: (5, 6), StreetAxis.East, ConnectAction.Bulldoze);
+        Append(builder, tick: 130, block: (5, 6), zone: 1);
+        Connect(builder, tick: 200, node: (5, 6), StreetAxis.East, ConnectAction.Lay);
+        Connect(builder, tick: 300, node: (5, 6), StreetAxis.East, ConnectAction.Bulldoze);
 
-        Connect(builder, tick: 400, node: (60, 60), StreetAxis.East, ConnectAction.Bulldoze);
-        Connect(builder, tick: 400, node: (60, 61), StreetAxis.East, ConnectAction.Bulldoze);
-        Connect(builder, tick: 400, node: (60, 60), StreetAxis.North, ConnectAction.Bulldoze);
-        Connect(builder, tick: 400, node: (61, 60), StreetAxis.North, ConnectAction.Bulldoze);
-        Append(builder, tick: 401, block: (60, 60), zone: 4);
+        Connect(builder, tick: 400, node: (6, 7), StreetAxis.East, ConnectAction.Bulldoze);
+        Connect(builder, tick: 400, node: (6, 8), StreetAxis.East, ConnectAction.Bulldoze);
+        Connect(builder, tick: 400, node: (6, 7), StreetAxis.North, ConnectAction.Bulldoze);
+        Connect(builder, tick: 400, node: (7, 7), StreetAxis.North, ConnectAction.Bulldoze);
+        Append(builder, tick: 401, block: (6, 7), zone: 4);
 
         // Slice 8 task 10. A transition rather than a command -- there is no reload verb, because
         // Command is 12 bytes and could not carry a hash -- so it is appended here and not through

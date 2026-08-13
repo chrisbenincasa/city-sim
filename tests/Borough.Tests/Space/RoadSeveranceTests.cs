@@ -325,7 +325,12 @@ public sealed class RoadSeveranceTests
     [Fact]
     public void The_retired_component_count_predicate_fires_on_a_city_that_severs_nothing()
     {
-        RoadGraph shipped = Laid(Load("minimal.toml").Roads, seed: 0);
+        // ⚠ The example is the shipped Ruleset AS IT STOOD, with its eight Arterials put back.
+        // rulesets/minimal.toml declares none since 2026-08-13, so it now has one foot component and
+        // one car component and the predicate cannot fire on it either way -- which would retire the
+        // record of why the predicate was retired. The eight are what the claim was made about.
+        var roads = Load("minimal.toml").Roads with { ArterialCount = 8 };
+        RoadGraph shipped = Laid(roads, seed: 0);
 
         Assert.True(
             shipped.Connectivity.FootComponents > shipped.Connectivity.CarComponents,
@@ -507,11 +512,22 @@ public sealed class RoadSeveranceTests
         return false;
     }
 
+    /// <summary>
+    /// A graph over the <b>whole map</b>, laid directly rather than through
+    /// <see cref="SyntheticCity"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>These tests want a network, not a city, and since 2026-08-13 those are different sizes.</b>
+    /// The populator now paves the area its own population occupies, which at the 100 Citizens this
+    /// fixture used to declare is a <b>two-block</b> lattice — and 16 Arterials across two blocks is
+    /// not a severed city, it is rubble. <c>rulesets/severance.toml</c>'s own header calls it a
+    /// demonstration rather than a city; laying the map explicitly is that sentence in code.
+    /// </remarks>
     private static RoadGraph Laid(RoadRuleset roads, ulong seed = 0x5E_5E_5E)
     {
         World world = new(citizens: 100, RoadFixtures.With(roads));
 
-        SyntheticCity.PopulateInto(world, WorldKey.FromSeed(seed), Ticks.Zero);
+        RoadGenerator.LayInto(world.Roads, WorldKey.FromSeed(seed), CellGrid.WorldTiles);
 
         return world.Roads;
     }

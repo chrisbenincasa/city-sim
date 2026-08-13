@@ -1,7 +1,7 @@
 # Borough golden world hash. Recorded from GoldenFixtures.Build().
 # Regenerating this file is a deliberate, signed act: follow the
 # procedure in README.md beside it.
-population 1000
+population 4000
 lots 6
 buildings 4
 households 7

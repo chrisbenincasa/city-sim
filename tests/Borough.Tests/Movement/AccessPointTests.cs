@@ -112,7 +112,7 @@ public sealed class AccessPointTests
         var key = WorldKey.FromSeed(0xD0D0_CACA_0000_0001UL);
         World world = new(Population, RoadFixtures.With(RoadFixtures.Lattice()));
 
-        RoadGenerator.LayInto(world.Roads, key);
+        RoadGenerator.LayInto(world.Roads, key, CellGrid.WorldTiles);
 
         var simulation = new Simulation(world, key);
         int block = world.Roads.Streets.BlockTiles;

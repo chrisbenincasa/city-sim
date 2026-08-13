@@ -53,14 +53,33 @@ public static class RoadGenerator
     private const int CurvatureEverySteps = 48;
 
     /// <summary>
-    /// Lays the whole network into <paramref name="graph"/>, then rebuilds everything derived.
+    /// Lays a network reaching <paramref name="extentTiles"/> Tiles from the origin corner into
+    /// <paramref name="graph"/>, then rebuilds everything derived.
     /// </summary>
+    /// <remarks>
+    /// <b>The extent is a required argument with no default, and that is the point of it.</b> This
+    /// method laid <see cref="CellGrid.WorldTiles"/> unconditionally until 2026-08-13, which made
+    /// <c>adr/0021</c>'s <i>memory and save size scale with developed area, not with map area</i>
+    /// false in exactly one place. A default would restore that for every call site that did not stop
+    /// to think, which is how <c>[placement]</c>'s <c>revisit_ticks</c> shipped at a value copied from
+    /// somewhere it meant something else and left 45% of the housing stock empty.
+    /// <para>
+    /// <b>A caller that genuinely wants the whole map says so.</b> A severance demonstration does,
+    /// because it is a demonstration rather than a city; <see cref="Entities.SyntheticCity"/> does
+    /// not, because it knows how many Buildings it is about to raise and the lattice that houses them
+    /// follows from that.
+    /// </para>
+    /// </remarks>
     /// <param name="graph">The graph to fill. Expected empty; this is a world-creation pass.</param>
     /// <param name="key">The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</param>
+    /// <param name="extentTiles">
+    /// How far the lattice reaches from the origin corner, in Tiles. Clamped to the map.
+    /// </param>
     /// <exception cref="InvalidOperationException">The graph already has Segments.</exception>
-    public static void LayInto(RoadGraph graph, WorldKey key)
+    public static void LayInto(RoadGraph graph, WorldKey key, int extentTiles)
     {
         ArgumentNullException.ThrowIfNull(graph);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(extentTiles);
 
         if (graph.Segments.Rows.LiveCount != 0)
         {
@@ -77,7 +96,10 @@ public static class RoadGenerator
             return;
         }
 
-        new Layout(graph, roads, key).Run();
+        // A ternary rather than Math.Min: BOR0202 refuses Math.* everywhere, including here.
+        int extent = extentTiles < CellGrid.WorldTiles ? extentTiles : CellGrid.WorldTiles;
+
+        new Layout(graph, roads, key, extent).Run();
         graph.RebuildDerived();
     }
 
@@ -85,10 +107,10 @@ public static class RoadGenerator
     /// The generation-time scaffolding. <b>A class rather than a struct because nothing here survives
     /// into the graph</b>, which is tables.
     /// </summary>
-    private sealed class Layout(RoadGraph graph, RoadRuleset roads, WorldKey key)
+    private sealed class Layout(RoadGraph graph, RoadRuleset roads, WorldKey key, int extentTiles)
     {
         /// <summary>Node columns and rows in the Street grid.</summary>
-        private readonly int _grid = IntegerMath.FloorDiv(CellGrid.WorldTiles, roads.BlockTiles) + 1;
+        private readonly int _grid = IntegerMath.FloorDiv(extentTiles, roads.BlockTiles) + 1;
 
         /// <summary>
         /// Grid intersections, by <c>(row × grid) + column</c>. Held so severance can address a
@@ -274,14 +296,14 @@ public static class RoadGenerator
         {
             int edge = (int)(Draw(arterial, 0, PurposeTag.RoadArterialOrigin) % 4ul);
             int along = (int)(Draw(arterial, 1, PurposeTag.RoadArterialOrigin)
-                % (ulong)CellGrid.WorldTiles);
+                % (ulong)extentTiles);
 
             // The inward component is strictly positive and the cross component is free, which is
             // what makes the angle arbitrary rather than one of eight.
             int inward = 300 + (int)(Draw(arterial, 0, PurposeTag.RoadArterialHeading) % 701ul);
             int across = (int)(Draw(arterial, 1, PurposeTag.RoadArterialHeading) % 2001ul) - 1000;
 
-            int far = CellGrid.WorldTiles - 1;
+            int far = extentTiles - 1;
 
             return edge switch
             {
@@ -312,8 +334,8 @@ public static class RoadGenerator
                 (int)IntegerMath.FloorDiv((long)headingNorth * Fixed.One * StepTiles, magnitude));
         }
 
-        private static bool InBounds(int east, int north) =>
-            east >= 0 && north >= 0 && east < CellGrid.WorldTiles && north < CellGrid.WorldTiles;
+        private bool InBounds(int east, int north) =>
+            east >= 0 && north >= 0 && east < extentTiles && north < extentTiles;
 
         /// <summary>
         /// Records every Street Segment the Arterial ran over between two consecutive polyline

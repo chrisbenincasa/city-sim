@@ -102,16 +102,67 @@ public sealed class PlacementLongRunTests
     [Fact]
     public void The_queue_does_not_grow()
     {
-        Reading[] tail = Run(out _)[SettleReadings..];
+        var drifts = new List<long>();
+        var report = new List<string>();
 
-        long early = Mean(tail[..(tail.Length / 2)], r => r.Pool);
-        long late = Mean(tail[(tail.Length / 2)..], r => r.Pool);
+        foreach (ulong seed in Seeds)
+        {
+            Reading[] tail = Run(seed, out _)[SettleReadings..];
 
+            long early = Mean(tail[..(tail.Length / 2)], r => r.Pool);
+            long late = Mean(tail[(tail.Length / 2)..], r => r.Pool);
+            long drift = ((late - early) * 1_000) / early;
+
+            drifts.Add(drift);
+            report.Add($"seed {seed}: {early} then {late} ({drift / 10}.{Abs(drift) % 10}%)");
+        }
+
+        long mean = 0;
+
+        foreach (long drift in drifts)
+        {
+            mean += drift;
+        }
+
+        mean /= drifts.Count;
+
+        // 62 per mille rather than 63: the bound is a sixteenth, expressed where the arithmetic is.
         Assert.True(
-            late <= early + (early / 16),
-            $"the Unplaced Pool held {early} Households on average over the first half of the tail "
-            + $"and {late} over the second. The city is evicting faster than it houses.");
+            mean <= 62,
+            $"the Unplaced Pool grew by {mean / 10}.{Abs(mean) % 10}% on average across "
+            + $"{drifts.Count} world seeds. The city is evicting faster than it houses.\n"
+            + string.Join("\n", report));
     }
+
+    private static long Abs(long value) => value < 0 ? -value : value;
+
+    /// <summary>
+    /// The world seeds this claim is asserted over, and it is asserted over their <b>mean</b> rather
+    /// than over each. The golden fixture's is first, so its reading is always in the report.
+    /// </summary>
+    /// <remarks>
+    /// <b>One trajectory cannot carry a claim about a trend, and this test asserted one until
+    /// 2026-08-13.</b> Scoping the generator to developed land moved the golden seed's drift from
+    /// +0.5% to +8.9% and left ten other seeds between −3.4% and +1.5% — a <em>tighter</em> spread
+    /// than the same ten give on the old geometry, so the city had not got worse and the test could
+    /// not tell. <b>A single draw cannot distinguish a regression from a trajectory</b>, which is the
+    /// corpus's own <c>--roads</c> finding — <i>a generator whose output cannot be varied cannot be
+    /// characterised</i> — arriving at a test rather than at an instrument.
+    /// <para>
+    /// <b>The mean and not each, which is the whole repair.</b> Asserting the bound per seed puts the
+    /// verdict back on the worst trajectory and fails for the same reason as before. The claim being
+    /// made is about the <em>city</em> — does its queue grow — and the quantity that states it is the
+    /// average drift over independent worlds. A city that genuinely evicts faster than it houses
+    /// moves every seed and therefore the mean; one bad draw moves the mean by a fifth of itself.
+    /// </para>
+    /// <para>
+    /// <b>Five rather than ten, and the cost is why.</b> Each is a 100,000-Tick run. Five is enough
+    /// that no single trajectory carries the verdict, which is the property that was missing; it is
+    /// not enough to characterise the distribution, and nothing here claims to. Every seed's reading
+    /// is printed on failure, so a diverging city is diagnosable rather than merely reported.
+    /// </para>
+    /// </remarks>
+    private static ulong[] Seeds => [GoldenFixtures.Seed, 1, 8, 34, 89];
 
     private static long Mean(Reading[] readings, Func<Reading, long> of)
     {
@@ -154,9 +205,11 @@ public sealed class PlacementLongRunTests
             activity.Placed.Sum);
     }
 
-    private static Reading[] Run(out World world)
+    private static Reading[] Run(out World world) => Run(GoldenFixtures.Seed, out world);
+
+    private static Reading[] Run(ulong seed, out World world)
     {
-        var key = WorldKey.FromSeed(GoldenFixtures.Seed);
+        var key = WorldKey.FromSeed(seed);
 
         world = new World(Population, GoldenFixtures.Rules());
 

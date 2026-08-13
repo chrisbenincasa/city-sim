@@ -37,10 +37,16 @@ namespace Borough.Tests.Golden;
 public sealed class GoldenSessionCoverageTests
 {
     /// <summary>The block the session bulldozes a face off, zones, restores and bulldozes again.</summary>
-    private static (int Column, int Row) Edited => (50, 50);
+    private static (int Column, int Row) Edited => (5, 6);
+
+    // ⚠ (5, 5) was tried first and cost one Lot that nothing here could see. The bulldozed south face
+    // of a block is the NORTH face of the block below it, so at (5, 5) the edit reached into (5, 4) --
+    // which the populator subdivides -- and the session's carve count came out one short of the
+    // per-block sum. At (50, 50) the question never arose, because the populator paved one row.
+    // A road edit is not local to the block that names it, and it takes a neighbour with it.
 
     /// <summary>The block the session strips of all four faces before zoning it.</summary>
-    private static (int Column, int Row) Stripped => (60, 60);
+    private static (int Column, int Row) Stripped => (6, 7);
 
     /// <summary>
     /// <b>The lattice spacing the fixture states is the one the Ruleset states.</b>

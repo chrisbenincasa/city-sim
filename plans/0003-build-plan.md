@@ -151,8 +151,8 @@ become three.
 
 ### The hash-moving queue
 
-> ⚠ **REOPENED AGAIN 2026-08-12 by session J, with item 6 — and this one is a gate on a decision that is
-> already taken.** [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)
+> ✅ **ITEM 6 SHIPPED 2026-08-13.** ~~⚠ **REOPENED AGAIN 2026-08-12 by session J, with item 6 — and this one is a gate on a decision that is
+> already taken.**~~ [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)
 > settles the map at **`CellGrid.WorldCells = 512`** — 16384² Tiles, 65.5 km — and the constant **has not
 > been flipped**, because flipping it today would generate **525,312 Street Segments and 2,626,560 Lots**
 > against the **225,000** Lots `World` allocates for a 1M city.
@@ -189,6 +189,69 @@ become three.
 >
 > Item 6 moves every State Hash and re-records all three golden baselines, so it is one commit of its own
 > and it must not ride along with a slice.
+
+> **✅ BUILT 2026-08-13, and it moved every State Hash and all three golden baselines exactly as
+> predicted.** `RoadGenerator.LayInto` takes an **extent in Tiles**; `SyntheticCity.PavedTiles` derives
+> it from `world.Lots.Rows.Capacity`, which is `World`'s own **225 Lots per 1,000 Citizens**, and paves
+> the smallest square lattice that yields at least that many. The golden fixture's world goes from
+> **16,641 Nodes and 33,671 Segments to 36 and ~60**. At 1M the derivation asks for **150 blocks a
+> side, 4,800 Tiles** — more than the 128-Cell map has, so it clamps and **nothing at target scale
+> moves today**; on a 512-Cell map it is **8.6% of the area**, which is the buildable fraction
+> `adr/0089` reasoned about. `CellGrid`'s *"at world creation"* comment is corrected, so
+> **`adr/0089`'s stated blocker is discharged and flipping `WorldCells` to 512 is now a one-line commit
+> that nothing stands in front of.**
+>
+> **The item's largest finding is that `arterial_count` is a per-map count, and it is why it is now
+> zero in both shipped Rulesets.** A population-derived extent cannot carry a count of Arterials chosen
+> against a 4,096-Tile map — eight of them across a 160-Tile lattice is a motorway every 20 Tiles.
+> **But the fix is not to derive the count**, because an Arterial should not be there at all:
+> [`adr/0077`](../docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md) refuses
+> Arterials in `CommandKind.Connect`, `adr/0090` says the generator makes land and the player makes
+> every road, `adr/0014` grants an Arterial no frontage, and `RoadKind.Arterial` is constructed in
+> exactly one place in the build — inside `RoadGenerator`. **It is a player tool nothing in the
+> simulation can produce, sitting in the one structure the player does not author.** The 240-configuration
+> sweep of 5a already measured those eight Arterials severing **0.0%**, so they were paying nothing
+> either. `rulesets/severance.toml` keeps its sixteen: that file exists to demonstrate Severance and
+> says so in its own header, and a demonstration is allowed to build what a city's generator must not.
+>
+> **Three test findings, and all three are the same shape: an assertion whose premise was the old
+> geometry rather than the mechanism it names.**
+>
+> - **`PlacementLongRunTests` and `ZoneRuleLongRunTests` were asserting a distribution property from a
+>   single draw.** Both bound the Unplaced Pool's drift over a 100,000-Tick tail, and the scoped
+>   geometry pushed the golden seed's drift from within tolerance to **+8.9%**. Measured across ten
+>   seeds the scoped world's drift band is **−3.4% … +1.5%**, *tighter* than the full map's
+>   **−5.3% … +3.9%** — so the geometry is better behaved and the golden seed is an outlier under it.
+>   Both tests now sweep **five seeds and assert the mean**, which is `--roads`' own lesson from 5a
+>   arriving in the test suite: ***a generator whose output cannot be varied cannot be characterised***,
+>   and a test that draws once is a test that cannot tell an outlier from a regression.
+> - **`LotLongRunTests` named block (60, 60), which is off the edge of a lattice that is now 5×5.** A
+>   coordinate literal is a premise about map size, and this one had been true for as long as the map
+>   was the lattice. It is (3, 3) now — inside the lattice and outside the land the populator carves.
+>   Its two peak assertions also gained `+ LotsOnAFace`, a constant **the file itself declares as
+>   *the whole amplitude this run's oscillation can have*** and had never used in them.
+> - **`RoadLongRunTests` and `RoadSeveranceTests` reached the graph through `SyntheticCity`**, so
+>   scoping the populator silently shrank the graph they were characterising. Both now call
+>   `RoadGenerator.LayInto` at `CellGrid.WorldTiles` directly, and the two that need Arterials restore
+>   them with a `with { ArterialCount = 8 }`. **A test that wants a full map should ask for one**; going
+>   through the populator to get it was reading a city's geometry as if it were the map's.
+>
+> **The golden fixture is 4,000 Citizens, up from 1,000, and it had to move.** A 1,000-Citizen world
+> paves a **5×5** lattice, and the golden session's eleven zone commands and its Connect nodes were
+> authored against rows and columns that no longer exist. Raising the population to 4,000 gives a
+> **10×10** lattice with room to re-author them into rows 5–9, away from the strip the populator carves.
+> **This is slice 10 task 11 again** — *a baseline records what a run did, so a change that narrows what
+> the run reaches is invisible in it by construction* — and `GoldenSessionCoverageTests`, written for
+> exactly that, is what held the line.
+>
+> **⚠ And it widened what the run reaches, which nothing was watching for.** At 4,000 Citizens the
+> shipped 20-minute Commute Budget **starts refusing walks** — `JobAssignmentTests` had a test asserting
+> it refused none, written by 5b-bis task 4 so the fact could not rot, and it failed. Measured across
+> populations under the shipped geometry, `beyond` over 512 Ticks runs **0, 0, 3, 213** at 1,000, 2,000,
+> 4,000 and 8,000 Citizens: the fixture sits on the **first rung that refuses anything at all**. So the
+> committed baseline now exercises a branch it could not before, **acquired as a side effect of a change
+> made for another reason**. Slice 10 task 11's finding runs *forwards* as well as backwards, and the
+> only reason this was noticed is that somebody had written the negative assertion down.
 
 > ⚠ **ITEM 7, added 2026-08-13 by session P: `TICKS_PER_DAY` and `WHEEL_SIZE` go to 2048.**
 > [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md).

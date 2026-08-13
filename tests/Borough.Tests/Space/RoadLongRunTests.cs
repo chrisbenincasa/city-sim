@@ -141,11 +141,31 @@ public sealed class RoadLongRunTests
     /// asserts that the graph it ran over contains both outcomes — a Street destroyed by an Arterial,
     /// and a Street kept as a crossing.
     /// </para>
+    /// <para>
+    /// ⚠ <b>AMENDED 2026-08-13, and this tripwire fired on the change that caused the amendment.</b>
+    /// <c>rulesets/minimal.toml</c> now declares <c>arterial_count = 0</c>, so the graph the long run
+    /// uses reaches <em>neither</em> Arterial branch — which is precisely the narrowing described
+    /// above, arriving by a deliberate content decision rather than by accident. The test was right
+    /// and the fix is not to weaken it: the branches are asserted against <b>the graph this run used
+    /// until that day</b>, the shipped <c>[roads]</c> with its eight Arterials put back, and the
+    /// severed-city claims proper live in <c>RoadSeveranceTests</c> over eight seeds.
+    /// </para>
+    /// <para>
+    /// <b>What is genuinely given up is worth naming rather than burying.</b> The 100,000-Tick run
+    /// now exercises a pure Street lattice, so <c>adr/0006</c>'s no-growth claim is no longer tested
+    /// against a graph with destroyed and crossing Segments in it. That is a coverage loss with a
+    /// cause — an Arterial is a player tool nothing can produce (<c>adr/0077</c>, <c>adr/0090</c>)
+    /// and it grants no frontage — and it is recorded here so a later reader does not have to
+    /// rediscover why the long run got simpler.
+    /// </para>
     /// </remarks>
     [Fact]
     public void Both_generator_branches_were_reached_by_the_graph_this_run_uses()
     {
-        Run(out World world, out _);
+        var roads = GoldenFixtures.Rules().Roads with { ArterialCount = 8 };
+        World world = new(Population, RoadFixtures.With(roads));
+
+        RoadGenerator.LayInto(world.Roads, WorldKey.FromSeed(GoldenFixtures.Seed), CellGrid.WorldTiles);
 
         RoadGraph graph = world.Roads;
 
@@ -203,7 +223,10 @@ public sealed class RoadLongRunTests
         var roads = GoldenFixtures.Rules().Roads with { ArterialCount = 0 };
         World world = new(Population, RoadFixtures.With(roads));
 
-        SyntheticCity.PopulateInto(world, WorldKey.FromSeed(GoldenFixtures.Seed), Ticks.Zero);
+        // Laid directly and at the whole map, to match the graph it is the control for. Going
+        // through the populator would size the lattice to 1,000 Citizens' Lots and compare 31,894
+        // Streets against 60, which is a control for a different city.
+        RoadGenerator.LayInto(world.Roads, WorldKey.FromSeed(GoldenFixtures.Seed), CellGrid.WorldTiles);
 
         return world.Roads.Segments.Rows.LiveCount;
     }

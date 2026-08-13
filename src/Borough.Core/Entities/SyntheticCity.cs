@@ -100,13 +100,6 @@ public static class SyntheticCity
                 + "second of. Populate is world creation, so it belongs at Tick 0 and once.");
         }
 
-        // The roads first, because a Lot's frontage is a property of the Street network and the
-        // subdivider that will read it is 5a-bis. Laid here rather than in World's constructor for
-        // S0a's reason: a verb applied through Phase 0 is in the Input Log, so replay reproduces the
-        // network by construction rather than by a second generator agreeing with the first. It
-        // no-ops on a Ruleset that declares no [roads].
-        RoadGenerator.LayInto(world.Roads, key);
-
         int population = world.Citizens.Rows.Capacity;
         int households = IntegerMath.FloorDiv(population * 360, 1_000);
 
@@ -120,6 +113,16 @@ public static class SyntheticCity
                 : UndeclaredOccupancy;
 
         int buildings = IntegerMath.FloorDiv(households, occupancy) + 1;
+
+        // The roads, laid over the area this city will occupy rather than over the map. Laid here
+        // rather than in World's constructor for S0a's reason: a verb applied through Phase 0 is in
+        // the Input Log, so replay reproduces the network by construction rather than by a second
+        // generator agreeing with the first. It no-ops on a Ruleset that declares no [roads].
+        //
+        // It has to come after the Building count, which is why that count moved above it: the extent
+        // is derived from what is about to be built, and it used to be the whole map unconditionally.
+        RoadGenerator.LayInto(world.Roads, key, PavedTiles(world));
+
         int lots = Subdivide(world, buildings);
 
         // The populator must house what it creates, so the Building count follows the land the
@@ -191,6 +194,72 @@ public static class SyntheticCity
     /// never finds its faces already taken by its neighbour.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// How far the Street lattice reaches from the origin corner, in Tiles: enough ground to carry
+    /// the Lots this world was allocated for.
+    /// </summary>
+    /// <remarks>
+    /// <b>Derived, with no free number in it — and the number it is derived from is the one the
+    /// world already allocated.</b> <see cref="LotSubdivider"/> carves a block against its four faces
+    /// and claims one <em>side</em> of each, and <c>[lots] lots_per_segment</c> splits between the two
+    /// sides of a Segment, so a <c>B×B</c> block lattice carries <c>2 × lots_per_segment × B²</c>
+    /// Lots. This solves that for the smallest <c>B</c> holding <see cref="LotTable"/>'s capacity,
+    /// which <see cref="World"/> sets at <b>225 Lots per 1,000 Citizens</b>.
+    /// <para>
+    /// <b>Sizing this to the Building count instead is the first thing that was tried, and
+    /// <c>PlacementLongRunTests</c> refuted it.</b> A lattice holding exactly the Buildings a city
+    /// raises leaves <b>three</b> spare Lots at 1,000 Citizens where the whole map leaves nine — and
+    /// a Ruleset that demolishes continuously rebuilds onto <em>vacant</em> Lots, so the pass falls
+    /// behind and the Unplaced Pool climbs 9% over the tail of a 100,000-Tick run.
+    /// <b>A city paves the ground it develops into, not the ground it stands on</b>, and
+    /// <c>adr/0021</c>'s <i>developed area</i> reads as the second when the mechanism needs the first.
+    /// Taking the figure from <see cref="LotTable"/>'s capacity rather than inventing a headroom
+    /// factor keeps a hash-bearing number out of this file: the allocator had already answered
+    /// <i>how much land does a city of N want</i>, and the generator was disagreeing with it in
+    /// silence.
+    /// </para>
+    /// <para>
+    /// <b>Why this exists at all.</b> The generator paved the whole map on every call until
+    /// 2026-08-13 — <c>(WorldTiles ÷ block_tiles + 1)²</c> nodes regardless of the population — which
+    /// is <c>adr/0021</c>'s <i>scale with developed area, not map area</i> being false in the one
+    /// place nothing measured. It was invisible at 128 Cells because a 1M city wants <b>150</b> blocks
+    /// against the 128 the map has, so the requirement exceeded the map and the clamp below was the
+    /// whole behaviour. <b>Nothing at target scale moves; what moves is every city smaller than the
+    /// map</b>, which until now is every city anybody has run.
+    /// </para>
+    /// <para>
+    /// <b>This assumes no Arterial destroys a Street it crosses</b>, which holds because the shipped
+    /// Rulesets declare none. <c>rulesets/severance.toml</c> does declare them, and its own tests lay
+    /// the whole map deliberately rather than coming through here — an Arterial grants no frontage
+    /// (<c>adr/0014</c>), so in a lattice sized to its Lots an Arterial can only take Lots away.
+    /// </para>
+    /// </remarks>
+    private static int PavedTiles(World world)
+    {
+        int block = world.Rules.Roads.BlockTiles;
+        int perSegment = world.Rules.Lots.LotsPerSegment;
+        int wanted = world.Lots.Rows.Capacity;
+
+        if (block <= 0 || perSegment <= 0 || wanted <= 0)
+        {
+            return CellGrid.WorldTiles;
+        }
+
+        // SqrtFloor and then step up, rather than a ceiling division that would need a float. One
+        // step is enough because the floor is out by at most one.
+        long perBlock = 2L * perSegment;
+        int blocks = (int)IntegerMath.SqrtFloor(IntegerMath.FloorDiv(wanted, perBlock));
+
+        while (perBlock * blocks * blocks < wanted)
+        {
+            blocks++;
+        }
+
+        int tiles = blocks * block;
+
+        return tiles < CellGrid.WorldTiles ? tiles : CellGrid.WorldTiles;
+    }
+
     private static int Subdivide(World world, int wanted)
     {
         int blocks = world.Roads.Streets.Blocks;

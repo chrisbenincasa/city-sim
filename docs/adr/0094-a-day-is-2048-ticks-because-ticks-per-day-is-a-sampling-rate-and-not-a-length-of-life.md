@@ -129,7 +129,7 @@ not. **This is the only rescaling in the change**, and it is a Ruleset edit rath
 ### The costs, in full, and two of them are large
 
 **Routing costs 4× per real second.** A route search fires per Trip, Trips are per-Day, and Days arrive
-four times faster. [`plans/0013`](../plans/0013-tick-budget.md) sums to **≥17.8 ms** — ≥114% of a
+four times faster. [`plans/0013`](../../plans/0013-tick-budget.md) sums to **≥17.8 ms** — ≥114% of a
 15.6 ms budget — with **9.4–10.5 ms** of it routing; holding everything else flat, the ledger becomes
 **~47.6 ms**, which is **~305% at 4× and ~76% at 1×**. ⚠ *Those are one bill and two rungs, not two
 results: **carry the bill, not the percentage** (`plans/0013`).* The simulation as priced still fits where the game is designed to be played and no longer fits at

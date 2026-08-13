@@ -57,15 +57,27 @@ public static class CellGrid
     /// inert everywhere. The old 2048² fallback is struck.
     /// </para>
     /// <para>
-    /// <b>The flip is gated on a defect, and the gate is why this still reads 128.</b>
-    /// <see cref="RoadGenerator"/> lays a complete Street lattice over the whole map at world creation —
-    /// <c>(WorldTiles ÷ block_tiles + 1)²</c> nodes — so 512 would generate <b>525,312 Street
-    /// Segments</b> and, at <c>lots_per_segment = 5</c>, <b>2,626,560 Lots</b> against the 225,000
-    /// <see cref="Entities.World"/> allocates for a 1M city. That is <c>adr/0021</c>'s <em>memory scales
-    /// with developed area, not with map area</em> being false in exactly one place, and it is invisible
-    /// at 128 because a 16 km map is one a city genuinely does pave. Its repair is
-    /// <c>plans/0002</c> ledger #2 — <em>open map, or progressive land unlock</em> — which is a design
-    /// question and must not be answered by capping the generator here.
+    /// <b>✅ THE GATE IS DISCHARGED — <c>plans/0003</c> queue item 6, 2026-08-13 — and the flip is now
+    /// a one-line commit of its own that nothing stands in front of.</b> The gate was that
+    /// <see cref="RoadGenerator"/> paved the whole map, <c>(WorldTiles ÷ block_tiles + 1)²</c> nodes, so
+    /// 512 would have generated <b>525,312 Street Segments</b> and, at <c>lots_per_segment = 5</c>,
+    /// <b>2,626,560 Lots</b> against the 225,000 <see cref="Entities.World"/> allocates for a 1M city.
+    /// <see cref="RoadGenerator.LayInto"/> now takes an extent and
+    /// <see cref="Entities.SyntheticCity"/> derives it from the Lot count the population asks for, so a
+    /// 1M city paves a 4,800-Tile lattice — <b>8.6% of a 512-Cell map</b>, which is the buildable
+    /// fraction <c>adr/0089</c> reasoned about — and the map's own size stops being an input to it.
+    /// </para>
+    /// <para>
+    /// <b>⚠ The sentence this comment used to carry is the reason the gate existed, and it was never
+    /// true.</b> It said the lattice was laid <em>"at world creation"</em>. It is laid by
+    /// <see cref="Entities.SyntheticCity"/>, which is reached only by <c>CommandKind.Populate</c> — a
+    /// verb no player has — so a player's world has had <b>no roads at all</b> since 5a and
+    /// <c>adr/0021</c> was never violated where this paragraph said it was. Both this item and
+    /// <c>adr/0089</c> reasoned from that sentence.
+    /// <c>adr/0093</c>: <em>a description of the build is where to look, and never what you found</em>,
+    /// and its writing half is the fix — <b>name a symbol, never a time</b>. <em>"At world creation"</em>
+    /// cannot be checked without already knowing the answer; <em>"when <c>SyntheticCity</c> runs"</em> is
+    /// one grep.
     /// </para>
     /// <para>
     /// Changing this moves every State Hash and re-records all three golden baselines, so it is one
@@ -86,7 +98,7 @@ public static class CellGrid
 
     /// <summary>
     /// The map's edge, in Cells. 128, which is a 4096² Tile map — and <b>512 is the decided value,
-    /// gated</b>. See <see cref="WorldTiles"/>.
+    /// no longer gated</b>. See <see cref="WorldTiles"/>.
     /// </summary>
     public const int WorldCells = 128;
 

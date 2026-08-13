@@ -297,9 +297,21 @@ sealing_decay_tau     = 0
 # nominal figure so that volume/capacity is defined rather than a division by zero. The loader
 # multiplies by 24 exactly -- a Day is CONTEXT's only time unit above the Tick, where Q16.16
 # Vehicles per Tick would be a fourth quantity at a scale adr/0071 enumerates exactly three for.
+#
+# ARTERIAL_COUNT IS ZERO HERE, AND IT WAS 8 UNTIL 2026-08-13. Three facts settled it, none of them
+# about tuning. An Arterial is a PLAYER TOOL -- adr/0014's freeform spline with authored Junction
+# pieces, "deliberately rare" -- and nothing in the build can make one: adr/0077 refuses Arterials
+# and Junctions by name in CommandKind.Connect, and adr/0090 says the generator lays no roads at
+# all. So every Arterial that has ever existed in this project was laid by SyntheticCity, a fixture
+# reached only by "a verb no player has". Second, an Arterial grants no frontage (adr/0014), so it
+# contributes no Lot and can only delete Streets it crosses. Third, the 240-configuration sweep
+# measured this lattice severing 0.0%% at every dial value and stranding zero walkable nodes on
+# seven of eight seeds -- so these 8 were doing nothing, and once the populator paves the area it
+# occupies rather than the map they would start doing harm. Severance is demonstrated by
+# rulesets/severance.toml, which keeps its 16 and lays the whole map on purpose.
 [roads]
 block_tiles                    = 32
-arterial_count                 = 8
+arterial_count                 = 0
 arterial_junction_tiles        = 512
 foot_crossing_every            = 4
 foot_paths_per_thousand_blocks = 40

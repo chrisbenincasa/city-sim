@@ -253,13 +253,19 @@ public sealed class JobAssignmentTests
     /// </para>
     /// <para>
     /// ⚠ <b>It is asserted at a Budget of two minutes rather than at the shipped twenty, because the
-    /// shipped Budget is inert on a fixture this size and that is worth knowing.</b> The golden world
-    /// is 1,000 Citizens, which the populator houses in about 120 Buildings on one contiguous strip of
-    /// blocks — every pair in it is a few minutes' walk apart, so nothing is ever refused for length.
-    /// At 10,000 Citizens the same Ruleset reports a steady <c>beyond</c> of 48 per census interval.
-    /// <b>So the committed baseline does not reach this branch</b>, which is slice 10 task 11's
-    /// finding arriving for the third time: <i>a baseline records what a run did</i>, and a Budget
-    /// chosen against the map is not thereby exercised by every world on it.
+    /// shipped Budget barely bites on a fixture this size.</b> Measured across populations under the
+    /// shipped geometry, <c>beyond</c> over 512 Ticks runs <b>0, 0, 3, 213</b> at 1,000, 2,000, 4,000
+    /// and 8,000 Citizens — so the golden fixture, at 4,000, sits on the first rung that refuses
+    /// anything at all, and refuses 3 walks out of 2,000 considered. <b>Two minutes is what makes the
+    /// counter a measurement rather than a sighting.</b>
+    /// </para>
+    /// <para>
+    /// <b>The fixture reached this branch by being raised for another reason.</b> It was 1,000
+    /// Citizens until queue item 6, which raised it to 4,000 so that the Zone Rule's create branch
+    /// would be exercised by the committed session; the Budget refusal came with it, unasked. That is
+    /// slice 10 task 11's finding running <i>forwards</i> — <i>a baseline records what a run did</i>,
+    /// so a change that widens what the run reaches is invisible in it too, and this one would have
+    /// gone unnoticed had the negative assertion below not failed.
     /// </para>
     /// </remarks>
     [Fact]
@@ -269,19 +275,26 @@ public sealed class JobAssignmentTests
     }
 
     /// <summary>
-    /// <b>The shipped Budget refuses nothing on the golden fixture, and that is asserted rather than
-    /// left to be discovered.</b>
+    /// <b>The shipped Budget refuses at least one walk on the golden fixture, and it did not until the
+    /// fixture was raised to 4,000 Citizens.</b>
     /// </summary>
     /// <remarks>
-    /// The negative half of the test above, and it exists so that the fact cannot rot silently. If a
-    /// future <c>[roads]</c>, population or Budget makes the golden world start refusing walks, this
-    /// fails and the note above becomes wrong in a way somebody has to read — which is the opposite of
-    /// how the corpus usually finds out that a paragraph has stopped being true.
+    /// <b>The sibling of the test above, and it did its job by failing.</b> It was written as the
+    /// negative half — <c>Beyond.Sum == 0</c> — precisely so that a future <c>[roads]</c>, population
+    /// or Budget making the golden world start refusing walks would have to be read by somebody rather
+    /// than discovered later. Queue item 6 raised the population for an unrelated reason and this is
+    /// what said so.
+    /// <para>
+    /// <b>It asserts the branch is reached and not how far past it the city is.</b> The margin is 3
+    /// refusals out of 2,000 considered, which is a knife edge: the ladder in the test above puts the
+    /// next rung up at 213. Pinning the 3 would make this a test of the populator's Lot ordering, and
+    /// what is worth holding is that the committed baseline exercises the refusal at all.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_shipped_budget_is_inert_on_a_world_this_small()
+    public void The_shipped_budget_bites_on_the_golden_fixture()
     {
-        Assert.Equal(0, Run(GoldenFixtures.Rules()).Employment.Drain().Beyond.Sum);
+        Assert.True(Run(GoldenFixtures.Rules()).Employment.Drain().Beyond.Sum > 0);
     }
 
     /// <summary>

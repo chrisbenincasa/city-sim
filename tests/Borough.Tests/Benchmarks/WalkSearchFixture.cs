@@ -251,7 +251,7 @@ internal static class WalkSearchFixture
     {
         RoadGraph graph = new(roads);
 
-        RoadGenerator.LayInto(graph, WorldKey.FromSeed(seed));
+        RoadGenerator.LayInto(graph, WorldKey.FromSeed(seed), CellGrid.WorldTiles);
 
         return graph;
     }

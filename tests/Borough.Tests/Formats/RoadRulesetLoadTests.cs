@@ -465,7 +465,12 @@ public sealed class RoadRulesetLoadTests
         // 32 Tiles is one Street on every Cell boundary, which is the rung that reproduces
         // CONTEXT.md -> Segment's ~30,000-Segment placeholder.
         Assert.Equal(CellGrid.TilesPerCell, roads.BlockTiles);
-        Assert.Equal(8, roads.ArterialCount);
+
+        // Zero since 2026-08-13, and the file says at length why: an Arterial is a player tool that
+        // adr/0077 refuses in the command and adr/0090 keeps out of the generator, it grants no
+        // frontage so it can only take Lots away, and the 240-configuration sweep measured these
+        // eight severing 0.0% on this lattice. Severance is demonstrated by rulesets/severance.toml.
+        Assert.Equal(0, roads.ArterialCount);
         Assert.Equal(512, roads.ArterialJunctionTiles);
         Assert.Equal(4, roads.FootCrossingEvery);
         Assert.Equal(40, roads.FootPathsPerThousandBlocks);
