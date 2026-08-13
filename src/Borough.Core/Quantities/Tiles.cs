@@ -6,7 +6,7 @@ namespace Borough.Core.Quantities;
 /// Whole-Tile distance or extent, as a signed 32-bit count. Space in the core is Tiles and nothing else.
 /// </summary>
 /// <remarks>
-/// The map is 4096² Tiles at roughly 4 m each, so i32 carries six orders of magnitude of headroom
+/// The map is 16384² Tiles at roughly 4 m each, so i32 carries five orders of magnitude of headroom
 /// over any distance the world can hold. Signed because a difference of two coordinates is a
 /// direction as well as a length.
 /// <para>
@@ -20,6 +20,18 @@ namespace Borough.Core.Quantities;
 /// </remarks>
 public readonly record struct Tiles(int Raw) : IComparable<Tiles>
 {
+    /// <summary>
+    /// A Tile's edge in metres. <b>The one place this simulation says how big a Tile is.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Here rather than on <c>CellGrid</c>, because the Tile is the unit and the Cell is a
+    /// multiple of it.</b> <c>CellGrid.MetresPerCell</c> derives from this; so does
+    /// <see cref="Speed"/>'s conversion from km/h, which needs to know what a Tile is worth on the
+    /// ground before it can say how many of them a Tick covers. ~4 m is <c>CONTEXT.md</c> → Cell's
+    /// figure and <c>05 §26</c>'s.
+    /// </remarks>
+    public const int Metres = 4;
+
     /// <summary>No distance.</summary>
     public static Tiles Zero => new(0);
 

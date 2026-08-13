@@ -11,8 +11,18 @@ The rule that decides what moves with the constant has three classes and one que
 | Denominated in | Examples | What happens |
 |---|---|---|
 | **In-world time** | speeds in km/h, the Commute Budget in minutes, pollution decaying over a Day | **unchanged as a quantity, ×4 more of it per real second** |
-| **Ticks** | Rule `rate`, `revisit_ticks`, `interval`, the Map Layer cadence | **kept at its number**, so unchanged in real seconds and ×4 coarser in-world |
+| **Ticks** | Rule `rate`, ~~`revisit_ticks`~~, `interval`, the Map Layer cadence | **kept at its number**, so unchanged in real seconds and ×4 coarser in-world |
+| **Both at once** | conversion factors — `Speed.PerKilometrePerHour`, `TravelTime.RawPerDay` | **⚠ ADDED 2026-08-13 when the change was built.** A factor denominated in two units belongs to no row above, and one of these was a literal |
 | **Days** | Life Stage countdowns, the demographic arc | **unchanged in Days**, so ×4 faster in real time — which is the point of the change |
+
+⚠ **`revisit_ticks` is struck from the Ticks row, 2026-08-13, with the user in the room.** It is a
+**duration** — [`0059`](0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md) makes it
+*how long the development industry takes to look at every Lot once* and derives the sample from it, and
+`rulesets/minimal.toml` says on that very line that **8192 IS TICKS_PER_DAY**. Kept at its number it
+would have made the survey take **four Days** in silence, and the development industry would have been
+the one Day-scale process in the simulation that did *not* speed up with the clock — which is the whole
+point of the change. It goes to 2048 in all three Rulesets. **The cost is real and is accepted**: the
+derived sample quadruples, so the Zone Rule costs ×4 per Tick and exactly what it always did per Day.
 
 Guiding concepts: `SOLVE THE ACTUAL PROBLEM`, `HONEST DEGRADATION`.
 
@@ -208,6 +218,105 @@ rung of a five-rung ladder with 20.83 ms at 3×.
 because it answers a narrower question than `0043`, `0052`, `0070` and `0093` do — those govern what a
 sitting may conclude, and this governs what one arithmetic change touches. If a second global constant
 ever moves, this table is what to read first.
+
+## What building it found
+
+**Built 2026-08-13, `plans/0003` queue item 7.** `Ticks.PerDay` and `EventWheel.Size` are 2048; all
+three golden baselines re-recorded; 1,279 tests green.
+
+### The rescaling inventory was wrong in two places, and both would have shipped in silence
+
+This ADR says the Goods quantities are ***"the only rescaling in the change"***. There were three, and
+**two of them move down by four while the Goods move up by four**.
+
+**`Speed.PerKilometrePerHour`, in code: 48,000 → 192,000.** A road's free-flow speed is authored in km/h
+and stored in Q16.16 Tiles per Tick, so the conversion factor depends on how long a Tick is. It was a
+**literal**, with the derivation written out in the comment above it. Left alone, an authored
+`walk_speed_kph = 5` would have walked the city at **1.25 km/h** — every commute four times longer in
+clock minutes, and the Commute Budget refusing very nearly every job. **Nothing would have failed to
+compile and no Ruleset text would have been wrong.**
+
+Why the table above missed it: **a conversion factor is denominated in two units at once**, so it
+belongs to none of the three classes. The table has a fourth row now.
+
+**`revisit_ticks` and `pollution_decay_ticks`, in three Rulesets: 8192 → 2048.** Both are durations the
+files themselves describe as *one Day, TICKS_PER_DAY*. Kept at their numbers they would quietly have
+begun meaning **four Days** — a plume outlasting the week, a development industry surveying the city
+once a fortnight. `pollution_decay_ticks` was covered by the *in-world* row all along and simply was not
+enumerated; `revisit_ticks` was **actively misclassified** and is struck from the Ticks row above.
+
+Why the table missed that one: **it read the classes off the key names**, and a key spelled `_ticks`
+whose meaning is a Day looks Tick-denominated from outside. ***The name of a quantity is not its
+denomination***, which is the same shape as the conversion-factor miss one level down.
+
+**The fix in every case was a derivation, not a new value.** `TravelTime` had always written its half as
+an expression, and its own remark says *"the same derivation `Speed` runs, and if one moves both move"*.
+**One fact, stated in two files, spelled as an expression in one and as a value in the other — and the
+value is the copy that drifted.** `plans/0012` **Cause 1**, in code rather than in prose. The metre and
+the second now live in one place each (`Tiles.Metres`, `Ticks.SecondsPerDay`), which is what let the
+factor be written as arithmetic at all.
+
+### `adr/0071`'s two illustrations moved in opposite directions
+
+[`0071`](0071-travel-time-is-sub-tick-and-q16-16-is-a-scale-rather-than-a-meaning.md) rests on two
+readings, and this constant moves them apart.
+
+- **The sub-Tick claim got four times stronger.** A 32-Tile Street at 50 km/h was **0.87 Ticks** and is
+  **0.22**. Under whole-Tick resolution every Street in the city would now be **free** rather than merely
+  cheap, so the argument that ADR was written on is more load-bearing than when it was made.
+- **The flooring error got four times smaller.** A 5 km/h walk was **3.66 Tiles/Tick**, where flooring to
+  whole Tiles cost **20%**; it is **14.65**, where it costs **4.4%**. A fixed rounding step is a smaller
+  share of a larger number.
+
+***One constant, two of an ADR's arguments, opposite directions*** — which is why `adr/0071` is not
+re-derived from either. Both readings are asserted in `TravelTimeTests` with the movement written beside
+them.
+
+**A third, smaller:** halving a speed no longer exactly doubles a traversal cost. It differs by **1** in
+Q16.16 — `1/65,536` of a Tick, **0.64 ms of in-world time** — because a floored quotient doubles only
+when the fraction falls right, and it did at 8192 by luck. The test asserts a one-ULP tolerance now. This
+is the *"one instrument gets coarser"* consequence above, showing up in the simulation's own arithmetic
+rather than only in `--trips`.
+
+### Five tests were asserting a number where they meant a relation
+
+Every one of them named a value that is a function of `Ticks.PerDay`, and none of them could say so —
+three were `[InlineData]` literals, where an attribute argument cannot be an expression.
+`The_departure_window_is_derived_from_the_peak` now asserts the **definition of a ceiling division**;
+`A_trigger_evaluates_exactly_its_derived_sample` asserts that a hundred times the Lots is a hundred times
+the sample; the pollution tau is computed from the period. ***Restating the old numbers would have left
+the same trap set for the next change.***
+
+**And one instrument was reading one instant where it meant a run — while coverage went *up*.**
+`GoldenSessionCoverageTests` counts commute Trips in flight at the final Tick, and found **zero**. Not a
+regression: the departure window is `ceil(TICKS_PER_DAY ÷ commute_peak_factor)`, which fell 2,731 → 683,
+so the session now covers **every** departure phase instead of three quarters — and a Trip is in flight
+for a quarter as long, so by Tick 2048 the Day's commuting is over. **The baseline got better and the
+assertion measuring it went to zero.** It samples eight points across the run now.
+
+**Two long-run tests broke on the same axis, and neither was measuring what it claimed.**
+`LayerLongRunTests` reads a contraction — the sweep-to-sweep step shrinking toward zero — from a window
+starting fifteen sweeps in. The pollution tau fell 128 → 32, so the field converges four times sooner in
+sweeps and that window now contains **no transient at all**: it read `0 → 0` and failed, *not because
+nothing converged but because it had finished converging before the instrument started looking*. The rise
+is read from the start of the run now. And `LotLongRunTests`' vacuity guard — *did laying the Street
+carve any Lots?* — fired on a run where **41 of 97 edits carved Lots perfectly well**, because it read
+`afterLay[0]` alone and the Zone Rule's quadrupled sample had put Buildings on that face by the first
+edit. ***A guard against vacuity that reads one sample can itself be defeated by timing***, which is the
+fourth time in two days that a single draw has been mistaken for a property.
+
+### What did not move, and one thing that did
+
+`--commute`'s cost histogram keeps its shape and its mode — the 8–16 minute band — which is this ADR's
+*"nothing authored in minutes changes"* holding end to end from a Ruleset's `20` to a printed
+distribution. `CommuteRoster` simply allocates fewer buckets. `LayerSchedule.DefaultPollutionDecayTicks`
+was already `Ticks.PerDay` and needed nothing.
+
+⚠ **Employment on the shipped Ruleset fell from 6,844 to 2,791 of 10,000 over 2,048 Ticks**, and it is
+the `revisit_ticks` decision rather than the clock: the Zone Rule now surveys the whole city every Day
+instead of every four, so it condemns four times as fast per Tick and the standing stock is smaller.
+That is a property of a file whose own header says it models no city, and it is recorded rather than
+tuned.
 
 ## What would trigger revisiting
 

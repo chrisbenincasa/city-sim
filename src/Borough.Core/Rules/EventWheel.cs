@@ -96,7 +96,7 @@ public sealed class EventWheel
     /// correct spelling — <c>adr/0015</c>'s no-<c>const</c> rule governs numbers a designer would want
     /// to change, and changing this one is a different world rather than a different balance.
     /// </remarks>
-    public const int Size = 8192;
+    public const int Size = 2048;
 
     private readonly WheelBucketTable _buckets;
     private readonly RuleInstanceTable _instances;

@@ -232,9 +232,10 @@ matrix, which also carries 5b's unpaid `adr/0041` volume debt that 7a's Stress r
 rather than first on purpose: 5c moves every State Hash, and so do items 6 and 7, so it wants the tree to
 itself.* **What is next is therefore a choice rather than a
 queue**, and the ~~three~~ ~~four~~ **four candidates were, of which item 6 and the map flip have since shipped**:
-[`0003`](0003-build-plan.md)'s hash-moving queue **item 7** — the
+~~[`0003`](0003-build-plan.md)'s hash-moving queue **item 7** — the
 `TICKS_PER_DAY` flip, which is mechanical and should land before more Rulesets are authored, because
-Goods quantities rescale ×4; [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s
+Goods quantities rescale ×4;~~ **✅ its clock half shipped 2026-08-13 and the Goods rescale is the one
+thing it still owes;** [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s
 **three rungs**, which is Ruleset content plus one comparison and is what makes 5b-bis's *binding hard*
 reading interpretable; and ~~**[`0003`](0003-build-plan.md) queue item 6** — scoping `SyntheticCity`'s paving to the area it
 populates, which is what [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)'s
@@ -243,6 +244,17 @@ argument**: it named `plans/0002` **ledger #2**, *open map or progressive unlock
 [`adr/0090`](../docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md) had closed it
 as **refused** the day before — by this same session. `plans/0012` **Cause 2**, and the sixth
 `adr/0093` sighting in four days.
+
+✅ **ITEM 7'S CLOCK HALF SHIPPED 2026-08-13 TOO — `Ticks.PerDay` and `EventWheel.Size` are 2048.**
+All three golden baselines re-recorded. ⚠ **It was billed as "one line each" and
+[`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)'s
+own rescaling inventory turned out wrong in two places, both of which would have shipped in silence**:
+it says the Goods quantities are *the only rescaling*, and there were **three**, two moving **down** ×4
+while the Goods move **up** ×4. `Speed.PerKilometrePerHour` was a **literal**, so a walk would have run
+at **1.25 km/h** with nothing failing to compile; `revisit_ticks` was **actively misclassified by that
+ADR's own table** and is struck from it with the user in the room. ***The name of a quantity is not its
+denomination.*** Full record in [`0003`](0003-build-plan.md) → *The hash-moving queue* and the ADR's
+*What building it found*. ⚠ **The Goods ×4 rescale is still owed and is the next commit.**
 
 ✅ **ITEM 6 SHIPPED 2026-08-13, and it produced a fifth candidate by discharging a gate.**
 `RoadGenerator.LayInto` takes an extent and `SyntheticCity` derives it from the Lot count the population

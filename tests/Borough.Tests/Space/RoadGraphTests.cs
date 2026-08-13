@@ -101,6 +101,19 @@ public sealed class RoadGraphTests
         Assert.Equal(Speed.FromKilometresPerHour(25), graph.Segments.FreeFlow[0]);
     }
 
+    /// <summary>
+    /// Halving a speed doubles the traversal cost, <b>to the last bit the format has and not past
+    /// it.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>This asserted exact equality until 2026-08-13 and it was exact by luck.</b> A cost is
+    /// <c>FloorDiv(distance × One, speed)</c>, and a floored quotient does not in general double when
+    /// its divisor halves — it does so only when the fraction happens to fall right. It did at
+    /// <c>Ticks.PerDay = 8192</c>; at 2048 the two differ by <b>1</b>, which is <c>1/65,536</c> of a
+    /// Tick, or <b>0.64 ms of in-world time</b>. <c>adr/0094</c> notes that one instrument gets coarser
+    /// under the shorter Day; this is the same two bits showing up in the simulation's own arithmetic,
+    /// and the tolerance is stated in ULPs so that a real regression still fails.
+    /// </remarks>
     [Fact]
     public void Halving_a_speed_doubles_the_traversal_cost()
     {
@@ -110,7 +123,14 @@ public sealed class RoadGraphTests
 
         graph.Adopt(RoadFixtures.Roads() with { StreetSpeed = Speed.FromKilometresPerHour(25) });
 
-        Assert.Equal(before.Raw * 2, graph.Arcs.CarTime[0].Raw);
+        int doubled = graph.Arcs.CarTime[0].Raw;
+        int drift = doubled - (before.Raw * 2);
+
+        Assert.True(
+            drift is >= -1 and <= 1,
+            $"halving the speed moved the cost from {before.Raw} to {doubled}, which is {drift} "
+            + "Q16.16 units away from double. One unit is the format's floor; more than one is the "
+            + "conversion having changed rather than the rounding having landed differently.");
     }
 
     /// <summary>

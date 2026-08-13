@@ -42,7 +42,7 @@ public static class CellGrid
     /// in metres, and can you defend the figure from reality</em>, and a radius that was only ever a
     /// Cell count has no answer to it.
     /// </remarks>
-    public const int MetresPerCell = 128;
+    public const int MetresPerCell = TilesPerCell * Tiles.Metres;
 
     /// <summary>
     /// The map's edge, in Tiles.

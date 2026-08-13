@@ -231,30 +231,50 @@ public sealed class GoldenSessionCoverageTests
     /// count.
     /// </para>
     /// <para>
-    /// ⚠ <b>What this cannot tell you is whether the window is covered.</b> The session is 2,048 Ticks
-    /// and the departure window at <c>commute_peak_factor = 3</c> is 2,731, so the baseline reaches
-    /// three quarters of the departure phases and no Citizen in it departs twice. <b>Lengthening the
-    /// session past a Day is what would cover the second departure</b>, and that is a change to the
-    /// baseline rather than a line here.
+    /// ⚠ <b>Sampled across the run rather than at the end, since 2026-08-13.</b> It read the final
+    /// Tick alone until <c>adr/0094</c> took the Day to 2048, and then found <b>nothing at all</b> —
+    /// for two reasons at once, neither of them a regression. The departure window is
+    /// <c>ceil(TICKS_PER_DAY ÷ commute_peak_factor)</c>, which fell from 2,731 to <b>683</b>, so every
+    /// departure now happens in the first third of the session instead of being spread past its end;
+    /// and a walk costs four times fewer Ticks, so a Trip is in flight for a quarter as long. <b>The
+    /// session went from catching the tail of a departure wave to finishing an entire Day's commuting
+    /// with time to spare</b>, and reading one instant found the quiet after it.
+    /// <para>
+    /// The paragraph this replaces said the session <em>"reaches three quarters of the departure
+    /// phases and no Citizen in it departs twice"</em>. It now covers <b>every</b> phase, because the
+    /// session is 2,048 Ticks and a Day is 2,048 Ticks — <b>coverage went up and the assertion that
+    /// measured it went to zero</b>, which is a reading taken at one instant behaving as if it were a
+    /// reading over a run.
     /// </para>
     /// </remarks>
     [Fact]
     public void The_session_sends_people_to_work_without_a_trip_command()
     {
-        World world = At(GoldenFixtures.Session(), new Ticks(GoldenFixtures.Ticks));
+        InputLog session = GoldenFixtures.Session();
+        int busiest = 0;
 
-        int commuting = 0;
-
-        for (int slot = 0; slot < world.Trips.Rows.SlotCount; slot++)
+        // Eight samples across the run. A Fate frees the row, so no single instant can be relied on
+        // to hold one -- what is asserted is that some instant does, which is what "the session
+        // generates commutes" means and what the final Tick alone was standing in for.
+        for (int sample = 1; sample <= 8; sample++)
         {
-            if (world.Trips.Rows.IsLive(slot)
-                && (TripPurpose)world.Trips.Purpose[slot] == TripPurpose.Commute)
+            World world = At(session, new Ticks((ulong)(GoldenFixtures.Ticks * sample / 8)));
+            int commuting = 0;
+
+            for (int slot = 0; slot < world.Trips.Rows.SlotCount; slot++)
             {
-                commuting++;
+                if (world.Trips.Rows.IsLive(slot)
+                    && (TripPurpose)world.Trips.Purpose[slot] == TripPurpose.Commute)
+                {
+                    commuting++;
+                }
             }
+
+            busiest = commuting > busiest ? commuting : busiest;
         }
 
-        Assert.True(commuting > 0, "the committed session generates no commute Trip.");
+        Assert.True(busiest > 0, "the committed session generates no commute Trip at any of eight "
+            + "samples across its run, so nothing in the baseline covers the commute generator.");
     }
 
     /// <summary>How many Lots one block of the lattice carries when all four of its faces are Streets.</summary>

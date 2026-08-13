@@ -110,9 +110,21 @@ public sealed class LayerRulesetLoadTests
     [Fact]
     public void The_default_rates_are_the_derivation_run_on_the_default_cadence()
     {
-        // 8192 / 64 = 128, which is what LayerRates.Default used to state as a literal. If the
-        // default cadence ever moves, this is the assertion that notices the tau moved with it.
-        Assert.Equal(128, LayerRates.Default.PollutionTau);
+        // The tau is a count of scheduled updates: one Day of decay over the pollution period. It
+        // was a literal 128 in LayerRates.Default once, and the comment here said this assertion
+        // existed so that a moving cadence would be noticed. It was -- Ticks.PerDay went to 2048 on
+        // 2026-08-13 (adr/0094) and this failed at 32, which is exactly the ~32 steps per decay that
+        // ADR predicted would still resolve the process. Derived now rather than restated, so the
+        // next move is caught by arithmetic instead of by a stale number.
+        int period = LayerSchedule.Default.IndustrialPollution.Period;
+
+        Assert.Equal(
+            LayerRates.DefaultPollutionDecayTicks / period,
+            LayerRates.Default.PollutionTau);
+
+        // And it still resolves the decay it samples: fewer than a handful of steps per Day would be
+        // a cadence that has stopped measuring the process rather than one that merely moved.
+        Assert.True(LayerRates.Default.PollutionTau >= 16);
     }
 
     [Fact]

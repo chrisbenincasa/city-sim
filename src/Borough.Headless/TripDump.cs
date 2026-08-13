@@ -394,10 +394,10 @@ internal static class TripDump
     }
 
     /// <summary>Metres a Tile — `05 §26`, and the figure `Speed.PerKilometrePerHour` is derived from.</summary>
-    private const int MetresPerTile = 4;
+    private const int MetresPerTile = Core.Quantities.Tiles.Metres;
 
     /// <summary>Minutes an in-world Day, against `Ticks.PerDay` Ticks of it.</summary>
-    private const int MinutesPerDay = 1_440;
+    private const int MinutesPerDay = Core.Quantities.Ticks.MinutesPerDay;
 
     private static Speed WalkSpeed(RoadGraph graph) => graph.Ruleset.WalkSpeed;
 

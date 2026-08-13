@@ -82,10 +82,32 @@ public sealed class LotLongRunTests
 
         // Vacuity: the edits did something. Without this the equalities below hold trivially over a
         // command the simulation refused, which is the shape adr/0070 warns about from the other end.
+        //
+        // ⚠ READ OVER THE WHOLE SERIES SINCE 2026-08-13, AND IT WAS afterLay[0] > afterBulldoze[0]
+        // BEFORE. A lay carves a Lot back only where the bulldoze freed one, and a bulldoze frees
+        // nothing on a face whose Lots are occupied -- adr/0079, a Building outlives its frontage. So
+        // whether the FIRST edit moves anything is a question about what the Zone Rule had built by
+        // then, which is a cadence. adr/0094 took Ticks.PerDay to 2048, revisit_ticks with it, and the
+        // derived sample quadrupled: the block now has Buildings on that face by the first edit and
+        // this guard fired on a run where 41 of 97 edits carved Lots perfectly well. A GUARD AGAINST
+        // VACUITY THAT READS ONE SAMPLE CAN ITSELF BE DEFEATED BY TIMING -- the fourth time in two
+        // days that a single draw has been mistaken for a property.
+        int moved = 0;
+
+        for (int i = 0; i < afterLay.Length; i++)
+        {
+            if (afterLay[i] > afterBulldoze[i])
+            {
+                moved++;
+            }
+        }
+
         Assert.True(
-            afterLay[0] > afterBulldoze[0],
-            "laying the Street carved no Lots, so this run asserts equality over an edit that never "
-            + "happened.");
+            moved * 4 >= afterLay.Length,
+            $"laying the Street carved Lots on only {moved} of {afterLay.Length} edits, so this run "
+            + "mostly asserts equality over an edit that did nothing. Either the editor stopped "
+            + "carving or the face is occupied throughout, and the second is a statement about the "
+            + "Zone Rule rather than about the subdivider.");
 
         // No upward trend, stated as a comparison of quarters. A leak of k rows per cycle makes the
         // last quarter exceed the first by roughly k times a quarter of the edits, which is well

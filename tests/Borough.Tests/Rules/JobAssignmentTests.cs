@@ -275,26 +275,62 @@ public sealed class JobAssignmentTests
     }
 
     /// <summary>
-    /// <b>The shipped Budget refuses at least one walk on the golden fixture, and it did not until the
-    /// fixture was raised to 4,000 Citizens.</b>
+    /// <b>The shipped Budget is inert on a small world and binds on a large one, and the assertion is
+    /// the ladder rather than any one rung.</b>
     /// </summary>
     /// <remarks>
-    /// <b>The sibling of the test above, and it did its job by failing.</b> It was written as the
-    /// negative half — <c>Beyond.Sum == 0</c> — precisely so that a future <c>[roads]</c>, population
-    /// or Budget making the golden world start refusing walks would have to be read by somebody rather
-    /// than discovered later. Queue item 6 raised the population for an unrelated reason and this is
-    /// what said so.
     /// <para>
-    /// <b>It asserts the branch is reached and not how far past it the city is.</b> The margin is 3
-    /// refusals out of 2,000 considered, which is a knife edge: the ladder in the test above puts the
-    /// next rung up at 213. Pinning the 3 would make this a test of the populator's Lot ordering, and
-    /// what is worth holding is that the committed baseline exercises the refusal at all.
+    /// <b>This test has now flipped twice in two days, which is what made a ladder the right shape for
+    /// it.</b> It was written by 5b-bis task 4 as <c>Beyond.Sum == 0</c> on a 1,000-Citizen fixture, so
+    /// that a future <c>[roads]</c>, population or Budget making the golden world start refusing walks
+    /// would have to be read by somebody. Queue item 6 raised the fixture to 4,000 and it began
+    /// refusing <b>3 of 2,000</b>; the assertion was flipped to <c>&gt; 0</c>. Item 7 moved the clock
+    /// the next day and it went back to <b>0</b> — not because travel got cheaper, but because
+    /// <c>revisit_ticks</c> is Day-denominated, so the Zone Rule's derived sample quadrupled and the
+    /// building stock at Tick 512 is a different city.
+    /// </para>
+    /// <para>
+    /// <b>Three of two thousand was never a property worth asserting.</b> It is a knife edge, and a
+    /// knife edge flips on any change at all — which is <c>PlacementLongRunTests</c>' lesson from the
+    /// same week arriving here: <i>a test that draws once cannot tell an outlier from a regression</i>.
+    /// What is stable, and what this milestone actually claims, is the <b>shape</b>: the Budget refuses
+    /// nothing in a small city and refuses steadily in a large one, so it is a real filter rather than
+    /// either a formality or a wall. Measured over 512 Ticks: <b>0, 0, 0, 208</b> at 1,000, 2,000,
+    /// 4,000 and 8,000 Citizens.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>So the committed baseline does not reach the refusal branch again</b>, and that is recorded
+    /// rather than engineered around. Raising the fixture until it did would be sizing the golden world
+    /// to a branch instead of to what it is for.
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_shipped_budget_bites_on_the_golden_fixture()
+    public void The_budget_is_inert_on_a_small_city_and_binds_on_a_large_one()
     {
-        Assert.True(Run(GoldenFixtures.Rules()).Employment.Drain().Beyond.Sum > 0);
+        Assert.Equal(0, Beyond(GoldenFixtures.Population));
+
+        Assert.True(
+            Beyond(GoldenFixtures.Population * 2) > 100,
+            "the Commute Budget refuses nothing even at twice the golden fixture, so it is not a "
+            + "filter on any world this suite runs. Either the geometry shrank or the Budget rose.");
+    }
+
+    /// <summary>Refusals over <see cref="Ticks"/> at a population, on the shipped Ruleset.</summary>
+    private static long Beyond(int population)
+    {
+        InputLogBuilder builder = new(
+            GoldenFixtures.Seed,
+            new WorldConfiguration(population),
+            GoldenFixtures.RulesetHash);
+
+        builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
+
+        InputLog log = builder.Build();
+        Simulation simulation = Replay.Start(log, GoldenFixtures.Rules());
+
+        Replay.Trace(simulation, log, new Ticks((ulong)Ticks), HashEvery, []);
+
+        return simulation.Employment.Drain().Beyond.Sum;
     }
 
     /// <summary>

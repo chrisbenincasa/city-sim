@@ -1,3 +1,4 @@
+using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Formats;
 
@@ -112,11 +113,21 @@ public sealed class JobRulesetLoadTests
     /// nothing has ever measured a window, so the file states the side with evidence and this derives
     /// the other. <c>adr/0059</c> a fourth time.
     /// </remarks>
+    /// <remarks>
+    /// ⚠ <b>Asserted as the relation rather than as a table of expected Ticks, and the reason is that
+    /// the table was one.</b> This carried <c>[InlineData(1, 8_192)]</c> and two siblings until
+    /// <c>Ticks.PerDay</c> went to 2048 on 2026-08-13 (<c>adr/0094</c>). A literal in an
+    /// <c>[InlineData]</c> is a premise about a constant, an attribute argument cannot be an
+    /// expression, and restating the three values would leave the same trap set for the next change.
+    /// <b>What is asserted here is the definition of a ceiling division</b> — the window is the
+    /// smallest <c>W</c> with <c>W × factor ≥ TICKS_PER_DAY</c> — which is an independent statement of
+    /// the intent and not a mirror of <c>CeilDiv</c>.
+    /// </remarks>
     [Theory]
-    [InlineData(1, 8_192)]
-    [InlineData(2, 4_096)]
-    [InlineData(3, 2_731)]
-    public void The_departure_window_is_derived_from_the_peak(int factor, int window)
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void The_departure_window_is_derived_from_the_peak(int factor)
     {
         JobRuleset jobs = Accepted(With($"""
             interval            = 32
@@ -125,7 +136,23 @@ public sealed class JobRulesetLoadTests
             commute_peak_factor = {factor}
             """)).Jobs;
 
-        Assert.Equal(window, jobs.CommuteWindow);
+        int window = jobs.CommuteWindow;
+
+        Assert.True(
+            window * factor >= Ticks.PerDay,
+            $"a window of {window} at a factor of {factor} covers {window * factor} Ticks of a "
+            + $"{Ticks.PerDay}-Tick Day, so somebody never departs.");
+
+        Assert.True(
+            (window - 1) * factor < Ticks.PerDay,
+            $"a window of {window} at a factor of {factor} is wider than it needs to be, so the peak "
+            + "is shallower than the file asked for.");
+
+        // A factor of 1 is a Day with no peak, which is the control the demonstration runs against.
+        if (factor == 1)
+        {
+            Assert.Equal(Ticks.PerDay, window);
+        }
     }
 
     /// <summary>
@@ -136,7 +163,8 @@ public sealed class JobRulesetLoadTests
     /// The polarity every key inside a present table has, and here the placeholder argument is sharp:
     /// an unstated factor read as 1 is a Day with no peak, which is a <em>legitimate</em> authored
     /// value and the control the demonstration runs against — so a default could not announce itself,
-    /// and reading it as 8192 would put the whole city on the road on one Tick of the Day.
+    /// and reading it as <c>Ticks.PerDay</c> would put the whole city on the road on one Tick of the
+    /// Day.
     /// </remarks>
     [Fact]
     public void A_jobs_table_with_no_peak_factor_is_refused()

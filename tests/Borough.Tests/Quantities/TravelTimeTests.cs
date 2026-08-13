@@ -29,10 +29,21 @@ public class TravelTimeTests
 {
     /// <summary>The exchange rate stated in <c>Speed</c>'s own derivation, restated here on purpose.</summary>
     /// <remarks>
-    /// Recomputed from the comment rather than read from the private const, so that a change to the
-    /// factor has to be argued against the derivation instead of silently agreeing with itself.
+    /// <para>
+    /// Recomputed by hand rather than read from the private field, so that a change to the factor has
+    /// to be argued against the derivation instead of silently agreeing with itself.
+    /// <c>(1000 ÷ 3600) × 42.1875 s ÷ 4 m × 65536 = 192,000</c>, where 42.1875 is
+    /// <c>86,400 ÷ 2048</c>.
+    /// </para>
+    /// <para>
+    /// <b>It is deliberately a literal, and it is deliberately fragile.</b> Writing the expression
+    /// here would make this a mirror of <c>Speed</c>'s arithmetic rather than a check on it, and the
+    /// only way a transcription error in that expression gets caught is if some independent statement
+    /// of the answer disagrees. <b>This went from 48,000 to 192,000 on 2026-08-13</b> when
+    /// <c>Ticks.PerDay</c> moved (<c>adr/0094</c>), and failing was the correct behaviour.
+    /// </para>
     /// </remarks>
-    private const int RawPerKilometrePerHour = 48_000;
+    private const int RawPerKilometrePerHour = 192_000;
 
     // ---------------------------------------------------------------------------------------------
     // Speed: the conversion a human authors through, and the one adr/0071 says 05 §121 would corrupt.
@@ -51,15 +62,25 @@ public class TravelTimeTests
     }
 
     /// <summary>
-    /// <b>The 20% error adr/0071 exists to refuse.</b> A walking pace of 5 km/h is 3.66 Tiles/Tick;
-    /// applied literally, <c>05 §121</c>'s <i>"Q16.16 is for sub-Tile positions and nothing else"</i>
-    /// forces it into whole Tiles/Tick and it becomes 3 — on the mode the whole pedestrian layer is
-    /// made of.
+    /// <b>The rounding error adr/0071 exists to refuse.</b> A walking pace of 5 km/h is 14.65
+    /// Tiles/Tick; applied literally, <c>05 §121</c>'s <i>"Q16.16 is for sub-Tile positions and nothing
+    /// else"</i> forces it into whole Tiles/Tick and it becomes 14 — on the mode the whole pedestrian
+    /// layer is made of.
     /// </summary>
     /// <remarks>
-    /// Both halves are asserted because either alone is weak: that the floor <em>is</em> 3 shows what
-    /// the literal reading would keep, and that the raw is <em>not</em> <c>3 × Fixed.One</c> shows what
-    /// it would throw away.
+    /// <para>
+    /// Both halves are asserted because either alone is weak: that the floor <em>is</em> 14 shows what
+    /// the literal reading would keep, and that the raw is <em>not</em> <c>14 × Fixed.One</c> shows
+    /// what it would throw away.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This is the half of <c>adr/0071</c> that the 2026-08-13 clock change made <em>weaker</em>,
+    /// and it is worth saying so.</b> At 8192 Ticks a Day a walk was 3.66 Tiles/Tick and flooring cost
+    /// <b>20%</b>; at 2048 it is 14.65 and flooring costs <b>4.4%</b>, because a longer Tick puts more
+    /// Tiles inside it and a fixed-size rounding step is a smaller share of a larger number. The
+    /// companion test below moved the other way. <b>One constant, two of an ADR's arguments, opposite
+    /// directions</b> — which is why the ADR is not re-derived from either.
+    /// </para>
     /// </remarks>
     [Fact]
     public void A_walking_pace_keeps_the_fraction_the_whole_tile_reading_would_lose()
@@ -67,12 +88,12 @@ public class TravelTimeTests
         Speed walk = Speed.FromKilometresPerHour(5);
 
         Assert.Equal(5 * RawPerKilometrePerHour, walk.Raw);
-        Assert.Equal(new Tiles(3), walk.ToTilesPerTickFloor());
+        Assert.Equal(new Tiles(14), walk.ToTilesPerTickFloor());
 
-        // The 20% error, stated as the inequality it is.
-        Assert.NotEqual(3 * Fixed.One, walk.Raw);
-        Assert.True(walk.Raw > 3 * Fixed.One);
-        Assert.True(walk.Raw < 4 * Fixed.One);
+        // The 4.4% error, stated as the inequality it is.
+        Assert.NotEqual(14 * Fixed.One, walk.Raw);
+        Assert.True(walk.Raw > 14 * Fixed.One);
+        Assert.True(walk.Raw < 15 * Fixed.One);
     }
 
     [Fact]
@@ -84,19 +105,21 @@ public class TravelTimeTests
     /// </summary>
     /// <remarks>
     /// <b>The docstring on <c>Speed.FromKilometresPerHour</c> says the range is exceeded "at ~682
-    /// km/h" and the guard it documents refuses at 44,739.</b> The guard is
-    /// <c>FloorDiv(Fixed.MaxValue, 48_000)</c>, and <c>Fixed.MaxValue</c> is <c>int.MaxValue</c> — the
-    /// raw ceiling, not the whole-value one. 682 is <c>32,767 ÷ 48</c>: the whole part of the format's
-    /// range divided by the factor with its thousand dropped, which is a units slip of exactly 65.536×.
-    /// The <em>guard</em> is right — a raw of 2,147,472,000 is the largest speed the format holds — so
-    /// this test asserts the code and the prose is what owes a correction.
+    /// km/h" and the guard it documents refuses at 11,184.</b> The guard is
+    /// <c>FloorDiv(Fixed.MaxValue, RawPerKilometrePerHour)</c>, and <c>Fixed.MaxValue</c> is
+    /// <c>int.MaxValue</c> — the raw ceiling, not the whole-value one. 682 was <c>32,767 ÷ 48</c>: the
+    /// whole part of the format's range divided by the old factor with its thousand dropped, which is
+    /// a units slip of exactly 65.536×. The <em>guard</em> is right, so this test asserts the code and
+    /// the prose is what owes a correction. <b>The ceiling fell 44,739 → 11,184 with the clock</b>,
+    /// because a longer Tick covers more Tiles at the same km/h; it still refuses nothing a city
+    /// would author.
     /// </remarks>
     [Fact]
     public void A_speed_refuses_to_leave_the_format_and_accepts_the_boundary()
     {
         int ceiling = IntegerMath.FloorDiv(Fixed.MaxValue, RawPerKilometrePerHour);
 
-        Assert.Equal(44_739, ceiling);
+        Assert.Equal(11_184, ceiling);
 
         Speed fastest = Speed.FromKilometresPerHour(ceiling);
         Assert.Equal(ceiling * RawPerKilometrePerHour, fastest.Raw);
@@ -127,9 +150,16 @@ public class TravelTimeTests
     // ---------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// <b>adr/0071's core claim, as an assertion.</b> A 32-Tile Street at 50 km/h is 0.87 Ticks — a
+    /// <b>adr/0071's core claim, as an assertion.</b> A 32-Tile Street at 50 km/h is 0.22 Ticks — a
     /// real cost, strictly inside one Tick, which whole-Tick resolution has no way to hold.
     /// </summary>
+    /// <remarks>
+    /// ⚠ <b>This is the half of <c>adr/0071</c> that the 2026-08-13 clock change made <em>stronger</em>,
+    /// by four times.</b> It was 0.87 Ticks at 8192 Ticks a Day — already inside one — and it is 0.22
+    /// at 2048. <b>Under whole-Tick resolution every Street in the city would now be free rather than
+    /// merely cheap</b>, so the argument that ADR was written on is four times more load-bearing than
+    /// when it was made. The companion test above moved the other way.
+    /// </remarks>
     [Fact]
     public void A_street_segment_costs_less_than_one_whole_tick()
     {
@@ -138,8 +168,8 @@ public class TravelTimeTests
         Assert.True(cost > TravelTime.Zero);
         Assert.True(cost < TravelTime.FromTicks(1));
 
-        // 0.87 Ticks, to the resolution the format has: 57,266 / 65,536.
-        Assert.Equal(57_266, cost.Raw);
+        // 0.22 Ticks, to the resolution the format has: 14,316 / 65,536.
+        Assert.Equal(14_316, cost.Raw);
 
         // What the panel would print, and the reason it must never be what A* compares.
         Assert.Equal(new Ticks(0), cost.ToTicksFloor());
@@ -191,9 +221,16 @@ public class TravelTimeTests
     /// </summary>
     /// <remarks>
     /// The case is chosen so that whole-Tick rounding would lose everything: seven 32-Tile Streets at
-    /// 50 km/h are 6.12 Ticks, and seven costs each floored to a whole Tick sum to <b>zero</b>. The
+    /// 50 km/h are 1.53 Ticks, and seven costs each floored to a whole Tick sum to <b>zero</b>. The
     /// sum is asserted against <c>cost × 7</c> rather than against a literal, because the claim is
     /// exactness rather than a number.
+    /// <para>
+    /// <b>The path was 6.12 Ticks before the clock moved on 2026-08-13, and the arc count is kept at
+    /// seven rather than raised to twenty-eight to restore it.</b> The claim is that the sum is exact
+    /// where flooring loses everything, and it is still exactly that: each arc floors to zero, the
+    /// path does not. Raising the count to put the old figure back would be tuning a test to an answer
+    /// it used to give.
+    /// </para>
     /// </remarks>
     [Fact]
     public void Summing_arcs_is_exact_where_whole_ticks_would_lose_everything()
@@ -210,11 +247,11 @@ public class TravelTimeTests
 
         Assert.Equal(arc * Arcs, path);
         Assert.Equal(Arcs * arc, path);
-        Assert.Equal(57_266 * Arcs, path.Raw);
+        Assert.Equal(14_316 * Arcs, path.Raw);
 
-        // Six whole Ticks of travel that whole-Tick arithmetic would have priced at nothing: each
+        // A whole Tick of travel that whole-Tick arithmetic would have priced at nothing: each
         // arc on its own floors to zero, so seven of them would too.
-        Assert.Equal(new Ticks(6), path.ToTicksFloor());
+        Assert.Equal(new Ticks(1), path.ToTicksFloor());
         Assert.Equal(Ticks.Zero, arc.ToTicksFloor());
     }
 
@@ -451,18 +488,20 @@ public class TravelTimeTests
     /// <c>A_speed_refuses_to_leave_the_format_and_accepts_the_boundary</c>'s precedent.
     /// </summary>
     /// <remarks>
-    /// Just under four Days either way — 345,599 s and 5,759 minutes — which is a property of Q16.16
-    /// Ticks rather than a statement about journeys. A Ruleset never reaches it: the loader's own
-    /// ceilings are an hour and four Days.
+    /// Just under sixteen Days either way — 1,382,399 s and 23,039 minutes — which is a property of
+    /// Q16.16 Ticks rather than a statement about journeys. A Ruleset never reaches it: the loader's
+    /// own ceilings are an hour and four Days. <b>It was just under four Days at the old clock</b>: a
+    /// Q16.16 Tick count buys four times more in-world time when a Tick is four times longer, which is
+    /// the one place this change made a limit less binding rather than more.
     /// </remarks>
     [Fact]
     public void An_authored_duration_that_leaves_the_format_throws_and_the_boundary_does_not()
     {
-        TravelTime.FromSeconds(345_599);
-        TravelTime.FromMinutes(5_759);
+        TravelTime.FromSeconds(1_382_399);
+        TravelTime.FromMinutes(23_039);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => TravelTime.FromSeconds(345_600));
-        Assert.Throws<ArgumentOutOfRangeException>(() => TravelTime.FromMinutes(5_760));
+        Assert.Throws<ArgumentOutOfRangeException>(() => TravelTime.FromSeconds(1_382_400));
+        Assert.Throws<ArgumentOutOfRangeException>(() => TravelTime.FromMinutes(23_040));
     }
 
     // ---------------------------------------------------------------------------------------------

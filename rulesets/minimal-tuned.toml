@@ -166,7 +166,7 @@ outputs = []
 # at 1,000,000, where the shipped Ruleset built nothing at all. It is `pollution_decay_ticks`'s shape
 # below, against the Lot count instead of the cadence.
 #
-# 8192 IS TICKS_PER_DAY AND STATING IT IS NOT CHOOSING IT. It is the loader's default and it is derived
+# 2048 IS TICKS_PER_DAY AND STATING IT IS NOT CHOOSING IT. It is the loader's default and it is derived
 # rather than picked — a Day is what the rest of the simulation is denominated in, and every `rate`
 # above is 8–32 Ticks, so a Day is comfortably the coarser scale. It is written down for [layers]'s
 # reason: a designer cannot tune a number they cannot find.
@@ -179,7 +179,7 @@ name          = "housing"
 kind          = "dwelling"
 zone          = 0
 interval      = 32
-revisit_ticks = 8192
+revisit_ticks = 2048
 
 # adr/0069. THE UNPLACED POOL DRAINING INTO DWELLINGS THAT ALREADY STAND, which is 02 §5.2 step 2 and
 # is the mechanism this file spent its whole life without. Before it existed the ONLY way to be housed
@@ -227,8 +227,28 @@ candidates    = 3
 # (LayerRulesetLoadTests). What editing this section *does* move is this file's content hash, which
 # the golden session records, so it is still a re-baseline.
 #
+# ⚠ TWO NUMBERS IN THIS FILE MOVED WITH THE CLOCK ON 2026-08-13, AND EVERY CADENCE DID NOT.
+# adr/0094 took TICKS_PER_DAY from 8192 to 2048 and says the Goods quantities are "the only rescaling
+# in the change". They are not: `revisit_ticks` and `pollution_decay_ticks` went 8192 -> 2048 in the
+# same commit, and they went DOWN by four while the Goods go UP by four.
+#
+# THE LINE IS BETWEEN A CADENCE AND A DURATION, and this file states which each key is. A `rate` is a
+# cadence -- authored so a Rule fires at a pace the player watches -- so it keeps its number and its
+# cost and quadruples its in-world period, which is adr/0094's own decision and its own test (does it
+# still resolve the process it samples?). These two are DURATIONS: adr/0059 makes `revisit_ticks` the
+# time to survey every Lot once and derives the sample from it, and plans/0015 makes
+# `pollution_decay_ticks` the time a plume fades over and derives the tau from it. Both say, in this
+# file, that the number IS one Day. Left at 8192 they would have quietly started meaning FOUR Days --
+# nothing would fail to load, nothing would fail to compile, and the plume would outlast the week.
+#
+# WHY adr/0094 MISSED THEM. That ADR classifies every number by what it is denominated in, which is
+# the right question; but it read the classes off the KEY NAMES, and a key spelled `_ticks` whose
+# meaning is a Day looks Tick-denominated from outside. The same miss cost Speed.PerKilometrePerHour,
+# in code: a conversion factor is denominated in two units at once and belongs to no class in that
+# table. Both are recorded in adr/0094's own "What building it found".
+#
 # THE DECAY IS A DURATION AND THE TAU IS DERIVED (plans/0015 decision owed 2). `pollution_decay_ticks`
-# is 8192 — one Day, TICKS_PER_DAY — and LayerRates.From divides it by whatever period is in force to
+# is 2048 — one Day, TICKS_PER_DAY — and LayerRates.From divides it by whatever period is in force to
 # get a count of scheduled updates. Stating the count directly would silently start meaning two Days
 # the moment somebody doubled the period, which is precisely what slice 8 makes possible while the
 # city runs.
@@ -248,7 +268,7 @@ pollution_offset      = 0
 land_value_period     = 256
 land_value_offset     = 16
 kernel_metres         = 1024
-pollution_decay_ticks = 8192
+pollution_decay_ticks = 2048
 land_value_tau        = 8
 sealing_decay_tau     = 0
 

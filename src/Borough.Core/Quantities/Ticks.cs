@@ -45,7 +45,22 @@ public readonly record struct Ticks(ulong Raw) : IComparable<Ticks>
     /// arguing they should not turn casually. See <c>plans/0012</c>.
     /// </para>
     /// </remarks>
-    public const int PerDay = 8192;
+    public const int PerDay = 2048;
+
+    /// <summary>
+    /// Seconds of in-world time in one Day. <b>The other half of what a Tick is worth</b>, and the
+    /// only place this figure is stated.
+    /// </summary>
+    /// <remarks>
+    /// <b>A Day is 24 in-world hours by definition, so this is fixed while <see cref="PerDay"/>
+    /// moves</b> — which is what makes a Tick 42.1875 s at 2048 and was 10.546875 s at 8192
+    /// (<c>adr/0094</c>). Both <see cref="Speed"/> and <see cref="TravelTime"/> convert through it,
+    /// and they held two copies of it until the constant above moved and one of them did not follow.
+    /// </remarks>
+    public const int SecondsPerDay = 86_400;
+
+    /// <summary>Minutes of in-world time in one Day. The same figure one unit up.</summary>
+    public const int MinutesPerDay = 1_440;
 
     /// <summary>
     /// Subtracts, refusing rather than wrapping. <paramref name="earlier"/> must not be after this.

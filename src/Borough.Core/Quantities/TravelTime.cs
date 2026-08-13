@@ -144,10 +144,10 @@ public readonly record struct TravelTime(int Raw) : IComparable<TravelTime>
     private const long RawPerDay = (long)Fixed.One * Ticks.PerDay;
 
     /// <summary>Seconds in an in-world Day.</summary>
-    private const long SecondsPerDay = 86_400;
+    private const long SecondsPerDay = Ticks.SecondsPerDay;
 
     /// <summary>Clock minutes in an in-world Day.</summary>
-    private const long MinutesPerDay = 1_440;
+    private const long MinutesPerDay = Ticks.MinutesPerDay;
 
     /// <summary>
     /// The time to cover a distance at a speed. <b>The one construction a traversal cost has.</b>

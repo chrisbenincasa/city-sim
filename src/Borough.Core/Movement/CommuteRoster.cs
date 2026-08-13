@@ -14,8 +14,8 @@ namespace Borough.Core.Movement;
 /// <b>A partition of the population by departure phase, and the argument for it being a partition
 /// rather than a schedule is the whole of 5b-bis task 5's design.</b> A commute recurs <em>every
 /// Day</em>, and <see cref="EventWheel.Size"/> is <em>exactly</em> a Day
-/// (<see cref="Ticks.PerDay"/>). So a Citizen armed on the Wheel would re-arm at <c>+8192</c> for
-/// ever and never leave the bucket it started in — which makes the bucket a function of a constant,
+/// (<see cref="Ticks.PerDay"/>). So a Citizen armed on the Wheel would re-arm at
+/// <c>+<see cref="Ticks.PerDay"/></c> for ever and never leave the bucket it started in — which makes the bucket a function of a constant,
 /// and <b>a bucketing on a constant is derivable rather than scheduled</b>. Putting it on the Wheel
 /// would have paid a saved column, a per-Tick re-arm and a generalisation of the Wheel to a second
 /// table for a structure that never changes. <c>adr/0081</c> says generalising the Wheel is not

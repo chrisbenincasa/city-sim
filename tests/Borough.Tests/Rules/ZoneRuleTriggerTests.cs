@@ -273,11 +273,19 @@ public sealed class ZoneRuleTriggerTests
         (_, Simulation small) = Built(Zoned(rule), lots: 2_048);
         (_, Simulation large) = Built(Zoned(rule), lots: 204_800);
 
-        Assert.Equal(2, rule.SampleFor(2_048));
-        Assert.Equal(200, rule.SampleFor(204_800));
+        int smallSample = rule.SampleFor(2_048);
+        int largeSample = rule.SampleFor(204_800);
 
-        Assert.Equal(10 * 2, Run(small, 80).Evaluated);
-        Assert.Equal(10 * 200, Run(large, 80).Evaluated);
+        // The engine evaluates what SampleFor says, which is the claim. The sample's own value is a
+        // function of Ticks.PerDay and was the literals 2 and 200 until the clock moved on 2026-08-13
+        // (adr/0094) -- so it is asserted as the derivation's shape rather than as two numbers.
+        Assert.Equal(10 * smallSample, Run(small, 80).Evaluated);
+        Assert.Equal(10 * largeSample, Run(large, 80).Evaluated);
+
+        // A hundred times the Lots is a hundred times the sample, exactly. This is the property
+        // adr/0059 exists for and the one no clock can move.
+        Assert.Equal(100 * smallSample, largeSample);
+        Assert.True(smallSample > 0);
     }
 
     /// <summary>

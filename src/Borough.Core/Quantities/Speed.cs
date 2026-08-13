@@ -47,22 +47,51 @@ namespace Borough.Core.Quantities;
 public readonly record struct Speed(int Raw) : IComparable<Speed>
 {
     /// <summary>
-    /// Q16.16 Tiles/Tick per km/h, exactly.
+    /// Q16.16 Tiles/Tick per km/h, exactly — <b>192,000 at <see cref="Ticks.PerDay"/> = 2048</b>.
     /// </summary>
     /// <remarks>
-    /// A Tile is ~4 m (<c>05 §26</c>: <i>"268 km² (4096² Tiles @ ~4 m)"</i>) and a Day is 86,400 s
-    /// over <see cref="Ticks.PerDay"/> Ticks, so a Tick is 10.546875 s. Then
-    /// <c>Tiles/Tick = (km/h) × (1000/3600) × 10.546875 ÷ 4 = (km/h) × 0.732421875</c>, and
-    /// <c>× 65536</c> gives <b>48,000 exactly</b>.
     /// <para>
-    /// <b>This factor is correct and is ratified by observation</b> (<c>adr/0082</c>): at
-    /// <c>walk_speed_kph = 5</c> a pedestrian covers 3.66 Tiles/Tick, and <c>--trips</c> over
-    /// <c>minimal.toml</c> reports a median walk of 1.4 min at 128 m and 18.3 min at 2,048 m — 5 km/h
-    /// to the digit. When this file and a design document disagreed about how long a Tick is, <b>this
-    /// file was the one that was right</b>, which is the reverse of the corpus's usual direction.
+    /// A Tile is <see cref="Tiles.Metres"/> and a Day is <see cref="Ticks.SecondsPerDay"/> over
+    /// <see cref="Ticks.PerDay"/> Ticks, so a Tick is 42.1875 s. Then
+    /// <c>Tiles/Tick = (km/h) × (1000/3600) × 42.1875 ÷ 4 = (km/h) × 2.9296875</c>, and
+    /// <c>× 65536</c> gives 192,000 exactly. <c>SpeedTests</c> asserts the exactness rather than
+    /// trusting this paragraph.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This was the literal <c>48,000</c> until 2026-08-13, and it is the one thing
+    /// <c>adr/0094</c> got wrong about its own change.</b> That ADR says the Goods quantities are
+    /// <em>"the only rescaling in the change"</em> and classifies every number by what it is
+    /// denominated in — but a <em>conversion factor</em> is denominated in both units at once, so it
+    /// belongs to no class in that table and was not enumerated. Left at 48,000 with a Day of 2048,
+    /// an authored <c>walk_speed_kph = 5</c> would have walked the city at <b>1.25 km/h</b>: every
+    /// commute four times longer in clock minutes, and a Commute Budget refusing almost every job.
+    /// <b>Nothing would have failed to compile and no Ruleset text would have been wrong.</b>
+    /// </para>
+    /// <para>
+    /// <b>It is derived now, which is the actual fix.</b> <see cref="TravelTime"/> runs the same
+    /// derivation and had always written it as one — its own remark says <em>"the same derivation
+    /// <see cref="Speed"/> runs, and if one moves both move"</em>. <b>One fact, stated in two files,
+    /// spelled as an expression in one and as a value in the other; the value is the copy that
+    /// drifted.</b> <c>plans/0012</c> Cause 1, in code rather than in prose.
+    /// </para>
+    /// <para>
+    /// <b>The factor is ratified by observation</b> (<c>adr/0082</c>): at <c>walk_speed_kph = 5</c>
+    /// <c>--trips</c> over <c>minimal.toml</c> reports a median walk of 1.4 min at 128 m and 18.3 min
+    /// at 2,048 m — 5 km/h to the digit. When this file and a design document disagreed about how long
+    /// a Tick is, <b>this file was the one that was right</b>, which is the reverse of the corpus's
+    /// usual direction.
     /// </para>
     /// </remarks>
-    private const int PerKilometrePerHour = 48_000;
+    /// <remarks>
+    /// <b><c>static readonly</c> rather than <c>const</c>, and the analyser is why.</b> <c>BOR0203</c>
+    /// refuses a raw <c>/</c> anywhere outside <c>Borough.Core.Arithmetic</c>, including inside a
+    /// constant initialiser — and <see cref="IntegerMath.FloorDiv"/> is a method call, which a
+    /// <c>const</c> cannot hold. The division here is exact, so the floor takes nothing; stating it is
+    /// the point. The JIT folds a <c>static readonly</c> of this shape, so the spelling costs nothing
+    /// at the call site.
+    /// </remarks>
+    private static readonly int PerKilometrePerHour = (int)IntegerMath.FloorDiv(
+        Fixed.One * 1_000L * Ticks.SecondsPerDay, 3_600L * Ticks.PerDay * Tiles.Metres);
 
     /// <summary>Stationary. Never a road's free-flow speed — a Segment nobody may traverse is a mask.</summary>
     public static Speed Zero => new(0);

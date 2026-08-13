@@ -285,7 +285,7 @@ become three.
 > made for another reason**. Slice 10 task 11's finding runs *forwards* as well as backwards, and the
 > only reason this was noticed is that somebody had written the negative assertion down.
 
-> ⚠ **ITEM 7, added 2026-08-13 by session P: `TICKS_PER_DAY` and `WHEEL_SIZE` go to 2048.**
+> ✅ **ITEM 7 SHIPPED 2026-08-13 — the clock half. The Goods rescale is the separate commit it was always going to be.** ~~⚠ **ITEM 7, added 2026-08-13 by session P: `TICKS_PER_DAY` and `WHEEL_SIZE` go to 2048.**~~
 > [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md).
 > `Ticks.PerDay` and `EventWheel.Size`, two `const`s, and **the change is one line each and the
 > consequences are not**. Every hash-bearing number denominated in **Ticks** keeps its value and changes
@@ -307,6 +307,47 @@ become three.
 > **It is not gated and it is not urgent.** Nothing downstream is blocked on it; what it unblocks is a
 > playtest, which is the only instrument that can ratify the value. Do it before the first play session
 > and not before that.
+
+> **✅ BUILT 2026-08-13.** `Ticks.PerDay` and `EventWheel.Size` are 2048, all three golden baselines
+> re-recorded, 1,279 green. Full record in
+> [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+> → *What building it found*. **This item said "the change is one line each and the consequences are
+> not", and the consequences were larger than the three it named.**
+>
+> - **The ADR's rescaling inventory was wrong in two places, and both would have shipped in silence.**
+>   It says the Goods quantities are *"the only rescaling"*; there were **three**, and two move **down**
+>   by four while the Goods move **up** by four. `Speed.PerKilometrePerHour` was a **literal** 48,000 —
+>   left alone, an authored `walk_speed_kph = 5` would have walked the city at **1.25 km/h**, with
+>   nothing failing to compile and no Ruleset text wrong. And `revisit_ticks` / `pollution_decay_ticks`
+>   are durations the Rulesets themselves call *one Day*, which kept at 8192 would quietly have meant
+>   **four**. ⚠ **`revisit_ticks` was actively misclassified by the ADR's own table** and is struck from
+>   it, with the user in the room: `adr/0059` makes it a duration, and the cost — the derived sample
+>   quadrupling, so the Zone Rule costs ×4 per Tick and exactly what it did per Day — is accepted.
+> - **The fix in every case was a derivation rather than a new value**, and `TravelTime` had always
+>   written its half as one — its own remark says *"the same derivation `Speed` runs, and if one moves
+>   both move"*. ***One fact, two files, an expression in one and a value in the other; the value is the
+>   copy that drifted.*** `plans/0012` Cause 1 in code. The metre and the second now live in one place
+>   each, which is what let the factor be written as arithmetic at all.
+> - **`adr/0071`'s two illustrations moved in opposite directions.** A 32-Tile Street at 50 km/h goes
+>   0.87 → **0.22** Ticks, so the sub-Tick argument is four times more load-bearing — under whole-Tick
+>   resolution every Street would now be *free*. A 5 km/h walk goes 3.66 → **14.65** Tiles/Tick, so the
+>   flooring error falls 20% → **4.4%**. ***One constant, two of an ADR's arguments, opposite
+>   directions.***
+> - **Five tests asserted a number where they meant a relation, and one read an instant where it meant a
+>   run.** Three were `[InlineData]` literals, where an attribute argument cannot be an expression. The
+>   sharpest is `GoldenSessionCoverageTests`: it found **zero** commute Trips, and the reason is that the
+>   departure window fell 2,731 → 683 so the session now covers **every** departure phase instead of
+>   three quarters. ***The baseline got better and the assertion measuring it went to zero.***
+> - **Two long-run tests broke without measuring anything wrong.** `LayerLongRunTests` read `0 → 0` for a
+>   contraction because the pollution tau fell 128 → 32 and the field had finished converging before its
+>   window began. `LotLongRunTests`' vacuity guard fired on a run where **41 of 97** edits carved Lots,
+>   because it read the first sample alone. ***A guard against vacuity that reads one sample can itself
+>   be defeated by timing*** — the fourth single-draw failure in two days.
+>
+> ⚠ **The Goods ×4 rescale is still owed** and is the next commit. Employment on the shipped Ruleset
+> fell 6,844 → 2,791 of 10,000 over 2,048 Ticks, which is the `revisit_ticks` decision rather than the
+> clock — the Zone Rule surveys the whole city every Day instead of every four, so it condemns four
+> times as fast per Tick.
 
 > ~~**✅ THE QUEUE IS EMPTY. All four items shipped 2026-08-10.**~~ **REOPENED the same day by session N
 > task 2, with items 4 and 5 — and ✅ BOTH SHIPPED 2026-08-11, so it is empty again.** They were [`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)

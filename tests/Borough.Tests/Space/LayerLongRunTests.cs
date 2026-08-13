@@ -119,8 +119,20 @@ public class LayerLongRunTests
                 + "stale contribution in the incremental halo rather than absorption.");
         }
 
-        int firstStep = tail[Lag] - tail[0];
+        // ⚠ The rise is read from the START of the run and the flatness from the tail, and they were
+        // both read from the tail until 2026-08-13. adr/0094 took Ticks.PerDay to 2048, which takes
+        // the pollution tau -- a count of scheduled updates over one Day -- from 128 to 32, so the
+        // field reaches its equilibrium four times sooner in sweeps. A window sized for the old
+        // convergence then contains no transient at all, and this read 0 → 0 and failed: not because
+        // nothing converged but because it had finished converging before the instrument started
+        // looking. A contraction test needs the uncontracted end in view.
+        int firstStep = peaks[Lag] - peaks[0];
         int lastStep = tail[^1] - tail[^(1 + Lag)];
+
+        Assert.True(
+            firstStep > 0,
+            "the field did not rise over its first sweep, so there is no transient to contract from "
+            + "and the assertion below would be vacuous.");
 
         Assert.True(
             lastStep * 3 < firstStep,

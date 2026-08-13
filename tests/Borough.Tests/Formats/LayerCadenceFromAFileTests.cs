@@ -160,8 +160,10 @@ public sealed class LayerCadenceFromAFileTests
         Assert.Equal(8, rules.Layers.Rates.LandValueTau);
         Assert.Equal(0, rules.Layers.Rates.SealingDecayTau);
 
-        // One Day, counted in scheduled updates: 8192 Ticks over a period of 64.
-        Assert.Equal(128, rules.Layers.Rates.PollutionTau);
+        // One Day, counted in scheduled updates: Ticks.PerDay over a period of 64. It was the literal
+        // 128 until the clock moved on 2026-08-13 (adr/0094); derived here so the next move is caught
+        // by arithmetic rather than by a stale number.
+        Assert.Equal(Ticks.PerDay / 64, rules.Layers.Rates.PollutionTau);
     }
 
     /// <summary>
