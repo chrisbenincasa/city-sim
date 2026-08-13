@@ -71,6 +71,18 @@ The first claim is therefore **narrowed rather than struck**: it is true of `Zon
 
 **`RoadGraph.RebuildDerived` is now called on a running world**, where it was previously a load-and-reload path. It remains wholesale: an incremental rebuild is an optimisation of a call whose cost nobody has measured, and the first honest measurement is a player editing roads at a rate no session has yet produced.
 
+## Amended 2026-08-12: the edit unit is a run of Segments, and the bulldoze half leaves
+
+**The unit of a road edit becomes one *run* of Segments along an axis — a click and a drag — rather than one Segment.** The origin, the axis and the kind are unchanged; what is added is a **count**, and it fits: `ConnectPayload` uses bit 0 for the axis, bit 1 for the action and bits 8–15 for the kind, so **bits 2–7 are free**. Six bits is a **63-Segment** run, which at the shipped `block_tiles = 32` is **8.06 km of street in one command**. **The Input Log format stays at version 1** and every log ever written still reads, which was the property this decision was taken to protect and is protected again by the same argument.
+
+**The trigger that fired is not the one this ADR wrote down.** *What would trigger revisiting* predicts a `block_tiles` small enough that one Segment is a fiddly edit; `block_tiles` has not moved. What changed is the **volume of road the player lays**: under [`0090`](0090-the-generator-makes-land-and-the-player-makes-every-road.md) the generator lays none at all, and under [`0089`](0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) the map is 65.5 km across, so a player builds every metre of a network the generator used to supply on a map sixteen times the area. One Segment per command was a natural unit for *editing* a road network and is an unusable one for *drawing* one. ***A revisit trigger names one way a decision can fall, and a decision usually falls another way*** — the sibling of session F's finding that a trigger can be spent before it is written.
+
+**A run is still not a spline.** Every Segment in it is grid-snapped and on one axis, so the graph invariant this ADR rests on is untouched: what reaches the Input Log is a contiguous set of lattice edges, and the far endpoint is still derived from the origin, the axis and `block_tiles` rather than carried. Arterials remain **refused by name**, and the freeform case is unchanged by this amendment.
+
+**The Streets-only restriction is discharged rather than overturned.** `01 §2` already tags it as an ⚠ *as built* caveat with its successor written beside the refusal, which is what `adr/0070`'s discipline asks for and is why nothing here has to reopen it.
+
+**`ConnectAction.Bulldoze` leaves, because [`0091`](0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md) makes `Demolish` `01 §2`'s sixth verb** and gives removal one spelling rather than two. That frees bit 1 as well, which would take a run to **127** Segments if anybody ever wants it — recorded rather than spent. **`Demolish`'s own payload is owed and has not been fitted against this ADR's test**, and it is harder than `Connect`'s because it addresses two object types; it joins `Service` and `Govern` in the last revisit trigger below.
+
 ## What would trigger revisiting
 
 **A player wanting to draw a Street that is not on the grid.** The grid-snapped Street is [`0014`](0014-grid-streets-with-freeform-arterials.md)'s decision and this ADR inherits it; if that one is reopened, this one follows and the command grows a second endpoint — and with it the version bump this decision avoided.

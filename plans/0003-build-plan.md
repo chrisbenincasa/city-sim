@@ -164,13 +164,28 @@ become three.
 > could not be noticed, because a 16 km map is one a city genuinely does pave. ***A structure that
 > contradicts a claim only at a scale nobody has run is a claim with no test.***
 >
-> **It is gated in turn, and the gate is a design question rather than code.** What the generator should
-> lay at Tick zero is `plans/0002` **ledger #2** — *open map, or progressive land unlock* — which has
-> carried a recommendation (*unlock by serviceability*) and no decision since session three. Under
-> [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) the unlock rule is
-> **undesigned, not refused**, so the answer is to design it. **Do not cap the generator and move on** —
-> that is precisely the local workaround [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
-> forbids, and it would remove the only pressure that gets the unlock rule written.
+> ~~**It is gated in turn, and the gate is a design question rather than code.**~~ **⚠ UNGATED
+> 2026-08-12 by session P, and the paragraph below was wrong in both halves.** `plans/0002` ledger #2 is
+> **closed as refused** — the map is open, the player lays every Segment
+> ([`adr/0090`](../docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)) — so there
+> is no design question left in front of this item. And **the generator does not lay anything at world
+> creation**: it has exactly one production call site, `SyntheticCity`, reached only by
+> `CommandKind.Populate`, *"a verb no player has"*. A player's world has had **no roads at all** since 5a,
+> so `adr/0021` is not violated where this paragraph said it was.
+>
+> **Item 6 is therefore smaller and entirely mechanical: `SyntheticCity` should pave the area it
+> populates rather than the map.** Capping it is now *correct* rather than the workaround
+> [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+> forbids, because the design question it was standing in for has been answered rather than deferred.
+> **It carries one more edit**: `CellGrid.cs`'s own comment says the lattice is laid *"at world
+> creation"*, and that sentence is what both this item and `adr/0089` reasoned from — a defect of
+> `adr/0073`'s class, routed here on the day rather than worked around.
+>
+> *Original paragraph, kept because a gate struck for the wrong reason is the failure `plans/0020` warns
+> about:* ~~What the generator should lay at Tick zero is `plans/0002` **ledger #2** — *open map, or
+> progressive land unlock* — which has carried a recommendation (*unlock by serviceability*) and no
+> decision since session three. Under `adr/0070` the unlock rule is **undesigned, not refused**, so the
+> answer is to design it. **Do not cap the generator and move on.**~~
 >
 > Item 6 moves every State Hash and re-records all three golden baselines, so it is one commit of its own
 > and it must not ride along with a slice.

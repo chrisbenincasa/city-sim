@@ -149,9 +149,34 @@ and nothing in the corpus flags such a decision when the map changes underneath 
 four distance-dependent claims by name and this was not among them, which is the second time in two days
 that ADR's consequence list has come up one short.
 
-## Parked from earlier the same day, not abandoned
+## Unparked and written — the road write-up
 
-The road write-up this session interrupted. All three are decided and unwritten:
+**All three done 2026-08-12, and one of them found the reason it was hard was false.**
+
+- **[`adr/0090`](../docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md)** written.
+  The map is open; the `adr/0011` damper argument is **given up rather than answered**, with the two
+  causal dampers that replace it named.
+- **[`adr/0077`](../docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md) amended.**
+  The edit unit is a **run** of Segments; `ConnectPayload`'s bits 2–7 are free, so **63 Segments — 8.06 km
+  in one command** — with the Input Log at version 1. `ConnectAction.Bulldoze` leaves for `Demolish`,
+  freeing bit 1 and a ceiling of 127 nobody has spent. ***A revisit trigger names one way a decision can
+  fall, and a decision usually falls another way***: this ADR predicted a finer `block_tiles` and what
+  actually fired was `adr/0090` plus `adr/0089` — the player now lays every metre of road on a map
+  sixteen times the area.
+- **`plans/0002` ledger #2 closed as refused**, `01 §8 Q3` struck with its recommendation kept below the
+  strike, and `plans/0003` item 6 rewritten.
+
+⚠ **The finding is that `adr/0089`'s stated blocker is false, and two questions had been welded.**
+`RoadGenerator` does not pave at world creation — it has one production call site, `SyntheticCity`,
+reached only by `CommandKind.Populate`, *a verb no player has*. A player's world has had **no roads since
+5a**. `CellGrid.cs`'s comment says *"at world creation"* and that sentence is what both `adr/0089` and
+ledger #2 reasoned from, which makes it the **third decision in three days taken from a sentence about
+the code rather than from the code** (`adr/0064`'s loader, `adr/0079`'s pressure source). So the flip to
+512 waits on a bounded mechanical fix in a spike verb, not on the player's freedom — and `adr/0089`'s
+*"must not be answered by capping the generator"* was right about the design question and wrong about
+which question the cap belonged to.
+
+*Original parked list, for the record:*
 
 1. **`adr/0090`** — the generator makes land and the player makes every road; the **open map** recorded as
    a stated refusal of `01 §8 Q3`'s unlock-by-serviceability recommendation.
