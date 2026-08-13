@@ -338,6 +338,20 @@ sealing_decay_tau     = 0
 # over the foot subgraph, and nothing in Borough.Core searches the graph yet. This file understates
 # Severance until milestone 5b, and the direction of the error is known.
 #
+# EVERY NUMBER ABOVE IS A READING ON A PAVED EXTENT, AND THE EXTENT IS NOT THE MAP. Severance is a
+# property of a lattice against the Arterials crossing it, and arterial_count is a PER-MAP count --
+# so sixteen Arterials mean one thing over 4,096 Tiles and something else entirely over 16,384. That
+# was invisible for as long as the two were the same number. On 2026-08-13 the map went to 512 Cells
+# (adr/0089) and this file, unchanged, stranded 0% of pedestrians on the worst of eight seeds: it had
+# stopped demonstrating without a single number in it moving.
+#
+# THE EXTENT IS NAMED BY A SYMBOL AND NOT RESTATED HERE. It is
+# RoadSeveranceTests.DemonstrationExtentTiles, which is where every reading above was taken. Writing
+# the figure into this header as well would be plans/0012 Cause 1 -- one fact in two places, drifting
+# -- and adr/0093's writing half says to name the symbol rather than the value. What this file states
+# is the ROAD TABLE; what the extent is, is the test's to state, and the test lays this file and
+# minimal.toml over the same ground so the control is a control.
+#
 # THIS FILE IS NOT A CITY, for every reason minimal.toml gives above and one more: a 256-Tile block
 # is 1,024 m on a side, which is not a block. It is a graph chosen to make one mechanism visible.
 #

@@ -49,12 +49,43 @@ public static class CellGrid
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>⚠ SETTLED 2026-08-12 at 512 Cells and DELIBERATELY NOT YET CHANGED HERE.</b> Session J closed
-    /// this in <c>adr/0089</c> — <em>the map is sized by how many commutes fit across it</em> — at
-    /// <b>512 Cells, a 16384² Tile map, 65.5 km a side</b>. A map is sized by the number of Commute
-    /// Budgets that fit across it, which is <b>0.9</b> at the value below and 3.7–5.2 at 512; at 0.9 no
-    /// Trip on the map can exceed the Budget, so the decline mechanism the Budget exists to drive is
-    /// inert everywhere. The old 2048² fallback is struck.
+    /// <b>✅ 512 Cells — a 16384² Tile map, 65.5 km a side. Settled 2026-08-12, flipped
+    /// 2026-08-13.</b> Session J closed this in <c>adr/0089</c> — <em>the map is sized by how many
+    /// commutes fit across it</em>. A map is sized by the number of Commute Budgets that fit across it,
+    /// which was <b>0.9</b> at the old 128 and is <b>3.7–5.2</b> here; at 0.9 no Trip on the map could
+    /// exceed the Budget, so the decline mechanism the Budget exists to drive was inert everywhere. The
+    /// old 2048² fallback is struck.
+    /// </para>
+    /// <para>
+    /// <b>⚠ The flip moved no State Hash, and that is worth stopping on.</b> All three golden baselines
+    /// reproduced unchanged. <c>05 §4</c> says <em>a change is an optimisation if the State Hash is
+    /// unchanged, and a design change otherwise, however it was motivated</em> — and by that test this
+    /// reads as an optimisation, which it plainly is not: it decides whether the player can build
+    /// separate towns or only one blob. <b>The rule tests whether a change moves <em>this</em> city; a
+    /// map size is a bound on the cities that are <em>reachable</em>, and a fixture in one corner never
+    /// approaches it.</b> It is hash-neutral <em>because</em> queue item 6 landed first — before that,
+    /// the generator paved the map and this would have moved every hash in the project.
+    /// </para>
+    /// <para>
+    /// <b>⚠ It cost 11.6 MB at 1M, not the 4 MB <c>adr/0089</c> accounted for</b> — 192,780 KB resident
+    /// against 204,412 KB, both measured. That ADR counted four derived <c>int[]</c> residency arrays
+    /// and missed a fifth map-scaled structure: <see cref="StreetGrid"/>'s node and edge index, sized
+    /// from <see cref="WorldTiles"/> at ~3.2 MB. <b>It is sized that way correctly and must stay so</b>,
+    /// because a player may lay a Street anywhere on the map under <c>CommandKind.Connect</c> and the
+    /// index needs a slot for it. Trivial against 200 MB, and recorded because the inventory was stated
+    /// as complete.
+    /// </para>
+    /// <para>
+    /// <b>⚠ Three fixtures were laying at map extent and had to pin their own, all for one reason.</b>
+    /// <c>rulesets/severance.toml</c> stranded <b>0%</b> of pedestrians on the worst of eight seeds
+    /// after the flip — its sixteen Arterials spread over sixteen times the ground — so it had stopped
+    /// demonstrating the mechanism it exists for, without a number in it moving; the walk-search
+    /// benchmark's graph went from 16,641 nodes to 263,169, sixteen times the fixture for a benchmark
+    /// claiming to time <em>the shipped city</em>; and the <c>[roads]</c> loader's two spatial maxima
+    /// were <c>[InlineData]</c> literals of 4,096 and 4,097, of which the refused one failed loudly and
+    /// <b>the accepted one stayed green while ceasing to test a boundary at all</b>. Each now states the
+    /// extent it was characterised at. ***A paved extent is not a map size***, which is queue item 6's
+    /// own finding arriving three files further on.
     /// </para>
     /// <para>
     /// <b>✅ THE GATE IS DISCHARGED — <c>plans/0003</c> queue item 6, 2026-08-13 — and the flip is now
@@ -80,10 +111,11 @@ public static class CellGrid
     /// one grep.
     /// </para>
     /// <para>
-    /// Changing this moves every State Hash and re-records all three golden baselines, so it is one
-    /// commit of its own. Nothing else in the grid arithmetic cares — it is a shift either way — which
-    /// is why this is a named constant with one reader rather than a number scattered through the
-    /// diffusion.
+    /// ~~Changing this moves every State Hash and re-records all three golden baselines, so it is one
+    /// commit of its own.~~ <b>Measured false on the day it was acted on:</b> it moved none of them, for
+    /// the reason two paragraphs up. It was still one commit of its own, which was the useful half of
+    /// the advice. Nothing else in the grid arithmetic cares — it is a shift either way — which is why
+    /// this is a named constant with one reader rather than a number scattered through the diffusion.
     /// </para>
     /// <para>
     /// <b>Derived from the Cell count rather than the other way round, and the direction is
@@ -97,10 +129,10 @@ public static class CellGrid
     public const int WorldTiles = WorldCells * TilesPerCell;
 
     /// <summary>
-    /// The map's edge, in Cells. 128, which is a 4096² Tile map — and <b>512 is the decided value,
-    /// no longer gated</b>. See <see cref="WorldTiles"/>.
+    /// The map's edge, in Cells. <b>512, which is a 16384² Tile map, 65.5 km a side.</b> See
+    /// <see cref="WorldTiles"/>.
     /// </summary>
-    public const int WorldCells = 128;
+    public const int WorldCells = 512;
 
     /// <summary>Every Cell on the map. The residency index's length, and nothing else's.</summary>
     public const int WorldCellCount = WorldCells * WorldCells;

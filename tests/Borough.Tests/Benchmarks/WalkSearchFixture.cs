@@ -247,11 +247,32 @@ internal static class WalkSearchFixture
         && (graph.Segments.Modes[segment] & (byte)TravelMode.Foot) != 0
         && graph.Segments.LengthTiles[segment].Raw > 1;
 
+    /// <summary>
+    /// <b>The paved extent every benchmark figure in this fixture was taken at, stated here rather than
+    /// inherited from the map.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This laid at <see cref="CellGrid.WorldTiles"/> until 2026-08-13, when the map went to 512 Cells
+    /// (<c>adr/0089</c>) and the benchmark graph went from <b>16,641 nodes to 263,169</b> — sixteen
+    /// times the graph, for a benchmark whose whole claim is that it times <em>a search over the
+    /// shipped city</em>. <b>A city is not a map</b>, and since <c>plans/0003</c> queue item 6 the
+    /// simulation agrees: <c>SyntheticCity</c> paves what the population asks for, which is 4,800 Tiles
+    /// at the 1M target.
+    /// </para>
+    /// <para>
+    /// <b>4,096 is kept rather than moved to 4,800 because every published walk-search number was taken
+    /// on it</b>, and a benchmark whose fixture changes silently is a column of figures that cannot be
+    /// compared with the one above it. Moving it is a deliberate act with a re-capture attached.
+    /// </para>
+    /// </remarks>
+    internal const int ExtentTiles = 4_096;
+
     private static RoadGraph Laid(RoadRuleset roads, ulong seed = Seed)
     {
         RoadGraph graph = new(roads);
 
-        RoadGenerator.LayInto(graph, WorldKey.FromSeed(seed), CellGrid.WorldTiles);
+        RoadGenerator.LayInto(graph, WorldKey.FromSeed(seed), ExtentTiles);
 
         return graph;
     }

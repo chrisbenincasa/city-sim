@@ -37,18 +37,34 @@ public sealed class MapLayerFixtureTests
     }
 
     /// <summary>
-    /// A handful of scattered emitters makes the whole Layer resident, so residency is not a lever the
-    /// city has.
+    /// Scattered emitters make the whole Layer resident well below any plausible count, so residency
+    /// is not a lever the city has — <b>and the margin is an order of magnitude, not three.</b>
     /// </summary>
     /// <remarks>
-    /// <b>This is the row's good news and it belongs in the ledger.</b> A cost whose driver saturates
-    /// at a few dozen sources has no guessed multiplicand: it does not matter how many factories a
-    /// million-Citizen city has, because any plausible number is past the knee.
+    /// <para>
+    /// <b>This was the row's good news, and at 512 Cells it is merely good.</b> A cost whose driver
+    /// saturates far below any plausible source count has no guessed multiplicand: it does not matter
+    /// how many factories a million-Citizen city has, because any plausible number is past the knee.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The knee moved 256 → 8,192 when the map went to 512 Cells on 2026-08-13</b>
+    /// (<c>adr/0089</c>) — 32× for a 16× area, because a halo of fixed radius covers a smaller share
+    /// of a larger map and overlaps less. Against S0a's <b>120,001 Buildings</b> in a 1M city the
+    /// headroom falls from <b>469× to 14.6×</b>. The claim survives; <b>the reason it survives has
+    /// changed from <em>obviously</em> to <em>by a factor of fifteen</em></b>, and fifteen is inside
+    /// the range an industrial share could plausibly move. Routed to <c>plans/0013</c>'s Map Layer row
+    /// rather than left here, per <c>adr/0073</c>.
+    /// </para>
+    /// <para>
+    /// <b>Both the knee and the margin are asserted, because only the second is the claim.</b> An
+    /// assertion on saturation alone would have gone green at 8,192 exactly as it did at 256, and the
+    /// thing that changed — the distance to a plausible city — would have gone unrecorded.
+    /// </para>
     /// </remarks>
     [Fact]
     public void Residency_saturates_far_below_any_plausible_emitter_count()
     {
-        foreach (int emitters in (int[])[1, 16, 64, 128, 256, 1_024])
+        foreach (int emitters in (int[])[1, 16, 64, 256, 1_024, 2_048, 4_096, 8_192, 16_384])
         {
             int resident = ResidentAfter(emitters);
             int percent = resident * 100 / CellGrid.WorldCellCount;
@@ -56,13 +72,26 @@ public sealed class MapLayerFixtureTests
             _output.WriteLine($"{emitters,5} emitters → {resident,6} of {CellGrid.WorldCellCount} Cells ({percent}%)");
         }
 
-        // 256 is the claim the benchmark's fixture rests on, and it is the number that was measured
-        // rather than the one first assumed: 16 emitters leaves only 26% resident, so an earlier
-        // draft of this test asserted saturation two rungs before it happens.
-        Assert.Equal(CellGrid.WorldCellCount, ResidentAfter(256));
+        // Measured rather than assumed, twice over: an early draft asserted saturation at 16, and the
+        // 256 that replaced it was a reading on a 128-Cell map that survived the map's flip in silence
+        // until this line failed.
+        const int Knee = 8_192;
 
-        // A 1M-Citizen city holds 120,001 Buildings (S0a). The knee is three orders of magnitude
-        // below that, so no plausible industrial share can put a city on the sloped part of the curve.
-        Assert.True(256 * 1_000 < 120_001 * 10);
+        Assert.Equal(CellGrid.WorldCellCount, ResidentAfter(Knee));
+
+        // And the rung below it is not saturated, which is what makes the number above a knee rather
+        // than just a value that happens to work.
+        Assert.True(ResidentAfter(Knee / 2) < CellGrid.WorldCellCount);
+
+        // A 1M-Citizen city holds 120,001 Buildings (S0a). The knee must stay well below that or the
+        // row acquires a multiplicand — and "well below" is now 14.6x where it was 469x.
+        const int BuildingsAtTarget = 120_001;
+
+        Assert.True(
+            Knee * 10 < BuildingsAtTarget,
+            $"the residency knee is {Knee} emitters against {BuildingsAtTarget} Buildings in a 1M "
+            + "city, which is under an order of magnitude. plans/0013's Map Layer row is written on "
+            + "the ground that no plausible industrial share reaches the sloped part of this curve; "
+            + "at this margin that ground is gone and the row needs a measured multiplicand.");
     }
 }

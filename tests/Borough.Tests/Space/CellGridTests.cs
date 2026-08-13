@@ -20,8 +20,8 @@ public class CellGridTests
     {
         Assert.Equal(32, CellGrid.TilesPerCell);
         Assert.Equal(1 << CellGrid.TilesPerCellShift, CellGrid.TilesPerCell);
-        Assert.Equal(4_096, CellGrid.WorldTiles);
-        Assert.Equal(128, CellGrid.WorldCells);
+        Assert.Equal(16_384, CellGrid.WorldTiles);
+        Assert.Equal(512, CellGrid.WorldCells);
         Assert.Equal(CellGrid.WorldTiles, CellGrid.WorldCells * CellGrid.TilesPerCell);
     }
 

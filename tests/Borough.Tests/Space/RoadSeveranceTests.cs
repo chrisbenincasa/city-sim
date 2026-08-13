@@ -523,11 +523,41 @@ public sealed class RoadSeveranceTests
     /// not a severed city, it is rubble. <c>rulesets/severance.toml</c>'s own header calls it a
     /// demonstration rather than a city; laying the map explicitly is that sentence in code.
     /// </remarks>
+    /// <summary>
+    /// <b>The paved extent every Severance measurement in this file is taken at, and it is stated here
+    /// rather than inherited from the map.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Severance is a property of a lattice against the Arterials crossing it, and
+    /// <c>arterial_count</c> is a <em>per-map</em> count</b> — so a measurement taken over "the whole
+    /// map" is a measurement of whatever <see cref="CellGrid.WorldTiles"/> happens to be. That was
+    /// invisible while the two were the same number. When the map went to 512 Cells on 2026-08-13 the
+    /// demonstration's sixteen Arterials were spread over sixteen times the ground and
+    /// <c>rulesets/severance.toml</c> stranded <b>0% on the worst of eight seeds</b>, against a file
+    /// whose entire purpose is to strand a third of them. It had stopped demonstrating.
+    /// </para>
+    /// <para>
+    /// <b>4,096 Tiles is the extent that file's header was characterised at</b> — its block-size table,
+    /// its twelve-seed crossing sweep and its choice of sixteen Arterials over eight are all readings
+    /// on this lattice. Pinning it here keeps every one of them true and changes no hash-bearing
+    /// number. <b>It is also <c>plans/0003</c> queue item 6's own principle applied one place further:
+    /// paved extent is not map size</b>, and a demonstration should state the ground it covers rather
+    /// than inherit whatever the world happens to be.
+    /// </para>
+    /// <para>
+    /// <b>The number lives here and nowhere else.</b> <c>severance.toml</c>'s header names this symbol
+    /// rather than restating 4,096 — <c>plans/0012</c> Cause 1, and <c>adr/0093</c>'s writing half:
+    /// name a symbol, never a value.
+    /// </para>
+    /// </remarks>
+    internal const int DemonstrationExtentTiles = 4_096;
+
     private static RoadGraph Laid(RoadRuleset roads, ulong seed = 0x5E_5E_5E)
     {
         World world = new(citizens: 100, RoadFixtures.With(roads));
 
-        RoadGenerator.LayInto(world.Roads, WorldKey.FromSeed(seed), CellGrid.WorldTiles);
+        RoadGenerator.LayInto(world.Roads, WorldKey.FromSeed(seed), DemonstrationExtentTiles);
 
         return world.Roads;
     }

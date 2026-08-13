@@ -231,7 +231,7 @@ is a whole milestone rather than a queue item**: `06` **5c**, statistical resolu
 matrix, which also carries 5b's unpaid `adr/0041` volume debt that 7a's Stress reads. *It is listed last
 rather than first on purpose: 5c moves every State Hash, and so do items 6 and 7, so it wants the tree to
 itself.* **What is next is therefore a choice rather than a
-queue**, and the ~~three~~ ~~four~~ **four candidates were, of which item 6 has since shipped**:
+queue**, and the ~~three~~ ~~four~~ **four candidates were, of which item 6 and the map flip have since shipped**:
 [`0003`](0003-build-plan.md)'s hash-moving queue **item 7** — the
 `TICKS_PER_DAY` flip, which is mechanical and should land before more Rulesets are authored, because
 Goods quantities rescale ×4; [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s
@@ -247,9 +247,15 @@ as **refused** the day before — by this same session. `plans/0012` **Cause 2**
 ✅ **ITEM 6 SHIPPED 2026-08-13, and it produced a fifth candidate by discharging a gate.**
 `RoadGenerator.LayInto` takes an extent and `SyntheticCity` derives it from the Lot count the population
 asks for; the golden fixture's world goes from **16,641 Nodes and 33,671 Segments to 36 and ~60**, and
-at 1M the derivation asks for a **4,800-Tile lattice — 8.6% of a 512-Cell map**. So **flipping
-`CellGrid.WorldCells` to 512 is now a one-line commit with nothing in front of it**, and it is the
-fifth candidate. Close-out in [`0003`](0003-build-plan.md) → *The hash-moving queue*. Two things it left
+at 1M the derivation asks for a **4,800-Tile lattice — 8.6% of a 512-Cell map**. ✅ **And the flip it
+gated went in the same day: `CellGrid.WorldCells` is 512**, so `adr/0089` is built and there is no fifth
+candidate. ⚠ **The flip moved no State Hash**, where three documents predicted every one would — `05 §4`
+tests whether a change moves *this* city, and a map size is a bound on the cities that are *reachable*,
+so a design change came back reading as an optimisation. It is neutral **because item 6 landed first**.
+It cost **11.6 MB at 1M** against the ~4 MB `adr/0089` accounted for (a fifth map-scaled structure,
+`StreetGrid`'s index), and it broke three fixtures that were laying at map extent — including
+`rulesets/severance.toml`, which stranded **0%** of pedestrians and had **stopped demonstrating Severance
+with no number in it changed**. Close-out in [`0003`](0003-build-plan.md) → *The hash-moving queue*. Two things it left
 behind: **`arterial_count` is 0 in both shipped Rulesets**, because an Arterial is a player tool
 `adr/0077` refuses in `Connect`, `adr/0090` keeps out of the generator, and `adr/0014` grants no
 frontage — a road nothing in the simulation can build, sitting in the one structure the player does not

@@ -34,22 +34,40 @@ public sealed class WalkSearchBenchmarkFixtureTests
     /// The benchmark's graph is the shipped city's, not a scaled-down stand-in.
     /// </summary>
     /// <remarks>
-    /// <b>129 intersections a side is <c>4096 ÷ 32 + 1</c></b> — <c>rulesets/minimal.toml</c>'s
-    /// <c>block_tiles</c> over the map's full extent. Every other Road Graph fixture in the suite
-    /// widens the block to 512 for the sake of the suite's wall clock, which is right for a structural
-    /// question and wrong for a cost: <c>plans/0013</c>'s standing lesson is that a unit cost is a
-    /// hypothesis until a real world has produced one.
+    /// <para>
+    /// <b>Two spans, and they stopped being the same number on 2026-08-13.</b>
+    /// <see cref="StreetGrid.Span"/> is the <em>index's</em> reach and is sized to
+    /// <see cref="CellGrid.WorldTiles"/>, because a player may lay a Street anywhere on the map
+    /// (<c>CommandKind.Connect</c>) and the index has to have a slot for it. The
+    /// <em>generator's</em> lattice is sized to <see cref="WalkSearchFixture.ExtentTiles"/>, which is
+    /// what the node count below is about. This test asserted <c>129</c>, which was both at once while
+    /// the map was 4,096 Tiles; at 512 Cells the index span is <b>513</b> and the lattice is unchanged.
+    /// </para>
+    /// <para>
+    /// <b>Both are derived here rather than spelled.</b> A literal in this position is a premise about
+    /// map size, and it goes stale silently — <c>plans/0003</c> queue item 6's own finding, arriving in
+    /// a third file.
+    /// </para>
+    /// <para>
+    /// Every other Road Graph fixture in the suite widens the block to 512 for the sake of the suite's
+    /// wall clock, which is right for a structural question and wrong for a cost: <c>plans/0013</c>'s
+    /// standing lesson is that a unit cost is a hypothesis until a real world has produced one.
+    /// </para>
     /// </remarks>
     [Fact]
     public void The_benchmark_graph_is_the_shipped_lattice_at_full_size()
     {
         RoadGraph graph = WalkSearchFixture.Shipped();
 
-        Assert.Equal(129, graph.Streets.Span);
+        Assert.Equal((CellGrid.WorldTiles / graph.Streets.BlockTiles) + 1, graph.Streets.Span);
+        int side = (WalkSearchFixture.ExtentTiles / graph.Streets.BlockTiles) + 1;
+
+        // At least the lattice, and not exactly it: Arterial junctions and cut-through ends are nodes
+        // too, and they are drawn from the world key rather than laid on the grid.
         Assert.True(
-            graph.Nodes.Rows.LiveCount > 10_000,
-            $"the lattice laid only {graph.Nodes.Rows.LiveCount} nodes; the cost of a search over it "
-            + "would not be the cost of a search over the shipped city");
+            graph.Nodes.Rows.LiveCount >= side * side,
+            $"the lattice laid only {graph.Nodes.Rows.LiveCount} nodes against a {side}x{side} grid; "
+            + "the cost of a search over it would not be the cost of a search over the shipped city");
     }
 
     /// <summary>

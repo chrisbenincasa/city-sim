@@ -258,10 +258,13 @@ public sealed class RoadRulesetLoadTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The two spatial maxima are the map's width</b> — <c>CellGrid.WorldTiles</c>, 4,096 Tiles —
-    /// because a block or a Junction spacing wider than the world is a number that lays nothing.
-    /// <c>foot_crossing_every</c> has no maximum of its own, so its upper boundary is where the
-    /// authored figure stops fitting in the column at all.
+    /// <b>The two spatial maxima are the map's width, and they are tested elsewhere</b> — see
+    /// <see cref="The_two_spatial_maxima_are_the_maps_own_width"/>. They cannot live in an
+    /// <c>[InlineData]</c>, because an attribute argument must be a literal and <b>a literal here is a
+    /// premise about <see cref="CellGrid.WorldTiles"/> that goes stale silently when the map moves</b>
+    /// — which is exactly what happened on 2026-08-13, when the map went from 4,096 Tiles to 16,384 and
+    /// <c>4097</c> stopped being out of range. <c>foot_crossing_every</c> has no maximum of its own, so
+    /// its upper boundary is where the authored figure stops fitting in the column at all.
     /// </para>
     /// <para>
     /// <b>The speed ceiling is a property of the representation</b>: 682 km/h is where Q16.16 Tiles
@@ -271,11 +274,9 @@ public sealed class RoadRulesetLoadTests
     /// </remarks>
     [Theory]
     [InlineData("block_tiles", "0", "It is the Street grid spacing")]
-    [InlineData("block_tiles", "4097", "at most the width of the map")]
     [InlineData("arterial_count", "-1", "how many freeform Arterials")]
     [InlineData("arterial_count", "1025", "how many freeform Arterials")]
     [InlineData("arterial_junction_tiles", "0", "at least 1 Tile")]
-    [InlineData("arterial_junction_tiles", "4097", "at least 1 Tile")]
     [InlineData("foot_crossing_every", "-1", "no crossings at all")]
     [InlineData("foot_crossing_every", "2147483648", "no crossings at all")]
     [InlineData("foot_paths_per_thousand_blocks", "-1", "count per thousand blocks")]
@@ -326,7 +327,6 @@ public sealed class RoadRulesetLoadTests
 
     [Theory]
     [InlineData("block_tiles", "1")]
-    [InlineData("block_tiles", "4096")]
     [InlineData("arterial_count", "0")]
     [InlineData("arterial_count", "1024")]
     [InlineData("arterial_junction_tiles", "1")]
@@ -355,6 +355,49 @@ public sealed class RoadRulesetLoadTests
         Assert.True(ruleset.Roads.Runs);
     }
 
+    /// <summary>
+    /// <b>The two spatial maxima are the map's own width, and this test computes it rather than
+    /// spelling it.</b>
+    /// </summary>
+    /// <remarks>
+    /// A block or a Junction spacing wider than the world is a number that lays nothing, so the
+    /// ceiling is <see cref="CellGrid.WorldTiles"/> and the first refused value is one Tile past it.
+    /// <b>Both sides are derived, which is the point of the test existing separately.</b> These two
+    /// cases sat in the range <c>[Theory]</c> as the literals <c>4096</c> and <c>4097</c> until the map
+    /// went to 512 Cells; the accepted one stayed green while ceasing to test a boundary at all, and
+    /// the refused one failed. <b>An assertion that goes green by accident is worse than one that goes
+    /// red</b>, and only the second of the pair announced itself.
+    /// </remarks>
+    [Fact]
+    public void The_two_spatial_maxima_are_the_maps_own_width()
+    {
+        string wide = $"{CellGrid.WorldTiles + 1}";
+        string exact = $"{CellGrid.WorldTiles}";
+
+        foreach ((string key, string because) in new[]
+        {
+            ("block_tiles", "at most the width of the map"),
+            ("arterial_junction_tiles", "at least 1 Tile"),
+        })
+        {
+            RulesetRefusal refusal = Refused($"""
+                {Nothing}
+
+                {RoadsWith(key, wide)}
+                """);
+
+            Assert.Contains(
+                $"{key} = {wide} is out of range.", refusal.Reason, StringComparison.Ordinal);
+            Assert.Contains(because, refusal.Reason, StringComparison.Ordinal);
+        }
+
+        Assert.True(Accepted($"""
+            {Nothing}
+
+            {RoadsWith("block_tiles", exact)}
+            """).Roads.Runs);
+    }
+
     // ---- the refusal that is a property of two numbers together ---------------------------------
 
     /// <summary>
@@ -372,7 +415,7 @@ public sealed class RoadRulesetLoadTests
         RulesetRefusal refusal = Refused($"""
             {Nothing}
 
-            {RoadsWith("arterial_junction_tiles", "4096")}
+            {RoadsWith("arterial_junction_tiles", $"{CellGrid.WorldTiles}")}
             """);
 
         Assert.Contains("no Arterial can reach a second Junction", refusal.Reason, StringComparison.Ordinal);
@@ -388,12 +431,12 @@ public sealed class RoadRulesetLoadTests
         Ruleset ruleset = Accepted($"""
             {Nothing}
 
-            {RoadsWith("arterial_junction_tiles", "4096").Replace(
+            {RoadsWith("arterial_junction_tiles", $"{CellGrid.WorldTiles}").Replace(
                 "arterial_count = 8", "arterial_count = 0", StringComparison.Ordinal)}
             """);
 
         Assert.Equal(0, ruleset.Roads.ArterialCount);
-        Assert.Equal(4_096, ruleset.Roads.ArterialJunctionTiles);
+        Assert.Equal(CellGrid.WorldTiles, ruleset.Roads.ArterialJunctionTiles);
     }
 
     [Fact]
@@ -402,11 +445,11 @@ public sealed class RoadRulesetLoadTests
         Ruleset ruleset = Accepted($"""
             {Nothing}
 
-            {RoadsWith("arterial_junction_tiles", "4095")}
+            {RoadsWith("arterial_junction_tiles", $"{CellGrid.WorldTiles - 1}")}
             """);
 
         Assert.Equal(8, ruleset.Roads.ArterialCount);
-        Assert.Equal(4_095, ruleset.Roads.ArterialJunctionTiles);
+        Assert.Equal(CellGrid.WorldTiles - 1, ruleset.Roads.ArterialJunctionTiles);
     }
 
     // ---- the stated absences --------------------------------------------------------------------

@@ -151,7 +151,7 @@ become three.
 
 ### The hash-moving queue
 
-> ✅ **ITEM 6 SHIPPED 2026-08-13.** ~~⚠ **REOPENED AGAIN 2026-08-12 by session J, with item 6 — and this one is a gate on a decision that is
+> ✅ **ITEM 6 SHIPPED 2026-08-13, AND THE FLIP IT GATED WENT IN THE SAME DAY — `CellGrid.WorldCells` is 512.** ~~⚠ **REOPENED AGAIN 2026-08-12 by session J, with item 6 — and this one is a gate on a decision that is
 > already taken.**~~ [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)
 > settles the map at **`CellGrid.WorldCells = 512`** — 16384² Tiles, 65.5 km — and the constant **has not
 > been flipped**, because flipping it today would generate **525,312 Street Segments and 2,626,560 Lots**
@@ -244,6 +244,38 @@ become three.
 > the run reaches is invisible in it by construction* — and `GoldenSessionCoverageTests`, written for
 > exactly that, is what held the line.
 >
+> ✅ **THE MAP FLIP, `CellGrid.WorldCells` 128 → 512, shipped the same day and is one line.**
+> [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md), whose *What
+> building it found* section carries the record. **Four things, and the first is about `05 §4`.**
+>
+> - **It moved no State Hash.** All three golden baselines reproduced unchanged, where this item, the
+>   ADR and `CellGrid`'s own comment all predicted every hash would move. `05 §4` says *a change is an
+>   optimisation if the State Hash is unchanged, and a design change otherwise, however it was
+>   motivated* — so by that test the map size reads as an **optimisation**, which it plainly is not.
+>   ***The rule tests whether a change moves this city; a map size is a bound on the cities that are
+>   reachable***, and a fixture in one corner never approaches it. It is neutral **because item 6
+>   landed first** — before that the generator paved the map and this would have moved everything, so
+>   item 6 did not only unblock the flip, it made the flip free. Neither document predicted that of it.
+> - **It cost 11.6 MB at 1M, not the ~4 MB `adr/0089` accounted for** — 192,780 KB resident against
+>   204,412 KB, same command, both measured. The ADR named four derived `int[]` residency arrays as
+>   the set of structures scaling with map area; there is a fifth, `StreetGrid`'s node and edge index
+>   at ~3.2 MB, **correctly sized from the map** because a player may lay a Street anywhere under
+>   `CommandKind.Connect`. A correction to an inventory, not a defect — and *an inventory stated as
+>   complete is a claim*.
+> - **Three fixtures were laying at map extent and the flip broke all three the same way.**
+>   `rulesets/severance.toml` stranded **0%** of pedestrians on the worst of eight seeds, so **the file
+>   that exists to demonstrate Severance had stopped demonstrating it with no number in it changed**;
+>   the walk-search benchmark's graph went 16,641 → 263,169 nodes, sixteen times the fixture for a
+>   benchmark claiming to time *the shipped city*; and the `[roads]` loader's two spatial maxima were
+>   `[InlineData]` literals of 4,096 and 4,097 — of which the refused one failed loudly and ⚠ **the
+>   accepted one stayed green while ceasing to test a boundary at all**. Each now states the extent it
+>   was characterised at, and `severance.toml`'s header **names the test's symbol rather than restating
+>   the figure**. ***A paved extent is not a map size***, three files further on than item 6 found it.
+> - **One cost moved and is routed rather than noted.** The Map Layer residency knee goes **256 →
+>   8,192** emitters, so the headroom against a 1M city's 120,001 Buildings falls from **469× to
+>   14.6×**. [`0013`](0013-tick-budget.md)'s Layer row rests on that headroom; the conclusion survives
+>   and its ground is an order of magnitude weaker. `adr/0073`.
+
 > **⚠ And it widened what the run reaches, which nothing was watching for.** At 4,000 Citizens the
 > shipped 20-minute Commute Budget **starts refusing walks** — `JobAssignmentTests` had a test asserting
 > it refused none, written by 5b-bis task 4 so the fact could not rot, and it failed. Measured across

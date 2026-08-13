@@ -496,11 +496,25 @@ the room is a habit this corpus has already recorded**, and this table is where 
   be checked against, not because 0.012 ms competes with anything.
 - **The Layer row is the only one whose multiplicand is not a guess, and that is a property of the
   map rather than good luck.** The pollution kernel has a radius of 8 Cells, so an interior emitter
-  makes 289 Cells resident and a 128×128 map **saturates at about 256 scattered sources** — three
-  orders of magnitude below the 120,001 Buildings a 1M city holds. No plausible industrial share can
-  put a city on the sloped part of that curve, so residency is not a lever the city has. The range
-  quoted is the dirty region instead, from one Cell to the whole map, and it is paid **once every 64
-  Ticks** — amortised, 0.5–15.8 µs per Tick, which is nothing on any budget.
+  makes 289 Cells resident and a 512×512 map **saturates at about 8,192 scattered sources**. That is
+  below the 120,001 Buildings a 1M city holds by enough that no plausible industrial share puts a city
+  on the sloped part of the curve, so residency is not a lever the city has. The range quoted is the
+  dirty region instead, from one Cell to the whole map, and it is paid **once every 64 Ticks** —
+  amortised, 0.5–15.8 µs per Tick, which is nothing on any budget.
+  - ⚠ **The margin was 469× and is now 14.6×, and the sentence above survived the change without
+    moving.** It read *"a 128×128 map saturates at about 256 scattered sources — **three orders of
+    magnitude** below the 120,001"* until the map went to 512 Cells on 2026-08-13
+    ([`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)). The knee
+    moved **256 → 8,192** — 32× for a 16× area, because a halo of fixed radius covers a smaller share
+    of a larger map and overlaps less. **The conclusion is unchanged and its ground is an order of
+    magnitude weaker**, which is the state this table exists to make visible: *this row's multiplicand
+    is not a guess* is now true by a factor of fifteen rather than obviously. Routed here from
+    `MapLayerFixtureTests` on the day, under
+    [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md),
+    and the test asserts the **margin** as well as the knee — because an assertion on saturation alone
+    goes green at 8,192 exactly as it did at 256, and the thing that changed would have gone
+    unrecorded. ***A conclusion that survives a change to its own premise is not thereby confirmed by
+    it.***
 
 ### Out of the Tick, and they belong here anyway
 
@@ -624,7 +638,8 @@ identified the sort.
 read 982 µs at 100 emitters, 1,024 µs at 1,000 and **662 µs at 10,000** — cost falling as sources
 rise, which is S2's *an artefact that varies with the swept axis is not distinguishable from a
 result*. Two causes, both in the fixture: the stride formula degenerated to 1 at the top rung and laid
-every source in a contiguous run, and **residency saturates at ~256 emitters**, so the axis had
+every source in a contiguous run, and **residency saturates at ~256 emitters** *(on the 128-Cell map
+this was measured on; it is ~8,192 at 512 Cells — see the Layer row above)*, so the axis had
 stopped moving anything two rungs earlier. Re-swept over the dirty region, the column is monotone and
 the whole-map row is flat — **and the flat row is the control that confirms the instrument**, since a
 full recompute must not vary with a dirty rectangle it ignores. The 128-side incremental (975 µs)

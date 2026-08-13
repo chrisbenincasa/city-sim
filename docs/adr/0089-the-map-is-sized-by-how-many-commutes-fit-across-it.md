@@ -8,9 +8,18 @@ what decides whether the player can build separate towns or only one. The 1M tar
 separates towns, and [`0021`](0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md)
 already makes it free.
 
-⚠ **The constant must not move yet.** `RoadGenerator` paves the entire map at world creation, which is
+✅ **BUILT 2026-08-13. `CellGrid.WorldCells` is 512.** The blocker below cleared with `plans/0003`
+queue item 6, which gave `RoadGenerator.LayInto` an extent and had `SyntheticCity` derive it from the Lot
+count the population asks for.
+
+~~⚠ **The constant must not move yet.** `RoadGenerator` paves the entire map at world creation, which is
 the one structure in the build that scales with map **area** rather than with development — and it makes
-`0021`'s central claim false. That defect is this decision's named blocker.
+`0021`'s central claim false. That defect is this decision's named blocker.~~ ⚠ **The blocker was real
+and its stated ground was not.** The generator lays nothing *at world creation*: it has one production
+call site, `SyntheticCity`, reached only by `CommandKind.Populate` — a verb no player has — so `0021`
+was never violated anywhere a player could reach.
+[`0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md), and this ADR is
+one of the three documents that reasoned from the doc-comment saying so.
 
 Supersedes the map-size half of
 [`0085`](0085-nothing-on-this-map-is-far-away-so-a-settlement-is-made-by-a-gap.md), whose findings stand.
@@ -189,6 +198,53 @@ unlock rule is *undesigned*, not refused, so the answer is to design it rather t
 - **S2's routing figures survive the map change and not the generator fix.** They are priced against
   ~30,000 Segments, which is what a *developed* 270 km² produces — the same city. What would move them is
   the full lattice, which is exactly what the blocker removes.
+
+## What building it found
+
+**Three things, and the first is about `05 §4` rather than about maps.**
+
+**The flip moved no State Hash.** All three golden baselines reproduced unchanged, where this ADR, the
+queue item and `CellGrid`'s own comment all predicted every hash would move. `05 §4` says *a change is an
+optimisation if the State Hash is unchanged, and a design change otherwise, however it was motivated* —
+and by that test this reads as an **optimisation**, which it plainly is not: it is the decision about
+whether a player can build separate towns. ***That rule tests whether a change moves this city, and a map
+size is a bound on the cities that are reachable*** — a fixture sitting in one corner never approaches
+it. The rule is not wrong; it is being asked a question about the **state space** and it can only answer
+about a **state**. Worth holding because the failure mode is the comfortable one: a design change that
+comes back green reads as safe.
+
+Note also *why* it is neutral. Before queue item 6 this would have moved every hash in the project, via
+525,312 Segments. **Item 6 did not only unblock the flip, it made the flip free** — which is not a
+property either document predicted of it.
+
+**It cost 11.6 MB at 1M, not the ~4 MB accounted for above.** Measured: 192,780 KB resident at 128 Cells
+against 204,412 KB at 512, same command. The *Consequences* section counts four derived `int[]` residency
+arrays and calls that the set of structures scaling with map area. There is a fifth: `StreetGrid`'s node
+and edge index, sized from `CellGrid.WorldTiles`, ~3.2 MB. **It is sized that way correctly** — a player
+may lay a Street anywhere under `CommandKind.Connect` and the index must have a slot for it — so this is
+a correction to the inventory and not a defect. ***An inventory stated as complete is a claim, and this
+one was made by reading for structures that looked spatial rather than by searching for readers of the
+constant.***
+
+**Three fixtures were laying at map extent, and the flip broke all three the same way.**
+`rulesets/severance.toml` stranded **0%** of pedestrians on the worst of eight seeds — its sixteen
+Arterials spread over sixteen times the ground — so **the file that exists to demonstrate Severance had
+stopped demonstrating it, with no number in it changed**. The walk-search benchmark's graph went 16,641
+→ 263,169 nodes, sixteen times the fixture, for a benchmark whose claim is that it times *the shipped
+city*. And the `[roads]` loader's two spatial maxima were `[InlineData]` literals of 4,096 and 4,097 — of
+which the refused one failed loudly and ⚠ **the accepted one stayed green while ceasing to test a
+boundary at all**, which is the worse half and the silent one. Each now states the extent it was
+characterised at, and `severance.toml`'s header names the test's symbol rather than restating the figure.
+***A paved extent is not a map size***, which is queue item 6's own finding arriving three files further
+on than it was found.
+
+**One cost moved and is routed rather than noted.** The Map Layer residency knee — how many pollution
+emitters it takes to make the whole Layer resident — goes **256 → 8,192**, because a halo of fixed radius
+covers a smaller share of a larger map and overlaps less. Against S0a's 120,001 Buildings in a 1M city
+the headroom falls from **469× to 14.6×**. `plans/0013`'s Map Layer row rests on that headroom being
+large enough that no plausible industrial share reaches the sloped part of the curve; at 14.6× that is
+still true and is no longer obvious. Filed to `plans/0013` under
+[`0073`](0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md).
 
 ## What would trigger revisiting
 
