@@ -151,6 +151,7 @@ public sealed class World
         // recorded rung -- not from arithmetic done here.
         Trips = new Movement.TripTable(64, Roads.Segments);
         Legs = new Movement.LegTable(64, Roads.Segments);
+        RouteHops = new Movement.RouteHopTable(64, Roads.Segments);
         Travellers = new Movement.TravellerTable(64, Citizens, Trips);
 
         // The registry is built before the Wheel rather than after the tables, because EventWheel.Arm
@@ -175,6 +176,12 @@ public sealed class World
             // were outside the State Hash entirely -- declared columns with a saved/derived disposition
             // that nothing folded. adr/0080 wires them because Phase 4 is what constructs a row in them.
             Trips.Rows, Legs.Rows, Travellers.Rows,
+
+            // Appended for the same reason, 5c task 6. A drive Leg's route is saved state -- a route
+            // is a function of its endpoints AND the graph at the moment it was planned, so a reload
+            // that recomputed it would silently re-plan every journey in flight against a graph the
+            // player may have edited since.
+            RouteHops.Rows,
         ];
 
         WorldInvariants.RegisterAll(Invariants);
@@ -189,6 +196,11 @@ public sealed class World
     /// Every Leg of every live Trip. <c>adr/0075</c>'s <em>plan</em> — a cost, never a path.
     /// </summary>
     public Movement.LegTable Legs { get; }
+
+    /// <summary>
+    /// The Segments each drive Leg crosses — <b>what a moving Traveller reads to know where it is</b>.
+    /// </summary>
+    public Movement.RouteHopTable RouteHops { get; }
 
     /// <summary>
     /// Citizens currently on the road. <c>adr/0075</c>'s <em>cursor</em>, and a view rather than an

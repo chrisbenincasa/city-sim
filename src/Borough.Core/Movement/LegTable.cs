@@ -83,6 +83,9 @@ public sealed class LegTable
         Time = _rows.Saved<TravelTime>("travel_time");
         Next = _rows.Saved<int>("next");
 
+        RouteHead = _rows.Saved<int>("route_head");
+        RouteTail = _rows.Saved<int>("route_tail");
+
         _rows.Seal();
     }
 
@@ -122,6 +125,42 @@ public sealed class LegTable
 
     /// <summary>The following Leg of the same Trip, encoded — see <see cref="IndexList"/>.</summary>
     public Column<int> Next { get; }
+
+    /// <summary>
+    /// The first Segment of this Leg's route, encoded — see <see cref="RouteHopTable"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>Zero for every walk Leg, and for a drive Leg whose journey never left its Segment.</b>
+    /// <see cref="Time"/>'s summary still says <i>the cost, and never the path</i> and that is still
+    /// true of what a Leg <em>is</em>: this is a head index into another table, not a path in a
+    /// column. What changed at 5c task 6 is that a drive Leg's route acquired a reader —
+    /// <c>adr/0041</c> attributes Segment volume on entry — and a reader every Tick cannot be served
+    /// from an evicting cache.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An empty route is not a broken one.</b> <see cref="WalkRouting.Cost"/> answers two cases
+    /// in closed form and never reaches the search — a journey along one Segment, and one refused by
+    /// the reachability test — so ***absent is not zero and it is not impassable***. A volume pass
+    /// that read an empty route as <em>no Segments to credit</em> would drop every same-Segment drive
+    /// in the city.
+    /// </para>
+    /// </remarks>
+    public Column<int> RouteHead { get; }
+
+    /// <summary>The last Segment of this Leg's route, encoded.</summary>
+    public Column<int> RouteTail { get; }
+
+    /// <summary>This Leg's route, as a list over <paramref name="hops"/>.</summary>
+    public IndexList Route(RouteHopTable hops)
+    {
+        ArgumentNullException.ThrowIfNull(hops);
+
+        return new IndexList(RouteHead, RouteTail, hops.Next);
+    }
+
+    /// <summary>Adds one Segment to the end of a Leg's route.</summary>
+    public void AppendHop(RouteHopTable hops, int leg, int hop) => Route(hops).Append(leg, hop);
 
     /// <summary>
     /// Allocates a Leg. <b>Link it to its Trip with <see cref="TripTable.Append"/></b>; a Leg that

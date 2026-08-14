@@ -134,6 +134,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _tripsTable;
         private TableSyntaxBase? _jobsTable;
         private TableSyntaxBase? _householdsTable;
+        private TableSyntaxBase? _trafficTable;
 
         public RulesetLoadResult Read()
         {
@@ -173,6 +174,7 @@ public static class RulesetLoader
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
             HouseholdRuleset households = ReadHouseholds();
+            TrafficRuleset traffic = ReadTraffic();
 
             if (_refusals.Count == 0)
             {
@@ -205,6 +207,7 @@ public static class RulesetLoader
                     Trips = trips,
                     Jobs = jobs,
                     Households = households,
+                    Traffic = traffic,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 });
@@ -355,11 +358,25 @@ public static class RulesetLoader
                         _householdsTable = table;
                         break;
 
+                    case "traffic":
+                        // Singular and optional, on [jobs]' reasoning exactly.
+                        if (_trafficTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [traffic] is declared. There is one volume-delay function, "
+                                + "so two tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _trafficTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [layers], "
-                            + "[placement], [roads], [lots], [trips], [jobs] and [households].");
+                            + "[placement], [roads], [lots], [trips], [jobs], [households] and "
+                            + "[traffic].");
                         break;
                 }
             }
@@ -2257,6 +2274,83 @@ public static class RulesetLoader
             }
 
             return new HouseholdRuleset((int)percent);
+        }
+
+        // ---- traffic ----------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[traffic]</c> table: BPR's two parameters and the ceiling on what it will read.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Three required keys in an optional table</b>, on <c>[households]</c>' shape. Omitting the
+        /// table is a city whose roads never slow down — which is also every city this project
+        /// described before 5c task 6, so omission is behaviour-preserving rather than a placeholder.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>α and the clamp are authored as <em>percentages</em> because this file has no
+        /// decimals</b>, and 400% is how a <c>v/c</c> ratio of four is ordinarily said out loud. A key
+        /// named <c>alpha</c> holding <c>15</c> would be off by two orders of magnitude with nothing to
+        /// notice it, which is the failure <c>adr/0094</c>'s <c>Speed.PerKilometrePerHour</c> literal
+        /// actually committed — ***the name of a quantity is not its denomination***, so the name
+        /// carries the denomination.
+        /// </para>
+        /// </remarks>
+        private TrafficRuleset ReadTraffic()
+        {
+            if (_trafficTable is null)
+            {
+                return TrafficRuleset.None;
+            }
+
+            if (!TryInteger(_trafficTable, "alpha_percent", out long alpha, required: true)
+                || !TryInteger(_trafficTable, "beta", out long beta, required: true)
+                || !TryInteger(_trafficTable, "clamp_percent", out long clamp, required: true))
+            {
+                return TrafficRuleset.None;
+            }
+
+            if (alpha < 0 || alpha > 10_000)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_trafficTable, "alpha_percent") ?? _trafficTable),
+                    null,
+                    $"alpha_percent is {alpha}. It is BPR's alpha as a percentage -- how much slower a "
+                    + "Segment is at exactly its capacity, so 15 is the textbook value and means 15% "
+                    + "slower. Zero is a road that never slows down, which is what omitting [traffic] "
+                    + "says; above 10000 the delay at capacity exceeds a hundredfold and the clamp is "
+                    + "the term doing the work rather than the curve.");
+
+                return TrafficRuleset.None;
+            }
+
+            // Four is textbook and eight already overflows Q16.16 at the clamp: 4^8 is 65,536, which
+            // is exactly Fixed.One's whole range. The ceiling is arithmetic rather than taste.
+            if (beta < 1 || beta > 6)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_trafficTable, "beta") ?? _trafficTable), null,
+                    $"beta is {beta}. It is BPR's exponent, a small whole number -- 4 is textbook and "
+                    + "is what spike S2 ran. Below 1 the function is not increasing in volume; above 6 "
+                    + "a clamped ratio overflows the Q16.16 the multiplication is done in, so the "
+                    + "curve stops being computable before it stops being plausible.");
+
+                return TrafficRuleset.None;
+            }
+
+            if (clamp < 100 || clamp > 1_000)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_trafficTable, "clamp_percent") ?? _trafficTable),
+                    null,
+                    $"clamp_percent is {clamp}. It is the largest volume/capacity the function will "
+                    + "read, as a percentage -- 400 means four times capacity and is what S2 ran. "
+                    + "Below 100 the clamp binds before a Segment is even full, so the VDF would be "
+                    + "constant across the whole range 03 SS3.2 says it is strong in; above 1000 the "
+                    + "delay multiplier runs to five figures and the router is comparing noise.");
+
+                return TrafficRuleset.None;
+            }
+
+            return new TrafficRuleset(
+                Ratio.FromFraction((int)alpha, 100), (int)beta, Ratio.FromFraction((int)clamp, 100));
         }
 
         // ---- jobs, continued --------------------------------------------------------------------

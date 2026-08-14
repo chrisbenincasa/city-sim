@@ -396,6 +396,52 @@ public sealed class WalkScratch
         return length;
     }
 
+    /// <summary>
+    /// The same route as <see cref="PathTo"/>, as <b>Arc</b> slots rather than Segment slots.
+    /// </summary>
+    /// <remarks>
+    /// <b>An Arc is directed and a Segment is not</b>, which is the whole reason this exists: 5c task 6
+    /// attributes volume per direction (<c>adr/0041</c>), so the recorder needs to know which way round
+    /// each Segment was crossed and <see cref="PathTo"/> has already thrown that away. The two methods
+    /// share one traversal and differ in one array read; they are kept apart rather than merged behind
+    /// a flag because a caller wanting a *path* and a caller wanting *directions* are asking different
+    /// questions and the span they pass means different things.
+    /// </remarks>
+    /// <returns>
+    /// The number of Arcs, or <see cref="NoPath"/>. When the return exceeds
+    /// <paramref name="arcs"/>'s length nothing was written — call again with a span that long.
+    /// </returns>
+    public int ArcsTo(int node, Span<int> arcs)
+    {
+        if (!_recording || (uint)node >= (uint)_nodes || _stamp[node] != _generation
+            || !_settled[node])
+        {
+            return NoPath;
+        }
+
+        int length = 0;
+
+        for (int cursor = node; _previous[cursor] != NoNode; cursor = _previous[cursor])
+        {
+            length++;
+        }
+
+        if (arcs.Length < length)
+        {
+            return length;
+        }
+
+        int write = length;
+
+        for (int cursor = node; _previous[cursor] != NoNode; cursor = _previous[cursor])
+        {
+            write--;
+            arcs[write] = _via[cursor];
+        }
+
+        return length;
+    }
+
     /// <summary>Improves a node's tentative cost, pushing it onto the heap if it moved.</summary>
     private void Relax(int node, TravelTime cost, int arc, int from)
     {

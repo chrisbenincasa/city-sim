@@ -76,6 +76,33 @@ the durable half of the document.
 | ⚠️ **One job assignment pass**, cold start | **48 ms per pass at 100,000 Citizens** | — | as above |
 | **One walk search, in a real world** | **~32.5 µs** | **no — it is an attribution, see below** | [`0023`](0023-jobs-and-the-commute.md) task 7 |
 | ⚠️ **Commute generation**, in a departure Tick | **0.52 ms at 100,000 Citizens** | **no — it runs on a third of Ticks** | as above |
+| ⚠️ **Segment volume attribution**, at 1M | **~320,000 increment/decrement pairs a Tick** | **no — the multiplicand is arithmetic and its premise moved** | [`adr/0041`](../docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md), re-derived 2026-08-14 |
+
+### ⚠️ Volume attribution is four times what its own ADR priced, and nobody changed its number
+
+**No new measurement — a re-derivation, routed here by [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+on the day milestone 5c task 6 found it.** `adr/0041` prices direct volume attribution at *order 80,000
+increment/decrement pairs per Tick at 1M*, from *a vehicle crosses about one Segment per Tick* — and
+states in the open what that follows from: **`TICKS_PER_DAY = 8192`** and a block-length Segment.
+
+[`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+moved that constant to **2048** and did not touch `adr/0041`. A Tick is now **42.19** in-world seconds
+and a 128 m Street at 50 km/h takes **9.2**, so the crossing rate is **~4.6 Segments per Tick** — which
+is `adr/0071`'s own *0.87 → 0.22 Ticks* illustration seen from the other side. The pair count is
+therefore **~320,000 a Tick**, and S2 R2a's measured **0.79–0.83** was taken under the old clock, so it
+scales the same way rather than correcting it.
+
+⚠ **Do not read this row as a millisecond figure.** It is a **count of array writes**, not a price: the
+inner loop is S4's **K2** (random gather by generational handle) into an L2-resident array, and nothing
+has run it at this rate. ***A unit cost is a hypothesis until a real world has produced one***, and this
+row has a measured multiplicand and **no unit at all** — the opposite failure from the routing row above,
+which has a unit and a multiplicand that counts the wrong event.
+
+**What this costs the corpus beyond the arithmetic** is that `adr/0041`'s crossover against the aggregate
+scheme was discharged at **105 Ticks** on the old rate. The direction is favourable — a higher crossing
+rate makes direct attribution *dearer*, so the crossover moves **down** — but the number is not 105 any
+more and nothing has recomputed it. `adr/0041`'s revisit trigger is re-opened there rather than here,
+because it is a decision and this is a ledger.
 
 ### ⚠️ The job assignment pass is a burst, and the interval is what concentrates it
 

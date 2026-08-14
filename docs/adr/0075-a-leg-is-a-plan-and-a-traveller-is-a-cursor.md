@@ -15,7 +15,7 @@ This is an **arguable** claim under [`0043`](0043-a-claim-a-measurement-could-se
 | | Holds | Lifetime |
 |---|---|---|
 | **Trip** | purpose, origin and destination Address, Leg head index, **Fate**, the failing Leg's index | until its Fate has reached the Census |
-| **Leg** | mode, two Addresses, **travel time** (Q16.16 Ticks, `adr/0071`), `next` | with its Trip |
+| **Leg** | mode, two Addresses, **travel time** (Q16.16 Ticks, `adr/0071`), `next`, **and — amended 2026-08-14 — a route, on a *vehicular* Leg only** | with its Trip |
 | **Traveller** | the Citizen, the Trip, **which Leg it is on**, the arrival Tick of that Leg, **and — amended 2026-08-14 — how far along that Leg's route it has got** | created on demand, released on arrival |
 
 ⚠ **The Traveller row is amended (2026-08-14, 5c task 3): a cursor into the Leg list is not a cursor,
@@ -39,6 +39,21 @@ where an unenumerated field is the bug the invariant exists to catch.
 **The reason the third row exists is an invariant, not tidiness.** `CONTEXT.md` → Promotion/Demotion states the one that carries the most weight: *"conserved quantities live on the Citizen record, never on the embodiment — **a Traveller is a view, not an owner**."* Session M has already applied it once, moving the Habit Route from the Traveller to the Citizen on exactly this ground. Making the **Leg** the plan and the **Traveller** the cursor puts every durable thing on a row that outlives the journey and every transient thing on a row that is released — so the invariant holds by construction rather than by discipline, which is the same upgrade [`0005`](0005-two-fidelity-tiers.md) achieved for reconstructibility.
 
 **A Leg stores a cost and not a path, and this is what makes `adr/0008` affordable.** For a **walk** Leg the route is searched, `distance / speed` is taken, and the Segment list is discarded — nothing downstream reads it, because `CONTEXT.md` → Fidelity keeps pedestrians out of Stress entirely and a walk Leg therefore increments no Segment volume. For a **drive** Leg the path already has a home that is not the Leg: [`0060`](0060-a-habit-route-is-a-small-set-of-variants-and-which-one-you-take-is-who-you-are.md) puts it in the shared route cache keyed by `(origin node, destination node, variant)`, reached through an index on the **Citizen**. Storing a path on the Leg would be a third copy of a route the design has twice decided to share, and it would multiply `adr/0008`'s *"roughly triples"* by a route length instead of by a fixed record.
+
+> ⚠ **AMENDED 2026-08-14 by milestone 5c task 6. A *vehicular* Leg now stores its route; a walk Leg
+> still stores none, which is where this paragraph was argued.** The walk half is untouched and for the
+> reason given: nothing reads a pedestrian's Segments, and `03 §3.7` makes that permanent rather than
+> provisional. What the drive half did not anticipate is that
+> [`adr/0041`](0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md) attributes volume
+> **on Segment entry**, so an in-flight vehicle needs its route *every Tick, reliably* — and `adr/0060`'s
+> route cache is fixed-capacity and **evicts**. An entry vanishing under a moving vehicle strands it on a
+> Segment it never leaves, which is an `adr/0006`-class leak presenting as a road busy for ever with
+> nothing on it. ***A shared cache is an optimisation and an executing plan is state***, so the two
+> structures answer different questions and both survive: the cache answers *what is the route between
+> these nodes*, this answers *what is **this** Traveller doing*. The *"third copy"* objection stands
+> against a third **cache** and not against a per-journey plan that is freed when the Trip ends. Full
+> argument in
+> [`adr/0099`](0099-a-legs-cost-is-a-plan-and-a-drive-is-priced-segment-by-segment-as-it-is-met.md).
 
 ✅ **The route-finder exists as of 5c task 3 and this paragraph is unchanged by it** — worth stating, because `plans/0026` scoped that task as *amending* this ADR and it does not. `WalkScratch.PathTo` recovers a Segment list from the predecessors a search leaves behind, opt-in so a walk pays nothing; **where a route is stored is a different question from whether one can be produced**, and this ADR answered the first while nothing had answered the second. Producing a route on demand is what makes the route cache buildable in task 4, and it is the same decision as before: the Leg still stores a cost.
 

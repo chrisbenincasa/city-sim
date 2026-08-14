@@ -6,7 +6,7 @@
 
 ## Status
 
-⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1, 2, 3 and 4 of 8 done 2026-08-14.** All three named gates are discharged and none of the closures
+⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1–6 of 8 done 2026-08-14.** Two remain: task 7's runner mode and task 8's long run, and **task 8 is the named ratifier for four hash-bearing numbers** (`[traffic]`'s three and `[households] car_ownership_percent`), none of which any shipped Ruleset states. All three named gates are discharged and none of the closures
 reached a gate board, which is why this milestone read as blocked for two days
 ([`0000`](0000-board.md) → *Blocked*, split per-milestone on 2026-08-13):
 
@@ -292,7 +292,7 @@ mechanism in this project that has a **per-Tick write to a saved column** on eve
 | # | Decision | Needed before | Why it is not settled here |
 |---|---|---|---|
 | ~~1~~ | ~~**What a drive Leg's endpoints are with no Parking Shed**~~ ✅ **STRUCK 2026-08-14, and the ground was never there.** Session F's trap is a **fallback from an exhausted Shed**, which cannot occur because no Shed exists — and `World.VehicleAccessPoint` had already forbidden it in its own doc-comment. The two Access Points are the **same Address** by construction (`World.cs:1044`, *built behaviour rather than an interim simplification*), so a drive is door to door and nothing is stood in for. ⚠ **What actually gated task 5 was not on this list at all**: nobody decides who drives, and mode choice is **undesigned** under `adr/0070` — see the record | task 5 | *(struck)* |
-| 2 | **When a Leg's cost is computed**, and what makes it stale | task 6 | `adr/0075` makes a Leg a plan; a plan's cost ages. This is `adr/0012`'s problem on a second object and neither ADR addresses it |
+| ~~2~~ | ~~**When a Leg's cost is computed**, and what makes it stale~~ ✅ **STRUCK 2026-08-14 by task 6, and the answer dissolves the staleness question rather than answering it.** A Leg's cost is computed **once, at planning, at free flow**, and it never goes stale because **nothing reads it back as a prediction** — it is what the Citizen judged the journey by, and that judgement is made once. The *execution* is priced **per Segment on entry** from live volume, so what would have gone stale is simply never stored. ***A plan does not age if nobody consults it twice.*** `adr/0012`'s invalidation contract therefore binds the **route cache** (task 4) and not the Leg, which is where it was always pointed. ⚠ **What this leaves open is a different question and it is named rather than absorbed**: the Commute Budget is judged on the plan, so a commute is accepted at free-flow cost and may be endured at a congested one — deliberate, since a person cannot see tomorrow's jam, and it is exactly what `adr/0095`'s fourth revisit trigger is waiting for | task 6 | *(struck)* |
 | 3 | **Whether the matrix may reject a job candidate**, or only order them | task 2 | Deleting the Severance reading is the failure mode, and 5b-bis task 4 chose the two-stage shape deliberately |
 
 **None of these is a number**, so `adr/0052` does not apply to them and `adr/0043` does — type each one
@@ -804,3 +804,70 @@ the mode parameter is **required with no default**, because task 3's own finding
 threaded through a signature and not through a loop compiles and passes every test — a `Foot` default
 here is that hazard pointing the other way, and **Foot is a legitimate answer, so it cannot announce
 itself**.
+
+### Task 6 — the volume-delay function. ✅ **DONE 2026-08-14**, and it found two defects in itself by
+being measured rather than reasoned about.
+
+**What shipped.** A `[traffic]` Ruleset table with three required keys in an optional table
+(`alpha_percent`, `beta`, `clamp_percent`) on `[households]`' polarity; `RouteHopTable`, an intrusive
+per-Leg list of the Segments a drive crosses, each with a stored direction bit; `CurrentHop` and `Carry`
+columns on `TravellerTable`; `TripEngine.Enter`/`Leave`/`Arrive`, which increment a Segment's volume on
+entry, price its dwell by BPR from the volume at that instant, and release it on exit. **1,393 tests
+green**, `world-hash.txt` and `session-trace.txt` re-recorded — **neither Ruleset content hash moved**,
+because no shipped file states the new table. [`adr/0099`](../docs/adr/0099-a-legs-cost-is-a-plan-and-a-drive-is-priced-segment-by-segment-as-it-is-met.md).
+
+**`Invariant.SegmentVolumeIsConserved` is load-bearing with no edit to it.** 5b shipped it knowing both
+sides were structurally zero, against slice 5 task 7's precedent of withholding a vacuous assertion — the
+distinction being between an assertion whose *shape* is wrong until the world changes and one that is
+**correct and temporarily trivial**. This is the payment on that judgement, and it is checked **every
+Tick** rather than at the end, because a leak repaired by the last Traveller arriving is invisible to a
+final reading.
+
+**⚠ Finding 1 — the premise licensing the arithmetic had expired, and the document that retired it never
+touched the document that relied on it.** The volume/capacity ratio divides a Vehicle **stock** by a
+Vehicle **flow**. The first cut skipped the conversion, on the strength of `adr/0041`'s *a vehicle
+crosses about one Segment per Tick* — a sentence that ADR states as following from `TICKS_PER_DAY =
+8192`. `adr/0094` moved that constant to 2048 and the rate is now **~4.6**, which is `adr/0071`'s own
+0.87 → 0.22 illustration seen from the other side. The consequence was total and silent: the function
+came back **×1.0000 at every population from 4,000 to 160,000 Citizens** while every other test in the
+milestone passed. ***A premise licensing one quantity to stand in for another is itself a measurement,
+and a constant moved in another document can retire it silently.*** The replacement is **Little's Law**
+and introduces no number — a Segment at capacity holds `capacity/Tick × crossing time` = **9.2** Vehicles
+on a 128 m block, a 14 m spacing, against 42 on 128 m which is a 3 m one. **`adr/0041`'s revisit trigger
+anticipated this and named one of its two causes**: it watches for the Segment getting shorter and not
+for the Tick getting longer, and the two are the same ratio. ***A trigger stated over one term of a ratio
+is a trigger blind to the other.*** Amended there; the ×4 cost consequence is routed to `plans/0013`.
+
+**⚠ Finding 2 — a guard written for an absent quantity fired on a small one.** Flooring capacity to whole
+Vehicles per Tick loses everything under 2,048 a Day, so a narrow road hit the *no capacity → no delay*
+branch. The sweep read **×2.48** at 200 Vehicles an hour and **×1.0000** at 60, which is not a curve any
+function has. ***A guard written for an absent quantity will fire on a small one, and small is the
+direction the interesting cases lie in.*** Fixed by scaling both operands rather than flooring one.
+
+**⚠ Finding 3, and it outranks the mechanism — a generated city cannot congest itself.** Peak load is
+`v/c` **0.44** at 4,000 Citizens, at 16,000 and at 64,000 alike: a 16× population against an *identical*
+load, because the paved extent scales with **√population** (`plans/0003` queue item 6) so the network
+grows with the traffic. ***The same number sizes both the demand and the supply.*** Congestion in this
+design is something a **player** makes by laying too little road for what they zoned, which is
+`adr/0090`'s whole point and is unreachable from `CommandKind.Populate`. **Both sides are asserted rather
+than one**: `A_generated_city_is_never_busy_enough_to_slow_itself_down` requires the shipped city to be
+byte-identical with and without the function, and `A_congested_city_keeps_its_vehicles_on_the_road_longer`
+cuts Street capacity to 200 Vehicles an hour and requires that it is not. The negative one fails in the
+useful direction: anything that raises demand against supply breaks it, and breaking it is the signal.
+**This is the third sighting of a dial that is inert at the shipped configuration** — after
+`foot_crossing_every` (5a) and the job-search box (2026-08-14) — and the second where the inertness is
+*structural* rather than a matter of tuning.
+
+**Two smaller ones.** The **direction bit is stored rather than derived**, because an arc index is not
+stable across a graph edit and because entry and exit must key on the same value or a Segment's two
+counters drift in opposite directions while their sum stays right — which the conservation invariant
+structurally cannot see; `No_segment_direction_ever_goes_negative` is the assertion that can. And the
+**sub-Tick carry is arithmetic rather than polish**: a 32-Tile Street costs **0.22** Ticks, so flooring
+each hop independently makes every Street free and a twenty-Segment commute arrives on the Tick it left.
+
+**What the milestone owes after this.** Task 7's runner mode, which now has something to print — free-flow
+beside loaded time — and task 8's long run, which is the **named ratifier** for α, β and the clamp
+(`plans/0002` §D2) and for `car_ownership_percent`. ⚠ **Task 8 must state `[traffic]` and `[households]`
+together in a Ruleset, or it ratifies neither**, and it must not read a flat congestion figure as evidence
+the function is broken — finding 3 is why.
+

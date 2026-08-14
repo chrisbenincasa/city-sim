@@ -828,6 +828,101 @@ public readonly record struct TripRuleset(
 /// stated as the quantity S2 measured rather than as the window it implies.</b>
 /// </param>
 /// <summary>
+/// The <c>[traffic]</c> table — <b>what a Segment costs to drive when other people are on it</b>.
+/// The volume-delay function, and it is BPR (<c>CONTEXT.md</c> → Volume-Delay Function).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b><c>free_flow × (1 + α(v/c)^β)</c>, evaluated on one Segment's own volume over its own
+/// capacity.</b> <c>03 §3.2</c>'s whole argument for the fidelity ladder is that this formula is used
+/// <em>only where it is strong</em> — unstressed Segments, where it sits near free-flow — and that the
+/// saturated regime, where a memoryless function of one Segment cannot represent queueing or
+/// spillback, is handled by the Microscopic tier instead.
+/// </para>
+/// <para>
+/// ⚠ <b>The units do not match and the conversion is the load-bearing part.</b>
+/// <see cref="Space.RoadSegmentTable.CapacityPerDay"/> counts Vehicles <em>passing</em> — a flow —
+/// and <see cref="Space.RoadSegmentTable.VolumeForward"/> counts Vehicles <em>present</em> — a stock.
+/// BPR's ratio is flow over flow. What converts one to the other is <c>adr/0041</c>'s own assumption
+/// that <b>a vehicle crosses about one Segment per Tick</b>, which makes *present this Tick* and
+/// *passing this Tick* the same number, so the denominator is <b>capacity per Tick</b>. That is exact
+/// at the shipped figures rather than approximate: a Street's 3,600 Vehicles an hour is one a second,
+/// a Tick is 42.1875 s (<c>adr/0094</c>), and <c>86,400 ÷ 2,048 = 42.1875</c>. ***The unit of a
+/// quantity is not its denomination*** — the two columns are both in Vehicles and belong to different
+/// kinds.
+/// </para>
+/// <para>
+/// ⚠ <b>The crossing rate that licenses it is <em>measured at 0.79–0.83</em>, not 1.0</b> (S2 R2a,
+/// reported free-flow and at the morning peak). So the ratio is overstated by about a fifth and the
+/// VDF reads slightly busier than the city is. Recorded rather than corrected, because a correction
+/// factor here would be a fourth hash-bearing number with no ratifier at all, and the direction is
+/// conservative — it promotes sooner, which is the side <c>03 §3.4</c>'s self-correction argument
+/// wants to err on.
+/// </para>
+/// <para>
+/// <b>The three numbers have a <em>source</em> and are still unratified.</b> α = 0.15 and β = 4 are
+/// textbook BPR and are what S2 ran; ⚠ the clamp is recoverable from S2 R8.0's own published figure —
+/// *"an arc at the clamp costs **39.4×** free-flow"* — since <c>1 + 0.15 × 4⁴ = 39.4</c> exactly, so
+/// S2's clamp was <c>v/c = 4</c>. <b>A source is not a ratification</b>: S2 is a synthetic harness
+/// and every figure in this corpus that moved from a fixture to a real world moved the same way.
+/// <c>adr/0052</c>, and the row is in <c>plans/0002</c> §D.
+/// </para>
+/// <para>
+/// ⚠ <b>Past the clamp the multiplier is constant, and that is a blindness rather than a safeguard.</b>
+/// S2 R8.3 measured it directly: above the ceiling *the router cannot tell a bad jam from a
+/// catastrophic one*, and the share of readings past it is the column that showed Sight earning its
+/// keep. The clamp exists because <c>β = 4</c> is a quartic and an unclamped <c>v/c</c> of 10 costs
+/// 1,501× free-flow, which is positive feedback — a jammed arc's Travellers dwell longer, so its
+/// volume rises further.
+/// </para>
+/// </remarks>
+/// <param name="Alpha">BPR's α. The delay at exactly capacity, as a fraction of free-flow.</param>
+/// <param name="Beta">BPR's β. The exponent, a small whole number.</param>
+/// <param name="Clamp">The largest <c>v/c</c> the function will read. Above it, cost is constant.</param>
+public readonly record struct TrafficRuleset(Ratio Alpha, int Beta, Ratio Clamp)
+{
+    /// <summary>
+    /// A Ruleset whose roads never slow down.
+    /// </summary>
+    /// <remarks>
+    /// <b>Free-flow everywhere is the meaning of omission</b>, on <see cref="JobRuleset.None"/>'s
+    /// polarity — and here it is also the behaviour every Ruleset had before 5c task 6, so a file that
+    /// states no <c>[traffic]</c> keeps exactly the city it had.
+    /// </remarks>
+    public static TrafficRuleset None => default;
+
+    /// <summary>Whether this city's roads slow down at all.</summary>
+    public bool Runs => Beta > 0;
+
+    /// <summary>
+    /// What a Segment costs to traverse at <paramref name="load"/>, given its free-flow time.
+    /// </summary>
+    /// <remarks>
+    /// <b>Integer-only and left-to-right</b>: the power is <see cref="Beta"/> repeated
+    /// <see cref="Ratio"/> multiplications rather than a call to anything, because there is no
+    /// <c>Math.Pow</c> in this project and a Q16.16 multiply is the whole of what is needed for an
+    /// exponent that is a small whole number.
+    /// </remarks>
+    public TravelTime Apply(TravelTime freeFlow, Ratio load)
+    {
+        if (!Runs || freeFlow.IsImpassable || load <= Ratio.Zero)
+        {
+            return freeFlow;
+        }
+
+        Ratio ratio = load > Clamp ? Clamp : load;
+        Ratio power = ratio;
+
+        for (int i = 1; i < Beta; i++)
+        {
+            power *= ratio;
+        }
+
+        return freeFlow * (Ratio.One + (Alpha * power));
+    }
+}
+
+/// <summary>
 /// The <c>[households]</c> table — <b>what a Household is beyond where it lives</b>. Today that is
 /// one thing: whether it keeps a car.
 /// </summary>
@@ -1132,6 +1227,17 @@ public sealed class Ruleset
     /// polarity, for <see cref="Jobs"/>' reason.
     /// </remarks>
     public HouseholdRuleset Households { get; init; } = HouseholdRuleset.None;
+
+    /// <summary>
+    /// <b>What a Segment costs to drive when other people are on it</b> — the <c>[traffic]</c> table
+    /// (5c task 6).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="TrafficRuleset.None"/> when the file states no <c>[traffic]</c>, and that is a city
+    /// whose roads never slow down — which is also the city every Ruleset described before this table
+    /// existed, so omission preserves behaviour exactly.
+    /// </remarks>
+    public TrafficRuleset Traffic { get; init; } = TrafficRuleset.None;
 
     /// <summary>
     /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.

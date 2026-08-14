@@ -1,3 +1,4 @@
+using Borough.Core.Arithmetic;
 using Borough.Core.Entities;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
@@ -207,8 +208,11 @@ public sealed class TripEngine
 
         for (int i = 0; i < legCount; i++)
         {
+            bool driving = modes[i] == TravelMode.Car;
+
             TravelTime step = WalkRouting.Cost(
-                _world.Roads, modes[i], waypoints[i], waypoints[i + 1], rules.CrossingCost, _walk);
+                _world.Roads, modes[i], waypoints[i], waypoints[i + 1], rules.CrossingCost, _walk,
+                recordPath: driving);
 
             // Eagerly, per adr/0075: every Leg of a Trip is created at Trip creation, which is what
             // makes mean-Legs-per-Trip countable at all. The impassable one is created too, because
@@ -219,9 +223,17 @@ public sealed class TripEngine
 
             _world.Trips.Append(_world.Legs, tripSlot, legSlot);
 
-            if (modes[i] == TravelMode.Car)
+            if (driving)
             {
                 _tickDriveLegs++;
+
+                // Read immediately, because _walk is one reusable scratch and the next iteration
+                // overwrites it. adr/0041 needs this route every Tick the Traveller is moving, which
+                // is why it goes into a saved table rather than being looked up again later.
+                if (!step.IsImpassable)
+                {
+                    RecordRoute(legSlot, waypoints[i], waypoints[i + 1]);
+                }
             }
             else
             {
@@ -270,11 +282,106 @@ public sealed class TripEngine
         //
         // The *first* Leg's cost, not the Trip's: the Traveller is a cursor and AdvanceTravellers
         // prices each hop as it reaches it (adr/0075).
-        _world.Travellers.Create(
-            _world.Citizens.Rows.At(citizen), trip, head,
-            tick + _world.Legs.Time[head].ToTicksFloor());
+        int travellerSlot = _world.Travellers.Rows.Resolve(
+            _world.Travellers.Create(_world.Citizens.Rows.At(citizen), trip, head, tick));
+
+        _world.Travellers.ArrivesAt[travellerSlot] = BeginLeg(travellerSlot, head, tick);
 
         return TripFate.InFlight;
+    }
+
+    /// <summary>
+    /// Writes the Segments a drive Leg crosses into <see cref="World.RouteHops"/>, in order.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The origin and destination Segments are hops too, and leaving them out would break the
+    /// conservation invariant rather than merely lose detail.</b> <see cref="WalkScratch.PathTo"/>
+    /// hands back the Segments of the <em>arcs between the two endpoint nodes</em>; the vehicle also
+    /// spends time on the part of its own Segment before the first node and the part of the
+    /// destination's after the last. <c>Invariant.SegmentVolumeIsConserved</c> asserts that total
+    /// volume equals the number of in-flight vehicular Travellers, so a Traveller that is briefly on
+    /// <em>no</em> Segment fails it — the vehicle has to be somewhere every Tick.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An empty route with two distinct end Segments is normal, not a failure.</b> Two Segments
+    /// that share a node need no arc between them, and the same-Segment case never reaches the search
+    /// at all. ***Absent is not zero and it is not impassable.***
+    /// </para>
+    /// </remarks>
+    private void RecordRoute(int legSlot, Address from, Address to)
+    {
+        RoadArcs arcs = _world.Roads.Arcs;
+        RoadSegmentTable segments = _world.Roads.Segments;
+        RouteHopTable hops = _world.RouteHops;
+
+        int length = _walk.Arrived == WalkScratch.NoNode
+            ? WalkScratch.NoPath
+            : _walk.ArcsTo(_walk.Arrived, []);
+
+        if (length <= 0)
+        {
+            // No Arc between the two ends -- the same Segment, or two that meet at a node. Nothing
+            // determines a direction, so both endpoint hops take the convention. RouteHopTable.Forward
+            // carries the argument for why that is stated rather than hidden.
+            AppendHop(legSlot, from.Segment, forward: true);
+            AppendHop(legSlot, to.Segment, forward: true);
+
+            return;
+        }
+
+        Span<int> route = length <= 64 ? stackalloc int[length] : new int[length];
+
+        _walk.ArcsTo(_walk.Arrived, route);
+
+        // The vehicle leaves its own Segment by whichever node the first Arc departs from, and that
+        // node is the end of the first Arc's Segment that the Arc does not point at. Reading it back
+        // out this way costs one comparison and saves carrying a second node list out of the search.
+        int firstSegment = arcs.Segment[route[0]];
+        int exit = OtherEnd(firstSegment, arcs.Target[route[0]]);
+
+        AppendHop(legSlot, from.Segment, IsNodeB(from.Segment, exit));
+
+        foreach (int arc in route)
+        {
+            AppendHop(legSlot, arcs.Segment[arc], IsNodeB(arcs.Segment[arc], arcs.Target[arc]));
+        }
+
+        // Arriving: the vehicle enters the destination Segment at the last Arc's target and drives
+        // away from it, so this one is the mirror of the departure and not a copy of it.
+        AppendHop(legSlot, to.Segment, !IsNodeB(to.Segment, arcs.Target[route[^1]]));
+
+        int OtherEnd(int segment, int node) =>
+            IsNodeB(segment, node)
+                ? (_world.Roads.Nodes.Rows.TryResolve(segments.NodeA[segment], out int a) ? a : node)
+                : (_world.Roads.Nodes.Rows.TryResolve(segments.NodeB[segment], out int b) ? b : node);
+
+        bool IsNodeB(int segment, int node) =>
+            segment >= 0 && segments.Rows.IsLive(segment)
+            && _world.Roads.Nodes.Rows.TryResolve(segments.NodeB[segment], out int b) && b == node;
+
+        void AppendHop(int leg, int segment, bool forward)
+        {
+            if (segment < 0 || !segments.Rows.IsLive(segment))
+            {
+                return;
+            }
+
+            // A route that doubles back on the Segment it is already on is one hop, not two. The
+            // search can return the origin's Segment as its first arc when the vehicle leaves by one
+            // endpoint and the route runs back past the other, and a Traveller cannot occupy the same
+            // Segment twice in a row without leaving it -- which is what the volume pair would claim.
+            int tail = _world.Legs.RouteTail[leg];
+
+            if (tail != 0 && segments.Rows.TryResolve(hops.Segment[tail - 1], out int last)
+                && last == segment)
+            {
+                return;
+            }
+
+            _world.Legs.AppendHop(
+                hops, leg, hops.Rows.Resolve(hops.Create(segments, segment, forward)));
+        }
     }
 
     /// <summary>
@@ -378,6 +485,219 @@ public sealed class TripEngine
     }
 
     /// <summary>
+    /// Puts a Traveller at the start of a Leg and returns the Tick it next needs attention.
+    /// </summary>
+    /// <remarks>
+    /// <b>A walk Leg is priced once and a drive Leg is priced per Segment</b>, and the asymmetry is
+    /// <c>adr/0041</c>'s rather than a shortcut: volume is attributed for vehicular Legs only, because
+    /// <c>CONTEXT.md</c> → Fidelity keeps pedestrians out of Stress entirely, and <c>03 §3.7</c> makes
+    /// that permanent by saying a pedestrian network does not saturate. A walk therefore has nothing to
+    /// price against and nothing to attribute, so it costs what it was planned to cost.
+    /// </remarks>
+    private Ticks BeginLeg(int travellerSlot, int legSlot, Ticks tick)
+    {
+        TravellerTable travellers = _world.Travellers;
+        LegTable legs = _world.Legs;
+
+        int head = (TravelMode)legs.Mode[legSlot] == TravelMode.Foot
+            ? -1
+            : legs.RouteHead[legSlot] - 1;
+
+        if (head < 0)
+        {
+            travellers.CurrentHop[travellerSlot] = Rows.NoSlot;
+
+            return Arrive(travellerSlot, legs.Time[legSlot], tick);
+        }
+
+        travellers.CurrentHop[travellerSlot] = head;
+
+        return Arrive(travellerSlot, Enter(head), tick);
+    }
+
+    /// <summary>
+    /// Adds a cost to a Traveller's clock, keeping the sub-Tick remainder.
+    /// </summary>
+    /// <remarks>
+    /// <b>The remainder is the point</b> — see <see cref="TravellerTable.Carry"/>. Flooring each hop
+    /// independently would make a Street free, because a 32-Tile Street at 50 km/h costs 0.22 Ticks.
+    /// </remarks>
+    private Ticks Arrive(int travellerSlot, TravelTime cost, Ticks tick)
+    {
+        TravellerTable travellers = _world.Travellers;
+
+        TravelTime total = cost.IsImpassable ? cost : travellers.Carry[travellerSlot] + cost;
+        Ticks whole = total.ToTicksFloor();
+
+        travellers.Carry[travellerSlot] = total.IsImpassable
+            ? TravelTime.Zero
+            : total - TravelTime.FromTicks((int)whole.Raw);
+
+        return tick + whole;
+    }
+
+    /// <summary>
+    /// Puts a vehicle onto a Segment and returns what that Segment costs it, <b>loaded</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The increment happens before the pricing, so a vehicle is part of the congestion it meets.</b>
+    /// The alternative — price, then join — makes the first vehicle onto an empty Segment free and every
+    /// later one pay for it, which is an ordering artefact rather than a fact about the road.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Free-flow is the Segment's, not the Arc's.</b> <see cref="RoadArcs"/> holds a per-Arc time
+    /// that already takes the minimum against walking pace for the foot mode; a car reads the Segment's
+    /// own <see cref="RoadSegmentTable.FreeFlow"/> directly, which is the quantity capacity and the
+    /// volume-delay function are both defined over.
+    /// </para>
+    /// </remarks>
+    private TravelTime Enter(int hopSlot)
+    {
+        RouteHopTable hops = _world.RouteHops;
+        RoadSegmentTable segments = _world.Roads.Segments;
+
+        if (!segments.Rows.TryResolve(hops.Segment[hopSlot], out int segment))
+        {
+            // The Segment was bulldozed under a planned route. Nothing to attribute and nothing to
+            // charge; the Trip's Fate is a question for whoever builds TripFate.Stranded, and today
+            // nothing produces it. Charging a cost here would invent a delay for a road that is gone.
+            return TravelTime.Zero;
+        }
+
+        bool forward = hops.Forward[hopSlot] != 0;
+
+        if (forward)
+        {
+            segments.VolumeForward[segment]++;
+        }
+        else
+        {
+            segments.VolumeBackward[segment]++;
+        }
+
+        TravelTime freeFlow =
+            TravelTime.Over(segments.LengthTiles[segment], segments.FreeFlow[segment]);
+
+        return _world.Rules.Traffic.Apply(freeFlow, Load(segments, segment, forward, freeFlow));
+    }
+
+    /// <summary>Takes a vehicle off a Segment. The exact mirror of <see cref="Enter"/>'s increment.</summary>
+    /// <remarks>
+    /// <b>Nothing is priced here</b>, which is what keeps <c>Invariant.SegmentVolumeIsConserved</c>
+    /// checkable: the two writes are a matched pair keyed on the same stored direction bit, so a
+    /// Traveller can never be decremented off a Segment it was incremented onto in the other direction.
+    /// </remarks>
+    private void Leave(int hopSlot)
+    {
+        RouteHopTable hops = _world.RouteHops;
+        RoadSegmentTable segments = _world.Roads.Segments;
+
+        if (!segments.Rows.TryResolve(hops.Segment[hopSlot], out int segment))
+        {
+            return;
+        }
+
+        if (hops.Forward[hopSlot] != 0)
+        {
+            segments.VolumeForward[segment]--;
+        }
+        else
+        {
+            segments.VolumeBackward[segment]--;
+        }
+    }
+
+    /// <summary>
+    /// A Segment direction's volume/capacity ratio — <b>the volume-delay function's one input</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>Volume is a <em>stock</em> and capacity is a <em>flow</em>, and the conversion between
+    /// them is the Segment's own free-flow crossing time.</b>
+    /// <see cref="RoadSegmentTable.VolumeForward"/> counts Vehicles <em>present</em>;
+    /// <see cref="RoadSegmentTable.CapacityPerDay"/> counts Vehicles <em>passing</em>. Little's Law
+    /// relates them exactly — <c>present = passing × time spent</c> — so the Vehicles a Segment holds
+    /// when it is running at capacity is <c>capacity per Tick × free-flow dwell in Ticks</c>, and that
+    /// is the denominator. <b>No new number is introduced</b>: both terms are already derived from the
+    /// Ruleset in force.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The obvious alternative is wrong, it was built first, and a measurement caught it.</b>
+    /// <c>adr/0041</c> says <i>a vehicle crosses about one Segment per Tick</i>, which would make the
+    /// stock and the per-Tick flow the same number and the dwell term unnecessary. <b>That sentence was
+    /// true when it was written and <c>adr/0094</c> made it false</b>: under the old 8192-Tick Day a
+    /// 32-Tile Street at 50 km/h took <b>0.87</b> Ticks — near enough to one — and under the 2048-Tick
+    /// Day it takes <b>0.22</b>, which is <c>adr/0071</c>'s own illustration restated. Dividing by the
+    /// flow alone therefore overstated the denominator 4.5× and the function came back <b>inert at
+    /// every population this project can build</b>: a peak of 6 Vehicles on one Segment against 42, a
+    /// delay of ×1.0001, unchanged from 4,000 Citizens to 160,000. ***A premise licensing one quantity
+    /// to stand in for another is a measurement, and a constant moved in another document can retire
+    /// it silently.***
+    /// </para>
+    /// <para>
+    /// <b>The corrected denominator is physically checkable, which the old one was not.</b> A Street
+    /// carries 3,600 Vehicles an hour and a 128 m Segment is crossed in 9.2 seconds, so it holds
+    /// <b>9.2 Vehicles</b> at capacity — a 14 m spacing, or a one-second headway, which is what a road
+    /// at capacity looks like. Forty-two Vehicles on 128 m is a 3 m spacing, which is a car park.
+    /// </para>
+    /// <para>
+    /// <b>A capacity below one Vehicle a Tick reads as no delay rather than as infinite delay.</b>
+    /// Nothing in either shipped Ruleset produces one — the slowest kind carries 1,000 an hour, which
+    /// is 11 a Tick — so this is the absent case, and ***absent is not zero and it is not
+    /// impassable***.
+    /// </para>
+    /// </remarks>
+    private static Ratio Load(
+        RoadSegmentTable segments, int segment, bool forward, TravelTime freeFlow)
+    {
+        int volume = forward ? segments.VolumeForward[segment] : segments.VolumeBackward[segment];
+        int capacity = segments.CapacityPerDay[segment];
+
+        if (volume <= 0 || capacity <= 0 || freeFlow.Raw <= 0)
+        {
+            return Ratio.Zero;
+        }
+
+        // Both operands are scaled down by CapacityScale so that Fixed.FromInt keeps them inside
+        // Q16.16's whole range: a Day is 2,048 Ticks and an Arterial carries 288,000 Vehicles a Day,
+        // and 288,000 does not fit. Scaling both sides by the same factor leaves the quotient exact
+        // wherever the two divide evenly, which they do at every capacity either shipped Ruleset
+        // states.
+        Ratio perTickShare = Ratio.FromFraction(
+            (volume > MaxVolume ? MaxVolume : volume)
+                * IntegerMath.FloorDiv(Ticks.PerDay, CapacityScale),
+            IntegerMath.FloorDiv(capacity, CapacityScale));
+
+        return new Ratio(Fixed.Div(perTickShare.Raw, freeFlow.Raw));
+    }
+
+    /// <summary>
+    /// The divisor that keeps <see cref="Load"/>'s two operands inside <see cref="Fixed"/>'s whole
+    /// range.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The obvious alternative — floor the capacity to whole Vehicles per Tick first — was built
+    /// and is wrong.</b> A Day is 2,048 Ticks, so anything under 2,048 Vehicles a Day floors to
+    /// <b>zero</b> and the guard against a zero capacity then reports <em>no delay</em> for what is
+    /// really a very narrow road. A measured sweep caught it: at 200 Vehicles an hour the function bit
+    /// at ×2.48, and at <b>60</b> an hour — a narrower road still — it went back to ×1.0000.
+    /// ***A guard written for an absent quantity will fire on a small one, and small is the direction
+    /// the interesting cases lie in.***
+    /// </remarks>
+    private const int CapacityScale = 16;
+
+    /// <summary>
+    /// The largest volume <see cref="Load"/> will read, so its numerator cannot leave Q16.16.
+    /// </summary>
+    /// <remarks>
+    /// <b>Far past any authored clamp</b> — 255 Vehicles on one 128 m Segment direction is a 0.5 m
+    /// spacing — so this bounds the arithmetic and never the model. The clamp that bounds the model is
+    /// <c>[traffic] clamp_percent</c>, which is authored and refused outside 100–1000.
+    /// </remarks>
+    private const int MaxVolume = 255;
+
+    /// <summary>
     /// Moves each arrived Traveller onto its next Leg, or ends its Trip when there is none.
     /// </summary>
     /// <remarks>
@@ -401,12 +721,34 @@ public sealed class TripEngine
                 continue;
             }
 
+            int hop = travellers.CurrentHop[slot];
+
+            if (hop != Rows.NoSlot)
+            {
+                Leave(hop);
+
+                int nextHop = _world.RouteHops.Next[hop] - 1;
+
+                if (nextHop >= 0)
+                {
+                    // Still on the same Leg. The cursor moves a Segment, not a Leg, which is the
+                    // whole of what the Segment cursor buys: the Leg's cost was a plan and this is
+                    // the journey actually happening, priced Segment by Segment as it is met.
+                    travellers.CurrentHop[slot] = nextHop;
+                    travellers.ArrivesAt[slot] = Arrive(slot, Enter(nextHop), tick);
+                    continue;
+                }
+
+                travellers.CurrentHop[slot] = Rows.NoSlot;
+            }
+
             int current = travellers.CurrentLeg[slot];
             int encoded = legs.Next[current];
 
             if (encoded != 0)
             {
-                travellers.Advance(slot, legs, tick + legs.Time[encoded - 1].ToTicksFloor());
+                travellers.CurrentLeg[slot] = encoded - 1;
+                travellers.ArrivesAt[slot] = BeginLeg(slot, encoded - 1, tick);
                 continue;
             }
 
@@ -434,6 +776,7 @@ public sealed class TripEngine
     {
         TripTable trips = _world.Trips;
         LegTable legs = _world.Legs;
+        RouteHopTable hops = _world.RouteHops;
         IndexList legList = trips.LegList(legs);
 
         int completed = 0;
@@ -466,6 +809,17 @@ public sealed class TripEngine
 
             for (int leg = legList.PopFront(slot); leg != Rows.NoSlot; leg = legList.PopFront(slot))
             {
+                // The route before the Leg, on the same argument the Legs-before-the-Trip loop makes:
+                // the walk follows links in the rows being released, so PopFront unlinks before the
+                // row goes back to the allocator. This is adr/0006's sink for RouteHopTable and the
+                // only one it has.
+                IndexList route = legs.Route(hops);
+
+                for (int hop = route.PopFront(leg); hop != Rows.NoSlot; hop = route.PopFront(leg))
+                {
+                    hops.Rows.Free(hops.Rows.At(hop));
+                }
+
                 legs.Rows.Free(legs.Rows.At(leg));
             }
 

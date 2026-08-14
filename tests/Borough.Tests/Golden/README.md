@@ -222,3 +222,19 @@ format. Every number in either is load-bearing and tidying it is a re-baseline. 
 session — a new verb, more Ticks, a different cadence — that is a deliberate change under the
 procedure above, not a refactor, and the cadence and Tick count are named in three places: the
 fixture's constants, the trace header, and the command in step 2.
+
+**Milestone 5c task 6 re-recorded `world-hash.txt` and `session-trace.txt` and moved **neither** Ruleset
+content hash, which is the combination worth naming.** `route_hop` joined `World._tables` and `traveller`
+gained `current_hop` and `carry`, so the composition changed and every number in those two files moved.
+Both `[roads]`-era literals stayed put because **no shipped Ruleset states the new `[traffic]` table** —
+so this re-record needed no edit to `session.borough` and none to `GoldenFixtures`, which is the first
+time since 5a that a table could join the hash without four literals moving in two files first.
+
+⚠ **And that is also the coverage hole this re-record leaves, stated here rather than discovered later.**
+Neither shipped Ruleset states `[traffic]` *or* `[households]`, so nobody in the committed session drives
+and **the whole volume-delay mechanism sits outside every hash in this directory** — the same shape as
+5b-bis task 3's *the golden session contains no `trip` command at all*. `SegmentVolumeTests`,
+`VolumeDelayReachTests` and `TrafficRulesetLoadTests` are the only things that run it, and they say so in
+their own remarks. The place both tables get stated together is **5c task 8's long run**, which is their
+named ratifier; if that lands and this directory still covers none of it, the session is what wants
+changing.

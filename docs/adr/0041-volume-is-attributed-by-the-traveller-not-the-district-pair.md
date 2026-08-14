@@ -97,6 +97,27 @@ words that transfer unchanged — *"anything the host could vary must not be abl
 outcome"* — except here it is the player varying it, through an affordance the design presents as
 naming and grouping. `PLAYER GOVERNS` means the player governs the city, not the physics.
 
+> ⚠ **AMENDED 2026-08-14 by milestone 5c task 6, and this one is a premise expiring rather than a
+> figure being refined.** The paragraph below reasons from *a vehicle crosses about one Segment per
+> Tick*, and states in the open what it follows from: `TICKS_PER_DAY = 8192` and a block-length Segment.
+> [`adr/0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+> moved that constant and **did not touch this ADR**. A Tick is now **42.19** in-world seconds and a
+> 128 m Street at 50 km/h takes **9.2**, so the rate is **~4.6 Segments per Tick**, not ~1 — which is
+> `adr/0071`'s own 0.87 → 0.22 illustration seen from the other side. **The revisit trigger below
+> anticipated exactly this and named only one of its two causes**: it watches for the *Segment* getting
+> shorter and not for the *Tick* getting longer, and the two are the same ratio.
+>
+> **Two things follow.** The cost estimate in the next paragraph is **~4× light** — order 320,000
+> increment/decrement pairs a Tick at 1M rather than 80,000, and S2 R2a's measured 0.79–0.83 was taken
+> under the old clock — which is routed to [`plans/0013`](../../plans/0013-tick-budget.md) rather than
+> re-argued here ([`adr/0073`](0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)). And the sentence was
+> being **read as a licence** by
+> [`adr/0099`](0099-a-legs-cost-is-a-plan-and-a-drive-is-priced-segment-by-segment-as-it-is-met.md)'s
+> first cut, which used it to divide a Vehicle *stock* by a Vehicle *flow* and produced a volume-delay
+> function that was inert at every population. ***A premise licensing one quantity to stand in for
+> another is itself a measurement, and a constant moved in another document can retire it silently.***
+> The replacement is Little's Law and introduces no new number.
+
 **The cost is bounded, small, and was never measured before being designed around.** A Tick is ~10.5
 in-world seconds and a Segment is roughly a block, so a vehicle crosses **about one Segment per Tick**:
 order 80,000 increment/decrement pairs per Tick at 1M, into a ~30,000-entry array of about 120 KB that
@@ -206,6 +227,11 @@ is the [`05 §4`](../05-technical-architecture.md) rule applied by name: the two
   `TICKS_PER_DAY = 8192` and a block-length Segment. If the Segment turns out much shorter than a block —
   S2 owns the road-density figure that decides it — the crossing rate rises and this should be re-priced
   before it is re-argued.
+
+  > ⚠ **RE-OPENED 2026-08-14, and by the cause this trigger did not name.** The ratio is
+  > `Segment length ÷ (speed × Tick length)`, and this clause watches only the numerator. `adr/0094`
+  > moved the denominator: the rate is **~4.6**, so the discharge above is withdrawn and the row is
+  > `plans/0013`'s. ***A trigger stated over one term of a ratio is a trigger blind to the other.***
 
   > **The measured rate is 0.79–0.83 per vehicle per Tick, not 1.0**, reported at free flow *and* at the
   > morning peak because this ADR's estimate is a free-flow one and the simulation is not — congestion

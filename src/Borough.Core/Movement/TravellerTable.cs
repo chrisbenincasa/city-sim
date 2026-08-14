@@ -61,6 +61,8 @@ public sealed class TravellerTable
         Trip = _rows.SavedHandle("trip", trips.Rows);
 
         CurrentLeg = _rows.Saved<int>("current_leg", Touch.PerTick);
+        CurrentHop = _rows.Saved<int>("current_hop", Touch.PerTick);
+        Carry = _rows.Saved<TravelTime>("carry", Touch.PerTick);
         ArrivesAt = _rows.Saved<Ticks>("arrives_at", Touch.PerTick);
 
         _rows.Seal();
@@ -80,7 +82,53 @@ public sealed class TravellerTable
     /// </summary>
     public Column<int> CurrentLeg { get; }
 
-    /// <summary>The Tick at which the current Leg completes.</summary>
+    /// <summary>
+    /// The slot of the <see cref="RouteHopTable">route hop</see> being crossed, or
+    /// <see cref="Rows.NoSlot"/> — <b>which Segment this Traveller is on right now</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>This narrows <c>adr/0075</c> and <c>CONTEXT.md</c> → Traveller, both of which say a
+    /// Statistical Traveller is <em>nowhere in particular</em> between its endpoints.</b> That was true
+    /// while nothing asked; <c>adr/0041</c> asks, because it attributes a Segment's volume <b>on
+    /// entry</b> and decrements it on exit, so somebody has to know which Segment. The alternative
+    /// considered was smearing a Leg's whole cost across its Segments at planning time, which is cheaper
+    /// and cannot answer <i>how many vehicles are on this Segment now</i> — the quantity Stress,
+    /// Fidelity and the volume-delay function are all defined over.
+    /// </para>
+    /// <para>
+    /// <b>What survives of <em>nowhere in particular</em> is the <em>position within</em> the Segment.</b>
+    /// A Statistical Traveller has no offset along its Segment, no lane and no headway; it is on the
+    /// Segment for a dwell time and then on the next one. That is still the whole distinction from
+    /// Microscopic, and it is the one <c>adr/0007</c>'s promotion is defined against.
+    /// </para>
+    /// <para>
+    /// <see cref="Rows.NoSlot"/> on a walk Leg, and on a drive Leg whose route has no hops at all —
+    /// which is a real journey, not a failure. ***Absent is not zero.***
+    /// </para>
+    /// </remarks>
+    public Column<int> CurrentHop { get; }
+
+    /// <summary>
+    /// The sub-Tick remainder owed from everything crossed so far, always less than one Tick.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Without this a drive is instantaneous, and that is arithmetic rather than taste.</b> An
+    /// arrival is an instant on the clock, so each hop's cost has to be floored to whole Ticks — and a
+    /// 32-Tile Street at 50 km/h costs <b>0.22 Ticks</b> under the 2048-Tick Day (<c>adr/0071</c>'s own
+    /// illustration, restated by <c>adr/0094</c>). Flooring each hop independently would make every
+    /// Segment free and a twenty-Segment commute would take no time at all.
+    /// </para>
+    /// <para>
+    /// <b>Carried across Legs as well as hops</b>, so a Trip's realised duration is its parts summed and
+    /// floored once rather than floored piecewise. That is what keeps the three Legs of
+    /// <c>adr/0008</c>'s <c>walk → drive → walk</c> from being cheaper than the one journey they are.
+    /// </para>
+    /// </remarks>
+    public Column<TravelTime> Carry { get; }
+
+    /// <summary>The Tick at which the current Leg — or the current Segment — completes.</summary>
     public Column<Ticks> ArrivesAt { get; }
 
     /// <summary>
@@ -95,6 +143,8 @@ public sealed class TravellerTable
         Citizen[slot] = citizen;
         Trip[slot] = trip;
         CurrentLeg[slot] = firstLeg;
+        CurrentHop[slot] = Tables.Rows.NoSlot;
+        Carry[slot] = TravelTime.Zero;
         ArrivesAt[slot] = arrivesAt;
 
         return handle;
@@ -120,6 +170,7 @@ public sealed class TravellerTable
         }
 
         CurrentLeg[slot] = encoded - 1;
+        CurrentHop[slot] = Tables.Rows.NoSlot;
         ArrivesAt[slot] = arrivesAt;
 
         return true;
