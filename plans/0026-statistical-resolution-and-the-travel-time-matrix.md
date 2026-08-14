@@ -290,3 +290,91 @@ before settling it, and route anything measurable to a machine rather than to a 
 ## The record
 
 *(Filled per task as it lands.)*
+
+### Task 1 — the routing partition. ✅ **DONE 2026-08-14.**
+
+`Borough.Core.Space.RoutingPartition`, owned by `RoadGraph` and rebuilt beside the components.
+`(derived AND rebuilt)`, not a `[Table]`, and **it moved no State Hash and re-recorded no baseline**,
+because nothing reads it until task 2.
+
+**What it is.** A square tiling of the map in Cells. Partitions holding no Node are not numbered;
+occupied ones are numbered **row-major over the grid**, and each carries an **access node** — the live
+node nearest its centre by Chebyshev distance, ties to the lower slot. The edge is
+`RoutingPartition.DesignEdge`, **4 Cells — 128 Tiles, 512 m**, provisional and UNRATIFIED with the
+ratifier named in [`0002`](0002-open-questions.md) §D2.
+
+| Citizens | nodes | partitions | of the map | spread |
+|---|---|---|---|---|
+| 4,000 *(golden fixture)* | 121 | **9** | 0.05% | 3×3 |
+| 10,000 | 256 | 16 | 0.10% | 4×4 |
+| 40,000 | 961 | 64 | 0.39% | 8×8 |
+| 160,000 | 3,721 | 256 | 1.56% | 16×16 |
+
+**The size is provisional on purpose, and the reason is the storage class rather than impatience.**
+`adr/0052` requires a *named ratifier* and never a ratification first; the partition is
+`(derived AND rebuilt)`, so moving it costs a recomputation and never a save migration — which is the
+asymmetry `adr/0040` was written on, used for the first time. §D2 named R1's entry-error curve as the
+machine; **the ratifier moves to task 2's in-engine measurement**, which beats the spike on four axes
+at once (real world, real draw, current clock, correct mode).
+
+**Owed things paid.** `adr/0040`'s Cells-not-Chunks correction is **paid here** and the constructor is
+where — a non-power-of-two edge, an edge below one Chunk and an edge past the map are all refused, and
+a test asserts the divisibility that ADR's own fourth consequence says *"must be enforced ... it would
+do so silently"*. `CONTEXT.md` gained a **Routing partition** entry.
+
+#### Findings
+
+**1. `plans/0002` §D2's disqualifier on R1's entry-error curve is factually wrong, and it is a
+Cause 5 error sitting on a Cause 5 entry.** The row says the 24.70%–3.80% sweep *"was measured with
+the store in the denominator and on the District axis, which is the axis `adr/0047` deleted"*. Both
+clauses fail on inspection. `MatrixReport.MeasureError` (`spikes/S2.Routing/Harness/MatrixReport.cs:540-604`)
+compares a matrix entry against a real A\* search's cost and divides by that same per-query cost; the
+route store is a **separate size table** (`RouteStoreBytes`, `:214-248`) that never enters it — two
+tables, one disqualifier, belonging to neither. And the harness's partition is a Cell-aligned square
+grid over nodes (`Districts.cs:215-220`), which is geometrically *this* object; what `adr/0047` deleted
+is who **owns** the number, not the geometry.
+
+> **The three disqualifiers that are real were never written down, and each moves the number.** The
+> relative figures are on a **uniform** origin-destination draw (`:551-558`), which S2 R4 measured is
+> *a different city* — 18.52% → 128.82%. The absolute Ticks are **pre-`adr/0094`**
+> (`spikes/S2.Routing/Graph/Units.cs:69` is `TicksPerDay = 8192`), so 6.73 Ticks at the 121 rung is
+> **71 s** rather than the 4.7 minutes today's clock reads it as. And the costs are **car** times
+> (`Modes.Car`), while every Commute Budget rung in the build is a **foot** percentile.
+>
+> ***A caveat that is wrong is worse than no caveat, because it is the reason nobody writes the right
+> one.*** `adr/0093`'s *a false description of a guard* on a second object — there, a guard nobody
+> built because a document said it existed; here, three disqualifiers nobody wrote because one was
+> already sitting in the cell. **The writing half is the same fix: name what the number measures, not
+> what it is disqualified by.** *"Uniform-draw, car-time, 8192-Tick"* is checkable against the harness
+> in three greps; *"the store was in the denominator"* required reading 600 lines to refute.
+
+**2. A matrix entry's error is a fixed distance and therefore a mode-dependent time, and no S2 reading
+can settle the size because S2 was car-only.** Half a partition diagonal at 4 Cells is ~362 m: about
+**0.4 minutes** by car at 50 km/h and about **4.3 minutes** on foot at 5 km/h, which is **21% of
+`adr/0095`'s fast rung**. So a partition sized to serve a car matrix is an order of magnitude too
+coarse for a foot one — and this project builds only foot Trips today. Halving the edge quadruples the
+matrix, so the two pressures are genuinely opposed, and the honest expectation recorded in §D2 is that
+**this number wants to go down**. ***This is the third mode confusion in three days*** — `adr/0089`'s
+map ratio (vehicle) against `adr/0095`'s rungs (foot), then that finding's own write-up, and now a
+spike curve. **The pattern is that a duration is quoted without the mode that performed it**, which is
+`plans/0012` Cause 5's *name a duration after the mode that performs it*, coined two days ago and
+earning its third sighting.
+
+**3. The task's own brief was wrong about a document, in the shape `adr/0093` governs.** It said
+`CONTEXT.md`'s District entry *"still claims to be the granularity of the travel-time matrix"* and
+told this task to correct it. **It had already been corrected — twice, in two separate paragraphs of
+that entry** — and it already used the term *routing partition* without defining it. The half that was
+real is that there was **no entry** for the term. The brief was written by reading `adr/0047` and
+inferring what `CONTEXT.md` must therefore say, which is exactly *a description of the build is where
+to look, and never what you found* applied to prose instead of code. **Worth holding because the brief
+was written yesterday, by the author who then executed it, in a session whose headline finding was the
+same substitution.**
+
+**4. `CONTEXT.md`'s Tick entry was still on the old clock**, found in passing and fixed here rather
+than filed: it read **10.546875 s** a Tick and *"one clock minute is 5.6889 Ticks, so a 30-minute
+budget is 171 Ticks"*, all of which are `Ticks.PerDay = 8192` arithmetic. `adr/0094` moved that
+constant on 2026-08-13 and the closure reached the ADRs, `CLAUDE.md`, `plans/0013` and the code — and
+not the vocabulary file every cold start reads. `plans/0012` **Cause 2**. **The reason it could rot is
+that every one of those figures is a pure restatement of a constant**, so nothing computed from them
+and nothing failed; the sub-step band (**~45× → ~180×**) went the same way. `adr/0082`'s own 108×
+figure is left alone because that ADR's amendment did not touch it.

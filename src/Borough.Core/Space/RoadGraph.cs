@@ -38,6 +38,7 @@ public sealed class RoadGraph
     private readonly RoadArcs _arcs = new();
     private readonly RoadConnectivity _connectivity = new();
     private readonly StreetGrid _streets = new();
+    private readonly RoutingPartition _partition = new(RoutingPartition.DesignEdge);
 
     private RoadRuleset _ruleset;
     private int[] _cursor = [];
@@ -66,6 +67,17 @@ public sealed class RoadGraph
 
     /// <summary>The nodes. Registered with <c>World</c> and folded.</summary>
     public RoadNodeTable Nodes => _nodes;
+
+    /// <summary>
+    /// The routing partition — the tiling the travel-time matrix keys on (<c>adr/0040</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Derived, rebuilt, and read by nothing until 5c task 2.</b> It is owned here rather than by
+    /// the matrix because it is a function of the graph and the map, both of which this class already
+    /// holds, and because two consumers are foreseen — the matrix and the hierarchical router — so a
+    /// tiling living inside the first of them would acquire that consumer's shape and be rewritten.
+    /// </remarks>
+    public RoutingPartition Partition => _partition;
 
     /// <summary>The Segments. Registered with <c>World</c> and folded.</summary>
     public RoadSegmentTable Segments => _segments;
@@ -270,6 +282,12 @@ public sealed class RoadGraph
         RebuildAdjacency();
         _connectivity.Rebuild(_nodes, _segments);
         _streets.Rebuild(_nodes, _segments, _ruleset.BlockTiles);
+
+        // Last, and it reads only the nodes. The routing partition is a tiling of the map rather
+        // than a structure over the Arcs, so it has no ordering constraint against anything above
+        // it — stated here because the next reader will assume it does, every other line in this
+        // method having one.
+        _partition.Rebuild(_nodes);
     }
 
     private void DeriveSegmentAttributes()
