@@ -203,7 +203,7 @@ public static class WalkRouting
         TravelTime inA = TravelTime.Over(to.Offset, toSpeed);
         TravelTime inB = TravelTime.Over(toLength - to.Offset, toSpeed);
 
-        return scratch.Search(graph, toA, toB, inA, inB);
+        return scratch.Search(graph, TravelMode.Foot, toA, toB, inA, inB);
     }
 
     /// <summary>Whether a Segment admits pedestrians in either direction.</summary>

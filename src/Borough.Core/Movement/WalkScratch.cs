@@ -38,8 +38,45 @@ public sealed class WalkScratch
     private int _generation;
     private int _nodes;
 
+    /// <summary>Whether this search is recording predecessors. See <see cref="Begin"/>.</summary>
+    private bool _recording;
+
+    /// <summary>The Arc a node was reached by, valid only where the stamp is current.</summary>
+    private int[] _via = [];
+
+    /// <summary>The node a node was reached from, or <see cref="NoNode"/> at a seed.</summary>
+    /// <remarks>
+    /// <b>Both the Arc and the node it came from, rather than the Arc alone.</b> An Arc knows its
+    /// target and its Segment but not its source — a node's Arcs are a contiguous slice on the node,
+    /// so recovering the source from an Arc index would mean searching the adjacency backwards. Two
+    /// arrays is the cheaper half of that trade and it is paid only when recording.
+    /// </remarks>
+    private int[] _previous = [];
+
+    /// <summary>The end of a path — the seed a walk back through predecessors stops at.</summary>
+    public const int NoNode = -1;
+
+    /// <summary>There is no route to read: the node was never settled, or nothing was recorded.</summary>
+    /// <remarks>
+    /// <b>Distinct from a length of zero, which is a real answer.</b> A seed node is reached by no
+    /// Segments at all, and that is the correct route for a journey that begins where it ends.
+    /// </remarks>
+    public const int NoPath = -1;
+
     /// <summary>How many nodes the last search relaxed. For a test, and for a cost report.</summary>
     public int Relaxed { get; private set; }
+
+    /// <summary>
+    /// Which of <see cref="Search"/>'s two targets the answer came through, or <see cref="NoNode"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>The route ends somewhere specific and the cost does not say where.</b> A walk leaves its
+    /// Segment by either endpoint and enters the destination's by either, so <see cref="Search"/>
+    /// returns the cheapest of four combinations — and a caller wanting the path needs to know which
+    /// one won before it can walk the predecessors back. A walk never asks; a vehicle does, because
+    /// the Segment it arrives on decides which side of the road it parks.
+    /// </remarks>
+    public int Arrived { get; private set; } = NoNode;
 
     /// <summary>
     /// Clears the state for a graph of <paramref name="nodeCount"/> nodes.
@@ -52,8 +89,16 @@ public sealed class WalkScratch
     /// right. Instead each entry records the generation that wrote it, and an entry from an older
     /// generation reads as unvisited.
     /// </remarks>
-    public void Begin(int nodeCount)
+    public void Begin(int nodeCount, bool recordPath = false)
     {
+        _recording = recordPath;
+
+        if (recordPath && _via.Length < nodeCount)
+        {
+            _via = new int[nodeCount];
+            _previous = new int[nodeCount];
+        }
+
         if (_distance.Length < nodeCount)
         {
             _distance = new TravelTime[nodeCount];
@@ -81,7 +126,7 @@ public sealed class WalkScratch
     }
 
     /// <summary>Opens the search at a node with a starting cost — the walk out to an endpoint.</summary>
-    public void Seed(int node, TravelTime cost) => Relax(node, cost);
+    public void Seed(int node, TravelTime cost) => Relax(node, cost, NoNode, NoNode);
 
     /// <summary>
     /// Runs the search and returns the cheapest total to either destination endpoint, or
@@ -110,7 +155,14 @@ public sealed class WalkScratch
     /// and insertion order is a function of the allocation history of the graph.
     /// </para>
     /// </remarks>
-    public TravelTime Search(RoadGraph graph, int targetA, int targetB, TravelTime inA, TravelTime inB)
+    /// <param name="graph">The Road Graph to search.</param>
+    /// <param name="mode">Which subgraph to traverse.</param>
+    /// <param name="targetA">One endpoint of the destination Segment.</param>
+    /// <param name="targetB">The other.</param>
+    /// <param name="inA">What it costs to walk in from <paramref name="targetA"/>.</param>
+    /// <param name="inB">What it costs to walk in from <paramref name="targetB"/>.</param>
+    public TravelTime Search(
+        RoadGraph graph, TravelMode mode, int targetA, int targetB, TravelTime inA, TravelTime inB)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -119,6 +171,8 @@ public sealed class WalkScratch
 
         TravelTime best = TravelTime.Impassable;
         TravelTime cheapestEntry = inA < inB ? inA : inB;
+
+        Arrived = NoNode;
 
         while (_heapCount > 0)
         {
@@ -135,14 +189,16 @@ public sealed class WalkScratch
             _settled[node] = true;
             Relaxed++;
 
-            if (node == targetA)
+            if (node == targetA && cost + inA < best)
             {
-                best = Cheaper(best, cost + inA);
+                best = cost + inA;
+                Arrived = node;
             }
 
-            if (node == targetB)
+            if (node == targetB && cost + inB < best)
             {
-                best = Cheaper(best, cost + inB);
+                best = cost + inB;
+                Arrived = node;
             }
 
             // Nothing still on the frontier can beat what we already hold.
@@ -156,19 +212,19 @@ public sealed class WalkScratch
 
             for (int i = start; i < start + count; i++)
             {
-                if (!arcs.Admits(i, TravelMode.Foot))
+                if (!arcs.Admits(i, mode))
                 {
                     continue;
                 }
 
-                TravelTime step = arcs.FootTime[i];
+                TravelTime step = arcs.TimeFor(i, mode);
 
                 if (step.IsImpassable)
                 {
                     continue;
                 }
 
-                Relax(arcs.Target[i], cost + step);
+                Relax(arcs.Target[i], cost + step, i, node);
             }
         }
 
@@ -244,7 +300,7 @@ public sealed class WalkScratch
                     continue;
                 }
 
-                Relax(arcs.Target[i], cost + step);
+                Relax(arcs.Target[i], cost + step, i, node);
             }
         }
     }
@@ -266,11 +322,82 @@ public sealed class WalkScratch
             ? _distance[node]
             : TravelTime.Impassable;
 
-    private static TravelTime Cheaper(TravelTime left, TravelTime right) =>
-        right < left ? right : left;
+    /// <summary>
+    /// The Segments a settled node was reached by, origin first — <b>the route, recovered after the
+    /// fact from the predecessors the search left behind</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Recovered rather than accumulated, which is what keeps a route free until somebody asks for
+    /// one.</b> Dijkstra already knows the whole tree of cheapest paths by the time it stops; the only
+    /// thing needed to read one out is which Arc each node was reached by, and that is one store per
+    /// improvement rather than a growing list per frontier node. A per-node path list would be
+    /// <c>O(nodes × path length)</c> of copying for an answer exactly one node needs.
+    /// </para>
+    /// <para>
+    /// <b>Segments and not Arcs, because a Segment is what the rest of the simulation is denominated
+    /// in.</b> Volume is attributed per Segment (<c>adr/0041</c>), the Epoch that invalidates a route
+    /// is per Segment (<c>adr/0012</c>), and an Arc is the directed half of one. The direction is
+    /// recoverable from the order of the list, so nothing is lost and the caller stops needing to know
+    /// the adjacency exists.
+    /// </para>
+    /// <para>
+    /// <b>A path that does not fit is not written at all, and the length is returned either way.</b> A
+    /// truncated route is a <em>different</em> route rather than a partial answer — it ends somewhere
+    /// the traveller was only passing through — so a caller that ignored a return value would get a
+    /// plausible journey to the wrong place. Measure, then write.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Only meaningful when <see cref="Begin"/> was told to record.</b> Without it the
+    /// predecessor arrays hold whatever a previous recording search left, and the stamp cannot tell
+    /// the difference because the stamp is written by the cost side. A caller that forgets gets a
+    /// route from another journey — so this returns <see cref="NoPath"/> rather than guessing.
+    /// </para>
+    /// </remarks>
+    /// <param name="arcs">The adjacency the search ran over.</param>
+    /// <param name="node">A node the search settled — <see cref="Arrived"/>, usually.</param>
+    /// <param name="segments">Where to write the Segment slots. May be empty to measure first.</param>
+    /// <returns>
+    /// How many Segments the route crosses — <c>0</c> at a seed — or <see cref="NoPath"/> when the
+    /// search never settled <paramref name="node"/> or was not recording.
+    /// </returns>
+    public int PathTo(RoadArcs arcs, int node, Span<int> segments)
+    {
+        ArgumentNullException.ThrowIfNull(arcs);
+
+        if (!_recording || (uint)node >= (uint)_nodes || _stamp[node] != _generation
+            || !_settled[node])
+        {
+            return NoPath;
+        }
+
+        int length = 0;
+
+        for (int cursor = node; _previous[cursor] != NoNode; cursor = _previous[cursor])
+        {
+            length++;
+        }
+
+        if (segments.Length < length)
+        {
+            return length;
+        }
+
+        // Backwards from the destination, written forwards into the span, so the caller reads the
+        // route in the order it is travelled.
+        int write = length;
+
+        for (int cursor = node; _previous[cursor] != NoNode; cursor = _previous[cursor])
+        {
+            write--;
+            segments[write] = arcs.Segment[_via[cursor]];
+        }
+
+        return length;
+    }
 
     /// <summary>Improves a node's tentative cost, pushing it onto the heap if it moved.</summary>
-    private void Relax(int node, TravelTime cost)
+    private void Relax(int node, TravelTime cost, int arc, int from)
     {
         if (cost.IsImpassable || (uint)node >= (uint)_nodes)
         {
@@ -291,6 +418,17 @@ public sealed class WalkScratch
         }
 
         _distance[node] = cost;
+
+        // Only when the caller asked for a path. A predecessor write per relaxation is two array
+        // stores on the hot walk path for a record only a vehicle reads, and a walk Leg discards its
+        // route by decision rather than by omission (adr/0075). Opt-in rather than a second scratch
+        // type, so there is one Dijkstra in the tree and its tie-breaks cannot drift apart.
+        if (_recording)
+        {
+            _via[node] = arc;
+            _previous[node] = from;
+        }
+
         Push(cost, node);
     }
 

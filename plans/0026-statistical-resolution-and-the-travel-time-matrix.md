@@ -6,7 +6,7 @@
 
 ## Status
 
-⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1 and 2 of 8 done 2026-08-14.** All three named gates are discharged and none of the closures
+⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1, 2 and 3 of 8 done 2026-08-14.** All three named gates are discharged and none of the closures
 reached a gate board, which is why this milestone read as blocked for two days
 ([`0000`](0000-board.md) → *Blocked*, split per-milestone on 2026-08-13):
 
@@ -140,6 +140,10 @@ rebuilt)`, rebuilt on the Epoch.
 > travel-time matrix to be asymmetric in, which is 5c and not this one."* It is this one.
 
 **3. The path source, and it amends [`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md).**
+⚠ **It does amend it, and not on the sentence named below — see the task 3 record.** *A Leg stores a
+cost and not a path* is untouched by producing a route on demand; the **Traveller** row is what needed
+the edit.
+
 `adr/0041` needs *a **next Segment** every Tick*; a Leg has *a cost and no path*; `WalkScratch` has no
 predecessor array. Something must produce a Segment sequence and something must hold it.
 
@@ -470,3 +474,71 @@ against**.
 it returns Impassable in exactly the cases the search would have, so every counter, Fate and rung
 downstream reads the same and no State Hash moved. **The matrix moved no hash either, because nothing
 reads it** — task 1's *prospectively hash-bearing* warning is still standing and still unspent.
+
+---
+
+### Task 3 — the path source. ✅ **DONE 2026-08-14.**
+
+**Scoped with the user in the room to the route-finder alone** — produce a route, prove it is right,
+store nothing. The route cache is task 4 and the vehicle is task 5, and neither is anticipated here.
+
+`WalkScratch.Begin(nodeCount, recordPath: true)` arms two predecessor arrays; `Relax` writes the Arc
+a node was reached by and the node it came from; `PathTo(arcs, node, span)` walks them back and emits
+the **Segment** slots origin-first. `Search` gains a `TravelMode` and an `Arrived` property. No new
+saved data, no Traveller column, no table, and **all three golden baselines are unchanged**.
+
+`RoutePathTests`, six tests. `adr/0075` amended in two places.
+
+#### Findings
+
+**1. The brief was wrong about which sentence of `adr/0075` it amends, and the right one is a
+different field.** It named *a Leg stores a cost and not a path* — which producing routes on demand
+does not touch, because that ADR already homes a drive path in
+[`adr/0060`](../docs/adr/0060-a-habit-route-is-a-small-set-of-variants-and-which-one-you-take-is-who-you-are.md)'s
+route cache. ***Where a route is stored is a different question from whether one can be produced***,
+and `0075` answered the first while **nothing in the corpus had answered the second**. What does need
+amending is the **Traveller** row: *which Leg it is on* and *the arrival Tick* is a complete cursor for
+a **Statistical** journey — that tier is time-advanced, so a Traveller between endpoints is nowhere in
+particular — and an incomplete one for a **Microscopic** journey, which `adr/0041`'s amendment requires
+to name *a next Segment every Tick*. Amended there, and the field discharges `03 §4` invariant 3's owed
+enumeration at the same time, since position along a route is exactly what demotion discards. **Written
+now rather than at the write site in milestone 6**, where an unenumerated field is the bug that
+invariant exists to catch.
+
+**2. `Search` had been foot-hardcoded since 5b and the fix was a parameter that could have been
+inert.** It tested the foot bit and read `FootTime` directly, where task 2's `SettleAll` already took
+a mode. `RoadArcs.TimeFor(i, Foot)` **is** `FootTime[i]`, so the walk path is bit-identical and no
+baseline moved. ⚠ **A mode threaded through a signature and not through the loop compiles, passes
+every existing test, and prices every car journey at walking pace** — a defect with no symptom until
+task 5, and by then the parameter would read as covered. The test is therefore *a car is quicker than
+a walk over the same Streets* rather than *the parameter exists*: the shipped Ruleset gives both modes
+the same lattice, so topology is held constant and only the speed can move.
+
+**3. `Search` did not say where it ended, and a walk is why nobody noticed.** It seeds two origin
+endpoints, reads two destination endpoints and returns the cheapest of four combinations — and the
+cost does not carry which one won. A walk never asks; a vehicle must, because the endpoint decides the
+last Segment of the route and therefore which side of the street it arrives at. ***A field nothing
+reads is indistinguishable from a field nothing needs***, which is 5b-bis task 6's *a Census family
+with no reader* on the producing side rather than the reporting side. `Arrived` is one property.
+
+**4. A route is recovered, never accumulated, and that is what makes recording nearly free.** Dijkstra
+already holds the entire tree of cheapest paths when it stops; the only thing missing was which Arc
+reached each node, which is two array stores per **improvement**. A per-node path list would be
+`O(nodes × path length)` of copying for an answer exactly one node needs. Recording is opt-in so every
+existing walk pays nothing, and `adr/0075` is the reason it must be — a walk Leg discards its route
+**by decision rather than by omission**, so the default has to be the decision.
+
+**5. Validation is reconstruction, because there is nothing to compare against.** This is the first
+route this project has produced, so no second implementation and no baseline holds one. What survives
+without one is stronger than a spot check: take the Segment list *back to the Road Graph*, follow it
+hop by hop from the origin using only the node's own Arcs, and require that it **connects**, **ends at
+the destination**, and **sums to the settled cost exactly**. A route that is plausible but wrong fails
+all three, and the middle claim is the load-bearing one — it is what separates a real route from a set
+of Segments lying near it.
+
+**6. Two smaller ones, both about answers that look like other answers.** A route of length **zero** is
+correct for a journey beginning where it ends, and `NoPath` means there is no route at all; collapsing
+them would make a severed destination read as *you are already there*, and both produce a traveller
+that does not move. And **a truncated route is a different route rather than a partial one** — it ends
+at a node the traveller was passing through — so a buffer too small is left untouched and the required
+length returned, which is the only contract under which ignoring the answer fails loudly.
