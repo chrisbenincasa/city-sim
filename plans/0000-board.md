@@ -257,13 +257,26 @@ denomination.*** Full record in [`0003`](0003-build-plan.md) → *The hash-movin
 
 ✅ **AND THE GOODS ×4 RESCALE SHIPPED AS THE SECOND COMMIT — it was two rescales rather than one.**
 The **Bin capacities** had to move with the Goods (`sundries` 12 → **48**, `repairs` 1 → **4**) and
-nothing predicted it. ***A buffer is denominated in transactions, not in goods.*** In in-world time the
-old and new pairs are identical — 22.5 minutes of supply either way — so measured in Goods nothing was
-wrong; measured in **firings held**, every Bin in the game shrank from four to one, and a Bin that must
-be *exactly full* for one `consume` to succeed is a knife edge. `adr/0094` considered dividing every
-`rate` by four and rejected it **on cost**, and resizing the buffers is what the side it took owes.
-⚠ **It costs something real**: a dwelling holds **90 in-world minutes** of sundries where it held 22.5,
-so a city coasts four times as long through a supply failure before reporting it.
+nothing predicted it. ***`amount` and `capacity` are both in Goods and they belong to different rows of
+`adr/0094`'s own table***: `amount` is **Days**-denominated, so the number goes ×4 to hold Goods per Day;
+`capacity` is **Ticks**-denominated, because what has to hold is **firings held** and firings × `rate` is
+a duration — but it is written in Goods, so keeping that duration still *requires* moving the number.
+***The unit of a quantity is not its denomination***, which is `revisit_ticks`' lesson one level down:
+**twice in one build a class was read off a surface form**, first a key name and then a unit. Left at 12
+the larder held **one** firing where it held four, and a Bin that must be *exactly full* for one
+`consume` to succeed is a knife edge.
+
+⚠ **AND THE COMMIT SHIPPED A FALSE CLAIM, CORRECTED THE SAME DAY BY MEASURING IT.** It said *a dwelling
+now holds 90 in-world minutes where it held 22.5, which is a change to the world rather than a neutral
+rescale*. **It is behaviour-neutral**: the pre-rescale Ruleset and the shipped one over 4,096 Ticks give
+a **byte-identical 86-line census**, and only the State Hash moved because Bin levels are four times
+larger. The larder is 4 firings × `rate` 32 = **128 Ticks** and was 128 Ticks before the clock moved too,
+so **90-vs-22.5 is HEAD against the *pre-clock* world** — `plans/0012` **Cause 5**, ***a number that is
+one half of a ratio says which half***, committed inside the session that coined it. A sweep then found
+the larder is a **cost dial rather than a balance dial**: at capacities 24–96 no census row moves and
+only `rules evaluations` does, **upward** (20,134 → 25,023 going 48 → 96), because a deeper larder gives
+`restock` more headroom to keep working. It decides nothing because **it is deeper than the building's
+lifespan** — nothing produces `repairs`, so `upkeep` condemns every dwelling at 64 Ticks.
 
 ⚠ **The knife edge exposed a live defect, filed unfixed as [`0003`](0003-build-plan.md) queue item 8.**
 A waiter whose **own** requirement falls is never re-checked: `adr/0063` made the wake predicate read

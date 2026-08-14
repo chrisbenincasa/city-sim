@@ -2,7 +2,7 @@
 # the first differing sample names the window the change entered in.
 seed 0x0B07000000000EA1
 citizens 4000
-ruleset 0x457A0E2813086B68
+ruleset 0xAD6545255839C795
 commands 21
 ticks 2048
 hash-every 64

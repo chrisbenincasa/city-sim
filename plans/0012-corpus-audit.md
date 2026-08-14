@@ -403,10 +403,29 @@ other prose document containing the figure contains the phrase too**.
 | `18.52` | | `uniform` | `docs/spike-results.md` |
 | `82.84` | | `synthetic` | `plans/0011-rule-engine-bins-and-rules.md` |
 | `861.87` | | `15.6 ms` | `docs/spike-results.md` |
+| `90 in-world minutes` | `22.5` | `pre-clock` | `docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md` |
 
 **The last four rows were added by a sweep for 186,624's siblings**, on 2026-08-13, and each is the
 same shape: a figure that is **one half of a ratio**, quoted into an argument, whose scope clause lives
 in one document and not in the others.
+
+**The ninth row is the first one added by catching the failure live rather than by sweeping for it**,
+and it is the sharpest evidence this registry has for its own existence: ***it was committed by the
+author of this section, in a commit message and five documents, on the same day, in paragraphs that
+cite Cause 5 by name.*** The Goods rescale shipped saying *a dwelling now holds 90 in-world minutes of
+sundries where it held 22.5, which is a change to the world rather than a neutral rescale*. The digits
+are right; the comparison was never stated. It is HEAD against the **pre-clock** world — the larder is
+128 Ticks deep and was 128 Ticks deep before `adr/0094` — so the figure restates the clock's already-
+recorded cost rather than naming a new one, and a measurement settled it: a **byte-identical 86-line
+census** across the rescale. **Knowing the rule, having just written the rule down, and warning about
+the rule in the same paragraph, did not prevent it.** That is what a mechanical check is for.
+
+**It is also the first row whose figure is not a cost**, and that was argued rather than assumed. The
+other eight are performance or sizing numbers used as one half of a ratio. This one is a fixture's
+larder depth in a file whose first line says it models no city, so nothing will be *budgeted* on it —
+what it is at risk of is being quoted as evidence that a larder is generous, which is the same failure
+with a different consequence. **The row costs one line and disarms a figure that now sits in four
+documents.**
 
 - **`2,592`** is 186,624's own **factor** — 2,592 stressed Segments × 72 Vehicles. Registering the product
   and not the factor leaves the ratio rebuildable from its parts, and S5 had already sized its L3 fixture

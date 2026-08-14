@@ -13,7 +13,7 @@ The rule that decides what moves with the constant has three classes and one que
 | **In-world time** | speeds in km/h, the Commute Budget in minutes, pollution decaying over a Day | **unchanged as a quantity, ×4 more of it per real second** |
 | **Ticks** | Rule `rate`, ~~`revisit_ticks`~~, `interval`, the Map Layer cadence | **kept at its number**, so unchanged in real seconds and ×4 coarser in-world |
 | **Both at once** | conversion factors — `Speed.PerKilometrePerHour`, `TravelTime.RawPerDay` | **⚠ ADDED 2026-08-13 when the change was built.** A factor denominated in two units belongs to no row above, and one of these was a literal |
-| **Transactions** | Bin `capacity`, and every buffer in the game | **⚠ ADDED 2026-08-13.** A buffer is sized in *firings held*, not in Goods, so a Goods quantity that is a **stock** moves with the quantity that is a **flow** — see below |
+| **Ticks, but priced in another unit** | Bin `capacity`, and every buffer in the game | **⚠ ADDED 2026-08-13 when the change was built.** It holds *firings × rate*, which is a duration, and it is **written in Goods** — so **the number must move ×4 to keep the quantity still**. Same unit as `amount`, opposite row |
 | **Days** | Life Stage countdowns, the demographic arc | **unchanged in Days**, so ×4 faster in real time — which is the point of the change |
 
 ⚠ **`revisit_ticks` is struck from the Ticks row, 2026-08-13, with the user in the room.** It is a
@@ -257,36 +257,69 @@ value is the copy that drifted.** `plans/0012` **Cause 1**, in code rather than 
 the second now live in one place each (`Tiles.Metres`, `Ticks.SecondsPerDay`), which is what let the
 factor be written as arithmetic at all.
 
-### A buffer is denominated in transactions, not in goods — and this ADR did not follow its own choice through
+### `amount` and `capacity` are both in Goods and belong to different rows of the table above
 
-**The Goods quantities went ×4 and the Bin capacities had to go with them: `sundries` 12 → 48,
-`repairs` 1 → 4.** Nothing above predicted that, because the ADR reasoned about Goods as a *rate* and a
-Bin's `capacity` is a *stock*, so it read as a quantity with no time in it and therefore as untouched.
+**The Bin capacities had to move with the Goods: `sundries` 12 → 48, `repairs` 1 → 4.** This ADR says
+the Goods quantities scale ×4 and treats *the Goods quantities* as one group. They are two, and **the
+unit is what made them look like one**.
 
-**In in-world time the two are identical, which is exactly why the omission is invisible.** Twelve
-sundries against a three-unit firing and forty-eight against a twelve-unit one are both **22.5 in-world
-minutes of supply**. Measured in Goods, nothing was wrong. Measured in the only unit that decides whether
-a producer and a consumer can interleave — **how many firings the buffer holds** — every Bin in the game
-silently shrank by four, from four firings to one. **A Bin that must be exactly full for one `consume` to
-succeed is a knife edge**, and `rulesets/minimal.toml`'s header had already written down what a knife
-edge does here.
+- **`amount` is Days-denominated.** What must hold is Goods per **Day**, and a Day now holds a quarter
+  as many firings, so the per-firing number goes ×4. That is the *Days* row.
+- **`capacity` is Ticks-denominated.** What must hold is **firings held** — `capacity ÷ (amount ×
+  occupants)` — and firings × `rate` is a **duration**. That is the *Ticks* row, where a number is
+  normally kept as written. This one is written in Goods, so keeping the quantity still **requires
+  changing the number**, and it follows `amount` for that reason and no other.
 
-**This is not a workaround bolted on afterwards; it is the other half of a trade this ADR made and then
-dropped.** *What it costs* above considers dividing every `rate` by four — holding transaction size
-constant and paying four times the evaluation cost — and rejects it **on cost**. Having taken the
-coarse-transaction side, resizing the buffers is what that side owes. The consequence was never written
-down, so the first Ruleset to meet it met it as a bug.
+***The unit of a quantity is not its denomination***, which is the sibling of `revisit_ticks`' lesson
+one heading up — *the name of a quantity is not its denomination*. **Twice in one build, the table was
+wrong because a class was read off a surface form**: first a key name, then a unit.
 
-***A coarser clock is a coarser transaction, and every buffer in the game is measured in
-transactions.*** That generalises past Bins: a wait list, a queue depth, a headroom margin and a
-Vehicle-per-Segment cap are all counts of things that arrive, and all of them get four times lumpier
-without changing a digit. **`capacity` was the only such number in a shipped file today.**
+**What the shortfall looked like.** Left at 12 against a 12-unit firing, the larder held **one** firing
+where it had held four. In in-world time the two are identical — 22.5 minutes of supply either way — so
+measured in Goods nothing was wrong. Measured in **firings held**, every Bin in the game shrank by four,
+and a Bin that must be *exactly full* for one `consume` to succeed is a knife edge. It fired
+`Invariant.WaiterIsBlockedByTheBinItNames` and exposed a live defect in the wake path, filed unfixed as
+`plans/0003` queue item 8.
 
-⚠ **What it costs, stated rather than slipped in.** A dwelling now holds **90 in-world minutes** of
-sundries where it held 22.5. The larder is a real quantity in this simulation, so this is a change to the
-world and not a neutral rescale — a city that can coast four times as long through a supply failure is a
-city that reports that failure four times later. The alternative was leaving every consumer on a knife
-edge, which is not a smaller change, only a quieter one.
+**Doing it was the other half of a trade this ADR already made.** *What it costs* above considers
+dividing every `rate` by four — holding transaction size and paying four times the evaluation cost — and
+rejects it **on cost**. Having taken the coarse-transaction side, resizing the buffers is what that side
+owes. The consequence was never written down, so the first Ruleset to meet it met it as a crash.
+
+### ⚠ And the rescale was measured behaviour-neutral, against a first claim that it was not
+
+**The commit shipped saying *a dwelling now holds 90 in-world minutes of sundries where it held 22.5,
+which is a change to the world rather than a neutral rescale*. That is wrong, and the measurement is
+flat.** Running the pre-rescale Ruleset and the shipped one for 4,096 Ticks gives a **byte-identical
+86-line census** — buildings 1,201 → 642, the Unplaced Pool, rule evaluations, Trips, every row. Only
+the State Hash trace moved, because Bin levels are literally four times larger. Every quantity scaled
+and every `rate` stayed put, so every Rule fires on exactly the same Tick it did before.
+
+**The 90 minutes is this ADR's own cost, arriving in one more place.** The larder is 4 firings × `rate`
+32 = **128 Ticks**, and it was 128 Ticks before the clock moved as well. 128 × 42.1875 s is 90 minutes;
+128 × 10.546875 s was 22.5. ⚠ ***The figure is HEAD against the pre-clock world, not against the
+previous commit***, and the sentence never said which — `plans/0012` **Cause 5**, *a number that is one
+half of a ratio says which half*, committed by the author of the paragraph that coined it.
+
+**Nothing in the file came out of proportion, and the reason is that everything in it is denominated in
+firings** — including `condemn_after`, which says so in its own comment. A dwelling's whole life is 4
+missed `upkeep` firings × `rate` 16 = **64 Ticks**, which went 11.25 → 45 in-world minutes by the same
+×4. The clock stretched the file uniformly.
+
+**A sweep then found the larder is a cost dial rather than a balance dial in this fixture.** At
+capacities 24, 36, 48 and 96 **no row of the census moves at all**; only `rules due` and `rules
+evaluations` move, and they move **up** with capacity — 20,134 → 25,023 evaluations at the first reading
+going 48 → 96 — because a deeper larder gives `restock` more headroom to keep working. **A bigger buffer
+costs more, not less.** At 12 the city is likewise unchanged and simply crashes. The reason the larder
+decides nothing is that **it is deeper than the building's lifespan**: nothing in this Ruleset produces
+`repairs`, so `upkeep` condemns every dwelling at 64 Ticks and the 128-Tick larder is a shock absorber
+for a shock that never comes.
+
+**So 48 stands and no number was tuned to make it stand.** Restoring 22.5 in-world minutes would mean
+either 2 firings held — one above a known crash — or quartering `consume`'s `rate`, which is the option
+refused above on cost. ***And 22.5 was never chosen***: it is `capacity = 12` in a file whose first line
+says it models no city. `adr/0070` — restoring it would be compensating for something that was never a
+decision.
 
 ### `adr/0071`'s two illustrations moved in opposite directions
 

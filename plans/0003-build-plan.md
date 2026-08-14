@@ -350,16 +350,39 @@ become three.
 > city every Day instead of every four, so it condemns four times as fast per Tick.
 >
 > - **The Bin capacities had to move with the Goods, and nothing predicted it**: `sundries` 12 → **48**,
->   `repairs` 1 → **4**. ***A buffer is denominated in transactions, not in goods.*** In in-world time
->   the old and new pairs are identical — 22.5 minutes of supply either way — so measured in Goods
->   nothing was wrong. Measured in **firings held**, every Bin in the game shrank from four to one, and a
->   Bin that must be *exactly full* for one `consume` to succeed is a knife edge. `adr/0094` considered
->   dividing every `rate` by four and rejected it **on cost**; having taken the coarse-transaction side of
->   that trade, resizing the buffers is what it owes, and it never wrote that down. Recorded there.
-> - ⚠ **It costs something real and it is stated rather than slipped in**: a dwelling now holds **90
->   in-world minutes** of sundries where it held 22.5, so a city coasts four times as long through a
->   supply failure before reporting it.
+>   `repairs` 1 → **4**. ***`amount` and `capacity` are both in Goods and they belong to different rows
+>   of `adr/0094`'s own table.*** `amount` is **Days**-denominated — hold Goods per Day, so the number
+>   goes ×4. `capacity` is **Ticks**-denominated — what has to hold is **firings held**, and firings ×
+>   `rate` is a *duration* — but it is written in Goods, so keeping that duration still **requires**
+>   moving the number. ***The unit of a quantity is not its denomination***, which is `revisit_ticks`'
+>   lesson one level down: **twice in one build, a class was read off a surface form** — a key name, then
+>   a unit. Left at 12 the larder held **one** firing where it held four, and a Bin that must be *exactly
+>   full* for one `consume` to succeed is a knife edge.
 > - ⚠ **The knife edge exposed a live defect in the wake path — item 8 below, filed unfixed.**
+> - ⚠ **AND THE COMMIT SHIPPED A CLAIM THAT IS FALSE, CORRECTED THE SAME DAY BY MEASURING IT.** It said
+>   *a dwelling now holds 90 in-world minutes of sundries where it held 22.5, which is a change to the
+>   world rather than a neutral rescale*. **It is behaviour-neutral**: the pre-rescale Ruleset and the
+>   shipped one run for 4,096 Ticks give a **byte-identical 86-line census** — buildings 1,201 → 642, the
+>   Unplaced Pool, rule evaluations, Trips, every row — and only the State Hash moved, because Bin levels
+>   are four times larger. The larder is 4 firings × `rate` 32 = **128 Ticks**, and it was 128 Ticks
+>   before the clock moved as well; **90-vs-22.5 is HEAD against the *pre-clock* world**, which is the
+>   clock's already-recorded cost in one more place. The sentence never said which comparison it was.
+>   `plans/0012` **Cause 5** — ***a number that is one half of a ratio says which half*** — committed
+>   inside the same session that coined it, in a paragraph warning about it.
+> - **Nothing came out of proportion because everything in that file is denominated in *firings***,
+>   `condemn_after` included, which says so in its own comment: a dwelling's whole life is 4 missed
+>   `upkeep` firings × `rate` 16 = **64 Ticks**, 11.25 → 45 in-world minutes by the same ×4.
+> - **A sweep then found the larder is a *cost* dial, not a balance dial.** At capacities 24, 36, 48 and
+>   96 **no row of the census moves**; only `rules due` and `rules evaluations` move, and they move **up**
+>   — 20,134 → 25,023 at the first reading going 48 → 96 — because a deeper larder gives `restock` more
+>   headroom to keep working. ***A bigger buffer costs more, not less.*** The larder decides nothing
+>   because **it is deeper than the building's lifespan**: nothing produces `repairs`, so `upkeep`
+>   condemns every dwelling at 64 Ticks and a 128-Tick larder absorbs a shock that never arrives.
+> - **48 stands and no number was tuned to make it stand.** Restoring 22.5 in-world minutes needs either
+>   2 firings held — one above a known crash — or `consume`'s `rate` quartered, which `adr/0094` refused
+>   on cost. ***And 22.5 was never chosen***: it is `capacity = 12` in a file whose first line says it
+>   models no city, so restoring it would be `adr/0070`'s shape — compensating for something that was
+>   never a decision.
 
 > ⚠ **ITEM 8, added 2026-08-13 by session P: a waiter whose own requirement falls is never re-checked.**
 > **Filed unfixed, with a reproduction**, because it was found while building item 7's Goods half and
