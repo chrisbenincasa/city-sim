@@ -323,8 +323,23 @@ between them can see anything wrong.
 | **the correction**, hours later | the **caveat**, not the number | `plans/0013`'s three words *"not a stressed count"*, which mean *not a **real city's** stressed count* | read literally, producing the claim that 186,624 *"is a whole fleet"*. It is **2,592 stressed Segments × 72 Vehicles** and was derived carefully in `adr/0082`. Corrected in this file, `adr/0094`, `adr/0096`, `plans/0025` and `CLAUDE.md` |
 | **the developed density**, ongoing | **3,700 / km²** | `plans/0002` §D's *"an **output** of the 1M target — §1's column is headed *1M implies*"*, and `docs/spike-results.md` saying it again | cited in four documents as an **independent check** that the map may grow, when it is 1,000,000 ÷ 268 km² and therefore the old map restated. See *The developed density every map decision is priced against is circular* below |
 | **`adr/0089`'s amendment**, written 2026-08-13, found 2026-08-14 | the Commute Budget rungs **20 / 40 / 50** minutes | [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s own finding, in the commit that shipped it: *"percentiles of a free-flow, **foot-only** distribution"* | substituted into the map table's *Commutes across* column, whose denominator is a **25–36 km/h vehicle** and always was — the table carries *Foot crossing* as a **separate** column. Reports **2.2–3.1** crossings where the same map on foot is **15.7**. Corrected in `adr/0089` |
+| **`plans/0002` §D2**, written 2026-08-13, found 2026-08-14 | S2 R1's entry-error sweep, **24.70%–3.80%** | ⚠ **none — the clause that was written is *wrong*.** §D2 says the sweep *"was measured with the store in the denominator and on the District axis"*; `MatrixReport.MeasureError` divides by the **per-query A\* cost** and the route store is a separate size table, while the harness's partition is a Cell-aligned grid over nodes and is geometrically the routing partition | nothing yet — **5c task 1 caught it before quoting it**, which is the first time the tell fired before the damage. The three real disqualifiers had never been written: a **uniform** O-D draw (R4: *a different city*), **pre-`adr/0094` Ticks** at 8192 a Day, and **car** times against foot rungs. Corrected in §D2 and `RoutingPartition.DesignEdge` |
 
-**~~Three~~ Four sightings, and the middle one is the odd one out.** The first and the third are the **pure
+⚠ **The fifth sighting, 2026-08-14, is the first where the qualifier that existed was *itself false*, and
+it is a Cause 5 error sitting inside a Cause 5 entry.** §D2 was written to stop somebody quoting R1's
+curve, and the disqualifier it reached for named the wrong measurement — the route store was never in
+that denominator, and the axis was never deleted. **The three that would have bound were absent.** So a
+reader doing exactly what this file asks — read the sentence, not the digits — would have declined to use
+a curve that is usable, for a reason that is false, while remaining exposed to three that are not
+written. ***A caveat that is wrong is worse than no caveat, because it is the reason nobody writes the
+right one*** — which is `adr/0093`'s *a false description of a guard* arriving on this cause rather than
+on its own, and the two rules are converging: **name what a number measures, never what it is
+disqualified by.** *"Uniform-draw, car-time, 8192-Tick"* is three greps against the harness; *"the store
+was in the denominator"* took 600 lines of reading to refute. It is also the **first sighting caught
+before the damage**, and what caught it was the working rule that a claim about the build is checked
+against the build — so the tell can fire early, given somebody who reads the source the caveat is about.
+
+**~~Three~~ ~~Four~~ Five sightings, and the middle one is the odd one out.** The first and the third are the **pure
 form**, twice: a qualifier that exists, is correct, sits in the right place, and is simply not carried —
 in the first it had been read **hours earlier by the same sitting**, and in the third it is written twice
 over, in `plans/0002` §D and in `docs/spike-results.md`, while four other documents quote the digits
@@ -1079,13 +1094,28 @@ machine.
 route rather than work around them, per [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md).
 It found two more on the way. **None blocks anything.**
 
-**1. `adr/0041` still says the travel-time matrix is District-granular, and it is unbannered.**
+**1. ~~`adr/0041` still says the travel-time matrix is District-granular, and it is unbannered.~~ PAID
+2026-08-14**, in a session running beside milestone 5c and *before* 5c read the file — which is the only
+reason it is worth recording how narrowly this one was caught. Original entry follows.
 *"The matrix remains District-granular; only *attribution* leaves."* [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)
 reversed exactly that — *"the travel-time matrix's granularity is the routing partition, not the
 District"* — and `CONTEXT.md` → District carries the reversal. `adr/0041` **has** an amendment block and
 it does not touch the bullet, which is the worst arrangement: a reader who checks for a banner finds one
 and concludes the document has been reconciled. It is **5c's foundation**, and it is wrong in the ADR a
 reader reaches for first. *Cause 2 — an ADR issued a write to another document and it did not land.*
+
+> **The banner is now on the bullet itself rather than at the top of the file, and that placement is the
+> repair.** This debt's own diagnosis — *a reader who checks for a banner finds one and concludes the
+> document has been reconciled* — is an argument about **where** an amendment sits, not about whether one
+> exists, so a second top-of-file block would have reproduced the defect it names. ***An amendment
+> belongs against the sentence it corrects, because that is the only place a reader who is not looking
+> for it will pass.***
+>
+> ⚠ **The polarity is worth carrying: the vocabulary file was right and the decision record was wrong.**
+> `CONTEXT.md` → District and → Settlement both had `adr/0047`'s reversal, the second naming the ADR
+> outright. Cause 1 is normally read as *the copies drift and the authoritative one is right*; here the
+> authoritative one was the drifted copy, and the cheap check — *does the glossary agree?* — would have
+> caught it any day in the last three.
 
 **2. ~~`CONTEXT.md` has no `Node` entry, and `Node` is load-bearing.~~ PAID by session F**, because
 [`adr/0074`](../docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md)
