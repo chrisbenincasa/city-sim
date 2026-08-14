@@ -234,9 +234,9 @@ itself.* **What is next is therefore a choice rather than a
 queue**, and the ~~three~~ ~~four~~ **four candidates were, of which item 6 and the map flip have since shipped**:
 ~~[`0003`](0003-build-plan.md)'s hash-moving queue **item 7** — the
 `TICKS_PER_DAY` flip, which is mechanical and should land before more Rulesets are authored, because
-Goods quantities rescale ×4;~~ **✅ SHIPPED WHOLE 2026-08-13 — the clock half and the Goods rescale, as two commits;** [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s
-**three rungs**, which is Ruleset content plus one comparison and is what makes 5b-bis's *binding hard*
-reading interpretable; and ~~**[`0003`](0003-build-plan.md) queue item 6** — scoping `SyntheticCity`'s paving to the area it
+Goods quantities rescale ×4;~~ **✅ SHIPPED WHOLE 2026-08-13 — the clock half and the Goods rescale, as two commits;** ~~[`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s
+**three rungs**, which is Ruleset content plus one comparison~~ **✅ BUILT 2026-08-13 — and it was not
+one comparison**; and ~~**[`0003`](0003-build-plan.md) queue item 6** — scoping `SyntheticCity`'s paving to the area it
 populates, which is what [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)'s
 map flip waits on.~~ ⚠ **That item is *mechanical*, and an earlier draft of this paragraph called it an
 argument**: it named `plans/0002` **ledger #2**, *open map or progressive unlock*, as undecided when
@@ -287,6 +287,40 @@ Bins at once, stable from Tick 512 to 4096: queue **depth 1**, level 12, headroo
 `BinStillBlocks` **false**. It is filed rather than fixed because its two candidate repairs are a design
 question — issue a wake on a Readout write, an edge `02 §5` does not have, or sweep the wait lists on a
 cadence, which is `adr/0033`'s forbidden move.
+
+✅ **`adr/0095`'S THREE RUNGS ARE BUILT — 2026-08-13, 1,294 green, all three baselines re-recorded.**
+`[trips]` states `commute_fast_minutes`, `commute_moderate_minutes` and `commute_budget_minutes`, which
+is now the **ceiling**; the loader refuses a partial set and one that is not strictly increasing;
+`EmploymentEngine` takes the **best rung it draws**; `JobCounter` has seven counters; `--census` and
+`--commute` print all three.
+
+⚠ **Its finding is that the ADR designed against one of `01 §4`'s two drivers without noticing.** That
+section names **Congestion** and **Separation** as the two scarcities that read as long commutes, and
+`01 §7`'s **Gridlock** overlay — *the commute-time distribution's upper tail sliding toward the Commute
+Budget wedge* — is the **congestion** reading. `adr/0095` argues entirely from geography. Congestion
+cannot reach a commute today by construction: `03 §3.7` exempts pedestrians (*"pedestrian networks do not
+saturate"*) and a vehicular Leg carries no congestion term because `adr/0075` gives a Leg a cost and no
+path, which is `adr/0041`'s unpaid volume debt waiting on **5c**. `adr/0070` — stated, not compensated
+for. ***The three values are percentiles of a free-flow, foot-only distribution***, and a fourth revisit
+trigger says to reopen them on the distribution rather than on playtest when 5c lands.
+
+⚠ **No world this project can build occupies the top rung, and the map is why rather than the numbers.**
+The paved extent is `ceil(sqrt(lots ÷ 10))` blocks, so it scales with **√population**: 10,000 Citizens is
+a city **1.92 km** across against a ceiling that reaches **4.17 km**. Over 1,024 Ticks the *unsavoury*
+count runs **0, 0, 10, 131, 738** at 10,000 / 20,000 / 40,000 / 80,000 / 160,000. **The fixture was not
+inflated to fill the rung and the values were not lowered to fit the fixture** — scaling 20/40/50 to
+8/16/20 was proposed and refused with the user in the room, because ***a rung is a vocabulary and calling
+a twenty-minute commute unsavoury bends the words to fit a village***. `EmploymentRungTests` states both
+ends of the ladder so a change to the fixture, the generator or the walk speed is visible the day it
+lands. ⚠ The committed baseline **did** lose the refusal branch it acquired three days ago — the ceiling
+moved 20 → 50, so `beyond` goes 3 → 0 — and that is recorded rather than smoothed.
+
+⚠ **And the fast rung turns out to be mechanically load-bearing where the ADR's table says it does
+nothing.** *Best rung drawn* is implemented as *stop on the first `Fast` candidate*, so where the fast
+edge sits decides how many candidates are looked at and therefore which vacancy each seeker takes —
+**2,307 against 2,301** employed on an identical city with only the rungs moved. ***An edge that refuses
+nothing is not thereby an edge that does nothing.*** Bounded at one percent by a test, so a change that
+turns the rungs into a search policy fails rather than passing quietly.
 
 ✅ **ITEM 6 SHIPPED 2026-08-13, and it produced a fifth candidate by discharging a gate.**
 `RoadGenerator.LayInto` takes an extent and `SyntheticCity` derives it from the Lot count the population

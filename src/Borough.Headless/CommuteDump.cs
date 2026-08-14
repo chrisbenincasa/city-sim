@@ -114,9 +114,14 @@ internal static class CommuteDump
             $"# {world.Citizens.Rows.LiveCount} Citizens, {world.Buildings.Rows.LiveCount} Buildings, "
             + $"{Jobs(world)} job(s) declared. Blocks are {block} Tiles.");
         output.WriteLine(
-            $"# Commute Budget {TripDump.Minutes(rules.Trips.CommuteBudget.Raw)} min; assignment looks at "
-            + $"{rules.Jobs.SampleFor(world.Citizens.Rows.SlotCount)} Citizen(s) every "
-            + $"{rules.Jobs.Interval} Ticks, {rules.Jobs.Candidates} candidate(s) each.");
+            $"# Commute Budget: fast to {TripDump.Minutes(rules.Trips.Fast.Raw)} min, moderate to "
+            + $"{TripDump.Minutes(rules.Trips.Moderate.Raw)}, unsavoury to "
+            + $"{TripDump.Minutes(rules.Trips.CommuteBudget.Raw)}, refused beyond it. Only the "
+            + "ceiling refuses.");
+        output.WriteLine(
+            $"# Assignment looks at {rules.Jobs.SampleFor(world.Citizens.Rows.SlotCount)} Citizen(s) "
+            + $"every {rules.Jobs.Interval} Ticks, {rules.Jobs.Candidates} candidate(s) each, and "
+            + "takes the best rung it draws.");
         output.WriteLine(
             $"# Departures spread over {rules.Jobs.CommuteWindow} Ticks of each "
             + $"{Ticks.PerDay}-Tick Day, from a stated morning peak of {rules.Jobs.PeakFactor}x.");

@@ -433,6 +433,43 @@ lots_per_segment = 5
 # reading it as "nobody travels", because the intent a zero would be reaching for is the intent
 # deleting the key already states.
 crossing_seconds = 30
+# THE THREE RUNGS, AND ONLY THE LAST ONE REFUSES (adr/0095). A commute is FAST to 20 minutes,
+# MODERATE to 40, UNSAVOURY to 50, and refused beyond it. The two lower edges refuse nothing at all --
+# they grade a commute that happens anyway, so a city whose commutes are creeping from twelve minutes
+# to nineteen is legible BEFORE anything fails. A single threshold reports zero throughout that period
+# and then reports a cliff, arriving exactly when 01 SS4's spatial fix has stopped being cheap.
+#
+# ALL THREE OR NONE. There is no ceiling without grading and no default for either lower rung: a
+# default would be the thing adr/0052 forbids, a hash-bearing number chosen because the schema wanted
+# one. The loader refuses a partial set and refuses one that is not strictly increasing.
+#
+# ⚠ THE UNSAVOURY RUNG READS ZERO IN THIS CITY, AND IT IS MEASURED RATHER THAN SUSPECTED. The paved
+# extent is derived from population, so 10,000 Citizens is a city 1.9 km across, against a 50-minute
+# walking ceiling that reaches 4.2 km -- nobody can live far enough from work to be graded badly. No
+# commute here exceeds 32 minutes and `beyond ceiling` is 0. Over 1,024 Ticks:
+#
+#     citizens    10,000   20,000   40,000   80,000  160,000
+#     paved       1.92 km  2.56 km  3.84 km  5.44 km  7.68 km
+#     fast           612    1,164    1,951    2,950    4,405
+#     moderate         3       54      463    1,728    4,330
+#     unsavoury        0        0       10      131      738
+#     beyond           0        0       90    1,576    6,290
+#
+# The unsavoury rung first occupies at 40,000 Citizens; at 160,000 fast and moderate are level, which
+# is a city genuinely deteriorating as it spreads. That is NOT a reason to change these numbers, and
+# the fixture is not inflated to fill a rung. A rung is a VOCABULARY -- calling a 20-minute commute
+# unsavoury would be bending the words to fit a village.
+#
+# ⚠ AND THE OTHER HALF OF THE REASON IS THAT CONGESTION IS UNBUILT. 01 SS4 names TWO scarcities that
+# read as long commutes: CONGESTION, which is road capacity, and SEPARATION, which is distance. This
+# simulation implements the second. A walk Leg's cost is distance / speed EXACTLY, because pedestrian
+# networks do not saturate (03 SS3.7), and a vehicular Leg carries no congestion term because adr/0075
+# gives a Leg a cost and no path. So these rungs report Separation and nothing else until 5c, and
+# 01 SS7's Gridlock overlay -- "the commute-time distribution's upper tail sliding toward the Commute
+# Budget wedge" -- is the reading they cannot yet produce. adr/0070: stated, not compensated for.
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+
 
 # THE COMMUTE BUDGET, MEASURED RATHER THAN CHOSEN, and the paragraph above is now history: it said
 # this key is absent because the Budget is a percentile of a distribution that does not exist. The
@@ -440,23 +477,31 @@ crossing_seconds = 30
 # grid-ideal band, and these are its numbers -- p90 walks of 2.5 min at 1 block, 7.0 at 4, 13.7 at
 # 8, and 71.2 at 16, over 1,201 Buildings on the network [roads] above describes.
 #
-# 20 MINUTES IS THE RUNG WHERE IT BINDS. It admits the whole eight-block neighbourhood at p90 and
-# refuses half of the sixteen-block one, which is the property the number has to have: a Budget
-# above the longest walk in the city refuses nothing and is not a Budget, and one below the
-# shortest refuses everything. plans/0023 §B rules out the MEDIAN specifically -- the median detour
-# is 100% of the grid ideal in a severed city and an intact one alike, so a Budget read off it
-# cannot tell the two apart, which is the one job the Severance demonstration needs it to do.
+# ⚠ IT IS THE CEILING NOW, NOT THE ACCEPTABLE COMMUTE (adr/0095), AND THAT MOVED IT 20 -> 50. The
+# paragraph beneath the rungs above carries the reasoning. What this key means changed and so did
+# its value: 20 is the FAST rung, where it was once the only edge there was, and the ceiling is
+# where somebody stops taking the job rather than where they stop being pleased about it.
 #
-# ITS RATIFIER IS TASK 8'S LONG RUN AND THE REFUTING NUMBERS ARE NAMED. The census prints
-# `jobs beyond budget`, which counts vacancies found inside the search box and refused by the walk.
-# ZERO of them means this number is not binding and is doing nothing; `seeking - employed` staying
-# at the whole population means it is too tight to employ anybody. Either reading moves it.
+# 20 MINUTES WAS READ OFF `--trips` AND STILL IS, as the fast rung. It admits the whole eight-block
+# neighbourhood at p90 and refuses half of the sixteen-block one. plans/0023 §B rules out the
+# MEDIAN specifically -- the median detour is 100% of the grid ideal in a severed city and an
+# intact one alike, so a rung read off it cannot tell the two apart, which is the one job the
+# Severance demonstration needs it to do.
+#
+# ⚠ ITS OLD RATIFIER IS SPENT AND THE REPLACEMENT IS PLAYTEST. It used to say: `beyond budget` of
+# ZERO means this number is not binding. It IS zero here now, and that is no longer a refutation --
+# it is the ceiling doing its job in a village, and the ladder above shows it biting from 40,000
+# Citizens up. What refutes 50 is a person playing: an unsavoury rung never occupied in a city big
+# enough to occupy it, or a fast rung never left.
 #
 # IT ALSO SIZES THE SEARCH, and that is why [jobs] below refuses to exist without it: the box a
-# Citizen draws candidates from is what a walk within this Budget covers -- 20 min at
-# walk_speed_kph = 5 is 1.67 km, 417 Tiles, 14 Cells -- so raising this makes people look further
-# as well as accept more, which is one number doing one thing rather than two.
-commute_budget_minutes = 20
+# Citizen draws candidates from is what a walk within the CEILING covers -- 50 min at
+# walk_speed_kph = 5 is 4.17 km, 1,042 Tiles, 33 Cells. The box derives from the ceiling rather
+# than the fast rung because a seeker will take an unsavoury job rather than none, and a box that
+# could not contain one would refuse it before the walk did. ⚠ Its area is 6.25x the old
+# 20-minute derivation, which is the one cost of this change that is not free: the Cell-uniform
+# draw finding (5b-bis task 4) was measured against the smaller box.
+commute_budget_minutes = 50
 
 # adr/0081, and 02 §5.2 step 2b arriving from the other side. HOW A CITIZEN WITH NO WORKPLACE COMES
 # TO HAVE ONE: every `interval` Ticks the pass looks at a share of the population, and somebody with

@@ -1,3 +1,4 @@
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Formats;
@@ -115,17 +116,116 @@ public sealed class TripRulesetLoadTests
         Assert.NotEqual(TripRuleset.None, trips);
     }
 
-    /// <summary><b>A Budget authored in minutes arrives as a travel time.</b></summary>
+    /// <summary><b>Three rungs authored in minutes arrive as three travel times.</b></summary>
+    /// <remarks>
+    /// <c>adr/0095</c>. The assertion that matters is the third: <c>commute_budget_minutes</c> is the
+    /// <b>ceiling</b> rather than the acceptable commute, so the key whose name did not change is the
+    /// one whose meaning did.
+    /// </remarks>
     [Fact]
     public void A_budget_authored_in_minutes_arrives_as_a_travel_time()
     {
         TripRuleset trips = Accepted(With("""
             crossing_seconds = 30
+            commute_fast_minutes = 15
+            commute_moderate_minutes = 30
             commute_budget_minutes = 45
             """)).Trips;
 
         Assert.True(trips.HasCommuteBudget);
+        Assert.Equal(TravelTime.FromMinutes(15), trips.Fast);
+        Assert.Equal(TravelTime.FromMinutes(30), trips.Moderate);
         Assert.Equal(TravelTime.FromMinutes(45), trips.CommuteBudget);
+    }
+
+    /// <summary>
+    /// <b>A cost lands on the rung its minutes put it on, and each edge is inclusive.</b>
+    /// </summary>
+    /// <remarks>
+    /// The boundaries are asserted from both sides because <c>adr/0095</c>'s rungs are stated as
+    /// <em>to 20, to 40, to 50</em> — an edge belongs to the band below it, so a commute of exactly
+    /// twenty minutes is fast and a commute of exactly fifty is unsavoury rather than refused.
+    /// </remarks>
+    [Fact]
+    public void A_cost_lands_on_the_rung_its_minutes_put_it_on()
+    {
+        TripRuleset trips = Accepted(With("""
+            crossing_seconds = 30
+            commute_fast_minutes = 20
+            commute_moderate_minutes = 40
+            commute_budget_minutes = 50
+            """)).Trips;
+
+        Assert.True(trips.TryRung(TravelTime.Zero, out CommuteRung zero));
+        Assert.Equal(CommuteRung.Fast, zero);
+
+        Assert.True(trips.TryRung(TravelTime.FromMinutes(20), out CommuteRung onEdge));
+        Assert.Equal(CommuteRung.Fast, onEdge);
+
+        Assert.True(trips.TryRung(TravelTime.FromMinutes(21), out CommuteRung past));
+        Assert.Equal(CommuteRung.Moderate, past);
+
+        Assert.True(trips.TryRung(TravelTime.FromMinutes(40), out CommuteRung moderateEdge));
+        Assert.Equal(CommuteRung.Moderate, moderateEdge);
+
+        Assert.True(trips.TryRung(TravelTime.FromMinutes(41), out CommuteRung unsavoury));
+        Assert.Equal(CommuteRung.Unsavoury, unsavoury);
+
+        Assert.True(trips.TryRung(TravelTime.FromMinutes(50), out CommuteRung ceiling));
+        Assert.Equal(CommuteRung.Unsavoury, ceiling);
+
+        Assert.False(trips.TryRung(TravelTime.FromMinutes(51), out _));
+        Assert.False(trips.TryRung(TravelTime.Impassable, out _));
+    }
+
+    /// <summary>
+    /// <b>A Ruleset stating some of the three rungs and not all of them is refused.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>adr/0095</c> makes the Budget one decision in three keys, so the optionality belongs to the
+    /// <em>group</em>. <b>This guard exists because <c>adr/0064</c>'s lesson is that a loader guard
+    /// with no test is invisible to the reader deciding it does not exist</b> — that ADR recorded a
+    /// live defect on the strength of a refusal that had shipped, untested, a slice earlier.
+    /// </remarks>
+    [Theory]
+    [InlineData("commute_fast_minutes = 20")]
+    [InlineData("commute_moderate_minutes = 40")]
+    [InlineData("commute_budget_minutes = 50")]
+    [InlineData("commute_fast_minutes = 20\ncommute_moderate_minutes = 40")]
+    [InlineData("commute_fast_minutes = 20\ncommute_budget_minutes = 50")]
+    [InlineData("commute_moderate_minutes = 40\ncommute_budget_minutes = 50")]
+    public void A_partial_set_of_rungs_is_refused(string partial)
+    {
+        RulesetRefusal refusal = Refused(With($"crossing_seconds = 30\n{partial}"));
+
+        Assert.Contains("three rungs", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>Rungs that are not strictly increasing are refused, including two that are equal.</b>
+    /// </summary>
+    /// <remarks>
+    /// Equality is refused rather than tolerated because two equal rungs are a band no commute can
+    /// fall in — and a Census counter pinned at zero because its band is empty reads exactly like a
+    /// mechanism that has stopped, which is the ambiguity <c>[[building]] jobs</c> put full
+    /// employment out of reach to avoid.
+    /// </remarks>
+    [Theory]
+    [InlineData(40, 20, 50)]
+    [InlineData(20, 50, 40)]
+    [InlineData(20, 20, 50)]
+    [InlineData(20, 40, 40)]
+    [InlineData(50, 40, 20)]
+    public void Rungs_that_do_not_strictly_increase_are_refused(int fast, int moderate, int ceiling)
+    {
+        RulesetRefusal refusal = Refused(With($"""
+            crossing_seconds = 30
+            commute_fast_minutes = {fast}
+            commute_moderate_minutes = {moderate}
+            commute_budget_minutes = {ceiling}
+            """));
+
+        Assert.Contains("strictly increasing", refusal.Reason, StringComparison.Ordinal);
     }
 
     // ---- the omitted Budget ---------------------------------------------------------------------
@@ -176,7 +276,9 @@ public sealed class TripRulesetLoadTests
     [Fact]
     public void A_trips_table_with_no_crossing_cost_is_refused()
     {
-        RulesetRefusal refusal = Refused(With("commute_budget_minutes = 45"));
+        RulesetRefusal refusal = Refused(With(
+            "commute_fast_minutes = 15\ncommute_moderate_minutes = 30\n"
+            + "commute_budget_minutes = 45"));
 
         Assert.Contains("crossing_seconds", refusal.Reason, StringComparison.Ordinal);
     }

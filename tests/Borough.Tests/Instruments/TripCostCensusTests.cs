@@ -151,8 +151,12 @@ public sealed class TripCostCensusTests
     /// They do not pile up: a commute exists only because the assignment pass <em>already accepted</em>
     /// the job at the other end of it, inside the Budget, so lowering the Budget removes the
     /// <em>acceptances</em>. At one minute the golden fixture makes twenty commutes and <b>every one of
-    /// them is under a minute</b> — the distribution collapses into its shortest band instead of
-    /// growing a tail.
+    /// them is inside the shortest bands the ceiling allows</b> — the distribution collapses toward
+    /// zero instead of growing a tail. ⚠ <b>Three minutes rather than one, because <c>adr/0095</c> put
+    /// a floor under the ceiling</b>: three strictly increasing rungs of at least a minute each make
+    /// three the tightest set anybody can author, so the assertion is now <i>nothing above the band
+    /// the ceiling falls in</i> rather than <i>nothing above a minute</i>. The shape of the finding is
+    /// unchanged and the resolution of the instrument is what moved.
     /// </para>
     /// <para>
     /// <b>So the ceiling is upstream, and a distribution censored by a number cannot be evidence about
@@ -165,11 +169,14 @@ public sealed class TripCostCensusTests
     public void Tightening_the_budget_empties_the_distribution_rather_than_filling_its_tail()
     {
         TripCostProfile shipped = Run(GoldenFixtures.Rules()).Trips.Drain().Costs;
-        TripCostProfile tight = Run(WithBudget(1)).Trips.Drain().Costs;
+        TripCostProfile tight = Run(WithCeiling(3)).Trips.Drain().Costs;
 
-        Assert.True(Above(shipped) > 0, "the shipped Budget produced no Trip over a minute.");
-        Assert.True(tight[TripCostBucket.UnderOneMinute].Sum > 0, "a one-minute Budget made no Trips.");
-        Assert.Equal(0, Above(tight));
+        Assert.True(
+            Above(shipped, TripCostBucket.UnderFourMinutes) > 0,
+            "the shipped ceiling produced no Trip over four minutes, so there is no tail to collapse.");
+        Assert.True(
+            tight[TripCostBucket.UnderOneMinute].Sum > 0, "a three-minute ceiling made no Trips.");
+        Assert.Equal(0, Above(tight, TripCostBucket.UnderFourMinutes));
     }
 
     /// <summary>
@@ -231,14 +238,19 @@ public sealed class TripCostCensusTests
         TripCostBucket.ThirtyTwoMinutesOrMore,
     ];
 
-    /// <summary>Trips created above the shortest band.</summary>
-    private static long Above(TripCostProfile costs)
+    /// <summary>Trips created above the band <paramref name="ceiling"/> falls in.</summary>
+    /// <remarks>
+    /// The ladder is <c>TripCostBucket</c>'s and is deliberately <em>not</em> denominated in the
+    /// Budget — <em>a ruler must not move with the thing it measures</em> — so a test asking about a
+    /// ceiling has to find which band the ceiling lands in rather than assume one.
+    /// </remarks>
+    private static long Above(TripCostProfile costs, TripCostBucket ceiling)
     {
         long above = 0;
 
         foreach (TripCostBucket bucket in Buckets)
         {
-            above += bucket == TripCostBucket.UnderOneMinute ? 0 : costs[bucket].Sum;
+            above += bucket <= ceiling ? 0 : costs[bucket].Sum;
         }
 
         return above;
@@ -280,17 +292,35 @@ public sealed class TripCostCensusTests
         return builder.Build();
     }
 
-    /// <summary>The shipped Ruleset with its Commute Budget replaced.</summary>
-    private static Ruleset WithBudget(int minutes)
+    /// <summary>The shipped Ruleset with its Commute Budget's ceiling replaced.</summary>
+    /// <remarks>
+    /// <b>All three rungs are substituted, not just the ceiling</b> (<c>adr/0095</c>). The shipped
+    /// file states 20/40/50, so replacing only the last key with anything below 40 produces a set the
+    /// loader refuses — the substitution would fail for exactly the tight ceilings these tests exist
+    /// to try. The lower rungs go to 1 and 2 because these assertions are about the <em>ceiling</em>,
+    /// which is the only edge that refuses anything, and a rung that grades nothing cannot affect
+    /// them. <b>Three is therefore the tightest ceiling any test can ask for</b>, since the rungs must
+    /// strictly increase from at least a minute.
+    /// </remarks>
+    private static Ruleset WithCeiling(int minutes)
     {
+        Assert.True(minutes >= 3, "the tightest authorable ceiling is 3 minutes (adr/0095).");
+
         string toml = File.ReadAllText(GoldenFixtures.RulesetPath);
-        const string Key = "commute_budget_minutes = 20";
+        (string Key, string Replacement)[] keys =
+        [
+            ("commute_fast_minutes = 20", "commute_fast_minutes = 1"),
+            ("commute_moderate_minutes = 40", "commute_moderate_minutes = 2"),
+            ("commute_budget_minutes = 50", $"commute_budget_minutes = {minutes}"),
+        ];
 
-        Assert.Contains(Key, toml, StringComparison.Ordinal);
+        foreach ((string key, string replacement) in keys)
+        {
+            Assert.Contains(key, toml, StringComparison.Ordinal);
+            toml = toml.Replace(key, replacement, StringComparison.Ordinal);
+        }
 
-        RulesetLoadResult result = RulesetLoader.Parse(
-            toml.Replace(Key, $"commute_budget_minutes = {minutes}", StringComparison.Ordinal),
-            "test.toml");
+        RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
 
         Assert.True(result.Ok, result.Describe());
 

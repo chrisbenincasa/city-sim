@@ -322,6 +322,18 @@ nineteen, and then report a cliff — the signal arriving exactly when the geogr
 wrong and a spatial fix has stopped being cheap. The rungs make the intervening period the readable
 thing. `LEGIBLE CAUSE`
 
+⚠ **Built 2026-08-13, and the rungs report only one of §5.1's two scarcities.** `adr/0095` argued
+entirely from **Separation** and did not notice that this document's own table makes **Congestion**
+co-equal — nor that §7's **Gridlock** overlay, *the commute-time distribution's upper tail sliding toward
+the Commute Budget wedge*, is the congestion reading. A walk Leg cannot carry a congestion term by
+construction (`03 §3.7`: pedestrian networks do not saturate) and a vehicular Leg carries none either,
+because [`adr/0075`](adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) gives a Leg a cost and no
+path. **So a city grades worse today when it *spreads* and never when it *fills up*, and these three
+numbers are percentiles of a free-flow distribution.** `adr/0070` — stated rather than compensated for,
+and reopened when 5c pays `adr/0041`'s volume debt. ⚠ **And no world this project can build occupies the
+top rung**: the paved extent scales with √population, so a 10,000-Citizen city is 1.9 km across against a
+ceiling that reaches 4.2 km, and *unsavoury* first occupies at **40,000**. The ladder is in the ADR.
+
 This is also when the first Departures appear, and the distinction between **unhoused** (a capacity failure — build more) and **housed** (a quality failure — fix what you have) does real teaching work. The **unsavoury** rung is where the second kind comes from: a Citizen who has a home and a fifty-minute walk to work is the cleanest quality failure the design has.
 
 ⚠ **This is a Bill-axis scarcity, and §5.1's *buyable out of? Yes, always* is not contradicted by the

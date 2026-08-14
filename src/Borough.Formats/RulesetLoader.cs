@@ -1906,14 +1906,22 @@ public static class RulesetLoader
         /// one.
         /// </para>
         /// <para>
-        /// <b>Once the table is present <c>crossing_seconds</c> is required and
-        /// <c>commute_budget_minutes</c> is not</b>, which departs from <c>[placement]</c>'s
-        /// every-key-required rule and does so on a stated ground: the two numbers are unset in
-        /// different senses. A crossing cost is <em>chosen with a named ratifier</em> under
-        /// <c>adr/0052</c>; a Commute Budget is a <b>percentile of a cost distribution</b>, and no
-        /// distribution exists until commutes do. <b>An omitted budget is therefore a city with no
-        /// ceiling</b> — a coherent city, the only one whose cost distribution is uncensored, and the
-        /// one this milestone must measure before it can state the number.
+        /// <b>Once the table is present <c>crossing_seconds</c> is required and the Budget is
+        /// not</b>, which departs from <c>[placement]</c>'s every-key-required rule and does so on a
+        /// stated ground: the two are unset in different senses. A crossing cost is <em>chosen with a
+        /// named ratifier</em> under <c>adr/0052</c>; a Commute Budget is a <b>percentile of a cost
+        /// distribution</b>, and no distribution exists until commutes do. <b>An omitted budget is
+        /// therefore a city with no ceiling</b> — a coherent city, and the only one whose cost
+        /// distribution is uncensored.
+        /// </para>
+        /// <para>
+        /// <b>The Budget is three keys and they are all-or-nothing</b> (<c>adr/0095</c>). State every
+        /// rung or state none: a ceiling with no grading is the binary Budget that ADR replaces, and
+        /// a <em>default</em> for either lower rung would be a hash-bearing number chosen because the
+        /// schema wanted one. <b>So the optionality is a property of the group rather than of each
+        /// key</b>, which is why the guard below counts how many arrived rather than testing them one
+        /// at a time — a Ruleset stating two of three is a mistake, and a per-key <c>required</c>
+        /// flag cannot express that.
         /// </para>
         /// </remarks>
         private TripRuleset ReadTrips()
@@ -1923,7 +1931,105 @@ public static class RulesetLoader
                 return TripRuleset.None;
             }
 
-            return new TripRuleset(ReadCrossingCost(), ReadCommuteBudget());
+            TravelTime crossing = ReadCrossingCost();
+            (TravelTime fast, TravelTime moderate, TravelTime ceiling) = ReadCommuteRungs();
+
+            return new TripRuleset(crossing, fast, moderate, ceiling);
+        }
+
+        /// <summary>
+        /// The Commute Budget's three rungs, or three <see cref="TravelTime.Impassable"/> for a city
+        /// with no ceiling.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Two refusals, and they are different failures.</b> A partial set is an author who
+        /// stated some of a group; a set out of order is an author who stated all of it and meant
+        /// something impossible. Reporting them separately is what makes the message actionable —
+        /// <c>adr/0064</c>'s standing lesson is that a loader guard nobody can see is a guard nobody
+        /// believes exists, so both ship with tests.
+        /// </para>
+        /// <para>
+        /// <b>Strictly increasing rather than merely non-decreasing.</b> Two equal rungs are a band
+        /// no commute can ever fall in, which is a rung that exists in the file and not in the city —
+        /// and the reading that band produces, a Census counter pinned at zero, is indistinguishable
+        /// from a mechanism that has stopped. That is the same argument <c>[[building]] jobs</c> made
+        /// for putting full employment out of reach: <b>a number nothing can occupy reports the same
+        /// thing whether it is right or broken.</b>
+        /// </para>
+        /// </remarks>
+        private (TravelTime Fast, TravelTime Moderate, TravelTime Ceiling) ReadCommuteRungs()
+        {
+            TravelTime fast = ReadRung("commute_fast_minutes");
+            TravelTime moderate = ReadRung("commute_moderate_minutes");
+            TravelTime ceiling = ReadCommuteBudget();
+
+            int stated = (fast.IsImpassable ? 0 : 1)
+                + (moderate.IsImpassable ? 0 : 1)
+                + (ceiling.IsImpassable ? 0 : 1);
+
+            if (stated == 0)
+            {
+                return (TravelTime.Impassable, TravelTime.Impassable, TravelTime.Impassable);
+            }
+
+            if (stated < 3)
+            {
+                Refuse(LineOfTrip("commute_budget_minutes"), null,
+                    "[trips] states some of the Commute Budget's three rungs and not all of them. "
+                    + "commute_fast_minutes, commute_moderate_minutes and commute_budget_minutes are "
+                    + "one decision in three keys (adr/0095): the first two grade a commute that "
+                    + "happens anyway and the last is the ceiling, which is the only edge that "
+                    + "refuses a Trip. State all three, or delete all three for a city whose "
+                    + "commutes are never refused for their length and never graded.");
+
+                return (TravelTime.Impassable, TravelTime.Impassable, TravelTime.Impassable);
+            }
+
+            if (fast >= moderate || moderate >= ceiling)
+            {
+                Refuse(LineOfTrip("commute_moderate_minutes"), null,
+                    "the Commute Budget's rungs are not strictly increasing. A commute is fast up to "
+                    + "commute_fast_minutes, moderate up to commute_moderate_minutes and unsavoury "
+                    + "up to commute_budget_minutes, so each must be larger than the one before it. "
+                    + "Two equal rungs are a band no commute can fall in, and a band nothing can "
+                    + "occupy reads in the Census exactly like a mechanism that has stopped.");
+
+                return (TravelTime.Impassable, TravelTime.Impassable, TravelTime.Impassable);
+            }
+
+            return (fast, moderate, ceiling);
+        }
+
+        /// <summary>
+        /// One of the two lower rungs, in in-world clock minutes, or
+        /// <see cref="TravelTime.Impassable"/> when the key is absent.
+        /// </summary>
+        /// <remarks>
+        /// <b>The range is the ceiling's, and the ordering guard is what actually constrains
+        /// these.</b> A lower rung has no meaningful bound of its own — how fast a fast commute is
+        /// depends entirely on where the ceiling sits — so bounding it independently would be
+        /// inventing a second opinion about the same number.
+        /// </remarks>
+        private TravelTime ReadRung(string key)
+        {
+            if (!TryInteger(_tripsTable!, key, out long value, required: false))
+            {
+                return TravelTime.Impassable;
+            }
+
+            if (value < 1 || value > MaximumBudgetMinutes)
+            {
+                Refuse(LineOfTrip(key), null,
+                    $"{key} = {value} is out of range. It is a rung of the Commute Budget, in "
+                    + $"in-world clock minutes, so it is at least 1 and at most "
+                    + $"{MaximumBudgetMinutes}, which is what a travel time can hold. It must also "
+                    + "be strictly below commute_budget_minutes, which is the ceiling.");
+
+                return TravelTime.Impassable;
+            }
+
+            return TravelTime.FromMinutes((int)value);
         }
 
         /// <summary>

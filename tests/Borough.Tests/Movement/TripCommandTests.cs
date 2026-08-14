@@ -207,20 +207,21 @@ public sealed class TripCommandTests
     /// <para>
     /// The Fate was declared by <c>adr/0076</c> and structurally unreachable: the set is closed at
     /// four and one of the four had no producer, so a third of the Trip model's failure vocabulary
-    /// was documentation. The Budget in this fixture is <b>one minute</b>, which no Trip between two
-    /// blocks can make — a block is 32 Tiles and takes a minute and a half to walk at 5 km/h.
+    /// was documentation.
     /// </para>
     /// <para>
-    /// <b>No shipped Ruleset states a Budget</b>, so this Fate stays unreached in the golden baseline
-    /// and in every long run until this milestone has measured the percentile it is. That is the
-    /// intended state and not an omission: a Budget authored before the distribution exists is the
-    /// number <c>adr/0052</c> forbids.
+    /// ⚠ <b>The ceiling here is <em>three</em> minutes and it used to be one, because
+    /// <c>adr/0095</c> put a floor under it.</b> Three strictly increasing rungs of at least a minute
+    /// each make three the tightest authorable ceiling — and a one-block walk is about a minute and a
+    /// half, so it now fits. <b>The fixture answers by lengthening the Trip</b>
+    /// (<see cref="FarthestOccupiedBlocks"/>) rather than by tightening a number it cannot tighten,
+    /// which keeps the assertion about the Budget instead of about arithmetic.
     /// </para>
     /// </remarks>
     [Fact]
     public void A_trip_beyond_the_commute_budget_ends_over_budget_rather_than_completing()
     {
-        Blocks blocks = TwoOccupiedBlocks();
+        Blocks blocks = FarthestOccupiedBlocks();
 
         Simulation simulation = RunWith(
             Trip(
@@ -233,7 +234,9 @@ public sealed class TripCommandTests
             RulesWithTripsTable("""
                 [trips]
                 crossing_seconds = 30
-                commute_budget_minutes = 1
+                commute_fast_minutes = 1
+                commute_moderate_minutes = 2
+                commute_budget_minutes = 3
                 """));
 
         var census = new Census(simulation.World);
@@ -276,6 +279,8 @@ public sealed class TripCommandTests
             RulesWithTripsTable("""
                 [trips]
                 crossing_seconds = 30
+                commute_fast_minutes = 20
+                commute_moderate_minutes = 40
                 commute_budget_minutes = 1440
                 """));
 
@@ -464,8 +469,26 @@ public sealed class TripCommandTests
     /// constant. It runs the same log the tests do, up to the same Tick, so what it sees is what the
     /// command will see.
     /// </remarks>
-    private static Blocks TwoOccupiedBlocks()
+    /// <summary>
+    /// The two occupied blocks furthest apart on the Manhattan grid, for a Trip that has to be
+    /// <em>long</em> rather than merely to exist.
+    /// </summary>
+    /// <remarks>
+    /// <b>It exists because <c>adr/0095</c> put a floor under the ceiling.</b> The Commute Budget is
+    /// three strictly increasing rungs of at least a minute each, so the tightest ceiling anybody can
+    /// author is <b>three minutes</b> where it used to be one — and a one-block walk is about a
+    /// minute and a half, which now fits. The fixture answers by lengthening the Trip rather than by
+    /// tightening a number it can no longer tighten.
+    /// </remarks>
+    private static Blocks FarthestOccupiedBlocks() => OccupiedBlocks(farthest: true);
+
+    private static Blocks TwoOccupiedBlocks() => OccupiedBlocks(farthest: false);
+
+    private static Blocks OccupiedBlocks(bool farthest)
     {
+        Blocks? best = null;
+        int bestSpan = 0;
+
         InputLogBuilder builder = new(
             GoldenFixtures.Seed,
             new WorldConfiguration(GoldenFixtures.Population),
@@ -512,8 +535,24 @@ public sealed class TripCommandTests
 
             if (deltaEast is >= -128 and <= 127 && deltaNorth is >= -128 and <= 127)
             {
-                return new Blocks(first.Value, here);
+                if (!farthest)
+                {
+                    return new Blocks(first.Value, here);
+                }
+
+                int span = Math.Abs(deltaEast) + Math.Abs(deltaNorth);
+
+                if (span > bestSpan)
+                {
+                    bestSpan = span;
+                    best = new Blocks(first.Value, here);
+                }
             }
+        }
+
+        if (best is not null)
+        {
+            return best.Value;
         }
 
         throw new InvalidOperationException(

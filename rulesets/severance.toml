@@ -451,12 +451,17 @@ lots_per_segment = 5
 # the term applies only to two Addresses on one Segment, so it moves the first band and leaves
 # Severance to the mode mask, which is where the mechanism actually lives.
 crossing_seconds = 30
+# Identical to minimal.toml's, and it must stay identical. See there for the rungs, why the upper two
+# read zero in a city this small, and why that is not a reason to move them.
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+
 
 # Identical to minimal.toml's, and it must stay identical. See there for why 20 minutes -- the
 # short version is that it is read off the walk-cost distribution --trips prints, at the rung
 # where it admits an eight-block neighbourhood and refuses half a sixteen-block one, and that it
 # also sizes the box the assignment pass draws candidates from.
-commute_budget_minutes = 20
+commute_budget_minutes = 50
 
 # Identical to minimal.toml's. adr/0081's assignment pass: [placement]'s three keys on the
 # employment axis, with the sample derived from the duration (adr/0059).

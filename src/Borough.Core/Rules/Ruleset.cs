@@ -1,6 +1,7 @@
 namespace Borough.Core.Rules;
 
 using Borough.Core.Arithmetic;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -661,11 +662,27 @@ public readonly record struct LotRuleset(int LotsPerSegment)
 
 /// <summary>
 /// The <c>[trips]</c> table — <b>what a Ruleset says about travelling</b>: what a crossing costs
-/// (<c>adr/0074</c>) and where the Commute Budget falls (<c>CONTEXT.md</c> → Commute Budget).
+/// (<c>adr/0074</c>) and where the Commute Budget's three rungs fall (<c>adr/0095</c>).
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Two numbers, both hash-bearing, and they are unset in different senses.</b> The crossing cost
+/// <b>The Budget is three edges and only the last one refuses</b> (<c>adr/0095</c>).
+/// <see cref="Fast"/> and <see cref="Moderate"/> grade a commute that happens anyway;
+/// <see cref="CommuteBudget"/> is the <em>ceiling</em>, and it alone produces
+/// <see cref="Movement.TripFate.ExceededCommuteBudget"/>. The reason is that
+/// <c>adr/0017</c>'s satisficing rule is supposed to be graded and a single threshold makes a cliff
+/// of it: a city whose commutes creep from twelve minutes to nineteen reports <b>zero</b>, and then
+/// reports a cliff, arriving exactly when <c>01 §4</c>'s spatial fix has stopped being cheap.
+/// </para>
+/// <para>
+/// <b>The three are all-or-nothing.</b> A Ruleset states every rung or no Budget at all — there is no
+/// ceiling without grading, because a default for either lower rung would be the thing
+/// <c>adr/0052</c> forbids, a hash-bearing number chosen because the schema wanted one. The loader
+/// refuses a set that is not strictly increasing.
+/// </para>
+/// <para>
+/// <b>Four numbers, all hash-bearing, and the ceiling is unset in a different sense from the
+/// rest.</b> The crossing cost
 /// is <em>chosen with a named ratifier</em> under <c>adr/0052</c> — a candidate value the first long
 /// run reports the walk-Leg distribution at, against zero. The Commute Budget cannot be chosen the
 /// same way, because it is a <b>percentile of a distribution that does not exist until commutes
@@ -697,17 +714,28 @@ public readonly record struct LotRuleset(int LotsPerSegment)
 /// share a Segment and differ in side</b> (<c>adr/0074</c>) and silent everywhere else, because
 /// <i>the same side</i> stops meaning anything once a route turns a corner.
 /// </param>
+/// <param name="Fast">
+/// The top of the <see cref="CommuteRung.Fast"/> band. <b>Refuses nothing</b> — it is where the
+/// grading starts, not where anything fails.
+/// </param>
+/// <param name="Moderate">
+/// The top of the <see cref="CommuteRung.Moderate"/> band, and equally toothless. A commute above it
+/// and below the ceiling is <see cref="CommuteRung.Unsavoury"/> and still happens.
+/// </param>
 /// <param name="CommuteBudget">
-/// The line between a Trip that completes and one whose Fate is <i>exceeded commute budget</i>, or
+/// <b>The ceiling</b>, and the only one of the three edges that produces a Trip Fate: the line
+/// between a Trip that completes and one whose Fate is <i>exceeded commute budget</i>, or
 /// <see cref="TravelTime.Impassable"/> for a city that has no such line.
 /// </param>
-public readonly record struct TripRuleset(TravelTime CrossingCost, TravelTime CommuteBudget)
+public readonly record struct TripRuleset(
+    TravelTime CrossingCost, TravelTime Fast, TravelTime Moderate, TravelTime CommuteBudget)
 {
     /// <summary>
     /// A Ruleset whose city does not travel. <b>Not <c>default</c></b> — see the type's remarks: a
     /// zeroed crossing cost is a legitimate authored value, so absence needs the sentinel.
     /// </summary>
-    public static TripRuleset None => new(TravelTime.Impassable, TravelTime.Impassable);
+    public static TripRuleset None => new(
+        TravelTime.Impassable, TravelTime.Impassable, TravelTime.Impassable, TravelTime.Impassable);
 
     /// <summary>Whether there is a Trip model at all.</summary>
     public bool Runs => !CrossingCost.IsImpassable;
@@ -725,6 +753,41 @@ public readonly record struct TripRuleset(TravelTime CrossingCost, TravelTime Co
     /// send somebody down a route that does not exist.
     /// </remarks>
     public bool WithinBudget(TravelTime cost) => !cost.IsImpassable && cost <= CommuteBudget;
+
+    /// <summary>
+    /// Which band <paramref name="cost"/> falls in, or <c>false</c> when it is over the ceiling or
+    /// has no route at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The rung is derived from the cost every time it is asked for and is never stored</b>
+    /// (<c>adr/0095</c>). It is a function of a Trip's cost and the Ruleset in force, and the Ruleset
+    /// is hot-reloadable, so a stored rung would be <c>adr/0064</c>'s frozen-at-construction defect
+    /// on a third axis: retuning a rung would grade the commutes made after the reload and leave
+    /// every standing one carrying the old file's opinion.
+    /// </para>
+    /// <para>
+    /// <b>Failing for <em>no route</em> and for <em>over the ceiling</em> in the same way is safe
+    /// here and would not be at the Trip's write site.</b> This answers <i>is there a rung</i>, and
+    /// there is no rung for either; <see cref="Movement.TripEngine"/> separates them because they are
+    /// different Fates with different diagnoses, and it tests for impassability first.
+    /// </para>
+    /// </remarks>
+    public bool TryRung(TravelTime cost, out CommuteRung rung)
+    {
+        rung = CommuteRung.Fast;
+
+        if (!WithinBudget(cost))
+        {
+            return false;
+        }
+
+        rung = cost <= Fast ? CommuteRung.Fast
+            : cost <= Moderate ? CommuteRung.Moderate
+            : CommuteRung.Unsavoury;
+
+        return true;
+    }
 }
 
 /// <summary>

@@ -1,3 +1,5 @@
+using Borough.Core.Movement;
+
 namespace Borough.Core.Instruments;
 
 /// <summary>
@@ -322,8 +324,28 @@ public enum JobCounter : byte
     /// <summary>Of those, the ones who took a job.</summary>
     Employed,
 
-    /// <summary>Candidate vacancies rejected because the walk exceeded the Commute Budget.</summary>
+    /// <summary>Candidate vacancies rejected because the walk exceeded the ceiling.</summary>
     Beyond,
+
+    /// <summary>Of those employed, the ones whose commute is <see cref="CommuteRung.Fast"/>.</summary>
+    Fast,
+
+    /// <summary>Of those employed, <see cref="CommuteRung.Moderate"/>.</summary>
+    Moderate,
+
+    /// <summary>
+    /// Of those employed, <see cref="CommuteRung.Unsavoury"/> — <c>01 §4</c>'s <em>housed</em>
+    /// Departure candidates.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Reads zero in every world the shipped Rulesets produce below about 40,000 Citizens</b>,
+    /// and that is a property of the cities rather than of the counter. The paved extent is derived
+    /// from population, so a 10,000-Citizen city is 1.9 km across against a 50-minute walking ceiling
+    /// that reaches 4.2 km — nobody can live far enough from work to be graded badly. It first
+    /// occupies at 40,000 (10 of 2,424) and reaches 738 of 9,473 at 160,000; the ladder is in
+    /// <c>adr/0095</c> and in <c>rulesets/minimal.toml</c>'s own header.
+    /// </remarks>
+    Unsavoury,
 }
 
 /// <summary>

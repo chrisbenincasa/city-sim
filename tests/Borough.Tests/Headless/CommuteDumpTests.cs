@@ -73,8 +73,11 @@ public sealed class CommuteDumpTests
     {
         string report = Dump("minimal.toml");
 
-        Assert.Contains("Commute Budget 20.0 min", report, StringComparison.Ordinal);
+        Assert.Contains(
+            "fast to 20.0 min, moderate to 40.0, unsavoury to 50.0", report, StringComparison.Ordinal);
+        Assert.Contains("Only the ceiling refuses", report, StringComparison.Ordinal);
         Assert.Contains("candidate(s) each", report, StringComparison.Ordinal);
+        Assert.Contains("best rung it draws", report, StringComparison.Ordinal);
         Assert.Contains("morning peak of 3x", report, StringComparison.Ordinal);
     }
 

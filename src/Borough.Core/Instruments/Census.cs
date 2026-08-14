@@ -82,7 +82,7 @@ public sealed class Census
     private const int TripMetrics = TripCounters * AggregatesPerRuleCounter;
 
     /// <summary>The members of <see cref="JobCounter"/>.</summary>
-    private const int JobCounters = 4;
+    private const int JobCounters = 7;
 
     /// <summary>The job assignment pass's share, on the same terms.</summary>
     private const int JobMetrics = JobCounters * AggregatesPerRuleCounter;
@@ -295,6 +295,9 @@ public sealed class Census
         Write(_values, at + _jobBase, (int)JobCounter.Seeking, jobs.Seeking);
         Write(_values, at + _jobBase, (int)JobCounter.Employed, jobs.Employed);
         Write(_values, at + _jobBase, (int)JobCounter.Beyond, jobs.Beyond);
+        Write(_values, at + _jobBase, (int)JobCounter.Fast, jobs.Fast);
+        Write(_values, at + _jobBase, (int)JobCounter.Moderate, jobs.Moderate);
+        Write(_values, at + _jobBase, (int)JobCounter.Unsavoury, jobs.Unsavoury);
 
         for (int bucket = 0; bucket < TripCostCounters; bucket++)
         {
@@ -431,7 +434,8 @@ public sealed class Census
         if (metric.Source is MetricSource.Jobs)
         {
             if (metric.JobCounter is not (JobCounter.Considered or JobCounter.Seeking
-                or JobCounter.Employed or JobCounter.Beyond))
+                or JobCounter.Employed or JobCounter.Beyond or JobCounter.Fast
+                or JobCounter.Moderate or JobCounter.Unsavoury))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.JobCounter, "not a job counter this census reads.");

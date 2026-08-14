@@ -124,8 +124,97 @@ shades of one wedge rather than a single edge. That section's claim — *"the bu
 visual object, so there is no conversion between them to be dishonest about"* — is unaffected and is why
 the rungs are drawn there rather than in a panel.
 
-**Nothing here is built.** The rungs are a design decision taken in a session; the implementation is a
-later milestone's, and until it lands `[trips]` states one number meaning the old thing.
+~~**Nothing here is built.**~~ ✅ **BUILT 2026-08-13.** `[trips]` states three keys, `TripRuleset` carries
+three edges and a `TryRung`, `EmploymentEngine` takes the best rung it draws, `JobCounter` has seven
+counters, and `--census` and `--commute` print all three. 1,294 tests green, all three golden baselines
+re-recorded. What building it found is below.
+
+## What building it found
+
+### The mechanism has two drivers, this ADR argued from one, and the one it argued from is the only one built
+
+⚠ **This is the finding, and the ADR did not notice it.** `01 §4.x` names **two** scarcities that read
+as long commutes — ***"Congestion is road capacity and is bought directly — more road, better road.
+Separation is distance, and no purchase is aimed at it"*** — and `01 §7`'s **Gridlock** overlay reading
+is *"the commute-time distribution's upper tail sliding toward the Commute Budget wedge"*, which is the
+**congestion** one. So the rungs' primary diagnostic use in the design is the driver this decision never
+mentions. Everything above argues from geography, cites `01 §4`'s *"the fix is not more money — it is
+geography"*, and builds its whole case on spatial deterioration.
+
+**Congestion cannot reach a commute today, by construction rather than by omission.** `03 §3.7` exempts
+pedestrians on purpose — `WalkRouting`'s own remarks say *"for a walk Leg `distance / speed` is not an
+approximation, it is the exact answer … pedestrian networks do not saturate, so there is no congestion
+term to be wrong about"* — and a vehicular Leg carries no congestion term either, because
+[`0075`](0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) gives a Leg **a cost and no path**, which
+is [`0041`](0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md)'s unpaid volume debt
+waiting on 5c. Under [`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) that is
+**unbuilt**, so it is stated rather than compensated for.
+
+**Two consequences.** ***The three values are percentiles of a free-flow, foot-only distribution*** — when
+a vehicular Leg with a volume-delay term arrives, the same numbers grade a differently-shaped
+distribution and their calibration does not transfer. And **a city grades worse here only when it
+spreads, never when it fills up**, which is half of what `01 §4`'s two-hour marker describes.
+
+### No world this project can build occupies the top rung, and the reason is the map rather than the numbers
+
+**Measured, on the shipped Ruleset over 1,024 Ticks.** The paved extent is derived from population —
+`SyntheticCity.PavedTiles` gives `blocks = ceil(sqrt(lots ÷ 10))`, so it scales with **√population** —
+and the ceiling reaches 4.17 km at 5 km/h.
+
+| Citizens | Paved extent | fast | moderate | unsavoury | beyond ceiling |
+|---|---|---|---|---|---|
+| 10,000 | 1.92 km | 612 | 3 | **0** | **0** |
+| 20,000 | 2.56 km | 1,164 | 54 | **0** | **0** |
+| 40,000 | 3.84 km | 1,951 | 463 | 10 | 90 |
+| 80,000 | 5.44 km | 2,950 | 1,728 | 131 | 1,576 |
+| 160,000 | 7.68 km | 4,405 | 4,330 | 738 | 6,290 |
+
+**A city smaller than one Commute Budget across cannot occupy any rung but the first**, and the golden
+fixture is **1.3 km** wide. The unsavoury rung first occupies at 40,000 Citizens; at 160,000 fast and
+moderate are level, which is a city genuinely deteriorating as it spreads.
+
+⚠ **The fixture was not inflated to fill a rung and the values were not lowered to fit the fixture**, and
+the second was proposed and refused with the user in the room. Scaling 20/40/50 down to 8/16/20 keeps the
+ratio and the golden baseline's refusal-branch coverage, and it is nonsense: ***a rung is a vocabulary,
+and calling a twenty-minute commute unsavoury bends the words to fit a village.*** `EmploymentRungTests`
+states both ends of the ladder instead, so a change to the fixture, the generator or the walk speed is
+visible the day it lands — 5b-bis task 4's precedent, which is how the fixture's move to 4,000 Citizens
+was caught three days ago.
+
+⚠ **The committed baseline did lose a branch, and it is recorded rather than smoothed.** The ceiling
+moved 20 → 50, so `jobs beyond ceiling` on the golden session goes **3 → 0** and
+`TripFate.ExceededCommuteBudget` is structurally unreached in it again. It is reachable in the suite
+(`EmploymentRungTests`, `TripCommandTests`) and not in the trace.
+
+### The fast rung is mechanically load-bearing, and the table above says it is not
+
+⚠ **That table gives `fast` *"nothing"* and `moderate` *"nothing mechanically"*, on the ground that only
+the ceiling refuses. The early exit makes it false.** *The seeker takes the best rung it drew* is
+implemented as *stop on the first `Fast` candidate, because nothing can beat it* — which is correct and
+is what keeps the common case at one walk search. But it means **where the fast edge sits decides how
+many candidates get looked at**, which decides which vacancy each seeker lands on. Measured at **2,307
+against 2,301** employed on an identical city with only the rungs moved: small, real, and hash-bearing.
+
+***An edge that refuses nothing is not thereby an edge that does nothing.*** The rungs are still a
+grading rather than a search policy — a percent is what the second-order effect is worth here — and
+`EmploymentRungTests` holds it to that bound, so a change that makes the rungs govern the *search*
+rather than the *reading* fails rather than passing quietly.
+
+### Three smaller things
+
+**The tightest authorable ceiling is now three minutes, where it was one.** Three strictly increasing
+rungs of at least a minute each put a floor under the ceiling, and a one-block walk is about a minute and
+a half — so `TripCommandTests`' over-budget fixture stopped failing. **It answers by lengthening the
+Trip rather than by tightening a number it can no longer tighten**, which keeps the assertion about the
+Budget instead of about arithmetic.
+
+**The search box grew 6.25× in area** and the loader still refuses `[jobs]` without a Budget. 5b-bis
+task 4's *Cell-uniform draw finds nobody* finding was measured against the 20-minute box and has not been
+re-read against this one.
+
+**The rung is derived from the cost and never stored.** A Ruleset is hot-reloadable, so a stored rung
+would be `adr/0064`'s frozen-at-construction defect on a third axis: retuning a rung would grade the
+commutes made after the reload and leave every standing one carrying the old file's opinion.
 
 ## What would trigger revisiting
 
@@ -143,3 +232,12 @@ has seven bands and refuses to move with the Budget.
 **The ceiling turning out to govern the map.** If `adr/0089`'s ratio is what sizes the world and the
 ceiling is what sets the ratio, then a playtest that moves the ceiling moves the map, and those two
 decisions should be made together rather than in the order they happened to be taken here.
+
+⚠ **A vehicular Leg acquiring a congestion term — and this is the largest of the four.** These three
+values are percentiles of a **free-flow, foot-only** cost distribution, because that is the only kind
+this simulation produces (`03 §3.7`, `adr/0075`). 5c's path source pays `adr/0041`'s volume debt, and the
+first Ruleset in which a commute lengthens *because the road is busy* grades a differently-shaped
+distribution against these same three numbers. **Reopen them then, on the distribution, rather than on
+playtest** — and do not carry the digits across without the sentence saying what they were read off
+(`plans/0012` Cause 5). The refuting reading is a rung population that shifts by more than it should
+under a change nobody made to the geography.

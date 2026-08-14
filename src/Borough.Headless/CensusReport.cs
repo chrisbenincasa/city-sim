@@ -108,7 +108,15 @@ internal static class CensusReport
     /// the whole population costs against keeping a list of the unemployed; <c>seeking − employed</c>
     /// is the job shortage; and <c>beyond</c> is the only line in this report that describes the
     /// <em>network</em> — vacancies that existed, were found, and could not be walked to inside the
-    /// Commute Budget. Printing three of the four would leave one of those unavailable.
+    /// ceiling. Printing three of the four would leave one of those unavailable.
+    /// </remarks>
+    /// <remarks>
+    /// <b>The three rungs are printed beside <c>employed</c>, which they sum to</b> (<c>adr/0095</c>).
+    /// They are the whole readable output of the grading: two of the three edges refuse nothing, so
+    /// if these lines are not printed the only trace a graded Budget leaves in a run is the one
+    /// number a binary Budget already left. <b>That is 5b-bis task 6's finding taken as an
+    /// instruction</b> — <c>TripCounter</c> was built, wired, tested and printed nowhere for a whole
+    /// milestone, so for a milestone its only reader was the suite.
     /// </remarks>
     private static readonly (JobCounter Counter, Aggregate Aggregate, string Name)[] JobCounters =
     [
@@ -116,7 +124,10 @@ internal static class CensusReport
         (JobCounter.Seeking, Aggregate.Sum, "seeking"),
         (JobCounter.Employed, Aggregate.Sum, "employed"),
         (JobCounter.Employed, Aggregate.Peak, "employed peak"),
-        (JobCounter.Beyond, Aggregate.Sum, "beyond budget"),
+        (JobCounter.Fast, Aggregate.Sum, "fast"),
+        (JobCounter.Moderate, Aggregate.Sum, "moderate"),
+        (JobCounter.Unsavoury, Aggregate.Sum, "unsavoury"),
+        (JobCounter.Beyond, Aggregate.Sum, "beyond ceiling"),
     ];
 
     /// <summary>

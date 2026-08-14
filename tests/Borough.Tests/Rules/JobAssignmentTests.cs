@@ -271,7 +271,7 @@ public sealed class JobAssignmentTests
     [Fact]
     public void A_vacancy_the_walk_cannot_reach_is_counted_and_not_taken()
     {
-        Assert.True(Run(WithBudget(2)).Employment.Drain().Beyond.Sum > 0);
+        Assert.True(Run(WithCeiling(3)).Employment.Drain().Beyond.Sum > 0);
     }
 
     /// <summary>
@@ -305,14 +305,14 @@ public sealed class JobAssignmentTests
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_budget_is_inert_on_a_small_city_and_binds_on_a_large_one()
+    public void The_ceiling_is_inert_on_a_small_city_and_binds_on_a_large_one()
     {
         Assert.Equal(0, Beyond(GoldenFixtures.Population));
 
         Assert.True(
-            Beyond(GoldenFixtures.Population * 2) > 100,
-            "the Commute Budget refuses nothing even at twice the golden fixture, so it is not a "
-            + "filter on any world this suite runs. Either the geometry shrank or the Budget rose.");
+            Beyond(GoldenFixtures.Population * 10) > 0,
+            "the ceiling refuses nothing even at ten times the golden fixture, so it is not a filter "
+            + "on any world this suite runs. Either the geometry shrank or the ceiling rose.");
     }
 
     /// <summary>Refusals over <see cref="Ticks"/> at a population, on the shipped Ruleset.</summary>
@@ -347,24 +347,42 @@ public sealed class JobAssignmentTests
     public void A_tighter_budget_employs_fewer_people()
     {
         int wide = Employed(Run(GoldenFixtures.Rules()).World);
-        int narrow = Employed(Run(WithBudget(1)).World);
+        int narrow = Employed(Run(WithCeiling(3)).World);
 
         Assert.True(
             narrow < wide,
-            $"a one-minute Budget employed {narrow} against {wide} at the shipped Budget.");
+            $"a three-minute ceiling employed {narrow} against {wide} at the shipped one.");
     }
 
-    /// <summary>The shipped Ruleset with its Commute Budget replaced.</summary>
-    private static Ruleset WithBudget(int minutes)
+    /// <summary>The shipped Ruleset with its Commute Budget's ceiling replaced.</summary>
+    /// <remarks>
+    /// <b>All three rungs are substituted, not just the ceiling</b> (<c>adr/0095</c>). The shipped
+    /// file states 20/40/50, so replacing only the last key with anything below 40 produces a set the
+    /// loader refuses — the substitution would fail for exactly the tight ceilings these tests exist
+    /// to try. The lower rungs go to 1 and 2 because these assertions are about the <em>ceiling</em>,
+    /// which is the only edge that refuses anything, and a rung that grades nothing cannot affect
+    /// them. <b>Three is therefore the tightest ceiling any test can ask for</b>, since the rungs must
+    /// strictly increase from at least a minute.
+    /// </remarks>
+    private static Ruleset WithCeiling(int minutes)
     {
+        Assert.True(minutes >= 3, "the tightest authorable ceiling is 3 minutes (adr/0095).");
+
         string toml = File.ReadAllText(GoldenFixtures.RulesetPath);
-        const string Key = "commute_budget_minutes = 20";
+        (string Key, string Replacement)[] keys =
+        [
+            ("commute_fast_minutes = 20", "commute_fast_minutes = 1"),
+            ("commute_moderate_minutes = 40", "commute_moderate_minutes = 2"),
+            ("commute_budget_minutes = 50", $"commute_budget_minutes = {minutes}"),
+        ];
 
-        Assert.Contains(Key, toml, StringComparison.Ordinal);
+        foreach ((string key, string replacement) in keys)
+        {
+            Assert.Contains(key, toml, StringComparison.Ordinal);
+            toml = toml.Replace(key, replacement, StringComparison.Ordinal);
+        }
 
-        RulesetLoadResult result = RulesetLoader.Parse(
-            toml.Replace(Key, $"commute_budget_minutes = {minutes}", StringComparison.Ordinal),
-            "test.toml");
+        RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
 
         Assert.True(result.Ok, result.Describe());
 

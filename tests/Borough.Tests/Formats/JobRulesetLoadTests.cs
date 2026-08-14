@@ -33,10 +33,16 @@ public sealed class JobRulesetLoadTests
         """;
 
     /// <summary>A <c>[trips]</c> table with a Commute Budget, which <c>[jobs]</c> requires.</summary>
+    /// <remarks>
+    /// All three rungs, because <c>adr/0095</c> makes them one decision and the loader refuses a
+    /// partial set. <c>[jobs]</c> derives its search box from the <b>ceiling</b>.
+    /// </remarks>
     private const string Trips = """
         [trips]
         crossing_seconds = 30
-        commute_budget_minutes = 20
+        commute_fast_minutes = 20
+        commute_moderate_minutes = 40
+        commute_budget_minutes = 50
         """;
 
     private static Ruleset Accepted(string toml)

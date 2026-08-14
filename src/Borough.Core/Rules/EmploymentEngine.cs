@@ -73,10 +73,23 @@ public sealed class EmploymentEngine
     private int _tickEmployed;
     private int _tickBeyond;
 
+    /// <summary>
+    /// Assignments made this Tick, by <see cref="CommuteRung"/>. Indexed by the enum's value, which
+    /// is why <see cref="CommuteRung.Fast"/> being zero is stated as load-bearing where it is
+    /// declared.
+    /// </summary>
+    private readonly int[] _tickRungs = new int[RungCount];
+
     private RuleFlow _consideredFlow;
     private RuleFlow _seekingFlow;
     private RuleFlow _employedFlow;
     private RuleFlow _beyondFlow;
+    private RuleFlow _fastFlow;
+    private RuleFlow _moderateFlow;
+    private RuleFlow _unsavouryFlow;
+
+    /// <summary>The members of <see cref="CommuteRung"/>.</summary>
+    private const int RungCount = 3;
 
     /// <param name="world">The tables this writes, and the Ruleset it writes under. Not copied.</param>
     /// <param name="key">The world seed, as the draws' first coordinate.</param>
@@ -92,12 +105,16 @@ public sealed class EmploymentEngine
     public EmploymentActivity Drain()
     {
         var activity = new EmploymentActivity(
-            _consideredFlow, _seekingFlow, _employedFlow, _beyondFlow);
+            _consideredFlow, _seekingFlow, _employedFlow, _beyondFlow,
+            _fastFlow, _moderateFlow, _unsavouryFlow);
 
         _consideredFlow = default;
         _seekingFlow = default;
         _employedFlow = default;
         _beyondFlow = default;
+        _fastFlow = default;
+        _moderateFlow = default;
+        _unsavouryFlow = default;
 
         return activity;
     }
@@ -206,10 +223,26 @@ public sealed class EmploymentEngine
     /// and does not exist.
     /// </para>
     /// <para>
-    /// <b>First acceptable rather than nearest or best</b> (<c>adr/0017</c>). Nearest would need the
-    /// candidates sorted by a cost that has to be computed for all of them, which is optimising with
-    /// extra steps and is the thing <c>CONTEXT.md</c> refuses when it says there is no proximity
-    /// scope. The Budget is the filter; the order is the draw.
+    /// <b>The best rung it drew, not the first acceptable one</b> (<c>adr/0095</c>, <c>adr/0017</c>).
+    /// This is satisficing with an <em>ordered preference</em> rather than optimising: the draw is
+    /// still <c>candidates</c> Buildings out of a box, nothing is sorted, and nobody looks at a
+    /// Building they did not draw. What changed is that <see cref="CommuteRung.Fast"/> beats
+    /// <see cref="CommuteRung.Moderate"/> among the ones they did — because a person offered a
+    /// twelve-minute walk and a forty-minute walk in the same morning takes the twelve, and a binary
+    /// filter cannot express that.
+    /// </para>
+    /// <para>
+    /// <b>A fast candidate ends the search</b>, so the common case still costs one walk. Nothing can
+    /// beat the top rung, so continuing would be computing costs whose answer cannot change the
+    /// outcome — which is the difference between an ordered preference and a sort.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The rung is Separation only, and the grading it produces is therefore half of what
+    /// <c>01 §4</c> describes.</b> That section names two scarcities that read as long commutes —
+    /// Congestion and Separation — and a walk Leg cannot carry the first, by construction rather
+    /// than by omission (<c>03 §3.7</c>). So a city grades worse here when it <em>spreads</em> and
+    /// never when it fills up, and the rungs' values are percentiles of a free-flow distribution.
+    /// <c>adr/0070</c>: that is stated rather than compensated for.
     /// </para>
     /// </remarks>
     private bool TryEmploy(
@@ -231,6 +264,10 @@ public sealed class EmploymentEngine
 
         int candidates = _world.Rules.Jobs.Candidates;
         ulong id = _world.Citizens.Rows.IdAt(slot);
+
+        CommuteRung best = CommuteRung.Fast;
+        int bestBuilding = Rows.NoSlot;
+        bool found = false;
 
         for (int look = 0; look < candidates; look++)
         {
@@ -255,18 +292,37 @@ public sealed class EmploymentEngine
             TravelTime cost = WalkRouting.Cost(
                 _world.Roads, door, _world.PedestrianAccessPoint(building), trips.CrossingCost, _walk);
 
-            if (!trips.WithinBudget(cost))
+            if (!trips.TryRung(cost, out CommuteRung rung))
             {
                 _tickBeyond++;
                 continue;
             }
 
-            _world.Employ(_world.Citizens.Rows.At(slot), _world.Buildings.Rows.At(building));
+            if (!found || rung < best)
+            {
+                found = true;
+                best = rung;
+                bestBuilding = building;
+            }
 
-            return true;
+            // Nothing beats the top rung, so the remaining draws cannot change the outcome and their
+            // walks would be searches whose answer is discarded. Ties keep the earlier draw, which is
+            // what makes the result a function of the draw order rather than of the scan order.
+            if (rung == CommuteRung.Fast)
+            {
+                break;
+            }
         }
 
-        return false;
+        if (!found)
+        {
+            return false;
+        }
+
+        _world.Employ(_world.Citizens.Rows.At(slot), _world.Buildings.Rows.At(bestBuilding));
+        _tickRungs[(int)best]++;
+
+        return true;
     }
 
     /// <summary>
@@ -374,18 +430,33 @@ public sealed class EmploymentEngine
         _seekingFlow = _seekingFlow.Fold(_tickSeeking);
         _employedFlow = _employedFlow.Fold(_tickEmployed);
         _beyondFlow = _beyondFlow.Fold(_tickBeyond);
+        _fastFlow = _fastFlow.Fold(_tickRungs[(int)CommuteRung.Fast]);
+        _moderateFlow = _moderateFlow.Fold(_tickRungs[(int)CommuteRung.Moderate]);
+        _unsavouryFlow = _unsavouryFlow.Fold(_tickRungs[(int)CommuteRung.Unsavoury]);
 
         _tickConsidered = 0;
         _tickSeeking = 0;
         _tickEmployed = 0;
         _tickBeyond = 0;
+        Array.Clear(_tickRungs);
     }
 }
 
 /// <summary>What the assignment pass did over a Census interval.</summary>
+/// <remarks>
+/// <b><see cref="Employed"/> is the sum of the three rungs, and the redundancy is deliberate.</b> A
+/// Census counter is an instrument rather than state, so a derivable reading is not the duplication
+/// <c>adr/0064</c> warns about — and a counter that <em>must</em> equal the sum of three others is a
+/// free consistency check on the instrument, which is what
+/// <c>EmploymentRungTests</c> holds it to. Deleting it would save nothing and lose that.
+/// </remarks>
 /// <param name="Considered">Live Citizens the pass looked at.</param>
 /// <param name="Seeking">Of those, the ones with no Workplace and a home to search from.</param>
 /// <param name="Employed">Of those, the ones who took a job.</param>
-/// <param name="Beyond">Candidate vacancies rejected because the walk exceeded the Budget.</param>
+/// <param name="Beyond">Candidate vacancies rejected because the walk exceeded the ceiling.</param>
+/// <param name="Fast">Of those employed, the ones whose commute is <see cref="CommuteRung.Fast"/>.</param>
+/// <param name="Moderate">Of those employed, <see cref="CommuteRung.Moderate"/>.</param>
+/// <param name="Unsavoury">Of those employed, <see cref="CommuteRung.Unsavoury"/>.</param>
 public readonly record struct EmploymentActivity(
-    RuleFlow Considered, RuleFlow Seeking, RuleFlow Employed, RuleFlow Beyond);
+    RuleFlow Considered, RuleFlow Seeking, RuleFlow Employed, RuleFlow Beyond,
+    RuleFlow Fast, RuleFlow Moderate, RuleFlow Unsavoury);
