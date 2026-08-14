@@ -40,8 +40,22 @@ opposed to §A–§E, which are questions somebody has already framed.
 
 ## A — Blocking something now
 
-**Two open, and both are routing's** — the Epoch's granularity for the Parking Shed, and how coarse a
-routing destination may be. ~~and the third is **how long a Tick is**, which is not a routing question
+⚠ ~~**Two open, and both are routing's** — the Epoch's granularity for the Parking Shed, and how coarse a
+routing destination may be.~~ **NONE OPEN as of 2026-08-14, and this header named the last two by name
+while both sat struck in its own table.** The Epoch's granularity closed **2026-08-12** into
+[`adr/0083`](../docs/adr/0083-a-sheds-use-is-the-arrival-query-and-a-stale-shed-is-wrong-by-a-bounded-walk.md);
+*how coarse a routing destination may be* closed **void as posed** by
+[`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md), which deleted the District axis it
+was asked on and **retyped the survivor as measurable** — the routing partition's size, now §D2, where
+`adr/0043` forbids closing it by argument. **All nine rows below are struck.**
+
+> **A section header is a count, and a count is a fact stored in prose.** This is the same defect §F2's
+> header had on the same day (*"83 written, numbered to `0084`"* against 96 files), and it is
+> [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+> amendment applied to a ledger rather than to a guard: **the rows were maintained and the sentence over
+> them was not.** Two sightings in one file in one day is what makes it structural — ***the summary line
+> is the part nobody updates, because updating the row feels like finishing the job.*** §A is the one
+> place it costs most, because *what is blocking something now* is what a cold start reads first. ~~and the third is **how long a Tick is**, which is not a routing question
 and is underneath both of them.~~ **How long a Tick is closed 2026-08-12** into
 [`adr/0082`](../docs/adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md):
 a Tick is **10.546875 s of in-world time**, `TICKS_PER_DAY = 8192` stands, and car-following takes a
@@ -728,7 +742,7 @@ named suspects, and the first place to look.
 | `0009` parking is modelled supply | 🟢 | ~~🔴 ⚠ Research. Session **H**. Its `adr/0006`-class occupancy leak is named and its invariant unspecified~~ **GRILLED 2026-08-12 by session H**, in a sitting run beside 5b-bis → [`0083`](../docs/adr/0083-a-sheds-use-is-the-arrival-query-and-a-stale-shed-is-wrong-by-a-bounded-walk.md), [`0084`](../docs/adr/0084-parking-occupancy-is-two-checks-and-an-invariant-over-absent-state-cannot-be-written.md), and **two amendments in place**. The decision — *modelled supply, never search* — **survives untouched**; what moved is one revisit trigger (discharged in advance by R5.6) and one consequence (the invariant is **two**, and neither is per-Tick). The occupancy leak is now **specified** rather than named, the shed's Epoch rung is settled, and the radius has a **named ratifier** at last. ⚠ **`adr/0052` was not being applied to this ADR at all**: the radius is hash-bearing, has been since 2018-era prose, and went without a ratifier from the day it was written until this sitting |
 | `0010` one clock, demographics by sorting | 🟢 | Sessions one and two, three superseding notes since |
 | `0011` life stages and self-generating population | 🟢 ⚫ | Sessions one and two — **and its arithmetic was never checked.** Session C found it schedules Life Stages in **Days** while the Wheel's period is exactly one Day, so **every transition it specifies was unrepresentable on the wheel it was specified to run on** |
-| `0012` routing intent lives in the agent | 🔴 | Research, and **amended twice without ever being argued** — session M's invalidation contract, and R6's key and eviction policy. Session **I** |
+| `0012` routing intent lives in the agent | 🔴 | Research, and **amended twice without ever being argued** — session M's invalidation contract, and R6's key and eviction policy. ~~Session **I**~~ ⚠ **Session I's *owed amendment* is discharged and was discharged before anybody looked** — it is in the file, `adr/0012` lines 47–63, and it had been holding **milestone 5c** for two days as that milestone's named gate; struck on the board 2026-08-13 and **not here until 2026-08-14**. ⚠ **But this row's 🔴 is still correct, and for the reason the row already gives**: the ADR has been *amended twice and argued never*, so what was owed was an amendment and what is missing is a **grilling** — two different debts wearing one session letter. **Nothing now schedules that grilling**, and 5c is building against this ADR as it stands. ***A gate discharged is not a decision examined*** |
 | `0013` goods pooled within a District | 🟢 | Sessions one and two. **Untested**: `pool` is a named hole that throws |
 | `0014` grid streets, freeform arterials | 🟢 ⚫ | **Measured false in part** — *"the Chunk grid is already the pathfinding cluster"*, wrong by **256× in area** (S2 R3). The decision survives; `adr/0040` replaces the sentence |
 | `0015` all tuning data is hot-reloadable | 🟢 | **Session A** → `adr/0048`. Slice 8 is implementing it, and found its **world-creation enumeration has four members of which only one is Ruleset data** |

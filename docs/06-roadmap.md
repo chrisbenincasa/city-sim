@@ -67,6 +67,12 @@ No graphics. Everything is `Borough.Core`, `Borough.Tests`, `Borough.Headless`, 
 
 **This ordering is provisional and awaits re-derivation.** It was written before conserved Money, Hinterlands, Office, the labour system, transit and every Service existed, and the board formally blocks *planning Phase 2 at all* until [`S0`](../plans/0003-build-plan.md) has run and this section is re-derived. The milestone names and risks below are recorded so the risks are not lost; the sequence between them is not load-bearing.
 
+> **⚠ AMENDED 2026-08-14 — the S0 half of that block is discharged and only the re-derivation is left.** **S0a and S0b have both run**: the tables hold 1M in 86 MiB with an order of magnitude spare, and a Tick with work in it is **8.72 ms at 1M**. So the condition reads *until this section is re-derived*, full stop — **one gate, not two**, and the remaining one is session **K2**'s and needs no spike.
+>
+> ⚠ **And Phase 2 has plainly been under way for some time regardless**: 5a, 5a-bis, 5b and 5b-bis have shipped and 5c is in flight. *This sentence has been blocking something that was already happening*, which is worth more than the correction — **a block nobody enforces is not a block, it is a document disagreeing with the build**, and under [`adr/0093`](adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) the build wins. What the paragraph should be read as saying is narrower and is still true: **the *ordering* below is not load-bearing and the milestones after 5c have not been re-derived.**
+>
+> **What K2 actually still needs is one column, not a spike.** S0b could not measure the **routing load** in situ, and routing is [`plans/0013`](../plans/0013-tick-budget.md)'s dominant row — 9.4–10.5 ms of a ≥17.8 ms bill — so the number that would order the back half of Phase 2 is the one clause of four that did not land. Milestone **5c** is what produces it.
+
 | # | Milestone | Risk retired |
 |---|---|---|
 | **5a** | Road Graph and Streets | That geometry leaks into the simulation and the routing graph stops being uniform |

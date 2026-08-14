@@ -102,7 +102,7 @@ become three.
 | **2** | **The arithmetic substrate** — **all seven tasks done.** Typed quantities, fixed point, tabulated `exp`/`log`, `draw()`, purpose tags. Produced `adr/0038` and an amendment to `adr/0003`'s normative hash | — | none | 3 | [`0005`](0005-arithmetic-substrate.md) |
 | **3** | **The analysers** — **all six tasks done.** `Borough.Analysers`, twelve diagnostics covering CI lints 2, 3 and 7 and the `purpose_tag` row. Produced the rule-7 exception axis in `adr/0036` and fixed the lint count across three documents | — | none | 2 | [`0006`](0006-analysers-and-lints.md) |
 | **4** | **Typed tables and the field declaration** — **all eleven tasks done.** Handles, columns, the single declaration, the State Hash, intrusive lists, `ResourceMap`, the first four tables. Produced `BOR0901`, answered ledger #29b for Phase 1, and gave the project its first State Hash | **2** | cleared | 3 | [`0007`](0007-typed-tables.md) |
-| **5** | **The Tick, the Input Log and replay** | **1** | cleared | 3 | [`0008`](0008-tick-and-replay.md) |
+| **5** | **The Tick, the Input Log and replay** — **all eight tasks done.** `step(inputs)` and the eight phases, the command model and the Input Log, replay to identical hashes, the golden-hash baseline, the headless runner with `Borough.Formats`, the three invariant tiers, the Census with `series(metric, window)`, and the crash artifact that replays back into its own crash. ⚠ **This row carried no status at all until 2026-08-14** — the only one in the ledger that did not, while every slice around it said *all N tasks done* — so the slice that built the Tick read as the least finished thing in the table. **Task 7 shipped its instrument and withheld its trend assertion** deliberately, nothing having churned yet; slice 10 task 10a discharged the flow half | **1** | cleared | 3 | [`0008`](0008-tick-and-replay.md) |
 | **6** | **Map Layers** — **all ten tasks done.** Cell grid and the Cell/Chunk type split, the sparse double-buffered `LayerCellTable` — the project's first `Buffering.TwoCopies` — the separable integer convolution, the staggered schedule as a table, incremental re-diffusion proved bit-identical, the three real Layers, the named holes that throw, `layer_cells(aabb, layer)` and the end-of-run magnitude check. Produced `adr/0044`, which **settles owed decision 2 by measurement and finds it false** — and then got its own second half wrong by argument and withdrew it rather than amending it away | **3c** (Layers half) | cleared | 3 | [`0009`](0009-map-layers.md) |
 | — | *the Phase 1 gate closes here* | | | | |
 | **7** | **Rule engine — Bins and Bin Rules** — **done.** Bins with no public level column, the two wait lists, the Ruleset loader and its five refusals, quoted decimals, atomicity over net deltas, the apply band, the Readout set, `on_fail` chains, `02 §4`'s counters, and **task 10a's wiring: the first Ruleset ever to reach a `World`.** Produced `adr/0049` and `adr/0050`, took the **Resource family** out of order to stop a money leak six slices old, and measured the first price the Tick has ever had on it — **82.84 ns an evaluation**. ~~Task 10 ships the first Ruleset with content in it~~ — **split while being planned**: it asked for a production chain over two or three Goods, which is `pool`, which this plan's own decision owed 3 had already made a named hole that throws. **10a shipped and closed the slice**, with a `rulesets/minimal.toml` the golden session now runs under and an arming stagger that turned out to have **no number to choose**. **10b is the content, re-filed to Phase 2** | **3a** | ✅ **cleared** by session A → `adr/0048` | 3 | [`0011`](0011-rule-engine-bins-and-rules.md) |
@@ -147,7 +147,7 @@ become three.
 | **S1** | 20k Buildings via chunked `MultiMeshInstance3D` | none | Track B. Godot only |
 | **S3** | One data panel with a live multi-series graph | none | Track B. Godot only. **The spike most likely to be skipped and most likely to change the decision** |
 | **S0a** | The world at target size — 1M Citizens in `Borough.Headless` | cleared | **DONE.** The tables hold 1M in 86 MiB with an order of magnitude spare, and 100,000 Ticks at the target run in 11.75 s. It found that **run mode had never had a city in it** — capacity, zero rows — so every Tick figure before it was taken over an empty world. Numbers and six findings in [`spike-results`](../docs/spike-results.md) → *S0a* |
-| **S0b** | The Tick with work in it — Event Wheel, Bin Rules with wait lists, a Sweep Rule pass, a routing load | 🔴 slices **7**, **9**, **10** | **Not run, and not runnable.** [`0002`](0002-open-questions.md) specifies S0 as four clauses and only the first is reachable today. **This is the half that carries `06`'s stated risk** — the sizing question is closed and the Tick-budget question is not |
+| **S0b** | The Tick with work in it — Event Wheel, Bin Rules with wait lists, a Sweep Rule pass, a routing load | ~~🔴 slices **7**, **9**, **10**~~ ✅ **cleared** | ✅ **DONE, in three of its four clauses**, and this row said *"not run, and not runnable"* until 2026-08-14. **A Tick with work in it is 8.72 ms at 1M — 55.9% of the budget at 4×**, and it is the only Tick figure this project has ever taken from a real running city ([`spike-results`](../docs/spike-results.md) → *S0b*). The **routing load could not be measured in situ** and is [`0013`](0013-tick-budget.md)'s standing gap; pollution decay could not be reached either, because `rulesets/minimal.toml` emits none, and is re-owned by **task 10b**. ⚠ **Both halves of the gate were false when this was read**: slices 7, 9 and 10 are all marked done *in the table above this one*, and `0002` §E and `spike-results` have recorded the spike as done since before that. **A gate is discharged by the work and struck by somebody, and only the first happens on its own** |
 
 ### The hash-moving queue
 
@@ -669,16 +669,34 @@ Phase 2's wall is `03 §5`, the traffic model — still the most detailed unargu
 project, now carrying transit vehicles under a Microscopic Cap whose value is unset — plus six
 🔴 ADRs and S2. Planning it now would be writing task lists against decisions that a grilling
 session will move. The instruction the corpus gives itself is *do not open Phase 2 content until S0
-has run*, and S0 is slice 11.
+has run*, and ~~S0 is slice 11~~ **S0 is a spike and there is no slice 11** — the ledger above ends at
+slice 10, and S0a/S0b are rows in the *spike* table. Corrected 2026-08-14; the instruction is unchanged
+and **S0a and S0b have both since run**.
 
 **S0 has since split, and the instruction needs reading against the split.** **S0a is done** and it
 closes the *sizing* half — 1M rows fit, with an order of magnitude spare, and nothing trends over
-100,000 Ticks. **S0b is not runnable**, because the Event Wheel, Bin Rules and a Sweep Rule pass are
+100,000 Ticks. ~~**S0b is not runnable**, because the Event Wheel, Bin Rules and a Sweep Rule pass are
 slices 9, 7 and 10. So the instruction cannot be read as *Phase 2 planning is now open*: what was
 validated is that the tables hold the target, and what `06` actually names as the risk — that every
 system **sized** against 1M rests on an unvalidated assumption — is closed for row counts and open for
-the Tick. **The honest position is that K2 is unblocked on sizing and still blocked on the Tick
+the Tick.~~ **The honest position is that K2 is unblocked on sizing and still blocked on the Tick
 budget**, and the only spike with a number in that column is S2.
+
+> **⚠ STRUCK 2026-08-14 — every premise in the crossed-out sentences has been false for some time, and
+> the conclusion beneath them survives for a different reason.** Slices 7, 9 and 10 are done, so S0b was
+> runnable; **it ran**, in three of its four clauses, and **priced the Tick at 8.72 ms at 1M — 55.9% of
+> the budget at 4×**. So *"still blocked on the Tick budget"* is wrong as written: the Tick budget has a
+> measured number and it is the only one ever taken from a real city.
+>
+> **What survives is narrower and is about the fourth clause.** The **routing load** could not be
+> measured in situ, and routing is [`0013`](0013-tick-budget.md)'s dominant row — 9.4–10.5 ms of a
+> ≥17.8 ms bill — so the column K2 actually needs is still guessed. ***A gate whose stated reason has
+> gone false can still be a gate, and re-deriving it is not the same as striking it*** — which is why
+> this is struck in place with the replacement written rather than deleted.
+>
+> **This is the shape [`0000`](0000-board.md) has assigned itself a sweep for and never run**: *a gate
+> whose stated reason covers only part of what it blocks, leaving a runnable remainder parked behind a
+> session it does not need.* Third data point, after `adr/0003`'s owed validation and `06`'s K1.
 
 **The Godot shell.** [`dev-environment.md`](../docs/dev-environment.md) Track B stands up the
 project and proves the boundary; S1 and S3 measure the ceilings. Nothing else in `Borough.Godot` is
