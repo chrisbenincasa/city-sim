@@ -7,7 +7,7 @@ using Borough.Core.Tables;
 namespace Borough.Core.Movement;
 
 /// <summary>
-/// The first Trip generator in the project: everybody with a Workplace walks to it once a Day.
+/// The first Trip generator in the project: everybody with a Workplace travels to it once a Day.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -129,12 +129,9 @@ public sealed class CommuteEngine
                 continue;
             }
 
-            _trips.Start(
-                citizen,
-                _world.PedestrianAccessPoint(home),
-                _world.PedestrianAccessPoint(workplace),
-                TripPurpose.Commute,
-                tick);
+            TravelMode mode = _world.ModeOf(citizen);
+
+            _trips.Start(citizen, home, workplace, mode, TripPurpose.Commute, tick);
         }
     }
 

@@ -1,5 +1,6 @@
 namespace Borough.Core.Rules;
 
+using Borough.Core.Determinism;
 using Borough.Core.Arithmetic;
 using Borough.Core.Movement;
 using Borough.Core.Quantities;
@@ -826,6 +827,80 @@ public readonly record struct TripRuleset(
 /// How much busier the morning peak is than a Day spread flat. <b>The commute's departure schedule,
 /// stated as the quantity S2 measured rather than as the window it implies.</b>
 /// </param>
+/// <summary>
+/// The <c>[households]</c> table — <b>what a Household is beyond where it lives</b>. Today that is
+/// one thing: whether it keeps a car.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>This is <c>01 §8</c> ledger #3's <em>stated</em> simple assumption, not a stand-in for it.</b>
+/// That entry — <i>is car ownership a choice?</i> — has been live and half-answered since session
+/// five, which settled the half that matters: <b>ownership is a persistent Household state</b>, with
+/// a purchase price and a per-Day running cost. What is still open is only whether it is
+/// <em>endogenous</em>, bought when commutes get bad and sold under pressure, and <c>01 §8</c> says
+/// of that in its own words: <i>every Household owning a car is the simple assumption… only becomes
+/// interesting once transit exists</i>. Transit has no milestone. So an exogenous rate is the design
+/// being followed rather than <c>adr/0070</c>'s <i>given X does not exist, should Y compensate</i>.
+/// </para>
+/// <para>
+/// ⚠ <b>Mode choice, as against car ownership, is <em>undesigned</em> and this table is not it.</b>
+/// A Household here owns a car or does not, and a Citizen of one that does drives to work. Nobody
+/// weighs a walk against a drive on the day, and nothing in the corpus specifies how they would —
+/// mode choice appears in no milestone in <c>06</c> <em>and</em> in none of its
+/// <i>Mechanisms with no milestone</i> rows, because that inventory's own opening line is
+/// <i>every row below is settled by an ADR</i>. ⚠ <b>An inventory of unplaced mechanisms cannot list
+/// a mechanism nobody designed</b>, which is why this reached a task before anybody noticed.
+/// </para>
+/// <para>
+/// <b>Ownership is <em>derived from the rate</em> every time it is asked for and is never a column</b>
+/// — <c>adr/0068</c>'s rule and <see cref="TripRuleset.TryRung"/>'s, arriving on a fourth axis. A
+/// saved bit would be <c>adr/0064</c>'s frozen-at-construction defect: retuning the rate would move
+/// the Households created after the reload and leave every standing one carrying the old file's
+/// opinion, which makes a key in a hot-reloadable file silently world-creation-fixed. See
+/// <c>PurposeTag.CarOwnership</c> for why the draw gives a <em>nested</em> set and therefore why the
+/// reload does not churn the city.
+/// </para>
+/// <para>
+/// ⚠ <b>One car per Household, and every working member drives it.</b> A Household of three workers
+/// with one car puts three cars on the road here. That is wrong about a city and it is what
+/// <c>01 §8</c>'s simple assumption says; a per-Citizen licence or a shared-vehicle constraint is a
+/// second mechanism, and inventing one to patch this would be choosing a number for a consumer
+/// nobody has designed.
+/// </para>
+/// </remarks>
+/// <param name="CarOwnershipPercent">
+/// The share of Households keeping a car, 0–100. <b>Hash-bearing</b>: it decides who drives, which
+/// decides what a commute costs, which decides who takes which job.
+/// </param>
+public readonly record struct HouseholdRuleset(int CarOwnershipPercent)
+{
+    /// <summary>The whole range a rate may be authored in.</summary>
+    public const int MaxPercent = 100;
+
+    /// <summary>
+    /// A Ruleset whose city keeps no cars.
+    /// </summary>
+    /// <remarks>
+    /// <b>Nobody drives is the meaning of omission, and it is not a placeholder.</b> Zero sits inside
+    /// the range of legitimate answers, which session F's rule says a placeholder must not — so it is
+    /// reached by the <em>absence of the table</em> rather than by a defaulted key, exactly as
+    /// <see cref="JobRuleset.None"/> is. A file that states <c>[households]</c> must state the rate.
+    /// </remarks>
+    public static HouseholdRuleset None => default;
+
+    /// <summary>Whether any Household in this city keeps a car.</summary>
+    public bool Runs => CarOwnershipPercent > 0;
+
+    /// <summary>
+    /// Whether the Household whose never-reused id is <paramref name="entityId"/> keeps a car.
+    /// </summary>
+    /// <param name="key">The world seed.</param>
+    /// <param name="entityId">The Household's monotonic id — never its slot, which is recycled.</param>
+    public bool OwnsCar(WorldKey key, ulong entityId) =>
+        Randomness.Draw(key, entityId, Ticks.Zero, PurposeTag.CarOwnership) % MaxPercent
+            < (ulong)(uint)CarOwnershipPercent;
+}
+
 public readonly record struct JobRuleset(
     uint Interval, int RevisitTicks, int Candidates, int PeakFactor)
 {
@@ -1047,6 +1122,16 @@ public sealed class Ruleset
     /// is derived from the Budget, so without one it has no bound at all.
     /// </remarks>
     public JobRuleset Jobs { get; init; } = JobRuleset.None;
+
+    /// <summary>
+    /// <b>What a Household is, beyond where it lives</b> — the <c>[households]</c> table (5c task 5).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="HouseholdRuleset.None"/> when the file states no <c>[households]</c>, and that is a
+    /// city where nobody keeps a car rather than one where everybody does — <see cref="Jobs"/>'
+    /// polarity, for <see cref="Jobs"/>' reason.
+    /// </remarks>
+    public HouseholdRuleset Households { get; init; } = HouseholdRuleset.None;
 
     /// <summary>
     /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.

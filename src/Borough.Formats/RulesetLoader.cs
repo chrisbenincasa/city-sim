@@ -133,6 +133,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _lotsTable;
         private TableSyntaxBase? _tripsTable;
         private TableSyntaxBase? _jobsTable;
+        private TableSyntaxBase? _householdsTable;
 
         public RulesetLoadResult Read()
         {
@@ -171,6 +172,7 @@ public static class RulesetLoader
             LotRuleset lots = ReadLots(roads);
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
+            HouseholdRuleset households = ReadHouseholds();
 
             if (_refusals.Count == 0)
             {
@@ -202,6 +204,7 @@ public static class RulesetLoader
                     Lots = lots,
                     Trips = trips,
                     Jobs = jobs,
+                    Households = households,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 });
@@ -339,11 +342,24 @@ public static class RulesetLoader
                         _jobsTable = table;
                         break;
 
+                    case "households":
+                        // Singular and optional, on [jobs]' reasoning exactly.
+                        if (_householdsTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [households] is declared. There is one population, so two "
+                                + "tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _householdsTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [layers], "
-                            + "[placement], [roads], [lots], [trips] and [jobs].");
+                            + "[placement], [roads], [lots], [trips], [jobs] and [households].");
                         break;
                 }
             }
@@ -2191,6 +2207,59 @@ public static class RulesetLoader
 
             return new JobRuleset(interval, revisit, candidates, peak);
         }
+
+        // ---- households -------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[households]</c> table: what share of Households keeps a car.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The table is optional and its one key is required</b>, which is <c>[jobs]</c>' shape
+        /// rather than <c>[trips]</c>'. Omitting the table is a city where nobody drives and the file
+        /// has said so by omission; stating the table and omitting the rate would be a placeholder
+        /// sitting inside the range of legitimate answers, and session F's rule is that such a
+        /// placeholder cannot announce itself.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>There is no refusal tying this to <c>[trips]</c>, and the asymmetry with
+        /// <see cref="ReadJobs"/> is deliberate.</b> <c>[jobs]</c> is refused without a Commute Budget
+        /// because the assignment pass would have no bound at all. A car with no Trip model is
+        /// harmless: nothing asks what mode anybody travels in until a Trip exists, so the rate is
+        /// inert rather than unbounded, and refusing it would be inventing a dependency to look
+        /// symmetrical.
+        /// </para>
+        /// </remarks>
+        private HouseholdRuleset ReadHouseholds()
+        {
+            if (_householdsTable is null)
+            {
+                return HouseholdRuleset.None;
+            }
+
+            if (!TryInteger(_householdsTable, "car_ownership_percent", out long percent, required: true))
+            {
+                return HouseholdRuleset.None;
+            }
+
+            if (percent < 0 || percent > HouseholdRuleset.MaxPercent)
+            {
+                Refuse(
+                    LineOf((SyntaxNodeBase?)Find(_householdsTable, "car_ownership_percent")
+                        ?? _householdsTable),
+                    null,
+                    $"car_ownership_percent is {percent}. It is the share of Households keeping a "
+                    + "car, so it is a whole percentage in 0..100 -- 0 is a city before the motor "
+                    + "car and 100 is one where every Household has one. A share outside that range "
+                    + "is not a smaller or larger city, it is a quantity that is not a share.");
+
+                return HouseholdRuleset.None;
+            }
+
+            return new HouseholdRuleset((int)percent);
+        }
+
+        // ---- jobs, continued --------------------------------------------------------------------
 
         /// <summary>How long the assignment pass takes to look at every Citizen once, in Ticks.</summary>
         /// <remarks>

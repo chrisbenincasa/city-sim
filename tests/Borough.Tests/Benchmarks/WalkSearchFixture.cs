@@ -112,7 +112,7 @@ internal static class WalkSearchFixture
                 Address from = Midpoint(graph, near);
                 Address to = Midpoint(graph, far);
 
-                if (!WalkRouting.Cost(graph, from, to, TravelTime.Zero, scratch).IsImpassable)
+                if (!WalkRouting.Cost(graph, TravelMode.Foot, from, to, TravelTime.Zero, scratch).IsImpassable)
                 {
                     return (from, to);
                 }

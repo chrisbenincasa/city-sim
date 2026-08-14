@@ -111,6 +111,16 @@ It has **no money in it, nobody employed, and no way for anyone to arrive.** Tha
 
 **Every row below is settled by an ADR and appears in no milestone anywhere in this document.** They are listed rather than placed, because placing them is the re-derivation's job and a guess here would be exactly the kind of unsourced assertion [`adr/0042`](adr/0042-a-planning-document-cites-and-a-design-document-owns.md) forbids.
 
+> ⚠ **This table has a blind spot, and it is structural rather than a gap in the rows.** *Settled by an ADR* is the entry condition, so the table can hold **unbuilt** mechanisms — specified, with no builder — and can never hold **undesigned** ones. ***An inventory of unplaced mechanisms structurally cannot list a mechanism nobody designed***, which means the corpus's one instrument for *this exists and nothing schedules it* is blind to the class [`adr/0070`](adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) says is most common in a project this young. Found 2026-08-14, when milestone 5c task 5 needed **mode choice** — how a Citizen weighs a walk against a drive — and found it named by no ADR, listed in no milestone, and absent from here. It is the **fourth consecutive milestone** to reach a task before discovering a precondition nobody had counted, after 5b task 4's missing destination set, 5b's missing path, and 5c scoping's *volume needs vehicles and not merely a path*. The sibling table below holds what is known to be undesigned; **it is a list of what somebody happened to notice and must not be read as complete**, which is precisely the property that makes it different from the one above.
+
+### Mechanisms nothing designs
+
+**No row below is settled by anything.** These are absences that a milestone walked into, recorded so the next one does not walk into the same hole — and, unlike the table above, **this list has no way of being exhaustive**, because nothing generates it.
+
+| Mechanism | Found by | Standing |
+|---|---|---|
+| **Mode choice** — how a Citizen weighs a walk against a drive on a given journey | 5c task 5, 2026-08-14 | **Worked around, honestly, one level up.** [`adr/0098`](adr/0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md) makes mode follow **car ownership**, which `01 §8` ledger #3 *does* settle as a persistent Household state and whose simple assumption it names. That is following the design rather than compensating for its absence — but it is not mode choice, and a specification for one supersedes the *mode* half of that ADR outright |
+
 | Mechanism | Settled by | What this document owes |
 |---|---|---|
 | Conserved Money, treasury, balance of payments, borrowing | [`adr/0024`](adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md), [`adr/0031`](adr/0031-one-resource-abstraction-and-depth-not-count.md) | a milestone |

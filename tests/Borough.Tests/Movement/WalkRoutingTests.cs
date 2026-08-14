@@ -43,7 +43,7 @@ public sealed class WalkRoutingTests
         Address from = Address.On(segment, new Tiles(4), StreetSide.Left);
         Address to = Address.On(segment, new Tiles(20), StreetSide.Left);
 
-        TravelTime cost = WalkRouting.Cost(graph, from, to, Crossing, new WalkScratch());
+        TravelTime cost = WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, new WalkScratch());
 
         Assert.Equal(TravelTime.Over(new Tiles(16), Walk), cost);
     }
@@ -60,8 +60,8 @@ public sealed class WalkRoutingTests
         WalkScratch scratch = new();
 
         Assert.Equal(
-            WalkRouting.Cost(graph, low, high, Crossing, scratch),
-            WalkRouting.Cost(graph, high, low, Crossing, scratch));
+            WalkRouting.Cost(graph, TravelMode.Foot, low, high, Crossing, scratch),
+            WalkRouting.Cost(graph, TravelMode.Foot, high, low, Crossing, scratch));
     }
 
     /// <summary>
@@ -76,7 +76,7 @@ public sealed class WalkRoutingTests
         Address left = Address.On(segment, new Tiles(4), StreetSide.Left);
         Address right = Address.On(segment, new Tiles(20), StreetSide.Right);
 
-        TravelTime cost = WalkRouting.Cost(graph, left, right, Crossing, new WalkScratch());
+        TravelTime cost = WalkRouting.Cost(graph, TravelMode.Foot, left, right, Crossing, new WalkScratch());
 
         Assert.Equal(TravelTime.Over(new Tiles(16), Walk) + Crossing, cost);
     }
@@ -93,7 +93,7 @@ public sealed class WalkRoutingTests
         Address left = Address.On(segment, new Tiles(12), StreetSide.Left);
         Address right = Address.On(segment, new Tiles(12), StreetSide.Right);
 
-        Assert.Equal(Crossing, WalkRouting.Cost(graph, left, right, Crossing, new WalkScratch()));
+        Assert.Equal(Crossing, WalkRouting.Cost(graph, TravelMode.Foot, left, right, Crossing, new WalkScratch()));
     }
 
     /// <summary>
@@ -117,8 +117,8 @@ public sealed class WalkRoutingTests
 
         WalkScratch scratch = new();
 
-        TravelTime charged = WalkRouting.Cost(graph, from, to, Crossing, scratch);
-        TravelTime free = WalkRouting.Cost(graph, from, to, TravelTime.Zero, scratch);
+        TravelTime charged = WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, scratch);
+        TravelTime free = WalkRouting.Cost(graph, TravelMode.Foot, from, to, TravelTime.Zero, scratch);
 
         Assert.Equal(free, charged);
     }
@@ -136,7 +136,7 @@ public sealed class WalkRoutingTests
         Address from = Address.On(0, Tiles.Zero, StreetSide.Left);
         Address to = Address.On(2, Span, StreetSide.Left);
 
-        TravelTime cost = WalkRouting.Cost(graph, from, to, Crossing, new WalkScratch());
+        TravelTime cost = WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, new WalkScratch());
 
         Assert.Equal(TravelTime.Over(Span, Walk) * 3, cost);
     }
@@ -171,7 +171,7 @@ public sealed class WalkRoutingTests
         Address from = Address.On(0, Tiles.Zero, StreetSide.Left);
         Address to = Address.On(2, new Tiles(31), StreetSide.Left);
 
-        TravelTime walked = WalkRouting.Cost(graph, from, to, Crossing, new WalkScratch());
+        TravelTime walked = WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, new WalkScratch());
         TravelTime straight = TravelTime.Over(new Tiles(93), Walk);
 
         Assert.Equal(TravelTime.Over(new Tiles(31), Walk) * 3, walked);
@@ -218,7 +218,7 @@ public sealed class WalkRoutingTests
         Address from = Address.On(0, new Tiles(28), StreetSide.Left);
         Address to = Address.On(1, Span, StreetSide.Left);
 
-        TravelTime cost = WalkRouting.Cost(graph, from, to, Crossing, new WalkScratch());
+        TravelTime cost = WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, new WalkScratch());
 
         Assert.Equal(TravelTime.Over(new Tiles(4), Walk) + TravelTime.Over(Span, Walk), cost);
     }
@@ -234,7 +234,7 @@ public sealed class WalkRoutingTests
         Address from = Address.On(0, Tiles.Zero, StreetSide.Left);
         Address to = Address.On(3, Tiles.Zero, StreetSide.Left);
 
-        TravelTime cost = WalkRouting.Cost(graph, from, to, Crossing, new WalkScratch());
+        TravelTime cost = WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, new WalkScratch());
 
         Assert.Equal(TravelTime.Impassable, cost);
     }
@@ -255,7 +255,7 @@ public sealed class WalkRoutingTests
         Address from = Address.On(0, Tiles.Zero, StreetSide.Left);
         Address to = Address.On(6, Span, StreetSide.Left);
 
-        TravelTime cost = WalkRouting.Cost(graph, from, to, Crossing, new WalkScratch());
+        TravelTime cost = WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, new WalkScratch());
 
         Assert.NotEqual(TravelTime.Impassable, cost);
         Assert.Equal(TravelTime.Over(Span, Walk) * 7, cost);
@@ -274,7 +274,7 @@ public sealed class WalkRoutingTests
         Address to = Address.On(2, Span, StreetSide.Left);
 
         Assert.Equal(
-            TravelTime.Impassable, WalkRouting.Cost(graph, from, to, Crossing, new WalkScratch()));
+            TravelTime.Impassable, WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, new WalkScratch()));
     }
 
     /// <summary>
@@ -296,7 +296,7 @@ public sealed class WalkRoutingTests
         graph.Segments.Rows.Free(graph.Segments.Rows.At(0));
 
         Assert.Equal(
-            TravelTime.Impassable, WalkRouting.Cost(graph, from, to, Crossing, new WalkScratch()));
+            TravelTime.Impassable, WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, new WalkScratch()));
     }
 
     /// <summary>An unset Address routes nowhere, and says so without resolving anything.</summary>
@@ -308,8 +308,8 @@ public sealed class WalkRoutingTests
 
         WalkScratch scratch = new();
 
-        Assert.Equal(TravelTime.Impassable, WalkRouting.Cost(graph, Address.None, real, Crossing, scratch));
-        Assert.Equal(TravelTime.Impassable, WalkRouting.Cost(graph, real, Address.None, Crossing, scratch));
+        Assert.Equal(TravelTime.Impassable, WalkRouting.Cost(graph, TravelMode.Foot, Address.None, real, Crossing, scratch));
+        Assert.Equal(TravelTime.Impassable, WalkRouting.Cost(graph, TravelMode.Foot, real, Address.None, Crossing, scratch));
     }
 
     /// <summary>
@@ -330,9 +330,9 @@ public sealed class WalkRoutingTests
         Address near = Address.On(1, Span, StreetSide.Left);
         Address far = Address.On(6, Span, StreetSide.Left);
 
-        TravelTime first = WalkRouting.Cost(graph, from, near, Crossing, scratch);
-        WalkRouting.Cost(graph, from, far, Crossing, scratch);
-        TravelTime again = WalkRouting.Cost(graph, from, near, Crossing, scratch);
+        TravelTime first = WalkRouting.Cost(graph, TravelMode.Foot, from, near, Crossing, scratch);
+        WalkRouting.Cost(graph, TravelMode.Foot, from, far, Crossing, scratch);
+        TravelTime again = WalkRouting.Cost(graph, TravelMode.Foot, from, near, Crossing, scratch);
 
         Assert.Equal(first, again);
     }
@@ -356,7 +356,7 @@ public sealed class WalkRoutingTests
         Address from = Address.On(0, Tiles.Zero, StreetSide.Left);
         Address to = Address.On(1, Span, StreetSide.Left);
 
-        WalkRouting.Cost(graph, from, to, Crossing, scratch);
+        WalkRouting.Cost(graph, TravelMode.Foot, from, to, Crossing, scratch);
 
         Assert.True(scratch.Relaxed < 8, $"settled {scratch.Relaxed} nodes for a two-Segment walk.");
     }

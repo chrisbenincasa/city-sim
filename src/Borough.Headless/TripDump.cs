@@ -270,7 +270,7 @@ internal static class TripDump
                 return;
             }
 
-            TravelTime cost = WalkRouting.Cost(graph, from, to, crossing, _scratch);
+            TravelTime cost = WalkRouting.Cost(graph, TravelMode.Foot, from, to, crossing, _scratch);
 
             if (cost.IsImpassable)
             {

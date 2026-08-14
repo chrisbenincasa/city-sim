@@ -49,6 +49,10 @@ public sealed class TripEngine
     private readonly World _world;
 
     private RuleFlow _completedFlow;
+    private RuleFlow _walkLegFlow;
+    private RuleFlow _driveLegFlow;
+    private int _tickWalkLegs;
+    private int _tickDriveLegs;
     private RuleFlow _noRouteFlow;
     private RuleFlow _overBudgetFlow;
     private RuleFlow _strandedFlow;
@@ -106,12 +110,16 @@ public sealed class TripEngine
             _strandedFlow,
             new TripCostProfile(
                 _costFlows[0], _costFlows[1], _costFlows[2], _costFlows[3],
-                _costFlows[4], _costFlows[5], _costFlows[6]));
+                _costFlows[4], _costFlows[5], _costFlows[6]),
+            _walkLegFlow,
+            _driveLegFlow);
 
         _completedFlow = default;
         _noRouteFlow = default;
         _overBudgetFlow = default;
         _strandedFlow = default;
+        _walkLegFlow = default;
+        _driveLegFlow = default;
 
         Array.Clear(_costFlows);
 
@@ -133,6 +141,13 @@ public sealed class TripEngine
     /// branch, written in the one place a reader would not look for one.
     /// </para>
     /// <para>
+    /// ⚠ <b>The mode <em>is</em> read, and it is the one parameter here that is.</b> It prices the
+    /// journey, selects the subgraph the search runs over, and is stamped on the Leg — so a drive and
+    /// a walk between the same two Addresses are different costs, may have different reachability, and
+    /// are distinguishable afterwards. That last one is what <c>adr/0041</c>'s volume attribution
+    /// needs: only a vehicular Leg increments a Segment's count.
+    /// </para>
+    /// <para>
     /// <b>The purpose is a parameter and nothing in here reads it.</b> It is written to the row and
     /// counted; the Fate, the Budget test and the cursor are identical for every purpose, which is
     /// the invariant this method exists to make structural rather than remembered.
@@ -147,14 +162,20 @@ public sealed class TripEngine
     /// <param name="citizen">The slot of the Citizen travelling.</param>
     /// <param name="from">Where the journey starts.</param>
     /// <param name="to">Where it is meant to end.</param>
+    /// <param name="mode">How the journey is made. Stamped on the Leg and used to price it.</param>
     /// <param name="purpose">Why it is being made, recorded and never branched on.</param>
     /// <param name="tick">The Tick the journey starts on.</param>
     /// <returns>
     /// The Fate the Trip already has, or <see cref="TripFate.InFlight"/> if it set off.
     /// </returns>
-    public TripFate Start(int citizen, Address from, Address to, TripPurpose purpose, Ticks tick)
+    public TripFate Start(
+        int citizen, int fromBuilding, int toBuilding, TravelMode mode, TripPurpose purpose,
+        Ticks tick)
     {
         TripRuleset rules = _world.Rules.Trips;
+
+        Address from = _world.PedestrianAccessPoint(fromBuilding);
+        Address to = _world.PedestrianAccessPoint(toBuilding);
 
         Handle<Trip> trip = _world.Trips.Create(_world.Roads.Segments, purpose, from, to);
         int tripSlot = _world.Trips.Rows.Resolve(trip);
@@ -170,35 +191,73 @@ public sealed class TripEngine
             return TripFate.NoRouteFound;
         }
 
-        TravelTime cost = WalkRouting.Cost(_world.Roads, from, to, rules.CrossingCost, _walk);
+        // adr/0008: a car commute is never one Leg, it is at minimum walk -> drive -> walk. The two
+        // flanking walks run from the pedestrian Access Point to the vehicle one, which are equal by
+        // construction today (World.VehicleAccessPoint) and therefore cost zero -- session F's named
+        // placeholder, and the retrofit at milestone 8 is one endpoint swap because a parking Bin has
+        // an Address and so does a Building. The trap that ADR warns about is a *fallback* from an
+        // exhausted Parking Shed, which no Shed exists to produce.
+        Span<Address> waypoints = stackalloc Address[4];
+        Span<TravelMode> modes = stackalloc TravelMode[3];
+        int legCount = Itinerary(fromBuilding, toBuilding, from, to, mode, waypoints, modes);
+
+        TravelTime cost = TravelTime.Zero;
+        int head = Rows.NoSlot;
+        int tail = Rows.NoSlot;
+
+        for (int i = 0; i < legCount; i++)
+        {
+            TravelTime step = WalkRouting.Cost(
+                _world.Roads, modes[i], waypoints[i], waypoints[i + 1], rules.CrossingCost, _walk);
+
+            // Eagerly, per adr/0075: every Leg of a Trip is created at Trip creation, which is what
+            // makes mean-Legs-per-Trip countable at all. The impassable one is created too, because
+            // the Leg that failed is the diagnosis.
+            int legSlot = _world.Legs.Rows.Resolve(
+                _world.Legs.Create(
+                    _world.Roads.Segments, modes[i], waypoints[i], waypoints[i + 1], step));
+
+            _world.Trips.Append(_world.Legs, tripSlot, legSlot);
+
+            if (modes[i] == TravelMode.Car)
+            {
+                _tickDriveLegs++;
+            }
+            else
+            {
+                _tickWalkLegs++;
+            }
+
+            if (head == Rows.NoSlot)
+            {
+                head = legSlot;
+            }
+
+            tail = legSlot;
+            cost = step.IsImpassable || cost.IsImpassable
+                ? TravelTime.Impassable
+                : cost + step;
+        }
 
         // Counted here rather than at completion, so a Trip refused for its length is in the
         // distribution with the cost that refused it. A histogram of completed Trips would be censored
         // twice -- once by the assignment pass's Budget upstream, and again by the Fate.
         _tickCosts[(int)BucketOf(cost)]++;
 
-        // Eagerly, per adr/0075: every Leg of a Trip is created at Trip creation, which is what makes
-        // mean-Legs-per-Trip countable at all. One Leg here because 5b resolves walk Legs only.
-        Handle<Leg> leg = _world.Legs.Create(
-            _world.Roads.Segments, TravelMode.Foot, from, to, cost);
-        int legSlot = _world.Legs.Rows.Resolve(leg);
-
-        _world.Trips.Append(_world.Legs, tripSlot, legSlot);
-
         if (cost.IsImpassable)
         {
-            _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound, legSlot);
+            _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound, tail);
             return TripFate.NoRouteFound;
         }
 
         // The Budget is judged on the whole Trip before anybody sets off, which is what a budget is:
         // a person who can see the journey is too long does not make two thirds of it and stop. The
-        // Leg exists either way, because adr/0075 creates every Leg at Trip creation and the cost of
+        // Legs exist either way, because adr/0075 creates every Leg at Trip creation and the cost of
         // the journey not taken is the diagnosis -- "32 can't reach a job inside their Commute
         // Budget" needs the number that failed, not just the count.
         if (!rules.WithinBudget(cost))
         {
-            _world.Trips.Resolve(tripSlot, TripFate.ExceededCommuteBudget, legSlot);
+            _world.Trips.Resolve(tripSlot, TripFate.ExceededCommuteBudget, tail);
             return TripFate.ExceededCommuteBudget;
         }
 
@@ -208,10 +267,61 @@ public sealed class TripEngine
         // runs after Phase 0 in the same Tick, so such a Trip is created and completed without ever
         // being observed in flight -- which is correct, and is why the in-flight count is not a proxy
         // for the number of Trips a run made.
+        //
+        // The *first* Leg's cost, not the Trip's: the Traveller is a cursor and AdvanceTravellers
+        // prices each hop as it reaches it (adr/0075).
         _world.Travellers.Create(
-            _world.Citizens.Rows.At(citizen), trip, legSlot, tick + cost.ToTicksFloor());
+            _world.Citizens.Rows.At(citizen), trip, head,
+            tick + _world.Legs.Time[head].ToTicksFloor());
 
         return TripFate.InFlight;
+    }
+
+    /// <summary>
+    /// The waypoints and per-Leg modes of one journey — <b>one Leg on foot, three by car</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0008</c>'s <c>walk → drive → walk</c>, built rather than deferred, and the two
+    /// flanking Legs are zero-length today.</b> They run from the pedestrian Access Point to the
+    /// vehicle one, which <see cref="World.VehicleAccessPoint"/> makes the same Address until
+    /// milestone 8 gives a car somewhere else to be. **Building them now is what keeps that retrofit
+    /// to one endpoint swap** — the Trip table is sized on the real Leg count, `mean Legs per Trip` is
+    /// a real number, and `AdvanceTravellers` walks a cursor that has somewhere to go.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The trap <c>adr/0008</c> names is a <em>fallback</em>, and it is not this.</b> A zero-length
+    /// parking walk reached because a Parking Shed query <em>failed</em> pays the player for
+    /// under-building parking: a full car park costs less than an empty one. That cannot occur here,
+    /// because there is no Shed and nothing queries one — the walk is to the car's <em>only</em> place,
+    /// not to a fallback from a better one. <b>What survives of the warning is that zero is inside the
+    /// range of legitimate answers</b>, so the placeholder cannot announce itself, and the only defence
+    /// is that this method is where a reader is sent.
+    /// </para>
+    /// </remarks>
+    private int Itinerary(
+        int fromBuilding, int toBuilding, Address from, Address to, TravelMode mode,
+        Span<Address> waypoints, Span<TravelMode> modes)
+    {
+        if (mode != TravelMode.Car)
+        {
+            waypoints[0] = from;
+            waypoints[1] = to;
+            modes[0] = mode;
+
+            return 1;
+        }
+
+        waypoints[0] = from;
+        waypoints[1] = _world.VehicleAccessPoint(fromBuilding);
+        waypoints[2] = _world.VehicleAccessPoint(toBuilding);
+        waypoints[3] = to;
+
+        modes[0] = TravelMode.Foot;
+        modes[1] = TravelMode.Car;
+        modes[2] = TravelMode.Foot;
+
+        return 3;
     }
 
     /// <summary>
@@ -234,6 +344,11 @@ public sealed class TripEngine
     /// </remarks>
     private void CloseTick()
     {
+        _walkLegFlow = _walkLegFlow.Fold(_tickWalkLegs);
+        _driveLegFlow = _driveLegFlow.Fold(_tickDriveLegs);
+        _tickWalkLegs = 0;
+        _tickDriveLegs = 0;
+
         for (int bucket = 0; bucket < Buckets; bucket++)
         {
             _costFlows[bucket] = _costFlows[bucket].Fold(_tickCosts[bucket]);
@@ -412,7 +527,9 @@ public readonly record struct TripActivity(
     RuleFlow NoRouteFound,
     RuleFlow ExceededCommuteBudget,
     RuleFlow Stranded,
-    TripCostProfile Costs = default);
+    TripCostProfile Costs = default,
+    RuleFlow WalkLegs = default,
+    RuleFlow DriveLegs = default);
 
 /// <summary>
 /// The Trip cost histogram over one Census interval: one flow per <see cref="TripCostBucket"/>.

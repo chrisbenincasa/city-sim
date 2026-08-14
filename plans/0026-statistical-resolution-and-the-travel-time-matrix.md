@@ -291,7 +291,7 @@ mechanism in this project that has a **per-Tick write to a saved column** on eve
 
 | # | Decision | Needed before | Why it is not settled here |
 |---|---|---|---|
-| 1 | **What a drive Leg's endpoints are with no Parking Shed** | task 5 | Session F's placeholder trap is specific and expensive, and the two honest options — refuse the car commute, or name the absence — are a real fork rather than a detail |
+| ~~1~~ | ~~**What a drive Leg's endpoints are with no Parking Shed**~~ ✅ **STRUCK 2026-08-14, and the ground was never there.** Session F's trap is a **fallback from an exhausted Shed**, which cannot occur because no Shed exists — and `World.VehicleAccessPoint` had already forbidden it in its own doc-comment. The two Access Points are the **same Address** by construction (`World.cs:1044`, *built behaviour rather than an interim simplification*), so a drive is door to door and nothing is stood in for. ⚠ **What actually gated task 5 was not on this list at all**: nobody decides who drives, and mode choice is **undesigned** under `adr/0070` — see the record | task 5 | *(struck)* |
 | 2 | **When a Leg's cost is computed**, and what makes it stale | task 6 | `adr/0075` makes a Leg a plan; a plan's cost ages. This is `adr/0012`'s problem on a second object and neither ADR addresses it |
 | 3 | **Whether the matrix may reject a job candidate**, or only order them | task 2 | Deleting the Severance reading is the failure mode, and 5b-bis task 4 chose the two-stage shape deliberately |
 
@@ -688,3 +688,119 @@ undocumented mixing function in the tree; splitmix64's finaliser is used and nam
 caught the constructor's `entries / Ways` as `BOR0203` on the first build — **the raw-`/` lint firing
 on a line where truncation genuinely is the intent**, which is the case it is most often argued away
 in.
+
+---
+
+### Task 5 — the vehicular Leg at Statistical resolution. ✅ **DONE 2026-08-14**, and the decision it
+was gated on was not the one that blocked it.
+
+[`adr/0098`](../docs/adr/0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md).
+`WalkRouting.Cost` takes a `TravelMode` and selects the subgraph, the connectivity labels and the speed
+rule from it; `TripEngine.Start` takes one and stamps it on the Leg; `CommuteEngine` and
+`EmploymentEngine` both read `World.ModeOf`; a `[households] car_ownership_percent` decides who drives.
+**No State Hash moved**, because neither shipped Ruleset states a `[households]` table.
+
+⚠ **1. The owed decision had already been taken, and reading a doc-comment instead of the ADR nearly
+shipped a violation of it.** The first cut of this task built a car commute as **one** door-to-door Leg,
+on the ground that `World.VehicleAccessPoint`'s doc-comment forbids session F's trap — which it does.
+But the trap it forbids is a **fallback from an exhausted Shed**, and `adr/0008`'s decision line is
+unamended: *"a car commute is therefore never one Leg; it is at minimum `walk → drive → walk`"*. Session
+F went further and **named the placeholder** in that ADR's own amendment — the flanking Legs run from the
+pedestrian Access Point to the vehicle one, *"which are equal by construction today, making those Legs
+zero-length"*, with the milestone-8 retrofit priced at *"one endpoint swap"*. So the three-Leg shape is
+**specified**, with its placeholder chosen and its cost named, and a car commute here is **three Legs**.
+***A doc-comment forbidding one shape is not a decision permitting the others*** — `adr/0093` exactly:
+the comment was correct, it named the right symbol, and what was in it was a **prohibition** rather than
+the **specification**, which is silently permissive everywhere it does not reach.
+
+⚠ **1b. The multi-Leg machinery 5b built had never been exercised.** Every Trip in this project has had
+exactly one Leg since Trips existed, so `AdvanceTravellers`' cursor, `TripTable`'s Leg list and *mean
+Legs per Trip* were all running on their trivial case, and a one-Leg car commute would have left them
+there while looking finished. `TripEngine.Start` now takes **Building slots** rather than Addresses, so
+the per-Leg Access Point choice happens inside the one door and no caller can get it wrong.
+
+⚠ **2. What actually blocked the task is that nobody decides who drives, and the corpus has no
+instrument that could have told us.** `CommuteEngine` is the only Trip generator and it walked
+everybody. Mode choice appears in **no milestone row in `06`** *and* in **none of its *Mechanisms with
+no milestone* rows** — because that inventory's own opening line is *"every row below is settled by an
+ADR and appears in no milestone anywhere in this document"*. Under `adr/0070` it is therefore
+**undesigned**, not unbuilt. ***An inventory of unplaced mechanisms structurally cannot list a mechanism
+nobody designed***, so the one place anybody would look is blind to the entire class. **Fourth
+consecutive milestone** to find a precondition it had not finished counting — 5b task 4's missing
+destination set, 5b's missing path, 5c scoping's *volume needs vehicles and not merely a path*, and now
+the vehicles with no driver.
+
+**3. The design answers it one level up, and the answer was already half-built.** `01 §8` ledger #3 is
+*is car ownership a choice?*, **live and half-answered**: session five settled that ownership is a
+**persistent Household state**, and `01 §8` says of the other half in its own words — *every Household
+owning a car is the simple assumption… only becomes interesting once transit exists*. Transit has no
+milestone. So an exogenous rate on the **Household** is the design being followed rather than
+`adr/0070`'s *given X does not exist, should Y compensate*, and it lands on the entity the design names.
+It is also the only shape this milestone could have used: a Household that owns a car drives **every**
+day, so its route is stable, which is what `adr/0060`'s Habit and task 4's cache both rest on.
+
+**4. Ownership is derived from the Ruleset, and the reason is a property nobody predicted.** It is
+`hash(seed, household id, tick 0, CarOwnership) % 100 < rate` with **no column** — `adr/0068`'s rule and
+`TripRuleset.TryRung`'s, on a fourth axis. What the derivation buys beyond avoiding `adr/0064`'s
+frozen-at-construction defect is that **the owner set is *nested***: a fixed per-Household draw against
+a moving threshold, so lowering the rate takes cars only from the Households at the top of their own
+ordering. **Both saved alternatives fail, in opposite directions** — re-rolled on reload churns the
+entire city for a one-point change, not re-rolled does not respond at all. A test walks the rate down
+five rungs asserting nobody ever *acquires* a car.
+
+**5. A Citizen is judged for a job on the clock they travel on, and that is `adr/0008` rather than a
+refinement.** Session F refused a per-mode weight on the Commute Budget *precisely so* a walk and a
+drive are compared on one clock, and one clock only works if it is read in the mode the journey is made
+in. The rule lives on `World.ModeOf` and not in either engine, because two copies would let a Citizen
+take a job they could **walk** to and then **drive** there — `plans/0012` **Cause 1** written in code.
+
+⚠ **6. The observable had to be a flow, and a table scan reported zero for a city that made thousands of
+journeys.** A completed Trip is released and its Legs with it, and on this fixture a commute is
+**sub-Tick** — created and completed inside one call to phase 4 — so counting live rows in `LegTable`
+finds only the handful still in flight. ***A table scan counts what survives, and a flow is the thing
+that did not.*** The Trip Census family gains `walk legs` and `drive legs`, which tasks 6 to 8 need
+anyway since only a vehicular Leg increments volume. ⚠ **The family now carries three denominators that
+do not cross** — Fates count Trips that *ended*, cost bands count Trips *created*, these two count
+**Legs** — and in a city of drivers `walk legs` is **twice** `drive legs` while neither equals the Trip
+count.
+
+**7. The car route-length distribution, which is the number task 4 owes `plans/0002` §C.** The **drive**
+Leg only — the two flanking walks cross no Segment, which is what *zero-length* means. Measured at 100%
+ownership on the shipped geometry, **not fitted to anything**:
+
+| Citizens | Commutes | Median | p90 | Max | Mean |
+|---:|---:|---:|---:|---:|---:|
+| 1,000 | 245 | 1 | 3 | 5 | 1.7 |
+| 4,000 | 1,074 | 4 | 8 | 12 | 4.1 |
+| 8,000 | 2,137 | 6 | 11 | 17 | 6.1 |
+| 16,000 | 4,403 | 8 | 16 | 26 | 8.8 |
+
+⚠ **Do not extend it by fitting it** — that is the error `plans/0012` **Cause 5**'s seventh sighting
+records, and the mechanism here is a **different and much weaker** cap than the foot one: the 50-minute
+ceiling at a Street's 50 km/h reaches **41.7 km**, wider than the paved extent of any city this project
+can build, so on the car side **the map bounds the route and the Budget does not**. A bound that comes
+from the fixture moves when the fixture does.
+
+⚠ **8. A drive and a walk take the same Streets here, and that is a property of the fixture rather than
+a finding about modes.** Both shipped Rulesets set `arterial_count = 0`, so no Segment admits one mode
+and not the other, and the two distributions agree **exactly** — 1,074 routes, mean 4.08 Segments, in
+both. ***A comparison run on a fixture that lacks the mechanism under comparison measures the fixture.***
+Recorded because the number moves the moment a player lays an Arterial, which `adr/0090` makes the only
+way one can now exist, and somebody would otherwise read today's agreement as evidence the modes are the
+same.
+
+⚠ **9. Every drive in the project is quoted too cheap, and it is the one mode where that grows with the
+city.** `03 §3.7` makes free-flow the *exact* answer for a walk because pedestrian networks do not
+saturate; for a car it is an underestimate until task 6's volume-delay function lands. Related and
+unrepaired: the **job-search box is still derived from the Budget at *walking* speed**, so a driver's
+catchment is a pedestrian's box — inert today (`plans/0002` §C: the box holds 100.0% of Buildings up to
+~160,000 Citizens) and silently clipping the moment a city outgrows it.
+
+**10. Two smaller ones.** `WalkRouting`'s two **closed-form** cases — a journey along one Segment, and
+one refused by the reachability test — never reach the search, so `PathTo` answers *no path* for a
+journey that is perfectly possible: ***absent is not zero and it is not impassable***, and a volume pass
+that read a missing path as *no Segments to credit* would drop every same-Segment drive in the city. And
+the mode parameter is **required with no default**, because task 3's own finding was that a mode
+threaded through a signature and not through a loop compiles and passes every test — a `Foot` default
+here is that hazard pointing the other way, and **Foot is a legitimate answer, so it cannot announce
+itself**.

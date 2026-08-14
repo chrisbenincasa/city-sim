@@ -542,12 +542,12 @@ public sealed class Simulation
                 + "Citizen's journey (adr/0075) and there is nobody here to be one.");
         }
 
-        _trips.Start(
-            citizen,
-            _world.PedestrianAccessPoint(origin),
-            _world.PedestrianAccessPoint(destination),
-            TripPurpose.Commanded,
-            tick);
+        // The Citizen's own mode, not a walk. adr/0080 demotes this command to a test affordance
+        // rather than the only door, and an affordance that travels differently from the city it is
+        // probing is an instrument measuring itself.
+        TravelMode mode = _world.ModeOf(citizen);
+
+        _trips.Start(citizen, origin, destination, mode, TripPurpose.Commanded, tick);
     }
 
     /// <summary>

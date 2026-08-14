@@ -157,7 +157,7 @@ public sealed class TravelTimeMatrixTests(ITestOutputHelper output)
                 Address destination = world.PedestrianAccessPoint(to);
 
                 TravelTime truth =
-                    WalkRouting.Cost(world.Roads, origin, destination, trips.CrossingCost, scratch);
+                    WalkRouting.Cost(world.Roads, TravelMode.Foot, origin, destination, trips.CrossingCost, scratch);
 
                 int a = PartitionOf(world, partition, from);
                 int b = PartitionOf(world, partition, to);
@@ -361,7 +361,7 @@ public sealed class TravelTimeMatrixTests(ITestOutputHelper output)
             }
 
             TravelTime truth = WalkRouting.Cost(
-                world.Roads, origin, destination, world.Rules.Trips.CrossingCost, scratch);
+                world.Roads, TravelMode.Foot, origin, destination, world.Rules.Trips.CrossingCost, scratch);
 
             walked++;
 
@@ -495,7 +495,7 @@ public sealed class TravelTimeMatrixTests(ITestOutputHelper output)
     {
         foreach ((Address from, Address to) in pairs)
         {
-            WalkRouting.Cost(world.Roads, from, to, world.Rules.Trips.CrossingCost, scratch);
+            WalkRouting.Cost(world.Roads, TravelMode.Foot, from, to, world.Rules.Trips.CrossingCost, scratch);
         }
     }
 

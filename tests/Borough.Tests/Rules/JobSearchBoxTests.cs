@@ -308,7 +308,7 @@ public sealed class JobSearchBoxTests
                 continue;
             }
 
-            if (!simulation.Employment.Home(slot, out Cells east, out Cells north, out _))
+            if (!simulation.Employment.Home(slot, TravelMode.Foot, out Cells east, out Cells north, out _))
             {
                 continue;
             }

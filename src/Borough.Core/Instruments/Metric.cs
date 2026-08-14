@@ -214,6 +214,23 @@ public enum TripCounter : byte
 
     /// <summary>The network changed underneath the Trip and left it with nowhere to go.</summary>
     Stranded,
+
+    /// <summary>Legs created on foot (5c task 5).</summary>
+    /// <remarks>
+    /// ⚠ <b>A different denominator from the four above it, and the family now holds three.</b> The
+    /// Fates count Trips that <em>ended</em>; <see cref="TripCostBucket"/> counts Trips that were
+    /// <em>created</em>; these two count <b>Legs</b> that were created. They are in this family rather
+    /// than a new one because a Leg's mode is decided at the same instant and by the same pass, and a
+    /// family whose members share an owner is what every other family here already is — but the sums
+    /// do not cross, and a reading that compares a Leg count to a Fate count is comparing two things.
+    /// </remarks>
+    WalkLegs,
+
+    /// <summary>
+    /// Legs created by car. <b>The supply side of <c>adr/0041</c>'s volume attribution</b> — only a
+    /// vehicular Leg increments a Segment's count, so this is the population task 6 draws from.
+    /// </summary>
+    DriveLegs,
 }
 
 /// <summary>

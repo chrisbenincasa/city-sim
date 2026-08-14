@@ -5,19 +5,31 @@ using Borough.Core.Tables;
 namespace Borough.Core.Movement;
 
 /// <summary>
-/// Resolves a walk Leg: <b>the cost of getting from one <see cref="Address"/> to another on foot</b>,
-/// over the <see cref="TravelMode.Foot"/> subgraph.
+/// Resolves a Leg: <b>the cost of getting from one <see cref="Address"/> to another in a given
+/// <see cref="TravelMode"/></b>, over that mode's subgraph.
 /// </summary>
 /// <remarks>
+/// <para>
+/// ⚠ <b>The name is now wrong and the rename is deferred rather than forgotten.</b> This served walks
+/// only until 5c task 5 gave the commute a car; <see cref="WalkScratch"/> is misnamed for the same
+/// reason and by a larger margin. Both are one mechanical rename across ~70 call sites, and doing it
+/// inside a task that changes behaviour would bury the behaviour change in the diff.
+/// </para>
 /// <para>
 /// <b>For a walk Leg <c>distance / speed</c> is not an approximation, it is the exact answer</b>
 /// (<c>03 §3.7</c>), and the reason is a property of pedestrians rather than a simplification:
 /// pedestrian networks do not saturate, so there is no congestion term to be wrong about. <b>This is
-/// what makes milestone 5b buildable before 5c</b> — a walk Leg needs no travel-time matrix, no route
-/// cache and no volume-delay function, and it is half the Legs in the city.
+/// what made milestone 5b buildable before 5c</b> — a walk Leg needs no travel-time matrix, no route
+/// cache and no volume-delay function.
 /// </para>
 /// <para>
-/// <b>The search is over a subgraph, not a second network.</b> The foot bit lives on the
+/// ⚠ <b>For a drive Leg it is <em>not</em> the exact answer, and nothing here says so.</b> A car's
+/// free-flow time is what a Segment costs with nobody else on it, and 5c task 6's volume-delay
+/// function is the term that makes it a real one. Until that lands, a drive is priced at free-flow —
+/// which is an <em>underestimate</em>, in the one mode where the error grows with the city.
+/// </para>
+/// <para>
+/// <b>The search is over a subgraph, not a second network.</b> The mode bit lives on the
 /// <see cref="RoadArcs">Arc</see> (<c>adr/0072</c>), so a Street's footway is the same Segment with
 /// the bit set and walking adds no Segments at all. <b>This is also where Severance is</b>: an
 /// Arterial's Arcs carry <see cref="TravelMode.Car"/> and not <see cref="TravelMode.Foot"/>, so
@@ -27,9 +39,9 @@ namespace Borough.Core.Movement;
 /// <para>
 /// <b>The result is a cost and the path is discarded</b> (<c>adr/0075</c>). Nothing downstream reads
 /// a walk Leg's Segments: <c>CONTEXT.md</c> → Fidelity keeps pedestrians out of Stress entirely, so a
-/// walk Leg increments no Segment volume. A pedestrian Map Layer — footfall on a high street, which
-/// the corpus has not designed — is the one consumer that would need them, and the answer then is to
-/// accumulate into the Layer <em>during</em> the search rather than to retain the path.
+/// walk Leg increments no Segment volume. <b>A drive Leg's Segments are a different matter</b> —
+/// <c>adr/0041</c> attributes volume by the traveller, so task 6 needs them; that is what
+/// <see cref="WalkScratch.PathTo"/> exists for, and it is opt-in so that no walk pays for it.
 /// </para>
 /// </remarks>
 public static class WalkRouting
@@ -61,8 +73,53 @@ public static class WalkRouting
     /// <param name="to">Where it ends.</param>
     /// <param name="crossingCost">What it costs to reach the other side of a Segment.</param>
     /// <param name="scratch">Reusable search state; one per caller, never shared across threads.</param>
+    /// <summary>
+    /// The cost of travelling between two Addresses in one mode, or
+    /// <see cref="TravelTime.Impassable"/> when no route exists.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b><paramref name="mode"/> has no default, and 5c task 3 is why.</b> That task threaded a
+    /// mode through <see cref="WalkScratch.Search"/>'s signature and not through its loop, and the
+    /// result compiled, passed every test, and priced every car journey at walking pace. A
+    /// <see cref="TravelMode.Foot"/> default here is the same hazard pointing the other way: a new
+    /// caller writes the call it is used to and silently gets a walk. <b>Foot is a legitimate answer,
+    /// so a foot default cannot announce itself</b> — session F's rule about placeholders, and the
+    /// same reason <paramref name="crossingCost"/> has no default either.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><paramref name="crossingCost"/> is a pedestrian term and is charged to pedestrians only</b>
+    /// (<c>adr/0074</c>). A driver's equivalent — the U-turn or the trip round the block that reaching
+    /// the far kerb actually costs — is a property of a <em>junction</em>, and this simulation models
+    /// no turns at all. Charging the pedestrian figure to a car would be inventing that mechanism at a
+    /// number chosen for something else; <c>adr/0070</c> says an undesigned absence is evidence of
+    /// nothing, so the honest answer is zero and a note. <b>The visible artefact is that driving across
+    /// the street is cheaper than walking across it</b>, which is true of this model and false of a
+    /// city, and it is bounded by one Segment.
+    /// </para>
+    /// <para>
+    /// <b>The crossing applies only when the two Addresses share a Segment and differ in side.</b>
+    /// That is exact for the across-the-street case walkability turns on, and silent elsewhere —
+    /// because <i>the same side</i> stops meaning anything once a route turns a corner, so charging it
+    /// on a multi-Segment walk would be inventing precision the model does not have.
+    /// </para>
+    /// </remarks>
+    /// <param name="graph">The Road Graph to search.</param>
+    /// <param name="mode">How the journey is made. Exactly one of <see cref="TravelMode"/>'s modes.</param>
+    /// <param name="from">Where the journey starts.</param>
+    /// <param name="to">Where it ends.</param>
+    /// <param name="crossingCost">What it costs a pedestrian to reach the other side of a Segment.</param>
+    /// <param name="scratch">Reusable search state; one per caller, never shared across threads.</param>
+    /// <param name="recordPath">
+    /// Whether to retain the Segments crossed, readable afterwards through
+    /// <see cref="WalkScratch.PathTo"/> at <see cref="WalkScratch.Arrived"/>. <b>Off by default and
+    /// that default is safe</b>, unlike <paramref name="mode"/>'s would be: not recording is the
+    /// absence of a second output rather than a wrong answer to the question asked, so a caller that
+    /// forgets it gets nothing instead of getting something plausible.
+    /// </param>
     public static TravelTime Cost(
-        RoadGraph graph, Address from, Address to, TravelTime crossingCost, WalkScratch scratch)
+        RoadGraph graph, TravelMode mode, Address from, Address to, TravelTime crossingCost,
+        WalkScratch scratch, bool recordPath = false)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(scratch);
@@ -84,7 +141,7 @@ public static class WalkRouting
             return TravelTime.Impassable;
         }
 
-        if (!Walkable(segments, fromSegment) || !Walkable(segments, toSegment))
+        if (!Admits(segments, fromSegment, mode) || !Admits(segments, toSegment, mode))
         {
             return TravelTime.Impassable;
         }
@@ -95,21 +152,21 @@ public static class WalkRouting
         if (fromSegment == toSegment)
         {
             Tiles along = (from.Offset - to.Offset).Magnitude;
-            TravelTime direct = TravelTime.Over(along, FootSpeed(graph, fromSegment));
+            TravelTime direct = TravelTime.Over(along, SpeedOn(graph, fromSegment, mode));
 
-            return from.Side == to.Side ? direct : direct + crossingCost;
+            return from.Side == to.Side || mode != TravelMode.Foot ? direct : direct + crossingCost;
         }
 
-        // The reachability reject. Two Addresses in different foot components have no route, so the
+        // The reachability reject. Two Addresses in different components have no route, so the
         // search below would settle the whole of the origin's component to prove it — the most
         // expensive answer this method can give, for the one question it can be certain about
         // without searching at all.
-        if (!Connected(graph, fromSegment, toSegment))
+        if (!Connected(graph, mode, fromSegment, toSegment))
         {
             return TravelTime.Impassable;
         }
 
-        return Across(graph, from, to, fromSegment, toSegment, scratch);
+        return Across(graph, mode, from, to, fromSegment, toSegment, scratch, recordPath);
     }
 
     /// <summary>
@@ -141,7 +198,7 @@ public static class WalkRouting
     /// never reached falls through to the search rather than being refused on a default.
     /// </para>
     /// </remarks>
-    private static bool Connected(RoadGraph graph, int fromSegment, int toSegment)
+    private static bool Connected(RoadGraph graph, TravelMode mode, int fromSegment, int toSegment)
     {
         if (!graph.Nodes.Rows.TryResolve(graph.Segments.NodeA[fromSegment], out int from)
             || !graph.Nodes.Rows.TryResolve(graph.Segments.NodeA[toSegment], out int to))
@@ -149,8 +206,9 @@ public static class WalkRouting
             return true;
         }
 
-        int origin = graph.Nodes.FootComponent[from];
-        int destination = graph.Nodes.FootComponent[to];
+        Column<int> component = Component(graph.Nodes, mode);
+        int origin = component[from];
+        int destination = component[to];
 
         return origin == RoadConnectivity.Unlabelled
             || destination == RoadConnectivity.Unlabelled
@@ -168,8 +226,8 @@ public static class WalkRouting
     /// their partial costs and reading both destination endpoints at the end.
     /// </remarks>
     private static TravelTime Across(
-        RoadGraph graph, Address from, Address to, int fromSegment, int toSegment,
-        WalkScratch scratch)
+        RoadGraph graph, TravelMode mode, Address from, Address to, int fromSegment, int toSegment,
+        WalkScratch scratch, bool recordPath)
     {
         RoadSegmentTable segments = graph.Segments;
         RoadNodeTable nodes = graph.Nodes;
@@ -180,46 +238,69 @@ public static class WalkRouting
             return TravelTime.Impassable;
         }
 
-        // Severance, answered in constant time. Union-find components over the foot subgraph are
+        // Severance, answered in constant time. Union-find components over the mode's subgraph are
         // rebuilt with the adjacency, so *is this reachable at all* is a comparison rather than an
         // exhausted search — which matters because the severed case is the one 5b exists to report
         // and would otherwise be the most expensive query in the city.
-        int destination = nodes.FootComponent[toA];
+        Column<int> component = Component(nodes, mode);
+        int destination = component[toA];
 
-        if (nodes.FootComponent[fromA] != destination && nodes.FootComponent[fromB] != destination)
+        if (component[fromA] != destination && component[fromB] != destination)
         {
             return TravelTime.Impassable;
         }
 
-        Speed fromSpeed = FootSpeed(graph, fromSegment);
-        Speed toSpeed = FootSpeed(graph, toSegment);
+        Speed fromSpeed = SpeedOn(graph, fromSegment, mode);
+        Speed toSpeed = SpeedOn(graph, toSegment, mode);
         Tiles fromLength = segments.LengthTiles[fromSegment];
         Tiles toLength = segments.LengthTiles[toSegment];
 
-        scratch.Begin(nodes.Rows.SlotCount);
+        scratch.Begin(nodes.Rows.SlotCount, recordPath);
         scratch.Seed(fromA, TravelTime.Over(from.Offset, fromSpeed));
         scratch.Seed(fromB, TravelTime.Over(fromLength - from.Offset, fromSpeed));
 
         TravelTime inA = TravelTime.Over(to.Offset, toSpeed);
         TravelTime inB = TravelTime.Over(toLength - to.Offset, toSpeed);
 
-        return scratch.Search(graph, TravelMode.Foot, toA, toB, inA, inB);
+        return scratch.Search(graph, mode, toA, toB, inA, inB);
     }
 
     /// <summary>Whether a Segment admits pedestrians in either direction.</summary>
-    private static bool Walkable(RoadSegmentTable segments, int slot) =>
-        (segments.Modes[slot] & (byte)TravelMode.Foot) != 0;
+    /// <summary>Whether a Segment admits this mode in either direction.</summary>
+    private static bool Admits(RoadSegmentTable segments, int slot, TravelMode mode) =>
+        (segments.Modes[slot] & (byte)mode) != 0;
 
     /// <summary>
-    /// Walking pace on a Segment: <c>min(the walker's ceiling, the road's free-flow)</c>.
+    /// The connectivity labels for a mode — <b>the one routing question that is certain without a
+    /// search, per mode</b>.
     /// </summary>
     /// <remarks>
-    /// The same rule <see cref="RoadGraph"/> applies to a whole Arc, applied to part of one. A
-    /// pedestrian walks at walking pace on a boulevard and in a lane alike, so the road's speed binds
-    /// only where the road is somehow slower than a person.
+    /// ⚠ <b>Two columns and they genuinely disagree.</b> An Arterial's Arcs carry
+    /// <see cref="TravelMode.Car"/> and not <see cref="TravelMode.Foot"/>, so a city can be one piece
+    /// to a driver and several to a pedestrian — which is what Severance <em>is</em>. Reading the foot
+    /// labels for a car would refuse drives across a severing Arterial, and reading the car labels for
+    /// a walk would send a pedestrian down a motorway; both compile and neither has a symptom short of
+    /// a distribution nobody is looking at.
     /// </remarks>
-    private static Speed FootSpeed(RoadGraph graph, int segment) =>
-        Speed.SlowerOf(graph.Segments.FreeFlow[segment], graph.Ruleset.WalkSpeed);
+    private static Column<int> Component(RoadNodeTable nodes, TravelMode mode) =>
+        mode == TravelMode.Foot ? nodes.FootComponent : nodes.CarComponent;
+
+    /// <summary>
+    /// Pace on a Segment: the road's free-flow, capped by the traveller's own ceiling if it has one.
+    /// </summary>
+    /// <remarks>
+    /// <b>A pedestrian has a ceiling and a driver does not, and that asymmetry is the model rather
+    /// than an omission.</b> A pedestrian walks at walking pace on a boulevard and in a lane alike, so
+    /// the road's speed binds only where the road is somehow slower than a person. A car's ceiling
+    /// <em>is</em> the road's free-flow — <c>03 §3.7</c>'s congestion term is what will lower it, and
+    /// that is 5c task 6's volume-delay function rather than a second constant here.
+    /// </remarks>
+    private static Speed SpeedOn(RoadGraph graph, int segment, TravelMode mode)
+    {
+        Speed freeFlow = graph.Segments.FreeFlow[segment];
+
+        return mode == TravelMode.Foot ? Speed.SlowerOf(freeFlow, graph.Ruleset.WalkSpeed) : freeFlow;
+    }
 
     /// <summary>A Segment's two endpoint node slots, or false if either is dangling.</summary>
     private static bool Endpoints(RoadGraph graph, int segment, out int a, out int b)

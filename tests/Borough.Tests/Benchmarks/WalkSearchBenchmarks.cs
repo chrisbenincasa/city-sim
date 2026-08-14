@@ -83,12 +83,12 @@ public class WalkSearchBenchmarks
     /// <summary>One resolved walk Leg <see cref="Blocks"/> blocks long. <b>This is the §B number.</b></summary>
     [Benchmark(Description = "walk", Baseline = true)]
     public TravelTime Walk() =>
-        WalkRouting.Cost(_shipped, _from, _to, TravelTime.Zero, _scratch);
+        WalkRouting.Cost(_shipped, TravelMode.Foot, _from, _to, TravelTime.Zero, _scratch);
 
     /// <summary>The closed-form case: same Segment, opposite sides. The floor.</summary>
     [Benchmark(Description = "across the street")]
     public TravelTime AcrossTheStreet() =>
-        WalkRouting.Cost(_shipped, _kerb, _opposite, TravelTime.Zero, _scratch);
+        WalkRouting.Cost(_shipped, TravelMode.Foot, _kerb, _opposite, TravelTime.Zero, _scratch);
 
     /// <summary>
     /// The severed case, answered by a component comparison without settling a node.
@@ -101,5 +101,5 @@ public class WalkSearchBenchmarks
     /// </remarks>
     [Benchmark(Description = "severed")]
     public TravelTime Severed() =>
-        WalkRouting.Cost(_severing, _islandA, _islandB, TravelTime.Zero, _scratch);
+        WalkRouting.Cost(_severing, TravelMode.Foot, _islandA, _islandB, TravelTime.Zero, _scratch);
 }

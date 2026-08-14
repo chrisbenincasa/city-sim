@@ -156,6 +156,8 @@ internal static class CensusReport
         (TripCounter.NoRouteFound, Aggregate.Sum, "no route"),
         (TripCounter.ExceededCommuteBudget, Aggregate.Sum, "over budget"),
         (TripCounter.Stranded, Aggregate.Sum, "stranded"),
+        (TripCounter.WalkLegs, Aggregate.Sum, "walk legs"),
+        (TripCounter.DriveLegs, Aggregate.Sum, "drive legs"),
     ];
 
     /// <summary>

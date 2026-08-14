@@ -208,14 +208,16 @@ public sealed class EmploymentEngine
                 continue;
             }
 
-            if (!Home(slot, out Cells east, out Cells north, out Address door))
+            TravelMode mode = _world.ModeOf(slot);
+
+            if (!Home(slot, mode, out Cells east, out Cells north, out Address door))
             {
                 continue;
             }
 
             _tickSeeking++;
 
-            if (TryEmploy(slot, east, north, radius, door, trips, tick))
+            if (TryEmploy(slot, east, north, radius, door, mode, trips, tick))
             {
                 _tickEmployed++;
             }
@@ -259,16 +261,35 @@ public sealed class EmploymentEngine
     /// outcome — which is the difference between an ordered preference and a sort.
     /// </para>
     /// <para>
+    /// <para>
+    /// ⚠ <b>The candidate is judged in the seeker's own mode, and that is <c>adr/0008</c> rather than
+    /// a refinement.</b> Session F refused a per-mode weight on the Commute Budget so that a walk and
+    /// a drive are compared on one clock — which only works if the clock is read in the mode the
+    /// journey is actually made in. A driver judged on walking time would refuse jobs they can reach
+    /// in ten minutes, and the shortfall would read as a labour-market finding.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The <em>box</em> is still derived from the Budget at walking speed, and for a driver it is
+    /// therefore far too small.</b> That is a live defect rather than a decision here, and it is
+    /// already filed to <c>plans/0002</c> §C with a measurement: the box covers 44.9× the golden
+    /// fixture's city and holds 100.0% of the Buildings in the world up to about 160,000 Citizens, so
+    /// it filters nothing in any world this project can currently build and the walk search is the
+    /// real bound. ⚠ <b>It becomes load-bearing the moment a city outgrows it</b>, and at that point a
+    /// driver's catchment is silently clipped to a pedestrian's.
+    /// </para>
+    /// <para>
     /// ⚠ <b>The rung is Separation only, and the grading it produces is therefore half of what
     /// <c>01 §4</c> describes.</b> That section names two scarcities that read as long commutes —
     /// Congestion and Separation — and a walk Leg cannot carry the first, by construction rather
     /// than by omission (<c>03 §3.7</c>). So a city grades worse here when it <em>spreads</em> and
     /// never when it fills up, and the rungs' values are percentiles of a free-flow distribution.
-    /// <c>adr/0070</c>: that is stated rather than compensated for.
+    /// <c>adr/0070</c>: that is stated rather than compensated for. ⚠ <b>A drive Leg does not fix
+    /// this yet</b> — 5c task 5 prices one at free-flow, and the congestion term is task 6.
     /// </para>
     /// </remarks>
     private bool TryEmploy(
-        int slot, Cells east, Cells north, Cells radius, Address door, TripRuleset trips, Ticks tick)
+        int slot, Cells east, Cells north, Cells radius, Address door, TravelMode mode,
+        TripRuleset trips, Ticks tick)
     {
         CellRect box = CellRect.At(east, north).Dilate(radius).Clamp();
 
@@ -312,7 +333,8 @@ public sealed class EmploymentEngine
             // and it is counted separately because it is the only quantity in this pass that reports
             // the shape of the network rather than the state of the economy.
             TravelTime cost = WalkRouting.Cost(
-                _world.Roads, door, _world.PedestrianAccessPoint(building), trips.CrossingCost, _walk);
+                _world.Roads, mode, door, _world.AccessPoint(building, mode), trips.CrossingCost,
+                _walk);
 
             if (!trips.TryRung(cost, out CommuteRung rung))
             {
@@ -357,7 +379,7 @@ public sealed class EmploymentEngine
     /// out of. They are counted as *considered* and not as *seeking*, because the queue they are in
     /// is the housing one and <see cref="PlacementEngine"/> is what serves it.
     /// </remarks>
-    internal bool Home(int slot, out Cells east, out Cells north, out Address door)
+    internal bool Home(int slot, TravelMode mode, out Cells east, out Cells north, out Address door)
     {
         east = default;
         north = default;
@@ -388,7 +410,7 @@ public sealed class EmploymentEngine
             return false;
         }
 
-        door = _world.PedestrianAccessPoint(dwelling);
+        door = _world.AccessPoint(dwelling, mode);
 
         // A dwelling with no frontage is a hole the Trip model reports (adr/0079), and it is a hole
         // here too: nobody can start a walk from a door that is not on a Segment. Not seeking, for

@@ -2,6 +2,7 @@ using Borough.Core;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Movement;
+using Borough.Core.Space;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Formats;
@@ -174,7 +175,7 @@ public sealed class JobAssignmentTests
             }
 
             TravelTime cost = WalkRouting.Cost(
-                world.Roads,
+                world.Roads, TravelMode.Foot,
                 world.PedestrianAccessPoint(home),
                 world.PedestrianAccessPoint(work),
                 trips.CrossingCost,

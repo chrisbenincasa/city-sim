@@ -91,7 +91,7 @@ public sealed class WalkSearchBenchmarkFixtureTests
         foreach (int blocks in (int[])[1, 2, 4, 8, 16, 32])
         {
             (Address from, Address to) = WalkSearchFixture.Apart(graph, blocks);
-            TravelTime cost = WalkRouting.Cost(graph, from, to, TravelTime.Zero, scratch);
+            TravelTime cost = WalkRouting.Cost(graph, TravelMode.Foot, from, to, TravelTime.Zero, scratch);
 
             Assert.False(cost.IsImpassable, $"the {blocks}-block pair is not reachable");
             Assert.True(
@@ -120,7 +120,7 @@ public sealed class WalkSearchBenchmarkFixtureTests
         var scratch = new WalkScratch();
 
         (Address kerb, Address opposite) = WalkSearchFixture.AcrossTheStreet(graph);
-        TravelTime cost = WalkRouting.Cost(graph, kerb, opposite, TravelTime.Zero, scratch);
+        TravelTime cost = WalkRouting.Cost(graph, TravelMode.Foot, kerb, opposite, TravelTime.Zero, scratch);
 
         Assert.False(cost.IsImpassable);
         Assert.Equal(0, scratch.Relaxed);
@@ -153,7 +153,7 @@ public sealed class WalkSearchBenchmarkFixtureTests
         var scratch = new WalkScratch();
 
         (Address islandA, Address islandB) = WalkSearchFixture.Severed(graph);
-        TravelTime cost = WalkRouting.Cost(graph, islandA, islandB, TravelTime.Zero, scratch);
+        TravelTime cost = WalkRouting.Cost(graph, TravelMode.Foot, islandA, islandB, TravelTime.Zero, scratch);
 
         Assert.True(cost.IsImpassable);
         Assert.Equal(0, scratch.Relaxed);

@@ -1060,6 +1060,56 @@ public sealed class World
     /// </remarks>
     public Address VehicleAccessPoint(int buildingSlot) => AccessPointOf(buildingSlot);
 
+    /// <summary>How a Citizen travels: by car if their Household keeps one, else on foot.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One place decides a Citizen's mode, and that is the whole reason this is on
+    /// <see cref="World"/> rather than in each caller.</b> <see cref="Movement.CommuteEngine"/> uses
+    /// it to make the journey and <see cref="Rules.EmploymentEngine"/> uses it to judge whether a job
+    /// is reachable. Two copies of the rule would let a Citizen take a job because they could walk to
+    /// it and then drive there, or the reverse — one fact stored twice with one copy drifting, which
+    /// is <c>plans/0012</c> <b>Cause 1</b> written in code instead of prose.
+    /// </para>
+    /// <para>
+    /// <b>Judging and travelling in the same mode is <c>adr/0008</c>'s requirement, not a
+    /// convenience.</b> Session F refused a per-mode weight on the Commute Budget precisely so that a
+    /// walk and a drive are compared on one clock; a driver judging a job by walking time is applying
+    /// that Budget in the wrong currency, and the resulting shortfall would read as a labour-market
+    /// finding rather than as a unit error.
+    /// </para>
+    /// <para>
+    /// <b>A Citizen with no resolvable Household walks.</b> That is a referential break rather than a
+    /// state the city reaches, and the caller's next act is a route search — which is the operation
+    /// that already reports an impossible journey honestly, so there is nothing better to do here
+    /// than answer with the mode that owns no assumptions.
+    /// </para>
+    /// </remarks>
+    public TravelMode ModeOf(int citizenSlot)
+    {
+        if (!Rules.Households.Runs
+            || !Households.Rows.TryResolve(Citizens.HouseholdOf[citizenSlot], out int household))
+        {
+            return TravelMode.Foot;
+        }
+
+        return Rules.Households.OwnsCar(Key, Households.Rows.IdAt(household))
+            ? TravelMode.Car
+            : TravelMode.Foot;
+    }
+
+    /// <summary>Where a traveller in this mode arrives at a Building.</summary>
+    /// <remarks>
+    /// <b>The two are the same Address today and the caller must not know that.</b>
+    /// <see cref="VehicleAccessPoint"/> explains why they are equal and what would separate them —
+    /// milestone 8's parking, and <c>03 §6.6</c>'s freight. A caller that reached for
+    /// <see cref="PedestrianAccessPoint"/> for both would be correct now and silently wrong on the day
+    /// they diverge, with no compile error and no failing test to say so.
+    /// </remarks>
+    public Address AccessPoint(int buildingSlot, TravelMode mode) =>
+        mode == TravelMode.Car
+            ? VehicleAccessPoint(buildingSlot)
+            : PedestrianAccessPoint(buildingSlot);
+
     /// <summary>The Address of the Lot a Building stands on, or <see cref="Address.None"/>.</summary>
     /// <remarks>
     /// The handle resolve is not defensive: <see cref="LotTable"/> is earlier in declaration order

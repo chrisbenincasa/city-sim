@@ -234,4 +234,32 @@ public enum PurposeTag : ulong
     /// <em>whether</em> they were sampled for work, which is a correlation with no cause in the city.
     /// </remarks>
     CommuteDeparture = 14,
+
+    /// <summary>
+    /// Whether a Household keeps a car (<c>01 §8</c> ledger #3, 5c task 5).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A <see cref="Ticks.Zero"/> draw, and the second one, for
+    /// <see cref="CommuteDeparture"/>'s reason exactly</b> — it answers <i>what sort of Household is
+    /// this</i> rather than <i>what happens now</i>. A car that re-rolled every Tick would be a
+    /// household selling and repurchasing a vehicle continuously, which is neither the simple
+    /// assumption <c>01 §8</c> names nor the endogenous mechanism it defers.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What the draw buys is a <em>nested</em> set, and that is the property that makes the rate
+    /// hot-reloadable.</b> Ownership is <c>draw % 100 &lt; rate</c>, so lowering the rate takes cars
+    /// from the Households at the top of their own fixed ordering and leaves every other one holding
+    /// exactly what it held. A saved column re-rolled on reload would churn the whole city for a
+    /// one-point change, and a saved column <em>not</em> re-rolled would make a key in a
+    /// hot-reloadable file silently world-creation-fixed.
+    /// </para>
+    /// <para>
+    /// <b>Distinct from <see cref="CommuteDeparture"/> because both are properties of the same
+    /// commuter.</b> Sharing would make the households that drive exactly the households that leave
+    /// earliest — a rush hour composed of drivers followed by a second one composed of walkers, with
+    /// no cause in the city and a visible signature in every peak measurement.
+    /// </para>
+    /// </remarks>
+    CarOwnership = 15,
 }

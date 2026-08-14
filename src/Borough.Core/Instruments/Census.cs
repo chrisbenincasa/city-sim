@@ -75,8 +75,18 @@ public sealed class Census
     /// <summary>The placement pass's share, on the same terms.</summary>
     private const int PlacementMetrics = PlacementCounters * AggregatesPerRuleCounter;
 
-    /// <summary>The members of <see cref="TripCounter"/>, which <c>adr/0076</c> closes at four.</summary>
-    private const int TripCounters = 4;
+    /// <summary>
+    /// The members of <see cref="TripCounter"/>: <c>adr/0076</c>'s four Fates plus 5c task 5's two
+    /// Leg-mode counters.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Six, and only four of them are Fates.</b> <c>adr/0076</c> closes the <em>Fate</em> set at
+    /// four and that is still true; <see cref="TripCounter.WalkLegs"/> and
+    /// <see cref="TripCounter.DriveLegs"/> count Legs, which is a different denominator in the same
+    /// family. A future reader tempted to write <c>4</c> back here from the ADR should read
+    /// <see cref="TripCounter"/>'s own remarks first.
+    /// </remarks>
+    private const int TripCounters = 6;
 
     /// <summary>Tick phase 4's share, on the same terms.</summary>
     private const int TripMetrics = TripCounters * AggregatesPerRuleCounter;
@@ -290,6 +300,8 @@ public sealed class Census
             _values, at + _tripBase,
             (int)TripCounter.ExceededCommuteBudget, trips.ExceededCommuteBudget);
         Write(_values, at + _tripBase, (int)TripCounter.Stranded, trips.Stranded);
+        Write(_values, at + _tripBase, (int)TripCounter.WalkLegs, trips.WalkLegs);
+        Write(_values, at + _tripBase, (int)TripCounter.DriveLegs, trips.DriveLegs);
 
         Write(_values, at + _jobBase, (int)JobCounter.Considered, jobs.Considered);
         Write(_values, at + _jobBase, (int)JobCounter.Seeking, jobs.Seeking);
@@ -407,7 +419,8 @@ public sealed class Census
         if (metric.Source is MetricSource.Trips)
         {
             if (metric.TripCounter is not (TripCounter.Completed or TripCounter.NoRouteFound
-                or TripCounter.ExceededCommuteBudget or TripCounter.Stranded))
+                or TripCounter.ExceededCommuteBudget or TripCounter.Stranded
+                or TripCounter.WalkLegs or TripCounter.DriveLegs))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.TripCounter, "not a Trip counter this census reads.");
