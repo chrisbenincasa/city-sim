@@ -60,9 +60,13 @@ public sealed class RouteCache
     /// <summary>An empty slot, and a length no real route can have.</summary>
     private const int Empty = -1;
 
+    /// <summary>No slot was given up, so the route is served and not stored.</summary>
+    private const int NoSlot = -1;
+
     private readonly int _sets;
     private readonly int _stride;
     private readonly RouteStaleness _policy;
+    private readonly RouteEviction _eviction;
 
     private readonly ulong[] _keyOrigin;
     private readonly ulong[] _keyDestination;
@@ -95,7 +99,12 @@ public sealed class RouteCache
     /// <see cref="TooLong"/>.
     /// </param>
     /// <param name="policy">What an entry may be wrong about after a road is added.</param>
-    public RouteCache(int entries, int maxSegments, RouteStaleness policy)
+    /// <param name="eviction">Which entry a full set gives up. See <see cref="RouteEviction"/>.</param>
+    public RouteCache(
+        int entries,
+        int maxSegments,
+        RouteStaleness policy,
+        RouteEviction eviction = RouteEviction.Mru)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(entries, Ways);
         ArgumentOutOfRangeException.ThrowIfLessThan(maxSegments, 1);
@@ -103,6 +112,7 @@ public sealed class RouteCache
         _sets = IntegerMath.FloorDiv(entries, Ways);
         _stride = maxSegments;
         _policy = policy;
+        _eviction = eviction;
 
         int slots = _sets * Ways;
 
@@ -170,6 +180,12 @@ public sealed class RouteCache
 
     /// <summary>The staleness rung this store was built with.</summary>
     public RouteStaleness Policy => _policy;
+
+    /// <summary>The replacement policy this store was built with.</summary>
+    public RouteEviction Eviction => _eviction;
+
+    /// <summary>Insertions a <see cref="RouteEviction.None"/> store refused because its set was full.</summary>
+    public int Refused { get; private set; }
 
     /// <summary>The longest route an entry can hold.</summary>
     public int Stride => _stride;
@@ -313,6 +329,7 @@ public sealed class RouteCache
         TooLong = 0;
         Rotated = 0;
         Flushes = 0;
+        Refused = 0;
     }
 
     /// <summary>
@@ -325,11 +342,17 @@ public sealed class RouteCache
     /// conflict misses. A uniform draw cannot see the difference, which is why the spike nearly did
     /// not make the change.
     /// </remarks>
-    private int SetOf(ulong origin, ulong destination)
+    private int SetOf(ulong origin, ulong destination) =>
+        (int)((Mix(origin, destination) >> 32) % (uint)_sets);
+
+    /// <summary>splitmix64's finaliser over a node-id pair.</summary>
+    /// <remarks>
+    /// <b>A named integer mix rather than a hash-map's</b>, because <c>object.GetHashCode()</c> is
+    /// banned outright in <c>Core</c> and a shift-xor written inline would be a fourth undocumented
+    /// mixing function in this tree.
+    /// </remarks>
+    private static ulong Mix(ulong origin, ulong destination)
     {
-        // splitmix64's finaliser. A named integer mix rather than a hash-map's, because
-        // object.GetHashCode() is banned outright in Core and a shift-xor written inline would be a
-        // fourth undocumented mixing function in this tree.
         ulong mixed = origin * 0x9E3779B97F4A7C15UL;
         mixed ^= destination + 0x9E3779B97F4A7C15UL + (mixed << 6) + (mixed >> 2);
         mixed ^= mixed >> 30;
@@ -338,7 +361,7 @@ public sealed class RouteCache
         mixed *= 0x94D049BB133111EBUL;
         mixed ^= mixed >> 31;
 
-        return (int)((mixed >> 32) % (uint)_sets);
+        return mixed;
     }
 
     /// <summary>Whether every Segment an entry names is still the Segment it was computed over.</summary>
@@ -362,6 +385,39 @@ public sealed class RouteCache
 
     private void Drop(int slot) => _length[slot] = Empty;
 
+    /// <summary>Searches and hands the route back through the overflow buffer, storing nothing.</summary>
+    private bool Serve(
+        RoadGraph graph,
+        int origin,
+        int destination,
+        TravelMode mode,
+        WalkScratch scratch,
+        out ReadOnlySpan<int> route)
+    {
+        scratch.Begin(graph.Nodes.Rows.SlotCount, recordPath: true);
+        scratch.Seed(origin, TravelTime.Zero);
+        scratch.Search(graph, mode, destination, destination, TravelTime.Zero, TravelTime.Zero);
+
+        if (scratch.Arrived != destination)
+        {
+            route = default;
+
+            return false;
+        }
+
+        int length = scratch.PathTo(graph.Arcs, destination, []);
+
+        if (_overflow.Length < length)
+        {
+            _overflow = new int[length];
+        }
+
+        scratch.PathTo(graph.Arcs, destination, _overflow);
+        route = _overflow.AsSpan(0, length);
+
+        return true;
+    }
+
     /// <summary>Searches, stores if it fits, and hands back the route either way.</summary>
     private bool Insert(
         RoadGraph graph,
@@ -374,7 +430,15 @@ public sealed class RouteCache
         int first,
         out ReadOnlySpan<int> route)
     {
-        int victim = Victim(first);
+        int victim = Victim(first, from, to);
+
+        if (victim == NoSlot)
+        {
+            // The set is full and this policy displaces nothing, so the route is computed, served and
+            // discarded. Correct, and it is the whole of what RouteEviction.None costs.
+            return Serve(graph, origin, destination, mode, scratch, out route);
+        }
+
         int at = victim * _stride;
 
         scratch.Begin(graph.Nodes.Rows.SlotCount, recordPath: true);
@@ -441,23 +505,58 @@ public sealed class RouteCache
     /// outright, and a Tick would make eviction order depend on when a lookup happened rather than on
     /// what happened.
     /// </remarks>
-    private int Victim(int first)
+    private int Victim(int first, ulong from, ulong to)
     {
-        int oldest = first;
-
         for (int slot = first; slot < first + Ways; slot++)
         {
             if (_length[slot] == Empty)
             {
                 return slot;
             }
-
-            if (_used[slot] < _used[oldest])
-            {
-                oldest = slot;
-            }
         }
 
-        return oldest;
+        switch (_eviction)
+        {
+            case RouteEviction.None:
+                Refused++;
+
+                return NoSlot;
+
+            case RouteEviction.Random:
+                // Counter-based and drawn from the arriving key, so two identical cities evict
+                // identically. A stream would be a second source of order in a structure whose whole
+                // claim is that a hit equals a miss.
+                return first + (int)((Mix(from, to) >> 16) % Ways);
+
+            case RouteEviction.Mru:
+            {
+                int newest = first;
+
+                for (int slot = first + 1; slot < first + Ways; slot++)
+                {
+                    if (_used[slot] > _used[newest])
+                    {
+                        newest = slot;
+                    }
+                }
+
+                return newest;
+            }
+
+            default:
+            {
+                int oldest = first;
+
+                for (int slot = first + 1; slot < first + Ways; slot++)
+                {
+                    if (_used[slot] < _used[oldest])
+                    {
+                        oldest = slot;
+                    }
+                }
+
+                return oldest;
+            }
+        }
     }
 }

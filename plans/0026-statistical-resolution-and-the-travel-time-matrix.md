@@ -586,38 +586,70 @@ Citizens over 1,031 distinct node pairs, 222 Segments live**. Store 4,096 entrie
 **Served against searched: 0.525 µs against 12.349 µs — 23.5×**, at a store that covers the working
 set. ⚠ *That figure is a property of the coverage and not of the cache; see below.*
 
+**And what the store has to cover grows with the city.** Every column here is measured; ⚠ **none of
+them is extrapolated, and finding 3 is what an earlier draft did when it tried.**
+
+| Citizens | Employed | Distinct pairs | Median route | p90 | Max | Shared | Hit @1024 | Hit @4096 |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1,000 | 308 | 201 | — | — | 8 | 34.7% | 100.00% | 100.00% |
+| 2,000 | 625 | 445 | — | — | 10 | 28.8% | 94.08% | 100.00% |
+| 4,000 | 1,254 | 1,031 | **5** | 9 | 13 | **17.78%** | 53.19% | 98.88% |
+| 8,000 | 2,584 | 2,248 | — | — | 19 | 13.0% | 12.93% | 86.84% |
+| 16,000 | 5,199 | 4,808 | **8** | 12 | 26 | **7.52%** | 2.83% | 36.68% |
+
+⚠ **These are *foot* routes and the Commute Budget caps them absolutely** — 50 minutes at 5 km/h is
+4.17 km, about **32 blocks** — so the length column has a ceiling and is not a curve to project. By car
+the same ceiling reaches 41.7 km against a 19.2 km city at 1M, so it does not bind at all and route
+length becomes a property of the map. ***The two distributions are different questions and only the
+foot one exists.*** The employment column is `rulesets/minimal.toml`'s and **not a design target**:
+`[[building]] jobs = 8` on the dwelling kind gives 0.96 jobs per resident, and the file's own header
+says it models no city.
+
 #### Findings
 
-**1. ⚠ The largest one is that `adr/0047`'s cost arrived at the destination, and this is the task that
-opened the box.** That ADR moved route storage out of the travel-time matrix because S2 R1 found the
-**route store — 4.06 GiB at 4,096 zones against a 172.3 MiB world** — was the matrix's binding
-constraint, and sent the routes to *"the route cache"*. **Nobody checked the cache.** Its hit rate is
-`store ÷ distinct pairs`, and the second term is the employed population:
+**1. ⚠ The largest one is that a key on *pairs* buys almost nothing, and it is the number
+[`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md) said could not be taken.** That
+ADR: *"the price of the key is settled exactly and the benefit cannot be settled at all until Trip
+generation exists (`06` 5b)."* It exists. The share of commutes that **share a node pair with another
+commute** — the whole of what a shared store buys over a per-traveller one — is **17.78% at 4,000
+Citizens and 7.52% at 16,000**, and it **falls as the city grows**, because the paved extent grows with
+the population. R6.1b measured the same thing from the coarsening side (*collapse reads 1.00× on every
+row*) and could not see it. ***A key that merges almost nothing is a key chosen for a property the
+traffic does not have.*** [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) and
+`adr/0012` are both amended; where routes live at 1M is [`0002`](0002-open-questions.md) §C and is
+**not 5c's**.
 
-| Citizens | Employed | Distinct pairs | Longest route | Hit @1024 | Hit @4096 |
+**2. ⚠ The access pattern a commute produces is the one LRU is provably worst on, and `adr/0012`
+specifies LRU.** A commute is a **once-per-Day cyclic scan** — every employed Citizen departs once a
+Day, in an order `CommuteRoster` fixes — so over a working set larger than the store, LRU evicts
+exactly the entry needed next. At 16,000 Citizens, 4,808 distinct pairs, a 1,024-entry store, against a
+ceiling of **21.30%**:
+
+| store | ceiling | LRU | MRU | Random | refuse-to-displace |
 |---:|---:|---:|---:|---:|---:|
-| 1,000 | 308 | 201 | 8 | 100.00% | 100.00% |
-| 2,000 | 625 | 445 | 10 | 94.08% | 100.00% |
-| 4,000 | 1,254 | 1,031 | 13 | 53.19% | 98.88% |
-| 8,000 | 2,584 | 2,248 | 19 | 12.93% | 86.84% |
-| 16,000 | 5,199 | 4,808 | 26 | 2.83% | **36.68%** |
+| 256 | 5.32% | 0.79% | 5.08% | 0.85% | **5.64%** |
+| 1,024 | 21.30% | **2.83%** | 19.54% | 3.79% | **22.41%** |
+| 4,096 | 85.19% | **36.68%** | 72.42% | 58.30% | **74.51%** |
 
-**Distinct pairs are 0.30 × population, dead linear**, and the longest route grows as **√population**
-because the paved extent does (`plans/0003` queue item 6). So a store **held constant** falls
-100% → 36.7% over a 16× population change, and one serving 1M at 99% is ~300,000 pairs × ~206 Segments
-≈ **4 GB** — R1's own number, at the place the decision moved it to. ***A cost that was moved is not a
-cost that was removed, and nothing recomputes it on arrival.*** `adr/0047` and `adr/0012` are amended;
-the design question is [`0002`](0002-open-questions.md) §C and is **not 5c's**.
+**R6's four-way result is untouched and was answering a different question** — conflict misses, a
+property of the hash, across 1/2/4/8 ways. Which entry a *full set* gives up had never been measured
+against this draw. ⚠ **Random fails here and succeeds in the textbook because the textbook cache is
+fully associative**: inside a four-way set a random victim still churns the set out over one cycle.
+`RouteEviction` defaults to **MRU** — within three points of the best and, unlike refuse-to-displace,
+still able to admit a pair whose Citizen changed job. ***A policy that wins on a frozen input has not
+been shown to win***, and the measurement re-ran one commute set four times.
 
-⚠ **And `adr/0012`'s revisit trigger fired for a reason it did not name.** It says *"if the hit rate
-comes back low, the amendment stands and the cache does not"* and expects low **repetition** — the
-cache's case is *"repetition is the whole of the case"*. Repetition is fine: a commute recurs every
-Day on the same pair. What is low is **coverage**. ***A trigger names the symptom it expects and fires
-on any cause of that symptom, so the cause has to be attributed before the trigger is acted on*** —
-53.19% at the first store size looked exactly like the death of the cache and was the store being 4×
-too small.
+**3. ⚠ This task's first close-out carried a memory figure and every input to it was misused.** It said
+route storage at 1M was *~4 GB*. Withdrawn entirely — the full account is `plans/0012` **Cause 5**,
+seventh sighting. In short: a `√population` fit through five points, a route-length **maximum** where
+memory scales on the **median** (26 against 8), an employment ratio taken from a Ruleset whose header
+says it models no city, and a **cache working set** used as a count of routes that must exist at once.
+***An extrapolation is a claim about a mechanism, not about a curve*** — the Commute Budget caps a foot
+route absolutely at ~32 blocks and the fit ran straight through it. **No memory figure for route
+storage exists or may be quoted**; the distribution that would produce one is a **car** route
+distribution and task 5 is where it is taken.
 
-**2. The brief was wrong twice and both were caught by reading the source rather than the summary.**
+**4. The brief was wrong twice and both were caught by reading the source rather than the summary.**
 It said *no TTL rotation — R5.5.4's rotation was the shed's answer and `adr/0083` explicitly declines
 to carry the parameter across*. R5.5.4 rotated **this** store, resident population 412, and `adr/0012`
 says of it *"0.40 forced refreshes per Tick is affordable there and **stays**"*; `adr/0083` is the
@@ -627,7 +659,7 @@ brief's *addition bound checked at use with a proximity wake* **cannot be built 
 all**: both hang on a per-Citizen Habit, which this document's own *must not do* list forbids. Third
 consecutive task whose brief was wrong about a document (`adr/0093`).
 
-**3. The rung is deliberately not chosen, and the blocker is a fixture rather than an argument.** The
+**5. The rung is deliberately not chosen, and the blocker is a fixture rather than an argument.** The
 detour numbers are an order of magnitude smaller than R5.5.4's — 14 of 1,254 at 0.44% against 38 of
 412 at 16.35% — because **both shipped Rulesets set `arterial_count = 0`**, so a four-Segment gesture
 deletes four *Streets* on a dense lattice and everybody walks round one block. That is milestone 5a's
@@ -635,7 +667,7 @@ deletes four *Streets* on a dense lattice and everybody walks round one block. T
 axis rather than the connectivity one. On this fixture the exact rung spends **34 extra searches to
 correct one stale route**, which chooses nothing. All three rungs ship; `0002` §C names the machine.
 
-**4. The handle is load-bearing and the Epoch alone would have been a live defect.** A validated entry
+**6. The handle is load-bearing and the Epoch alone would have been a live defect.** A validated entry
 compares each Segment's stored Epoch against the current one — and a freed slot is recycled, with the
 new Segment opening at **Epoch 1**, which is exactly what a never-edited Segment carries. So a stored
 Epoch of 1 on a recycled slot is a **false hit**: a route through a road that was demolished and
@@ -644,13 +676,13 @@ bulldozes at Tick 129 and lays at Tick 200. The entry stores `Handle<RoadSegment
 `Rows.IsValid` catches the generation. ***An Epoch is a per-object clock and says nothing about which
 object it belongs to.***
 
-**5. The measurement instrument had to compare costs and not routes, and comparing routes would have
+**7. The measurement instrument had to compare costs and not routes, and comparing routes would have
 reported every rung as equally bad.** Two different Segment lists of identical cost are the same
 answer, and a lattice of identical Streets produces them constantly — which is precisely why
 `WalkScratch.Precedes` breaks ties on the node slot. The detour column is `served cost` against
 `fresh search cost` on the graph as it now stands.
 
-**6. Two smaller ones.** `RouteCache` is the first thing here to need a **named integer mix**, because
+**8. Two smaller ones.** `RouteCache` is the first thing here to need a **named integer mix**, because
 `object.GetHashCode()` is banned in `Core` and an inline shift-xor would have been a fourth
 undocumented mixing function in the tree; splitmix64's finaliser is used and named. And the analyser
 caught the constructor's `entries / Ways` as `BOR0203` on the first build — **the raw-`/` lint firing

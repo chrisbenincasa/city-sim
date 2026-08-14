@@ -465,6 +465,124 @@ public sealed class RouteCacheTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// ⚠ <b>The replacement policy against the access pattern a commute actually is</b>, plus the two
+    /// numbers that decide whether a shared pair-keyed store can work at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A commute is a once-per-Day cyclic scan and LRU is provably worst on one.</b> Every employed
+    /// Citizen departs once a Day and <c>CommuteRoster</c> puts each in a fixed bucket, so the order is
+    /// stable across Days. Over a working set larger than the store, LRU evicts precisely the entry
+    /// needed next. The rungs here test whether anything recovers it — and the answer bounds itself,
+    /// because on a *uniform* scan no policy can retain a better subset than an arbitrary one.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The sharing column is the number <c>adr/0012</c> says could not be taken.</b> That ADR:
+    /// *"the price of the key is settled exactly and the benefit cannot be settled at all until Trip
+    /// generation exists (`06` 5b)"*. It exists. This is the benefit, and it is the fraction of
+    /// commutes that share a node pair with another commute — the only thing a store keyed by pair
+    /// rather than by traveller can ever buy.
+    /// </para>
+    /// <para>
+    /// <b>The median column exists because 5c task 4's first filing extrapolated a maximum.</b> Memory
+    /// scales on the middle of a distribution and the earlier reading was its tail, which is the same
+    /// error <c>plans/0012</c> **Cause 5** governs, committed on a number this session produced itself.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Which_replacement_policy_survives_a_commute_scan()
+    {
+        WalkScratch scratch = new();
+
+        foreach (int population in (int[])[4000, 16000])
+        {
+            Simulation simulation = Populated(population, Settled);
+            RoadGraph graph = simulation.World.Roads;
+            (int From, int To)[] commutes = [.. CommutePairs(simulation)];
+
+            if (commutes.Length == 0)
+            {
+                continue;
+            }
+
+            int distinct = Distinct(commutes);
+            int[] lengths = [.. RouteLengths(graph, commutes, scratch)];
+
+            Array.Sort(lengths);
+
+            output.WriteLine($"=== {population} Citizens: {commutes.Length} commutes, "
+                + $"{distinct} distinct pairs ===");
+            output.WriteLine($"  shared: {Percent(commutes.Length - distinct, commutes.Length)} of "
+                + "commutes share a node pair with another — all a pair key can ever buy");
+            output.WriteLine($"  route length: median {lengths[lengths.Length / 2]}, "
+                + $"p90 {lengths[lengths.Length * 9 / 10]}, max {lengths[^1]} Segments");
+            output.WriteLine("");
+            output.WriteLine("  store    ceiling      Lru      Mru   Random     None");
+
+            foreach (int entries in (int[])[256, 1024, 4096])
+            {
+                string ceiling = Percent(Math.Min(entries, distinct), distinct);
+
+                output.WriteLine($"  {entries,5}   {ceiling,8}   "
+                    + $"{Scan(graph, commutes, scratch, entries, RouteEviction.Lru),6}   "
+                    + $"{Scan(graph, commutes, scratch, entries, RouteEviction.Mru),6}   "
+                    + $"{Scan(graph, commutes, scratch, entries, RouteEviction.Random),6}   "
+                    + $"{Scan(graph, commutes, scratch, entries, RouteEviction.None),6}");
+            }
+
+            output.WriteLine("");
+        }
+    }
+
+    /// <summary>
+    /// The steady-state hit rate over repeated Days — <b>the scan, not a warm-up</b>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Four passes and the reading is the fourth</b>, because one pass measures a store filling up
+    /// and two measures the transient after it filled. A cyclic access pattern's cost only appears once
+    /// the store has been round the cycle at least twice.
+    /// </remarks>
+    private static string Scan(
+        RoadGraph graph,
+        (int From, int To)[] commutes,
+        WalkScratch scratch,
+        int entries,
+        RouteEviction eviction)
+    {
+        RouteCache cache = new(entries, Stride, RouteStaleness.Exact, eviction);
+
+        for (int day = 0; day < 4; day++)
+        {
+            if (day == 3)
+            {
+                cache.ResetCounters();
+            }
+
+            foreach ((int from, int to) in commutes)
+            {
+                _ = cache.Find(graph, from, to, TravelMode.Foot, scratch, out _);
+            }
+        }
+
+        return Percent(cache.Hits, cache.Hits + cache.Misses);
+    }
+
+    /// <summary>Every commute's route length, so a median can be taken rather than a maximum.</summary>
+    private static IEnumerable<int> RouteLengths(
+        RoadGraph graph, (int From, int To)[] commutes, WalkScratch scratch)
+    {
+        RouteCache cache = new(RouteCache.Ways, 4096, RouteStaleness.Exact);
+
+        foreach ((int from, int to) in commutes)
+        {
+            if (cache.Find(graph, from, to, TravelMode.Foot, scratch, out ReadOnlySpan<int> route))
+            {
+                yield return route.Length;
+            }
+        }
+    }
+
+    /// <summary>
     /// How many routes the store serves that are worse than a fresh search, and by how much.
     /// </summary>
     /// <remarks>

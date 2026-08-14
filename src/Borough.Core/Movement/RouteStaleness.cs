@@ -74,3 +74,88 @@ public enum RouteStaleness
     /// </remarks>
     KeepAndRotate,
 }
+
+/// <summary>
+/// Which entry a full set gives up when a new route arrives.
+/// </summary>
+/// <remarks>
+/// <para>
+/// ⚠ <b>A switch because the access pattern this store actually sees is the one replacement policy
+/// LRU is provably worst at.</b> A commute is a <b>once-per-Day cyclic scan</b>: every employed
+/// Citizen departs once per Day, and <see cref="CommuteRoster"/> puts each in a fixed bucket, so the
+/// order is stable across Days. Over a working set larger than the store, LRU evicts precisely the
+/// entry that is needed next and converges toward zero — measured at <b>2.83%</b> where a policy that
+/// simply holds a fixed subset would give <c>store ÷ working set</c>.
+/// </para>
+/// <para>
+/// <b>And <c>store ÷ working set</c> is the ceiling, not a target.</b> On a uniform cyclic scan every
+/// key is equally likely to be needed next, so no policy can retain a better subset than an arbitrary
+/// one — the information a smarter policy would need does not exist in the access stream. The rungs
+/// below therefore split into <em>LRU, which is uniquely bad</em> and <em>everything else, which is at
+/// the ceiling</em>. Choosing between them buys the gap and nothing beyond it.
+/// </para>
+/// <para>
+/// ⚠ <b>R6's four-way measurement is not evidence about this axis.</b> It measured <em>conflict</em>
+/// misses — how a key maps to a set — across 1, 2, 4 and 8 ways, which is a property of the hash and
+/// the associativity. Which entry a full set gives up is a different question, and the draw R6 used
+/// was not a cyclic scan.
+/// </para>
+/// <para>
+/// <b>Measured on a real commute draw, 5c task 4</b> (16,000 Citizens, 4,808 distinct pairs, store
+/// 1,024, ceiling 21.30%): <b>LRU 2.83%, Random 3.79%, MRU 19.54%, None 22.41%</b>.
+/// ⚠ <b>Random fails here and it succeeds in the textbook, because the textbook cache is fully
+/// associative.</b> Inside a four-way set a random victim still churns the set out over one cycle —
+/// a resident entry survives each colliding arrival with probability ¾, and a set takes many arrivals
+/// per Day. <b>Only a policy that refuses to displace, or one that inverts recency, holds a stable
+/// subset.</b>
+/// </para>
+/// </remarks>
+public enum RouteEviction
+{
+    /// <summary>
+    /// Least recently used. <c>adr/0012</c>'s stated policy, and ⚠ the worst possible one for a scan.
+    /// </summary>
+    Lru,
+
+    /// <summary>
+    /// Most recently used — <b>evict what was just served, because a cyclic scan will not want it
+    /// again until the cycle comes round.</b>
+    /// </summary>
+    /// <remarks>
+    /// The textbook inversion for this access pattern: LRU's rule is exactly wrong when recency
+    /// predicts a <em>long</em> wait rather than a short one. It protects whatever subset it happens to
+    /// hold, which is the ceiling.
+    /// </remarks>
+    Mru,
+
+    /// <summary>
+    /// A deterministic pseudo-random victim, drawn from the key rather than from a stream.
+    /// </summary>
+    /// <remarks>
+    /// <b>Counter-based and not a stream</b>, per <c>CLAUDE.md</c>'s randomness rule — the victim is a
+    /// function of the arriving key and the set, so two identical cities evict identically and
+    /// <c>System.Random</c> never enters <c>Borough.Core</c>. Scan-resistant by having no memory to
+    /// mislead.
+    /// </remarks>
+    Random,
+
+    /// <summary>
+    /// Nothing is ever displaced: a full set refuses new routes and serves what it holds.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The control, and it is a real policy rather than a degenerate one.</b> On a uniform scan it
+    /// reaches the same ceiling as the others at zero bookkeeping and zero churn — which is the fact
+    /// that says the gap between LRU and the rest is the whole of what a policy can buy here. It
+    /// scored highest of the four.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>And it is not the default, because its edge is a property of a draw that never changes.</b>
+    /// The measurement re-ran one commute set; a city changes jobs, and a full set under this policy can
+    /// <em>never</em> admit the new pair. <see cref="Mru"/> is within three points on a static draw and
+    /// adapts, so the default is chosen on a structural property rather than on the three points.
+    /// ***A policy that wins on a frozen input has not been shown to win.***
+    /// </para>
+    /// </remarks>
+    None,
+}

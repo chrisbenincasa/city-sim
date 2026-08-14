@@ -395,6 +395,41 @@ own — *the obligation a deletion creates is a re-derivation, not a retraction*
 obligation it creates is a measurement **at the destination**, and no document in this corpus records
 one.** Filed to [`0002`](0002-open-questions.md) §C.
 
+
+⚠ **The seventh sighting is the sixth's own repair, written the same day, wrong in four places at
+once — and it is a *projection* rather than a quotation.** The amendment above originally carried a
+memory figure, *~4 GB at 1M*, built from numbers this session had itself measured an hour earlier.
+Every input was real and every one was used outside what it measures:
+
+| Used as | What it actually was |
+|---|---|
+| route length at 1M | a fitted `√population` curve through **five points** spanning 16× |
+| bytes per route | the **maximum** route in the draw, where memory scales on the **median** — 26 against 8 |
+| workers at 1M | the employment ratio of `rulesets/minimal.toml`, **a file whose header says it models no city** |
+| routes that must exist | **distinct pairs over a Day**, which is a *cache working set* and not a live count |
+
+**The general form, and it is not this cause's reading rule:** ***an extrapolation is a claim about a
+mechanism, not about a curve.*** A fitted curve says what a quantity *did* over the range measured; a
+projection asserts that nothing outside that range stops it. Here something did — **the Commute Budget
+caps a foot route absolutely**, at 50 minutes × 5 km/h = 4.17 km ≈ 32 blocks, however large the city
+grows — and the fitted exponent ran straight through the ceiling and out the other side. **The check is
+one question asked before the multiplication: *what would stop this growing, and have I looked for
+it?*** Nobody had, because a curve through five points looks like evidence and a ceiling looks like
+nothing at all.
+
+**Two corollaries worth carrying separately.** ***A maximum and a median are different numbers about
+the same distribution, and which one belongs is decided by the consumer*** — memory takes the median, a
+fixed stride takes the p90, a correctness bound takes the maximum — and the reading to hand was the
+maximum because that is what an earlier test happened to print. And ***a ratio measured off a fixture
+that disclaims being a city is a property of the fixture***, which is `plans/0013`'s *a unit cost is a
+hypothesis until a real world has produced one* arriving on the **denominator**; filed to
+[`0002`](0002-open-questions.md) §C in its own right, because that ratio had by then been used three
+times in one afternoon.
+
+⚠ **The tell that would have caught it is cheap and was available throughout: the figure had no
+consumer.** Nothing was blocked on route memory at 1M, no decision turned on it, and no document had
+asked for it. ***A number produced because it was producible is a number nobody will check.***
+
 ***The second sighting is the one to remember, because it happened while writing this section.*** A
 caveat is a claim, so it travels exactly as badly as a number does, and compressing one for a table cell
 is how it acquires the ambiguity that makes it dangerous elsewhere. **Do not compress a disqualifier to

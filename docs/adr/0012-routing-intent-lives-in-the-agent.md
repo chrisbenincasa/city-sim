@@ -80,29 +80,48 @@ It is also what makes the **Provider List** meaningful. A Household holds a shor
   >
   > **R5.5.4's rotation is retained where it was measured and nowhere else.** It rotated the **shared pair-keyed cache**, resident population **412** — a store whose size is a design choice and therefore constant in the city. 0.40 forced refreshes per Tick is affordable there and stays. It was never evidence about the Habit store, which R5.5.4 did not have in front of it and which is four orders of magnitude larger.
   >
-  > ⚠ **AMENDED 2026-08-14 by 5c task 4, which built this store and measured it on a real city.** Two
-  > corrections, and the second is the load-bearing one.
+  > ⚠ **AMENDED 2026-08-14 by 5c task 4, which built this store and measured it on a real city.**
+  > Three corrections, and the third closes a question this ADR left open by name.
   >
   > **First, the staleness numbers are an order of magnitude smaller here and the reason is the
-  > fixture, not the design.** A four-Segment bulldoze-and-restore gesture on the shipped Ruleset
-  > leaves **14 of 1,254** routes stale at a **0.44%** mean detour, against R5.5.4's 38 of 412 at
-  > 16.35%. Both shipped Rulesets set `arterial_count = 0`, so the gesture deletes four *Streets* on a
-  > dense lattice and everybody walks round one block — which is milestone 5a's *severance is a
-  > property of the grid's fineness relative to the barrier* arriving on the detour axis. **The
-  > rotation is measured working**: 14 → **0** over 1,024 Ticks with traffic. ⚠ The rung is
-  > **not chosen here** and `RouteStaleness` ships all three, because the number that would choose it
-  > has to be taken on a city with an Arterial in it and no such Ruleset exists.
+  > fixture.** A four-Segment bulldoze-and-restore gesture on the shipped Ruleset leaves **14 of 1,254**
+  > routes stale at a **0.44%** mean detour, against R5.5.4's 38 of 412 at 16.35%. Both shipped Rulesets
+  > set `arterial_count = 0`, so the gesture deletes four *Streets* on a dense lattice and everybody
+  > walks round one block — milestone 5a's *severance is a property of the grid's fineness relative to
+  > the barrier*, arriving on the detour axis. **The rotation is measured working**: 14 → **0** over
+  > 1,024 Ticks with traffic. ⚠ The rung is **not chosen** and `RouteStaleness` ships all three, because
+  > the number that would choose it needs a Ruleset with an Arterial in it and none exists.
   >
-  > ⚠ **Second, *"a store whose size is a design choice and therefore constant in the city"* is true
-  > and does not mean what this sentence uses it for.** The size can be constant; **what it buys
-  > cannot**. Hit rate is a function of `store ÷ distinct pairs`, and distinct home-to-work node pairs
-  > measured **0.30 × population, dead linear** across a 16× sweep — so a store fixed at 4,096 entries
-  > falls **100% → 98.9% → 86.8% → 36.7%** as the city grows 1,000 → 16,000. At 1M a store serving
-  > 99% is **~4 GB**, which is S2 R1's own route-store figure arriving at the place
-  > [`0047`](0047-routing-never-keys-on-the-district.md) moved it to. Amended there too, and filed to
-  > [`0002`](../../plans/0002-open-questions.md) §C. ***The revisit trigger below fired, and not for
-  > the reason it names***: it anticipated low **repetition**, and repetition is fine — a commute
-  > recurs every Day on the same pair. What is low is **coverage**.
+  > ⚠ **Second, *"eviction is fixed capacity, four-way LRU"* is right about the associativity and wrong
+  > about the replacement, and the two are different questions measured on different draws.** R6's
+  > 20.0% → 3.8% is **conflict** misses across 1, 2, 4 and 8 ways — a property of the hash — and it
+  > stands. Which entry a full set gives up was never measured against the pattern a commute produces,
+  > and that pattern is a **once-per-Day cyclic scan**: every employed Citizen departs once a Day and
+  > `CommuteRoster` fixes the order, so LRU evicts precisely the entry needed next. At 16,000 Citizens,
+  > 4,808 distinct pairs, a 1,024-entry store, against a **21.30%** ceiling — **LRU 2.83%, Random 3.79%,
+  > MRU 19.54%, refuse-to-displace 22.41%**. `RouteEviction` defaults to **MRU**: within three points of
+  > the best, and unlike refuse-to-displace it can still admit a pair whose Citizen changed job.
+  > ⚠ **Random fails here and succeeds in the textbook because the textbook cache is fully associative**
+  > — inside a four-way set a random victim still churns the set out over one cycle.
+  >
+  > ⚠ **Third, and it is the one that matters: this ADR's own open question is closed and the answer is
+  > small.** *"The price of the key is settled exactly and the benefit cannot be settled at all until
+  > Trip generation exists (`06` 5b)."* Trip generation exists. The share of commutes that **share a node
+  > pair with another commute** — the whole of what a key on *pairs* buys over a key on *travellers* — is
+  > **17.78% at 4,000 Citizens and 7.52% at 16,000**, and it **falls as the city grows**, because the
+  > paved extent grows with the population. R6.1b's *collapse column reads 1.00× on every row* measured
+  > the same thing from the coarsening side and could not see it. ***A key that merges almost nothing is
+  > a key chosen for a property the traffic does not have.***
+  >
+  > **Where routes should live at 1M follows from that, and is not settled here** —
+  > [`0002`](../../plans/0002-open-questions.md) §C. ⚠ **No memory figure may be quoted for it today.**
+  > An earlier draft of this amendment carried one, built by extrapolating a route-length **maximum**
+  > where memory scales on a median and multiplying it by an employment ratio taken from a Ruleset whose
+  > own header says it models no city. Both are withdrawn. ***An extrapolation is a claim about a
+  > mechanism, not about a curve*** — foot route length is capped absolutely by the Commute Budget, 50
+  > minutes at 5 km/h being 4.17 km or about 32 blocks, and the fitted curve ran straight through that
+  > ceiling. The distribution that would settle it is a **car** one, and no drive Leg exists until 5c
+  > task 5.
 
   **The two numbers this contract introduces are both unset**, and both are hash-bearing under [`0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md): the staleness bound `T` and the wake radius `d`. They are entered in [`0002`](../../plans/0002-open-questions.md) §D2 with named ratifiers, and neither is chosen here — the contract is a *shape* and the parameters need a store size and a Trip rate that arrive with Trip generation (`06` 5b).
 - **Service dispatch must be assigned, not gradient-descended.** Fire trucks clumping is the visible symptom of the field owning intent, so an assignment step giving each vehicle a specific incident is mandatory rather than a refinement.
