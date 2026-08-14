@@ -119,7 +119,7 @@ It has **no money in it, nobody employed, and no way for anyone to arrive.** Tha
 
 | Mechanism | Found by | Standing |
 |---|---|---|
-| **Mode choice** — how a Citizen weighs a walk against a drive on a given journey | 5c task 5, 2026-08-14 | **Worked around, honestly, one level up.** [`adr/0098`](adr/0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md) makes mode follow **car ownership**, which `01 §8` ledger #3 *does* settle as a persistent Household state and whose simple assumption it names. That is following the design rather than compensating for its absence — but it is not mode choice, and a specification for one supersedes the *mode* half of that ADR outright |
+| **Mode choice** — how a Citizen weighs a walk against a drive on a given journey | 5c task 5, 2026-08-14 | **Worked around, honestly, one level up.** [`adr/0098`](adr/0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md) makes mode follow **car ownership**, which `01 §8` ledger #2 *does* settle as a persistent Household state and whose simple assumption it names. That is following the design rather than compensating for its absence — but it is not mode choice, and a specification for one supersedes the *mode* half of that ADR outright |
 
 | Mechanism | Settled by | What this document owes |
 |---|---|---|

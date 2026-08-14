@@ -96,6 +96,54 @@ should be the input to that sweep, not a substitute for it.** Filed as a candida
 9**: an ADR naming a ledger entry by number, against a ledger entry not struck. Both ends are documents,
 which is the property that makes it checkable at all.
 
+#### ✅ Check 9 — ledger citation. **BUILT 2026-08-14**, `tests/Borough.Tests/Corpus/LedgerCitationTests.cs`
+
+**Green on the day it was written, at ten qualified references, and verified in both directions** —
+reinstating the defect below makes it red, correcting it makes it green again.
+
+⚠ **It does not check what this section filed, and the change is the point.** The filing says *against a
+ledger entry **not struck***, and **strike status is a prose judgement a machine cannot make**: an ADR
+that *closes* an entry and one that merely *names* it read identically to a regex, so a check on
+strikethrough would be red wherever an ADR cites an entry it did not settle. What is mechanical is the
+**inbound citation** — entry `#N` must name the ADR back — which is **Cause 2's actual repair** rather
+than a proxy for it, and which catches the filed shape as a special case: an entry that was closed and
+never touched cannot cite the ADR that closed it.
+
+**Measured before it was built**, per check 8's precedent. **Twenty-four numbered ledger references across
+the ADR corpus, ten of them qualified by a named source, of which eight passed and two were one live
+defect** — so it is a ratchet on the day rather than a cleanup project.
+
+⚠ **The defect it found is `adr/0098` naming the wrong ledger, and it had reached six documents inside one
+day.** The ADR cites *`01 §8` ledger **#3*** for *is car ownership a choice?*, which is `01 §8`'s
+**second** entry; its third is *open map or progressive land unlock*, closed two days earlier by
+[`adr/0090`](../docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md). Corrected in
+`adr/0098`, `CLAUDE.md`, [`06`](../docs/06-roadmap.md), [`0000`](0000-board.md), [`0002`](0002-open-questions.md)
+and [`0026`](0026-statistical-resolution-and-the-travel-time-matrix.md).
+
+⚠ **Why it could not announce itself is worth more than the correction, and it is Cause 5 on an
+*identifier*.** [`0002`](0002-open-questions.md) holds **two** numbered ledgers sharing one namespace —
+the four-entry map-and-endgame list, and *Design forks, by owner*, which runs to `#29b` — and `01 §8`
+holds a third. So **`ledger #3` resolves to a real but different question in each of the three**, and
+*Design forks* groups its entries under the **owning document's name**, which is exactly what invites a
+reader holding `plans/0002`'s number to write `01 §8` in front of it. ***A bare `#N` travels freely and
+lands on something that exists***, which is Cause 5's tell — worse than nothing — arriving on an
+identifier rather than on a quantity. **The repair on the writing side is the same as Cause 5's**: name
+the ledger, never the number alone.
+
+⚠ **A second defect it does *not* see, filed here rather than fixed** — `0002`'s *Design forks* **#3**,
+the entry `adr/0098` half-closed on the substance, still reads *"Live, and half-answered"* from session
+five and names no ADR. Check 9 is blind to it because no ADR cites `plans/0002 ledger #3` for car
+ownership; the citation that would have made it visible is the one that was wrong. ***A check keyed on a
+citation cannot see an entry nobody cited***, and that is the standing limit of every document-to-document
+check in this file.
+
+**Two scope decisions, both earned from check 8.** **Only qualified references are checked** —
+**fourteen of the twenty-four name no source within reach of the number**, and with three ledgers sharing
+a namespace a bare `#N` is *genuinely ambiguous* rather than merely terse, so resolving one would be
+guessing, and a strong check must not fail for a weak reason. And **an entry numbered in more than one
+list within a source passes if any of them cites the ADR**: the question is whether the write landed, not
+which list it landed in.
+
 #### ✅ Check 8 — link resolution. **BUILT 2026-08-13**, `tests/Borough.Tests/Corpus/LinkResolutionTests.cs`
 
 **Green on the day it was written, at 2,292 links across `docs/`, `plans/` and the three root files, and

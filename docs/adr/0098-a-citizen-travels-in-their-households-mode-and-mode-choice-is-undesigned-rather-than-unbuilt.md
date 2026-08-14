@@ -69,7 +69,7 @@ found volume needs vehicles and not merely a path, and now the vehicles need a d
 
 ### The design already answers it, one level up, and names its own simple assumption
 
-`01 §8` ledger #3 is *is car ownership a choice?* — **live and half-answered**. Session five settled the
+`01 §8` ledger #2 is *is car ownership a choice?* — **live and half-answered**. Session five settled the
 half that matters: **ownership is a persistent Household state**, with a purchase price and a per-Day
 running cost. What is open is only whether it is *endogenous* — bought when commutes get bad, sold under
 pressure — and `01 §8` says of that in its own words: *every Household owning a car is the simple
@@ -194,7 +194,7 @@ recorded because the number changes the moment a player lays an Arterial, which
 [`0090`](0090-the-generator-makes-land-and-the-player-makes-every-road.md) makes the only way one can now
 exist.
 
-**`01 §8` ledger #3 is half-closed rather than closed.** The exogenous half is built; the endogenous half
+**`01 §8` ledger #2 is half-closed rather than closed.** The exogenous half is built; the endogenous half
 stays open on `01 §8`'s own terms, and its trigger is transit.
 
 ## What would trigger revisiting

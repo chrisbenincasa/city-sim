@@ -730,7 +730,7 @@ consecutive milestone** to find a precondition it had not finished counting — 
 destination set, 5b's missing path, 5c scoping's *volume needs vehicles and not merely a path*, and now
 the vehicles with no driver.
 
-**3. The design answers it one level up, and the answer was already half-built.** `01 §8` ledger #3 is
+**3. The design answers it one level up, and the answer was already half-built.** `01 §8` ledger #2 is
 *is car ownership a choice?*, **live and half-answered**: session five settled that ownership is a
 **persistent Household state**, and `01 §8` says of the other half in its own words — *every Household
 owning a car is the simple assumption… only becomes interesting once transit exists*. Transit has no
