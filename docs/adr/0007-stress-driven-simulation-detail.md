@@ -19,6 +19,23 @@ We considered three positions and rejected two.
 - **It puts the VDF where it is strong.** Unstressed segments are free-flow, where travel time is `distance / speed` — not an approximation but an exact answer. The saturated regime, where VDFs fail, is handled by actual simulation.
 - **The visualisation gap closes by itself.** A gap can only exist where behaviour is complex, and behaviour is only complex where there is congestion — which is exactly what gets simulated. On an empty street a car driving at the speed limit is trivially correct. Detail arrives where scrutiny does, without the camera being consulted.
 - **The trigger consumes a count, not a model.** `in_flight` is exact — incremented on departure, decremented on arrival. Capacity is static. We are not using the VDF to decide where the VDF can be trusted.
+
+  > **⚠ AMENDED 2026-08-14 — the conclusion stands and the object it names was deleted.** *We are not
+  > using the VDF to decide where the VDF can be trusted* is untouched and is the sentence
+  > [`03 §3.2`](../03-agent-architecture.md) still carries. What is gone is `in_flight`:
+  > [`adr/0041`](0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md) refused the
+  > `in_flight[origin_District][dest_District]` counter outright, so the count is **per-Segment volume**,
+  > incremented when a vehicular Traveller **enters** a Segment and decremented when it **leaves** — not
+  > on a Trip's departure and arrival. `03 §3.3` was rewritten and banners the old text; this bullet was
+  > not, which is `plans/0012` **Cause 2**, an ADR issuing a write to another document that did not land.
+  >
+  > **It survives the substitution because it never depended on the counter's shape**, only on the count
+  > being exact rather than modelled — and direct attribution makes it *more* exact, not less. ⚠ **But do
+  > not read the old wording as still describing the build**: a reader pricing this trigger from
+  > *departure/arrival* gets one increment per Trip where the build has one per Segment crossing, which
+  > `adr/0041` prices at **~80,000 pairs a Tick at 1M** on a measured crossing rate of 0.79–0.83.
+
+
 - **It is self-correcting in the dangerous direction.** Route choice does introduce circularity, since attribution of volume to segments depends on travel times. But if the VDF *underestimates* congestion, routing over-uses the segment, volume rises, and the segment crosses the threshold into microscopic simulation, which finds the truth. If it *overestimates*, traffic diverts and raises volume elsewhere, triggering detection there. Both errors push toward detection.
 - **It scales.** Only so many segments can be stressed at once, so the microscopic budget is bounded by network stress rather than by population.
 
@@ -32,6 +49,26 @@ We considered three positions and rejected two.
 - **Total gridlock exhausts the budget** and falls back to the VDF everywhere, in the regime where it is least trustworthy. This is a city that has already failed, and `HONEST DEGRADATION` requires that we say so rather than hide it.
 - **Walking is largely exempt.** Pedestrian ways essentially never stress, so walk Legs resolve statistically almost always — which is what makes [`0008`](0008-walking-is-a-simulated-leg.md) affordable at metropolis scale.
 - **A fixed divergence tolerance is asserted in tests.** Where a segment is microscopically simulated, observed travel times must match VDF predictions within tolerance. Exceeding it is a bug report about the VDF, not something to widen the tolerance for. Widening it incrementally is how this design would slide into the failure mode it was built to avoid.
+
+  > **⚠ AMENDED 2026-08-14 — this bullet is INVERTED, and [`03 §4`](../03-agent-architecture.md) invariant 6
+  > is the correct statement.** The tolerance binds on **audited unstressed** Segments (`03 §3.5`), never
+  > on Microscopic ones. Those are the saturated Segments, and §3.2's whole justification for simulating
+  > them is that **the VDF is wrong there** — so requiring agreement makes the tier's success condition an
+  > assertion failure, and a Microscopic Segment whose travel time matched its VDF prediction would be an
+  > expensive way to recompute a number already available for free. ***Divergence on a stressed Segment is
+  > the product; divergence on an unstressed one is the defect.***
+  >
+  > **`03 §4` was corrected and this ADR was not**, and the note beside that invariant records the same
+  > inversion as *"an earlier draft"* — so the corpus fixed the derived copy and left the source. That is
+  > `plans/0012` **Cause 1** with the polarity `adr/0041`'s granularity bullet had on the same day: **the
+  > document a reader reaches for first is the one still wrong.**
+  >
+  > ⚠ **It matters now rather than at milestone 7a.** [`0026`](../../plans/0026-statistical-resolution-and-the-travel-time-matrix.md)
+  > task 6 builds the volume-delay function, and an acceptance test written from this bullet would assert
+  > agreement in exactly the regime where disagreement is the deliverable — a test that passes only while
+  > the mechanism it guards does nothing.
+
+
 
 ## What would trigger revisiting
 

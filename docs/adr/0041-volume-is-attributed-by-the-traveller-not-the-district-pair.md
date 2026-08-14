@@ -139,6 +139,29 @@ is the [`05 §4`](../05-technical-architecture.md) rule applied by name: the two
 - **The District loses its last physics role and becomes what `CONTEXT.md` says it is**: Goods pooling,
   reporting, and the granularity of the travel-time matrix. Redrawing one can no longer change the
   State Hash through traffic. The matrix remains District-granular; only *attribution* leaves.
+
+  > **⚠ AMENDED 2026-08-14 — the last clause is reversed, and it is the sentence a milestone 5c reader
+  > arrives on first.** *"The matrix remains District-granular"* was true when this ADR was written.
+  > [`adr/0047`](0047-routing-never-keys-on-the-district.md) has since removed that role too: **the
+  > travel-time matrix's granularity is the routing partition** — [`adr/0040`](0040-the-pathfinding-cluster-is-a-multiple-of-the-chunk-not-the-chunk.md)'s
+  > cluster, sized in **Cells** rather than in Chunks — and what the District keeps is Goods pooling and
+  > reporting. **The rest of the bullet stands untouched**, and so does the reasoning under it: `adr/0047`
+  > reaches its conclusion by quoting *this ADR's own argument* back at the half this bullet left behind,
+  > so the two are one decision taken in two sittings rather than a reversal.
+  >
+  > **It is filed here because this is the copy that drifted, and it is the authoritative one.**
+  > [`CONTEXT.md`](../../CONTEXT.md) → District and → Settlement both carry the reversal already, the
+  > second naming `adr/0047` outright. This bullet did not — so the **vocabulary file was right and the
+  > decision record was wrong**, which is [`plans/0012`](../../plans/0012-corpus-audit.md) **Cause 1** at
+  > the polarity that costs the most: a reader checking granularity opens the ADR titled *volume is
+  > attributed by the Traveller* long before a glossary entry on Districts, and
+  > [`0026`](../../plans/0026-statistical-resolution-and-the-travel-time-matrix.md) cites this ADR in
+  > three of its eight tasks.
+  >
+  > **The partition's size is *measurable and unset*** ([`0002`](../../plans/0002-open-questions.md) §D2),
+  > so `adr/0043` forbids closing it by argument — and ⚠ **do not reach for S2 R1's 24.70%–3.80%
+  > entry-error sweep to close it**, which was measured with the route store in the denominator and on
+  > the **District** axis `adr/0047` deleted. `plans/0012` **Cause 5**.
 > **⚠ AMENDED 2026-08-12 by milestone 5b task 5. This decision is untouched; its *schedule* was wrong,
 > and the two Consequences below are built to different depths as a result.**
 >

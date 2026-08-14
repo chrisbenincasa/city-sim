@@ -25,6 +25,7 @@ bool queue = false;
 bool network = false;
 bool promotion = false;
 bool division = false;
+bool threads = false;
 
 for (int i = 0; i < args.Length; i++)
 {
@@ -48,10 +49,13 @@ for (int i = 0; i < args.Length; i++)
         case "--division":
             division = true;
             break;
+        case "--threads":
+            threads = true;
+            break;
         default:
             Console.Error.WriteLine($"Unrecognised argument: {args[i]}");
             Console.Error.WriteLine(
-                "Usage: S5.Lanes [--denominator] [--queue] [--network] [--promotion] [--division] [--out PATH]");
+                "Usage: S5.Lanes [--denominator] [--queue] [--network] [--promotion] [--division] [--threads] [--out PATH]");
             Console.Error.WriteLine("       S5.Lanes bench [BenchmarkDotNet arguments]");
             return 2;
     }
@@ -60,7 +64,7 @@ for (int i = 0; i < args.Length; i++)
 // L4 is a view over the other four and is never selected: a capture that ran one section and
 // printed a product would be printing the product of one measurement and three zeros. It is
 // emitted only when every section that feeds it ran, and it says so itself when they did not.
-bool all = !denominator && !queue && !network && !promotion && !division;
+bool all = !denominator && !queue && !network && !promotion && !division && !threads;
 if (all)
 {
     denominator = true;
@@ -68,6 +72,7 @@ if (all)
     network = true;
     promotion = true;
     division = true;
+    threads = true;
 }
 
 long stallBefore = Capture.CpuStallMicroseconds();
@@ -120,6 +125,15 @@ else
         "**Not emitted.** L4 is a view over L0–L3 and this was a partial run. A product of one "
         + "measurement and three zeros is worse than no product.");
     report.AppendLine();
+}
+
+// L6 sits after L4 rather than inside it. The product is a one-core quantity by construction —
+// every figure feeding it was taken on one core — and threading multiplies the result rather than
+// contributing a term to it. Folding a speedup into L4 would make a supply-side multiple look like
+// a property of the kernel's cost, which is the shape plans/0012 Cause 5 warns about.
+if (threads)
+{
+    report.Append(ThreadReport.Run());
 }
 
 report.AppendLine("---");

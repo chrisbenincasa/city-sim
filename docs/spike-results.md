@@ -7109,6 +7109,113 @@ measured.
 > should stop assuming the O(1) answer is the cheap one before a Road Graph has said how many Overlaps a
 > Lane has.
 
+### L6 — the kernel at 2 and 4 threads, run 2026-08-14
+
+**The half that is settled: the pass scales, and it reproduces itself exactly.** The half that is not:
+the 4-thread rung, which came back **bimodal on a contended machine** and is owed a capture on a quiet
+one. Eight captures, `spikes/S5.Lanes/results/s5-l6-*`, `powersave`, pinned to four physical cores and
+both siblings of each (`cpu2,8,3,9,4,10,5,11`).
+
+**Why it ran at all.** [`0002`](../plans/0002-open-questions.md) §D2 files this as *a measurement owed*
+rather than a number to choose, and [`adr/0096`](adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)
+calls it **the largest unclaimed multiple on the Microscopic Cap's supply side**: every Cap figure this
+corpus has quoted is **one core**, because S5 recorded that *"the kernels that will be parallelised are
+decided by"* a later spike and no later spike has run. §D2 states the question as a yes/no — *does a
+compute-bound queue pass scale at all* — and **two rungs answer it, which is why this is not a sweep.**
+
+#### Thread-count equivalence, and it is the first evidence this project has for lint 4
+
+| Threads | Vehicle rows compared | Disagreeing |
+|---:|---:|---:|
+| 2 | 294,912 | **0** |
+| 4 | 294,912 | **0** |
+
+Eight Ticks per rung, comparing every `Position`, `Velocity` and `Head` entry against a serial run of
+the same seed — **whole arrays rather than a checksum**, because a checksum that agreed would leave
+open *which* Vehicle disagreed. **Zero in every one of the eight captures.**
+
+`05 §4` lint 4 is `run(log, threads=1).hash() == run(log, threads=8).hash()`, and `CLAUDE.md` lists it
+with lint 6 as *needing machinery that does not exist yet*. **Nothing in this project had produced
+evidence for it in either direction.** ⚠ **This is not a discharge and must not be quoted as one.** It
+holds here **by construction** — every read and write in the Lane pass is inside that Lane's own
+`BlockStart .. +Count` rows or is its own `Head`, and the thread ranges are disjoint, so no
+interleaving *could* produce a different answer. **The Lane pass is the easy case.** Lint 4 is about
+`step()` over the whole world, and the phases with cross-entity writes are where it will actually be
+tested. What this shows is that the kernel carrying the Cap's supply side is not the obstacle.
+
+#### Scaling
+
+294,912 Vehicles across 16,384 Lanes at 18 each — L3's self-consistent working set. Lanes split into
+contiguous equal ranges, one per thread.
+
+| Threads | Speedup, 8 captures | Reading |
+|---:|---|---|
+| 1 | 1.00× (26.70–26.75 ns/Vehicle) | the control, and the same code path |
+| 2 | **1.84–1.93×** | **settled — near-linear** |
+| 4 | 2.52× – 3.87× | ⚠ **not readable on this machine today** |
+
+**The 2-thread rung answers §D2's question on its own, and the answer is yes.** A compute-bound queue
+pass scales near-linearly, so `spike-results`' bandwidth curves — 1.83× on six desktop cores, 3.75× on
+twelve M4 Pro threads — are indeed about a **different kind of kernel** and the §D2 row was right to
+forbid borrowing them. The **flat at 2** branch of that row is refuted: the one-core numbers are not
+final, and the fallback tier below Microscopic does not become an obligation on this evidence.
+
+**The 1-thread reading corroborates L5 independently.** 26.70 ns/Vehicle against L1's pre-correction
+41.0 is **1.54×**, against the **1.50×** the `FloorDiv` fix was credited with — a second route to the
+same number, taken four days later on a different section.
+
+#### ⚠ Why the 4-thread rung is owed, and what a re-capture has to control
+
+**It is bimodal, not noisy.** Across eight captures it reads either **~3.67–3.87×** or **~2.52–2.70×**,
+with nothing in between. That is the signature of an all-or-nothing resource rather than of
+measurement error: the pass needs **four pinned cores clear simultaneously**, so a single busy core
+sets the wall clock for the whole rung — and `Timing.Measure`'s minimum-over-repetitions estimator,
+which exists precisely to remove interference, **degrades exactly at the rung the decision turns on**,
+because the probability of a clear window falls with every core the rung requires.
+
+⚠ **The dominant co-tenant was another session in this repository.** At the time of the contended
+captures `Borough.Tests` was running at **1018% CPU — about ten of twelve logical processors** — from
+a parallel session working milestone 5c. Desktop media applications, the obvious suspects, were
+**32% and 11%** and are noise beside it.
+
+> ***A spike measuring parallel scaling cannot share a machine with a code session running a test
+> suite.*** [`0000`](../plans/0000-board.md) states that the three tracks *"do not contend — the code
+> track is somebody at a keyboard, the argument track is a sitting, the spike track is a machine
+> running unattended."* [`plans/0012`](../plans/0012-corpus-audit.md) already recorded that as false
+> for **conclusions**. This is a second axis and a sharper one, because it is mechanical: they contend
+> for **cores**, the contention is invisible in the artefact, and it biases the result in a **specific
+> direction** — always downward, and always hardest at the widest rung, which is the one a scaling
+> measurement exists to read. A one-core capture is nearly immune to exactly the interference a
+> four-core capture cannot survive, so *the more parallel the thing being measured, the less a busy
+> machine can measure it.*
+
+**What a re-capture must control**, and all four, not the first three:
+
+- **Nothing else running in this tree.** No `dotnet build`, no `dotnet test`, no parallel session. This
+  is the one that actually moved the number, and it is the one no existing instruction mentions.
+- **No desktop co-tenants** — the media players and browsers.
+- **Root, for the canonical `performance` capture.** Every reading above is `powersave`, so a 4-core
+  pass may additionally be clocking down relative to a 1-core one, which would depress the speedup for
+  a reason that has nothing to do with the kernel. `sudo spikes/S5.Lanes/tools/lane-run.sh --threads`.
+- **Three captures back-to-back inside the same quiet window**, and reported as a range. One capture is
+  an assertion; two are an error bar only if the machine is the same twice, which is R7's finding and
+  is exactly what failed here.
+
+**The PSI stall figure does not identify the bad captures, and that is worth its own line.** 2,527 µs
+gave **3.67×** and 2,862 µs gave **2.52×**; the largest stall recorded, 98,011 µs, gave 2.59× — in the
+same band as captures with a fortieth of the stall. The figure is accumulated across the **whole run
+including warmup and build**, so it does not isolate the timed window. S5 already owed *a run duration
+beside the PSI stall* so the number could be read as a percentage; **this says the missing denominator
+was not the only thing wrong with it** — a whole-run counter cannot attribute contention to the
+measurement inside it, whatever it is divided by.
+
+**What L6 does not carry.** Every Lane in the fixture holds the same number of Vehicles, so an equal
+split of Lanes is an equal split of work. A real Microscopic set is whatever the Stress trigger
+promoted, in whatever shape congestion left it, so a static contiguous partition is the **best** case
+and the measured speedup is a **ceiling**. That is S0b's finding in its general form — ***a unit cost
+is a hypothesis until a real world has produced one*** — and no world has produced a Microscopic Lane
+set at all.
+
 ### Owed by this section
 
 - **The canonical `performance` capture.** `tools/lane-run.sh` as root. ~~T1's verdict is provisional
@@ -7122,5 +7229,16 @@ measured.
   now known to have been measured against a defect.
 - **A run duration beside the PSI stall**, so a contention figure can be read as a percentage and
   compared with R8's matched pair. Recording load without its denominator is R7's defect one step on.
+  ⚠ **L6 found the denominator is not the only thing missing** — the counter spans the whole run
+  including warmup and build, so it does not attribute contention to the timed window and did not
+  identify L6's own contended captures at any scale. What is wanted is a stall figure **taken across
+  the measured region**, which is a change to `Timing.Measure` rather than to the script.
+- ⚠ **L6's 4-thread rung, on a quiet machine.** 2 threads is settled at **1.84–1.93×**; 4 is bimodal
+  between **~2.5×** and **~3.9×** and is not readable from the eight captures taken. The re-capture
+  must control **four** things and the first is new: **nothing else running in this repository** — the
+  contended captures coincided with another session's `dotnet test` at ~1018% CPU — then no desktop
+  co-tenants, then root for `performance`, then three captures inside one quiet window reported as a
+  range. Until then the Cap's supply-side multiple is *"at least 1.84× and plausibly near 4×"*, and
+  **the 4× must not be quoted bare**.
 - **The deleting commit for `spikes/S5.Lanes/`**, on `plans/0004`'s and `plans/0010`'s precedent —
   after the canonical re-capture, which needs the harness.

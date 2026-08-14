@@ -80,6 +80,7 @@ CPU="$(awk -F': ' '/model name/ { gsub(/\(R\)|\(TM\)|CPU| @.*/, "", $2); gsub(/^
 # a section re-run displaced a whole-run capture, and the figures a write-up had published existed
 # in no retained file. An unknown flag is refused rather than silently labelled `all`.
 SECTIONS=""
+WANTS_CORES=0
 for arg in "$@"; do
     case "${arg}" in
         --denominator) SECTIONS="${SECTIONS}+l0" ;;
@@ -87,6 +88,7 @@ for arg in "$@"; do
         --network)     SECTIONS="${SECTIONS}+l2" ;;
         --promotion)   SECTIONS="${SECTIONS}+l3" ;;
         --division)    SECTIONS="${SECTIONS}+l5" ;;
+        --threads)     SECTIONS="${SECTIONS}+l6" ; WANTS_CORES=1 ;;
         --out)         ;;
         --*)
             echo "lane-run.sh: unknown section flag ${arg}." >&2
@@ -98,6 +100,28 @@ for arg in "$@"; do
 done
 SECTIONS="${SECTIONS:-+all}"
 SECTIONS="${SECTIONS#+}"
+
+# L6 measures the kernel at 2 and 4 threads, and the default pin is one *physical* core's two
+# hyperthreads — so the default would run the 4-thread rung on one core and report the result as a
+# scaling figure. That is the failure session F named in another context: a placeholder whose value
+# sits inside the range of legitimate answers cannot announce itself. A 4-thread rung pinned to one
+# core comes back near 1.00× and reads as "the kernel does not scale", which is a conclusion about
+# the taskset and not about the kernel.
+#
+# So requesting L6 widens the set to four physical cores and both siblings of each, unless the
+# caller has named a set explicitly. The chosen set goes in the filename either way, which is what
+# makes the widening reviewable rather than magic.
+S5_THREAD_CORES="${S5_THREAD_CORES:-2 3 4 5}"
+if [[ "${WANTS_CORES}" -eq 1 && -z "${S5_CPUSET:-}" ]]; then
+    WIDE=""
+    for c in ${S5_THREAD_CORES}; do
+        SIBS="$(cat "/sys/devices/system/cpu/cpu${c}/topology/thread_siblings_list" 2>/dev/null || echo "${c}")"
+        WIDE="${WIDE},${SIBS}"
+    done
+    CPUSET="${WIDE#,}"
+    echo "L6 requested: widening the pin to ${CPUSET} (four physical cores and their siblings)." >&2
+    echo "The default one-core pin would report a 4-thread rung measured on one core." >&2
+fi
 
 # `+` rather than `,` so the filename holds no separator a shell will split on.
 LABEL="${SECTIONS}-${CPU}-ddr${MEM_TAG}-${GOVERNOR}-${TURBO}-cpu${CPUSET//,/+}"

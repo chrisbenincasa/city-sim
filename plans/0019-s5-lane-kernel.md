@@ -285,6 +285,43 @@ A view over L0–L3 and never a source, on `0013`'s discipline. Vehicles per Tic
 Segments in 15.6 ms; break-even residency; and the tripwire table below, **evaluated in code** so
 that the verdict is computed rather than asserted and moving a threshold is a diff.
 
+### L6 — the kernel at 2 and 4 threads — ADDED AND RUN 2026-08-14
+
+**Not in the original plan, and it is here rather than in a new spike because it is the same kernel on
+the same fixture with a loop bound made a parameter.** [`adr/0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)
+named it owed and [`0002`](0002-open-questions.md) §D2 files it as *a measurement owed* rather than a
+number to choose — **two rungs answering a yes/no**, which is why it is not a sweep and why 8, 12 and
+16 are deliberately absent: those would characterise this machine's memory system, which is a
+different question the corpus has already been warned not to borrow answers from.
+
+**Full record in [`spike-results`](../docs/spike-results.md) → *S5 L6*.** In short: **2 threads is
+1.84–1.93× and settled**; **4 threads is bimodal between ~2.5× and ~3.9× and is owed**; and
+thread-count equivalence is **0 disagreeing rows of 294,912 at every rung in all eight captures**,
+which is the first evidence this project has for `05 §4` lint 4 and is explicitly **not** a discharge
+of it.
+
+> **It found the thing it was not looking for, which by now is this spike's habit.** L5's `FloorDiv`
+> defect was the same shape. Here it is that **the contended captures coincided with another session
+> running `Borough.Tests` at ~1018% CPU**, and that ***a spike measuring parallel scaling cannot share
+> a machine with a code session running a test suite.*** The board's model is that the three tracks do
+> not contend; `plans/0012` had already recorded that as false for *conclusions*, and this is the
+> mechanical axis — they contend for **cores**, the contention does not appear in the artefact, and it
+> biases **downward and hardest at the widest rung**, which is the one a scaling measurement exists to
+> read. *A one-core capture is nearly immune to exactly the interference a four-core capture cannot
+> survive*, which is why L0–L5 were unaffected by the same machine on the same days.
+>
+> **A second instrument defect fell out of it.** S5 already owed *a run duration beside the PSI stall*
+> so contention could be read as a percentage. L6 shows the denominator was not the only problem: the
+> counter spans the whole run including warmup and build, so it **did not identify L6's own contended
+> captures at any scale** — 2,527 µs gave 3.67× and 2,862 µs gave 2.52×, and the largest stall
+> recorded gave a middling result. A whole-run counter cannot attribute contention to the measurement
+> inside it, however it is divided.
+
+**What the re-capture must control, and the first one is new**: nothing else running in this
+repository; then no desktop co-tenants; then root, for `performance`; then **three captures inside one
+quiet window**, reported as a range, because one capture is an assertion and two are an error bar only
+if the machine is the same twice.
+
 ---
 
 ## The tripwire, stated before the numbers arrive

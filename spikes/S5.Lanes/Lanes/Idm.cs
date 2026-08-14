@@ -166,6 +166,129 @@ internal static class Idm
     }
 
     /// <summary>
+    /// One Tick of car-following over a contiguous <em>range</em> of Lanes. The unit a thread is
+    /// handed, and the body of <see cref="StepQueues"/> with its loop bounds made parameters.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="StepQueues"/> is deliberately left duplicating this rather than delegating to
+    /// it.</b> Every one-core figure S5 has published came off that method as written, and routing a
+    /// measured kernel through a new call boundary changes what the JIT may inline — so a delegating
+    /// rewrite would move the published number by an unknown amount while looking like a tidy-up.
+    /// L6 measures the two side by side at one thread precisely so the cost of this duplication is a
+    /// row in the table instead of an assumption. <em>A refactor of the instrument is a change to the
+    /// measurement until it has been shown not to be.</em>
+    /// </para>
+    /// <para>
+    /// <b>The range is the whole of what makes threading safe here, and it is a property of the data
+    /// layout rather than of this method.</b> Every read and every write below is inside
+    /// <c>BlockStart[lane] .. +Count[lane]</c> or is <c>Head[lane]</c>; no Lane touches another
+    /// Lane's rows, and there is no accumulator. Disjoint ranges therefore cannot race, and the
+    /// result cannot depend on how they were scheduled — which is <c>05 §4</c> lint 4 holding by
+    /// construction rather than by test, though L6 tests it anyway.
+    /// </para>
+    /// </remarks>
+    private static void StepQueueRange(LaneNetwork n, int from, int to)
+    {
+        int[] position = n.Position;
+        int[] velocity = n.Velocity;
+        int[] desired = n.DesiredSpeed;
+
+        for (int lane = from; lane < to; lane++)
+        {
+            int count = n.Count[lane];
+            if (count == 0)
+            {
+                continue;
+            }
+
+            int block = n.BlockStart[lane];
+            int length = n.LaneLength[lane];
+            int head = n.Head[lane];
+
+            int tail = head + count - 1;
+            if (tail >= count)
+            {
+                tail -= count;
+            }
+
+            int leadPosition = position[block + tail] + length;
+            int leadVelocity = velocity[block + tail];
+
+            int i = head;
+            for (int k = 0; k < count; k++)
+            {
+                int slot = block + i;
+                int p = position[slot];
+                int v = velocity[slot];
+
+                int advanced = Advance(v, desired[slot], leadPosition - p, leadVelocity);
+
+                position[slot] = p + advanced;
+                velocity[slot] = advanced;
+
+                leadPosition = p;
+                leadVelocity = v;
+
+                i++;
+                if (i == count)
+                {
+                    i = 0;
+                }
+            }
+
+            Wrap(n, lane, block, head, count, length);
+        }
+    }
+
+    /// <summary>
+    /// One Tick of car-following over every Lane, split across <paramref name="threads"/> contiguous
+    /// Lane ranges. <paramref name="threads"/> of 1 is the control and runs the identical body on the
+    /// calling thread, so the scaling ratio is taken over one implementation rather than two.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The partition is contiguous and static, which is the honest shape for this kernel.</b>
+    /// Every Lane in the measured networks holds the same number of Vehicles, so an equal split of
+    /// Lanes is an equal split of work and a work-stealing scheduler would be measuring its own
+    /// load balancer. A city's Lanes are <em>not</em> equal, and that is a real limit on how far this
+    /// number carries — recorded in L6 rather than smoothed over here.
+    /// </para>
+    /// <para>
+    /// <b>The result is bit-identical to <see cref="StepQueues"/> at every thread count</b>, because
+    /// the ranges are disjoint and every write is Lane-local. That is asserted rather than asserted
+    /// about: L6 compares the full <c>Position</c>, <c>Velocity</c> and <c>Head</c> arrays against a
+    /// serial run before it reports a single timing.
+    /// </para>
+    /// </remarks>
+    public static void StepQueuesThreaded(LaneNetwork n, int threads)
+    {
+        if (threads <= 1)
+        {
+            StepQueueRange(n, 0, n.Lanes);
+            return;
+        }
+
+        int lanes = n.Lanes;
+
+        System.Threading.Tasks.Parallel.For(
+            0,
+            threads,
+            new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = threads },
+            slice =>
+            {
+                // Both operands are non-negative, so the rounding is not in doubt — but BOR0203
+                // requires it stated rather than inferred, and a partition that disagreed with
+                // itself at a boundary would drop or double a Lane's worth of Vehicles.
+                int from = (int)Borough.Core.Arithmetic.IntegerMath.FloorDiv(
+                    (long)lanes * slice, threads);
+                int to = (int)Borough.Core.Arithmetic.IntegerMath.FloorDiv(
+                    (long)lanes * (slice + 1), threads);
+                StepQueueRange(n, from, to);
+            });
+    }
+
+    /// <summary>
     /// The same pass with the two <em>constant-denominator</em> divisions replaced by precomputed
     /// reciprocal multiplies.
     /// </summary>

@@ -39,4 +39,33 @@ internal static class Findings
 
     /// <summary>L3. Picoseconds per Vehicle demoted.</summary>
     public static long DemotePicoseconds { get; set; }
+
+    /// <summary>
+    /// L6. Whether the threaded pass reproduced the serial one at every rung. **False withholds
+    /// every timing in that section**, which is why it is a finding rather than a local flag: a
+    /// throughput number for a kernel computing a different answer is not a throughput number for
+    /// this simulation.
+    /// </summary>
+    public static bool ThreadsAreEquivalent { get; set; }
+
+    /// <summary>L6. Lanes the threading rungs were taken over.</summary>
+    public static long ThreadLanes { get; set; }
+
+    /// <summary>L6. Picoseconds per Vehicle at one thread — the control for the speedup.</summary>
+    public static long ThreadPicosecondsAtOne { get; set; }
+
+    /// <summary>L6. Picoseconds per Vehicle at two threads.</summary>
+    public static long ThreadPicosecondsAtTwo { get; set; }
+
+    /// <summary>L6. Picoseconds per Vehicle at four threads.</summary>
+    public static long ThreadPicosecondsAtFour { get; set; }
+
+    /// <summary>L6. Vehicles a 15.6 ms Tick holds at four threads.</summary>
+    public static long ThreadVehiclesAtFour { get; set; }
+
+    /// <summary>
+    /// L6. Picoseconds per Vehicle for <c>StepQueues</c> as published, measured in the same capture
+    /// so the refactor's own cost is a row rather than an assumption.
+    /// </summary>
+    public static long ThreadPublishedForm { get; set; }
 }

@@ -62,17 +62,30 @@ public sealed class CoverageMapTests
     private static readonly Regex Code =
         new(@"\d{4}", RegexOptions.Compiled, TimeSpan.FromSeconds(5));
 
+    /// <summary>
+    /// §F2's header sentence — <c>"96 written, numbered to `0097`"</c>. The count and the highest
+    /// number are two facts about the directory stated in prose, which is why they are asserted here
+    /// rather than read.
+    /// </summary>
+    private static readonly Regex Header = new(
+        @"\*\*(?<written>\d+) written, numbered to `(?<highest>\d{4})`",
+        RegexOptions.Compiled,
+        TimeSpan.FromSeconds(5));
+
+    /// <summary>Every ADR file's four-digit code, ascending.</summary>
+    private static string[] Written(string root) =>
+    [
+        .. Directory.EnumerateFiles(Path.Combine(root, "docs", "adr"), "????-*.md")
+            .Select(path => Path.GetFileName(path)[..4])
+            .Order(StringComparer.Ordinal),
+    ];
+
     [Fact]
     public void Every_adr_has_a_row_in_the_coverage_map()
     {
         string root = RepoRoot();
 
-        string[] written =
-        [
-            .. Directory.EnumerateFiles(Path.Combine(root, "docs", "adr"), "????-*.md")
-                .Select(path => Path.GetFileName(path)[..4])
-                .Order(StringComparer.Ordinal),
-        ];
+        string[] written = Written(root);
 
         Assert.NotEmpty(written);
 
@@ -113,5 +126,55 @@ public sealed class CoverageMapTests
             + "conclusion. Add a row with its state and the session or slice that settled it. This "
             + "has now happened three times; plans/0012's mechanical check 5 is the standing fix, and "
             + "this test is it.");
+    }
+
+    /// <summary>
+    /// The map's header states how many ADRs exist and which is highest. Both are facts about
+    /// <c>docs/adr</c> written in prose, so both drift.
+    /// </summary>
+    /// <remarks>
+    /// <b>The rows and the count are two different facts, and only the rows were being held.</b> On
+    /// 2026-08-14 the header read <em>"83 written, numbered to `0084`"</em> against 96 files numbered
+    /// to <c>0097</c> — a fourth drift — while
+    /// <see cref="Every_adr_has_a_row_in_the_coverage_map"/> was green, because every one of those
+    /// thirteen decisions did have a row. The failure is not a missing assessment but a **reader**
+    /// one: a count is the thing skimmed, so a stale one reports the map as ending thirteen decisions
+    /// before it does.
+    /// <para>
+    /// <c>adr/0093</c>'s amendment names the shape — <em>a count of the instruments is itself a fact
+    /// stored in prose</em> — and it was coined about a list of these very checks. This is that rule
+    /// applied to the header sitting above one of them.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_coverage_maps_header_counts_the_adrs_that_exist()
+    {
+        string root = RepoRoot();
+        string[] written = Written(root);
+
+        Assert.NotEmpty(written);
+
+        string map = File.ReadAllText(Path.Combine(root, "plans", "0002-open-questions.md"));
+        Match header = Header.Match(map);
+
+        Assert.True(
+            header.Success,
+            "plans/0002 §F2 has no header of the form \"**N written, numbered to `NNNN`**\". That "
+            + "sentence is what a reader skims to learn how far the coverage map reaches, so it is "
+            + "held here rather than left to drift. If it has been deliberately reworded, reword this "
+            + "test with it.");
+
+        string highest = written[^1];
+        int count = written.Length;
+
+        Assert.True(
+            header.Groups["written"].Value == count.ToString()
+            && header.Groups["highest"].Value == highest,
+            $"plans/0002 §F2's header says \"{header.Groups["written"].Value} written, numbered to "
+            + $"`{header.Groups["highest"].Value}`\"; docs/adr holds {count} files numbered to "
+            + $"`{highest}`. The rows may well all be present — that is the sibling check, and it has "
+            + "been green through every one of these drifts. What goes stale is the count above them, "
+            + "and a reader who trusts it concludes the map stops where the number says. This is the "
+            + "fourth time; update the sentence.");
     }
 }

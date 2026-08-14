@@ -127,6 +127,35 @@ all. If it scales near-linearly to 4, the supply side is roughly four times ever
 question closes; if it is flat at 2, the one-core numbers are the real ones and the fallback below stops
 being a probability.
 
+> **⚠ RUN 2026-08-14, and it half-closes on the branch this ADR did not write down.** Full record in
+> [`spike-results`](../spike-results.md) → *S5 L6*; eight captures, `powersave`, four physical cores.
+>
+> **2 threads is 1.84–1.93× and stable, so the *flat at 2* branch is refuted.** A compute-bound queue
+> pass does scale near-linearly, the bandwidth curves above were rightly forbidden, and **the one-core
+> figures in this ADR are not the real ones** — the fallback tier below Microscopic does **not** become
+> an obligation on this evidence, and stays the expectation the next section files it as.
+>
+> ⚠ **4 threads did not resolve, and the paragraph above admits no third outcome.** It reads
+> **bimodal** — ~2.52–2.70× or ~3.67–3.87×, nothing between — because the pass needs four pinned cores
+> clear *simultaneously*, so one busy core sets the wall clock for the whole rung. **The dominant
+> co-tenant was another session running this project's own test suite at ~1018% CPU.** ***The more
+> parallel the thing being measured, the less a busy machine can measure it*** — a one-core capture is
+> nearly immune to exactly the interference a four-core capture cannot survive, which is why S5's
+> earlier rounds were unaffected by the same machine.
+>
+> **So the supply side is *at least 1.84× and plausibly near 4×*, and ⚠ the 4× must not be quoted
+> bare.** That is this ADR's own lesson arriving on its own owed measurement: `adr/0096` exists because
+> 186,624 travelled without the clause that disqualified it, and a *near 4×* carried out of here
+> without *bimodal, one machine, contended* would be the same failure with a friendlier number.
+> `plans/0012` **Cause 5**; the registry entry is `plans/0002` §D2's row.
+>
+> **A second result came free and is larger than the one asked for.** `05 §4` **lint 4** —
+> thread-count equivalence — has its **first evidence in this project's life**: 0 disagreeing rows of
+> 294,912 at every rung in all eight captures. It holds *by construction*, every write in the Lane pass
+> being Lane-local. ⚠ **Not a discharge**: lint 4 is about `step()` over the whole world and this is
+> its easy case. What it does establish is that **the kernel carrying the Cap's supply side is not the
+> obstacle to threading it**, which is the thing this section was actually uncertain about.
+
 ### A fallback tier is foreseen, and deliberately not designed here
 
 What `03 §3.9` has today is **binary**: a Segment is Microscopic, or its travel time comes from the VDF,
@@ -158,8 +187,13 @@ dilates and shows *simulation running behind*, per `03 §3.9`'s second row and `
 Input Log produces a different city on a different machine, which is the property `§3.9` protects and
 which a host-tunable Cap would destroy.
 
-**A 2- and 4-thread Lane kernel measurement is owed to S5** and is filed to `plans/0002` as measurable
-with those two rungs named. It is the largest unclaimed multiple on the Cap's supply side.
+~~**A 2- and 4-thread Lane kernel measurement is owed to S5**~~ **RUN 2026-08-14, and it half-closes.**
+**2 threads: 1.84–1.93×, settled** — the pass scales, so the one-core figures above are not final and
+`03 §3.9`'s fallback tier stays an expectation rather than becoming an obligation. ⚠ **4 threads:
+bimodal between ~2.5× and ~3.9× on a contended machine, and still owed.** The supply-side multiple is
+therefore **at least 1.84× and plausibly near 4×**, and ⚠ **the 4× must not be quoted bare** — the
+re-capture's first control is *nothing else running in this repository*, because the interference was
+another session's test suite rather than anything on the desktop. `spike-results` → *S5 L6*.
 
 **A fallback tier below Microscopic is recorded as likely** in `03 §3.9` and in `plans/0002`, as an
 expectation with no design attached. Two things would retire it: the threading measurement coming back
