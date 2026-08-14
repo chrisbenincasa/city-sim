@@ -371,6 +371,30 @@ disqualified number, it is **half a number** — and the missing half was six to
 registry's writing rule extends: **name a duration after the mode that performs it**, so *"50 minutes"*
 is never written where *"a 50-minute walk"* or *"a 50-minute drive"* would do.
 
+⚠ **The fifth and sixth sightings both landed on 2026-08-14, in one task, and they are the two
+directions of the same cause.** 5c task 4's brief in [`0026`](0026-statistical-resolution-and-the-travel-time-matrix.md)
+said *"no TTL rotation — R5.5.4's rotation was the shed's answer and `adr/0083` explicitly declines to
+carry the parameter across"*. **R5.5.4 rotated the route cache**, resident population 412, and
+[`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md) says of that number *"0.40 forced
+refreshes per Tick is affordable there and **stays**"*; [`adr/0083`](../docs/adr/0083-a-sheds-use-is-the-arrival-query-and-a-stale-shed-is-wrong-by-a-bounded-walk.md)
+is the **Parking Shed**'s and declined to *take* it. ***A refusal to import a number is not evidence
+the number was wrong where it was measured*** — and the brief inverted the arrow, which is a new
+failure mode for this cause: not a number arriving without its clause, but a **clause arriving without
+its subject**.
+
+**The sixth is the expensive one and it has no writing rule that would have caught it.** `adr/0047`
+moved route storage out of the travel-time matrix because S2 R1 measured a **4.06 GiB** route store,
+and sent the routes to *"the route cache"*. Building that cache measured the same cost waiting there:
+**~4 GB at 1M**, because a pair-keyed store's hit rate is `store ÷ distinct pairs` and distinct pairs
+are **0.30 × population**. Nothing was misquoted; the number was correctly disqualified as *the
+matrix's* problem and correctly moved. ***A cost that was moved is not a cost that was removed***, and
+this cause's registry is a registry of **figures**, which cannot hold a *destination*. **The rule this
+adds is about deletions rather than quotations, and it is [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)'s
+own — *the obligation a deletion creates is a re-derivation, not a retraction* — arriving on a
+**relocation**: when a decision removes a cost from one structure by moving it to another, the
+obligation it creates is a measurement **at the destination**, and no document in this corpus records
+one.** Filed to [`0002`](0002-open-questions.md) §C.
+
 ***The second sighting is the one to remember, because it happened while writing this section.*** A
 caveat is a claim, so it travels exactly as badly as a number does, and compressing one for a table cell
 is how it acquires the ambiguity that makes it dangerous elsewhere. **Do not compress a disqualifier to

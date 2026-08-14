@@ -79,6 +79,30 @@ It is also what makes the **Provider List** meaningful. A Household holds a shor
   > **The backstop is checked at use, not swept on a cadence, and this is the load-bearing half.** A rotation's cost is `store size ÷ period`, so **a rotation couples the learning rate to the population**: double the city and the same bill buys half the responsiveness. A Habit Route is stored per **Citizen** ([`CONTEXT.md`](../../CONTEXT.md) → Habit Route, corrected by this session), so the store *is* the population. Checking at Trip start instead bounds the bill by `trips_started × P(stale)` — a quantity R3's tripwire already budgets — and a Habit nobody uses costs nothing to leave stale, which is both cheaper and more honest. **Staleness is therefore measured in journeys, not in wall-clock Ticks.**
   >
   > **R5.5.4's rotation is retained where it was measured and nowhere else.** It rotated the **shared pair-keyed cache**, resident population **412** — a store whose size is a design choice and therefore constant in the city. 0.40 forced refreshes per Tick is affordable there and stays. It was never evidence about the Habit store, which R5.5.4 did not have in front of it and which is four orders of magnitude larger.
+  >
+  > ⚠ **AMENDED 2026-08-14 by 5c task 4, which built this store and measured it on a real city.** Two
+  > corrections, and the second is the load-bearing one.
+  >
+  > **First, the staleness numbers are an order of magnitude smaller here and the reason is the
+  > fixture, not the design.** A four-Segment bulldoze-and-restore gesture on the shipped Ruleset
+  > leaves **14 of 1,254** routes stale at a **0.44%** mean detour, against R5.5.4's 38 of 412 at
+  > 16.35%. Both shipped Rulesets set `arterial_count = 0`, so the gesture deletes four *Streets* on a
+  > dense lattice and everybody walks round one block — which is milestone 5a's *severance is a
+  > property of the grid's fineness relative to the barrier* arriving on the detour axis. **The
+  > rotation is measured working**: 14 → **0** over 1,024 Ticks with traffic. ⚠ The rung is
+  > **not chosen here** and `RouteStaleness` ships all three, because the number that would choose it
+  > has to be taken on a city with an Arterial in it and no such Ruleset exists.
+  >
+  > ⚠ **Second, *"a store whose size is a design choice and therefore constant in the city"* is true
+  > and does not mean what this sentence uses it for.** The size can be constant; **what it buys
+  > cannot**. Hit rate is a function of `store ÷ distinct pairs`, and distinct home-to-work node pairs
+  > measured **0.30 × population, dead linear** across a 16× sweep — so a store fixed at 4,096 entries
+  > falls **100% → 98.9% → 86.8% → 36.7%** as the city grows 1,000 → 16,000. At 1M a store serving
+  > 99% is **~4 GB**, which is S2 R1's own route-store figure arriving at the place
+  > [`0047`](0047-routing-never-keys-on-the-district.md) moved it to. Amended there too, and filed to
+  > [`0002`](../../plans/0002-open-questions.md) §C. ***The revisit trigger below fired, and not for
+  > the reason it names***: it anticipated low **repetition**, and repetition is fine — a commute
+  > recurs every Day on the same pair. What is low is **coverage**.
 
   **The two numbers this contract introduces are both unset**, and both are hash-bearing under [`0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md): the staleness bound `T` and the wake radius `d`. They are entered in [`0002`](../../plans/0002-open-questions.md) §D2 with named ratifiers, and neither is chosen here — the contract is a *shape* and the parameters need a store size and a Trip rate that arrive with Trip generation (`06` 5b).
 - **Service dispatch must be assigned, not gradient-descended.** Fire trucks clumping is the visible symptom of the field owning intent, so an assignment step giving each vehicle a specific incident is mandatory rather than a refinement.

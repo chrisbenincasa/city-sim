@@ -83,6 +83,31 @@ The repair is small and lands where `adr/0040` already says the check belongs �
 - **Ledger entries 10, 11, 13 and 15 close together**, which is what they were circling. **Decision 8 does not** — see below; it turned out to be a different question.
 - **`adr/0012`'s owed amendment is half discharged.** The cache's **key** is an origin-destination pair at a granularity **routing owns**, never the District. The **eviction policy** remains owed to R6, with R5's evidence that it is the bigger lever below the highest edit rates — 28–31% of lookups missing on direct-mapped collisions before a road is touched.
 - **The matrix's ceiling changes, and in the useful direction.** R1 found the binding constraint was not L3 but the **route store — 4.06 GiB at 4,096 zones against a 172.3 MiB world.** That store existed to hold a *route* per pair. With routes served from the cache the matrix holds only *times*: 4,096² × 4 B is ~67 MiB and 1,024² is ~4.2 MiB. **The thing that capped matrix granularity is the thing this decision removes**, so R1's error curve becomes usable for the first time.
+
+  > ⚠ **AMENDED 2026-08-14 by 5c task 4, and the amendment is that the cost arrived at the destination.**
+  > This bullet is correct about the **matrix** and it is the sentence *"served from the cache"* that
+  > was never checked at the cache. A pair-keyed route store's hit rate is a function of
+  > `store ÷ distinct pairs`, and the second term is the **employed population**: measured on this
+  > city, distinct home-to-work node pairs run **201 / 445 / 1,031 / 2,248 / 4,808** at 1,000 / 2,000 /
+  > 4,000 / 8,000 / 16,000 Citizens — **0.30 × population, dead linear** — while the longest route grows
+  > as **√population** (8 → 26 Segments over the same range, on a paved extent that is itself √N).
+  > **A store held constant at 4,096 entries therefore falls 100% → 100% → 98.9% → 86.8% → 36.7%** over
+  > a 16× population change. Extrapolated to 1M: ~300,000 pairs at ~206 Segments each, and a store
+  > serving them at 99% is **~4 GB** — R1's own figure, at the place this decision moved it to.
+  > ***A cost that was moved is not a cost that was removed***, and nothing recomputed it on arrival.
+  >
+  > **What survives is this bullet's claim about the matrix**, which is unaffected: the matrix holds
+  > times, it is ~8.3 MB at 1M, and 5c task 2 built it and measured its error. **What does not survive
+  > is the assumption that the cache is a bounded home for the routes.** It is bounded; bounding it is
+  > exactly what makes the hit rate collapse. Where routes live at 1M is filed to
+  > [`0002`](../../plans/0002-open-questions.md) §C, and it is **not** 5c's to settle — this milestone
+  > ships a cache that pays 23.5× on the city it can cover (0.525 µs served against 12.349 µs searched
+  > at 4,000 Citizens) and says in its own type documentation where it stops.
+  >
+  > ⚠ **The four grounds for retiring the next-hop table are untouched and must not be reopened on
+  > this.** None of them was cost, and this is a cost. `plans/0012` **Cause 5** in the direction that
+  > matters most here: a number arriving where it was not measured is what produced the error, and
+  > quoting *4 GB* against a decision that was never made on cost would repeat it.
 - **`adr/0020`'s Settlement derivation re-derives over the routing partition**, not over Districts. R1 already found it returns 6 Settlements where Tarjan returns 8; that discrepancy must be re-measured at the new granularity rather than carried across.
 - **`adr/0040` is owed the Cells correction**, and it is recorded there rather than amended away. Chunk size becomes tunable only to divisors of the routing partition, validated at world creation.
 - **A defect this decision does not fix and must not be allowed to hide behind it.** `adr/0017` re-evaluates *"immediately on a failed Trip"*, against the same matrix, which still says the same wrong thing — so a Household can choose, fail, re-evaluate and choose the same unreachable option for ever. With a worst-case entry error of **77.62 Ticks** that is not an estimate, it is a different Trip. **A failed Trip must demote the option that produced it.** Finer granularity shrinks the error and does not close the loop; only the demotion does. Owed to `adr/0017`, and `02 §9` wants the diagnostic anyway.

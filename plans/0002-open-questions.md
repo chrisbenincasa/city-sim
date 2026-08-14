@@ -254,6 +254,40 @@ rule is **when something concrete is blocked on it, not because it is available.
 
 ### `03-agent-architecture.md`
 
+- ⚠ **Where a route lives at 1M, because the shared route cache does not reach it — NEW 2026-08-14,
+  measured by 5c task 4.** [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) moved
+  route storage out of the travel-time matrix on the ground that S2 R1's **4.06 GiB** route store was
+  the matrix's binding constraint, and sent the routes to *"the route cache"*. **Building that cache
+  found the same cost waiting at the destination.** A pair-keyed store's hit rate is
+  `store ÷ distinct pairs`, and distinct home-to-work node pairs measure **0.30 × population, dead
+  linear** — 201 / 445 / 1,031 / 2,248 / 4,808 at 1,000 / 2,000 / 4,000 / 8,000 / 16,000 Citizens —
+  while the longest route grows as **√population**, 8 → 26 Segments over the same range. A store held
+  at 4,096 entries therefore falls **100% → 98.9% → 86.8% → 36.7%**, and one serving 1M at 99% is
+  **~4 GB**. ***A cost that was moved is not a cost that was removed.***
+  - **The premise is measured and the response is arguable, which is why it is filed here and not in
+    §B.** *Does the cache reach 1M* has its number. *What serves a route at 1M* is a design question
+    with at least four live candidates and no machine that settles it: a smaller store with a
+    deliberately low hit rate and the search bill in `0013`; a coarser key (⚠ **R6.1b already measured
+    a coarse key's collapse at 1.00× on every row of both candidates**, so do not assume it helps);
+    HPA\* recomputation with no store (S2 R3, which found *no cluster size fits routing into the Tick
+    budget*); or accepting that Statistical routes are not stored at all and only Microscopic ones are,
+    which is `adr/0005`'s tier split doing work it has not been asked to do.
+  - ⚠ **What must not be reopened on this.** `adr/0047` retired the District next-hop table on **four
+    grounds and not one of them was cost**. Quoting 4 GB against that decision is `plans/0012`
+    **Cause 5** — a number arriving where it was never a side of the comparison.
+  - **Nothing is blocked on it today.** 5c ships a cache that pays **23.5×** on the city it can cover
+    (0.525 µs served against 12.349 µs searched at 4,000 Citizens) and documents where it stops.
+    The trigger is milestone **7a** or the first 1M run with drive Legs in it, whichever is first.
+- ⚠ **Which staleness rung the route cache ships — DEFERRED 2026-08-14, and the reason is a missing
+  fixture rather than a missing argument.** [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md)
+  answers *keep and rotate*; 5c task 4 built all three rungs and measured them, and the numbers do not
+  separate them on this city: a four-Segment gesture leaves **14 of 1,254** routes stale at a **0.44%**
+  mean detour, so the exact rung spends **34 extra searches to correct one stale route**. **The reading
+  is a property of the fixture** — both shipped Rulesets set `arterial_count = 0`, so the gesture
+  deletes four Streets on a dense lattice and everybody walks round one block, which is 5a's *severance
+  is a property of the grid's fineness relative to the barrier*. **measurable**, and the machine is a
+  Ruleset with an Arterial in it plus the rung sweep that already exists (`RouteCacheTests`). Until
+  then `RouteStaleness` ships all three and nothing in the Tick reads any of them.
 - **`§5`, the traffic model — the most detailed unargued design in the project**, and now under a
   Microscopic Cap that binds far harder at 1M. So is **`§2`, the Citizen model**.
 - **Audit rate and escalation policy.** The divergence metric is settled; how often the audit runs and

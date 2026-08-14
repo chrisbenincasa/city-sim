@@ -6,7 +6,7 @@
 
 ## Status
 
-⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1, 2 and 3 of 8 done 2026-08-14.** All three named gates are discharged and none of the closures
+⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1, 2, 3 and 4 of 8 done 2026-08-14.** All three named gates are discharged and none of the closures
 reached a gate board, which is why this milestone read as blocked for two days
 ([`0000`](0000-board.md) → *Blocked*, split per-milestone on 2026-08-13):
 
@@ -170,6 +170,15 @@ predecessor array. Something must produce a Segment sequence and something must 
 four-way LRU on the high bits** (conflict misses 20.0% → 3.8%), the addition bound **checked at use**
 with a proximity wake over it, and **no TTL rotation** — R5.5.4's rotation was the shed's answer and
 `adr/0083` explicitly declines to carry the parameter across.
+
+> ⚠ **Two errors in the paragraph above, both found before a line was written — see the task 4 record.**
+> **The rotation attribution is backwards**: R5.5.4 rotated *this* store, resident population 412, and
+> `adr/0012` says of that number *"0.40 forced refreshes per Tick is affordable there and **stays**"*.
+> `adr/0083` is the **Parking Shed**'s and it declined to *take* the rotation, which is the opposite
+> direction to carrying it away from here. `plans/0012` **Cause 5**. And **the addition bound and the
+> proximity wake cannot be built in this milestone**: both hang on a per-Citizen **Habit**, and this
+> document's own *What this milestone must not do* forbids one. What is buildable is the shared store,
+> its exact removal test, and the rungs.
 
 > ⚠ **The cache is the milestone's largest cost risk and the corpus has the number.** A diverting
 > Traveller re-searching is **134.135 ms a Tick** at target scale, and the cache would need an **88.5%
@@ -542,3 +551,108 @@ them would make a severed destination read as *you are already there*, and both 
 that does not move. And **a truncated route is a different route rather than a partial one** — it ends
 at a node the traveller was passing through — so a buffer too small is left untouched and the required
 length returned, which is the only contract under which ignoring the answer fails loudly.
+
+---
+
+### Task 4 — the route cache. ✅ **DONE 2026-08-14**, and it did not choose its own rung.
+
+**Scoped with the user in the room on one question — measure the staleness rungs or pick one — and
+the answer was measure.** `adr/0043`: the choice is settleable by a number, S2 settled it on a
+synthetic lattice under a uniform origin-destination draw, and every figure in this corpus that moved
+from a fixture to a real world moved. So `RouteStaleness` is a **switch with three rungs** and the
+numbers below are taken here.
+
+`RouteCache`: fixed capacity, **four-way set-associative, LRU within a set, indexed on the high bits**
+of a splitmix64 finaliser over a **node-id pair**. An entry stores each Segment's **handle and Epoch**,
+so a lookup rejects it exactly when a Segment it names was removed or edited — **the first reader the
+per-Segment Epoch has ever had**, five milestones after 5a built it. `(derived AND rebuilt)`, outside
+`World._tables`, and **nothing in the Tick calls it**.
+
+`RouteCacheTests`, nine tests, of which three are measurements that assert only what would make them
+meaningless.
+
+#### What it costs, on real home-to-work pairs
+
+The draw is `EmploymentEngine`'s own, taken at Tick 1024 on the golden fixture: **1,254 employed
+Citizens over 1,031 distinct node pairs, 222 Segments live**. Store 4,096 entries, stride 64.
+
+| | Exact | Keep | KeepAndRotate |
+|---|---:|---:|---:|
+| Extra searches from one 4-Segment gesture | **472** | 43 | 43 |
+| Routes left stale after the addition | 0 | **14** of 1,254 | 14 → **0** over 1,024 Ticks |
+| Mean detour over the draw | 0% | **0.44%** | 0.44% → 0% |
+| Worst single detour | 0% | **200%** | 200% → 0% |
+
+**Served against searched: 0.525 µs against 12.349 µs — 23.5×**, at a store that covers the working
+set. ⚠ *That figure is a property of the coverage and not of the cache; see below.*
+
+#### Findings
+
+**1. ⚠ The largest one is that `adr/0047`'s cost arrived at the destination, and this is the task that
+opened the box.** That ADR moved route storage out of the travel-time matrix because S2 R1 found the
+**route store — 4.06 GiB at 4,096 zones against a 172.3 MiB world** — was the matrix's binding
+constraint, and sent the routes to *"the route cache"*. **Nobody checked the cache.** Its hit rate is
+`store ÷ distinct pairs`, and the second term is the employed population:
+
+| Citizens | Employed | Distinct pairs | Longest route | Hit @1024 | Hit @4096 |
+|---:|---:|---:|---:|---:|---:|
+| 1,000 | 308 | 201 | 8 | 100.00% | 100.00% |
+| 2,000 | 625 | 445 | 10 | 94.08% | 100.00% |
+| 4,000 | 1,254 | 1,031 | 13 | 53.19% | 98.88% |
+| 8,000 | 2,584 | 2,248 | 19 | 12.93% | 86.84% |
+| 16,000 | 5,199 | 4,808 | 26 | 2.83% | **36.68%** |
+
+**Distinct pairs are 0.30 × population, dead linear**, and the longest route grows as **√population**
+because the paved extent does (`plans/0003` queue item 6). So a store **held constant** falls
+100% → 36.7% over a 16× population change, and one serving 1M at 99% is ~300,000 pairs × ~206 Segments
+≈ **4 GB** — R1's own number, at the place the decision moved it to. ***A cost that was moved is not a
+cost that was removed, and nothing recomputes it on arrival.*** `adr/0047` and `adr/0012` are amended;
+the design question is [`0002`](0002-open-questions.md) §C and is **not 5c's**.
+
+⚠ **And `adr/0012`'s revisit trigger fired for a reason it did not name.** It says *"if the hit rate
+comes back low, the amendment stands and the cache does not"* and expects low **repetition** — the
+cache's case is *"repetition is the whole of the case"*. Repetition is fine: a commute recurs every
+Day on the same pair. What is low is **coverage**. ***A trigger names the symptom it expects and fires
+on any cause of that symptom, so the cause has to be attributed before the trigger is acted on*** —
+53.19% at the first store size looked exactly like the death of the cache and was the store being 4×
+too small.
+
+**2. The brief was wrong twice and both were caught by reading the source rather than the summary.**
+It said *no TTL rotation — R5.5.4's rotation was the shed's answer and `adr/0083` explicitly declines
+to carry the parameter across*. R5.5.4 rotated **this** store, resident population 412, and `adr/0012`
+says of it *"0.40 forced refreshes per Tick is affordable there and **stays**"*; `adr/0083` is the
+**Parking Shed**'s and declined to *take* the rotation, the opposite direction. `plans/0012`
+**Cause 5**, and the tell was the same as ever — a number quoted with somebody else's clause. And the
+brief's *addition bound checked at use with a proximity wake* **cannot be built in this milestone at
+all**: both hang on a per-Citizen Habit, which this document's own *must not do* list forbids. Third
+consecutive task whose brief was wrong about a document (`adr/0093`).
+
+**3. The rung is deliberately not chosen, and the blocker is a fixture rather than an argument.** The
+detour numbers are an order of magnitude smaller than R5.5.4's — 14 of 1,254 at 0.44% against 38 of
+412 at 16.35% — because **both shipped Rulesets set `arterial_count = 0`**, so a four-Segment gesture
+deletes four *Streets* on a dense lattice and everybody walks round one block. That is milestone 5a's
+***severance is a property of the grid's fineness relative to the barrier***, arriving on the detour
+axis rather than the connectivity one. On this fixture the exact rung spends **34 extra searches to
+correct one stale route**, which chooses nothing. All three rungs ship; `0002` §C names the machine.
+
+**4. The handle is load-bearing and the Epoch alone would have been a live defect.** A validated entry
+compares each Segment's stored Epoch against the current one — and a freed slot is recycled, with the
+new Segment opening at **Epoch 1**, which is exactly what a never-edited Segment carries. So a stored
+Epoch of 1 on a recycled slot is a **false hit**: a route through a road that was demolished and
+replaced by a different road in the same slot. Reachable in the committed golden session, which
+bulldozes at Tick 129 and lays at Tick 200. The entry stores `Handle<RoadSegment>` beside the Epoch and
+`Rows.IsValid` catches the generation. ***An Epoch is a per-object clock and says nothing about which
+object it belongs to.***
+
+**5. The measurement instrument had to compare costs and not routes, and comparing routes would have
+reported every rung as equally bad.** Two different Segment lists of identical cost are the same
+answer, and a lattice of identical Streets produces them constantly — which is precisely why
+`WalkScratch.Precedes` breaks ties on the node slot. The detour column is `served cost` against
+`fresh search cost` on the graph as it now stands.
+
+**6. Two smaller ones.** `RouteCache` is the first thing here to need a **named integer mix**, because
+`object.GetHashCode()` is banned in `Core` and an inline shift-xor would have been a fourth
+undocumented mixing function in the tree; splitmix64's finaliser is used and named. And the analyser
+caught the constructor's `entries / Ways` as `BOR0203` on the first build — **the raw-`/` lint firing
+on a line where truncation genuinely is the intent**, which is the case it is most often argued away
+in.
