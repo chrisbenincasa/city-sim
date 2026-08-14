@@ -234,7 +234,7 @@ public static class SyntheticCity
     /// (<c>adr/0014</c>), so in a lattice sized to its Lots an Arterial can only take Lots away.
     /// </para>
     /// </remarks>
-    private static int PavedTiles(World world)
+    internal static int PavedTiles(World world)
     {
         int block = world.Rules.Roads.BlockTiles;
         int perSegment = world.Rules.Lots.LotsPerSegment;

@@ -257,6 +257,33 @@ rule is **when something concrete is blocked on it, not because it is available.
 - **Audit every displayed figure against *if an indicator would change when the simulation is
   optimised, it is not a trajectory*.** Gridlock was one instance and has been severed. The pass has
   never been run.
+- ⚠ **`§3.7` makes walking free of congestion permanently, so a compact city is a strategy that
+  bypasses the traffic model entirely — and nothing built charges for compactness.** *Raised by the
+  user 2026-08-14, out of the job-search box measurement.* **A** on the intent, **M** on the threshold;
+  owner is a session, after a Ruleset that models a city. The refusal is real and **counts as evidence**
+  under [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md): `§3.7` does
+  not omit pedestrian capacity, it **declines** it with an argument (*"pedestrian networks do not
+  saturate at this scale"*) and makes it permanent (*"walking has one fidelity, permanently"*,
+  *"pedestrians never contribute to Stress"*). So this waits on no unbuilt mechanism and no milestone
+  will change it. **The arguable half**: whether a city small enough to walk *should* cost the player
+  anything, given that compact cities are a legitimate and admired real outcome — `NO VERDICT` says the
+  game must not punish a shape, and `PLAYER GOVERNS` says the player may choose it. **The measurable
+  half is largely already measured and may dissolve the question**: at the design density a city's width
+  is `sqrt(population ÷ 3700)` km, so walkability breaks near **64,000 Citizens**, where the city
+  reaches the 4.17 km ceiling — and `JobSearchBoxTests` reads locality at **100.0%** up to 40,000 and
+  **11.7%** at 160,000, bracketing it from the other side. **Two riders, and the first is the one to
+  check first.** ⚠ **3,700/km² is circular** — it is an *output* of the 1M target (§D, and `0012`'s
+  *Cause 5* registry), so the 64,000 threshold restates the map rather than corroborating it; the
+  build-derived bracket 2,738–5,136/km² moves it to **48,000–89,000**. ⚠ **The density cap is Ruleset
+  content, not engine**, so denser housing raises the threshold and *"no Ruleset that models a city
+  exists yet"* — which makes the honest form of the question **at what population does a compact city
+  stop being walkable, under a Ruleset that models one**, and that Ruleset is the blocker rather than
+  the argument. **What makes it a row now rather than later**: the first-hour target is **10,000
+  Citizens**, comfortably inside the walkable band, so the traffic model — the most elaborate system in
+  the design — engages nowhere in the period the player forms their impression. That is a **pacing**
+  claim rather than a balance one, and it is the half no counterweight would fix. **The only built
+  counterweight to compactness is pollution concentration**; land value and desirability are named holes
+  that throw.
 
 ### `04-economy-and-goods.md`
 

@@ -322,8 +322,9 @@ between them can see anything wrong.
 | **`adr/0094`**, 2026-08-13 | **186,624**, quoted as **~186,600** | `adr/0082`'s *"heavily caveated… it is an **upper bound**"*, and `plans/0013`'s *"S2 R2's fixture"* | used as a bare **denominator** for the Microscopic Cap, and at the **4×** budget rather than the design speed's, producing **27–58×** where the same numbers give **7.3×** |
 | **the correction**, hours later | the **caveat**, not the number | `plans/0013`'s three words *"not a stressed count"*, which mean *not a **real city's** stressed count* | read literally, producing the claim that 186,624 *"is a whole fleet"*. It is **2,592 stressed Segments × 72 Vehicles** and was derived carefully in `adr/0082`. Corrected in this file, `adr/0094`, `adr/0096`, `plans/0025` and `CLAUDE.md` |
 | **the developed density**, ongoing | **3,700 / km²** | `plans/0002` §D's *"an **output** of the 1M target — §1's column is headed *1M implies*"*, and `docs/spike-results.md` saying it again | cited in four documents as an **independent check** that the map may grow, when it is 1,000,000 ÷ 268 km² and therefore the old map restated. See *The developed density every map decision is priced against is circular* below |
+| **`adr/0089`'s amendment**, written 2026-08-13, found 2026-08-14 | the Commute Budget rungs **20 / 40 / 50** minutes | [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s own finding, in the commit that shipped it: *"percentiles of a free-flow, **foot-only** distribution"* | substituted into the map table's *Commutes across* column, whose denominator is a **25–36 km/h vehicle** and always was — the table carries *Foot crossing* as a **separate** column. Reports **2.2–3.1** crossings where the same map on foot is **15.7**. Corrected in `adr/0089` |
 
-**Three sightings, and the middle one is the odd one out.** The first and the third are the **pure
+**~~Three~~ Four sightings, and the middle one is the odd one out.** The first and the third are the **pure
 form**, twice: a qualifier that exists, is correct, sits in the right place, and is simply not carried —
 in the first it had been read **hours earlier by the same sitting**, and in the third it is written twice
 over, in `plans/0002` §D and in `docs/spike-results.md`, while four other documents quote the digits
@@ -337,6 +338,23 @@ that was false** — the clause was there, in two documents, and the sweep that 
 looked. Corrected 2026-08-13. It matters because a missing qualifier is a **writing** failure with no
 repair available, and this is a **reading** failure with an obvious one, which is the whole reason check
 6 can exist: *there is nothing for an instrument to point at until somebody has written the sentence.*
+
+⚠ **The fourth sighting, 2026-08-14, is the first where the qualifier and the number were written by
+the same author on the same day**, and it is the cheapest of the four to have avoided. `adr/0095`'s
+commit message states the disqualifier in capitals — the rungs are *percentiles of a free-flow,
+**foot-only** distribution* — and the same session then carried 20 and 50 into a column it had to open
+`adr/0089` to edit, a column headed by a *Foot crossing* sibling reading **18.5–26.2 h**. **Both halves
+were on the screen.** What defeated it is that the qualifier and the destination were phrased in
+different vocabularies: one says *foot-only*, the other says *commutes*, and nothing about the word
+*commute* announces a mode. ***A unit is not a denomination and a noun is not a unit*** — which is
+`adr/0094`'s `revisit_ticks` lesson (*the name of a quantity is not its denomination*) arriving on a
+**cross-document** quotation rather than inside one table.
+
+**The general form this adds, and it is the one worth carrying:** *when a number is a duration, the mode
+is half of it.* A distance is a time times a speed, so a time quoted without its mode is not a
+disqualified number, it is **half a number** — and the missing half was six to ten times, silently. The
+registry's writing rule extends: **name a duration after the mode that performs it**, so *"50 minutes"*
+is never written where *"a 50-minute walk"* or *"a 50-minute drive"* would do.
 
 ***The second sighting is the one to remember, because it happened while writing this section.*** A
 caveat is a claim, so it travels exactly as badly as a number does, and compressing one for a table cell

@@ -49,6 +49,28 @@ namespace Borough.Core.Rules;
 /// <c>commute_budget_minutes</c> is refused at load rather than given a default.
 /// </para>
 /// <para>
+/// ⚠ <b>The paragraph above is the reason the box is <em>derived</em>, and it is not a claim that the
+/// box <em>filters</em>. It does not, in any world this project builds.</b> Measured 2026-08-14 by
+/// <c>JobSearchBoxTests</c>: the box is 67×67 = 4,489 Cells against a golden-fixture city of 100, and
+/// every seeking Citizen's box holds <b>100.0%</b> of the Buildings in the world at 4,000, 10,000 and
+/// 40,000 Citizens alike. The draw <b>is</b> S2 R4's uniform distribution today. It first narrows at
+/// about 160,000 Citizens (11.7%), because a city's width is roughly <c>sqrt(population ÷ 3700)</c> km
+/// and only then exceeds the 4.17 km a Budget-length walk covers. <b>The cities are smaller than a
+/// commute, so the bound is real and inert</b> — the same shape as <c>foot_crossing_every</c>, which
+/// 5a found correct and doing nothing below a threshold of its own.
+/// </para>
+/// <para>
+/// ⚠ <b>And it is inert structurally rather than temporarily, because a time-derived radius grows with
+/// whatever mode performs the commute.</b> Everything above is walking speed, since walking is all
+/// there is. At 50 km/h the same ceiling reaches <b>41.7 km</b>, so a 1M city 19.2 km across sits
+/// inside an 83 km box — and even the <em>fast</em> rung reaches 16.7 km. <b>A box derived from a
+/// commute time can only ever filter in a foot-only world.</b> That is not an argument for authoring a
+/// radius instead: it is a hash-bearing number with no ratifier either way, and the honest position is
+/// that <b>the walk search is the filter and the box is a bound on how much ground the candidate draw
+/// reads</b>, which is what it measurably is (5–6% of run time for a 5.3× box). Filed to
+/// <c>plans/0002</c> §C; do not quietly re-tune the box to make this comment true.
+/// </para>
+/// <para>
 /// <b>Four flows rather than two, because there are three different ways for this pass to do
 /// nothing</b> and a single *employed* counter reads identically across all of them. *Considered −
 /// seeking* is the price of sampling the population instead of a list of the unemployed; *seeking −
@@ -335,7 +357,7 @@ public sealed class EmploymentEngine
     /// out of. They are counted as *considered* and not as *seeking*, because the queue they are in
     /// is the housing one and <see cref="PlacementEngine"/> is what serves it.
     /// </remarks>
-    private bool Home(int slot, out Cells east, out Cells north, out Address door)
+    internal bool Home(int slot, out Cells east, out Cells north, out Address door)
     {
         east = default;
         north = default;
@@ -392,7 +414,7 @@ public sealed class EmploymentEngine
     /// unreachable for no reason a designer could see.
     /// </para>
     /// </remarks>
-    private static Cells Radius(TravelTime budget, Speed walk)
+    internal static Cells Radius(TravelTime budget, Speed walk)
     {
         if (walk.Raw <= 0)
         {

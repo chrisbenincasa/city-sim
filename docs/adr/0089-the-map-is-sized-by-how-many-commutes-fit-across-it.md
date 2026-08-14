@@ -104,6 +104,36 @@ had quietly removed.
 > still several settlements rather than one blob. *Which rung governs is filed to `plans/0002` as
 > measurable rather than settled here.*
 
+> ### ⚠ A third correction, 2026-08-14, and it is to the correction above
+>
+> **The amendment moved the minutes and left the speed, so it reports what a fifty-minute *drive*
+> covers while sourcing the fifty from a distribution of *walks*.** The fifth column has always been a
+> **vehicle** commute — that is why the table carries *Foot crossing* as a **separate** column, reading
+> 18.5–26.2 h at 512, and why the paragraph below it says *"real routes fall between, because Arterials
+> at 90 km/h exist."* Back the speed out of either version and it is the same: 3.7–5.2 crossings per 30
+> minutes is **25.2–35.4 km/h**, and 2.2–3.1 per 50 minutes is **25.4–35.8 km/h**. **The denominator
+> never moved.** What moved is where the numerator came from —
+> [`0095`](0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s rungs are, in that
+> ADR's own finding, ***percentiles of a free-flow, foot-only distribution***, because
+> [`0075`](0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) gives a Leg no path and `03 §3.7`
+> exempts pedestrians, so **no vehicle has ever contributed a minute to it**.
+>
+> **On foot the same map is 15.7 ceilings across, not 2.2–3.1** — 65.5 km over a 4.17 km walk — and
+> 39.2 at the fast rung. ***`plans/0012` Cause 5***: the digits travelled and the clause saying which
+> mode they measure did not.
+>
+> **The decision stands and only its justification is wrong**, which is this corpus's own *a decision
+> given several grounds is load-bearing on whichever ones survive*. 65.5 km is right for a game whose
+> commutes are driven, and the vehicle column is the one that governs a map sized for the endgame. What
+> may not be done is what the amendment did: **plug a rung authored against walks into a column
+> denominated in a vehicle speed.** State the mode beside the number or state neither.
+>
+> ⚠ **And the consequence is not confined to this table.** `EmploymentEngine` sizes the job-search box
+> from the same ceiling at **walking** speed, so the map is laid out for commutes six to ten times
+> longer than any the simulation can currently perform. Measured 2026-08-14: the box covers **44.9×**
+> the golden fixture's city and **100.0%** of every Building in it, at 4,000, 10,000 and 40,000
+> Citizens alike. `tests/Borough.Tests/Rules/JobSearchBoxTests.cs` holds the readings.
+
 Corner to corner at 512 is **633 Ticks** Euclidean and **895** Manhattan, against **171** for a
 30-minute Budget — 7.7% and 10.9% of a Day. Real routes fall between, because Arterials at 90 km/h exist.
 

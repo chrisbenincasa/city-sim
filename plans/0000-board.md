@@ -185,6 +185,13 @@ correction points down. Two of the ledger's measured rows — the Rule engine's 
   against the mismatched R0–R4 pair's **1.77×**. *The variance S2 called run-to-run noise was almost
   entirely machine state.* **No capture filename records load.** S0a still owes its own re-capture and
   inherits the correction.
+- ⚠ **The job-search box does not filter, and it cannot in a foot-only world.** Measured 2026-08-14:
+  it covers **44.9×** the golden fixture's city and **100.0%** of the Buildings in it, first narrowing
+  near 160,000 Citizens — because a city's width is `sqrt(population ÷ 3700)` km and every world we
+  build is **smaller than a commute**. `EmploymentEngine`'s header, `adr/0089`'s amendment and
+  `CLAUDE.md` are corrected; `JobSearchBoxTests` holds both ends. **The root is a mode confusion**: the
+  map's *Commutes across* column is a **vehicle** commute and `adr/0095`'s rungs are **foot**
+  percentiles, six to ten times apart — [`0012`](0012-corpus-audit.md) *Cause 5*, fourth sighting.
 - Several documents still describe behaviour that later measurement contradicted — see *Owed*, and
   [`0012`](0012-corpus-audit.md) for the corpus-wide sweep's half.
 
