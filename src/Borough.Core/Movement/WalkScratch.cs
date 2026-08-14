@@ -175,6 +175,97 @@ public sealed class WalkScratch
         return best;
     }
 
+    /// <summary>
+    /// Settles every node reachable from whatever was seeded, in <paramref name="mode"/>, and leaves
+    /// the costs behind for <see cref="CostTo"/> to read.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The same search as <see cref="Search"/> with the stopping rule removed, which is exactly
+    /// what a matrix row is.</b> A one-to-all fill and a point-to-point query are the same algorithm
+    /// differing only in when they are allowed to stop, so this shares the heap, the stamp and the
+    /// distance array rather than forking them. Forking would put two Dijkstras in the tree whose
+    /// tie-breaks could drift apart, and a tie-break that drifts is a divergence the State Hash would
+    /// report long after the edit that caused it.
+    /// </para>
+    /// <para>
+    /// <b>Mode-parameterised where <see cref="Search"/> is foot-only, and the asymmetry is
+    /// deliberate.</b> A walk query has one mode by construction; a matrix has a row set per mode it
+    /// is asked for. <see cref="RoadArcs"/> already carries both traversal times and a
+    /// <see cref="RoadArcs.TimeFor"/>, so this costs a parameter rather than a second graph.
+    /// </para>
+    /// <para>
+    /// <b>An unreachable node is left unsettled and <see cref="CostTo"/> reports it
+    /// <see cref="TravelTime.Impassable"/> — which is a fact rather than an estimate.</b> Two
+    /// partitions in different components of the mode subgraph produce an Impassable entry, so a
+    /// matrix built on this can distinguish <em>too far</em> from <em>no route at all</em>. That
+    /// distinction is what keeps <c>03 §3.7</c>'s Severance visible to a consumer that never runs the
+    /// walk.
+    /// </para>
+    /// </remarks>
+    /// <param name="graph">The Road Graph to search.</param>
+    /// <param name="mode">Which subgraph to traverse.</param>
+    public void SettleAll(RoadGraph graph, TravelMode mode)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+
+        RoadNodeTable nodes = graph.Nodes;
+        RoadArcs arcs = graph.Arcs;
+
+        while (_heapCount > 0)
+        {
+            TravelTime cost = _heapCost[0];
+            int node = _heapNode[0];
+
+            PopRoot();
+
+            if (_settled[node])
+            {
+                continue;
+            }
+
+            _settled[node] = true;
+            Relaxed++;
+
+            int start = nodes.ArcStart[node];
+            int count = nodes.ArcCount[node];
+
+            for (int i = start; i < start + count; i++)
+            {
+                if (!arcs.Admits(i, mode))
+                {
+                    continue;
+                }
+
+                TravelTime step = arcs.TimeFor(i, mode);
+
+                if (step.IsImpassable)
+                {
+                    continue;
+                }
+
+                Relax(arcs.Target[i], cost + step);
+            }
+        }
+    }
+
+    /// <summary>
+    /// What the last search settled a node at, or <see cref="TravelTime.Impassable"/> if it never
+    /// reached it.
+    /// </summary>
+    /// <remarks>
+    /// <b>Settled rather than merely relaxed, and the difference is correctness rather than
+    /// pedantry.</b> A node on the frontier holds a tentative cost that a later pop may improve, so
+    /// reading one mid-search would return a number that is right in form and too large in value.
+    /// After <see cref="SettleAll"/> every reachable node is settled, so the distinction is invisible
+    /// there — it is stated because this accessor is also readable after <see cref="Search"/>, which
+    /// stops early and leaves most of the graph exactly in that state.
+    /// </remarks>
+    public TravelTime CostTo(int node) =>
+        (uint)node < (uint)_nodes && _stamp[node] == _generation && _settled[node]
+            ? _distance[node]
+            : TravelTime.Impassable;
+
     private static TravelTime Cheaper(TravelTime left, TravelTime right) =>
         right < left ? right : left;
 

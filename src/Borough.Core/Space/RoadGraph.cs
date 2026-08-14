@@ -69,6 +69,29 @@ public sealed class RoadGraph
     public RoadNodeTable Nodes => _nodes;
 
     /// <summary>
+    /// How many times the derived structures have been rebuilt. <b>The whole graph's version.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Not an Epoch, and the distinction is the one <c>CONTEXT.md</c> → Epoch spends a paragraph
+    /// on.</b> A Segment's Epoch is per-Segment so that a cached <em>route</em> can ask whether an
+    /// edit touched <em>it</em>; a single counter would make every edit invalidate everything, which
+    /// that entry calls a global flush. This counter is deliberately global, because its consumer is
+    /// <see cref="Movement.TravelTimeMatrix"/> and every entry in a matrix is a shortest path over
+    /// the whole graph — so any edit anywhere can move any entry and there is no finer question to
+    /// ask. **A global counter is wrong for a route and right for a matrix**, and the two must not be
+    /// collapsed because they happen to be counters.
+    /// </para>
+    /// <para>
+    /// <b>Derived and unhashed.</b> It counts rebuilds, which is exactly the quantity
+    /// <c>plans/0020</c> found makes a wholly-derived table unfoldable — two identical cities reached
+    /// by different edit histories hold different values here, and that must never reach the State
+    /// Hash.
+    /// </para>
+    /// </remarks>
+    public uint Version { get; private set; }
+
+    /// <summary>
     /// The routing partition — the tiling the travel-time matrix keys on (<c>adr/0040</c>).
     /// </summary>
     /// <remarks>
@@ -283,11 +306,19 @@ public sealed class RoadGraph
         _connectivity.Rebuild(_nodes, _segments);
         _streets.Rebuild(_nodes, _segments, _ruleset.BlockTiles);
 
-        // Last, and it reads only the nodes. The routing partition is a tiling of the map rather
-        // than a structure over the Arcs, so it has no ordering constraint against anything above
-        // it — stated here because the next reader will assume it does, every other line in this
-        // method having one.
-        _partition.Rebuild(_nodes);
+        // Last, and it must run after RebuildAdjacency because it reads the Arcs.
+        //
+        // ⚠ This comment said the opposite one commit ago -- "it reads only the nodes ... so it has
+        // no ordering constraint against anything above it" -- and task 1 put the call last for that
+        // (wrong) reason. The dependency arrived with the per-mode access node: an anchor has to be a
+        // node some Arc leaves in that mode, and the Arcs are what says so. Corrected rather than
+        // quietly overwritten, because a stated absence of a constraint is the thing a later reader
+        // reorders against.
+        _partition.Rebuild(_nodes, _arcs);
+
+        // After everything, so a consumer that compares versions and then reads is never handed a
+        // half-rebuilt structure under a fresh number.
+        Version++;
     }
 
     private void DeriveSegmentAttributes()

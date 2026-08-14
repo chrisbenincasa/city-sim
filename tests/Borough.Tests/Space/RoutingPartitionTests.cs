@@ -124,9 +124,9 @@ public sealed class RoutingPartitionTests(ITestOutputHelper output)
         Assert.Equal(0, partition.NorthOf(2));
 
         // Slots 0..3 all sit 64 Tiles from the centre; slot 0 wins because it is first.
-        Assert.Equal(0, partition.AccessNode(0));
-        Assert.Equal(4, partition.AccessNode(1));
-        Assert.Equal(8, partition.AccessNode(2));
+        Assert.Equal(0, partition.AccessNode(0, TravelMode.Foot));
+        Assert.Equal(4, partition.AccessNode(1, TravelMode.Foot));
+        Assert.Equal(8, partition.AccessNode(2, TravelMode.Foot));
     }
 
     /// <summary>Ground no node stands on is in no partition, and the map's outside is not a partition either.</summary>
@@ -213,7 +213,7 @@ public sealed class RoutingPartitionTests(ITestOutputHelper output)
 
         for (int id = 0; id < partition.Count; id++)
         {
-            int access = partition.AccessNode(id);
+            int access = partition.AccessNode(id, TravelMode.Foot);
 
             Assert.True(graph.Nodes.Rows.IsLive(access), $"Partition {id} has no live access node.");
             Assert.Equal(id, partition.Of(graph.Nodes, access));
@@ -246,7 +246,7 @@ public sealed class RoutingPartitionTests(ITestOutputHelper output)
         {
             east[id] = partition.EastOf(id);
             north[id] = partition.NorthOf(id);
-            access[id] = partition.AccessNode(id);
+            access[id] = partition.AccessNode(id, TravelMode.Foot);
         }
 
         simulation.World.RebuildDerived();
@@ -257,7 +257,7 @@ public sealed class RoutingPartitionTests(ITestOutputHelper output)
         {
             Assert.Equal(east[id], partition.EastOf(id));
             Assert.Equal(north[id], partition.NorthOf(id));
-            Assert.Equal(access[id], partition.AccessNode(id));
+            Assert.Equal(access[id], partition.AccessNode(id, TravelMode.Foot));
         }
     }
 

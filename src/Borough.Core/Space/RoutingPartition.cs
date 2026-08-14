@@ -74,6 +74,15 @@ public sealed class RoutingPartition
 
     private readonly int[] _east;
     private readonly int[] _north;
+
+    /// <summary>
+    /// The access node of each partition, one lane per mode — see <see cref="AccessNode"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Two lanes in one array rather than an array per mode</b>, because the mode count is fixed
+    /// at two by <see cref="TravelMode"/> and a jagged structure would be a reference type inside a
+    /// class the determinism rules already keep flat.
+    /// </remarks>
     private readonly int[] _access;
 
     /// <summary>
@@ -112,9 +121,12 @@ public sealed class RoutingPartition
         _dense = new int[_side * _side];
         _east = new int[_side * _side];
         _north = new int[_side * _side];
-        _access = new int[_side * _side];
-        _nearest = new int[_side * _side];
+        _access = new int[_side * _side * Modes];
+        _nearest = new int[_side * _side * Modes];
     }
+
+    /// <summary>How many travel modes carry an access node. <see cref="TravelMode"/>'s two.</summary>
+    private const int Modes = 2;
 
     /// <summary>
     /// The size this world's partition is built at. <b>4 Cells — 128 Tiles, 512 m.</b>
@@ -195,14 +207,20 @@ public sealed class RoutingPartition
     /// tiling is square, so the two disagree only about which of several near-central nodes wins.
     /// </para>
     /// <para>
-    /// <b>⚠ Mode-agnostic, and whether that survives is 5c task 2's question rather than this
-    /// task's.</b> A one-to-all car search from an access node no car can reach returns nothing, so
-    /// task 2 may find it needs a node per mode. It is not decided here because the choice is
-    /// visible only once something searches: deciding it now would be a representation chosen for a
-    /// consumer nobody has built, which <c>adr/0070</c> makes evidence of nothing.
+    /// <b>⚠ One per mode, and task 1 shipped it mode-agnostic before task 2 found that cannot
+    /// work.</b> The node nearest a partition's centre may be an Arterial junction, whose Arcs carry
+    /// <see cref="TravelMode.Car"/> and not <see cref="TravelMode.Foot"/> (<c>adr/0072</c>) — so a
+    /// foot matrix row anchored on it would settle nothing and report the partition **severed from
+    /// the entire city**, which is the one reading this whole structure exists to keep honest. The
+    /// candidate set is therefore filtered to nodes with at least one Arc admitting the mode, and the
+    /// nearest-centre rule then applies within it. **A partition with nodes but none of them
+    /// traversable in a mode has no access node in that mode**, which is a real state — a
+    /// pedestrianised block holds no car anchor — and reads as <see cref="Tables.Rows.NoSlot"/>
+    /// rather than as slot 0.
     /// </para>
     /// </remarks>
-    public int AccessNode(int partition) => _access[partition];
+    public int AccessNode(int partition, TravelMode mode) =>
+        _access[Anchor(partition, mode)];
 
     /// <summary>The partition a Tile coordinate falls in, or <see cref="None"/> when it is off the map.</summary>
     public int At(Tiles east, Tiles north)
@@ -251,9 +269,10 @@ public sealed class RoutingPartition
     /// pre-empt; that is <see cref="BuildingResidency"/>'s two-stage rule on a second object.
     /// </para>
     /// </remarks>
-    public void Rebuild(RoadNodeTable nodes)
+    public void Rebuild(RoadNodeTable nodes, RoadArcs arcs)
     {
         ArgumentNullException.ThrowIfNull(nodes);
+        ArgumentNullException.ThrowIfNull(arcs);
 
         Array.Clear(_dense);
         Count = 0;
@@ -287,8 +306,12 @@ public sealed class RoutingPartition
                 _dense[index] = ++Count;
                 _east[Count - 1] = east;
                 _north[Count - 1] = north;
-                _access[Count - 1] = Tables.Rows.NoSlot;
-                _nearest[Count - 1] = int.MaxValue;
+
+                for (int lane = 0; lane < Modes; lane++)
+                {
+                    _access[(lane * _side * _side) + Count - 1] = Tables.Rows.NoSlot;
+                    _nearest[(lane * _side * _side) + Count - 1] = int.MaxValue;
+                }
             }
         }
 
@@ -302,13 +325,51 @@ public sealed class RoutingPartition
             int partition = _dense[Index(east, north)] - 1;
             int distance = ToCentre(nodes, slot, east, north);
 
-            if (distance < _nearest[partition])
+            for (int lane = 0; lane < Modes; lane++)
             {
-                _nearest[partition] = distance;
-                _access[partition] = slot;
+                int anchor = (lane * _side * _side) + partition;
+
+                if (distance >= _nearest[anchor] || !Admits(nodes, arcs, slot, Mode(lane)))
+                {
+                    continue;
+                }
+
+                _nearest[anchor] = distance;
+                _access[anchor] = slot;
             }
         }
     }
+
+    /// <summary>Whether any Arc leaving a node admits a mode — the anchor's eligibility test.</summary>
+    /// <remarks>
+    /// <b>Leaving rather than touching, and a one-way street is why the difference is real.</b> An
+    /// anchor is where a one-to-all search <em>starts</em>, so a node every Arc of which points
+    /// inward is useless as one however well connected it looks. The adjacency is directed
+    /// (<c>adr/0072</c>), so this is the correct half to test and it is the cheap one — a node's Arcs
+    /// are a contiguous slice.
+    /// </remarks>
+    private static bool Admits(RoadNodeTable nodes, RoadArcs arcs, int node, TravelMode mode)
+    {
+        int start = nodes.ArcStart[node];
+        int count = nodes.ArcCount[node];
+
+        for (int i = start; i < start + count; i++)
+        {
+            if (arcs.Admits(i, mode))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The mode a lane of <see cref="_access"/> holds.</summary>
+    private static TravelMode Mode(int lane) => lane == 0 ? TravelMode.Foot : TravelMode.Car;
+
+    /// <summary>The lane of <see cref="_access"/> a partition's anchor sits in, for a mode.</summary>
+    private int Anchor(int partition, TravelMode mode) =>
+        (mode == TravelMode.Foot ? 0 : _side * _side) + partition;
 
     /// <summary>The Chebyshev distance in Tiles from a node to its partition's centre.</summary>
     private int ToCentre(RoadNodeTable nodes, int slot, int east, int north)

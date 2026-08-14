@@ -100,7 +100,61 @@ public static class WalkRouting
             return from.Side == to.Side ? direct : direct + crossingCost;
         }
 
+        // The reachability reject. Two Addresses in different foot components have no route, so the
+        // search below would settle the whole of the origin's component to prove it — the most
+        // expensive answer this method can give, for the one question it can be certain about
+        // without searching at all.
+        if (!Connected(graph, fromSegment, toSegment))
+        {
+            return TravelTime.Impassable;
+        }
+
         return Across(graph, from, to, fromSegment, toSegment, scratch);
+    }
+
+    /// <summary>
+    /// Whether two Segments are in the same <see cref="TravelMode.Foot"/> component — <b>the one
+    /// routing question that is certain without a search</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An integer comparison against labels milestone 5a has computed since it shipped, and which
+    /// nothing has ever read.</b> <see cref="RoadConnectivity"/> unions both endpoints of every
+    /// Segment admitting the mode, so a component label is a property of the graph rather than of any
+    /// structure laid over it: two Addresses in different components genuinely have no route, and two
+    /// in the same one genuinely have a route to find. That is what makes this a <em>reject</em> and
+    /// not an estimate — there is no margin, no tuning number and nothing to ratify.
+    /// </para>
+    /// <para>
+    /// <b>⚠ Not the travel-time matrix's Impassable, and 5c task 2 nearly used that instead.</b> A
+    /// matrix entry runs access node to access node, so a routing partition holding two pieces that
+    /// do not connect to each other can report *severed* for a journey that succeeds — an unsound
+    /// reject that discards reachable work with no symptom. Measured on <c>rulesets/severance.toml</c>
+    /// the matrix happened not to misfire, which makes that an untriggered hazard rather than a
+    /// refuted one. ***A structure laid over a graph cannot answer a question about the graph.***
+    /// </para>
+    /// <para>
+    /// <b>Behaviour-identical, and that is the test that says so.</b> Under <c>05 §4</c> a change is
+    /// an optimisation if the State Hash is unchanged: this returns <see cref="TravelTime.Impassable"/>
+    /// in exactly the cases the search would have, so every counter, Fate and rung downstream reads
+    /// the same. It is guarded to fire only where both labels resolve, so a Segment the labelling
+    /// never reached falls through to the search rather than being refused on a default.
+    /// </para>
+    /// </remarks>
+    private static bool Connected(RoadGraph graph, int fromSegment, int toSegment)
+    {
+        if (!graph.Nodes.Rows.TryResolve(graph.Segments.NodeA[fromSegment], out int from)
+            || !graph.Nodes.Rows.TryResolve(graph.Segments.NodeA[toSegment], out int to))
+        {
+            return true;
+        }
+
+        int origin = graph.Nodes.FootComponent[from];
+        int destination = graph.Nodes.FootComponent[to];
+
+        return origin == RoadConnectivity.Unlabelled
+            || destination == RoadConnectivity.Unlabelled
+            || origin == destination;
     }
 
     /// <summary>

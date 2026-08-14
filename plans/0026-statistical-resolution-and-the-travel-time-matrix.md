@@ -6,7 +6,7 @@
 
 ## Status
 
-⚠ **NOT STARTED — scoped 2026-08-14.** All three named gates are discharged and none of the closures
+⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1 and 2 of 8 done 2026-08-14.** All three named gates are discharged and none of the closures
 reached a gate board, which is why this milestone read as blocked for two days
 ([`0000`](0000-board.md) → *Blocked*, split per-milestone on 2026-08-13):
 
@@ -378,3 +378,95 @@ not the vocabulary file every cold start reads. `plans/0012` **Cause 2**. **The 
 that every one of those figures is a pure restatement of a constant**, so nothing computed from them
 and nothing failed; the sub-step band (**~45× → ~180×**) went the same way. `adr/0082`'s own 108×
 figure is left alone because that ADR's amendment did not touch it.
+
+### Task 2 — the travel-time matrix. ✅ **DONE 2026-08-14.**
+
+`Borough.Core.Movement.TravelTimeMatrix`: partition × partition free-flow times, built by one
+one-to-all search per partition, `(derived AND rebuilt)`, refreshed against a new graph-wide
+`RoadGraph.Version`. `WalkScratch` gained `SettleAll` and `CostTo` — the same Dijkstra with the
+stopping rule removed, shared rather than forked so two tie-breaks cannot drift apart — and is now
+mode-parameterised. **1,319 tests green and all three golden baselines reproduced unchanged.**
+
+#### The ratifier, discharged
+
+[`0002`](0002-open-questions.md) §D2 named the machine and it has run. Entry error against a **real
+walk**, in clock minutes:
+
+| Citizens | order | mean | p50 | p90 | max over | max under |
+|---|---|---|---|---|---|---|
+| 4,000 *(golden fixture)* | 9 | −0.85 | −1.15 | +3.74 | **+9.22** | −8.83 |
+| 40,000 | 64 | −0.23 | −0.05 | +3.98 | **+8.30** | −9.17 |
+
+**The error does not grow with the city.** It is a partition-*local* quantity, so 4 Cells buys ±9
+minutes on foot at every scale — which is the property that makes the size ratifiable at all from a
+fixture. The size **stands at 4 Cells**, still formally unratified against a *product* judgement
+(is ±9 minutes acceptable?) but no longer unmeasured.
+
+#### Findings
+
+**1. The geometric margin is not a bound, and that was measured rather than argued.**
+`TravelTimeMatrix.EntryError` computes one partition crossed at the mode's speed — **6.1 minutes** on
+foot at the shipped size — and the measured worst overstatement is **9.2**. A reject built on the
+geometric figure would have discarded reachable work. The reason is structural: an entry runs access
+node to access node and a journey runs Address to Address, so the difference is two *within-partition
+walks*, and a walk is **road** distance, which nothing bounds by the partition's size. ***A structure
+laid over a graph cannot bound a quantity measured on the graph*** — `BuildingResidency`'s *a
+catchment is a time rather than a distance* one level up. The method survives, redocumented as a
+scale and explicitly not a bound.
+
+**2. ⚠ The distance-reject is inert, and it is the job-search box a third time.** With a safe margin
+it fires **0 times in 400** at both 4,000 and 40,000 Citizens; with a **zero** margin it fires 3
+times at 40,000. The binding term is not the margin — a 40,000-Citizen city is 3.84 km across, about
+46 minutes on foot, against a **50-minute** ceiling. **The city is smaller than the Commute Budget**,
+which is `b852d4d`'s finding arriving on a third mechanism in one day, after the job-search box and
+`adr/0089`'s map ratio. **The yield was measured before anything was wired**, which is the whole
+lesson of that commit turned into a habit.
+
+**3. ⚠ The sound reachability reject needs no matrix, and 5a built it.** A matrix's Impassable is
+*not* a certainty: an entry is anchored on an **access node**, so a partition holding two
+disconnected pieces can report *severed* for a journey that succeeds. `RoadNodeTable.FootComponent`
+has no such hole — union-find unions both endpoints of every Segment admitting the mode — and it
+agreed with a real search **399 times out of 399** on `rulesets/severance.toml`. **It has been in the
+tree since milestone 5a and nothing has ever read it.** The reject is now in `WalkRouting.Cost`
+rather than in `EmploymentEngine`, so every walk consumer gets it and there is one place to be right.
+*(The matrix did not actually misfire on that fixture — 0 in both directions — which makes its
+unsoundness an **untriggered hazard** rather than a refuted one, and the test says so instead of
+asserting a 0 that is a property of the fixture's geometry.)*
+
+**4. ⚠ The reject is worth ~4%, and the recommendation that won it was wrong.** It was proposed on
+the ground that a failing search settles the origin's whole component and is therefore the most
+expensive kind. Measured over 399 walks × 200 on `severance.toml`, with **321 of 399 rejected**:
+**1.03 → 0.99 µs a walk.** ***A search that fails because of Severance is cheap precisely because
+Severance is what made it fail*** — the barrier that removes the route also shrinks the component the
+search would have explored, so severance and expensive-failure are anti-correlated. **The argument
+that survives is insurance rather than performance**: that anti-correlation is a property of how
+`severance.toml` severs — it *shatters* — and a city **bisected** by a river with its bridges gone
+has two large components, where a failing search settles half the city. The corpus has no fixture for
+that case. Kept on that basis with the 4% written down, so nobody later quotes it as a win.
+
+> ⚠ **Do not read this task's ~1 µs a walk against `plans/0013`'s ~32.5 µs.** Different city,
+> different origin-destination distribution, and these walks are mostly fast failures inside
+> shattered components. `plans/0012` **Cause 5**, declined rather than committed.
+
+**5. The first timing instrument was invalid on exactly the path it was measuring.**
+`WalkScratch.Relaxed` is reset by `Begin`, which the reject never reaches, so a rejected walk leaves
+the *previous* walk's count standing and a sum over it double-counts. The totals came back
+**bit-identical** with and without the reject and read as *the reject never fires* — when it fires
+321 times in 399, which counting the firings directly established in one line. ***An instrument that
+is only valid on the path it is measuring away is not an instrument.*** The settle counts are gone
+from that test and the reason is written where they were.
+
+**6. Task 1's mode-agnostic access node did not survive contact, as task 1 predicted it might not.**
+The node nearest a partition's centre may be an Arterial junction, whose Arcs carry `Car` and not
+`Foot` — so a foot row anchored on it settles nothing and reports the partition **severed from the
+entire city**, which is the one reading this structure exists to keep honest. `RoutingPartition` now
+carries one access node per mode, filtered to nodes some Arc *leaves* in that mode. ⚠ **That gave the
+partition an ordering constraint its own comment denied**: task 1 put the rebuild last saying it *"reads
+only the nodes ... so it has no ordering constraint"*, and it now reads the Arcs. Corrected in place
+rather than overwritten, because **a stated absence of a constraint is what a later reader reorders
+against**.
+
+**7. The reject is an optimisation by `05 §4`'s own test**, and the golden baselines are what say so:
+it returns Impassable in exactly the cases the search would have, so every counter, Fate and rung
+downstream reads the same and no State Hash moved. **The matrix moved no hash either, because nothing
+reads it** — task 1's *prospectively hash-bearing* warning is still standing and still unspent.
