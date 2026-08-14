@@ -30,6 +30,28 @@
 # something about content, which its first line says it does not. The Rule engine's `map` output is
 # covered by `RuleEvaluationTests`, and the absorption by `LayerFieldsTests` and `LayerLongRunTests`.
 #
+# ⚠ THE GOODS QUANTITIES AND THE BIN CAPACITIES BOTH x4 ON 2026-08-13, AND THE SECOND IS THE ONE
+# WORTH READING. adr/0094 took TICKS_PER_DAY from 8192 to 2048 and says the Goods quantities scale x4:
+# a Rule moving n units every 64 Ticks now moves them over four times more in-world time, so the rate
+# in Goods per Day would otherwise have fallen by four. That is airtight and it is only half the edit.
+#
+# A BUFFER IS DENOMINATED IN TRANSACTIONS, NOT IN GOODS. Keeping `capacity = 12` while `consume` grows
+# from 3 units a firing to 12 is arithmetically defensible and produces a broken file. In IN-WORLD TIME
+# the two are identical -- 12 sundries was four firings of 337.5 s and is one firing of 1350 s, which
+# is 22.5 in-world minutes of supply either way. What changed is GRANULARITY: the clock got four times
+# coarser, so every transaction got four times bigger while the buffer stood still, and measured in the
+# only unit that decides whether a producer and a consumer can interleave, every Bin in the game just
+# shrank by four. A Bin that must be EXACTLY FULL for one `consume` to succeed is a knife edge.
+#
+# THIS IS NOT A WORKAROUND, IT IS THE OTHER SIDE OF A TRADE adr/0094 ALREADY MADE. That ADR considered
+# dividing every `rate` by four -- holding transaction size and paying four times the cost -- and
+# rejected it on cost. Having taken the coarse-transaction side, bigger buffers are what is owed. The
+# ADR did not follow its own choice through to the buffers; its "What building it found" now does.
+#
+# WHAT IT COSTS: the larder is a real quantity and this is a real change to it. A dwelling now holds 90
+# in-world minutes of sundries where it held 22.5. That is a different world, not a neutral rescale,
+# and it is written here rather than slipped in.
+#
 # THE STEADY STATE IS THE POINT, AND IT IS A SURPLUS ONE. Production outruns consumption, so the Bin
 # sits near its ceiling and `restock` is the Rule that fails: it sleeps on headroom, `consume` draws
 # and wakes it, it refills and sleeps again. Both Rules move for ever, nothing trends, and no Rule is
@@ -79,8 +101,8 @@ family = "good"
 [[building]]
 name = "dwelling"
 bins = [
-    { resource = "sundries", capacity = 12 },
-    { resource = "repairs",  capacity = 1 },
+    { resource = "sundries", capacity = 48 },
+    { resource = "repairs",  capacity = 4 },
 ]
 condemn_after = 4
 
@@ -113,7 +135,7 @@ kind    = "dwelling"
 rate    = 8
 apply   = { min = 1, max = 4 }
 inputs  = []
-outputs = [ { scope = "local", resource = "sundries", amount = 1 } ]
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
 
 # Derived, because a dwelling's draw is stated by how many Households live in it rather than bounded
 # by what is in the Bin. `occupancy` is the one declared Readout (slice 7 task 7), and this is the
@@ -123,7 +145,7 @@ name    = "consume"
 kind    = "dwelling"
 rate    = 32
 apply   = { derived = "occupancy" }
-inputs  = [ { scope = "local", resource = "sundries", amount = 1 } ]
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
 outputs = []
 
 # The Rule that never fires. Its Bin is filled by nothing, so its first firing goes short of an input,
@@ -137,7 +159,7 @@ name    = "upkeep"
 kind    = "dwelling"
 rate    = 16
 apply   = { min = 1, max = 1 }
-inputs  = [ { scope = "local", resource = "repairs", amount = 1 } ]
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
 outputs = []
 
 # The first [[zone_rule]] in the project, and the thing that closes the loop. Every 32 Ticks it looks

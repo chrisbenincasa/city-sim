@@ -344,10 +344,61 @@ become three.
 >   because it read the first sample alone. ***A guard against vacuity that reads one sample can itself
 >   be defeated by timing*** — the fourth single-draw failure in two days.
 >
-> ⚠ **The Goods ×4 rescale is still owed** and is the next commit. Employment on the shipped Ruleset
-> fell 6,844 → 2,791 of 10,000 over 2,048 Ticks, which is the `revisit_ticks` decision rather than the
-> clock — the Zone Rule surveys the whole city every Day instead of every four, so it condemns four
-> times as fast per Tick.
+> ✅ **THE GOODS ×4 RESCALE SHIPPED 2026-08-13 as the separate commit**, and it turned out to be **two**
+> rescales rather than one. Employment on the shipped Ruleset fell 6,844 → 2,791 of 10,000 over 2,048
+> Ticks, which is the `revisit_ticks` decision rather than the clock — the Zone Rule surveys the whole
+> city every Day instead of every four, so it condemns four times as fast per Tick.
+>
+> - **The Bin capacities had to move with the Goods, and nothing predicted it**: `sundries` 12 → **48**,
+>   `repairs` 1 → **4**. ***A buffer is denominated in transactions, not in goods.*** In in-world time
+>   the old and new pairs are identical — 22.5 minutes of supply either way — so measured in Goods
+>   nothing was wrong. Measured in **firings held**, every Bin in the game shrank from four to one, and a
+>   Bin that must be *exactly full* for one `consume` to succeed is a knife edge. `adr/0094` considered
+>   dividing every `rate` by four and rejected it **on cost**; having taken the coarse-transaction side of
+>   that trade, resizing the buffers is what it owes, and it never wrote that down. Recorded there.
+> - ⚠ **It costs something real and it is stated rather than slipped in**: a dwelling now holds **90
+>   in-world minutes** of sundries where it held 22.5, so a city coasts four times as long through a
+>   supply failure before reporting it.
+> - ⚠ **The knife edge exposed a live defect in the wake path — item 8 below, filed unfixed.**
+
+> ⚠ **ITEM 8, added 2026-08-13 by session P: a waiter whose own requirement falls is never re-checked.**
+> **Filed unfixed, with a reproduction**, because it was found while building item 7's Goods half and
+> fixing it there would have put an unrelated mechanism in that commit — this queue's own rule, and the
+> reason items 1 and 2 did not share a re-record.
+>
+> **Reproduction.** `rulesets/minimal.toml` with the Goods amounts at ×4 and the Bin capacities left at
+> their old `12` and `1`; 4,000 Citizens; 1,024 Ticks or more.
+> `Invariant.WaiterIsBlockedByTheBinItNames` — item 0, the end-of-run tier — fires. The shipped
+> capacities of 48 and 4 do **not** provoke it, which is why the queue can carry it rather than the
+> commit.
+>
+> **What was observed, on four Bins simultaneously and stable from Tick 512 to 2052 and again at 4096:**
+> queue **depth 1**, Bin `level 12`, `headroom 0`, waiter requirement **12**, and
+> `RuleEngine.BinStillBlocks` returning **false**. A single waiter, asking for exactly what is there,
+> parked.
+>
+> **Two hypotheses were tested and refuted**, and they are written down so nobody pays for them twice.
+> *A derived requirement falling to zero* — refuted, the probe reads `requirement=12 buildingLive=True
+> occupants=3`. *`World.Drain`'s collective budget legitimately parking a second waiter behind a first* —
+> refuted by the depth of 1.
+>
+> **What is left is a trigger gap, and it is `adr/0063`'s own doing.** That ADR made the wake predicate
+> read **live** state — the requirement is `RuleEngine.Requirement`, derived from a Readout on every
+> call — and the only thing that calls `Drain` is a **write to the Bin**. So a waiter parked when its
+> requirement was high and the Bin could not meet it stays parked for ever once its **own** requirement
+> falls, because the Bin never changed and nothing else re-examines the queue. ***A live predicate with
+> an event-driven trigger is only correct if every input to the predicate is an input to the trigger***,
+> and occupancy is not. This is stated as the surviving hypothesis rather than as a diagnosis: the
+> falling-requirement history was **not** directly observed, it is what remains once the two above are
+> gone and the only two inputs are the Bin and the Readout.
+>
+> **It moves the hash** — waking a Rule Instance is a change to what the city does — so it re-records.
+> **Position: last.** Nothing shipped provokes it, and the two candidate fixes are a real design
+> question rather than a correction: re-examine a Bin's queue when a **Readout** the requirement depends
+> on changes (a write nobody currently issues, and `02 §5` has no such edge), or sweep the wait lists on
+> a cadence, which is [`adr/0033`](../docs/adr/0033-two-rule-families-scheduled-and-swept.md)'s
+> forbidden move — a Bin Rule becoming a Sweep Rule is a change to the city, not an implementation
+> detail. **Do not pick one inside another item's commit.**
 
 > ~~**✅ THE QUEUE IS EMPTY. All four items shipped 2026-08-10.**~~ **REOPENED the same day by session N
 > task 2, with items 4 and 5 — and ✅ BOTH SHIPPED 2026-08-11, so it is empty again.** They were [`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)

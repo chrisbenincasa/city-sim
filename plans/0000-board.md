@@ -234,8 +234,7 @@ itself.* **What is next is therefore a choice rather than a
 queue**, and the ~~three~~ ~~four~~ **four candidates were, of which item 6 and the map flip have since shipped**:
 ~~[`0003`](0003-build-plan.md)'s hash-moving queue **item 7** — the
 `TICKS_PER_DAY` flip, which is mechanical and should land before more Rulesets are authored, because
-Goods quantities rescale ×4;~~ **✅ its clock half shipped 2026-08-13 and the Goods rescale is the one
-thing it still owes;** [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s
+Goods quantities rescale ×4;~~ **✅ SHIPPED WHOLE 2026-08-13 — the clock half and the Goods rescale, as two commits;** [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s
 **three rungs**, which is Ruleset content plus one comparison and is what makes 5b-bis's *binding hard*
 reading interpretable; and ~~**[`0003`](0003-build-plan.md) queue item 6** — scoping `SyntheticCity`'s paving to the area it
 populates, which is what [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)'s
@@ -254,7 +253,27 @@ while the Goods move **up** ×4. `Speed.PerKilometrePerHour` was a **literal**, 
 at **1.25 km/h** with nothing failing to compile; `revisit_ticks` was **actively misclassified by that
 ADR's own table** and is struck from it with the user in the room. ***The name of a quantity is not its
 denomination.*** Full record in [`0003`](0003-build-plan.md) → *The hash-moving queue* and the ADR's
-*What building it found*. ⚠ **The Goods ×4 rescale is still owed and is the next commit.**
+*What building it found*.
+
+✅ **AND THE GOODS ×4 RESCALE SHIPPED AS THE SECOND COMMIT — it was two rescales rather than one.**
+The **Bin capacities** had to move with the Goods (`sundries` 12 → **48**, `repairs` 1 → **4**) and
+nothing predicted it. ***A buffer is denominated in transactions, not in goods.*** In in-world time the
+old and new pairs are identical — 22.5 minutes of supply either way — so measured in Goods nothing was
+wrong; measured in **firings held**, every Bin in the game shrank from four to one, and a Bin that must
+be *exactly full* for one `consume` to succeed is a knife edge. `adr/0094` considered dividing every
+`rate` by four and rejected it **on cost**, and resizing the buffers is what the side it took owes.
+⚠ **It costs something real**: a dwelling holds **90 in-world minutes** of sundries where it held 22.5,
+so a city coasts four times as long through a supply failure before reporting it.
+
+⚠ **The knife edge exposed a live defect, filed unfixed as [`0003`](0003-build-plan.md) queue item 8.**
+A waiter whose **own** requirement falls is never re-checked: `adr/0063` made the wake predicate read
+**live** state — the requirement is derived from a Readout on every call — and the only thing that calls
+`World.Drain` is a write to the **Bin**. ***A live predicate with an event-driven trigger is only correct
+if every input to the predicate is an input to the trigger***, and occupancy is not. Observed on four
+Bins at once, stable from Tick 512 to 4096: queue **depth 1**, level 12, headroom 0, requirement 12,
+`BinStillBlocks` **false**. It is filed rather than fixed because its two candidate repairs are a design
+question — issue a wake on a Readout write, an edge `02 §5` does not have, or sweep the wait lists on a
+cadence, which is `adr/0033`'s forbidden move.
 
 ✅ **ITEM 6 SHIPPED 2026-08-13, and it produced a fifth candidate by discharging a gate.**
 `RoadGenerator.LayInto` takes an extent and `SyntheticCity` derives it from the Lot count the population
