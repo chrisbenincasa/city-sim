@@ -246,3 +246,21 @@ this directory has changed**. A Ruleset existing is not a Ruleset the baseline r
 have to adopt it, which is a decision about the committed trace rather than about congestion, and it is
 5c task 8's to make with the long run in hand. `TrafficDumpTests` joins the three suites above as a
 reader; the hash files still cover none of it.
+
+**`adr/0101` re-recorded all four artefacts — including `session.borough` itself, which is the rarer
+half.** A commute became two journeys, the departure phase became a function of the Workplace's Shift
+band instead of the Citizen's id, and `CitizenTable` gained a saved `planned_commute` column, so
+`world-hash.txt` and `session-trace.txt` moved for the ordinary reason: the composition changed and the
+city behaves differently. What moved the log is that **both Ruleset files gained keys** — `[jobs]`
+lost `commute_peak_factor` and gained `shift_hours_min`/`max` and `arrive_early_max_minutes`, and the
+`dwelling` kind gained a Shift-start band — so both content hashes moved and the `ruleset` and `reload`
+lines *inside* `session.borough` name numbers that no file produced any more. **Four literals in two
+files, exactly the shape 5b-bis task 4's re-record had.**
+
+⚠ **The re-record was blocked before it could start, and the refusal was the right one.** The runner
+would not replay a session naming a Ruleset hash nobody supplied — *Rules nobody has are not a
+mismatch, and `--force-ruleset` cannot waive it* — so the two literals in `session.borough` and the two
+in `GoldenFixtures` had to be corrected **before** the trace could be regenerated at all. That ordering
+is not an inconvenience: a runner that had quietly played the session against whichever Rulesets it was
+handed would have produced a full set of freshly correct hashes for a session that was no longer the
+committed one, which is 5a-bis's finding wearing different clothes.

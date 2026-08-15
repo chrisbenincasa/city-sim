@@ -310,6 +310,10 @@ public sealed class EmploymentEngine
 
         CommuteRung best = CommuteRung.Fast;
         int bestBuilding = Rows.NoSlot;
+        // What the winning walk cost, kept so that Employ can write it onto the Citizen as their
+        // planned commute (adr/0101). The search already paid for it; storing it is what lets the
+        // departure be `Shift start - this` instead of a number somebody had to choose.
+        TravelTime bestCost = default;
         bool found = false;
 
         for (int look = 0; look < candidates; look++)
@@ -347,6 +351,7 @@ public sealed class EmploymentEngine
                 found = true;
                 best = rung;
                 bestBuilding = building;
+                bestCost = cost;
             }
 
             // Nothing beats the top rung, so the remaining draws cannot change the outcome and their
@@ -363,7 +368,10 @@ public sealed class EmploymentEngine
             return false;
         }
 
-        _world.Employ(_world.Citizens.Rows.At(slot), _world.Buildings.Rows.At(bestBuilding));
+        _world.Employ(
+            _world.Citizens.Rows.At(slot),
+            _world.Buildings.Rows.At(bestBuilding),
+            bestCost.ToTicksFloor());
         _tickRungs[(int)best]++;
 
         return true;

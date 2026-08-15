@@ -549,6 +549,19 @@ That last row is why transfers are not a band-aid and not a cure: a Household at
 
 **A city with only expensive housing has closed the first exit**, which is where this meets Density — a monoculture of high-end stock does not merely fail Families, it removes the ramp that keeps a bad Day from becoming a permanent condition.
 
+**Shift**
+The hours a job is worked, and the anchor every commute hangs from. A **Workplace** has a start hour, drawn once from its own id inside a band its kind authors in the Ruleset; a **Citizen** has a Shift length, drawn once and persisting. A Citizen leaves home so as to arrive at the start hour and leaves work once their Shift length has elapsed — so the morning peak is **disciplined by a shared start** and the evening one is **spread by unequal lengths**, which is the asymmetry every real city shows and no single dial produces.
+
+**The start hour belongs to the job and not to the person.** Changing jobs changes your hours, with nothing written on the Citizen to invalidate. What the Citizen does carry is the departure itself, because departure is `start − the commute they expected when they took the job − how early they like to be` rather than the commute this morning actually holds: somebody who lives further out leaves earlier, permanently, and a Citizen still leaving at the old time for a journey that has since got worse is a diagnosis rather than an impossibility. That is Habit on the daily axis — *how I get to work is decided when the job is taken, not every morning*.
+
+A Day's shape is therefore **produced rather than authored**. There is no departure curve, no peak dial and no rush-hour key; two peaks, an all-day baseline and a quiet night are what a spread of start hours and an unequal spread of Shift lengths look like from outside.
+
+⚠ **A start hour is drawn on the hour and a Shift length is not, and the asymmetry is deliberate.** Workplaces really do open on the hour, so spreading that would delete the texture rather than smooth it; a Shift length quantised the same way would put every return in the city on a handful of Ticks. And the start draw is **triangular** — the mean of two draws against the band — because a peak is what a morning has and a plateau is what a uniform draw gives. That shape was not invented for the purpose: a return is `start + length`, the sum of two uniform draws, which is triangular already, so the mechanism had produced it at one end of the Day before anybody asked for it at the other.
+
+⚠ **The middle of the Day is a property of land use.** A city with one employing kind has every workplace keeping the same hours, so there is genuinely nobody travelling at eleven, and a second kind is what puts them there — but only an **earlier** one: a Day's quiet end is bounded by `latest start + longest Shift`, so a later kind fills the afternoon and wakes the night, while an early shift puts its *returns* in the middle where a real city's midday travel comes from.
+
+See [`docs/adr/0101`](docs/adr/0101-a-commute-is-two-journeys-and-the-days-shape-is-a-property-of-the-job.md). `EMERGENCE` `UNIQUE INDIVIDUALS` `LEGIBLE CAUSE`
+
 **Occupant**
 A Household or a Business. What fills a Building.
 

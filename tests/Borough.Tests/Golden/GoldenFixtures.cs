@@ -62,7 +62,7 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0x67CD_2C6E_3662_EB47UL;
+    internal const ulong RulesetHash = 0x95CF_4B91_77D9_40A7UL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>
@@ -75,7 +75,7 @@ internal static class GoldenFixtures
     /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
     /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
     /// </remarks>
-    internal const ulong TunedRulesetHash = 0x8C62_A0F0_BEE0_0E2EUL;
+    internal const ulong TunedRulesetHash = 0x00F4_7AA3_4A24_45AAUL;
 
     /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
     internal static string TunedRulesetPath =>
@@ -346,7 +346,12 @@ internal static class GoldenFixtures
             // nothing can dismiss anybody -- where the populator's city runs on a Ruleset that
             // declares `dwelling` and grants it no jobs. A fixture whose whole job is to hold one
             // live row of every shape wants an employed Citizen among them.
-            world.Employ(citizens[i], buildings[(i * 3) % buildings.Length]);
+            // Qualified because this class has an `int Ticks` const of its own, which shadows the
+            // type. Zero is the honest planned commute for a fixture that models no journey.
+            world.Employ(
+                citizens[i],
+                buildings[(i * 3) % buildings.Length],
+                Borough.Core.Quantities.Ticks.Zero);
             world.Citizens.Activity[slot] = (byte)(i % 7);
             world.Citizens.SkillTier[slot] = (byte)(i % 4);
             world.Citizens.Employment[slot] = (byte)(i % 3);

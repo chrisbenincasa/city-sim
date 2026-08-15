@@ -881,12 +881,20 @@ public static class RulesetLoader
                     }
                 }
 
+                // adr/0101's Shift band. Paired with `jobs` in both directions, because a workplace
+                // with no hours and an hour with no workplace are each half a mechanism -- and
+                // because the defaulted 0,0 would otherwise mean *midnight*, which is a legitimate
+                // answer and therefore a placeholder that could not announce itself.
+                (int shiftFrom, int shiftTo) = ReadShiftStartBand(table, name, jobs);
+
                 definitions[i] = new KindDefinition(
                     binFirst, allBins.Count - binFirst, ruleFirst, allRules.Count - ruleFirst)
                 {
                     CondemnAfter = condemnAfter,
                     Occupants = occupants,
                     Jobs = jobs,
+                    ShiftStartEarliestHour = shiftFrom,
+                    ShiftStartLatestHour = shiftTo,
                 };
             }
 
@@ -894,6 +902,85 @@ public static class RulesetLoader
             kindRules = [.. allRules];
 
             return definitions;
+        }
+
+        /// <summary>
+        /// A kind's Shift-start band, in whole in-world hours, refused unless it agrees with
+        /// <c>jobs</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Required exactly when the kind employs somebody, and refused when it does not</b>
+        /// (<c>adr/0101</c>). That two-way pairing is what lets every read site treat the band as
+        /// meaningful without a third field saying whether it was stated: a kind with
+        /// <c>jobs &gt; 0</c> always has one, a kind with <c>jobs = 0</c> never does, and the
+        /// defaulted <c>0, 0</c> is unreachable rather than ambiguous.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Without the second half of the pairing, zero would mean two things.</b> Midnight is a
+        /// legitimate start hour, so a kind that omitted the keys and a kind that authored the night
+        /// shift would be indistinguishable — session F's placeholder trap, and the reason
+        /// <c>adr/0098</c> reached for an omitted <em>table</em> where this reaches for a refusal.
+        /// </para>
+        /// <para>
+        /// <b>23 rather than 24 is the ceiling</b>, because this is an hour of the Day and not a
+        /// duration: hour 24 is hour 0 of the following Day, and permitting both would give one
+        /// instant two spellings that draw differently.
+        /// </para>
+        /// </remarks>
+        private (int From, int To) ReadShiftStartBand(TableSyntaxBase table, string? name, int jobs)
+        {
+            bool hasFrom = TryInteger(
+                table, "shift_start_earliest_hour", out long from, required: false, name);
+            bool hasTo = TryInteger(
+                table, "shift_start_latest_hour", out long to, required: false, name);
+
+            if (jobs <= 0)
+            {
+                if (hasFrom || hasTo)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "shift_start_earliest_hour") ?? table),
+                        name,
+                        "this kind states a Shift-start band and employs nobody. The band is when a "
+                        + "kind's jobs begin, so it means nothing without a `jobs` above zero -- "
+                        + "state one, or delete the band.");
+                }
+
+                return (0, 0);
+            }
+
+            if (!hasFrom || !hasTo)
+            {
+                Refuse(LineOf(table), name,
+                    "this kind employs Citizens and states no Shift-start band. Both "
+                    + "shift_start_earliest_hour and shift_start_latest_hour are required wherever "
+                    + "`jobs` is above zero, because a commute is timed from the hour its job begins "
+                    + "and there is no default hour that is not also a real one -- a defaulted 0 "
+                    + "would be midnight, which somebody may genuinely mean.");
+                return (0, 0);
+            }
+
+            if (from < 0 || from >= Ticks.HoursPerDay)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "shift_start_earliest_hour") ?? table),
+                    name,
+                    $"shift_start_earliest_hour = {from} is out of range. It is an hour of the Day, "
+                    + $"so it runs 0 (midnight) to {Ticks.HoursPerDay - 1}; hour {Ticks.HoursPerDay} "
+                    + "is hour 0 of the next Day and would give one instant two spellings.");
+                return (0, 0);
+            }
+
+            if (to < from || to >= Ticks.HoursPerDay)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, "shift_start_latest_hour") ?? table), name,
+                    $"shift_start_latest_hour = {to} is out of range. It is the latest hour a job of "
+                    + $"this kind starts at, so it is at least shift_start_earliest_hour ({from}) and "
+                    + $"at most {Ticks.HoursPerDay - 1}. Equal bounds are allowed and mean a kind "
+                    + "whose shifts all start together.");
+                return (0, 0);
+            }
+
+            return ((int)from, (int)to);
         }
 
         // ---- zone rules -----------------------------------------------------------------------
@@ -2220,9 +2307,12 @@ public static class RulesetLoader
             uint interval = ReadInterval(_jobsTable, null);
             int revisit = ReadJobRevisit(interval);
             int candidates = ReadJobCandidates();
-            int peak = ReadCommutePeak();
+            (int shiftMin, int shiftMax) = ReadShiftHours();
+            int early = ReadArriveEarly();
 
-            return new JobRuleset(interval, revisit, candidates, peak);
+            RefuseShiftShorterThanTheBudget(shiftMin);
+
+            return new JobRuleset(interval, revisit, candidates, shiftMin, shiftMax, early);
         }
 
         // ---- households -------------------------------------------------------------------------
@@ -2422,52 +2512,152 @@ public static class RulesetLoader
         }
 
         /// <summary>
-        /// How much busier the morning peak is than a Day spread flat — the commute's departure
-        /// schedule, and the one number in this table that is about <em>travelling</em> to work
-        /// rather than about finding it.
+        /// The band a Citizen's Shift length is drawn from, in whole in-world hours.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// <b>The file states the peaking factor and the engine derives the departure window</b>
-        /// (<c>JobRuleset.CommuteWindow</c>, <c>adr/0059</c>). The two are exactly reciprocal —
-        /// <c>window = TICKS_PER_DAY ÷ peaking</c> — so this is a choice about which side to author,
-        /// and the peaking factor is the side <b>S2 R7 measured</b>, at <b>2–3×</b> mean demand. A
-        /// window authored directly would be a number in Ticks that nobody has ever measured, sitting
-        /// next to a corpus figure it silently restates.
+        /// <b>This replaced <c>commute_peak_factor</c>, and it is a retirement rather than a rename</b>
+        /// (<c>adr/0101</c>). That key authored a departure window and the engine derived the morning
+        /// peak from it; under a Day with a shape the peak is a <em>reading</em> — what the profile
+        /// comes out as, given where the jobs are and how long people work. ⚠ <b>A dial that states
+        /// its own answer cannot be ratified by measuring the answer</b>, which is why that key's
+        /// stated refuting number had to be re-derived twice before it could refute anything.
         /// </para>
         /// <para>
-        /// <b>It lives in <c>[jobs]</c> rather than in <c>[trips]</c>, and the split is: <c>[trips]</c>
-        /// is what travelling costs, <c>[jobs]</c> is how work happens</b> — finding it, and going to
-        /// it. It is also where the generator's other precondition already is, since a <c>[jobs]</c>
-        /// table is refused without a Commute Budget.
+        /// <b>It is the evening peak's whole width.</b> A Workplace's staff share a start hour and so
+        /// arrive together; they leave apart, spread over exactly this band. A narrow band gives a
+        /// sharp evening and a wide one gives a flat afternoon, and <b>nothing in the corpus has
+        /// measured a distribution of working hours</b> — so the draw is uniform and the band is
+        /// authored, which is the arrangement that lets a measured profile say <em>narrower</em>
+        /// rather than needing a shape invented at this write site.
         /// </para>
         /// <para>
-        /// <b>One is a legitimate city and the floor is therefore 1, not 2.</b> A factor of one is a
-        /// Day with no peak in it: everybody still commutes once, departures spread over the whole
-        /// Day, and the peak equals the mean. That is the control any peak measurement needs, so it
-        /// has to be authorable. Zero is refused because a window of infinite length is not a city.
+        /// <b>Both bounds are required and the minimum carries a second job</b>: it is the gap between
+        /// a Citizen's two departures, so it is what keeps somebody from still being in flight when
+        /// their return falls due. That refusal is <see cref="RefuseShiftShorterThanTheBudget"/> and it
+        /// replaces a guarantee that used to be free — under one journey a Day the gap was a whole Day.
         /// </para>
         /// </remarks>
-        private int ReadCommutePeak()
+        private (int Min, int Max) ReadShiftHours()
         {
-            if (!TryInteger(_jobsTable!, "commute_peak_factor", out long peak, required: true))
+            if (!TryInteger(_jobsTable!, "shift_hours_min", out long min, required: true)
+                || !TryInteger(_jobsTable!, "shift_hours_max", out long max, required: true))
             {
-                return 1;
+                return (1, 1);
             }
 
-            if (peak < 1 || peak > MaximumCommutePeak)
+            if (min < 1 || min > Ticks.HoursPerDay)
             {
-                Refuse(LineOfJob("commute_peak_factor"), null,
-                    $"commute_peak_factor = {peak} is out of range. It is how much busier the morning "
-                    + "peak is than a Day spread flat, and the engine divides a Day by it to get the "
-                    + $"window commutes depart in -- so it is at least 1, which is a Day with no peak "
-                    + $"in it, and at most {MaximumCommutePeak}. Beyond that the window is shorter "
-                    + "than the journeys inside it, and the peak stops being the reciprocal of the "
-                    + "window at all.");
-                return 1;
+                Refuse(LineOfJob("shift_hours_min"), null,
+                    $"shift_hours_min = {min} is out of range. It is the shortest working day in this "
+                    + $"city, in whole in-world hours, so it is at least 1 and at most "
+                    + $"{Ticks.HoursPerDay}. A Shift of zero would put a Citizen's departure and their "
+                    + "return on the same Tick of the Day.");
+                return (1, 1);
             }
 
-            return (int)peak;
+            if (max < min || max > Ticks.HoursPerDay)
+            {
+                Refuse(LineOfJob("shift_hours_max"), null,
+                    $"shift_hours_max = {max} is out of range. It is the longest working day in this "
+                    + $"city and must be at least shift_hours_min ({min}) and at most "
+                    + $"{Ticks.HoursPerDay}. Equal bounds are allowed and mean a city where everybody "
+                    + "works the same hours -- which makes the evening peak the morning one "
+                    + "translated, and is a control rather than a mistake.");
+                return (1, 1);
+            }
+
+            return ((int)min, (int)max);
+        }
+
+        /// <summary>
+        /// How far ahead of their Shift a Citizen may aim to arrive, in whole in-world minutes.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The continuous term, and it was added because the first measured profile demanded
+        /// one</b> (<c>adr/0101</c>). Start hours are on the hour, deliberately — workplaces do open
+        /// on the hour — so with nothing sub-hour in the arithmetic the whole city departs on a
+        /// handful of Ticks and the morning comes out a <em>plateau</em> of equal bars. The only
+        /// other continuous quantity is the commute itself, and in a small city that is about four
+        /// minutes against an hour of 85 Ticks.
+        /// </para>
+        /// <para>
+        /// <b>Required, like every other key inside a present table.</b> Zero is a legitimate authored
+        /// value — a city where everybody leaves exactly as late as they can — and is the control this
+        /// can be measured against, so a default could not announce itself.
+        /// </para>
+        /// <para>
+        /// <b>Capped at an hour</b>, because beyond that the margin exceeds the spacing between start
+        /// hours and the anchor stops being an anchor: the profile would be indistinguishable from
+        /// one drawn uniformly over the band, which is the texture this whole arrangement exists to
+        /// keep.
+        /// </para>
+        /// </remarks>
+        private int ReadArriveEarly()
+        {
+            if (!TryInteger(_jobsTable!, "arrive_early_max_minutes", out long minutes, required: true))
+            {
+                return 0;
+            }
+
+            if (minutes < 0 || minutes > 60)
+            {
+                Refuse(LineOfJob("arrive_early_max_minutes"), null,
+                    $"arrive_early_max_minutes = {minutes} is out of range. It is how far ahead of "
+                    + "their Shift a Citizen may aim to arrive, so it runs 0 (everybody cuts it fine) "
+                    + "to 60. Beyond an hour the margin is wider than the gap between start hours, "
+                    + "and a Workplace's opening time stops being an anchor at all.");
+                return 0;
+            }
+
+            return (int)minutes;
+        }
+
+        /// <summary>
+        /// Refuses a Ruleset whose shortest Shift is no longer than the Commute Budget's ceiling.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The overlap guard, and it exists because <c>adr/0101</c> spent the accident that used to
+        /// supply it.</b> A Citizen leaves home, and their return is armed for <c>Shift length</c>
+        /// later. If a journey may take longer than the Shift, a Citizen can still be walking to work
+        /// when the roster says they leave it — which is not merely odd, it is a Trip whose origin the
+        /// Traveller has not reached.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Under one journey a Day this was arithmetically unreachable and nobody had to state
+        /// it</b>: the gap between departures was 24 in-world hours and the Budget bounds a journey in
+        /// minutes. <c>CommuteEngine</c> said so in its own remark, correctly, and the property was a
+        /// consequence of there being one journey rather than of anything anybody had decided.
+        /// <em>An invariant nothing enforces survives exactly as long as the structure that made it
+        /// free.</em>
+        /// </para>
+        /// <para>
+        /// <b>Strictly longer, not merely as long.</b> Equal would put the return's departure on the
+        /// same Tick as the outbound arrival, which is a Citizen who works for no time at all.
+        /// </para>
+        /// </remarks>
+        private void RefuseShiftShorterThanTheBudget(int shiftHoursMin)
+        {
+            if (!TryInteger(_tripsTable!, "commute_budget_minutes", out long budgetMinutes, false))
+            {
+                return;
+            }
+
+            int shiftMinutes = shiftHoursMin * 60;
+
+            if (shiftMinutes > budgetMinutes)
+            {
+                return;
+            }
+
+            Refuse(LineOfJob("shift_hours_min"), null,
+                $"shift_hours_min = {shiftHoursMin} is {shiftMinutes} minutes, and "
+                + $"[trips] commute_budget_minutes is {budgetMinutes}. A Citizen's return journey is "
+                + "armed one Shift after they leave home, so a Shift no longer than the longest "
+                + "journey the Budget permits lets somebody leave work before they have got there. "
+                + "Raise shift_hours_min above the Budget, or lower the Budget.");
         }
 
         /// <summary>The line a <c>[jobs]</c> key is on, or the table's.</summary>

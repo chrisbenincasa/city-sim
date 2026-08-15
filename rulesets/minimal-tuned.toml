@@ -158,6 +158,24 @@ occupants = 3
 # workplace kind of its own, and why 8 is the floor of 1000/360 x 3 rather than a chosen number.
 jobs = 8
 
+# WHEN THIS KIND'S JOBS START, as a band of in-world hours, from which each BUILDING draws its own one
+# against its own id. adr/0101, and the band rather than an hour is the load-bearing part: this corpus
+# has exactly ONE Building kind, so a single authored hour would send the entire city to work at the
+# same moment and produce a SHARPER spike than the uniform window this replaced -- not a shape.
+#
+# HOURS ARE A PROPERTY OF THE JOB AND NOT OF THE PERSON. A Citizen reads their hours off their
+# Workplace and stores nothing, so changing employer changes their day with no write and nothing to
+# invalidate. What the Citizen does carry is what the journey cost WHEN THEY TOOK THE JOB, and they
+# leave that much before this hour -- which is why somebody who lives further out leaves earlier, for
+# ever, and why the morning peak comes out broad without anybody authoring a spread.
+#
+# 6 TO 10 SPANS AN ORDINARY SPREAD OF OPENING TIMES and, with shift_hours_min/max below, puts the
+# returns between 12:00 and 20:00 -- two peaks, a thin middle, and a night in which nothing departs.
+# THE QUIET NIGHT IS NOT ENFORCED ANYWHERE: it is what a band with no mass in it looks like from
+# outside, and a kind that authored 22-23 here would get a night shift with no other edit.
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
 # Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
 # from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
 # `pool` draw in task 10b. Greedy because the actor works through whatever space it has, which is
@@ -425,16 +443,39 @@ interval      = 32
 revisit_ticks = 1024
 candidates    = 3
 
-# THE MORNING PEAK, AND IT IS THE ONLY NUMBER THIS FILE STATES THAT SOMEBODY ELSE MEASURED. Everybody
-# with a Workplace walks to it once a Day, and departures spread uniformly over a window at the start
-# of the Day. Under a uniform window of W Ticks the instantaneous departure rate is TICKS_PER_DAY / W
-# times the daily average -- so the peaking multiplier and the window are ONE NUMBER SEEN FROM TWO
-# SIDES, and this file states the side S2 R7 has evidence for: a morning peak of 2-3x over the Day
-# mean. adr/0059 a fourth time -- state what a designer has a reason for, derive what the engine needs
-# (`window = ceil(TICKS_PER_DAY / commute_peak_factor)`, JobRuleset.CommuteWindow).
+# THE WORKING DAY, AND IT IS HALF OF WHAT GIVES THE DAY ITS SHAPE. A Citizen draws a Shift length once
+# and keeps it, uniformly inside this band. The other half is per kind -- see shift_start_earliest_hour
+# on [[building]] above -- and the two compose: a Workplace's staff SHARE a start hour, so they arrive
+# together, and they do NOT share a Shift length, so they leave apart. That asymmetry is why the
+# evening peak comes out broader than the morning one, which is what real cities show and what no
+# single dial produces. adr/0101.
 #
-# 3 IMPLIES AN EIGHT-HOUR DEPARTURE WINDOW, WHICH IS WIDE FOR A RUSH HOUR AND IS EXACTLY WHAT 3x
-# MEANS. A taller, narrower peak is a question about the SHAPE of the distribution, and the corpus has
-# measured its HEIGHT and nothing else -- so a tapered profile here would be a curve invented at the
-# write site. 1 is a Day with no peak at all, which is the control this can be run against.
-commute_peak_factor = 3
+# THIS REPLACED commute_peak_factor, AND IT IS A RETIREMENT RATHER THAN A RENAME. That key authored a
+# departure window and the engine derived the morning peak from it. Under a Day with a shape the peak
+# is a READING -- what the profile comes out as, given where the jobs are and how long people work --
+# and a dial that states its own answer cannot be ratified by measuring the answer.
+#
+# 6 TO 10 IS A BAND AND NOT A GUESS AT A MEAN. It is wide enough that the evening does not arrive as a
+# spike, narrow enough that it is recognisably a working day, and its uniform draw is the only shape
+# with any evidence behind it: NOTHING IN THE CORPUS HAS MEASURED A DISTRIBUTION OF WORKING HOURS. If
+# the measured profile comes back with a flat afternoon where a city has a peak, the answer is a
+# NARROWER BAND rather than a curve invented here.
+#
+# THE MINIMUM CARRIES A SECOND JOB: it is the gap between a Citizen's two departures, so the loader
+# refuses it at or below [trips] commute_budget_minutes. Under one journey a Day that gap was 24 hours
+# and nobody had to state it -- an invariant nothing enforces survives exactly as long as the
+# structure that made it free.
+shift_hours_min = 6
+shift_hours_max = 10
+
+# HOW EARLY SOMEBODY AIMS TO BE, and it is THE CONTINUOUS TERM IN THE WHOLE ARRANGEMENT. Start hours
+# are on the hour on purpose -- workplaces do open on the hour -- so without something sub-hour every
+# departure lands on a handful of Ticks and the morning comes out a PLATEAU of equal bars rather than
+# a peak. The only other continuous quantity is the commute itself, and in a 4,000-Citizen city that
+# is about FOUR MINUTES against an hour of 85 Ticks. Measured, not predicted: the first profile this
+# mechanism produced had exactly that defect. adr/0101.
+#
+# PER CITIZEN AND NOT PER WORKPLACE, which is why it broadens anything: a jitter on the Building
+# would move the anchor without spreading the staff standing behind it. 0 is a legitimate city --
+# everybody cutting it fine -- and is the control this can be run against.
+arrive_early_max_minutes = 15

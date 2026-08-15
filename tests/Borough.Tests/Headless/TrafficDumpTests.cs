@@ -30,8 +30,17 @@ public sealed class TrafficDumpTests
     /// <summary>Enough Citizens to put Vehicles on Segments, and few enough to be a fast test.</summary>
     private const string Population = "4000";
 
-    /// <summary>Long enough for a slice of the departure window to have gone out.</summary>
-    private const string Ticks = "256";
+    /// <summary>Half a Day, which is what it now takes to reach the morning peak.</summary>
+    /// <remarks>
+    /// ⚠ <b>It was 256, and <c>adr/0101</c> made that an empty picture rather than a small one.</b>
+    /// Departures used to be spread over a window that began at Tick 0, so any prefix of a run caught
+    /// a slice of it. They are now anchored on each Workplace's Shift start, and the shipped band is
+    /// 6–10 in-world hours — Ticks <b>512 to 853</b> of a 2,048-Tick Day — so a run of 256 Ticks stops
+    /// before anybody has left the house and every Segment reads zero. ***A run length that was a
+    /// sample of a window becomes a question about what time it is when the departure acquires an
+    /// hour***, and the two are not the same parameter wearing one name.
+    /// </remarks>
+    private const string Ticks = "1024";
 
     /// <summary>
     /// <b>The control is genuinely a different Ruleset, and the report proves it by disagreeing with

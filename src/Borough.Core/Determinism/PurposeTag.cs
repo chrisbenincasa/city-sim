@@ -222,18 +222,12 @@ public enum PurposeTag : ulong
     /// </remarks>
     JobCandidate = 13,
 
-    /// <summary>
-    /// Which Tick of the Day a Citizen leaves for work on (<c>adr/0081</c>, <c>CommuteRoster</c>).
-    /// </summary>
-    /// <remarks>
-    /// <b>The first tag in this enumeration whose Tick coordinate is always <see cref="Ticks.Zero"/>,
-    /// and that is the point of it rather than an oversight.</b> Every other draw here answers <i>what
-    /// happens now</i>; this one answers <i>what sort of person is this</i>, and a departure time that
-    /// moved with the clock would re-roll every morning a decision <c>CONTEXT.md</c> → Provider List
-    /// says is made once. Sharing <see cref="JobSeeker"/> would tie <em>when</em> somebody commutes to
-    /// <em>whether</em> they were sampled for work, which is a correlation with no cause in the city.
-    /// </remarks>
-    CommuteDeparture = 14,
+    // 14 was CommuteDeparture — which Tick of the Day a Citizen left for work on, drawn uniformly
+    // inside a window. adr/0101 retired it: a departure is now the Workplace's Shift start less the
+    // commute the Citizen expected when they took the job, so it is arithmetic over saved state and
+    // is not drawn at all. The number is retired rather than reused, on the invariant ids' precedent
+    // — a tag is what a reproduced draw is keyed on, so reusing 14 would make two unrelated
+    // decisions in two versions of this project share a stream, and nothing would report it.
 
     /// <summary>
     /// Whether a Household keeps a car (<c>01 §8</c> ledger #3, 5c task 5).
@@ -262,4 +256,52 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     CarOwnership = 15,
+
+    /// <summary>
+    /// Which in-world hour a Building's jobs start at, inside its kind's band (<c>adr/0101</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A <see cref="Ticks.Zero"/> draw, and the first one keyed on a <em>Building</em> rather than
+    /// on a person or a Household.</b> Working hours are a property of the job, so a Citizen who
+    /// changes employer changes their hours with nothing written on the Citizen — which is the whole
+    /// reason this tag is here and not on the commuter.
+    /// </para>
+    /// <para>
+    /// <b>Distinct from every tag drawn on a Citizen, because the two compose into a departure.</b>
+    /// A Building's start hour and a Citizen's Shift length are multiplied together across the whole
+    /// city, so a shared stream would correlate <em>when a workplace opens</em> with <em>how long its
+    /// staff work</em> — which would make every early-opening Building also a short-shift one, a
+    /// second peak with no cause in the city, and exactly the signature <see cref="CarOwnership"/>'s
+    /// remark warns about one entity over.
+    /// </para>
+    /// </remarks>
+    ShiftStart = 16,
+
+    /// <summary>
+    /// How long a Citizen works, inside <c>[jobs]</c>'s band (<c>adr/0101</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>A <see cref="Ticks.Zero"/> draw on the Citizen, and it is what makes the evening peak
+    /// broader than the morning one.</b> A Workplace's staff arrive together, because they share a
+    /// start hour, and leave apart, because they do not share a Shift length — which is the asymmetry
+    /// real cities show and which no single dial produces. Sharing <see cref="ShiftStart"/> is refused
+    /// above; sharing <see cref="CarOwnership"/> would make everybody who drives also work the same
+    /// hours, putting the drivers in one peak and the walkers in another.
+    /// </remarks>
+    ShiftLength = 17,
+
+    /// <summary>
+    /// How far ahead of their Shift a Citizen aims to arrive (<c>adr/0101</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>Added after the first profile measurement, and the reason is worth keeping.</b> The
+    /// decision's only continuous term was the commute itself, which is about four minutes in a
+    /// 4,000-Citizen city against an hour of 85 Ticks — so the measured morning came out as a
+    /// plateau of five near-equal bars rather than a peak. This is the term that spreads people
+    /// behind a shared anchor. <b>Distinct from <see cref="ShiftLength"/> because both are drawn on
+    /// the same Citizen</b>: sharing would make everybody who works long hours also the punctual
+    /// ones, which is a correlation with no cause and a visible signature in both tails at once.
+    /// </remarks>
+    CommutePunctuality = 18,
 }

@@ -455,9 +455,9 @@ public sealed class World
         // 5a-bis's trap, and the reason this line is here rather than left to the next write: a
         // derived structure that caches a Ruleset value reads as *absent* rather than as *stale*
         // before its first rebuild, and absent is the state every guard is written against. The
-        // departure window is derived from [jobs] commute_peak_factor, so retuning the peak moves
-        // the standing city's departures -- adr/0064's disposition, on a third axis.
-        Commutes.Rebuild(Citizens, Key, rules.Jobs);
+        // Shift start band is per kind and the Shift length band is [jobs]', so retuning either
+        // moves the standing city's departures -- adr/0064's disposition, on a third axis.
+        Commutes.Rebuild(Citizens, Buildings, rules, Key);
 
         RulesetTrail.Record(now, contentHash, cost);
 
@@ -788,7 +788,7 @@ public sealed class World
 
         // The departure bucket, and it is joined here for the reason the member list is: a derived
         // index maintained at the door is the only kind RebuildDerived can be checked against.
-        Commutes.Add(Citizens, Key, Rules.Jobs, slot);
+        Commutes.Add(Citizens, Buildings, Rules, Key, slot);
 
         return handle;
     }
@@ -812,8 +812,8 @@ public sealed class World
     {
         int slot = Citizens.Rows.Resolve(citizen);
 
-        // Before the row is freed, because the phase is derived from the id the row carries.
-        Commutes.Remove(Citizens, Key, Rules.Jobs, slot);
+        // Before the row is freed, because both phases are derived from state the row carries.
+        Commutes.Remove(Citizens, slot);
 
         if (Households.Rows.TryResolve(Citizens.HouseholdOf[slot], out int householdSlot))
         {
@@ -993,7 +993,7 @@ public sealed class World
         // The commute roster, which clears its own head and tail for BuildingsInCells' reason: they
         // are arrays over the Day rather than columns over a table, so the block at the top of this
         // method -- which is a list of columns -- cannot reach them.
-        Commutes.Rebuild(Citizens, Key, Rules.Jobs);
+        Commutes.Rebuild(Citizens, Buildings, Rules, Key);
     }
 
     /// <summary>The Households living in each Building.</summary>
@@ -1537,14 +1537,21 @@ public sealed class World
     /// appearances and this now has one too.
     /// </para>
     /// </remarks>
-    public void Employ(Handle<Citizen> citizen, Handle<Building> workplace)
+    public void Employ(Handle<Citizen> citizen, Handle<Building> workplace, Ticks plannedCommute)
     {
         int slot = Citizens.Rows.Resolve(citizen);
         int buildingSlot = Buildings.Rows.Resolve(workplace);
 
         Unlist(slot);
 
+        // ⚠ Order: unroster, then rewrite, then roster. Both commute phases are computed from the
+        // Workplace handle, so a Citizen re-rostered around a rewritten handle is removed from the
+        // buckets its *new* job names and left for ever in the ones its old job put it in --
+        // adr/0101, and CommuteRoster.Remove says the same thing from the other end.
+        Commutes.Remove(Citizens, slot);
+
         Citizens.Workplace[slot] = workplace;
+        Citizens.PlannedCommute[slot] = plannedCommute;
 
         Invariants.Require(
             !Lists(Workers, buildingSlot, slot),
@@ -1553,6 +1560,7 @@ public sealed class World
             buildingSlot);
 
         Workers.InsertOrdered(buildingSlot, slot);
+        Commutes.Add(Citizens, Buildings, Rules, Key, slot);
     }
 
     /// <summary>
@@ -1571,6 +1579,12 @@ public sealed class World
         int slot = Citizens.Rows.Resolve(citizen);
 
         Unlist(slot);
+
+        // Off the commute roster too, and before the handle is cleared, for DestroyBuilding's reason:
+        // the departure buckets are a function of the Workplace, so a Citizen who has stopped having
+        // one has stopped having them. Employ's ordering comment applies here as the degenerate case
+        // -- unroster, then rewrite -- and it is written the same way round so the two read alike.
+        Commutes.Remove(Citizens, slot);
         Citizens.Workplace[slot] = default;
     }
 
@@ -1838,9 +1852,20 @@ public sealed class World
         // Drained rather than Clear()ed, because the Citizens stay live: IndexList.Clear drops the
         // heads without touching the elements' next links, which is correct only when they are about
         // to be freed or re-linked and neither is true here.
+        //
+        // ⚠ AND OFF THE COMMUTE ROSTER, which is a second list keyed on the same fact and was missed
+        // when the first was written. A Citizen's two departure buckets are computed from their
+        // Workplace's Shift band (adr/0101), so a demolished employer strands them in buckets nothing
+        // will ever empty: CommuteRoster.Rebuild drops them and the maintained roster does not, which
+        // is (derived AND rebuilt) broken. Unlisting from Workers is NOT enough and the reason is
+        // exactly what makes the handle Severable -- the write path has to say what the rebuild path
+        // would say, at every list keyed on the severed thing rather than at the first one.
         IndexList workers = Workers;
-        while (workers.PopFront(slot) != Rows.NoSlot)
+        int worker = workers.PopFront(slot);
+        while (worker != Rows.NoSlot)
         {
+            Commutes.Remove(Citizens, worker);
+            worker = workers.PopFront(slot);
         }
 
         // The Rules next, so that any of them asleep on this Building's own Bins are off those wait

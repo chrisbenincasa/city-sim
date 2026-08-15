@@ -1,3 +1,4 @@
+using Borough.Core.Determinism;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Formats;
@@ -66,12 +67,23 @@ public sealed class JobRulesetLoadTests
     /// <summary><see cref="Nothing"/> and <see cref="Trips"/> with a <c>[jobs]</c> body appended.</summary>
     private static string With(string body) => $"{Nothing}\n\n{Trips}\n\n[jobs]\n{body}";
 
+    /// <summary>
+    /// <see cref="With(string)"/> with the Commute Budget's ceiling moved, for the one refusal that
+    /// reads two tables against each other.
+    /// </summary>
+    private static string With(string body, int budgetMinutes) =>
+        $"{Nothing}\n\n[trips]\ncrossing_seconds = 30\ncommute_fast_minutes = 20\n"
+        + $"commute_moderate_minutes = 40\ncommute_budget_minutes = {budgetMinutes}\n\n"
+        + $"[jobs]\n{body}";
+
     /// <summary>A well-formed <c>[jobs]</c> body.</summary>
     private const string Whole = """
-        interval            = 32
-        revisit_ticks       = 1024
-        candidates          = 3
-        commute_peak_factor = 3
+        interval        = 32
+        revisit_ticks   = 1024
+        candidates      = 3
+        shift_hours_min = 6
+        shift_hours_max = 10
+        arrive_early_max_minutes = 15
         """;
 
     // ---- the absent table -----------------------------------------------------------------------
@@ -105,75 +117,72 @@ public sealed class JobRulesetLoadTests
         Assert.Equal(32u, jobs.Interval);
         Assert.Equal(1_024, jobs.RevisitTicks);
         Assert.Equal(3, jobs.Candidates);
-        Assert.Equal(3, jobs.PeakFactor);
+        Assert.Equal(6, jobs.ShiftHoursMin);
+        Assert.Equal(10, jobs.ShiftHoursMax);
     }
 
     /// <summary>
-    /// <b>The departure window is derived from the peak factor, and the two are one quantity seen
-    /// from two sides.</b>
+    /// <b>A Shift length is drawn once per Citizen, lands inside the band, and never moves.</b>
     /// </summary>
     /// <remarks>
-    /// Under a uniform departure window of <c>W</c> Ticks the instantaneous departure rate is
-    /// <c>TICKS_PER_DAY / W</c> times the daily average — so the peaking multiplier <em>is</em> the
-    /// reciprocal of the window. S2 R7 measured the multiplier (2–3× on in-flight Travellers) and
-    /// nothing has ever measured a window, so the file states the side with evidence and this derives
-    /// the other. <c>adr/0059</c> a fourth time.
-    /// </remarks>
-    /// <remarks>
-    /// ⚠ <b>Asserted as the relation rather than as a table of expected Ticks, and the reason is that
-    /// the table was one.</b> This carried <c>[InlineData(1, 8_192)]</c> and two siblings until
-    /// <c>Ticks.PerDay</c> went to 2048 on 2026-08-13 (<c>adr/0094</c>). A literal in an
-    /// <c>[InlineData]</c> is a premise about a constant, an attribute argument cannot be an
-    /// expression, and restating the three values would leave the same trap set for the next change.
-    /// <b>What is asserted here is the definition of a ceiling division</b> — the window is the
-    /// smallest <c>W</c> with <c>W × factor ≥ TICKS_PER_DAY</c> — which is an independent statement of
-    /// the intent and not a mirror of <c>CeilDiv</c>.
+    /// <para>
+    /// <b>This replaced a test of the departure window, and the replacement is the point</b>
+    /// (<c>adr/0101</c>). The old key stated a peak and the engine derived a window from it, so the
+    /// only thing there was to assert was that two reciprocals were reciprocal. A Shift length is a
+    /// property of a person, so what there is to assert is that <em>the same person gets the same
+    /// answer twice</em> and that the answer is inside what the file authored.
+    /// </para>
+    /// <para>
+    /// <b>Stability is the load-bearing half.</b> A draw that moved would re-roll every morning a
+    /// decision the design says is made once, and — worse — would move the roster bucket a Citizen is
+    /// already threaded into, orphaning the row.
+    /// </para>
     /// </remarks>
     [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    public void The_departure_window_is_derived_from_the_peak(int factor)
+    [InlineData(6, 10)]
+    [InlineData(8, 8)]
+    [InlineData(1, 24)]
+    public void A_shift_length_is_stable_and_inside_the_band(int min, int max)
     {
         JobRuleset jobs = Accepted(With($"""
-            interval            = 32
-            revisit_ticks       = 1024
-            candidates          = 3
-            commute_peak_factor = {factor}
+            interval        = 32
+            revisit_ticks   = 1024
+            candidates      = 3
+            shift_hours_min = {min}
+            shift_hours_max = {max}
+            arrive_early_max_minutes = 15
             """)).Jobs;
 
-        int window = jobs.CommuteWindow;
+        WorldKey key = default;
+        var seen = new HashSet<ulong>();
 
-        Assert.True(
-            window * factor >= Ticks.PerDay,
-            $"a window of {window} at a factor of {factor} covers {window * factor} Ticks of a "
-            + $"{Ticks.PerDay}-Tick Day, so somebody never departs.");
-
-        Assert.True(
-            (window - 1) * factor < Ticks.PerDay,
-            $"a window of {window} at a factor of {factor} is wider than it needs to be, so the peak "
-            + "is shallower than the file asked for.");
-
-        // A factor of 1 is a Day with no peak, which is the control the demonstration runs against.
-        if (factor == 1)
+        for (ulong id = 1; id <= 200; id++)
         {
-            Assert.Equal(Ticks.PerDay, window);
+            Ticks length = jobs.ShiftLengthOf(key, id);
+
+            Assert.Equal(length, jobs.ShiftLengthOf(key, id));
+            Assert.InRange((int)length.Raw, Ticks.AtHour(min), Ticks.AtHour(max));
+
+            seen.Add(length.Raw);
         }
+
+        // A band wider than one hour has to produce more than one answer, or the draw is not a draw.
+        // Asserted only where the band permits it, so the equal-bounds case stays a real control
+        // rather than an exception written into the assertion.
+        Assert.Equal(max > min, seen.Count > 1);
     }
 
     /// <summary>
-    /// <b>A <c>[jobs]</c> table with no peak factor is refused rather than departing everybody at
-    /// once.</b>
+    /// <b>A <c>[jobs]</c> table with no Shift band is refused rather than defaulted.</b>
     /// </summary>
     /// <remarks>
-    /// The polarity every key inside a present table has, and here the placeholder argument is sharp:
-    /// an unstated factor read as 1 is a Day with no peak, which is a <em>legitimate</em> authored
-    /// value and the control the demonstration runs against — so a default could not announce itself,
-    /// and reading it as <c>Ticks.PerDay</c> would put the whole city on the road on one Tick of the
-    /// Day.
+    /// The polarity every key inside a present table has. Here the placeholder argument is sharp
+    /// twice over: every hour count is a legitimate Shift, so no default could announce itself, and
+    /// the minimum is also the overlap guard — a defaulted short Shift would silently permit a
+    /// Citizen to leave work before arriving at it.
     /// </remarks>
     [Fact]
-    public void A_jobs_table_with_no_peak_factor_is_refused()
+    public void A_jobs_table_with_no_shift_band_is_refused()
     {
         RulesetRefusal refusal = Refused(With("""
             interval      = 32
@@ -181,20 +190,51 @@ public sealed class JobRulesetLoadTests
             candidates    = 3
             """));
 
-        Assert.Contains("commute_peak_factor", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("shift_hours_min", refusal.Reason, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_peak_factor_of_zero_is_refused()
+    public void A_shift_band_running_backwards_is_refused()
     {
         RulesetRefusal refusal = Refused(With("""
-            interval            = 32
-            revisit_ticks       = 1024
-            candidates          = 3
-            commute_peak_factor = 0
+            interval        = 32
+            revisit_ticks   = 1024
+            candidates      = 3
+            shift_hours_min = 10
+            shift_hours_max = 6
+            arrive_early_max_minutes = 15
             """));
 
         Assert.Contains("out of range", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>A Shift no longer than the Commute Budget's ceiling is refused</b>, because the return
+    /// journey is armed one Shift after the outbound one leaves.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>This guard replaces one that used to be free.</b> Under one journey a Day the gap between
+    /// a Citizen's departures was a whole Day and the Budget bounds a journey in minutes, so the
+    /// overlap was arithmetically unreachable and <c>CommuteEngine</c> said so in its own remark —
+    /// correctly, and as a consequence of there being one journey rather than of any decision.
+    /// <em>An invariant nothing enforces survives exactly as long as the structure that made it
+    /// free.</em> <c>adr/0101</c>.
+    /// </remarks>
+    [Fact]
+    public void A_shift_shorter_than_the_commute_budget_is_refused()
+    {
+        // The [trips] fixture's ceiling is stated in minutes; one hour is 60, so a one-hour Shift is
+        // at or below any Budget of an hour or more.
+        RulesetRefusal refusal = Refused(With("""
+            interval        = 32
+            revisit_ticks   = 1024
+            candidates      = 3
+            shift_hours_min = 1
+            shift_hours_max = 8
+            arrive_early_max_minutes = 15
+            """, budgetMinutes: 120));
+
+        Assert.Contains("leave work before they have got there", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>

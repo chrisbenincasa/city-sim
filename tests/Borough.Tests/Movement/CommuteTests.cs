@@ -108,12 +108,14 @@ public sealed class CommuteTests
     public void Departures_are_spread_across_the_window_rather_than_massed_on_one_tick()
     {
         World world = Run(GoldenFixtures.Rules()).World;
-        int window = world.Rules.Jobs.CommuteWindow;
 
         int total = 0;
         int largest = 0;
 
-        for (int phase = 0; phase < window; phase++)
+        // Over the whole Day rather than over a window, because adr/0101 removed the window: a
+        // Workplace's Shift start can fall anywhere its kind's band permits, and the outbound phase
+        // is that less the Citizen's own commute, which can carry it across midnight.
+        for (int phase = 0; phase < Ticks.PerDay; phase++)
         {
             int here = world.Commutes.CountAt(world.Citizens, phase);
 
@@ -121,7 +123,9 @@ public sealed class CommuteTests
             largest = here > largest ? here : largest;
         }
 
-        Assert.Equal(Live(world.Citizens), total);
+        // The roster holds the EMPLOYED and not the population, which is the other half of adr/0101's
+        // change to this class's contract: hours come from a job, so somebody without one has none.
+        Assert.Equal(Employed(world), total);
         Assert.True(
             largest * 10 < total,
             $"one departure Tick holds {largest} of {total} Citizens, which is not a spread.");
@@ -141,22 +145,34 @@ public sealed class CommuteTests
     {
         World world = Run(GoldenFixtures.Rules()).World;
 
-        bool[] seen = new bool[world.Citizens.Rows.SlotCount];
+        bool[] out_ = new bool[world.Citizens.Rows.SlotCount];
+        bool[] back = new bool[world.Citizens.Rows.SlotCount];
 
         for (int phase = 0; phase < Ticks.PerDay; phase++)
         {
             foreach (int citizen in world.Commutes.Departing(world.Citizens, phase))
             {
-                Assert.True(phase < world.Rules.Jobs.CommuteWindow, "a phase outside the window.");
-                Assert.False(seen[citizen], $"Citizen {citizen} is in two departure buckets.");
+                Assert.False(out_[citizen], $"Citizen {citizen} is in two departure buckets.");
+                out_[citizen] = true;
+            }
 
-                seen[citizen] = true;
+            foreach (int citizen in world.Commutes.Returning(world.Citizens, phase))
+            {
+                Assert.False(back[citizen], $"Citizen {citizen} is in two return buckets.");
+                back[citizen] = true;
             }
         }
 
+        // ⚠ Both partitions or neither, and this is the assertion that catches the ordering defect
+        // World.Employ warns about: a Citizen re-rostered around a rewritten Workplace handle lands
+        // in one list and is stranded in the other's old bucket, which no count of either alone sees.
         for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
         {
-            Assert.Equal(world.Citizens.Rows.IsLive(slot), seen[slot]);
+            bool employed = world.Citizens.Rows.IsLive(slot)
+                && world.Buildings.Rows.IsValid(world.Citizens.Workplace[slot]);
+
+            Assert.Equal(employed, out_[slot]);
+            Assert.Equal(employed, back[slot]);
         }
     }
 
@@ -196,71 +212,113 @@ public sealed class CommuteTests
     }
 
     /// <summary>
-    /// <b>Retuning the peak moves the standing city's departures, and it does so at the reload rather
-    /// than at the next Citizen born.</b>
+    /// <b>Retuning the Shift band moves the standing city's departures, at the reload rather than at
+    /// the next Citizen born.</b>
     /// </summary>
     /// <remarks>
-    /// <c>adr/0064</c>'s disposition on a third axis — a Bin's capacity, a Building's occupancy, and
-    /// now a departure phase are all <em>derived from the Ruleset in force</em>. And it is 5a-bis's
-    /// trap in the other direction: a derived structure that cached the old window would read as
-    /// <em>absent</em> rather than as <em>stale</em>, so <c>World.Adopt</c> rebuilds this explicitly.
+    /// <c>adr/0064</c>'s disposition again — a Bin's capacity, a Building's occupancy, a kind's jobs,
+    /// car ownership and now both halves of a commute's timing are <em>derived from the Ruleset in
+    /// force</em>. And it is 5a-bis's trap in the other direction: a derived structure that cached the
+    /// old band would read as <em>absent</em> rather than as <em>stale</em>, so <c>World.Adopt</c>
+    /// rebuilds this explicitly instead of leaving it to the next write.
     /// </remarks>
     [Fact]
-    public void Retuning_the_peak_rebuckets_the_standing_city()
+    public void Retuning_the_shift_band_rebuckets_the_standing_city()
     {
-        Ruleset flat = WithPeak(1);
+        Ruleset longer = WithShiftHours(12, 12);
         InputLog log = Log();
 
         Simulation simulation = Replay.Start(
             log,
             RulesetCatalogue.Of(
-                [GoldenFixtures.RulesetHash, FlatHash], [GoldenFixtures.Rules(), flat]));
+                [GoldenFixtures.RulesetHash, FlatHash], [GoldenFixtures.Rules(), longer]));
 
         Replay.Trace(simulation, log, new Ticks(TickCount), HashEvery, []);
 
         World world = simulation.World;
-        int narrow = world.Rules.Jobs.CommuteWindow;
-        int[][] before = Snapshot(world);
+        int[] before = PhaseOf(Snapshot(world), world);
+        int[] beforeReturn = PhaseOf(SnapshotReturn(world), world);
+        ulong[] beforeEmployer = EmployerOf(world);
 
         simulation.Step(new TickInput(default, FlatHash));
 
-        Assert.True(narrow < Ticks.PerDay, "the shipped Ruleset states no peak at all.");
-        Assert.Equal(Ticks.PerDay, world.Rules.Jobs.CommuteWindow);
+        int[] after = PhaseOf(Snapshot(world), world);
+        int[] afterReturn = PhaseOf(SnapshotReturn(world), world);
+        ulong[] afterEmployer = EmployerOf(world);
 
-        int[][] after = Snapshot(world);
-        bool moved = false;
+        // ⚠ Per Citizen and only where the EMPLOYER did not change, which is a real narrowing rather
+        // than a weakening. Adoption happens inside a Tick, so the Step that reloads the Ruleset also
+        // runs the Zone Rules, placement and the assignment pass: some Citizens take a job, lose one
+        // to a demolition or move to another Building on that very Tick, and their departure moves
+        // for a reason that has nothing to do with the band. Comparing bucket CONTENTS folds those
+        // two causes together and cannot tell them apart. The claim is about a standing Citizen with
+        // a standing employer, so that is what is compared.
+        bool leftHomeSame = true;
+        bool leftWorkMoved = false;
+        int held = 0;
 
-        for (int phase = 0; phase < before.Length && !moved; phase++)
+        for (int slot = 0; slot < before.Length && slot < after.Length; slot++)
         {
-            moved = !before[phase].AsSpan().SequenceEqual(after[phase]);
+            if (beforeEmployer[slot] == 0 || beforeEmployer[slot] != afterEmployer[slot])
+            {
+                continue;
+            }
+
+            held++;
+
+            // ⚠ The RETURN phase is what has to move, and the outbound one is what must not. A Shift
+            // length is the gap between the two departures, so retuning it moves when people leave
+            // work and cannot move when they leave home -- and a test that only looked at the
+            // outbound list would pass on a Ruleset reload that did nothing at all.
+            leftHomeSame &= before[slot] == after[slot];
+            leftWorkMoved |= beforeReturn[slot] != afterReturn[slot];
         }
 
-        Assert.True(moved, "widening the window to a whole Day moved nobody's departure.");
+        Assert.True(held > 0, "nobody held the same job across the reload, so nothing was compared.");
+        Assert.True(leftHomeSame, "retuning the Shift length moved somebody's departure from home.");
+        Assert.True(leftWorkMoved, "fixing every Shift at 12 hours moved nobody's departure from work.");
     }
 
     /// <summary>
-    /// <b>A departure phase is a property of a person, not of a moment.</b>
+    /// <b>Both draws are properties of a thing, not of a moment.</b>
     /// </summary>
     /// <remarks>
-    /// The draw's Tick coordinate is <see cref="Ticks.Zero"/> for this reason, and this is the
-    /// assertion that keeps it there. A Citizen whose commute time changed every Day would be
-    /// re-rolling a decision <c>CONTEXT.md</c> → Provider List says is made once — <i>how I get to
-    /// work is decided when the job is taken, not every morning</i> — and nothing else in the code
-    /// would notice, because every individual Day would look perfectly well spread.
+    /// <para>
+    /// Each draw's Tick coordinate is <see cref="Ticks.Zero"/> for this reason, and this is the
+    /// assertion that keeps it there. A Shift length that changed every Day would be re-rolling a
+    /// decision <c>CONTEXT.md</c> → Provider List says is made once — <i>how I get to work is decided
+    /// when the job is taken, not every morning</i> — and nothing else in the code would notice,
+    /// because every individual Day would look perfectly well spread.
+    /// </para>
+    /// <para>
+    /// <b>Both are keyed on the world seed as well</b>, which is what makes two cities from two seeds
+    /// different cities rather than the same city relabelled.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void A_phase_is_drawn_from_the_citizen_and_not_from_the_clock()
+    public void The_shift_draws_are_stable_and_keyed_on_the_seed()
     {
         WorldKey key = WorldKey.FromSeed(GoldenFixtures.Seed);
+        WorldKey other = WorldKey.FromSeed(GoldenFixtures.Seed + 1);
+        JobRuleset jobs = GoldenFixtures.Rules().Jobs;
+
+        Assert.Equal(jobs.ShiftLengthOf(key, 4_242UL), jobs.ShiftLengthOf(key, 4_242UL));
+
+        KindDefinition kind = new(0, 0, 0, 0)
+        {
+            ShiftStartEarliestHour = 0,
+            ShiftStartLatestHour = 23,
+        };
 
         Assert.Equal(
-            CommuteRoster.PhaseOf(key, 4_242UL, 2_731),
-            CommuteRoster.PhaseOf(key, 4_242UL, 2_731));
+            CommuteRoster.ShiftStartOf(key, 4_242UL, kind),
+            CommuteRoster.ShiftStartOf(key, 4_242UL, kind));
 
         Assert.NotEqual(
-            CommuteRoster.PhaseOf(key, 4_242UL, 2_731),
-            CommuteRoster.PhaseOf(WorldKey.FromSeed(GoldenFixtures.Seed + 1), 4_242UL, 2_731));
+            CommuteRoster.ShiftStartOf(key, 4_242UL, kind),
+            CommuteRoster.ShiftStartOf(other, 4_242UL, kind));
     }
+
 
     // ---- the fixture ------------------------------------------------------------------------------
 
@@ -324,6 +382,47 @@ public sealed class CommuteTests
     }
 
     /// <summary>Every bucket's contents in walk order.</summary>
+    /// <summary>A bucket snapshot inverted: the phase each Citizen sits at, or −1 for none.</summary>
+    private static int[] PhaseOf(int[][] buckets, World world)
+    {
+        int[] phases = new int[world.Citizens.Rows.SlotCount];
+
+        Array.Fill(phases, -1);
+
+        for (int phase = 0; phase < buckets.Length; phase++)
+        {
+            foreach (int citizen in buckets[phase])
+            {
+                phases[citizen] = phase;
+            }
+        }
+
+        return phases;
+    }
+
+    /// <summary>
+    /// Each Citizen's employer as a <b>monotonic id</b> rather than a slot, and 0 for none.
+    /// </summary>
+    /// <remarks>
+    /// The id rather than the slot because a slot is recycled: a Building demolished on the reload
+    /// Tick and another raised into its row would read as <em>the same employer</em> and would put a
+    /// Citizen whose job genuinely changed into the comparison.
+    /// </remarks>
+    private static ulong[] EmployerOf(World world)
+    {
+        ulong[] employers = new ulong[world.Citizens.Rows.SlotCount];
+
+        for (int slot = 0; slot < employers.Length; slot++)
+        {
+            employers[slot] = world.Citizens.Rows.IsLive(slot)
+                && world.Buildings.Rows.TryResolve(world.Citizens.Workplace[slot], out int workplace)
+                    ? world.Buildings.Rows.IdAt(workplace)
+                    : 0;
+        }
+
+        return employers;
+    }
+
     private static int[][] Snapshot(World world)
     {
         int[][] buckets = new int[Ticks.PerDay][];
@@ -344,20 +443,60 @@ public sealed class CommuteTests
     }
 
     /// <summary>The shipped Ruleset with its peak flattened to a Day with no peak at all.</summary>
-    private static Ruleset WithPeak(int factor)
+    private static Ruleset WithShiftHours(int min, int max)
     {
         string toml = File.ReadAllText(GoldenFixtures.RulesetPath);
-        const string Key = "commute_peak_factor = 3";
+        const string Key = "shift_hours_min = 6\nshift_hours_max = 10";
 
         Assert.Contains(Key, toml, StringComparison.Ordinal);
 
         RulesetLoadResult result = RulesetLoader.Parse(
-            toml.Replace(Key, $"commute_peak_factor = {factor}", StringComparison.Ordinal),
+            toml.Replace(
+                Key,
+                $"shift_hours_min = {min}\nshift_hours_max = {max}",
+                StringComparison.Ordinal),
             "test.toml");
 
         Assert.True(result.Ok, result.Describe());
 
         return result.Ruleset!;
+    }
+
+    /// <summary>How many Citizens hold a job the Building table still resolves.</summary>
+    private static int Employed(World world)
+    {
+        int total = 0;
+
+        for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
+        {
+            if (world.Citizens.Rows.IsLive(slot)
+                && world.Buildings.Rows.IsValid(world.Citizens.Workplace[slot]))
+            {
+                total++;
+            }
+        }
+
+        return total;
+    }
+
+    /// <summary>Every return bucket's contents in walk order.</summary>
+    private static int[][] SnapshotReturn(World world)
+    {
+        int[][] buckets = new int[Ticks.PerDay][];
+
+        for (int phase = 0; phase < Ticks.PerDay; phase++)
+        {
+            List<int> here = [];
+
+            foreach (int citizen in world.Commutes.Returning(world.Citizens, phase))
+            {
+                here.Add(citizen);
+            }
+
+            buckets[phase] = [.. here];
+        }
+
+        return buckets;
     }
 
     /// <summary>The shipped Ruleset with its <c>[jobs]</c> table deleted, and with it nothing else.</summary>

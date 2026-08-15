@@ -62,9 +62,18 @@ public sealed class EmploymentTests
         """;
 
     /// <summary>A workplace employing <paramref name="jobs"/> Citizens.</summary>
+    /// <remarks>
+    /// ⚠ <b>The Shift-start band appears only when the kind employs somebody</b>, because
+    /// <c>adr/0101</c>'s loader refusal is two-way: a kind with <c>jobs &gt; 0</c> must state one and a
+    /// kind with <c>jobs = 0</c> must not. This fixture is called with zero, so it has to honour both
+    /// halves — which is the pairing working as designed rather than an awkwardness in the test.
+    /// </remarks>
     private static string Employing(int jobs) => Template.Replace(
         "POSTS",
-        jobs.ToString(CultureInfo.InvariantCulture),
+        jobs > 0
+            ? jobs.ToString(CultureInfo.InvariantCulture)
+                + "\nshift_start_earliest_hour = 6\nshift_start_latest_hour = 10"
+            : jobs.ToString(CultureInfo.InvariantCulture),
         StringComparison.Ordinal);
 
     /// <summary>The same file with no <c>[[building]]</c> at all: every Building is derelict.</summary>
@@ -102,7 +111,7 @@ public sealed class EmploymentTests
 
         for (int i = 0; i < workers; i++)
         {
-            world.Employ(world.CreateCitizen(household, Ticks.Zero), building);
+            world.Employ(world.CreateCitizen(household, Ticks.Zero), building, Ticks.Zero);
         }
 
         return world;
@@ -271,7 +280,7 @@ public sealed class EmploymentTests
         Handle<Lot> second = world.Lots.Create(new Tiles(64), new Tiles(0), zone: 1);
         Handle<Building> elsewhere = world.CreateBuilding(second, Workplace, Ticks.Zero, Key);
 
-        world.Employ(world.Citizens.Rows.At(0), elsewhere);
+        world.Employ(world.Citizens.Rows.At(0), elsewhere, Ticks.Zero);
 
         Assert.Empty(Staff(world, TheBuilding(world)));
         Assert.Single(Staff(world, world.Buildings.Rows.Resolve(elsewhere)));
@@ -352,7 +361,7 @@ public sealed class EmploymentTests
         Handle<Household> household = world.Households.Rows.At(0);
 
         world.DestroyCitizen(world.Citizens.Rows.At(0));
-        world.Employ(world.CreateCitizen(household, Ticks.Zero), building);
+        world.Employ(world.CreateCitizen(household, Ticks.Zero), building, Ticks.Zero);
 
         int slot = world.Buildings.Rows.Resolve(building);
         ulong[] maintained = Staff(world, slot);

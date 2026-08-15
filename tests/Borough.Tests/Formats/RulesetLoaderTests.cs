@@ -1137,7 +1137,8 @@ public sealed class RulesetLoaderTests
     {
         Ruleset ruleset = Accepted(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\njobs = 12\n",
+            "name = \"bakery\"\njobs = 12\n"
+            + "shift_start_earliest_hour = 6\nshift_start_latest_hour = 10\n",
             StringComparison.Ordinal));
 
         Assert.Equal(12, ruleset.Kind(1).Jobs);
@@ -1178,7 +1179,8 @@ public sealed class RulesetLoaderTests
     {
         Ruleset ruleset = Accepted(Bakery.Replace(
             "name = \"bakery\"\n",
-            "name = \"bakery\"\noccupants = 0\njobs = 9\n",
+            "name = \"bakery\"\noccupants = 0\njobs = 9\n"
+            + "shift_start_earliest_hour = 6\nshift_start_latest_hour = 10\n",
             StringComparison.Ordinal));
 
         Assert.Equal(0, ruleset.Kind(1).Occupants);

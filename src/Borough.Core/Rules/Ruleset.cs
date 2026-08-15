@@ -385,6 +385,52 @@ public readonly record struct KindDefinition(
     /// </para>
     /// </remarks>
     public int Jobs { get; init; }
+
+    /// <summary>
+    /// The earliest in-world hour a job of this kind starts at. See <see cref="ShiftStartLatestHour"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A band rather than an hour, and each Building draws inside it</b> (<c>adr/0101</c>). A kind
+    /// authoring a single start hour would give every Building of that kind the same one, and the
+    /// corpus has exactly one Building kind — so the whole city would leave at one moment and the
+    /// result would be a <em>sharper</em> peak than the uniform window this replaces, not a shape. The
+    /// band is the thing a designer has a reason for (<em>bakeries open early, offices at nine</em>)
+    /// and the Building's own hour is drawn from it against the Building's monotonic id, which is
+    /// <c>adr/0059</c> once more: state the reason, derive the instance.
+    /// </para>
+    /// <para>
+    /// <b>Hours rather than Ticks, because that is what a designer means.</b> The conversion is
+    /// <see cref="Quantities.Ticks.AtHour"/> and it rounds — an hour is 85.33 Ticks and does not
+    /// divide the Day.
+    /// </para>
+    /// </remarks>
+    public int ShiftStartEarliestHour { get; init; }
+
+    /// <summary>
+    /// The latest in-world hour a job of this kind starts at, inclusive.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>There is no <em>undeclared</em> value here and there does not need to be, because the loader
+    /// closes the case at the door.</b> A kind with <see cref="Jobs"/> above zero is refused unless it
+    /// states both bounds, and a kind stating either bound is refused unless it employs somebody — so
+    /// the pair is meaningful at every site that reads it and the defaulted <c>0, 0</c> is
+    /// <em>unreachable</em> rather than ambiguous.
+    /// </para>
+    /// <para>
+    /// That matters because <b>midnight is a legitimate answer</b>, so a zero meaning <em>unset</em>
+    /// would be a placeholder sitting inside the range of legitimate answers — the trap session F
+    /// named and <c>adr/0098</c> dodged by omitting a whole table. A key cannot be omitted alone the
+    /// way a table can, so <b>a refusal is the cheaper form of the same discipline</b>.
+    /// </para>
+    /// <para>
+    /// <b>Equal bounds are permitted and mean a kind whose shifts all start together.</b> That is a
+    /// coherent workplace rather than a degenerate one, so it is not refused; what is refused is a
+    /// band running backwards.
+    /// </para>
+    /// </remarks>
+    public int ShiftStartLatestHour { get; init; }
 }
 
 /// <summary>
@@ -823,9 +869,16 @@ public readonly record struct TripRuleset(
 /// <param name="Interval">Ticks between passes. Zero means nobody is ever assigned work.</param>
 /// <param name="RevisitTicks">How long the pass takes to look at every Citizen once.</param>
 /// <param name="Candidates">Places a Citizen looks at per occasion — <c>02 §5.3</c>'s <c>N</c>.</param>
-/// <param name="PeakFactor">
-/// How much busier the morning peak is than a Day spread flat. <b>The commute's departure schedule,
-/// stated as the quantity S2 measured rather than as the window it implies.</b>
+/// <param name="ShiftHoursMin">The shortest working day a Citizen may draw, in in-world hours.</param>
+/// <param name="ShiftHoursMax">The longest. <b>Drawn per Citizen, converted to Ticks before the draw
+/// so the result is continuous</b> — the band is authored in hours because a designer has a reason for
+/// <em>six to ten</em> and none for a range of Ticks (<c>adr/0059</c>), and drawing in the authored
+/// unit would quantise every return in the city onto a handful of Ticks.</param>
+/// <param name="ArriveEarlyMaxMinutes">
+/// How long before their Shift starts a Citizen aims to be there, drawn per Citizen and persisting.
+/// <b>What separates a departure from an exact hour mark</b>: departure is
+/// <c>start − commute − margin</c>, and on a generated city the commute alone is about four minutes
+/// against an eighty-five-Tick hour. <c>adr/0101</c>.
 /// </param>
 /// <summary>
 /// The <c>[traffic]</c> table — <b>what a Segment costs to drive when other people are on it</b>.
@@ -997,41 +1050,102 @@ public readonly record struct HouseholdRuleset(int CarOwnershipPercent)
 }
 
 public readonly record struct JobRuleset(
-    uint Interval, int RevisitTicks, int Candidates, int PeakFactor)
+    uint Interval,
+    int RevisitTicks,
+    int Candidates,
+    int ShiftHoursMin,
+    int ShiftHoursMax,
+    int ArriveEarlyMaxMinutes)
 {
     /// <summary>A Ruleset whose city assigns nobody to work.</summary>
     public static JobRuleset None => default;
 
     /// <summary>
-    /// The span of Ticks inside a Day that commutes depart in. <b>Derived from
-    /// <see cref="PeakFactor"/> and never authored.</b>
+    /// How long <paramref name="id"/> works, in Ticks. Drawn once against the band in force.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b><c>adr/0059</c> a fourth time, and this one is the cleanest of the four because the two
-    /// quantities are exactly reciprocal.</b> S2 R7's in-flight derivation is
-    /// <c>Trips/Day × duration × peaking ÷ TICKS_PER_DAY</c>; departures spread uniformly over a
-    /// window <c>W</c> put <c>N × duration ÷ W</c> in flight at the peak. Equate them and
-    /// <c>peaking = TICKS_PER_DAY ÷ W</c> exactly, for any Trip shorter than the window. <b>So the
-    /// window and the peaking factor are one number seen from two sides</b>, and the file states the
-    /// side somebody has measured: R7 puts the morning peak at <b>2–3×</b> mean demand.
+    /// <b>This replaced <c>commute_peak_factor</c>, and the replacement <em>retires</em> a number
+    /// rather than renaming one</b> (<c>adr/0101</c>). That key authored a departure window and the
+    /// engine derived the peak from it; under a Day with a shape the peak is a <em>reading</em> — what
+    /// the profile comes out as, given where the jobs are and how long people work. A dial that states
+    /// its own answer cannot be ratified by measuring the answer, which is why the old row's ratifier
+    /// had to be re-stated twice before it could refute anything.
     /// </para>
     /// <para>
-    /// <b>A factor of 1 is a Day with no peak in it, and it is a city rather than an absence.</b>
-    /// Departures spread over the whole Day, everybody still commutes once, and the peak equals the
-    /// mean — which is the control any peak measurement needs, and the reason the floor is 1 rather
-    /// than 2.
+    /// <b>A draw and not a column, because a Shift length is a property of a person.</b> It is a pure
+    /// function of the Citizen's monotonic id, the world seed and the band in force, so it costs no
+    /// storage, survives a rebuild exactly, and a retuned band reaches the standing city —
+    /// <c>adr/0064</c>'s disposition, which is the same one occupancy, the jobs ceiling and car
+    /// ownership have. ⚠ <b>The departure offset beside it is <em>not</em> like this and cannot be</b>:
+    /// that is what a journey cost when a job was taken, and no function of an id recovers a fact
+    /// about a past world. <em>A value drawn once is derivable and a value measured once is not.</em>
     /// </para>
     /// <para>
-    /// <b>The Day begins at the peak, and that is a convention rather than a second number.</b> A Day
-    /// has to start somewhere and nothing observable depends on where; putting the window at
-    /// <c>[0, CommuteWindow)</c> spends the freedom instead of opening a <c>peak_offset</c> nobody
-    /// could ratify. <c>01 §7</c>'s sun arc is what a player sees, and it makes no numeric claim by
-    /// design, so it cannot supply a boundary either.
+    /// <b>Uniform across the band, which is the only shape with evidence behind it — and the evening
+    /// peak is what will refute it.</b> Nothing in the corpus has measured a distribution of working
+    /// hours. A uniform draw over a wide band spreads the evening return over the whole band, so if
+    /// the measured profile comes back with an evening that is flat where a city's is peaked, the
+    /// answer is a narrower band rather than a shape invented here. That is the ratifier <c>adr/0101</c>
+    /// names, and it refutes in a direction that says what to do.
     /// </para>
     /// </remarks>
-    public int CommuteWindow =>
-        PeakFactor <= 0 ? Ticks.PerDay : (int)IntegerMath.CeilDiv(Ticks.PerDay, PeakFactor);
+    /// <param name="key">The world seed, as the draw's first coordinate.</param>
+    /// <param name="id">The Citizen's monotonic, never-reused id.</param>
+    public Ticks ShiftLengthOf(WorldKey key, ulong id)
+    {
+        int first = Ticks.AtHour(ShiftHoursMin);
+        int last = Ticks.AtHour(ShiftHoursMax);
+        int span = last - first + 1;
+
+        if (span < 1)
+        {
+            return new Ticks((ulong)(uint)Ticks.AtHour(Ticks.HoursPerDay));
+        }
+
+        ulong value = Randomness.Draw(key, Randomness.Mix(id), Ticks.Zero, PurposeTag.ShiftLength);
+
+        return new Ticks((ulong)(uint)(first + (int)(value % (ulong)(uint)span)));
+    }
+
+    /// <summary>
+    /// How far ahead of their Shift <paramref name="id"/> aims to arrive. Drawn once, in Ticks.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The continuous term, and the profile is what asked for it.</b> The first cut of
+    /// <c>adr/0101</c> had exactly one continuous quantity in the arithmetic — the commute a Citizen
+    /// subtracts from their Shift start — and in a 4,000-Citizen city that is about <b>four
+    /// minutes</b> against an hour of <b>85 Ticks</b>. So it could not smear an hourly quantisation
+    /// into anything, and the measured morning came out as five near-equal bars: a <em>plateau</em>
+    /// with holes either side rather than a peak.
+    /// </para>
+    /// <para>
+    /// <b>It is per Citizen and not per Workplace, and that is the whole reason it broadens
+    /// anything.</b> Workplaces genuinely do open on the hour — that texture is wanted and is not
+    /// what was wrong — so the spread has to come from the people, as it does in life: some arrive
+    /// with a quarter of an hour to spare and some cut it fine. A jitter on the Building would move
+    /// the anchor without spreading the staff behind it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It does not fill the holes and is not meant to.</b> Nothing departs between 10:00 and
+    /// 11:00 because no kind's band starts a Shift then; that is a property of the <em>band</em>, and
+    /// widening or shaping it is a separate decision with separate evidence.
+    /// </para>
+    /// </remarks>
+    public Ticks PunctualityOf(WorldKey key, ulong id)
+    {
+        if (ArriveEarlyMaxMinutes <= 0)
+        {
+            return Ticks.Zero;
+        }
+
+        int span = Ticks.AtMinute(ArriveEarlyMaxMinutes) + 1;
+        ulong value = Randomness.Draw(
+            key, Randomness.Mix(id), Ticks.Zero, PurposeTag.CommutePunctuality);
+
+        return new Ticks(value % (ulong)(uint)span);
+    }
 
     /// <summary>Whether the assignment pass runs at all.</summary>
     public bool Runs => Interval != 0;

@@ -63,13 +63,18 @@ public sealed class CommuteDumpTests
     /// </summary>
     /// <remarks>
     /// The Commute Budget sizes the search box <em>and</em> the acceptance test, the sample says how
-    /// fast the pass works through the population, and the peak factor derives the departure window —
-    /// so a reader who cannot see them cannot tell a city that has settled from a run that stopped
-    /// early. <c>--trips</c>' header sets the precedent and its reason is the same: a report that does
-    /// not say which value it ran at cannot be one of two runs compared.
+    /// fast the pass works through the population, and the Shift band decides which Tick of the Day
+    /// every journey falls on — so a reader who cannot see them cannot tell a city that has settled
+    /// from a run that stopped early. <c>--trips</c>' header sets the precedent and its reason is the
+    /// same: a report that does not say which value it ran at cannot be one of two runs compared.
+    /// <para>
+    /// ⚠ <b>It named <c>commute_peak_factor</c> until <c>adr/0101</c> retired that key</b>, and the
+    /// replacement is not a rename: the peak was a number the file <em>authored</em> and the band is
+    /// one it <em>bounds</em>, so what the header can honestly state changed with it.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void The_header_names_the_budget_the_sample_and_the_peak()
+    public void The_header_names_the_budget_the_sample_and_the_shift_band()
     {
         string report = Dump("minimal.toml");
 
@@ -78,7 +83,8 @@ public sealed class CommuteDumpTests
         Assert.Contains("Only the ceiling refuses", report, StringComparison.Ordinal);
         Assert.Contains("candidate(s) each", report, StringComparison.Ordinal);
         Assert.Contains("best rung it draws", report, StringComparison.Ordinal);
-        Assert.Contains("morning peak of 3x", report, StringComparison.Ordinal);
+        Assert.Contains("A Shift runs 6-10 in-world hours", report, StringComparison.Ordinal);
+        Assert.Contains("15 min of being early", report, StringComparison.Ordinal);
     }
 
     /// <summary>

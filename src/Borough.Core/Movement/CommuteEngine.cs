@@ -19,46 +19,45 @@ namespace Borough.Core.Movement;
 /// purpose</b> — and the only new thing in Phase 4 is the loop below.
 /// </para>
 /// <para>
-/// <b>The occasion is a <em>phase</em>, not a schedule, and that is this task's one design
-/// decision.</b> A commute recurs every Day; <see cref="EventWheel.Size"/> is exactly a Day. So a
-/// Citizen armed on the Wheel re-arms at <c>+8192</c> for ever and never leaves the bucket it started
-/// in, which makes the bucket a partition of the population by a constant — and a partition on a
-/// constant is <b>derivable</b>. <see cref="CommuteRoster"/> is that partition,
-/// <c>(derived AND rebuilt)</c>, costing one saved column fewer, one per-Tick re-arm fewer, and no
-/// generalisation of the Wheel to a second table. <c>adr/0081</c> says generalising the Wheel is not
-/// required for this milestone; the reciprocity above is why it would not have helped.
+/// <b>The occasion is a <em>phase</em>, not a schedule, and <c>adr/0101</c> keeps that while
+/// doubling it.</b> A Citizen leaves home at one Tick of the Day and leaves work at another, and both
+/// are computed rather than armed: <see cref="CommuteRoster"/> is two partitions of the population,
+/// <c>(derived AND rebuilt)</c>, costing no saved column and no per-Tick re-arm. What it is a
+/// partition <em>on</em> has changed — it was the Citizen's id under a uniform window, and it is now
+/// the Workplace's Shift start against the Citizen's own planned commute — but it is still a function
+/// of saved state rather than an event that fires.
 /// </para>
 /// <para>
-/// <b>Departures spread uniformly over a window, and the window is the peak seen from the other
-/// side.</b> Under a uniform window of <c>W</c> Ticks the instantaneous departure rate is
-/// <c>TICKS_PER_DAY ÷ W</c> times the daily average, so the peaking multiplier S2 R7 measured
-/// (2–3× over the Day mean) <b>is</b> <c>TICKS_PER_DAY ÷ W</c> — one number seen from two sides. The
-/// Ruleset therefore authors the multiplier, which is the side that has evidence, and
-/// <see cref="JobRuleset.CommuteWindow"/> derives the window. That is <c>adr/0059</c> a fourth time:
-/// <b>state the thing a designer has a reason for and derive the thing the engine needs.</b>
+/// <b>The Day has a shape, and nothing here authors one.</b> Two peaks, a baseline through the middle
+/// and a quiet night are what a spread of Shift start hours and an unequal spread of Shift lengths
+/// look like from outside; there is no departure curve, no window and no peak dial. The morning is
+/// sharp because a Workplace's staff share a start hour, and broad because they subtract their own
+/// commutes from it; the evening is flatter because they do not share a Shift length. See
+/// <c>adr/0101</c>, and <c>CONTEXT.md</c> → Shift.
 /// </para>
 /// <para>
-/// <b>The Day begins at the peak, and no offset key is opened.</b> Tick zero of the Day is the first
-/// departure Tick. An offset would be a second hash-bearing number whose only consumer is a clock
-/// nothing else reads: no Rule, no Layer and no Zone Rule asks what time of day it is, so <em>when</em>
-/// the peak falls within the Day is unobservable and choosing it would be <c>adr/0052</c>'s
-/// prohibition exactly — a number with no ratifier and no consequence.
+/// <b>Tick 0 of the Day is midnight</b> (<see cref="Ticks.AtHour"/>). This class used to say the Day
+/// began at the peak and that the choice was unobservable, which was true while nothing in the
+/// simulation asked the time. A Day with a quiet night in it distinguishes its own ends, so the
+/// freedom is spent — deliberately, once, in an ADR rather than in a Ruleset key.
 /// </para>
 /// <para>
-/// <b>The evening leg is deliberately absent.</b> <c>plans/0023</c> scopes this to one Workplace and
-/// one Trip a Day. A return journey makes a Citizen's day a <em>schedule</em>, and a schedule is what
-/// arrives when <c>adr/0067</c>'s shopping or <c>adr/0032</c>'s school gives it a second entry — so
-/// building half of it now is building a structure whose shape is decided by mechanisms that do not
-/// exist (<c>adr/0070</c>).
+/// <b>The evening leg is here, and the refusal it replaces was reasoning from an absence.</b> The
+/// standing argument was that a return journey makes a Citizen's day a <em>schedule</em>, whose shape
+/// is decided by <c>adr/0067</c>'s shopping and <c>adr/0032</c>'s school — both <em>unbuilt</em>, and
+/// <c>adr/0070</c> says an unbuilt mechanism is not a design constraint, so that is the rule inverted.
+/// A return commute is in any case the one journey a later generator cannot reshape: its endpoints are
+/// fixed and already stored, and its occasion is the end of a Shift.
 /// </para>
 /// <para>
-/// <b>Nobody can be in flight when their next departure comes round, and it is the loader that
-/// guarantees it.</b> A Citizen departs once per Day. A Trip that is not <see cref="TripFate.InFlight"/>
-/// on creation never gets a Traveller at all, and one that is has passed the Commute Budget — which
-/// <c>RulesetLoader</c> refuses to leave unstated wherever <c>[jobs]</c> is present. So an in-flight
-/// commute is bounded by the Budget, the Budget is stated in minutes, and a Day is 24 in-world hours:
-/// the overlap this class would otherwise have to guard against is arithmetically unreachable rather
-/// than merely unlikely.
+/// <b>Nobody can be in flight when their next departure comes round, and it is still the loader that
+/// guarantees it — but the guarantee is now stated rather than accidental.</b> Under one journey a Day
+/// the gap between departures was a whole Day and the Commute Budget bounded a journey in minutes, so
+/// the overlap was arithmetically unreachable and nobody had to say so. With two journeys the gap is
+/// the <b>Shift length</b>, so <c>RulesetLoader</c> refuses a minimum Shift at or below the Commute
+/// Budget's ceiling. ⚠ <b>The old property was a happy accident of there being one journey and it read
+/// as a design property</b>, which is the shape worth remembering: an invariant nothing enforces
+/// survives exactly as long as the structure that made it free.
 /// </para>
 /// </remarks>
 public sealed class CommuteEngine
@@ -96,43 +95,60 @@ public sealed class CommuteEngine
     /// </remarks>
     public void Generate(Ticks tick)
     {
-        JobRuleset jobs = _world.Rules.Jobs;
-
-        if (!jobs.Runs || !_world.Rules.Trips.Runs)
+        if (!_world.Rules.Jobs.Runs || !_world.Rules.Trips.Runs)
         {
             return;
         }
 
         int phase = (int)(tick.Raw % Ticks.PerDay);
+        CitizenTable citizens = _world.Citizens;
 
-        if (phase >= jobs.CommuteWindow)
+        // Outbound before homeward, and the order is arbitrary but must be fixed: both walk in slot
+        // order and both create Trips, so swapping them renumbers every Trip id the State Hash folds
+        // on any Tick that carries both. It carries both often -- an early shift's return and a late
+        // shift's departure share the middle of the Day, which is the all-day baseline this design
+        // exists to produce.
+        foreach (int citizen in _world.Commutes.Departing(citizens, phase))
+        {
+            Travel(citizen, homeward: false, tick);
+        }
+
+        foreach (int citizen in _world.Commutes.Returning(citizens, phase))
+        {
+            Travel(citizen, homeward: true, tick);
+        }
+    }
+
+    /// <summary>Starts one leg of one Citizen's commute, in whichever direction.</summary>
+    /// <remarks>
+    /// <b>One method for both directions rather than two loops that drifted.</b> The endpoints are the
+    /// same pair read in the opposite order, and every other term -- the mode, the purpose, the
+    /// refusals -- is identical, so a second copy would be two places for the Commute Budget to be
+    /// applied differently.
+    /// </remarks>
+    private void Travel(int citizen, bool homeward, Ticks tick)
+    {
+        CitizenTable citizens = _world.Citizens;
+
+        if (!_world.Buildings.Rows.TryResolve(citizens.Workplace[citizen], out int workplace))
         {
             return;
         }
 
-        CitizenTable citizens = _world.Citizens;
+        int home = HomeOf(citizen);
 
-        foreach (int citizen in _world.Commutes.Departing(citizens, phase))
+        // A Citizen with a job and no home. Not a defect and not a Trip: the Unplaced Pool holds
+        // Households that have nowhere to live, and adr/0069 makes housing them a mechanism of its
+        // own that runs at its own pace. Walking from nowhere is not the honest degradation.
+        if (home < 0)
         {
-            if (!_world.Buildings.Rows.TryResolve(citizens.Workplace[citizen], out int workplace))
-            {
-                continue;
-            }
-
-            int home = HomeOf(citizen);
-
-            // A Citizen with a job and no home. Not a defect and not a Trip: the Unplaced Pool holds
-            // Households that have nowhere to live, and adr/0069 makes housing them a mechanism of its
-            // own that runs at its own pace. Walking from nowhere is not the honest degradation.
-            if (home < 0)
-            {
-                continue;
-            }
-
-            TravelMode mode = _world.ModeOf(citizen);
-
-            _trips.Start(citizen, home, workplace, mode, TripPurpose.Commute, tick);
+            return;
         }
+
+        TravelMode mode = _world.ModeOf(citizen);
+        (int origin, int destination) = homeward ? (workplace, home) : (home, workplace);
+
+        _trips.Start(citizen, origin, destination, mode, TripPurpose.Commute, tick);
     }
 
     /// <summary>The Building a Citizen lives in, or <c>-1</c> if their Household is unplaced.</summary>

@@ -8,6 +8,8 @@ using Borough.Core.Rules;
 using Borough.Formats;
 using Borough.Tests.Golden;
 
+using Xunit.Abstractions;
+
 namespace Borough.Tests.Movement;
 
 /// <summary>
@@ -37,8 +39,10 @@ namespace Borough.Tests.Movement;
 /// an assertion anybody can write in advance (<c>plans/0023</c> task 8).
 /// </para>
 /// </remarks>
-public sealed class CommuteLongRunTests
+public sealed class CommuteLongRunTests(ITestOutputHelper output)
 {
+    private readonly ITestOutputHelper _output = output;
+
     private const int TickCount = 100_000;
     private const int Population = 1_000;
 
@@ -85,6 +89,20 @@ public sealed class CommuteLongRunTests
     /// </remarks>
     private const int PeakPopulation = 4_000;
 
+    /// <summary>
+    /// Four Days, which is all the profile needs and a fraction of what the flow readings do.
+    /// </summary>
+    /// <remarks>
+    /// <b>The profile is read off the roster rather than sampled from the run, so the run's only job
+    /// is to get everybody a job.</b> <c>[jobs] revisit_ticks</c> is 1,024, so employment has settled
+    /// several times over by here. ⚠ <b>Not shared with <see cref="PeakTickCount"/> on purpose</b>: a
+    /// sampled flow needs length because its precision comes from the number of readings, and this
+    /// needs none because there is no sample in it. Sharing the constant would make a cheap
+    /// measurement pay a long run's price for a precision it does not consume — which matters now
+    /// that a commute is two journeys and every one of these runs costs twice what it did.
+    /// </remarks>
+    private const int ProfileTickCount = 8_192;
+
     /// <summary>Six Days, which is enough Days and a quarter of the run above.</summary>
     /// <remarks>
     /// The trend assertions need a long run because a leak is slow; a peak needs <em>samples inside a
@@ -126,74 +144,238 @@ public sealed class CommuteLongRunTests
     }
 
     /// <summary>
-    /// <b>The quiet part of the Day is the part the peak factor states, and it is the one statement
-    /// of that number a small city can carry.</b>
+    /// <b>The Day has a shape: two peaks, a middle that is not empty, and a quiet night.</b>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>5b's transferred task 4 — peak pedestrian density — and it is the ratifier for
-    /// <c>commute_peak_factor</c> read as a <em>derivation</em> rather than as a value.</b> Under a
-    /// uniform departure window of <c>W</c> Ticks the instantaneous departure rate is
-    /// <c>TICKS_PER_DAY / W</c> times the daily average. The obvious assertion is therefore
-    /// <c>peak ÷ mean in-flight = the stated factor</c> — and it was written that way first, and it
-    /// <b>reads 10 against a stated 3</b> on this fixture.
+    /// <b><c>adr/0101</c>'s named ratifier, and it replaces the ratifier for a number that no longer
+    /// exists.</b> This test used to assert the <em>quiet fraction</em> against
+    /// <c>commute_peak_factor</c> — a dial that authored a departure window, whose only checkable
+    /// consequence was that the window and the peak were reciprocals of each other. The peak is now a
+    /// <b>reading</b>: what the profile comes out as, given where the jobs are and how long people
+    /// work. So what is asserted is the profile's <em>shape</em>, which is the thing the decision
+    /// actually claims.
     /// </para>
     /// <para>
-    /// <b>That reading is counting noise, and the decomposition is exact enough to be worth writing
-    /// down.</b> <c>peak ÷ day-mean</c> is the product of two terms: the structural one, which is the
-    /// stated factor, and <c>max-of-N ÷ in-window mean</c>, which is <b>1 only in the limit of large
-    /// counts</b>. At 1,000 Citizens roughly 440 hold a job, they leave over 2,731 Ticks, and a commute
-    /// lasts tens of Ticks — so about <b>four</b> people are walking at any instant inside the window,
-    /// and the largest of 116 samples of a mean-4 count is about 10 by arithmetic that has nothing to
-    /// do with cities. The first form of this test was measuring its own sample size.
+    /// <b>Read off the roster rather than sampled from a run, and that is a real improvement.</b> The
+    /// roster's buckets <em>are</em> the departure profile — every Citizen's two phases, exactly, with
+    /// no counting noise at all. The old test's whole difficulty was that a maximum over a small
+    /// sample is a statistic about the sample; this quantity has no sample in it, so the population
+    /// is a matter of taste rather than of validity.
     /// </para>
     /// <para>
-    /// <b>The quiet fraction says the same thing and has no such term.</b> If departures are uniform
-    /// over <c>TICKS_PER_DAY ÷ factor</c> Ticks and a commute is short against that window, then
-    /// nobody is in flight for <c>1 − 1 ÷ factor</c> of the Day — a proportion over every sample
-    /// rather than a maximum over them, so it converges rather than growing with the run. It is the
-    /// same claim about the same number, stated in the one currency this population can pay in.
-    /// </para>
-    /// <para>
-    /// <b>Two runs, because one is a fixture and two are a relationship.</b> A factor of 1 is a Day
-    /// with no peak at all — the window is the whole Day and the quiet fraction should vanish — which
-    /// is what makes this a test of <c>JobRuleset.CommuteWindow</c> rather than of the shipped file.
-    /// </para>
-    /// <para>
-    /// <b>The peak itself is asserted one-sided, and on purpose.</b> Every term above inflates a
-    /// measured maximum and none deflates it, so <c>peak ≥ factor × mean</c> is safe at any population
-    /// while its converse is not — and it is the half that would fail if the departures ever stopped
-    /// being concentrated at all.
+    /// <b>Asserted as ordering relations rather than as counts</b>, because the counts are a property
+    /// of the shipped bands and would have to be re-recorded every time somebody retunes them —
+    /// which is the <c>[InlineData]</c> trap <c>JobRulesetLoadTests</c> already walked into once.
+    /// What is structural is that a night with no Shift band over it is quieter than a morning that
+    /// has one.
     /// </para>
     /// </remarks>
-    [Theory]
-    [InlineData(3)]
-    [InlineData(1)]
-    public void The_quiet_part_of_the_Day_is_the_part_the_peak_factor_states(int factor)
+    [Fact]
+    public void The_Day_has_two_peaks_a_middle_that_is_not_empty_and_a_quiet_night()
     {
-        Ruleset rules = WithPeak(factor);
-        Reading[] tail = Run(rules, PeakPopulation, PeakTickCount)[SettleReadings..];
+        World world = RunToSettled(GoldenFixtures.Rules(), PeakPopulation, ProfileTickCount);
 
-        long mean = Mean(tail, r => r.InFlight);
-        long peak = 0;
-        long quiet = 0;
+        (int[] perHour, int total) = Profile(world);
 
-        foreach (Reading reading in tail)
+        Assert.True(total > 0, "nobody commutes at all, so there is no profile.");
+
+        Print(perHour, total);
+
+        int morning = Between(perHour, 4 * 4, 10 * 4);
+        int midday = Between(perHour, 10 * 4, 12 * 4);
+        int evening = Between(perHour, 12 * 4, 21 * 4);
+        int night = Between(perHour, 21 * 4, 24 * 4) + Between(perHour, 0, 4 * 4);
+
+        // ⚠ No bin may hold a tenth of the Day's journeys. This is the assertion the first version of
+        // this test lacked, and lacking it is why a profile made of 25 spikes passed: `two peaks, a
+        // middle, a quiet night` was true of it. A spike is what a quantised draw produces, and it
+        // is the failure mode this shape has.
+        int fullest = 0;
+
+        foreach (int here in perHour)
         {
-            peak = reading.InFlight > peak ? reading.InFlight : peak;
-            quiet += reading.InFlight == 0 ? 1 : 0;
+            fullest = here > fullest ? here : fullest;
         }
 
-        Assert.True(mean > 0, "no Traveller was ever in flight, so there is no peak to measure.");
-
-        long expected = 100 - (100 / factor);
-        long measured = quiet * 100 / tail.Length;
-
-        Assert.InRange(measured, expected - QuietTolerance, expected + QuietTolerance);
         Assert.True(
-            peak >= factor * mean,
-            $"in-flight Travellers peaked at {peak} against a daily mean of {mean}, which is flatter"
-            + $" than the {factor}x the Ruleset states.");
+            fullest * 10 < total,
+            $"one quarter-hour holds {fullest} of {total} journeys, which is a spike rather than a "
+            + "peak -- the draws behind it are quantised.");
+
+        // The night is the assertion that would fail first if the Shift bands ever stopped bounding
+        // anything, and it is one-sided: a band with no mass over those hours cannot put departures
+        // there, and no term in this arithmetic can move them back in.
+        Assert.True(
+            night * 20 < total,
+            $"{night} of {total} journeys begin between 21:00 and 04:00, which is not a quiet night.");
+
+        Assert.True(morning > 0 && evening > 0, "the Day has fewer than two peaks.");
+
+        // ⚠ The middle of the Day is EXACTLY ZERO here, and that is a finding rather than a defect.
+        // This Ruleset declares ONE employing kind, so every workplace in the world keeps the same
+        // sort of hours and there is genuinely nobody to be travelling at eleven. A midday commute is
+        // a shop, a school and a factory disagreeing about when the day starts -- which is LAND USE,
+        // and adr/0070's `build X` rather than a distribution this draw could be reshaped into.
+        //
+        // Asserted as a ZERO rather than left unasserted, because the claim is now discharged next
+        // door: The_empty_middle_of_the_Day_is_land_use_and_a_second_kind_fills_it appends a second
+        // [[building]] kind to this same file and watches the hole close. This end of that pair is
+        // the control, so it has to hold the hole open.
+        Assert.Equal(0, midday);
+
+        // Peaked rather than flat, over the morning, and this is the assertion the plateau failed.
+        // A uniform draw over the start band gives near-equal bars; a triangular one gives a peak.
+        // Stated against the morning's own mean so it cannot be satisfied by the evening.
+        int morningBins = 0;
+        int morningFullest = 0;
+
+        for (int bin = 4 * 4; bin < 10 * 4; bin++)
+        {
+            morningBins += perHour[bin] > 0 ? 1 : 0;
+            morningFullest = perHour[bin] > morningFullest ? perHour[bin] : morningFullest;
+        }
+
+        Assert.True(
+            morningFullest * morningBins * 2 > morning * 3,
+            $"the fullest morning quarter-hour holds {morningFullest} against a mean of "
+            + $"{morning / Math.Max(morningBins, 1)} over {morningBins} occupied ones, which is a "
+            + "plateau rather than a peak.");
+    }
+
+    /// <summary>
+    /// <b>The empty middle of the Day is land use, and a second employing kind fills it</b> — but only
+    /// an <em>earlier</em> one, because a later one drags its own return echo into the night.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This discharges the prediction the test above declines to assert.</b> That one measures
+    /// exactly zero journeys between 10:00 and 11:45 and records it as correct for a Ruleset declaring
+    /// one employing kind, with <em>a second <c>[[building]]</c> kind</em> named as the reopening
+    /// trigger. This is that trigger pulled, so the claim stops being a comment: the shipped file's
+    /// hole is a property of its <b>content</b> and not of the draw behind the departure, and the
+    /// mechanism responds to land use with no engine change and no new number.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The finding is the <em>direction</em>, and it was measured backwards first.</b> The
+    /// obvious second kind is a later one — an office opening while a works is already running — and it
+    /// does fill the afternoon. It also fills the night: a band at 13–17 returns at
+    /// <c>start + shift</c>, which is 19:00–03:00, so the Day acquires an all-night tail and the quiet
+    /// end is gone. ***A Day's quiet end is bounded by <c>latest start + longest Shift</c>***, which is
+    /// a consequence of <c>adr/0101</c>'s anchor model that nothing in that ADR states: the night is
+    /// not authored anywhere and cannot be defended directly, so the only band that adds midday
+    /// traffic without waking it is one starting <b>earlier</b> than the shipped one. An early shift
+    /// puts its <em>returns</em> in the middle of the Day, which is where a real city's midday travel
+    /// comes from.
+    /// </para>
+    /// <para>
+    /// <b>Both cities are measured, because the assertion is a comparison and not a level.</b> A
+    /// midday count means nothing on its own — the shipped bands could be retuned until any number
+    /// appeared there. What is structural is that the same engine, the same draws and the same
+    /// population produce a hole with one kind and a baseline with two.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_empty_middle_of_the_Day_is_land_use_and_a_second_kind_fills_it()
+    {
+        World mixed = RunToSettled(WithASecondKind(3, 6), PeakPopulation, ProfileTickCount);
+        World single = RunToSettled(GoldenFixtures.Rules(), PeakPopulation, ProfileTickCount);
+
+        (int[] perBin, int total) = Profile(mixed);
+        (int[] control, int controlTotal) = Profile(single);
+
+        Assert.True(total > 0, "nobody commutes at all, so there is no profile.");
+
+        Print(perBin, total);
+
+        int midday = Between(perBin, 10 * 4, 12 * 4);
+        int controlMidday = Between(control, 10 * 4, 12 * 4);
+
+        _output.WriteLine(string.Empty);
+        _output.WriteLine($"10:00-11:45 holds {midday} of {total} against {controlMidday} of "
+            + $"{controlTotal} on one kind.");
+
+        // The whole claim, stated as the comparison it is.
+        Assert.Equal(0, controlMidday);
+        Assert.True(
+            midday > 0,
+            "a second employing kind did not put anybody on the road in the middle of the Day, so "
+            + "the hole is not land use after all.");
+
+        // ⚠ The quiet stretch MOVED, and reading that as a regression is the trap. It is 21:00-04:00
+        // on one kind and 20:00-02:00 here, because the earliest band moved from 6 to 3 and the night
+        // is bounded by the bands at both ends rather than authored at either. What must survive is
+        // that a quiet stretch EXISTS -- an anchor model that produced traffic round the clock would
+        // have lost the property the shipped Ruleset demonstrates.
+        int night = Between(perBin, 20 * 4, 24 * 4) + Between(perBin, 0, 2 * 4);
+
+        Assert.True(
+            night * 20 < total,
+            $"{night} of {total} journeys begin between 20:00 and 01:45, which is not a quiet night.");
+    }
+
+    /// <summary>
+    /// The roster's two bucket lists as a quarter-hourly histogram, and the count in it.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Quarter-hours rather than hours, and the coarser instrument was hiding the defect it was
+    /// built to find.</b> An hourly histogram cannot distinguish <em>departures spread across this
+    /// hour</em> from <em>every departure in this hour on one Tick</em> — and the first profile this
+    /// test printed was the second while reading like the first.
+    /// </remarks>
+    private static (int[] PerBin, int Total) Profile(World world)
+    {
+        const int Bins = Ticks.HoursPerDay * 4;
+        int[] perHour = new int[Bins];
+        int total = 0;
+
+        for (int phase = 0; phase < Ticks.PerDay; phase++)
+        {
+            int here = world.Commutes.CountAt(world.Citizens, phase)
+                + world.Commutes.ReturningCountAt(world.Citizens, phase);
+
+            // The bin a Tick falls in, floored -- the inverse of Ticks.AtHour, and inexact in the
+            // same place for the same reason: 24 does not divide 2048.
+            perHour[(int)((long)phase * Bins / Ticks.PerDay)] += here;
+            total += here;
+        }
+
+        return (perHour, total);
+    }
+
+    /// <summary>The journeys beginning in <c>[from, to)</c>.</summary>
+    private static int Between(int[] perHour, int from, int to)
+    {
+        int total = 0;
+
+        for (int hour = from; hour < to; hour++)
+        {
+            total += perHour[hour];
+        }
+
+        return total;
+    }
+
+    /// <summary>The profile, as something to look at.</summary>
+    private void Print(int[] perHour, int total)
+    {
+        int widest = 1;
+
+        foreach (int here in perHour)
+        {
+            widest = here > widest ? here : widest;
+        }
+
+        _output.WriteLine($"Commute departures by quarter-hour -- {total} journeys a Day");
+        _output.WriteLine("(both directions: leaving home and leaving work)");
+        _output.WriteLine(string.Empty);
+
+        for (int bin = 0; bin < perHour.Length; bin++)
+        {
+            _output.WriteLine(
+                $"{bin / 4,2}:{bin % 4 * 15:00} {perHour[bin],5}  "
+                + new string('#', perHour[bin] * 48 / widest));
+        }
     }
 
     /// <summary>
@@ -234,6 +416,27 @@ public sealed class CommuteLongRunTests
         int InFlight,
         int Employed,
         long Made);
+
+    /// <summary>
+    /// A city stepped until employment has settled, for the readings that want the roster rather
+    /// than a sampled flow.
+    /// </summary>
+    private static World RunToSettled(Ruleset rules, int population, int ticks)
+    {
+        var key = WorldKey.FromSeed(GoldenFixtures.Seed);
+        var world = new World(population, rules, key);
+
+        var simulation = new Simulation(world, key) { VerifyDecideWritesNothing = false };
+
+        SyntheticCity.PopulateInto(world, key, new Ticks(0));
+
+        for (int tick = 0; tick < ticks; tick++)
+        {
+            simulation.Step(default);
+        }
+
+        return world;
+    }
 
     private static Reading[] Run(Ruleset rules, int population, int ticks)
     {
@@ -296,22 +499,76 @@ public sealed class CommuteLongRunTests
         return total;
     }
 
-    /// <summary>The shipped Ruleset with its stated morning peak replaced.</summary>
+    /// <summary>
+    /// The shipped Ruleset with a <b>second employing kind</b> appended, keeping its own Shift band.
+    /// </summary>
     /// <remarks>
+    /// <para>
     /// Parsed from the committed file rather than built here, for <c>GoldenFixtures.Rules</c>' own
     /// reason: a Ruleset built in C# agrees with the loader by construction, so a run over one proves
     /// nothing about the file the city actually ships with.
+    /// </para>
+    /// <para>
+    /// <b>The appended kind is a clone of <c>dwelling</c> with one line changed</b>, and everything
+    /// about that is deliberate. Cloning holds every ratio the shipped file chose — occupancy, jobs
+    /// per resident, the Bin sizes, the condemnation cadence — so the only difference between the two
+    /// cities is <em>when the workplaces open</em>. <c>zone = 0</c> on both Zone Rules because
+    /// <c>SyntheticCity</c> paints every Lot with bit 0 and nothing else: the two Rules compete for
+    /// the same Lots, which is a city with <b>mixed use everywhere</b> rather than districts. That is
+    /// the crudest possible land-use split and it is the right one to measure first, because it
+    /// isolates the question — <em>does a mixture of Shift bands fill the middle of the Day?</em> —
+    /// from the separate question of whether the split has to be <em>spatial</em>.
+    /// </para>
     /// </remarks>
-    private static Ruleset WithPeak(int factor)
+    private static Ruleset WithASecondKind(int earliestHour, int latestHour)
     {
-        string toml = File.ReadAllText(GoldenFixtures.RulesetPath);
-        const string Key = "commute_peak_factor = 3";
+        string toml = File.ReadAllText(GoldenFixtures.RulesetPath) + $$"""
 
-        Assert.Contains(Key, toml, StringComparison.Ordinal);
+            [[building]]
+            name = "workshop"
+            bins = [
+                { resource = "sundries", capacity = 48 },
+                { resource = "repairs",  capacity = 4 },
+            ]
+            condemn_after = 4
+            occupants = 3
+            jobs = 8
+            shift_start_earliest_hour = {{earliestHour}}
+            shift_start_latest_hour   = {{latestHour}}
 
-        RulesetLoadResult result = RulesetLoader.Parse(
-            toml.Replace(Key, $"commute_peak_factor = {factor}", StringComparison.Ordinal),
-            "test.toml");
+            [[rule]]
+            name    = "restock_workshop"
+            kind    = "workshop"
+            rate    = 8
+            apply   = { min = 1, max = 4 }
+            inputs  = []
+            outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+            [[rule]]
+            name    = "consume_workshop"
+            kind    = "workshop"
+            rate    = 32
+            apply   = { derived = "occupancy" }
+            inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+            outputs = []
+
+            [[rule]]
+            name    = "upkeep_workshop"
+            kind    = "workshop"
+            rate    = 16
+            apply   = { min = 1, max = 1 }
+            inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+            outputs = []
+
+            [[zone_rule]]
+            name          = "works"
+            kind          = "workshop"
+            zone          = 0
+            interval      = 32
+            revisit_ticks = 2048
+            """;
+
+        RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
 
         Assert.True(result.Ok, result.Describe());
 

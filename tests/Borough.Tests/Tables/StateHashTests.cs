@@ -193,7 +193,7 @@ public class StateHashTests
             // the column raw on purpose -- they are about what the hash does with a handle, and one
             // of them wants a deliberately inconsistent world -- but the fixture they start from
             // should not be one.
-            world.Employ(citizen, building);
+            world.Employ(citizen, building, Ticks.Zero);
         }
 
         return world;

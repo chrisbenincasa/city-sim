@@ -370,7 +370,16 @@ public sealed class JobSearchBoxTests
     }
 
     /// <summary>The ceiling moved and every job removed, so the pass samples and never routes.</summary>
-    private static Ruleset WithoutJobs(int ceiling) => Edit(ceiling, ("jobs = 8", "jobs = 0"));
+    /// <remarks>
+    /// ⚠ <b>The Shift-start band has to go with the posts</b>, because <c>adr/0101</c>'s loader
+    /// refusal is two-way: a kind that employs nobody must not state when its jobs begin. Deleting
+    /// only the <c>jobs</c> line refuses at the door, which is the pairing working rather than an
+    /// awkwardness — the band and the ceiling are one declaration in two lines.
+    /// </remarks>
+    private static Ruleset WithoutJobs(int ceiling) => Edit(
+        ceiling,
+        ("jobs = 8", "jobs = 0"),
+        ("shift_start_earliest_hour = 6\nshift_start_latest_hour   = 10", string.Empty));
 
     private static Ruleset Edit(int ceiling, params (string Key, string Replacement)[] extra)
     {

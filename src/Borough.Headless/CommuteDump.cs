@@ -123,8 +123,11 @@ internal static class CommuteDump
             + $"every {rules.Jobs.Interval} Ticks, {rules.Jobs.Candidates} candidate(s) each, and "
             + "takes the best rung it draws.");
         output.WriteLine(
-            $"# Departures spread over {rules.Jobs.CommuteWindow} Ticks of each "
-            + $"{Ticks.PerDay}-Tick Day, from a stated morning peak of {rules.Jobs.PeakFactor}x.");
+            $"# A Shift runs {rules.Jobs.ShiftHoursMin}-{rules.Jobs.ShiftHoursMax} in-world hours; "
+            + "each Workplace starts its own hour inside its kind's band, and a Citizen leaves home "
+            + "by the commute they were quoted plus up to "
+            + $"{rules.Jobs.ArriveEarlyMaxMinutes} min of being early. The {Ticks.PerDay}-Tick Day's "
+            + "shape is produced by those spreads and is authored nowhere.");
 
         output.WriteLine();
         output.WriteLine("## Before — the populator's city, in which nobody has a job");
@@ -333,9 +336,9 @@ internal static class CommuteDump
         if (made == 0)
         {
             output.WriteLine(
-                "No Trip was made, so there is no distribution. Departures spread over "
-                + $"{rules.Jobs.CommuteWindow} Ticks of the Day; a run shorter than that reaches only "
-                + "the Citizens whose departure phase falls inside it.");
+                "No Trip was made, so there is no distribution. Departures follow each Workplace's "
+                + "own Shift start, so they are spread across the whole Day rather than bunched at "
+                + "its beginning; a run shorter than a Day reaches only the hours it covers.");
 
             return;
         }

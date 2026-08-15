@@ -47,6 +47,9 @@ public sealed class CitizenTable
 
         NextEventTick = _rows.Saved<Ticks>("next_event_tick", Touch.PerTick);
         CommuteNext = _rows.Derived<int>("commute_next", Touch.PerTick);
+        CommuteReturnNext = _rows.Derived<int>("commute_return_next", Touch.PerTick);
+        CommuteBucket = _rows.Derived<int>("commute_bucket", Touch.PerTick);
+        PlannedCommute = _rows.Saved<Ticks>("planned_commute");
         Activity = _rows.Saved<byte>("activity", Touch.PerTick);
 
         HouseholdOf = _rows.SavedHandle("household", households.Rows);
@@ -92,6 +95,83 @@ public sealed class CitizenTable
     /// </para>
     /// </remarks>
     public Column<int> CommuteNext { get; }
+
+    /// <summary>
+    /// Link in this Citizen's <em>return</em> bucket — the second half of <c>Movement.CommuteRoster</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A second link column rather than a second roster keyed on the same one</b>, because a
+    /// Citizen is in both partitions at once: they leave home at one Tick of the Day and leave work at
+    /// another, and one <c>next</c> cannot thread a row into two lists. 4 MB at 1M Citizens, derived,
+    /// and rebuilt with its sibling. <c>adr/0101</c>.
+    /// </remarks>
+    public Column<int> CommuteReturnNext { get; }
+
+    /// <summary>
+    /// Which two buckets of <c>Movement.CommuteRoster</c> this Citizen was actually put in, packed,
+    /// or zero for a Citizen in neither.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>This exists because of a defect the first cut of <c>adr/0101</c> shipped, and the general
+    /// form is worth more than the fix.</b> That cut removed a Citizen from the roster by
+    /// <em>recomputing</em> its buckets from the Workplace — which is exactly how it had inserted
+    /// them, and looks symmetrical. It is not, because <see cref="Workplace"/> is
+    /// <c>Reference.Severable</c>: demolishing a workplace invalidates the handle <b>with no hook and
+    /// no notification</b>, so the recomputation silently returned <em>not rostered</em> and the
+    /// removal became a no-op. Every subsequent re-employment then inserted the Citizen a second time.
+    /// </para>
+    /// <para>
+    /// <b>The result was an <c>adr/0006</c> violation with a quadratic tail</b>: buckets grew with
+    /// elapsed time on a Ruleset that demolishes, every insert walked a longer list, and every Day
+    /// generated more duplicate Trips than the last. 256 Ticks ran in 4.9 s and 512 did not finish in
+    /// two minutes, which is how it was found.
+    /// </para>
+    /// <para>
+    /// ***An intrusive index that unlinks by recomputing its key cannot outlive a change to that
+    /// key's inputs.*** The old roster was safe from this by luck rather than by design — its key was
+    /// the Citizen's own monotonic id, which nothing can invalidate — so the property that protected
+    /// it was never stated and did not survive the key changing.
+    /// </para>
+    /// <para>
+    /// <b>Derived rather than saved, and it rebuilds to the same answer.</b> A Citizen whose Workplace
+    /// no longer resolves is not in a rebuilt roster at all, which is the correct membership; the
+    /// stored pair simply says where a maintained roster put them, so that unlinking never has to
+    /// consult anything that can vanish. Packed as <c>(outbound + 1) | ((homeward + 1) &lt;&lt; 16)</c>
+    /// so that a zeroed array reads as <em>in neither</em> rather than as <em>bucket 0</em>.
+    /// </para>
+    /// </remarks>
+    public Column<int> CommuteBucket { get; }
+
+    /// <summary>
+    /// What this Citizen's journey to work cost <b>when they took the job</b>. Not what it costs now.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The one saved column <c>adr/0101</c> adds, and the argument for it being saved is that it is
+    /// a measurement rather than a draw.</b> A departure is the Workplace's Shift start less this, so
+    /// somebody who lives further out leaves earlier — permanently, and without asking the road what
+    /// it looks like this morning. Everything else that decision needed turned out derivable: the
+    /// Shift start is a draw on the Building's id and the Shift length a draw on the Citizen's, both
+    /// against the Ruleset in force. This is not, because <b>no function of an id and a Ruleset
+    /// recovers a fact about a past world</b>.
+    /// </para>
+    /// <para>
+    /// <b>Zero is the honest value for somebody with no job</b>, and it is never read for one: the
+    /// roster only holds Citizens whose <see cref="Workplace"/> resolves. Written by
+    /// <c>EmploymentEngine</c> at assignment, from the candidate walk it had already paid for — so
+    /// this costs no search of its own.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is deliberately <em>not</em> refreshed as the commute changes.</b> A Citizen still
+    /// leaving at the old hour for a journey that has since got worse is late for work, which is a
+    /// diagnosis the city can show and a reason to reconsider the job — <c>CONTEXT.md</c> → Provider
+    /// List's <i>how I get to work is decided when the job is taken, not every morning</i>, and
+    /// <c>adr/0046</c>'s Habit on the daily axis. Refreshing it would also make the roster a partition
+    /// keyed on a value that moves with congestion, and therefore a rebuild every Tick.
+    /// </para>
+    /// </remarks>
+    public Column<Ticks> PlannedCommute { get; }
 
     /// <summary>What the Citizen is doing. What a wake mutates.</summary>
     public Column<byte> Activity { get; }
