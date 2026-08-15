@@ -130,9 +130,11 @@ lands on something that exists***, which is Cause 5's tell — worse than nothin
 identifier rather than on a quantity. **The repair on the writing side is the same as Cause 5's**: name
 the ledger, never the number alone.
 
-⚠ **A second defect it does *not* see, filed here rather than fixed** — `0002`'s *Design forks* **#3**,
-the entry `adr/0098` half-closed on the substance, still reads *"Live, and half-answered"* from session
-five and names no ADR. Check 9 is blind to it because no ADR cites `plans/0002 ledger #3` for car
+⚠ **A second defect it does *not* see — ✅ PAID 2026-08-14, in the sitting that found it.** `0002`'s
+*Design forks* **#3**, the entry `adr/0098` half-closed on the substance, still read *"Live, and
+half-answered"* from session five and named no ADR; it now carries the half-closure, what was built, and
+the transit trigger the endogenous half keeps. **The lesson survives the repair and is the reason this
+paragraph stays**: check 9 was blind to it because no ADR cites `plans/0002 ledger #3` for car
 ownership; the citation that would have made it visible is the one that was wrong. ***A check keyed on a
 citation cannot see an entry nobody cited***, and that is the standing limit of every document-to-document
 check in this file.
