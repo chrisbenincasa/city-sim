@@ -1467,6 +1467,65 @@ a third document (the two build-derived figures) to notice. *A derived copy that
 one no drift check will ever surface* — and the reason it did damage is Cause 5's: the figure travelled
 into three decisions as **evidence**, with nothing in the quotation to say it could not bear that.
 
+### Six saved columns have no mechanism, and `adr/0093`'s repair passes on every one of them
+
+*(Found 2026-08-15 by the corpus sweep behind [`06`](../docs/06-roadmap.md)'s inventory rows. Owners:
+[`adr/0104`](../docs/adr/0104-a-skill-tier-is-earned-by-attendance-and-the-credential-stays-a-wall.md),
+[`adr/0026`](../docs/adr/0026-wages-are-posted-locally-and-never-cleared.md), and `GoldenFixtures.cs`.)*
+
+**`CitizenTable` declares `Activity`, `SkillTier`, `Employment`, `Experience`, `Age` and `Health` as
+`(saved AND hashed)`. Nothing in `src/` writes or reads any of them.** Each has exactly one writer in
+the whole repository and it is the same block of six consecutive lines in a **test fixture** —
+`GoldenFixtures.cs:355`–`:360` — filling them with arithmetic patterns (`i % 4`, `i * 1_009`,
+`100 - i`). `HouseholdTable.LifeStage` is the seventh and differs only in that its one writer is in
+`src/`: `World.cs:647`, at creation, and nothing ever reads it back.
+
+**The columns are not the defect.** A column declared ahead of its mechanism costs nothing —
+[`adr/0086`](../docs/adr/0086-a-save-has-no-schema-of-its-own-and-the-field-declaration-is-the-format.md)
+makes the declaration the save format, so declaring early is how the format stays honest, and the
+fixture writing non-zero values is what makes the State Hash cover them. Two ADRs describing them as
+live is the defect, and the general lesson is worth more than either.
+
+⚠ **A declared column is the strongest description of the build there is, and `adr/0093`'s repair does
+not catch it.** That ADR's writing half is ***name a symbol, never a time*** — *"at world creation"*
+cannot be checked without already knowing the answer; *"when `SyntheticCity` runs"* is one grep. Here
+the grep **succeeds**. `CitizenTable.SkillTier` exists, resolves, is typed, is hash-bearing, and appears
+in the save. A reader following the rule exactly finds the symbol and concludes the mechanism is there.
+***A symbol is evidence that something was declared and never that anything calls it***, so the check
+has to be *a symbol with a caller in `src/`*, and `adr/0093` asks only for the symbol. This is **Cause 4
+one level down**: not a description of the build that is wrong about a trigger, but a **declaration in
+the build** that describes a mechanism nobody wrote — and unlike a doc-comment it cannot rot, because it
+was never a claim about behaviour in the first place.
+
+- [ ] **`adr/0104`** — its Consequences say the schooling tier *"has been stored and read by school
+  demand alone"*. **Both halves are false**: `grep -rn schooling src/` returns nothing, and there is no
+  school demand. It is the one sentence in that ADR that asserts something about the build rather than
+  about the design, and it was written on 2026-08-15 by the sitting that grilled `04 §7`.
+- [ ] **`adr/0026`** — *"Jobs specify a **minimum**, not a match"* and the underemployment readout
+  *"34% of your advanced-tier workforce is in basic-tier jobs"* both read as live. `EmploymentEngine`
+  (`src/Borough.Core/Rules/EmploymentEngine.cs`) reads **no tier at all** — a Citizen takes the first
+  free slot inside the Commute Budget — so underemployment is not merely unreported, it is
+  **unrepresentable**. Say so where the readout is named.
+- [ ] **`GoldenFixtures.cs:356`** — `(byte)(i % 4)` writes **four** values into a **three**-tier space,
+  so one Citizen in four in the committed baseline holds tier **0**, which
+  [`adr/0104`](../docs/adr/0104-a-skill-tier-is-earned-by-attendance-and-the-credential-stays-a-wall.md)
+  refused by name the day before this was found. Harmless today because nothing reads it; it becomes a
+  seeded invalid state the moment something does. ⚠ **Fixing it re-records three baselines**, which
+  [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+  says is not a reason to defer.
+- [ ] **A judgement, not a correction**: whether `Age` and `Health` should be declared at all yet.
+  `adr/0010` makes Age *"a static attribute drawn when a Citizen arrives"* and nothing draws it, while
+  Health acquired an owner on 2026-08-15 — it is one of
+  [`adr/0103`](../docs/adr/0103-a-need-is-where-a-frequent-private-failure-accumulates.md)'s four Needs,
+  and a Need is a Household accumulator rather than a Citizen byte, so the **column and the decision
+  disagree about which record holds it**. The other five have owners in `06`'s inventory.
+
+**The mechanical form is check 10 and it is cheap**: a `Rows.Saved` column whose only assignment in the
+tree is under `tests/` is a mechanism nobody built, announced by the build itself. It would have found
+all six on the day each was declared, and — unlike checks 1–9, which are all document-to-document — it
+reads the **code** to hold a **document** to account, which is the direction this corpus has never been
+able to check in.
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and
