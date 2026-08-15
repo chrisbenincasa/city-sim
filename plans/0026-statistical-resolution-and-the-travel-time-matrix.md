@@ -253,6 +253,20 @@ mechanism in this project that has a **per-Tick write to a saved column** on eve
 > loss that no per-Tick check would see — the same shape `adr/0084` names for parking occupancy, and the
 > reason that milestone has **two** checks rather than one. Expect to need both: an `O(1)` release check
 > at the write site and the end-of-run conservation sum that already exists.
+>
+> ⚠ **Four preconditions were added on 2026-08-14, before the task started, by the demand
+> measurements below.** Each is a way this run can produce a number that looks like an answer.
+>
+> 1. **Run it over whole Days.** Every congestion figure in this milestone was taken over **512 Ticks
+>    from Tick 0 on a 2,048-Tick Day**, with employment still ramping through the whole window. One of
+>    them was an artefact of exactly that.
+> 2. **Read the mean and never the peak.** The busiest Segment in a generated city is a **Poisson tail
+>    over ~10⁶ Segment-Ticks at a mean near 0.02**, so it is flat in population, flat in the rush-hour
+>    width, and is not congestion. BPR prices means. This milestone quoted the peak for two days.
+> 3. **It cannot ratify `[traffic]`'s three numbers on a generated city, and must say so rather than
+>    reporting a flat figure.** The curve is only ever evaluated where it is nearly flat.
+> 4. **It must run against `rulesets/congested.toml`**, whose 400 Vehicles an hour is a demonstration
+>    and not a city — and must not read that file's own numbers as ratified by a run built for them.
 
 ---
 
@@ -954,3 +968,76 @@ exists because of a mistake made twice on 2026-08-14 while measuring this very m
 the failure mode is worse than a wrong number: ***a control that silently equals its treatment is
 indistinguishable from a null result***, because two identical runs report ×1.0000, which is exactly what
 an inert volume-delay function reports on a generated city.
+
+---
+
+### Between tasks 7 and 8 — why a generated city cannot congest. ✅ **MEASURED 2026-08-14.**
+
+**Not a task.** Task 6's finding 3 said a generated city cannot congest itself and named the cause as
+`√population` sizing both demand and supply. That reading is **`plans/0002` §C's SSC entry**, it was the
+user's, it was offered as a hypothesis, and it was taken as one: this sitting checked it before task 8
+ratified anything against it. **It is wrong about the exponent and right that the two are coupled**, and
+the checking turned up a live defect in the mechanism the milestone is about.
+
+The ledger entry is rewritten and carries every number. What belongs here is what the sitting cost the
+milestone and what it changes about task 8.
+
+**Two commits.** `--series`, a reader over the Census ring, which had held the shape of every quantity
+this simulation keeps since slice 5 and been printed by nothing (`CensusReport` collapses each series to
+first/last/low/high). And the **advance-loop repair**, `adr/0041`'s expired premise in its second site.
+
+#### Findings
+
+**1. The milestone shipped a mechanism whose vehicles moved at a fifth of their own quoted speed, and
+six tasks of measurement did not notice.** `TripEngine.AdvanceTravellers` handled each Traveller once per
+call, so a drive crossed **one Segment a Tick** whatever the free-flow crossing cost — a journey quoted
+at **2.10** Ticks took **11.66**. Task 6 found this exact premise expired (`adr/0041`'s *a vehicle
+crosses about one Segment per Tick*, stated as following from `TicksPerDay = 8192` and retired by
+`adr/0094`), repaired the **volume/capacity ratio**, and did not ask where else the same sentence was
+load-bearing. ***A premise that expires retires every site resting on it, and finding one of them is not
+finding them.***
+
+> ⚠ **The repair moved no State Hash, which under `05 §4`'s own test reads as an optimisation.** It is
+> not one. The defect reaches only a **drive** — a walk Leg carries a cost and no path (`adr/0075`), so
+> `BeginLeg` advances it whole — and `car_ownership_percent` is stated in `congested.toml` alone, which
+> no baseline uses. **No committed baseline in this project contains a single drive**, so a change to
+> how fast every vehicle moves came back byte-identical. ***A design change that no baseline covers
+> comes back reading as an optimisation***, which is `adr/0089`'s map flip on a second mechanism, and
+> the comfortable failure mode both times.
+
+**2. The floor was masking the volume-delay function rather than exaggerating it, which is the opposite
+of what anybody would have guessed.** A free-flow crossing is **0.22** Ticks, so while every crossing was
+rounded up to one, BPR had to multiply the true cost by more than **4.6** before anything downstream
+could see it. The capacity sweep's ×1.0088 at 400 Vehicles an hour and ×1.8949 at 200 are now
+**×1.1925** and **×7.0869**. ***A floor under a quantity is a dead zone in every function of it*** — and
+the function it flattened is the one this milestone exists to build.
+
+**3. Three of the four errors in the original diagnosis were in the *statistic*, not in the
+measurement.** The peak dial's ×1.0000 came of stepping **512 Ticks from Tick 0 on a 2,048-Tick Day**,
+which at `commute_peak_factor = 192` samples a departure window of Ticks 0–10 — before anybody holds a
+job. The flat `v/c` 0.44 is the **busiest Segment**, a Poisson tail at a mean near 0.02, and the mean was
+never printed by anything. ***A dial that moves a rate is refuted only by a window longer than the period
+it moves it over***, and the tell was already in the sweep's own table: vehicle-Ticks *fell* 4.75× when
+the rush hour was narrowed, and concentrating a fixed number of commutes cannot reduce their total.
+
+**4. The instrument that would have caught all of it existed and had no reader.** `Census` has sampled a
+ring of Tick-stamped readings since slice 5, with a real level/flow distinction, and `CensusReport`
+collapses each to four numbers. ***A series with no reader is a shape nobody can see*** — 5b-bis task 6's
+*a Census family with no reader is a family nobody can see*, one level up, in the same report.
+
+**5. Two of this sitting's own instruments were wrong first, in the two ways this corpus keeps
+recording.** The duration measurement counted departures as growth in `TripTable.Rows.SlotCount` and read
+**0.05** a Tick against a true rate near 6, because slots are allocated only when the free list is empty —
+which is precisely what `CensusCounter`'s own remarks say about `Slots` against `Live`, read by somebody
+with the distinction in front of him. ***A high-water mark is not a flow.*** And the structural test's
+first version **passed against the defect**: it read the hops *remaining* ahead of each cursor, which is
+true of every city here and silent about how fast a cursor moves. ***A test that cannot fail against the
+defect it names is documentation***, and it was caught only because the defect was still there to run it
+against. Both were re-run against the restored defect and both now fire.
+
+**6. What the milestone owes elsewhere.** [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s
+three rungs are **unexercised at 256,000 Citizens** — `moderate 0 · unsavoury 0 · beyond ceiling 0`, with
+the modal commute at **4–8 minutes** against a 20-minute fast rung. That is that ADR's own named refuting
+reading, *a fast rung never left*, at 64× the fixture it was doubted on, and its **fourth revisit
+trigger** says to reopen the rungs on the distribution when 5c lands. Not done here: the trigger fires at
+the end of the milestone and task 8 is still to run.
