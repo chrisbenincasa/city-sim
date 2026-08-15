@@ -75,13 +75,13 @@ has written an `on_fail` chain ending in a report. `rulesets/minimal.toml` has n
 own header explains why, every source available today being the Building's own Bins — so under the
 only Ruleset that exists `Reported` is permanently `ConditionId.None` and no Building could ever be
 condemned. **The obvious repair is worse than the omission.** The one Rule that fails in that file is
-the *producer*, and it fails on `Blocking.Headroom`: the Bin is **full**, which is the healthy
+the *producer*, and it fails on `Blocking.Space`: the Bin is **full**, which is the healthy
 surplus steady state the file was built to demonstrate. A terminal there would mark every dwelling in
 the city as distressed for being well supplied.
 
 `02 §5.9` already names the source — *"Rules repeatedly hitting their terminal fallback (**input
 starvation**)"* — and `RuleEngine.Check` already separates the two failures by name. Nothing had
-connected the two facts. So **pressure integrates `Blocked == Blocking.Level`**, which needs no
+connected the two facts. So **pressure integrates `Blocked == Blocking.Supply`**, which needs no
 Ruleset content to work, and `Reported` keeps the job it already had: the **sentence** behind a
 demolition where an author has written a chain, and honestly absent where they have not.
 
@@ -134,7 +134,7 @@ a real starvation can never carry is the one that means *not starving*.
   a wrong one.
 - **The threshold needing to differ per Building kind** in a way missed firings cannot express — for
   instance a kind whose Rules legitimately idle for long periods, where silence is not distress.
-- **A city where being unable to *sell* is distress.** The amendment reads only `Blocking.Level`,
+- **A city where being unable to *sell* is distress.** The amendment reads only `Blocking.Supply`,
   because a full Bin is today the healthy state of a Building with no customer. The moment a Rule's
   output has somewhere to go — `pool`, and the supply chains of Phase 2 — a producer stuck on
   headroom stops meaning *well supplied* and starts meaning *nobody is buying*, which is a real

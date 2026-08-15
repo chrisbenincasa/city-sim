@@ -48,8 +48,8 @@ Because a trade touches both a Good Bin and a money Bin, the existing atomicity 
 
 | What happened | Rule fails on | Diagnosis |
 |---|---|---|
-| the Pool is empty | the **Pool Bin**, `Blocking.Level` | input starvation |
-| the Pool has stock, the buyer cannot afford it | the **money Bin**, `Blocking.Level` | **bankruptcy** |
+| the Pool is empty | the **Pool Bin**, `Blocking.Supply` | input starvation |
+| the Pool has stock, the buyer cannot afford it | the **money Bin**, `Blocking.Supply` | **bankruptcy** |
 
 Two Bins, two blame targets, two sentences from Evidence — `0024`'s *"different failures with different remedies"*, delivered by the wait list that already exists.
 
