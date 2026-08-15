@@ -518,4 +518,18 @@ internal static class Session
         using var writer = new StreamWriter(options.OutPath);
         return CommuteDump.Run(options, writer);
     }
+
+    /// <summary>Milestone 5c's artefact: where the traffic is, and what congestion does to it.</summary>
+    internal static int DumpTraffic(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return TrafficDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return TrafficDump.Run(options, writer);
+    }
 }

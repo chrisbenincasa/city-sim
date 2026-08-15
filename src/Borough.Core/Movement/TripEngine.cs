@@ -576,10 +576,9 @@ public sealed class TripEngine
             segments.VolumeBackward[segment]++;
         }
 
-        TravelTime freeFlow =
-            TravelTime.Over(segments.LengthTiles[segment], segments.FreeFlow[segment]);
+        TravelTime freeFlow = segments.FreeFlowOver(segment);
 
-        return _world.Rules.Traffic.Apply(freeFlow, Load(segments, segment, forward, freeFlow));
+        return _world.Rules.Traffic.Apply(freeFlow, segments.LoadAt(segment, forward, freeFlow));
     }
 
     /// <summary>Takes a vehicle off a Segment. The exact mirror of <see cref="Enter"/>'s increment.</summary>
@@ -608,94 +607,6 @@ public sealed class TripEngine
         }
     }
 
-    /// <summary>
-    /// A Segment direction's volume/capacity ratio — <b>the volume-delay function's one input</b>.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// ⚠ <b>Volume is a <em>stock</em> and capacity is a <em>flow</em>, and the conversion between
-    /// them is the Segment's own free-flow crossing time.</b>
-    /// <see cref="RoadSegmentTable.VolumeForward"/> counts Vehicles <em>present</em>;
-    /// <see cref="RoadSegmentTable.CapacityPerDay"/> counts Vehicles <em>passing</em>. Little's Law
-    /// relates them exactly — <c>present = passing × time spent</c> — so the Vehicles a Segment holds
-    /// when it is running at capacity is <c>capacity per Tick × free-flow dwell in Ticks</c>, and that
-    /// is the denominator. <b>No new number is introduced</b>: both terms are already derived from the
-    /// Ruleset in force.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The obvious alternative is wrong, it was built first, and a measurement caught it.</b>
-    /// <c>adr/0041</c> says <i>a vehicle crosses about one Segment per Tick</i>, which would make the
-    /// stock and the per-Tick flow the same number and the dwell term unnecessary. <b>That sentence was
-    /// true when it was written and <c>adr/0094</c> made it false</b>: under the old 8192-Tick Day a
-    /// 32-Tile Street at 50 km/h took <b>0.87</b> Ticks — near enough to one — and under the 2048-Tick
-    /// Day it takes <b>0.22</b>, which is <c>adr/0071</c>'s own illustration restated. Dividing by the
-    /// flow alone therefore overstated the denominator 4.5× and the function came back <b>inert at
-    /// every population this project can build</b>: a peak of 6 Vehicles on one Segment against 42, a
-    /// delay of ×1.0001, unchanged from 4,000 Citizens to 160,000. ***A premise licensing one quantity
-    /// to stand in for another is a measurement, and a constant moved in another document can retire
-    /// it silently.***
-    /// </para>
-    /// <para>
-    /// <b>The corrected denominator is physically checkable, which the old one was not.</b> A Street
-    /// carries 3,600 Vehicles an hour and a 128 m Segment is crossed in 9.2 seconds, so it holds
-    /// <b>9.2 Vehicles</b> at capacity — a 14 m spacing, or a one-second headway, which is what a road
-    /// at capacity looks like. Forty-two Vehicles on 128 m is a 3 m spacing, which is a car park.
-    /// </para>
-    /// <para>
-    /// <b>A capacity below one Vehicle a Tick reads as no delay rather than as infinite delay.</b>
-    /// Nothing in either shipped Ruleset produces one — the slowest kind carries 1,000 an hour, which
-    /// is 11 a Tick — so this is the absent case, and ***absent is not zero and it is not
-    /// impassable***.
-    /// </para>
-    /// </remarks>
-    private static Ratio Load(
-        RoadSegmentTable segments, int segment, bool forward, TravelTime freeFlow)
-    {
-        int volume = forward ? segments.VolumeForward[segment] : segments.VolumeBackward[segment];
-        int capacity = segments.CapacityPerDay[segment];
-
-        if (volume <= 0 || capacity <= 0 || freeFlow.Raw <= 0)
-        {
-            return Ratio.Zero;
-        }
-
-        // Both operands are scaled down by CapacityScale so that Fixed.FromInt keeps them inside
-        // Q16.16's whole range: a Day is 2,048 Ticks and an Arterial carries 288,000 Vehicles a Day,
-        // and 288,000 does not fit. Scaling both sides by the same factor leaves the quotient exact
-        // wherever the two divide evenly, which they do at every capacity either shipped Ruleset
-        // states.
-        Ratio perTickShare = Ratio.FromFraction(
-            (volume > MaxVolume ? MaxVolume : volume)
-                * IntegerMath.FloorDiv(Ticks.PerDay, CapacityScale),
-            IntegerMath.FloorDiv(capacity, CapacityScale));
-
-        return new Ratio(Fixed.Div(perTickShare.Raw, freeFlow.Raw));
-    }
-
-    /// <summary>
-    /// The divisor that keeps <see cref="Load"/>'s two operands inside <see cref="Fixed"/>'s whole
-    /// range.
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>The obvious alternative — floor the capacity to whole Vehicles per Tick first — was built
-    /// and is wrong.</b> A Day is 2,048 Ticks, so anything under 2,048 Vehicles a Day floors to
-    /// <b>zero</b> and the guard against a zero capacity then reports <em>no delay</em> for what is
-    /// really a very narrow road. A measured sweep caught it: at 200 Vehicles an hour the function bit
-    /// at ×2.48, and at <b>60</b> an hour — a narrower road still — it went back to ×1.0000.
-    /// ***A guard written for an absent quantity will fire on a small one, and small is the direction
-    /// the interesting cases lie in.***
-    /// </remarks>
-    private const int CapacityScale = 16;
-
-    /// <summary>
-    /// The largest volume <see cref="Load"/> will read, so its numerator cannot leave Q16.16.
-    /// </summary>
-    /// <remarks>
-    /// <b>Far past any authored clamp</b> — 255 Vehicles on one 128 m Segment direction is a 0.5 m
-    /// spacing — so this bounds the arithmetic and never the model. The clamp that bounds the model is
-    /// <c>[traffic] clamp_percent</c>, which is authored and refused outside 100–1000.
-    /// </remarks>
-    private const int MaxVolume = 255;
 
     /// <summary>
     /// Moves each arrived Traveller onto its next Leg, or ends its Trip when there is none.

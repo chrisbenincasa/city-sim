@@ -60,6 +60,9 @@ internal static class Program
                 case Mode.Commute:
                     return Session.DumpCommute(options);
 
+                case Mode.Traffic:
+                    return Session.DumpTraffic(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

@@ -238,3 +238,11 @@ and **the whole volume-delay mechanism sits outside every hash in this directory
 their own remarks. The place both tables get stated together is **5c task 8's long run**, which is their
 named ratifier; if that lands and this directory still covers none of it, the session is what wants
 changing.
+
+⚠ **Task 7 shipped `rulesets/congested.toml` and the hole did not close, which is worth being precise
+about.** That file states both tables, so the mechanism now has a Ruleset — but the golden session loads
+`minimal.toml` and reloads into `minimal-tuned.toml`, and neither states either table, so **nothing in
+this directory has changed**. A Ruleset existing is not a Ruleset the baseline runs. The session would
+have to adopt it, which is a decision about the committed trace rather than about congestion, and it is
+5c task 8's to make with the long run in hand. `TrafficDumpTests` joins the three suites above as a
+reader; the hash files still cover none of it.

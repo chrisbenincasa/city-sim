@@ -69,6 +69,22 @@ internal enum Mode
     /// grid of unemployment would read as a broken pass rather than as a file that grants no work.
     /// </remarks>
     Commute,
+
+    /// <summary>
+    /// Print where the traffic is, and what the volume-delay function does to it. 5c's.
+    /// </summary>
+    /// <remarks>
+    /// An eighth mode, and <b>the first whose control is a Ruleset rather than a clock</b>. Every
+    /// picture before it takes Tick 0 as its <em>before</em>; volume at Tick 0 is zero on every
+    /// Segment of every world, so that panel would be blank on every input. This one steps the same
+    /// city <b>twice</b> — identical seed, population and commands, differing only in whether the
+    /// Ruleset states <c>[traffic]</c> — so the two panels answer the question the milestone has:
+    /// does the function do anything, and in the right direction? It refuses a Ruleset that states no
+    /// <c>[traffic]</c> and one that states no <c>[households]</c>, which is <see cref="Zones"/>'
+    /// polarity, and ⚠ <b>that means it refuses all three shipped files</b>: neither table is stated
+    /// anywhere, which is a recorded coverage hole rather than an accident (<c>adr/0099</c>).
+    /// </remarks>
+    Traffic,
 }
 
 /// <summary>
@@ -253,6 +269,7 @@ internal sealed class Options
         bool roads = false;
         bool trips = false;
         bool commute = false;
+        bool traffic = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -302,6 +319,13 @@ internal sealed class Options
                 // this dump has a real *before* where --roads and --trips have none.
                 case "--commute":
                     commute = true;
+                    session = true;
+                    continue;
+
+                // A session flag for --commute's reason, and one more of its own: a road is only busy
+                // while somebody is on it, so there is nothing to see in a world that has not stepped.
+                case "--traffic":
+                    traffic = true;
                     session = true;
                     continue;
 
@@ -498,6 +522,16 @@ internal sealed class Options
             return false;
         }
 
+        // Ahead of --commute's for the same reason --commute's is ahead of --roads': --traffic is
+        // also a session, so the more general complaint below would fire first and name the wrong
+        // mistake. The most specific complaint wins.
+        if (traffic && (commute || zones || roads || trips || dump is not null))
+        {
+            complaint = "--traffic asks for a sixth picture, and each of the six builds its own "
+                      + "world. Ask for one.";
+            return false;
+        }
+
         // Ahead of every session-flag refusal below, and the ordering is load-bearing rather than
         // tidy. --commute IS a session, so `roads && session` would fire first and complain that the
         // Road Graph has no *after* -- which is true, and is not what the operator got wrong. The
@@ -570,6 +604,26 @@ internal sealed class Options
             return false;
         }
 
+        // --zones' refusal, and the state of the world makes it sharper than the others: NO shipped
+        // Ruleset states [traffic] or [households], so this is the refusal an operator will actually
+        // meet. TrafficDump prints the two tables to add; this only says a file is needed at all.
+        if (traffic && rulesets.Count == 0)
+        {
+            complaint = "--traffic needs --ruleset PATH. Congestion is content: [traffic] states the "
+                      + "volume-delay function and [households] states who owns a car, and neither "
+                      + "has a default. No shipped Ruleset states either, so this picture needs a "
+                      + "file written for it.";
+            return false;
+        }
+
+        // --commute's refusal for --commute's reason: the dump populates and steps its own world.
+        if (traffic && log is not null)
+        {
+            complaint = "--traffic and --log disagree: the dump populates its own world and steps "
+                      + "it twice, so a recorded session would be replayed and then over-populated.";
+            return false;
+        }
+
         // --roads' refusal, for --roads' reason: the Streets a walk uses are content. A Trip dump
         // with no [roads] would print a table of dashes, and a table of dashes reads as a broken
         // instrument rather than as a Ruleset that declares no network.
@@ -607,7 +661,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = commute ? Mode.Commute
+            Mode = traffic ? Mode.Traffic
+                 : commute ? Mode.Commute
                  : trips ? Mode.Trips
                  : roads ? Mode.Roads
                  : zones ? Mode.Zones
@@ -687,6 +742,11 @@ internal sealed class Options
                                 before and after the jobs are taken, with what the run's
                                 commutes cost. Needs --ruleset with a [jobs] table, and
                                 runs a session because employment takes time
+          --traffic             dump where the traffic is, by block, and what the volume-
+                                delay function does to it -- the SAME city stepped twice,
+                                once with [traffic] and once without. Needs --ruleset with
+                                a [traffic] and a [households] table; no shipped file has
+                                either, so this one needs a Ruleset written for it
           --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
                                 than as an ASCII field
 

@@ -202,3 +202,14 @@ Vehicles an hour and a 128 m Segment is crossed in 9.2 s, so it holds **9.2 Vehi
 - ⚠ **A player-built city reaches `v/c` above the clamp routinely.** The clamp exists so that two jammed
   routes are not compared on noise; if real play sits past it, the curve has stopped discriminating where
   the game is actually played and the clamp is the number to move, not α.
+- ⚠ **A Segment's free-flow crossing takes more than a Tick.** Added 2026-08-14 by milestone 5c task 7,
+  which measured it from the outside. Between the shipped 3,600 Vehicles/hour and about 600, this
+  function changes what a crossing **costs** without changing how many Vehicles stand on a road at any
+  **Tick boundary** — because at 0.22 Ticks a crossing, even a large multiplier stays sub-Tick. So the
+  bill moves and every per-Tick reading of volume is identical, which is why `--traffic`'s two panels
+  come out the same over most of the capacity range. ***A per-Tick snapshot cannot see a sub-Tick
+  delay.*** That is harmless while the only consumer is the Traveller's own arrival time; it stops being
+  harmless the moment volume itself is read by something else — `adr/0007`'s Stress is the named case
+  above — because that consumer would be sampling a quantity this function provably moves and it
+  provably cannot see. If a Segment ever costs more than a Tick free-flow, or a second consumer starts
+  reading volume, re-derive what the per-Tick series is allowed to be used for.

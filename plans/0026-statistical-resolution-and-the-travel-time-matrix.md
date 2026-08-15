@@ -6,7 +6,7 @@
 
 ## Status
 
-⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1–6 of 8 done 2026-08-14.** Two remain: task 7's runner mode and task 8's long run, and **task 8 is the named ratifier for four hash-bearing numbers** (`[traffic]`'s three and `[households] car_ownership_percent`), none of which any shipped Ruleset states. All three named gates are discharged and none of the closures
+⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1–7 of 8 done 2026-08-14.** One remains: task 8's long run, and **it is the named ratifier for four hash-bearing numbers** (`[traffic]`'s three and `[households] car_ownership_percent`). ⚠ **Until task 7 there was no Ruleset that could ratify them** — no shipped file stated either table — so task 7 shipped `rulesets/congested.toml`, and **task 8 runs against that file rather than against `minimal.toml`**. All three named gates are discharged and none of the closures
 reached a gate board, which is why this milestone read as blocked for two days
 ([`0000`](0000-board.md) → *Blocked*, split per-milestone on 2026-08-13):
 
@@ -230,14 +230,20 @@ pure free-flow.
 > the deliberate precedent 5b set. It becomes load-bearing with **no edit**, which is what that
 > precedent was for.
 
-**7. Something to look at.** An eighth runner mode. The milestone's job is congestion, so the picture is
-**where the traffic is** — per-Segment volume against capacity, before and after, on a world that steps.
+**7. Something to look at.** ✅ **DONE** — see the record. An eighth runner mode. The milestone's job is
+congestion, so the picture is **where the traffic is** — per-Segment volume against capacity, before and
+after, on a world that steps.
 
 > `--commute` and `--zones` are the precedent: a mode that steps the world because the quantity develops
 > over time. ⚠ **The lesson from `--commute` applies directly**: printing a value beside one the reader
 > already knows is what exposed a formatter that had been lossy in every duration it ever printed.
 > **Print the free-flow time beside the loaded one**, so a VDF that does nothing and a VDF that is wired
 > backwards are distinguishable at a glance.
+>
+> ⚠ **The *before and after* in this paragraph turned out to be the wrong control**, and the record says
+> why: volume at Tick 0 is zero on every Segment of every world, so a Tick 0 panel is blank on every
+> input. The control that discriminates is **with `[traffic]` against without it**, settled with the user
+> in the room.
 
 **8. The 100,000-Tick run.** `adr/0006`'s collection half and `adr/0003`'s magnitude half, over the first
 mechanism in this project that has a **per-Tick write to a saved column** on every moving entity.
@@ -871,3 +877,80 @@ beside loaded time — and task 8's long run, which is the **named ratifier** fo
 together in a Ruleset, or it ratifies neither**, and it must not read a flat congestion figure as evidence
 the function is broken — finding 3 is why.
 
+
+---
+
+### Task 7 — something to look at. ✅ **DONE 2026-08-14**, and it needed a fourth Ruleset before it had
+anything to look at.
+
+**What shipped.** `--traffic`, the **eighth runner mode** and the **third that steps the world**. It
+prints where the traffic is, by block, in **two panels** — the same city stepped twice, identical seed,
+population and command stream, differing only in whether the Ruleset states `[traffic]` — plus a
+busiest-Segments table carrying free-flow dwell, dwell at the block's peak and the ratio, and a summary
+carrying both runs' vehicle-Ticks, the mean load and the share of Segment-Ticks that carried nothing.
+`rulesets/congested.toml` is new: `minimal.toml` with **one number changed** (`street_capacity_per_hour`
+3600 → 400) and `[households]` and `[traffic]` added.
+
+**The control is a Ruleset, not a clock, and the user settled that.** Every picture before this one takes
+Tick 0 as its *before* — which works for `--zones` and `--commute` because a city at Tick 0 has no
+Buildings raised and nobody employed. **Volume at Tick 0 is zero on every Segment of every world**, so
+that panel would be blank on every input: it would show that the run did something and never whether it
+did it right. Two runs differing in exactly one table answer the question the milestone has.
+
+**⚠ Finding 1 — the mode refuses all three shipped Rulesets, and that is the deliverable working.** No
+shipped file states `[traffic]` or `[households]`, so an operator reaching for this mode meets a refusal
+and not a picture. It is `--zones`' polarity — congestion is content, and a grid of quiet roads reads as
+a broken volume-delay function rather than as a file that declares none — and here it carries a second
+job: **the refusal is the only place in the runner that says a Ruleset cannot reach this mechanism
+at all**, and it prints both the file that can (`congested.toml`) and the two tables to add to one
+that cannot. The second refusal is separate and necessary:
+a Ruleset with `[traffic]` and no `[households]` puts **no Vehicle on any Segment**, because volume is
+vehicular by decision, so it would be an empty picture of a working mechanism for an entirely different
+reason.
+
+**⚠ Finding 2, and it is a property of the instrument rather than of the city — a per-Tick snapshot
+cannot see a sub-Tick delay.** The two panels come out **identical at almost every capacity**, including
+one where the bill moves ×1.89. Measured at 16,000 Citizens over 512 Ticks:
+
+| Vehicles/hour | Vehicles a Segment holds | busiest v/c | the two panels | the bill |
+|---|---|---|---|---|
+| 3600 (shipped) | 9.22 | 0.44 | identical | ×1.0000 |
+| 900 | 2.30 | 2.61 | identical | ×1.0000 |
+| 600 | 1.54 | 3.91 | identical | ×1.0002 |
+| **400** | **1.02** | **5.86** | **differ** | **×1.0088** |
+| 200 | 0.51 | 15.63 | identical (every block `@`) | **×1.8949** |
+
+Above 400 the extra dwell is real and **shorter than a Tick**, so it changes what a crossing costs
+without changing how many Vehicles stand on a road at any Tick boundary — the bill moves and the grid
+cannot see it. Below it every block clips at *over capacity* in both panels and the grid stops
+discriminating from the other end. **400 is the only rung where both halves move**, which is why the
+demonstration file sits there and why its header carries this table. ***The bill and the picture are
+driven by different thresholds, so an instrument that shows only one of them is silent over most of the
+range it covers.***
+
+**⚠ Finding 3 — 400 Vehicles an hour is not a road, and saying so is worth more than a prettier
+demonstration.** By Little's Law a Segment holds `capacity per Tick × free-flow crossing time` Vehicles
+at capacity: **9.2** at the shipped 3,600 (a 14 m spacing, which is what a road at capacity looks like)
+and **1.02** at 400 — one car per block. So the honest headline of this task is that **you have to make
+the Street absurd before a generated city will congest it**, which is task 6's finding 3 measured from
+the other side rather than a new one. `severance.toml` is the exact precedent — *"a 256-Tile block is
+1,024 m on a side, which is not a block. It is a graph chosen to make one mechanism visible"* — and
+`congested.toml` says the same thing about its own number, in its own header, with the sweep above.
+
+**⚠ Finding 4 — the picture it draws is uniform, and that is the city rather than the function.** Every
+Building in a generated world has the same occupants and the same posts, so the developed area congests
+all at once and there is **no hot spot to find**. That is 5b-bis task 7's finding arriving on a second
+axis — *222 blocks of 228 within a quarter of employment parity, because the city has no land use at
+all* — and no `[traffic]` number can repair it. **A hot spot needs somewhere everybody is going.**
+
+**Two smaller ones.** The load arithmetic **moved out of `TripEngine` and onto `RoadSegmentTable`**
+(`LoadOf`, `LoadAt`, `FreeFlowOver`) rather than being restated in the shell, because this picture asks
+about the **peak a Segment reached over a run** — which is not a state any column holds — and a second
+copy in `Borough.Headless` would have carried the two guard constants with it (`plans/0012` **Cause 1**).
+And the control is **checked rather than assumed**: `TryFreeFlow` strips the `[traffic]` section from the
+file's own text and re-parses it, then refuses to run if what comes back still states one. That guard
+exists because of a mistake made twice on 2026-08-14 while measuring this very mechanism — a
+`String.Replace` whose needle did not match, producing a clean-looking sweep of identical rows — and here
+the failure mode is worse than a wrong number: ***a control that silently equals its treatment is
+indistinguishable from a null result***, because two identical runs report ×1.0000, which is exactly what
+an inert volume-delay function reports on a generated city.
