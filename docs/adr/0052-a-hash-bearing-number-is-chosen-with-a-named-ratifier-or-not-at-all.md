@@ -165,6 +165,21 @@ an attempt. The replacement carries what the attempt found, because *that* is th
 four rows above now name a world with an under-provisioned network laid by `CommandKind.Connect`, and
 they say why the generated one could not serve.
 
+✅ **That world was built the same day** — `ConnectedCityCongestionTests`, a dumbbell of two zoned
+districts joined by one Street corridor. At the **shipped** capacity it peaks at `v/c` **65.1%** against
+a generated lattice's **43.4%** on the same Ruleset, and four times the district on the same one
+corridor puts the priced world at **1,074%** where its free-flow control sits at **130%**. **The
+amendment cost a day and the world cost an afternoon**, which is worth stating plainly: the reason
+nobody had built it was not difficulty, it was that the row already looked ratified.
+
+⚠ **Building it found something the amendment did not predict, and it is about `adr/0099` rather than
+about this rule.** ***The volume-delay function is a loop and not a formula*** — congestion slows a
+Vehicle, a slower Vehicle dwells on its Segment longer, longer dwell *is* higher volume, and higher
+volume is more congestion — so past `v/c` = 1 it feeds itself, and 130% becomes 1,074% rather than
+1,074% being what BPR returns for 130%. That is a second-order argument for **a world being the thing
+that ratifies**: the parameters were quoted for a year as a static curve, and the first city that
+evaluated them off the flat part behaved in a way no reading of the formula predicts.
+
 ⚠ **[`0043`](0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md) has the same
 gap and inherits this amendment by the same argument.** That rule types a claim by asking *can you name
 the number that would refute this, and the machine that would produce it?* — two terms, and the world is
