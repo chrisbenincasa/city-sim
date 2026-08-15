@@ -8,10 +8,19 @@ place that orders the three tracks against each other.
 ## What is next
 
 **Code — milestone 5c, task 8 of 8: the long acceptance run for traffic.** ⚠ **In flight** —
-`tests/Borough.Tests/Movement/TrafficLongRunTests.cs` is in the working tree. It is the **named ratifier
-for four hash-bearing numbers** (`[traffic]`'s α, β and clamp, and `[households] car_ownership_percent`),
-and it **runs against `rulesets/congested.toml`** — `minimal.toml` states neither table and would ratify
-nothing. Brief and per-task record: [`0026`](0026-statistical-resolution-and-the-travel-time-matrix.md).
+`tests/Borough.Tests/Movement/TrafficLongRunTests.cs` is in the working tree. It runs against
+`rulesets/congested.toml`; `minimal.toml` states neither table. Brief and per-task record:
+[`0026`](0026-statistical-resolution-and-the-travel-time-matrix.md).
+
+⚠ **It is NO LONGER the named ratifier for the four hash-bearing numbers, and that changed on
+2026-08-15 after it ran.** `[traffic]`'s α, β and clamp and `[households] car_ownership_percent` are
+**not refutable by any run over a generated city**: the paved extent scales with the population it
+serves, so `v/c` peaks at **0.44** at 4,000, 16,000 and 64,000 Citizens alike and BPR is only ever
+evaluated where it is nearly flat. All four rows moved **§D2 → §D1** and now name a **world** — a city
+whose Streets were laid by `CommandKind.Connect` and deliberately under-provisioned — which is
+[`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)'s
+amendment: ***a named ratifier names a machine and a world***. **Task 8 keeps its other job** — the
+`adr/0006` acceptance run — and is not blocked by this.
 
 **Argument — a sitting ran on 2026-08-15** and closed **both** remaining sections of `04`:
 `§6` → [`adr/0102`](../docs/adr/0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md)

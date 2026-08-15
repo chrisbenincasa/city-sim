@@ -11,6 +11,11 @@ finding, and it is reported rather than worked around.
 it is worse than the disease — a number ratified early against machinery that does not exist is wrong
 *and* load-bearing. The rule governs the record, not the timing.
 
+⚠ **AMENDED 2026-08-15: a named ratifier names a machine *and a world*.** An instrument with an owner,
+a date and a written-out quantity still cannot fire if the only city available to point it at is one in
+which the number does not vary — and that failure is **worse than an unnamed ratifier**, because the
+row reads as discharged the moment the instrument runs. See §*A ratifier names a machine and a world*.
+
 ## Why
 
 **These numbers are the expensive class and the corpus already says so.** `05 §4`'s test is that a
@@ -100,6 +105,73 @@ dangerous. **`adr/0043`'s companion rule is the one with teeth right now** — d
 what a measurement could settle. This one is bookkeeping, and bookkeeping that starts costing more
 than it saves has stopped working.
 
+## A ratifier names a machine and a world
+
+*Amendment, 2026-08-15. The rule above is unchanged and this adds a second half to it.*
+
+**The failure mode this ADR already names is the formality** — *"ratified by: a future spike"*, a
+ratifier with no owner and no quantity. Milestone 5c produced a different one, and it passes every test
+written above.
+
+Four hash-bearing numbers — `[traffic] alpha_percent`, `beta` and `clamp_percent` from
+[`0099`](0099-a-legs-cost-is-a-plan-and-a-drive-is-priced-segment-by-segment-as-it-is-met.md), and
+`[households] car_ownership_percent` from
+[`0098`](0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md)
+— were recorded with **5c task 8's long run** as their named ratifier. That is an owner, a date, a
+Ruleset (`rulesets/congested.toml`, written for the purpose), and refuting readings stated in both
+directions. It is everything this ADR asks for.
+
+**Task 8 ran, and it cannot ratify any of the four.** The load on a Segment came out at **0.0018 /
+0.0048 / 0.0110 Vehicles per Segment per Tick** at 4,000 / 16,000 / 64,000 Citizens, growing as roughly
+`P^0.66` — so at 1,000,000 it is about **0.07**, against a Segment that holds **1.02** Vehicles at
+`congested.toml`'s capacity and **9.2** at the shipped one. BPR is only ever evaluated on the stretch
+where it is nearly flat, at every population this project can generate.
+
+**The cause is structural rather than a matter of run length, and it is another decision working as
+designed.** [`0090`](0090-the-generator-makes-land-and-the-player-makes-every-road.md) gives the
+generator land and the player every road, and `CommandKind.Populate` sizes the paved lattice from the
+population it serves — so ***the same number sizes both the demand and the supply***, and `v/c` peaks
+at 0.44 whatever the population. Congestion is a property of a network's **shape**, and the only thing
+in this build that produces shape is `CommandKind.Connect`. A Ruleset can scale the lattice and cannot
+bend it. **No length of run over a generated city varies the quantity, so no length of run can refute
+the number.**
+
+### The tell, and why it is worse than an unnamed ratifier
+
+An unnamed ratifier announces itself: the row is visibly incomplete and nobody thinks the number is
+settled. **A ratifier that names only the instrument is discharged by running the instrument** — the
+spike id gets a tick, the row loses its ⚠, and a number that has never been exposed to a world in
+which it could be wrong now reads as measured. That is `plans/0012` **Cause 5**'s shape one level up:
+not a figure travelling without its caveat, but a *status* travelling without the condition it was
+earned under.
+
+**So the question this ADR enforces gains a second clause.** It asked *name the thing that would tell
+us this is wrong*; it now asks:
+
+> *Name the thing that would tell us this is wrong — **and the world you would run it in, in which this
+> quantity actually varies.***
+
+If the second answer is a city the project can build today, name it. If it is not, then **the world is
+the ratifier's real blocker and the row must say so** — which routes it to
+[`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s *build X*, with X being the world
+rather than a mechanism. A row in that state is still honestly recorded; what it may not do is name the
+instrument alone and let a run discharge it.
+
+### Two corollaries
+
+**A ratifier that has run and could not fire is replaced, never struck.** Striking it leaves the row
+bare, and a bare row in D1 reads as one nobody has got to yet rather than one that has already defeated
+an attempt. The replacement carries what the attempt found, because *that* is the durable result: the
+four rows above now name a world with an under-provisioned network laid by `CommandKind.Connect`, and
+they say why the generated one could not serve.
+
+⚠ **[`0043`](0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md) has the same
+gap and inherits this amendment by the same argument.** That rule types a claim by asking *can you name
+the number that would refute this, and the machine that would produce it?* — two terms, and the world is
+the missing third exactly as it was here. It is not amended in its own file because nothing has yet gone
+wrong there; this sentence is the warning rather than the correction, and the first `adr/0043` claim
+that turns out to be void for want of a world should carry it over.
+
 ## What would trigger revisiting
 
 - **D1 stays empty for a long stretch.** If nothing accumulates, the discipline has done its job and
@@ -112,3 +184,7 @@ than it saves has stopped working.
 - **The rule starts being read as a bar on choosing.** It is not, and if it is being cited to block
   work rather than to record it, the wording has failed and should be fixed here rather than
   reinterpreted in argument.
+- **A second ratifier is defeated by its world rather than by its instrument.** One sighting is a
+  finding and two is a pattern: if it happens again, the register wants a *world* column rather than a
+  clause inside the ratifier cell, so that the rows blocked on a city the project cannot yet build can
+  be read off at a glance instead of by reading every cell.
