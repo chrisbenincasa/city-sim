@@ -79,6 +79,14 @@ internal static class Session
                 CensusReport.Print(Console.Out, simulation.World, census, options.Ticks);
             }
 
+            // After the summary rather than instead of it. The four numbers are what most runs are
+            // read for, and the series is what a surprising one is read with -- so the surprise and
+            // the detail arrive in that order, and a reader who wanted neither has already stopped.
+            if (census is not null && options.Series)
+            {
+                SeriesReport.Print(Console.Out, simulation.World, census, options.Ticks);
+            }
+
             ReportReloads(simulation);
 
             simulation.CheckEndOfRun();

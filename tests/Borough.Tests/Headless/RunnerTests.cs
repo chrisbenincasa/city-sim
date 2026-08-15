@@ -395,6 +395,48 @@ public sealed class RunnerTests
     }
 
     /// <summary>
+    /// <b><c>--series</c> asks for a census, because the series is a rendering of the ring.</b>
+    /// </summary>
+    /// <remarks>
+    /// It implies the flag rather than refusing without it. Asking for the series and not the census
+    /// is asking for a rendering of something that was never collected, and a refusal an operator can
+    /// satisfy exactly one way is an obstacle rather than a check.
+    /// </remarks>
+    [Fact]
+    public void Asking_for_a_series_asks_for_the_census_it_renders()
+    {
+        Assert.True(Options.TryParse(["--series"], out Options options, out _));
+        Assert.Equal(Mode.Run, options.Mode);
+        Assert.True(options.Series);
+        Assert.True(options.Census);
+    }
+
+    /// <summary>
+    /// ⚠ <b>A census asked for beside a picture is refused rather than ignored.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>It used to be accepted and silently dropped, and the hole was <c>--census</c>'s since slice
+    /// 10.</b> Each picture populates a world of its own and prints it; none of them reaches
+    /// <c>Session</c>, which is the only thing that keeps a census. So an operator asking for both got
+    /// the picture and no complaint — and an absent census reads as a census with nothing in it, which
+    /// is a wrong answer that looks like a right one. Found while adding the second reader.
+    /// </remarks>
+    [Theory]
+    [InlineData("--census", "--zones")]
+    [InlineData("--census", "--commute")]
+    [InlineData("--census", "--traffic")]
+    [InlineData("--series", "--zones")]
+    [InlineData("--series", "--commute")]
+    [InlineData("--series", "--traffic")]
+    public void A_census_beside_a_picture_is_refused(string census, string picture)
+    {
+        Assert.False(Options.TryParse(
+            [census, picture, "--ruleset", "rulesets/minimal.toml"], out _, out string? complaint));
+
+        Assert.Contains("accepted and then ignored", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// <b>A log carries its own configuration</b>, so a replay that took its world size from the
     /// command line would be reproducing a different session while claiming to reproduce this one.
     /// Refusing the combination is cheaper than explaining the divergence it would cause.

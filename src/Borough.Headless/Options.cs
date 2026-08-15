@@ -200,6 +200,19 @@ internal sealed class Options
     public bool Census { get; private init; }
 
     /// <summary>
+    /// Print the census ring as a time series as well as a summary.
+    /// </summary>
+    /// <remarks>
+    /// <b>A flag rather than a ninth mode, because it builds no world.</b> Each of the eight modes
+    /// populates a city of its own to take a picture of; this one is a second rendering of a run that
+    /// is already happening, so it implies <c>--census</c> and rides the same ring. Its own flag
+    /// rather than folded into that one because it is hundreds of lines: <c>--census</c> answers
+    /// <em>did this trend</em> in four numbers a metric, and this answers <em>when</em> at the cost of
+    /// a page a family.
+    /// </remarks>
+    public bool Series { get; private init; }
+
+    /// <summary>
     /// Where to write the crash artifact, or null for a name derived from the Tick that panicked.
     /// </summary>
     /// <remarks>
@@ -256,6 +269,7 @@ internal sealed class Options
         int hashEvery = 64;
         bool force = false;
         bool census = false;
+        bool series = false;
         bool session = false;
 
         // Tracked apart from `session` for one reason: a Road dump is laid at world creation from the
@@ -285,6 +299,16 @@ internal sealed class Options
                 // A census is a property of a run, so asking for one is asking for a run — the same
                 // reasoning that makes --ticks and --seed imply a session rather than the report.
                 case "--census":
+                    census = true;
+                    session = true;
+                    continue;
+
+                // Implies --census rather than refusing without it. The ring is the census, so asking
+                // for the series and not the census is asking for a rendering of a thing that was
+                // never collected -- a refusal an operator could only satisfy one way, which makes it
+                // an obstacle rather than a check.
+                case "--series":
+                    series = true;
                     census = true;
                     session = true;
                     continue;
@@ -649,6 +673,21 @@ internal sealed class Options
             return false;
         }
 
+        // A census rides a run, and the pictures are not runs even when they step a world: each of
+        // them populates its own city and never reaches Session, so these two flags were ACCEPTED AND
+        // SILENTLY IGNORED under --zones, --commute and --traffic. A flag that does nothing is worse
+        // than one that is refused, because the operator reads the absence of a census as a census
+        // with nothing in it. Found while adding --series; the hole was --census's since slice 10.
+        if ((census || series) && (zones || commute || traffic || roads || trips || dump is not null))
+        {
+            string asked = series ? "--series" : "--census";
+
+            complaint = $"{asked} and the picture modes disagree: each picture populates a world of "
+                      + "its own and prints it, and none of them keeps a census — so this flag would "
+                      + "have been accepted and then ignored. Ask for a run, or ask for the picture.";
+            return false;
+        }
+
         // --seed IS accepted with --roads, and the refusal above deliberately does not catch it.
         //
         // It used to. The Arterial polyline is drawn from the world key, so the whole of Severance is
@@ -681,6 +720,7 @@ internal sealed class Options
             HashEvery = hashEvery,
             ForceRuleset = force,
             Census = census,
+            Series = series,
             CrashPath = crash,
             DecideGuard = decideGuard,
         };
@@ -719,6 +759,12 @@ internal sealed class Options
                                 first/last/low/high for each at the end. Seven
                                 families: tables, rules, zones, placement, jobs,
                                 Trip Fates, and the Trip cost histogram
+          --series              print the same readings AGAINST THE TICK -- one block
+                                per family, one row per reading -- as well as the
+                                summary. Implies --census. A column that never moves
+                                becomes a footnote naming it and its value. Hundreds
+                                of lines: --census says whether something trended,
+                                this says when
           --crash PATH          where to write the crash artifact if the run panics.
                                 One is always written; this only names where
           --no-decide-guard     stop proving every Tick that Phase 2 wrote nothing.
