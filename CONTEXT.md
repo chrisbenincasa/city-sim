@@ -351,7 +351,15 @@ Anything the city builds that is not a Building: roads, Junction pieces, transit
 **Public construction is a stimulus or a leak, and conservation decides which.** Under `adr/0024` money is conserved, so a § spent on a road is not destroyed — it becomes somebody's income. Where it lands depends on where the Materials came from: bought from local Processing it becomes local wages, and imported it leaves through the gate. **A city that builds while importing all its Materials is exporting its own stimulus.**
 
 **Need**
-A Household's satisfaction with respect to one dimension of life — food, rest, comfort. Expressed as a **relative** scalar where **0 is ideal** and negative values indicate deficit. Needs are explicitly *not* stockpiles; modelling them as absolute quantities makes the economy unstable and nearly impossible to balance.
+A Household's satisfaction with respect to one dimension of life. Expressed as a **relative** scalar where **0 is ideal** and negative values indicate deficit. Needs are explicitly *not* stockpiles; modelling them as absolute quantities makes the economy unstable and nearly impossible to balance.
+
+**There are four — Sustenance, Satisfaction, Education, Health — and the set has a membership test rather than a list** (`adr/0103`). A Need exists for each **exhaustible** thing a Household consumes and can be refused on arrival: a shelf can be empty, a school can be full, a clinic can be full. Everything **standing** — the commute, the rent, the neighbourhood, whether a Service can be reached at all — is a term in `02 §5.4`'s choice utility and never a Need, because a utility function is already what makes unlike quantities comparable and a second currency for the same pressure can only disagree with the first.
+
+**A Need is where a frequent, private failure accumulates.** That is the axis, and it is not volatility: an unanswered police call is volatile and is nothing like an empty shelf, because **one Household does not have enough incidents to form an opinion**. Where the stream is dense enough to be a signal the accumulator sits on the Household and is a Need; where it is rare and its consequence is **shared**, it sits on the **place** and is carried by `adr/0032`'s overlay. So there is no safety Need, and `adr/0032`'s *who moves* taxonomy has a second job — it decides where a failure accumulates as well as who makes the journey.
+
+**A Need is the only thing in the chain that remembers.** It falls while unmet and recovers when met, so a dry afternoon and a dry month are one mechanism at two depths, and a Departure needs no duration under it (`adr/0102`).
+
+**Two of the four have no Good behind them.** Education and Health are consumed by attending rather than by buying, so `04 §1`'s Good → Need diagram is not a total map and their degradation rule is **owed and undesigned** — nothing may reason from its absence (`adr/0070`).
 
 **Pool**
 A District's abstract Goods store. Goods moving between Buildings within a District pass through the Pool instantly, subject to connectivity. No Vehicle is simulated. This reserves the expensive transport simulation for movements the player is actually meant to optimise.
@@ -494,7 +502,7 @@ The Pool is bounded — Households give up after a limited number of failed atte
 **That is the bound the design relies on, and it is not the bound in force today.** Nothing creates a Household after world creation, so the Pool is currently a subset of a population fixed at that moment and cannot grow with elapsed time whatever it does. `adr/0006` is therefore satisfied for a reason that has nothing to do with Departure — **and the day immigration arrives, that reason evaporates and Departure becomes load-bearing**. Whoever builds the gate owes the give-up rule in the same milestone.
 
 **Departure**
-A Household leaving the city permanently. Two channels, counted and surfaced **separately**, because they are different diagnoses with different remedies:
+A Household leaving the city permanently. **Three** channels, counted and surfaced **separately**, because they are different diagnoses with different remedies:
 
 | Channel | Meaning | What it tells the player |
 |---|---|---|
@@ -502,9 +510,13 @@ A Household leaving the city permanently. Two channels, counted and surfaced **s
 | **Housed departure** | Was living in the city and **chose** to leave — needs unmet, rent unaffordable, neighbourhood declined | A **quality** failure — the city accommodated them and then failed them. *Fix what you have.* |
 | **Destitute departure** | Could not work and could not afford to leave, until nothing was left | An **economic** failure — the city trapped them. *This is what Policy is for.* |
 
+**A housed Departure is a comparison, not a threshold** (`adr/0102`). The Household re-runs `02 §5.4`'s choice with the Hinterland as an ordinary row and leaves if the Hinterland scores better — which is what *"tolerance is emergent"* under **Terms we deliberately do not use** has always meant. It re-evaluates on an Event Wheel countdown, or immediately on a failed occasion; **what that cadence bounds is perception, not response** (`01 §6`), so it is never the duration in disguise. Only two things produce one: a degraded **Need**, and `adr/0095`'s **unsavoury** commute rung. A Citizen who cannot reach work at all is the **Destitute** channel's, per *Unemployment* below.
+
+**A channel names a remedy; a reason names a utility term.** So *housed departures* opens by reason without a fourth channel ever being added, and a new pressure adds a term rather than a row.
+
 The third channel is what stops leaving-by-choice and leaving-by-collapse sharing a row, which they otherwise would. It is also the readout for a decision the game deliberately declines to make for the player: a city with transfers shows near-zero destitute departures and a cost, a city without shows a number and no bill.
 
-Cutting across both channels, Departures are also reported **by Life Stage**, because "families with children are leaving" and "childless Households are leaving" are unrelated diagnoses. Departures of newly-spawned Young Households are the sharpest signal of all — those are the city's own children, priced out. See **Retention**.
+Cutting across all three channels, Departures are also reported **by Life Stage**, because "families with children are leaving" and "childless Households are leaving" are unrelated diagnoses. Departures of newly-spawned Young Households are the sharpest signal of all — those are the city's own children, priced out. See **Retention**.
 
 Departure rate is a distinct demand signal from Pool size: Pool size is a *stock* of latent demand, departure rate is a *flow* measuring how badly the city is failing to convert its own attractiveness into capacity. A city can have a large Pool and be healthy, or a small Pool and be in crisis; only the flow distinguishes them.
 

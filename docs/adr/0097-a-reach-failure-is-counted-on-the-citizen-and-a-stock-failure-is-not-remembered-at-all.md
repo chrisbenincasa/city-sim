@@ -37,6 +37,15 @@ has been treating them as one.**
 > `Blocking` enum was renamed `Level`/`Headroom` → `Supply`/`Space` the same day so the code cannot repeat
 > it.
 
+> ⚠ **AMENDED 2026-08-15 — *read by nothing yet* has a named reader, and it is not the channel this ADR
+> would have been read as feeding.** Grilling `04 §6` found three mechanisms apparently producing a
+> **housed** Departure, this counter among them. It is not one:
+> [`CONTEXT.md`](../../CONTEXT.md) → *Unemployment* already routes reachability elsewhere — ***destitution
+> is a reachability failure wearing a money costume*** — so this count is evidence for the **Destitute**
+> channel's diagnosis, whose remedy is Policy rather than *fix what you have*. The consumer is still
+> milestone 9a; what changes is which of its three channels reads it, which nothing had said.
+> See [`adr/0102`](0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md).
+
 `LEGIBLE CAUSE` `BOUNDED KNOWLEDGE` `SOLVE THE ACTUAL PROBLEM`
 
 Settled by a sitting on 2026-08-13, run beside [`plans/0003`](../../plans/0003-build-plan.md) queue item 6,
