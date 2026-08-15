@@ -627,51 +627,72 @@ public sealed class TripEngine
 
         for (int slot = 0; slot < travellers.Rows.SlotCount; slot++)
         {
-            if (!travellers.Rows.IsLive(slot) || travellers.ArrivesAt[slot] > tick)
+            if (!travellers.Rows.IsLive(slot))
             {
                 continue;
             }
 
-            int hop = travellers.CurrentHop[slot];
-
-            if (hop != Rows.NoSlot)
+            // A Traveller advances for as long as it has Tick left, rather than once per Tick, and
+            // this loop is the whole of the sub-Tick model actually running.
+            //
+            // It used to be a single step: the body ended by moving to the next SLOT, so a Traveller
+            // crossed at most one Segment a Tick however cheap the crossing was. That is adr/0041's
+            // *a vehicle crosses about one Segment per Tick* -- a sentence that ADR states as
+            // FOLLOWING FROM TicksPerDay = 8192, and which adr/0094 retired by moving the constant to
+            // 2048. A Street is 0.22 Ticks now, so the true rate is ~4.6, and the floor of one made
+            // every drive about 5.6x its own quoted cost: `hops + floor(total cost)` where the Leg
+            // was priced at `total cost`. Task 6 found this premise expired and repaired the ONE site
+            // it was looking at, the volume/capacity ratio. This is the other site. A premise that
+            // expires retires every place resting on it, and finding one of them is not finding them.
+            //
+            // It terminates on structure rather than on time, which is what makes a zero-cost hop
+            // safe: every iteration consumes a hop or a Leg, and both lists are finite, so a route
+            // that costs nothing is walked to its end inside one Tick and the Traveller is freed.
+            while (travellers.ArrivesAt[slot] <= tick)
             {
-                Leave(hop);
+                int hop = travellers.CurrentHop[slot];
 
-                int nextHop = _world.RouteHops.Next[hop] - 1;
-
-                if (nextHop >= 0)
+                if (hop != Rows.NoSlot)
                 {
-                    // Still on the same Leg. The cursor moves a Segment, not a Leg, which is the
-                    // whole of what the Segment cursor buys: the Leg's cost was a plan and this is
-                    // the journey actually happening, priced Segment by Segment as it is met.
-                    travellers.CurrentHop[slot] = nextHop;
-                    travellers.ArrivesAt[slot] = Arrive(slot, Enter(nextHop), tick);
+                    Leave(hop);
+
+                    int nextHop = _world.RouteHops.Next[hop] - 1;
+
+                    if (nextHop >= 0)
+                    {
+                        // Still on the same Leg. The cursor moves a Segment, not a Leg, which is the
+                        // whole of what the Segment cursor buys: the Leg's cost was a plan and this is
+                        // the journey actually happening, priced Segment by Segment as it is met.
+                        travellers.CurrentHop[slot] = nextHop;
+                        travellers.ArrivesAt[slot] = Arrive(slot, Enter(nextHop), tick);
+                        continue;
+                    }
+
+                    travellers.CurrentHop[slot] = Rows.NoSlot;
+                }
+
+                int current = travellers.CurrentLeg[slot];
+                int encoded = legs.Next[current];
+
+                if (encoded != 0)
+                {
+                    travellers.CurrentLeg[slot] = encoded - 1;
+                    travellers.ArrivesAt[slot] = BeginLeg(slot, encoded - 1, tick);
                     continue;
                 }
 
-                travellers.CurrentHop[slot] = Rows.NoSlot;
+                // No further Legs: the plan is exhausted, so the journey is over. Completed is the
+                // Fate for *reaching the destination*, and reaching it is what running out of Legs
+                // means -- adr/0076's rule that a Fate names the journey rather than what happened at
+                // the far end.
+                if (trips.Rows.TryResolve(travellers.Trip[slot], out int trip))
+                {
+                    trips.Resolve(trip, TripFate.Completed);
+                }
+
+                travellers.Rows.Free(travellers.Rows.At(slot));
+                break;
             }
-
-            int current = travellers.CurrentLeg[slot];
-            int encoded = legs.Next[current];
-
-            if (encoded != 0)
-            {
-                travellers.CurrentLeg[slot] = encoded - 1;
-                travellers.ArrivesAt[slot] = BeginLeg(slot, encoded - 1, tick);
-                continue;
-            }
-
-            // No further Legs: the plan is exhausted, so the journey is over. Completed is the Fate
-            // for *reaching the destination*, and reaching it is what running out of Legs means --
-            // adr/0076's rule that a Fate names the journey rather than what happened at the far end.
-            if (trips.Rows.TryResolve(travellers.Trip[slot], out int trip))
-            {
-                trips.Resolve(trip, TripFate.Completed);
-            }
-
-            travellers.Rows.Free(travellers.Rows.At(slot));
         }
     }
 

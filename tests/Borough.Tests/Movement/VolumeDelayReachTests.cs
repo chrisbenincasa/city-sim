@@ -22,8 +22,12 @@ namespace Borough.Tests.Movement;
 /// line. The first cut of <see cref="TripEngine"/> did not, and only this measurement said so.
 /// </para>
 /// <para>
-/// ⚠ <b>The headline is that peak load does not move with population at all</b> — <c>v/c</c> <b>0.44</b>
-/// at 4,000 Citizens, at 16,000 and at 64,000 alike, a 16× population against an identical load. The paved extent scales with the square root
+/// ⚠ <b>The headline is that peak load does not move with population</b> — <c>v/c</c> <b>0.33</b> at
+/// 4,000 Citizens, <b>0.22</b> at 16,000 and <b>0.44</b> at 64,000, a 16× population against a load
+/// that does not follow it. <i>(Read 0.44 at all three before 2026-08-14, when
+/// <c>StatisticalTravelTimeTests</c> found the advance loop stepping one Segment a Tick and inflating
+/// every occupancy here by about 5.6×. The conclusion is unchanged and every number in it moved.)</i>
+/// The paved extent scales with the square root
 /// of the population (<c>SyntheticCity</c>, <c>plans/0003</c> queue item 6), so the network grows with
 /// the traffic and <b>the city gets bigger rather than busier</b>. ***A generated city cannot congest
 /// itself, because the same number sizes both the demand and the supply.*** Congestion in this design
@@ -205,6 +209,16 @@ public sealed class VolumeDelayReachTests(ITestOutputHelper output)
     /// for an <em>absent</em> capacity, and reported no delay at all. The sweep showed ×2.48 at 200
     /// Vehicles an hour and ×1.0000 at 60, which is not a curve any function has.
     /// ***A guard written for an absent quantity will fire on a small one.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This sweep got sharply steeper on 2026-08-14 and the function did not change.</b> It read
+    /// ×1.0088 at 400 Vehicles an hour and ×1.8949 at 200; it now reads <b>×1.1925</b> and
+    /// <b>×7.0869</b>. <c>StatisticalTravelTimeTests</c> removed a floor of one Tick per Segment in the
+    /// advance loop, and that floor had been <em>masking</em> the delay: a free-flow crossing costs
+    /// 0.22 Ticks, so while every crossing was rounded up to one, BPR had to multiply the true cost by
+    /// more than 4.6 before anything downstream could notice. ***A floor under a quantity is a dead
+    /// zone in every function of it***, and the function whose response it flattened is the one this
+    /// milestone exists to build.
     /// </para>
     /// </remarks>
     [Fact]
