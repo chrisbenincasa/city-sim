@@ -186,12 +186,15 @@ The step that most often gets skipped in other games is 4. A Household must *act
 
 ## 7. Jobs
 
-Employment is the other half of the economy and it runs on the same machinery. A Business posts a number of positions; Households choose among **known** workplaces reachable within their **Commute Budget**; a Business that cannot fill positions produces less.
+Employment is the other half of the economy and it runs on the same machinery. A Business posts a number of positions **and a wage**; a **Citizen** takes one of the **known** workplaces it can reach inside the **Commute Budget**; a Business that cannot fill its positions has **two** levers and not one.
+
+**Three corrections to the sentence above, each owed to a decision taken after it was written.** The wage is [`adr/0026`](adr/0026-wages-are-posted-locally-and-never-cleared.md)'s — posted locally, adjusted by the Business's own fill rate, anchored to the **Hinterland** wage and never cleared by a market — and this section had described employment without mentioning money at all. The chooser is a **Citizen** and not a Household: a job has exactly one holder, so employment is a Citizen's and the Household's money is what follows from how many of its members earn (`CONTEXT.md` → Unemployment, milestone 5b-bis). And *produces less* is only the second of `adr/0026`'s two levers — **pay more, or be smaller** — which is why *"a labour-starved district does not watch its businesses die, it watches them get smaller."*
 
 Two consequences worth stating:
 
 - **Jobs are the demand-side link between industry and housing.** Residential Zone Rules test for reachable jobs, so an industrial collapse shows up as residential vacancy a few Days later.
-- **Education gates positions.** Higher-value Businesses require educated Citizens, who arrive by **Sorting** — attracted by school provision — rather than being educated in place. See [`adr/0010`](adr/0010-one-clock-and-demographics-by-sorting.md).
+- **Education gates positions, and a city educates its own.** Higher-value Businesses want a **mix** weighted toward the upper tiers (`§1`, *the employer that produces no Good*), and a Citizen reaches the top tier only through schooling. Skilled Citizens arrive by **Sorting** — attracted by school provision, `adr/0010` — and are also **produced here**: when a Household's Life Stage advances and a new Young Household forms, its adults' Skill Tier is read off the **Education** Need that Household accumulated while it had children ([`adr/0104`](adr/0104-a-skill-tier-is-earned-by-attendance-and-the-credential-stays-a-wall.md)). So Sorting is the **fast** channel and schooling is the slow one, and the payoff for a school arrives one Life Stage later — the slowest feedback in the game, and the right one to be slowest.
+- **Experience carries 1 → 2 and never reaches 3.** A Citizen who missed schooling still climbs to tier 2 by working and takes longer over it; the credential boundary is a **wall**, because if time alone reached the top tier a patient player would never need to build a school at all. The loop that closes — schools → tier 3 → Office → exports — is damped by `adr/0032`'s own corollary rather than by tuning: *good schools raise land value, which prices out the Families the school was built for*.
 
 ---
 
