@@ -599,8 +599,35 @@ levers are Ruleset numbers section D already lists as unset:~~ **The diversion p
   a population, because the only populator is welded to the only generator.*** Filed here rather than
   worked around silently (`adr/0073`); the workaround is in the test and the repair belongs to whoever
   next needs a Connect-laid city, which under `adr/0090` is every city a player will ever have.
+  ✅ **REPAIRED 2026-08-15 — [`0003`](0003-build-plan.md)'s hash-moving queue, item 9, filed and built
+  the same day.** `SyntheticCity.PeopleInto` is the populator's people half on its own, the fixture's
+  copy is gone, the verb count did not move, and **1,438 tests are green with no baseline re-recorded**.
+  ⚠ **The gap it was blocking is closed; the readings it was blocking are not** — the rows in §D above
+  name this world as their ratifier and somebody still has to run it and call the numbers right or wrong.
+  ⚠ **And building it found the weld was hiding an incomplete clamp**: at zero Lots the Building count
+  divided by zero, which `PopulateInto` structurally could not reach, because `Subdivide` always lays at
+  least one Lot. ***A mechanism with one caller has only the edge cases that caller can produce, so
+  opening a door widens the input domain before it widens anything else.*** *Original filing note:* it
+  had an owner as of 2026-08-15 — [`0003`](0003-build-plan.md)'s hash-moving queue, item 9 — and
+  the promotion is what the second copy of the populator bought — a workaround filed once is a note, and
+  a workaround that becomes a duplicate mechanism is a queue item. ⚠ **Two things that entry carries and
+  this one did not.** Skipping `LayInto` is **not** the repair: `Subdivide` is keyed on
+  `StreetGrid.Blocks`, which is `WorldTiles ÷ block_tiles + 1` — a property of the **map** and the
+  Ruleset, never of what is laid — so the land half is wrong for a Connect world **twice, and only the
+  first failure throws**. And the repair **moves no hash**, because every fixture and the golden session
+  populate an empty graph; under [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+  that is neither an argument for doing it nor against.
 
-  ⚠ **And a number to check before anybody re-tunes it.** `commute_peak_factor = 3` was chosen from
+  ~~⚠ **And a number to check before anybody re-tunes it.**~~ **STRUCK 2026-08-15 — the key it is about
+  no longer exists.** [`adr/0101`](../docs/adr/0101-a-commute-is-two-journeys-and-the-days-shape-is-a-property-of-the-job.md)
+  retired `commute_peak_factor` on 2026-08-15 and replaced the whole departure model: the Day's shape is
+  now emergent from a Shift start band on the employing kind, so there is no peaking multiplier to
+  re-tune and no `plans/0012` **Cause 5** to examine. ***A filing outlives the thing it is about, and
+  nothing retires it when the mechanism goes*** — this note was written on 2026-08-14 and was moot within
+  a day, which is `plans/0012` **Cause 2** (a decision whose consequences do not reach every document
+  that rests on them) landing on a *filing* rather than on a decision. Struck rather than deleted,
+  because the reasoning is sound and transplants to any future peaking key. *Original note follows.*
+  ~~`commute_peak_factor = 3` was chosen from~~
   S2 R7's *morning peak of 2–3×*, which R7 measured on **in-flight Travellers**; the key is defined on
   **departure rate**. Those are the same number only if journey duration is constant across the
   comparison — and duration is exactly what the advance-loop repair moved by 5.6×. Possible

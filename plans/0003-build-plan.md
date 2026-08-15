@@ -423,6 +423,99 @@ become three.
 > forbidden move — a Bin Rule becoming a Sweep Rule is a change to the city, not an implementation
 > detail. **Do not pick one inside another item's commit.**
 
+> ⚠ **ITEM 9, added 2026-08-15: `CommandKind.Populate` and `CommandKind.Connect` are welded shut, so
+> there is no door in the build through which a player-shaped network gets a population.**
+> **Filed unfixed the same day** in [`0002`](0002-open-questions.md) §C under
+> [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md),
+> and promoted here because the workaround has become the **second copy of the populator**.
+>
+> **The mechanism, named rather than described** (`adr/0093`). `RoadGenerator.LayInto` **throws** when
+> `graph.Segments.Rows.LiveCount != 0`, and its message is right: it is a world-creation pass, and
+> editing a standing graph is `Connect`. `SyntheticCity.PopulateInto` calls it **unconditionally, at the
+> top, before it builds a single row**. So Connect-then-Populate throws, and Populate-then-Connect gives
+> a generated lattice with edits on it, which is not the thing. ***The defect is not the refusal.*** It
+> is that `PopulateInto` does **two jobs** — it makes **land** (`LayInto`, then `Subdivide`) and it makes
+> **people** (Buildings, Households, Citizens) — and no caller can ask for the second without the first.
+>
+> **Why it is a queue slot rather than a note.**
+> [`adr/0090`](../docs/adr/0090-the-generator-makes-land-and-the-player-makes-every-road.md) gives the
+> generator land and the player every road, so **a player-shaped network is every city anyone will ever
+> have**, and the only populator in the build cannot populate one.
+> `ConnectedCityCongestionTests.Populate` is `PopulateInto`'s three loops with the road pass removed, and
+> says so in its own remark. ***Two ways to make a population is `plans/0012` Cause 1 with both copies
+> executing*** — which is the sentence `SyntheticCity` uses **in its own source**, in the comment
+> deleting the workplace stride, about a hazard it has since become.
+>
+> ⚠ **Skipping `LayInto` is not the repair, and this is the thing to check before starting.** `Subdivide`
+> is keyed on `StreetGrid.Blocks`, which is `WorldTiles ÷ block_tiles + 1` — **a property of the map and
+> the Ruleset, never of what is laid** — so on a Connect-laid world it sweeps the whole map's lattice and
+> carves Lots against whatever Segments it happens to find, zoning them as it goes. **The land half is
+> wrong for a Connect world twice, independently, and only the first failure announces itself by
+> throwing.** *(The keying is read; the sweep is not run.)*
+>
+> **It moves no hash on its own.** Every fixture and the golden session populate an **empty** graph and
+> would take the same path. That is a fact about this item and **not an argument about when to do it**:
+> [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+> retires hash movement as a scheduling term in both directions, and this item's claim on the queue is
+> what it unblocks rather than what it costs.
+>
+> **What it unblocks, and both are ledger rows rather than opinions.** [`0002`](0002-open-questions.md)
+> §D names *a long run over a city whose Streets were laid by `CommandKind.Connect` and deliberately
+> under-provisioned* as the ratifier for **`[traffic]`'s α, β and clamp** and for **`[households]
+> car_ownership_percent`**, and names the same world as the **producer for the Microscopic Cap's demand
+> side** — the quantity that has had *three owners and no producer*, and that is a **fixture rather than
+> a milestone**, which is why no milestone ever held it. `06` lists it under *Obligations no milestone
+> can hold*. `ConnectedCityCongestionTests` proves such a world **can** be built; what it cannot do is
+> build one **through the build's own door**, and a ratifier reached by copying a private method is a
+> reading over a city nothing else can reproduce.
+>
+> **Position: ahead of item 8, and it is the only entry in this queue that is neither a correction to a
+> shipped mechanism nor a design question.** The two candidate shapes — a parameter on `PopulateInto`
+> separating land from people, or a second entry point — are a **command-model** question if the verb
+> count moves and a one-signature question if it does not. **Do not pick one inside another item's
+> commit**, and **do not delete `LayInto`'s refusal to get there**: that refusal is the only thing
+> standing between a second `Populate` and a doubled lattice.
+
+> ✅ **ITEM 9 BUILT 2026-08-15, the same day it was filed. 1,438 green, no baseline re-recorded, and
+> the verb count did not move.**
+>
+> **The repair is the split and neither candidate shape.** `SyntheticCity.PeopleInto` is public beside
+> `PopulateInto`; the land half (`LayInto` + `Subdivide`) and the shared derivations
+> (`RefuseIfPopulated`, `Households`, `WantedBuildings`) are private helpers, and `PopulateInto` is now
+> three calls. **A payload on `CommandKind.Populate` was considered and refused**: that verb *"is
+> expected to be deleted when the player can grow a city instead of declaring one"* in its own remark,
+> so a payload would have rested on something already scheduled to go. This is
+> [`adr/0080`](../docs/adr/0080-phase-4-does-not-wait-on-a-trip-generator-and-a-trip-is-entered-by-command.md)'s
+> precedent for `TripPurpose.Commanded` — **a test affordance rather than the only door**.
+>
+> **Hash-neutral exactly as predicted**, which is worth one line rather than none: every call site takes
+> the same path in the same order, and all three golden baselines are untouched on disk. *(The suite's
+> one red is `TrafficLongRunTests`, another session's in-flight 5c task 8, failing on its own flatness
+> assertion by 166 vehicle-Ticks before this work started.)*
+>
+> **It retired two copies rather than one, and the second announced itself.**
+> `ConnectedCityCongestionTests` also held a copy of `SyntheticCity`'s private `DwellingKind = 1`, under
+> a remark that called itself `plans/0012` **Cause 1** and bounded the risk rather than removing it. It
+> went with the populator copy, because `PeopleInto` knows the kind and the fixture no longer needs to.
+> ***A duplicated mechanism drags its constants across with it, so retiring the mechanism retires
+> them*** — and the honest note that had been written beside the constant is what made it findable.
+>
+> ⚠ **The sharpest finding is that the weld was hiding an incomplete clamp, and writing the test is what
+> found it.** `PeopleInto` clamps the Building count to the standing Lots, and at **zero** Lots that
+> clamp divided by zero in the Household loop. `PopulateInto` **structurally cannot reach zero** —
+> `Subdivide`'s degenerate branch lays one Lot per wanted Building when there is no lattice, so it always
+> returns at least one — so the case was unreachable for as long as the only caller was the one that laid
+> its own land. ***A mechanism with one caller has only the edge cases that caller can produce, so opening
+> a door widens the input domain before it widens anything else.*** It is **refused rather than degraded**,
+> on `Subdivide`'s own stated principle: *a populator that makes no rows answers the sizing question with
+> an empty world and reports success*. The land is the caller's to lay, so the caller is told it laid none.
+>
+> **Acceptance is `PopulatorDoorTests`, four tests, and one of them is negative on purpose.** A
+> Connect-laid city can be populated; the generator **still refuses** a world that has Streets; the people
+> half refuses a world that already has people; and it refuses a world with no Lots. The second exists
+> because the obvious way to close this gap was to soften `LayInto`, and this queue entry said in as many
+> words not to.
+
 > ~~**✅ THE QUEUE IS EMPTY. All four items shipped 2026-08-10.**~~ **REOPENED the same day by session N
 > task 2, with items 4 and 5 — and ✅ BOTH SHIPPED 2026-08-11, so it is empty again.** They were [`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)
 > and [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md).

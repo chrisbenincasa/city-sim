@@ -40,16 +40,18 @@ namespace Borough.Tests.Movement;
 /// rather than a thin patch.
 /// </para>
 /// <para>
-/// ⚠ <b><c>CommandKind.Populate</c> and <c>CommandKind.Connect</c> are mutually exclusive at world
+/// ⚠ <b><c>CommandKind.Populate</c> and <c>CommandKind.Connect</c> were mutually exclusive at world
 /// creation, and finding that out is what shaped this fixture.</b>
 /// <see cref="RoadGenerator.LayInto"/> <em>throws</em> on a world that already has Segments — it is a
-/// world-creation pass and says so — and <see cref="SyntheticCity.PopulateInto"/> calls it
-/// unconditionally, before it builds anything. So a Connect-laid city cannot be populated by the
-/// populator in either order, and this file grows its own population in <see cref="Populate"/>,
-/// mirroring that method's three loops. <b>That is a real gap rather than an inconvenience</b>: there
-/// is no door in the build through which a player-shaped network gets a population, because the only
-/// populator is welded to the only generator. Filed rather than worked around silently
-/// (<c>adr/0073</c>) — the workaround is here, and the finding is in <c>plans/0002</c> §C.
+/// world-creation pass and says so — and <see cref="SyntheticCity.PopulateInto"/> called it
+/// unconditionally, before it built anything. So a Connect-laid city could not be populated by the
+/// populator in either order, and this file grew its own population by mirroring that method's three
+/// loops. <b>That was a real gap rather than an inconvenience</b>: there was no door in the build
+/// through which a player-shaped network got a population, because the only populator was welded to
+/// the only generator. Filed rather than worked around silently (<c>adr/0073</c>), and ✅ <b>REPAIRED
+/// 2026-08-15 by <c>plans/0003</c> hash-moving queue item 9</b> — the populator's land half and people
+/// half are separable now, this fixture calls <see cref="SyntheticCity.PeopleInto"/>, and the copy is
+/// gone.
 /// </para>
 /// <para>
 /// <b>The population is created directly rather than through the Input Log, so this fixture is a
@@ -66,18 +68,9 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
 
     private static readonly WorldKey Key = WorldKey.FromSeed(Seed);
 
-    /// <summary>
-    /// <c>SyntheticCity</c>'s <c>DwellingKind</c>, which is <c>private</c> there.
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>A second copy of a constant, and the honest note is that it is one.</b> Kind 1 is the only
-    /// <c>[[building]]</c> every shipped Ruleset declares and the populator hard-codes it for that
-    /// reason; this fixture cannot read it because the field is private, and widening it would move a
-    /// decision into the core to suit a caller. <c>plans/0012</c> Cause 1 is the risk; what bounds it is
-    /// that a Ruleset with no kind 1 fails <see cref="Populate"/>'s own assertion rather than quietly
-    /// building nothing.
-    /// </remarks>
-    private const byte DwellingKind = 1;
+    // ⚠ A copy of SyntheticCity's private `DwellingKind = 1` used to sit here, and its own remark
+    // called itself plans/0012 Cause 1. It went with the copied populator: PeopleInto knows the kind,
+    // so the fixture no longer needs to. Item 9 retired two copies rather than one.
 
     /// <summary>
     /// Blocks of empty ground between the two districts, spanned by a single row of Street.
@@ -340,7 +333,7 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
         simulation.Step(new TickInput(Streets(plan), rulesetHash: 0));
         simulation.Step(new TickInput(Zoning(plan), rulesetHash: 0));
 
-        Populate(simulation.World, plan);
+        Populate(simulation.World);
 
         return simulation;
     }
@@ -414,46 +407,23 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
     /// Buildings, Households and Citizens on whatever Lots the zoning produced.
     /// </summary>
     /// <remarks>
-    /// <b><see cref="SyntheticCity.PopulateInto"/>'s three loops with its road pass removed</b>, which
-    /// is the one thing that method will not let a caller do. The ratios are its ratios — 360
-    /// Households per 1,000 Citizens (S4 task 2), a Building per <c>occupants</c> Households — so this
-    /// city differs from a generated one in its <em>road network</em> and in nothing else, which is
-    /// what makes the comparison above mean what it says.
+    /// <b>This was <see cref="SyntheticCity.PopulateInto"/>'s three loops, copied, because that method
+    /// lays roads before it builds anything and the generator throws on a world that already has
+    /// Segments.</b> <c>plans/0003</c> hash-moving queue item 9 split the populator's land half from
+    /// its people half, so the copy is gone and this calls
+    /// <see cref="SyntheticCity.PeopleInto"/> — which is the same code the generated cities run, on
+    /// whatever Lots stand. The ratios are therefore the populator's ratios by construction rather
+    /// than by two files agreeing, so this city differs from a generated one in its <em>road
+    /// network</em> and in nothing else, which is what makes the comparison above mean what it says.
     /// </remarks>
-    private static void Populate(World world, Plan plan)
+    private static void Populate(World world)
     {
-        int households = plan.Population * 360 / 1_000;
-        int buildings = (households
-            / (world.TryDeclaredOccupancy(DwellingKind, out int occupancy) && occupancy > 0
-                ? occupancy
-                : 1)) + 1;
-        int lots = world.Lots.Rows.LiveCount;
+        Assert.True(
+            world.Lots.Rows.LiveCount > 0,
+            "zoning produced no Lots, so the Streets carried no frontage.");
 
-        Assert.True(lots > 0, "zoning produced no Lots, so the Streets carried no frontage.");
-
-        // The populator's own clamp, and it is what makes the ladder a statement about the corridor:
-        // a district holds the Buildings its land can front, so adding people past that point adds
-        // nobody to the road. It binds on every rung here by construction.
-        if (lots < buildings)
-        {
-            buildings = lots;
-        }
-
-        for (int i = 0; i < buildings; i++)
-        {
-            world.CreateBuilding(world.Lots.Rows.At(i), DwellingKind, Ticks.Zero, Key);
-        }
-
-        for (int i = 0; i < households; i++)
-        {
-            world.CreateHousehold(world.Buildings.Rows.At(i % buildings), lifeStage: (byte)(i % 5));
-        }
-
-        for (int i = 0; i < plan.Population; i++)
-        {
-            world.CreateCitizen(
-                world.Households.Rows.At(i % households), new Ticks((ulong)i % Ticks.PerDay));
-        }
+        // The population is the world's own configuration, which is plan.Population -- see Build.
+        SyntheticCity.PeopleInto(world, Key, Ticks.Zero);
     }
 
     // ---- Rulesets --------------------------------------------------------------------------------

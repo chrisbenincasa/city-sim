@@ -72,64 +72,114 @@ public static class SyntheticCity
     private const int LotsPerRow = 64;
 
     /// <summary>
-    /// Fills <paramref name="world"/> to the Citizen count it was configured with.
+    /// Fills <paramref name="world"/> to the Citizen count it was configured with, laying the land
+    /// first.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The size comes from the world rather than from an argument, and that is what keeps one
     /// number in one place.</b> <see cref="Input.WorldConfiguration.Citizens"/> is already in the log,
     /// already sizes every table, and is already what <c>--citizens</c> sets. A count on the command
     /// too would let a log state two populations, which is the same disagreement
     /// <c>Borough.Headless</c> refuses <c>--citizens</c> alongside <c>--log</c> to avoid.
+    /// </para>
+    /// <para>
+    /// <b>It does two jobs, and since 2026-08-15 a caller can ask for the second alone.</b> It makes
+    /// <em>land</em> — <see cref="RoadGenerator.LayInto"/> and then <c>Subdivide</c> — and it makes
+    /// <em>people</em>, which is <see cref="PeopleInto"/>. A city whose Streets were laid by
+    /// <c>CommandKind.Connect</c> wants the people half without the land half and could not ask for
+    /// it, because the generator <em>throws</em> on a world that already has Segments; see
+    /// <see cref="PeopleInto"/> for why that refusal is correct and the welding was the defect.
+    /// </para>
     /// </remarks>
     /// <param name="world">The world to fill. Must have no Citizens in it.</param>
-    /// <exception cref="InvalidOperationException">The world already has a population.</exception>
-    /// <param name="world">The world to fill.</param>
     /// <param name="key">The world key, which the Rule arming stagger draws against.</param>
     /// <param name="now">The Tick the population arrives on, which arming is relative to.</param>
+    /// <exception cref="InvalidOperationException">The world already has a population.</exception>
     public static void PopulateInto(World world, WorldKey key, Ticks now)
     {
         ArgumentNullException.ThrowIfNull(world);
 
-        // Refused rather than added to. Applying the verb twice would produce a city of twice the
-        // configured size whose tables had grown past the capacity every footprint figure was derived
-        // from — a run that answers the sizing question with the wrong number and reports success.
-        if (world.Citizens.Rows.LiveCount != 0)
-        {
-            throw new InvalidOperationException(
-                "the world already has a population, and a synthetic city is not something to add a "
-                + "second of. Populate is world creation, so it belongs at Tick 0 and once.");
-        }
+        RefuseIfPopulated(world);
+        LayLand(world, key);
+        PeopleInto(world, key, now);
+    }
+
+    /// <summary>
+    /// Raises Buildings, Households and Citizens on whatever Lots already stand.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="PopulateInto"/>'s people half, and the door through which a player-shaped network
+    /// gets a population.</b> <see cref="RoadGenerator.LayInto"/> throws on a world that already has
+    /// Segments and <see cref="PopulateInto"/> called it unconditionally, before it built a row — so a
+    /// city laid by <c>CommandKind.Connect</c> could not be populated in either order, and the one
+    /// fixture that needed such a city grew its own population by copying the three loops below.
+    /// <b>The refusal was never the defect</b>: the generator is a world-creation pass and editing a
+    /// standing graph is <c>Connect</c>, exactly as it says. The defect was that no caller could ask
+    /// for one of this class's two jobs. <c>plans/0003</c> hash-moving queue item 9.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Dropping the road pass alone would not have been the repair, which is why the split is a
+    /// second entry point rather than a flag on the first.</b> <c>Subdivide</c> is keyed on
+    /// <see cref="StreetGrid.Blocks"/>, which is <c>WorldTiles ÷ block_tiles + 1</c> — a property of
+    /// the <em>map</em> and the Ruleset, and never of what is laid — so on a Connect-laid world it
+    /// would sweep the whole map's lattice and carve zoned Lots against whatever Segments it happened
+    /// to find. <b>The land half is wrong for such a world twice over, and only the first failure
+    /// announces itself by throwing.</b> Here it is not reached at all: a Connect-laid city's Lots are
+    /// the ones that verb re-subdivided as it laid them (<c>adr/0078</c>).
+    /// </para>
+    /// <para>
+    /// <b>It is an instrument and not a second verb, so the verb count does not move.</b>
+    /// <c>CommandKind.Populate</c> is expected to be deleted when the player can grow a city instead
+    /// of declaring one, so a payload on it would rest on something already scheduled to go. This is
+    /// <c>adr/0080</c>'s precedent for <c>TripPurpose.Commanded</c> — a test affordance rather than
+    /// the only door — and a world populated this way is a <em>measurement</em> rather than a session,
+    /// because nothing about it is in the Input Log.
+    /// </para>
+    /// </remarks>
+    /// <param name="world">The world to fill. Must have no Citizens in it.</param>
+    /// <param name="key">The world key, which the Rule arming stagger draws against.</param>
+    /// <param name="now">The Tick the population arrives on, which arming is relative to.</param>
+    /// <exception cref="InvalidOperationException">The world already has a population.</exception>
+    public static void PeopleInto(World world, WorldKey key, Ticks now)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        RefuseIfPopulated(world);
 
         int population = world.Citizens.Rows.Capacity;
-        int households = IntegerMath.FloorDiv(population * 360, 1_000);
+        int households = Households(world);
+        int buildings = WantedBuildings(world);
 
-        // adr/0068: the figure is the Ruleset's, and this is the site that used to hold the other
-        // half of a disagreement nothing could reconcile. A declared zero is treated as undeclared
-        // here rather than refused, because it would mean a populator that houses nobody and reports
-        // success -- and the honest floor is one per Building, not an empty city.
-        int occupancy =
-            world.TryDeclaredOccupancy(DwellingKind, out int declared) && declared > 0
-                ? declared
-                : UndeclaredOccupancy;
-
-        int buildings = IntegerMath.FloorDiv(households, occupancy) + 1;
-
-        // The roads, laid over the area this city will occupy rather than over the map. Laid here
-        // rather than in World's constructor for S0a's reason: a verb applied through Phase 0 is in
-        // the Input Log, so replay reproduces the network by construction rather than by a second
-        // generator agreeing with the first. It no-ops on a Ruleset that declares no [roads].
+        // The populator must house what it creates, so the Building count follows the land that
+        // actually stands rather than the other way round. On the shipped [roads] a generated map
+        // yields far more Lots than 1M Citizens need, so this binds only where the street network is
+        // too sparse for its population -- which is a real city the fixture should be able to express
+        // rather than an error, and on a Connect-laid one it is the ordinary case.
         //
-        // It has to come after the Building count, which is why that count moved above it: the extent
-        // is derived from what is about to be built, and it used to be the whole map unconditionally.
-        RoadGenerator.LayInto(world.Roads, key, PavedTiles(world));
+        // It reads the table rather than Subdivide's return value, so that the two entry points share
+        // one expression. They agree because the Lot table starts empty at world creation, which is
+        // the same premise Dwelling's remark rests on; if they ever stopped agreeing the golden
+        // baselines would move, which is what the acceptance run checks.
+        int lots = world.Lots.Rows.LiveCount;
 
-        int lots = Subdivide(world, buildings);
+        // ⚠ Refused rather than degraded, and opening this door is what made the case reachable.
+        // PopulateInto cannot get here -- Subdivide's degenerate branch lays `wanted` Lots when there
+        // is no lattice, so it always returns at least one -- but a caller who has laid Streets and
+        // not zoned them can, and clamping to zero would divide by zero in the Household loop.
+        //
+        // Silence is the wrong answer for the reason Subdivide states about itself: a populator that
+        // makes no rows answers the sizing question with an empty world and reports success. The land
+        // is the caller's to lay, so the caller is told it laid none.
+        if (lots <= 0)
+        {
+            throw new InvalidOperationException(
+                "this world has no Lots, so there is nowhere to put anybody. A city laid by "
+                + "CommandKind.Connect gets its Lots from Zone, which carves against the Street "
+                + "faces that are standing -- so lay the Streets, zone the blocks, then populate.");
+        }
 
-        // The populator must house what it creates, so the Building count follows the land the
-        // subdivider could actually give frontage rather than the other way round. On the shipped
-        // [roads] the map yields far more Lots than 1M Citizens need, so this binds only on a Ruleset
-        // whose street network is too sparse for its population -- which is a real city the fixture
-        // should be able to express rather than an error.
         if (lots < buildings)
         {
             buildings = lots;
@@ -175,6 +225,66 @@ public static class SyntheticCity
             world.CreateCitizen(
                 world.Households.Rows.At(i % households), new Ticks((ulong)i % 8192));
         }
+    }
+
+    /// <summary>
+    /// Lays the road lattice and carves the Lots — <see cref="PopulateInto"/>'s land half.
+    /// </summary>
+    private static void LayLand(World world, WorldKey key)
+    {
+        // The roads, laid over the area this city will occupy rather than over the map. Laid through
+        // Phase 0 for S0a's reason: a verb applied through the Input Log means replay reproduces the
+        // network by construction rather than by a second generator agreeing with the first. It
+        // no-ops on a Ruleset that declares no [roads].
+        //
+        // The extent is derived from what is about to be built, which is why the Building count is a
+        // shared expression rather than a local: it used to be the whole map unconditionally.
+        RoadGenerator.LayInto(world.Roads, key, PavedTiles(world));
+
+        Subdivide(world, WantedBuildings(world));
+    }
+
+    /// <summary>
+    /// Refuses a world that already holds people.
+    /// </summary>
+    /// <remarks>
+    /// Refused rather than added to. Applying the verb twice would produce a city of twice the
+    /// configured size whose tables had grown past the capacity every footprint figure was derived
+    /// from — a run that answers the sizing question with the wrong number and reports success.
+    /// </remarks>
+    private static void RefuseIfPopulated(World world)
+    {
+        if (world.Citizens.Rows.LiveCount != 0)
+        {
+            throw new InvalidOperationException(
+                "the world already has a population, and a synthetic city is not something to add a "
+                + "second of. Populate is world creation, so it belongs at Tick 0 and once.");
+        }
+    }
+
+    /// <summary>
+    /// Households the configured population comes in, at S4 task 2's ratio.
+    /// </summary>
+    private static int Households(World world) =>
+        IntegerMath.FloorDiv(world.Citizens.Rows.Capacity * 360, 1_000);
+
+    /// <summary>
+    /// Buildings those Households want, before the standing land clamps it.
+    /// </summary>
+    /// <remarks>
+    /// adr/0068: the occupancy figure is the Ruleset's, and this is the site that used to hold the
+    /// other half of a disagreement nothing could reconcile. A declared zero is treated as undeclared
+    /// rather than refused, because it would mean a populator that houses nobody and reports success
+    /// — and the honest floor is one per Building, not an empty city.
+    /// </remarks>
+    private static int WantedBuildings(World world)
+    {
+        int occupancy =
+            world.TryDeclaredOccupancy(DwellingKind, out int declared) && declared > 0
+                ? declared
+                : UndeclaredOccupancy;
+
+        return IntegerMath.FloorDiv(Households(world), occupancy) + 1;
     }
 
     /// <summary>
