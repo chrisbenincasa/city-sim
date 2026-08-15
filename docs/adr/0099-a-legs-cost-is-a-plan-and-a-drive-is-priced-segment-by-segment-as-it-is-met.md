@@ -123,6 +123,34 @@ Vehicles an hour and a 128 m Segment is crossed in 9.2 s, so it holds **9.2 Vehi
   [`adr/0090`](0090-the-generator-makes-land-and-the-player-makes-every-road.md)'s whole point and is
   unreachable from `CommandKind.Populate`. Both sides are asserted: the shipped city is byte-identical
   with and without the function, and a city whose Streets carry 200 Vehicles an hour is not.
+
+  > **The obvious repair — *lay less road* — was tried on three authored dials and none of them works.**
+  > At 16,000 Citizens, each run twice:
+  >
+  > | dial | Segments | busiest one-way | `v/c` | vehicle-Ticks | loaded ÷ free |
+  > |---|---|---|---|---|---|
+  > | shipped | 769 | 4 | 0.44 | 23,760 | **×1.0000** |
+  > | `lots_per_segment` 5 → 32 | 145 | 5 | 0.54 | 11,364 | **×1.0000** |
+  > | `commute_peak_factor` 3 → 192 | 769 | 5 | 0.54 | 5,003 | **×1.0000** |
+  > | both | 145 | **10** | **1.09** | 2,393 | **×1.0000** |
+  >
+  > ⚠ **Less road makes the city smaller rather than busier.** `SyntheticCity` sizes the paved extent to
+  > hit a **Lot** count, so cutting roads per Building shrinks the map, shortens every commute and takes
+  > total traffic **down 2.1×** while taking `v/c` up 0.1. ***Every supply dial this simulation exposes
+  > moves demand with it***, which is the √population result on a second axis.
+  >
+  > ⚠ **And the last row is over capacity while still being byte-identical.** Mean load there is **0.032
+  > Vehicles per Segment per Tick** — the road is empty ~97% of the time — so a busiest-Segment reading
+  > of 10 is a coincidence of arrival times rather than a jam. ***A peak that a mean does not follow is a
+  > coincidence, and a volume-delay function prices means.*** The aggregate is dominated by crossings at
+  > volume 1, where the delay is 2×10⁻⁵ and below Q16.16's resolution.
+  >
+  > **So the constraint is trips, not road.** Everybody makes **one journey a Day** — the commute is the
+  > only Trip generator built, and `06`'s *Mechanisms with no milestone* lists seven more. Even in the
+  > sharpest burst it is ~8,000 departures into 769 Segments with a commute lasting about one Tick.
+  > **The network is bigger than the fleet at every setting of every dial.** The evening leg is not the
+  > answer either and is already refused rather than absent (`CommuteEngine`, on `adr/0070`): doubling
+  > the trips doubles 0.032 to 0.064.
 - **Every drive is still quoted too cheap at planning time**, because the Commute Budget is judged on the
   free-flow plan. That is deliberate — a person cannot see tomorrow's jam — and it is what
   `adr/0095`'s fourth revisit trigger is waiting for: the three rungs are percentiles of a **free-flow,
@@ -134,6 +162,12 @@ Vehicles an hour and a 128 m Segment is crossed in 9.2 s, so it holds **9.2 Vehi
   percentages** because the file has no decimals and *the name of a quantity is not its denomination* —
   `alpha = 15` would be off by two orders of magnitude with nothing able to notice, which is the failure
   `adr/0094`'s `Speed.PerKilometrePerHour` literal actually committed.
+- ⚠ **No run this project can currently perform ratifies α, β or the clamp**, which is a live
+  qualification on the ratifier named below rather than a reason to delay it. The sweep above found no
+  authored configuration that moves the function at all, so a flat reading from task 8 is evidence about
+  the **fixture** and not about the parameters. ***A parameter can only be ratified by a run that
+  reaches the range it governs.*** Recorded on `plans/0002` §D2's row so the ratifier cannot be
+  discharged by a null result.
 - ⚠ **α = 15%, β = 4 and a clamp of 400% are sourced and not ratified.** They are BPR's textbook figures
   and they are what spike S2 ran — recovered from S2 R8.0's published *an arc at the clamp costs 39.4×
   free-flow*, since `1 + 0.15 × 4⁴ = 39.4` exactly and the spike published the delay rather than the
@@ -161,6 +195,10 @@ Vehicles an hour and a 128 m Segment is crossed in 9.2 s, so it holds **9.2 Vehi
   property of Stress, and Stress is `volume / capacity` times a junction factor — so the moment promotion
   is built, the Little's Law denominator here becomes the definition of that ratio for two consumers, and
   it should be moved somewhere both can read it rather than duplicated.
+- **A second Trip generator lands.** The sweep above says the binding constraint is one journey per
+  person per Day, so the first generator that adds a second — shopping, school, or the evening leg once
+  a schedule has a shape — is the first thing that can move mean load off 0.032, and this ADR's
+  *inert on a generated city* consequence should be re-measured on the day rather than argued about.
 - ⚠ **A player-built city reaches `v/c` above the clamp routinely.** The clamp exists so that two jammed
   routes are not compared on noise; if real play sits past it, the curve has stopped discriminating where
   the game is actually played and the clamp is the number to move, not α.
