@@ -685,6 +685,16 @@ value belongs is a defect, not a shortcut.
 **A change is an optimisation if the State Hash is unchanged, and a design change otherwise** —
 however it was motivated. This is the test that decides whether something may be tuned freely.
 
+⚠ **It classifies a change; it does not price one** ([`adr/0100`](docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).
+**Moving the State Hash costs nothing while nobody is carrying a save** — the re-record is one command,
+and the failing test prints it for you. **Never cite hash movement as a reason to defer, narrow or split
+work**; a sentence of the form *"this moves the hash, so…"* is a defect in the document that contains it.
+What survives is **attribution** (a hash move gets a commit whose subject explains it, which is what
+`plans/0003`'s queue is *for*), **collision** (two sessions re-recording the same baselines is
+scheduling, not cost) and **incidental movement** (unexplained movement is still a defect). The class
+this was suppressing — renames, column splits, enum reshapes — is the class whose price grows fastest
+with corpus size, so it is **cheaper today than it will ever be again**.
+
 ## Project layout
 
 Five projects, one repository, two toolchains. The split is the architectural decision. A sixth,
