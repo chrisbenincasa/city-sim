@@ -885,6 +885,24 @@ These five were inflating the list and none of them is a design constant awaitin
 Not questions. Nobody has to decide anything; nobody has scheduled them either, and each was named so
 it would be scheduled rather than discovered.
 
+- ⚠ **`02 §5.4`'s residential choice model — the most leaned-on unbuilt mechanism in the corpus, and it
+  was invisible to the one instrument that exists to catch this.** The logit over sampled candidates,
+  the stay-put alternative, and the Hinterland as an ordinary row. **Nothing decides anything here** —
+  `02 §5` is grilled and the mechanism is specified in detail — what is missing is a **builder**. Four
+  decisions rest on it: [`adr/0102`](../docs/adr/0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md)
+  makes a housed Departure *this mechanism firing*, [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)'s
+  `candidates` is unratifiable *"until there is a choice model to score with"*,
+  [`adr/0032`](../docs/adr/0032-services-are-delivered-by-trips-not-by-coverage.md) has school quality
+  entering residential utility **automatically**, and
+  [`adr/0026`](../docs/adr/0026-wages-are-posted-locally-and-never-cleared.md) has wages as a competing
+  utility term. **It gates milestone 9a outright.** ⚠ **Why nobody noticed until 2026-08-15**:
+  `06`'s *Mechanisms with no milestone* has *Settled by an **ADR*** as its entry condition, which names
+  the **format** of a specification rather than its **existence**, so a mechanism settled by a **design
+  document** is excluded from the very table built to hold unbuilt-but-specified mechanisms. ***A column
+  that asks where a decision is written will silently exclude everything decided somewhere else***, and
+  it is `adr/0098`'s blind-spot finding on a second axis — that one was about the *undesigned*, this one
+  is about the *designed elsewhere*. `06` now carries the row and the second blind spot. **Sequencing is
+  session K2's**, and this is a better input than K2 had.
 - **Generation with playability guarantees.** A seed producing no buildable land or no water access is
   a broken map, not a hard one (`adr/0021`).
 - **Dial playability floors.** A Hinterland at minimum depth and minimum recovery produces no

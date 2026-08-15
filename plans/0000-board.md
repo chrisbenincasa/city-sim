@@ -13,18 +13,34 @@ for four hash-bearing numbers** (`[traffic]`'s α, β and clamp, and `[household
 and it **runs against `rulesets/congested.toml`** — `minimal.toml` states neither table and would ratify
 nothing. Brief and per-task record: [`0026`](0026-statistical-resolution-and-the-travel-time-matrix.md).
 
-**Argument — a sitting is running today (2026-08-15)** on `04 §6`, producing
+**Argument — a sitting ran on 2026-08-15** and closed **both** remaining sections of `04`:
+`§6` → [`adr/0102`](../docs/adr/0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md)
+and [`adr/0103`](../docs/adr/0103-a-need-is-where-a-frequent-private-failure-accumulates.md), `§7` →
+[`adr/0104`](../docs/adr/0104-a-skill-tier-is-earned-by-attendance-and-the-credential-stays-a-wall.md).
+It then **assessed milestones 9a and 9b**, whose gates nobody had ever asked about. Only `04 §3`
+(Movement) is left ungrilled in that document. Nothing else in the argument track gates a slice; the
+rest of it is a **menu** (*Open tracks*).
+
+✅ **The commute became two journeys, 2026-08-15** —
 [`adr/0101`](../docs/adr/0101-a-commute-is-two-journeys-and-the-days-shape-is-a-property-of-the-job.md),
-[`adr/0102`](../docs/adr/0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md)
-and [`adr/0103`](../docs/adr/0103-a-need-is-where-a-frequent-private-failure-accumulates.md). Nothing
-else in the argument track gates a slice; the rest of it is a **menu** (*Open tracks*).
+**built the same day it was decided**, and it is a demand term rather than a 5c task. ⚠ **It was listed
+above as one of the `04 §6` sitting's three ADRs and it is not one of them** — it came out of *why can a
+generated city not congest*, which is the four-demand-terms finding, and filing it with the Needs sitting
+would have hidden the only one of the four that has been built. `commute_peak_factor` is **retired**;
+departure is now anchored on a Shift start hour belonging to the **Workplace**, and the Day's profile —
+two peaks, a baseline, a quiet night — is a **reading** rather than a dial. All three golden baselines and
+`session.borough` itself re-recorded. Its findings are in the ADR's *What building it changed*, and the
+sharpest is not about commutes: ***an intrusive index that unlinks by recomputing its key cannot outlive a
+change to that key's inputs.*** ⚠ **The middle of the Day is empty and that is LAND USE** — one employing
+kind means one set of hours — which is the next demand term and is `adr/0070`'s *build X*.
 
 **Spike — nothing is scheduled.** S5 owes its 4-thread rung on a quiet machine; `spikes/S2.Routing/`
 is **not** to be deleted (another session is working inside it).
 
 **After 5c**, milestones **8** and **10** are the only Phase 2 rows with no gate on them. **6**, **7a**
-and **7b** wait on sessions G and E; **9a** and **9b** have **no gate named anywhere**, which is a thing
-to assess rather than a clearance. See *Blocked*.
+and **7b** wait on sessions G and E. ✅ **9a and 9b were assessed 2026-08-15 and neither is gated on a
+session**: 9a waits on three unmilestoned **mechanisms** — `02 §5.4`'s choice model, the Hinterland and
+money — and 9b on `adr/0011`'s ⚫, promoted from a debt to a gate. See *Blocked*.
 
 ---
 
@@ -344,8 +360,8 @@ cleared ones is how the missing ones stay missing***. History in [`0000a`](0000a
 | **7a** — Stress-driven Fidelity with hysteresis | 🔴 fidelity. ⚠ **The gate is wider than the milestone**: `adr/0005`'s own last line says its **fidelity half was superseded by `0007`**, so 7a is gated on the `0007` half alone | session **E** (its `0007` half), then **5c** for Segment volume |
 | **7b** — the rotating Audit | 🔴 the same pair as 7a | session **E** |
 | **8** — parking | ✅ **Cleared** by session **H**, 2026-08-12 | — |
-| **9a** — Households, the Unplaced Pool and Departure | ⚠ **No gate is named anywhere, and that is the finding rather than an omission.** **Unassessed is not the same as unblocked** — nobody has asked what 9a needs. ⚠ **Today's `04 §6` sitting is moving this**: [`adr/0102`](../docs/adr/0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md) and [`adr/0103`](../docs/adr/0103-a-need-is-where-a-frequent-private-failure-accumulates.md) settle Departure and the Need set | **nobody — needs assessing** |
-| **9b** — Life Stages and self-generation | ⚠ **No gate named**, as 9a. The nearest thing is [`0002`](0002-open-questions.md) §F2 marking [`adr/0011`](../docs/adr/0011-household-life-stages-and-self-generating-population.md) **⚫** — Life Stages scheduled in Days while the fine wheel's period is exactly one Day — a debt against the ADR that has never been turned into a gate on the milestone | **nobody — needs assessing** |
+| **9a** — Households, the Unplaced Pool and Departure | ✅ **ASSESSED 2026-08-15, and the answer is that no session gates it — three unbuilt *mechanisms* do.** *(Original row: **no gate is named anywhere, and that is the finding rather than an omission** — unassessed is not the same as unblocked.)* Departure is now **fully specified**: [`adr/0102`](../docs/adr/0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md) makes it a comparison the Household re-runs and [`adr/0103`](../docs/adr/0103-a-need-is-where-a-frequent-private-failure-accumulates.md) closes the Need set at four, so **the design half is done and nothing here needs arguing**. What it cannot proceed without is **(1)** `02 §5.4`'s **residential choice model** — *a housed Departure **is** that mechanism firing* — **(2)** the **Hinterland**, which is the row a Household compares itself against, and **(3)** **money**, which the Destitute channel is denominated in. Needs are a fourth, and two of the four (Education, Health) additionally want **Attended services**. ⚠ **`adr/0102` created dependencies 1 and 2 on the day of this assessment**: a Departure that was a *threshold on a Need* needed neither, and a Departure that is a *comparison* needs both. ***Choosing a mechanism imports its dependencies, and nothing recomputes a gate board when it happens*** — which is 5b's *a decision that removes a representation defers every decision that reads it*, running in the opposite direction | **no session — three unmilestoned mechanisms.** Sequencing them is [`0003`](0003-build-plan.md)'s and session **K2**'s, not this row's |
+| **9b** — Life Stages and self-generation | ✅ **ASSESSED 2026-08-15. One real gate, and it is the ⚫ nobody promoted.** [`0002`](0002-open-questions.md) §F2 marks [`adr/0011`](../docs/adr/0011-household-life-stages-and-self-generating-population.md) **⚫** — Life Stages scheduled in **Days** while the fine wheel's period is exactly one Day — and that is a **live defect in the ADR this milestone builds from**, so it is a gate rather than a debt and is promoted to one here. *A defect against an ADR is a gate on the milestone that reads it, and nothing in this corpus performs that promotion automatically.* Beyond it, 9b now also carries [`adr/0104`](../docs/adr/0104-a-skill-tier-is-earned-by-attendance-and-the-credential-stays-a-wall.md)'s tier step — *a Skill Tier is read off the accumulated Education Need when a Household's stage advances* — which needs **Attended services** to exist, and **Taste** ([`adr/0027`](../docs/adr/0027-preference-is-drawn-per-household-and-persists-for-life.md)), also unmilestoned. It sits **behind 9a** by construction, since a Household must be able to form and to leave before its stages mean anything | **`adr/0011`'s ⚫**, then 9a, then two unmilestoned mechanisms |
 | **10** — the Outside | ✅ **Cleared** by session **J**, 2026-08-12 | — |
 | **Planning Phase 2 at all** | `06`'s ordering must be re-derived. ⚠ **The S0 half is struck** — S0a and S0b have both run, so it is **one gate, not two**. ⚠ **And Phase 2 has been under way throughout**, so the sentence was blocking something already happening: *a block nobody enforces is a document disagreeing with the build* | session **K2** — what it genuinely lacks is one column, the **routing load** in situ, which milestone **5c** produces |
 | **Phase 3** | 🔴 **a presentation design that does not exist** | session **L**. ⚠ **S1 and S3 are themselves ungated** ([`0003`](0003-build-plan.md) gives both `Gate: none`), so the head of the chain is runnable and what actually stops it is that **Track B has never been stood up** — a fact about tooling, not a gate |
