@@ -6,6 +6,37 @@ refused because it is *full* leaves no memory, because detecting that costs one 
 remembering it costs more than repeating it. **The two failures are different mechanisms and the corpus
 has been treating them as one.**
 
+> ⚠ **AMENDED 2026-08-14 — the decision stands and the title's word for it is withdrawn. Read *stock
+> failure* as *a **Space** refusal* throughout.**
+>
+> **This ADR's rule is right and is more general than the case it was written about.** The rule is its
+> own sentence — ***a memory buys a skipped detection*** — and it holds across every refusal in the
+> corpus: a full job slot costs one array read, so forget it; a Commute Budget refusal costs a full
+> Dijkstra, so remember it; an empty shelf costs a **whole Trip**, so `adr/0067` remembers that too.
+> One rule, three cases, no exceptions.
+>
+> ⚠ **What is wrong is that the rule was filed under the wrong variable.** This title pairs the
+> **reason** a candidate was refused with the **disposition**, as *stock → forget*. The disposition does
+> not follow from the reason; it follows from **what re-detecting costs**, which ranges here over about
+> six orders of magnitude. The two line up inside `EmploymentEngine` only because *there* the check is an
+> array read. Meet the same reason in shopping and the cost flips, so the disposition flips with it —
+> while this title still says stock failures are not remembered. ***A property measured on one instance,
+> generalised to the category it happened to be an instance of.***
+>
+> ⚠ **And the word chosen is the corpus's word for the opposite bound.** A workplace with no free post is
+> the container **full**; `CONTEXT.md` → *Supply and Space* names that **Space**, and uses *stock* for the
+> **contents**, which is the `Supply` bound — *"the **stock** stays, producers stop because **Space** is
+> negative."* So this ADR's own §*The split is not a proposal* table labels a Space refusal *Stock*.
+> The body already knew the distinction and states it plainly — *"`adr/0047` was written about a **full**
+> option, correctly, and `adr/0067` was written about an **empty** one"* — so what failed is the
+> compression into a filename, and under this project's ADR convention **the filename is the claim**.
+>
+> **The filename is left alone deliberately.** Renaming it would break every inbound citation to buy a
+> better title for a decision that is not changing, and this corpus keeps a superseded banner rather than
+> a deletion. `plans/0012` **Cause 5** on an **identifier** rather than on a quantity; the shipped
+> `Blocking` enum was renamed `Level`/`Headroom` → `Supply`/`Space` the same day so the code cannot repeat
+> it.
+
 `LEGIBLE CAUSE` `BOUNDED KNOWLEDGE` `SOLVE THE ACTUAL PROBLEM`
 
 Settled by a sitting on 2026-08-13, run beside [`plans/0003`](../../plans/0003-build-plan.md) queue item 6,

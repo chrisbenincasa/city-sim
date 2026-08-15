@@ -104,8 +104,8 @@ public sealed class RuleInstanceTable
     /// pressure is the longest — computed where the sample reads it and stored nowhere.
     /// </para>
     /// <para>
-    /// <b>Only <see cref="Blocking.Level"/> sets it.</b> A Rule stopped on
-    /// <see cref="Blocking.Headroom"/> has a Bin that is <em>full</em>, which is what a well-supplied
+    /// <b>Only <see cref="Blocking.Supply"/> sets it.</b> A Rule stopped on
+    /// <see cref="Blocking.Space"/> has a Bin that is <em>full</em>, which is what a well-supplied
     /// Building with nobody to sell to looks like, and <c>02 §5.9</c> names input starvation as the
     /// source. Waking and failing short again does not restart the clock, because the Rule never
     /// fired; only firing clears it, which is what makes this a duration of continuous starvation

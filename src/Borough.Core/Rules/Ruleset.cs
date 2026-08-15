@@ -339,7 +339,7 @@ public readonly record struct KindDefinition(
     /// a write site, pointed at by no live state — the same three properties that said a Bin's
     /// ceiling should not be a saved column either. **There is no column at all here**, because the
     /// Building already carries its kind and the only read is a guard that runs once per placement;
-    /// a Bin needed one because <c>HeadroomAt</c> is on the hot path and would have paid an owner
+    /// a Bin needed one because <c>SpaceAt</c> is on the hot path and would have paid an owner
     /// resolve and a walk on every check.
     /// </para>
     /// <para>

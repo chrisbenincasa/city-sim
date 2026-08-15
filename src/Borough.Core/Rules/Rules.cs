@@ -56,20 +56,45 @@ public readonly struct RulesetTrailEntry;
 /// modes into one word — <em>refill if the Bin was short, drain if it was a full output</em> — and
 /// this is that word made checkable. The members are named for what the waiter <em>needs</em> rather
 /// than for what went wrong, so they read against <see cref="BinTable.LevelAt"/> and
-/// <see cref="BinTable.HeadroomAt"/>, which are the two quantities a drain actually compares a
+/// <see cref="BinTable.SpaceAt"/>, which are the two quantities a drain actually compares a
 /// shortfall against. <see cref="Nothing"/> is the armed state and is zero, so a freshly allocated row
 /// is armed-shaped rather than asleep on the Bin at slot zero.
+/// <para>
+/// <b>There is one quantity here and two ways to be stopped by it, which is the whole of this type.</b>
+/// A Bin holds a <c>level</c> against a <c>capacity</c>; <see cref="Supply"/> is that quantity read from
+/// the bottom and <see cref="Space"/> is the same quantity read from the top
+/// (<c>capacity − level</c>, which is <see cref="BinTable.SpaceAt"/>). <em>Empty</em> and <em>full</em>
+/// are therefore not two conditions but one condition seen from two ends, and which end you are stopped
+/// at depends entirely on whether your Rule was trying to take out or to put in.
+/// </para>
+/// <para>
+/// <b>Both members were renamed on 2026-08-14 and the old names are worth knowing, because one of them
+/// had escaped into an ADR meaning its opposite.</b> These were <c>Level</c> and <c>Headroom</c>: exact
+/// against the code and hard to read against the city, since <em>blocked on Level</em> does not say
+/// which side of the level, and <em>headroom</em> is a word about numeric range that this file also uses
+/// in that sense. <c>adr/0097</c> then wrote <em>a stock failure</em> for a workplace with no free slot
+/// — the <see cref="Space"/> bound — while the rest of the corpus uses <em>stock</em> for the contents,
+/// which is the <see cref="Supply"/> bound. <b>Name a bound, never a level</b>: a name that does not say
+/// which end it means will eventually be quoted meaning the other one.
+/// </para>
 /// </remarks>
 public enum Blocking : byte
 {
     /// <summary>Not asleep. The row is armed on the Event Wheel instead.</summary>
     Nothing = 0,
 
-    /// <summary>Asleep on an input Bin that was short, waiting for its level to rise.</summary>
-    Level = 1,
+    /// <summary>
+    /// <b>There is not enough in the Bin to take.</b> Asleep on an <em>input</em> Bin that was short,
+    /// waiting for its level to rise — a bakery with no flour. Woken by a deposit.
+    /// </summary>
+    Supply = 1,
 
-    /// <summary>Asleep on an output Bin that was full, waiting for headroom to appear.</summary>
-    Headroom = 2,
+    /// <summary>
+    /// <b>There is not enough room in the Bin to put.</b> Asleep on an <em>output</em> Bin that was
+    /// full, waiting for room to appear — a bakery whose shelf of bread nobody has bought. Woken by a
+    /// withdrawal, and never by a deposit, which is why the two lists cannot be merged.
+    /// </summary>
+    Space = 2,
 }
 
 /// <summary>

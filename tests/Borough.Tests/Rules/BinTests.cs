@@ -43,8 +43,8 @@ public sealed class BinTests
     /// <summary>A Rule that needs <paramref name="level"/> flour on its own Bin to run at all.</summary>
     private static RuleId Needing(int level) => new((ushort)(1 + level));
 
-    /// <summary>A Rule that needs <paramref name="headroom"/> room in its own bread Bin to run.</summary>
-    private static RuleId Filling(int headroom) => new((ushort)(1 + Widest + headroom));
+    /// <summary>A Rule that needs <paramref name="space"/> room in its own bread Bin to run.</summary>
+    private static RuleId Filling(int space) => new((ushort)(1 + Widest + space));
 
     /// <summary>
     /// A Ruleset declaring kind 1, one term-free Rule, and a Rule per requirement the tests use.
@@ -195,7 +195,7 @@ public sealed class BinTests
 
         world.Deposit(flour, 40, Ticks.Zero);
         Assert.Equal(40, world.Bins.LevelAt(slot));
-        Assert.Equal(60, world.Bins.HeadroomAt(slot));
+        Assert.Equal(60, world.Bins.SpaceAt(slot));
 
         world.Withdraw(flour, 15, Ticks.Zero);
         Assert.Equal(25, world.Bins.LevelAt(slot));
@@ -230,8 +230,8 @@ public sealed class BinTests
         Handle<RuleInstance> needsSix = Sleeper(world, building, Needing(6));
         Handle<RuleInstance> needsTen = Sleeper(world, building, Needing(10));
 
-        world.Subscribe(needsSix, flour, Blocking.Level);
-        world.Subscribe(needsTen, flour, Blocking.Level);
+        world.Subscribe(needsSix, flour, Blocking.Supply);
+        world.Subscribe(needsTen, flour, Blocking.Supply);
 
         world.Deposit(flour, 6, Woken);
 
@@ -257,8 +257,8 @@ public sealed class BinTests
         Handle<RuleInstance> big = Sleeper(world, building, Needing(10));
         Handle<RuleInstance> small = Sleeper(world, building, Needing(2));
 
-        world.Subscribe(big, flour, Blocking.Level);
-        world.Subscribe(small, flour, Blocking.Level);
+        world.Subscribe(big, flour, Blocking.Supply);
+        world.Subscribe(small, flour, Blocking.Supply);
 
         world.Deposit(flour, 6, Woken);
 
@@ -278,9 +278,9 @@ public sealed class BinTests
         Handle<RuleInstance> second = Sleeper(world, building, Needing(3));
         Handle<RuleInstance> third = Sleeper(world, building, Needing(3));
 
-        world.Subscribe(first, flour, Blocking.Level);
-        world.Subscribe(second, flour, Blocking.Level);
-        world.Subscribe(third, flour, Blocking.Level);
+        world.Subscribe(first, flour, Blocking.Supply);
+        world.Subscribe(second, flour, Blocking.Supply);
+        world.Subscribe(third, flour, Blocking.Supply);
 
         world.Deposit(flour, 6, Woken);
 
@@ -294,7 +294,7 @@ public sealed class BinTests
     /// </summary>
     /// <remarks>
     /// <c>adr/0045</c>'s <em>blocking</em> is two failure modes, and one queue holding both would
-    /// deadlock: a deposit can never cover a waiter that needs headroom, and a drain that stops at the
+    /// deadlock: a deposit can never cover a waiter that needs space, and a drain that stops at the
     /// first waiter it cannot cover would stop at that one for ever.
     /// </remarks>
     [Fact]
@@ -306,7 +306,7 @@ public sealed class BinTests
         world.Deposit(bread, 20, Ticks.Zero);
 
         Handle<RuleInstance> blocked = Sleeper(world, building, Filling(4));
-        world.Subscribe(blocked, bread, Blocking.Headroom);
+        world.Subscribe(blocked, bread, Blocking.Space);
 
         // Nothing a deposit could do helps, and at capacity there is not even room to try.
         world.Deposit(bread, 0, Woken);
@@ -325,7 +325,7 @@ public sealed class BinTests
         Handle<Bin> flour = world.CreateBin(building, Flour);
         Handle<RuleInstance> waiter = Sleeper(world, building, Needing(5));
 
-        world.Subscribe(waiter, flour, Blocking.Level);
+        world.Subscribe(waiter, flour, Blocking.Supply);
         world.Deposit(flour, 5, new Ticks(40));
 
         int slot = SlotOf(world, waiter);
@@ -348,8 +348,8 @@ public sealed class BinTests
 
         // The later subscriber asks for less, so a queue ordered by anything but arrival would
         // reach it first.
-        world.Subscribe(first, flour, Blocking.Level);
-        world.Subscribe(second, flour, Blocking.Level);
+        world.Subscribe(first, flour, Blocking.Supply);
+        world.Subscribe(second, flour, Blocking.Supply);
 
         world.Deposit(flour, 1, Woken);
 
@@ -366,10 +366,10 @@ public sealed class BinTests
         Handle<Bin> flour = world.CreateBin(building, Flour);
         Handle<RuleInstance> waiter = Sleeper(world, building, Needing(5));
 
-        world.Subscribe(waiter, flour, Blocking.Level);
+        world.Subscribe(waiter, flour, Blocking.Supply);
 
         Violation violation = Assert.Throws<InvariantViolationException>(
-            () => world.Subscribe(waiter, flour, Blocking.Level)).Violation;
+            () => world.Subscribe(waiter, flour, Blocking.Supply)).Violation;
 
         Assert.Equal(Invariant.RuleInstanceIsArmedOrWaiting, violation.Invariant);
     }
@@ -393,8 +393,8 @@ public sealed class BinTests
         Handle<RuleInstance> own = Sleeper(world, doomed, Needing(50));
         Handle<RuleInstance> foreign = Sleeper(world, neighbour, Bake);
 
-        world.Subscribe(own, flour, Blocking.Level);
-        world.Subscribe(foreign, flour, Blocking.Level);
+        world.Subscribe(own, flour, Blocking.Supply);
+        world.Subscribe(foreign, flour, Blocking.Supply);
 
         int foreignSlot = SlotOf(world, foreign);
 
@@ -432,8 +432,8 @@ public sealed class BinTests
         Handle<RuleInstance> first = Sleeper(world, building, Needing(90));
         Handle<RuleInstance> second = Sleeper(world, building, Needing(95));
 
-        world.Subscribe(first, flour, Blocking.Level);
-        world.Subscribe(second, flour, Blocking.Level);
+        world.Subscribe(first, flour, Blocking.Supply);
+        world.Subscribe(second, flour, Blocking.Supply);
 
         int buildingSlot = world.Buildings.Rows.Resolve(building);
         int binSlot = world.Bins.Rows.Resolve(flour);
@@ -444,7 +444,7 @@ public sealed class BinTests
 
         Assert.Equal(before, world.HashState());
         Assert.Equal(binSlot, world.FindBin(buildingSlot, Flour));
-        Assert.Equal(SlotOf(world, first), world.LevelWaiters.PeekFront(binSlot));
+        Assert.Equal(SlotOf(world, first), world.SupplyWaiters.PeekFront(binSlot));
 
         Assert.Equal(
             [SlotOf(world, first), SlotOf(world, second)],
@@ -493,8 +493,8 @@ public sealed class BinTests
         Handle<Bin> flour = world.CreateBin(building, Flour);
         Handle<RuleInstance> orphan = Sleeper(world, building, Needing(5));
 
-        world.Subscribe(orphan, flour, Blocking.Level);
-        world.LevelWaiters.PopFront(world.Bins.Rows.Resolve(flour));
+        world.Subscribe(orphan, flour, Blocking.Supply);
+        world.SupplyWaiters.PopFront(world.Bins.Rows.Resolve(flour));
 
         Assert.Equal(
             Invariant.RuleInstanceIsArmedOrWaiting,
@@ -625,7 +625,7 @@ public sealed class BinTests
         Handle<Bin> bread = world.CreateBin(building, Bread);
         Handle<RuleInstance> waiter = Sleeper(world, building, Needing(5));
 
-        world.Subscribe(waiter, flour, Blocking.Level);
+        world.Subscribe(waiter, flour, Blocking.Supply);
         world.RuleInstances.WaitingOn[SlotOf(world, waiter)] = bread;
 
         Assert.Equal(

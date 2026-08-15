@@ -72,14 +72,14 @@ public sealed class BinWaitListTests
         zoneRules: []);
 
     /// <summary>
-    /// A producer that needs three units of headroom to run at all, and no inputs.
+    /// A producer that needs three units of space to run at all, and no inputs.
     /// </summary>
     /// <remarks>
     /// The mirror of <see cref="Consuming"/> on the other wait list. It is not a hypothetical shape:
     /// <c>minimal.toml</c>'s <c>restock</c> is exactly this with <c>min = 1</c> and <c>amount = 1</c>,
     /// and <b>that is the only reason the shipped Ruleset never trips this</b> — a producer whose
     /// deficit is the smallest quantity the engine can express is covered by any withdrawal at all.
-    /// Raise either number and the defect is on the headroom list too.
+    /// Raise either number and the defect is on the space list too.
     /// </remarks>
     private static Ruleset Producing() => new(
         resources: [ResourceFamily.Good, ResourceFamily.Good],
@@ -224,25 +224,25 @@ public sealed class BinWaitListTests
     }
 
     /// <summary>
-    /// The headroom mirror, which is the half the shipped Ruleset actually runs on.
+    /// The space mirror, which is the half the shipped Ruleset actually runs on.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Withdrawals of one against a producer needing three units of headroom.</b> The Bin ends with
+    /// <b>Withdrawals of one against a producer needing three units of space.</b> The Bin ends with
     /// room for three and the producer wakes on the third withdrawal, exactly as the level case wakes
-    /// on the third deposit — <c>a Withdraw drains the headroom list exactly as a Deposit drains the
-    /// level list</c> (<c>02 §4.2</c>), and the budget on this side is <c>HeadroomAt</c>.
+    /// on the third deposit — <c>a Withdraw drains the space list exactly as a Deposit drains the
+    /// level list</c> (<c>02 §4.2</c>), and the budget on this side is <c>SpaceAt</c>.
     /// </para>
     /// <para>
     /// <b>This is the half that mattered for <c>minimal.toml</c>'s credibility.</b> Its steady state
     /// survived only because <c>restock</c>'s deficit is one, the smallest quantity expressible, so any
     /// withdrawal covered it — and <c>rulesets/minimal-tuned.toml</c>, which the golden session reloads
     /// into at Tick 128, raises that output amount to 2 and broke it. The committed trace held a
-    /// <c>restock</c> asleep on headroom 3 until this fix landed.
+    /// <c>restock</c> asleep on space 3 until this fix landed.
     /// </para>
     /// </remarks>
     [Fact]
-    public void A_drip_of_withdrawals_wakes_a_producer_once_the_bin_has_the_headroom()
+    public void A_drip_of_withdrawals_wakes_a_producer_once_the_bin_has_the_space()
     {
         (World world, Simulation simulation, Handle<Building> building) = Built(Producing());
 
@@ -262,7 +262,7 @@ public sealed class BinWaitListTests
 
         world.Withdraw(handle, 1, simulation.Tick);
 
-        Assert.Equal(3, world.Bins.HeadroomAt(bread));
+        Assert.Equal(3, world.Bins.SpaceAt(bread));
 
         Assert.False(IsWaiting(world, building));
 
@@ -293,11 +293,11 @@ public sealed class BinWaitListTests
         int instance = world.BuildingRules.PeekFront(world.Buildings.Rows.Resolve(building));
         int flour = BinOf(world, building, Flour);
 
-        Assert.True(RuleEngine.BinStillBlocks(world, instance, flour, Blocking.Level));
+        Assert.True(RuleEngine.BinStillBlocks(world, instance, flour, Blocking.Supply));
 
         world.Bins.Move(flour, 3);
 
-        Assert.False(RuleEngine.BinStillBlocks(world, instance, flour, Blocking.Level));
+        Assert.False(RuleEngine.BinStillBlocks(world, instance, flour, Blocking.Supply));
     }
 
     /// <summary>A Bin the Rule only fills cannot be short of level for it, at any apply count.</summary>
@@ -311,6 +311,6 @@ public sealed class BinWaitListTests
         int instance = world.BuildingRules.PeekFront(world.Buildings.Rows.Resolve(building));
         int bread = BinOf(world, building, Bread);
 
-        Assert.False(RuleEngine.BinStillBlocks(world, instance, bread, Blocking.Level));
+        Assert.False(RuleEngine.BinStillBlocks(world, instance, bread, Blocking.Supply));
     }
 }

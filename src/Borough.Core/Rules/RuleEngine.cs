@@ -124,7 +124,7 @@ public readonly record struct RuleActivity(RuleFlow Due, RuleFlow Evaluations, R
 /// <para>
 /// <b>A greedy Rule is raised to what its Bins allow, and the raise is the same walk as the check.</b>
 /// A net delta is linear in the apply count, so the deltas are accumulated once per application and
-/// each Bin then states a count it can carry — <c>level ÷ −delta</c> for a draw, <c>headroom ÷ delta</c>
+/// each Bin then states a count it can carry — <c>level ÷ −delta</c> for a draw, <c>space ÷ delta</c>
 /// for a deposit. The count is the least of those and the Rule's own <c>max</c>. Applying at
 /// <em>n</em> and checking at <em>n</em> are therefore one arithmetic rather than a search: there is no
 /// rung at which the Rule is tried and rejected.
@@ -495,7 +495,7 @@ public sealed class RuleEngine
 
                 if (affordable < floor)
                 {
-                    return RuleVerdict.Stopped(instance, rule, bin, Blocking.Level);
+                    return RuleVerdict.Stopped(instance, rule, bin, Blocking.Supply);
                 }
             }
             else if (delta > 0)
@@ -505,7 +505,7 @@ public sealed class RuleEngine
 
                 if (affordable < floor)
                 {
-                    return RuleVerdict.Stopped(instance, rule, bin, Blocking.Headroom);
+                    return RuleVerdict.Stopped(instance, rule, bin, Blocking.Space);
                 }
             }
             else
@@ -585,7 +585,7 @@ public sealed class RuleEngine
     /// <para>
     /// <b>This is also where failure pressure starts, and only for one of the two failures</b>
     /// (<c>adr/0053</c>, as amended). Short of an <em>input</em> is <c>02 §5.9</c>'s starvation and
-    /// starts the clock; out of <em>headroom</em> is a full Bin, which is what a well-supplied
+    /// starts the clock; out of <em>space</em> is a full Bin, which is what a well-supplied
     /// Building looks like, and stops it. Starting it only when it is not already running is what
     /// makes the duration continuous: a Rule woken by an arrival that turns out not to cover its
     /// shortfall comes back through here without having fired, and must not have its clock reset by
@@ -596,7 +596,7 @@ public sealed class RuleEngine
     {
         _world.RuleInstances.Reported[verdict.Instance] = verdict.Reported;
 
-        if (verdict.Blocking != Blocking.Level)
+        if (verdict.Blocking != Blocking.Supply)
         {
             _world.RuleInstances.StarvedSince[verdict.Instance] = default;
         }
@@ -682,7 +682,7 @@ public sealed class RuleEngine
             }
         }
 
-        if (blocking == Blocking.Level)
+        if (blocking == Blocking.Supply)
         {
             return net < 0 ? floor * -net : 0;
         }
@@ -719,9 +719,9 @@ public sealed class RuleEngine
             return false;
         }
 
-        return blocking == Blocking.Level
+        return blocking == Blocking.Supply
             ? world.Bins.LevelAt(binSlot) < requirement
-            : world.Bins.HeadroomAt(binSlot) < requirement;
+            : world.Bins.SpaceAt(binSlot) < requirement;
     }
 
     /// <summary>

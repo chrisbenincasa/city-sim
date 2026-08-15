@@ -32,7 +32,7 @@ using Borough.Core.Tables;
 /// <para>
 /// <b>There are two of them, because <c>adr/0045</c>'s <em>blocking</em> generalises over two failure
 /// modes</b> — <em>refill if the Bin was short, drain if it was a full output.</em> One list holding
-/// both would deadlock in one direction: a deposit can never satisfy a waiter that needs headroom,
+/// both would deadlock in one direction: a deposit can never satisfy a waiter that needs <em>space</em>,
 /// and a drain that stops at the first waiter it cannot cover — which is what makes the queue fair —
 /// would stop at that one for ever. Skipping past it instead is the other defect, the one that
 /// starves a large waiter behind small ones. Two lists remove the choice.
@@ -60,10 +60,10 @@ public sealed class BinTable
         Resource = _rows.Saved<ResourceId>("resource");
         _level = _rows.Saved<long>("level", Touch.PerTick);
         Capacity = _rows.Derived<long>("capacity");
-        LevelHead = _rows.Saved<int>("level_wait_head", Touch.PerTick);
-        LevelTail = _rows.Saved<int>("level_wait_tail", Touch.PerTick);
-        HeadroomHead = _rows.Saved<int>("headroom_wait_head", Touch.PerTick);
-        HeadroomTail = _rows.Saved<int>("headroom_wait_tail", Touch.PerTick);
+        SupplyHead = _rows.Saved<int>("supply_wait_head", Touch.PerTick);
+        SupplyTail = _rows.Saved<int>("supply_wait_tail", Touch.PerTick);
+        SpaceHead = _rows.Saved<int>("space_wait_head", Touch.PerTick);
+        SpaceTail = _rows.Saved<int>("space_wait_tail", Touch.PerTick);
         BinNext = _rows.Derived<int>("bin_next");
 
         _rows.Seal();
@@ -109,16 +109,16 @@ public sealed class BinTable
     public Column<long> Capacity { get; }
 
     /// <summary>Head of the Rule Instances asleep waiting for this Bin's <see cref="LevelAt"/>.</summary>
-    public Column<int> LevelHead { get; }
+    public Column<int> SupplyHead { get; }
 
     /// <summary>Tail of the level list, so a subscriber appends rather than push-fronts.</summary>
-    public Column<int> LevelTail { get; }
+    public Column<int> SupplyTail { get; }
 
-    /// <summary>Head of the Rule Instances asleep waiting for this Bin's <see cref="HeadroomAt"/>.</summary>
-    public Column<int> HeadroomHead { get; }
+    /// <summary>Head of the Rule Instances asleep waiting for this Bin's <see cref="SpaceAt"/>.</summary>
+    public Column<int> SpaceHead { get; }
 
-    /// <summary>Tail of the headroom list.</summary>
-    public Column<int> HeadroomTail { get; }
+    /// <summary>Tail of the space list.</summary>
+    public Column<int> SpaceTail { get; }
 
     /// <summary>Link through the owning Building's list of its Bins.</summary>
     public Column<int> BinNext { get; }
@@ -133,7 +133,7 @@ public sealed class BinTable
     /// <para>
     /// <b><c>capacity − level</c> is the form <c>CONTEXT</c> → Resource prescribes, and the reason is
     /// this method.</b> An unbounded Bin — every Money Bin and nothing else — carries
-    /// <see cref="long.MaxValue"/> underneath, so a headroom computed as a subtraction from a
+    /// <see cref="long.MaxValue"/> underneath, so the space computed as a subtraction from a
     /// non-negative level is always in range, where <c>level + delta &gt; capacity</c> would overflow.
     /// Nothing else in the codebase may reconstruct the comparison the other way round. That is
     /// <c>adr/0031</c>'s named determinism hazard, and <c>adr/0065</c> records that it was never in
@@ -143,15 +143,15 @@ public sealed class BinTable
     /// <b>This may return a negative, and a caller that assumes otherwise is wrong rather than
     /// unlucky</b> (<c>adr/0064</c>). Capacity is derived from the Ruleset in force, so a retuned
     /// ceiling can land under a Bin's current level — and the design answer is that the Bin bleeds
-    /// down and heals itself. Negative headroom stops every producer at
+    /// down and heals itself. Negative space stops every producer at
     /// <see cref="RuleEngine"/>'s own affordability test and leaves every consumer untouched, which
     /// works because <see cref="Borough.Core.Arithmetic.IntegerMath.FloorDiv"/> rounds toward
-    /// negative infinity: any negative headroom yields <c>affordable ≤ −1</c>, below even a derived
+    /// negative infinity: any negative space yields <c>affordable ≤ −1</c>, below even a derived
     /// floor of zero. Under C#'s truncating <c>/</c> that case would have passed the guard, so
     /// <c>BOR0203</c> is load-bearing here, in a place nobody aimed it.
     /// </para>
     /// </remarks>
-    public long HeadroomAt(int slot) => Capacity[slot] - _level[slot];
+    public long SpaceAt(int slot) => Capacity[slot] - _level[slot];
 
     /// <summary>Allocates an empty Bin on a Building. Linking it in is <see cref="World"/>'s.</summary>
     /// <summary>Allocates a Bin on a Building, empty.</summary>

@@ -369,7 +369,7 @@ public enum Invariant
     /// and the one number that file changes is <c>restock</c>'s output amount, 1 → 2.</b> A producer
     /// whose deficit is 2, drawn down by the occupancy-1 Buildings a Zone Rule creates, is withdrawn
     /// from one unit at a time and never woken. At Tick 256 the trace holds a <c>restock</c> asleep on
-    /// headroom <b>3</b> against a recorded shortfall of <b>2</b>.
+    /// space <b>3</b> against a recorded shortfall of <b>2</b>.
     /// </para>
     /// <para>
     /// <b>So the defect is live in the shipped baseline rather than waiting for <c>pool</c></b>, and

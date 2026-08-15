@@ -23,7 +23,7 @@ namespace Borough.Tests.Rules;
 /// </para>
 /// <para>
 /// <b>Every test here separates the two failures by name.</b> Short of an input starts the clock;
-/// out of headroom does not, because a full Bin is what a well-supplied Building with nowhere to sell
+/// out of space does not, because a full Bin is what a well-supplied Building with nowhere to sell
 /// looks like. That distinction is the amendment to <c>adr/0053</c> this task made, and it is the one
 /// thing in the mechanism that would fail silently: reading both would condemn a healthy city, and
 /// the symptom would be a city that declined everywhere at once for no reason a player could see.
@@ -65,7 +65,7 @@ public sealed class ZoneRuleDemolishTests
             zoneRules: zones);
 
     /// <summary>
-    /// A kind whose one Rule <em>produces</em> into a Bin that starts full, so it fails on headroom
+    /// A kind whose one Rule <em>produces</em> into a Bin that starts full, so it fails on space
     /// and never on level.
     /// </summary>
     private static Ruleset Overstocked(ZoneRuleDefinition[] zones) =>
@@ -176,11 +176,11 @@ public sealed class ZoneRuleDemolishTests
     /// down everywhere at once, which reads as a balance problem rather than as a defect.
     /// </remarks>
     [Fact]
-    public void Running_out_of_headroom_does_not()
+    public void Running_out_of_space_does_not()
     {
         (World world, Simulation simulation) = Built(Overstocked([]));
 
-        // Filled to the ceiling before the Rule ever runs, so its first evaluation fails on headroom.
+        // Filled to the ceiling before the Rule ever runs, so its first evaluation fails on space.
         foreach (int bin in world.BuildingBins.Walk(0))
         {
             world.Deposit(world.Bins.Rows.At(bin), 4, Ticks.Zero);
@@ -190,7 +190,7 @@ public sealed class ZoneRuleDemolishTests
 
         int instance = InstanceOf(world, 0);
 
-        Assert.Equal(Blocking.Headroom, world.RuleInstances.Blocked[instance]);
+        Assert.Equal(Blocking.Space, world.RuleInstances.Blocked[instance]);
         Assert.False(world.RuleInstances.IsStarving(instance));
         Assert.Equal(4, world.Buildings.Rows.LiveCount);
     }

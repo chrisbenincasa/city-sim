@@ -1026,11 +1026,11 @@ public sealed class World
 
     /// <summary>The Rule Instances asleep on each Bin because it was <em>short</em>.</summary>
     /// <inheritdoc cref="Occupants"/>
-    public IndexList LevelWaiters => new(Bins.LevelHead, Bins.LevelTail, RuleInstances.QueueNext);
+    public IndexList SupplyWaiters => new(Bins.SupplyHead, Bins.SupplyTail, RuleInstances.QueueNext);
 
     /// <summary>The Rule Instances asleep on each Bin because it was <em>full</em>.</summary>
     /// <inheritdoc cref="Occupants"/>
-    public IndexList HeadroomWaiters => new(Bins.HeadroomHead, Bins.HeadroomTail, RuleInstances.QueueNext);
+    public IndexList SpaceWaiters => new(Bins.SpaceHead, Bins.SpaceTail, RuleInstances.QueueNext);
 
     /// <summary>Where a pedestrian arrives at this Building — its front door on the Road Graph.</summary>
     /// <remarks>
@@ -1350,7 +1350,7 @@ public sealed class World
     /// <para>
     /// <b>There is no derived column behind this and that is deliberate.</b> <c>adr/0068</c> was
     /// drafted saying <c>Rows.Derived</c>, by analogy with a Bin's ceiling, and the analogy does not
-    /// survive contact: a Bin needed the column because <see cref="Rules.BinTable.HeadroomAt"/> is on
+    /// survive contact: a Bin needed the column because <see cref="Rules.BinTable.SpaceAt"/> is on
     /// the hot path and would otherwise resolve an owner and walk a declaration list on every check,
     /// where this is read at a guard that runs once per placement and the Building already carries
     /// its <see cref="BuildingTable.Kind"/>. A column here would be a second copy of a fact one field
@@ -1638,7 +1638,7 @@ public sealed class World
     /// <b>The rows it reaches are a derelict Building's</b> — a kind the incoming Ruleset dropped
     /// (<c>02 §4.3</c>). Such a Building runs no Rules, so nothing reads or writes these Bins; zero
     /// says *the Ruleset declares no store of this here*, leaves the stock in place rather than
-    /// destroying it (<c>04 §2</c>), and gives the Bin negative headroom, which refuses a deposit that
+    /// destroying it (<c>04 §2</c>), and gives the Bin negative space, which refuses a deposit that
     /// cannot arrive anyway. **It does not drain**, unlike <c>adr/0064</c>'s over-full case, because
     /// nothing is left to withdraw from it — dereliction is where the self-healing argument stops, and
     /// it stops harmlessly because the Building is inert by then.
@@ -1721,10 +1721,10 @@ public sealed class World
         int slot = Bins.Rows.Resolve(bin);
 
         Invariants.Require(
-            amount <= Bins.HeadroomAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
+            amount <= Bins.SpaceAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
 
         Bins.Move(slot, amount);
-        Drain(slot, Blocking.Level, tick);
+        Drain(slot, Blocking.Supply, tick);
     }
 
     /// <summary>
@@ -1746,7 +1746,7 @@ public sealed class World
             amount <= Bins.LevelAt(slot), Invariant.BinLevelIsWithinCapacity, slot, amount);
 
         Bins.Move(slot, -amount);
-        Drain(slot, Blocking.Headroom, tick);
+        Drain(slot, Blocking.Space, tick);
     }
 
     /// <summary>
@@ -1892,7 +1892,7 @@ public sealed class World
 
     /// <summary>Which of a Bin's two wait lists a given blocking reason queues on.</summary>
     private IndexList Waiters(Blocking blocking) =>
-        blocking == Blocking.Level ? LevelWaiters : HeadroomWaiters;
+        blocking == Blocking.Supply ? SupplyWaiters : SpaceWaiters;
 
     /// <summary>
     /// Wakes waiters from the head while the Bin's own state can still complete them.
@@ -1937,9 +1937,9 @@ public sealed class World
     {
         IndexList waiters = Waiters(blocking);
 
-        long remaining = blocking == Blocking.Level
+        long remaining = blocking == Blocking.Supply
             ? Bins.LevelAt(binSlot)
-            : Bins.HeadroomAt(binSlot);
+            : Bins.SpaceAt(binSlot);
 
         while (true)
         {
@@ -1967,8 +1967,8 @@ public sealed class World
     /// <summary>Empties both of a Bin's wait lists, for a Bin that is about to stop existing.</summary>
     private void WakeAll(int binSlot, Ticks tick)
     {
-        WakeAll(LevelWaiters, binSlot, tick);
-        WakeAll(HeadroomWaiters, binSlot, tick);
+        WakeAll(SupplyWaiters, binSlot, tick);
+        WakeAll(SpaceWaiters, binSlot, tick);
     }
 
     private void WakeAll(IndexList waiters, int binSlot, Ticks tick)

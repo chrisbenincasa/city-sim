@@ -188,8 +188,8 @@ public static class WorldInvariants
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(report);
 
-        CheckQueueStillBlocks(world, world.LevelWaiters, Blocking.Level, report);
-        CheckQueueStillBlocks(world, world.HeadroomWaiters, Blocking.Headroom, report);
+        CheckQueueStillBlocks(world, world.SupplyWaiters, Blocking.Supply, report);
+        CheckQueueStillBlocks(world, world.SpaceWaiters, Blocking.Space, report);
     }
 
     /// <summary>Walks one of the two wait lists on every Bin, re-deriving what stopped each waiter.</summary>
@@ -731,8 +731,8 @@ public static class WorldInvariants
         RuleInstanceTable instances = world.RuleInstances;
         var seen = new int[instances.Rows.SlotCount];
 
-        CountQueue(world, world.LevelWaiters, Blocking.Level, seen, report);
-        CountQueue(world, world.HeadroomWaiters, Blocking.Headroom, seen, report);
+        CountQueue(world, world.SupplyWaiters, Blocking.Supply, seen, report);
+        CountQueue(world, world.SpaceWaiters, Blocking.Space, seen, report);
 
         IndexList armed = world.Wheel.Armed;
 

@@ -152,14 +152,14 @@ public sealed class RuleEvaluationTests
 
         int instance = 0;
 
-        Assert.Equal(Blocking.Level, world.RuleInstances.Blocked[instance]);
+        Assert.Equal(Blocking.Supply, world.RuleInstances.Blocked[instance]);
 
         // What it waits for is derived rather than recorded (adr/0063), and it is the whole
         // requirement rather than the deficit: six flour to fire, against the three in the Bin.
         Assert.Equal(
             6,
             RuleEngine.Requirement(
-                world, instance, BinOf(world, building, Flour), Blocking.Level));
+                world, instance, BinOf(world, building, Flour), Blocking.Supply));
         Assert.Equal(
             BinOf(world, building, Flour),
             world.Bins.Rows.Resolve(world.RuleInstances.WaitingOn[instance]));
@@ -199,15 +199,15 @@ public sealed class RuleEvaluationTests
         Assert.Equal(
             6,
             RuleEngine.Requirement(
-                world, 0, BinOf(world, building, Bread), Blocking.Level));
+                world, 0, BinOf(world, building, Bread), Blocking.Supply));
     }
 
     /// <summary>
-    /// A full output Bin fails the Rule too, on <see cref="Blocking.Headroom"/> — <c>adr/0045</c>'s
+    /// A full output Bin fails the Rule too, on <see cref="Blocking.Space"/> — <c>adr/0045</c>'s
     /// generalisation of <em>blocking</em> over both failure modes.
     /// </summary>
     [Fact]
-    public void A_full_output_bin_blocks_the_rule_on_headroom()
+    public void A_full_output_bin_blocks_the_rule_on_space()
     {
         (World world, Simulation simulation, Handle<Building> building) = Built(Baking());
 
@@ -219,12 +219,12 @@ public sealed class RuleEvaluationTests
         Assert.Equal(60, Level(world, building, Flour));
         Assert.Equal(18, Level(world, building, Bread));
 
-        Assert.Equal(Blocking.Headroom, world.RuleInstances.Blocked[0]);
+        Assert.Equal(Blocking.Space, world.RuleInstances.Blocked[0]);
 
         Assert.Equal(
             4,
             RuleEngine.Requirement(
-                world, 0, BinOf(world, building, Bread), Blocking.Headroom));
+                world, 0, BinOf(world, building, Bread), Blocking.Space));
 
         Assert.Equal(
             BinOf(world, building, Bread),
@@ -234,7 +234,7 @@ public sealed class RuleEvaluationTests
     /// <summary>
     /// <b>The case term-by-term checking deadlocks on.</b> A Rule drawing six from a Bin it also
     /// returns four to is checked as a net two out — where checking the output alone against a full
-    /// Bin's headroom would refuse it, and the Rule would then wait on a Bin nothing else ever drains.
+    /// Bin's space would refuse it, and the Rule would then wait on a Bin nothing else ever drains.
     /// </summary>
     [Fact]
     public void A_rule_naming_one_bin_on_both_sides_is_checked_net()
@@ -294,11 +294,11 @@ public sealed class RuleEvaluationTests
 
     /// <summary>
     /// <b>The bound is whichever Bin runs out first, and an output counts.</b> Ten bakings of flour
-    /// exist; five bread fit. The Rule fires at five and does <em>not</em> fail on headroom, which is
+    /// exist; five bread fit. The Rule fires at five and does <em>not</em> fail on space, which is
     /// the distinction a fixed Rule cannot express.
     /// </summary>
     [Fact]
-    public void A_greedy_rule_stops_at_the_headroom_of_its_output_rather_than_failing_on_it()
+    public void A_greedy_rule_stops_at_the_space_of_its_output_rather_than_failing_on_it()
     {
         (World world, Simulation simulation, Handle<Building> building) = Built(BakingWithin(1, 10));
 
@@ -345,12 +345,12 @@ public sealed class RuleEvaluationTests
         Assert.Equal(9, Level(world, building, Flour));
         Assert.Equal(0, Level(world, building, Bread));
 
-        Assert.Equal(Blocking.Level, world.RuleInstances.Blocked[0]);
+        Assert.Equal(Blocking.Supply, world.RuleInstances.Blocked[0]);
 
         Assert.Equal(
             2 * 6,
             RuleEngine.Requirement(
-                world, 0, BinOf(world, building, Flour), Blocking.Level));
+                world, 0, BinOf(world, building, Flour), Blocking.Supply));
     }
 
     /// <summary>
@@ -493,7 +493,7 @@ public sealed class RuleEvaluationTests
 
         StepToTheFiring(simulation);
 
-        Assert.Equal(Blocking.Level, world.RuleInstances.Blocked[0]);
+        Assert.Equal(Blocking.Supply, world.RuleInstances.Blocked[0]);
 
         // Nothing on the Wheel: a starved Building costs nothing until supply arrives.
         for (int tick = 0; tick < 32; tick++)
@@ -501,7 +501,7 @@ public sealed class RuleEvaluationTests
             simulation.Step(TickInput.Empty);
         }
 
-        Assert.Equal(Blocking.Level, world.RuleInstances.Blocked[0]);
+        Assert.Equal(Blocking.Supply, world.RuleInstances.Blocked[0]);
 
         world.Deposit(world.Bins.Rows.At(BinOf(world, building, Flour)), 6, simulation.Tick);
 
@@ -767,12 +767,12 @@ public sealed class RuleEvaluationTests
         StepToTheFiring(simulation);
 
         Assert.Equal(12, Level(world, building, Flour));
-        Assert.Equal(Blocking.Level, world.RuleInstances.Blocked[0]);
+        Assert.Equal(Blocking.Supply, world.RuleInstances.Blocked[0]);
 
         Assert.Equal(
             4 * 6,
             RuleEngine.Requirement(
-                world, 0, BinOf(world, building, Flour), Blocking.Level));
+                world, 0, BinOf(world, building, Flour), Blocking.Supply));
     }
 
     /// <summary>An id the simulation does not declare throws rather than counting zero.</summary>
@@ -932,13 +932,13 @@ public sealed class RuleEvaluationTests
         simulation.CheckEndOfRun();
 
         Assert.Equal(1, world.RuleInstances.Rows.LiveCount);
-        Assert.Equal(Blocking.Level, world.RuleInstances.Blocked[0]);
+        Assert.Equal(Blocking.Supply, world.RuleInstances.Blocked[0]);
 
         // Subscribed once and once only. A Rule that re-subscribed each time it was polled would
         // queue 4,096 times over this run and the count is what would say so.
         int waiting = 0;
 
-        foreach (int _ in world.LevelWaiters.Walk(BinOf(world, building, Flour)))
+        foreach (int _ in world.SupplyWaiters.Walk(BinOf(world, building, Flour)))
         {
             waiting++;
         }

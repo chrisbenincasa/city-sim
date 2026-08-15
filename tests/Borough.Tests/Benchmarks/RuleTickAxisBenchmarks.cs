@@ -47,7 +47,7 @@ namespace Borough.Tests.Benchmarks;
 /// <b>What the terms row measures is the term <em>walk</em> and not the affordability arithmetic.</b>
 /// Its Rule draws one and returns one from each of two Bins, so the net delta per Bin is zero — four
 /// terms resolved, four <c>FindBin</c> searches, four <c>Touch</c> merges, and then nothing applied,
-/// which is what keeps the Tick repeatable. <c>RuleEngine.Check</c> skips the level and headroom read
+/// which is what keeps the Tick repeatable. <c>RuleEngine.Check</c> skips the level and space read
 /// for a Bin whose net delta is zero, so that half is missing and this row is a floor on the term
 /// axis. Recorded rather than worked around: making it exact costs the repeatability that makes the
 /// whole class measurable, which is the trade <c>RuleTickBenchmarks</c> already had to make.

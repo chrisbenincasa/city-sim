@@ -632,7 +632,7 @@ public sealed class RulesetMigrationTests
     /// not through an error path.
     /// </para>
     /// <para>
-    /// <b>The producer stops without being told to.</b> Headroom goes to −10 and
+    /// <b>The producer stops without being told to.</b> Space goes to −10 and
     /// <c>FloorDiv</c> rounds toward negative infinity, so <c>restock</c>'s affordable count is negative
     /// and below its floor; <c>eat</c> reads a level of twelve and is untouched. Neither Rule knows the
     /// Ruleset changed, and the asymmetry is arithmetic rather than a branch.
@@ -660,7 +660,7 @@ public sealed class RulesetMigrationTests
         Assert.Equal(2, world.Bins.Capacity[sundries]);
         Assert.True(world.Bins.LevelAt(sundries) > 2,
             "the swap clamped the level to the new ceiling instead of leaving it to drain.");
-        Assert.True(world.Bins.HeadroomAt(sundries) < 0, "headroom above a lowered ceiling is negative.");
+        Assert.True(world.Bins.SpaceAt(sundries) < 0, "space above a lowered ceiling is negative.");
 
         for (int i = 0; i < 512; i++)
         {

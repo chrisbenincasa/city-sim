@@ -187,7 +187,7 @@ public sealed class ChainTests
         StepToTheFiring(simulation);
 
         Assert.True(world.RuleInstances.IsWaiting(0));
-        Assert.Equal(Blocking.Level, world.RuleInstances.Blocked[0]);
+        Assert.Equal(Blocking.Supply, world.RuleInstances.Blocked[0]);
 
         Assert.Equal(
             world.Bins.Rows.At(BinOf(world, building, Flour)),

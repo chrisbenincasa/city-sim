@@ -78,7 +78,7 @@
 # 48 IS A COST DIAL HERE, NOT A BALANCE DIAL, AND THAT IS MEASURED TOO. Swept at 24, 36, 48 and 96, NO
 # ROW OF THE CENSUS MOVES; only `rules due` and `rules evaluations` move, and they move UP with capacity
 # (20,134 -> 25,023 at the first reading, 48 -> 96), because a deeper larder gives `restock` more
-# headroom to keep working. A BIGGER BUFFER COSTS MORE, NOT LESS. The larder decides nothing because it
+# space to keep working. A BIGGER BUFFER COSTS MORE, NOT LESS. The larder decides nothing because it
 # is DEEPER THAN THE BUILDING'S LIFESPAN: nothing in this file produces `repairs`, so `upkeep` condemns
 # every dwelling at 64 Ticks and a 128-Tick larder absorbs a shock that never arrives. Restoring 22.5
 # in-world minutes would need 2 firings held -- one above a known crash -- or `consume`'s rate quartered,
@@ -86,7 +86,7 @@
 # line says it models no city (adr/0070).
 #
 # THE STEADY STATE IS THE POINT, AND IT IS A SURPLUS ONE. Production outruns consumption, so the Bin
-# sits near its ceiling and `restock` is the Rule that fails: it sleeps on headroom, `consume` draws
+# sits near its ceiling and `restock` is the Rule that fails: it sleeps on space, `consume` draws
 # and wakes it, it refills and sleeps again. Both Rules move for ever, nothing trends, and no Rule is
 # ever wrongly asleep. THE SHORTAGE REGIME IS NOT AVAILABLE AND THAT IS AN ENGINE PROPERTY RATHER THAN
 # A TASTE: a recorded shortfall is a deficit at the instant of failure and the wait list wakes on the
@@ -97,7 +97,7 @@
 # WHY EVERY DWELLING FALLS DOWN, AND WHY THAT IS NOT A BALANCE MISTAKE. Slice 10 task 7 needs a
 # Building that is *continuously* starved, because failure pressure is a duration and a Rule that is
 # rescued resets it (adr/0053). Nothing in this file could supply one: the only Rule that fails here
-# is `restock`, and it fails on HEADROOM — the Bin is full, which is the healthy state of a producer
+# is `restock`, and it fails on SPACE — the Bin is full, which is the healthy state of a producer
 # with nobody to sell to, and the amended adr/0053 reads only starvation. So `upkeep` was added, and
 # it draws on a Resource this file deliberately never produces. Every dwelling therefore declines,
 # which is total rather than selective because there is one kind and it has one behaviour. A city
@@ -160,7 +160,7 @@ jobs = 8
 
 # Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
 # from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
-# `pool` draw in task 10b. Greedy because the actor works through whatever headroom it has, which is
+# `pool` draw in task 10b. Greedy because the actor works through whatever space it has, which is
 # 02 §4.1's own test for which of the two forms to write.
 [[rule]]
 name    = "restock"

@@ -1119,7 +1119,7 @@ public static class RulesetLoader
                         Refuse(LineOf(inline), kind,
                             "a money Bin declares no capacity. Money has no physical ceiling, and a "
                             + "finite one would mean an actor too full of money to be paid -- a sale "
-                            + "failing on headroom because the seller is rich.");
+                            + "failing on space because the seller is rich.");
                         continue;
                     }
 

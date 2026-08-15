@@ -629,7 +629,7 @@ public sealed class RulesetLoaderTests
 
     /// <summary>
     /// <b>A money Bin has no ceiling</b>, so authoring one is refused rather than ignored — a finite
-    /// ceiling on money means an actor too full of money to be paid, and a sale failing on headroom
+    /// ceiling on money means an actor too full of money to be paid, and a sale failing on space
     /// because the seller is rich.
     /// </summary>
     [Fact]
