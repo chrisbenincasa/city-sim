@@ -106,13 +106,28 @@ public sealed class TrafficLongRunTests(ITestOutputHelper output)
     /// needs the city to empty, which is a property of the commute rather than of the assertion.
     /// </para>
     /// <para>
-    /// ⚠ <b>The slot counts were asserted first and the assertion was measuring its own sample size.</b>
-    /// Over 49 Days the hop table saturates at <b>105</b> slots by Day 4 and never moves again, and
-    /// <c>TripTable</c> steps <b>12 → 13</b> once, around Day 41 — a max over ~100,000 draws of a count
-    /// whose peak is <b>11 vehicles in the whole city</b>, which creeps for ever and is not a leak. That
-    /// is <c>CommuteLongRunTests.PeakPopulation</c>'s finding on a second axis: a high-water mark of a
-    /// small count is a statistic about the run's length. Reported below rather than asserted, because
-    /// the minimum already refuses every leak the maximum could have caught.
+    /// ⚠ <b>The slot counts are reported rather than asserted, and the reason for that changed when
+    /// they were re-measured on 2026-08-16.</b> Across the 41-Day tail the four high-water marks run
+    /// hop <b>712 → 976</b>, trip <b>101 → 134</b>, leg <b>303 → 402</b> and traveller
+    /// <b>101 → 134</b> — and at <b>200</b> Days every one of them ends on those same four numbers.
+    /// They <em>saturate</em>, which is a stronger statement than the creep this paragraph used to
+    /// claim: peak concurrency here is <b>bounded</b> rather than a maximum over more and more draws.
+    /// ***A high-water mark that stops moving is a bound and not a statistic***, so these could be
+    /// asserted. They are not, because saturating <em>before the tail's midpoint</em> is a property of
+    /// the run's length rather than of the mechanism, and the minimum above already refuses every leak
+    /// a maximum could have caught.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The figures this paragraph carried until that re-measurement were wrong by roughly 9× and
+    /// 12×, and nothing in this corpus could have caught them.</b> They read <i>105 hop slots
+    /// saturating by Day 4</i>, <i><c>TripTable</c> stepping 12 → 13 around Day 41</i> and <i>a peak of
+    /// 11 vehicles in the whole city</i> — against 976, 134 and roughly 130 on the build they describe.
+    /// This file was untracked until <c>82a1547</c>, so git cannot date them against the mechanism they
+    /// measure, and a number sitting in a doc-comment is invisible to every mechanical check this corpus
+    /// has, all of which read one document against another. ***A count of the instruments is itself a
+    /// fact stored in prose***, so this says what they do rather than how many there are. ***A measurement written into prose does not re-run itself when the mechanism underneath
+    /// it moves***, which is <c>adr/0093</c> on the one input it does not cover: not a description of
+    /// what the build <em>does</em>, but a description of what it <em>measured</em>.
     /// </para>
     /// </remarks>
     [Fact]
@@ -393,14 +408,6 @@ public sealed class TrafficLongRunTests(ITestOutputHelper output)
         return total;
     }
 
-    /// <summary>
-    /// The second half of the tail is not above the first, within a sixteenth.
-    /// </summary>
-    /// <remarks>
-    /// <c>CommuteLongRunTests.AssertFlat</c>'s band, and for its reason: these are sampled flows over a
-    /// city that demolishes and rebuilds, so two halves that matched exactly would be a run in which
-    /// nothing happened.
-    /// </remarks>
     /// <summary>
     /// The second half of the tail is not above the first by more than the series' own noise.
     /// </summary>

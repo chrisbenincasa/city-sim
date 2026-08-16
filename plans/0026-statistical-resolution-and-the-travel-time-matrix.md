@@ -6,7 +6,7 @@
 
 ## Status
 
-⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1–7 of 8 done 2026-08-14.** One remains: task 8's long run, and ~~**it is the named ratifier for four hash-bearing numbers**~~ (`[traffic]`'s three and `[households] car_ownership_percent`). ⚠ **IT IS NOT, as of 2026-08-15: the run happened and could not fire.** Load came out at **0.0018 / 0.0048 / 0.0110** Vehicles per Segment per Tick at 4,000 / 16,000 / 64,000 Citizens, growing as roughly `P^0.66`, so ~**0.07** at 1,000,000 against a Segment holding **1.02** on `congested.toml` and **9.2** on the shipped capacity — **BPR is only ever evaluated where it is nearly flat, at every population this project can generate**, because the paved extent scales with the population it serves and ***the same number sizes both the demand and the supply***. All four rows moved **`plans/0002` §D2 → §D1** and now name a **world**: a city whose Streets were laid by `CommandKind.Connect` and deliberately under-provisioned. That is [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)'s 2026-08-15 amendment — ***a named ratifier names a machine and a world*** — and it is the sharpest thing this milestone produced. **Task 8 keeps its other job**, `adr/0006`'s acceptance run, which is unaffected. ⚠ **Until task 7 there was no Ruleset that could ratify them** — no shipped file stated either table — so task 7 shipped `rulesets/congested.toml`, and **task 8 runs against that file rather than against `minimal.toml`**. ⚠ **THAT WORLD WAS BUILT AND READ ON 2026-08-15, and the four rows split two and two.** `ConnectedCityCongestionTests` is a dumbbell of two zoned districts joined by one Street corridor, every Segment laid by `Connect`, populated through `SyntheticCity.PeopleInto` — [`0003`](0003-build-plan.md)'s hash-moving queue **item 9**, which existed because `Populate` and `Connect` were welded shut and no player-shaped network could get a population. **`[traffic]`'s α, β and clamp: neither refuting reading fires.** Peak `v/c` runs **65.1 / 97.7 / 1,074.3 / 2,767.0%** across four rungs; loaded against free-flow occupancy runs **6,784/6,784 → 122,725/80,978**, so *decorative* is refuted; and the clamp takes **0.00 / 0.00 / 0.04 / 0.52%** of loaded Segment-Ticks, so *binds routinely* is refuted at a peak **6.9×** the clamp. **`[households] car_ownership_percent`: both refuting readings fire and refute the wrong thing** — `beyond` is 0 and the rungs collapse into *fast* at every rung, because at 100% ownership every commute is a drive across a ≤4 km city while `adr/0095`'s rungs are percentiles of a **foot-only** distribution. ***A refuting reading named against one consequence cannot refute a number whose live consequence is a different one***, so `adr/0052`'s amendment wants a third clause: a ratifier names a machine, a world **and a quantity**. ⚠ **The largest finding is neither row.** The priced and free-flow runs agree **to the Citizen** on who is employed and on every rung count, at every rung, while their occupancies differ by half — `adr/0046` working as decided, and the corpus sweep's *the traffic model has no feedback term* arriving with a number. It is an equality assertion now, so the day a driver model closes `03 §3.4`'s loop the fixture breaks and names the loop. Full readings in [`0002`](0002-open-questions.md) §D1. All three named gates are discharged and none of the closures
+✅ **DONE 2026-08-16 — scoped 2026-08-14, tasks 1–7 shipped 2026-08-14, task 8 closed 2026-08-16.** Task 8 is the long run, and ~~**it is the named ratifier for four hash-bearing numbers**~~ (`[traffic]`'s three and `[households] car_ownership_percent`). ⚠ **IT IS NOT, as of 2026-08-15: the run happened and could not fire.** Load came out at **0.0018 / 0.0048 / 0.0110** Vehicles per Segment per Tick at 4,000 / 16,000 / 64,000 Citizens, growing as roughly `P^0.66`, so ~**0.07** at 1,000,000 against a Segment holding **1.02** on `congested.toml` and **9.2** on the shipped capacity — **BPR is only ever evaluated where it is nearly flat, at every population this project can generate**, because the paved extent scales with the population it serves and ***the same number sizes both the demand and the supply***. All four rows moved **`plans/0002` §D2 → §D1** and now name a **world**: a city whose Streets were laid by `CommandKind.Connect` and deliberately under-provisioned. That is [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)'s 2026-08-15 amendment — ***a named ratifier names a machine and a world*** — and it is the sharpest thing this milestone produced. **Task 8 keeps its other job**, `adr/0006`'s acceptance run, and ✅ **it discharged that on 2026-08-16** — 49 whole Days, a live minimum of **0** on all four Movement collections every Day, and Segment volume conserved on every one of 100,352 Ticks. ⚠ **Closing it found one thing the milestone did not know**: the slot high-water marks **saturate** rather than creeping (identical at 49 and 200 Days), and the doc-comment reporting them was wrong by roughly 9× and 12× with **nothing in the corpus able to catch it** — ***a measurement written into prose does not re-run itself when the mechanism underneath it moves***, which is `adr/0093` on the one input it does not cover. Task 8's record carries all four findings. ⚠ **Until task 7 there was no Ruleset that could ratify them** — no shipped file stated either table — so task 7 shipped `rulesets/congested.toml`, and **task 8 runs against that file rather than against `minimal.toml`**. ⚠ **THAT WORLD WAS BUILT AND READ ON 2026-08-15, and the four rows split two and two.** `ConnectedCityCongestionTests` is a dumbbell of two zoned districts joined by one Street corridor, every Segment laid by `Connect`, populated through `SyntheticCity.PeopleInto` — [`0003`](0003-build-plan.md)'s hash-moving queue **item 9**, which existed because `Populate` and `Connect` were welded shut and no player-shaped network could get a population. **`[traffic]`'s α, β and clamp: neither refuting reading fires.** Peak `v/c` runs **65.1 / 97.7 / 1,074.3 / 2,767.0%** across four rungs; loaded against free-flow occupancy runs **6,784/6,784 → 122,725/80,978**, so *decorative* is refuted; and the clamp takes **0.00 / 0.00 / 0.04 / 0.52%** of loaded Segment-Ticks, so *binds routinely* is refuted at a peak **6.9×** the clamp. **`[households] car_ownership_percent`: both refuting readings fire and refute the wrong thing** — `beyond` is 0 and the rungs collapse into *fast* at every rung, because at 100% ownership every commute is a drive across a ≤4 km city while `adr/0095`'s rungs are percentiles of a **foot-only** distribution. ***A refuting reading named against one consequence cannot refute a number whose live consequence is a different one***, so `adr/0052`'s amendment wants a third clause: a ratifier names a machine, a world **and a quantity**. ⚠ **The largest finding is neither row.** The priced and free-flow runs agree **to the Citizen** on who is employed and on every rung count, at every rung, while their occupancies differ by half — `adr/0046` working as decided, and the corpus sweep's *the traffic model has no feedback term* arriving with a number. It is an equality assertion now, so the day a driver model closes `03 §3.4`'s loop the fixture breaks and names the loop. Full readings in [`0002`](0002-open-questions.md) §D1. All three named gates are discharged and none of the closures
 reached a gate board, which is why this milestone read as blocked for two days
 ([`0000`](0000-board.md) → *Blocked*, split per-milestone on 2026-08-13):
 
@@ -313,7 +313,7 @@ mechanism in this project that has a **per-Tick write to a saved column** on eve
 |---|---|---|---|
 | ~~1~~ | ~~**What a drive Leg's endpoints are with no Parking Shed**~~ ✅ **STRUCK 2026-08-14, and the ground was never there.** Session F's trap is a **fallback from an exhausted Shed**, which cannot occur because no Shed exists — and `World.VehicleAccessPoint` had already forbidden it in its own doc-comment. The two Access Points are the **same Address** by construction (`World.cs:1044`, *built behaviour rather than an interim simplification*), so a drive is door to door and nothing is stood in for. ⚠ **What actually gated task 5 was not on this list at all**: nobody decides who drives, and mode choice is **undesigned** under `adr/0070` — see the record | task 5 | *(struck)* |
 | ~~2~~ | ~~**When a Leg's cost is computed**, and what makes it stale~~ ✅ **STRUCK 2026-08-14 by task 6, and the answer dissolves the staleness question rather than answering it.** A Leg's cost is computed **once, at planning, at free flow**, and it never goes stale because **nothing reads it back as a prediction** — it is what the Citizen judged the journey by, and that judgement is made once. The *execution* is priced **per Segment on entry** from live volume, so what would have gone stale is simply never stored. ***A plan does not age if nobody consults it twice.*** `adr/0012`'s invalidation contract therefore binds the **route cache** (task 4) and not the Leg, which is where it was always pointed. ⚠ **What this leaves open is a different question and it is named rather than absorbed**: the Commute Budget is judged on the plan, so a commute is accepted at free-flow cost and may be endured at a congested one — deliberate, since a person cannot see tomorrow's jam, and it is exactly what `adr/0095`'s fourth revisit trigger is waiting for | task 6 | *(struck)* |
-| 3 | **Whether the matrix may reject a job candidate**, or only order them | task 2 | Deleting the Severance reading is the failure mode, and 5b-bis task 4 chose the two-stage shape deliberately |
+| ~~3~~ | ~~**Whether the matrix may reject a job candidate**, or only order them~~ ✅ **STRUCK 2026-08-16, and it was settled by task 2 on 2026-08-14 — see that record's findings 2 and 3.** **The matrix does not reject at all, and neither half of the question survived contact.** The *distance*-reject is **inert**: with a safe margin it never fires, because the city is smaller than the Commute Budget reaches, which is the job-search box's structural inertness a third time. The *sound* reject — a candidate on a different foot component — **needs no matrix**: it is `RoadNodeTable.FootComponent`, in the tree since **5a** and never read by anything until task 2 read it, and it lives in `WalkRouting.Cost`. So the two-stage shape 5b-bis task 4 chose is intact and the Severance reading is not deleted. ⚠ **This row stayed open for two days after the work that closed it**, which is the corpus's own ***a gate is discharged by the work and struck by somebody, and only the first happens on its own*** — arriving inside the milestone that had just written it down | task 2 | *(struck)* |
 
 **None of these is a number**, so `adr/0052` does not apply to them and `adr/0043` does — type each one
 before settling it, and route anything measurable to a machine rather than to a sitting.
@@ -1041,3 +1041,101 @@ the modal commute at **4–8 minutes** against a 20-minute fast rung. That is th
 reading, *a fast rung never left*, at 64× the fixture it was doubted on, and its **fourth revisit
 trigger** says to reopen the rungs on the distribution when 5c lands. Not done here: the trigger fires at
 the end of the milestone and task 8 is still to run.
+
+---
+
+### Task 8 — the long acceptance run. ✅ **DONE 2026-08-16**, and it closes the milestone.
+
+**What shipped.** `TrafficLongRunTests`, two facts over **49 whole Days — 100,352 Ticks** — against
+`rulesets/congested.toml` at 4,000 Citizens with everybody driving. `The_hundred_thousand_Tick_traffic_run`
+is `06`'s definition of done on the two collections 5c added (`RouteHopTable`, and the vehicular half of
+`TravellerTable`) and the one magnitude it can leak; `The_road_never_carries_a_vehicle_that_is_not_on_it`
+holds `Invariant.SegmentVolumeIsConserved` to a hundred thousand Ticks rather than to 512, reporting the
+**peak discrepancy and the Tick it first appeared on** rather than merely that there was one.
+
+**The four preconditions this document wrote on 2026-08-14 were all binding, and each changed the test
+rather than decorating it.** The length is `49 × TICKS_PER_DAY` and not a round 100,000, so no reading
+straddles a Day. Every quantity that could have been sampled is instead **summed over every Tick of the
+Day and divided**, because Segment volume is a *level* and the departure window makes any one instant of
+2,048 unrepresentative of the others. The file states in its own header that it **cannot ratify
+`[traffic]`'s three numbers** and does not assert as though it can. And it runs against `congested.toml`,
+because `minimal.toml` states neither `[traffic]` nor `[households]`, makes no drive Leg at all, and would
+satisfy every assertion here **vacuously** — which is why the two vacuity guards are the first two lines
+of the run and not a footnote.
+
+**⚠ Finding 1 — the collection half is a *minimum* live count, and that is a different kind of assertion
+from its sibling's.** `CommuteLongRunTests` asserts **slots** on the stated ground that *a live count that
+stays flat proves nothing — it is flat in a city that leaks, because a leaked row is live*. That is true
+of a **mean** and false of a **minimum**. The departure window empties this city completely once a Day, so
+the emptiest Tick of a Day reads exactly **0** on all four Movement collections, and one leaked row makes
+it read 1 for ever. ***A minimum taken over a period the city empties is an exact leak test where a
+high-water mark is a statistical one*** — and it is available here only because the commute empties the
+city, which is a property of the mechanism rather than of the assertion. It is the first long run in this
+project that can refuse a single leaked row.
+
+**⚠ Finding 2 — the slot high-water marks *saturate*, the doc-comment said they creep, and the figures it
+said it with were wrong by an order of magnitude.** Measured 2026-08-16: across the 41-Day tail the four
+marks run hop **712 → 976**, trip **101 → 134**, leg **303 → 402**, traveller **101 → 134** — and a
+**200-Day** run ends on the *same four numbers*. Peak concurrency is **bounded**, not a maximum over more
+and more draws. The paragraph that reported them claimed the opposite and quoted *105 hop slots saturating
+by Day 4*, *`TripTable` stepping 12 → 13 around Day 41* and *a peak of 11 vehicles in the whole city*,
+against 976, 134 and roughly 130 on the build it describes.
+
+> ***A measurement written into prose does not re-run itself when the mechanism underneath it moves.***
+> This is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+> on the one input it does not cover. That ADR governs a description of what the build **does**, and its
+> repair is *name a symbol, never a time* — which works because a symbol can be opened. A description of
+> what the build **measured** is a number, no symbol names it, and every mechanical check this corpus
+> has reads one **document** against another. *(Stated without a count on purpose: `adr/0093`'s own
+> amendment records that ***a count of the instruments is itself a fact stored in prose***, and this
+> sentence was written with one in it first.)* ⚠ **Nothing
+> could have caught this**: the file was untracked until `82a1547`, so git cannot even date the figures
+> against the mechanism they are about. The candidate cause is
+> [`adr/0101`](../docs/adr/0101-a-commute-is-two-journeys-and-the-days-shape-is-a-property-of-the-job.md)
+> — a commute became two journeys on 2026-08-15, while this file sat unversioned — and it is named as a
+> **candidate and not a conclusion**, because no cheap experiment distinguishes it from a population or a
+> Ruleset the figures were taken at.
+>
+> **What survives is the paragraph's conclusion, strengthened.** It argued *report, do not assert*,
+> because a high-water mark of a small count is a statistic about the run's length. The reading says these
+> are not: ***a high-water mark that stops moving is a bound and not a statistic***, so they **could** be
+> asserted. They still are not, and the reason is now stated — saturating *before the tail's midpoint* is
+> a property of the run's length rather than of the mechanism, and the minimum in finding 1 already
+> refuses every leak a maximum could have caught.
+
+**⚠ Finding 3 — the flatness band was measured wrong before this task closed, and the repair is the
+finding.** The band began as `CommuteLongRunTests.AssertFlat`'s fixed **1/16**, copied — and that band was
+chosen for quantities three times quieter. Vehicle-Ticks a Day has a per-Day **CV of 15.7%** here, so the
+difference of the two half-means carries a standard error of about **133** against a 1/16 band of **164**:
+the assertion was **1.25σ wide**, failed roughly one run in ten with nothing wrong underneath, and failed
+on the shipped seed by 166. ***A flatness band is an assertion about the quantity's own variance as much
+as about its trend, so it cannot be transplanted between quantities.*** The band is derived from the
+tail's own spread now, at 3σ one-sided.
+
+> **The city was flat the whole time, and lengthening the run is what said so** — at 200 Days the 192-Day
+> tail's slope is **+0.267 vehicle-Ticks a Day** against +6.71 fitted over 41, and the half-difference is
+> **−0.32σ**, pointing the other way. ⚠ **The spread grows with the run** (CV 15.7% at 49 Days, **19.0%**
+> at 200), which is the signature of a *tail* rather than of a trend, and is this file's own *a maximum is
+> a statistic of the sample as well as of the thing sampled* arriving on a **mean**.
+>
+> ***A band widened because it was failing has to be shown still catching what it was written for.***
+> One vehicle leaked once, on Day 30 of 49, reads a rise of **2,018.6 against a band of 601.3** — ten
+> sigma — taken by injecting exactly that and watching the assertion fire; a leak of one vehicle every
+> twenty Days reads 2,272.2 against 991.5. The fixed 1/16 was never shown to do either. ⚠ **`CommuteLongRunTests`
+> still carries the fixed band and is not repaired here**: its drive-Legs sibling sits at a CV of **6.3%**
+> against the same 1/16, which is the same coin toss in the safe direction on this seed, and whether its
+> own quantities are as marginal is a reading nobody has taken.
+
+**⚠ Finding 4 — the run prints its series before it asserts anything, and that was found by needing it.**
+A long run that fails on its own first assertion otherwise reports a number and withholds the series it
+came out of — and the series is the whole diagnosis. Reading finding 3 took a second run with the print
+moved. ***An acceptance run's output is an instrument, and an instrument that only speaks on success is
+one you cannot use on the day it fails.***
+
+**What the milestone owes elsewhere, and the state of it.** The four hash-bearing numbers this task was
+named the ratifier for are **not ratified by it** and now name a world instead — see the *Status* block.
+[`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s **fourth
+revisit trigger** fires here: its three rungs are percentiles of a free-flow, foot-only distribution and
+5c has landed, so reopening them **on the distribution** is now due. It is filed rather than done, because
+the distribution to reopen them against is the one this milestone measured cannot be produced by a
+generated city.

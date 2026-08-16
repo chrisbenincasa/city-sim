@@ -34,6 +34,9 @@ sentence, which is `plans/0012` **Cause 5** by construction. Follow the link.
 | 8 | Milestone **5b** task 5 — Phase 4 runs behind `CommandKind.Trip` (`3a6b3f7`) | 2026-08-12 | [`0021`](0021-trips-legs-and-the-pedestrian-layer.md) → *Task 5's findings* |
 | 9 | Milestone **5b-bis** — jobs and the commute, all eight tasks (`d6809dd`) | 2026-08-13 | [`0023`](0023-jobs-and-the-commute.md) → *The record* |
 | 10 | Milestone **5c** tasks 1–7 — the partition, the matrix, the path source, the route cache, the vehicular Leg, the volume-delay function, `--traffic` | 2026-08-14 | [`0026`](0026-statistical-resolution-and-the-travel-time-matrix.md) → *The record* |
+| 11 | Milestone **5c** task 8 — the long acceptance run, which closed the milestone | 2026-08-16 | [`0026`](0026-statistical-resolution-and-the-travel-time-matrix.md) → *Task 8* |
+| 12 | [`0003`](0003-build-plan.md) hash-moving queue **item 9** — the populator's land half and people half come apart, so a `Connect`-laid network can hold a population | 2026-08-15 | [`0003`](0003-build-plan.md) → *The hash-moving queue* |
+| 13 | Argument — `04 §6` and `§7`, then the corpus-wide sweep for unscheduled mechanisms | 2026-08-15 | [`adr/0102`](../docs/adr/0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md)–[`adr/0104`](../docs/adr/0104-a-skill-tier-is-earned-by-attendance-and-the-credential-stays-a-wall.md), [`06`](../docs/06-roadmap.md) → *Mechanisms with no milestone* |
 
 ## Closed prose that sat beneath that table
 
