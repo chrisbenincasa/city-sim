@@ -207,41 +207,140 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
         Ruleset priced = Connected();
         Ruleset free = ConnectedWithoutTraffic();
 
-        (long Loaded, long Free, Ratio Peak) At(Plan plan)
-        {
-            Reading loaded = Run(plan, priced, connected: true, $"{Name(plan)} loaded");
-            Reading control = Run(plan, free, connected: true, $"{Name(plan)} free-flow");
+        (Reading Loaded, Reading Free) At(Plan plan) => (
+            Run(plan, priced, connected: true, $"{Name(plan)} loaded"),
+            Run(plan, free, connected: true, $"{Name(plan)} free-flow"));
 
-            return (loaded.VehicleTicks, control.VehicleTicks, loaded.PeakLoad);
-        }
+        (Reading Loaded, Reading Free) flat = At(Small);
+        (Reading Loaded, Reading Free) loadedUp = At(new Plan(8));
 
-        (long Loaded, long Free, Ratio Peak) flat = At(Small);
-        (long Loaded, long Free, Ratio Peak) loadedUp = At(new Plan(8));
-
-        Assert.True(flat.Loaded > 0 && loadedUp.Loaded > 0, "nobody drove, so nothing was measured.");
+        Assert.True(
+            flat.Loaded.VehicleTicks > 0 && loadedUp.Loaded.VehicleTicks > 0,
+            "nobody drove, so nothing was measured.");
 
         // The bottom rung: the shipped city, where the function is real and costs nothing anybody can
         // see. Equality rather than "close", because a sub-Tick delay is absorbed exactly.
-        Assert.Equal(flat.Free, flat.Loaded);
+        Assert.Equal(flat.Free.VehicleTicks, flat.Loaded.VehicleTicks);
 
         // The top rung, and the whole point of the fixture. Vehicle-Ticks rather than a delay column,
         // because a delay column is what the function COMPUTES and this has to be a reading of what the
         // city DID: a journey priced dearer occupies its Segments for longer.
         Assert.True(
-            loadedUp.Loaded > loadedUp.Free,
-            $"at {Name(new Plan(8))} the loaded run held {loadedUp.Loaded} Vehicle-Ticks against the "
-            + $"free-flow control's {loadedUp.Free}. The two runs are the same city priced with and "
-            + "without the volume-delay function, so equal totals mean the function is decorative here "
-            + "too and this fixture has not moved the ratifier on.");
+            loadedUp.Loaded.VehicleTicks > loadedUp.Free.VehicleTicks,
+            $"at {Name(new Plan(8))} the loaded run held {loadedUp.Loaded.VehicleTicks} Vehicle-Ticks "
+            + $"against the free-flow control's {loadedUp.Free.VehicleTicks}. The two runs are the same "
+            + "city priced with and without the volume-delay function, so equal totals mean the "
+            + "function is decorative here too and this fixture has not moved the ratifier on.");
 
         // ⚠ And the load is past the knee rather than merely above the control's. v/c = 1 is where BPR
         // stops being a rounding error, so a fixture that peaked at 0.9 would satisfy the assertion
         // above by a margin the sub-Tick carry could swallow on a different seed.
         Assert.True(
-            loadedUp.Peak > Ratio.One,
-            $"the corridor peaked at v/c {Percent(loadedUp.Peak)}, which is below capacity -- the "
-            + "function is being evaluated on the flat part of its own curve, which is the condition "
-            + "that made 5c task 8 unable to ratify these numbers in the first place.");
+            loadedUp.Loaded.PeakLoad > Ratio.One,
+            $"the corridor peaked at v/c {Percent(loadedUp.Loaded.PeakLoad)}, which is below capacity "
+            + "-- the function is being evaluated on the flat part of its own curve, which is the "
+            + "condition that made 5c task 8 unable to ratify these numbers in the first place.");
+
+        // ⚠ The clamp, at both ends, and the ends are what make it a reading rather than a level. See
+        // The_clamp_catches_a_tail_and_does_not_bind_routinely for the ladder and what it settles.
+        Assert.Equal(0, flat.Loaded.ClampedSegmentTicks);
+        Assert.True(
+            loadedUp.Loaded.ClampedSegmentTicks > 0,
+            "nothing reached the clamp even at a peak past ten times capacity, so clamp_percent is "
+            + "unreachable on this fixture and its refuting reading cannot be taken here.");
+
+        // ⚠ And the free-flow control must never clamp, which is the guard the Runs check earns: a
+        // Ruleset with no [traffic] has a Clamp of zero, so a comparison alone would report the
+        // control clamping hardest in the fixture.
+        Assert.Equal(0, loadedUp.Free.ClampedSegmentTicks);
+    }
+
+    /// <summary>
+    /// <b>The clamp catches a tail; it does not bind routinely — and congestion changes no hiring.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>0002</c> §D1's two rows read on the world they name, and neither comes back the way the
+    /// row expected.</b> The readings, taken 2026-08-15 on the ladder above at the shipped 3,600
+    /// Vehicles an hour over two Days:
+    /// </para>
+    /// <code>
+    /// rung    pop     peak v/c    clamped Segment-Ticks     employed    beyond   fast/mod/unsav
+    ///  4x4   4,000       65.1%        0 of  5,304  0.00%      1,185          0   3,630 / 0 / 0
+    ///  6x6   9,000       97.7%        0 of 14,167  0.00%      2,507          0   8,294 / 0 / 0
+    ///  8x8  16,000    1,074.3%       12 of 28,948  0.04%      4,470          0  14,436 / 0 / 0
+    /// 10x10 25,000    2,767.0%      272 of 51,952  0.52%      7,022          0  22,698 / 0 / 0
+    /// </code>
+    /// <para>
+    /// ⚠ <b><c>clamp_percent</c>'s refuting reading does not fire, and the margin is large.</b> The
+    /// stated refutation is <em>a clamp that binds routinely means the curve has stopped discriminating
+    /// where the game is played</em>. At 10×10 the peak is <b>6.9× the clamp</b> and the clamp still
+    /// takes <b>0.52%</b> of the Segment-Ticks that carried anybody. It is doing exactly the job it was
+    /// recovered from S2 R8.0's delay for: bounding a quartic's tail without touching its body.
+    /// <b>The share is a steep trend rather than a level</b> — 0.00, 0.00, 0.04, 0.52 — so it is 13×
+    /// per rung against a 2.6× peak, and the reading is <em>not routine here</em> rather than
+    /// <em>never routine</em>. ***A refuting reading that does not fire is a reading of the world it
+    /// was taken in***, and this world is four rungs of one corridor.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>car_ownership_percent</c>'s two refuting readings BOTH fire, and they refute the wrong
+    /// thing.</b> <c>0002</c> §D1 names <em>jobs beyond budget never leaving zero</em> and <em>the
+    /// three rungs collapsing into fast</em>; <c>beyond</c> is <b>0</b> and <c>moderate</c> and
+    /// <c>unsavoury</c> are <b>0</b> at every rung. The cause is not the rate. At 100% ownership every
+    /// commute is a drive at 50 km/h across a city at most 4 km wide, and <c>adr/0095</c>'s three rungs
+    /// are percentiles of a <b>foot-only</b> distribution — which <c>CLAUDE.md</c>'s own Commute Budget
+    /// row says in as many words. ***A refuting reading named against one consequence cannot refute a
+    /// number whose live consequence is a different one***: this rate is inert on <em>reach</em> and
+    /// load-bearing on <em>congestion</em>, and it is the second that the world was built to expose.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>And congestion changes nothing about who works where — asserted as exact equality, which
+    /// is the sharpest thing in this file.</b> The loaded and free-flow runs report the same
+    /// <c>employed</c> and the same rung counts at every rung, to the Citizen, while their occupancies
+    /// differ by <b>51.6%</b> at 10×10. That is <c>adr/0046</c> working as decided — <em>congestion is
+    /// a cost paid and never a cost avoided</em> — and it is the corpus sweep's <em>the traffic model
+    /// has no feedback term</em> arriving with a number instead of an argument. <b>The day a driver
+    /// model closes <c>03 §3.4</c>'s loop, this equality breaks and says so</b>, which is why it is an
+    /// assertion rather than a sentence.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_clamp_catches_a_tail_and_does_not_bind_routinely()
+    {
+        Plan plan = new(8);
+        Reading loaded = Run(plan, Connected(), connected: true, $"{Name(plan)} loaded");
+        Reading free = Run(plan, ConnectedWithoutTraffic(), connected: true, $"{Name(plan)} free-flow");
+
+        // The clamp is reached and is nowhere near routine. Stated as a fraction of the loaded
+        // Segment-Ticks rather than as a count, because a count grows with the fixture and the claim
+        // is about a share. A twentieth is far above the 0.52% the ladder's top rung reads and far
+        // below anything a person would call routine, so it discriminates without being a tuned edge.
+        Assert.True(loaded.ClampedSegmentTicks > 0, "the clamp was never reached, so it is untested.");
+        Assert.True(
+            loaded.ClampedSegmentTicks * 20 < loaded.LoadedSegmentTicks,
+            $"the clamp took {loaded.ClampedSegmentTicks} of {loaded.LoadedSegmentTicks} loaded "
+            + "Segment-Ticks, which is routine rather than a tail -- so the curve has stopped "
+            + "discriminating where this city is played, and it is clamp_percent that wants moving "
+            + "rather than alpha.");
+
+        // car_ownership_percent's two named refuting readings, asserted in the direction they were
+        // measured so that a world which stops collapsing them says so. Both are properties of this
+        // city's size against a driving population, NOT of the rate -- see the remark.
+        Assert.Equal(0, loaded.Beyond);
+        Assert.Equal(0, loaded.Moderate);
+        Assert.Equal(0, loaded.Unsavoury);
+        Assert.True(loaded.Fast > 0, "nobody was hired at all, so the rungs are empty rather than collapsed.");
+
+        // ⚠ adr/0046, as an equality. Congestion is a cost PAID and never a cost AVOIDED, so pricing
+        // the road moves what a journey costs and moves nothing about who took which job. This breaks
+        // the day a driver model closes 03 §3.4's loop, which is the point of writing it down.
+        Assert.Equal(free.Fast, loaded.Fast);
+        Assert.Equal(free.Moderate, loaded.Moderate);
+        Assert.Equal(free.Unsavoury, loaded.Unsavoury);
+        Assert.True(
+            loaded.VehicleTicks > free.VehicleTicks,
+            "the two runs held the same occupancy, so the equalities above are two identical cities "
+            + "rather than one city priced two ways.");
     }
 
     /// <summary>The block size this fixture assumes is the block size the Ruleset states.</summary>
@@ -253,16 +352,34 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
 
     private Reading Run(Plan plan, Ruleset rules, bool connected, string what)
     {
+        ArgumentNullException.ThrowIfNull(rules);
+
         Simulation simulation = Start(plan, rules, connected);
         World world = simulation.World;
         RoadSegmentTable segments = world.Roads.Segments;
 
         long vehicleTicks = 0;
+        long loadedSegmentTicks = 0;
+        long clampedSegmentTicks = 0;
+        long beyond = 0;
+        long fast = 0;
+        long moderate = 0;
+        long unsavoury = 0;
         var peak = Ratio.Zero;
 
         for (int tick = 1; tick <= TickCount; tick++)
         {
             simulation.Step(new TickInput(default, rulesetHash: 0));
+
+            // Drained every Tick because draining is what a flow's reading does. Summed here rather
+            // than sampled at the end for TrafficLongRunTests' reason: these are flows, and a flow
+            // read once is one Tick of 4,096 rather than the run.
+            EmploymentActivity jobs = simulation.Employment.Drain();
+
+            beyond += jobs.Beyond.Sum;
+            fast += jobs.Fast.Sum;
+            moderate += jobs.Moderate.Sum;
+            unsavoury += jobs.Unsavoury.Sum;
 
             for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
             {
@@ -282,6 +399,21 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
                 Ratio load = segments.LoadOf(slot, busier, segments.FreeFlowOver(slot));
 
                 peak = load > peak ? load : peak;
+
+                if (load <= Ratio.Zero)
+                {
+                    continue;
+                }
+
+                loadedSegmentTicks++;
+
+                // ⚠ Guarded on Runs, not merely on the comparison. A Ruleset with no [traffic] has a
+                // Clamp of zero, so every occupied Segment would read as clamped and the free-flow
+                // control would report the heaviest clamping in the fixture.
+                if (rules.Traffic.Runs && load > rules.Traffic.Clamp)
+                {
+                    clampedSegmentTicks++;
+                }
             }
         }
 
@@ -289,12 +421,46 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
             $"{what,-22} pop {plan.Population,6}  segments {Live(segments),4}  "
             + $"vehicle-Ticks {vehicleTicks,7}  peak v/c {Percent(peak),9}  "
             + $"employed {Employed(world),5}");
+        _output.WriteLine(
+            $"{"",-22} clamped {clampedSegmentTicks,7} of {loadedSegmentTicks,7} loaded Segment-Ticks "
+            + $"({Share(clampedSegmentTicks, loadedSegmentTicks)})  "
+            + $"beyond {beyond,6}  rungs fast {fast,5} moderate {moderate,5} unsavoury {unsavoury,5}");
 
-        return new Reading(vehicleTicks, peak);
+        return new Reading(
+            vehicleTicks, peak, clampedSegmentTicks, loadedSegmentTicks, beyond, fast, moderate,
+            unsavoury);
     }
 
     /// <summary>What one run of <see cref="Run"/> is worth reading off it.</summary>
-    private readonly record struct Reading(long VehicleTicks, Ratio PeakLoad);
+    /// <summary>What one run of <see cref="Run"/> is worth reading off it.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The clamp is counted in Segment-Ticks rather than in pricing events, and the difference is
+    /// worth stating.</b> <c>[traffic] clamp_percent</c>'s refuting reading is <em>a clamp that binds
+    /// routinely</em>, which is properly a share of the <em>drives priced</em>; what is countable
+    /// without a new column in <c>Borough.Core</c> is a share of the <b>Segment-Ticks that carried
+    /// anybody</b>. The two agree in direction and not in denominator — a clamped Segment prices every
+    /// vehicle that enters it, so the Segment-Tick share is the road's exposure rather than the
+    /// traveller's. ***A proxy is a reading of the thing it is a proxy for only while it is named as
+    /// one.***
+    /// </para>
+    /// <para>
+    /// <b>The four job counters are <c>[households] car_ownership_percent</c>'s refuting readings and
+    /// not this fixture's own</b> — <c>0002</c> §D1 names <em>reach</em>: <c>jobs beyond budget</c>
+    /// never leaving zero, or the three <c>adr/0095</c> rungs collapsing into <em>fast</em>. They are
+    /// read here because this is the first world in which owning a car costs anything, which is that
+    /// row's stated reason for naming it.
+    /// </para>
+    /// </remarks>
+    private readonly record struct Reading(
+        long VehicleTicks,
+        Ratio PeakLoad,
+        long ClampedSegmentTicks,
+        long LoadedSegmentTicks,
+        long Beyond,
+        long Fast,
+        long Moderate,
+        long Unsavoury);
 
     /// <summary>
     /// A world under <paramref name="rules"/>, its Streets laid by the player or by the generator.
@@ -533,4 +699,8 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
 
     /// <summary>A <see cref="Ratio"/> as a percentage, for something a person reads.</summary>
     private static string Percent(Ratio value) => $"{value.Raw * 100.0 / 65_536.0:F1}%";
+
+    /// <summary>One count against another, as a percentage a person reads.</summary>
+    private static string Share(long part, long whole) =>
+        whole <= 0 ? "n/a" : $"{part * 100.0 / whole:F2}%";
 }
