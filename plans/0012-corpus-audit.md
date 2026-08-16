@@ -1658,6 +1658,89 @@ all six on the day each was declared, and — unlike checks 1–9, which are all
 reads the **code** to hold a **document** to account, which is the direction this corpus has never been
 able to check in.
 
+### `CONTEXT.md`'s specimen abandonment sentence promises a **window**, and the window is the only part of it the build cannot reach
+
+*(Found 2026-08-16 while grilling [`06`](../docs/06-roadmap.md) milestone 6 — Evidence, the
+accumulators — before scoping it. Owners: `CONTEXT.md` → Failure Pressure,
+[`adr/0097`](../docs/adr/0097-a-reach-failure-is-counted-on-the-citizen-and-a-stock-failure-is-not-remembered-at-all.md),
+and [`02 §9`](../docs/02-simulation-model.md).)*
+
+**`CONTEXT.md:203` states the retained condition a player is shown when a Building is abandoned —
+*"abandoned: 74% of work trips exceeded commute budget over 30 days"* — and it is quoted as the model
+of what `LEGIBLE CAUSE` means.** It decomposes into five clauses, of which **four are in hand at one
+instant inside one method** and the fifth is not reachable at all:
+
+| Clause | Status |
+|---|---|
+| *exceeded commute budget* | **Exists.** `TripFate.ExceededCommuteBudget`, decided in `TripEngine.Start` |
+| *work trips* | **Exists.** `TripPurpose.Commute`, a parameter of that method |
+| *to this Building* | ⚠ **In hand and discarded.** `toBuilding` is a live parameter at the refusal; the Trip row stores road Addresses and the Building slot is not persisted |
+| *74%* | **Two integers.** A numerator and a denominator on the Building, incremented at a site that already holds every operand |
+| *over 30 days* | 🔴 **The gap.** A trailing-window rate needs either per-Building history or a reset cadence, and a reset cadence is a new hash-bearing number |
+
+**The ratio is cheap and the window is the decision.** `TripEngine.Start`'s budget test —
+*"a person who can see the journey is too long does not make two thirds of it and stop"* — reaches its
+verdict twelve lines below a signature carrying `toBuilding` and `purpose`. So the design can already
+produce *this Building has refused 74% of the commute Trips aimed at it, **ever***. What it cannot
+produce is the trailing window, and the window is what makes the sentence a **diagnosis** rather than a
+lifetime average: a Building that was fine for a year and unreachable for a month reads healthy on a
+lifetime ratio, which is the direction that fails silently.
+
+⚠ **The window is the question [`adr/0053`](../docs/adr/0053-failure-pressure-is-a-duration-not-a-tally.md)
+already answered once, and its answer was to refuse the obvious shape.** A decaying average is a tally
+with a decay rate, and that ADR deleted exactly that — *"a tally needs a decay rate authored, tuned and
+ratified. A duration needs none"* — recording it as the second time the cheapest way to satisfy
+`adr/0052` was to **find the derivation that removes the choice**. So a decay rate proposed here is
+running against a decision taken deliberately, and the first move is to look for the derivation.
+
+⚠ ~~The candidate worth trying: report the rate over **the same window condemnation is judged over**,
+which `ZoneRuleEngine.Condemn` already computes as `kind.CondemnAfter × rule.Rate` — derived, already
+hash-bearing for another reason, and it makes the reported number and the lethal number the same
+number.~~ **WITHDRAWN hours later, on the same day: it is refused by name by
+[`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md).**
+That ADR's revisit triggers require a later mechanism needing a duration to be *"built once, named, and
+given a threshold with a ratifier — **not bolted onto `0053`**, whose predicate is about Bins and whose
+`CondemnAfter` is denominated in a **Rule's rate**. Two pressure sources sharing one threshold would
+make the number mean two things."* A Ruleset halving a Rule's rate would silently halve the Evidence
+window. ***A derivation that reuses a constant inherits every decision that constant is already
+carrying*** — `adr/0094`'s `Speed.PerKilometrePerHour` literal on a third axis, and the reason
+`02 §2.1` splits the Cell from the Chunk. **The search for a derivation is the right first move and it
+has not succeeded**, which under `adr/0043` is a result to write down rather than an absence of one.
+⚠ **The whole question moved to milestone 17 on 2026-08-16** — decline owns it, because *Evidence
+reports pressure and does not produce it*, and `06`'s inventory already parks a sibling window question
+there (`01 §6`'s sustained-detection duration).
+
+⚠ **`02 §9` recorded this identical defect once already, on the other axis, and the Building axis is
+unrepaired.** *"`jobs beyond budget` counts Citizens the Commute Budget excluded and keeps **no entity
+reference**, so a 100,000-Tick run could report *distance rather than supply is what separates them* in
+aggregate and name **nobody** it was true of."* `adr/0097` repaired it with a reach-failure count **on
+the Citizen**, resetting on success. `TripCounter.ExceededCommuteBudget` is the same aggregate figure
+with the same missing reference, on the **Building**, and the repair shape transposes without argument.
+***A defect repaired on one axis of a symmetric pair is not thereby repaired***, and nothing in this
+corpus walks the other axis when one is fixed.
+
+- [ ] **`CONTEXT.md:203`** — the sentence is aspirational and reads as descriptive. It sits in the file
+  that governs vocabulary, so it is the copy most likely to be quoted as a specification. Either mark the
+  window as owed, or replace the specimen with one the build can produce.
+- [ ] **`02 §9`** — add the Building axis beside the Citizen one it already carries, so the pair is
+  visible as a pair.
+- [ ] **A judgement, not a correction**: how the window is denominated, given that a decay rate is
+  refused by `adr/0053` and reusing `CondemnAfter × rate` is refused by `adr/0079`. **Owed by `06`
+  milestone 17**, not by milestone 6 — the counter and its window moved there on 2026-08-16, because
+  Evidence reports pressure and does not produce it. See [`0028`](0028-evidence-the-accumulators.md)
+  → *What this milestone must not do*.
+
+⚠ **How this was nearly filed wrongly, which is Cause 4 in a form that will recur.** The first draft of
+this entry said the rate was *"not computable, blocked on an unbuilt link"*. That came from a **subagent's
+survey of the code**, which said accurately that *a Trip does not know which Building it went to* and
+that *the Building slot is not persisted* — both true **of the Trip row**. The inference drawn from them
+— that the Building is therefore unavailable — is false, and it survived because nobody opened
+`TripEngine.Start`. ***A generated survey of the build is a description of the build***, so `adr/0093`
+governs it exactly as it governs a doc-comment: it tells you which symbol to open and never what is
+inside it. This is worth recording on its own, because a survey is *more* persuasive than a doc-comment —
+it is current, it cites line numbers, and its facts are individually correct — and this corpus is going to
+read a great many of them.
+
 ### Not a defect — recorded so it is not re-raised
 
 **The reporting terminal is described correctly.** The sweep flagged `adr/0045`, `02 §4.1` and
