@@ -49,6 +49,29 @@ public readonly struct WheelBucket;
 public readonly struct RulesetTrailEntry;
 
 /// <summary>
+/// One Building this world condemned, and the condition that condemned it.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The fourth row type in the project that is not a thing in the world</b>, and
+/// <see cref="RulesetTrailEntry"/>'s sibling: a row of <see cref="CondemnationTrailTable"/> is a piece
+/// of the world's <em>history</em> rather than of its present. Nothing ever holds a
+/// <c>Handle&lt;CondemnationTrailEntry&gt;</c> — entries slide down a slot when the window fills, for
+/// <see cref="Entities.Unplaced"/>'s reason.
+/// </para>
+/// <para>
+/// <b>It is named for what the build does and not for what the design says.</b> <c>CONTEXT.md</c> →
+/// Failure Pressure calls the end state <em>abandoned</em> and <c>adr/0091</c> leaves an abandoned
+/// Building <em>standing</em> on its Lot; <see cref="ZoneRuleEngine"/>'s condemn path calls
+/// <see cref="Entities.World.DestroyBuilding"/>, which frees it. <c>plans/0012</c> records that
+/// divergence and <c>06</c> milestone 17 owns it, so naming this <em>abandonment</em> would be naming a
+/// row for a mechanism nobody has built yet (<c>adr/0070</c>). It records condemnations because
+/// condemnation is what happens.
+/// </para>
+/// </remarks>
+public readonly struct CondemnationTrailEntry;
+
+/// <summary>
 /// Why a Rule Instance is asleep, and therefore which of a Bin's two wait lists it is on.
 /// </summary>
 /// <remarks>

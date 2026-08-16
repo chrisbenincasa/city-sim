@@ -257,6 +257,22 @@ lost `commute_peak_factor` and gained `shift_hours_min`/`max` and `arrive_early_
 lines *inside* `session.borough` name numbers that no file produced any more. **Four literals in two
 files, exactly the shape 5b-bis task 4's re-record had.**
 
+**Milestone 6 task 1 re-recorded `world-hash.txt` and `session-trace.txt` and moved neither Ruleset
+content hash — the same combination 5c task 6 named, and for the same reason.** `condemnation_trail`
+joined `World._tables`, appended, so the composition gained a table at the end and every number in
+those two files moved; no shipped Ruleset gained a key, so `session.borough` and `GoldenFixtures`
+needed no edit and the four-literals ordering did not apply. The version byte in `World.HashSeed` is
+deliberately **unmoved**: this is a world with more tables in it, not a change to the fold, which is
+the distinction the note above draws.
+
+⚠ **What this re-record covers is the table's *existence*, not its use, and the gap closes in task 2.**
+Nothing writes `condemnation_trail` yet — `ZoneRuleEngine`'s condemn path is where `Record` gets its
+caller — so the fresh numbers here fold **256 + 1 rows of zeroes** and would be identical if `Record`
+were deleted. That is the shape `plans/0012`'s **check 10** names: *a `Rows.Saved` column whose only
+assignment in the tree is under `tests/`*. It is true of this table for exactly as long as task 1 stands
+without task 2, and it is written down here rather than discovered by the check, because ***a baseline
+that covers a table's declaration reads exactly like one that covers its behaviour***.
+
 ⚠ **The re-record was blocked before it could start, and the refusal was the right one.** The runner
 would not replay a session naming a Ruleset hash nobody supplied — *Rules nobody has are not a
 mismatch, and `--force-ruleset` cannot waive it* — so the two literals in `session.borough` and the two

@@ -136,6 +136,7 @@ public sealed class World
         RuleInstances = new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins);
         Clock = new ClockTable();
         RulesetTrail = new RulesetTrailTable();
+        CondemnationTrail = new CondemnationTrailTable(Lots.Rows);
 
         // The three Movement tables, and their capacity is deliberately NOT a function of population.
         //
@@ -182,6 +183,12 @@ public sealed class World
             // that recomputed it would silently re-plan every journey in flight against a graph the
             // player may have edited since.
             RouteHops.Rows,
+
+            // Appended for the same reason, milestone 6 task 1. A condemnation's cause is available for
+            // exactly one line -- DestroyBuilding frees the Rule Instances that hold it -- so this is
+            // history rather than present state, and 02 §9's "why is this Lot vacant" cannot be
+            // answered from a world that did not keep it.
+            CondemnationTrail.Rows,
         ];
 
         WorldInvariants.RegisterAll(Invariants);
@@ -360,6 +367,18 @@ public sealed class World
     /// snapshot anybody holds, and a trail that died with the process could never reach one.
     /// </remarks>
     public RulesetTrailTable RulesetTrail { get; }
+
+    /// <summary>
+    /// Every Building this world condemned and why, capped and aggregated past the cap.
+    /// </summary>
+    /// <remarks>
+    /// <b>Here rather than on the <see cref="Simulation"/> for <see cref="RulesetTrail"/>'s reason, and
+    /// the reason is stronger.</b> That trail is in the save because a degradation upstream of every
+    /// snapshot could not otherwise be reached; this one is in the save because <c>02 §9</c>'s question
+    /// — <em>why is this Lot vacant</em> — is asked about a world the player loaded, and an answer that
+    /// died with the process would leave the emptiest part of a city the least explicable.
+    /// </remarks>
+    public CondemnationTrailTable CondemnationTrail { get; }
 
     /// <summary>The Bin Rules this world runs. Ids and integers; no string reaches here.</summary>
     /// <remarks>

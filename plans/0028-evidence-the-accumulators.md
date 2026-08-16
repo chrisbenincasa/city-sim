@@ -11,7 +11,12 @@ and no session, spike or milestone stands in front of it.
 
 **Four decisions were settled with the user in the room on 2026-08-16**, before any task was written,
 and they are recorded under *What was settled before scoping* below. **Three remain open** and are
-listed under *Open decisions this milestone owes*; none of them blocks task 1.
+listed under *Open decisions this milestone owes*. ⚠ **This line said *none of them blocks task 1* and
+that was false** — a fixed-size table's capacity and columns cannot be declared without the bound and
+the kind count, and both of those decisions said *owed before task 1* forty lines below. Both are now
+**closed**: the trail is **one concrete trail for abandonment** and the bound is **256**, a reasoned
+guess rather than a measurement. **One decision remains open** — whether task 3 is this milestone's or
+19's — and it blocks task 3 alone.
 
 ⚠ **A fifth task and a fourth open decision were scoped here on 2026-08-16 and removed the same day,
 before any code.** Attributing budget refusals to the Building they were aimed at is Evidence-shaped,
@@ -252,23 +257,71 @@ milestone must not do*. The live question — how a trailing-window rate is deno
 authoring a decay rate `adr/0053` deleted, and without welding to a constant `adr/0079` forbids
 reusing — travels with it.
 
-### 1. The bound's value — owed before task 1
+### ~~1. The bound's value~~ — **CHOSEN 2026-08-16: 256. A guess we think is right, and it is not a measurement**
 
-The trail's own `Retained = 16` is *"the smallest window that outlives a balance sitting's worth of
-remove-watch-restore cycles"* and is explicitly a guess with a named ratifier. **Do not copy the digits**
-— that number was derived from a *designer's working habit*, and this window is sized by a **player's
-diagnosis**, which is a different quantity that happens to share a unit ([`0012`](0012-corpus-audit.md)
-*Cause 5*). The value waits on decision 2.
+⚠ **Read this as *we believe this is fine and here is the analysis*, never as *this was measured*.**
+The measurement was attempted first, on purpose, and **the world defeated it** — which is
+[`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)'s
+amendment arriving for the second time in three days: ***a ratifier names a machine, a world and a
+quantity***, and here only the world is missing.
 
-### 2. One window, or one per event kind — owed before task 1
+**What was run.** `--series --ruleset rulesets/minimal.toml --ticks 20480 --hash-every 32` — ten Days,
+640 samples. No new instrument was needed; `ZoneCounter.Demolished` has been a Census flow since
+milestone 10. **The city falls from 1,201 Buildings to ~570 and grinds there for ever, demolishing
+9–19 every 32 Ticks without pause** — roughly 9,000 demolitions in ten Days, with `created` tracking
+`vacant` and `demolished` tracking `occupied` sample for sample, which is the shipped Ruleset's
+*"the Zone Rule's one-Lot sample rebuilds at the rate it demolishes"* visible in a series. The Unplaced
+Pool runs 0 → 2,204.
 
-If demolitions, departures and budget refusals share one window, a busy demolition period evicts the
-departure history that explains it. If each gets its own, the cap is per-kind and the table is
-`kinds × Retained`. **Recommendation: one per kind**, because the failure mode of sharing is that the
-*correlated* events crowd each other out, and correlated events are precisely the ones a diagnosis
-needs together.
+***There is no wave, because abandonment here is not an episode.*** Every shipped Ruleset inherits
+`minimal.toml`'s `upkeep` Rule drawing on a Resource nothing produces, so every Building is condemnable
+64 Ticks after it is raised and decline is a permanent uniform grind at the fixture's maximum rate. A
+window sized to hold an episode cannot be sized in a city that has none, and **all four files say in
+their own headers that they model no city**.
 
-### 3. Whether task 3 belongs to this milestone or to 19 — owed before task 3
+**Why 256 ships anyway, and on what argument.** `RulesetTrailTable.Retained = 16` is the standing
+precedent: hash-bearing, documented as *"a guess… an argument about a working habit and not a
+measurement"*, shipped **unratified with a named ratifier that could not fire yet**. ⚠ **And the cap is
+nearly free, which changes what the argument is about.** Entries are `Touch.Cold`, so they cost nothing
+per Tick and the cost is bytes — an entry is on the order of 20, so 256 is ~5 KB against 86 MiB of
+tables at 1M. **This is not a memory decision**, and sizing it small to be safe would be optimising the
+one axis that does not bind. `adr/0006` requires a bound, not a tight one. So: *the smallest window
+that holds a whole decline episode **plus the ordinary background of the period around it**, so the
+episode is legible against its own baseline* — a diagnosis needs the contrast and not only the
+casualties. ⚠ **Do not copy 16 from the trail** ([`0012`](0012-corpus-audit.md) *Cause 5*): that number
+was derived from a **designer's** working habit and this one is sized by a **player's** diagnosis. Two
+quantities sharing a unit.
+
+**Named ratifier — machine, world and quantity.** The first real decline diagnosis on **a Ruleset that
+models a city**, which is `06`'s own content row spanning milestones **12, 13 and 17**. Refuting
+readings in both directions: a window **never filled** across a long run means it is too large; one that
+**ran out of entries mid-episode** means it is too small. ⚠ **A bespoke declining fixture is
+deliberately not built here** — milestone 17 owns decline and needs that world regardless, and building
+it in the milestone least able to judge it duplicates the work and hides the judgement.
+
+### ~~2. One window, or one per event kind~~ — **DISSOLVED 2026-08-16: this milestone has one kind**
+
+The question was posed as *if demolitions, departures and budget refusals share one window, a busy
+demolition period evicts the departure history that explains it*, and it recommended one window per
+kind on that ground. The rate argument behind it stands and is stronger than the crowding one —
+demolitions are rare and budget refusals could be thousands a Day, so a shared ring is whichever kind
+is noisiest. **But walking the tasks shows milestone 6 has exactly one kind**: task 2 records
+abandonment, task 3 is a count on the Citizen and not a trail entry, departures are milestone **19** and
+unbuilt, and the budget-refusal counter left for **17**.
+
+***So a generic N-kind trail would be an abstraction with one caller.*** `CLAUDE.md` is explicit that
+three similar lines beat a premature abstraction, and `adr/0070` that an unbuilt mechanism is not a
+design constraint. **One concrete trail, named for what it records**, and the arrival of a second kind
+decides whether a shared abstraction exists — at which point there will be two real callers to derive
+it from instead of one and a guess.
+
+⚠ **This was found by starting task 1 rather than by rereading the brief**, and it came with a defect in
+this document: the *Status* block said no open decision blocked task 1 while two of them said *owed
+before task 1*. Both were right that they blocked it — a fixed-size table's capacity and columns cannot
+be declared without them — and the *Status* line was the wrong copy. [`0012`](0012-corpus-audit.md)
+*Cause 1* inside a brief written to prevent it, caught by the work.
+
+### 2. Whether task 3 belongs to this milestone or to 19 — owed before task 3
 
 `adr/0097` names milestone 19's Departure as the count's consumer, and `UnplacedTable.cs:9-14` routes
 the give-up counter and Departure to the same place, warning that naming them earlier *"would be the
