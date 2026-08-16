@@ -118,7 +118,7 @@ is what Policy is for*. Different remedies, so the channel split is doing exactl
   reasons name **terms**. A new pressure adds a term and never a channel.
 - **`adr/0097`'s counter has a named consumer for the first time.** It said *"read by nothing yet"*;
   it is read by the Destitute channel's diagnosis, still in milestone 9a.
-- **Milestone 9a inherits a specification rather than a design question.** It builds: a per-Household
+- **Milestone 19 inherits a specification rather than a design question.** It builds: a per-Household
   re-evaluation countdown on the Event Wheel, a failed-occasion trigger, and one call into `02 §5.4`'s
   scoring with the Hinterland as a row. Nothing here is buildable before the choice model, and that is
   correct under [`adr/0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) — the answer to

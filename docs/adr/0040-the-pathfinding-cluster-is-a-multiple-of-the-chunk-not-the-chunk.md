@@ -14,13 +14,13 @@ sized independently of it. `FAST ITERATION`
 ## Why
 
 **One of the two is in the save and the other is not, and nobody had noticed the asymmetry.**
-`05 §5` makes a save *"a sequence of Chunk records"*, so the Chunk is pinned from milestone 10 onward
+`05 §5` makes a save *"a sequence of Chunk records"*, so the Chunk is pinned from milestone 8 onward
 and changing it afterwards is a save migration. The hierarchical router's abstract graph is
 `(derived AND rebuilt)` under [`adr/0003`](0003-deterministic-integer-simulation.md) — the same class
 as the travel-time matrix, which `05 §4` already lists as *rebuilt rather than saved*. Changing the
 cluster size costs a recomputation and nothing else, **forever**.
 
-| | Cost of changing it after milestone 10 |
+| | Cost of changing it after milestone 8 |
 |---|---|
 | **Chunk size** | a save migration |
 | **Cluster size** | recompute it |

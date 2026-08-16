@@ -6,7 +6,7 @@
 
 ## Status
 
-⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1–7 of 8 done 2026-08-14.** One remains: task 8's long run, and ~~**it is the named ratifier for four hash-bearing numbers**~~ (`[traffic]`'s three and `[households] car_ownership_percent`). ⚠ **IT IS NOT, as of 2026-08-15: the run happened and could not fire.** Load came out at **0.0018 / 0.0048 / 0.0110** Vehicles per Segment per Tick at 4,000 / 16,000 / 64,000 Citizens, growing as roughly `P^0.66`, so ~**0.07** at 1,000,000 against a Segment holding **1.02** on `congested.toml` and **9.2** on the shipped capacity — **BPR is only ever evaluated where it is nearly flat, at every population this project can generate**, because the paved extent scales with the population it serves and ***the same number sizes both the demand and the supply***. All four rows moved **`plans/0002` §D2 → §D1** and now name a **world**: a city whose Streets were laid by `CommandKind.Connect` and deliberately under-provisioned. That is [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)'s 2026-08-15 amendment — ***a named ratifier names a machine and a world*** — and it is the sharpest thing this milestone produced. **Task 8 keeps its other job**, `adr/0006`'s acceptance run, which is unaffected. ⚠ **Until task 7 there was no Ruleset that could ratify them** — no shipped file stated either table — so task 7 shipped `rulesets/congested.toml`, and **task 8 runs against that file rather than against `minimal.toml`**. All three named gates are discharged and none of the closures
+⚠ **IN FLIGHT — scoped 2026-08-14; tasks 1–7 of 8 done 2026-08-14.** One remains: task 8's long run, and ~~**it is the named ratifier for four hash-bearing numbers**~~ (`[traffic]`'s three and `[households] car_ownership_percent`). ⚠ **IT IS NOT, as of 2026-08-15: the run happened and could not fire.** Load came out at **0.0018 / 0.0048 / 0.0110** Vehicles per Segment per Tick at 4,000 / 16,000 / 64,000 Citizens, growing as roughly `P^0.66`, so ~**0.07** at 1,000,000 against a Segment holding **1.02** on `congested.toml` and **9.2** on the shipped capacity — **BPR is only ever evaluated where it is nearly flat, at every population this project can generate**, because the paved extent scales with the population it serves and ***the same number sizes both the demand and the supply***. All four rows moved **`plans/0002` §D2 → §D1** and now name a **world**: a city whose Streets were laid by `CommandKind.Connect` and deliberately under-provisioned. That is [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)'s 2026-08-15 amendment — ***a named ratifier names a machine and a world*** — and it is the sharpest thing this milestone produced. **Task 8 keeps its other job**, `adr/0006`'s acceptance run, which is unaffected. ⚠ **Until task 7 there was no Ruleset that could ratify them** — no shipped file stated either table — so task 7 shipped `rulesets/congested.toml`, and **task 8 runs against that file rather than against `minimal.toml`**. ⚠ **THAT WORLD WAS BUILT AND READ ON 2026-08-15, and the four rows split two and two.** `ConnectedCityCongestionTests` is a dumbbell of two zoned districts joined by one Street corridor, every Segment laid by `Connect`, populated through `SyntheticCity.PeopleInto` — [`0003`](0003-build-plan.md)'s hash-moving queue **item 9**, which existed because `Populate` and `Connect` were welded shut and no player-shaped network could get a population. **`[traffic]`'s α, β and clamp: neither refuting reading fires.** Peak `v/c` runs **65.1 / 97.7 / 1,074.3 / 2,767.0%** across four rungs; loaded against free-flow occupancy runs **6,784/6,784 → 122,725/80,978**, so *decorative* is refuted; and the clamp takes **0.00 / 0.00 / 0.04 / 0.52%** of loaded Segment-Ticks, so *binds routinely* is refuted at a peak **6.9×** the clamp. **`[households] car_ownership_percent`: both refuting readings fire and refute the wrong thing** — `beyond` is 0 and the rungs collapse into *fast* at every rung, because at 100% ownership every commute is a drive across a ≤4 km city while `adr/0095`'s rungs are percentiles of a **foot-only** distribution. ***A refuting reading named against one consequence cannot refute a number whose live consequence is a different one***, so `adr/0052`'s amendment wants a third clause: a ratifier names a machine, a world **and a quantity**. ⚠ **The largest finding is neither row.** The priced and free-flow runs agree **to the Citizen** on who is employed and on every rung count, at every rung, while their occupancies differ by half — `adr/0046` working as decided, and the corpus sweep's *the traffic model has no feedback term* arriving with a number. It is an equality assertion now, so the day a driver model closes `03 §3.4`'s loop the fixture breaks and names the loop. Full readings in [`0002`](0002-open-questions.md) §D1. All three named gates are discharged and none of the closures
 reached a gate board, which is why this milestone read as blocked for two days
 ([`0000`](0000-board.md) → *Blocked*, split per-milestone on 2026-08-13):
 
@@ -59,7 +59,7 @@ because then *why did this Household change jobs* is answered by *the pathfinder
 >
 > **So a path source is necessary and not sufficient.** A 5c that ships the partition, the matrix and a
 > per-Segment next hop and no vehicular Leg leaves volume at zero, the conservation invariant vacuous,
-> and **7a with nothing to threshold** — which is the exact outcome `06`'s own 5c row warns about, two
+> and **22 with nothing to threshold** — which is the exact outcome `06`'s own 5c row warns about, two
 > sentences after the clause that would have caused it.
 >
 > **This is the third sighting of one shape in three milestones**: 5b task 4's generator had no
@@ -68,13 +68,13 @@ because then *why did this Household change jobs* is answered by *the pathfinder
 > nobody has finished counting*** — and the check is cheap: name the mechanism, then name what *it*
 > needs, until you reach something that exists.
 >
-> **Why the vehicular Leg is 5c's and not milestone 6's**, settled with the user: `03 §3.1` defines the
+> **Why the vehicular Leg is 5c's and not milestone 21's**, settled with the user: `03 §3.1` defines the
 > tiers, and **Statistical** is *"time-advanced; travel time from `distance / speed`"* while
 > **Microscopic** is *"real vehicles: 1-D lane queues, car-following, junction conflicts"*. This
-> milestone is named *statistical resolution*; milestone 6 is *Lane-as-entity traffic*. A car Leg
+> milestone is named *statistical resolution*; milestone 21 is *Lane-as-entity traffic*. A car Leg
 > time-advanced across a Segment sequence, incrementing volume as it enters and decrementing as it
 > leaves, **is the Statistical tier performing its own definition**. It involves no Lane and no queue.
-> The sequence is then coherent: 5c produces volume, 7a thresholds it to promote a Segment, and 6 is
+> The sequence is then coherent: 5c produces volume, 22 thresholds it to promote a Segment, and 21 is
 > what a promoted Segment is promoted *into*.
 
 ---
@@ -202,7 +202,7 @@ with a proximity wake over it, and **no TTL rotation** — R5.5.4's rotation was
 >
 > **So this milestone owes a decision before this task starts**, and it is the first thing to settle:
 > what the drive Leg's endpoints are when no Parking Shed exists. The honest options are a **refused**
-> car commute (no shed, no car — `adr/0070`'s *build X*, deferring to milestone 8) or an explicitly
+> car commute (no shed, no car — `adr/0070`'s *build X*, deferring to milestone 7) or an explicitly
 > **named absence** in `adr/0079`'s sense, which reports rather than substitutes. **What it must not be
 > is a zero-length walk.**
 
@@ -211,7 +211,7 @@ released on leave per `adr/0041`; `CapacityPerDay` acquires its first reader; a 
 pure free-flow.
 
 > **This is the task the milestone is *for*, and the two before it are its preconditions.** Until a
-> Segment's occupancy changes what a journey costs, volume is a number nobody reads until 7a and the
+> Segment's occupancy changes what a journey costs, volume is a number nobody reads until 22 and the
 > self-correcting chain in `03 §3.4` does not close. §3.2's argument is that the VDF is used **only
 > where it is strong** — unstressed Segments, where it sits near free-flow — and that *"we are not using
 > the VDF to decide where the VDF can be trusted."*
@@ -272,11 +272,11 @@ mechanism in this project that has a **per-Tick write to a saved column** on eve
 
 ## What this milestone must not do
 
-- **No Lane kernel, no car-following, no junction conflicts, no queues.** That is milestone 6 and
+- **No Lane kernel, no car-following, no junction conflicts, no queues.** That is milestone 21 and
   [`adr/0016`](../docs/adr/0016-the-lane-is-the-entity-not-the-car.md). A Statistical car is
   time-advanced.
-- **No Stress thresholds, no Fidelity promotion, no hysteresis.** Milestone 7a. This milestone produces
-  the quantity 7a reads; `RoadSegmentTable.Fidelity` stays the named hole it is.
+- **No Stress thresholds, no Fidelity promotion, no hysteresis.** Milestone 22. This milestone produces
+  the quantity 22 reads; `RoadSegmentTable.Fidelity` stays the named hole it is.
 - **No Habit, Sight or Temperament.** [`adr/0046`](../docs/adr/0046-a-driver-routes-on-habit-sight-and-temperament-never-on-current-cost.md),
   `adr/0060` and `adr/0061` are the *driver* model, and every one of them is downstream of congestion
   existing. A Traveller here drives the route it was given.
@@ -531,7 +531,7 @@ a **Statistical** journey — that tier is time-advanced, so a Traveller between
 particular — and an incomplete one for a **Microscopic** journey, which `adr/0041`'s amendment requires
 to name *a next Segment every Tick*. Amended there, and the field discharges `03 §4` invariant 3's owed
 enumeration at the same time, since position along a route is exactly what demotion discards. **Written
-now rather than at the write site in milestone 6**, where an unenumerated field is the bug that
+now rather than at the write site in milestone 21**, where an unenumerated field is the bug that
 invariant exists to catch.
 
 **2. `Search` had been foot-hardcoded since 5b and the fix was a parameter that could have been

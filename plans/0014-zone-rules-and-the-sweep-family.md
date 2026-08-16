@@ -124,7 +124,7 @@ debts rather than as guesses:
 > Households can't find housing → they stay in the pool → demand/supply in that submarket exceeds 1 →
 > prices rise → the pro-forma flips positive → a developer builds → supply appears → prices relax.
 
-Of the seven links, **the Unplaced Pool does not exist** (`06` mechanism 2: *"9a has the Pool and
+Of the seven links, **the Unplaced Pool does not exist** (`06` mechanism 2: *"19 has the Pool and
 Departure but nothing says where Households come from"*), **there is no price surface**, **no land
 value**, **no construction cost**, **no private capital** (`0002` §C lists *where private capital
 comes from* as open), and **no bid-price contest** to resolve two uses wanting one Lot (`02 §5.5`).
@@ -597,7 +597,7 @@ Occupants are peeked rather than popped, since `Unplace` removes each from the l
 runs first while the Building is still whole because `Unplace` reads the dwelling handle to find the
 list it is leaving. What remains of this task is the invariant qualification above.
 
-**No emigration, no refusal reasons, no give-up counter, no rejected-arrival taxonomy.** All 9a's.
+**No emigration, no refusal reasons, no give-up counter, no rejected-arrival taxonomy.** All 19's.
 
 #### What closing it found — **done**
 

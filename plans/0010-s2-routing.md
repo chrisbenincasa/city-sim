@@ -22,7 +22,7 @@ pathfinding queries, after CS1 had shipped with agent caps and openly cheating r
 failure S2 exists to catch is not "pathfinding is slow"; it is "pathfinding is slow at a load nobody
 measured, on a map already committed to".**
 
-**What it must not become: a traffic simulator.** Lane-as-entity, the IDM and Overlaps are milestone 6
+**What it must not become: a traffic simulator.** Lane-as-entity, the IDM and Overlaps are milestone 21
 and [`adr/0016`](../docs/adr/0016-the-lane-is-the-entity-not-the-car.md) already settles their shape. S2 routes
 Travellers over a graph. It never simulates a vehicle.
 
@@ -1925,7 +1925,7 @@ the debt turned out to buy on the way past.
 
 ## What this spike deliberately does not do
 
-**It does not simulate traffic.** No Lanes, no IDM, no Overlaps, no Switch Lanes. Milestone 6 owns
+**It does not simulate traffic.** No Lanes, no IDM, no Overlaps, no Switch Lanes. Milestone 21 owns
 those and `adr/0016` already settles their shape. S2 stops at *which Segments does this Trip
 traverse, and how long does it take*.
 

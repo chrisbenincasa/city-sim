@@ -78,7 +78,7 @@ the bytes**, and that difference is exactly what the reload test measures.
 
 [`0021`](0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) requires three, each for a
 different reason; `05 §7`'s header lists *"magic, format version, Ruleset version, world seed, Tick"*,
-which is two; and `06-roadmap.md` has carried *"milestone 10 owes the three version numbers where it
+which is two; and `06-roadmap.md` has carried *"milestone 8 owes the three version numbers where it
 currently implies one"* as an unpaid item. Settled here:
 
 | Number | Versions | Mismatch means |
@@ -133,14 +133,14 @@ described as measuring the **rebuild**, not the write.
 - **`05 §7`'s file listing is deleted and replaced by the rule**, with the hash's fold as the statement
   of it. The section keeps its migration-chain paragraph, its whole Ruleset-versioning subsection, the
   provenance trail and the hash-broken mark, none of which this touches.
-- **`06-roadmap.md`'s owed item is paid.** Milestone 10 carries three version numbers and the table above
+- **`06-roadmap.md`'s owed item is paid.** Milestone 8 carries three version numbers and the table above
   says what each does on a mismatch.
 - **The save has no size decision in it, and its size is already measured.** S0a reports **85.98 MiB** of
   tables at 1M, which is the saved-and-derived total; the file is smaller by the derived columns. Nothing
   here may be argued against a guessed size — that is `0043`, and the number exists.
 - **A test is owed that the file's column set equals the hash's.** The rule above is only worth having if
   something enforces it; the obvious form asserts that a save's declared content matches
-  `Rows`'s `Saved` set table by table, which is cheap and structural. It belongs with milestone 10 and
+  `Rows`'s `Saved` set table by table, which is cheap and structural. It belongs with milestone 8 and
   is named here so it is not discovered later as a gap.
 - **`adr/0037`'s consequence for *when* a save is taken is not settled here.** `05 §7`'s async-save
   paragraph rests on a structure that ADR deleted, and it is

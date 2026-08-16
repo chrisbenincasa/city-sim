@@ -166,7 +166,7 @@ Access Point is an offset along a Segment, never a node"*, and that the conseque
 is the query shape everything downstream must be measured on**."* `adr/0008` says the two *"are usually
 the same place and occasionally are not, and the distinction is what lets parking later become a real
 location without restructuring anything."* Whether that is two rows, two columns or one row with a flag
-is F's, because milestone 8 inherits it — and `adr/0009`'s superseding note has already cashed the split:
+is F's, because milestone 7 inherits it — and `adr/0009`'s superseding note has already cashed the split:
 *"a **District is bounded by where transport can be ignored**; a **shed is bounded by where transport
 must be measured**, because per `adr/0008` the walk Leg is its entire output."*
 
@@ -401,7 +401,7 @@ shops*.
 |---|---|
 | Routing on the vehicle graph, the travel-time matrix, the route cache | **5c** — and S2 has measured all of it |
 | Lanes, IDM, Overlaps, the Microscopic tier | **6** — and S5 has priced the kernel |
-| Stress *thresholds* (`T_high`/`T_low`), promotion, demotion, hysteresis | **7a**; 5b supplies the volume they read and chooses none of them |
+| Stress *thresholds* (`T_high`/`T_low`), promotion, demotion, hysteresis | **22** *(was 7a)*; 5b supplies the volume they read and chooses none of them |
 | Parking, Sheds, the shed query | **8** |
 | Transit | Unmilestoned, and `03 §6.4` says a bus is a Leg type inserted later |
 | Jobs, wages, the labour market | Unmilestoned — **and this is why the generator is a decision, not a task** |
@@ -447,7 +447,7 @@ a Lot on a horizontal Street has `north ≡ 0 (mod block_tiles)`, one on a verti
 so the position names at most one lattice edge and nothing is lost by not storing it.
 
 **`Address` is a named value type and not a tuple spelled out at each site**, which is what makes
-milestone 8 a one-endpoint swap rather than a restructure. **It exists as of 5a-bis** —
+milestone 7 a one-endpoint swap rather than a restructure. **It exists as of 5a-bis** —
 `Borough.Core.Space.Address`, with `Address.None` as the *no front door* value `adr/0079` requires — so
 this task **consumes** the type rather than introducing it. **Side** is left or right of the Segment's
 forward direction — fixed A→B by its endpoints, so it needs no geometry — and it exists so that a walk
@@ -456,14 +456,14 @@ between two Addresses on the same Segment and opposite sides pays a **crossing c
 with a named ratifier.
 
 **The two Addresses are written equal by construction**, and a docstring must say what makes them
-diverge — ~~5a-bis's subdivider,~~ milestone 8's parking, `03 §6.6`'s freight. ⚠ **The subdivider is
+diverge — ~~5a-bis's subdivider,~~ milestone 7's parking, `03 §6.6`'s freight. ⚠ **The subdivider is
 struck from that list because it shipped and does not do it**: `LotSubdivider` derives **one** Address
 per Lot, from the Lot's own position and side. That is not an omission — a second Address needs a second
 saved fact, and under `adr/0070` inventing one for a consumer that does not exist is the position this
 slice may not take. So *the two are equal* stops being an interim simplification and becomes **the
 built behaviour**, and the divergence list is genuinely two entries, both in later milestones.
 ⚠ **And the vehicle Address is never a fallback from a failed Parking Shed query**, which is milestone
-8's rule written now: an exhausted Shed **widens**, because a full car park must not cost less than an
+7's rule written now: an exhausted Shed **widens**, because a full car park must not cost less than an
 empty one.
 
 ~~**⚠ This task's shape depends on whether 5a-bis has landed, and it should have.**~~ ✅ **IT HAS —
@@ -525,7 +525,7 @@ invariant belongs with the definition of done: **summed Segment volume equals th
 vehicular Travellers, every Tick**."* **Only vehicular Legs increment** — *"walk Legs still contribute
 nothing"*, because `CONTEXT.md` → Fidelity keeps pedestrians out of Stress entirely. Phase 4 is
 *permitted parallel* and this build runs it serially; `Phases.Runs` already states that permission is an
-upper bound. **Do not write `Fidelity`.** Volume is 5b's; the threshold that reads it is 7a's.
+upper bound. **Do not write `Fidelity`.** Volume is 5b's; the threshold that reads it is 22's.
 
 **6. Trip Fate, the Census family and the Commute Budget.** Four Fates, `02`'s *no Trip without a Fate*
 as an `O(1)` write-site invariant, and the Budget as `[trips]` Ruleset data — hot-reloadable and
@@ -614,7 +614,7 @@ Access Point exists, bulldozes the Street through the ordinary `Connect` verb, a
 is **still live** with `Address.None`. **Nothing in that path writes to `BuildingTable`** — re-subdivision
 is keyed on occupancy (`02 §2.2`), so a column would still hold the removed Segment and the test would
 pass while the Building answered with a road that is gone. `The_two_access_points_are_equal_by_construction`
-carries a docstring saying it is **expected to be deleted rather than weakened** the day milestone 8's
+carries a docstring saying it is **expected to be deleted rather than weakened** the day milestone 7's
 parking or `03 §6.6`'s freight makes the two diverge.
 
 #### The slice is being run §B before §A, and the ordering is a decision rather than an accident
@@ -818,7 +818,7 @@ through all seven candidate generators, establishes that each is owned by a deci
 Trips, and concludes correctly that the commute is unavailable and shopping is the only fully specified
 one. **What it did not check is whether any milestone would ever produce a destination.** All seven sit
 in [`06`](../docs/06-roadmap.md) → *Mechanisms with no milestone*, and Phase 2 as sequenced —
-5b → 5c → 6 → 7a → 7b → 8 → 9a → 9b → 10 — **never produces a place a person would go.** So the question
+5b → 5c → 6 → 7a → 7b → 8 → 9a → 9b → 10 — **never produces a place a person would go.** *(⚠ pre-2026-08-16 numbering; `06` → Retired numbering resolves it.)* So the question
 has no answer at any point in the plan, no reordering supplies one, and under
 [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) it is the void form:
 *given X does not exist, should Y compensate?* → **build X**, which nothing was scheduled to do. *The
@@ -898,7 +898,7 @@ a question for whoever next opens it, and 5b has not closed it.
 of `Address` would fold the Segment handle's **slot index**, which is identity: two runs building the
 same city with different allocation histories would disagree. `HandleColumn` exists precisely to fold
 the target's monotonic id instead, so every table holding an Address declares a `SavedHandle` plus an
-offset plus a side and assembles the struct at the boundary. **This is the shape milestone 8's parking
+offset plus a side and assembles the struct at the boundary. **This is the shape milestone 7's parking
 Bin and 5a-bis's frontage-derived Access Points must both use**, and getting it wrong is invisible
 until two saves disagree.
 

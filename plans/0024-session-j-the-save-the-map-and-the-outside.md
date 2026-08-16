@@ -7,7 +7,7 @@
 > [`0087`](../docs/adr/0087-a-save-is-copied-at-save-cadence-not-read-from-a-past-that-no-longer-exists.md),
 > [`0088`](../docs/adr/0088-the-price-of-a-far-hinterland-is-paid-in-your-own-traffic.md).
 > Amendments in place to `05 §7`, `adr/0020`, `CONTEXT.md` → Settlement, Outside Connection and
-> Hinterland, `06`'s milestone 10 row, and both of `plans/0002` ledger #1's tables.
+> Hinterland, `06`'s milestone 8 row, and both of `plans/0002` ledger #1's tables.
 >
 > **It touched no code**, which is why it could run beside the 5b-bis session.
 >
@@ -182,7 +182,7 @@ one wrong citation is a typo, and the same wrong citation in two files is a tran
   on it entirely — a weighting of zero deletes the argument. Not settled here.
 - **The three Outside Connection numbers.** §D2 gaps, ratifier milestone 10. Naming a ratifier is not
   choosing a value, per `adr/0052`.
-- **`05 §1`, `§2`, `§6`, `§8`, `§10`.** Untouched. §6, threading, still gates milestones 10 and 11 and is
+- **`05 §1`, `§2`, `§6`, `§8`, `§10`.** Untouched. §6, threading, still gates milestones 10 and 11 *(pre-2026-08-16 numbering; and there is no milestone 11 — owner is now session R)* and is
   the largest unargued thing left in that document.
 
 ## What is unblocked
@@ -200,5 +200,5 @@ rule written.
 moved from *unsaved state* — which `BOR0901` and the declaration make unrepresentable — to *a derived
 column that does not rebuild to the value it had*, which is a real class with a sighting already.
 
-`06`'s milestone 10 row and the Phase 2 wall paragraph in `plans/0002` are amended accordingly. **The
-argument track's remaining rows are E, G, I and K2**, plus S2's deletion.
+`06`'s milestone 8 row and the Phase 2 wall paragraph in `plans/0002` are amended accordingly. **The
+argument track's remaining rows are E, G, I and K**, plus S2's deletion.

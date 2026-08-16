@@ -56,7 +56,7 @@ It also reinforces the `UNIQUE INDIVIDUALS` commitment in [`0005`](0005-two-fide
   > Habit's weight, and **not a cursor**.
   > **The reachability half is now `adr/0097`** for the **job** case, where a Citizen's candidate is
   > refused by the Commute Budget after a real walk search: it is **counted on the Citizen**, resets on
-  > employment, drives nothing yet, and its consumer is milestone 9a's Departure. **For the *provider*
+  > employment, drives nothing yet, and its consumer is milestone 19's Departure. **For the *provider*
   > case this note describes, the question is void as posed** under
   > [`adr/0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) — the Provider List is unbuilt
   > with no milestone, `Scope.Pool` is a named hole that throws, no Ruleset declares a shop, and the

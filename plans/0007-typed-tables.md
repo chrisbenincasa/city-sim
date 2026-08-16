@@ -258,5 +258,5 @@ spelled `default`, which is the point being made rather than a concession to `CA
 
 No `step()`, no phases, no Tick counter — slice 5. No save serialiser: the **declaration** the
 serialiser is generated from is the expensive part and it lands here; the serialiser lands at
-milestone 10, when the tables have settled and a migration chain has something to be a chain of. No
+milestone 8, when the tables have settled and a migration chain has something to be a chain of. No
 Bins, no Rules, no Event Wheel.

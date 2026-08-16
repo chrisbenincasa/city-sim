@@ -153,7 +153,7 @@ the movement subsystem is priced in halves: routing carries 60–67 of the ledge
 and the Lane model carries nothing. **That asymmetry is what made S5 a spike rather than a note.**
 
 **What it must not become: a traffic simulation.** No Road Graph, no Trip generation, no Ruleset, no
-content, no junction handover between Lanes. Those are milestone 5b's and milestone 6's, they cost an
+content, no junction handover between Lanes. Those are milestone 5b's and milestone 21's, they cost an
 order of magnitude more, and they answer a different question.
 
 ---

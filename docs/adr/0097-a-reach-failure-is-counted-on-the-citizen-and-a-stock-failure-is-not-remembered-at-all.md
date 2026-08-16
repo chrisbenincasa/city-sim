@@ -43,7 +43,7 @@ has been treating them as one.**
 > [`CONTEXT.md`](../../CONTEXT.md) → *Unemployment* already routes reachability elsewhere — ***destitution
 > is a reachability failure wearing a money costume*** — so this count is evidence for the **Destitute**
 > channel's diagnosis, whose remedy is Policy rather than *fix what you have*. The consumer is still
-> milestone 9a; what changes is which of its three channels reads it, which nothing had said.
+> milestone 19; what changes is which of its three channels reads it, which nothing had said.
 > See [`adr/0102`](0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md).
 
 `LEGIBLE CAUSE` `BOUNDED KNOWLEDGE` `SOLVE THE ACTUAL PROBLEM`
@@ -169,7 +169,7 @@ separates them* **only in aggregate**, and could not name one Citizen it was tru
   [`adr/0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md): the Provider List is unbuilt with
   no milestone, the market term `Scope.Pool` is a named hole that throws, no Ruleset declares a shop, and
   the matrix is 5c's. `adr/0017`'s note is narrowed rather than discharged.
-- **It does not choose what the count drives.** Its consumer is **Departure**, `06` milestone **9a**, whose
+- **It does not choose what the count drives.** Its consumer is **Departure**, `06` milestone **19**, whose
   own stated risk is *"growth is driven by a global demand scalar — the Pool with per-Household reasons
   **is** the demand signal"*. Designing the threshold now would be choosing a parameter for a consumer that
   does not exist, which is `adr/0070`'s forbidden move, and it is why this ADR opens **no
@@ -215,7 +215,7 @@ mechanism it wants in the setting where it matters.
 - **`adr/0067` gains a consequence**: its cursor covers an **empty** shelf and not an **unreachable** one,
   and *skipped for exactly one occasion* is derived from a shelf refilling on its own.
 - **`02 §9`'s Citizen row acquires its first honest constituent.** The aggregate can now name somebody.
-- **Milestone 9a inherits a signal it did not know was coming**, with the reason already accumulated by
+- **Milestone 19 inherits a signal it did not know was coming**, with the reason already accumulated by
   the time Departure is built rather than needing a migration.
 
 ## What would trigger revisiting

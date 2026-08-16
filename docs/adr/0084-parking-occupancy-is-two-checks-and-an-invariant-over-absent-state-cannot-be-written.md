@@ -4,7 +4,7 @@
 parked vehicles at every Tick"* is two invariants, not one, and neither of them runs every Tick.** A
 release is checked at its **write site**, `O(1)`, in the tier `02 §10` puts write-site checks in; the
 conservation **sum** is an end-of-run check, on the precedent of the two nearest invariants the project
-already demoted for exactly this reason. **Neither can be written before milestone 8**, and the reason
+already demoted for exactly this reason. **Neither can be written before milestone 7**, and the reason
 is not scheduling: there is no parking state to sum, which is a different thing from state that is
 currently empty.
 
@@ -15,7 +15,7 @@ currently empty.
 ### The obligation is at four documents and zero builds
 
 *Parking occupancy is conserved* is specified in **`0009`**, in `02 §10`'s per-Tick tier, in `05 §60`'s
-list of what the headless suite can assert, and in `06`'s milestone 8 risk — and implemented nowhere.
+list of what the headless suite can assert, and in `06`'s milestone 7 risk — and implemented nowhere.
 `0002` §E already names this shape from the last time: *"an obligation specified in three documents and
 built in none is how `HouseholdHomeExists` came to be reported by nothing, and this one paid for itself
 the day it existed."* **This one is at four and has been for longer.**
@@ -92,7 +92,7 @@ is precisely the workaround this finding must not stop at.
 
 ## Consequences
 
-- **Two invariant ids are owed at milestone 8, not one**, and `06`'s milestone-8 risk row should read
+- **Two invariant ids are owed at milestone 7, not one**, and `06`'s milestone-8 risk row should read
   *leaks* rather than *leaks, checked every Tick*. The next free id is **40**; ids are not reserved in
   advance, because the project's rule is that an id travels in a crash artifact and a reused id cannot
   be un-reused — reserving one for an invariant that may be specified differently when it is built
@@ -105,7 +105,7 @@ is precisely the workaround this finding must not stop at.
   requires for a different reason (*"A Trip must remember where it parked** in order to walk back to the
   car"*). **Two independent requirements landing on one field is corroboration**, and it is worth
   recording because the field was previously justified only by the return walk.
-- **Nothing is built in this sitting and no State Hash moves.** What milestone 8 inherits is a
+- **Nothing is built in this sitting and no State Hash moves.** What milestone 7 inherits is a
   specification it cannot get wrong by reading, rather than four documents it must reconcile.
 
 ## What would trigger revisiting

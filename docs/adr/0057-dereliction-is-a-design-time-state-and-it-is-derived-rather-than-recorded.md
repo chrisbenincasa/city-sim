@@ -80,7 +80,7 @@ Not paid, and stated rather than hidden.
 - **`05 §7`'s cross-Ruleset load must run the migration, not merely check it.** A save records `Kind`
   as a number, and kind ids are positional — so loading a save made under Ruleset A into Ruleset B
   without mapping ids by key is the identity defect on the load path, where it produces Buildings of
-  the wrong species rather than derelict ones. Milestone 10 inherits this, and it inherits the map
+  the wrong species rather than derelict ones. Milestone 8 inherits this, and it inherits the map
   rather than a new mechanism.
 - **The shell learns of dereliction as a count**, per reload, alongside Bins dropped and Rules
   re-armed. `Core` returns numbers ([`adr/0002`](0002-simulation-is-an-engine-agnostic-library.md)); the

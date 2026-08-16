@@ -967,7 +967,7 @@ It costs no new machinery, which is `adr/0037`'s doing: crash forensics used to 
 
 The file is a header and then a Log, verbatim, so cutting it at the separator yields a replayable one and no tooling is needed to get there — which matters most here, because this is the artefact written at the moment tooling is least trustworthy. The runner accepts it wherever it accepts a Log, since replaying it is the only thing anybody wants to do with one.
 
-Before milestone 10 there are no checkpoints, so the reproduction starts at world creation and the artifact is the seed plus the whole Log — equivalent, and smaller. The field is written anyway, so that milestone fills one in rather than replacing a mechanism.
+Before milestone 8 there are no checkpoints, so the reproduction starts at world creation and the artifact is the seed plus the whole Log — equivalent, and smaller. The field is written anyway, so that milestone fills one in rather than replacing a mechanism.
 
 ---
 

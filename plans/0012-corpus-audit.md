@@ -657,6 +657,55 @@ measured false**.
 
 ---
 
+### Session K's collection — three, all paid in the sitting, and one is a new Cause
+
+**All three were found by sequencing rather than by auditing**, which is the useful part: a
+re-derivation walks every row of an inventory *for a purpose*, and a purpose is what makes a stale row
+visible. None of the three would have been found by reading the documents that contain them.
+
+**1. `Scope.Pool` appears in no inventory, and the reason is a new failure mode.** `RuleEngine.cs:803`
+throws with a sentence saying *"the District Pool does not exist"*. It is settled (`02 §4.3` builds its
+worked example on it), unbuilt, and has a live consumer — so it satisfies every entry condition of
+[`06`](../docs/06-roadmap.md)'s *Mechanisms with no milestone*, and it was in none of its forty rows.
+***A partially-shipped milestone reports as shipped, so a branch of it that throws is invisible to an
+inventory of unscheduled work.*** Milestone **3a** is marked done in Phase 1's table, `pool` is one
+scope inside the Rule engine 3a built, and nobody scanning for *what has no milestone* opens a
+milestone marked done. **This is `adr/0093`'s sibling rather than an instance of it**: the description
+was not *wrong*, it was **coarser than the thing it described** — and coarseness is invisible to every
+check in this corpus, all of which compare a claim against a claim. **PAID**: it is milestone **9**.
+**The cheap standing check nobody runs**: every `throw` in `Borough.Core` whose message names a
+mechanism is a candidate row for that table.
+
+**2. Milestone 10 was two milestones wearing one number, and the clearance landed on the wrong half.**
+[`06`](../docs/06-roadmap.md) said milestone 10 was **Save/load**; [`0000`](0000-board.md)'s *Blocked*
+table said *"10 — the Outside"*; [`0002`](0002-open-questions.md) §D2 routed an Outside Connection's
+throughput ceiling to *"`06` milestone 10"*. Session **J** closed both halves of `05 §7` — the save
+format **and** the Outside layout — and the two collapsed onto one number, after which the board
+recorded milestone 10 as **cleared**. **So the Outside was never scheduled at all**, while reading as
+shipped, and it had a row in `06`'s own inventory the whole time saying *"a milestone"*. **Cause 1**,
+with the twist that the two copies did not drift — *they named different things and agreed on a
+number*. **PAID**: Save/load is **8**, the Outside is **14**, and `06` carries a retired-numbering
+table so both old citations resolve.
+
+**3. `adr/0041`'s Segment volume attribution had shipped and the row still said *a milestone*.**
+`TripEngine.cs:572` increments it; 5c task 6 paid the debt on 2026-08-14. Found by opening the symbol
+rather than by reading the cell, which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+working as intended. ***A gate is discharged by the work and struck by somebody*** applies to an
+inventory row exactly as it applies to a gate board — **and the row was eight hours old when it went
+stale**, which is the argument for `06`'s own note that the sweep is a snapshot and not an instrument.
+**PAID**: struck, with the reason recorded in the cell.
+
+⚠ **A fourth, filed rather than paid.** Two of the six roots session K sequenced are **half-built in a
+way no document says**: `MapLayers.SetLandValueTarget` and `HouseholdTable.Money`/`.Savings` are
+declared columns and operators whose **only callers are tests, fixtures and the golden builder**. Six
+decisions read land value as extant and `06`'s row calls it *"a named hole"* — both true, and neither
+says the transport already ships and only the **producer** is missing. That is a real difference in
+cost and it is stated nowhere. `plans/0012` has no Cause for it because it is not a document being
+wrong; it is a document being **less precise than a `find_referencing_symbols` call**, which is the
+half of `adr/0093` that says *name a symbol, never a time*.
+
+---
+
 ## Fixed in the sitting that found them
 
 Unambiguous factual errors, no judgement required.
@@ -972,8 +1021,8 @@ so what is filed here is the paperwork that decision owes, not the question.
       description of the build, and this sweep has now caught that misreading **twice** — once in `§2.2`
       above and once here, where it cost two ledger entries and a wrong subject
 - [ ] `docs/06-roadmap.md` — the *Mechanisms with no milestone* table does not list **Household
-      placement**. Milestone **9a** is *Households, the Unplaced Pool and Departure* and is the obvious
-      home, but 9a as written is about where Households come *from*, and this is about where they go
+      placement**. Milestone **19** is *Households, the Unplaced Pool and Departure* and is the obvious
+      home, but 19 as written is about where Households come *from*, and this is about where they go
 - [ ] `docs/adr/0025-density-is-a-cap-and-it-trades-land-for-materials.md` — not wrong, and it wants a
       forward pointer to `adr/0068` all the same. *"Density says how many Occupants a Lot may carry"* is
       now discharged **through the permitted kind set** rather than by a mechanism of its own, and this
@@ -1619,7 +1668,7 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    registered or explicitly marked unbuilt with the milestone that owes it.** **Filed 2026-08-12 by
    session H** ([`adr/0084`](../docs/adr/0084-parking-occupancy-is-two-checks-and-an-invariant-over-absent-state-cannot-be-written.md)),
    which found *parking occupancy is conserved* specified in **four** documents — `adr/0009`, `02 §10`,
-   `05 §60` and `06`'s milestone 8 risk — and built in **none**. **This is check 5's shape pointed at
+   `05 §60` and `06`'s milestone 7 risk — and built in **none**. **This is check 5's shape pointed at
    the invariant tiers instead of the ADR directory**, and it is the *third* observation of the same
    mechanism: `HouseholdHomeExists` was reported by nothing and found only by an audit; `adr/0033`'s
    satisfiability invariant sat specified across three documents until session N built it and it found

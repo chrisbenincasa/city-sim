@@ -38,7 +38,7 @@ When a force-promotion cannot be admitted, `03 §3.9` already says what happens:
 
 ## What is argued here and what is routed
 
-`03 §5.1`'s acceptance suite is the arbiter of everything in the second table — *three small deterministic scenarios, headless and fast*, already specified and not yet built. **This is milestone 6's work and not a spike**, and the suite is being used to admit or refuse a **representation** rather than a scenario, which is a new use of `§5.1`'s own admission rule.
+`03 §5.1`'s acceptance suite is the arbiter of everything in the second table — *three small deterministic scenarios, headless and fast*, already specified and not yet built. **This is milestone 21's work and not a spike**, and the suite is being used to admit or refuse a **representation** rather than a scenario, which is a new use of `§5.1`'s own admission rule.
 
 | Settled here | Type |
 |---|---|

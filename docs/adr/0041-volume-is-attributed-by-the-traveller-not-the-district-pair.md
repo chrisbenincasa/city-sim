@@ -209,7 +209,7 @@ is the [`05 §4`](../05-technical-architecture.md) rule applied by name: the two
   `adr/0003`'s single declaration, incremented and decremented on Segment boundary crossings. It is a
   count of Travellers present, so it is conserved by construction and testable as such.
 - **A new invariant belongs with the definition of done**: summed Segment volume equals the number of
-  in-flight vehicular Travellers, every Tick. This is the same shape as milestone 8's parking-occupancy
+  in-flight vehicular Travellers, every Tick. This is the same shape as milestone 7's parking-occupancy
   invariant, and for the same reason — a Traveller that vanishes without decrementing destroys the
   reading permanently, which is an `adr/0006`-class defect that presents as a road that looks busy
   forever.

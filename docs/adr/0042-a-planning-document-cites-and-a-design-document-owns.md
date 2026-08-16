@@ -15,7 +15,7 @@
 | *"invariant assertions run in debug builds"* | [`02 §10`](../02-simulation-model.md) called that backwards and sorted them by frequency instead |
 | *"Public transit. Not in scope, and possibly never."* | [`adr/0029`](0029-transit-is-in-and-right-of-way-is-the-only-axis.md) — *"Transit ships."* |
 | *"revisit `adr/0001`"* on the core's language | [`adr/0036`](0036-the-cores-language-is-a-separate-decision-and-it-is-csharp.md) took the language out of `0001` |
-| milestone 8's parking-as-Rules | [`adr/0009`](0009-parking-is-modelled-supply-never-search.md)'s own superseding note |
+| milestone 7's parking-as-Rules | [`adr/0009`](0009-parking-is-modelled-supply-never-search.md)'s own superseding note |
 
 **Nobody was careless.** Each of those originals moved for a good reason, in a session that did its job properly, and in every case the author updated the document they were arguing. What no session does — what no session *can* reliably do — is walk every other document looking for uncited paraphrases of the claim just changed. A copy with no owner is a copy nobody updates.
 

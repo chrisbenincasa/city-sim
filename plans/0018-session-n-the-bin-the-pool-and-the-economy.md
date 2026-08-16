@@ -87,7 +87,7 @@ Upkeep (`adr/0035`), and **Policy as a Sweep Rule, and the Sweep Rule family ent
 more are adjacent: density as a cap (`adr/0025`) and arrival through the gate (`adr/0023`), the gate
 being money's only source and sink. `06` says of Phase 2 as written that **"it has no money in it,
 nobody employed, and no way for anyone to arrive"**, and that placing these is the re-derivation's job.
-**So N is the largest single input to K2**, which the board schedules last and which cannot be run on a
+**So N is the largest single input to K**, which the board schedules last and which cannot be run on a
 cluster nobody has argued.
 
 **What N is not booked to do is price anything.** Unlike D it stands over no row of
@@ -219,7 +219,7 @@ unhoused Departure — **and the bound is not named anywhere.** That is why the 
 high-water mark plateaus at a *structural* ceiling (the population, since a Household is in the Pool at
 most once) rather than at a designed one. **So five-sixths homeless is not only an occupancy defect; it
 is a missing sink**, and it is `adr/0006`'s shape wearing a bound instead of a collection. Milestone
-**9a** is *Households, the Unplaced Pool and Departure*, and `06` already notes 9a **"has the Pool and
+**19** is *Households, the Unplaced Pool and Departure*, and `06` already notes 19 **"has the Pool and
 Departure but nothing says where Households come from"**.
 
 ### 3. Is a Bin's capacity a property of the Bin as built, or of the Ruleset in force? — **DECIDED 2026-08-10, `adr/0064`**
@@ -659,7 +659,7 @@ difficulty in writing a test. Recorded because the first sighting read as an acc
 - **The number.** → `0002` §D, with a ratifier. `adr/0043` bars this session from it and the brief says
   so twice.
 - **The acceptance filter** — `§5.2` step 2b's *affordable? a reachable job in budget?* — the sampler's
-  bias, the scored choice and `μ`. Those are `§5.4`'s and milestone 9a's, and `adr/0069` declines them
+  bias, the scored choice and `μ`. Those are `§5.4`'s and milestone 19's, and `adr/0069` declines them
   by name for the reason `adr/0054` declined 9a's pieces.
 - **Whether an evicted Household is preferred over a chooser when placement runs.** The Pool records no
   entry route and `CONTEXT` → Unplaced Pool says all four enter **on equal terms**, which is a decision

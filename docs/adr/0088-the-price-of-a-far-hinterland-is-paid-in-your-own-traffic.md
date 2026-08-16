@@ -129,9 +129,9 @@ is short of.
 - **Three unset hash-bearing numbers, and they are gaps rather than debts** (`0002` §D2): a kind's
   **throughput ceiling**, its **price offset** against the Hinterland's, and the **count and siting** the
   generator uses. Named ratifier for all three is the first Ruleset that models a city with an Outside
-  Connection in it, which is milestone **10**'s. Nothing accretes on them until then, and `adr/0052` is
+  Connection in it, which is milestone **8**'s. Nothing accretes on them until then, and `adr/0052` is
   satisfied by naming the ratifier rather than by choosing.
-- **Milestone 10's scope is smaller than the roadmap implies.** It is a `[[building]]` kind, a Bin set,
+- **Milestone 8's scope is smaller than the roadmap implies.** It is a `[[building]]` kind, a Bin set,
   an edge constraint on placement, and a `min()`. The subsystem it looked like is `0031`'s Bins and 5a's
   graph, already built.
 - **Freight's contribution to Segment Stress is now load-bearing for the economy**, not only for traffic.

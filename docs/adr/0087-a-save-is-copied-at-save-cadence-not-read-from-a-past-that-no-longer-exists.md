@@ -112,12 +112,12 @@ required it.
   hash, so it is not `adr/0052`'s business and needs no ratifier — it is the one number in this decision
   that may be a setting. What it must not become is *adaptive*, since a cadence that varies with load
   would make save timing a function of the machine.
-- **Milestone 10 gains a structural requirement**: the copy is taken at a phase boundary, so the
+- **Milestone 8 gains a structural requirement**: the copy is taken at a phase boundary, so the
   serialiser may never read a live table. A writer that walks `World` directly is a defect even when it
   produces a correct file today, because it is correct only while nothing is parallel around it.
 - **The copy is the saved set**, per `0086`, so it is not the 85.98 MiB figure and no size claim above
   should be quoted as the save's. The precise number is available from the declaration and nobody has
-  totalled it; that is milestone 10's to report, not this ADR's to guess.
+  totalled it; that is milestone 8's to report, not this ADR's to guess.
 - **This is the first of `05 §3`'s three consumers to be priced.** The other two — the renderer's
   published transform history one generation deep, and a panic's last checkpoint plus Input Log — are
   named with cadences and neither has an arithmetic behind it either. The renderer's is `05 §2`'s and is

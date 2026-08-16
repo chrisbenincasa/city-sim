@@ -232,7 +232,7 @@ before any of the others: a city whose traffic uses 1% of its roads does not loo
 > and a Segment that has just crossed the threshold holds none.
 >
 > **Four questions were routed rather than closed, and they share one instrument** — `03 §5.1`'s
-> three-scenario acceptance suite, which is **milestone 6's work and not a spike**, so D emitted no
+> three-scenario acceptance suite, which is **milestone 21's work and not a spike**, so D emitted no
 > second spike. Each carries a pass/fail; the full table is in `adr/0062` and the row is in
 > [`0002`](0002-open-questions.md) §B.
 >

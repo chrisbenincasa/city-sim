@@ -146,15 +146,15 @@ and 29,934 lines, counted generated sources under `obj/`; a deletion is measured
 ## Why this slice, and why now
 
 **No session gates 5a.** The board's argument-track gate table routes every open session at something
-that *runs on* the graph rather than at the graph: **E** → 7a/7b, **F** → 5b, **G** → 6, **H** → 8,
+that *runs on* the graph rather than at the graph: **E** → 22/23, **F** → 5b, **G** → 21, **H** → 7,
 **I** → 5c, **J** → 10, **L** → Phase 3, **M** → R6's remainder. Session **D** has run. **5a appears
 in no row.**
 
-The one entry that could be read as covering it is **K2**, *"planning Phase 2 at all"* — which
+The one entry that could be read as covering it is **K**, *"planning Phase 2 at all"* — which
 re-derives Phase 2's ordering and places the seventeen mechanisms `06` leaves with no milestone.
-**5a is the one milestone whose position in that ordering cannot move**: 5b, 5c, 6, 7a, 7b and 8 all
+**5a is the one milestone whose position in that ordering cannot move**: *(⚠ pre-2026-08-16 numbering; `06` → Retired numbering resolves it.)* 5b, 5c, 6, 7a, 7b and 8 all
 run on the Road Graph, and nine of the seventeen homeless mechanisms are road-dependent. Building it
-pre-empts nothing K2 decides. This is the test `docs/spike-results.md` already writes down for
+pre-empts nothing K decides. This is the test `docs/spike-results.md` already writes down for
 exactly this situation — *for each blocked row, ask what the gate's reason does not cover, and check
 whether that remainder is runnable today.*
 
@@ -207,7 +207,7 @@ moves on it. That is 5b.
 |---|---|
 | Routing, travel-time matrix, route cache | 5c, and S2 has measured all of it |
 | Trips, Legs, the pedestrian Leg | 5b |
-| Lanes, IDM, Microscopic fidelity | 6, 7a; S5 has priced the kernel |
+| Lanes, IDM, Microscopic fidelity | 21, 22; S5 has priced the kernel |
 | Parking, sheds | 8 |
 | The `pool` scope's implementation | **Immediately after this slice** — see below |
 | The Lot subdivider | **5a-bis** — see *What this excludes and who owns it* |
@@ -276,7 +276,7 @@ a Tick against per-cluster's 1,351.24%.
 references it — **and the route half of that is closed.** `adr/0012` carries the contract: a **bound
 checked at use**, with a proximity wake over it, and explicitly *not* a rotation. Build that here.
 The **shed** half inherits the shape and not the parameter, which is session **M**'s and belongs to
-milestone 8; nothing in 5a needs it, and `0002` notes nobody has yet typed what a shed's *use* even
+milestone 7; nothing in 5a needs it, and `0002` notes nobody has yet typed what a shed's *use* even
 is.
 
 **4. The generator.** Port `GraphGenerator`. Its parameters become **Ruleset data** under a
@@ -344,7 +344,7 @@ without closing it, and R3 found **no cluster size fits routing into the Tick bu
 migration. Do not build it here.
 
 Still unowned and **not** blocking this slice: the junction complexity factor's derivation
-(`03 §3.3`, needed by 7a), the Junction piece's data shape, diagonals, and foot-only Segment sizing.
+(`03 §3.3`, needed by 22), the Junction piece's data shape, diagonals, and foot-only Segment sizing.
 
 ---
 

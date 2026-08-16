@@ -51,7 +51,7 @@ own length stops being checked.
 | 3 | **No `Dictionary`/`HashSet` enumeration; no `System.Random` anywhere** | nothing | **analyser.** Note the shape: hash maps *may* be built and looked up, they may **not** be walked. That is a call-site rule, which is what an analyser is for and what a reflection test structurally cannot express |
 | 4 | **Thread-count equivalence** | n/a | **Not writable yet, and that is correct.** Phase 1 is entirely single-threaded; the test is written when the first parallel phase lands, not before |
 | 5 | **Replay equivalence** | n/a | slice 5 |
-| 6 | **Save/reload equivalence** | n/a | milestone 10 |
+| 6 | **Save/reload equivalence** | n/a | milestone 8 |
 | 7 | **No reference types in simulation state** — every table row type and every derived structure satisfies `unmanaged` | nothing | **analyser.** Bites from slice 4 onward |
 
 ---

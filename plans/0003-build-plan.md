@@ -81,7 +81,7 @@ to every Zone family, Good and Policy that gets named:
 **It is a working title, and this is where its revisit trigger lives.** Renaming is currently an
 hour — a namespace refactor and a `git mv`. It stops being cheap at the **save format's magic
 number** (`05 §7`), because from then on a rename either breaks every existing save or requires a
-migration written for no reason but vanity. **The trigger is therefore milestone 10, and there is a
+migration written for no reason but vanity. **The trigger is therefore milestone 8, and there is a
 second, softer one: the first time the name is shown to somebody who is not the author.** If it is
 going to change, it changes before slice 10.
 
@@ -772,7 +772,7 @@ closes the *sizing* half — 1M rows fit, with an order of magnitude spare, and 
 slices 9, 7 and 10. So the instruction cannot be read as *Phase 2 planning is now open*: what was
 validated is that the tables hold the target, and what `06` actually names as the risk — that every
 system **sized** against 1M rests on an unvalidated assumption — is closed for row counts and open for
-the Tick.~~ **The honest position is that K2 is unblocked on sizing and still blocked on the Tick
+the Tick.~~ **The honest position is that K is unblocked on sizing and still blocked on the Tick
 budget**, and the only spike with a number in that column is S2.
 
 > **⚠ STRUCK 2026-08-14 — every premise in the crossed-out sentences has been false for some time, and
@@ -783,13 +783,23 @@ budget**, and the only spike with a number in that column is S2.
 >
 > **What survives is narrower and is about the fourth clause.** The **routing load** could not be
 > measured in situ, and routing is [`0013`](0013-tick-budget.md)'s dominant row — 9.4–10.5 ms of a
-> ≥17.8 ms bill — so the column K2 actually needs is still guessed. ***A gate whose stated reason has
+> ≥17.8 ms bill — so the column K actually needs is still guessed. ***A gate whose stated reason has
 > gone false can still be a gate, and re-deriving it is not the same as striking it*** — which is why
 > this is struck in place with the replacement written rather than deleted.
 >
 > **This is the shape [`0000`](0000-board.md) has assigned itself a sweep for and never run**: *a gate
 > whose stated reason covers only part of what it blocks, leaving a runnable remainder parked behind a
 > session it does not need.* Third data point, after `adr/0003`'s owed validation and `06`'s K1.
+>
+> ✅ **RESOLVED 2026-08-16 — K ran, and the routing load did not decide anything.** The gate said K
+> needed *the routing load in situ*, on the reasoning that routing is `0013`'s dominant row and therefore
+> orders the back half of Phase 2. **It orders none of it.** Nothing in the re-derived sequence's demand
+> spine — milestones **6 through 19**, which is where the value was — reads a routing cost at all; the
+> only rows a routing figure could move are **21–23**, and those are held by sessions **E** and **G**
+> anyway. ***A gate can be discharged by discovering that what it was protecting does not depend on
+> it***, which is a fourth outcome beside cleared, struck and still-red, and this corpus had no word for
+> it. **The tell was available in advance and nobody looked**: the gate named a *cost* and the thing it
+> gated was a *dependency order*, and a cost has never ordered anything here.
 
 **The Godot shell.** [`dev-environment.md`](../docs/dev-environment.md) Track B stands up the
 project and proves the boundary; S1 and S3 measure the ceilings. Nothing else in `Borough.Godot` is
@@ -797,7 +807,7 @@ planned until Phase 3, and `Borough.Godot` is deliberately absent from the Track
 the constraint *the headless runner never requires Godot* is enforced by there being nothing to
 require.
 
-**A save format.** Milestone 10, and it lands last in Phase 2 for a stated reason: a save format
+**A save format.** Milestone 8, and it lands last in Phase 2 for a stated reason: a save format
 written before the tables have settled is a migration chain written against nothing. Slice 4 builds
 the **field declaration** the serialiser will one day be generated from, which is the part that is
 expensive to retrofit; it does not build the serialiser.

@@ -33,7 +33,7 @@ route cache's, and the Traveller is still the only row that moves.
 ⚠ **And it is the field that discharges `03 §4` invariant 3's enumeration**, which the Consequences
 below promise is *writable* against this structure. Position along the route is precisely what
 demotion discards — a Statistical Traveller resumes from its arrival Tick, which the promotion never
-touched. Written down now because the alternative is discovering it at the write site in milestone 6,
+touched. Written down now because the alternative is discovering it at the write site in milestone 21,
 where an unenumerated field is the bug the invariant exists to catch.
 
 **The reason the third row exists is an invariant, not tidiness.** `CONTEXT.md` → Promotion/Demotion states the one that carries the most weight: *"conserved quantities live on the Citizen record, never on the embodiment — **a Traveller is a view, not an owner**."* Session M has already applied it once, moving the Habit Route from the Traveller to the Citizen on exactly this ground. Making the **Leg** the plan and the **Traveller** the cursor puts every durable thing on a row that outlives the journey and every transient thing on a row that is released — so the invariant holds by construction rather than by discipline, which is the same upgrade [`0005`](0005-two-fidelity-tiers.md) achieved for reconstructibility.
@@ -63,7 +63,7 @@ where an unenumerated field is the bug the invariant exists to catch.
 
 **`CONTEXT.md` → Leg gains a field set, and → Trip and → Traveller gain the division of labour.** The vocabulary entries stop describing three things in three registers and start describing one mechanism.
 
-**`03 §4` invariant 3 becomes writable.** Demotion discards the Traveller's *cursor* state — queue position, headway, a Switch Lane traversal in progress — and never the plan, because the plan is on the Leg and the Leg is not the embodiment. That is the enumeration the invariant has been owed since it was written, and milestone 6 writes it against this structure rather than inventing one.
+**`03 §4` invariant 3 becomes writable.** Demotion discards the Traveller's *cursor* state — queue position, headway, a Switch Lane traversal in progress — and never the plan, because the plan is on the Leg and the Leg is not the embodiment. That is the enumeration the invariant has been owed since it was written, and milestone 21 writes it against this structure rather than inventing one.
 
 **The Trip table needs a sink, and *"Trips are transient"* does not supply one.** [`0006`](0006-no-collection-grows-with-elapsed-time.md) is satisfied by the Fate reaching the Census **before** the row is freed — otherwise the only durable record of a failure is destroyed by the mechanism meant to bound the table. The Fate counters are *flows* rather than levels, so they follow slice 7 task 9's precedent: read as a sum and a peak over the interval, and the reading drains them.
 

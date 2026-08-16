@@ -98,7 +98,7 @@ witness.
   `0009`'s own superseding note asked for.
 - **The Parking Shed radius stays unset and now has a named ratifier**, which it has never had
   ([`0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)). **Ratifier:
-  milestone 8's first run reporting the walk-Leg length distribution as shed occupancy approaches 1** —
+  milestone 7's first run reporting the walk-Leg length distribution as shed occupancy approaches 1** —
   which is `0002` §B's *does parking scarcity degrade as a gradient* and is the same instrument, so the
   number and the claim ratify together. **Two constraints are stated now and neither is a value.** It is
   bounded above by the Commute Budget's walk allowance, since a shed wider than a Trip can afford to
@@ -118,7 +118,7 @@ witness.
 
 - **The full-shed miss turning out to be common rather than narrow.** The refuting number is **the
   fraction of Trips that fail on Commute Budget whose shed was stale about an addition** — measurable
-  at milestone 8 by rebuilding the shed on failure and re-querying. If it is material, the repair is
+  at milestone 7 by rebuilding the shed on failure and re-querying. If it is material, the repair is
   `0012`'s proximity wake applied to the witness set, and `d` is already a number that exists.
 - **A second caller for the shed appearing.** The whole of this rests on the shed having exactly one.
   Illegal parking as an overflow tier (`deferred.md`) would be consulted *after* the legal ones on the

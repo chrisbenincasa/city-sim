@@ -43,7 +43,7 @@ that same draw to a second site. It does not weaken the argument and does not ex
 
 **Separating them is what makes the eventual upgrade land in one place.** `02 §5.2` step 2b is a hard
 filter — *affordable? at least one reachable job in budget?* — and it needs a price surface and a Commute
-Budget, which are the choice model's and milestone 9a's. When it arrives it replaces the blindness
+Budget, which are the choice model's and milestone 19's. When it arrives it replaces the blindness
 **inside the placement pass**, rather than being retrofitted into `ZoneRuleEngine.Create`, where it has
 no business being and where `02 §5.8`'s *never resolve a route inside the choice loop* would meet it in
 the wrong phase.
@@ -141,7 +141,7 @@ ships with one and the Sweep family's gap is filed.
 
 - **The choice model arriving** (`02 §5.4`). That is when the blindness ends, and this is the site it
   lands on — the whole point of separating the two.
-- **Immigration** ([`adr/0023`](0023-immigration-arrives-through-the-gate.md), milestone 9a). The Pool
+- **Immigration** ([`adr/0023`](0023-immigration-arrives-through-the-gate.md), milestone 19). The Pool
   stops being a subset of a population fixed at world creation, the give-up bound becomes load-bearing,
   and a placement pass draining a Pool that is being refilled is a different mechanism from one draining
   a Pool that is not. This is `adr/0054`'s own named trigger, inherited.

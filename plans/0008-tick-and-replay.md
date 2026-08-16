@@ -323,7 +323,7 @@ an artifact off by one Tick sends its reader somewhere nothing is wrong yet and 
 the bug moving.
 
 **`from` is the checkpoint-shaped field and it is zero for the whole of Phase 1** — the plan asked for
-exactly this, so milestone 10 fills a field in rather than replacing a mechanism. The part worth
+exactly this, so milestone 8 fills a field in rather than replacing a mechanism. The part worth
 stating is what a *reader* does with a non-zero one: it **refuses**. A build with no way to load a
 checkpoint that replayed from Tick zero instead would rebuild a different city and blame the
 difference on the crash, which is the failure mode this slice exists to abolish.
@@ -493,8 +493,8 @@ Ruleset content hash and the panic Tick — `(checkpoint @ 4096, log 4096..5000)
 5000. You then replay to Tick 4999 and single-step into the failure under a debugger, rather than
 dumping a corpse.
 
-There are no checkpoints until milestone 10, so **for Phase 1 the artifact is the seed plus the whole
-log**, which is equivalent and smaller. Write it in the checkpoint-shaped form so milestone 10 fills
+There are no checkpoints until milestone 8, so **for Phase 1 the artifact is the seed plus the whole
+log**, which is equivalent and smaller. Write it in the checkpoint-shaped form so milestone 8 fills
 in a field rather than replacing a mechanism.
 
 `adr/0037` made this *stronger* rather than weaker, and with no new machinery — it is determinism plus

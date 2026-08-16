@@ -121,7 +121,7 @@ from tier 1***, and there is none. The one thing it would buy is a permanent und
 - **Experience gains a second rate.** *Slower for a Citizen who missed schooling* is a second
   hash-bearing number and is filed with the first; it is a **ratio to** the schooled rate rather than a
   free value, so the file states one quantity and the engine derives the other (`adr/0059`'s shape).
-- **Milestone 9b inherits it.** Life Stages and self-generation is where step 4 lands, and it needs
+- **Milestone 20 inherits it.** Life Stages and self-generation is where step 4 lands, and it needs
   Attended services to exist first — so nothing here is buildable yet, and under
   [`adr/0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) nothing may reason from its
   absence in the meantime.
@@ -134,7 +134,7 @@ from tier 1***, and there is none. The one thing it would buy is a permanent und
   an employer refusing it, a Departure reason naming it — any of those is when a fourth segment earns
   its cost, and none exists today.
 - **A long run producing no tier-3 adults in a city with working schools, or producing them at the same
-  rate as one with poor schools.** Both are countable off milestone 9b's run and both refute the cut's
+  rate as one with poor schools.** Both are countable off milestone 20's run and both refute the cut's
   value directly. This is the named ratifier for the number in §D2.
 - **`adr/0032`'s gentrification corollary failing to appear in a run.** The whole damper for this loop
   is that sentence. If a working school district does *not* price out its Families, the circuit is

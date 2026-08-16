@@ -65,7 +65,61 @@ names one.
 
 **Session** — a sitting spent *arguing* rather than building: taking a design document that was
 written from research and stress-testing it until it either survives or produces an ADR. Lettered
-`A`–`M`. A session is work, not waiting.
+`A`–`Z`. A session is work, not waiting.
+
+---
+
+## Numbering
+
+**One scheme, written down here because it was not.** Session K found `06`'s Phase 2 carrying three
+notations at once — numbers that no longer matched the order, a `-bis` suffix that meant *inserted
+after*, and a session with a digit in it — and none of the three was defined anywhere. The scheme
+below is what the corpus mostly already did; the parts it did not do are corrected rather than
+grandfathered.
+
+| Unit | Form | Rule |
+|---|---|---|
+| **Phase** | `0`–`3` | Fixed. There are four and there will not be a fifth |
+| **Milestone** | an integer | **The integer is the position in the sequence.** Unique across the project |
+| **Sub-milestone** | integer + lowercase letter | A milestone shipped in independently-runnable parts. Letters run in order: `7a` before `7b` |
+| **Slice** | an integer | `plans/0003`'s, from 0, in the order built. A *different axis* from the milestone — slice 6 and milestone 6 are unrelated |
+| **Task** | an integer | Inside one slice, spike or milestone plan. *"5c task 8"* |
+| **Session** | a capital letter | In the order scheduled. **`I`, `O` and `S` are skipped** — the first two read as `1` and `0`, and `S` is the spike axis |
+| **Spike** | `S` + integer, optionally + lowercase letter | Its own axis, unrelated to milestones. `S2`, `S0a` |
+| **Round** | `R` + integer, optionally `.integer` | Inside one spike. `S2 R5.4` |
+| **Plan document** | `plans/NNNN` | Its own axis. One per slice, spike or session |
+
+**The insertion rule, which is the whole reason the scheme drifted.** A milestone that has **shipped**
+keeps its number for ever: the number has become history, and every citation pointing at it is a
+record of work that happened under that name. A milestone that has **not started** holds a position
+rather than a name, so inserting one **renumbers the unshipped tail and nothing else**. That is
+affordable precisely because it only ever touches rows nobody has built, which are the least cited
+rows in the corpus — session K's renumber moved 126 references where renumbering the shipped head
+would have moved 282.
+
+**Whenever a renumber happens, the retired numbers are kept in a table in `06` for ever**, so a
+citation written before the move still resolves. A number is never re-used for different work.
+
+### Retired forms
+
+Kept readable, and not to be used again.
+
+- **`-bis`** (`5a-bis`, `5b-bis`) meant *inserted after a milestone that had already shipped*. It
+  existed because there was no insertion rule; under the rule above the correct move is the next free
+  number in the unshipped tail. Both rows that carry it are shipped and therefore frozen.
+- **Sessions named with a spelled-out number** — **`eight`** and **`nine`**. Both are closed, so both
+  are frozen; the form is not to be used again. `nine` is the one that produced
+  [`adr/0042`](docs/adr/0042-a-planning-document-cites-and-a-design-document-owns.md), which is why
+  it is cited often enough to be worth knowing about.
+- **`K1` / `K2`**, a session split with **digits** where the scheme uses lowercase letters. `K1` is
+  closed and frozen. `K2` was still open, the split is over, and it takes the parent letter: **`K`**.
+  A session that genuinely needs splitting from here takes `Ka`, `Kb` — the same form a milestone's
+  sub-parts take, because it is the same idea.
+
+**Three notations were live on the session axis at once** — capitals, digit-suffixed pairs and
+spelled-out numbers — and none of the three was defined anywhere. That is what *"we need a more
+consistent way of doing this"* was about, and the freeze rule is what makes fixing it affordable:
+only `K2` was open, so only `K2` moved.
 
 ---
 

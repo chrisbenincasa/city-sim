@@ -6,7 +6,7 @@ entry route and the only one the Household did not choose. Nothing is destroyed,
 and the Pool needs no Departure to stay bounded — yet.
 `LEGIBLE CAUSE` `HONEST DEGRADATION` `UNIQUE INDIVIDUALS`
 
-**This decides, in a smaller scope, something `06` milestone 9a owns**, which is why it is written
+**This decides, in a smaller scope, something `06` milestone 19 owns**, which is why it is written
 down rather than left in a plan: 9a must be able to find this and generalise it instead of
 contradicting it.
 
@@ -33,7 +33,7 @@ what not writing to those columns already means.
 
 **The Pool is already bounded, and not for the reason the design gives.** `CONTEXT` → Unplaced Pool
 says the Pool is bounded because Households give up and become a Departure. Departure is milestone
-9a's and does not exist. But **nothing creates a Household after world creation** — `CreateHousehold`
+19's and does not exist. But **nothing creates a Household after world creation** — `CreateHousehold`
 has exactly one non-test caller — so the Pool is a subset of a population fixed at that moment and
 cannot grow with elapsed time whatever it does. [`adr/0006`](0006-no-collection-grows-with-elapsed-time.md)
 is satisfied by a property that has nothing to do with the mechanism the design intends to rely on.
@@ -72,7 +72,7 @@ row recycling has never been tested against.
 
 ## What would trigger revisiting
 
-- **Immigration arriving** (milestone 9a, [`adr/0023`](0023-immigration-arrives-through-the-gate.md)).
+- **Immigration arriving** (milestone 19, [`adr/0023`](0023-immigration-arrives-through-the-gate.md)).
   This is the named trigger and the one that matters: it removes the fixed-population bound and makes
   Departure load-bearing on the same day.
 - **A demolition source that is not decline** — a Disaster, or player-initiated clearance. `CONTEXT`

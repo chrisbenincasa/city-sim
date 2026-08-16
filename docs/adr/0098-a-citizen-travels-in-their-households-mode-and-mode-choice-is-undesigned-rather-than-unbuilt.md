@@ -20,7 +20,7 @@ carries a named ratifier under
 `plans/0026` task 5 is *the vehicular Leg at Statistical resolution*, and its stated blocker was a
 decision about parking: [`0009`](0009-parking-is-modelled-supply-never-search.md) makes parking modelled
 supply, session F warned that a drive Leg with no Parking Shed must not get a zero-length parking walk,
-and milestone 8 owns the Shed.
+and milestone 7 owns the Shed.
 
 ⚠ **That decision had already been taken, in `adr/0008`, and reading it wrongly nearly shipped a
 violation of it.** The first cut of this work built a car commute as **one** door-to-door Leg, on the
@@ -127,7 +127,7 @@ stored twice, and one copy drifting.
 **inside the one door** and no caller can get it wrong; `Itinerary` is the method a reader is sent to.
 ⚠ **The multi-Leg machinery 5b built had never been exercised** — every Trip in this project had exactly
 one Leg, so `AdvanceTravellers`' cursor, `TripTable.Append`'s list and `mean Legs per Trip` were all
-running on their trivial case. **Building the shape now is what keeps milestone 8's retrofit to one
+running on their trivial case. **Building the shape now is what keeps milestone 7's retrofit to one
 endpoint swap**, which is the cost `adr/0008` priced it at.
 
 **A drive Leg is free-flow.** No parking, no junction delay, no congestion.
