@@ -6,6 +6,7 @@ using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
+using Borough.Core.Tables;
 using Borough.Formats;
 using Borough.Tests.Golden;
 using Xunit.Abstractions;
@@ -211,6 +212,108 @@ public sealed class SegmentVolumeTests(ITestOutputHelper output)
                 Assert.True(segments.VolumeBackward[slot] >= 0, $"Segment {slot} backward went negative.");
             }
         }
+    }
+
+    /// <summary>
+    /// <b>A Segment slot that comes back from the free list carries no traffic.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The one shape of <c>adr/0006</c> leak this table can hold, and it is on the player's path
+    /// rather than the simulation's.</b> <see cref="TripEngine"/>'s <c>Enter</c> and <c>Leave</c> are a
+    /// matched pair keyed on the same stored direction bit, so on a standing road the count is
+    /// conserved by construction. What that pair does not cover is a Segment <em>bulldozed with a
+    /// vehicle on it</em>: it is freed at a non-zero volume, <c>Leave</c> then correctly declines to
+    /// decrement a Segment that no longer exists, and the next <c>LayStreet</c> takes the slot back. If
+    /// the count came back with it, the new Street would carry a Vehicle nobody could ever take off
+    /// it, in a <b>saved and hashed</b> column -- a permanent capacity loss no per-Tick check would
+    /// see, because the invariant would simply be wrong by a constant from that Tick on.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It holds, and reading the create says it does not.</b> <c>RoadSegmentTable.Create</c>
+    /// assigns six saved columns and <c>Epoch</c> and never touches the two volume ones -- they
+    /// arrived in 5b, were incremented by nothing for two milestones, and were never added to it.
+    /// <c>Rows.AllocateSlot</c> zeroes nothing either. The guarantee is at the <b>other end of the
+    /// recycle</b>: <c>Rows.FreeSlot</c> clears every column, and it does so for the State Hash's sake
+    /// rather than for this one's -- zeroing on free is what lets the fold walk every slot in index
+    /// order with no liveness branch. ***A create that sets most of its columns and a free that clears
+    /// all of them read as opposite guarantees, and only one end of a recycle has to hold.*** Written
+    /// here after concluding the opposite from <c>Create</c> alone, which is <c>adr/0093</c> exactly:
+    /// the create is where to look and never what was found.
+    /// </para>
+    /// <para>
+    /// <b>Asserted rather than left to the substrate, because the substrate's reason is not this
+    /// one.</b> <c>FreeSlot</c>'s clear is documented as a hash property, so a change that narrowed it
+    /// to the columns the hash folds -- or that moved zeroing to allocation and skipped what a create
+    /// already sets -- would be reasonable on its own terms and would arm this leak silently.
+    /// <c>BulldozeStreet</c> is the only thing in the project that frees a Segment from a running
+    /// world (<c>adr/0090</c>: the generator makes land and the player makes every road) and
+    /// <c>CommandKind.Populate</c> cannot reach it, so no long run will ever cover this.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_bulldozed_segments_slot_comes_back_empty()
+    {
+        Simulation simulation = Start(Rules(100, congestion: true), 4_000);
+        World world = simulation.World;
+
+        int occupied = Rows.NoSlot;
+        (int Column, int Row, StreetAxis Axis) edge = default;
+
+        // Until somebody is actually on a Street. A Segment freed at zero recycles to zero whatever
+        // the substrate does, so a test that bulldozed an empty one would hold with the clear removed
+        // -- which is the change this exists to catch.
+        for (int tick = 0; tick < 512 && occupied == Rows.NoSlot; tick++)
+        {
+            simulation.Step(new TickInput([], rulesetHash: 0));
+            (occupied, edge) = FirstOccupiedStreet(world);
+        }
+
+        Assert.NotEqual(Rows.NoSlot, occupied);
+
+        RoadSegmentTable segments = world.Roads.Segments;
+        int carried = segments.VolumeForward[occupied] + segments.VolumeBackward[occupied];
+
+        _output.WriteLine($"bulldozing block {edge.Column},{edge.Row} carrying {carried} Vehicle(s)");
+
+        Assert.True(world.Roads.BulldozeStreet(edge.Column, edge.Row, edge.Axis));
+        Assert.True(world.Roads.LayStreet(edge.Column, edge.Row, edge.Axis));
+
+        // The free list is LIFO and nothing allocated in between, so the relaid Street is the same
+        // slot. Asserted rather than assumed: if it ever stops being the same slot this test stops
+        // testing anything, and would say so by failing here rather than by passing quietly.
+        int relaid = world.Roads.Streets.SegmentOn(edge.Column, edge.Row, edge.Axis);
+
+        Assert.Equal(occupied, relaid);
+        Assert.Equal(0, segments.VolumeForward[relaid]);
+        Assert.Equal(0, segments.VolumeBackward[relaid]);
+    }
+
+    /// <summary>The first lattice edge whose Street has a vehicle on it, and where it is.</summary>
+    private static (int Slot, (int Column, int Row, StreetAxis Axis) Edge) FirstOccupiedStreet(
+        World world)
+    {
+        StreetGrid streets = world.Roads.Streets;
+        RoadSegmentTable segments = world.Roads.Segments;
+
+        for (int row = 0; row < streets.Span; row++)
+        {
+            for (int column = 0; column < streets.Span; column++)
+            {
+                foreach (StreetAxis axis in (StreetAxis[])[StreetAxis.East, StreetAxis.North])
+                {
+                    int slot = streets.SegmentOn(column, row, axis);
+
+                    if (slot != Rows.NoSlot
+                        && segments.VolumeForward[slot] + segments.VolumeBackward[slot] > 0)
+                    {
+                        return (slot, (column, row, axis));
+                    }
+                }
+            }
+        }
+
+        return (Rows.NoSlot, default);
     }
 
     /// <summary>
