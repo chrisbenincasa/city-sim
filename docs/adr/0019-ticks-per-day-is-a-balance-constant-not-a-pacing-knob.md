@@ -138,7 +138,37 @@ The host runs Ticks at whatever rate it likes. The simulation is unaffected, bec
 
 Traffic looks true at exactly the speed at which it is inspected — the same principle as [`0007`](0007-stress-driven-simulation-detail.md), detail arriving where scrutiny does, reappearing on a different axis for free.
 
-Two riders. **64 Ticks/s is Factorio's rate**, so the top rung is a performance budget rather than a design choice. And when the host cannot keep up it must **dilate wall-clock time, never skip Ticks** — Factorio's documented behaviour, and mandatory here because skipping Ticks would break replay and the State Hash.
+Two riders. ~~**64 Ticks/s is Factorio's rate**, so the top rung is a performance budget rather than a design choice.~~ **STRUCK 2026-08-16 by session T** — see the block below. And when the host cannot keep up it must **dilate wall-clock time, never skip Ticks** — Factorio's documented behaviour, and mandatory here because skipping Ticks would break replay and the State Hash.
+
+> ⚠ **The first rider is withdrawn, the second is untouched and is now load-bearing.**
+> ([`0105`](0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md),
+> session **T**, [`plans/0027`](../../plans/0027-session-t-the-target-speed.md).)
+>
+> **Factorio runs at 60 UPS, not 64.** 64 Ticks/s is `2⁶` off this document's own 16 Ticks/s reference
+> rate; it landed within 7% of a figure from another game and was read as corroboration.
+> ***A number arriving with no clause saying what it measures is a coincidence of magnitude rather than
+> evidence*** — [`plans/0012`](../../plans/0012-corpus-audit.md) **Cause 5**, and the first sighting of
+> it against a source **outside** the corpus.
+>
+> **The mapping is also backwards, which is larger than the digit.** Factorio has **no speed multiplier
+> in normal play**: 60 UPS is its only rate, and it is a design choice — that game's whole mechanical
+> timing is denominated in 1/60 s. The thing in this ladder corresponding to it is therefore the
+> **reference rate, 1×**, not the top rung, and Factorio has nothing corresponding to 2×/3×/4× because
+> it has no fast-forward at all. So this rider took another game's *design rate*, mapped it onto our
+> *ladder top*, and concluded the ladder top was not a design choice.
+>
+> **The conclusion survives on other grounds and nothing built on it moves.** The top rung *is* a
+> performance budget, because `01 §1` says 4× is *getting somewhere, not watching* — an argument about
+> what the rung is for, made here without needing Factorio. This is a citation defect rather than a
+> design defect.
+>
+> **What the comparison does say, on the axis nobody ran it on.** Factorio simulates ~0.0167 in-world
+> seconds per update in 16.67 ms; at [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)'s
+> clock this project simulates **42.1875 in-world seconds** per Tick in 15.6 ms at 4×. **~2,530× more
+> world per update**, for **~1/2,700th the compute per in-world second**. That cuts both ways and both
+> halves are worth holding: a larger per-update budget here is arithmetic rather than indulgence, and
+> Factorio's per-update work is trivial *per entity* in hand-optimised C++ where ours runs Dijkstra
+> searches. ***Two rates sharing a unit are not thereby comparable.***
 
 ## Consequences
 

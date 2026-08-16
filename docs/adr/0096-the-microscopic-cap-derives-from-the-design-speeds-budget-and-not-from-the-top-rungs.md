@@ -217,3 +217,34 @@ every figure here is final, the fallback tier becomes near-certain, and the sub-
 **The speed ladder changing.** This ADR is keyed on 1× being the design speed and 4× being the rung a
 large city withdraws. If either moves, the basis moves with it, and the derivation should be re-read
 rather than the number re-tuned.
+
+> ✅ **THIS TRIGGER FIRED 2026-08-16, was honoured, and the decision survives.**
+> [`0105`](0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md)
+> sets the **target speed at 4× at 1,000,000 Citizens** and refuses withdrawal outright: every rung of
+> `01 §1`'s ladder is offered at every city size for ever, and a host that cannot sustain one **dilates
+> and says so**. So *"4× being the rung a large city withdraws"* is now false.
+>
+> **This ADR has two legs and only the second one fell.**
+>
+> | | Claim | Status |
+> |---|---|---|
+> | **Leg 1** | `03 §3.9`'s two-box table — a **hardware** limit is answered with fewer Ticks per second and an indicator, never by lowering simulation fidelity | **Untouched.** It is the whole argument and `0105` strengthens it, by making dilation the *only* permitted response to an unsustainable rung |
+> | **Leg 2** | *"It is also the rung the binding case will not be running"* | **False.** 4× is on the menu at every city size now |
+>
+> **The Cap therefore stays at 62.5 ms**, decided with the user in the room. **A Cap and a bill are
+> different objects**: a Cap is a world constant, identical on every machine, that decides which
+> Segments are exact and therefore what city you get; a budget is a wall-clock bill that dilation can
+> absorb. Pricing the Cap at 15.6 ms would buy a smooth top rung by making traffic permanently less
+> exact for every player in every city — which is `§3.9`'s first row spent to avoid its second, the
+> exact trade this ADR exists to refuse, and the target speed moving does not touch that reasoning.
+>
+> ***A decision given several grounds is load-bearing on whichever ones survive*** — `plans/0024`'s
+> finding, arriving here on a ground that fell rather than on one that was deleted. What is owed is a
+> re-derivation and not a retraction, and it comes back the same.
+>
+> ⚠ **What does change is the tone of the *fallback tier* section.** It rests on 7.3× at the design
+> speed being *"a thing to watch rather than a crisis"*, and the design speed is still 1× for this
+> purpose — so the figure is unmoved. But the rung the game must now *offer* at 1M is 4×, where the
+> supply side is **~6,350 Vehicles on one core**, so the number of Segments reading *modelled* rather
+> than *exact* at the top rung is larger than this ADR pictured. That is `HONEST DEGRADATION` working
+> as designed and not a new obligation; it is recorded so the next reader does not discover it.

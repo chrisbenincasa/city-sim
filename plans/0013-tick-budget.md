@@ -1,8 +1,15 @@
 # 0013 — The Tick budget ledger
 
-**What does a Tick cost?** One table, one row per consumer, priced against **four candidate Tick
-budgets** — and, in the column that is the point of the document, **whether each row's multiplicand
-was measured or guessed.**
+**What does a Tick cost?** One table, one row per consumer, priced in **milliseconds** against the
+settled target — **15.6 ms at 1,000,000 Citizens, on one core of the reference class** ([`adr/0105`](../docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md),
+[`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md))
+— and, in the column that is the point of the document, **whether each row's multiplicand was measured
+or guessed.**
+
+⚠ **The bill is ≥44–50 ms and the target is 15.6.** That is a gap of ~3×, it is a **target with a
+number** rather than a defect, and the two levers between them — threading, and routing's multiplicand
+— are both named and neither is measured. See *When to stop building and start fixing*, which is
+evaluable for the first time as of 2026-08-16 and says **keep building**.
 
 ---
 
@@ -24,26 +31,54 @@ waiting on exactly this — *"cannot be ratified until the Tick's other consumer
 
 ---
 
-## The four budgets
+## The budget, and the ladder it sits on
 
-A Tick budget is the reference rate divided by a **speed multiplier**, and the multiplier is a product
-decision that has never been argued anywhere in the corpus. So this file prices every row against all
-four rather than picking one:
+✅ **The target speed is settled: 4× at 1,000,000 Citizens — 15.6 ms** ([`adr/0105`](../docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md),
+session **T**, 2026-08-16, [`plans/0027`](0027-session-t-the-target-speed.md)). **Every rung of `01 §1`'s
+ladder is offered at every city size for ever**; a host that cannot sustain the rung the player chose
+**dilates wall-clock time and says so**, and no rung is ever withdrawn. So the shares below have a
+denominator at last, and **15.6 ms is the one to read**.
 
-| Speed | Ticks/s | Budget | What it means |
+⚠ **The ladder priced here was the wrong ladder until this session, and that is worth a sentence.** This
+table carried **8×**, which session P removed from `01 §1`, and had no column for **0.5×** or **3×**,
+which it added. Both `06` and `plans/0000` were still quoting the retired set — *"8× / 4× / 2× / 1×"* —
+a month later. ***A table of options is a fact stored in prose and drifts like any other.***
+
+| Speed | Ticks/s | Budget | What it is for (`01 §1`) |
 |---|---|---|---|
-| **8×** | 128 | **7.8 ms** | Fast-forward beyond anything `01` describes |
-| **4×** | 64 | **15.6 ms** | `CLAUDE.md`'s stated budget, and the only one any document uses |
-| **2×** | 32 | **31.25 ms** | |
-| **1×** | 16 | **62.5 ms** | The reference rate: a Day is 8m32s |
+| ~~8×~~ | ~~128~~ | ~~7.8 ms~~ | **Not a rung.** Removed from the ladder by session P and priced here for a month afterwards |
+| **4×** | 64 | **15.6 ms** | **The target.** *Getting somewhere, not watching* |
+| 3× | 48 | 20.8 ms | Fast-forward that still shows a commute peak |
+| 2× | 32 | 31.25 ms | Comfortable once a city is settled |
+| **1×** | 16 | 62.5 ms | **The design speed** — the game must be enjoyable here. A Day is 2m08s |
+| 0.5× | 8 | 125 ms | Watching one thing happen. Traffic is visually truthful here (`01 §7`) |
 
-**Nothing argues that 4× at 1M is the requirement.** The reference rate is `CLAUDE.md`'s constants
-table and 4× is where 15.6 ms comes from; that this is the *target* is asserted nowhere. `0002`
-separately records that the budget **names no machine**, alongside `adr/0037`'s 8–15 ms band. Typed
-**arguable** under `adr/0043` — a session can close it and no measurement can.
+**The two speeds do different jobs and both are load-bearing.** **1×** is what a *capability* is priced
+against — [`adr/0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)
+puts the Microscopic Cap there, and `adr/0105` did not move it, because a Cap is a world constant that
+decides which Segments are exact while a budget is a wall-clock bill dilation can absorb. **4×** is what
+the *bill* in this document is targeted at, because it is the rung a 1M city must still offer.
 
-Every capture below is **`powersave`** on one Intel i5-10400, single-threaded. Absolutes are upper
-bounds; ratios are unaffected.
+⚠ **This document may no longer say the speed is unargued**, and the sentence that did is struck:
+~~*"Nothing argues that 4× at 1M is the requirement… typed **arguable** under `adr/0043` — a session can
+close it and no measurement can."*~~ A session closed it. What the sentence got right is worth keeping:
+no measurement could have, and **the ledger could not have chosen a rung either** — see *What the sum
+says*.
+
+### The machine, and it is half the budget
+
+[`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md):
+**a wall-clock budget names a machine class and a thread count, or it is not a budget.** This file's
+figures always carried the class in one line and never carried it into a quotation.
+
+> **15.6 ms on ONE CORE of the reference class** — a 2020 six-core x86-64 desktop, Intel i5-10400 class,
+> DDR4-2133, `powersave` governor, single-threaded. **Quote the class with the number.**
+
+Absolutes are upper bounds; ratios are unaffected. A `performance`, turbo re-capture is owed and no
+verdict turns on it. ⚠ **The thread count is the clause most likely to be dropped**, because it does not
+look like part of a duration — and `plans/0013` **lever 2** is precisely that everything here is
+single-threaded while Tick phase 2 is parallel by construction. *A budget of 15.6 ms is meaningless
+until somebody says 15.6 ms of what*, and `05 §6` has never said. That is session **R**'s.
 
 ---
 
@@ -331,27 +366,65 @@ blow-up: it costs about 63% more per Rule at 100,000 due than at 1,000.
 
 ## The ledger
 
-At **1,000,000 Citizens**. Shares are of each budget; **a row's share is only as good as its
-multiplicand**, which is why that column sits next to it rather than in a footnote.
+At **1,000,000 Citizens**, on **one core of the reference class** ([`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)).
+**Milliseconds first and the share follows**, per this file's own rule; the ladder is summed once
+beneath the table rather than as four columns. **A row's share is only as good as its multiplicand**,
+which is why that column sits next to it rather than in a footnote.
 
-| Consumer | Phase | Cost/Tick | Multiplicand | 8× | 4× | 2× | 1× |
-|---|---|---|---|---|---|---|---|
-| **Skeleton, staggered invariants, Layer schedule** | all | 0.112 ms | 1M rows — **measured** | 1.4% | 0.7% | 0.4% | 0.2% |
-| ~~**Bin Rule engine**, whole Tick, before term work~~ | ~~1–3~~ | ~~10.42 ms~~ | ~~56,250 due — **guessed**~~ | ~~134%~~ | ~~67%~~ | ~~33%~~ | ~~17%~~ |
-| **Bin Rule engine**, whole Tick, **in situ** | 1–3 | **6.4 ms** | 11,586 due — **measured, on a toy Ruleset** | 82% | **41%** | 20% | 10% |
-| **Routing** | 4 Move | **~9.4–10.5 ms** — unit **measured**, a *maximum* | 16 Trip starts — **guessed, and the wrong event** | **120–135%** | **60–67%** | **30–34%** | **15–17%** |
-| **Microscopic Lane model** | 4 Move | **27.4–29.3 ns a Vehicle** — unit **measured** (S5 L5), a `powersave` **lower bound** | **the Microscopic Cap — unset, and 5b's** | — | — | — | — |
-| ⚠️ **Walk search** (pedestrian Legs) | 4 Move | **0.04 → 17.8 ms** — unit **measured**, and it is a **curve in trip distance**, not a number | 464 routes — **guessed**, *and the distance distribution is a second guess nobody had named* | 0.5–229% | **0.3–114%** | 0.1–57% | 0.06–29% |
-| **Map Layer diffusion**, on the Tick it lands | 5 Layers | 0.03–1.01 ms | dirty region — **measured range** | 0.4–13% | 0.2–6.5% | 0.1–3.2% | 0.05–1.6% |
-| **Zone Rules**, worst aligned Tick | 6 Growth | **0.012 ms** | 16 Rules triggering together — **guessed**; unit **measured** | 0.15% | **0.08%** | 0.04% | 0.02% |
-| **Event Wheel, general** | 1 Wake | **unbuilt** — slice 9 | — | — | — | — | — |
-| **Commit** | 7 | **unbuilt** | — | — | — | — | — |
-| | | | | **≥229%** | **≥114%** | **≥57%** | **≥29%** |
+> ⚠ **RE-SUMMED 2026-08-16 by session T, and the correction was already written down in two other
+> files.** This table priced routing at 9.4–10.5 ms and summed to ≥17.8 ms.
+> [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+> quartered the Day; route searches fire per Trip and Trips are daily, so the routing row multiplies by
+> **four**. `01 §1` states this and `CLAUDE.md` carries it; **the ledger that owns the sum never applied
+> it.**
+>
+> ⚠ **And it is not merely stale against another document — it is inconsistent with itself.** The
+> *Segment volume attribution* row two tables up was re-derived on **2026-08-14** by exactly this
+> reasoning, ~80,000 → ~320,000 pairs a Tick, on the same clock change, in the same file.
+> ***A premise that expires retires every site resting on it, and finding one of them is not finding
+> them*** — 5c task 6's own finding, committed by the document that recorded it, nine days later.
+>
+> ⚠ **Carry the derivation, not the digit.** `01 §1` quotes ~47.6 ms. That is *≥17.8 ms with the routing
+> row multiplied by four*, and the honest form is the band below, because ≥17.8 was itself a floor. A
+> maximum multiplied by four is a coarse instrument — the routing unit is a **maximum over 256 Ticks**,
+> so the burst it already contains is not obviously four times burstier. **The direction is certain and
+> the factor is approximate.**
+>
+> ⚠ **The walk-search row plausibly moves the same way and nobody has done it.** Its multiplicand is 464
+> routes; if those are commute-derived they are daily too. **Not applied here**, because applying a
+> factor to a row whose provenance has not been checked is how the volume row's premise expired
+> unnoticed in the first place. Filed as owed.
 
-> **⚠ The last row is one number, not four — carry the bill, not the percentage.** ≥229%, ≥114%, ≥57%
-> and ≥29% are **≥17.8 ms** divided by four different budgets. Nothing about the simulation changes
-> across that row; what changes is a speed rung, which is a product decision. **Every percentage in this
-> file is a measurement over a decision, and only the measurement is a fact about the code.**
+| Consumer | Phase | Cost/Tick | Multiplicand | Share at 4× |
+|---|---|---|---|---|
+| **Skeleton, staggered invariants, Layer schedule** | all | 0.112 ms | 1M rows — **measured** | 0.7% |
+| ~~**Bin Rule engine**, whole Tick, before term work~~ | ~~1–3~~ | ~~10.42 ms~~ | ~~56,250 due — **guessed**~~ | — |
+| **Bin Rule engine**, whole Tick, **in situ** | 1–3 | **6.4 ms** | 11,586 due — **measured, on a toy Ruleset** | **41%** |
+| ⚠️ **Routing** | 4 Move | ~~9.4–10.5 ms~~ **37.6–42.0 ms** — unit **measured**, a *maximum*, **×4 for the shipped clock** | ~~16~~ **64** Trip starts — **guessed, and the wrong event** | **241–269%** |
+| **Microscopic Lane model** | 4 Move | **27.4–29.3 ns a Vehicle** — unit **measured** (S5 L5), a `powersave` **lower bound** | **the Microscopic Cap — unset** | — |
+| ⚠️ **Walk search** (pedestrian Legs) | 4 Move | **0.04 → 17.8 ms** — unit **measured**, a **curve in trip distance**, not a number. ⚠ **The ×4 above is not applied here and may be owed** | 464 routes — **guessed**, *and the distance distribution is a second guess nobody had named* | **0.3–114%** |
+| ⚠️ **Map Layer diffusion**, on the Tick it lands | 5 Layers | 0.03–1.01 ms ⚠ **STALE — measured at a 128-Cell map; the map is 512** | dirty region — **measured range** | 0.2–6.5% ⚠ |
+| **Zone Rules**, worst aligned Tick | 6 Growth | **0.012 ms** | 16 Rules triggering together — **guessed**; unit **measured** | **0.08%** |
+| **Event Wheel, general** | 1 Wake | **unbuilt** — slice 9 | — | — |
+| **Commit** | 7 | **unbuilt** | — | — |
+| | | **≥44–50 ms** | | **≥283–318%** |
+
+**The bill across the ladder, which is one number read five times.**
+
+| Rung | Budget | Share of ≥44–50 ms |
+|---|---|---|
+| 0.5× | 125 ms | 35–40% |
+| **1×** — the design speed | 62.5 ms | **71–79%** |
+| 2× | 31.25 ms | 141–159% |
+| 3× | 20.8 ms | 212–238% |
+| **4×** — **the target** | **15.6 ms** | **283–318%** |
+
+> **⚠ The ladder table is one number read five times — carry the bill, not the percentage.** 35–40%
+> through 283–318% is **≥44–50 ms** divided by five budgets. Nothing about the simulation changes down
+> that column; what changes is a speed rung. **Every percentage in this file is a measurement over a
+> decision, and only the measurement is a fact about the code** — which is why the rungs are now a
+> separate table beneath the bill rather than four columns inside it, where they read as five different
+> facts.
 >
 > This is not a stylistic preference. On 2026-08-13 the corpus's largest figure —
 > [`adr/0061`](../docs/adr/0061-a-diversion-rejoins-by-local-descent-and-a-rejoin-is-never-a-search.md)'s
@@ -360,25 +433,35 @@ multiplicand**, which is why that column sits next to it rather than in a footno
 > percentage. Held as **134.135 ms** the same two changes are visible immediately: one of them multiplies
 > the bill and the other does not touch it. *A percentage hides which side moved.*
 >
-> So: **state the milliseconds first and let the share follow.** Where a row below gives only a share,
-> that is a defect in this file, not a shorthand.
+> So: **state the milliseconds first and let the share follow.** Where a row above gives only a share,
+> that is a defect in this file, not a shorthand. ⚠ **And state the machine and the thread count with
+> it** ([`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)),
+> which is the same rule one axis over: a bill without a host is a percentage without a denominator.
 
-**Read the last row across, not down.** The headline is not *we are over budget*; it is that **the
-simulation as priced fits at 2× and does not fit at 4×** — and the difference between those is a
-product decision nobody has made, not an engineering problem anybody has to solve. **Stated as a bill it
-is one sentence: the simulation as priced costs ≥17.8 ms a Tick, and a 4× rung gives it 15.6.**
+**Read the ladder across, not down.** The headline is no longer *fits at 2×, does not fit at 4×* — that
+sentence was written against ≥17.8 ms and a speed nobody had chosen. **Stated as a bill it is one
+sentence: the simulation as priced costs ≥44–50 ms a Tick on one core of the reference class, and the
+target rung gives it 15.6.** The gap is **~3×**, it is a target rather than a defect, and
+[`adr/0105`](../docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md)
+sets it knowing the number.
 
-**⚠ The row carrying most of that sum is the weakest one in the table.** Routing is **9.4–10.5 ms of the
-≥17.8** — more than every other priced consumer put together, and without it the ledger reads **7.3–8.4
-ms**, which fits a 4× rung with room. *(Those are the same figures the 4× column states as 60–67 points
-of ≥114; the millisecond form is the one that survives a change of rung, and the routing row's own unit
-**is** its share of a 4× budget, which is how the two came to look like different facts.)* So the headline *fits at 2×, does not fit at 4×* **is a
-statement about routing and almost nothing else.** Its unit is measured, is a **maximum** rather than
-a mean, and spans 9.37–10.51 ms across five pinned captures; its **multiplicand counts the wrong
-event** — R6.3 found that under static Habit a Trip start is a lookup and the expensive event is a
-**diversion**, priced at **134.135 ms** on its own — 861.87% of a 4× budget. **So the one correction with a known
-direction points sharply up.** This document has priced everything except the row that decides the
-answer.
+**⚠ The row carrying most of that sum is still the weakest one in the table, and now by more.** Routing
+is **37.6–42.0 ms of the ≥44–50** — **85%** of the whole bill, where before the re-sum it was 55%. Take
+it out and the ledger reads **6.6–8.0 ms**, which fits the target rung with room to spare. So the
+headline is **a statement about routing and essentially nothing else**, more completely than when this
+paragraph was first written. Its unit is measured, is a **maximum** rather than a mean, and spans
+9.37–10.51 ms across five pinned captures before the ×4; its **multiplicand counts the wrong event** —
+R6.3 found that under static Habit a Trip start is a lookup and the expensive event is a **diversion**,
+priced at **134.135 ms** on its own. **So the one correction with a known direction points sharply up**,
+and it points up on the row that is now five-sixths of the answer.
+
+> ⚠ **The ×4 was in this file all along, attached to a different number.** The note directly below has
+> said since 2026-08-13 that `adr/0094` *"multiplies every routing count by 4"* — correctly, in a
+> sidebar about `adr/0061`'s 861.87% — and the routing **row** three paragraphs above it was never
+> touched. ***A caveat attached to a number does not travel with it*** ([`plans/0012`](0012-corpus-audit.md)
+> **Cause 5**) has a sibling: **a correction attached to a number does not travel either**, and this is
+> the first sighting where both copies live in **one file**. The tell is that no cross-document check
+> could have found it, because there was no second document to disagree with.
 
 > **⚠ 861.87% is right by cancellation, 2026-08-13 — and this table has already recorded once what that
 > costs.** The figure is a bill of **134.135 ms** at R8's rung over the **15.6 ms budget at 4×**. Both
@@ -397,11 +480,17 @@ answer.
 > divided by a product decision. `plans/0012` **Cause 5**, and the disqualifier registered for this
 > figure is its **denominator**.
 
-**The sum fell from ≥21.8 ms to ≥17.8 ms — ≥140% to ≥114% at 4× — and that is not good news.** It moved because the Bin Rule
-row stopped being a guess, and the correction happened to point down; the *unit* underneath it moved
-**up** by 2.8× at the same time. What the fall actually measures is how much slack there was in a
-figure everybody quoted. **At 114% the conclusion is now marginal rather than comfortable** — a single
-unbuilt phase, or a real Ruleset instead of a toy one, decides it either way.
+~~**The sum fell from ≥21.8 ms to ≥17.8 ms — ≥140% to ≥114% at 4× — and that is not good news.**~~
+**The sum then rose to ≥44–50 ms, and the history of the figure is more instructive than any of its
+values.** It went **≥21.8 → ≥17.8** when the Bin Rule row stopped being a guess and the correction
+happened to point down — while the *unit* underneath it moved **up** by 2.8×, so the fall measured how
+much slack there had been rather than any improvement. It then went **≥17.8 → ≥44–50** when session T
+applied a clock change this document had been carrying in a sidebar for three days.
+
+⚠ **Neither move was a measurement of the code.** One was a fixture being replaced by a city; the other
+was arithmetic nobody had run. ***The sum has never once moved because the simulation got faster or
+slower***, and a reader watching this row for engineering news has been watching the wrong thing for its
+whole life.
 
 **The sum is now short by a *named* hole rather than by an absent one, and that is the change S5
 made.** Until 2026-08-11 this table had **no row for the Microscopic tier at all** — not even
@@ -445,13 +534,22 @@ value that does not exist. What it now does is make the absence visible to anyon
 **What the unit buys, stated as a sensitivity rather than as a forecast.** At 29.3 ns a Vehicle — the
 slower of L5's two readings — one core:
 
-| Vehicles held Microscopic | Cost/Tick | 8× | 4× | 2× | 1× |
-|---:|---:|---:|---:|---:|---:|
-| 25,000 | 0.73 ms | 9.4% | **4.7%** | 2.3% | 1.2% |
-| 50,000 | 1.47 ms | 19% | **9.4%** | 4.7% | 2.3% |
-| 100,000 | 2.93 ms | 38% | **19%** | 9.4% | 4.7% |
-| 186,624 — S2 R2's fixture, **not a stressed count** | 5.47 ms | 70% | **35%** | 18% | 8.7% |
-| **532,750** | **15.6 ms** | 200% | **100%** | 50% | 25% |
+| Vehicles held Microscopic | Cost/Tick | 4× — the target | **1× — where the Cap is priced** |
+|---:|---:|---:|---:|
+| 25,000 | 0.73 ms | 4.7% | **1.2%** |
+| 50,000 | 1.47 ms | 9.4% | **2.3%** |
+| 100,000 | 2.93 ms | 19% | **4.7%** |
+| 186,624 — S2 R2's fixture, **not a stressed count** | 5.47 ms | 35% | **8.7%** |
+| **532,750** | **15.6 ms** | **100%** | 25% |
+
+⚠ **This row's rung is 1× and the rest of this document's is 4×, and that is deliberate rather than an
+oversight.** [`adr/0096`](../docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)
+prices the **Cap** — a world constant that decides which Segments are exact — at the design speed, and
+[`adr/0105`](../docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md)
+targets the **bill** at the top rung. Session T checked whether the target moving to 4× dragged the Cap
+with it and decided it does not: **a Cap and a bill are different objects**, and dilation absorbs a bill
+where nothing absorbs a permanently coarser city. ***Two numbers in one document may sit on two rungs
+provided each says which and why.***
 
 > ⚠ **AMENDED 2026-08-13, and this table's own closing warning came true one day after it was last read.**
 > Two things. **The whole table is pre-sub-stepping**: [`adr/0082`](../docs/adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md)
@@ -542,25 +640,53 @@ the room is a habit this corpus has already recorded**, and this table is where 
     goes green at 8,192 exactly as it did at 256, and the thing that changed would have gone
     unrecorded. ***A conclusion that survives a change to its own premise is not thereby confirmed by
     it.***
+  - ⚠ **AND THE SAME CHANGE MOVED THE COST, WHICH NOBODY DID — found 2026-08-16 by session T.** The
+    note above re-derived the **knee** for a 512-Cell map and left the **price** at its 128-Cell value.
+    A whole-map recompute is `O(cells)`, so **1.01 ms at 16,384 Cells is ~16 ms at 262,144** — and at
+    the target rung a whole-map pollution pass would **exceed a 15.6 ms Tick on its own, at any
+    population**. The row's ceiling is stale by ~16×; its floor and its amortised figure are not, and
+    the dirty region a real city makes is a fraction of the map, so **no verdict in this document
+    turns on it**. ***One reader re-derived one consequence of a premise and the other consequence sat
+    two lines away*** — the same shape as the routing ×4 above, in the same file, on the same day it
+    was found there. **Owed: re-measure the whole-map row at 512 Cells** rather than scaling it, since
+    a 16× extrapolation is exactly what this document refuses everywhere else.
 
 ### Out of the Tick, and they belong here anyway
 
-| | Cost at 1M | 8× | 4× | 2× | 1× | Why it is not a row above |
-|---|---|---|---|---|---|---|
-| **One State Hash** | 32.47 ms | 416% | 208% | 104% | 52% | Sampled on a cadence, never per-Tick. What it bounds is *how often a hash may be taken*, which every golden-baseline and bisection workflow is downstream of. `05 §9` does not mention it — [`0000`](0000-board.md) → *Owed* |
-| **The Decide guard** | 76.4 ms | 979% | 490% | 244% | 122% | A correctness check, not a shipping consumer. On by default, `--no-decide-guard` for long runs. It is here because it was `O(world)` **with no switch at all** until S0a, and being a guard is not what made it affordable |
-| **End-of-run invariants** | 4.84 ms at 100k, once | — | — | — | — | `adr/0033`'s *unaffordable per Tick and trivial at the end of a run*, which is the tiering working |
+**Shares at the target rung, 15.6 ms on one core of the reference class.**
+
+| | Cost at 1M | Share at 4× | Why it is not a row above |
+|---|---|---|---|
+| **One State Hash** | 32.47 ms | 208% | Sampled on a cadence, never per-Tick. What it bounds is *how often a hash may be taken*, which every golden-baseline and bisection workflow is downstream of. `05 §9` does not mention it — [`0000`](0000-board.md) → *Owed* |
+| **The Decide guard** | 76.4 ms | 490% | A correctness check, not a shipping consumer. On by default, `--no-decide-guard` for long runs. It is here because it was `O(world)` **with no switch at all** until S0a, and being a guard is not what made it affordable |
+| **End-of-run invariants** | 4.84 ms at 100k, once | — | `adr/0033`'s *unaffordable per Tick and trivial at the end of a run*, which is the tiering working |
 
 ---
 
 ## What the sum says
 
-**Three of the five priced rows rest on guessed multiplicands, and the two large ones are among
-them.** It
-would be wrong to read ≥140% at 4× as *the simulation is 40% over budget*: it is two unit costs
-multiplied by two guesses, plus two rows that are genuinely small. It would be equally wrong to
-dismiss it, because **the unit costs are real and the guesses are the corpus's own** — 450 Rule
-Instances per 1,000 Citizens is `0002`'s number and rate 8 is `02 §4.3`'s bakery.
+**Three of the five priced rows rest on guessed multiplicands, and the largest one is among them.** It
+would be wrong to read ≥283% at 4× as *the simulation is three times over budget*: it is two unit costs
+multiplied by two guesses, plus two rows that are genuinely small, on one core of a 2020 desktop at
+`powersave`. It would be equally wrong to dismiss it, because **the unit costs are real and the guesses
+are the corpus's own** — 450 Rule Instances per 1,000 Citizens is `0002`'s number and rate 8 is
+`02 §4.3`'s bakery.
+
+> ⚠ **The ledger could not have chosen the target rung, and session T's largest finding is that
+> everybody expected it to.** `06` files the obligation on the ground that *"`plans/0013`'s whole ledger
+> reads as a share of nothing until it is settled"*, which is true, and the condition below said the
+> chosen speed *"cannot be evaluated until it has been argued"*, which is also true. Between them they
+> imply an arbitration this document cannot perform, for three reasons found while trying:
+>
+> **The sum was stale by a factor this file was already carrying in a sidebar.** **No rung fits** — at
+> ≥44–50 ms the ladder runs 35–40% through 283–318%, and picking 1× because it is the last column under
+> 100% would have been picking the column where *the row known to be wrong is small*. And **the option
+> set was a retired ladder**: 8× priced, 0.5× and 3× absent.
+>
+> ***A ledger says what a choice costs and never which choice to make***, and the moment its largest row
+> is wrong **in kind** it cannot even do the first reliably. The rung was chosen on product grounds
+> ([`adr/0105`](../docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md))
+> and this document's job is to price it, which is the relationship it always had and never stated.
 
 **The honest statements are the inverted ones**, per the rule S2 R3 established after drafting its own
 budget row the wrong way round:
@@ -588,16 +714,26 @@ the two have been close enough to touch, and it is what the multiplicand being s
 
 ## Levers that are designed in and have never been pulled
 
-Named so the ≥140% is not read as a standing indictment of the architecture, and so nobody pulls one
+Named so the ≥283% is not read as a standing indictment of the architecture, and so nobody pulls one
 *before* the multiplicands are real — which would be optimising against a guess.
 
-1. **The target speed.** The four columns above are the lever. 2× fits today with two unbuilt phases
-   still to come; 1× fits with room. It costs a sitting rather than a slice, and it is the largest
-   single lever in the document.
+1. ~~**The target speed.** The four columns above are the lever.~~ ⚠ **SPENT 2026-08-16, and it was
+   spent in the direction that costs rather than the one that pays.**
+   [`adr/0105`](../docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md)
+   sets the target at **4×**, the top of the ladder, because withdrawing a rung as a city grows is a
+   worse player experience than a rung that runs slower than it says. **The largest single lever in the
+   document is gone and it did not pay out** — a document that had four columns to choose from now has
+   one, and the one is the tightest. That is the correct order of events (a product decision, then a
+   bill) and it is worth saying plainly that this file is 3× harder to satisfy than it was yesterday.
 2. **Everything measured is single-threaded, and Phase 2 is parallel by construction.** `adr/0037`
    makes Decide read-only; `02 §8` rule 3 makes randomness counter-based, so results are independent
    of evaluation order and Phase 2 needs no coordination at all. **Lint 4 — thread-count equivalence —
    is declared and not yet live**, and `05 §6` never decided which thread runs `step()`.
+   - ⚠ **This is now lever 1, and it is the only named lever the size of the gap.** S5 L6 measured
+     **1.84–1.93× at two threads** on the Lane kernel, bimodal 2.5–3.9× at four on a contended machine.
+     ⚠ **That figure may not be carried to the Rule engine or to routing** — it is one kernel, and
+     `adr/0096` exists because a number travelled without its clause. **Session R owns it**, and `06`
+     records R as gating nothing, which was true of milestones and is false of this document.
 3. **The sort is `O(n log n)` and the shuffle's remit is small.** `adr/0049` narrowed it to *who goes
    short when there is not enough, never how much anyone takes when there is* — so a cheaper
    construction that preserves that property is available in principle. **Not a defect and not
@@ -618,7 +754,8 @@ than something nobody bothered to measure:
 | 450 Rule Instances per 1,000 Citizens | A sizing ratio invented for the tables | A **real Ruleset** — slice 7 task 10 — then **S0b** counting what a city actually arms |
 | Mean Rule rate of 8 Ticks | One worked example's bakery, generalised to every Rule | The same authored Ruleset, the first artefact with more than one rate in it |
 | Trip arrival rate | Nothing generates Trips | Trip generation, `06` milestone 5b. Until then S2's O-D family is **invented**, and no figure derived from it may be quoted without naming the rung |
-| 15.6 ms at 1M | A product decision nobody has argued | A session. **Arguable, not measurable** |
+| ~~15.6 ms at 1M~~ **CLOSED 2026-08-16** | ~~A product decision nobody has argued~~ | ✅ **Session T** — [`adr/0105`](../docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md). It was arguable, a session closed it, and **the answer was 15.6 ms after all** — the value is unchanged and the standing of it is not. ⚠ **This row was the whole of the question's home in the corpus**, because a number that changes no state has no place in `0002` §D |
+| **The machine and the thread count** ⚠ **NEW** | A duration with no host is not a budget | ✅ **Named** by [`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md) — one core of the reference class. The **thread count** stays open and is session **R**'s |
 
 **Price the unpriced.** ~~Phase 3, and Map Layer diffusion~~ — **both done**, and doing them changed
 two things: the engine row grew from an inferred 60% to a measured 67%, and the Layer row turned out
@@ -638,10 +775,29 @@ design"* — and the same failure is available here in performance clothing. S0b
 because a Tick with nothing in it cannot be priced, which is what S0a proved by finding that every
 Tick figure in the corpus had been taken over an empty world.
 
-**Stop and do an architecture pass when this table sums past 100% at the chosen speed with *measured*
-multiplicands.** At that point the guesses are gone, the levers above are the remaining options, and
-choosing between them is a design decision rather than a benchmark's. Note that *the chosen speed* is
-itself one of the levers, so this condition cannot be evaluated until it has been argued.
+✅ **THE CONDITION IS EVALUABLE FOR THE FIRST TIME, 2026-08-16, and it says keep building.** It read
+~~*"stop and do an architecture pass when this table sums past 100% at the chosen speed with **measured**
+multiplicands… note that the chosen speed is itself one of the levers, so this condition cannot be
+evaluated until it has been argued."*~~ The speed is argued and is no longer a lever, so the escape
+clause is gone and the condition is restated with **three** terms rather than two:
+
+> **Stop and do an architecture pass when this table sums past 100% of 15.6 ms at 1M with *measured*
+> multiplicands, on a *measured* thread count, on the reference class.**
+
+**Read today: 283–318%, largest multiplicand guessed, thread count unmeasured. Two of the three terms
+are unsatisfied, so the answer is keep building** — which is what the paragraph above already says and
+now says checkably.
+
+⚠ **The third term is new and it is load-bearing.** Without it the condition fires the moment a
+multiplicand lands, on a single-threaded figure, against a target that `adr/0105` set knowing the whole
+architecture is parallel by construction and unexercised. **An architecture pass triggered by a number
+nobody has threaded would be an architecture pass against the wrong architecture.** Session **R** is
+what makes that term satisfiable.
+
+**The two things that will fire it are named and owned.** Routing's multiplicand becoming real — it is
+85% of the bill and its correction's direction is known to point **up** — and a threaded `step()` being
+measured. ⚠ **If routing lands near R6.3's 134.135 ms, the gap is not 3× and no lever in this document
+covers it**; that is the case the condition exists to catch, and it is the likelier of the two.
 
 ---
 

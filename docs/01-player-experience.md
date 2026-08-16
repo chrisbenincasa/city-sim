@@ -37,7 +37,28 @@ at**:
 | **1×** | 16 | **2m 08s** | **62.5 ms** | **The design speed. The game must be enjoyable here** |
 | 2× | 32 | 1m 04s | 31.25 ms | Comfortable once a city is settled |
 | 3× | 48 | 42 s | 20.8 ms | Fast-forward that still shows a commute peak |
-| 4× | 64 | 32 s | 15.6 ms | **Getting somewhere, not watching.** The first thing a large city stops offering |
+| 4× | 64 | 32 s | **15.6 ms** | **Getting somewhere, not watching.** ~~The first thing a large city stops offering~~ — **the target ([`adr/0105`](adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md))** |
+
+> ⚠ **The struck clause was this table's only claim that a rung is conditional, and it is refused
+> outright.** [`adr/0105`](adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md),
+> session **T**, 2026-08-16: **every rung is offered at every city size for ever, and 4× at 1,000,000
+> Citizens is the budget the simulation is targeted at.** A host that cannot sustain the rung the player
+> chose **dilates wall-clock time and reports *simulation running behind***
+> ([`adr/0019`](adr/0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md)'s rider,
+> [`03 §3.9`](03-agent-architecture.md)'s second row) — it never takes the control away.
+>
+> **Withdrawal and dilation are different things and only the first is refused.** Nothing here promises
+> 64 Ticks/s at 1M on unknown hardware; no game could. What is promised is that the control is present,
+> that the simulation is identical whichever rung is chosen, and that falling short is announced.
+> ***Options disappearing as a city progresses is a worse experience than a rung that runs slower than
+> it says*** — and the loop above is why: `Wait` is hardest to close in a large city, which is exactly
+> where the struck clause proposed to remove the fast-forward.
+>
+> **1× keeps its own job and it is not the target.** It is the speed the game must be *enjoyable* at,
+> and it is what a **capability** is priced against — the Microscopic Cap stays on a 62.5 ms basis
+> ([`adr/0096`](adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md),
+> whose revisit trigger fired here and whose conclusion survived). The **bill** targets 4×; a **fidelity
+> ceiling** does not.
 
 The Day lengths follow from `TICKS_PER_DAY = 2048`
 ([`adr/0094`](adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)),
@@ -59,16 +80,26 @@ speed at which rendered traffic is visually truthful"*, and this is the same obs
 **Different phenomena stay legible to different speeds, and the ladder's job is to say which** — which is
 why 3× exists and why 4× is described as getting somewhere rather than as watching.
 
-**A consequence for [`plans/0013`](../plans/0013-tick-budget.md), which had assumed otherwise.** That
-ledger is summed against a 15.6 ms budget, which is 4×, and reads as an existential problem because it
-exceeds it. It should be read against the **design** speed, where the same work is a fraction of a 62.5 ms
+~~**A consequence for [`plans/0013`](../plans/0013-tick-budget.md), which had assumed otherwise.** That
+ledger… **should be read against the design speed**, where the same work is a fraction of a 62.5 ms
 Tick — so an over-budget figure at 4× is a statement about which speedups a city of that size offers,
-which is `HONEST DEGRADATION`, and not a statement that the game does not run. ⚠ **`adr/0094` moves the
-routing row ×4** — route searches fire per Trip, Trips are daily, and Days now arrive four times faster —
-which takes the ledger to roughly **47.6 ms a Tick** — 305% of a 4× budget and 76% of a 1× one, which
-are one bill and two rungs. The conclusion survives and the margin
-does not: the simulation as priced now fits at 1× and not at 2×, on a row whose multiplicand R6.3 found
-counts the wrong event.
+which is `HONEST DEGRADATION`, and not a statement that the game does not run.~~
+⚠ **REVERSED 2026-08-16 by [`adr/0105`](adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md).**
+The escape this paragraph offered — *read the ledger at 1× and the problem goes away* — is exactly the
+two-point specification session T refused, and it is refused because the thing it disposes of is a
+**rung the player would have lost**. [`plans/0013`](../plans/0013-tick-budget.md) is now denominated in
+**15.6 ms** and reads **283–318%**, and that gap is a target with a number rather than a reason to
+change denominators. `HONEST DEGRADATION` still applies and it applies to **dilation**, not to
+withdrawal.
+
+**What this paragraph got right and keeps.** ⚠ **`adr/0094` moves the routing row ×4** — route searches
+fire per Trip, Trips are daily, and Days now arrive four times faster — taking the ledger from ≥17.8 ms
+to roughly **47.6 ms a Tick**, which is **one bill read at several rungs**. ⚠ **This document was
+carrying that correction for three days while the ledger that owns the sum was not**; session T found
+`plans/0013` still summing to ≥17.8 ms, having applied the identical reasoning to its *volume
+attribution* row on 2026-08-14 and not to routing. ***A correction attached to a number does not travel
+with it any more readily than a caveat does.*** The row's multiplicand still counts the wrong event and
+the known-direction correction still points **up**.
 
 ### The region view is a zoom level, not a second screen
 

@@ -374,6 +374,21 @@ between them can see anything wrong.
 | **the developed density**, ongoing | **3,700 / km²** | `plans/0002` §D's *"an **output** of the 1M target — §1's column is headed *1M implies*"*, and `docs/spike-results.md` saying it again | cited in four documents as an **independent check** that the map may grow, when it is 1,000,000 ÷ 268 km² and therefore the old map restated. See *The developed density every map decision is priced against is circular* below |
 | **`adr/0089`'s amendment**, written 2026-08-13, found 2026-08-14 | the Commute Budget rungs **20 / 40 / 50** minutes | [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s own finding, in the commit that shipped it: *"percentiles of a free-flow, **foot-only** distribution"* | substituted into the map table's *Commutes across* column, whose denominator is a **25–36 km/h vehicle** and always was — the table carries *Foot crossing* as a **separate** column. Reports **2.2–3.1** crossings where the same map on foot is **15.7**. Corrected in `adr/0089` |
 | **`plans/0002` §D2**, written 2026-08-13, found 2026-08-14 | S2 R1's entry-error sweep, **24.70%–3.80%** | ⚠ **none — the clause that was written is *wrong*.** §D2 says the sweep *"was measured with the store in the denominator and on the District axis"*; `MatrixReport.MeasureError` divides by the **per-query A\* cost** and the route store is a separate size table, while the harness's partition is a Cell-aligned grid over nodes and is geometrically the routing partition | nothing yet — **5c task 1 caught it before quoting it**, which is the first time the tell fired before the damage. The three real disqualifiers had never been written: a **uniform** O-D draw (R4: *a different city*), **pre-`adr/0094` Ticks** at 8192 a Day, and **car** times against foot rungs. Corrected in §D2 and `RoutingPartition.DesignEdge` |
+| ⚠ **`plans/0013`'s routing row**, found 2026-08-16 by session **T** | the **routing bill**, ≥17.8 ms, quoted as the ledger's whole sum | not a caveat — a **correction**. `adr/0094`'s ×4 was stated in `01 §1`, in `CLAUDE.md`, **and twice inside `plans/0013` itself**: the *volume attribution* row was re-derived for it on 2026-08-14 and a sidebar on `adr/0061` stated it on 2026-08-13 | the routing row was never multiplied, so the document that **owns** the sum under-reported it by ~2.6× for three days while two views of it were right. Corrected: **≥44–50 ms** |
+
+> ⚠ **That last row is a third form of this Cause and it is the one no check can reach.** The first two
+> forms are a **caveat** left behind when digits are copied, and a **compressed caveat** acquiring a new
+> meaning when it travels. This is a **correction** left behind when a premise expires:
+> ***a correction attached to a number does not travel with it any more readily than a caveat does.***
+>
+> **Two things make it worse than the others.** The **owner** was the wrong copy — Cause 1 is normally
+> *the copy nobody owns is the one that drifts*, and here two views were right while the source was
+> wrong. And **both copies live in one file**, so no document-to-document check could have found it,
+> which is every mechanical check this corpus has. The only instrument that would have caught it is
+> somebody re-summing a table by hand, which is what session T did and what nothing schedules.
+>
+> It is also 5c task 6's own finding turned on the document that recorded it: ***a premise that expires
+> retires every site resting on it, and finding one of them is not finding them.*** Nine days.
 
 ⚠ **The fifth sighting, 2026-08-14, is the first where the qualifier that existed was *itself false*, and
 it is a Cause 5 error sitting inside a Cause 5 entry.** §D2 was written to stop somebody quoting R1's
@@ -704,6 +719,51 @@ cost and it is stated nowhere. `plans/0012` has no Cause for it because it is no
 wrong; it is a document being **less precise than a `find_referencing_symbols` call**, which is the
 half of `adr/0093` that says *name a symbol, never a time*.
 
+### Session T's collection — four, three paid in the sitting
+
+**Found by re-summing a table rather than by auditing it**, which is the same lesson as session K's
+collection one axis over: K found its three *by sequencing for a purpose*, T found these *by needing a
+denominator*. A ledger read for information looks fine; a ledger read in order to divide by it does not.
+
+**1. `plans/0013`'s sum was stale by ×4 on its own largest row.** **PAID** — see the new Cause 5 row
+above, which is where the general form belongs.
+
+**2. `adr/0019`'s *"64 Ticks/s is Factorio's rate"* is wrong on the digit and backwards on the
+mapping.** Factorio runs at **60 UPS**. 64 is `2⁶` off that ADR's own 16 Ticks/s reference rate, and it
+landed within 7% of a figure from another game, so it read as corroboration. **PAID**: struck in place,
+with the dilation rider — which is correct, is genuinely Factorio's documented behaviour, and is now
+load-bearing under [`adr/0105`](../docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md)
+— kept whole.
+
+> ⚠ **This is Cause 5's first sighting against a source *outside* the corpus, and no check we could
+> build would reach it.** Every mechanical check here compares a claim to another claim in this
+> repository. A number attributed to an external product has no second copy to disagree with, and the
+> only defence is the general rule: ***a number arriving with no clause saying what it measures is a
+> coincidence of magnitude rather than evidence.*** **The mapping error is larger than the digit** —
+> Factorio has no speed multiplier in normal play, so its only rate corresponds to our **1×**, and the
+> rider took another game's *design rate*, mapped it onto our *ladder top*, and concluded the ladder top
+> was not a design choice. ***Two rates sharing a unit are not thereby comparable.*** The conclusion
+> survives on `01 §1`'s grounds, so this is a **citation defect and not a design defect** — worth
+> distinguishing, because the repair is different: a citation defect is struck, a design defect is
+> re-argued.
+
+**3. `plans/0013`'s Map Layer row re-derived its knee for the new map and left its price behind.** The
+2026-08-13 amendment moved residency saturation from 256 to 8,192 sources for a 512-Cell map and left
+the whole-map recompute at **1.01 ms**, which was measured at 128 Cells. A recompute is `O(cells)`, so
+the ceiling is **~16 ms** — over a whole Tick at the target rung, at any population. **FILED, not
+paid**: the repair is a re-measurement, not an edit, and scaling by 16 is exactly the extrapolation that
+document refuses everywhere else. `plans/0002` §E. ***One reader re-derived one consequence of a premise
+and the other consequence sat two lines away*** — the same shape as item 1, in the same file, found the
+same afternoon.
+
+**4. `05`'s budget section says `CellGrid.WorldCells` is still 128 and it is 512.** *"⚠ **The constant
+has not moved.** `CellGrid.WorldCells` is still 128, gated on road generation being scoped to developed
+land"* — both halves are stale: `plans/0003` queue item 6 shipped 2026-08-13 and the flip landed the
+same day. **PAID** below. ⚠ **`adr/0093`'s repair would have caught this and the sentence already
+complies with it** — it names a **symbol**, not a time, so one `find_symbol` settles it. *Naming a
+symbol makes a claim checkable; it does not make anybody check it*, which is the half of that ADR
+nothing enforces.
+
 ---
 
 ## Fixed in the sitting that found them
@@ -910,6 +970,29 @@ expected and therefore the direction it never looked in.
       superseding banner over the same sentence while its governing ADR carries none. S2 R2 found the
       aggregate scheme is not late but **wrong about which Segments** — 130.21% `v/c` direct against
       28.09% aggregate on the watched arc — so the banner is not cosmetic
+
+### `adr/0037`'s band and `plans/0004`'s tripwires name no machine, and now a rule says they must
+
+**Owed by [`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md),
+2026-08-16.** That ADR states the rule — *a wall-clock budget names a machine class and a thread count,
+or it is not a budget* — and deliberately does not edit two decisions somebody else argued. Both were
+already filed as a pattern in `plans/0002` (*"thresholds whose meaning depends on an unstated machine"*)
+and now have a rule to be repaired against.
+
+- [ ] [`adr/0037`](../docs/adr/0037-the-world-is-single-buffered-and-hazards-are-per-table.md)'s
+  **8–15 ms** async-copy band. **Both M4 Pro figures fall below its floor** (3.077 ms and 3.105 ms), so a
+  fast host does not *pass* the band — it leaves it. A range meant as *acceptable* reads as *expected*.
+  Say which machine class 8–15 ms describes.
+- [ ] [`plans/0004`](0004-s4-kernel-benchmark.md)'s **ratio tripwires**, written against a hand-computed
+  ideal that binds on one machine and not the other. K1's ratio-to-ideal *"degrades from 1.10× to 1.99×
+  without the code changing"*, and the footgun variant reaches 4.53% on a fast host, firing a wire it
+  does not deserve to fire.
+- [x] The **15.6 ms Tick budget** itself — **PAID** by `adr/0106` and carried in `plans/0013`,
+  `CLAUDE.md` and `plans/0000-board.md`: *one core of the reference class*.
+
+⚠ **The thread count is the half most likely to be dropped**, because it does not look like part of a
+duration — and `plans/0013`'s lever 2 is that everything measured is single-threaded while Tick phase 2
+is parallel by construction. That clause is owed to session **R** rather than to this file.
 
 ### The routing budget counts an event that stopped being the expensive one
 
