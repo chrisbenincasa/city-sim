@@ -94,8 +94,8 @@ No graphics. Everything is `Borough.Core`, `Borough.Tests`, `Borough.Headless`, 
 | **19** | Households, the Unplaced Pool and Departure *(was 9a)* | That growth is driven by a global demand scalar. The Pool with per-Household reasons *is* the demand signal, and it is a diagnosis rather than a bar chart |
 | **20** | Life Stages and self-generation *(was 9b)* | That the city has no internal demographic engine, so every dwelling change comes from immigration and the housing market has no churn of its own. ⚠ **Gated on [`adr/0011`](adr/0011-household-life-stages-and-self-generating-population.md)'s ⚫** — Life Stages scheduled in Days against a fine wheel whose period is one Day — which **18** is what repairs |
 | **21** | Lane-as-entity traffic *(was 6)* | That the vehicle becomes the entity, which costs a spatial index, cache locality, and roughly an order of magnitude ([`adr/0016`](adr/0016-the-lane-is-the-entity-not-the-car.md)). ⚠ **Position provisional — session G moves it** |
-| **22** | Stress-driven Fidelity with hysteresis *(was 7a)* | That fidelity depends on the camera, which makes observation change outcomes and destroys replay. ⚠ **Position provisional — session E moves it** |
-| **23** | The rotating Audit *(was 7b)* | The known blind spot — junctions that fail at *low* volume through turning conflicts, which V/C structurally cannot see. ⚠ **Position provisional — session E moves it** |
+| **22** | Stress-driven Fidelity with hysteresis *(was 7a)* | That fidelity depends on the camera, which makes observation change outcomes and destroys replay. ✅ **Position DERIVED 2026-08-16 by session E** ([`plans/0029`](../plans/0029-session-e-fidelity.md) Q4): it is **21 + 1** and has no other freedom — fidelity is a ladder between two tiers, so a Segment cannot be promoted before there is something to promote it into. Its acceptance criteria are `03 §4`'s invariants and §5.1's **hysteresis** scenario, and invariant 3's enumeration — *the* reason it could not be scoped — was written the same day ([`adr/0107`](adr/0107-a-demotion-discards-the-cursor-and-nothing-it-discards-has-to-be-invented.md)) |
+| **23** | The rotating Audit *(was 7b)* | The known blind spot — junctions that fail at *low* volume through turning conflicts, which V/C structurally cannot see. ✅ **Position DERIVED 2026-08-16 by session E**: it is **22 + 1** — the audit **promotes**, so it needs 22's promotion machinery and the Cap-ordered admission it now ranks last in ([`adr/0108`](adr/0108-repeated-divergence-is-a-bug-report-and-the-queue-decides-how-long-a-promotion-lasts.md)). ⚠ **It is smaller than this row implies**: it builds the rotation, the comparison, the record and the admission, and **no escalation machinery at all**. **Merging it into 22 was considered and refused** on rule 4 — the two retire *different* risks, and a merged row would retire the camera risk and be declared done with the blind spot uncovered |
 | **24** | Terrain, Shocks and the Intensity Dial | That the ground under a standing city cannot change, so [`01 §5.2`](01-player-experience.md)'s *"only instrument that can measure redundancy"* does not exist and the Dial's third sub-dial has nothing to scale (`01 §5.3`–`01 §5.6`, [`adr/0021`](adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md)). ⚠ **Appended rather than placed**: it depends on nothing in the spine and nothing in the spine depends on it, so its position is the weakest claim in this table |
 
 **Milestone 5b is the one to protect if the phase runs long**, and it is the one whose value is least visible while it is being built. The payoff is **Severance**, argued in [`adr/0014`](adr/0014-grid-streets-with-freeform-arterials.md) and [`03 §3.7`](03-agent-architecture.md).
@@ -156,14 +156,74 @@ No graphics. Everything is `Borough.Core`, `Borough.Tests`, `Borough.Headless`, 
 | **19**, the Day wheel, Attended services, Taste → **20** | [`adr/0011`](adr/0011-household-life-stages-and-self-generating-population.md), [`adr/0027`](adr/0027-preference-is-drawn-per-household-and-persists-for-life.md), [`adr/0104`](adr/0104-a-skill-tier-is-earned-by-attendance-and-the-credential-stays-a-wall.md) |
 | Hinterland, District Pool → Shipments | [`04 §3`](04-economy-and-goods.md) |
 | Evidence → trajectory detection | `01 §6`, and its indicators come from **10**, **15**, **19** and **20** |
+| **21 → 22** | Fidelity is a ladder between two tiers ([`adr/0007`](adr/0007-stress-driven-simulation-detail.md), [`adr/0005`](adr/0005-two-fidelity-tiers.md)) — a Segment cannot be promoted before there is something to promote it into |
+| **22 → 23** | The audit **promotes** on divergence (`03 §3.5`) and ranks last in the Cap-ordered admission ([`adr/0108`](adr/0108-repeated-divergence-is-a-bug-report-and-the-queue-decides-how-long-a-promotion-lasts.md)), so it needs 22's machinery |
+| **7 → the traffic cluster's *numbers*** | This document's own **7** row: `adr/0008`'s car commute is three Legs of which two are zero-length until parking lands, so *"every congestion figure taken before it is taken on a journey missing both ends"* |
+| **12 → the traffic cluster's *numbers*** | This document's own **12** row: the design has **one** Trip generator and *"every Commute Budget rung and congestion figure in the corpus is calibrated against it"*. S2 R4 measured what the draw is worth — 18.52% detour uniform against **128.82%** local, *"which under `05 §4` is a different city"* |
+
+> ⚠ **The last four were added 2026-08-16 by session E, and two of them this document already stated in
+> its own milestone rows.** The **7** and **12** edges are quoted above from those rows verbatim; the
+> graph did not carry them, while its own preamble says *"a flat list presents forty independent choices
+> where there are six roots and the rest consequences"*. ***A dependency stated in a row's prose is not
+> a dependency the graph knows about***, and the graph is what this document calls *the sequence's
+> warrant*. **All four are already satisfied by the existing order**, so nothing moves — which is the
+> point: they convert a position that happened to be right into one that is derived.
 
 ### What is parked, and why
 
 **The traffic and fidelity cluster is sequenced provisionally and session K may not settle it.** Sessions **E** ([`adr/0005`](adr/0005-two-fidelity-tiers.md) + [`adr/0007`](adr/0007-stress-driven-simulation-detail.md)) and **G** ([`adr/0016`](adr/0016-the-lane-is-the-entity-not-the-car.md)) move what these rows contain, so **20 through 23 hold positions rather than places**, and three mechanisms in the inventory below stay unnumbered inside the cluster: **the driver model**, **mode choice** and **Transit**.
 
+> ✅ **SESSION E RAN 2026-08-16 and its half is discharged: 22 and 23 hold *places*, and they are 21's**
+> ([`plans/0029`](../plans/0029-session-e-fidelity.md) Q4). ⚠ **This paragraph marked three rows
+> provisional and gave them two owners, when the three are one chain with one degree of freedom** —
+> fidelity is a ladder between two tiers, so 22 cannot precede 21; the audit promotes, so 23 cannot
+> precede 22. **Two of the three markings were never questions**, and E's freedom over 22 and 23 turns
+> out to be **none**. ***A shared blocker written as several independent waits reads as several
+> choices***, which is [`plans/0002`](../plans/0002-open-questions.md) §D2's *four rows wait on one
+> mechanism under four names*, arriving here on positions instead of numbers. **The cluster's position
+> is 21's alone, and 21's is session G's.** The three unnumbered mechanisms stay unnumbered.
+
 ⚠ **Say the consequence out loud, because 21 and 22 are being sequenced around a loop nothing closes.** [`adr/0046`](adr/0046-a-driver-routes-on-habit-sight-and-temperament-never-on-current-cost.md) refuses by name the configuration 5c shipped: congestion is priced **on entry to a Segment** (`TripEngine.cs:581`) and routes are computed on **free flow** (`TravelTimeMatrix`). **Congestion is therefore a cost paid and never a cost avoided**, and the traffic model has no feedback term at all. The mechanism that would supply one is the **driver model** row below — and four unset [`plans/0002`](../plans/0002-open-questions.md) §D2 numbers (Temperament, `k`, the Rejoin crossing budget, the Aggravation threshold) plus [`plans/0013`](../plans/0013-tick-budget.md)'s dominant row are all denominated in it. ***Four numbers written four ways and one missing feedback term are one absence***, and it sits behind G.
 
-**What that costs the ordering above:** nothing in 6–19 reads a congestion cost, so the demand spine is unaffected. What it costs is **21 and 22's acceptance criteria**, which cannot be written until the loop closes.
+~~**What that costs the ordering above:** nothing in 6–19 reads a congestion cost, so the demand spine is unaffected. What it costs is **21 and 22's acceptance criteria**, which cannot be written until the loop closes.~~
+
+> ✅ **AMENDED 2026-08-16 by session E — the first sentence stands and the second is withdrawn**
+> ([`plans/0029`](../plans/0029-session-e-fidelity.md) Q4). **Nothing in 6–19 reads a congestion cost and
+> the demand spine is unaffected**, unchanged. **But the acceptance criteria are writable and two of
+> them were written the same day.**
+>
+> ⚠ ***A milestone's acceptance criteria and the ratification of the numbers it produces are different
+> things***, and this sentence was holding a position for the second while naming the first. That is
+> [`adr/0043`](adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md) and
+> [`adr/0052`](adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)'s split
+> arriving at a roadmap — and **an unratified number is not a reason to hold a position**, or this table
+> could not be sequenced at all.
+>
+> **21's criterion is [`03 §5.1`](03-agent-architecture.md), in full, with an admission rule, and it has
+> been since the first commit.** Its three scenarios are **constructed load profiles** — a junction held
+> at capacity, a queue that fills its Segment, a volume spike that falls away — and **not one of them
+> reads a route choice**. `§5.1`'s own admission rule proves it cannot: *"a scenario earns a place when
+> it names a phenomenon the statistical tier structurally cannot produce"*, and diversion is not such a
+> phenomenon — the statistical tier could divert perfectly well. ***The suite is defined over what the
+> tier produces, and route choice is not it.***
+>
+> **22's criterion is `03 §4`'s invariants plus §5.1's hysteresis scenario**, and the one genuinely
+> missing piece was invariant 3's unwritten enumeration — which
+> [`adr/0107`](adr/0107-a-demotion-discards-the-cursor-and-nothing-it-discards-has-to-be-invented.md)
+> supplied on 2026-08-16. **23's is [`adr/0108`](adr/0108-repeated-divergence-is-a-bug-report-and-the-queue-decides-how-long-a-promotion-lasts.md)**,
+> which settled the escalation policy an audit with no decided response could not have had one without.
+>
+> **What the missing loop genuinely costs is the *ratification* of `T_high` and `T_low`**, which `03
+> §3.3` measures by *"a sweep of threshold values"* over a city whose congestion pattern is wrong
+> without diversion — plus [`adr/0062`](adr/0062-the-microscopic-cap-counts-vehicles-and-nothing-is-ever-evicted.md)'s
+> *does the Cap bind in ordinary play*. Both are numbers, both were always measurable, and neither was
+> ever this session's or `06`'s.
+>
+> ⚠ **And *"20 through 23"* above is wrong by one.** **20** is Life Stages and self-generation, gated on
+> `adr/0011` and repaired by **18**; it has nothing to do with traffic and its own row carries no
+> provisional marking. The cluster is **21 through 23**, which is what
+> [`CLAUDE.md`](../CLAUDE.md) says. ***A range written as arithmetic includes whatever the arithmetic
+> reaches***, and the row it reached was checked by nobody because the number looked adjacent.
 
 ### What Phase 2 as written would actually produce
 

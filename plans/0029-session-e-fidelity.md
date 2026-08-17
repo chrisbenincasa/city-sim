@@ -387,6 +387,76 @@ the only question was which consumers read it.
 `06` marks both **position provisional — session E moves it**. Take the positions, or state what
 they are still waiting on and why that is not this session's to give.
 
+### ✅ CLOSED — 2026-08-16, in [`06`](../docs/06-roadmap.md) rather than in an ADR
+
+**Session K's precedent**: a sequencing decision lands in `06` and `PROCESS.md`, not in a decision
+record — K re-derived the whole of Phase 2 and wrote no ADR for the ordering. An ADR saying *22 comes
+after 21* would be a decision record for a derivation.
+
+**`06` rule 1 decides the shape of the question before any of its content**: *"No dates. Pure
+dependency ordering… what **is** stable is what depends on what, so that is all this document commits
+to."* **So a position in that table is a dependency claim and nothing else**, and E's job was never to
+pick a slot — it was to say what 22 and 23 depend on. ***Read that way the answer is a derivation and
+E has no discretion at all.***
+
+**22 is 21 + 1 and 23 is 22 + 1, and neither has any other freedom.** Fidelity is a ladder between two
+tiers, so a Segment cannot be promoted before there is something to promote it into; the audit
+**promotes**, so it needs 22's machinery and the Cap-ordered admission `adr/0108` ranks it last in.
+
+⚠ **`06` marked three rows provisional and gave them two owners, when the three are one chain with one
+degree of freedom.** Marking 22 and 23 independently implies they could move independently, and they
+cannot — **two of the three markings were never questions**. ***A shared blocker written as several
+independent waits reads as several choices***, which is `0002` §D2's *four rows wait on one mechanism
+under four names*, arriving on positions instead of on numbers. **The cluster's position is 21's, and
+21's is session G's**, so E's contribution is to reduce three open positions to one.
+
+⚠ **The stated reason for the provisionality is withdrawn, and it is the substantive half of Q4.**
+`06` → *What is parked, and why* says the missing feedback loop costs **21 and 22's acceptance
+criteria, which cannot be written until the loop closes**. It does not. ***A milestone's acceptance
+criteria and the ratification of the numbers it produces are different things***, and that sentence was
+holding a position for the second while naming the first — `adr/0043` and `adr/0052`'s split arriving
+at a roadmap. **An unratified number is not a reason to hold a position**, or nothing in that table
+could be sequenced.
+
+- **21's criterion is `03 §5.1`, in full, with an admission rule, and has been since the first commit.**
+  Its three scenarios are **constructed load profiles** — a junction held at capacity, a queue that
+  fills its Segment, a volume spike that falls away — and **none reads a route choice**. `§5.1`'s own
+  admission rule proves one never could: *"a scenario earns a place when it names a phenomenon the
+  statistical tier structurally cannot produce"*, and **diversion is not such a phenomenon**. ***The
+  suite is defined over what the tier produces, and route choice is not it.***
+- **22's is `03 §4`'s invariants plus the hysteresis scenario**, and its one genuinely missing piece was
+  invariant 3's unwritten enumeration — **Q1, the same day**. The brief said so in its own words:
+  *"a promotion/demotion mechanism whose lossy direction is unenumerated has no acceptance criterion,
+  which is the concrete reason 22 cannot be scoped today."*
+- **23's is `adr/0108`** — Q2, the same day.
+
+**So two of the three were made writable by this session and the third had been writable for four
+months.** What the missing loop genuinely costs is the **ratification** of `T_high`/`T_low` — `§3.3`
+measures them by a sweep over a city whose congestion pattern is wrong without diversion — plus
+`adr/0062`'s *does the Cap bind in ordinary play*. Both are numbers, both were always measurable, and
+**neither was ever E's**, per task 0's table.
+
+⚠ **Two dependency edges were already stated in `06`'s own milestone rows and the graph carried
+neither** — **7 → the cluster's numbers** (*"every congestion figure taken before it is taken on a
+journey missing both ends"*) and **12 → the cluster's numbers** (*"every Commute Budget rung and
+congestion figure in the corpus is calibrated against"* one Trip generator; S2 R4 priced the draw at
+18.52% against **128.82%**, *"a different city"*). ***A dependency stated in a row's prose is not a
+dependency the graph knows about***, and that graph is what `06` calls *the sequence's warrant*. **All
+four new edges are already satisfied by the existing order**, so nothing moves — which is the point:
+they convert a position that happened to be right into one that is derived.
+
+⚠ **And *"20 through 23"* in that section is wrong by one.** **20** is Life Stages and self-generation,
+gated on `adr/0011` and repaired by **18**, with no provisional marking on its own row. The cluster is
+**21 through 23**, which is what `CLAUDE.md` says — so the two documents disagreed and the one with the
+error is `06`, which owns the sequence. ***A range written as arithmetic includes whatever the
+arithmetic reaches***, and nobody checked the row it reached because the number looked adjacent.
+
+**Merging 23 into 22 was considered and refused** on `06` rule 4: they retire **different** risks, and
+under the corollary — *once the risk is retired, the milestone is done, whatever else remains undone in
+it* — a merged row would retire the camera risk and be declared done with `§3.6`'s blind spot
+uncovered. ***Rule 4's stopping rule is what makes a merged milestone dangerous rather than merely
+untidy.***
+
 ---
 
 ## What this session does not do

@@ -33,10 +33,18 @@ milestone 3a, which is done. **Milestone 10 was two milestones wearing one numbe
 **the Outside was never scheduled**; it is now **14**. `adr/0041`'s **Segment volume row had shipped** in
 5c and nobody struck it. And ⚠ **two of the six roots are half-built in a way no document says**:
 `MapLayers.SetLandValueTarget` and `HouseholdTable.Money` are declared with **only test callers**, so the
-two deepest debts are *producers* rather than subsystems. ⚠ **21–23 are marked *position provisional***
+two deepest debts are *producers* rather than subsystems. ⚠ ~~**21–23 are marked *position provisional***
 — sessions E and G move them, and 5c prices congestion on entry to a Segment while routing on free flow,
 which `adr/0046` refuses by name, so **congestion is a cost paid and never a cost avoided** and those
-rows' acceptance criteria cannot be written yet.
+rows' acceptance criteria cannot be written yet.~~ ✅ **Session E ran 2026-08-16 and its half is
+discharged: 22 and 23's positions are *derived*** — 21 + 1 and 22 + 1, with no other freedom, so the
+cluster's position is **21's alone and 21's is session G's**. **The acceptance-criteria clause is
+withdrawn**: `03 §5.1`'s three scenarios are constructed load profiles that read no route choice, and
+that suite's own admission rule means one never could. ***A milestone's acceptance criteria and the
+ratification of the numbers it produces are different things.*** What the missing feedback loop
+genuinely costs is `T_high`/`T_low`'s **ratification**, which is measurable and was never a session's.
+**Congestion is still a cost paid and never a cost avoided** — that half stands, and it is the driver
+model's absence, behind **G**.
 
 ✅ **Session T closed 2026-08-16, the day K opened it — the target speed ([`plans/0027`](plans/0027-session-t-the-target-speed.md)),
 three decisions and two ADRs, [`0105`](docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md)
