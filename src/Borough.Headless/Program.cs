@@ -63,6 +63,9 @@ internal static class Program
                 case Mode.Traffic:
                     return Session.DumpTraffic(options);
 
+                case Mode.Evidence:
+                    return Session.DumpEvidence(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

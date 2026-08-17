@@ -46,14 +46,27 @@ public sealed class RulesetLoadResult
 {
     private static readonly RulesetRefusal[] NoRefusals = [];
 
-    private RulesetLoadResult(Ruleset? ruleset, IReadOnlyList<RulesetRefusal> refusals)
+    private RulesetLoadResult(
+        Ruleset? ruleset, RulesetNames names, IReadOnlyList<RulesetRefusal> refusals)
     {
         Ruleset = ruleset;
+        Names = names;
         Refusals = refusals;
     }
 
     /// <summary>The Ruleset, or null when it was refused.</summary>
     public Ruleset? Ruleset { get; }
+
+    /// <summary>
+    /// What the file called the ids the Ruleset carries, for whoever is showing them to a human.
+    /// </summary>
+    /// <remarks>
+    /// <b>Never null, and <see cref="RulesetNames.None"/> when the names were not kept.</b> It rides
+    /// on the load result rather than on the <see cref="Ruleset"/> because a Ruleset is
+    /// <c>Borough.Core</c> and holds no strings — see <see cref="RulesetNames"/> for why that is the
+    /// architecture working rather than a limitation being routed around.
+    /// </remarks>
+    public RulesetNames Names { get; }
 
     /// <summary>Every reason it was refused. Empty on success.</summary>
     public IReadOnlyList<RulesetRefusal> Refusals { get; }
@@ -62,11 +75,16 @@ public sealed class RulesetLoadResult
     public bool Ok => Ruleset is not null;
 
     /// <summary>A Ruleset that passed every refusal.</summary>
-    public static RulesetLoadResult Accepted(Ruleset ruleset)
+    public static RulesetLoadResult Accepted(Ruleset ruleset) =>
+        Accepted(ruleset, RulesetNames.None);
+
+    /// <summary>A Ruleset that passed every refusal, with the names the file gave its ids.</summary>
+    public static RulesetLoadResult Accepted(Ruleset ruleset, RulesetNames names)
     {
         ArgumentNullException.ThrowIfNull(ruleset);
+        ArgumentNullException.ThrowIfNull(names);
 
-        return new RulesetLoadResult(ruleset, NoRefusals);
+        return new RulesetLoadResult(ruleset, names, NoRefusals);
     }
 
     /// <summary>A Ruleset that did not, and why.</summary>
@@ -76,7 +94,7 @@ public sealed class RulesetLoadResult
 
         return refusals.Count == 0
             ? throw new ArgumentException("a refusal must say why.", nameof(refusals))
-            : new RulesetLoadResult(null, refusals);
+            : new RulesetLoadResult(null, RulesetNames.None, refusals);
     }
 
     /// <summary>Every refusal, one per line, for whoever is showing them.</summary>

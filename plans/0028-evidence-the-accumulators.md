@@ -6,12 +6,20 @@
 
 ## Status
 
-🟢 **IN FLIGHT. Scoped 2026-08-16; tasks 1, 2, 3 and 4 shipped. Ungated** — it is the first row of the
-re-derived Phase 2 spine and no session, spike or milestone stands in front of it. **Tasks 5, 6 and 7
+🟢 **IN FLIGHT. Scoped 2026-08-16; tasks 1, 2, 3, 4 and 5 shipped. Ungated** — it is the first row of
+the re-derived Phase 2 spine and no session, spike or milestone stands in front of it. **Tasks 6 and 7
 remain**, and **every open decision this milestone owed is now closed** — the last of them, *what task 4
 answers where the mechanism is missing*, on 2026-08-17. ⚠ **Settling it added a seventh task**: a Trip's
 Fate is freed on the line after it is computed, which is this milestone's residue by its own definition
 and was missed at scoping.
+
+⚠ **Task 5 added a fifth Ruleset and the corpus's first name-resolution path.**
+`rulesets/diagnosed.toml` exists because **the condition column was `None` in every world this project
+can build** — measured at five run lengths — and `RulesetNames` exists because `05 §1` has the shell
+resolving strings *"through the Ruleset"* and **nothing implemented that**. Its sharpest finding is
+that the reason `minimal.toml` gave for having no condition was ***an argument about a link applied to
+a terminal***, which the loader exempts by name: the thing said to be impossible was one key, and it
+had been legal all along.
 
 ⚠ **Task 4 shipped without moving a baseline, which is the scoping claim discharged**: the assembler
 adds no state, so it cannot move the State Hash — and a test asserts that directly, which is
@@ -343,11 +351,76 @@ change*. Not repaired — the guard's polarity is `adr/0015`'s and is correct �
 now restates the Ruleset in force, and says why in a comment. ***A sentinel that happens to equal the
 value in force is a sentinel that has never been tested.***
 
-### Task 5 — something to look at
+### Task 5 — something to look at — ✅ **DONE 2026-08-17**
 
 A runner mode. The obvious shape is `--evidence`, printing what the trail holds and expanding one
-aggregate into its constituents, which is the milestone's whole claim rendered in text. It would be the
+aggregate into its constituents, which is the milestone's whole claim rendered in text. It is the
 **ninth** runner mode and the third that steps the world.
+
+**What shipped.** `--evidence` in three panels — the **trail** with its aggregate printed as a row of
+the same table, one **Building** assembled in full (the worst-off one standing, chosen by scanning),
+and **why the vacant Lots are vacant**. Plus a **fifth Ruleset**, `rulesets/diagnosed.toml`, and
+`RulesetNames` in `Borough.Formats`. **1,478 tests green and no baseline moved.**
+
+⚠ **It must be run past 2,048 Ticks.** The trail holds 256 and the 4,000-Citizen fixture condemns 187
+by Tick 1,024, so at half a Day the aggregate is **empty** and the panel that exists to show
+***attribution decays to magnitude*** shows nothing decaying. At 2,048 it is 256 retained and 76
+folded. ***A demonstration of a cap has to be run past the cap.***
+
+⚠ **The mode does not refuse a Ruleset that names no condition, and every picture before it would
+have.** `--traffic` refuses because its two panels would be *identical* and an uninterpretable picture
+reads as a broken instrument. Here the trail comes out fully populated and exactly one column is
+dashes, under a heading naming the file that fills it. ***An instrument that refuses to show a gap is
+an instrument that cannot report one*** — a test holds the departure open so it cannot be tidied into
+a refusal by somebody applying the house polarity uniformly. What **is** refused is a Ruleset that
+condemns nothing at all (no `[[zone_rule]]`, or no `condemn_after`), because a trail with **no
+entries** says nothing about anything where a trail whose entries lack one field says exactly what is
+missing.
+
+#### Four findings
+
+⚠ **1. The reason `minimal.toml` gave for having no condition was an argument about a *link*, applied
+to a *terminal* — and the loader exempts terminals from it by name.** That file gives two reasons, and
+only one of them holds. Its header's *"a chain here would be a Rule rescuing itself"* is **correct**
+and this milestone does not contradict it: `diagnosed.toml` writes no link and there is still no rescue
+anywhere in that city. But the comment at `upkeep` — *"writing a terminal here would claim a source of
+supply this file has just finished saying it has no way to name"* — transplants that argument onto a
+reporting terminal, which `RulesetLoader`'s refusal 3 exempts in as many words: *"A reporting terminal
+is exempt, and that is not a loophole. It rescues nothing by design."* ***An argument against one
+member of a category is not an argument against the category.*** The sentence was written when the
+distinction had no consequence and acquired one two milestones later when the trail was built; **the
+thing said to be impossible was one key, and the loader had been accepting it all along.** Verified by
+measurement, not by reading: `diagnosed.toml` against `minimal.toml` at 2,048 Ticks is **identical on
+every count** — 285 buildings, 741 pool, 488 Lots, 256 retained, 339 condemnations, 83 aggregated, the
+same Lots on the same Ticks — with `withCondition` going **0 → 256** and only the State Hash moving.
+That is `adr/0094`'s rescale precedent, and it is what a diagnosis *should* cost.
+
+⚠ **2. `05 §1` has the shell resolving every human-readable string *"through the Ruleset"*, and there
+was no resolution path.** The loader builds four name-to-id maps while parsing and **dropped all
+four**; a `Ruleset` is `Borough.Core` and holds no strings, so the architecture's own sentence had no
+implementation. **The eight modes before this one all get away with it because they print *quantities*
+rather than *names*** — a grid of v/c ratios needs no vocabulary, and a condemnation reason is nothing
+but one. ⚠ **And the gap was camouflaged**: `Ruleset.ResourceKeys` and `KindKeys` are content
+**hashes** of the same authored names, carried into `Core` under `adr/0048`, which says plainly that
+*"the core never renders it and never resolves a name with it."* ***A key answers "are these two the
+same"; a name answers "what do I call it."*** A reader checking whether names survive loading finds a
+table that looks like the answer and is a one-way hash. `RulesetNames` is the second half, in
+`Borough.Formats` where the strings belong.
+
+⚠ **3. No dump before this one had ever identified an individual entity, and it turns out none could.**
+`Handle<T>.Index` and `Generation` are `internal` — deliberately, so nothing outside `Core` can sort by
+one or treat it as a name — so the trail's Lot and the assembled Building are printed as **resolved
+slots**, with a dash where a handle no longer resolves. Every picture before this drew a grid or a
+distribution, so the question never came up.
+
+⚠ **4. The Lot panel prints a row of noughts on every world this runner can build, and it is kept.**
+Task 4 measured why; task 5 makes it visible. `no frontage`, `nobody seeking` and `not zoned` are all
+**0**, and `the build cannot say` is everything — because `RoadGenerator` lays the lattice the Lots are
+carved out of, `SyntheticCity` paints bit 0 and the shipped `[[zone_rule]]` admits bit 0, and **no
+runner mode issues any Command but `Populate`** (`CommandKind.Zone` and `.Connect` have zero production
+call sites anywhere in the project). ***A row of noughts under a heading that explains them is a
+measurement; the same row with no heading is a defect.*** Making it non-trivial means the runner
+issuing a player verb, which is a scope decision and is **not** taken here.
 
 ### Task 6 — the long acceptance run
 

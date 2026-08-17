@@ -194,9 +194,19 @@ public static class RulesetLoader
                 RefuseUnbalancedMoney(rules, inputs, outputs);
             }
 
-            return _refusals.Count > 0
-                ? RulesetLoadResult.Refused(_refusals)
-                : RulesetLoadResult.Accepted(new Ruleset(
+            if (_refusals.Count > 0)
+            {
+                return RulesetLoadResult.Refused(_refusals);
+            }
+
+            // The names are kept here and nowhere else, because here is the only place they exist.
+            // 05 §1 has the shell resolving every human-readable string "through the Ruleset", and a
+            // Ruleset is Borough.Core and holds none -- so these four maps were built while parsing
+            // and dropped, and the resolution path the architecture assumes had no implementation.
+            // See RulesetNames.
+            var names = new RulesetNames(_kinds, _conditions, _resources, _rules);
+
+            return RulesetLoadResult.Accepted(new Ruleset(
                     [.. _families], rules, kinds, inputs, outputs, emissions, bins, kindRules,
                     zoneRules)
                 {
@@ -210,7 +220,8 @@ public static class RulesetLoader
                     Traffic = traffic,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
-                });
+                },
+                names);
         }
 
         // ---- the walk -------------------------------------------------------------------------

@@ -85,6 +85,20 @@ internal enum Mode
     /// anywhere, which is a recorded coverage hole rather than an accident (<c>adr/0099</c>).
     /// </remarks>
     Traffic,
+
+    /// <summary>
+    /// Print what the city can say about why something happened to it. Milestone 6's.
+    /// </summary>
+    /// <remarks>
+    /// A ninth mode, and the third that <b>steps the world</b>. A trail is a record of things that
+    /// have happened, so a city at Tick 0 has an empty one and there is no <em>before</em> panel to
+    /// take — <see cref="Traffic"/>'s situation, reached by a different route. ⚠ <b>It refuses a
+    /// Ruleset that condemns nothing and does NOT refuse one that names no condition</b>, which is a
+    /// departure from every refusal above it: an empty trail is uninterpretable, but a trail with one
+    /// column of dashes under a heading that says which file fills it is the <em>legible absence</em>
+    /// this milestone exists to produce. See <c>EvidenceDump</c>.
+    /// </remarks>
+    Evidence,
 }
 
 /// <summary>
@@ -284,6 +298,7 @@ internal sealed class Options
         bool trips = false;
         bool commute = false;
         bool traffic = false;
+        bool evidence = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -350,6 +365,13 @@ internal sealed class Options
                 // while somebody is on it, so there is nothing to see in a world that has not stepped.
                 case "--traffic":
                     traffic = true;
+                    session = true;
+                    continue;
+
+                // A session flag for --traffic's reason: a trail records what has happened, so a
+                // world that has not stepped has nothing in one.
+                case "--evidence":
+                    evidence = true;
                     session = true;
                     continue;
 
@@ -640,6 +662,28 @@ internal sealed class Options
             return false;
         }
 
+        // --zones' refusal, and the polarity is the same one: decline is content. A file with no
+        // [[zone_rule]] never looks at a Lot and a file whose kinds set no condemn_after never
+        // condemns one, so the trail would be empty -- and an empty accumulator reads as a broken
+        // mechanism rather than as a Ruleset that declines nothing. The two Ruleset-level checks are
+        // EvidenceDump's, because they need the file loaded; this only says a file is needed at all.
+        if (evidence && rulesets.Count == 0)
+        {
+            complaint = "--evidence needs --ruleset PATH. Decline is content: without a "
+                      + "[[zone_rule]] and a condemn_after nothing is ever condemned, and an empty "
+                      + "trail would look like a defect rather than like a Ruleset that declines "
+                      + "nothing. rulesets/diagnosed.toml is the file written for this picture.";
+            return false;
+        }
+
+        // --commute's and --traffic's refusal, for their reason.
+        if (evidence && log is not null)
+        {
+            complaint = "--evidence and --log disagree: the dump populates its own world and steps "
+                      + "it, so a recorded session would be replayed and then over-populated.";
+            return false;
+        }
+
         // --commute's refusal for --commute's reason: the dump populates and steps its own world.
         if (traffic && log is not null)
         {
@@ -678,7 +722,8 @@ internal sealed class Options
         // SILENTLY IGNORED under --zones, --commute and --traffic. A flag that does nothing is worse
         // than one that is refused, because the operator reads the absence of a census as a census
         // with nothing in it. Found while adding --series; the hole was --census's since slice 10.
-        if ((census || series) && (zones || commute || traffic || roads || trips || dump is not null))
+        if ((census || series)
+            && (zones || commute || traffic || evidence || roads || trips || dump is not null))
         {
             string asked = series ? "--series" : "--census";
 
@@ -700,7 +745,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = traffic ? Mode.Traffic
+            Mode = evidence ? Mode.Evidence
+                 : traffic ? Mode.Traffic
                  : commute ? Mode.Commute
                  : trips ? Mode.Trips
                  : roads ? Mode.Roads
@@ -793,6 +839,13 @@ internal sealed class Options
                                 once with [traffic] and once without. Needs --ruleset with
                                 a [traffic] and a [households] table; no shipped file has
                                 either, so this one needs a Ruleset written for it
+          --evidence            dump what the city can say about why something happened to
+                                it: the condemnation trail with its aggregate expanded,
+                                one Building's answer assembled from live state, and why
+                                the vacant Lots are vacant. Needs --ruleset that declines
+                                something, and runs a session because a trail records what
+                                has happened. Run it past 2048 Ticks or the trail has not
+                                filled and there is no aggregate to expand
           --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
                                 than as an ASCII field
 

@@ -1,0 +1,671 @@
+# THE DIAGNOSIS RULESET -- minimal.toml with a reason attached to the demolitions it already does.
+#
+# ===========================================================================================
+# WHY IT EXISTS. Milestone 6 built CondemnationTrailTable, which records every Building this world
+# condemned AND THE CONDITION THAT CONDEMNED IT -- 02 §9's "why is nothing building here?", called
+# there "the hardest and the most valuable". MEASURED 2026-08-17 ON THE SHIPPED FILES: the condition
+# column is ConditionId.None for EVERY entry, at 512, 1024, 2048, 4096 and 8192 Ticks, because NO
+# SHIPPED RULESET AUTHORS AN on_fail CHAIN. So the trail records when, where and what kind, and never
+# why -- the one thing it was built for. This is the file that picture is for. It is severance.toml's
+# and congested.toml's precedent exactly, for their reason: a mechanism minimal.toml structurally
+# cannot demonstrate needs a file where it does.
+#
+# IT IS NOT VERBATIM, WHICH THE OTHER TWO ARE. severance.toml and congested.toml keep minimal.toml
+# unchanged and append; this one EDITS ONE RULE IN PLACE and adds one below it. Both changes are
+# marked CHANGE 1 OF 2 and CHANGE 2 OF 2 where they sit, and nothing else in this file moved.
+#
+# WHAT MINIMAL.TOML SAYS, AND THE HALF OF IT THAT IS WRONG. That file gives two reasons for having no
+# chain, and they are not the same reason:
+#
+#   1. Its header: "A link rescues by relieving the Bin the head failed on, from a source the head
+#      could not reach. Every source available today is the Building's own Bins, so a chain here
+#      would be a Rule rescuing itself." THAT IS CORRECT AND THIS FILE DOES NOT CONTRADICT IT. It
+#      writes no link. There is still no rescue anywhere in this city.
+#
+#   2. At `upkeep`: "writing a terminal here would claim a source of supply this file has just
+#      finished saying it has no way to name." THAT IS AN ARGUMENT ABOUT A LINK, APPLIED TO A
+#      TERMINAL -- and the loader exempts terminals from exactly that requirement, by name and for
+#      exactly this reason: "A reporting terminal is exempt, and that is not a loophole. It rescues
+#      nothing by design -- it records a condition and leaves the chain failed."
+#
+# ***AN ARGUMENT AGAINST ONE MEMBER OF A CATEGORY IS NOT AN ARGUMENT AGAINST THE CATEGORY.*** The
+# sentence was written when the distinction had no consequence, and it acquired one when the trail
+# was built two milestones later. The thing said to be impossible was one key, and the loader had
+# been accepting it all along.
+#
+# WHAT IT COSTS THE CITY: NOTHING, AND THAT IS MEASURED RATHER THAN ARGUED. Against minimal.toml at
+# 2,048 Ticks on the 4,000-Citizen fixture, every count is IDENTICAL --
+#
+#     buildings 285, pool 741, citizens 4,000, lots 488
+#     trail: 256 retained, 339 condemnations, 83 aggregated
+#
+# -- and one thing differs: `withCondition` goes 0 -> 256, every entry naming `disrepair`. The State
+# Hash moves, because RuleInstance.reported and CondemnationTrail.condition are saved columns now
+# holding 1 where they held 0. NO GOLDEN BASELINE MOVES: this is a fifth file and the committed
+# session runs on minimal.toml. That is adr/0094's rescale precedent -- a byte-identical city with
+# only the hash moving -- and it is what a diagnosis SHOULD cost. A terminal is never evaluated, so
+# it does not even cost an evaluation; it costs one rung of chain depth on a Rule that was failing
+# anyway.
+#
+# IT IS STILL NOT A CITY, for every reason minimal.toml gives below and one more: every dwelling here
+# fails for the SAME reason, so the trail's why column has exactly one value in it. A file with two
+# conditions would demonstrate more, and it would need a second Bin nothing fills -- which is a
+# second dwelling kind, a second [[zone_rule]] and a second decline Rule, and that is three decisions
+# about content in a file whose first line says it makes none. ***One reason, honestly named, is a
+# demonstration; two reasons invented to fill a column would be content.***
+# ===========================================================================================
+#
+# The minimal Ruleset. It models no city, and it is not the beginning of one.
+#
+# Slice 7 task 10a of plans/0011-rule-engine-bins-and-rules.md. Its whole job is to be the smallest
+# content that makes Bins move, so that the wiring underneath it — a Ruleset reaching a World, a
+# Building given its kind's Bins and Rule Instances when it is built, an arming stagger — is exercised
+# by a running city rather than by a test that builds the same shape by hand.
+#
+# WHY IT NAMES NO GOOD. 04 §1's five Goods are Produce, Food, Timber, Materials and Consumer Goods,
+# and every one of them is produced by one Building and consumed by another. That crosses an ownership
+# boundary, which is the `pool` scope, which is a named hole that throws until Phase 2 brings roads,
+# Districts and connectivity. So a Ruleset that could run today and also name a Good would be claiming
+# a chain it cannot express. `sundries` is deliberately a word for goods too unimportant to name:
+# nothing in this file should be read as a decision about content. Choosing the Goods is decision
+# owed 4, and it belongs to task 10b with the chain it is for.
+#
+# WHY THERE IS NO on_fail CHAIN. A link rescues by relieving the Bin the head failed on, from a source
+# the head could not reach. Every source available today is the Building's own Bins, so a chain here
+# would be a Rule rescuing itself. adr/0045's ladder starts at the District Pool, and that is task 10b.
+#
+# WHY IT EMITS NO POLLUTION. Not because it would be unbounded — adr/0051's decay is built, so a `map`
+# term is now a stock the environment absorbs and settles at a level proportional to the emission rate.
+# It emits nothing because a dwelling is not industry. `02 §2.4` gives industrial pollution point
+# sources, and inventing a smokestack here to exercise a code path would be this file claiming
+# something about content, which its first line says it does not. The Rule engine's `map` output is
+# covered by `RuleEvaluationTests`, and the absorption by `LayerFieldsTests` and `LayerLongRunTests`.
+#
+# THE GOODS QUANTITIES AND THE BIN CAPACITIES BOTH x4 ON 2026-08-13, AND IT CHANGED NOTHING THIS CITY
+# DOES. adr/0094 took TICKS_PER_DAY from 8192 to 2048 and says the Goods quantities scale x4: a Day
+# holds a quarter as many firings, so a per-firing `amount` goes x4 to keep the rate in Goods per Day.
+# That is airtight and it is only half the edit -- the capacities had to follow, and they follow for a
+# DIFFERENT reason, which is the part worth reading.
+#
+# `amount` AND `capacity` ARE BOTH IN GOODS AND THEY ARE DENOMINATED DIFFERENTLY. `amount` is
+# Days-denominated: hold Goods per Day, so the number moves x4. `capacity` is TICKS-denominated: what
+# has to hold is FIRINGS HELD -- capacity / (amount x occupants) -- and firings x rate is a DURATION.
+# It is written in Goods, so keeping that duration still REQUIRES moving the number, and it moves x4
+# only because `amount` did. THE UNIT OF A QUANTITY IS NOT ITS DENOMINATION.
+#
+# WHAT KEEPING capacity = 12 WOULD HAVE DONE. The larder would have held ONE firing of `consume` where
+# it held four. In in-world time the two read identical -- 22.5 minutes of supply either way -- so
+# measured in Goods nothing is wrong. Measured in firings held, every Bin in the game shrank by four,
+# and a Bin that must be EXACTLY FULL for one `consume` to succeed is a knife edge. It fired
+# Invariant.WaiterIsBlockedByTheBinItNames and exposed a live defect in the wake path, filed unfixed as
+# plans/0003 queue item 8.
+#
+# IT IS BEHAVIOUR-NEUTRAL, MEASURED, AND THE COMMIT FIRST CLAIMED OTHERWISE. Running the pre-rescale
+# file and this one for 4,096 Ticks gives a BYTE-IDENTICAL 86-line census -- buildings 1,201 -> 642, the
+# Unplaced Pool, rule evaluations, Trips, every row. Only the State Hash moved, because Bin levels are
+# four times larger. The commit said "a dwelling now holds 90 in-world minutes where it held 22.5, which
+# is a change to the world": the digits are right and the comparison was never stated. The larder is
+# 4 firings x rate 32 = 128 TICKS, and it was 128 Ticks before the clock moved too. 90-vs-22.5 is HEAD
+# against the PRE-CLOCK world, which is adr/0094's cost arriving in one more place, not this edit's.
+# plans/0012 Cause 5: a number that is one half of a ratio says which half.
+#
+# NOTHING HERE CAME OUT OF PROPORTION, because everything in this file is denominated in FIRINGS --
+# `condemn_after` included, which says so at the [[building]] below. A dwelling's whole life is 4 missed
+# `upkeep` firings x rate 16 = 64 Ticks, which went 11.25 -> 45 in-world minutes by the same x4.
+#
+# 48 IS A COST DIAL HERE, NOT A BALANCE DIAL, AND THAT IS MEASURED TOO. Swept at 24, 36, 48 and 96, NO
+# ROW OF THE CENSUS MOVES; only `rules due` and `rules evaluations` move, and they move UP with capacity
+# (20,134 -> 25,023 at the first reading, 48 -> 96), because a deeper larder gives `restock` more
+# space to keep working. A BIGGER BUFFER COSTS MORE, NOT LESS. The larder decides nothing because it
+# is DEEPER THAN THE BUILDING'S LIFESPAN: nothing in this file produces `repairs`, so `upkeep` condemns
+# every dwelling at 64 Ticks and a 128-Tick larder absorbs a shock that never arrives. Restoring 22.5
+# in-world minutes would need 2 firings held -- one above a known crash -- or `consume`'s rate quartered,
+# which adr/0094 refused on cost. And 22.5 WAS NEVER CHOSEN: it is `capacity = 12` in a file whose first
+# line says it models no city (adr/0070).
+#
+# THE STEADY STATE IS THE POINT, AND IT IS A SURPLUS ONE. Production outruns consumption, so the Bin
+# sits near its ceiling and `restock` is the Rule that fails: it sleeps on space, `consume` draws
+# and wakes it, it refills and sleeps again. Both Rules move for ever, nothing trends, and no Rule is
+# ever wrongly asleep. THE SHORTAGE REGIME IS NOT AVAILABLE AND THAT IS AN ENGINE PROPERTY RATHER THAN
+# A TASTE: a recorded shortfall is a deficit at the instant of failure and the wait list wakes on the
+# arriving quantity, so a consumer short of 3 is never woken by three arrivals of 1. Producing in a
+# quantum at least as large as any consumer's deficit is what makes this file's steady state honest.
+# See finding 41.
+#
+# WHY EVERY DWELLING FALLS DOWN, AND WHY THAT IS NOT A BALANCE MISTAKE. Slice 10 task 7 needs a
+# Building that is *continuously* starved, because failure pressure is a duration and a Rule that is
+# rescued resets it (adr/0053). Nothing in this file could supply one: the only Rule that fails here
+# is `restock`, and it fails on SPACE — the Bin is full, which is the healthy state of a producer
+# with nobody to sell to, and the amended adr/0053 reads only starvation. So `upkeep` was added, and
+# it draws on a Resource this file deliberately never produces. Every dwelling therefore declines,
+# which is total rather than selective because there is one kind and it has one behaviour. A city
+# where some Buildings thrive and others do not needs Buildings that differ, which needs content, and
+# content is what the first line of this file says it is not. The cycle it does produce is real: a
+# condemned dwelling is demolished, its Households go to the Unplaced Pool, its Lot goes vacant, and
+# the [[zone_rule]] below raises another — which is the first time anything in this project has both
+# built and unbuilt, and the first time slice 5 task 7's `slots` assertion has had a table that churns.
+#
+# It is deleted rather than grown when task 10b becomes possible.
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+# The Good with no producer. It is a `good` rather than a family of its own because it is ordinary
+# in every way except that no Rule in this file emits it — a dwelling needs maintenance, maintenance
+# comes from somewhere else in the city, and "somewhere else in the city" is the `pool` scope, which
+# throws. So this Resource is the same named hole `sundries` works around, seen from the other side:
+# where `sundries` avoids the hole by keeping a chain inside one Building, `repairs` walks into it on
+# purpose, because a Building starved for ever is exactly what decline needs and is otherwise not
+# expressible. See finding 41 for why the *partial* shortage regime is the one that cannot be written.
+[[resource]]
+name = "repairs"
+family = "good"
+
+# Kind 1, which is what Borough.Core.Entities.SyntheticCity builds and what Households are placed in.
+# A dwelling holding a Bin its Occupants draw from is CONTEXT -> Building's own sentence, and it is
+# the one shape available while `local` is the only scope with a Bin behind it.
+#
+# `condemn_after` is in MISSED FIRINGS, not Ticks (adr/0053): a Rule fires every `rate` Ticks when
+# healthy, so four missed firings of `upkeep` is 64 Ticks of continuous starvation. Authoring it in
+# Ticks would mean that halving every rate in this file silently doubled every dwelling's lifespan.
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48 },
+    { resource = "repairs",  capacity = 4 },
+]
+condemn_after = 4
+
+# adr/0068. HOW MANY HOUSEHOLDS THIS HOLDS, and it is read by two things that used to disagree about
+# it: Borough.Core.Entities.SyntheticCity builds ceil(households / this) Buildings and fills each,
+# and the placement pass admits up to this many. Before it existed the populator put 3 in every
+# Building and a Zone Rule put 1, so each demolish-and-rebuild cycle netted +2 into the Unplaced Pool
+# and a 100,000-Tick run settled five-sixths homeless -- an equilibrium produced by a quantity this
+# file could not state. THREE keeps that populator's figure, which is S4 task 2's row ratio (360
+# Households against ~120 Buildings per 1,000 Citizens), so this line changes no world it did not
+# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D2: the first long run in which
+# placement and eviction both run.
+#
+# It is a property of the RULESET rather than of the Building, so lowering it here reaches every
+# dwelling already standing and evicts the overflow into the Pool -- where an over-full Bin is left to
+# drain, because a Bin has a consumer and occupancy has none.
+occupants = 3
+
+# 5b-bis task 4, and the ratifier plans/0002 §D2 named for this key: the first Ruleset that grants
+# employment. HOW MANY CITIZENS THIS BUILDING EMPLOYS -- Citizens, never Households, because a job
+# has one holder (adr/0068 on a second axis).
+#
+# IT IS ON THE DWELLING RATHER THAN ON A WORKPLACE KIND, AND THAT IS THIS FILE'S FIRST LINE BEING
+# OBEYED RATHER THAN A SHORTCUT. A second kind needs a second [[zone_rule]] to raise it, a second
+# decline Rule so that it churns rather than accumulating until the city is all offices, and a
+# land-use split -- which is three decisions about CONTENT, and content is what this file says it
+# does not make. Living above the shop is the smallest arrangement in which the assignment pass
+# has somewhere to send anybody, and it claims nothing: the geography still binds, because the pass
+# draws from a box around home and the Commute Budget still refuses what the Road Graph cannot
+# deliver. A city with districts is a Ruleset that models a city, and none exists.
+#
+# EIGHT IS DERIVED FROM THE ROW RATIOS, not chosen. SyntheticCity builds 360 Households per 1,000
+# Citizens (S4 task 2) and `occupants` above puts 3 in a Building, so a dwelling holds 1000/360 x 3
+# = 8.33 Citizens. Eight is the floor of that, which makes the city hold 0.96 jobs per resident:
+# FULL EMPLOYMENT IS JUST OUT OF REACH BY CONSTRUCTION. That is deliberate -- a ceiling nobody can
+# hit is a ceiling doing nothing, and `seeking - employed` in the census would read zero for a city
+# with no shortage and for a mechanism that had stopped, which is the reading PlacementCounter's
+# own remark exists to refuse.
+jobs = 8
+
+# WHEN THIS KIND'S JOBS START, as a band of in-world hours, from which each BUILDING draws its own one
+# against its own id. adr/0101, and the band rather than an hour is the load-bearing part: this corpus
+# has exactly ONE Building kind, so a single authored hour would send the entire city to work at the
+# same moment and produce a SHARPER spike than the uniform window this replaced -- not a shape.
+#
+# HOURS ARE A PROPERTY OF THE JOB AND NOT OF THE PERSON. A Citizen reads their hours off their
+# Workplace and stores nothing, so changing employer changes their day with no write and nothing to
+# invalidate. What the Citizen does carry is what the journey cost WHEN THEY TOOK THE JOB, and they
+# leave that much before this hour -- which is why somebody who lives further out leaves earlier, for
+# ever, and why the morning peak comes out broad without anybody authoring a spread.
+#
+# 6 TO 10 SPANS AN ORDINARY SPREAD OF OPENING TIMES and, with shift_hours_min/max below, puts the
+# returns between 12:00 and 20:00 -- two peaks, a thin middle, and a night in which nothing departs.
+# THE QUIET NIGHT IS NOT ENFORCED ANYWHERE: it is what a band with no mass in it looks like from
+# outside, and a kind that authored 22-23 here would get a night shift with no other edit.
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+# Greedy, and with no inputs. An extraction step with its Layer read elided — 04 §1's Produce comes
+# from Fertility, which is one of slice 6's named holes — standing in for the delivery that becomes a
+# `pool` draw in task 10b. Greedy because the actor works through whatever space it has, which is
+# 02 §4.1's own test for which of the two forms to write.
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+# Derived, because a dwelling's draw is stated by how many Households live in it rather than bounded
+# by what is in the Bin. `occupancy` is the one declared Readout (slice 7 task 7), and this is the
+# first thing outside a test to read it.
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { derived = "occupancy" }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+# The Rule that never fires. Its Bin is filled by nothing, so its first firing goes short of an input,
+# it subscribes to a Bin no Rule will ever write, and it sleeps for ever — which is the one shape a
+# duration-based failure pressure can actually measure.
+#
+# CHANGE 1 OF 2, AND THE WHOLE REASON THIS FILE EXISTS. minimal.toml stops here and says so: "It has
+# no on_fail chain, so no ConditionId reaches RuleInstance.reported and the demolition has no sentence
+# behind it; 02 §5.9 wants one, and writing a terminal here would claim a source of supply this file
+# has just finished saying it has no way to name." THE SECOND HALF OF THAT SENTENCE IS AN ARGUMENT
+# ABOUT A LINK, APPLIED TO A TERMINAL. See the banner at the top of this file.
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+on_fail = "no_repairs"
+
+# CHANGE 2 OF 2. The reporting terminal, and it is the entire content of this file.
+#
+# IT IS NOT ARMED AND CANNOT BE. The loader excludes any Rule that is another Rule's `on_fail` from
+# the kind's armed set — "Heads only... a reporting terminal armed this way reports for ever at its
+# rate, which is adr/0045's polling defect arriving through the back door." So `rate` here is a
+# required key that nothing reads, and it is set to `upkeep`'s so that a reader who has not been told
+# that cannot conclude anything from a difference.
+#
+# IT IS NEVER EVALUATED EITHER. RuleEngine.Descend returns on IsTerminal BEFORE calling Check — "A
+# terminal is never evaluated. It has no term that could be short" — so it costs one rung of chain
+# depth and no evaluation, and the chain stays failed. That is what makes this a diagnosis rather
+# than a rescue: `upkeep` still starves, still accumulates pressure at the same rate, and the
+# Building still falls down after `condemn_after` missed firings. NOTHING ABOUT THIS CITY'S
+# BEHAVIOUR CHANGES. What changes is that RuleInstance.reported carries `disrepair` instead of None
+# when it does, so CondemnationTrailTable records WHY rather than only when, where and what kind.
+[[rule]]
+name    = "no_repairs"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = []
+outputs = []
+reports = "disrepair"
+
+# The first [[zone_rule]] in the project, and the thing that closes the loop. Every 32 Ticks it looks
+# at a share of the Lot table: a vacant one it may build on, an occupied one it reads the pressure of.
+# Both branches run against the same sample, which is 02 §5.7's claim that a Zone Rule's cost is its
+# sample size and not its Zone's size — the tripwire task 9 holds fixed.
+#
+# `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED FROM IT (adr/0059, slice 10 task 11). It is
+# how long the development industry takes to look at every Lot once, and the engine derives
+# `sample = ceil(Lots × interval ÷ revisit_ticks)` per trigger. This file used to say `sample = 4`, an
+# absolute count, which made the quantity the city actually feels — a fraction of the city per cycle —
+# shrink as the city grew: a Lot was visited once per 0.12 Day at 1,000 Citizens and once per 117 Days
+# at 1,000,000, where the shipped Ruleset built nothing at all. It is `pollution_decay_ticks`'s shape
+# below, against the Lot count instead of the cadence.
+#
+# 2048 IS TICKS_PER_DAY AND STATING IT IS NOT CHOOSING IT. It is the loader's default and it is derived
+# rather than picked — a Day is what the rest of the simulation is denominated in, and every `rate`
+# above is 8–32 Ticks, so a Day is comfortably the coarser scale. It is written down for [layers]'s
+# reason: a designer cannot tune a number they cannot find.
+#
+# `zone = 0` is a bit INDEX, not a mask; SyntheticCity paints every Lot with bit 0. And under adr/0055
+# that bit scopes only what this Rule may BUILD: it condemns without consulting it, so repainting a
+# Lot cannot make the Building standing on it immortal.
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+# adr/0069. THE UNPLACED POOL DRAINING INTO DWELLINGS THAT ALREADY STAND, which is 02 §5.2 step 2 and
+# is the mechanism this file spent its whole life without. Before it existed the ONLY way to be housed
+# was for a [[zone_rule]] to raise you a house and put you in it -- one Household, once, at
+# construction -- so a Building demolished with three Occupants sent three to the Pool and its
+# replacement took one back. That is where the five-sixths-homeless equilibrium of the 100,000-Tick
+# run came from: not a number wanting tuning, a step of the loop nobody had built (adr/0070).
+#
+# IT RUNS AHEAD OF THE [[zone_rule]] AND THE ORDER IS THE DECISION. 02 §1.1 calls the phase ordering
+# the determinism contract, and placing first is what makes a developer's create branch a statement
+# about VACANCY rather than about population: a Household still in the Pool when the industry looks is
+# one the standing stock could not house. A developer does not build while there are empty flats.
+#
+# `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED (adr/0059, a second time). It is how long
+# the pass takes to look at everybody waiting, and the engine derives
+# `sample = ceil(Pool × interval ÷ revisit_ticks)` per trigger. Stating an absolute count of seekers
+# would house a fixed number of families a Day however many were queueing, so the fraction of the
+# queue cleared per cycle would shrink as the queue grew -- in the one collection whose growth is the
+# thing being fixed.
+#
+# `candidates` IS 02 §5.3'S N AND IT IS THE ONE FREE NUMBER HERE. A family looks at this many
+# dwellings and takes the first with room. It is a BEHAVIOUR MODEL rather than a budget -- bounded
+# knowledge, not an optimiser being approximated -- and it is hash-bearing and UNRATIFIED
+# (plans/0002 §D2). Nothing can ratify it yet: with no rent, no commute and no tolerance every
+# candidate with room scores identically, so today it is only a rate.
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+# The Map Layers, stated rather than defaulted. Slice 8 task 8 of plans/0015, and it is the slice's
+# externally-stated definition of done: adr/0015 says every tuning number lives in a file, and until
+# this section existed the cadence was LayerRuleset.Default with a Ruleset that could not reach it.
+#
+# EVERY NUMBER HERE IS 02 §2.4'S, AND STATING ONE IS NOT CHOOSING IT. These are the same values the
+# loader would have defaulted to, written down because a designer cannot tune a number they cannot
+# find. The cadence is hash-bearing — adr/0044 measured that two worlds differing only in the
+# diffusion period produce different hash traces — which is why it is the designer's number rather
+# than the profiler's, and why it is unratified in plans/0002 §D1 rather than settled.
+#
+# THIS FILE CANNOT SEE ITS OWN CADENCE, AND THAT IS WORTH KNOWING BEFORE EDITING IT. Nothing here
+# emits pollution — a dwelling is not industry — so the field is zero everywhere, diffusing zero at
+# any period gives zero, and changing `pollution_period` below moves no State Hash in any session
+# this Ruleset can run. adr/0044's claim is demonstrated on an emitting fixture instead
+# (LayerRulesetLoadTests). What editing this section *does* move is this file's content hash, which
+# the golden session records, so it is still a re-baseline.
+#
+# ⚠ TWO NUMBERS IN THIS FILE MOVED WITH THE CLOCK ON 2026-08-13, AND EVERY CADENCE DID NOT.
+# adr/0094 took TICKS_PER_DAY from 8192 to 2048 and says the Goods quantities are "the only rescaling
+# in the change". They are not: `revisit_ticks` and `pollution_decay_ticks` went 8192 -> 2048 in the
+# same commit, and they went DOWN by four while the Goods go UP by four.
+#
+# THE LINE IS BETWEEN A CADENCE AND A DURATION, and this file states which each key is. A `rate` is a
+# cadence -- authored so a Rule fires at a pace the player watches -- so it keeps its number and its
+# cost and quadruples its in-world period, which is adr/0094's own decision and its own test (does it
+# still resolve the process it samples?). These two are DURATIONS: adr/0059 makes `revisit_ticks` the
+# time to survey every Lot once and derives the sample from it, and plans/0015 makes
+# `pollution_decay_ticks` the time a plume fades over and derives the tau from it. Both say, in this
+# file, that the number IS one Day. Left at 8192 they would have quietly started meaning FOUR Days --
+# nothing would fail to load, nothing would fail to compile, and the plume would outlast the week.
+#
+# WHY adr/0094 MISSED THEM. That ADR classifies every number by what it is denominated in, which is
+# the right question; but it read the classes off the KEY NAMES, and a key spelled `_ticks` whose
+# meaning is a Day looks Tick-denominated from outside. The same miss cost Speed.PerKilometrePerHour,
+# in code: a conversion factor is denominated in two units at once and belongs to no class in that
+# table. Both are recorded in adr/0094's own "What building it found".
+#
+# THE DECAY IS A DURATION AND THE TAU IS DERIVED (plans/0015 decision owed 2). `pollution_decay_ticks`
+# is 2048 — one Day, TICKS_PER_DAY — and LayerRates.From divides it by whatever period is in force to
+# get a count of scheduled updates. Stating the count directly would silently start meaning two Days
+# the moment somebody doubled the period, which is precisely what slice 8 makes possible while the
+# city runs.
+#
+# `kernel_metres` IS WORLD-CREATION AND IS REFUSED ON RELOAD, by name and with a line number. It is
+# the one member of this section that is not tuning: the field is stored in Cells convolved at that
+# radius, so a live world's Layer cannot adopt a different one without being recomputed from sources
+# it no longer holds. It is also UNRATIFIED — the 1–10 km band is 10× wide (plans/0002 §D1).
+#
+# `sealing_decay_tau = 0` MEANS NEVER, AND IT IS A STATED ABSENCE. 02 §2.4 keys Sealing's decay by
+# terrain type; there is no terrain in Phase 1, so there is no key, so there is no rate to look up.
+# Zero is the conservative reading — Sealing only accumulates — and the bound is structural, because a
+# Cell cannot have more Tiles built on it than it has Tiles.
+[layers]
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+sealing_decay_tau     = 0
+
+# The road network. plans/0020 (milestone 5a), and the first section here that describes the
+# *ground* rather than what happens on it. adr/0014: Streets snap to the grid, Arterials are
+# freeform between authored Junction pieces, and the Road Graph is uniform regardless of which of
+# the two a road is -- the simulation never sees a spline.
+#
+# THE WHOLE SECTION IS OPTIONAL AND ITS ABSENCE MEANS THERE ARE NO ROADS, which is [placement]'s
+# polarity rather than [layers]'. A default would put eight hash-bearing numbers in the binary that
+# nobody authored (adr/0052), and the failure that hides is quiet: a city laced with roads its
+# designer never asked for, at a density that sets Segment count and therefore every routing figure
+# downstream. A world with no roads fails loudly instead -- `--roads` refuses to print, no Lot has
+# frontage, and every catchment query still throws by name. Once the section is present every key in
+# it is REQUIRED, because there is no number here the engine can derive.
+#
+# NOTHING MOVES ON THIS GRAPH YET. 5a delivers a graph that exists, hashes, saves and can be asked
+# what is connected to what. There are no Trips, no Legs, no routing and no Lanes, so `volume` is
+# zero everywhere and `fidelity` is a named hole -- which means the capacities below are stored,
+# hashed and READ BY NOTHING. They are here because CONTEXT -> Segment lists capacity among a
+# Segment's attributes and a schema change on a table with rows costs more than a column nobody
+# reads.
+#
+# `block_tiles` IS THE DENSITY AXIS AND IT IS A DENOMINATOR. It sets how many Segments a map of
+# fixed size holds, so everything divided by road density inherits its error. 32 is one Street on
+# every Cell boundary, which is the rung that reproduces CONTEXT -> Segment's ~30,000-Segment
+# placeholder; S2 R0 swept it and reports 16.20 km/km², UNRATIFIED, with plans/0002 recording that
+# nothing yet says whether that describes a real city.
+#
+# THE THREE SPEEDS ARE HASH-BEARING AND UNRATIFIED (plans/0002 §D1). 50 km/h for a Street, 90 for
+# an Arterial and 5 for a walk are the figures S2 ran on. adr/0071 settled how a speed is spelled --
+# Q16.16 Tiles per Tick, converted from km/h here, exactly, because 02 §2 says there are no seconds
+# in the library and no metres -- and it says in terms that CHOOSING A REPRESENTATION RATIFIES NO
+# VALUE. Authoring them in km/h is what lets a human check them against reality, which 02 §10
+# requires of any authored number.
+#
+# `foot_crossing_every` IS SEVERANCE'S DIAL AND IT IS THE INTERESTING NUMBER IN THIS SECTION.
+# Between Junction pieces an Arterial carries no pedestrian Arcs at all, so a Street it runs over is
+# either deleted or kept as a crossing -- and this decides which. At 4, every fourth severed Street
+# survives as a footbridge. At 0 there are no crossings and the pedestrian network is cut in two
+# while the car network is untouched, which is CONTEXT -> Severance's claim made observable: a city
+# can be perfectly well connected for cars and broken for people. It is the one number here whose
+# effect a test asserts in both directions.
+#
+# THE CAPACITIES ARE PER LANE-HOUR TIMES LANES, AND THEY ARE STORED PER DAY. A Street is 2 lanes at
+# 1,800 veh/h/lane and an Arterial 6 at 2,000; a foot path carries no Vehicles at all and gets a
+# nominal figure so that volume/capacity is defined rather than a division by zero. The loader
+# multiplies by 24 exactly -- a Day is CONTEXT's only time unit above the Tick, where Q16.16
+# Vehicles per Tick would be a fourth quantity at a scale adr/0071 enumerates exactly three for.
+#
+# ARTERIAL_COUNT IS ZERO HERE, AND IT WAS 8 UNTIL 2026-08-13. Three facts settled it, none of them
+# about tuning. An Arterial is a PLAYER TOOL -- adr/0014's freeform spline with authored Junction
+# pieces, "deliberately rare" -- and nothing in the build can make one: adr/0077 refuses Arterials
+# and Junctions by name in CommandKind.Connect, and adr/0090 says the generator lays no roads at
+# all. So every Arterial that has ever existed in this project was laid by SyntheticCity, a fixture
+# reached only by "a verb no player has". Second, an Arterial grants no frontage (adr/0014), so it
+# contributes no Lot and can only delete Streets it crosses. Third, the 240-configuration sweep
+# measured this lattice severing 0.0%% at every dial value and stranding zero walkable nodes on
+# seven of eight seeds -- so these 8 were doing nothing, and once the populator paves the area it
+# occupies rather than the map they would start doing harm. Severance is demonstrated by
+# rulesets/severance.toml, which keeps its 16 and lays the whole map on purpose.
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+# How many Lots one Street Segment carries, both sides together (adr/0078).
+#
+# DERIVED, not chosen. This is CONTEXT.md → Address's own working figure -- "five Buildings
+# share a Segment at the working figures" -- which is the premise of the decision that keeps an
+# Address off a Node, and therefore of the ~30,000-Segment figure every routing cost in
+# plans/0013 is priced against. If that figure ever moves, this moves with it.
+#
+# There is no depth key. 02 §2.2 asks for "depth and width targets"; a Lot has no extent in
+# LotTable, so a depth would be a hash-bearing world-creation number chosen for a consumer
+# nobody has designed. Lots hang on Segments and the rest of the block is interior.
+lots_per_segment = 5
+
+[trips]
+# What travelling costs, and what makes a journey fail. Two numbers, both hash-bearing, and they
+# are unset in two DIFFERENT senses -- which is the whole reason one of them is here and the
+# other is not.
+#
+# THE CROSSING COST IS CHOSEN WITH A NAMED RATIFIER, which adr/0052 permits and which the Budget
+# below cannot use. It is what it costs on foot to reach the other side of a Segment (adr/0074),
+# charged exactly when two Addresses share a Segment and differ in side and silent everywhere
+# else -- because "the same side" stops meaning anything once a route turns a corner. Zero is a
+# legitimate value for it: that is rung 1, what this corpus had by omission, the city where the
+# shop opposite is the shop next door.
+#
+# 30 SECONDS, AND THE DERIVATION WAS LOOKED FOR BEFORE THE VALUE. plans/0002 §D asks for one and
+# gives its shape -- half a signal period, which is a property of a junction rather than a
+# preference. This simulation has no signals and a Segment has no width, so neither derivation is
+# available; both need a mechanism nobody has built, and under adr/0070 that absence is evidence
+# of nothing. What is left is the band the row states: large enough that the shop opposite is not
+# the shop next door, small enough that it does not dominate a Leg made of blocks. A block is 32
+# Tiles = 128 m and takes 92 s to walk at 5 km/h, so this is a third of one block. Half a
+# 60-second signal cycle arrives at the same number from the other end, which is the most this
+# corpus can honestly say for it.
+#
+# ITS RATIFIER IS THIS MILESTONE'S OWN LONG RUN, and that run is made twice: the walk-Leg cost
+# distribution with the term at zero and at this value. `--trips` prints the distribution and
+# names the value it ran at, so the pair is comparable rather than remembered.
+#
+# THERE IS NO commute_budget_minutes, AND THE OMISSION IS THE STATEMENT RATHER THAN AN OVERSIGHT.
+# The Budget is a percentile of a Trip-cost distribution, so it is meaningless before one exists,
+# and a value here today would be exactly what adr/0052 forbids -- a hash-bearing number chosen
+# because the schema wanted one. An omitted key is a city with NO CEILING: nothing is refused for
+# its length, the Trip Fate "exceeded commute budget" stays unreachable, and the Census says so.
+# That is also the only city whose cost distribution is uncensored, which is the one this
+# milestone has to measure before it can state the number. The loader refuses a zero rather than
+# reading it as "nobody travels", because the intent a zero would be reaching for is the intent
+# deleting the key already states.
+crossing_seconds = 30
+# THE THREE RUNGS, AND ONLY THE LAST ONE REFUSES (adr/0095). A commute is FAST to 20 minutes,
+# MODERATE to 40, UNSAVOURY to 50, and refused beyond it. The two lower edges refuse nothing at all --
+# they grade a commute that happens anyway, so a city whose commutes are creeping from twelve minutes
+# to nineteen is legible BEFORE anything fails. A single threshold reports zero throughout that period
+# and then reports a cliff, arriving exactly when 01 SS4's spatial fix has stopped being cheap.
+#
+# ALL THREE OR NONE. There is no ceiling without grading and no default for either lower rung: a
+# default would be the thing adr/0052 forbids, a hash-bearing number chosen because the schema wanted
+# one. The loader refuses a partial set and refuses one that is not strictly increasing.
+#
+# ⚠ THE UNSAVOURY RUNG READS ZERO IN THIS CITY, AND IT IS MEASURED RATHER THAN SUSPECTED. The paved
+# extent is derived from population, so 10,000 Citizens is a city 1.9 km across, against a 50-minute
+# walking ceiling that reaches 4.2 km -- nobody can live far enough from work to be graded badly. No
+# commute here exceeds 32 minutes and `beyond ceiling` is 0. Over 1,024 Ticks:
+#
+#     citizens    10,000   20,000   40,000   80,000  160,000
+#     paved       1.92 km  2.56 km  3.84 km  5.44 km  7.68 km
+#     fast           612    1,164    1,951    2,950    4,405
+#     moderate         3       54      463    1,728    4,330
+#     unsavoury        0        0       10      131      738
+#     beyond           0        0       90    1,576    6,290
+#
+# The unsavoury rung first occupies at 40,000 Citizens; at 160,000 fast and moderate are level, which
+# is a city genuinely deteriorating as it spreads. That is NOT a reason to change these numbers, and
+# the fixture is not inflated to fill a rung. A rung is a VOCABULARY -- calling a 20-minute commute
+# unsavoury would be bending the words to fit a village.
+#
+# ⚠ AND THE OTHER HALF OF THE REASON IS THAT CONGESTION IS UNBUILT. 01 SS4 names TWO scarcities that
+# read as long commutes: CONGESTION, which is road capacity, and SEPARATION, which is distance. This
+# simulation implements the second. A walk Leg's cost is distance / speed EXACTLY, because pedestrian
+# networks do not saturate (03 SS3.7), and a vehicular Leg carries no congestion term because adr/0075
+# gives a Leg a cost and no path. So these rungs report Separation and nothing else until 5c, and
+# 01 SS7's Gridlock overlay -- "the commute-time distribution's upper tail sliding toward the Commute
+# Budget wedge" -- is the reading they cannot yet produce. adr/0070: stated, not compensated for.
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+
+
+# THE COMMUTE BUDGET, MEASURED RATHER THAN CHOSEN, and the paragraph above is now history: it said
+# this key is absent because the Budget is a percentile of a distribution that does not exist. The
+# distribution exists. `--trips` walks every Building pair in this city and prints it by
+# grid-ideal band, and these are its numbers -- p90 walks of 2.5 min at 1 block, 7.0 at 4, 13.7 at
+# 8, and 71.2 at 16, over 1,201 Buildings on the network [roads] above describes.
+#
+# ⚠ IT IS THE CEILING NOW, NOT THE ACCEPTABLE COMMUTE (adr/0095), AND THAT MOVED IT 20 -> 50. The
+# paragraph beneath the rungs above carries the reasoning. What this key means changed and so did
+# its value: 20 is the FAST rung, where it was once the only edge there was, and the ceiling is
+# where somebody stops taking the job rather than where they stop being pleased about it.
+#
+# 20 MINUTES WAS READ OFF `--trips` AND STILL IS, as the fast rung. It admits the whole eight-block
+# neighbourhood at p90 and refuses half of the sixteen-block one. plans/0023 §B rules out the
+# MEDIAN specifically -- the median detour is 100% of the grid ideal in a severed city and an
+# intact one alike, so a rung read off it cannot tell the two apart, which is the one job the
+# Severance demonstration needs it to do.
+#
+# ⚠ ITS OLD RATIFIER IS SPENT AND THE REPLACEMENT IS PLAYTEST. It used to say: `beyond budget` of
+# ZERO means this number is not binding. It IS zero here now, and that is no longer a refutation --
+# it is the ceiling doing its job in a village, and the ladder above shows it biting from 40,000
+# Citizens up. What refutes 50 is a person playing: an unsavoury rung never occupied in a city big
+# enough to occupy it, or a fast rung never left.
+#
+# IT ALSO SIZES THE SEARCH, and that is why [jobs] below refuses to exist without it: the box a
+# Citizen draws candidates from is what a walk within the CEILING covers -- 50 min at
+# walk_speed_kph = 5 is 4.17 km, 1,042 Tiles, 33 Cells. The box derives from the ceiling rather
+# than the fast rung because a seeker will take an unsavoury job rather than none, and a box that
+# could not contain one would refuse it before the walk did. ⚠ Its area is 6.25x the old
+# 20-minute derivation, which is the one cost of this change that is not free: the Cell-uniform
+# draw finding (5b-bis task 4) was measured against the smaller box.
+commute_budget_minutes = 50
+
+# adr/0081, and 02 §5.2 step 2b arriving from the other side. HOW A CITIZEN WITH NO WORKPLACE COMES
+# TO HAVE ONE: every `interval` Ticks the pass looks at a share of the population, and somebody with
+# no job draws `candidates` Buildings from the box above and takes the first with a vacancy it can
+# walk to inside the Budget. First rather than best (adr/0017) -- satisficing, never optimising.
+#
+# THREE KEYS, PREDICTED RATHER THAN DISCOVERED. adr/0069 is the standing counter-example: placement's
+# ADR predicted no numbers, the pass needed exactly these three, and the first of them shipped at a
+# value copied from a default that meant something else and left 45% of the housing stock empty.
+# This is the same shape of pass, so it is the same three keys, and all three are hash-bearing and
+# UNRATIFIED in plans/0002 §D2 with a named ratifier each.
+#
+# `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED (adr/0059, a third time): it is how long
+# the pass takes to look at every Citizen once, and the engine derives
+# `sample = ceil(Citizens x interval / revisit_ticks)`. It is REQUIRED rather than defaulting to a
+# Day, unlike a [[zone_rule]]'s, because a Day is derived from the scale a `rate` is denominated in
+# and nothing here is denominated in anything -- how often somebody out of work looks for some is a
+# feel decision with no derivation behind it.
+#
+# 1024 IS [placement]'S, AND THE COPY IS AN ARGUMENT RATHER THAN A CONVENIENCE: a person without a
+# job and a family without a home are looking at the same rate for the same reason, and nothing in
+# this project yet distinguishes them. It is its own key so that they can diverge without one
+# retuning the other, which is why this is a table and not three more lines of [placement].
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+# THE WORKING DAY, AND IT IS HALF OF WHAT GIVES THE DAY ITS SHAPE. A Citizen draws a Shift length once
+# and keeps it, uniformly inside this band. The other half is per kind -- see shift_start_earliest_hour
+# on [[building]] above -- and the two compose: a Workplace's staff SHARE a start hour, so they arrive
+# together, and they do NOT share a Shift length, so they leave apart. That asymmetry is why the
+# evening peak comes out broader than the morning one, which is what real cities show and what no
+# single dial produces. adr/0101.
+#
+# THIS REPLACED commute_peak_factor, AND IT IS A RETIREMENT RATHER THAN A RENAME. That key authored a
+# departure window and the engine derived the morning peak from it. Under a Day with a shape the peak
+# is a READING -- what the profile comes out as, given where the jobs are and how long people work --
+# and a dial that states its own answer cannot be ratified by measuring the answer.
+#
+# 6 TO 10 IS A BAND AND NOT A GUESS AT A MEAN. It is wide enough that the evening does not arrive as a
+# spike, narrow enough that it is recognisably a working day, and its uniform draw is the only shape
+# with any evidence behind it: NOTHING IN THE CORPUS HAS MEASURED A DISTRIBUTION OF WORKING HOURS. If
+# the measured profile comes back with a flat afternoon where a city has a peak, the answer is a
+# NARROWER BAND rather than a curve invented here.
+#
+# THE MINIMUM CARRIES A SECOND JOB: it is the gap between a Citizen's two departures, so the loader
+# refuses it at or below [trips] commute_budget_minutes. Under one journey a Day that gap was 24 hours
+# and nobody had to state it -- an invariant nothing enforces survives exactly as long as the
+# structure that made it free.
+shift_hours_min = 6
+shift_hours_max = 10
+
+# HOW EARLY SOMEBODY AIMS TO BE, and it is THE CONTINUOUS TERM IN THE WHOLE ARRANGEMENT. Start hours
+# are on the hour on purpose -- workplaces do open on the hour -- so without something sub-hour every
+# departure lands on a handful of Ticks and the morning comes out a PLATEAU of equal bars rather than
+# a peak. The only other continuous quantity is the commute itself, and in a 4,000-Citizen city that
+# is about FOUR MINUTES against an hour of 85 Ticks. Measured, not predicted: the first profile this
+# mechanism produced had exactly that defect. adr/0101.
+#
+# PER CITIZEN AND NOT PER WORKPLACE, which is why it broadens anything: a jitter on the Building
+# would move the anchor without spreading the staff standing behind it. 0 is a legitimate city --
+# everybody cutting it fine -- and is the control this can be run against.
+arrive_early_max_minutes = 15

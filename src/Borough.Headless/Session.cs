@@ -254,8 +254,22 @@ internal static class Session
     /// mistakes.
     /// </para>
     /// </remarks>
-    internal static bool TryRules(string? path, out Ruleset rules)
+    internal static bool TryRules(string? path, out Ruleset rules) =>
+        TryRules(path, out rules, out _);
+
+    /// <summary>
+    /// <see cref="TryRules(string?, out Ruleset)"/>, and also what the file called the ids.
+    /// </summary>
+    /// <remarks>
+    /// <b>Only a mode that prints a Ruleset-defined <em>name</em> needs this</b>, which until
+    /// <see cref="Mode.Evidence"/> was none of them — the eight pictures before it print quantities,
+    /// and a quantity needs no vocabulary. <see cref="RulesetNames.None"/> comes back for a run with
+    /// no <c>--ruleset</c>, which is the honest answer: there was no file, so there are no names.
+    /// </remarks>
+    internal static bool TryRules(string? path, out Ruleset rules, out RulesetNames names)
     {
+        names = RulesetNames.None;
+
         if (path is null)
         {
             rules = Ruleset.Empty;
@@ -275,6 +289,7 @@ internal static class Session
         }
 
         rules = result.Ruleset;
+        names = result.Names;
         return true;
     }
 
@@ -539,5 +554,19 @@ internal static class Session
 
         using var writer = new StreamWriter(options.OutPath);
         return TrafficDump.Run(options, writer);
+    }
+
+    /// <summary>Runs the Evidence dump. Milestone 6 task 5.</summary>
+    internal static int DumpEvidence(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return EvidenceDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return EvidenceDump.Run(options, writer);
     }
 }
