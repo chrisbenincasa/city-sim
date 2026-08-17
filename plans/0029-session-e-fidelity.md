@@ -148,6 +148,59 @@ and this one held for four months before anything needed it to be exact. `adr/00
 **the tier split is untouched** — the accurate form is that the VDF runs everywhere and is *replaced*
 where it is weak, rather than being *used* only where it is strong.
 
+### ⚠ Three aftershocks, found by Q2 and belonging to Q1
+
+**Q1 was committed and then Q2 read `adr/0016`, which nothing in Q1 had opened.** All three are
+repaired in place; the middle one is a defect in `adr/0107` itself.
+
+⚠ **The retired list has a *source*, and Q1 traced it only to the document that quoted it.**
+[`adr/0016`](../docs/adr/0016-the-lane-is-the-entity-not-the-car.md) is where *queue position, headway,
+and any in-progress Switch Lane traversal* was written; `adr/0075` and `adr/0062` both quote it, the
+latter **by name**, and `plans/0017` and `plans/0019` carry it. So it was **four copies and not two**.
+***Tracing a wrong sentence to the document that quoted it is not tracing it to the document that wrote
+it*** — and the tell was in `adr/0062` in plain sight, in the words *"which `adr/0016` names"*.
+**Nothing in this corpus could have caught the list except holding it against `adr/0016`'s own opening
+sentence**, which is where *vehicles hold no references to each other* is stated and is what makes
+headway not a field.
+
+⚠ **`adr/0107` committed the error it had just diagnosed, one bullet away from where it fixed it.** Its
+reconstruction rule for *position* read *"the Segment's entry point"*, citing `adr/0041`'s attribution
+on entry. **That is a plausible default wearing a derivation** — the exact failure the *velocity*
+bullet had been rewritten to avoid hours earlier. `adr/0041` says volume is *attributed* on entry; it
+does not say a promotion *happens* on entry, and a Segment crosses `T_high` on whatever Tick its volume
+crosses it, with every Traveller already on it partway through. ***An ADR about when a counter moves is
+not an ADR about when a Traveller is promoted.*** The rule is now the fraction of `adr/0099`'s dwell
+already elapsed, so **position and velocity are one derivation read once** rather than two rules that
+happened to agree — which is a tighter ADR than the one that was right by accident. It also makes the
+guarantee independent of a real ambiguity in `03 §4`'s queue guard (*"non-empty queue"* reads against
+`§5`'s **data structure** or against a **jam**, and the two gave different answers under the entry-point
+rule and give the same one now).
+
+⚠ **`adr/0107` knocked a leg out from under a decision it cited and did not check.** `adr/0062` refuses
+eviction on the ground that *"a Segment that is already Microscopic holds state that cannot be
+reconstructed"* — and `adr/0107`'s whole second half is that **each of the four is** reconstructed.
+That decision survives on its other leg, which is stated two lines below in its own text: eviction
+destroys the **queue**, and with it hysteresis at the instant it would have been observed. **Same shape
+as `adr/0105` firing `adr/0096`'s revisit trigger** — one of two legs falls and the decision stands —
+and it is worth noticing that ***a consequence bullet naming the ADRs a decision affects is not a
+search for the ADRs that rest on it***.
+
+⚠ **And a fourth, which is about a spike rather than about Q1.** `adr/0016`'s S5 amendment says the
+enumeration is *"short by one"* — the **arrival Tick**, from L3's *150,943 of 186,624 Vehicles had no
+arrival Tick to convert to* (that fixture is 2,592 Segments × 72 Vehicles and is an **upper bound**,
+S2 R2's uniform origin-destination draw being the longest-trip distribution available; the **share** is
+what is read here and it is the fixture's, since that Segment carries exactly jam density). **It is not
+a fifth field.** An arrival Tick is not *discarded* by a
+demotion; it is a conversion that cannot be *performed*, and a list of losses cannot hold an item that
+never existed to be lost. ⚠ **More than that, the demotion L3 measured is prohibited**: `03 §4`
+invariant 3's *"a segment with a non-empty queue does not demote, regardless of stress"* has been in
+that document **verbatim since 2026-07-30**, twelve days before L3 ran, and a jammed Segment has a
+non-empty queue by definition. ***A spike measured a forbidden operation and filed the result as a gap
+in the enumeration***, and three documents carried it onward. The guard is *conservative* relative to
+the failure — it bars demotion on occupancy where the failure needs Vehicles at rest — so the number is
+**evidence for the guard**, not a debt against the list. Its real home is `adr/0062`'s **refused second
+lossy path**, which it prices at **80.9%** and which nobody had connected to it.
+
 ## Q2 — What happens when the audit keeps finding divergence?
 
 `§3.5` closes the metric and leaves the response open in its own words — *"the audit rate, and what
@@ -160,6 +213,88 @@ spends the **Microscopic Cap** on a Segment that is not stressed, which is a cla
 resource in the tier and one `adr/0062` gives an admission order for. *A flag for us* spends nothing
 and reaches no player. A third position — feed it back to `§5.1`'s suite, which `§5.1` already names
 as **the discovery route** — is the one the corpus has half-written and nobody has taken.
+
+### ✅ CLOSED — [`adr/0108`](../docs/adr/0108-repeated-divergence-is-a-bug-report-and-the-queue-decides-how-long-a-promotion-lasts.md), 2026-08-16
+
+**There is no escalation mechanism, and the rate's *unit* is settled while its value stays unset.**
+`03 §3.5`'s open question and `03 §6` question 1 both close on the escalation half.
+
+**Half the question was answered in the same document, on the same day, five sections later.** `§5.1`'s
+*the audit is the discovery route* names the consumer and says in its own words that it is *"closing a
+loop previously open at both ends: the audit had no consumer for what it found"* — and both sentences
+date from the repository's **first commit**. So *a flag for us* was the answer all along, under-described
+rather than wrong. ⚠ ***A question that offers its own candidate answers stops being read as open in the
+ordinary way***: a reader arriving at `§3.5` is handed a menu and does not go looking outside it, and
+`§6` copied the parenthesis forward for four months. `plans/0012` **Cause 1** inside one file — the same
+shape `05 §3` produced for session J, four sections apart, and this one five.
+
+**Permanent promotion is refused on three decisions already in force** — `adr/0006` and invariant 5
+(the permanently-promoted set is monotone in Ticks, and it is a standing claim on the *scarcest*
+resource in the tier), invariant 4's *"a function of stress and tick. **Nothing else**"* (it would add
+audit **history** as a third term), and the live-read family `adr/0053`, `adr/0063` and `adr/0102` have
+now chosen three times over a remembered tally.
+
+⚠ **And it is unnecessary, because the persistence it reaches for already exists and nobody had joined
+the two sentences.** `§4` invariant 3's queue guard bounds a promotion; `§3.5`'s own detector paragraph
+says the divergence *is* a queue (*"the statistical model predicts free-flow and the simulation finds a
+queue"*). So a genuinely failing Segment holds itself until it stops, **keyed on the failure rather than
+on a memory of it**, with no new state, no counter and no threshold. ⚠ **The guard also discriminates
+the two *signs* of divergence without being told they exist** — upward leaves a queue and holds,
+downward leaves none and demotes, which is correct, and invariant 6 already routes both to the same
+place as *"a bug report about the statistical model"*. **One guard written for hysteresis turned out to
+do three jobs.**
+
+⚠ **The steelman is real and its cost belongs to `complexity_factor`.** A junction that fails through
+turning conflicts fails every peak, every Day, so the city spends most of its life mis-simulating
+something it has already diagnosed. But what that wants is a **lower threshold**, and `§3.3` already has
+the term — `§3.6` names it as the standing mitigation. **A junction the audit repeatedly catches is by
+construction one whose complexity factor is too low**, so repeated divergence is a *measurement of that
+parameter* and under `adr/0043` may not be settled by machinery here. ***Holding the Segment promoted
+would pay for ever for a parameter that is wrong once.*** ⚠ **A learned complexity factor was drafted
+and refused** — it is attractive, bounded and self-limiting, and it puts a **feedback term** in a
+traffic model 5c task 8 established has none by decision (`adr/0046`, *congestion is a cost paid and
+never a cost avoided*), opens a learning rate with no ratifier to avoid opening a measurement that has
+one, and lands on the exact term **Q3** is about. Named so reaching for it later is a decision.
+
+⚠ **The audit is a *third* claim on the Cap and `adr/0062` enumerated two** — the same failure Q1 found
+in the demotion list, one question earlier. ***An enumeration is written against the members that exist
+when it is written, and nothing re-counts it.*** It ranks **last**, on that ADR's own ordering
+principle (force-promotion buys correctness, stress-promotion buys accuracy, the audit buys knowledge),
+and the asymmetry is what makes last rank cheap: ***an audit refused is deferred, not lost***, because
+rotation is a function of Tick and `§3.5` already budgets for that latency in its own words. ⚠ **And it
+almost never has to be refused, *because* `adr/0062` counts Vehicles** — an audited Segment is
+unstressed by construction and therefore nearly empty, where the Segment denomination that ADR retired
+would have had a sample of *N* Segments compete head-on with *N* jammed arterials. ***Choosing the right
+unit made the audit affordable in a section that decision never mentions***, which its own consequence
+list could not have predicted.
+
+⚠ **The rate is stated in the unit `adr/0059` retired.** `§3.5`'s *"the sample size is a constant"* is
+`02 §5.7`'s defect verbatim: any constant makes the time to look at every Segment once proportional to
+how much road the city has — 33,024 Segments today against **525,312** on a fully paved 512-Cell map —
+and it is the same **bundling** error, since bullet 3 pairs *deterministic* with *fixed-cost* exactly as
+`02 §5.7` paired cost with pacing. The constant delivers the cost claim and silently sets the coverage
+period that **bullet 1** depends on, so ***a constant sample makes the audit's only stated benefit
+inversely proportional to the size of the city's road network***. A Ruleset states a **coverage period**
+and the engine derives the count — `adr/0059`'s shape for the **fifth** time.
+
+⚠ **Unlike `adr/0059` there is no forced default, and the reason became statable one Day ago.**
+`adr/0101` gave the Day a **shape** on 2026-08-15, so a rotation *"selected deterministically by tick"*
+whose period is commensurate with `TICKS_PER_DAY` visits every Segment at the **same phase of the Day
+for ever** — structurally blind to a junction that fails at peak and recovers, which is the entire
+phenomenon `§3.6` describes. **The period must precess against the Day**, which is a property of the
+pair rather than of either. ***Before `adr/0101` the Day had no shape and this hazard could not have
+been stated***, so `§3.5` is not wrong to omit it.
+
+**The period stays unset — a gap, not a debt — and its ratifier is nameable in all three parts**
+(`adr/0052` as amended 2026-08-15, plus `adr/0098`'s *a ratifier names a machine, a world **and a
+quantity***): `adr/0106`'s reference class; a `CommandKind.Connect` city containing a low-volume turning
+failure, because 5c task 8 measured that ***the same number sizes both the demand and the supply*** in a
+generated one; and **detection latency**, refuted upward against `§3.5`'s own standard that the player
+must not be the detector, and downward on the Cap share taken from stress-promotion. ⚠ **None of the
+three exists**: the tier is milestone 21, the audit is 23, and the world needs 21's Overlaps.
+
+**Milestone 23 is smaller than its roadmap row implies** — rotation, comparison, record, Cap-ordered
+admission, and **no escalation machinery at all**.
 
 ## Q3 — Do Stress and Sight read the same quantity? As specified, they do not
 

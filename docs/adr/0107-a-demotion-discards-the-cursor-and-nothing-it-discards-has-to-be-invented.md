@@ -81,10 +81,37 @@ This is the half worth arguing rather than asserting, because it is what makes t
 guarantee instead of a disclosure. **Each field is recovered from state the world still holds at the
 moment of promotion** — not from a plausible default.
 
-- **Position along the Lane** is the Segment's entry point. A promoted Traveller enters a Segment; it
-  does not materialise in the middle of one.
-  [`0041`](0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md) already attributes
-  volume **on entry**, so entry is the event the model is keyed on and no new one is invented here.
+- **Position along the Lane is the fraction of the Segment's dwell already elapsed**, times its length.
+  [`0099`](0099-a-legs-cost-is-a-plan-and-a-drive-is-priced-segment-by-segment-as-it-is-met.md) prices
+  the dwell on entry and the Traveller holds the Tick the Segment completes, so the elapsed fraction is
+  arithmetic over state the world still has. **It is not an approximation of where the Vehicle was —
+  it is exactly where the Statistical model said it was**, because a Statistical Segment has one dwell
+  and no within-Segment dynamics, so there is no other answer to disagree with.
+
+  > ⚠ **AMENDED 2026-08-16, hours after this ADR was written, by session E's Q2** — and the correction
+  > is this ADR's own, committed in the bullet next door. The first version read *"the Segment's entry
+  > point. A promoted Traveller enters a Segment; it does not materialise in the middle of one"*, citing
+  > [`0041`](0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md)'s attribution on entry.
+  > **That is a plausible default wearing a derivation** — the exact failure the velocity bullet below
+  > was rewritten to avoid, one bullet away, in the same sitting. `adr/0041` says volume is *attributed*
+  > on entry; it does not say a promotion *happens* on entry, and ***an ADR about when a counter moves is
+  > not an ADR about when a Traveller is promoted***. A Segment crosses `T_high` on whatever Tick its
+  > volume crosses it, and every Traveller already on it is partway through.
+  >
+  > **Position and velocity are therefore one derivation read once**, both out of `adr/0099`'s dwell,
+  > which is tighter than two rules that happened to agree. *(The build corroborates and is not the
+  > ground: `TravellerTable.ArrivesAt` is "the Tick at which the current Leg — or the current Segment —
+  > completes", and `Carry` holds the sub-Tick remainder, so the elapsed fraction is available without a
+  > new column.)*
+  >
+  > ⚠ **It also makes the guarantee independent of an ambiguity in `03 §4`'s queue guard.** *"A segment
+  > with a non-empty queue does not demote"* can be read against `§5`'s **sorted 1-D queue** — the data
+  > structure, so any occupied Segment is barred from demoting — or against a **jam**, which is what that
+  > note's own *"forty queued vehicles"* and its hysteresis argument mean. The second is the intended
+  > one, since the first would forbid demoting a Segment whose rush hour has ended while cars still flow
+  > over it, which is the ordinary case the ladder exists for. **Under the entry-point rule the two
+  > readings gave different answers**; under the dwell-fraction rule they give the same one, so the
+  > ambiguity stops being load-bearing and is recorded rather than resolved here.
 - **Velocity is the speed implied by the dwell of the Segment just left.**
   [`0099`](0099-a-legs-cost-is-a-plan-and-a-drive-is-priced-segment-by-segment-as-it-is-met.md) prices
   a Statistical Segment's dwell on entry from that Segment's volume at that instant, so dwell over
@@ -182,6 +209,26 @@ somewhere the embodiment cannot take with it.
   referent.** That ADR says *"the corpus has one lossy path and one enumeration today"* — this is the
   enumeration. Its refused **virtual queue** would create a second lossy path, and by that ADR's own
   wording it would owe a second enumeration written the same way.
+
+  > ⚠ **AMENDED 2026-08-16 by session E's Q2, and the list had a fourth copy this ADR did not find —
+  > the *source*.** [`0016`](0016-the-lane-is-the-entity-not-the-car.md) is where *queue position,
+  > headway, and any in-progress Switch Lane traversal* was written; `adr/0075` and `adr/0062` both
+  > quote it, the latter **by name**, and `plans/0017` and `plans/0019` carry it too. All are amended
+  > or noted. ***Tracing a wrong sentence to the document that quoted it is not tracing it to the
+  > document that wrote it.***
+  >
+  > ⚠ **Two live consequences fall out, and neither is bookkeeping.** `adr/0062`'s eviction refusal
+  > rests on *"a Segment that is already Microscopic holds state that cannot be reconstructed"* — which
+  > **this ADR's second half contradicts directly**, since each of the four is recovered. That decision
+  > survives on its other leg, stated two lines below in its own text: eviction destroys the **queue**,
+  > and with it hysteresis at the moment it would have been observed. ***This ADR knocked a leg out from
+  > under a decision it cited and did not check.***
+  >
+  > And **`adr/0016`'s S5 amendment claims a fifth field — the arrival Tick — and it is not one.** An
+  > arrival Tick is not lost on demotion; it is a conversion that cannot be *performed*, and the
+  > demotion that fails to perform it is one `03 §4`'s queue guard has forbidden since the repository's
+  > first commit. The number belongs to `adr/0062`'s **refused second lossy path**, which it prices at
+  > 80.9%. Corrected there.
 - **A fifth field discovered at the write site is a bug**, by the invariant's own terms. That is the
   artefact working rather than failing.
 - **Nothing here sets `T_high` or `T_low`**, and nothing here decides whether force-promotion is
