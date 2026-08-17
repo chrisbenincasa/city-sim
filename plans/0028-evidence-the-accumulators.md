@@ -6,11 +6,19 @@
 
 ## Status
 
-🟢 **IN FLIGHT. Scoped 2026-08-16; tasks 1, 2 and 3 shipped. Ungated** — it is the first row of the
-re-derived Phase 2 spine and no session, spike or milestone stands in front of it. **Tasks 4, 5 and 6
+🟢 **IN FLIGHT. Scoped 2026-08-16; tasks 1, 2, 3 and 4 shipped. Ungated** — it is the first row of the
+re-derived Phase 2 spine and no session, spike or milestone stands in front of it. **Tasks 5, 6 and 7
 remain**, and **every open decision this milestone owed is now closed** — the last of them, *what task 4
-answers where the mechanism is missing*, on 2026-08-17. ⚠ **Settling it proposed a seventh task**, and
-whether that is one is the only thing outstanding.
+answers where the mechanism is missing*, on 2026-08-17. ⚠ **Settling it added a seventh task**: a Trip's
+Fate is freed on the line after it is computed, which is this milestone's residue by its own definition
+and was missed at scoping.
+
+⚠ **Task 4 shipped without moving a baseline, which is the scoping claim discharged**: the assembler
+adds no state, so it cannot move the State Hash — and a test asserts that directly, which is
+`ColdPathAttribute`'s claim checked from the side a machine can check. Its four findings are under the
+task; the two that outlive it are that **every branch of the Lot answer is unreachable in a generated
+city** (the generator sizes both sides of the question, a fourth sighting) and that **a copied predicate
+has the test standing in for the shared symbol**, because both copies compile whatever they say.
 
 **Four decisions were settled with the user in the room on 2026-08-16**, before any task was written,
 and they are recorded under *What was settled before scoping* below. **Three remain open** and are
@@ -151,9 +159,10 @@ never filled means it is too large, and a diagnosis that ran out of entries mean
 ## Tasks
 
 **Tasks 1, 2 and 4 are the milestone.** Task 3 is a cheap repair the grilling turned up that belongs
-here because it is the first producer; 5 and 6 are the standing obligations. ⚠ **Task 7 is proposed and
-not yet a task** — scoping task 4 on 2026-08-17 found a second clause of `02 §9` whose answer is freed
-before anybody can ask for it, which is this milestone's residue by its own definition.
+here because it is the first producer; 5 and 6 are the standing obligations. ⚠ **Task 7 was added on
+2026-08-17, while scoping task 4** — a second clause of `02 §9` whose answer is freed before anybody can
+ask for it, which is this milestone's residue by its own definition. **It is task 2 a second time**, so
+it is a task rather than a design question.
 
 ### Task 1 — the Evidence trail — ✅ **DONE 2026-08-16**
 
@@ -267,7 +276,7 @@ reasoning — the paved extent is derived from the population, so a bigger fixtu
 the same commutes in it. The negative is asserted with the value at which it stops being true beside
 it, on 5b-bis task 4's precedent.
 
-### Task 4 — the assembler
+### Task 4 — the assembler — ✅ **DONE 2026-08-17**
 
 The cold query surface: one Core-side entry point per `02 §9` question, returning a structured
 id-and-number result the host renders. Live state is read, predicates are re-run, the trail is read,
@@ -277,7 +286,62 @@ and the three are composed into one answer. `[ColdPath]` where a result type nee
 column inventory** — see *Open decisions* → **3**. The clauses split three ways: **assembled** from live
 or recomputable state, **accumulated** because the row holding the answer is freed, and **omitted**
 because no mechanism produces the answer. ⚠ **The walk found one clause in the middle group that
-scoping had missed**, and it is proposed as task 7 below.
+scoping had missed**, and it is task 7 below.
+
+**What shipped.** `Borough.Core.Evidence`, four files: three `[ColdPath]` result types
+(`BuildingEvidence`, `CitizenEvidence`, `LotEvidence`, with `BinEvidence`, `RuleEvidence`,
+`TripEvidence`, `CondemnationEvidence` and the `VacancyReason` flag set beside them) and one static
+`Evidence` class with `OfBuilding`, `OfCitizen` and `OfLot`. Static and `World`-taking on
+`Readouts.Read`'s precedent, ids and numbers throughout, **1,471 tests green and no baseline moved** —
+which is the scoping claim discharged: the assembler adds no state, so it cannot move the State Hash.
+
+⚠ **The assembler stores nothing and the two places it does more than forward are the two the tests are
+about.** `RuleEvidence.LastRan` is *derived* — `02 §9` asks which Rule a Building last ran and whether
+it succeeded, and **no column holds either**; the recovery rests on `RuleInstanceTable`'s own invariant
+that an Instance is armed on the Wheel **or** asleep on a wait list and never both, so an armed one
+re-armed at `+rate` after a firing that worked and a sleeping one left `NextTick` at the Tick it failed
+on. And `BuildingEvidence.Pressure` computes the maximum `ZoneRuleEngine` says *"is never stored
+anywhere"*.
+
+#### Four findings
+
+⚠ **1. Every branch of the Lot answer is unreachable in a generated city, and both were found by a
+guard assertion rather than by reasoning.** The tests were written with *this-branch-was-never-exercised*
+guards on both sides, and three of them fired on the first run. Measured on the golden fixture across a
+whole run: **0 of 150 vacant Lots lack frontage** — `RoadGenerator` lays the lattice the subdivider
+carves the Lots out of, so frontage is not a property a generated world varies — and **every vacant Lot
+is admitted by a Zone Rule**, because `SyntheticCity` paints bit 0 on every Lot and the shipped
+`[[zone_rule]]` admits bit 0. So `VacancyReason.NoFrontage` and `VacancyReason.NotZoned` are reachable
+only in a city somebody **zoned** and **roaded** by command. ***A flag whose world cannot set it is
+tested by a hand-built world or not at all*** — this is the **fourth** sighting of a dial inert at the
+shipped configuration, after `foot_crossing_every`, the job-search box and `[traffic]`, and the second
+where the cause is that *the generator sizes both sides of the question*.
+
+⚠ **2. The copied predicate is the one thing here that needs a test to exist at all.**
+`ZoneRuleEngine.Create` is private and mutates — it raises a Building and bumps a counter — so there is
+nothing for a pure assembler to call, and its admission clause is **re-expressed** rather than shared.
+That is `plans/0012` **Cause 1** committed on purpose: two copies of one fact, and **both compile
+whatever they say**, so no mechanical check in this corpus can separate them. What stands in for the
+shared symbol is a **behavioural** test — a Lot the assembler calls unzoned is one the engine never
+builds on, and a Lot it does not is one the engine does — and inverting the clause fails exactly that
+test and nothing else. ***Where a predicate must be copied, the test is the shared symbol.***
+
+⚠ **3. Being in flight is a spike and not a level, so a fixed Tick was the wrong instrument.** The
+first Trip test read the world at Tick 1,024 and found **nobody travelling**. Measured over a whole Day
+at 32-Tick intervals the in-flight count runs **0, 0, 1, 101, 2, 0, 18, 64, 0, 0** — most Ticks have
+nobody on the road at all. That is `adr/0101`'s Day working as designed (a Shift band puts departures in
+a narrow window, and a commute is 1.39% of a Day), so a fixed Tick would have been a test that passed or
+failed on **where the window happened to be**. It now steps until somebody is in flight. ***A test that
+samples a spiky quantity at a chosen moment is testing the choice.***
+
+⚠ **4. `TickInput.Empty` is a reload request, and it is safe in the fixtures that use it only by
+coincidence.** Stepping a `Replay.Start` session with `TickInput.Empty` throws — the input names Ruleset
+hash **0**, `Simulation.Reload` compares it against the one in force, and no catalogue holds zero. The
+hand-built fixtures elsewhere in the suite get away with it **because zero is also the hash they opened
+on**, which is `_opened` latching the first input's hash rather than any decision that empty means *no
+change*. Not repaired — the guard's polarity is `adr/0015`'s and is correct — but a continuation step
+now restates the Ruleset in force, and says why in a comment. ***A sentinel that happens to equal the
+value in force is a sentinel that has never been tested.***
 
 ### Task 5 — something to look at
 
@@ -292,7 +356,7 @@ what is being tested here**: entry count is monotonic to the cap and then consta
 a **slot high-water mark that saturates**, not a live count. 5c task 8 found that distinction the hard
 way and its record carries the reasoning.
 
-### Task 7 — a Trip's Fate outlives its Trip — ⚠ **PROPOSED 2026-08-17, needs a nod before it is a task**
+### Task 7 — a Trip's Fate outlives its Trip — **ADDED 2026-08-17**
 
 `02 §9`'s Citizen row asks for *"current or last Trip with its Fate"*. **The *current* half is a scan
 and the *last* half is unrecoverable today.** `TripEngine.Release` asserts the Trip carries a
@@ -321,10 +385,17 @@ that carries one known defect reads as a row somebody has checked***, and the an
 it read that way. That is [`0012`](0012-corpus-audit.md) *Cause 1*'s family on a new surface: not two
 copies drifting, but **one copy whose repaired half vouches for its unrepaired half**.
 
-**Not proposed as part of task 4**, because it is a hash-bearing table and task 4 is a query surface;
-mixing them would put a re-record inside a commit whose subject is *no new state*. **Recorded as owed
-rather than added**, because the task count is the user's and this milestone has already moved one task
-out (to 17) with a written reason.
+**Not part of task 4**, because it is a hash-bearing table and task 4 is a query surface; mixing them
+would put a re-record inside a commit whose subject is *no new state*.
+
+⚠ **Its number is last and its content is not.** Task 4 assembles `02 §9`'s Citizen answer, and this is
+one of that answer's clauses — so a Citizen result type designed before this lands gains a field when it
+does. **That is accepted rather than resolved by reordering**: adding a field to a result type is
+additive, nothing already returned changes meaning, and the alternative — designing the field now
+against a table that does not exist — is the thing `02 §9`'s own *"cheap if designed in"* does **not**
+license, because a shape designed for unbuilt state is a guess with a struct around it. Task 4 states in
+its result type's own remarks that the clause is owed and to whom, so the gap is a sentence somebody can
+find rather than an omission.
 
 ---
 
@@ -490,14 +561,36 @@ fired and `Blocking.None` says the last one worked — and **which fallback chai
 terminated**, `RuleInstanceTable.Reported` being the terminal `ConditionId` and the walk itself
 re-runnable on the cold path. *Citizen:* home, workplace, activity, **why there is no workplace**
 (`CitizenTable.ReachFailures`, task 3), and the **current** Trip with its Fate, by scanning
-`TravellerTable.Citizen`. *Lot:* **no frontage** (`LotTable.HasFrontage`), **conditions below
-tolerance** (re-run the Zone Rule's permit predicate), and whether the Unplaced Pool is empty.
+`TravellerTable.Citizen`. *Lot:* **no frontage** (`LotTable.HasFrontage`) and **whether the Unplaced
+Pool is empty** (`UnplacedTable.Count`), plus whether any `[[zone_rule]]` admits the Lot's zone bits at
+all (`Lots.Zone[lot] & definition.Admits`).
+
+⚠ **CORRECTED 2026-08-17, within the hour, and the correction is the entry's own lesson committed
+against itself.** This paragraph first put *conditions below tolerance* here, on the reasoning that a
+Zone Rule decides whether to build and therefore weighs conditions, so the assembler could **re-run its
+permit predicate**. **`ZoneRuleEngine.Create:236-241` was not opened.** Its predicate is **two clauses**
+— the zone bit match and `UnplacedPool.Count == 0` — and **there is no tolerance term in it, or
+anywhere**: `MapLayers.Desirability` *throws* by design (`02 §2.4`, `adr/0034`). So there is no
+predicate to re-run, and the clause moves to *omitted* below. ***I reasoned from what a Zone Rule is
+for rather than from what `Create` contains***, which is `adr/0093` exactly, wrong about the **content**
+of a mechanism whose **purpose** I had right — and it happened in the same entry that argues *open the
+mechanism* has to mean find the writer. **A rule you have just written down is not thereby a rule you
+are following.**
 
 **Accumulated — the row holding the answer is freed.** The Lot's *why it is vacant* has this and task 2
 built it. `02 §9`'s Citizen row has a second one nobody had seen: the **last** Trip's Fate. Task 7 above.
 
+⚠ **So `02 §9`'s hardest question comes out half-answerable, and it is worth saying in the sentence the
+document uses.** It calls *why is nothing building here* **"the hardest and the most valuable"** and
+names four reasons. **Two are computable today** — no frontage, and nobody in the queue — **one is
+recorded** by task 2 where the Lot was vacated by demolition, and **two of the four are named holes**
+with no mechanism at all. The assembler reports what it has and does not manufacture the rest; the
+milestone that closes it is **17**, which owns decline and desirability alike.
+
 **Omitted — no producer, and omitted rather than returned as zero.** Need satisfaction (no table exists
-anywhere; `adr/0103` designs it and nothing builds it). **Household finances** — and this one is the
+anywhere; `adr/0103` designs it and nothing builds it). **Conditions below tolerance** — there is no
+tolerance term in the Zone Rule's predicate and no desirability to read, `MapLayers.Desirability` being
+a named hole that throws. **Household finances** — and this one is the
 trap: `HouseholdTable.Money` and `Savings` are declared, `Saved`, hashed and in the save file, and
 **every writer in the repository is a test**; the only production code that touches them is an invariant
 *reading* them. The Lot's *no capital* is the same column. And the Lot's *no household in the queue
