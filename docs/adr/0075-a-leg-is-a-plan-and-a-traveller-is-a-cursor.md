@@ -36,6 +36,42 @@ demotion discards — a Statistical Traveller resumes from its arrival Tick, whi
 touched. Written down now because the alternative is discovering it at the write site in milestone 21,
 where an unenumerated field is the bug the invariant exists to catch.
 
+> ⚠ **THIS PARAGRAPH IS WITHDRAWN — session E, 2026-08-16.** It is wrong in both of its claims, and
+> **the amendment sixteen lines below refutes it**, in this same ADR, dated the same day.
+>
+> **The route cursor is what a demotion must NOT discard**, and the ground is
+> [`0041`](0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md) rather than any
+> implementation: volume is attributed by **entering and leaving** a Segment, so a Traveller with no
+> next Segment never decrements and a `+1` stands on that Segment for ever — ***a road busy for ever
+> with nothing on it***, which is the [`0006`](0006-no-collection-grows-with-elapsed-time.md)-class
+> leak the **task 6** amendment below describes in those words, against cache eviction, as the reason
+> a vehicular Leg stores its route at all. **A demotion would be doing deliberately what that
+> amendment forbids happening by accident.** *(The build agrees — `TripEngine.AdvanceTravellers` walks
+> `TravellerTable.CurrentHop` calling `Leave` and `Enter` — and is corroboration rather than the
+> argument.)*
+>
+> ⚠ **And *"a Statistical Traveller resumes from its arrival Tick"* fails on a conflict between two
+> decisions, not on a disagreement with the build.** It matches `03 §3.1`'s table, which calls a
+> Statistical Traveller **time-advanced**. It does not match `adr/0041`, which requires *"a next
+> Segment every Tick"*, or [`0099`](0099-a-legs-cost-is-a-plan-and-a-drive-is-priced-segment-by-segment-as-it-is-met.md),
+> which prices a drive **Segment by Segment as it is met**. ***Both sides are design***, the later and
+> more specific pair wins, and `03 §3.1`'s summary row is the loose one. What the build shows is only
+> which reading was implemented — reading it as the *reason* would be
+> [`0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) run backwards.
+>
+> ⚠ **The stated reconstruction does not exist either.** *Reconstructible from the route and the
+> clock* holds only while a Segment's cost is a function of the plan. Under `adr/0099` each Segment is
+> priced on entry from **that Segment's volume at that instant**, so how far along a Traveller has got
+> depends on a volume history no longer in the world — ***and it fails hardest on a congested journey,
+> which is the only journey that is ever promoted.***
+>
+> **What survives is the field's placement**, which is what the rest of this row is about: the Segment
+> cursor belongs on the Traveller and not on the Leg. What falls is the claim that it is what
+> demotion discards. The enumeration is
+> [`0107`](0107-a-demotion-discards-the-cursor-and-nothing-it-discards-has-to-be-invented.md),
+> and it is *position along the **Lane*** — inside a Segment — never position along the **route**.
+> ***Two cursors one word apart, and this ADR named the wrong one.***
+
 **The reason the third row exists is an invariant, not tidiness.** `CONTEXT.md` → Promotion/Demotion states the one that carries the most weight: *"conserved quantities live on the Citizen record, never on the embodiment — **a Traveller is a view, not an owner**."* Session M has already applied it once, moving the Habit Route from the Traveller to the Citizen on exactly this ground. Making the **Leg** the plan and the **Traveller** the cursor puts every durable thing on a row that outlives the journey and every transient thing on a row that is released — so the invariant holds by construction rather than by discipline, which is the same upgrade [`0005`](0005-two-fidelity-tiers.md) achieved for reconstructibility.
 
 **A Leg stores a cost and not a path, and this is what makes `adr/0008` affordable.** For a **walk** Leg the route is searched, `distance / speed` is taken, and the Segment list is discarded — nothing downstream reads it, because `CONTEXT.md` → Fidelity keeps pedestrians out of Stress entirely and a walk Leg therefore increments no Segment volume. For a **drive** Leg the path already has a home that is not the Leg: [`0060`](0060-a-habit-route-is-a-small-set-of-variants-and-which-one-you-take-is-who-you-are.md) puts it in the shared route cache keyed by `(origin node, destination node, variant)`, reached through an index on the **Citizen**. Storing a path on the Leg would be a third copy of a route the design has twice decided to share, and it would multiply `adr/0008`'s *"roughly triples"* by a route length instead of by a fixed record.
@@ -64,6 +100,12 @@ where an unenumerated field is the bug the invariant exists to catch.
 **`CONTEXT.md` → Leg gains a field set, and → Trip and → Traveller gain the division of labour.** The vocabulary entries stop describing three things in three registers and start describing one mechanism.
 
 **`03 §4` invariant 3 becomes writable.** Demotion discards the Traveller's *cursor* state — queue position, headway, a Switch Lane traversal in progress — and never the plan, because the plan is on the Leg and the Leg is not the embodiment. That is the enumeration the invariant has been owed since it was written, and milestone 21 writes it against this structure rather than inventing one.
+
+> ⚠ **AMENDED 2026-08-16 by session E — the principle is upheld and the list is replaced, and the write this bullet issued never landed.** *The cursor, never the plan* is exactly right and is what keeps the enumeration short; it is the **fields** that were wrong. `03 §4` was never edited, so the invariant went on reading as owing a list this ADR believed it had supplied — `plans/0012` **Cause 2**.
+>
+> [`0107`](0107-a-demotion-discards-the-cursor-and-nothing-it-discards-has-to-be-invented.md) enumerates **position along the Lane, velocity, Lane assignment, and a Switch Lane traversal in progress**, and `03 §4` now carries it. Against the three named above: **headway is not a field at all** (`03 §5` has vehicles hold no references to each other, so it is computed in the Lane's pass), ***queue position*** **resolves into the metric offset** that car-following integrates, and **velocity and Lane assignment were missing** — the Intelligent Driver Model cannot run without the first and a Switch Lane transitions *between* values of the second, so naming the traversal while omitting the assignment named a change to a quantity that was not on the list.
+>
+> ***A list that names a derived quantity as state cannot be checked against a structure*** — and this one failed by being too **long**, which reads as more careful rather than less. **The routing was wrong too**: the enumeration is `03 §4` invariant 3's and therefore milestone **22**'s, not milestone 21's, and 21 is gated on session **G** where 22 is gated on nothing. Sending it behind a gate it did not need is how it stayed unwritten for five days after this ADR declared it writable.
 
 **The Trip table needs a sink, and *"Trips are transient"* does not supply one.** [`0006`](0006-no-collection-grows-with-elapsed-time.md) is satisfied by the Fate reaching the Census **before** the row is freed — otherwise the only durable record of a failure is destroyed by the mechanism meant to bound the table. The Fate counters are *flows* rather than levels, so they follow slice 7 task 9's precedent: read as a sum and a peak over the interval, and the reading drains them.
 

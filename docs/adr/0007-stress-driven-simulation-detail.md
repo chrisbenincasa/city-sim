@@ -17,6 +17,28 @@ We considered three positions and rejected two.
 **Stress-driven detail avoids all three.** The reasoning that makes it work:
 
 - **It puts the VDF where it is strong.** Unstressed segments are free-flow, where travel time is `distance / speed` — not an approximation but an exact answer. The saturated regime, where VDFs fail, is handled by actual simulation.
+
+  > **⚠ AMENDED 2026-08-16 by session E — the conclusion stands and *"not an approximation but an exact
+  > answer"* is an idealisation.** The tier split is untouched: the VDF is still replaced exactly where
+  > it is weak, which is this bullet's whole point. What is no longer true is that a Statistical
+  > Segment's travel time *is* `distance / speed`. Milestone 5c put the volume-delay function on
+  > **every** Segment ([`0099`](0099-a-legs-cost-is-a-plan-and-a-drive-is-priced-segment-by-segment-as-it-is-met.md)),
+  > priced on entry from that Segment's volume at that instant, so free flow is the value only at zero
+  > volume. At the shipped `α = 15%`, `β = 4` a Segment at `v/c` 0.8 runs **6.1%** slower than free flow
+  > and at 1.0 **15%** slower.
+  >
+  > ⚠ **The gap is widest exactly at the promotion boundary**, since a Segment just below `T_high` is
+  > the most loaded one still Statistical — so this sentence is least true precisely where a promotion
+  > reads it. **The accurate form is that the VDF runs everywhere and is *replaced* where it is weak**,
+  > rather than that it is only *used* where it is strong.
+  >
+  > **It matters because the clause is quotable and was quoted.**
+  > [`0107`](0107-a-demotion-discards-the-cursor-and-nothing-it-discards-has-to-be-invented.md)'s first
+  > draft derived a promoted Traveller's entry velocity from it — *free flow, as a fact about the tier
+  > it came from* — which would have been a plausible default wearing a derivation, wrong by 6–15% in
+  > the only regime it is ever evaluated in. That rule now reads `adr/0099`'s dwell instead. ***A
+  > sentence that idealises for the sake of an argument becomes a premise for the next argument***,
+  > and this one held for four months before anything needed it to be exact.
 - **The visualisation gap closes by itself.** A gap can only exist where behaviour is complex, and behaviour is only complex where there is congestion — which is exactly what gets simulated. On an empty street a car driving at the speed limit is trivially correct. Detail arrives where scrutiny does, without the camera being consulted.
 - **The trigger consumes a count, not a model.** `in_flight` is exact — incremented on departure, decremented on arrival. Capacity is static. We are not using the VDF to decide where the VDF can be trusted.
 
