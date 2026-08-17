@@ -8,7 +8,9 @@
 
 🟢 **IN FLIGHT. Scoped 2026-08-16; tasks 1, 2 and 3 shipped. Ungated** — it is the first row of the
 re-derived Phase 2 spine and no session, spike or milestone stands in front of it. **Tasks 4, 5 and 6
-remain**, and **every open decision this milestone owed is now closed.**
+remain**, and **every open decision this milestone owed is now closed** — the last of them, *what task 4
+answers where the mechanism is missing*, on 2026-08-17. ⚠ **Settling it proposed a seventh task**, and
+whether that is one is the only thing outstanding.
 
 **Four decisions were settled with the user in the room on 2026-08-16**, before any task was written,
 and they are recorded under *What was settled before scoping* below. **Three remain open** and are
@@ -149,7 +151,9 @@ never filled means it is too large, and a diagnosis that ran out of entries mean
 ## Tasks
 
 **Tasks 1, 2 and 4 are the milestone.** Task 3 is a cheap repair the grilling turned up that belongs
-here because it is the first producer; 5 and 6 are the standing obligations.
+here because it is the first producer; 5 and 6 are the standing obligations. ⚠ **Task 7 is proposed and
+not yet a task** — scoping task 4 on 2026-08-17 found a second clause of `02 §9` whose answer is freed
+before anybody can ask for it, which is this milestone's residue by its own definition.
 
 ### Task 1 — the Evidence trail — ✅ **DONE 2026-08-16**
 
@@ -269,6 +273,12 @@ The cold query surface: one Core-side entry point per `02 §9` question, returni
 id-and-number result the host renders. Live state is read, predicates are re-run, the trail is read,
 and the three are composed into one answer. `[ColdPath]` where a result type needs it. **No strings.**
 
+✅ **Its scope was settled 2026-08-17, before code, by walking `02 §9`'s three subjects against the
+column inventory** — see *Open decisions* → **3**. The clauses split three ways: **assembled** from live
+or recomputable state, **accumulated** because the row holding the answer is freed, and **omitted**
+because no mechanism produces the answer. ⚠ **The walk found one clause in the middle group that
+scoping had missed**, and it is proposed as task 7 below.
+
 ### Task 5 — something to look at
 
 A runner mode. The obvious shape is `--evidence`, printing what the trail holds and expanding one
@@ -281,6 +291,40 @@ aggregate into its constituents, which is the milestone's whole claim rendered i
 what is being tested here**: entry count is monotonic to the cap and then constant, so the assertion is
 a **slot high-water mark that saturates**, not a live count. 5c task 8 found that distinction the hard
 way and its record carries the reasoning.
+
+### Task 7 — a Trip's Fate outlives its Trip — ⚠ **PROPOSED 2026-08-17, needs a nod before it is a task**
+
+`02 §9`'s Citizen row asks for *"current or last Trip with its Fate"*. **The *current* half is a scan
+and the *last* half is unrecoverable today.** `TripEngine.Release` asserts the Trip carries a
+Fate and frees the row **on the next line** (`:782-790`), and `TripEngine.AdvanceTravellers` resolves
+the Fate and frees the **Traveller** four lines later (`:690-693`) — which holds
+the only Citizen→Trip link there is (`TravellerTable.Citizen`, `TravellerTable.Trip`) — in the same
+pass. So the Fate is computed, checked, and both it and the association with the person who made the
+journey cease to exist at the same instant.
+
+**That is this milestone's own test of its residue, verbatim** — D2's *events whose subject has left or
+whose moment has passed* — and **it is task 2's situation verbatim**, down to the phrasing: `Condemn`'s
+comment said *"the row it would be copied off is freed on the next line."* The machinery exists;
+`CondemnationTrailTable` is the pattern and task 2 is the precedent for applying it.
+
+⚠ **It is the third sighting of one defect, and the first two are already written down.** `02 §9`'s
+general rule is *every aggregate figure must be able to name its constituents*. `jobs beyond budget` was
+an aggregate with no entity reference — repaired by `adr/0097` and built as task 3.
+`TripCounter.ExceededCommuteBudget` is the same figure on the **Building** — filed in
+[`0012`](0012-corpus-audit.md) and moved to milestone 17. **The four `TripFate` Census flows are the
+same thing again**, and nobody had walked that axis either.
+
+⚠ **Why scoping missed it, and the form generalises.** `02 §9`'s Citizen row was read for the clause
+that already had a known defect against it — *where there is no workplace, why*, which `adr/0097` had
+flagged and annotated in `02 §9` itself — and the reading stopped there. ***A row of a requirements list
+that carries one known defect reads as a row somebody has checked***, and the annotation is what makes
+it read that way. That is [`0012`](0012-corpus-audit.md) *Cause 1*'s family on a new surface: not two
+copies drifting, but **one copy whose repaired half vouches for its unrepaired half**.
+
+**Not proposed as part of task 4**, because it is a hash-bearing table and task 4 is a query surface;
+mixing them would put a re-record inside a commit whose subject is *no new state*. **Recorded as owed
+rather than added**, because the task count is the user's and this milestone has already moved one task
+out (to 17) with a written reason.
 
 ---
 
@@ -430,3 +474,55 @@ of what the network did, taken at the only place that knows: inside the walk the
 already paid for. ***A producer with no threshold in it is not a trespass on the milestone that owns
 the threshold***, and the test of that is that nothing here reads the count — `grep` finds one writer,
 one clearer, and no reader in `src/`.
+
+### ~~3. What task 4 answers where the mechanism is missing~~ — **CLOSED 2026-08-17: assembled, accumulated, or omitted**
+
+**Posed and settled before task 4's code**, because at least four of `02 §9`'s named answers have no
+producer and the difference between answering three subjects and one and a half is a change in the
+task's size rather than in its implementation. **Settled by walking the three subjects against the
+column inventory rather than against this brief** — which is `adr/0093`, and see the sharpening at the
+end of this entry.
+
+**Assembled — live or recomputable, and task 4 owns all of it.** *Building:* occupants (the occupant
+list), Bins with levels, **which Rule last ran and whether it succeeded** — recomputable, because a Rule
+that succeeded re-arms at `+rate`, so `next_tick − rate` orders a Building's Rules by when they last
+fired and `Blocking.None` says the last one worked — and **which fallback chain it walked and where it
+terminated**, `RuleInstanceTable.Reported` being the terminal `ConditionId` and the walk itself
+re-runnable on the cold path. *Citizen:* home, workplace, activity, **why there is no workplace**
+(`CitizenTable.ReachFailures`, task 3), and the **current** Trip with its Fate, by scanning
+`TravellerTable.Citizen`. *Lot:* **no frontage** (`LotTable.HasFrontage`), **conditions below
+tolerance** (re-run the Zone Rule's permit predicate), and whether the Unplaced Pool is empty.
+
+**Accumulated — the row holding the answer is freed.** The Lot's *why it is vacant* has this and task 2
+built it. `02 §9`'s Citizen row has a second one nobody had seen: the **last** Trip's Fate. Task 7 above.
+
+**Omitted — no producer, and omitted rather than returned as zero.** Need satisfaction (no table exists
+anywhere; `adr/0103` designs it and nothing builds it). **Household finances** — and this one is the
+trap: `HouseholdTable.Money` and `Savings` are declared, `Saved`, hashed and in the save file, and
+**every writer in the repository is a test**; the only production code that touches them is an invariant
+*reading* them. The Lot's *no capital* is the same column. And the Lot's *no household in the queue
+**that would accept it*** — the Pool's membership exists, but the acceptance predicate is `02 §5.4`'s
+**residential choice model**, which the 2026-08-15 sweep found had been invisible to `06`'s inventory
+for its whole life.
+
+⚠ **Why omitted rather than zeroed, and the reason is deliberately not the absence.** A Household with
+no money and a Household in a world with no money both read **£0**. That is session F's finding —
+***a placeholder whose value sits inside the range of legitimate answers cannot announce itself*** — and
+zero is inside money's range. So the rule task 4 follows is *do not publish a number that cannot be
+distinguished from a real one*, which would hold just as well if money were built and merely unread.
+**Reasoning from the absence instead would be the void form**: *given money does not exist, should the
+assembler compensate?* is `adr/0070`'s forbidden shape verbatim, and it would have produced
+availability machinery — a status per clause — that exists only because something is missing.
+
+**The omission needs no mechanism to undo.** The assembler recomputes, so the day money acquires a
+writer the field appears and nothing here is reopened. That is `02 §9`'s *"cheap if designed in and
+expensive if retrofitted"* paying out in the direction it was written for, and it is the strongest
+argument for the assembler being an assembler.
+
+⚠ **The sharpening this produced is about how to check a mechanism exists.** `HouseholdTable.Money`
+looks built from every angle a *document* can see — declared, typed, hashed, saved, invariant-checked —
+and `grep` for its writers is the only thing that says otherwise. Session K found the identical shape
+(*"two of the six roots are half-built… declared with only test callers"*), so this is the second
+sighting and the first inside a milestone. ***`adr/0093`'s *open the mechanism* has to mean find the
+**writer**, not find the declaration*** — a declaration is a description of the build in the build's own
+language, which is the most persuasive kind and still not evidence that anything happens.
