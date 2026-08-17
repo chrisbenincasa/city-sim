@@ -322,6 +322,66 @@ Sight the complexity factor changes a driver's behaviour; taking it off Stress d
 mitigation. A third reading — that the requirement is about *volume* being one exact count rather
 than about the whole expression — is available and has to be refused or taken explicitly.
 
+### ✅ CLOSED — [`adr/0109`](../docs/adr/0109-stress-and-sight-share-a-volume-and-not-an-expression-and-the-static-term-belongs-to-habit.md), 2026-08-16
+
+**The third reading is the true one, and it was already paid.** The requirement holds at the level of
+**volume** — one per-Segment count, incremented on entry and decremented on exit — and
+[`adr/0041`](../docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md) made it
+one count for an unrelated reason, so there is **no second number able to disagree with the first**.
+***The requirement was discharged by a decision taken for another reason***, which is the **third**
+time in this session that an open question's answer was already in the corpus under a different
+heading — after Q1's enumeration inside `adr/0075` and Q2's consumer inside `§5.1`.
+
+⚠ **Identity above volume is not merely unnecessary — it is *unsatisfiable*, and it fails hardest
+exactly where the requirement is supposed to bite.** On a Microscopic Segment travel time is
+**emergent** (`adr/0016`, in terms), while Stress goes on reading `v/c` there because that is what
+decides demotion. ***The cost of a Segment and the load on a Segment stop being the same kind of thing
+at the promotion boundary***, and the promotion boundary is where every jam is. **Stress is a load;
+Sight is a cost.** A requirement stated as identity, which becomes unsatisfiable precisely at the
+Segments it is about, was stated one level too high.
+
+⚠ **The divergence is real and the brief had the direction right where `adr/0046` had it wrong.** The
+factor *lowers the effective threshold*, so it is **≥ 1** and `stress ≥ v/c` always: a complex junction
+**promotes at a `v/c` at which a driver sees no reason to divert**. That is *promote without divert*,
+and `adr/0046`'s feared *divert without promote* **cannot arise from this term at all**. The direction
+is **arithmetic, not a judgement**.
+
+⚠ **And it is not `01 §7`'s contradiction, so that clause is struck rather than softened.** In this
+direction the Segment **is** Microscopic, so congestion is exact rather than modelled and the overlay
+is honest by construction: the player sees a real jam and drivers driving into it. That is
+`adr/0046`'s own stated position four paragraphs above the consequence (*"so is every driver in the
+city routing around a jam the instant it forms"*) and 5c task 8's measurement — ***congestion is a cost
+paid and never a cost avoided***. ***A wrong reason attached to a right instruction is what gets quoted
+later***, which is why the clause goes.
+
+⚠ **Sight is refused the factor on `adr/0046`'s own layer decomposition and on nothing else.** It is
+*static geometry, computed once*, so it contributes the same amount at every crossing and is a fact
+about the **network** — Habit's layer, not the live one. **The symmetry ceiling is deliberately not
+cited**: a static term added to both sides is symmetric and survives session D's argument intact, so
+reaching for it would be `adr/0093` run backwards — citing a nearby decision because it points the
+same way.
+
+⚠ **The finding outranks the question. `complexity_factor` is not in Habit's cost basis either**, so
+**every Habit Route in the design as written is computed as though every junction is a simple
+through-road** — `§3.6`'s under-pricing, in the one layer that could route around it, applied
+permanently and to every Trip rather than to whatever a driver happens to see. `§3.3` calls the factor
+*"a partial mitigation for §3.6"* while it sits in one of the three places that could use it, and the
+place it is missing from is the one that **routes**. It belongs there; **how much it buys is measurable
+and is routed rather than claimed** — ***a term being in the right place is a decision; how much it
+buys is a measurement.***
+
+⚠ **`adr/0046`'s *slow-moving cost basis* is named underspecified.** That ADR never said what is in it
+and nothing else does; the only basis that exists is 5c's **free-flow** matrix, which carries no
+junction term at all. The enumeration is owed to `adr/0046` rather than to `adr/0109`. **That is the
+third unwritten enumeration this session has found** — after `03 §4` invariant 3's and `adr/0062`'s
+admission order — which is enough of a pattern to say out loud: ***this corpus writes the members it
+needs and never the list.***
+
+**Not turning movements coming off `deferred.md`**: that document defers a per-movement **accumulator**,
+a junction **overlay** and a package of lane-level **player tools** on `00`'s anti-goal. A static
+geometric factor on an existing routing cost is none of the three, and `§3.3` **already computes it** —
+the only question was which consumers read it.
+
 ## Q4 — Where do 22 and 23 sit?
 
 `06` marks both **position provisional — session E moves it**. Take the positions, or state what
