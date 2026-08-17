@@ -265,13 +265,28 @@ needed no edit and the four-literals ordering did not apply. The version byte in
 deliberately **unmoved**: this is a world with more tables in it, not a change to the fold, which is
 the distinction the note above draws.
 
-⚠ **What this re-record covers is the table's *existence*, not its use, and the gap closes in task 2.**
-Nothing writes `condemnation_trail` yet — `ZoneRuleEngine`'s condemn path is where `Record` gets its
-caller — so the fresh numbers here fold **256 + 1 rows of zeroes** and would be identical if `Record`
-were deleted. That is the shape `plans/0012`'s **check 10** names: *a `Rows.Saved` column whose only
-assignment in the tree is under `tests/`*. It is true of this table for exactly as long as task 1 stands
-without task 2, and it is written down here rather than discovered by the check, because ***a baseline
-that covers a table's declaration reads exactly like one that covers its behaviour***.
+⚠ ~~**What this re-record covers is the table's *existence*, not its use, and the gap closes in task 2.**~~
+**CLOSED BY TASK 2.** For as long as task 1 stood alone the fresh numbers folded **256 + 1 rows of
+zeroes** and would have been identical if `Record` were deleted — the shape `plans/0012`'s **check 10**
+names, *a `Rows.Saved` column whose only assignment in the tree is under `tests/`* — and it was written
+down here rather than left for the check, because ***a baseline that covers a table's declaration reads
+exactly like one that covers its behaviour***.
+
+**Milestone 6 task 2 re-recorded `session-trace.txt` alone, and the artefact that did *not* move is the
+informative one.** `ZoneRuleEngine.Condemn` now copies the condemning Rule's condition into the trail
+before `World.DestroyBuilding` frees it, so the committed session — which demolishes throughout —
+writes real rows and every sample from Tick 128 on moved. **`world-hash.txt` did not, and could not**:
+it is a hand-built world that never runs a Zone Rule, so it has no condemnation in it and its 256 + 1
+rows are still zeroes. The two artefacts have separated for the first time on a *behavioural* change
+rather than a compositional one, and that is the division of labour the top of this file describes
+working as intended. Neither Ruleset content hash moved — no shipped file gained a key — so
+`session.borough` and `GoldenFixtures` needed no edit and the four-literals ordering did not apply.
+
+⚠ **Sample 0 is unchanged and every later sample moved, which is a fact about the fixture worth
+keeping.** The first Zone Rule trigger that finds a Building past its threshold lands in Ticks 65..128,
+so the trail is empty at Tick 64 and never empty again. **A session shortened below the second sample
+would cover the mechanism exactly as poorly as task 1's re-record did**, with a full set of freshly
+correct hashes to say so — slice 10 task 11's finding, in the one place it can still bite this table.
 
 ⚠ **The re-record was blocked before it could start, and the refusal was the right one.** The runner
 would not replay a session naming a Ruleset hash nobody supplied — *Rules nobody has are not a

@@ -160,13 +160,48 @@ relative to another.
 ⚠ **Open decision 3 lands here**: one window shared by every event kind, or one per kind. Do not
 choose it by taste; see below.
 
-### Task 2 — keep the abandonment reason
+### Task 2 — keep the abandonment reason — ✅ **DONE 2026-08-16**
 
-`ZoneRuleEngine.cs:291-298` names this gap in its own comment and has been waiting for somewhere to put
-it. Copy `RuleInstanceTable.Reported` and the Tick into the trail **before** `World.DestroyBuilding`
-frees the row. This is `02 §9`'s hardest requirement — *"For a **Lot**: why it is vacant. Not 'vacant'
-— *why*"* — reaching the one case where the answer is genuinely not recomputable, because the entity
-holding it is about to cease existing.
+`ZoneRuleEngine.cs:291-298` named this gap in its own comment for two milestones and has been waiting
+for somewhere to put it. `Condemn` now copies the Lot, the kind, the Tick and
+`RuleInstanceTable.Reported` into the trail **before** `World.DestroyBuilding` frees the row. This is
+`02 §9`'s hardest requirement — *"For a **Lot**: why it is vacant. Not 'vacant' — *why*"* — reaching the
+one case where the answer is genuinely not recomputable, because the entity holding it is about to cease
+existing. Six tests in `CondemnationCauseTests`, `session-trace.txt` re-recorded.
+
+⚠ **The task had one decision in it and the brief did not see it: *which* Rule's condition.** The
+condemnation predicate is an **or** — the loop broke on the first Rule Instance past
+`CondemnAfter × rate` — but **a trail entry names one cause**, and several Rules can be past their
+thresholds at once. The brief said *the one that broke the threshold* and there is no such thing in the
+singular. The answer was already written eight lines above the loop and had never had a consumer:
+***the Building's pressure is the longest of its Rules', measured in missed firings*** (`adr/0053` as
+amended), followed by *"the maximum is never stored anywhere"* — true only because until now nothing
+read it. So the walk no longer breaks, and it keeps the Rule with the most missed firings. ***A remark
+that a quantity is never needed expires the moment something needs it***, and the sentence that recorded
+the gap and the sentence that answered it were in the same doc-comment.
+
+**The comparison is a cross-multiply and not a division**, `elapsed × worstRate > worstElapsed × rate`,
+for the reason the paragraph above the loop already gives for multiplying the threshold rather than
+dividing the duration: the division would be spelled through `IntegerMath` for an answer nothing keeps.
+Ties keep the earlier Rule, so the choice is a function of the Building's Rule list rather than of the
+order two equal pressures were met in. The cost is one full walk of a handful of Rules on condemnation
+Ticks only — the *not condemned* branch always walked the whole list.
+
+⚠ **The discriminating test is a `[Theory]` over the two declaration orders, and it is the only shape
+that could fail.** A mechanism taking the first qualifying Rule agrees with the correct one on **half**
+the orders, so a single-row test would have been a coin toss dressed as an assertion. Verified by
+mutation: reverting the selection to *first past threshold* fails 2 of the 6 tests and exactly one of
+the two `[Theory]` rows. The fixture surveys every **128** Ticks on purpose — a fast survey condemns on
+the Tick the *quicker* Rule crosses its threshold, when there is only one candidate and nothing is being
+chosen between. ***Looking once, late, is what puts two qualifying causes in front of the choice.***
+
+⚠ **The two golden artefacts separated for the first time on a *behavioural* change.**
+`session-trace.txt` moved from sample 1 onward — the committed session demolishes throughout, so the
+trail fills — and `world-hash.txt` did **not move at all**, because it is a hand-built world that never
+runs a Zone Rule and therefore has no condemnation in it. Neither Ruleset content hash moved. **Sample 0
+is unchanged and every later sample moved**, which is worth keeping: a session shortened below the
+second sample would cover this mechanism exactly as poorly as task 1's re-record did, and would say so
+with a full set of freshly correct hashes.
 
 ### Task 3 — `adr/0097`'s reach-failure count
 

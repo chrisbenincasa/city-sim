@@ -289,12 +289,16 @@ public sealed class ZoneRuleEngine
     /// sampled Rule, for an answer it then throws away.
     /// </para>
     /// <para>
-    /// <b>The condition behind the demolition is available and is not kept.</b>
-    /// <see cref="RuleInstanceTable.Reported"/> holds it wherever an author has written an
-    /// <c>on_fail</c> chain, which is <c>02 §5.9</c>'s refusal of the sad-face icon — but nothing
-    /// consumes it: <c>01 §5</c>'s notification surface does not exist, and the row it would be copied
-    /// off is freed on the next line. Storing it now would be a column nothing reads, which is the
-    /// shape <c>0011</c> finding 39 already has one of.
+    /// <b>The condition behind the demolition is copied out before the demolition frees it</b>
+    /// (milestone 6 task 2). <see cref="RuleInstanceTable.Reported"/> holds it wherever an author has
+    /// written an <c>on_fail</c> chain, which is <c>02 §5.9</c>'s refusal of the sad-face icon, and
+    /// <see cref="World.DestroyBuilding"/> frees the row holding it on the next line — so the answer
+    /// has a lifetime of one line and <see cref="CondemnationTrailTable"/> is where it goes.
+    /// ⚠ <b>The condition recorded is the worst-starved Rule's, not the first one found.</b> The
+    /// verdict is an <em>or</em> and any exceedance settles it, but a trail entry names one cause, and
+    /// the paragraph above already says which one the design means. Where an author wrote no chain the
+    /// entry carries <see cref="ConditionId.None"/> and is kept anyway, because a Building that
+    /// vanished with no entry at all is the worse answer.
     /// </para>
     /// </remarks>
     private void Condemn(int lot, Ticks tick)
@@ -323,7 +327,9 @@ public sealed class ZoneRuleEngine
             return;
         }
 
-        bool condemned = false;
+        int worst = -1;
+        ulong worstElapsed = 0;
+        uint worstRate = 0;
 
         foreach (int instance in _world.BuildingRules.Walk(building))
         {
@@ -333,24 +339,50 @@ public sealed class ZoneRuleEngine
             }
 
             ulong elapsed = tick.Raw - _world.RuleInstances.StarvedSince[instance].Raw;
-            ulong allowed = (ulong)threshold * _world.Rules.Rule(
-                _world.RuleInstances.Rule[instance]).Rate;
+            uint rate = _world.Rules.Rule(_world.RuleInstances.Rule[instance]).Rate;
 
-            if (elapsed >= allowed)
+            if (elapsed < (ulong)threshold * rate)
             {
-                condemned = true;
-                break;
+                continue;
+            }
+
+            // The walk no longer stops at the first Rule past its threshold, and the reason is
+            // attribution rather than the predicate: the verdict is an or and any exceedance settles
+            // it, but the trail records ONE condition and the remark above already says which one the
+            // design means — the Building's pressure is the LONGEST of its Rules'. That maximum was
+            // never stored anywhere because until milestone 6 nothing read it. The extra cost is one
+            // full walk of a handful, on condemnation Ticks only; the miss branch always walked it all.
+            //
+            // Missed firings, compared by cross-multiplying — elapsed/rate against worstElapsed/
+            // worstRate — for the reason the paragraph above gives for multiplying the threshold: the
+            // division would be spelled through IntegerMath for an answer nothing keeps. Strictly
+            // greater, so a tie leaves the earlier Rule in place and the choice is a function of the
+            // Building's own Rule list rather than of the order two equal pressures were met in.
+            if (worst < 0 || elapsed * worstRate > worstElapsed * rate)
+            {
+                worst = instance;
+                worstElapsed = elapsed;
+                worstRate = rate;
             }
         }
 
-        // Outside the walk, because demolition empties the list being walked. Breaking first and
-        // acting after costs a bool and removes the question of whether an enumerator survives having
-        // its collection dismantled underneath it.
-        if (condemned)
+        if (worst < 0)
         {
-            _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
-            _tickDemolished++;
+            return;
         }
+
+        // Both writes are outside the walk, because demolition empties the list being walked, and the
+        // trail is written before the demolition rather than after it: DestroyBuilding frees the Rule
+        // Instance holding the condition and the Building row holding the kind, so a Tick later there
+        // is nothing left to copy. That one-line lifetime is the whole reason the trail is a table.
+        _world.CondemnationTrail.Record(
+            tick,
+            _world.Lots.Rows.At(lot),
+            kind,
+            _world.RuleInstances.Reported[worst]);
+
+        _world.DestroyBuilding(_world.Buildings.Rows.At(building), tick);
+        _tickDemolished++;
     }
 
     /// <summary>A span of at least <paramref name="size"/>, growing the buffer once if it must.</summary>
