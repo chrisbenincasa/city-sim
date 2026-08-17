@@ -1572,6 +1572,13 @@ public sealed class World
         Citizens.Workplace[slot] = workplace;
         Citizens.PlannedCommute[slot] = plannedCommute;
 
+        // adr/0097: the reach-failure count resets on employment and on nothing else. It is here
+        // rather than in the assignment pass for the reason the paragraph above gives for the worker
+        // list -- this is the one door onto the handle, so a second path into employment cannot
+        // forget to clear it. adr/0069's finding, that a mechanism living inside another mechanism's
+        // caller is a mechanism nobody built.
+        Citizens.ReachFailures[slot] = 0;
+
         Invariants.Require(
             !Lists(Workers, buildingSlot, slot),
             Invariant.CitizenIsNotAlreadyEmployedHere,
@@ -1580,6 +1587,34 @@ public sealed class World
 
         Workers.InsertOrdered(buildingSlot, slot);
         Commutes.Add(Citizens, Buildings, Rules, Key, slot);
+    }
+
+    /// <summary>
+    /// Records that a job search ended with nothing the Road Graph could deliver inside the Commute
+    /// Budget — one occasion, however many candidates it refused.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The write half of <see cref="CitizenTable.ReachFailures"/>, and it is a method rather than
+    /// an indexer assignment at the call site so that the saturation is stated once.</b> A counter
+    /// that stops at its width is <c>adr/0003</c>'s no-unbounded-magnitude rule applied to a tally;
+    /// a counter that wraps is a Citizen with a long history reading as a Citizen with none, which
+    /// is the one failure that would look like the mechanism working.
+    /// </para>
+    /// <para>
+    /// <b>It is not the aggregate.</b> <c>EmploymentEngine</c> still counts <em>candidates</em>
+    /// refused into the <c>beyond</c> Census flow, and that flow is an instrument. This is state,
+    /// and its unit is the occasion — see the column for why the two differ.
+    /// </para>
+    /// </remarks>
+    public void RecordReachFailure(int citizenSlot)
+    {
+        ushort failures = Citizens.ReachFailures[citizenSlot];
+
+        if (failures < ushort.MaxValue)
+        {
+            Citizens.ReachFailures[citizenSlot] = (ushort)(failures + 1);
+        }
     }
 
     /// <summary>

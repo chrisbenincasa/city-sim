@@ -1719,6 +1719,14 @@ with the same missing reference, on the **Building**, and the repair shape trans
 ***A defect repaired on one axis of a symmetric pair is not thereby repaired***, and nothing in this
 corpus walks the other axis when one is fixed.
 
+⚠ **And *`adr/0097` repaired it* was a sentence about a decision doing the work of a sentence about the
+build, for four days.** `CitizenTable.ReachFailures` did not exist until milestone 6 task 3 on
+2026-08-17; before that, `grep` found no such symbol anywhere in `src/` or `tests/`, and this paragraph
+read as though the Citizen axis were closed. It is closed **now**. `adr/0093` governs the form —
+***a description of the build is where to look and never what you found*** — and the writing half is
+the fix here as everywhere: **name the symbol**, because *"`adr/0097` repaired it"* cannot be checked
+without already knowing the answer and *"`CitizenTable.ReachFailures` holds it"* is one grep.
+
 - [ ] **`CONTEXT.md:203`** — the sentence is aspirational and reads as descriptive. It sits in the file
   that governs vocabulary, so it is the copy most likely to be quoted as a specification. Either mark the
   window as owed, or replace the specimen with one the build can produce.

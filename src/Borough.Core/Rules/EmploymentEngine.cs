@@ -315,6 +315,12 @@ public sealed class EmploymentEngine
         // departure be `Shift start - this` instead of a number somebody had to choose.
         TravelTime bestCost = default;
         bool found = false;
+        // Whether this *occasion* met a candidate the network could not deliver in time. One flag
+        // rather than a count, because adr/0097's memory is denominated in occasions: `candidates`
+        // is a Ruleset knob, so a per-candidate tally would be that knob multiplied by the quantity
+        // milestone 19 wants to threshold. The per-candidate figure is `_tickBeyond` below, which is
+        // an instrument and may depend on the knob.
+        bool refusedForReach = false;
 
         for (int look = 0; look < candidates; look++)
         {
@@ -343,6 +349,7 @@ public sealed class EmploymentEngine
             if (!trips.TryRung(cost, out CommuteRung rung))
             {
                 _tickBeyond++;
+                refusedForReach = true;
                 continue;
             }
 
@@ -365,9 +372,21 @@ public sealed class EmploymentEngine
 
         if (!found)
         {
+            // Only where the network refused somebody. An occasion that drew nothing but full
+            // employers is a Space refusal throughout, and adr/0097 remembers those nowhere -- a
+            // count that moved on them would be a count of joblessness under a reachability name.
+            // The two early returns above are the same case: an empty box and a box with no
+            // Buildings in it are geometry, and neither has asked the Road Graph anything.
+            if (refusedForReach)
+            {
+                _world.RecordReachFailure(slot);
+            }
+
             return false;
         }
 
+        // The reset is inside World.Employ rather than here, so that it cannot be missed by a second
+        // path into employment. adr/0097: it resets on employment and on nothing else.
         _world.Employ(
             _world.Citizens.Rows.At(slot),
             _world.Buildings.Rows.At(bestBuilding),

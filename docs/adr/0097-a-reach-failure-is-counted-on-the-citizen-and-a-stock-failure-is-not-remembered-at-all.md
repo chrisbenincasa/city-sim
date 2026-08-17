@@ -46,6 +46,45 @@ has been treating them as one.**
 > milestone 19; what changes is which of its three channels reads it, which nothing had said.
 > See [`adr/0102`](0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md).
 
+> ⚠ **AMENDED 2026-08-17 — BUILT, and the title's unit is withdrawn. Read *a candidate refused* as
+> *an occasion in which a candidate was refused*.**
+>
+> **The decision is unchanged and the denomination is.** `06` milestone 6 task 3 built it
+> ([`plans/0028`](../../plans/0028-evidence-the-accumulators.md)): `CitizenTable.ReachFailures`, written
+> by `World.RecordReachFailure` from `EmploymentEngine.TryEmploy` and cleared by `World.Employ`.
+> **One occasion writes one increment, however many candidates that occasion refused.**
+>
+> ⚠ **Why the title is wrong about its own quantity.** `TryEmploy` looks at `[jobs] candidates`
+> candidates per occasion, so a per-candidate count is **that tuning number multiplied by the quantity
+> anybody wants to read**: a Ruleset moving `candidates` from 3 to 5 inflates every Citizen's history by
+> 5/3, and milestone 19's threshold then means different things in different Rulesets. That is
+> [`adr/0079`](0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md)'s
+> refusal — ***a derivation that reuses a constant inherits every decision that constant is already
+> carrying***. **This ADR's own argument was already denominated in occasions and its title was not**:
+> what it asks for is *persistence*, the thing separating somebody **structurally excluded** from
+> somebody **unlucky this occasion**, and its named precedent is
+> [`adr/0067`](0067-a-shopping-attempt-is-a-trip-and-a-household-tries-one-provider-per-occasion.md)'s
+> **consecutive failed occasions**. ***The body was right and the compression into a filename was
+> wrong*** — which is this ADR's 2026-08-14 amendment happening a second time, in the same sentence, on
+> a different word. The per-candidate figure is not lost: it is the `beyond` Census flow, which is an
+> instrument and may depend on a Ruleset knob.
+>
+> **The filename is left alone**, on the 2026-08-14 amendment's reasoning: renaming breaks every inbound
+> citation to buy a better title for a decision that is not changing.
+>
+> ⚠ **And *a width is owed and is deliberately not chosen here* turned out to be unsatisfiable as
+> written.** The count must saturate rather than wrap, and any **reachable** cap decides when
+> attribution stops being exact on behalf of a consumer nobody has designed — which is
+> [`adr/0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s forbidden move, so *no width*
+> and *a saturating width* cannot both hold. The build takes a `ushort`, whose saturation point is on
+> the order of **32,000 Days against a campaign of 562** and which no world this project can build
+> reaches. So the number is chosen to be **inert** rather than ratified: the saturation is a wrap guard,
+> the bound this ADR promised milestone 19 is still 19's, and narrowing the column the day it sets a
+> threshold is one edit and one re-record ([`adr/0100`](0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).
+> ***A number with no consumer can satisfy [`adr/0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)
+> by being unreachable, which is not the same as by being ratified***, and the distinction is worth
+> holding because only one of the two survives a consumer arriving.
+
 `LEGIBLE CAUSE` `BOUNDED KNOWLEDGE` `SOLVE THE ACTUAL PROBLEM`
 
 Settled by a sitting on 2026-08-13, run beside [`plans/0003`](../../plans/0003-build-plan.md) queue item 6,

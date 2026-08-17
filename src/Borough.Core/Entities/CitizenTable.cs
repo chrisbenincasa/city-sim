@@ -64,6 +64,7 @@ public sealed class CitizenTable
         Experience = _rows.Saved<long>("experience");
         SkillTier = _rows.Saved<byte>("skill_tier");
         Employment = _rows.Saved<byte>("employment");
+        ReachFailures = _rows.Saved<ushort>("reach_failures");
         MemberNext = _rows.Derived<int>("member_next");
         WorkerNext = _rows.Derived<int>("worker_next");
 
@@ -194,6 +195,71 @@ public sealed class CitizenTable
 
     /// <summary>Employment state.</summary>
     public Column<byte> Employment { get; }
+
+    /// <summary>
+    /// How many job-search occasions have ended with the Road Graph unable to deliver anything
+    /// inside the Commute Budget, since this Citizen last took a job.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0097</c>: a memory buys a skipped detection.</b> A candidate refused because its
+    /// posts are full costs one array read to re-detect, so it is forgotten; a candidate refused
+    /// because it is beyond the Budget costs a full Dijkstra, so it is remembered. This is the
+    /// remembering, and it is the first honest constituent of <c>02 §9</c>'s Citizen row — the
+    /// <c>jobs beyond budget</c> aggregate could report <i>distance rather than supply separates
+    /// them</i> and could not name one person it was true of.
+    /// </para>
+    /// <para>
+    /// <b>The unit is the <em>occasion</em>, not the candidate, and <c>adr/0097</c>'s title says
+    /// candidate.</b> Settled the other way when the column was built (milestone 6 task 3), because
+    /// <see cref="Borough.Core.Rules.EmploymentEngine"/> looks at <c>[jobs] candidates</c> candidates
+    /// per occasion: a per-candidate count is that tuning number times the quantity anybody wants,
+    /// so a Ruleset moving <c>candidates</c> from 3 to 5 would inflate every Citizen's history by
+    /// 5/3 with nothing saying so, and milestone 19's threshold would mean different things in
+    /// different Rulesets. ***A derivation that reuses a constant inherits every decision that
+    /// constant is already carrying*** — <c>adr/0079</c>'s refusal, which this milestone applied to
+    /// the Evidence window one task ago. What the count measures is <b>persistence</b>, and
+    /// persistence is denominated in occasions: <c>adr/0067</c>'s consecutive-failed-occasions is
+    /// the shape, and this ADR's own argument (<i>structurally excluded</i> against <i>unlucky this
+    /// occasion</i>) is denominated the same way. The per-candidate quantity still exists and is
+    /// still reported — it is the <c>beyond</c> Census flow, which is an instrument rather than
+    /// state.
+    /// </para>
+    /// <para>
+    /// <b>An occasion with no reach refusal in it does not increment</b>, even when it ends in no
+    /// job. Every candidate being full is a Space refusal and is deliberately not remembered, so a
+    /// count that moved on it would be a count of joblessness wearing a reachability name — which is
+    /// exactly the conflation <c>adr/0097</c> exists to undo.
+    /// </para>
+    /// <para>
+    /// <b>It saturates rather than wrapping</b> (<c>adr/0003</c>'s no-unbounded-magnitude rule
+    /// applies to a counter as much as to a quantity), and the saturation point is <b>a wrap guard
+    /// rather than a chosen bound</b>. A Citizen is looked at roughly twice a Day at the shipped
+    /// <c>[jobs] revisit_ticks</c>, so <see cref="ushort.MaxValue"/> is on the order of 32,000 Days
+    /// against a campaign of 562 — no world this project can build reaches it. That is the point:
+    /// <c>adr/0097</c> says the width follows from milestone 19's threshold, which does not exist,
+    /// and a <em>reachable</em> cap would be choosing when attribution stops being exact on behalf of
+    /// a consumer nobody has designed (<c>adr/0070</c>). Narrowing the column the day 19 sets a
+    /// threshold is one edit and one re-record (<c>adr/0100</c>).
+    /// </para>
+    /// <para>
+    /// <b>It resets on employment and on nothing else</b>, in <see cref="World.Employ"/> — the one
+    /// door onto <see cref="Workplace"/>, so every path that gives somebody a job clears it and none
+    /// has to remember to. In particular it does <em>not</em> reset on a Ruleset reload: this is the
+    /// Citizen's history, not a cache of a Ruleset value, which is the distinction <c>adr/0064</c>
+    /// and <c>adr/0065</c> were both written around. A Citizen whose workplace is demolished keeps
+    /// the zero their employment bought and starts again from it.
+    /// </para>
+    /// <para>
+    /// <b>Read by nothing yet, and saying so is part of the decision.</b> The consumer is milestone
+    /// 19's Departure, and <c>adr/0097</c>'s 2026-08-15 amendment names <em>which</em> of its three
+    /// channels: the <b>Destitute</b> one, because <c>CONTEXT.md</c> → Unemployment already routes
+    /// reachability there — <i>destitution is a reachability failure wearing a money costume</i>.
+    /// The count does not repair the search bill it records; <c>plans/0013</c> owns that, and
+    /// <i>a byte on a row does not repair a bill</i>.
+    /// </para>
+    /// </remarks>
+    public Column<ushort> ReachFailures { get; }
 
     /// <summary>Link in the Household's member list.</summary>
     public Column<int> MemberNext { get; }

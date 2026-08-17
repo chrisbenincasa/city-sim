@@ -735,8 +735,16 @@ levers are Ruleset numbers section D already lists as unset:~~ **The diversion p
   ***an answer that arrives after a debt is filed does not find its way to the ledger***, which is
   [`0012`](0012-corpus-audit.md) **Cause 2** in the direction the sweep does not look. The reachability
   half is `adr/0097`: **counted on the Citizen**, reset on employment, read by nothing yet, consumer
-  named as milestone **19**'s Departure and deliberately not designed. **No `adr/0052` number opened**,
-  which is `adr/0059`'s direction a fifth time.
+  named as milestone **19**'s Departure and deliberately not designed. ~~**No `adr/0052` number
+  opened**, which is `adr/0059`'s direction a fifth time.~~ ⚠ **Building it on 2026-08-17 opened one
+  after all, and the way out was to make it inert rather than to ratify it.** A count that must
+  *saturate* has a saturation point, and any **reachable** one decides when attribution stops being
+  exact for a consumer nobody has designed — `adr/0070`'s forbidden move — so *no width* and *a
+  saturating width* could not both hold as the ADR wrote them. `CitizenTable.ReachFailures` is a
+  `ushort`: ~32,000 Days of saturation against a 562-Day campaign, so it is a **wrap guard** and the
+  bound stays 19's. ***A number can satisfy `adr/0052` by being unreachable rather than by being
+  ratified***, and only one of those two survives a consumer arriving. See
+  [`0028`](0028-evidence-the-accumulators.md) → *Task 3*.
   ⚠ **Two findings outrank the decision.** `adr/0047`'s loop **is not reachable in the build**: the job
   pass keys its candidate draw on the **Tick**, so every occasion draws different Buildings and the
   defect is live as a **recurring search bill** — ~32.5 µs a Dijkstra, ~5,400 of 10,000 Citizens, for

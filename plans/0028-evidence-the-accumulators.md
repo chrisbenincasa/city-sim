@@ -6,8 +6,9 @@
 
 ## Status
 
-🟡 **SCOPED 2026-08-16, not started. Ungated** — it is the first row of the re-derived Phase 2 spine
-and no session, spike or milestone stands in front of it.
+🟢 **IN FLIGHT. Scoped 2026-08-16; tasks 1, 2 and 3 shipped. Ungated** — it is the first row of the
+re-derived Phase 2 spine and no session, spike or milestone stands in front of it. **Tasks 4, 5 and 6
+remain**, and **every open decision this milestone owed is now closed.**
 
 **Four decisions were settled with the user in the room on 2026-08-16**, before any task was written,
 and they are recorded under *What was settled before scoping* below. **Three remain open** and are
@@ -15,8 +16,9 @@ listed under *Open decisions this milestone owes*. ⚠ **This line said *none of
 that was false** — a fixed-size table's capacity and columns cannot be declared without the bound and
 the kind count, and both of those decisions said *owed before task 1* forty lines below. Both are now
 **closed**: the trail is **one concrete trail for abandonment** and the bound is **256**, a reasoned
-guess rather than a measurement. **One decision remains open** — whether task 3 is this milestone's or
-19's — and it blocks task 3 alone.
+guess rather than a measurement. ~~**One decision remains open** — whether task 3 is this milestone's or
+19's — and it blocks task 3 alone.~~ ✅ **CLOSED 2026-08-17 as recommended: built here, read there.**
+**Nothing this milestone owes is open now.**
 
 ⚠ **A fifth task and a fourth open decision were scoped here on 2026-08-16 and removed the same day,
 before any code.** Attributing budget refusals to the Building they were aimed at is Evidence-shaped,
@@ -149,7 +151,10 @@ never filled means it is too large, and a diagnosis that ran out of entries mean
 **Tasks 1, 2 and 4 are the milestone.** Task 3 is a cheap repair the grilling turned up that belongs
 here because it is the first producer; 5 and 6 are the standing obligations.
 
-### Task 1 — the Evidence trail
+### Task 1 — the Evidence trail — ✅ **DONE 2026-08-16**
+
+`CondemnationTrailTable`, in `World._tables`, nine tests, all three golden artefacts re-recorded. The
+two decisions it closed are recorded below. *Original text follows.*
 
 The `RulesetTrailTable` pattern, generalised to more than one event kind: a fixed-size `[Table]` in
 `World._tables`, all-`Saved`, all-`Touch.Cold`, entries dense and chronological, an aggregate row at
@@ -203,13 +208,60 @@ is unchanged and every later sample moved**, which is worth keeping: a session s
 second sample would cover this mechanism exactly as poorly as task 1's re-record did, and would say so
 with a full set of freshly correct hashes.
 
-### Task 3 — `adr/0097`'s reach-failure count
+### Task 3 — `adr/0097`'s reach-failure count — ✅ **DONE 2026-08-17**
 
-Decided, specified, and built by nothing: `grep` finds no `ReachFailure` symbol in `src/` or `tests/`.
-A saved count on the Citizen, incremented when the Road Graph cannot deliver a candidate inside the
-Commute Budget, **reset on success**. ⚠ **Whose it is, is open decision 4** — the ADR names milestone
-19's Departure as its consumer, and `UnplacedTable.cs:9-14` routes the give-up counter to the same
-place.
+`CitizenTable.ReachFailures`, a saved `ushort`; `World.RecordReachFailure` writes it and
+`World.Employ` clears it; `EmploymentEngine.TryEmploy` is the one producer. Six tests in
+`ReachFailureTests`, 1,461 green, all three golden baselines re-recorded. `02 §9`'s Citizen row has its
+first honest constituent: `jobs beyond budget` could report *distance rather than supply separates
+them* and name nobody, and now it can name somebody.
+
+⚠ **The task had a decision in it, the brief did not see one, and it goes against the ADR's own
+title.** `adr/0097` is *a **candidate** refused … increments a saved count*, and `TryEmploy` looks at
+`[jobs] candidates` candidates per occasion — so a per-candidate count is **that tuning number times
+the quantity anybody wants**. A Ruleset moving `candidates` from 3 to 5 would inflate every Citizen's
+history by 5/3 with nothing saying so, and milestone 19's threshold would mean different things in
+different Rulesets. That is [`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md)'s
+refusal — ***a derivation that reuses a constant inherits every decision that constant is already
+carrying*** — which **this milestone applied to the Evidence window one task ago and did not apply to
+its own counter**. The unit is the **occasion**. Settled with the user in the room; `adr/0097` carries
+an amendment banner rather than a rename, on its own 2026-08-14 precedent, because under this project's
+convention the filename is the claim and renaming it would break every inbound citation to buy a better
+title for a decision that is not changing.
+
+⚠ **The discriminating test took three attempts and the first two passed under mutation.** Reverting
+the increment into the candidate loop is the mutation, and it must fail something. It did not fail
+*summed increments ≤ seeking occasions*, because **employment erases the evidence**: a Citizen refused
+three candidates and then employed in the same pass reads as nought either way, and the erasure is
+heaviest exactly where the refusals are. It did not fail any assertion about *who* carries a history
+either — ⚠ **the carrier set is identical under both denominations**, 483 people at a three-minute
+ceiling, because what changes is the size of each history and not whose it is. What separates them is
+the **shape of the histogram after a single pass**: as built, all 36 carriers read **1**; under the
+mutation, all 36 read **3**, and at two and four passes the spikes are at 3, 6 and 9. So the assertions
+are *somebody carries exactly one* — which a per-candidate counter cannot produce, its smallest nonzero
+value being `candidates` — and *nobody carries as many as `candidates`*. Neither is a tolerance.
+***A test that cannot fail under the mutation it was written for is not a test of that decision***, and
+the only way to find that out is to run the mutation.
+
+⚠ **The width is an `adr/0052` number the ADR said it was not opening, and it is chosen to be inert
+rather than ratified.** `adr/0097` records *"a width is owed and is deliberately not chosen here… the
+width follows from 19's threshold, which does not exist"*, and the count must saturate rather than wrap
+under `adr/0003`. Those two together are a trap: any **reachable** cap decides when attribution stops
+being exact, on behalf of a consumer nobody has designed, which is `adr/0070`'s forbidden move. A
+`ushort` is the way out — at the shipped `[jobs] revisit_ticks` a Citizen is looked at roughly twice a
+Day, so 65,535 is on the order of **32,000 Days against a campaign of 562**, and no world this project
+can build reaches it. The saturation is therefore a **wrap guard and not a bound**, the choice 19 was
+promised is still 19's, and narrowing the column the day it sets a threshold is one edit and one
+re-record (`adr/0100`). ⚠ **A byte was recommended and refused** with the user in the room: 255 is
+~128 Days, which *is* reachable in a campaign, and a reachable cap is a decision.
+
+⚠ **The mechanism is exercised by no shipped Ruleset and no committed baseline**, and that is a fact
+about the cities this project can build rather than about the code. At the shipped fifty-minute ceiling
+the golden fixture's whole population commutes inside the Budget, so `beyond` is 0 and nobody carries a
+history; the tests reach it by tightening the ceiling, which is `EmploymentRungTests`' lever and its
+reasoning — the paved extent is derived from the population, so a bigger fixture is a bigger city with
+the same commutes in it. The negative is asserted with the value at which it stops being true beside
+it, on 5b-bis task 4's precedent.
 
 ### Task 4 — the assembler
 
@@ -356,7 +408,10 @@ before task 1*. Both were right that they blocked it — a fixed-size table's ca
 be declared without them — and the *Status* line was the wrong copy. [`0012`](0012-corpus-audit.md)
 *Cause 1* inside a brief written to prevent it, caught by the work.
 
-### 2. Whether task 3 belongs to this milestone or to 19 — owed before task 3
+### ~~2. Whether task 3 belongs to this milestone or to 19~~ — **CLOSED 2026-08-17: built here, read there**
+
+**Taken as recommended, with the user in the room.** *Original body follows, because the recommendation
+is the reasoning and nothing was added to it.*
 
 `adr/0097` names milestone 19's Departure as the count's consumer, and `UnplacedTable.cs:9-14` routes
 the give-up counter and Departure to the same place, warning that naming them earlier *"would be the
@@ -365,3 +420,13 @@ an Evidence accumulator by `02 §9`'s Citizen row, and the standing rule is that
 the mechanism that makes it legible, not with the one that eventually consumes it — which is
 `adr/0069`'s finding, that a mechanism with one caller inside another mechanism's predicate is a
 mechanism nobody built.
+
+⚠ **What the split costs is one line in `UnplacedTable`'s warning and it is worth stating**, because
+the warning is right and the closure has to survive it. `UnplacedTable` refuses to name refusal
+reasons, a give-up counter or a Departure, on the ground that those are 19's. **This column is not one
+of them.** A give-up counter is a *decision* — how much failure a Household tolerates before it leaves
+— and that is a threshold, which is exactly what `adr/0097` refuses to choose. This is a *measurement*
+of what the network did, taken at the only place that knows: inside the walk the assignment pass has
+already paid for. ***A producer with no threshold in it is not a trespass on the milestone that owns
+the threshold***, and the test of that is that nothing here reads the count — `grep` finds one writer,
+one clearer, and no reader in `src/`.
