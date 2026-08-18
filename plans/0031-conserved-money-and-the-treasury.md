@@ -165,7 +165,15 @@ the mechanism is designed rather than undesigned.**
 
 ⚠ **What it does not decide is decision 6 below**, and settling this is what exposed it.
 
-### 2. Money's unit — declared owed, and it is in no ledger
+### ~~2. Money's unit~~ — ✅ **SETTLED 2026-08-18 with the user in the room. There is no unit to choose: it is fixed by the smallest fraction the design multiplies money by.** [`adr/0115`](../docs/adr/0115-moneys-unit-is-fixed-by-the-smallest-fraction-the-design-multiplies-by.md)
+
+**It no longer blocks task 2**, and it produced no number. Two sites multiply money by a fraction and **floor** — `02 §5.6`'s tâtonnement, `clamp(demand / supply, 0.9, 1.1)`, chosen against UrbanSim's ±25% *"so players see prices drift rather than snap"*, and `02 §4.1`'s percentage apply count, `FloorDiv(readout × percent, 100)` at `RuleEngine.cs:763`, whose own remark says *"floor division, because a fraction of an application is not an application"*. A quantity `Q` under a step `f` moves only where `f·Q ≥ 1`, so the design's 10% gives `Q ≥ 10` **exactly and with no judgement in it**: a price of 9 units is frozen for ever. ***A design that has chosen its fractions has already chosen its unit.***
+
+⚠ **There is no key, and `adr/0065` already said so without being read that way.** *"Money's unit is a Ruleset choice"* describes the scale being **implied by the money quantities a Ruleset writes down**, not a `unit = X` key — so nothing is declared, nothing can be authored wrongly, and there is no value for `adr/0052` to want a ratifier for. [`0002`](0002-open-questions.md) §D2's row is **retired** rather than filled, the fourth to lose its quantity rather than gain a value.
+
+⚠ **The reason it earned an ADR rather than a paragraph is distributional.** `FloorDiv(readout × 15, 100)` is **zero** for every readout below 7, so under a coarse unit a percentage tax collects **nothing** from the poorest Households and the stated rate from everybody else — a **regressive** outcome produced by rounding, in the mechanic [`adr/0024`](../docs/adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md) calls *"the most politically loaded mechanic in the design"* and where it requires the game *"take no position"*. ***An arithmetic artefact that lands on a distributional outcome is a design position taken by accident***, and it is worse than a wrong number, which is at least visible in the file. **What this milestone owes is therefore an instrument rather than a value** — the floor-to-zero counter, in task 5.
+
+⚠ **The entry as scoped follows, kept rather than struck** — it is the record of what was owed, and of the fact that it had gone unowned since `adr/0050` was written.
 
 ⚠ **Blocks task 2.** `adr/0050` states it: *"**Money's unit must be fine relative to prices.** Prices
 are integers, so the smallest expressible price is 1 and a coarse unit gives the economy no
@@ -371,6 +379,8 @@ Policy paying out of a treasury that runs dry *"pays whom it reaches and reports
 ⚠ **The rotation that makes exhaustion fair is specific to this case and does not generalise** —
 `02 §4.2` narrows it to *because a treasury is exhausted*, and
 [`adr/0055`](../docs/adr/0055-a-zone-rules-permission-set-scopes-what-it-builds-never-which-lots-it-looks-at.md) refuses it for Zone Rules.
+
+⚠ **It also builds the instrument decision 2 left owed** ([`adr/0115`](../docs/adr/0115-moneys-unit-is-fixed-by-the-smallest-fraction-the-design-multiplies-by.md)): a Census count of **percentage applications that floor to zero**. `FloorDiv(readout × percent, 100)` is zero below `100 ÷ percent`, so a coarse money unit makes this tax collect nothing from the poorest and the stated rate from everybody else — a **regressive** outcome nobody chose, in the mechanic `adr/0024` requires the game take no position on. **A loader cannot check it**, because a readout's magnitude is not known at load time, which is why it is a counter and not a refusal. ***A discipline the loader cannot check needs a counter or it is a comment.*** It is the tax circuit's own instrument and belongs here rather than to a later milestone: **this is the first Rule in the project that ever multiplies money by a fraction.**
 
 Needs decisions 1 and 5.
 
