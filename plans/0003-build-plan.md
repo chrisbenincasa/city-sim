@@ -85,6 +85,23 @@ migration written for no reason but vanity. **The trigger is therefore milestone
 second, softer one: the first time the name is shown to somebody who is not the author.** If it is
 going to change, it changes before slice 10.
 
+⚠ **THE TRIGGER HAS FIRED, 2026-08-18, and it fired in silence four tasks before anybody looked.**
+`SaveHeader` writes eight bytes of **`borosave`** at offset 0 of every save
+([`plans/0030`](0030-save-load.md), task 4). Milestone 8's **D2** had *deferred* the magic number
+precisely so this trigger would not fire — and then task 4 wrote one anyway, against that decision,
+with four documents describing the header that was built rather than the one that was decided.
+***A decision is reversed by the build far more quietly than by an argument***, and every mechanical
+check in this corpus reads one document against another, so none of them can see a header.
+
+**The window is still open and it is the user's call.** No save has yet outlived a build — milestone
+8's own acceptance run writes and reads inside one process — so the format is unreleased and
+[`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)'s
+*nobody is carrying a save* still holds. ⚠ **The name is in a second place**, which this section did
+not know when it priced the rename at an hour: `World.HashSeed` is `0x426F_726F_7567_6802` —
+`"Borough"` plus a version byte — so a rename **moves every State Hash**, which is one re-record
+command today and is exactly the cost `adr/0100` says not to defer work over. The question is asked
+in full in `HANDOFF-milestone-8.md`.
+
 Not recorded as an ADR, deliberately. The ADR series decides *how the city works*; a project name
 decides nothing about the simulation and would dilute a series whose value is that every entry is
 load-bearing. Reverse this if the name ever becomes a decision with consequences beyond a rename.

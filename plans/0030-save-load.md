@@ -6,14 +6,17 @@
 
 ## Status
 
-🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; tasks 1–6 shipped 2026-08-17 and tasks 7–8 on 2026-08-18** —
+✅ **DONE. Scoped 2026-08-17, ungated; tasks 1–6 shipped 2026-08-17 and tasks 7–9 on 2026-08-18** —
 the rebuild audit and `Disposition.Scratch`, the column storage accessor, `Rows.Restore`, the header,
-the writer and reader, the copy, **the Factorio test**, and **`--save`/`--load`**. **Task 9, the long
-acceptance run, is what is left.** ✅ **All five open decisions are closed**,
+the writer and reader, the copy, **the Factorio test**, **`--save`/`--load`**, and **the long
+acceptance run**. ⚠ **Two questions are open that were not on the list and both need the user**: whether
+a save carries a verified State Hash (task 6), and **whether `Borough` is the name** — because task 4
+wrote a magic number against D2's decision not to, which fires `plans/0003 §The name`'s rename trigger
+(D2's 2026-08-18 amendment). ✅ **All five open decisions are closed**,
 each by the task it blocked. ⚠ **One question
 is open that was not on the list**: whether a save carries a verified State Hash — `adr/0087` says it
 would be computed from the copy and **that is not buildable**, because a fold over bytes is not the
-State Hash. See task 6. **1,537 tests green
+State Hash. See task 6. **1,539 tests green
 and no baseline re-recorded**, because the milestone adds no table and no column, `Scratch` was already
 outside the fold, and a header is not part of the city. ⚠ **`05 §4` invariant 6 — *run N, save, reload,
 run M* — has machinery for the first time in the project's life**, and it is green over seven cases and
@@ -171,6 +174,39 @@ weak magic number.
 costs one command **while nobody is carrying a save**, and this milestone is what ends that. So the
 trigger `0003` names is real and deferring the magic number does not disarm it; it narrows it.
 **Revisit when the first save is carried across a build**, which is task 9's run and not before.
+
+#### ⚠ AMENDED 2026-08-18 by task 9 — **this decision was reversed by task 4 and nobody said so**
+
+**`SaveHeader` writes eight bytes of `borosave` at offset 0.** D2's decision was *no magic number*, and
+its cost paragraph says so in the clearest possible terms — *"a file with no self-identifying prefix is
+diagnosed by its first failing field rather than at byte 0"* — and then draws the consequence, *"it is
+the reason to write the **format version** first in the header anyway (task 4)"*. **The shipped header
+writes the version at offset 8, behind a magic number.** So the build does not do what the decision
+says, and four documents (this brief's own task 4 table, `05 §7`, the board, `06`) describe the header
+that was built rather than the one that was decided.
+
+⚠ **The finding is not that the magic is wrong — it is that `plans/0003 §The name`'s trigger has fired
+and nothing announced it.** That section makes the project name *"a working title"* whose revisit
+trigger is *"the **save format's magic number**… from then on a rename either breaks every existing
+save or requires a migration written for no reason but vanity"*, and names **milestone 8** as the
+trigger. D2 disarmed it by deferring the magic; task 4 rearmed it by writing one, and the sentence that
+would have connected the two was in a decision nobody re-read while building the task it governed.
+***A decision is reversed by the build far more quietly than by an argument***, and this corpus's
+mechanical checks are all document-to-document, so none of them can see a header.
+
+**What is done about it: nothing, deliberately, and it is on the user's desk.** A project name is not a
+decision a session takes. Both directions are still one line and one re-record — the format is
+unreleased and `adr/0100` says the window is open *while nobody is carrying a save* — so the reversible
+act is to leave the shipped header alone, record that the trigger is live, and hand it over. See
+`HANDOFF-milestone-8.md`. ⚠ **Task 9's run does not close the window either**: it writes and reads
+saves inside one process against one build, so *the first save carried across a build* has still not
+happened.
+
+⚠ **And the magic earned its place on the merits, which is what makes the silence expensive rather
+than lucky.** `SaveFileTests.A_file_that_is_not_a_save_is_refused_before_any_table_is_read` corrupts
+byte 0 and gets *"not a borough save"*; without the magic that file would have been diagnosed as an
+unknown format version, which is the weaker sentence D2's own cost paragraph predicted. **A decision
+overturned by a good reason is still a decision overturned**, and the reason belongs beside it.
 
 ### D3 — `Disposition` gains a third value, and the precedent is in the tree rather than in the argument
 
@@ -1018,6 +1054,75 @@ prediction when it is not one, and would tell nobody what the eventual thread is
 ⚠ **This is where the deferred magic number's revisit trigger fires** — the first save carried across
 a build — and where `CrashArtifact.From` could stop being zero. Neither is in scope; both are named in
 *What this milestone must not do* so the day they are reached is a decision rather than a drift.
+
+#### ✅ Task 9 shipped 2026-08-18 — the run holds, and a slot-exact file is sized by the high-water mark rather than by the population
+
+**`tests/Borough.Tests/Persistence/SaveLongRunTests.cs`, 2 tests, 49 Days = 100,352 Ticks.** The
+milestone is complete.
+
+**Three claims, split between two tests on where each defect would show.** *The writer is an observer*
+is asserted **exactly and with one world** — the city's own State Hash either side of the write, every
+Day, for forty-nine of them. *`SaveAtEndOfTick`'s bookkeeping inside `Step` is an observer too* needs a
+second world in lockstep and is asserted over **four** Days, because it fails on the first save or not
+at all. ***A property that fails immediately does not need a hundred thousand Ticks to fail in*** — and
+the split is worth the sentence, because two worlds over forty-nine Days is **12m13s** against **6m**,
+measured both ways.
+
+**The numbers.**
+
+| | |
+|---|---|
+| Run | 49 Days, **100,352 Ticks**, `minimal.toml`, 4,000 Citizens, 49 saves |
+| File | 598,166 → **604,157** bytes, and the declaration's computed total is **604,157** exactly |
+| Copy | **0.08 ms** mean, 0.59 ms worst → **7.14 GB/s** |
+| Write | **0.23 ms** mean, 0.36 ms worst → **2.57 GB/s**, to the page cache |
+
+⚠ ***A slot-exact save is sized by the city's high-water mark and not by its population, so its size is
+an `adr/0006` instrument in its own right.*** Lots stand at **488** for the whole run and Buildings
+oscillate **231–286** with no trend — and the file still **grew 1.0% and then stopped**, flat from
+Day 34 to Day 48. That is not a leak and not noise: the file's size is `SlotCount`, `adr/0086` forbids
+compaction, and a slot count is an allocator **high-water mark**, so the file grows to the city's peak
+occupancy and saturates there. It is `TrafficLongRunTests`' saturation finding on a new axis, and it
+means **a file that keeps growing in a city that is not growing is a slot leak** — visible in one
+number, with no table walk. ⚠ **What is asserted is that it never *falls***, which is the only claim
+over the series that is not fitted to what the series happened to do: ***where it saturates is a
+property of the run's length; that it never shrinks is a property of the format***, and a file that got
+smaller would mean dead slots had been dropped, which `adr/0086` refuses by name.
+
+⚠ **The copy is carried as a rate and not as a duration, and against `adr/0087` it is the same order
+at roughly 2×.** 0.08 ms over 604 KB says nothing about 131.33 MiB and would be quoted as though it did
+(`plans/0012` **Cause 5**), so what is published is **7.14 GB/s**. At task 2's computed 131.33 MiB that
+is **~18 ms** against the ADR's **~10 ms** — inside its *"~40 ms… is visible"* revisit band and above
+the figure the decision rests on. ⚠ **The error direction is unknown and both signs are present**: this
+is a **Debug** build, which flatters the ADR, and a 604 KB file **fits in cache** where a 131 MiB one
+will stream from DRAM, which flatters the measurement. ***A bandwidth measured on a file 222× too small
+is a hypothesis about the large one.*** **What is owed is the copy at 1,000,000 Citizens**, which this
+fixture cannot produce and which nothing in this milestone was going to.
+
+⚠ **The write is the other side of D4's seam and it is the bigger half** — 2.57 GB/s against the copy's
+7.14, so ~53 ms at 131.33 MiB, and it goes to the background thread. That is the shape D4 predicted
+arriving with numbers, and it is *to the page cache*: what a platter costs is not measured here and is
+not the simulation thread's problem either way.
+
+⚠ **The magic number's revisit trigger did NOT fire by the route this task was supposed to fire it**,
+and it had already fired by another. The brief says *"this is where the deferred magic number's revisit
+trigger fires — the first save carried across a build"*; this run writes and reads saves **inside one
+process against one build**, so no save has yet outlived a build. But **task 4 wrote a magic number
+against D2's decision not to**, which is `plans/0003 §The name`'s trigger firing four tasks early and
+in silence — see **D2's 2026-08-18 amendment**, and it is on the user's desk rather than settled here.
+***A trigger can fire without the event it was written to wait for.***
+
+⚠ **`CrashArtifact.From` is still zero and stays zero**, per *What this milestone must not do*.
+
+⚠ **The suite's cost was predicted at ~7 minutes and measured at 40 seconds, and the prediction was
+wrong for a reason worth keeping.** In isolation the two tests take **6m** and **1m21s**; the suite went
+**8m58s → 9m38s**. xUnit runs collections in **parallel**, so a long test that is not the critical path
+costs only what it adds *to* the critical path — and this one hides almost entirely inside the run that
+was already nine minutes long. ***A test's cost in isolation is not its cost in a suite***, which is
+the same shape as task 7's finding pointed the other way: there, a test's *allocation* in isolation was
+not its allocation in a suite either. **Both are consequences of the same parallelism and neither is
+visible from inside the test.** The prediction is recorded rather than deleted because it was written
+down before it was checked, and checking it took one command.
 
 ---
 
