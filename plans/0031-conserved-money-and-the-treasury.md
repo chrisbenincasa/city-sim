@@ -7,7 +7,7 @@
 ## Status
 
 ⚠ **SCOPED 2026-08-18, ungated, not started.** Picked because milestone **7** is running in a
-concurrent session and milestone **9** — the next number in the spine — turned out not to be the
+concurrent session and the District Pool — then milestone **9**, now **12** — turned out not to be the
 independent root [`06`](../docs/06-roadmap.md)'s dependency graph says it is. See *What scoping
 found* → **F1**.
 
@@ -103,14 +103,14 @@ invariant. ***An obligation specified in three documents and built in none*** is
 
 ⚠ **This is a *closed* money system, and the closure is the point rather than a shortfall.**
 `adr/0024` makes the Outside Connection money's **only** source and sink, and the Outside Connection
-is milestone **14**. So no money enters or leaves the city in this milestone, and the money supply is
+is milestone **11**. So no money enters or leaves the city in this milestone, and the money supply is
 fixed at the founding balance for the whole of it.
 
 That is the strongest possible test of the thing the milestone exists to build. **A closed system
 makes the conservation invariant exact rather than statistical**: the sum over every balance and the
 treasury is a constant, checkable to the unit on every Tick of a long run, with no gate flow to
 subtract first. The balance of payments — which is `adr/0024`'s endgame and `01 §5.1`'s *"a different
-bill — the money supply, not the treasury"* — is milestone 14's, and it is built **on top of** an
+bill — the money supply, not the treasury"* — is milestone 11's, and it is built **on top of** an
 invariant that was exact before there was a gate to relax it.
 
 **What must therefore be true at the end**: money moves, in both directions, through the treasury;
@@ -126,7 +126,7 @@ question `02 §9` asks and `CitizenEvidence` currently declines.
 **A Business is a row in a `BusinessTable`, an Occupant of a Building, holding its balance as a
 column on its own row exactly as a Household does. A Building never holds money.** This milestone
 builds the table and the balance and **nothing else of a Business** — no inputs, outputs, employment
-or market behaviour, all of which belong to milestones **9**, **13** and **15**.
+or market behaviour, all of which belong to milestones **12**, **13** and **15**.
 
 ⚠ **This entry was posed as a contradiction between two ADRs and there is none.** `CONTEXT.md` had
 already settled it: → Occupant is *"a Household or a **Business**. What fills a Building"*, and →
@@ -295,7 +295,7 @@ out of step before. Update all three in the same commit, or the next reader re-d
 `02 §10` sorts invariants by frequency, so both sit in the end-of-run tier at no per-Tick cost.
 
 **In this milestone there is no gate**, so the check is an equality against a constant rather than a
-sum with a flow term. Write it that way and let milestone 14 add the term; ***an assertion that is
+sum with a flow term. Write it that way and let milestone 11 add the term; ***an assertion that is
 correct and temporarily strict*** is 5b's distinction and the good side of it.
 
 ### Task 4b — `BusinessTable`, and the second Occupant kind the build has never had
@@ -314,7 +314,7 @@ Occupant is therefore a **concept spanning two lists** rather than a discriminat
 what lint 7 wants anyway.
 
 ⚠ **Build the balance and stop.** A Business fully modelled *"consumes inputs, produces outputs,
-employs Citizens, and offers Goods or services to the market"* — which is milestones **9**, **13**
+employs Citizens, and offers Goods or services to the market"* — which is milestones **12**, **13**
 and **15**. This milestone needs exactly one property: somewhere for conserved money to sit that is
 not a Building.
 
@@ -363,7 +363,7 @@ without a new accumulator.
 
 100,000+ Ticks. **The money sum is invariant to the unit**, so it is asserted as an exact equality and
 not a band — the only exact conservation assertion this project will ever have, and it stops being
-available the moment milestone 14 opens the gate. ⚠ **Take it while it is exact.** Needs decision 3.
+available the moment milestone 11 opens the gate. ⚠ **Take it while it is exact.** Needs decision 3.
 
 ---
 
@@ -373,7 +373,7 @@ available the moment milestone 14 opens the gate. ⚠ **Take it while it is exac
   the Ruleset"* — and `adr/0050` forbids the syntax that would let one in. The price surface is 13.
 - **Not build a wage.** `adr/0024` makes wages mandatory *eventually* and calls it *"the largest known
   risk this ADR creates"*; `06` puts them in 15. ⚠ **Do not read *forced* as *scheduled here*.**
-- **Not implement `Scope.Pool`.** That is milestone 9's hole in the same switch statement, it is a
+- **Not implement `Scope.Pool`.** That is milestone 12's hole in the same switch statement, it is a
   **market** rather than a Bin lookup, and `RuleEngine.cs:803` warns that implementing it as a lookup
   *"ships an unconserved economy, and no refusal can catch that."*
 - **Not add an automatic overdraft.** `adr/0035` corrects `adr/0024` on exactly this: *"borrowing is a
@@ -407,7 +407,7 @@ available the moment milestone 14 opens the gate. ⚠ **Take it while it is exac
 
 ### F1 — the District Pool is not the independent root `06`'s graph says it is
 
-⚠ **This is why milestone 10 was picked over milestone 9.** `06`'s dependency graph lists the District
+⚠ **This is why milestone 10 was picked over the District Pool, then numbered 9.** `06`'s dependency graph lists the District
 Pool as a **root** — *"nothing in the inventory precedes any of them"*, with the warrant *"needs road
 connectivity, which shipped in 5a"* — and carries the edge *District Pool → the price surface*.
 
@@ -422,9 +422,49 @@ order to function.*** `06`'s own preamble is what makes this cost something: it 
 sequence's warrant"*, and the same document already recorded, on 2026-08-16, that two of its edges
 were stated in a milestone's prose and absent from the graph — ***a dependency stated in a row's prose
 is not a dependency the graph knows about***. This is the same failure with the copies **disagreeing**
-rather than one being silent. **Filed to [`0012`](0012-corpus-audit.md); not corrected here**, because
-the correct repair is either an edge or an amendment to `adr/0050`, and choosing between them is
-`06`'s to do rather than a brief's.
+rather than one being silent. **Filed to [`0012`](0012-corpus-audit.md).**
+
+✅ **PAID 2026-08-18, and paying it turned up two more of the same kind — see F6.** The graph gains
+three edges, the roots table loses the District Pool, and `06`'s economic rows are re-ordered.
+
+### F6 — the same blind spot twice more, and `06` contradicted itself in two adjacent rows
+
+⚠ **Repairing F1 found that every missing edge in that graph is an *anchor* edge.** The price surface
+was sequenced **before** the Hinterland, while `06`'s own row for the Hinterland says that milestone
+retires *"that **no price in the design has an anchor**"*. The ADRs are unambiguous —
+[`adr/0050`](../docs/adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md):
+*"**Prices anchor to the Hinterland**… An emergent price needs an anchor or it can run away"*, with
+local prices *"bounded above by **Hinterland price + haul**"*;
+[`adr/0026`](../docs/adr/0026-wages-are-posted-locally-and-never-cleared.md): *"every price system in
+this design now anchors to the same **authored object**"*, for Goods, rents **and** wages;
+[`04 §4`](../docs/04-economy-and-goods.md): *"the Outside Connection price is a **ceiling**."* **The
+graph carried none of the three.**
+
+***A dependency graph derived from existence conditions is systematically blind to bounding
+conditions***, and the tell is that its edges all read *"needs X, which shipped"*. `adr/0050` names
+what building a price with no anchor produces: *"an unbounded price is an unbounded integer arriving
+at a money Bin."*
+
+⚠ **The Pool and the price surface then looked mutually dependent, and the cycle is broken by a
+distinction the ADRs already draw.** A pool term settles *"at the prevailing price"*, and a price is
+the price of what is in a Pool (`04 §6`) — but `adr/0050`'s ladder is *"not only a **source** ladder;
+it is a **price** ladder, monotone increasing"*, guaranteed by the import ceiling. **So a price
+bounded by the Hinterland exists before any tâtonnement does**: the Hinterland supplies a ceiling, the
+Pool trades at it, and local prices responding to Pool supply are the price surface's own work.
+Settled with the user in the room.
+
+⚠ **The resulting order is *forced*, which is the part worth keeping.** Given Money → the Hinterland,
+the Hinterland → the Pool, the Pool → the price surface and land value → the price surface, slots 9
+through 14 admit exactly one arrangement: **9** land value, **10** money, **11** the Hinterland,
+**12** the District Pool, **13** the price surface, **14** the Provider List. Four rows permute, 10
+and 13 keep their numbers, and everything from 15 up is untouched. ***A re-derivation that comes out
+forced is evidence the constraints were real*** — session K's had freedom and said so.
+
+⚠ **And the renumber found a defect in the machinery that exists to absorb renumbers.**
+`06`'s retired-numbering table is two columns, *Was → Is now*, which **assumes exactly one renumber**.
+There have now been two, so *"milestone 12"* resolves differently depending on whether the citation
+predates 2026-08-18. ***A retired-numbering table is generation-scoped and nothing in its two-column
+form says so.*** Each block now carries the window it applies to.
 
 ### F2 — the treasury and the District Pool are two named holes in one switch statement
 
@@ -451,7 +491,7 @@ design document is still unratified, because the ledger is what schedules the ra
 
 ### F5 — this milestone is the only one in which conservation is exactly checkable
 
-Money's only source and sink is the Outside Connection, which is milestone **14**. So the money supply
+Money's only source and sink is the Outside Connection, which is milestone **11**. So the money supply
 is constant for the whole of milestone 10, and the invariant is an equality rather than a sum with a
 flow term. **The exactness is a property of the schedule and it expires.** Take the reading here.
 

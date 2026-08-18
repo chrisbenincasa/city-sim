@@ -687,7 +687,7 @@ inventory of unscheduled work.*** Milestone **3a** is marked done in Phase 1's t
 scope inside the Rule engine 3a built, and nobody scanning for *what has no milestone* opens a
 milestone marked done. **This is `adr/0093`'s sibling rather than an instance of it**: the description
 was not *wrong*, it was **coarser than the thing it described** — and coarseness is invisible to every
-check in this corpus, all of which compare a claim against a claim. **PAID**: it is milestone **9**.
+check in this corpus, all of which compare a claim against a claim. **PAID**: it is milestone **12** *(9 before the 2026-08-18 economic reorder)*.
 **The cheap standing check nobody runs**: every `throw` in `Borough.Core` whose message names a
 mechanism is a candidate row for that table.
 
@@ -980,11 +980,25 @@ announces which kind it holds.*** The same document already recorded, on 2026-08
 edges *"[were] stated in a row's prose"* and absent from the graph — this is the harder version of
 that, since here the graph is not silent, it is wrong.
 
-**Not paid, and deliberately.** The repair is either a new edge (Money → District Pool, price surface
-→ District Pool) or an amendment to `adr/0050`, and choosing between them is `06`'s and an economy
-sitting's rather than a scoping brief's. ⚠ **Whoever pays it must also re-read `06`'s claim that the
-Pool *"is the only root with a consumer already in the build"***, which is the sentence that made the
-row look ready.
+✅ **PAID 2026-08-18, the same day, with the user in the room** — and paying it found **two more edges
+of the same kind**, which is why it stopped being a filing. The District Pool is **struck as a root**;
+the graph gains **Hinterland → price surface**, **Hinterland → District Pool** and **Hinterland →
+wages, rents and Goods prices**; and `06`'s economic rows are re-ordered, four of them permuting while
+10 and 13 keep their numbers.
+
+⚠ **The general form is what outlives the row: every edge that was missing is an *anchor* edge.**
+`06`'s graph is derived from what a mechanism needs in order to **exist** — its edges read *"needs X,
+which shipped in 5a"* — and it is therefore blind to what a mechanism needs in order to be
+**bounded**. That is one blind spot producing three sightings, not three defects. ⚠ **Its sharpest
+instance is that `06` contradicted itself in two adjacent rows**: the Hinterland's own risk cell says
+that milestone retires *"that **no price in the design has an anchor**"*, and the price surface was
+sequenced before it.
+
+⚠ **A second defect, in the machinery that exists to absorb renumbers.** The retired-numbering table is
+two columns, *Was → Is now*, which **assumes exactly one renumber**; there have now been two, so
+*"milestone 12"* resolves differently either side of 2026-08-18. ***A retired-numbering table is
+generation-scoped and nothing in its two-column form says so.*** Each block now carries its window.
+**PAID in the same edit.**
 
 ---
 

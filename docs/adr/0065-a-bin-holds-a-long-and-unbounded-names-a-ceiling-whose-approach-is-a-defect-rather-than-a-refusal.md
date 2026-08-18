@@ -148,7 +148,7 @@ where the non-negative-stock invariant lives. Stated so nobody unifies them late
 Bin a `TryDebit`.
 
 **No §B row for *is 2⁶³ enough*, deliberately.** The claim is measurable — an economy run at 1M would
-produce the number, `06` milestone 9's work — and it is given no ledger row because **a row nobody will
+produce the number, `06` milestone 12's work *(milestone 9 before the 2026-08-18 economic reorder)* — and it is given no ledger row because **a row nobody will
 ever check is noise**, and `0002` §D's triage already found five entries that were not numbers at all.
 The standing check instead is the one that already exists: the long-run acceptance test's *no magnitude
 trending upward at steady state*, which is exactly what an approach to any ceiling looks like.

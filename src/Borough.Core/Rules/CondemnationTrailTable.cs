@@ -94,7 +94,7 @@ public sealed class CondemnationTrailTable
     /// </para>
     /// <para>
     /// <b>Ratifier</b>: the first real decline diagnosis on <b>a Ruleset that models a city</b>, which
-    /// is <c>06</c>'s content row spanning milestones 12, 13 and 17. Refuting readings in both
+    /// is <c>06</c>'s content row spanning milestones 13, 14 and 17. Refuting readings in both
     /// directions — a window never filled across a long run is too large; one that ran out of entries
     /// mid-episode is too small. Recorded in <c>plans/0028</c>.
     /// </para>

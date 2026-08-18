@@ -506,7 +506,7 @@ first Day** and stays pinned at 256 for all 49, on the smallest population this 
 second cannot be read here for the reason that defeated the original measurement: ***there is no
 episode***, because every shipped Ruleset inherits `minimal.toml`'s `upkeep` Rule drawing on a Resource
 nothing produces, so decline is a permanent uniform grind rather than a wave. The ratifier is still
-milestone 12/13/17's Ruleset that models a city.
+milestone 13/14/17's Ruleset that models a city.
 
 ⚠ **What the run does add is a scaling objection nobody had raised.** The window is denominated in
 **events** and the argument for its size is about a **duration** — *the smallest window that holds a
@@ -808,7 +808,7 @@ was derived from a **designer's** working habit and this one is sized by a **pla
 quantities sharing a unit.
 
 **Named ratifier — machine, world and quantity.** The first real decline diagnosis on **a Ruleset that
-models a city**, which is `06`'s own content row spanning milestones **12, 13 and 17**. Refuting
+models a city**, which is `06`'s own content row spanning milestones **13, 14 and 17** *(12, 13 and 17 before the 2026-08-18 economic reorder)*. Refuting
 readings in both directions: a window **never filled** across a long run means it is too large; one that
 **ran out of entries mid-episode** means it is too small. ⚠ **A bespoke declining fixture is
 deliberately not built here** — milestone 17 owns decline and needs that world regardless, and building
