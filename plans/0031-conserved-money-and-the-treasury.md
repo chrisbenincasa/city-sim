@@ -212,7 +212,20 @@ needs a named ratifier under `adr/0052`; the ratifier is the first real play ses
 observations, in the document, and no ledger carries it — which is `plans/0012` **Cause 1** in its
 one-copy form: *a fact with no copy at all*. File it, then choose.
 
-### 4. Does Upkeep land in this milestone, when its counterparty is unbuilt?
+### ~~4. Does Upkeep land in this milestone?~~ — ✅ **SETTLED 2026-08-18 with the user in the room. No. It leaves for 12, and the blocker is a Rule with no actor.** [`adr/0117`](../docs/adr/0117-upkeep-leaves-milestone-10-and-its-blocker-is-a-rule-with-no-actor.md)
+
+**Four blockers, each independently sufficient, and the fourth was in nobody's document.**
+
+1. **The loader already refuses it, by name, and has since slice 7.** Refusal 4's own remark: *"a wage… and **an import payment** both have real counterparties that **no scope can currently name**, so both would be refused. Neither is writeable anyway, and a refusal that says so is better than a leak that does not."* `adr/0035` sends Upkeep's money to exactly there. So it is **unloadable**, not merely awkward — `adr/0093` working forwards.
+2. **Neither term of `construction cost ÷ effective life` exists.** **No Ruleset key anywhere authors a cost of anything**, and `adr/0035` denominates the money price in **Lane-Tiles**, whose entity is milestone **21**; design life values are *"**not authored by hand**… derived from the share of a mature city's budget"*, and there is no budget. One term has no unit, the other a derivation with no inputs.
+3. **The shape is a transfer's syntax over a purchase's semantics.** `plans/0011` finding 6 settled that these are *different shapes rather than two spellings of one*; `adr/0035` writes an **authored money amount** and sends it to a supplier at a market price. Its own title says which one it is — ***priced by what it consumes, never by a budget*** — so whether the authored quantity is Money or **Materials** is undecided and it decides the mechanism.
+4. ⚠ **An Upkeep Rule has no actor.** `adr/0035` names the **family** and the **cadence** and never what the Rule is attached to. `RuleEngine.Bin(World, **int building**, …)` resolves every scope through a Building, and `adr/0114` enumerated a Bin's four owners — Building, Household, Business, treasury — **with no Segment**, correctly, since a Segment holds no money. **Subject, payer and counterparty are three different things and the engine has no Rule whose subject is not its payer.** Task 5's tax is the near miss: a Household is payer *and* subject, so it needs nothing new. ***Naming a Rule family says how often a Rule runs and never what it is attached to.***
+
+⚠ **12 is where the counterparty becomes nameable and it discharges one blocker of four.** `Scope.Pool` is the only market spelling the enum has. Grounds 2, 3 and 4 survive the move and are written into `06`'s row for whoever picks it up.
+
+⚠ **`06` disagreed with its own dependency graph.** The graph carries **Money → Upkeep**; the table put Upkeep inside Money's row. ***An edge from A to B says B comes after A, and putting B inside A's row reads that edge as "at the same time"*** — third sighting, after the District Pool inside 3a and milestone 10 being two milestones wearing one number.
+
+⚠ **The entry as scoped follows, kept rather than struck.**
 
 ⚠ **Blocks task 6, and it is a scope question rather than a design one.** `06`'s row says this
 milestone *"carries the Household balance sheet, Upkeep (`adr/0035`) and Policy's spend (`adr/0033`)."*
@@ -398,11 +411,9 @@ Policy paying out of a treasury that runs dry *"pays whom it reaches and reports
 
 Needs decisions 1 and 5.
 
-### Task 6 — Upkeep, or the written record that it was deferred and why
+### ~~Task 6 — Upkeep~~ — ✅ **DISCHARGED AT SCOPING 2026-08-18, and it is the written record rather than the mechanism**
 
-Whichever decision 4 returns. ⚠ **If it is deferred, the deferral is written into `06` and
-`adr/0035`, not left in this file** — a milestone quietly shedding a row its roadmap assigns it is how
-milestone 10 came to be two milestones wearing one number.
+Decision 4 returned **defer**, so this task is done before the milestone starts. The deferral is written into [`06`](../docs/06-roadmap.md) — struck from milestone 10's row, added to **12**'s with the three surviving blockers, and the inventory row moved — and into [`adr/0035`](../docs/adr/0035-infrastructure-is-priced-by-what-it-consumes.md), which gains an amendment recording that it names a Rule family and no actor and that its formula disagrees with its own title. **Not left in this file**, which was the condition: *a milestone quietly shedding a row its roadmap assigns it is how milestone 10 came to be two milestones wearing one number.*
 
 ### Task 7 — something to look at
 
@@ -566,7 +577,9 @@ Milestone **10** of `06`'s Phase 2, ungated. It is one of the **six roots**, and
 that — *"`adr/0024` rests on nothing unbuilt"* — survived scoping intact, which is not true of the
 root beside it (**F1**).
 
-Downstream, by `06`'s graph: **13** the price surface, **14** the Hinterland, Upkeep and Policy and
-private capital, **16** the residential choice model, and **19** through both. `adr/0091`'s
+Downstream, by `06`'s graph: **11** the Hinterland, **12** Upkeep (moved there 2026-08-18, `adr/0117`),
+**13** the price surface, Policy and private capital, **16** the residential choice model, and **19**
+through both. ⚠ *This line read "**14** the Hinterland" until 2026-08-18 — pre-reorder numbering,
+corrected rather than struck.* `adr/0091`'s
 compulsory-purchase price and `01 §6`'s **money supply** trajectory indicator are produced by nothing
 until this lands.
