@@ -251,6 +251,22 @@ public sealed class CitizenTable
     /// the zero their employment bought and starts again from it.
     /// </para>
     /// <para>
+    /// ⚠ <b>That reset is also this column's <c>adr/0006</c> bound, and until milestone 6 task 6
+    /// nothing said so.</b> The paragraph above states the saturation is a wrap guard <em>rather
+    /// than</em> a chosen bound — so the declared position is that this magnitude has no bound — and
+    /// the paragraph below it describes the reset as an <b>attribution</b> rule, which is what it was
+    /// designed as. Both are accurate and neither says that the reset is the only thing standing
+    /// between this column and a quantity that grows with elapsed time. ***A sentence can name a
+    /// mechanism exactly and still not state the property that mechanism is holding up***, which is
+    /// <c>adr/0093</c> on a new axis: that decision governs a description being wrong about a
+    /// trigger, and this is a description being silent about a <em>consequence</em>. The cost of the
+    /// silence is that anybody reopening <i>should employment really wipe the history?</i> would
+    /// weigh an attribution question and never see the unbounded-magnitude one. <b>Measured</b>:
+    /// with the reset removed, the longest history in the city climbs 14.8 → 24.8 across a 41-Day
+    /// tail and <b>3,868 of 4,000</b> Citizens carry a history that can never be cleared — see
+    /// <c>Evidence.EvidenceLongRunTests</c>, which is where an edit to that line now fails.
+    /// </para>
+    /// <para>
     /// <b>Read by nothing yet, and saying so is part of the decision.</b> The consumer is milestone
     /// 19's Departure, and <c>adr/0097</c>'s 2026-08-15 amendment names <em>which</em> of its three
     /// channels: the <b>Destitute</b> one, because <c>CONTEXT.md</c> → Unemployment already routes

@@ -6,12 +6,25 @@
 
 ## Status
 
-🟢 **IN FLIGHT. Scoped 2026-08-16; tasks 1, 2, 3, 4 and 5 shipped. Ungated** — it is the first row of
-the re-derived Phase 2 spine and no session, spike or milestone stands in front of it. **Tasks 6 and 7
-remain**, and **every open decision this milestone owed is now closed** — the last of them, *what task 4
+🟢 **IN FLIGHT. Scoped 2026-08-16; tasks 1, 2, 3, 4, 5 and 6 shipped. Ungated** — it is the first row of
+the re-derived Phase 2 spine and no session, spike or milestone stands in front of it. **Task 7 is what
+remains**, and **every open decision this milestone owed is now closed** — the last of them, *what task 4
 answers where the mechanism is missing*, on 2026-08-17. ⚠ **Settling it added a seventh task**: a Trip's
 Fate is freed on the line after it is computed, which is this milestone's residue by its own definition
 and was missed at scoping.
+
+⚠ **Task 6 found that this milestone's two halves fail `06`'s long-run obligation in opposite
+directions.** The **collection** cannot grow — the trail's 257 rows are allocated in its constructor —
+so that assertion is a regression guard rather than a discovery; the **magnitude** must grow, because
+*attribution decays to magnitude* is the point, so the run **states the exception** and asserts
+flatness over the flow that feeds it. Its sharpest finding is about the *other* magnitude:
+`CitizenTable.ReachFailures` is a saved per-Citizen count whose own doc-comment says its saturation is
+*"a wrap guard rather than a chosen bound"* — so the declared position is that it has no bound — and it
+satisfies `adr/0006` **only because `World.Employ` clears it**. That reset **is** named there, as an
+**attribution** rule; what nothing said is that it is the bound. ***A sentence can name a mechanism
+exactly and still not state the property that mechanism is holding up.*** Removing it puts **3,868 of
+4,000** Citizens on a history that can never be cleared. ⚠ **And the run shipped a fix ahead of itself**: the aggregate's count was an `int`,
+which wraps after ~162 hours of play at a million Citizens.
 
 ⚠ **Task 5 added a fifth Ruleset and the corpus's first name-resolution path.**
 `rulesets/diagnosed.toml` exists because **the condition column was `None` in every world this project
@@ -422,7 +435,89 @@ call sites anywhere in the project). ***A row of noughts under a heading that ex
 measurement; the same row with no heading is a defect.*** Making it non-trivial means the runner
 issuing a player verb, which is a scope decision and is **not** taken here.
 
-### Task 6 — the long acceptance run
+### Task 6 — the long acceptance run — ✅ **DONE 2026-08-17**
+
+`EvidenceLongRunTests`, three tests, 49 whole Days — **100,352 Ticks** — at 4,000 Citizens on
+`diagnosed.toml` with the Commute Budget's ceiling brought down to three minutes. **No baseline moved
+and no simulation code changed**: the run is an instrument.
+
+#### Four findings
+
+⚠ **1. The milestone's two halves fail `06`'s obligation in opposite directions, and saying so is most
+of the run's work.** The **collection** cannot grow — `CondemnationTrailTable` allocates `Retained + 1`
+rows in its constructor and never allocates another, so slots read **257 on every one of the 49 Days**
+and the assertion is a regression guard against an edit to that constructor rather than a discovery.
+The **magnitude** must grow: the aggregate climbs **86 → 12,164** with no sink, because
+*attribution decays to magnitude* is what the milestone is for. So the run **states the exception**,
+on this milestone's own D1 axis — nothing inside `step()` reads `Condemnations`, so an unbounded value
+cannot change what the city does — and asserts flatness over the **flow** instead, which comes in at
+**251.4 condemnations a Day**, flat across the 41-Day tail. ***An accumulator fed at a rising rate is a
+city changing under the instrument; one fed at a flat rate is an instrument working.***
+
+⚠ **2. The magnitude that *can* leak is held up by a mechanism whose documentation never says it is
+holding it up.** `CitizenTable.ReachFailures` is a saved per-Citizen count with **no cap anybody
+chose** — `adr/0097`'s `ushort` saturation is a wrap guard at ~32,000 Days and its own doc-comment says
+*"a wrap guard rather than a chosen bound"*, so **the declared position is that this magnitude has no
+bound**. It is exactly `adr/0006`'s shape: a Citizen nobody can employ accumulates roughly two a Day
+for ever. **It does not**, because `World.Employ` zeroes it — and the longest history settles at **9.3**
+over the tail with **1,011 carriers**, both flat.
+
+⚠ **The first draft of this finding said no document connected the two, and that was wrong — the
+correction is sharper than the claim.** `CitizenTable.ReachFailures` names `World.Employ` by symbol,
+one paragraph below, which is `adr/0093`'s writing half done properly. What it does **not** say is that
+the reset is the `adr/0006` bound: it describes it as an **attribution** rule, *whose history is this*,
+which is what it was designed as. Both sentences are accurate and neither states the load. ***A
+sentence can name a mechanism exactly and still not state the property that mechanism is holding up***
+— `adr/0093` governs a description being wrong about a **trigger**, and this is a description being
+silent about a **consequence**. The cost is concrete: anybody reopening *should employment really wipe
+the history?* weighs an attribution question and never sees the unbounded-magnitude one. **Repaired in
+place** with a paragraph on the column and a pointer at the test that now fails on that line.
+**Verified by mutation**: with the reset removed the longest history goes **14.8 → 24.8** across the
+tail's halves against a 3σ band of **3.7**, and carriers go from ~1,011 to **3,868 of 4,000** — the
+whole population carrying a history that can never be cleared.
+
+⚠ **3. The ceiling had to be tightened, and the negative that forced it is the run's own reading.**
+At the shipped fifty minutes `ReachFailures` is **0 for every Citizen at every sample across 100,000
+Ticks** — so the second magnitude this milestone added would have been asserted flat on a column no
+world writes to, which is the vacuity slice 5 task 7 withheld an invariant over. `ReachFailureTests`
+owns the negative at the shipped value; this run turns its three-minute lever. ***The lever is the
+Budget rather than the city because the paved extent is derived from the population***, so a bigger
+fixture is a bigger city with the same commutes in it.
+
+⚠ **4. `CondemnationTrailTable.Aggregate` states an invariant in a doc-comment that nothing had ever
+checked, and only a saturated window can check it.** That method sets the aggregate's Tick to the newest
+condemnation folded into it and says this is *"what makes the trail readable as a timeline: everything
+before this Tick is a count, everything after it is named"* — the assumption every reader of the trail
+makes, asserted nowhere. It is now, and ⚠ **it is vacuous in every short test**: with nothing folded the
+aggregate's Tick is 0 and *every* entry is after it. ***An invariant that only bites once a window has
+overflowed cannot be held by a test shorter than the window.*** The second guard beside it is that a
+returned entry names a real condition — the aggregate row's `Condition` is never written and stays
+`ConditionId.None`, so an off-by-one in `EntrySlot` would hand a reader an entry with no reason in it on
+a Ruleset where every condemnation has one.
+
+#### What it says about the 256-entry window, which is not a ratification
+
+**One of the two refuting readings is retired and the other is still unreachable.** Open decision 1
+named them: a window **never filled** across a long run means 256 is too large, one that **ran out
+mid-episode** means it is too small. The first is now definitively out — the window fills **inside the
+first Day** and stays pinned at 256 for all 49, on the smallest population this project ships. The
+second cannot be read here for the reason that defeated the original measurement: ***there is no
+episode***, because every shipped Ruleset inherits `minimal.toml`'s `upkeep` Rule drawing on a Resource
+nothing produces, so decline is a permanent uniform grind rather than a wave. The ratifier is still
+milestone 12/13/17's Ruleset that models a city.
+
+⚠ **What the run does add is a scaling objection nobody had raised.** The window is denominated in
+**events** and the argument for its size is about a **duration** — *the smallest window that holds a
+whole decline episode plus the ordinary background of the period around it*. At 4,000 Citizens 256
+entries is **just over one Day** of this fixture's condemnations; scaled by `World`'s own Lot
+allocation to a million it is **under five Ticks**. So a single number in entries cannot mean the same
+thing at two city sizes, and the sizing argument as written is unsatisfiable by any constant.
+***The unit a bound is written in is not the unit its argument is about*** — `adr/0094`'s `revisit_ticks`
+lesson on a third axis, and it is a question for whoever ratifies rather than a defect: 4,000 is also
+where **158 vacant Lots keep their reason and 85 have already lost it**, so the decay this milestone is
+named for is visible on the smallest city in the repository.
+
+*Original scoping note follows.*
 
 ⚠ **Scouted 2026-08-17 before it was written, and the scouting produced a fix that shipped ahead of
 it.** A 100,000-Tick probe at 1,000 Citizens on `diagnosed.toml` says what the run will find:
@@ -565,7 +660,10 @@ The four cumulative obligations from `CLAUDE.md`, plus:
 
 - Every aggregate the trail produces can be expanded into named entities, and **a test asserts the
   expansion**, not merely the total. A count that agrees with its constituents' length is the check.
-- The trail's cap holds across a 100,000-Tick run — **slots saturating**, live count flat.
+- ✅ The trail's cap holds across a 100,000-Tick run — **slots saturating**, live count flat. **Done by
+  task 6, and the wording was optimistic in one place**: slots do not *saturate*, they are **constant
+  from Tick 0**, because the table allocates its rows in its constructor. Saturation is what a table
+  that grows to a cap does; this one is born at it.
 - `RebuildDerived` is unaffected: the trail declares no derived column, so there is nothing to rebuild
   and nothing that could rebuild to a different value.
 - The State Hash moves, deliberately, once, with a commit whose subject says why

@@ -7,16 +7,44 @@ place that orders the three tracks against each other.
 
 ## What is next
 
-🟢 **Milestone 6 — Evidence — is IN FLIGHT: scoped 2026-08-16, tasks 1, 2 and 3 shipped, and every
-decision it owed is closed** ([`0028`](0028-evidence-the-accumulators.md)). **Task 4, the assembler, is
-the next row**, then 5 (`--evidence`) and 6 (the long run). Tasks 1 and 2 built the condemnation trail
-and the abandonment reason; task 3 built `adr/0097`'s reach-failure count and closed the last open
-decision — **built here, read at 19**.
+🟢 **Milestone 6 — Evidence — is IN FLIGHT: scoped 2026-08-16, tasks 1–6 shipped, and every
+decision it owed is closed** ([`0028`](0028-evidence-the-accumulators.md)). **Task 7 — a Trip's Fate
+outliving its Trip — is the next and last row.** It is **hash-bearing and must ride alone**. Tasks 1 and
+2 built the condemnation trail and the abandonment reason; 3 built `adr/0097`'s reach-failure count;
+4 built the assembler **without moving a baseline**, which is the scoping claim discharged; 5 added
+`--evidence`, a fifth Ruleset and **the corpus's first name-resolution path**; 6 is the long run.
 
-⚠ **Each of the three tasks contained a decision the brief did not see, and task 3's contradicts an
-ADR's own title.** `adr/0097` says a **candidate** refused increments the count; `EmploymentEngine`
-looks at `[jobs] candidates` per occasion, so a per-candidate count is a **tuning knob multiplied by
-the quantity milestone 19 wants to threshold** — [`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md)'s
+⚠ **Task 6 found this milestone's two halves failing `06`'s long-run obligation in opposite
+directions.** The **collection** cannot grow — `CondemnationTrailTable` allocates its 257 rows in its
+constructor — so the `adr/0006` assertion is a regression guard on that constructor rather than a
+discovery. The **magnitude** must grow, because ***attribution decays to magnitude*** is what the
+milestone is for: the aggregate climbs **86 → 12,164** over 49 Days with no sink. So the run **states
+the exception** on the milestone's own *who reads it* axis — nothing inside `step()` reads it — and
+asserts flatness over the **flow** instead, at 251.4 condemnations a Day.
+
+⚠ **Its sharpest finding is about the *other* magnitude, and it is a rule about documentation.**
+`CitizenTable.ReachFailures` is a saved per-Citizen count with **no cap anybody chose** — its own
+doc-comment says the `ushort` saturation is *"a wrap guard rather than a chosen bound"*, so the declared
+position is that this magnitude has no bound. It does not grow, **only because `World.Employ` zeroes
+it**. ⚠ **The first draft of this finding said no document connected the two, and the correction is
+sharper than the claim**: the column names `World.Employ` by symbol, one paragraph below — and describes
+it as an **attribution** rule, *whose history is this*, which is what it was designed as. Both sentences
+are accurate and neither states the load. ***A sentence can name a mechanism exactly and still not state
+the property that mechanism is holding up*** — `adr/0093` governs a description being wrong about a
+**trigger**, and this is one being silent about a **consequence**. Removing that line puts **3,868 of
+4,000** Citizens on a history that can never be cleared.
+
+⚠ **And the run shipped a fix ahead of itself.** The aggregate's count was an `int`, which wraps after
+roughly **162 hours** of play at a million Citizens and then reports that the city has *un-condemned*
+Buildings. ***A counter with no sink is denominated in the life of the world, not in the size of the
+city*** — which is why it was missed: every other count in this project is sized by a population, and
+32 bits is enormous against any population this design admits. `adr/0065` on a third axis. The guard is
+a **compile error** rather than a test failure.
+
+⚠ **Task 3's decision contradicted an ADR's own title.** `adr/0097` says a **candidate** refused
+increments the count; `EmploymentEngine` looks at `[jobs] candidates` per occasion, so a per-candidate
+count is a **tuning knob multiplied by the quantity milestone 19 wants to threshold** —
+[`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md)'s
 refusal, applied to the Evidence window one task earlier and not to this milestone's own counter. The
 unit is the **occasion**, and the ADR carries an amendment banner rather than a rename. ⚠ **Its second
 finding is about testing rather than about Evidence**: the discriminating test passed under mutation
@@ -183,8 +211,8 @@ the one that has twice produced a surprise. *(§F has stopped tracking new ADRs 
 inside it. Godot will be the display layer and has not been started.
 
 **Where it is.** **Phase 2, inside milestone 6.** 5c — statistical resolution and the travel-time matrix
-— closed 2026-08-16 on all eight tasks, and **6, Evidence, is scoped and three tasks in**; task 4, the
-assembler, is next. Phase 1 is
+— closed 2026-08-16 on all eight tasks, and **6, Evidence, is six tasks of seven done**; task 7 — a
+Trip's Fate outliving its Trip, hash-bearing and riding alone — is what is left. Phase 1 is
 closed and **its code column is empty**; slices 0–10 all shipped, and
 [`0003`](0003-build-plan.md)'s hash-moving queue has one open item (**item 8**, a live wake-predicate
 defect, filed unfixed because its two repairs are a design question); **item 9** was filed and built on
@@ -299,7 +327,7 @@ argument session runs when something concrete is blocked on it, and never becaus
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **`06` milestone 6 task 4 — the assembler.** 🟢 **Milestone IN FLIGHT — [`0028`](0028-evidence-the-accumulators.md)**: scoped 2026-08-16, **tasks 1, 2 and 3 shipped**, and **no decision it owed is open**. Task 4 is the cold query surface — one Core-side entry point per `02 §9` question, returning ids and numbers the host renders, composing live state, re-run predicates and the trail into one answer. **No strings.** Then 5 (`--evidence`, the ninth runner mode) and 6 (the long run, asserting **slots that saturate** rather than a live count). ⚠ **Each of the three shipped tasks held a decision the brief did not see, and task 3's went against `adr/0097`'s own title** — the count is denominated in **occasions**, because a per-candidate one is `[jobs] candidates` multiplied by the quantity 19 wants to threshold. ⚠ **And its test passed under mutation twice before it worked**: employment erases the evidence inside a pass, and the carrier set is identical under both denominations, so only the single-pass histogram separates them. ⚠ **Scoping it subtracted a task rather than adding one, and moved it to milestone 17**: attributing budget refusals to the Building they were aimed at needs a trailing **window**, and a window is a property of the **decline model** — ***Evidence reports pressure and does not produce it***. Both derivations for it are refused, one by `adr/0053` and one by [`adr/0079`](../docs/adr/0079-a-building-outlives-its-frontage-and-an-address-that-has-none-is-a-hole-the-trip-model-reports.md) by name. ⚠ **The scoping also found `CONTEXT.md:203`'s specimen `LEGIBLE CAUSE` sentence is unproducible in one of its five clauses** and filed it to [`0012`](0012-corpus-audit.md) — with a new form of *Cause 4* beside it: ***a generated survey of the build is a description of the build***, so `adr/0093` governs it as it governs a doc-comment, and a survey is the more persuasive of the two because it is current, line-numbered and individually correct. *Original row: unscoped; it needs a plan document before it needs code.* ⚠ **Two things to read first.** Its position in `06` is argued from **cost of delay** rather than from a dependency, which is unique in that table — `02 §9` prices Evidence *"cheap if designed in and expensive if retrofitted"*, and every milestone below it adds mechanisms that would each have to be reopened to emit into it. And the 2026-08-15 sweep found `01 §6` and `00-vision` **each naming the other** as the document that schedules it, with no milestone building it — [`0012`](0012-corpus-audit.md) *Cause 1* with the copies pointing at each other rather than drifting apart | [`06`](../docs/06-roadmap.md) → milestone 6 | It is the first row of the re-derived Phase 2 spine, and it is ungated. **The drill-down graph is Phase 3** and is named there, so what 6 owns is the accumulators and not the picture |
+| **1** | code | **`06` milestone 6 task 7 — a Trip's Fate outlives its Trip.** 🟢 **Milestone IN FLIGHT — [`0028`](0028-evidence-the-accumulators.md)**: scoped 2026-08-16, **tasks 1–6 shipped**, **no decision it owed is open**, and this is the **last** row. ⚠ **It is hash-bearing and must ride alone** — a new saved column, so it moves all three golden baselines and wants a commit whose subject explains it ([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)). `02 §9`'s Citizen row asks for *"current or last Trip with its Fate"*, and the **last** half is unrecoverable today: `TripEngine.Release` asserts the Fate and frees the Trip on the next line, while `AdvanceTravellers` frees the **Traveller** — which holds the only Citizen→Trip link there is — in the same pass. So the Fate is computed, checked, and both it and the association with the person who made the journey cease to exist at the same instant. **It is task 2 a second time**, which is why it is a task rather than a design question. ⚠ **Task 6's findings to carry in.** This milestone's two halves fail `06`'s long-run obligation **in opposite directions** — the trail's 257 rows are allocated in its constructor so the collection *cannot* grow, and the aggregate climbs **86 → 12,164** over 49 Days because ***attribution decays to magnitude*** is the point — so the run states the exception and asserts flatness over the **flow**. And `CitizenTable.ReachFailures` satisfies `adr/0006` **only because `World.Employ` clears it**, which its doc-comment names and describes as an *attribution* rule rather than as the bound: ***a sentence can name a mechanism exactly and still not state the property that mechanism is holding up***. ⚠ **The aggregate's count was an `int` and is now a `long`** — it wraps after ~**162 hours** at a million Citizens; ***a counter with no sink is denominated in the life of the world, not in the size of the city***. ⚠ **Two things that outlive tasks 4 and 5**: **every branch of the Lot answer is unreachable in a generated city** (the generator sizes both sides of the question, a fourth sighting), and `05 §1` has the shell resolving strings *"through the Ruleset"* while **nothing implemented that** until task 5 — camouflaged by `Ruleset.ResourceKeys` being a one-way hash that looks like the answer | [`06`](../docs/06-roadmap.md) → milestone 6 | It is the last row of the first milestone of the re-derived Phase 2 spine, and it is ungated |
 | **2** | spike | ⚠ **STILL BLOCKED — do not delete `spikes/S2.Routing/`.** The 5a gate is discharged (the port is done; nothing in `src/` or `tests/` compiles against it), but **another session is doing research inside it**, so it is live work and that is the gate now. **51 tracked C# files, 29,719 lines**; `Borough.slnx` still lists the project | [`0010`](0010-s2-routing.md) → *R7* | ⚠ **Do not read the first gate's clearance as the second's.** *A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears* |
 | **3** | spike | **S5 owes two captures.** The **4-thread** Lane kernel rung is bimodal (~2.5× against ~3.9×) and needs four pinned cores clear at once; the canonical `performance` re-capture is owed beside it. **2 threads is settled at 1.84–1.93×** | [`0019`](0019-s5-lane-kernel.md), [`spike-results`](../docs/spike-results.md) → *S5* | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare.** `adr/0096` exists because a number travelled without its clause |
 | **4** | code | **[`0003`](0003-build-plan.md) hash-moving queue item 8 — filed unfixed.** A waiter whose **own** requirement falls is never re-checked: `adr/0063` made the wake predicate read live state, and the only thing that calls `World.Drain` is a write to the **Bin**. Observed stable on four Bins from Tick 512 to 4096 | [`0003`](0003-build-plan.md) → *The hash-moving queue* | ***A live predicate with an event-driven trigger is only correct if every input to the predicate is an input to the trigger.*** Filed rather than fixed because both repairs are design questions |
@@ -463,7 +491,7 @@ cleared ones is how the missing ones stay missing***. History in [`0000a`](0000a
 | | Blocked on | Which is |
 |---|---|---|
 | **5c** — statistical resolution and the travel-time matrix | ✅ **CLOSED 2026-08-16**, and it was never blocked after 2026-08-13: all three named gates were discharged elsewhere and **not one closure reached a gate board**, which is why it read as blocked for two days | — |
-| **6** — Evidence, the accumulators | ✅ **Not blocked, and in flight** — scoped 2026-08-16, tasks 1–3 shipped, **every owed decision closed**. Its position in `06` is argued from **cost of delay** rather than from a dependency, which is unique in that table, and `01 §6` and `00-vision` **each name the other** as the document that schedules it | — |
+| **6** — Evidence, the accumulators | ✅ **Not blocked, and nearly closed** — scoped 2026-08-16, **tasks 1–6 shipped**, **every owed decision closed**, task 7 is the last. Its position in `06` is argued from **cost of delay** rather than from a dependency, which is unique in that table, and `01 §6` and `00-vision` **each name the other** as the document that schedules it | — |
 | **21** — lane-as-entity traffic *(this row was labelled **6** until 2026-08-16: 6 is now Evidence, so the next code row read as gated on session **G**. ⚠ **This was called the renumber's *one* live trap and it was four** — [`06`](../docs/06-roadmap.md) cited Evidence's accumulators as **21** in its roots table and again in its Phase 3 list, and translated a **10** that was already new numbering into **8**, all found and struck 2026-08-16)* | 🔴 [`adr/0016`](../docs/adr/0016-the-lane-is-the-entity-not-the-car.md), written from research and never grilled. ⚠ **Partly discharged by measurement**: S5 measured the order-of-magnitude claim the milestone's risk rests on, so a session **may not close** whatever part is measurable | session **G** — ⚠ **and a runnable remainder was parked behind it**: the Lane kernel's 4-thread rung and S5's canonical capture, neither of which was ever G's to give |
 | **22** — Stress-driven Fidelity with hysteresis | ✅ **UNGATED 2026-08-16.** Both gates are discharged: 5c closed the same day, and session **E** ran ([`0029`](0029-session-e-fidelity.md)). ⚠ **Its acceptance criterion existed except for one clause and that clause is now written** — `03 §4` invariant 3 owed an enumeration since the repository's first commit, which is *the* reason this row could not be scoped, and [`adr/0107`](../docs/adr/0107-a-demotion-discards-the-cursor-and-nothing-it-discards-has-to-be-invented.md) supplies it. ⚠ **`06`'s claim that its acceptance criteria *"cannot be written until the loop closes"* is withdrawn** — ***a milestone's acceptance criteria and the ratification of the numbers it produces are different things***; what the missing feedback loop costs is `T_high`/`T_low`'s **ratification**, which is measurable and was never a session's. **It still cannot start before 21**, which is session **G**'s | **21** — a ladder needs two tiers |
 | **23** — the rotating Audit | ✅ **UNGATED 2026-08-16** by the same session. [`adr/0108`](../docs/adr/0108-repeated-divergence-is-a-bug-report-and-the-queue-decides-how-long-a-promotion-lasts.md) settles the escalation policy an audit with no decided response could not have been scoped without. ⚠ **It is smaller than its `06` row implies** — rotation, comparison, record and Cap-ordered admission, and **no escalation machinery at all**. Its one open number, the **coverage period**, is a [`0002`](0002-open-questions.md) §D2 *gap* with a ratifier named in all three parts, and a gap does not gate | **22** — the audit promotes, so it needs 22's machinery |
