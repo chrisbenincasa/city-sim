@@ -10,10 +10,10 @@
 [`adr/0112`](../docs/adr/0112-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)
 *a parking space is held by the Citizen* and
 [`adr/0113`](../docs/adr/0113-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md)
-*a Car Park is not a Bin*, with amendments in place to `adr/0009` and `adr/0084`. ✅ **TASK 1 SHIPPED
-2026-08-18** — `CarParkTable`, the `[[building]] parking` key, and the supply created, ceilinged,
-located and freed; 1,514 tests green and all four golden artefacts re-recorded. **Seven tasks left, and
-task 2 is next. Ungated** — session **H** cleared this row on 2026-08-12 and the clearance is written in
+*a Car Park is not a Bin*, with amendments in place to `adr/0009` and `adr/0084`. ✅ **TASKS 1 AND 2
+SHIPPED 2026-08-18** — `CarParkTable`, the `[[building]] parking` key and the supply created, ceilinged,
+located and freed; then `[parking] radius_metres = 400` in all five shipped Rulesets. 1,531 tests green.
+**Six tasks left, and task 3 — the Parking Shed — is next. Ungated** — session **H** cleared this row on 2026-08-12 and the clearance is written in
 [`0002`](0002-open-questions.md) §F2 as well as on the board, so both copies agree.
 
 ⚠ **This document's own recommendation on decision 1 was wrong, and the sitting is what found it.** It
@@ -236,6 +236,64 @@ against 596 at 800 m**, so doubling the radius is roughly 5× the shed. ⚠ **Do
 walking-time intuition** — five minutes at 5 km/h is 417 m, and `adr/0044` had to measure exactly that
 sort of number back out of three documents that cited it as settled. **Decision 3 names what ratifies
 it**, and that must be written on the day the number is, not at task 8.
+
+> ✅ **DONE 2026-08-18. `ParkingRuleset`, the `[parking]` section, `Tiles.FromMetres`, and
+> `radius_metres = 400` in all five shipped Rulesets. 1,531 tests green** — `ParkingRulesetLoadTests`
+> (16), one in `QuantityTests`, and the section catalogue updated. Only the two Ruleset content hashes
+> moved; the world hash and every trace sample are untouched, because **nothing reads the number until
+> task 3**.
+>
+> **The radius is authored in metres, and the unit was the decision rather than the value.** Minutes
+> were the live alternative and had a real argument: the shed's one stated bound is the Commute Budget's
+> walk allowance, which is a *time*, so a key in minutes would have made that bound a comparison instead
+> of a conversion. It is refused on two grounds. A key in minutes invites exactly the derivation
+> `adr/0083` forbids **by name** — *five minutes at 5 km/h* — and it would make shed membership move
+> whenever somebody retuned `[roads] walk_speed_kph`, so a designer making people walk faster would
+> silently enlarge every Building's parking with no key in the file changed and every hash moving.
+> ***A radius in metres is the same set of Car Parks however fast anybody walks***, and that is a test
+> rather than a remark.
+>
+> ⚠ **400 is S2 R5.6's measured rung and not the walking-time intuition, and they agree to within 4% —
+> which is the trap rather than the corroboration.** R5.6 gives 110 Car Parks at 400 m against 596 at
+> 800 m, so 400 is the rung whose cost this project has actually measured; five minutes at 5 km/h is
+> 417 m, and `adr/0083` warns against that figure by name. ***A number that agrees with a forbidden
+> derivation cannot announce itself*** — nothing mechanical can tell the two apart, so the file's own
+> header is the only thing standing between the measured rung and a later reader re-deriving it from the
+> walk. That is `plans/0012` **Cause 5** met from a new direction: not a caveat that failed to travel,
+> but a **coincidence of magnitude that would read as a second source**.
+>
+> ⚠ **The task's sharpest finding is a guard that was written, measured against the suite, and
+> withdrawn.** `adr/0083`'s upper bound — *a shed wider than a Trip can afford to walk has outer Car
+> Parks that can never be taken* — was implemented as a loader refusal converting through
+> `walk_speed_kph`. It is sound, and it is the wrong instrument. **The Commute Budget is a ceiling on a
+> whole journey and a parking walk is one Leg inside it**, so the only non-arbitrary threshold available
+> is the *whole* Budget, which is far looser than the real constraint. What it actually refused was
+> **five test fixtures**: the `WithCeiling` idiom takes `minimal.toml` and drops the Budget to 3, 5 or
+> 10 minutes to force budget-exceeded behaviour, and at 400 m the guard failed every ceiling of 3 while
+> clearing 5 by **0.2 minutes**. ***A bound stated as a constraint on choosing a number is not thereby a
+> predicate over two files***, and one whose margin is a rounding error at a fixture's chosen value will
+> keep biting authors who were editing something else. The bound stays where `adr/0083` put it — in
+> `0002` §D2 and in the file's own header — and a test named
+> `A_shed_wider_than_the_budget_loads_and_the_bound_is_prose` records the withdrawal so it cannot be
+> mistaken for an oversight.
+>
+> ⚠ **Two fixtures depended on the shipped Ruleset's section order, and both guards fired on the first
+> occasion there was anything to catch.** `TripCommandTests.RulesWithTripsTable` truncates the file at
+> `[trips]` and asserts that what goes with it is *exactly* `[jobs]` — a schema constraint, since
+> `[jobs]` is refused without a Commute Budget — so a `[parking]` appended after them was a third,
+> independent table inside that deletion. `JobAssignmentTests.WithoutJobs` truncated at `[jobs]` and
+> asserted nothing followed. ***A fixture that depends on a file's section order is depending on
+> something no document promises.*** They are repaired **differently on purpose**: `[parking]` moved up
+> beside `[roads]` and `[lots]`, where a geometric constant belongs and where it leaves the
+> `[trips]`+`[jobs]` tail intact, and `WithoutJobs` now excises the section it names instead of cutting
+> the tail off the file.
+>
+> **Two smaller.** `Tiles.FromMetres` rounds **up**, on `CellGrid.FromMetres`' reasoning one unit
+> finer — a range authored in metres is a *reach*, and rounding down gives a shed silently shorter than
+> its file says, which is supply the city has and cannot find. And **the content hash moved twice, the
+> second time for a comment**: withdrawing the guard edited `minimal.toml`'s header, and `RulesetHash`
+> hashes the file rather than its numbers — correctly, because a Ruleset's comments are how its numbers
+> are defended.
 
 ### Task 3 — the Parking Shed
 

@@ -135,6 +135,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _jobsTable;
         private TableSyntaxBase? _householdsTable;
         private TableSyntaxBase? _trafficTable;
+        private TableSyntaxBase? _parkingTable;
 
         public RulesetLoadResult Read()
         {
@@ -175,6 +176,7 @@ public static class RulesetLoader
             JobRuleset jobs = ReadJobs(trips);
             HouseholdRuleset households = ReadHouseholds();
             TrafficRuleset traffic = ReadTraffic();
+            ParkingRuleset parking = ReadParking();
 
             if (_refusals.Count == 0)
             {
@@ -218,6 +220,7 @@ public static class RulesetLoader
                     Jobs = jobs,
                     Households = households,
                     Traffic = traffic,
+                    Parking = parking,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 },
@@ -382,12 +385,25 @@ public static class RulesetLoader
                         _trafficTable = table;
                         break;
 
+                    case "parking":
+                        // Singular and optional, on [traffic]' reasoning exactly.
+                        if (_parkingTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [parking] is declared. There is one Parking Shed radius, "
+                                + "so two tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _parkingTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [layers], "
-                            + "[placement], [roads], [lots], [trips], [jobs], [households] and "
-                            + "[traffic].");
+                            + "[placement], [roads], [lots], [trips], [jobs], [households], "
+                            + "[traffic] and [parking].");
                         break;
                 }
             }
@@ -2402,6 +2418,75 @@ public static class RulesetLoader
 
             return new HouseholdRuleset((int)percent);
         }
+
+        // ---- parking ----------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[parking]</c> table: how far a driver will walk from a Car Park.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>One required key in an optional table</b>, on <c>[households]</c>' shape. Omitting the
+        /// table is a city with no Parking Shed — which is every city this project described before
+        /// milestone 7, so omission is behaviour-preserving rather than a placeholder.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The radius is authored in <em>metres</em> and every consumer sees Tiles</b>, which is
+        /// <c>[layers] kernel_metres</c>' shape and was chosen against a key in minutes. Minutes would
+        /// have put the radius in the Commute Budget's own currency — but a key in minutes invites the
+        /// one derivation <c>adr/0083</c> forbids by name, and it would make shed membership move
+        /// whenever somebody retuned <c>walk_speed_kph</c>. <b>A radius in metres is the same set of
+        /// Car Parks however fast anybody walks.</b>
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>adr/0083</c>'s upper bound is <em>not</em> enforced here, and that is a decision.</b>
+        /// A shed wider than the Commute Budget's walk allowance has outer Car Parks that can never be
+        /// taken, and a guard was written and withdrawn: the Budget is a ceiling on a <b>whole
+        /// journey</b> and a parking walk is one <b>Leg</b> inside it, so the only non-arbitrary
+        /// threshold available — the whole Budget — is far looser than the real constraint, and it
+        /// refuses nothing a designer would plausibly write while breaking every fixture that tightens
+        /// a Budget for reasons of its own. ***A bound stated as a constraint on choosing a number is
+        /// not thereby a predicate over two files.*** It lives in <c>plans/0002</c> §D2 and in
+        /// <c>minimal.toml</c>'s own header, where <c>adr/0083</c> put it.
+        /// </para>
+        /// </remarks>
+        private ParkingRuleset ReadParking()
+        {
+            if (_parkingTable is null)
+            {
+                return ParkingRuleset.None;
+            }
+
+            if (!TryInteger(_parkingTable, "radius_metres", out long metres, required: true))
+            {
+                return ParkingRuleset.None;
+            }
+
+            // Refused at zero rather than defaulted, because zero is not "no parking" here -- the
+            // supply is [[building]] parking and this is the reach. A shed of zero metres is a city
+            // whose Car Parks all exist and none can be walked to from anywhere, which is a sentence
+            // nobody meant to write and whose symptom names neither this key nor that one.
+            if (metres < 1)
+            {
+                Refuse(LineOfParking("radius_metres"), null,
+                    $"radius_metres is {metres}. It is how far a driver will walk from a Car Park, "
+                    + "so a shed with no reach finds nothing and every arrival fails to park. Delete "
+                    + "the [parking] table for a city with no Parking Shed at all.");
+
+                return ParkingRuleset.None;
+            }
+
+            if (metres > int.MaxValue)
+            {
+                metres = int.MaxValue;
+            }
+
+            return new ParkingRuleset((int)metres);
+        }
+
+        /// <summary>The line a <c>[parking]</c> key is on, or the table's.</summary>
+        private int LineOfParking(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_parkingTable!, key) ?? _parkingTable!);
 
         // ---- traffic ----------------------------------------------------------------------------
 

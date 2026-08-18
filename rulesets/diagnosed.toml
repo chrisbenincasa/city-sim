@@ -506,6 +506,12 @@ foot_path_capacity_per_hour    = 1000
 # nobody has designed. Lots hang on Segments and the rest of the block is interior.
 lots_per_segment = 5
 
+[parking]
+# How far a driver will walk from a Car Park, in metres. adr/0009's radius, milestone 7 task 2.
+# minimal.toml's header carries why it is metres rather than minutes, why 400 is R5.6's measured
+# rung rather than the five-minute intuition it nearly coincides with, and what ratifies it.
+radius_metres = 400
+
 [trips]
 # What travelling costs, and what makes a journey fail. Two numbers, both hash-bearing, and they
 # are unset in two DIFFERENT senses -- which is the whole reason one of them is here and the

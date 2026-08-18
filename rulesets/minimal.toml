@@ -439,6 +439,53 @@ foot_path_capacity_per_hour    = 1000
 # nobody has designed. Lots hang on Segments and the rest of the block is interior.
 lots_per_segment = 5
 
+[parking]
+# HOW FAR A DRIVER WILL WALK FROM A CAR PARK, in metres. adr/0009's radius, milestone 7 task 2.
+#
+# The Parking Shed is the Car Parks within this reach of a Building's pedestrian Access Point,
+# nearest first; arrival takes the first with space and the walk from it is a Leg. So this decides
+# which Car Park a car takes, which decides the walk Leg, which counts against the Commute Budget,
+# which decides whether the Trip fails. HASH-BEARING BY FOUR STEPS, and unratified since the prose
+# that first described parking here.
+#
+# METRES RATHER THAN MINUTES, AND THAT WAS A DECISION RATHER THAN A HABIT. Minutes were the live
+# alternative: the shed's one stated bound is the Commute Budget's walk allowance, which is a time,
+# and a key in minutes would have made that bound a comparison instead of a conversion. It is
+# refused on two grounds. A key in minutes invites exactly the derivation adr/0083 forbids by name
+# -- five minutes at 5 km/h -- and it would make shed membership move whenever somebody retuned
+# [roads] walk_speed_kph, so a designer making people walk faster would silently shrink every
+# Building's parking. A RADIUS IN METRES IS THE SAME SET OF CAR PARKS HOWEVER FAST ANYBODY WALKS.
+#
+# ⚠ THE UPPER BOUND IS STATED HERE AND ENFORCED NOWHERE, AND A GUARD FOR IT WAS WRITTEN AND
+# WITHDRAWN. adr/0083 says a shed wider than the Commute Budget's walk allowance has outer Car Parks
+# that can never be taken. That is true and it is not a predicate: commute_budget_minutes is a
+# ceiling on a WHOLE JOURNEY and a parking walk is one LEG inside it, so the only non-arbitrary line
+# a loader could draw -- the whole Budget -- is far looser than the real constraint. Keep it below
+# the allowance when you tune it; nothing will stop you if you do not. At 5 km/h this radius is a
+# 4.8-minute walk against a 50-minute ceiling.
+#
+# ⚠ 400 IS S2 R5.6'S MEASURED RUNG AND IS NOT THE FIVE-MINUTE INTUITION, AND THE TWO NEARLY
+# COINCIDE -- WHICH IS THE TRAP RATHER THAN THE CORROBORATION. R5.6 reports 110 Car Parks found at
+# 400 m against 596 at 800 m, so doubling the radius is roughly 5x the shed and 400 is the rung
+# whose cost this project has actually measured. Five minutes at 5 km/h is 417 m. Those agree to
+# within 4%, and adr/0083 warns against the second one by name because it is exactly the sort of
+# plausible figure adr/0044 had to measure back out of three documents that cited it as settled. A
+# NUMBER THAT AGREES WITH A FORBIDDEN DERIVATION CANNOT ANNOUNCE ITSELF, so this comment is the
+# only thing standing between the measured rung and a later reader re-deriving it from the walk.
+#
+# UNRATIFIED. The named ratifier is milestone 7 task 8's run reporting the walk-Leg length
+# distribution as shed occupancy approaches 1, AND IT NEEDS A WORLD THIS FILE IS NOT: capacity is
+# per building kind and demand is per Citizen, both sized by the generator from one population, so
+# occupancy here is flat at every population and never approaches anything. A sixth Ruleset is
+# owed, on congested.toml's precedent. The refuting readings are denominated in WALK LENGTH and
+# never in Trip failures -- a radius that never produces a walk longer than the shortest band is too
+# small, and one at which the distribution never moves as occupancy climbs is not being reached.
+#
+# NOTHING READS THIS YET. The shed is task 3 and the arrival that queries it is task 4, so today
+# this number is stated and inert. It is here rather than withheld because a file that states Car
+# Parks and no radius describes half a mechanism.
+radius_metres = 400
+
 [trips]
 # What travelling costs, and what makes a journey fail. Two numbers, both hash-bearing, and they
 # are unset in two DIFFERENT senses -- which is the whole reason one of them is here and the

@@ -87,17 +87,35 @@ public sealed class JobAssignmentTests
     /// keeps it honest — <c>[jobs]</c> is last in the file, and a table added after it would otherwise
     /// be silently deleted too.
     /// </remarks>
+    /// <summary>The golden Ruleset with its <c>[jobs]</c> section taken out.</summary>
+    /// <remarks>
+    /// <b>It excises the section rather than truncating the file at it, and the change was forced by
+    /// a guard that worked.</b> This helper used to cut everything from <c>[jobs]</c> to the end and
+    /// assert that nothing followed — correct only while <c>[jobs]</c> happened to be the last section
+    /// in <c>minimal.toml</c>, which milestone 7 task 2 ended by appending <c>[parking]</c>. The
+    /// assertion fired rather than the fixture silently losing a second table, which is the whole
+    /// value of having written it. ***A fixture that depends on a file's section order is depending on
+    /// something no document promises***, so this now names the section it removes.
+    /// </remarks>
     private static Ruleset WithoutJobs()
     {
         string toml = File.ReadAllText(GoldenFixtures.RulesetPath);
         int marker = toml.IndexOf("\n[jobs]", StringComparison.Ordinal);
 
         Assert.True(marker > 0, "the golden Ruleset no longer declares a [jobs] table.");
-        Assert.DoesNotContain(
-            toml[(marker + 1)..].Split('\n').Skip(1),
-            line => line.TrimStart().StartsWith('['));
 
-        RulesetLoadResult result = RulesetLoader.Parse(toml[..marker], "test.toml");
+        // The next section header at column 0, which is where [jobs] ends. Searching from past the
+        // marker's own newline so the header itself is not the match.
+        int next = toml.IndexOf("\n[", marker + 2, StringComparison.Ordinal);
+        string without = next < 0 ? toml[..marker] : toml[..marker] + toml[next..];
+
+        // The header line, not the text: minimal.toml's prose names [jobs] in other sections'
+        // comments, so a substring check finds a table that is no longer declared.
+        Assert.DoesNotContain(
+            without.Split('\n'),
+            line => string.Equals(line.Trim(), "[jobs]", StringComparison.Ordinal));
+
+        RulesetLoadResult result = RulesetLoader.Parse(without, "test.toml");
 
         Assert.True(result.Ok, result.Describe());
 

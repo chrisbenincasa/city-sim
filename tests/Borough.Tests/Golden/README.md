@@ -315,6 +315,29 @@ are task 4's, and task 5 is the one that makes a walk Leg cost something in this
 **`World.HashSeed`'s version byte is deliberately unmoved**, for the reason milestone 6 task 1 gives:
 a world with more tables in it is not a change to the fold.
 
+**Milestone 7 task 2 moved the two Ruleset content hashes and nothing else, and that is the honest
+outcome rather than a near miss.** `[parking] radius_metres = 400` joined all five shipped Rulesets;
+no table joined `World._tables`, no column was declared, and no behaviour changed — the shed that reads
+this number is task 3. So `world-hash.txt` is untouched, every sample in `session-trace.txt` is
+byte-identical, and the only line that moved in the trace is the header naming the Ruleset. ***A number
+a Ruleset states and no mechanism reads does not move the world***, which is the clean case of the
+distinction task 1's note had to make the hard way.
+
+⚠ **It moved them twice, and the second time was a comment.** The first re-record was taken with a
+loader guard that has since been withdrawn, and withdrawing it edited `minimal.toml`'s header — so the
+content hash moved again for a change to **prose**. That is `RulesetHash` working exactly as designed:
+it is a hash of the *file*, comments included, because a Ruleset's comments are how its numbers are
+defended and a file whose defence changed is not the file the session ran against.
+
+⚠ **`[parking]` sits before `[trips]` rather than at the end of the file, and a fixture is why.**
+`TripCommandTests.RulesWithTripsTable` truncates the golden Ruleset at `[trips]` and asserts that what
+goes with it is **exactly `[jobs]`** — which is a schema constraint rather than an accident, since a
+`[jobs]` table is refused without a Commute Budget. Appending `[parking]` after them put a third,
+independent table inside that deletion, and the assertion fired. ***A fixture that depends on a file's
+section order is depending on something no document promises*** — the guard was written for exactly this
+and caught it on its first occasion. `JobAssignmentTests.WithoutJobs` had the same dependency and was
+repaired the other way, by excising the section it names instead of truncating the tail.
+
 ⚠ **The re-record was blocked before it could start, and the refusal was the right one.** The runner
 would not replay a session naming a Ruleset hash nobody supplied — *Rules nobody has are not a
 mismatch, and `--force-ruleset` cannot waive it* — so the two literals in `session.borough` and the two
