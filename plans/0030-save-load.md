@@ -491,6 +491,58 @@ intended** (D3). It is outside the fold, so no hash sees it, and task 1's garbag
 standing proof that it cannot matter — **the restore relies on that assertion rather than on an argument
 made here**, which is the whole reason task 1 is first.
 
+#### ✅ Task 3 shipped 2026-08-17 — `Rows.Restore`, and the sharpest finding is a claim this document was right about and the test was wrong about
+
+**Built:** `Rows.Restore(slotCount, liveCount, freeHead, nextId, savedBytes)` — **one call**, not a
+scalars-then-columns pair, because the ordering is forced (columns cannot be read before `SlotCount` is
+set; the consistency walk cannot run before they are read, since the generations and the free list
+*are* columns) and a two-phase door has a forgettable half. `Rows.FreeHead` and `Rows.NextId` are the
+two accessors that did not exist. `VerifyRestored` walks what the file claimed. All three are
+**`internal`**, which is **D1 enforced mechanically rather than stylistically**: `Borough.Formats`
+cannot call them, so the serialiser cannot live there. `RowsRestoreTests`, eight tests.
+
+⚠ **1. The free list is *entirely* inside the State Hash, and this brief said so while the first draft
+of the test said the opposite.** `Rows.Fold` folds `_freeHead` as one of its four scalars **and** folds
+`free_next`, which is `Saved<int>(..., Touch.Cold)` — so head *and* chain are hashed, and a loader that
+recomputed the free list diverges **at the load**, not downstream. Task 3's own text in this document
+gets this exactly right (*"produces a different `_freeHead` and a different hash"*); the test was
+written claiming the hash would miss it and the divergence would surface later. **Corrected before
+commit, and recorded rather than quietly fixed**, because the error is instructive: it is more
+flattering to a test to believe it catches something nothing else can. ***A second instrument for
+something already covered earns its place by naming the consequence, not by catching more*** — and
+what `The_next_allocation_lands_where_the_save_says_it_will` buys is a failure that reads *the next
+Household went to a different slot* instead of two 64-bit numbers disagreeing.
+
+⚠ **2. A generated city never frees a Household, so the free-list path's fixture had to be made on
+purpose.** 512 Ticks of the shipped Ruleset leaves `HouseholdTable.FreeHead` at `NoSlot`, and that is
+correct rather than surprising: [`adr/0054`](../docs/adr/0054-a-demolished-buildings-households-are-evicted-into-the-unplaced-pool.md)
+sends a demolished Building's Households to the Unplaced Pool **with their money intact**, so
+demolition — the only thing in a generated city that destroys anything — never retires a Household
+row. Four tests were written against a generated world and **all four failed on the fixture rather
+than on the code**. ***A restore path tested only against append-only tables is a restore path whose
+free list has never been read***, and it would have passed. Same shape as slice 10 task 11, and the
+same shape as `GoldenFixtures.Build`'s own hand-written retirements, which say in their comment that
+they exist *"so the free list and the never-reused id counter are both off their initial values"* —
+**that fixture already knew, and a generated one still does not**.
+
+⚠ **3. `AllocateSlot` does not clear the slot it hands out, which is safe today only because storage
+starts zeroed.** It writes the generation, the id and `free_next` and leaves every other column
+holding whatever was there. That is fine for a table that only ever grows into fresh arrays, and it
+stops being fine the moment a restore can make `_slotCount` **shrink** — the next allocation past the
+restored high-water mark would hand a new row the previous occupant's bytes, in columns nothing
+initialises. `Restore` therefore clears `[slotCount, capacity)`. **Found by writing the restore rather
+than by reading the allocator**, and it is the one place in this task where the new capability created
+an obligation on old code instead of composing with it.
+
+**What `VerifyRestored` checks, and why each is worth its line:** the free list terminates
+(**bounded by the slot count**, because a cycle is the one shape that would hang the load rather than
+fail it); every free-list slot has an even generation; the free list's length equals
+`slotCount − liveCount`; live slots carry an id in `[1, nextId)`; **dead slots carry id 0**; and the
+count of odd generations equals `liveCount`. ⚠ **The dead-slot id check is the cheapest available test
+of *do not compact***: `FreeSlot` zeroes every column, so a non-zero id in a dead slot means the
+residue was not produced by this allocator — which is what a compacting, reordering or hand-edited
+file looks like from the inside.
+
 ### Task 4 — the header, and the three version numbers
 
 Write the header `adr/0086` specifies. **Format version first**, then the rest.

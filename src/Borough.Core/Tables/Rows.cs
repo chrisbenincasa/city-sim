@@ -96,6 +96,24 @@ public abstract class Rows
     /// <summary>Allocated slots, live or free. A sizing figure; it never reaches the hash.</summary>
     public int Capacity => _capacity;
 
+    /// <summary>The head of the free list, or <see cref="NoSlot"/>. Saved state, not bookkeeping.</summary>
+    /// <remarks>
+    /// <b>Exposed for the save and for nothing else, which is why it is <c>internal</c>.</b> It is in
+    /// the State Hash already — <see cref="Fold"/> folds it beside the other three scalars — so a save
+    /// that omitted it would reload to a world whose next allocation lands somewhere else, and the
+    /// hash would move at the load with nothing to attribute it to. Reading it outside the serialiser
+    /// is reading the allocator's private business.
+    /// </remarks>
+    internal int FreeHead => _freeHead;
+
+    /// <summary>The monotonic id counter. Saved state; never reset and never recomputed.</summary>
+    /// <remarks>
+    /// <see cref="FreeHead"/>'s reasoning, on the axis that matters for <see cref="Handle{T}"/>:
+    /// recomputing this as <em>one past the largest live id</em> would reissue the ids of rows freed
+    /// since, and the hash folds a handle as its target's id.
+    /// </remarks>
+    internal ulong NextId => _nextId;
+
     /// <summary>Every column, in declaration order — which is the order the hash folds them in.</summary>
     public ReadOnlySpan<Column> Columns => _columns;
 
@@ -390,6 +408,235 @@ public abstract class Rows
         _freeNext[slot] = _freeHead;
         _freeHead = slot;
         _liveCount--;
+    }
+
+    /// <summary>
+    /// Restores this table from a save: the four allocator scalars, then every
+    /// <see cref="Disposition.Saved"/> column's bytes, then a consistency walk.
+    /// </summary>
+    /// <param name="slotCount">The high-water slot count the save was taken at.</param>
+    /// <param name="liveCount">How many of those slots held live rows.</param>
+    /// <param name="freeHead">The head of the free list, or <see cref="NoSlot"/>.</param>
+    /// <param name="nextId">The monotonic id counter, which is never reset.</param>
+    /// <param name="savedBytes">
+    /// This table's <see cref="SavedColumns"/>, in declaration order, each
+    /// <c>BytesPerRow × slotCount</c> long and concatenated.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// <b>Slot-exactness is the whole constraint</b> (adr/0086). The free list and the id counter are
+    /// <em>saved state</em> rather than bookkeeping to recompute: a loader that rebuilt the free list
+    /// by scanning for dead rows would produce a different <c>_freeHead</c>, hand the next allocation
+    /// a different slot, and diverge from the run it was supposed to continue — with a State Hash
+    /// that moved at the load and nothing to say why. So all four scalars come off the file and none
+    /// is derived.
+    /// </para>
+    /// <para>
+    /// <b>One call rather than a scalars-then-columns pair, because the pair has a forgettable half.</b>
+    /// The columns cannot be read before <see cref="SlotCount"/> is set (it is what sizes them) and the
+    /// consistency walk cannot run before they are read (the generations and the free list <em>are</em>
+    /// columns), so the ordering is fixed and there is no state in which a caller should be holding a
+    /// half-restored table. A door that leaves a structure half-maintained is the defect
+    /// <c>plans/0002</c> §C's raw-table-door row is about; this one cannot.
+    /// </para>
+    /// <para>
+    /// <b>It restores the <see cref="Disposition.Saved"/> columns and nothing else.</b> Derived columns
+    /// are rebuilt afterwards by <c>World.RebuildDerived</c> and scratch columns are meaningless
+    /// between phases (adr/0110), so neither is in the file. The tail beyond
+    /// <paramref name="slotCount"/> is cleared, because <see cref="AllocateSlot"/> does not clear the
+    /// slot it hands out — it relies on storage starting zeroed — and a restore into a table that was
+    /// previously longer would otherwise hand a future row somebody else's bytes.
+    /// </para>
+    /// <para>
+    /// <b>⚠ A stale <see cref="Reference.Severable"/> handle is restored stale, deliberately.</b>
+    /// Nothing here normalises a handle whose target is not live: the stale handle <em>is</em> the
+    /// state, and a Citizen whose Workplace no longer resolves is exactly the fact that the job no
+    /// longer exists.
+    /// </para>
+    /// </remarks>
+    internal void Restore(
+        int slotCount, int liveCount, int freeHead, ulong nextId, ReadOnlySpan<byte> savedBytes)
+    {
+        if (_declaring is not null)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' has not been sealed; a restore ran while the schema was open.");
+        }
+
+        if (slotCount < 0)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' was restored with a negative slot count ({slotCount}).");
+        }
+
+        if ((uint)liveCount > (uint)slotCount)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' was restored with {liveCount} live rows in {slotCount} slots. A live "
+                + "count above the slot count is a header that does not describe the bytes beneath it.");
+        }
+
+        if (freeHead != NoSlot && (uint)freeHead >= (uint)slotCount)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' was restored with a free head of {freeHead}, which is outside "
+                + $"[0, {slotCount}).");
+        }
+
+        if (nextId == 0)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' was restored with an id counter of 0. Ids start at 1 and 0 is what a "
+                + "freed slot holds, so a counter of 0 would mint an id indistinguishable from absence.");
+        }
+
+        GrowTo(slotCount);
+
+        _slotCount = slotCount;
+        _liveCount = liveCount;
+        _freeHead = freeHead;
+        _nextId = nextId;
+
+        int offset = 0;
+
+        foreach (Column column in _savedColumns)
+        {
+            int width = column.BytesPerRow * slotCount;
+
+            if (offset + width > savedBytes.Length)
+            {
+                throw new InvalidOperationException(
+                    $"table '{Name}' needs {offset + width} bytes to reach the end of column "
+                    + $"'{column.Name}' and was given {savedBytes.Length}.");
+            }
+
+            column.ReadBytes(savedBytes.Slice(offset, width), slotCount);
+            offset += width;
+        }
+
+        if (offset != savedBytes.Length)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' consumed {offset} of {savedBytes.Length} bytes. A column set that is "
+                + "the right shape and the wrong length is a format version the header should have "
+                + "refused.");
+        }
+
+        // Slots the save did not cover. See the remark above: AllocateSlot hands out a slot without
+        // clearing it, so this is what keeps that assumption true after a restore.
+        for (int slot = slotCount; slot < _capacity; slot++)
+        {
+            foreach (Column column in _columns)
+            {
+                column.Clear(slot);
+            }
+        }
+
+        VerifyRestored();
+    }
+
+    /// <summary>
+    /// Walks what the save just claimed and refuses a table that does not hold together.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is where slot-exactness stops being a hope.</b> Every check here is a property the
+    /// allocator maintains as an invariant and which a corrupt, truncated or hand-edited file breaks
+    /// — and each is cheap, runs once per table per load, and stands against a defect whose
+    /// alternative symptom is a State Hash that diverges thousands of Ticks later with no way back to
+    /// the cause. <b>The free-list walk is bounded by the slot count</b> rather than trusting
+    /// termination, because a cycle in a restored free list is the one shape here that would otherwise
+    /// hang the load rather than fail it.
+    /// </remarks>
+    private void VerifyRestored()
+    {
+        int free = 0;
+
+        for (int slot = _freeHead; slot != NoSlot; slot = _freeNext[slot])
+        {
+            if ((uint)slot >= (uint)_slotCount)
+            {
+                throw new InvalidOperationException(
+                    $"table '{Name}': the restored free list reaches slot {slot}, outside "
+                    + $"[0, {_slotCount}).");
+            }
+
+            if ((_generation[slot] & 1u) == 1u)
+            {
+                throw new InvalidOperationException(
+                    $"table '{Name}': restored free-list slot {slot} has an odd generation, which is "
+                    + "this table's encoding for live. A slot cannot be both on the free list and "
+                    + "occupied.");
+            }
+
+            if (++free > _slotCount)
+            {
+                throw new InvalidOperationException(
+                    $"table '{Name}': the restored free list does not terminate within {_slotCount} "
+                    + "steps, so it contains a cycle.");
+            }
+        }
+
+        if (free != _slotCount - _liveCount)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}': the restored free list holds {free} slots and the header says "
+                + $"{_slotCount - _liveCount} are not live. The free list is saved state, so a "
+                + "disagreement here is the file contradicting itself rather than something to repair.");
+        }
+
+        int live = 0;
+
+        for (int slot = 0; slot < _slotCount; slot++)
+        {
+            if ((_generation[slot] & 1u) == 1u)
+            {
+                live++;
+
+                if (_id[slot] == 0 || _id[slot] >= _nextId)
+                {
+                    throw new InvalidOperationException(
+                        $"table '{Name}': live slot {slot} carries id {_id[slot]} against an id "
+                        + $"counter of {_nextId}. A live row's id is minted below the counter and is "
+                        + "never 0.");
+                }
+            }
+            else if (_id[slot] != 0)
+            {
+                throw new InvalidOperationException(
+                    $"table '{Name}': free slot {slot} carries id {_id[slot]} rather than 0. FreeSlot "
+                    + "zeroes every column, so a non-zero id in a dead slot means the residue in this "
+                    + "file was not produced by this allocator.");
+            }
+        }
+
+        if (live != _liveCount)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}': {live} slots have live generations and the header says {_liveCount}.");
+        }
+    }
+
+    /// <summary>Grows capacity to hold at least <paramref name="slots"/>, doubling as the allocator does.</summary>
+    private void GrowTo(int slots)
+    {
+        if (slots <= _capacity)
+        {
+            return;
+        }
+
+        int capacity = _capacity;
+
+        while (capacity < slots)
+        {
+            capacity *= 2;
+        }
+
+        _capacity = capacity;
+
+        foreach (Column column in _columns)
+        {
+            column.Grow(_capacity);
+        }
     }
 
     private TColumn Declare<TColumn>(TColumn column)
