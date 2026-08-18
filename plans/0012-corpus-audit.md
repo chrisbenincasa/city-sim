@@ -764,7 +764,7 @@ complies with it** — it names a **symbol**, not a time, so one `find_symbol` s
 symbol makes a claim checkable; it does not make anybody check it*, which is the half of that ADR
 nothing enforces.
 
-### Milestone 8's scoping collection — three, all unpaid, and the first is a new surface for Cause 4
+### Milestone 8's scoping collection — four, all unpaid; the first is a new surface for Cause 4 and the last two are a matched pair
 
 **1. ⚠ `BOR0901`'s diagnostic message describes a save serialiser that does not exist.** The
 message a developer reads when they trip the lint says *"both the save serialiser and the State Hash
@@ -811,6 +811,42 @@ are all `OneCopy`. **The ADR's conclusion is untouched** — the phase-7 boundar
 table has settled, and a save may ignore `_back` entirely — so this is a count and not an argument.
 `CLAUDE.md` and `05 §3` carry the same *"two tables"* phrasing. ***A number stated as a fact about the
 build ages against the build, and a conclusion that does not depend on it will not report the drift.***
+
+**4. ⚠ `Reference`'s own remark says *only one column needs it* and seven do.**
+`src/Borough.Core/Tables/Declaration.cs:127` states, of the `Reference.Severable` exemption, that
+*"Slice 10 is what made this necessary, and only one column needs it"* — the column being
+`CitizenTable.Workplace`. It is now **seven columns across five tables**:
+`Movement/LegTable.cs:74`, `:79`; `Movement/TripTable.cs:67`, `:72`; `Movement/RouteHopTable.cs:69`;
+`Rules/CondemnationTrailTable.cs:120`; `Entities/CitizenTable.cs:63`. Milestones 5b and 5c added six of
+them, so the sentence was true when written and was out by 7× within two milestones. **The enum's
+conclusion is untouched** — the axis is right and every one of the seven is a correct declaration — so
+this is a count and not an argument, exactly as item 3 above is.
+
+⚠ **It is the matched pair to item 3 and the pair is what makes it worth filing.** Item 3 is a count in
+an **ADR** that is **too high** — *two double-buffered tables*, and one exists, because it counted a
+table that was never built. This is a count in a **doc-comment** that is **too low**, because it counted
+at the moment of writing and the build moved. ***Two ways for a stated count to rot, opposite in
+direction, identical in that the conclusion resting on it does not depend on it and therefore cannot
+report the drift.*** Cause 4, and `adr/0093`'s writing half does not repair either: *name a symbol,
+never a time* fixes a description of **where to look** and neither of these is one — a count is a
+description of **how many**, which no symbol names. Item 3 of the *milestone 6* collection made the same
+point about a measurement written into prose. ***A count is a measurement with no units, and nothing in
+this corpus re-runs it.***
+
+⚠ **This one had a live consumer within the hour, which is why it is filed rather than shrugged at.**
+Milestone 8's open decision 2 — *is `Derived` one class or two* — turns on whether a declaration axis
+added for a single column stays a single column, and `Declaration.cs:127` is the one sentence in the
+repository that speaks to it. **Read as current it argues against a third `Disposition`** (one column
+needed it, one column still needs it, so the taxonomy grew a member nobody needed); **read against the
+build it argues for one** (the last axis added on a single instance reached seven within two
+milestones). The decision went the second way ([`0030`](0030-save-load.md) D3) *because somebody
+grepped*. ***A stale count in a doc-comment about a declaration axis is read by exactly the person
+deciding whether to add another one***, which is Cause 4's blast radius at its widest: not a wrong fact,
+but a wrong fact positioned where it is load-bearing on a decision about its own subject.
+
+**Repair is one sentence** — state the count as of a date, or state no count and name the disposition's
+rule instead. Prefer the second: it is the form that cannot rot. Unpaid because it is the same sweep as
+item 3, and both are one commit by whoever does either.
 
 ---
 

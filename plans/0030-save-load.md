@@ -13,9 +13,10 @@ settles the cadence, and `05 §6`'s threading policy — the one thing that look
 nothing this milestone needs, because `adr/0087`'s opening sentence already decides the one threading
 fact a save has.
 
-**Nine tasks.** One decision was taken with the user in the room before scoping (*the magic number is
-deferred*), and **five remain open**; all five are listed under *Open decisions this milestone owes*
-with the task each blocks.
+**Nine tasks.** Three decisions were taken with the user in the room — *the magic number is deferred*
+before scoping, and **the third `Disposition`** and **the synchronous write** on review of this brief —
+and **three remain open**; all three are listed under *Open decisions this milestone owes* with the
+task each blocks.
 
 ⚠ **Scoping it moved the milestone's weight from the write side to the load side, and the survey is
 what moved it.** `06` records that the milestone *"got smaller"* when `adr/0086` deleted the authored
@@ -120,7 +121,10 @@ as the save's size** ([`0012`](0012-corpus-audit.md) *Cause 5*).
 
 ---
 
-## What was settled before scoping
+## What was settled
+
+Each entry carries its own date. D1 and D2 predate the tasks; D3 and D4 were taken on review of this
+brief, with the user in the room, and each strikes an open decision below.
 
 ### D1 — the serialiser lives in `Borough.Core`, and it is derived rather than chosen
 
@@ -156,6 +160,93 @@ costs one command **while nobody is carrying a save**, and this milestone is wha
 trigger `0003` names is real and deferring the magic number does not disarm it; it narrows it.
 **Revisit when the first save is carried across a build**, which is task 9's run and not before.
 
+### D3 — `Disposition` gains a third value, and the precedent is in the tree rather than in the argument
+
+**Decided 2026-08-17, with the user in the room. Strikes open decision 2 and unblocks task 1.**
+`layer_cell.pollution_pass` is redeclared **`Disposition.Scratch`**, the audit skips `Scratch` **by
+declaration**, and there is no exemption list anywhere.
+
+⚠ **The argument that decides it is not `adr/0070`'s — it is that this exact decision has already been
+taken in this codebase, on one column, with its reasoning written down.** `Reference`
+(`Declaration.cs:115-151`) exists because `02 §10`'s every-handle-resolves walk is **driven by the
+column declarations**, and one column had to be allowed to dangle. Its own remark states the choice and
+the ground: the walk is declaration-driven *"for a stated reason — **a list of fields shares its blind
+spot with the bug it exists to find**"*, so the exempt column *"has to say so where it is declared, in
+the same place and the same spirit as `Disposition`"*. **The rebuild audit is a declaration-driven walk
+with one exempt column**, which is the same shape in the same file, and an exemption list in the test is
+the blind-spot arrangement that reasoning refused.
+
+⚠ **And the standing objection is *refutable* rather than arguable, which under
+[`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
+settles how it is answered.** *One column is not a general mechanism* is a prediction about what happens
+to a declaration axis introduced for a single instance, and this repository has run that experiment
+once. `Declaration.cs:127` says **"only one column needs it"**. It is now **seven columns across five
+tables** — `LegTable.cs:74`, `:79`; `TripTable.cs:67`, `:72`; `RouteHopTable.cs:69`;
+`CondemnationTrailTable.cs:120`; `CitizenTable.cs:63` — reached within two milestones of the axis being
+added. The only evidence available points the other way from the objection, and the sentence carrying
+it is filed to [`0012`](0012-corpus-audit.md) as a Cause 4 sighting, because it is what a future author
+reads while deciding whether to add an axis.
+
+⚠ **A third value of `Disposition`, and not a second axis, because `pollution_pass` is mis-declared
+today rather than a sub-case of a correct declaration.** `Disposition.Derived`'s contract is stated at
+`Declaration.cs:32-37`: choosing it *"is a claim that the field is a pure function of saved state, and
+the claim is checkable"*. `pollution_pass` is a function of nothing — its content between two diffusions
+*"is meaningless by declaration"* (`LayerCellTable.cs:96-102`) — so it does not satisfy that claim at
+all, and a modifier narrowing `Derived` would be narrowing a claim this column never made. The enum's
+own question is *what is this column for*, and scratch is a third answer to it. **The welding argument
+does not forbid this**: `Declaration.cs:8-20` welds the two dispositions so that *saved but not hashed*
+— the state with no detector — is unrepresentable, and `Scratch` is neither saved nor hashed, so it
+reopens nothing.
+
+⚠ **The rule the third value carries is a positive obligation, and that is what makes it better than an
+exemption rather than merely tidier.** ***A `Scratch` column must be written before it is read within
+the phase that uses it, and nothing outside that phase may read it.*** That is not a name in a test —
+it is an assertion, and a cheap one: **fill every `Scratch` column with garbage at a phase boundary and
+assert the hash trace is unchanged**. So the audit stops saying *do not look at this one* and starts
+saying *prove it cannot matter*, which closes the hazard the exemption would have left open — scratch
+content becoming a hidden input to the simulation, which is the unhashed-state divergence
+`Disposition` exists to close, arriving through the one column declared not to matter.
+
+⚠ **This owes an ADR and does not have one yet.** It amends `adr/0003`'s field rule, which is the
+project's oldest structural commitment, and the corpus rule is that a settled design question gets one.
+**Write it when task 1 lands, not now**, so the ADR states the rule the test enforces rather than the
+rule the brief predicted — `adr/0069` is the standing counter-example in the other direction.
+
+### D4 — the write is synchronous in this milestone, and the seam goes around the hash
+
+**Decided 2026-08-17, with the user in the room. Strikes open decision 4 and amends task 6.**
+Build the copy at the end of phase 7 and serialise from it **synchronously**. No thread in `Core`. The
+structural requirement — *the serialiser never reads a live table* — is discharged by the **copy** and
+not by the thread, and a thread in `Core` is `05 §6`'s subject, which is **session R**'s and which this
+brief already forbids this milestone settling.
+
+⚠ **The correction is where the seam is drawn, and task 6 had it in the wrong place.** The split is not
+*copy* against *write*. [`adr/0087`](../docs/adr/0087-a-save-is-copied-at-save-cadence-not-read-from-a-past-that-no-longer-exists.md):87-90
+says so in a clause no task cited:
+
+> **a hash is not free at this size and a copy is.** S0a measured one State Hash at **32.47 ms** over
+> the same state — 2.08 Tick budgets, and roughly 3× the copy. If a save is to carry a verified hash,
+> that hash is computed on the background thread from the copy, **never on the simulation thread as
+> part of taking it**.
+
+So the real seam is **copy** — bounded, blocking, ~10 ms, and in the Tick for ever — against **hash +
+serialise + write**, which is unbounded and leaves the Tick the day the host takes it. The hash alone is
+~3× the copy, so a seam drawn at *copy | write* moves the wrong ~10 ms and leaves the larger half
+behind.
+
+⚠ **Quote the 32.47 ms with what it was taken over.** It is S0a's whole-world hash at 1M, over the
+saved **and** derived total of 85.98 MiB, and the save's hash is over the **saved set** — ~142 of ~170
+columns, totalled by task 2 and by nobody yet. So it is an **upper bound** on the save's hash and not a
+prediction of it ([`0012`](0012-corpus-audit.md) *Cause 5*).
+
+**What this asks of the code:** one call from the end of `Simulation.Commit`, with the hash **inside**
+it, so the future thread wraps exactly one function boundary and moves the right ~42 ms rather than the
+wrong ~10.
+
+⚠ **It also answers the objection recorded against this recommendation.** *An unused seam is an
+untested one* is true of a dormant thread and false of a function boundary that every save crosses: the
+seam is exercised on every autosave in task 9, and it is called synchronously rather than left unbuilt.
+
 ---
 
 ## Tasks
@@ -181,8 +272,16 @@ column's owner and not to this milestone; route it per
 it** — not `MapLayers.RebuildDerived` (`:510`, a one-liner over residency) and not `World.RebuildDerived`'s
 clear block. Its own declaration says its content between two diffusions *"is meaningless by
 declaration"* (`LayerCellTable.cs:96-102`), so the intended answer is *do not check this one* — which
-means the audit needs an **exemption**, and an exemption needs a **rule**. That is **open decision 2**
-and it blocks this task.
+means the audit needs an **exemption**, and an exemption needs a **rule**. ✅ **That rule is D3, taken
+2026-08-17**: the column is redeclared **`Disposition.Scratch`**, the audit skips `Scratch` **by
+declaration** rather than by list, and the skip is paid for by an assertion rather than by a name.
+
+**So the task has a second deliverable and it is the one that carries the risk.** ***A `Scratch` column
+must be written before it is read within the phase that uses it, and nothing outside that phase may
+read it*** — asserted by **filling every `Scratch` column with garbage at a phase boundary and checking
+the hash trace does not move**. `pollution_pass` passes that by inspection today (it is written and read
+inside one `LayerDiffusion` call), which is exactly why the assertion is worth writing now: it is green
+on the day it lands and it fails the day somebody reads scratch across a phase.
 
 ⚠ **A second column to look at rather than to fix, and the author got there first.**
 `road_segment.fidelity` is rebuilt to a constant `0` (`RoadGraph.cs:343`) and that is its only write
@@ -209,7 +308,9 @@ be correct for both uses the hash has today"*. So the bytes and the fold diverge
 by design, and `adr/0086` names it: ***a save round-trip must preserve the hash and need not preserve
 the bytes***.
 
-Add the disposition filter as one shared accessor rather than a fourth hand-written `if`.
+Add the disposition filter as one shared accessor rather than a fourth hand-written `if`. **It is
+three-way after D3**, and `Scratch` sits with `Derived` on the not-written side — the file's column set
+is the `Saved` set and nothing else, which is what task 7's structural test asserts.
 
 **Deliverable beyond the code: the saved set in bytes**, per table and totalled, at the golden fixture
 and at 1M, from `Rows.BytesPerRow`. `adr/0087` names this as owed and nobody has computed it.
@@ -239,6 +340,11 @@ exist. `Fold` reads `_values` only (`Column.cs:208-209`), and `_back` is meaning
 synchronous within one phase. **So a save taken at a phase boundary may ignore `_back` entirely**, and
 `adr/0087`'s *"both double-buffered tables have settled"* is right about the boundary and out by one
 about the count. Filed to [`0012`](0012-corpus-audit.md).
+
+⚠ **A `Scratch` column comes back zeroed and the unbroken run's holds residue, and that divergence is
+intended** (D3). It is outside the fold, so no hash sees it, and task 1's garbage-fill assertion is the
+standing proof that it cannot matter — **the restore relies on that assertion rather than on an argument
+made here**, which is the whole reason task 1 is first.
 
 ### Task 4 — the header, and the three version numbers
 
@@ -283,9 +389,15 @@ serialiser runs over the copy. Phase 7 is serial, is where hashes are already wr
 moment the double-buffered table has settled — so the file and the State Hash describe the same
 instant, which is what lets the header's hash be a statement about the bytes beneath it.
 
-**Whether the write is on a background thread is open decision 4**; whether the copy is taken is not.
-Taking the copy is the part that has to be right first, because it is the part that stops being
-correctable once callers exist.
+✅ **The write is synchronous in this milestone and the thread is the host's** (D4, 2026-08-17). What
+that decides is not *whether to defer* but **where the seam goes**: `adr/0087`:87-90 puts the file's
+hash on the **background** side — one State Hash is ~3× the copy — so the boundary is **copy** against
+**hash + serialise + write**, and not copy against write.
+
+Build it as **one call from the end of `Simulation.Commit`, with the hash inside it**. Synchronous
+today, and the day the host takes the write it wraps exactly that call and moves the right ~42 ms rather
+than the wrong ~10. Taking the copy is still the part that has to be right first, because it is the part
+that stops being correctable once callers exist.
 
 ### Task 7 — the Factorio test, and the structural test `adr/0086` owes
 
@@ -315,9 +427,11 @@ which is adding `--evidence` to the same switch. It is a merge, not a conflict o
 ### Task 9 — the long acceptance run
 
 `adr/0006`'s run with a save in it: 100,000+ Ticks with periodic autosaves, no collection and no
-magnitude trending, and a reload at the end that reproduces the unbroken run's hash. Report the copy's
-measured cost against `adr/0087`'s ~10 ms prediction at the fixture's scale, and the saved-set size
-against task 2's computed total.
+magnitude trending, and a reload at the end that reproduces the unbroken run's hash. Report the
+saved-set size against task 2's computed total, and the save's cost as **two numbers, not one** — the
+**copy** against `adr/0087`'s ~10 ms prediction, and **hash + serialise** separately. ⚠ **They go to
+opposite sides of D4's seam**, so a single combined figure would read as a refutation of that ADR's
+prediction when it is not one, and would tell nobody what the eventual thread is worth.
 
 ⚠ **This is where the deferred magic number's revisit trigger fires** — the first save carried across
 a build — and where `CrashArtifact.From` could stop being zero. Neither is in scope; both are named in
@@ -359,8 +473,8 @@ a build — and where `CrashArtifact.From` could stop being zero. Neither is in 
 - `dotnet build` and `dotnet test` green with no GPU and no Godot.
 - **`05 §4` invariant 6 is live** — the save/reload equivalence test runs in CI. It is one of two
   lints in that list that has never had machinery.
-- **Every derived column is covered by the rebuild audit**, or exempted by a written rule with the
-  exemption named in the test (task 1, open decision 2).
+- **Every derived column is covered by the rebuild audit**, or declared `Disposition.Scratch` and
+  covered by the garbage-fill assertion instead (task 1, D3). **No column is exempted by a list.**
 - **The saved set's size is reported**, per table and totalled, at the fixture and at 1M — `adr/0087`
   names it as owed and forbids guessing it.
 - **The file's column set equals the hash's `Saved` set**, asserted structurally (`adr/0086`).
@@ -376,6 +490,9 @@ it retires it for **every milestone below** — fifteen rows each of which adds 
 
 ## Open decisions this milestone owes, before the task that needs them
 
+**Three of the five remain.** Items 2 and 4 were settled on review of this brief and are struck in
+place, per the corpus rule that a closed decision keeps its number and its reasoning.
+
 ### 1. Where the I/O boundary sits — **blocks task 5**
 
 `Borough.Core` has zero `System.IO`. `Core` must own serialisation (D1) and cannot own the file.
@@ -384,7 +501,24 @@ it retires it for **every milestone below** — fifteen rows each of which adds 
 `Stream`, a `Span<byte>`, or a callback per table — and the answer interacts with task 6, because the
 background write wants to stream a copy it does not own.
 
-### 2. Is `Derived` one class or two? — **blocks task 1**
+⚠ **D4 narrowed this and did not close it, recorded here because a decision's write to a neighbouring
+open question is what *Cause 2* is.** There is **no background write in this milestone**, so the buffer
+has one caller — a synchronous serialiser invoked from the end of `Simulation.Commit` — and nothing
+this milestone builds can distinguish the three shapes. **That makes the choice free today and
+load-bearing later**: it must be the shape a thread can take, which is a constraint on the answer and
+not an answer. Choose it against D4's seam — the buffer is on the **hash + serialise + write** side, so
+whatever owns it must be movable off the simulation thread whole.
+
+### ~~2. Is `Derived` one class or two?~~ — ✅ **SETTLED 2026-08-17 by D3. A third `Disposition`.**
+
+**The recommendation below was to take it to the user, and it was taken to the user, who settled it in
+favour of the third value.** What decided it is not in the text below: **`Reference` is this same
+decision already taken in this codebase, on one column, with its ground written down at
+`Declaration.cs:120-135`** — and its *"only one column needs it"* is now seven columns across five
+tables, which turns the standing objection into a prediction this repository has already tested and
+refuted. The full reasoning is D3; the original text stands unedited beneath.
+
+*Original, 2026-08-17 — **blocked task 1**:*
 
 `layer_cell.pollution_pass` is `Derived` and nothing rebuilds it, on purpose: it is a **scratch
 intermediate between two diffusions**, not a structure recoverable from saved state. Every other one
@@ -425,7 +559,15 @@ the Tick to the World and left its two neighbours on the `Simulation` (`Simulati
 mentions them. **The provenance trail is safe** — `RulesetTrailTable` is a real saved table — but a
 counter beside it is not the trail.
 
-### 4. Is the write actually on a background thread in this milestone? — **blocks task 6**
+### ~~4. Is the write actually on a background thread in this milestone?~~ — ✅ **SETTLED 2026-08-17 by D4. Synchronous, and the seam moved.**
+
+**The recommendation below was accepted and one thing in it was wrong.** The recommendation is right
+that the copy discharges the structural requirement and the thread is `05 §6`'s; what it does not say is
+**where the seam goes**, and task 6 had it at *copy | write* when `adr/0087`:87-90 puts the file's hash
+on the background side at ~3× the copy's cost. The seam is **copy** against **hash + serialise + write**.
+That clause was in the ADR and cited by no task. See D4; the original text stands unedited beneath.
+
+*Original, 2026-08-17 — **blocked task 6**:*
 
 `adr/0087` decides it *is* async and prices it. What it does not decide is whether the milestone that
 builds the copy also builds the thread. **Recommendation: build the copy and serialise from it,
