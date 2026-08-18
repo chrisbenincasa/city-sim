@@ -250,6 +250,39 @@ internal sealed class Options
     /// </remarks>
     public bool DecideGuard { get; private init; } = true;
 
+    /// <summary>
+    /// Where to write a save of the world at the end of the run, or null to write none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A flag rather than a ninth mode, on <c>--series</c>' criterion and not on a judgement
+    /// call.</b> Every mode in this runner builds a city of its own to photograph; this one rides the
+    /// run that is already happening, which is the stated reason <c>--series</c> is a flag while
+    /// <c>--traffic</c> is a mode.
+    /// </para>
+    /// <para>
+    /// <b>It prints a round trip rather than only writing a file, and the round trip is the
+    /// picture.</b> <c>05 §7</c>'s <em>replay from save</em> is a claim that a resumed city is the
+    /// same city, and a file on disk is not evidence of that — so the runner reloads what it just
+    /// wrote, runs the saved world and the unbroken one on for the same stretch, and prints the two
+    /// hash traces side by side. ***A save that is never loaded demonstrates nothing***, which is the
+    /// same reason <c>--traffic</c> steps its city twice.
+    /// </para>
+    /// </remarks>
+    public string? SavePath { get; private init; }
+
+    /// <summary>
+    /// A save to resume, or null to start from a log or a fresh world.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the half that makes a save worth writing</b>, and it is a separate invocation
+    /// rather than a phase of one: the file outlives the process, which is the only property a save
+    /// has that an in-memory copy does not. The run resumes at the Tick the save was taken at and
+    /// steps on with **no commands**, because a save records a world and not the session that made
+    /// it — see the refusal of <c>--load</c> beside <c>--log</c>.
+    /// </remarks>
+    public string? LoadPath { get; private init; }
+
     /// <summary>Which Map Layer to dump, in <see cref="Mode.Layer"/>.</summary>
     public Layer Layer { get; private init; }
 
@@ -277,6 +310,8 @@ internal sealed class Options
         List<ulong> reloadAt = [];
         string? output = null;
         string? crash = null;
+        string? save = null;
+        string? load = null;
         ulong seed = 0;
         int citizens = DefaultPopulation;
         ulong ticks = 1_024;
@@ -436,6 +471,18 @@ internal sealed class Options
 
                 case "--crash":
                     crash = value;
+                    break;
+
+                // Both imply a session for --ticks' reason: a save is taken at a Tick and a load
+                // resumes at one, so neither means anything to the report.
+                case "--save":
+                    save = value;
+                    session = true;
+                    break;
+
+                case "--load":
+                    load = value;
+                    session = true;
                     break;
 
                 case "--seed":
@@ -743,6 +790,52 @@ internal sealed class Options
         // error. A generator whose output cannot be varied cannot be characterised.
         session = session || seeded;
 
+        // A save is the run's output and a load is its input, and one invocation that did both would
+        // produce a trace that is neither -- it would save a world it had itself resumed, which is a
+        // round trip written the long way round and with no control to compare against. --save
+        // already runs the round trip internally, which is the thing somebody asking for both wants.
+        if (save is not null && load is not null)
+        {
+            complaint = "--save and --load disagree: one is what a run produces and the other is "
+                      + "what it starts from. --save already reloads what it wrote and prints both "
+                      + "traces, so ask for that; --load is for resuming a save in a later run.";
+            return false;
+        }
+
+        // A save has no schema of its own -- it is the field declaration, dumped (adr/0086) -- so the
+        // Rules are not in the file and cannot be guessed. This is Zones' polarity rather than a
+        // convenience: a world loaded under no Rules is inert, which reads as a broken save.
+        if (load is not null && rulesets.Count == 0)
+        {
+            complaint = "--load needs --ruleset PATH. A save carries no Rules: adr/0086 makes the "
+                      + "file the field declaration dumped, with no schema of its own, so the Rules "
+                      + "a loaded city runs under are the ones you name here.";
+            return false;
+        }
+
+        // A save records the world and not the session that produced it, so there is nothing in it a
+        // log could be checked against. Permitting both would mean replaying one session's commands
+        // into another session's world from the Tick the save happens to sit at, and no divergence
+        // in that run could be attributed to either.
+        if (load is not null && log is not null)
+        {
+            complaint = "--load and --log disagree: a save is a world at a Tick and a log is the "
+                      + "session that made one, and a save records nothing a log could be matched "
+                      + "against. Resume the save, or replay the log.";
+            return false;
+        }
+
+        // The picture is a round trip, so it needs a city with something in it to round-trip. This is
+        // the same refusal --zones, --roads, --trips, --commute and --traffic each make: the content
+        // is the Ruleset's, and a save of an inert world agrees with itself and demonstrates nothing.
+        if (save is not null && rulesets.Count == 0)
+        {
+            complaint = "--save needs --ruleset PATH. The round trip it prints is only evidence if "
+                      + "the city changed between the two traces, and a world with no Rules does "
+                      + "nothing between Ticks -- so the two would agree on an empty city.";
+            return false;
+        }
+
         options = new Options
         {
             Mode = evidence ? Mode.Evidence
@@ -769,6 +862,8 @@ internal sealed class Options
             Series = series,
             CrashPath = crash,
             DecideGuard = decideGuard,
+            SavePath = save,
+            LoadPath = load,
         };
 
         return true;
@@ -816,6 +911,15 @@ internal sealed class Options
           --no-decide-guard     stop proving every Tick that Phase 2 wrote nothing.
                                 The proof is O(world) per Tick; turn it off for a
                                 long run at scale and leave it on everywhere else
+          --save PATH           save the world at the end of the run, then RELOAD it
+                                and run both on, printing the two hash traces side
+                                by side. A save that is never loaded demonstrates
+                                nothing, so the round trip is what this prints.
+                                Needs --ruleset
+          --load PATH           resume a save written by --save and run --ticks more.
+                                Starts at the Tick the save was taken at, with no
+                                commands: a save is a world, not a session. Needs
+                                --ruleset, and refuses --log
           --layer NAME          dump a Map Layer's Cell grid before and after a source
                                 change, with the halo that was recomputed. NAME is
                                 pollution, land-value or sealing

@@ -6,13 +6,14 @@
 
 ## Status
 
-🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; tasks 1–6 shipped 2026-08-17 and task 7 on 2026-08-18** —
+🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; tasks 1–6 shipped 2026-08-17 and tasks 7–8 on 2026-08-18** —
 the rebuild audit and `Disposition.Scratch`, the column storage accessor, `Rows.Restore`, the header,
-the writer and reader, the copy, and **the Factorio test**. ✅ **All five open decisions are closed**,
+the writer and reader, the copy, **the Factorio test**, and **`--save`/`--load`**. **Task 9, the long
+acceptance run, is what is left.** ✅ **All five open decisions are closed**,
 each by the task it blocked. ⚠ **One question
 is open that was not on the list**: whether a save carries a verified State Hash — `adr/0087` says it
 would be computed from the copy and **that is not buildable**, because a fold over bytes is not the
-State Hash. See task 6. **1,530 tests green
+State Hash. See task 6. **1,537 tests green
 and no baseline re-recorded**, because the milestone adds no table and no column, `Scratch` was already
 outside the fold, and a header is not part of the city. ⚠ **`05 §4` invariant 6 — *run N, save, reload,
 run M* — has machinery for the first time in the project's life**, and it is green over seven cases and
@@ -938,6 +939,72 @@ save at a Tick, reload, run on, print the hash trace beside the unbroken run's.
 
 ⚠ **`Options.cs` is this milestone's one file-level collision with the parallel milestone 6 session**,
 which is adding `--evidence` to the same switch. It is a merge, not a conflict of substance.
+
+#### ✅ Task 8 shipped 2026-08-18 — two flags, not a ninth mode, and a trace's Tick label was a claim about where the loop started
+
+**`--save PATH` and `--load PATH`, `src/Borough.Headless/SaveStreams.cs`, 7 new runner tests, 1,537
+green.** `05 §7`'s *replay from save* is a thing somebody can type.
+
+**Flags rather than a ninth mode, and the criterion is the runner's own.** Every mode in `Options`
+builds a city of its own to photograph; `--series` is a flag because *"it builds no world… it is a
+second rendering of a run that is already happening"*. These ride the run that is already happening,
+so they are flags. ***A criterion already written down beats a fresh judgement about the same
+question***, and this one was written for `--series` in slice 7.
+
+**What each does.** `--save PATH` writes the world at the end of the run and then **reloads it and runs
+both cities on**, printing the two hash traces side by side with a verdict — because ***a save that is
+never loaded demonstrates nothing***, which is `--traffic`'s reason for stepping its city twice. The
+further stretch is `--ticks` again rather than a number chosen in the runner, since a fixed tail would
+be a hash-bearing quantity with no ratifier in the one place it is cheapest not to have one. `--load
+PATH` resumes in a **later invocation**, which is the only property a save has that `WorldSnapshot`
+does not: the file outlives the process.
+
+⚠ ***A label derived from a loop counter is a claim about where the loop started, and this one was
+wrong the moment a run could start anywhere but Tick 0.*** `Session.Write` labelled each trace sample
+`(i + 1) × hash-every`. That is the Tick **only for a run beginning at zero**, which was every run this
+runner could do until `--load` existed — so a resumed run labelled its samples **128 and 256 while
+standing at Ticks 640 and 768**. Plausible numbers, wrong ones, in a file whose entire purpose is to be
+diffed against another. The assumption was nowhere written down, because until this task nothing could
+violate it. **A second one beside it**: the trace header carried `citizens 10000`, the flag's default,
+for a resumed run that never supplied it — and that header exists to record *what would have to match
+for two traces to be comparable*, so a default is the one kind of wrong value it must not carry. Both
+fixed at the source; the resumed run now reads its Citizen count off the loaded world.
+
+**Two refusals worth their reasons.** `--load` beside `--log` is refused because ***a save records a
+world and a log records the session that made one***, and permitting both would replay one session's
+commands into another session's world from whatever Tick the save sits at, with no divergence
+attributable to either artefact. And **a save resumed under a Ruleset it was not saved under is
+refused, with `--force-ruleset` marking the trace `hash-broken`** — `RulesetCheck`'s polarity applied
+to a file instead of to a log, which is exactly the mark `05 §7` asks for and which the header's
+Ruleset content hash is what makes checkable. Verified both ways on `minimal-tuned.toml`: refused by
+default, and forced it runs and diverges at the first sample, as a different Ruleset must.
+
+⚠ **The stream adapter is in the shell and is not a format.** `Borough.Core` has no `System.IO` and
+this milestone did not give it any, so `SaveSink`/`SaveSource` wrap a `Stream` in D7's two interfaces
+from the side that already owns files. It is **not** in `Borough.Formats`, because that project holds
+the artefacts that spell things in words and both shells must agree on those (`adr/0039`) — a save has
+no schema of its own (`adr/0086`), and *a `Stream` wearing an interface is not a thing two shells could
+disagree about*. ***It does not become a format because a second caller appears.***
+
+**What it looks like**, at 4,000 Citizens over `minimal.toml`, 512 Ticks then 512 more:
+
+```
+Saved 547,488 bytes at Tick 512 to /tmp/city.borosave
+Reloaded at Tick 512, hash FCFBE5311BC66072 against FCFBE5311BC66072
+
+        tick  unbroken          round-tripped
+         640  1DF7341EAC0CF707  1DF7341EAC0CF707
+         768  23CAB88C60182DD4  23CAB88C60182DD4
+         896  07D10632CC7B9821  07D10632CC7B9821
+        1024  E1509D616B842CCB  E1509D616B842CCB
+
+The round trip agrees, over 4 samples and 512 Ticks.
+```
+
+⚠ **It is a demonstration and not the test.** `FactorioTests` is the assertion — seven cases, two
+Rulesets, compared at **every** Tick — and this compares on the trace cadence over one invocation, so a
+divergence between two samples would be reported at the sample after it. What it is for is a person
+watching a round trip happen, which no test can be.
 
 ### Task 9 — the long acceptance run
 
