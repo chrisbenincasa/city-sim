@@ -11,9 +11,19 @@ concurrent session and milestone **9** — the next number in the spine — turn
 independent root [`06`](../docs/06-roadmap.md)'s dependency graph says it is. See *What scoping
 found* → **F1**.
 
-**Five decisions are open and each is named against the task it blocks.** Two of them are
-hash-bearing numbers that the corpus declares owed in prose and that sit in **no ledger**, so they
-have no ratifier — [`0002`](0002-open-questions.md) §D has never held a row for either.
+**Six decisions, of which one is settled and five are open**, each named against the task it blocks.
+Two of the open ones are hash-bearing numbers that the corpus declares owed in prose and that sit in
+**no ledger**, so they have no ratifier — [`0002`](0002-open-questions.md) §D had never held a row
+for either until this brief filed them.
+
+✅ **Decision 1 settled 2026-08-18 with the user in the room** —
+[`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md):
+**a Business is an entity, and this milestone builds it.** ⚠ **It was posed as a contradiction
+between two ADRs and there is none** — a Business is an Occupant rather than a Building, so both were
+correct and neither is amended; what they contradict is the **build**, which has no Business at all.
+⚠ **And settling it opened decision 6, which is the milestone's largest**: a balance is a **column**,
+a Rule can only touch a **Bin**, and `BinTable.Owner` is typed to `Building` — so **no money any
+actor holds is reachable by any Rule**, which is every flow this milestone exists to build.
 
 ---
 
@@ -111,32 +121,42 @@ question `02 §9` asks and `CitizenEvidence` currently declines.
 
 ## Open decisions this milestone owes, before the task that needs them
 
-### 1. Where a Business's balance lives — and two ADRs disagree in their own words
+### ~~1. Where a Business's balance lives~~ — ✅ **SETTLED 2026-08-18 with the user in the room. A Business is an entity, and this milestone builds it.** [`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)
 
-⚠ **Blocks task 5.** `adr/0024`'s consequence list says *"**Businesses hold money.** Closes the open
-question of whether they hold only Bins. They hold a balance"*, and
-[`02 §4.3`](../docs/02-simulation-model.md) generalises it — *"money is nonetheless **held** at
-`local` scope by every actor that has any… **no actor's balance is ever `global`**."*
+**A Business is a row in a `BusinessTable`, an Occupant of a Building, holding its balance as a
+column on its own row exactly as a Household does. A Building never holds money.** This milestone
+builds the table and the balance and **nothing else of a Business** — no inputs, outputs, employment
+or market behaviour, all of which belong to milestones **9**, **13** and **15**.
 
-[`adr/0025`](../docs/adr/0025-density-is-a-cap-and-it-trades-land-for-materials.md)`:88` says the
-opposite, by name: a Building *"may hold Bins, one Access Point, one Parking Shed. It may **never**
-hold a Need, **money**, a Provider List, or a Trip."* There is no `BusinessTable`; a Business in this
-build **is** a Building.
+⚠ **This entry was posed as a contradiction between two ADRs and there is none.** `CONTEXT.md` had
+already settled it: → Occupant is *"a Household or a **Business**. What fills a Building"*, and →
+Business is *"the commercial or industrial economic actor **occupying** a Building."* A Business is
+not a Building, so `adr/0024`'s *"Businesses hold money"* and `adr/0025`'s *"[a Building] may never
+hold a Need, **money**, a Provider List, or a Trip"* are both correct as written and **neither is
+amended**.
 
-⚠ **The clause bans money and permits the container money lives in.** `CONTEXT.md` → Bin says a Bin
-holds one Resource and that money is one, and [`04 §2`](../docs/04-economy-and-goods.md) says *"Money
-is a Resource too, and its Bin is unbounded."* So a money Bin at `local` scope on a Building is
-simultaneously permitted by the clause's first sentence and forbidden by its second.
+⚠ **The contradiction was between both ADRs and the build**, which has no Business at all — the word
+survives in two doc-comments, `BuildingTable.OccupantHead` links `HouseholdTable.DwellingNext`, and
+`BinTable.Owner` is a `HandleColumn<Building>`. So a Business's money had nowhere to go but the one
+place `adr/0025` forbids, **because the actor it belongs to does not exist**. ***An apparent
+contradiction between two documents can be a contradiction between both of them and the build, and
+the tell is that neither document is wrong when read on its own.*** Under `adr/0070` the Business is
+**unbuilt**, so *should a Building hold money instead* was void and the answer is to build it.
 
-**Its stated reason does not reach the case it forbids.** `adr/0025`'s test is *"a Building field that
-would have to be averaged across its Occupants is a Cohort forming"* — and a Business's balance is
-**not** an average over its Occupants; it is the Business's own, and it is exactly what
-[`adr/0050`](../docs/adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md)
-means by *"it buys inputs at Pool prices, sells outputs at Pool prices, and the difference is a
-margin nobody had to invent a mechanism for."* ***A prohibition can name a thing its own reason does
-not cover***, and the corpus has met the mirror of this — `plans/0026`'s *a doc-comment forbidding one
-shape is not a decision permitting the others*. Settle it with an amendment banner on whichever ADR
-loses, never by reading one of them charitably at the write site.
+⚠ **The cheap exit was refused on `adr/0025`'s own test.** A money Bin on the Building fails *"a
+Building field that would have to be averaged across its Occupants is a Cohort forming"* — because
+`OccupantHead` is the head of a **list**, so such a Bin is a sum over however many Occupants are in
+it, which is an average wearing a total. **The clause is the Cohort prohibition applied to the
+container, not a preference about where fields go.**
+
+⚠ **Its largest consequence is a schedule finding**: the word *Business* appears **nowhere** in
+[`06`](../docs/06-roadmap.md) — not in the milestone table, not in either inventory — though the
+entity is fully designed. ***An inventory row naming a mechanism that acts on an entity reads as
+scheduling the entity***: *Commercial and industrial placement* is placed at 13, and it places
+Buildings rather than creating actors. **Fifth recorded blind spot in that table, and the first where
+the mechanism is designed rather than undesigned.**
+
+⚠ **What it does not decide is decision 6 below**, and settling this is what exposed it.
 
 ### 2. Money's unit — declared owed, and it is in no ledger
 
@@ -196,6 +216,40 @@ Rule with, per `01 §2`, *"a named payer and named beneficiaries"*, and per `CON
 *"moves conserved Money between named parties."* That is more structure than a tax rate. Examine it
 **before** writing the command, because the Input Log's shape is replay's shape.
 
+### 6. How a Rule reaches a balance — **NEW 2026-08-18, and it is the milestone's largest**
+
+⚠ **Blocks tasks 1, 4 and 5 — which is most of the milestone.** Opened by settling decision 1, and it
+is bigger than the decision that exposed it.
+
+**A balance is a column and a Rule can only touch a Bin.** `HouseholdTable.Money` is
+`Saved<Money>("money")`, a column (`HouseholdTable.cs:44`). `RuleEngine.Bin` resolves `Scope.Local`
+through `World.FindBin(buildingSlot, resource)` (`World.cs:1808`). And **`BinTable.Owner` is a
+`HandleColumn<Building>`** (`BinTable.cs:59`) — typed, saved, and the only ownership a Bin has.
+
+⚠ **So no Household, no Business and no treasury can own a Bin, and therefore no money any actor
+holds is reachable by any Rule.** Every flow this milestone exists to build crosses that line: a tax
+drawn from a Household, a transfer paid to one, `02 §4.3`'s treasury transfer — *"`local` money out,
+`global` money in, balancing within the one atomic Rule"* — and `adr/0050`'s margin.
+
+⚠ **`adr/0065` left exactly this open and said so**: *"**what this does not settle:** whether money
+belongs in a Bin at all."* It has been open since that ADR and nothing has needed it until now.
+⚠ **`CONTEXT.md` states the side the build does not implement** — *"the Household's Money is a `long`
+and money is a Resource held in a **Bin**"* — while `HouseholdTable` holds a column, so the corpus
+and the build already disagree about the one actor that has a balance.
+
+**Three shapes, and none is obviously right:**
+
+| | What it does | What it costs |
+|---|---|---|
+| **Widen `BinTable.Owner`** | A Bin's owner becomes a discriminated handle — Building, Household, Business, treasury | A tag in a hot saved column, in a codebase where lint 7 forbids reference types; every Bin lookup pays for a case most Bins never take |
+| **Money gets its own term kind** | Balances stay columns; a money term resolves per owner beside the Bin path rather than through `FindBin` | Two paths through the Rule engine. ⚠ But `02 §4.3` already spells a treasury movement as a **transfer** naming two *parties* rather than two Bins, so this may be what the corpus already decided |
+| **A Bin table per owner type** | Homogeneous handles throughout | Duplicates the wait-list machinery, which is the thing a Bin exists for |
+
+⚠ **Type it before settling it** ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)):
+this is **arguable**, not measurable — no number refutes any of the three — so a sitting may close it,
+and it wants an ADR of its own. ⚠ **It is hash-bearing in every shape**, because all three change
+what is in the saved set.
+
 ---
 
 ## Tasks
@@ -243,6 +297,32 @@ out of step before. Update all three in the same commit, or the next reader re-d
 **In this milestone there is no gate**, so the check is an equality against a constant rather than a
 sum with a flow term. Write it that way and let milestone 14 add the term; ***an assertion that is
 correct and temporarily strict*** is 5b's distinction and the good side of it.
+
+### Task 4b — `BusinessTable`, and the second Occupant kind the build has never had
+
+⚠ **NEW 2026-08-18, from decision 1** ([`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)).
+A `BusinessTable` with a Building handle and a `Money` column, plus a `BusinessHead` on
+`BuildingTable`. **The balance is a column on the actor**, on `HouseholdTable.Money`'s precedent and
+for its reason — `adr/0024`'s *"one integer per Household and per Business"* is only trivial if both
+actors spell it the same way.
+
+⚠ **The occupant list stays homogeneous.** This is a **second list on the Building**, not one
+polymorphic list holding two row types — `BuildingTable` already carries `OccupantHead` into
+`HouseholdTable.DwellingNext` and `WorkerHead` into `CitizenTable.WorkerNext`, so a Business list is
+the **third axis on the precedent of the second** and every handle stays typed. `CONTEXT.md` →
+Occupant is therefore a **concept spanning two lists** rather than a discriminated union, which is
+what lint 7 wants anyway.
+
+⚠ **Build the balance and stop.** A Business fully modelled *"consumes inputs, produces outputs,
+employs Citizens, and offers Goods or services to the market"* — which is milestones **9**, **13**
+and **15**. This milestone needs exactly one property: somewhere for conserved money to sit that is
+not a Building.
+
+⚠ **How many Businesses occupy one Building is *undesigned*, and nothing in the corpus states it.**
+It does not block the table — a balance on the actor is right at any cardinality, which is the
+property a Bin on the Building lacks — but it **does** block the first money term a Rule fires on a
+workplace, because `local` money must resolve to *an* actor and a list does not name one. It lands
+with decision 6.
 
 ### Task 5 — the Household balance sheet gets a production writer
 
