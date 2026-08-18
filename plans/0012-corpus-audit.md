@@ -764,6 +764,54 @@ complies with it** — it names a **symbol**, not a time, so one `find_symbol` s
 symbol makes a claim checkable; it does not make anybody check it*, which is the half of that ADR
 nothing enforces.
 
+### Milestone 8's scoping collection — three, all unpaid, and the first is a new surface for Cause 4
+
+**1. ⚠ `BOR0901`'s diagnostic message describes a save serialiser that does not exist.** The
+message a developer reads when they trip the lint says *"both the save serialiser and the State Hash
+are generated from that one declaration"*, and its extended description reasons from a *"save/reload
+test [that] passes because the field is saved"* (`src/Borough.Analysers/Diagnostics.cs:181-183`).
+**The State Hash half is true; the save half has never existed** — `src/Borough.Formats/` holds eight
+files and none touches world state.
+
+⚠ **This is Cause 4 on a surface [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+inventory does not name.** That ADR enumerates an ADR, a plan, a doc-comment, and what a test suite's
+coverage implies. **A compiler diagnostic is a fifth, and it is the most persuasive of them**: it is
+current by construction, it is emitted by the build itself rather than written beside it, and it is
+read at the exact moment the reader is being taught the rule and is therefore least equipped to
+audit it. ***A description of the build that arrives with the build's authority is the one nobody
+checks.*** **Not paid, and deliberately**: milestone 8 makes the sentence **true** rather than
+correcting it, which is available exactly once and is the better repair. Strike this entry when task
+5 lands; if milestone 8 slips, correct the message instead.
+
+**2. ⚠ "Milestone 8" names two different milestones inside `src/`, and the retired-numbering table
+structurally cannot reach it.** Session K mapped old **8 → 7** (parking) and old **10 → 8**
+(Save/load). Both old numbers are live in the build:
+
+| Says | Means | Sites |
+|---|---|---|
+| *"milestone 10"* | **Save/load** — now 8 | `Formats/CrashArtifact.cs:36`, `:38`, `:82`, `:140`, `:195`; `Core/Entities/LotTable.cs:14` |
+| *"milestone 8"* | **Parking** — now 7 | `Core/Movement/TripEngine.cs:198`, `:395`; `Core/Entities/World.cs:1082`, `:1135`; `tests/…/AccessPointTests.cs:53`; `tests/…/StatisticalTravelTimeTests.cs:243`; `tests/…/CarOwnershipTests.cs:151` |
+| *"milestone 8"* | **Save/load** — correct | `tests/…/CondemnationTrailTests.cs:264` |
+
+So somebody grepping `milestone 8` for this milestone's obligations finds **parking six times out of
+seven**, and the single correct hit was written on 2026-08-17 by the session building milestone 6 —
+***the collision is being created faster than it is being repaired, because new writing uses new
+numbering while the old sites sit unmigrated beside it.*** [`06`](../docs/06-roadmap.md):390 already
+warns that *a retired-numbering table makes an old citation resolve and cannot stop a new one being
+translated as though it were old*; the new half is that **this instance is inside the build**, where
+`06`'s table cannot reach it and **no document-to-document check can see it** — checks 1–8 are all
+prose-to-prose. **Repair is by reading each citation's subject, never its digits**, so it is a sweep
+by somebody who opens all thirteen sites, and it is not a line in a save commit.
+
+**3. `adr/0087` says *both double-buffered tables have settled* and there is one.** Exactly one table
+declares `Buffering.TwoCopies` — `LayerCellTable` (`src/Borough.Core/Space/LayerCellTable.cs:44`) —
+and `Simulation.cs:709` calls it *"the first table in this project to declare"* it. The second the
+corpus counts is **Lane dynamics, which does not exist**; `TripTable`, `LegTable` and `TravellerTable`
+are all `OneCopy`. **The ADR's conclusion is untouched** — the phase-7 boundary is after the one
+table has settled, and a save may ignore `_back` entirely — so this is a count and not an argument.
+`CLAUDE.md` and `05 §3` carry the same *"two tables"* phrasing. ***A number stated as a fact about the
+build ages against the build, and a conclusion that does not depend on it will not report the drift.***
+
 ---
 
 ## Fixed in the sitting that found them

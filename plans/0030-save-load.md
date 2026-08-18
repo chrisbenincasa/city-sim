@@ -1,0 +1,524 @@
+# 0030 — Save/load
+
+`06` milestone **8**. The brief.
+
+---
+
+## Status
+
+🟡 **SCOPED 2026-08-17, not started, ungated.** Session **K** checked it and found nothing in front of
+it: [`adr/0086`](../docs/adr/0086-a-save-has-no-schema-of-its-own-and-the-field-declaration-is-the-format.md)
+settles the format, [`adr/0087`](../docs/adr/0087-a-save-is-copied-at-save-cadence-not-read-from-a-past-that-no-longer-exists.md)
+settles the cadence, and `05 §6`'s threading policy — the one thing that looked like a gate — decides
+nothing this milestone needs, because `adr/0087`'s opening sentence already decides the one threading
+fact a save has.
+
+**Nine tasks.** One decision was taken with the user in the room before scoping (*the magic number is
+deferred*), and **five remain open**; all five are listed under *Open decisions this milestone owes*
+with the task each blocks.
+
+⚠ **Scoping it moved the milestone's weight from the write side to the load side, and the survey is
+what moved it.** `06` records that the milestone *"got smaller"* when `adr/0086` deleted the authored
+layout, and that is true of the **format**. It is not true of the **build**: `Rows` has no restore path
+at all — the four allocator scalars are private with no accessors and no setters, and
+`AllocateSlot`/`FreeSlot` are `private protected` (`Rows.cs:279-320`), so **nothing outside the class
+hierarchy can place a row in a chosen slot**. Writing bytes out is a new abstract member on `Column`.
+Getting them back in is a new capability the table layer does not have. ***A format decision that
+removes an authored layout removes work from the writer and none from the reader***, and `06`'s
+sentence is about the file.
+
+⚠ **The milestone's named risk has a sharper instrument than the Factorio test, both halves are
+already in the tree, and it needs no save format at all.** `World.RebuildDerived()`
+(`World.cs:888`) exists and its own doc-comment says *"this is what a load will call, and what proves
+the declaration was honest"*; `Rows.FoldAll` (`Rows.cs:204`) folds derived columns as well as saved
+ones. Rebuild on a running world, fold everything, compare — and a derived column that does not
+rebuild to the value it had fires **immediately**, with no save, no reload and no M further Ticks.
+That is **task 1**, and it is deliberately first: it attacks the residual risk before a byte of format
+exists, and it is the one task that can fail on the day it is written.
+
+⚠ **Three of the survey's findings are live defects or near-defects and are recorded under *What
+scoping found*.** `layer_cell.pollution_pass` is declared `Derived` and **nothing rebuilds it**;
+`road_segment.fidelity` rebuilds to a constant `0`; and `BOR0901`'s own diagnostic message already
+tells the developer that *"both the save serialiser and the State Hash are generated from that one
+declaration"* (`Diagnostics.cs:181-183`) — a description of a build half of which does not exist,
+which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+in the one place a reader is least able to check it.
+
+---
+
+## Why this milestone exists, in one paragraph
+
+**There is no save.** `src/Borough.Formats/` holds the Input Log codec, the Ruleset loader, the hash
+trace and the crash artifact, and nothing that touches world state; `src/Borough.Core/` contains no
+`System.IO` reference at all. `05 §4`'s **invariant 6** — *run N, save, reload, run M; versus run
+N+M* — is one of the two lints in that list still described as needing machinery that does not exist,
+and it is the one whose machinery is a milestone rather than a research problem. Three things in the
+tree are already written against its absence and say so: `CrashArtifact.From` is declared, is
+documented as *"the checkpoint-shaped field"*, is **always zero**, and its reader **refuses** a
+non-zero value it cannot honour (`CrashArtifact.cs:35-41`, `:82`, `:140`, `:195`); `World.RebuildDerived()`
+is written for a load that does not exist; and `BOR0901` describes a save serialiser to every
+developer who trips it. This milestone builds the thing all three are waiting for.
+
+---
+
+## The named risk
+
+**A derived column that does not rebuild to the value it had** (`adr/0086`, `05 §7`).
+
+The class `05 §7` used to name — *unsaved state: a cached value, a dirty flag, an accumulator, a
+lazily-built index* — has been made **unrepresentable**. Declaring a field through `Rows.Saved`,
+`Rows.Derived` or `Rows.SavedHandle` is what *allocates* it (`Rows.cs:101-128`), and `BOR0901` is a
+build error on storage in a `[Table]` type that is neither. So a field is in the file by construction
+or was never meant to be, and there is no third case.
+
+What survives is the other half, and it is live. **A derived column is outside the State Hash** —
+`Rows.Fold` filters on `Disposition.Saved` (`Rows.cs:184`) — so a wrong rebuild moves no hash directly
+and is invisible to replay, to the golden baseline and to the save/reload comparison alike, until it
+propagates into saved state some number of Ticks later. `EmploymentTests.cs:28-31` says exactly this
+about the worker list, in the file that maintains it.
+
+⚠ **The risk is concentrated and the survey says where.** There are **28 derived columns across 9 of
+the 18 tables**, and three of them — `lots.frontage_slot`, `lots.frontage_offset`,
+`lots.building_slot` — have **two producers by design**: a maintained write path and a rebuild path
+(`LotTable.cs:208-210`, which calls this *"the established pattern here rather than a hazard"* and
+says *"a test that the two agree is what stops them drifting"*). That test is task 1. **Today's
+coverage is 2 of 28** — `StateHashTests.cs:92` corrupts `OccupantHead` and `MemberHead` and checks
+those two lists, and nothing rebuilds and compares all derived storage.
+
+---
+
+## What the build already holds — surveyed 2026-08-17
+
+Recorded because four of the nine tasks are smaller than they look and two are larger, and the
+difference is in the survey rather than in the ADRs.
+
+| | What exists | Where |
+|---|---|---|
+| **Table enumeration** | `World.Tables` → `ReadOnlySpan<Rows>`, declaration order = hash composition order | `World.cs:623`, order at `:170-192` |
+| **Column enumeration** | `Rows.Columns` → `ReadOnlySpan<Column>`, all columns, declaration order | `Rows.cs:98` |
+| **The fold** | `Rows.Fold` — four allocator scalars, then `Saved` columns, slots `[0, _slotCount)` | `Rows.cs:171-191` |
+| **The derived rebuild** | `World.RebuildDerived()`, argument-free, ordering constraints stated in its own comments | `World.cs:888-1016` |
+| **The everything-fold** | `Rows.FoldAll`, `internal`, derived columns included | `Rows.cs:204-219` |
+| **Ruleset content hash** | `ContentHash.Of`, and `Simulation._inForce` carries it | `RulesetFile.cs:71`, `Simulation.cs:55` |
+| **Per-row size** | `Rows.BytesPerRow(Touch)` — so the saved-set total is computable | `Rows.cs:156` |
+| **The phase-7 boundary** | `Simulation.Commit(Ticks)`, serial, currently the staggered invariant tier only | `Simulation.cs:782-790` |
+
+| | What does **not** exist | Consequence |
+|---|---|---|
+| **Disposition-filtered enumeration** | No `Columns(Disposition)`, no `SavedColumns`. Three call sites each write the `if` by hand (`Rows.cs:184`, `Report.cs:78-87`, `CondemnationTrailTests.cs:272-277`) | A fourth hand-written filter, or one shared accessor. Task 2 |
+| **A type-erased byte accessor on `Column`** | `Fold` is the only type-erased traversal. `Column<T>.Span` is typed; `Raw` is `private protected` | A new abstract member on `Column`, a sibling to `Fold`. Task 2 |
+| **Any restore path on `Rows`** | `_slotCount`, `_liveCount`, `_freeHead`, `_nextId`, `_capacity` are private with **no accessors** for the middle two and **no setters** for any; `AllocateSlot`/`FreeSlot` are `private protected` | The largest single item. Task 3 |
+| **A format version** | Nothing versions the declaration set | Task 4 |
+| **A generator version** | `GeneratorVersion` appears nowhere in `src/` or `tests/` | Task 4 |
+| **Any save code** | `Borough.Formats` holds eight files, none touching world state | Tasks 5–6 |
+
+**Scale.** 18 tables; **116 declared columns plus 54 intrinsic** (`id`, `generation`, `free_next`, three
+per table) = ~170; **28 derived**, so the saved set is ~142 columns. ⚠ **Nobody has totalled the saved
+set in bytes** — `adr/0087` says so in as many words and calls it *"milestone 8's to report, not this
+ADR's to guess"*. S0a's **85.98 MiB** at 1M is the saved **and** derived total and **must not be quoted
+as the save's size** ([`0012`](0012-corpus-audit.md) *Cause 5*).
+
+---
+
+## What was settled before scoping
+
+### D1 — the serialiser lives in `Borough.Core`, and it is derived rather than chosen
+
+`CLAUDE.md` already says the save *"stays in `Core`"*, and the survey supplies a mechanical reason
+where there had been a stylistic one. **Two `internal`s decide it**: `Randomness.Mix` is `internal` to
+`Borough.Core` (`Randomness.cs:68`), and `Handle<T>.Index` and `.Generation` are `internal`
+(`Handle.cs:47`, `:50`). A writer in `Borough.Formats` can reach neither, so it could not read a handle
+column field-wise nor verify a hash. Putting the save there does not cost an argument — it costs
+**moving the assembly boundary**, which is `05 §1`'s decision and not this milestone's.
+
+⚠ **This does not put file I/O in `Core`.** `Borough.Core` contains **zero** `System.IO` references
+and that is a property worth keeping. `Core` serialises to and from bytes; who writes those bytes to a
+disk is **open decision 1**.
+
+### D2 — the magic number is deferred, with the user in the room, 2026-08-17
+
+[`0003`](0003-build-plan.md) §*The name* makes **this milestone** the revisit trigger for the project
+name, on the ground that a rename is an hour today and stops being cheap at *"the save format's magic
+number"*. The user's call is **defer the magic number**, so the trigger does not fire here and the
+name is not reopened.
+
+⚠ **Record what deferring costs, because it is not nothing.** A file with no self-identifying prefix
+is diagnosed by its first failing field rather than at byte 0, so a truncated file, a file of another
+type, and a file from a different product all produce the same class of complaint. That is acceptable
+at a stage where the only reader of a save is the binary that wrote it, and it is the reason to write
+the **format version** first in the header anyway (task 4) — a version number in a known position is a
+weak magic number.
+
+⚠ **And the name is already inside a constant.** `World.HashSeed` is `0x426F_726F_7567_6802UL` —
+`"Borough"` plus a version byte (`World.cs:58`). Moving it moves every hash, which under
+[`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+costs one command **while nobody is carrying a save**, and this milestone is what ends that. So the
+trigger `0003` names is real and deferring the magic number does not disarm it; it narrows it.
+**Revisit when the first save is carried across a build**, which is task 9's run and not before.
+
+---
+
+## Tasks
+
+Ordered. **Task 1 needs no format and can fail on the day it is written**, which is why it is first.
+Tasks 2 and 3 are the table layer; 4–6 are the file; 7–9 are the proof and the picture.
+
+### Task 1 — the rebuild is honest, and no file is involved
+
+Build the whole-world rebuild audit `World.RebuildDerived`'s own doc-comment describes: fold every
+column of every table (`Rows.FoldAll`), call `RebuildDerived()`, fold again, assert equal. Run it over
+a **stepped** world at several Ticks and over the golden fixture, not over a freshly built one —
+`RoadGraph.cs:55-64` records that a derived structure reads as *absent* rather than *stale* before its
+first rebuild, and absent is the state every guard is written against.
+
+**Coverage goes from 2 of 28 derived columns to all of them.** Where it fails, the fix belongs to the
+column's owner and not to this milestone; route it per
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+**on the day**, before working around it.
+
+⚠ **It cannot pass as written, and that is the task's first deliverable rather than a defect in it.**
+`layer_cell.pollution_pass` is declared `Derived` (`LayerCellTable.cs:51`) and **nothing rebuilds
+it** — not `MapLayers.RebuildDerived` (`:510`, a one-liner over residency) and not `World.RebuildDerived`'s
+clear block. Its own declaration says its content between two diffusions *"is meaningless by
+declaration"* (`LayerCellTable.cs:96-102`), so the intended answer is *do not check this one* — which
+means the audit needs an **exemption**, and an exemption needs a **rule**. That is **open decision 2**
+and it blocks this task.
+
+⚠ **A second column to look at rather than to fix, and the author got there first.**
+`road_segment.fidelity` is rebuilt to a constant `0` (`RoadGraph.cs:343`) and that is its only write
+anywhere in `src/` or `tests/` — `adr/0007`'s named hole. The comment above it says the zero is
+written *"rather than left alone so that a rebuild is idempotent over a column somebody may later
+start writing"* (`:341-342`), which is this task's whole premise reached from the other side. So it
+passes the audit today **by intent**, and it stops passing the moment milestone **22** writes real
+Stress into it, at which point the rebuild would silently zero a live value. Assert the constant now,
+so the day it becomes false is a red test rather than a divergence.
+
+### Task 2 — a column's bytes, out and in, and the saved set totalled
+
+Add the type-erased sibling to `Column.Fold`: a member that writes a column's slots `[0, slotCount)`
+to a byte span and one that reads them back. `Column<T>` implements it over
+`MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount))`, which is what `Fold` already does
+(`Column.cs:208-243`) — **little-endian by existing decision**, via `BinaryPrimitives`, and the save
+inherits that rather than choosing it.
+
+**`HandleColumn<T>` does not override it, and that is the interesting half.** `Fold` *is* overridden
+there, to fold the target row's monotonic id rather than the handle (`Column.cs:322-339`), because the
+hash must be blind to slot recycling. The **file must store the handle** — `{index, generation}` —
+because a load has to restore the same slots, and `Column.cs:258-263` already says raw handles *"would
+be correct for both uses the hash has today"*. So the bytes and the fold diverge in exactly one place,
+by design, and `adr/0086` names it: ***a save round-trip must preserve the hash and need not preserve
+the bytes***.
+
+Add the disposition filter as one shared accessor rather than a fourth hand-written `if`.
+
+**Deliverable beyond the code: the saved set in bytes**, per table and totalled, at the golden fixture
+and at 1M, from `Rows.BytesPerRow`. `adr/0087` names this as owed and nobody has computed it.
+
+### Task 3 — the allocator restore path, slot-exact
+
+`Rows` gains the ability to be restored: `_slotCount`, `_liveCount`, `_freeHead` and `_nextId` set
+from a file, and a column's bytes placed at a chosen slot range without going through `AllocateSlot`.
+This is the largest item in the milestone and the one with no precedent in the tree.
+
+**Slot-exactness is the whole constraint** (`adr/0086`). The free list and the id counter are *saved
+state*, not bookkeeping to recompute: a loader that rebuilds the free list by scanning for dead rows
+produces a different `_freeHead` and a different hash. Freed slots hold zeroes — `FreeSlot` clears
+every column at the slot (`Rows.cs:330-333`) — so the residue is reproducible rather than arbitrary,
+which is what makes a byte-exact round trip achievable at all.
+
+⚠ **Two things a restore must not do.** It must not normalise a stale handle in a
+`Reference.Severable` column to `default` — `HandleColumn.IsDangling` exempts those (`Column.cs:310-320`)
+and **the stale handle is the state** (`Declaration.cs:145-150`). And it must not leave `_back`
+holding old content on a `Buffering.TwoCopies` table: `Column.Clear` zeroes **both** halves precisely
+because *"a `_back` left holding an old row would resurrect it on the next swap"* (`Column.cs:174-185`).
+
+⚠ **Exactly one table declares `TwoCopies` today — `LayerCellTable` (`:44`)** — and the corpus's
+standing sentence that *two* tables are double-buffered counts a Lane-dynamics table that does not
+exist. `Fold` reads `_values` only (`Column.cs:208-209`), and `_back` is meaningful only inside
+`MapLayers.Diffuse` between `PrepareBack` and `SwapBuffers` (`MapLayers.cs:593-607`), which is
+synchronous within one phase. **So a save taken at a phase boundary may ignore `_back` entirely**, and
+`adr/0087`'s *"both double-buffered tables have settled"* is right about the boundary and out by one
+about the count. Filed to [`0012`](0012-corpus-audit.md).
+
+### Task 4 — the header, and the three version numbers
+
+Write the header `adr/0086` specifies. **Format version first**, then the rest.
+
+| Number | Status today | This task |
+|---|---|---|
+| **Format version** — the declaration set | Does not exist | Create it. ⚠ **It is not `World.HashSeed`'s version byte** — see *What this milestone must not do* |
+| **Ruleset content hash** — the content | Exists: `ContentHash.Of` (`RulesetFile.cs:71`), carried by `Simulation._inForce` | Write it; `05 §7`'s two load policies already say what a mismatch means |
+| **Generator version** — the terrain for a seed | **Does not exist anywhere** | Create it. `adr/0021` **pins** it: no migration, because a moved landscape has no repair |
+
+⚠ **The header must also carry `WorldKey`, and this is not obvious from either ADR.** `World.Key`
+(`World.cs:349`) is not a column and folds nothing, and `World.cs:325-329` states that
+`RebuildDerived` *"takes no arguments and must not start taking them"* and cannot reproduce the
+commute roster without it. **So a save that omits the world key cannot rebuild a derived structure**,
+which is the milestone's named risk arriving through the header rather than through a column.
+
+**`_phase` and `_inForce` are the residue of [`0002`](0002-open-questions.md)'s open question and both
+dissolve** — see *Open decisions*, item 3.
+
+### Task 5 — the writer and the reader
+
+`World` → bytes and bytes → `World`, in `Borough.Core`, over tasks 2–4. Load ends by calling
+`World.RebuildDerived()`, which task 1 has by then made trustworthy.
+
+The reader refuses rather than degrades where `05 §7` says to: an unaccounted Ruleset mismatch in
+replay, a generator version mismatch always, a format version **newer** than the binary always. A
+format version older runs the migration chain — which has **no entries yet**, and shipping the chain
+with none is correct: the version number is what makes the first migration writable later.
+
+### Task 6 — the copy at the end of phase 7
+
+`adr/0087`'s structural requirement, and it is the one clause of that ADR that constrains the code
+rather than pricing it:
+
+> **The serialiser may never read a live table.** A writer that walks `World` directly is a defect
+> even when it produces a correct file today, because it is correct only while nothing is parallel
+> around it.
+
+So: a copy of the saved columns taken at the end of `Simulation.Commit` (`Simulation.cs:782`), and the
+serialiser runs over the copy. Phase 7 is serial, is where hashes are already written, and is the one
+moment the double-buffered table has settled — so the file and the State Hash describe the same
+instant, which is what lets the header's hash be a statement about the bytes beneath it.
+
+**Whether the write is on a background thread is open decision 4**; whether the copy is taken is not.
+Taking the copy is the part that has to be right first, because it is the part that stops being
+correctable once callers exist.
+
+### Task 7 — the Factorio test, and the structural test `adr/0086` owes
+
+```
+run N → save → reload → run M   → hash A
+run N+M                         → hash B
+assert A == B
+```
+
+In CI, over the golden fixture and over a Ruleset that actually churns. **It measures the rebuild,
+not the write** — task 1 measures the rebuild directly and this measures it in the only place where a
+wrong derived value has had time to reach saved state.
+
+Beside it, the structural test `adr/0086` names in its consequences and asks not to be discovered
+later as a gap: **the file's column set equals the hash's `Saved` set**, table by table, in order.
+Cheap, and it is what stops the two answers to one question drifting.
+
+### Task 8 — something to look at
+
+`--save PATH` and `--load PATH` on the headless runner, which is where `05 §7`'s *replay from save*
+becomes a thing somebody can do rather than a paragraph. The picture is a **round trip that agrees**:
+save at a Tick, reload, run on, print the hash trace beside the unbroken run's.
+
+⚠ **`Options.cs` is this milestone's one file-level collision with the parallel milestone 6 session**,
+which is adding `--evidence` to the same switch. It is a merge, not a conflict of substance.
+
+### Task 9 — the long acceptance run
+
+`adr/0006`'s run with a save in it: 100,000+ Ticks with periodic autosaves, no collection and no
+magnitude trending, and a reload at the end that reproduces the unbroken run's hash. Report the copy's
+measured cost against `adr/0087`'s ~10 ms prediction at the fixture's scale, and the saved-set size
+against task 2's computed total.
+
+⚠ **This is where the deferred magic number's revisit trigger fires** — the first save carried across
+a build — and where `CrashArtifact.From` could stop being zero. Neither is in scope; both are named in
+*What this milestone must not do* so the day they are reached is a decision rather than a drift.
+
+---
+
+## What this milestone must not do
+
+- **Do not compact.** Dropping dead slots is the obvious size win and it changes `_slotCount`, every
+  live row's slot and the residue between. Under `05 §4` that is a **design change**, however it was
+  motivated (`adr/0086`).
+- **Do not reuse `World.HashSeed`'s version byte as the format version.** They version different
+  things and the code says which: *"A NEW table joining `_tables` does not bump this... What this byte
+  signs is the same city hashing differently"* (`World.cs:47-57`). A new table changes the file
+  absolutely and that byte deliberately does not move. ***Two numbers versioning one thing is
+  [`0012`](0012-corpus-audit.md) Cause 1 waiting to happen; one number versioning two is worse.***
+- **Do not put the serialiser in `Borough.Formats`.** Not a style preference — `Randomness.Mix` and
+  `Handle<T>.Index`/`.Generation` are `internal` to `Borough.Core` and the writer needs both (D1).
+- **Do not put `System.IO` in `Borough.Core`.** It has none today.
+- **Do not normalise a stale `Reference.Severable` handle on load.** The stale handle is the state.
+- **Do not walk `World` from the serialiser.** `adr/0087`, task 6.
+- **Do not settle threading policy.** `05 §6` is **session R**'s, and it is now load-bearing on
+  [`0013`](0013-tick-budget.md)'s whole verdict. This milestone may put a write on a thread; it may
+  not decide who owns `step()`.
+- **Do not fill `CrashArtifact.From`.** It is the right consumer and the wrong milestone: a checkpoint
+  in a crash artifact needs an autosave cadence, a retention policy and a bundle format, and `05 §8`
+  owns all three. **Task 9 is what makes it possible; a later row is what does it.** The refusal at
+  `CrashArtifact.cs:195` is correct in the meantime and must stay.
+- **Do not fix the numbering citations in `src/` as part of a task.** See *What scoping found*, F2 —
+  it is a sweep with an owner, not a line in a save commit.
+
+---
+
+## Definition of done
+
+`CLAUDE.md`'s cumulative list, plus:
+
+- `dotnet build` and `dotnet test` green with no GPU and no Godot.
+- **`05 §4` invariant 6 is live** — the save/reload equivalence test runs in CI. It is one of two
+  lints in that list that has never had machinery.
+- **Every derived column is covered by the rebuild audit**, or exempted by a written rule with the
+  exemption named in the test (task 1, open decision 2).
+- **The saved set's size is reported**, per table and totalled, at the fixture and at 1M — `adr/0087`
+  names it as owed and forbids guessing it.
+- **The file's column set equals the hash's `Saved` set**, asserted structurally (`adr/0086`).
+- **Three version numbers in the header**, each refusing or migrating per its own row in task 4.
+- The long run passes with autosaves in it, and reloads to the unbroken run's hash.
+- **Something to look at**: `--save` / `--load` and a hash trace across a round trip.
+
+**The risk this milestone retires:** *a derived column that does not rebuild to the value it had*, and
+it retires it for **every milestone below** — fifteen rows each of which adds derived columns, which is
+`06`'s stated reason for this row being third rather than sixteenth.
+
+---
+
+## Open decisions this milestone owes, before the task that needs them
+
+### 1. Where the I/O boundary sits — **blocks task 5**
+
+`Borough.Core` has zero `System.IO`. `Core` must own serialisation (D1) and cannot own the file.
+**Recommendation: `Core` reads and writes a byte buffer, and the shell does the I/O**, which is
+`adr/0039`'s shape for the Input Log read one level down. The question is whether the buffer is a
+`Stream`, a `Span<byte>`, or a callback per table — and the answer interacts with task 6, because the
+background write wants to stream a copy it does not own.
+
+### 2. Is `Derived` one class or two? — **blocks task 1**
+
+`layer_cell.pollution_pass` is `Derived` and nothing rebuilds it, on purpose: it is a **scratch
+intermediate between two diffusions**, not a structure recoverable from saved state. Every other one
+of the 28 is the second kind. The audit needs to tell them apart, and the options are a written
+exemption list in the test, a third `Disposition`, or a `Touch`-style second axis.
+
+⚠ **A third `Disposition` is the expensive answer and probably the right shape**, because an
+exemption list in a test is a fact stored where no future column author will look — which is
+`adr/0064`'s *a guard with no test* running backwards. **And the column's own declaration argues for
+it**: `LayerCellTable.cs:96-102` says the field is a column rather than a bare array *"so that it is
+declared once like everything else — `BOR0901` would reject the array, and it is right to: scratch
+that escapes the declaration is scratch nobody audits."* So the author deliberately pushed scratch
+**into** the declaration and the declaration had no word for it. ***A disposition set that forces a
+third kind of field to pick one of two is a declaration with a hole, and the hole shows up as an
+exemption in somebody else's test.***
+
+⚠ **Against, and it is the standing rule**: `adr/0070` says an absence is not evidence, and **one
+column is not a general mechanism**. Deciding a third `Disposition` on a single instance is how a
+taxonomy grows a member nobody needed. **Recommend taking it to the user rather than settling it in a
+task**, because the two arguments are genuinely balanced and the cost lands on every future column
+author either way.
+
+### 3. `_phase` and `_inForce` — **blocks task 4. Recommendation: both dissolve**
+
+[`0002`](0002-open-questions.md) carries these as *"§7's unargued format half"*, left open when
+[`adr/0058`](../docs/adr/0058-the-tick-is-state-so-the-world-holds-it-and-the-hash-folds-it.md) moved
+the Tick to the World and left its two neighbours on the `Simulation` (`Simulation.cs:54-55`).
+**Neither needs a decision and both need writing down:**
+
+- **`_phase`** — the copy is taken at the *end of phase 7* by `adr/0087`, so `_phase` is `Commit` at
+  every save. A value with one possible value is not state. ***The cadence decision answered the
+  format question, in another ADR, and nothing recomputed it.***
+- **`_inForce`** — it *is* the Ruleset content hash, and `adr/0086` already puts that in the header.
+  Saving it as a field would be a second copy of a header entry.
+
+⚠ **The rest of the `Simulation`'s private state is not covered by that and wants a walk**:
+`_opened`, `_reloads` and `_degradation` (`Simulation.cs:56-58`) sit in the same position and no ADR
+mentions them. **The provenance trail is safe** — `RulesetTrailTable` is a real saved table — but a
+counter beside it is not the trail.
+
+### 4. Is the write actually on a background thread in this milestone? — **blocks task 6**
+
+`adr/0087` decides it *is* async and prices it. What it does not decide is whether the milestone that
+builds the copy also builds the thread. **Recommendation: build the copy and serialise from it,
+synchronously, and leave the thread to the host.** The structural requirement — *the serialiser never
+reads a live table* — is discharged by the copy and not by the thread, and a thread in `Core` is
+`05 §6`'s subject, which is session R's. ⚠ **Against it**: an unused seam is an untested one, and
+`adr/0087` is explicit that the *unbounded* half is the write.
+
+### 5. What is the generator version derived from? — **blocks task 4**
+
+Nothing produces one. It must move when the generator's output for a given seed moves, and the
+failure it prevents — the terrain moving under a city — is `adr/0021`'s. A hand-maintained constant
+is the obvious answer and has the obvious defect: **it is bumped by whoever remembers**. A hash over
+the generator's own inputs is checkable and does not catch a change to the generator's *code*, which
+is the actual failure. ⚠ **Both candidates are worse than the format version's story and that
+asymmetry is the decision to make honestly**, rather than shipping a number that reads as a guarantee.
+
+---
+
+## What scoping found
+
+Four things, recorded here because three are about the corpus's own instruments rather than about
+saving.
+
+### F1 — `BOR0901` tells every developer the save serialiser exists
+
+The diagnostic's message reads *"both the save serialiser and the State Hash are generated from that
+one declaration"* (`Diagnostics.cs:181-183`), and its extended description reasons from a
+*"save/reload test [that] passes because the field is saved"*. **The State Hash half is true and the
+save half has never existed.** This is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+landing on a surface that ADR's inventory does not name — not an ADR, a plan, a doc-comment or a test
+suite's coverage, but **a compiler diagnostic**, which is the most persuasive description of the build
+there is: it is current, it is emitted by the build itself, and it is read at the exact moment the
+reader is being taught the rule and is least able to check it.
+
+***A diagnostic is a description of the build that arrives with the build's authority.*** This
+milestone makes the sentence true rather than correcting it, which is the good outcome and is
+available exactly once.
+
+### F2 — "milestone 8" now means two different milestones inside `src/`
+
+Session K's renumber mapped old **8 → 7** (parking) and old **10 → 8** (Save/load). Both old numbers
+are live in the source tree:
+
+| Says | Means | Sites |
+|---|---|---|
+| *"milestone 10"* | **Save/load** — this milestone | `CrashArtifact.cs:36`, `:38`, `:82`, `:140`, `:195`; `LotTable.cs:14` |
+| *"milestone 8"* | **Parking** — now milestone 7 | `TripEngine.cs:198`, `:395`; `World.cs:1082`, `:1135`; `AccessPointTests.cs:53`; `StatisticalTravelTimeTests.cs:243`; `CarOwnershipTests.cs:151` |
+| *"milestone 8"* | **Save/load** — correct, new numbering | `CondemnationTrailTests.cs:264` |
+
+So a reader grepping `milestone 8` for this milestone's obligations finds **parking six times out of
+seven**, and the one correct hit was written yesterday by the parallel session. `06:390` warns about
+exactly this — ***a retired-numbering table makes an old citation resolve and cannot stop a new one
+being translated as though it were old*** — and the new form is that **the collision is now inside the
+build**, where `06`'s table cannot reach it and no document-to-document check can see it.
+
+⚠ **Not repaired here, and the reason is the warning itself**: the mapping is applied by reading each
+citation's **subject**, never its digits, so this is a sweep by somebody who opens all thirteen sites.
+Filed to [`0012`](0012-corpus-audit.md).
+
+### F3 — the milestone's own risk had a cheaper instrument than the test it is named for
+
+`World.RebuildDerived()` and `Rows.FoldAll` have both been in the tree for the life of the derived
+declaration, and between them they measure *a derived column that does not rebuild to the value it
+had* **directly, immediately, and with no save format**. `05 §7` and `adr/0086` both frame the risk
+through the Factorio test, which measures it **indirectly** — a wrong rebuild has to propagate into
+saved state over M Ticks before a hash comparison can see it — and which needs the entire milestone
+built first.
+
+Both instruments are worth having and they are not the same instrument. ***A risk named after the
+test that would catch it gets scheduled behind that test***, and this one sat behind a save format for
+the life of the project while the two halves that measure it directly sat in `World.cs` and `Rows.cs`.
+The existing coverage is **2 of 28 derived columns**.
+
+### F4 — a survey's numbers, for the record
+
+18 tables; 116 declared columns + 54 intrinsic ≈ 170; **28 derived across 9 tables**; saved set ≈ 142
+columns. `DerivedHandle` has **zero call sites** in the repository. `RouteCache` and `TravelTimeMatrix`
+are instantiated **only in tests and in the S2 spike** — neither is a field on `World` or `Simulation`
+— so a save does not have to reconstruct either, and both self-heal by version comparison
+(`TravelTimeMatrix.cs:96-108`) or by the Saved per-Segment `Epoch` (`RouteCache.cs:377`) if they ever
+become world state.
+
+---
+
+## Where this sits
+
+| | |
+|---|---|
+| **Milestone** | `06` **8** — Save/load |
+| **Gate** | None. Session K, 2026-08-16 |
+| **Decides** | `adr/0086` (format), `adr/0087` (cadence). Both 🟢 |
+| **Retires** | *A derived column that does not rebuild to the value it had*, for every milestone below |
+| **Closes** | `05 §4` invariant 6 — the Factorio test |
+| **Moves the State Hash?** | **No.** It adds no table and no column. The golden baselines do not move |
