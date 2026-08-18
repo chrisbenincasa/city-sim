@@ -51,7 +51,7 @@ public enum Disposition
 
     /// <summary>
     /// Scratch. Neither saved, hashed, nor rebuilt — its content between the phases that use it is
-    /// meaningless by declaration.
+    /// meaningless by declaration. adr/0110.
     /// </summary>
     /// <remarks>
     /// <para>

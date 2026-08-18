@@ -209,10 +209,14 @@ saying *prove it cannot matter*, which closes the hazard the exemption would hav
 content becoming a hidden input to the simulation, which is the unhashed-state divergence
 `Disposition` exists to close, arriving through the one column declared not to matter.
 
-⚠ **This owes an ADR and does not have one yet.** It amends `adr/0003`'s field rule, which is the
-project's oldest structural commitment, and the corpus rule is that a settled design question gets one.
-**Write it when task 1 lands, not now**, so the ADR states the rule the test enforces rather than the
-rule the brief predicted — `adr/0069` is the standing counter-example in the other direction.
+✅ **The ADR is written: [`adr/0110`](../docs/adr/0110-scratch-is-a-third-disposition-because-derived-is-a-claim-a-scratch-column-does-not-make.md), 2026-08-17, after task 1 landed.**
+It amends `adr/0003`'s field rule, which is the project's oldest structural commitment. **Deliberately
+written after the build rather than with this decision** — `adr/0069` is the standing counter-example
+in the other direction, and writing it second means it states the rule the test enforces rather than
+the rule the brief predicted. ⚠ **It carries one consequence this entry did not predict**: `Scratch` is
+a way to make a failing rebuild audit go away, and what stops that is the garbage fill failing instead
+— **a property of the tests rather than of the declaration**, recorded in the ADR as such rather than
+left as an unstated assumption.
 
 ### D4 — the write is synchronous in this milestone, and the seam goes around the hash
 
