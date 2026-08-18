@@ -396,6 +396,25 @@ rule is **when something concrete is blocked on it, not because it is available.
   spatial search into Decide. **Phase 2 — it was recorded as gating *"milestones 10 and 11"*, and ⚠ **both halves are wrong**: there has never been a milestone 11, and old-10 is now **8**, which session K found unblocked. **Owner: session R** (`06` → *Obligations no milestone can hold*).**
 - **`§2`, the sim/render boundary and the snapshot format.** Sharpened by the threading answer:
   `visible_agents` is a cross-thread query, so format and buffer lifetime are one question.
+- ⚠ **Does a save carry a verified State Hash?** Opened by milestone 8 task 6 and **not closed by the
+  milestone**, which shipped the reversible default: **no hash in the file**. `adr/0087` says such a
+  hash would be *"computed on the background thread from the copy"* and **that is not buildable** —
+  `HandleColumn.Fold` folds the target row's monotonic id, which the bytes do not contain — so the
+  only sources are the **live world** on the simulation thread, which that ADR's sentence forbids, or
+  a **typed** copy, which costs the derived columns too. The arithmetic favours the first: one State
+  Hash at 1M is **32.47 ms**, which at one save per in-world Day is **0.03%** of a Tick budget, and
+  `adr/0087`'s *never on the simulation thread* is a **per-Tick** argument (`adr/0037`'s) applied to a
+  **per-autosave** event. ⚠ **It has a closing window rather than a blocker**: the header is fixed at
+  8 fields and 52 bytes by `adr/0111`, the format is unreleased, and a ninth field is free until
+  somebody is carrying a save. **Owner: the user** — it overturns a second clause of `adr/0087`.
+  Full statement in [`0030`](0030-save-load.md) task 6.
+- ⚠ **Is `Borough` the name?** Not a simulation question and it is here because
+  [`0003`](0003-build-plan.md) §*The name* is a document, not a ledger, and **its trigger has fired**:
+  milestone 8 **D2** deferred the save format's magic number so that it would not, and **task 4 wrote
+  one anyway** — `borosave`, at offset 0. ***A decision is reversed by the build far more quietly than
+  by an argument.*** The window is still open (no save has outlived a build) and ⚠ **the rename is
+  bigger than `0003` priced it**, because `World.HashSeed` is `"Borough"` plus a version byte, so a
+  rename moves every State Hash — one re-record command today, per `adr/0100`. **Owner: the user.**
 - **Is the travel-time matrix saved or rebuilt on load?** Leaning rebuild — a cache, not state.
   Consistent with wait lists being rebuilt.
 - **A save migration path for the kernel radius**, which is a shape `adr/0015` has no word for. The
