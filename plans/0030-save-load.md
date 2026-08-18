@@ -6,9 +6,10 @@
 
 ## Status
 
-🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; task 1 shipped 2026-08-17** — the rebuild audit and
-`Disposition.Scratch`, **1,479 tests green and no baseline re-recorded**, because the milestone adds no
-table and no column and `Scratch` was already outside the fold. Session **K** checked it and found nothing in front of
+🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; tasks 1–4 shipped 2026-08-17** — the rebuild audit and
+`Disposition.Scratch`, the column byte accessor, `Rows.Restore`, and now the header. **1,504 tests green
+and no baseline re-recorded**, because the milestone adds no table and no column, `Scratch` was already
+outside the fold, and a header is not part of the city. Session **K** checked it and found nothing in front of
 it: [`adr/0086`](../docs/adr/0086-a-save-has-no-schema-of-its-own-and-the-field-declaration-is-the-format.md)
 settles the format, [`adr/0087`](../docs/adr/0087-a-save-is-copied-at-save-cadence-not-read-from-a-past-that-no-longer-exists.md)
 settles the cadence, and `05 §6`'s threading policy — the one thing that looked like a gate — decides
@@ -17,7 +18,8 @@ fact a save has.
 
 **Nine tasks.** Three decisions were taken with the user in the room — *the magic number is deferred*
 before scoping, and **the third `Disposition`** and **the synchronous write** on review of this brief —
-and **three remain open**; all three are listed under *Open decisions this milestone owes* with the
+and **one remains open** — items 3 and 5 were closed by task 4, which is what they blocked (D5, D6).
+The survivor is listed under *Open decisions this milestone owes* with the
 task each blocks.
 
 ⚠ **Scoping it moved the milestone's weight from the write side to the load side, and the survey is
@@ -252,6 +254,64 @@ wrong ~10.
 ⚠ **It also answers the objection recorded against this recommendation.** *An unused seam is an
 untested one* is true of a dormant thread and false of a function boundary that every save crosses: the
 seam is exercised on every autosave in task 9, and it is called synchronously rather than left unbuilt.
+
+### D5 — the five fields on the `Simulation` all dissolve, and three had answered in their own remarks
+
+**Settled 2026-08-17 by task 4**, closing open decision 3. `plans/0002` carried `_phase` and `_inForce`
+as *"§7's unargued format half"*; the brief recommended both dissolve and asked for a walk of `_opened`,
+`_reloads` and `_degradation`. All five dissolve:
+
+| Field | Why it is not in the save |
+|---|---|
+| `_phase` | `adr/0087` takes the copy at the end of phase 7, so it is `Commit` at every save. **A value with one possible value is not state** |
+| `_inForce` | It **is** the Ruleset content hash, which is a header field. Saving it too is a second copy of a header entry |
+| `_opened` | `true` in every save, on `_phase`'s argument: a world that has never stepped has never reached phase 7 |
+| `_reloads` | *"since this **Simulation** started"* — per-run, by its own summary line |
+| `_degradation` | *"the trail is world state because `05 §7` puts it in the save; **this is a Simulation's**, because a warning is about the run"* |
+
+⚠ **The finding is where the answers were.** Three of the five were settled in the doc-comment on the
+field, and the question had been open in `plans/0002` for two milestones — `adr/0093`'s reading half
+(*a sentence about the build tells you which symbol to read*) paying out in the direction it is usually
+quoted against.
+
+⚠ **Dissolving out of the save is not dissolving out of the loader, and this is the half that would have
+shipped as a defect.** A fresh `Simulation` has `_opened = false`, so the first step after a load takes
+its Ruleset hash through the **opening** branch rather than the **transition** one: no provenance trail
+entry, no degradation report, `Reloads` still 0. **A cross-Ruleset load — which `05 §7` explicitly
+permits in play — would therefore be unrecorded**, which is the exact bug the trail exists to catch, at
+the exact moment it was designed for. The loader must supply both fields; it is task 5's, and it is
+written down here rather than discovered there.
+
+⚠ **And one live defect falls out of it, filed rather than fixed** ([`0012`](0012-corpus-audit.md)).
+`Session.cs:187-198` prints *"{Reloads} reload(s), of which {recorded} cost the city something"* — a
+**per-session** count against a **per-world** total, in one sentence. It reads correctly today only
+because no session has ever begun from a save. ***Two quantities agree for as long as the mechanism that
+separates them does not exist***, and this milestone is that mechanism.
+
+### D6 — there is no generator version, because a version number guards the artefact that re-derives
+
+**Settled 2026-08-17 by task 4**, closing open decision 5, and it amends `adr/0086` and `05 §7`.
+[`adr/0111`](../docs/adr/0111-a-save-that-re-derives-nothing-needs-neither-a-seed-nor-a-generator-version.md).
+
+The brief asked what the number is *derived from* and observed that **both candidates read as a
+guarantee** they do not provide. The answer is that neither is needed, for two reasons that compound:
+
+- **The generator version and `05 §7`'s world seed are one requirement, not two.** A seed is consumed by
+  exactly one thing — `WorldKey.FromSeed` — and every call site derives a key and discards the number;
+  **`World` does not retain the seed at all**. The artefact that keeps one is the **Input Log**, because
+  a replay *re-derives*: it re-runs `SyntheticCity` and `RoadGenerator` on every read. A save restores
+  columns and calls no generator on any path, so `adr/0021`'s failure — *seed 42 produces different
+  terrain* — cannot occur in a version-1 save.
+- ⚠ ***A placeholder inverts the guard.*** `adr/0021` **pins** this number, so a build that grows a
+  generator must **refuse** every save written before it. With no generator version in the header, the
+  **format version** delivers that refusal for the right reason. With `generator_version = 1` in it, the
+  terrain build compares 1 against 1, agrees, and loads a pre-terrain city onto a landscape that was not
+  there when it was saved. ***The field added to prevent the failure is the field that permits it.***
+
+**What replaces the third row is a class rather than a field**: a world-creation value that lives in the
+binary rather than in a table. Four are built — `TICKS_PER_DAY`, `WHEEL_SIZE`, `CellGrid.WorldCells`,
+`CellGrid.TilesPerCell` — the generator version is its unbuilt member, and **each of the four says
+*baked into the save* in the file that owns it** while nothing had ever baked one.
 
 ---
 
@@ -562,6 +622,64 @@ which is the milestone's named risk arriving through the header rather than thro
 **`_phase` and `_inForce` are the residue of [`0002`](0002-open-questions.md)'s open question and both
 dissolve** — see *Open decisions*, item 3.
 
+#### ✅ Task 4 shipped 2026-08-17 — `SaveHeader`, and the third version number turned out to be a class with an unbuilt member
+
+**`src/Borough.Core/Persistence/SaveHeader.cs`, 52 bytes, 13 tests, and two open decisions closed (D5,
+D6).** One new ADR, [`0111`](../docs/adr/0111-a-save-that-re-derives-nothing-needs-neither-a-seed-nor-a-generator-version.md),
+which amends `adr/0086`'s table of three and `05 §7`'s copy of it.
+
+**The header, field by field:**
+
+| Offset | Width | Field | Why it is here |
+|---|---|---|---|
+| 0 | 8 | magic `borosave` | this is a save at all |
+| 8 | 4 | **format version** = 1, little-endian | versions the **declaration set**. ⚠ not `World.HashSeed`'s version byte, which signs a re-baseline of the *hash* and whose own remark says appending a table does **not** bump it |
+| 12 | 8 | byte-order sentinel, **native** order | the one field written in the machine's order |
+| 20 | 8 | **world key** | not a column, folds nothing, and `RebuildDerived` cannot run without it |
+| 28 | 8 | **Ruleset content hash** | `Simulation._inForce`, and writing it here is what dissolves that field |
+| 36–51 | 4×4 | `TICKS_PER_DAY`, `WHEEL_SIZE`, `CellGrid.WorldCells`, `CellGrid.TilesPerCell` | the world-creation constants that live in the binary rather than in a table |
+
+**Three of the brief's own claims moved.**
+
+⚠ **The generator version is not written, and the brief's *create it* was the wrong instruction** — D6.
+Its failure cannot occur in a save that calls no generator, and a placeholder would *permit* the failure
+the pin exists to refuse. What the row was reaching for is the **class**, whose four built members each
+say *baked into the save* in their own file and had nowhere to be baked into until this task.
+
+⚠ **The header carries the world *key* and not the world *seed*, and `WorldKey`'s own remark says the
+opposite.** *"Save the seed, not the key"* is **true of the Input Log**, which writes `seed 0x…` and
+derives on replay, and the sentence has been honoured by the one artefact it was written for the whole
+time. **`World` cannot produce a seed** — every `FromSeed` call site derives and discards — so writing
+one would have meant a four-call-site signature change and a hash move, for a value with **no reader**.
+It is annotated rather than struck, and the type grows an `internal WorldKey.Restore(ulong)`, which
+reopens exactly the guarantee its private constructor exists to give, for one caller.
+
+⚠ **The Tick is not in the header either**, though `05 §7`'s deleted listing had it: `adr/0058` moved it
+into `ClockTable`, so a header copy would be a second copy of a **saved column**. A save browser wanting
+*Day 412* without reading 131 MiB is the reason it would come back, as a derived echo.
+
+**Two findings outrank the header.**
+
+⚠ ***A version number guards the artefact that re-derives, not the one that restores.*** The generator
+version's failure is **live today** and it is the **Input Log's**: a replay re-runs `SyntheticCity` and
+`RoadGenerator` from `log.Seed` on every read, so a change to either leaves every line parsing perfectly
+and replays into a different city. `InputLogCodec.Version`'s rule already covers it in the letter — *"a
+different meaning for `seed`"* — and all three of its examples are changes to that file, so nobody has
+ever read the clause as reaching code it does not import. Routed there on the day, per `adr/0073`,
+rather than worked around here.
+
+⚠ ***The State Hash cannot notice a missing world key.*** `World.Key` folds nothing, so a loader that
+dropped it would restore every column, **hash identically at the instant of the load**, and diverge on
+the next Tick. That is a property of the *test*: the round-trip form of the Factorio test structurally
+cannot catch it and only the run-N-more form can — which is why task 7 is specified as the long form.
+
+**Smaller, and worth keeping.** The header's fixed fields are explicitly little-endian and the sentinel
+is not, because the **body** is `MemoryMarshal.AsBytes` and therefore native-order — [`0012`](0012-corpus-audit.md)
+item 5's defect reaching the save. This cannot fix it and can refuse it: ***a guard that cannot fix a
+defect can still refuse to proceed into it***, and the alternative is discovering it 131 MiB in. And
+`BOR0206` caught `HashCode.Combine` in the first build of the file, which is the analyser doing its job
+on a type that never reaches `step()`.
+
 ### Task 5 — the writer and the reader
 
 `World` → bytes and bytes → `World`, in `Borough.Core`, over tasks 2–4. Load ends by calling
@@ -687,8 +805,9 @@ it retires it for **every milestone below** — fifteen rows each of which adds 
 
 ## Open decisions this milestone owes, before the task that needs them
 
-**Three of the five remain.** Items 2 and 4 were settled on review of this brief and are struck in
-place, per the corpus rule that a closed decision keeps its number and its reasoning.
+**One of the five remains.** Items 2 and 4 were settled on review of this brief, and items 3 and 5 by
+task 4, which is what they blocked. Each is struck in place, per the corpus rule that a closed decision
+keeps its number and its reasoning.
 
 ### 1. Where the I/O boundary sits — **blocks task 5**
 
@@ -738,7 +857,19 @@ taxonomy grows a member nobody needed. **Recommend taking it to the user rather 
 task**, because the two arguments are genuinely balanced and the cost lands on every future column
 author either way.
 
-### 3. `_phase` and `_inForce` — **blocks task 4. Recommendation: both dissolve**
+### ~~3. `_phase` and `_inForce`~~ — ✅ **SETTLED 2026-08-17 by D5. All five dissolve, and three had already answered.**
+
+**The recommendation below was right about both fields and the walk it asked for is where the value
+was.** `_opened` dissolves on `_phase`'s own argument — a world that has never stepped has never reached
+phase 7, so a save of an unopened world does not exist — and `_reloads` and `_degradation` were **already
+documented as per-run rather than per-world, in their own remarks**: *"since this Simulation started"*,
+and *"the trail is world state because `05 §7` puts it in the save; this is a Simulation's, because a
+warning is about the run."* ⚠ **Dissolving out of the save is not dissolving out of the loader** —
+`_opened` and `_inForce` must be *supplied* at construction, or the first step after a load adopts its
+Ruleset as an **opening** rather than a **transition** and writes no provenance trail entry. The full
+reasoning is D5; the original text stands unedited beneath.
+
+*Original, 2026-08-17 — **blocked task 4**:*
 
 [`0002`](0002-open-questions.md) carries these as *"§7's unargued format half"*, left open when
 [`adr/0058`](../docs/adr/0058-the-tick-is-state-so-the-world-holds-it-and-the-hash-folds-it.md) moved
@@ -773,7 +904,16 @@ reads a live table* — is discharged by the copy and not by the thread, and a t
 `05 §6`'s subject, which is session R's. ⚠ **Against it**: an unused seam is an untested one, and
 `adr/0087` is explicit that the *unbounded* half is the write.
 
-### 5. What is the generator version derived from? — **blocks task 4**
+### ~~5. What is the generator version derived from?~~ — ✅ **SETTLED 2026-08-17 by D6. Nothing, and it is not written.**
+
+**The asymmetry the text below points at was the answer, and the third option is not a better derivation
+but no field.** A seed is consumed only by something that regenerates from it and nothing does, so the
+generator version and `05 §7`'s world seed are **one requirement rather than two**; and because
+`adr/0021` *pins* that number, **a placeholder inverts the guard it was added to provide** — a terrain
+build compares 1 against 1, agrees, and loads a pre-terrain save. [`adr/0111`](../docs/adr/0111-a-save-that-re-derives-nothing-needs-neither-a-seed-nor-a-generator-version.md).
+The full reasoning is D6; the original text stands unedited beneath.
+
+*Original, 2026-08-17 — **blocked task 4**:*
 
 Nothing produces one. It must move when the generator's output for a given seed moves, and the
 failure it prevents — the terrain moving under a city — is `adr/0021`'s. A hand-maintained constant

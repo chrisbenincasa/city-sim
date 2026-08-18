@@ -764,7 +764,7 @@ complies with it** — it names a **symbol**, not a time, so one `find_symbol` s
 symbol makes a claim checkable; it does not make anybody check it*, which is the half of that ADR
 nothing enforces.
 
-### Milestone 8's collection — seven; the first is a new surface for Cause 4, items 3 and 4 are a matched pair, and the last three came out of building it — including one against check 6 itself
+### Milestone 8's collection — eight; the first is a new surface for Cause 4, items 3 and 4 are a matched pair, and the last four came out of building it — including one against check 6 itself
 
 **1. ⚠ `BOR0901`'s diagnostic message describes a save serialiser that does not exist.** The
 message a developer reads when they trip the lint says *"both the save serialiser and the State Hash
@@ -926,6 +926,25 @@ phrase**. So *saying so explicitly* and *satisfying the check* are the same act 
 now lands on a sentence stating that `plans/0030`'s megabytes are not that quantity. ***The instrument
 has one signal and it is the phrase, so the way to disclaim a coincidence is to name what it is not.***
 That is the usable reading of the escape hatch and it was not obvious from the message.
+
+**8. ⚠ `Session.cs` prints a per-session count against a per-world total in one sentence, and it reads
+correctly only because no session has ever begun from a save.** `src/Borough.Headless/Session.cs:187-198`
+reports *"{simulation.Reloads} reload(s), of which {recorded} cost the city something."* The first is
+`Simulation.Reloads`, documented in its own remark as *"since this **Simulation** started"*; the second
+comes from `RulesetTrailTable`, which is a **saved table** and therefore per-**world**. Load a save into
+a fresh `Simulation` and the sentence becomes *"0 reload(s), of which 3 cost the city something"*.
+
+**Found by milestone 8 task 4's walk of the `Simulation`'s private state** ([`0030`](0030-save-load.md)
+D5), and filed rather than fixed because the repair belongs with task 8, which is where the runner
+learns `--load` and can be tested against it. ***Two quantities agree for as long as the mechanism that
+separates them does not exist*** — the divergence is not a defect this milestone introduces, it is one
+the milestone makes reachable, and the fields themselves are correctly classified: both `Reloads` and
+`LastReload` say in their own remarks that they are about the **run**.
+
+⚠ **The general form is worth more than the site.** A shell that composes one number from `Core`'s
+session-scoped state with another from the World's saved state has no way to notice they are denominated
+differently, because both are `int`. **Every such pair is invisible until a load exists**, and this
+milestone creates the first load. Nothing enumerates them; this is the one that was in the way.
 
 ---
 

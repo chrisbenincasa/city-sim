@@ -316,7 +316,10 @@ Three properties follow, and none of them is obvious from *"array dumps"*:
 |---|---|---|
 | **Format version** | the declaration set — which tables, which columns, which disposition | the migration chain below |
 | **Ruleset content hash** | the content the Rules are made of | the two policies below, plus degradation and the provenance trail |
-| **Generator version** | the generator's terrain output for a given seed | nothing. It is **pinned**, because a moved landscape has no migration |
+| ~~**Generator version**~~ | ~~the generator's terrain output for a given seed~~ | ~~nothing. It is **pinned**, because a moved landscape has no migration~~ |
+| **The world-creation constants** | `TICKS_PER_DAY`, `WHEEL_SIZE`, `CellGrid.WorldCells`, `CellGrid.TilesPerCell` — every value that is a `const` in the binary rather than a column in the file | nothing. Each is written individually so the refusal names which one moved |
+
+⚠ **The third row was struck and replaced 2026-08-17 by [`adr/0111`](adr/0111-a-save-that-re-derives-nothing-needs-neither-a-seed-nor-a-generator-version.md), which built the header.** The generator version and this section's old *world seed* field are **one requirement rather than two** — a seed is consumed only by something that regenerates from it, and no load path calls a generator: `Rows.Restore` reads columns back and `World.RebuildDerived` recomputes the rest from them. It returns the day `adr/0021`'s *seed + edits* ships. **Writing a placeholder now would invert the guard**: that number is *pinned*, so a terrain build must refuse every pre-terrain save, which an absent version achieves through the format version and a `generator_version = 1` defeats by agreeing with itself. The header does carry the **world key**, which is not a column and which `World.RebuildDerived` cannot run without — and whose absence the State Hash cannot notice, because the key folds nothing.
 
 **Version header plus a migration chain.** Each save records the format version it was written under; loading an older save runs the migrations from that version forward, one step at a time, each migration being a small pure function from version *n* to version *n+1*. Migrations are never rewritten to skip steps and are never deleted, because the chain is the only thing that makes an old save loadable at all.
 
