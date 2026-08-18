@@ -948,6 +948,46 @@ milestone creates the first load. Nothing enumerates them; this is the one that 
 
 ---
 
+### Milestone 10's scoping collection — one, and it is a new form of Cause 1: two copies that disagree about a *direction*
+
+**1. ⚠ [`06`](../docs/06-roadmap.md)'s dependency graph makes the District Pool a root, and
+[`adr/0050`](../docs/adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md)
+makes it downstream of two milestones.** Found 2026-08-18 while scoping milestone 10
+([`0031`](0031-conserved-money-and-the-treasury.md) → **F1**), and it is why milestone **9** was not
+the row picked.
+
+`06`'s roots table lists **the District Pool | 9 | Needs road connectivity, which shipped in 5a**,
+under a preamble stating that *"nothing in the inventory precedes any of them"*. Its edge table then
+carries **District Pool → the price surface**.
+
+`adr/0050` and the build's own throw site say the opposite. `RuleEngine.cs:803-811` refuses
+`Scope.Pool` and states, citing that ADR **by name**, that a pool term *"crosses an ownership
+boundary, so the Good moves one way and money the other at the prevailing price, settled atomically
+with the Rule"*, and that *"implementing this as a Bin lookup ships an unconserved economy, and no
+refusal can catch that."* A trade needs **money** to move and a **price** to move at. So the Pool is
+downstream of milestone **10** and of milestone **13**, and the graph carries the second of those two
+edges **pointing the other way**.
+
+⚠ **This is a new shape for Cause 1.** Every earlier sighting is two copies of a *status* drifting
+apart, or one copy silent where another speaks. Here both copies are current, both are load-bearing,
+and they disagree about the **direction of an edge** — which is the one kind of disagreement a
+document-to-document check could never find, because both documents are internally consistent.
+
+⚠ **Its cause is worth more than the row.** `06`'s graph is derived from what each mechanism needs in
+order to **exist**; `adr/0050` states what the Pool needs in order to **function**. ***A dependency
+graph built from existence conditions will miss functional ones, and nothing about the graph's form
+announces which kind it holds.*** The same document already recorded, on 2026-08-16, that two of its
+edges *"[were] stated in a row's prose"* and absent from the graph — this is the harder version of
+that, since here the graph is not silent, it is wrong.
+
+**Not paid, and deliberately.** The repair is either a new edge (Money → District Pool, price surface
+→ District Pool) or an amendment to `adr/0050`, and choosing between them is `06`'s and an economy
+sitting's rather than a scoping brief's. ⚠ **Whoever pays it must also re-read `06`'s claim that the
+Pool *"is the only root with a consumer already in the build"***, which is the sentence that made the
+row look ready.
+
+---
+
 ## Fixed in the sitting that found them
 
 Unambiguous factual errors, no judgement required.
