@@ -424,10 +424,64 @@ issuing a player verb, which is a scope decision and is **not** taken here.
 
 ### Task 6 — the long acceptance run
 
-100,000+ Ticks with no collection and no magnitude trending upward. ⚠ **The trail's own discipline is
-what is being tested here**: entry count is monotonic to the cap and then constant, so the assertion is
-a **slot high-water mark that saturates**, not a live count. 5c task 8 found that distinction the hard
-way and its record carries the reasoning.
+⚠ **Scouted 2026-08-17 before it was written, and the scouting produced a fix that shipped ahead of
+it.** A 100,000-Tick probe at 1,000 Citizens on `diagnosed.toml` says what the run will find:
+
+| | reading over 100,000 Ticks |
+|---|---|
+| trail slots | **257, flat from Tick 0** — allocated once in the constructor, never freed |
+| entries retained | 183 → **256 and pinned** |
+| the aggregate's count | **0 → 2,838, strictly monotone, no sink** |
+| `CitizenTable.ReachFailures` | **0 for every Citizen at every sample** |
+
+**So the collection half cannot fail and the magnitude half must.** The trail's storage is fixed by
+construction, which makes the `adr/0006` assertion a regression guard against an edit to the
+constructor rather than a discovery. The **count**, on the other hand, climbs for ever on purpose —
+that is what *attribution decays to magnitude* means — so the run has to **state the exception rather
+than assert flatness**. The ground for the exception is this milestone's own D1 axis, *who reads it*:
+nothing in `step()` reads `Condemnations`, so an unbounded value cannot change behaviour. ⚠ **What it
+can do is overflow, and that was a live defect** — see below.
+
+⚠ **Task 3's count is inert over the whole run and the run cannot exercise it.** `ReachFailures` is 0
+throughout, which is `ReachFailureTests`' finding at 100,000 Ticks instead of 1,024: nothing refuses a
+commute at the shipped fifty-minute ceiling. The magnitude half has to tighten the ceiling the way that
+file does, or it is asserting flatness on a column no world writes to.
+
+**Two things for whoever writes it.** Use `diagnosed.toml` — a trail full of `ConditionId.None` tests
+less, and it is behaviour-identical so the readings above carry. And build the world as
+`new World(population, rules, key)`: the two-argument constructor makes a **different city**, and a
+probe that used it read a Trip slot high-water mark still climbing at Tick 100,000 that vanished on the
+correct one. Every long-run test in the suite uses the three-argument form and the difference is
+silent.
+
+#### ✅ Shipped ahead of the run — the aggregate's count is `long`
+
+⚠ **`Condemnations` was an `int`, and 32 bits is not a campaign.** It is the **one column in the
+project with no sink at all**: every other column here is overwritten as entries slide down, and this
+one only grows. Measured — 0.031 condemnations a Tick at 1,000 Citizens, which scaled by `World`'s own
+Lot allocation is **~57 a Tick at a million** — so it wraps after roughly **162 hours** of play at the
+4× target. Reachable, and the failure is silent in the worst way: the count goes **negative** and the
+trail reports that the city has un-condemned Buildings.
+
+***A counter with no sink is denominated in the life of the world, not in the size of the city.*** That
+is why it was missed. Every other count in this project is sized by a population, and 32 bits is
+enormous against any population this design admits — so the width looked right by the standard the rest
+of the corpus is judged against, and the standard was the wrong one. **`adr/0065` on a third axis**:
+that decision found a Bin's `level` narrowing 64 bits to 32 because the corpus held *two widths for one
+quantity*; here there is one quantity, and the question is whether its width matches its **lifetime**.
+
+⚠ **The guard is a compile error rather than a test failure, which is stronger than intended.**
+`The_aggregate_carries_a_count_wider_than_an_int` seeds the aggregate one short of `int.MaxValue` and
+pushes it over — reaching two billion condemnations is not a test anybody can run — and its
+`int.MaxValue + 1L` assertion **does not compile** against a narrow column. Without it the width would
+be **decorative**: `long` and `int` behave identically on every number any other test in this suite
+produces, so nothing could have told them apart. **It moved the golden session trace and nothing else**
+(`adr/0100`: the re-record is one command and the failing test prints it).
+
+*Original scope:* 100,000+ Ticks with no collection and no magnitude trending upward. ⚠ **The trail's
+own discipline is what is being tested here**: entry count is monotonic to the cap and then constant, so
+the assertion is a **slot high-water mark that saturates**, not a live count. 5c task 8 found that
+distinction the hard way and its record carries the reasoning.
 
 ### Task 7 — a Trip's Fate outlives its Trip — **ADDED 2026-08-17**
 

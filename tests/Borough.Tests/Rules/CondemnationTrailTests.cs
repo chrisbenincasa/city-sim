@@ -137,6 +137,59 @@ public sealed class CondemnationTrailTests
     }
 
     /// <summary>
+    /// <b>The aggregate's count carries past what an <c>int</c> holds.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>This is the only column in the project with no sink at all, so it is the only one whose
+    /// width is set by a <em>campaign length</em> rather than by a city size.</b> Every other column
+    /// here is overwritten as entries slide down; this one only grows, for the life of the world, and
+    /// that is what <em>attribution decays to magnitude</em> means. Measured 2026-08-17 over 100,000
+    /// Ticks: a 1,000-Citizen city condemns <b>0.031 Buildings a Tick</b>, which scaled by
+    /// <c>World</c>'s own Lot allocation is <b>~57 a Tick</b> at a million — so 32 bits runs out after
+    /// roughly <b>162 hours</b> of play at the 4× target. ***A counter with no sink is denominated in
+    /// the life of the world, not in the size of the city.***
+    /// </para>
+    /// <para>
+    /// <b>The overflow is seeded rather than reached, and it has to be.</b> Recording two billion
+    /// condemnations is not a test anybody can run, so the aggregate is set one short of the boundary
+    /// and pushed over it — which tests the arithmetic and the storage and says nothing about the
+    /// rate, because the rate is measured elsewhere and quoted above. Without this the width is
+    /// <b>decorative</b>: <c>long</c> and <c>int</c> behave identically on every number any test in
+    /// this suite produces, so nothing else here could tell them apart.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_aggregate_carries_a_count_wider_than_an_int()
+    {
+        World world = City();
+        CondemnationTrailTable trail = world.CondemnationTrail;
+
+        // Fill the window first, so that the next Record aggregates rather than appending -- the
+        // seeded count has to travel through the real fold, not sit in the column being read back.
+        for (int i = 0; i <= CondemnationTrailTable.Retained; i++)
+        {
+            trail.Record(
+                new Ticks((ulong)(1_000 + i)),
+                LotAt(world, i % (CondemnationTrailTable.Retained + 8)),
+                Dwelling,
+                new ConditionId(3));
+        }
+
+        trail.Condemnations[CondemnationTrailTable.AggregateSlot] = int.MaxValue;
+
+        trail.Record(new Ticks(9_000), LotAt(world, 0), Dwelling, new ConditionId(3));
+
+        long carried = trail.Condemnations[CondemnationTrailTable.AggregateSlot];
+
+        Assert.Equal(int.MaxValue + 1L, carried);
+        Assert.True(carried > 0, "the aggregate wrapped negative, so the count is not 64 bits wide.");
+
+        Assert.Equal(
+            int.MaxValue + 1L + CondemnationTrailTable.Retained, trail.CondemnationsRecorded());
+    }
+
+    /// <summary>
     /// The row count stops climbing at <see cref="CondemnationTrailTable.Retained"/> + 1, and the total
     /// stays exact for ever. A trail that grew would be <c>adr/0006</c>'s defect arriving through the
     /// mechanism written to diagnose it.

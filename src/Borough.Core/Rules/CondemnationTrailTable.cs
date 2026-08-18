@@ -121,7 +121,7 @@ public sealed class CondemnationTrailTable
 
         Condition = _rows.Saved<ConditionId>("condition", Touch.Cold);
         Kind = _rows.Saved<byte>("kind", Touch.Cold);
-        Condemnations = _rows.Saved<int>("condemnations", Touch.Cold);
+        Condemnations = _rows.Saved<long>("condemnations", Touch.Cold);
 
         _rows.Seal();
 
@@ -157,11 +157,31 @@ public sealed class CondemnationTrailTable
     /// How many condemnations this row accounts for: 1 on an entry, and the count on the aggregate.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The one figure that survives the cap</b>, and the reason this is a column on every row rather
     /// than only on the aggregate: a total is a sum over the table with no branch for which rows were
     /// kept in full.
     /// </remarks>
-    public Column<int> Condemnations { get; }
+    /// <para>
+    /// ⚠ <b><c>long</c> rather than <c>int</c>, because this is the one quantity in the table with no
+    /// sink at all.</b> Every other column is overwritten as entries slide down; the aggregate's count
+    /// only ever grows, for the life of the world, and that is what <em>attribution decays to
+    /// magnitude</em> means. Measured 2026-08-17: a 1,000-Citizen city condemns <b>0.031 Buildings a
+    /// Tick</b> over 100,000 Ticks, which scaled by <c>World</c>'s own Lot allocation is <b>~57 a
+    /// Tick</b> at a million — so a 32-bit counter overflows after roughly <b>162 hours</b> of play at
+    /// the 4× target. Reachable, and the failure is silent: the count wraps negative and the trail
+    /// starts reporting that the city has un-condemned Buildings.
+    /// </para>
+    /// <para>
+    /// <b><c>adr/0065</c> arriving on a third axis, and the lesson is the one that file already
+    /// coined.</b> A Bin's <c>level</c> was an <c>int</c> while <c>Money</c> was a <c>long</c>, so the
+    /// corpus held <em>two widths for one quantity</em>; here there is one quantity and the question is
+    /// whether its width matches its <b>lifetime</b>. ***A counter with no sink is denominated in the
+    /// life of the world, not in the size of the city*** — so the bound that sizes it is a campaign
+    /// length rather than a population, and every other count in this project is sized by the latter.
+    /// </para>
+    /// </remarks>
+    public Column<long> Condemnations { get; }
 
     /// <summary>How many condemnations are retained in full. The aggregate is not one of them.</summary>
     public int Count => _rows.LiveCount - 1;
@@ -176,9 +196,14 @@ public sealed class CondemnationTrailTable
     }
 
     /// <summary>How many Buildings this world has condemned, aggregated ones included.</summary>
-    public int CondemnationsRecorded()
+    /// <remarks>
+    /// <c>long</c> for <see cref="Condemnations"/>' reason, and it would be wrong in <c>int</c> even if
+    /// the column were not: this sums 257 rows, so a narrow return would overflow before the column it
+    /// is summing did.
+    /// </remarks>
+    public long CondemnationsRecorded()
     {
-        int total = 0;
+        long total = 0;
 
         for (int slot = 0; slot <= Count; slot++)
         {
@@ -237,7 +262,7 @@ public sealed class CondemnationTrailTable
         Lot[slot] = lot;
         Kind[slot] = kind;
         Condition[slot] = condition;
-        Condemnations[slot] = 1;
+        Condemnations[slot] = 1L;
     }
 
     private void Aggregate(int slot)

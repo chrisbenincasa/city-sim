@@ -144,8 +144,8 @@ internal static class EvidenceDump
     private static void Trail(TextWriter output, World world, RulesetNames names)
     {
         CondemnationTrailTable trail = world.CondemnationTrail;
-        int total = trail.CondemnationsRecorded();
-        int aggregated = trail.Condemnations[CondemnationTrailTable.AggregateSlot];
+        long total = trail.CondemnationsRecorded();
+        long aggregated = trail.Condemnations[CondemnationTrailTable.AggregateSlot];
 
         output.WriteLine("## The condemnation trail — what the world freed and this kept");
         output.WriteLine(
@@ -393,7 +393,7 @@ internal static class EvidenceDump
     }
 
     private static void Row(
-        TextWriter output, string tick, string lot, string kind, string condition, int count) =>
+        TextWriter output, string tick, string lot, string kind, string condition, long count) =>
         output.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
             $"  {tick,9}  {lot,9}  {kind,-14}  {condition,-14}  {count,5}"));
