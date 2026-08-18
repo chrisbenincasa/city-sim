@@ -6,14 +6,17 @@
 
 ## Status
 
-🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; tasks 1–6 shipped 2026-08-17** — the rebuild audit and
-`Disposition.Scratch`, the column storage accessor, `Rows.Restore`, the header, the writer and reader,
-and the copy. ✅ **All five open decisions are closed**, each by the task it blocked. ⚠ **One question
+🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; tasks 1–6 shipped 2026-08-17 and task 7 on 2026-08-18** —
+the rebuild audit and `Disposition.Scratch`, the column storage accessor, `Rows.Restore`, the header,
+the writer and reader, the copy, and **the Factorio test**. ✅ **All five open decisions are closed**,
+each by the task it blocked. ⚠ **One question
 is open that was not on the list**: whether a save carries a verified State Hash — `adr/0087` says it
 would be computed from the copy and **that is not buildable**, because a fold over bytes is not the
-State Hash. See task 6. **1,504 tests green
+State Hash. See task 6. **1,530 tests green
 and no baseline re-recorded**, because the milestone adds no table and no column, `Scratch` was already
-outside the fold, and a header is not part of the city. Session **K** checked it and found nothing in front of
+outside the fold, and a header is not part of the city. ⚠ **`05 §4` invariant 6 — *run N, save, reload,
+run M* — has machinery for the first time in the project's life**, and it is green over seven cases and
+two Rulesets. Session **K** checked it and found nothing in front of
 it: [`adr/0086`](../docs/adr/0086-a-save-has-no-schema-of-its-own-and-the-field-declaration-is-the-format.md)
 settles the format, [`adr/0087`](../docs/adr/0087-a-save-is-copied-at-save-cadence-not-read-from-a-past-that-no-longer-exists.md)
 settles the cadence, and `05 §6`'s threading policy — the one thing that looked like a gate — decides
@@ -875,6 +878,57 @@ wrong derived value has had time to reach saved state.
 Beside it, the structural test `adr/0086` names in its consequences and asks not to be discovered
 later as a gap: **the file's column set equals the hash's `Saved` set**, table by table, in order.
 Cheap, and it is what stops the two answers to one question drifting.
+
+#### ✅ Task 7 shipped 2026-08-18 — the round trip holds, and both findings are about the *instruments* rather than about the save
+
+**`tests/Borough.Tests/Persistence/FactorioTests.cs`, 9 tests, 1,530 green.** `05 §4` **invariant 6 has
+machinery for the first time in the project's life** — one of the two lints that never had any — and it
+is green on every case tried. Nothing in the format or the rebuild was found wrong by it.
+
+**The shape.** Seven Factorio cases: N ∈ {0, 1, 64, 129, 256} over `minimal.toml` and N ∈ {64, 256} over
+`congested.toml`, each running M further Ticks in **lockstep** against a control that never saved, and
+comparing the State Hash **at every Tick** rather than at the end. Comparing only at the end names the
+wrong Tick, and the Tick a divergence happened on is most of the diagnosis. N = 0 is in the sweep on
+purpose: a world populated and never stepped is the state every guard is written against. `congested.toml`
+is there because a format tested against one fixture is tested against the columns that fixture happens
+to move — the Movement tables joined `World._tables` in 5b and `minimal.toml` puts nobody in them.
+
+⚠ ***A structural test over one fixture measures the fixture's content as much as the structure.***
+`adr/0086`'s owed test — *the file's column set is the hash's `Saved` set* — is asserted **by corruption**
+(scribble a column, watch the file move) rather than by comparing two lists, because both the writer and
+`Rows.Fold` read `SavedColumns` and a list-to-list comparison would compare an array with itself. **The
+first version covered 170 of 187 columns and reported nothing wrong**, because a corruption test is
+silent about a table with no rows. Two whole tables were empty: `route_hop`, since 5c made the path
+source **opt-in** and nobody drives under `minimal.toml`; and **`layer_cell`, which stands at zero rows
+under all four shipped Rulesets** — none of them emits pollution (each says so in its own header: *a
+dwelling is not industry*) and `MapLayers.SetLandValueTarget` has only test callers, which is CLAUDE.md's
+*two of the six roots are producers rather than subsystems* arriving from underneath. **The fixtures were
+made to reach the tables rather than the hole being pinned**: `congested.toml` covers `route_hop`, a
+test-local world emits pollution and sets a land-value target for `layer_cell`, and the residue is
+asserted at **the empty string**, by name, so a new hole is a failing test rather than a count nobody
+re-reads.
+
+⚠ ***A test that allocates heavily is not a local decision in a suite that runs in parallel and asserts
+on allocation.*** The first structural test wrote a fresh file per column — 187 files a world, ~300 MB
+across the three — and **made two unrelated allocation assertions fail**:
+`ZoneRuleTriggerTests.Sweeping_allocates_nothing_after_the_first_trigger` (5,672 then 5,696 bytes) and
+`QuantityTests.Arithmetic_on_quantities_allocates_nothing` (6,768 bytes), **over arithmetic that cannot
+allocate at all**. It passed on its own, and passed run beside those two tests alone; only the whole
+suite reproduced it. **Four full runs settle the causation**: HEAD green at 1,521; HEAD plus the
+allocating test failing, with a *different pair* of assertions each time; HEAD alone green again with the
+file moved aside; HEAD plus the same test reusing one buffer green at 1,530. ⚠ **The mechanism is a
+hypothesis and is written down as one** — `GC.GetAllocatedBytesForCurrentThread` is served out of a
+per-thread allocation context and a collection forced by another thread plausibly flushes it — and
+`adr/0043` is why it stays a hypothesis: the refuting number exists and nobody has taken it. The
+**causation** is measured and that is what the fix rests on. Routed on the day per `adr/0073`, to
+`TableAllocationTests`' own remark, which is the sentence every future author of an allocation assertion
+reads and which said **`GC.GetAllocatedBytesForCurrentThread` is exact** with six files resting on it.
+*"Exact" is a claim about what it counts, not about what it reads.*
+
+**What it does not establish.** The Factorio test is green over seven cases and that is evidence about
+the cases run, not a proof about the rebuild — `RebuildDerived` is exercised wherever those worlds reach,
+and task 1's audit remains the direct measurement. The heaviest thing still untested is a **long** run
+with saves in it, which is task 9.
 
 ### Task 8 — something to look at
 

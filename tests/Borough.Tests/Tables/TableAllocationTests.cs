@@ -17,6 +17,18 @@ namespace Borough.Tests.Tables;
 /// harness. A benchmark project is still the right home for <em>timings</em>, and this is not one.
 /// </para>
 /// <para>
+/// ⚠ <b>"Exact" is a claim about what it counts and not about what it reads, and the difference was
+/// measured on 2026-08-18 (milestone 8 task 7).</b> A new test elsewhere in this suite that allocated
+/// ~300 MB made <b>two unrelated allocation assertions fail</b> — including
+/// <c>QuantityTests.Arithmetic_on_quantities_allocates_nothing</c>, over arithmetic that cannot
+/// allocate at all — and reducing that test's allocation made them green again, over four full runs.
+/// The counter is served out of a per-thread allocation context, and the working hypothesis is that a
+/// collection forced by <em>another</em> thread flushes it; ***the mechanism is not verified and the
+/// causation is***. ***An allocation assertion is exact in isolation and perturbable in a suite that
+/// runs in parallel***, so the obligation lands on every <em>other</em> test: a test that allocates
+/// heavily is not a local decision here.
+/// </para>
+/// <para>
 /// The claim being pinned is narrow and is the one adr/0006 cares about: <b>steady state allocates
 /// nothing</b>. Growth allocates, deliberately and once per doubling; it is excluded by pre-growing
 /// the table before the measured loop.
