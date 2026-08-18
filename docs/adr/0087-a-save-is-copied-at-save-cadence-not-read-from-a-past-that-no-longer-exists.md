@@ -68,6 +68,27 @@ This also makes the copy's boundary the same boundary the State Hash is taken at
 the hash describe the same instant, so the hash in the header is a statement about the bytes below it
 rather than about a nearby Tick.
 
+⚠ **AMENDED 2026-08-17 by milestone 8 task 6, which built it: the copy is taken after `World.Advance`,
+one statement later than *the end of phase 7*.** Everything above about phase 7 is correct and is
+untouched — it is serial, nothing is holding a partially-updated peer, and both double-buffered tables
+have settled, because `MapLayers` swaps inside the Layers phase. What the paragraph does not account for
+is that `Simulation.Step` calls `_world.Advance()` **after** `Commit`, and that increments the **Tick**,
+which has been saved state since [`0058`](0058-the-tick-is-state-so-the-world-holds-it-and-the-hash-folds-it.md).
+A copy taken at the end of phase 7 therefore records the Tick that has just finished, so reloading it
+**re-runs that Tick** — one duplicated Tick, no error, and a State Hash that diverges from the run it was
+meant to continue. ***"The end of phase 7" and "the end of the Tick" are different instants, and the
+difference is one increment of saved state.*** `0058` shipped before this ADR and the phrase reads as
+though the two are the same moment; the hash is what said otherwise.
+
+⚠ **And the hash clause below is not buildable as written.** *"That hash is computed on the background
+thread from the copy"* cannot be done: `HandleColumn.Fold` folds the **target row's monotonic id**, which
+lives in another table and is not a function of the handle's bytes, so folding the copy produces a number
+that is not the State Hash. This ADR's own table calls that divergence out in `0086`'s voice and then asks
+for the thing it rules out. ***A hash that folds a value the bytes do not contain cannot be computed from
+the bytes.*** The clause is conditional — *"if a save is to carry a verified hash"* — and milestone 8
+carries none, so nothing rests on it; what a verified hash would cost, and where it would have to be
+computed, is recorded in `plans/0030` task 6 as an open question rather than settled here.
+
 ### The blocking part is the copy and not the write, which is the whole point
 
 The shape is:

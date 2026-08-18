@@ -3,6 +3,7 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Movement;
+using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -50,6 +51,9 @@ public sealed class Simulation
     // Reusable search state for every walk this simulation resolves. It is not simulation state and
     // folds nothing: WalkScratch.Begin grows its arrays and bumps a generation stamp rather than
     // clearing, so holding one costs a high-water mark of nodes and saves a whole allocation per Leg.
+
+    private ISaveSink? _saveDue;
+    private WorldSnapshot? _snapshot;
 
     private TickPhase _phase = TickPhase.Commit;
     private ulong _inForce;
@@ -227,6 +231,11 @@ public sealed class Simulation
         Commit(tick);
 
         _world.Advance();
+
+        // The save, and it is after Advance rather than at the end of Commit for a reason measured
+        // rather than argued -- see TakeSaveIfDue. Advance is the clock increment, and the clock has
+        // been saved state since adr/0058.
+        TakeSaveIfDue();
     }
 
     /// <summary>How many times the Ruleset in force has changed since this Simulation started.</summary>
@@ -787,6 +796,79 @@ public sealed class Simulation
         // before Growth and it would report a city mid-edit, which is a check that fires on correct
         // code and is therefore a check somebody eventually deletes.
         _world.Invariants.RunStaggered(_world);
+    }
+
+    /// <summary>
+    /// Asks for a save at the end of this Tick. The one door a host has to a save.
+    /// </summary>
+    /// <param name="destination">
+    /// Where the finished bytes go. Written once, synchronously, before <see cref="Step"/> returns.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// <b>The cadence is the host's and the <em>instant</em> is not</b> (<c>adr/0087</c>). An autosave
+    /// interval changes no state and enters no hash, so it is a setting rather than a world constant;
+    /// where in the Tick the copy is taken is neither. A copy taken mid-Tick captures some tables
+    /// before Settle and some after, which is <b>a world that never existed</b>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The copy is taken after <see cref="Entities.World.Advance"/> and not at the end of phase 7,
+    /// against <c>adr/0087</c>'s wording, and the difference is the clock.</b> That ADR's reasoning
+    /// about phase 7 is sound and untouched — it is serial, and both double-buffered tables have
+    /// settled, because <c>MapLayers</c> swaps inside the Layers phase. What it does not account for is
+    /// that <c>Advance</c> runs <em>after</em> Commit and increments the Tick, which has been <b>saved
+    /// state</b> since <c>adr/0058</c>. A copy taken before it records the Tick just finished, so
+    /// reloading it re-runs that Tick: one duplicated Tick, no error, and a hash that diverges from the
+    /// run it was meant to continue. ***"The end of phase 7" and "the end of the Tick" are different
+    /// instants, and the difference is one increment of saved state.*** Found by the hash disagreeing;
+    /// <c>adr/0058</c> shipped before <c>adr/0087</c> and the phrase reads as though they are the same
+    /// moment.
+    /// </para>
+    /// <para>
+    /// <b>⚠ It is called from inside <see cref="Step"/> rather than after it, and that is the seam.</b>
+    /// <c>05 §6</c>'s threading policy is session R's and decides nothing a save needs, so this
+    /// milestone writes synchronously (<c>plans/0030</c> D4) — but the boundary a thread would wrap is
+    /// drawn now: <see cref="WorldSnapshot"/> is filled on the simulation thread, at ~10 ms once per
+    /// autosave, and <see cref="WorldSnapshot.DrainTo"/> is the unbounded half that moves. Calling this
+    /// from outside a Tick would put the copy at a moment nothing guarantees is a boundary.
+    /// </para>
+    /// <para>
+    /// <b>One save may be outstanding.</b> Asking twice before a Tick runs replaces the destination
+    /// rather than queueing, because two saves of the same instant are one save written twice.
+    /// </para>
+    /// </remarks>
+    public void SaveAtEndOfTick(ISaveSink destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+
+        _saveDue = destination;
+    }
+
+    /// <summary>Whether a save has been asked for and not yet taken.</summary>
+    public bool SaveIsDue => _saveDue is not null;
+
+    private void TakeSaveIfDue()
+    {
+        if (_saveDue is null)
+        {
+            return;
+        }
+
+        ISaveSink destination = _saveDue;
+        _saveDue = null;
+
+        // Allocated on the first save rather than with the Simulation: a session that never saves must
+        // not carry 131.33 MiB of buffer for the option.
+        _snapshot ??= new WorldSnapshot();
+        _snapshot.Reset();
+
+        // The copy. Blocking, ~10 ms at 1M, once per autosave -- and the only part of a save that has
+        // to happen on this thread at all. Still serial and still after every phase; what moved against
+        // adr/0087's wording is that it is after the clock increment rather than before it.
+        SaveFile.Write(_world, _inForce, _snapshot);
+
+        // The unbounded half. Synchronous in this milestone; this call is what moves.
+        _snapshot.DrainTo(destination);
     }
 
     /// <summary>

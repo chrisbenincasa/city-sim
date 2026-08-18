@@ -6,9 +6,12 @@
 
 ## Status
 
-🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; tasks 1–5 shipped 2026-08-17** — the rebuild audit and
-`Disposition.Scratch`, the column storage accessor, `Rows.Restore`, the header, and the writer and
-reader. ✅ **All five open decisions are closed**, each by the task it blocked. **1,504 tests green
+🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; tasks 1–6 shipped 2026-08-17** — the rebuild audit and
+`Disposition.Scratch`, the column storage accessor, `Rows.Restore`, the header, the writer and reader,
+and the copy. ✅ **All five open decisions are closed**, each by the task it blocked. ⚠ **One question
+is open that was not on the list**: whether a save carries a verified State Hash — `adr/0087` says it
+would be computed from the copy and **that is not buildable**, because a fold over bytes is not the
+State Hash. See task 6. **1,504 tests green
 and no baseline re-recorded**, because the milestone adds no table and no column, `Scratch` was already
 outside the fold, and a header is not part of the city. Session **K** checked it and found nothing in front of
 it: [`adr/0086`](../docs/adr/0086-a-save-has-no-schema-of-its-own-and-the-field-declaration-is-the-format.md)
@@ -803,6 +806,59 @@ Build it as **one call from the end of `Simulation.Commit`, with the hash inside
 today, and the day the host takes the write it wraps exactly that call and moves the right ~42 ms rather
 than the wrong ~10. Taking the copy is still the part that has to be right first, because it is the part
 that stops being correctable once callers exist.
+
+#### ✅ Task 6 shipped 2026-08-17 — `WorldSnapshot`, and *the end of phase 7* turned out not to be the end of the Tick
+
+**`src/Borough.Core/Persistence/WorldSnapshot.cs` plus `Simulation.SaveAtEndOfTick`, 6 new tests, 30
+across the namespace.** `adr/0087` is amended in place on two clauses, both found by building it.
+
+**The shape.** `WorldSnapshot` **is an `ISaveSink`**, which makes the copy and the write one mechanism
+rather than two: writing the world into a memory sink *is* the copy, so there is one writer used twice
+against different sinks rather than a serialiser and a separate cloner that could disagree about what
+the file contains. The buffer is allocated on the **first** save — a session that never saves must not
+carry 131.33 MiB for the option — and reused after that, so an autosave costs no allocation.
+
+⚠ ***"The end of phase 7" and "the end of the Tick" are different instants, and the difference is one
+increment of saved state.*** The copy is taken after `World.Advance`, one statement later than
+`adr/0087` says. Everything that ADR argues about phase 7 is **correct and untouched** — it is serial,
+and both double-buffered tables have settled, because `MapLayers` swaps inside the **Layers** phase.
+What it does not account for is that `Advance` increments the **Tick**, and the Tick has been saved
+state since `adr/0058`. A copy at the end of Commit records the Tick that has just finished, so
+reloading it **re-runs that Tick** — one duplicated Tick, no error, and a hash that diverges from the
+run it was meant to continue. `adr/0058` shipped **before** `adr/0087`, and the phrase reads as though
+the two are the same moment.
+
+⚠ **The finding cost me the same error it is about, and that is worth more than the finding.** The first
+write-up blamed the **buffer swap** — asserting that `Advance` publishes the double-buffered tables —
+which is wrong: `Advance` is one line and it is the clock. The mechanism was inferred from the shape of
+the failure rather than **read**, which is `adr/0093` exactly, committed *while writing up a finding
+about an ADR making the same kind of mistake*. What caught it was a test sweep behaving differently from
+the prediction: **all five cases failed where the swap theory predicted only the diffusion-boundary ones
+would**. ***A theory that explains the failure is not thereby the mechanism that caused it***, and the
+cheapest discriminator was a prediction the theory had to make about a case it had not been fitted to.
+
+⚠ **`adr/0087`'s hash clause is not buildable as written, and this is the one thing task 6 leaves open.**
+*"That hash is computed on the background thread from the copy"* cannot be done: `HandleColumn.Fold`
+folds the **target row's monotonic id**, which lives in another table and is not a function of the
+handle's bytes — the very divergence `adr/0086` names — so a fold over the copy produces a number that
+is **not** the State Hash. ***A hash that folds a value the bytes do not contain cannot be computed from
+the bytes.*** The clause is conditional (*"if a save is to carry a verified hash"*) and this milestone
+carries none, so nothing rests on it. **But D4's seam was drawn on the strength of it** — *hash +
+serialise + write*, ~42 ms rather than ~10 — and with no hash the seam is back at *copy | write*, which
+is `adr/0087`'s own shape table. **D4's conclusion survives and one of its two reasons falls**, which is
+`adr/0088`'s *a decision given several grounds is load-bearing on whichever ones survive*. A negative
+assertion holds the line: `A_fold_over_the_bytes_is_not_the_state_hash`.
+
+**⚠ What this milestone cannot test, stated so it is not mistaken for tested.** Nothing is parallel
+around the save, so a writer that walked the live world would produce a correct file today — which is
+the case `adr/0087` says is *still a defect*. What is asserted instead is that the save is taken **by
+the Tick** rather than by the caller, that it reproduces the hash at that instant, and that the copy and
+the write are a real function boundary a thread could take.
+
+**Two smaller things.** The two halves cannot be **timed** here, because `Core` may not read a clock
+(`05 §4`) — which is why the seam is a function boundary and task 9's two numbers are the runner's to
+take. And one save may be outstanding: asking twice before a Tick runs **replaces** the destination
+rather than queueing, because two saves of the same instant are one save written twice.
 
 ### Task 7 — the Factorio test, and the structural test `adr/0086` owes
 
