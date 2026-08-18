@@ -11,7 +11,7 @@ concurrent session and the District Pool — then milestone **9**, now **12** �
 independent root [`06`](../docs/06-roadmap.md)'s dependency graph says it is. See *What scoping
 found* → **F1**.
 
-**Six decisions, of which one is settled and five are open**, each named against the task it blocks.
+**Six decisions, of which two are settled and four are open**, each named against the task it blocks.
 Two of the open ones are hash-bearing numbers that the corpus declares owed in prose and that sit in
 **no ledger**, so they have no ratifier — [`0002`](0002-open-questions.md) §D had never held a row
 for either until this brief filed them.
@@ -21,9 +21,16 @@ for either until this brief filed them.
 **a Business is an entity, and this milestone builds it.** ⚠ **It was posed as a contradiction
 between two ADRs and there is none** — a Business is an Occupant rather than a Building, so both were
 correct and neither is amended; what they contradict is the **build**, which has no Business at all.
-⚠ **And settling it opened decision 6, which is the milestone's largest**: a balance is a **column**,
-a Rule can only touch a **Bin**, and `BinTable.Owner` is typed to `Building` — so **no money any
-actor holds is reachable by any Rule**, which is every flow this milestone exists to build.
+
+✅ **Decision 6 settled the same day** —
+[`adr/0114`](../docs/adr/0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md):
+**a balance is a Bin, and `BinTable.Owner` becomes discriminated.** It was opened by settling decision
+1 and it was the larger of the two. ⚠ **The deciding evidence is not about storage**: the Rule engine
+keys blame and waking on a **Bin slot**, so a balance in a column cannot be named as a blocker, joined
+as a wait list, woken, or reported with a `Blocking`. ***A balance a Rule can fail on is a Bin,
+because the failure surface is what a Bin is for.*** ✅ **`HouseholdTable.Savings` is deleted with
+it** — one pool, and what `adr/0024` actually asks for beside it is a **reserve** rather than a second
+account.
 
 ---
 
@@ -216,10 +223,11 @@ Rule with, per `01 §2`, *"a named payer and named beneficiaries"*, and per `CON
 *"moves conserved Money between named parties."* That is more structure than a tax rate. Examine it
 **before** writing the command, because the Input Log's shape is replay's shape.
 
-### 6. How a Rule reaches a balance — **NEW 2026-08-18, and it is the milestone's largest**
+### ~~6. How a Rule reaches a balance~~ — ✅ **SETTLED 2026-08-18 with the user in the room. A balance is a Bin, and a Bin's owner is discriminated.** [`adr/0114`](../docs/adr/0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md)
 
-⚠ **Blocks tasks 1, 4 and 5 — which is most of the milestone.** Opened by settling decision 1, and it
-is bigger than the decision that exposed it.
+**Money an actor holds lives in a Bin. `BinTable.Owner` becomes a discriminated handle — Building,
+Household, Business, treasury — and `HouseholdTable.Money` and `.Savings` are both deleted.**
+Opened by settling decision 1, and it was bigger than the decision that exposed it.
 
 **A balance is a column and a Rule can only touch a Bin.** `HouseholdTable.Money` is
 `Saved<Money>("money")`, a column (`HouseholdTable.cs:44`). `RuleEngine.Bin` resolves `Scope.Local`
@@ -245,10 +253,39 @@ and the build already disagree about the one actor that has a balance.
 | **Money gets its own term kind** | Balances stay columns; a money term resolves per owner beside the Bin path rather than through `FindBin` | Two paths through the Rule engine. ⚠ But `02 §4.3` already spells a treasury movement as a **transfer** naming two *parties* rather than two Bins, so this may be what the corpus already decided |
 | **A Bin table per owner type** | Homogeneous handles throughout | Duplicates the wait-list machinery, which is the thing a Bin exists for |
 
-⚠ **Type it before settling it** ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)):
-this is **arguable**, not measurable — no number refutes any of the three — so a sitting may close it,
-and it wants an ADR of its own. ⚠ **It is hash-bearing in every shape**, because all three change
-what is in the saved set.
+**The build settled it, and the deciding evidence is not about storage.** `RuleEngine.Check` keys
+everything on a **Bin slot**: `_touchedBin[]` dedupes by slot identity, affordability reads
+`Bins.LevelAt` and `Bins.Capacity`, failure returns `RuleVerdict.Stopped(instance, rule, **bin**,
+blocking)`, and the sleeper queues on that Bin's `SupplyHead` and is woken by a write to it. A
+balance in a column is unreachable **four ways at once** — it cannot be named as a blocker, joined
+as a wait list, woken, or reported with a `Blocking`. ***A balance a Rule can fail on is a Bin,
+because the failure surface is what a Bin is for*** — so option 3 is refuted rather than weighed,
+and with it `adr/0050`'s bankruptcy diagnosis, which is *two Bins, two blame targets, two sentences from Evidence*.
+
+⚠ **A money Bin cannot be owned by a Building, which is what forces the discriminator.** An evicted
+Household keeps its balance by design (`World.EvictToPool`, `adr/0054`) and `adr/0024`'s destitution
+argument turns on a Household that *"cannot afford to move"* — so an actor with no Building holds
+money. The treasury is nobody's Building at all, which is the ground `RuleEngine.cs:813` refuses
+`Scope.Global` on.
+
+⚠ **Option 2 was refused on where the tag is paid, not on taste.** A table per owner type does not
+remove the discriminator, it moves it into the hot path: `_touchedBin` is a flat `int[]` compared on
+every term of every evaluation, and a `(table, slot)` key is paid there for ever where one saved
+byte per Bin row is paid once at rest. ***Splitting a table to keep a handle typed duplicates
+whatever the table was for*** — here, the whole wait-list machinery.
+
+✅ **`Savings` is deleted, and it was never a second account.** Every design sentence describes a
+**threshold**: `adr/0024`'s *"reserve **sized by** its Life Stage"* and *"saving has a purpose and
+therefore a ceiling"*, its revisit trigger's *"savings **buffer**… where **velocity** is set"*, and
+`CONTEXT.md`'s *"savings drain, discretionary spending stops first"*, which is one balance falling.
+A Household has **one pool**; what varies is how much of it it will spend, which is a reserve derived
+from the Ruleset in force through Life Stage. ⚠ **The reserve is not built here** — nothing spends
+discretionary money until **14** and Life Stages are **20**, so choosing its size now would be a
+hash-bearing number with no consumer and no ratifier. ⚠ ***A threshold stored as a stock reads as a
+second account, and every document that later names the pair inherits it*** — `adr/0054`, `adr/0068`
+and `CONTEXT.md` all write *"Money **and** Savings"*, correctly, because by then two columns
+existed. **This is `adr/0093` running from the code *into* the documents**, which that ADR does not
+consider: its whole subject is prose being wrong about the build.
 
 ---
 
@@ -393,7 +430,9 @@ available the moment milestone 11 opens the gate. ⚠ **Take it while it is exac
   directions.
 - The conservation invariant is an **exact** equality over a whole run, and it is in the end-of-run
   tier with `MoneyIsRepresentable` beside it rather than instead of it.
-- `HouseholdTable.Money` has a production writer, and `CitizenEvidence` reports finances.
+- A Household's **money Bin** has a production writer, and `CitizenEvidence` reports finances.
+  `HouseholdTable.Money` and `.Savings` are both **deleted**, and `MoneyIsRepresentable` is rewritten
+  over Bins rather than retargeted ([`adr/0114`](../docs/adr/0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md)).
 - Every hash-bearing number this milestone chooses has a **row** in `0002` §D naming a machine, a
   world and a quantity — decisions 2 and 3 are both currently rows that do not exist.
 - The State Hash moves and all three golden baselines are re-recorded, with a commit subject that
