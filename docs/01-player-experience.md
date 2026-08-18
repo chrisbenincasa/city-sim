@@ -326,15 +326,51 @@ the ratifier is the first real play session and the two refuting observations ar
 **It is not ratified by a player failing to meet §4's two-hour mark**, which under the previous section is
 not a promise.
 
+> ⚠ **That sentence was a `plans/0002` §D row for the life of this document and no ledger carried it — filed
+> 2026-08-18** ([`adr/0116`](adr/0116-the-treasury-opens-empty-and-a-founding-balance-is-a-ratio-this-milestone-holds-neither-side-of.md)).
+> ***A number that states its own ratifier inside a design document is still unratified, because the ledger is
+> what schedules the ratification.*** **And it is not milestone 10's to choose**, though that is where the
+> treasury Bin first exists: both ends above are denominated in **what things cost**, and there is no
+> construction cost, no wage, no price surface and no gate — so a figure picked there would be a numerator with
+> no denominator. Milestone 10's treasury opens **empty**, which is a different quantity that happens to share
+> this one's range; only the missing consumer tells them apart.
+
 **What is deliberately absent from the first ten minutes:** shocks, and any failure state.
 
 **Budget pressure is not absent, and the earlier draft of this section was wrong to say so.** The founding
 balance is finite and infrastructure is paid for three times — in Money, Materials and Land
 ([`adr/0035`](adr/0035-infrastructure-is-priced-by-what-it-consumes.md)) — so a player laying road on a
-blank map is spending from the first act. What is absent is budget *failure*, for the reason `CONTEXT.md` →
-Resource already gives: a deficit becomes a debt burden and never a stop. You can overspend in the first
-ten minutes and you will feel it; you cannot lose. The opening teaches the loop; *failure* arrives once the
-loop is understood.
+blank map is spending from the first act. What is absent is budget *failure*: the opening teaches the loop,
+and *failure* arrives once the loop is understood.
+
+> **⚠ AMENDED 2026-08-18 by [`adr/0116`](adr/0116-the-treasury-opens-empty-and-a-founding-balance-is-a-ratio-this-milestone-holds-neither-side-of.md).
+> The superseded wording was:** *"…what is absent is budget failure, for the reason `CONTEXT.md` → Resource
+> already gives: a deficit becomes a debt burden and never a stop. You can overspend in the first ten minutes
+> and you will feel it; you cannot lose."* **Two things are wrong with it and they compound.** The sentence is
+> under `CONTEXT.md` → **Money**, not → Resource; and it was quoted at **half its length**. In full it reads
+> *"a deficit becomes a debt burden, never a stop — **but it is a player action, never an automatic overdraft,
+> so the treasury genuinely empties and the Rules that could not draw simply wait.**"* The dropped clause is the
+> one [`adr/0035`](adr/0035-infrastructure-is-priced-by-what-it-consumes.md) §3a wrote **specifically to correct
+> that reading**, and [`adr/0024`](adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md) carries
+> the amendment: *"reads as an automatic overdraft, and an automatic one deletes a decision the player should be
+> making."* So *you cannot lose* was the reading the corpus had already refused, and the correction landed in
+> two documents and missed this one — `plans/0012` **Cause 2**. ***A caveat can be a clause of the sentence it
+> qualifies, and a half-quote is the one form of miscitation that reads as a faithful one.***
+>
+> **What replaces it.** Borrowing is a lever the player **reaches for**, so a treasury that empties stays empty
+> until they do, and the Rules that could not draw wait — which for infrastructure means capacity and free-flow
+> speed fall and *an unpaid bill lengthens every commute* (§5). That is real pressure with no failure state
+> behind it, and it is a better opening than the one this paragraph claimed, because the consequence is visible
+> on the map rather than only in a number.
+>
+> ⚠ **And it does not cover the first ten minutes, which are made of *commands*.** `adr/0035` §3a specifies what
+> happens when a **Rule** cannot draw; a command cannot wait, so an unaffordable `Connect` must be **refused**,
+> and a refusal is the stop this paragraph says is absent. **No document states what an unaffordable player
+> action does** — [`adr/0070`](adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s *undesigned* class
+> — and it is filed to [`plans/0002`](../plans/0002-open-questions.md) §C rather than answered here, because the
+> likely shape is a pre-flight affordability query at the sim/render boundary (`05 §2`) rather than anything in
+> the treasury. ***Specifying what happens when a Rule cannot pay is not specifying what happens when the player
+> cannot.***
 
 ---
 

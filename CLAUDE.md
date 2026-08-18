@@ -546,7 +546,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **114** decision records, numbered to **`0115`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **115** decision records, numbered to **`0116`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — it opens with a **What is next** block, then done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question**. ⚠ **A closed row leaves the board**, because a view that carries its own history stops being scannable: it has been cleared twice, on 2026-08-12 (999 lines) and 2026-08-15 (~400) |

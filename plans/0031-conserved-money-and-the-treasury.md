@@ -187,7 +187,19 @@ either ADR names is a **time** — *before the first priced Ruleset* — and und
 as amended a ratifier names **a machine, a world and a quantity**, of which a date is none. Open the
 row **before** choosing the number, or this milestone ships the failure that ADR exists to prevent.
 
-### 3. The founding balance — the same shape, and the corpus already wrote the ratifier down
+### ~~3. The founding balance~~ — ✅ **SETTLED 2026-08-18 with the user in the room. The treasury opens empty; the founding balance is a ratio this milestone holds neither side of; gift or loan stays open and that is free.** [`adr/0116`](../docs/adr/0116-the-treasury-opens-empty-and-a-founding-balance-is-a-ratio-this-milestone-holds-neither-side-of.md)
+
+**Three answers, and none of them is a number.**
+
+1. **The treasury opens at zero and nothing authors it — derived, not chosen.** Task 5's tax flows in before its transfer pays out, so the circuit never needs an opening stock; and an empty treasury is what makes `02 §4.2`'s *"pays whom it reaches and reports where it stopped"* branch reachable on the **first sweep** rather than after a long run somebody constructs. ***A baseline records what a run did***, and a comfortable opening stock would have hidden the branch this milestone exists to demonstrate. ⚠ **It sits inside the founding balance's own range** — session F's placeholder trap — so what separates them is the **missing consumer**, not the value, and the guard is a sentence in the fixture's header on `congested.toml`'s precedent.
+2. **The founding balance is deferred to the first playable build.** `01 §3`'s two ends — *"enough to get started and not enough to win"* — are both denominated in **what things cost**, and there is no construction cost, no wage, no price surface and no gate. A figure here is a numerator with no denominator (`plans/0012` **Cause 5**). Its `§D2` row is **filed**, with `01 §3`'s own ratifier.
+3. **Gift or loan stays open, and the ADR checks that it is free rather than asserting it.** A loan is the same balance with `Govern`'s borrow lever pre-pulled — borrowing is already settled as a player action that **adds** money — and **a debt is not negative money** (`adr/0003`), so a principal never enters the conservation sum and **task 4 reads identically under either branch**. ***An axis left open is free only when both branches need the same representation, and that is checkable rather than assumed.***
+
+⚠ **It blocked task 4 as well as task 9, which this brief did not say** — the conservation anchor is a founding-balance question — and it resolves there to *zero contribution*, which makes the equality tighter.
+
+⚠ **Two findings outrank the decision**, both in the ADR: `01 §3` quoted **half** a sentence whose other half reverses it, from the wrong `CONTEXT.md` entry; and ***the damper cannot reach a command*** — `adr/0035` §3a covers a **Rule** that cannot draw, the first ten minutes are made of **commands**, and a command cannot wait. The second is filed to [`0002`](0002-open-questions.md) §C as **undesigned**.
+
+⚠ **The entry as scoped follows, kept rather than struck** — it is the record of a ratifier that sat in a design document for the life of the project with no ledger behind it.
 
 ⚠ **Blocks task 9.** [`01 §3`](../docs/01-player-experience.md) settles the *mechanism* — *"the city
 is founded with money and the player did not ask for it. Money's only door is the Outside Connection,
@@ -343,6 +355,8 @@ out of step before. Update all three in the same commit, or the next reader re-d
 sum with a flow term. Write it that way and let milestone 11 add the term; ***an assertion that is
 correct and temporarily strict*** is 5b's distinction and the good side of it.
 
+⚠ **The constant is the Households' opening money alone** ([`adr/0116`](../docs/adr/0116-the-treasury-opens-empty-and-a-founding-balance-is-a-ratio-this-milestone-holds-neither-side-of.md)): the treasury opens **empty** and contributes nothing to it. **Decision 3 blocked this task and the brief said it blocked only task 9** — an anchor is a founding-balance question — and it resolves to a *zero term* rather than to a value, which makes the equality tighter rather than looser.
+
 ### Task 4b — `BusinessTable`, and the second Occupant kind the build has never had
 
 ⚠ **NEW 2026-08-18, from decision 1** ([`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)).
@@ -410,7 +424,7 @@ without a new accumulator.
 
 100,000+ Ticks. **The money sum is invariant to the unit**, so it is asserted as an exact equality and
 not a band — the only exact conservation assertion this project will ever have, and it stops being
-available the moment milestone 11 opens the gate. ⚠ **Take it while it is exact.** Needs decision 3.
+available the moment milestone 11 opens the gate. ⚠ **Take it while it is exact.** ~~Needs decision 3.~~ ✅ **Unblocked** — the treasury opens empty, so the sum's opening term is the Households' money and nothing else.
 
 ---
 

@@ -1006,6 +1006,19 @@ generation-scoped and nothing in its two-column form says so.*** Each block now 
 
 Unambiguous factual errors, no judgement required.
 
+- [x] `01 §3` — **half a sentence, from the wrong entry.** **Found and fixed 2026-08-18**, milestone 10 decision 3
+      ([`adr/0116`](../docs/adr/0116-the-treasury-opens-empty-and-a-founding-balance-is-a-ratio-this-milestone-holds-neither-side-of.md)).
+      It cited *"`CONTEXT.md` → Resource"* for *"a deficit becomes a debt burden and never a stop"*; the sentence is
+      under → **Money**, and it continues *"— **but it is a player action, never an automatic overdraft, so the
+      treasury genuinely empties and the Rules that could not draw simply wait**"*. The dropped clause is the one
+      `adr/0035` §3a wrote **to correct that exact reading**, so §3's conclusion — *"you can overspend… you cannot
+      lose"* — was the automatic-overdraft reading `adr/0024`'s own amendment refuses. **Cause 2**: the correction
+      reached `adr/0024` and `CONTEXT` → Money and **missed the third document**, which is the one a player-facing
+      reader opens first. ⚠ **It is also Cause 5 on a new object.** The reading rule is *quote the sentence, never
+      the digits*; here the **caveat was a clause of the sentence itself**, so quoting the sentence was exactly what
+      went wrong — ***a half-quote is the one form of miscitation that reads as a faithful one***, and no mechanical
+      check in this corpus can see it, since all eight compare whole documents rather than clauses
+
 - [x] `CLAUDE.md` — **"43 ADRs"** against its own line 106's "49 decision records". Self-contradictory
 - [x] `CLAUDE.md` — **"Five claims measured false"** against its own line 32's "the **sixth** claim".
       Self-contradictory, and `PROCESS.md` already said six
