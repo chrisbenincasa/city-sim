@@ -52,7 +52,61 @@ public abstract class Column
 
     internal abstract void Clear(int slot);
 
-    internal abstract void Fold(ref ulong hash, int slotCount);
+    /// <summary>
+    /// Folds slots <c>[0, slotCount)</c> into <paramref name="hash"/>, from
+    /// <paramref name="storage"/> rather than from this column's own array.
+    /// </summary>
+    /// <param name="hash">The running hash.</param>
+    /// <param name="storage">
+    /// The bytes to fold — this column's live storage, or the same column's bytes inside a save.
+    /// Its length is the slot count times <see cref="BytesPerRow"/>.
+    /// </param>
+    /// <param name="targets">
+    /// Where <see cref="HandleColumn{TTarget}"/> resolves a handle to the monotonic id it folds.
+    /// <c>default</c> for every column that holds no handle, which ignores it.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// <b>⚠ It takes its bytes rather than reading its own array, and that is the whole of milestone 8
+    /// task 10.</b> The State Hash and the save are the same values in the same order — <c>Rows.Fold</c>
+    /// and <c>SaveFile.WriteBody</c> both walk <see cref="Rows.SavedColumns"/> over the same slots — so
+    /// a fold that takes a span can be run against a <c>WorldSnapshot</c> as easily as against the live
+    /// world, and a save can carry a verified hash that <b>costs the simulation thread nothing</b>
+    /// (<c>adr/0112</c>).
+    /// </para>
+    /// <para>
+    /// <b>One implementation against two sources, deliberately, rather than a second fold beside this
+    /// one.</b> A snapshot-folding routine written separately would be two copies of one rule that must
+    /// agree for ever, which is <c>plans/0012</c> <em>Cause 1</em> built on purpose. This signature is
+    /// what makes the live path and the save path the same code.
+    /// </para>
+    /// </remarks>
+    internal abstract void Fold(ref ulong hash, ReadOnlySpan<byte> storage, in TargetIds targets);
+
+    /// <summary>Folds this column's own storage, resolving handles against the live target table.</summary>
+    /// <remarks>
+    /// <b>The live world's half of the pair, and not a second implementation of anything.</b> It fills
+    /// in the two arguments a live fold always has the same answers for — this column's storage, and
+    /// its target table — and hands them to the one <see cref="Fold(ref ulong, ReadOnlySpan{byte}, in TargetIds)"/>
+    /// that <c>SaveHash</c> also calls.
+    /// </remarks>
+    internal void Fold(ref ulong hash, int slotCount) =>
+        Fold(ref hash, StorageBytes(slotCount), LiveTargets);
+
+    /// <summary>Where this column's handles resolve when the world holding it is the live one.</summary>
+    private TargetIds LiveTargets =>
+        HandleTarget is { } target ? TargetIds.Live(target) : default;
+
+    /// <summary>
+    /// The table this column's handles address, or <c>null</c> if it holds no handles.
+    /// </summary>
+    /// <remarks>
+    /// <b>Non-generic on purpose.</b> A save folder has to find a handle column's target table without
+    /// knowing its element type, in order to locate that table's <c>id</c> and <c>generation</c> bytes
+    /// in the file. <see cref="HandleColumn{TTarget}.Target"/> is the typed answer to the same question
+    /// and is the one to use where the type is in hand.
+    /// </remarks>
+    internal virtual Rows? HandleTarget => null;
 
     /// <summary>
     /// Slots <c>[0, slotCount)</c> as raw bytes, readable and writable. The save's half of
@@ -252,8 +306,15 @@ public class Column<T> : Column
             $"column '{Name}' has one copy; table '{Owner.Name}' did not declare Buffering.TwoCopies. "
             + "adr/0037: a table is double-buffered if and only if a parallel phase reads and writes it.");
 
-    internal override void Fold(ref ulong hash, int slotCount) =>
-        FoldBytes(ref hash, MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount)));
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <b>The bytes are the whole of it, which is why a save needs no second fold for this case.</b>
+    /// A column's file bytes <em>are</em> its storage bytes (<see cref="StorageBytes"/> hands out the
+    /// same span), so folding one is folding the other. <see cref="HandleColumn{TTarget}"/> is the
+    /// single exception in the whole table layer.
+    /// </remarks>
+    internal override void Fold(ref ulong hash, ReadOnlySpan<byte> storage, in TargetIds targets) =>
+        FoldBytes(ref hash, storage);
 
     /// <inheritdoc/>
     /// <remarks>
@@ -389,10 +450,20 @@ public sealed class HandleColumn<TTarget> : Column<Handle<TTarget>>
         return !handle.IsNone && !_target.IsValid(handle);
     }
 
-    internal override void Fold(ref ulong hash, int slotCount)
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <b>⚠ Everything this needs is in the save, which is the finding milestone 8 task 10 rests on.</b>
+    /// The id it folds lives in the target table rather than in the handle — so a fold over
+    /// <em>these</em> bytes alone is not the State Hash, and <c>plans/0030</c> task 6 concluded from
+    /// that the hash could not come from a copy at all. It can: <c>Rows</c> declares <c>id</c> and
+    /// <c>generation</c> as <see cref="Disposition.Saved"/> columns, so both arrays are in the file
+    /// too. ***The value is not in these bytes and it is in the copy.*** <see cref="TargetIds"/> is the
+    /// one line of difference between reading it from the live table and reading it from the save.
+    /// </remarks>
+    internal override void Fold(ref ulong hash, ReadOnlySpan<byte> storage, in TargetIds targets)
     {
         ulong h = hash;
-        Span<Handle<TTarget>> handles = Raw[..slotCount];
+        ReadOnlySpan<Handle<TTarget>> handles = MemoryMarshal.Cast<byte, Handle<TTarget>>(storage);
 
         for (int i = 0; i < handles.Length; i++)
         {
@@ -400,11 +471,14 @@ public sealed class HandleColumn<TTarget> : Column<Handle<TTarget>>
 
             ulong value = handle.IsNone
                 ? 0
-                : _target.TryIdOf(handle, out ulong id) ? id : Dangling;
+                : targets.TryIdOf(handle.Index, handle.Generation, out ulong id) ? id : Dangling;
 
             h = Randomness.Mix(h + value);
         }
 
         hash = h;
     }
+
+    /// <inheritdoc/>
+    internal override Rows HandleTarget => _target;
 }

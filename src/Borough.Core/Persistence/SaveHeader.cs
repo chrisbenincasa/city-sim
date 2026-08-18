@@ -52,7 +52,7 @@ using Borough.Core.Space;
 public readonly struct SaveHeader : IEquatable<SaveHeader>
 {
     /// <summary>The header's width. Fixed for every format version this build can read.</summary>
-    public const int Bytes = 52;
+    public const int Bytes = 60;
 
     /// <summary>
     /// The format version this build writes. Versions the <b>declaration set</b> — which tables exist,
@@ -80,7 +80,8 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
         int ticksPerDay,
         int wheelSize,
         int worldCells,
-        int tilesPerCell)
+        int tilesPerCell,
+        ulong stateHash)
     {
         FormatVersion = formatVersion;
         Key = key;
@@ -89,6 +90,7 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
         WheelSize = wheelSize;
         WorldCells = worldCells;
         TilesPerCell = tilesPerCell;
+        StateHash = stateHash;
     }
 
     /// <summary>The format version the file was written under.</summary>
@@ -129,12 +131,43 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
     /// <summary><c>CellGrid.TilesPerCell</c> as the writing build had it.</summary>
     public int TilesPerCell { get; }
 
+    /// <summary>
+    /// <c>World.HashState</c> at the instant the body below was copied — the ninth field, and the one
+    /// that makes a load check itself.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It is a verification and not a schema check, which is why it is last</b> (<c>adr/0112</c>).
+    /// Every other field says <em>this body will parse and mean what it says</em>; this one says
+    /// <em>and here is what it meant</em>. So a load reads the columns, runs <c>RebuildDerived</c>, and
+    /// recomputes — which makes <c>05 §4</c> invariant 6 a property of every load rather than of the
+    /// seven cases in the test suite.
+    /// </para>
+    /// <para>
+    /// <b>⚠ It costs the simulation thread nothing, and that is the reason it exists at all.</b>
+    /// <c>adr/0087</c> forbids computing it there, and milestone 8 shipped without a hash because the
+    /// only source anybody had found was the live world. <see cref="SaveHash"/> takes it from the copy
+    /// instead. ***The clause was never the obstacle; the missing mechanism was.***
+    /// </para>
+    /// <para>
+    /// <b>⚠ Zero is not a sentinel and there is no unverified save.</b> A hash of zero is a legitimate
+    /// value that a world could genuinely have, so a reader cannot use it to mean <em>this file
+    /// carries no hash</em> — which is why the field was added while the format was unreleased rather
+    /// than being made optional later. Every version-1 save carries one.
+    /// </para>
+    /// </remarks>
+    public ulong StateHash { get; }
+
     /// <summary>The header this build would write for a world.</summary>
     /// <param name="world">The world being saved. Supplies the key and nothing else.</param>
     /// <param name="rulesetInForce">
     /// The content hash of the Ruleset in force — <c>Simulation.RulesetInForce</c>.
     /// </param>
-    public static SaveHeader Of(World world, ulong rulesetInForce)
+    /// <param name="stateHash">
+    /// <c>World.HashState</c> at the instant the body was copied. <see cref="SaveHash.Of"/> is where a
+    /// save takes it from, so that the simulation thread pays nothing for it.
+    /// </param>
+    public static SaveHeader Of(World world, ulong rulesetInForce, ulong stateHash)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -145,7 +178,8 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
             Ticks.PerDay,
             EventWheel.Size,
             CellGrid.WorldCells,
-            CellGrid.TilesPerCell);
+            CellGrid.TilesPerCell,
+            stateHash);
     }
 
     /// <summary>Writes the header. The destination must be at least <see cref="Bytes"/> wide.</summary>
@@ -172,6 +206,7 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
         BinaryPrimitives.WriteInt32LittleEndian(destination[40..], WheelSize);
         BinaryPrimitives.WriteInt32LittleEndian(destination[44..], WorldCells);
         BinaryPrimitives.WriteInt32LittleEndian(destination[48..], TilesPerCell);
+        BinaryPrimitives.WriteUInt64LittleEndian(destination[52..], StateHash);
     }
 
     /// <summary>Reads a header, refusing anything this build must not go on to read the body of.</summary>
@@ -222,7 +257,8 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
             BinaryPrimitives.ReadInt32LittleEndian(source[36..]),
             BinaryPrimitives.ReadInt32LittleEndian(source[40..]),
             BinaryPrimitives.ReadInt32LittleEndian(source[44..]),
-            BinaryPrimitives.ReadInt32LittleEndian(source[48..]));
+            BinaryPrimitives.ReadInt32LittleEndian(source[48..]),
+            BinaryPrimitives.ReadUInt64LittleEndian(source[52..]));
 
         Agree("TICKS_PER_DAY", header.TicksPerDay, Ticks.PerDay);
         Agree("WHEEL_SIZE", header.WheelSize, EventWheel.Size);
@@ -240,7 +276,8 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
         && TicksPerDay == other.TicksPerDay
         && WheelSize == other.WheelSize
         && WorldCells == other.WorldCells
-        && TilesPerCell == other.TilesPerCell;
+        && TilesPerCell == other.TilesPerCell
+        && StateHash == other.StateHash;
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is SaveHeader other && Equals(other);
@@ -261,6 +298,7 @@ public readonly struct SaveHeader : IEquatable<SaveHeader>
         hash = Randomness.Mix(hash ^ (ulong)(uint)WheelSize);
         hash = Randomness.Mix(hash ^ (ulong)(uint)WorldCells);
         hash = Randomness.Mix(hash ^ (ulong)(uint)TilesPerCell);
+        hash = Randomness.Mix(hash ^ StateHash);
 
         return (int)hash;
     }

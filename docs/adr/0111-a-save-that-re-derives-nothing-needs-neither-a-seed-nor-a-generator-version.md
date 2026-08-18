@@ -9,6 +9,22 @@ format version, a native-order byte-order sentinel, the **world key**, the Rules
 **A placeholder version number is worse than an absent one, because an absent one refuses and a
 placeholder agrees.**
 
+⚠ **AMENDED 2026-08-18 by milestone 8 task 10 — the header is NINE fields and 60 bytes, not eight and
+52** ([`0112`](0112-the-saved-set-is-the-hashed-set-so-a-save-can-compute-its-own-state-hash.md)). The
+ninth is the **State Hash** of the world the body holds, at offset 52. **Nothing else in this decision
+moves**: the generator version is still absent and still refuses, the world seed is still not a field,
+and the eight above are unchanged in content and in position. The count is quoted in this document's
+title sentence, so it is corrected here rather than left to be inferred.
+
+⚠ **It is a different *kind* of field from the eight, which is why it went last and why it could go in
+at all.** Those eight answer *what could differ between the writing build and the reading build such
+that the body would parse and mean something else?* — they are schema checks, and this ADR's whole
+argument is about which of them earn their place. The ninth answers a question no schema check can:
+*and did it load back into the same city?* It is a **verification** rather than a guard, so it neither
+strengthens nor weakens the reasoning below. **It went in on the day it did because the format is
+unreleased and nobody is carrying a save** ([`0100`](0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)),
+which is the last moment a ninth field costs one edit.
+
 `HONEST DEGRADATION` `SOLVE THE ACTUAL PROBLEM`
 
 ## Why

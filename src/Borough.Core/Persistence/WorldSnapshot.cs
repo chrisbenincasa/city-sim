@@ -9,8 +9,13 @@ namespace Borough.Core.Persistence;
 /// <b>It is an <see cref="ISaveSink"/>, which is what makes the copy and the write one mechanism rather
 /// than two.</b> <c>adr/0087</c> asks for <em>a copy of the saved columns at the end of Tick phase 7</em>
 /// and then a write off the simulation thread. Writing the world into a memory sink <b>is</b> that copy —
-/// so there is one writer (<see cref="SaveFile.Write"/>), used twice against different sinks, rather
+/// so there is one writer (<see cref="SaveFile.WriteBody"/>), used twice against different sinks, rather
 /// than a serialiser and a separate cloner that could disagree about what the file contains.
+/// </para>
+/// <para>
+/// ⚠ <b>What it holds is the body and not the file</b>, which changed with task 10. A header carries a
+/// number folded from the body, so it cannot be written ahead of one — and a header is a statement about
+/// the <em>build</em> where this is a copy of the <em>world</em>. The two were only ever adjacent.
 /// </para>
 /// <para>
 /// <b>The buffer is reused across saves and grows only when a city does.</b> A save is
@@ -26,12 +31,14 @@ namespace Borough.Core.Persistence;
 /// nothing left to stream.
 /// </para>
 /// <para>
-/// ⚠ <b>It cannot carry a State Hash, and that is a property of the hash rather than of this type.</b>
-/// <c>adr/0087</c> says a verified hash would be <em>computed on the background thread from the copy</em>.
-/// It cannot be: <c>HandleColumn.Fold</c> folds the <em>target row's monotonic id</em>, which lives in
-/// another table and is not a function of the handle's bytes, so folding this buffer would produce a
-/// number that is not the State Hash. ***A hash that folds a value the bytes do not contain cannot be
-/// computed from the bytes.*** See <c>plans/0030</c>, task 6.
+/// ⚠ <b>It carries the State Hash after all, and the claim that it could not was too wide</b>
+/// (<c>adr/0112</c>, task 10). Task 6 recorded that a copy could not produce one, because
+/// <c>HandleColumn.Fold</c> folds the target row's monotonic id and a handle's bytes do not contain it.
+/// The id is in <em>another table's block of this same buffer</em>: <c>Rows</c> declares <c>id</c> and
+/// <c>generation</c> as saved columns, so both arrays are here. ***A value absent from a column's own
+/// bytes can still be present in the copy.*** <see cref="SaveHash.Of"/> folds this buffer into the
+/// number <c>World.HashState</c> returned at the instant it was taken, so a save verifies itself on
+/// load and the simulation thread pays nothing for it.
 /// </para>
 /// </remarks>
 public sealed class WorldSnapshot : ISaveSink
@@ -53,9 +60,8 @@ public sealed class WorldSnapshot : ISaveSink
 
     /// <inheritdoc/>
     /// <remarks>
-    /// <b>Appends, because it is the writer's sink.</b> The writer hands over the header, then each
-    /// table's scalars and each of its saved columns, so this is called once per column and the
-    /// concatenation is the file.
+    /// <b>Appends, because it is the writer's sink.</b> The writer hands over each table's scalars and
+    /// each of its saved columns, so this is called once per column and the concatenation is the body.
     /// </remarks>
     public void Write(ReadOnlySpan<byte> bytes)
     {

@@ -14,7 +14,7 @@ Three ADRs govern what a sitting may conclude, and each names a different input:
 
 `adr/0073` sits beside these rather than among them: it governs what a spike must **do** with a finding, not what a sitting may **conclude**. This one is in the family.
 
-### Four sightings, three consecutive days, and each cost a decision
+### Four sightings, three consecutive days, and each cost a decision — and a fifth, five days later, on a new surface
 
 | | The description consulted | What it said | What the code said |
 |---|---|---|---|
@@ -26,6 +26,29 @@ Three ADRs govern what a sitting may conclude, and each names a different input:
 **Every one of the four is about the trigger, and none is about the behaviour.** The loader's refusal, the pressure's key, the condemn predicate's terms, the generator's caller. In each case the description named the right subject and described what the mechanism *does*; the decision turned on what makes it *happen*, and that is the half a description reliably omits — because a sentence written to explain a mechanism explains its purpose, and its purpose is not its trigger.
 
 **The fourth was caught by the practice this ADR states, while the practice was being written**, which is the best evidence available that the cost is one grep. `plans/0025`'s recommendation had stood as the pinned answer to an open question; opening `ZoneRuleEngine.Condemn` took a minute and refuted half of it.
+
+⚠ **A fifth sighting, 2026-08-18, on a surface none of the four is on: the description was a *test*.**
+Milestone 8 task 6 concluded that a save cannot carry a State Hash, and what held that conclusion in
+place for three tasks and four documents was
+`WorldSnapshotTests.A_fold_over_the_bytes_is_not_the_state_hash`. It is green, it is correct, and it
+was always about something else — it folds the snapshot buffer flat, byte after byte, which is a thing
+nobody would ever want to compute. The real question was whether the *structured* fold could be run
+against the copy, and it can, because `Rows` declares `id` and `generation` as saved columns
+([`0112`](0112-the-saved-set-is-the-hashed-set-so-a-save-can-compute-its-own-state-hash.md)).
+
+***A test name is a description of the build, so it says which symbol to read and never what is in it.***
+And **a negative test is the most quotable description there is**, for two reasons this corpus should
+hold onto: it reads as a **closed door**, so the natural response is to route around it rather than to
+open it; and it carries the authority of a **green suite**, which is the same authority `0064`'s missing
+guard and `BOR0901`'s diagnostic borrow. Three documents cited this one — `adr/0087`'s amendment,
+`plans/0030` task 6, and `WorldSnapshot`'s own remark — and none of them opened it.
+
+⚠ **The trigger rule holds here too, and it is worth stating in the test dialect.** What the four above
+got wrong was the trigger; what this one got wrong is the **scope of the negation** — *not from these
+bytes* read as *not from the file*. Those are the same failure: a description states what a mechanism
+is **for**, and neither what fires it nor what it does **not** cover. So the writing half extends: **a
+test's name states what it asserts, and a reader must never take the complement of that name as
+asserted too.**
 
 ### It is not Cause 1, 2 or 3, and it is the one no re-reading finds
 

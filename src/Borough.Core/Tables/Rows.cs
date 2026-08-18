@@ -248,17 +248,35 @@ public abstract class Rows
     {
         ulong h = hash;
 
-        // The allocator's scalars first. _freeHead is -1 when the list is empty and sign-extends to
-        // a value no slot index can collide with, which is the intent.
-        h = Randomness.Mix(h + (ulong)(long)_slotCount);
-        h = Randomness.Mix(h + (ulong)(long)_liveCount);
-        h = Randomness.Mix(h + (ulong)(long)_freeHead);
-        h = Randomness.Mix(h + _nextId);
+        FoldScalars(ref h, _slotCount, _liveCount, _freeHead, _nextId);
 
         foreach (Column column in _savedColumns)
         {
             column.Fold(ref h, _slotCount);
         }
+
+        hash = h;
+    }
+
+    /// <summary>
+    /// Folds the allocator's four scalars, which is where every table's contribution to the hash
+    /// begins.
+    /// </summary>
+    /// <remarks>
+    /// <b>Static and shared with the save folder</b> (<c>adr/0112</c>), because a save writes these
+    /// same four numbers in this same order and a copy of the mixing here would be a copy that could
+    /// drift. <c>freeHead</c> is -1 when the list is empty and sign-extends to a value no slot index
+    /// can collide with, which is the intent.
+    /// </remarks>
+    internal static void FoldScalars(
+        ref ulong hash, int slotCount, int liveCount, int freeHead, ulong nextId)
+    {
+        ulong h = hash;
+
+        h = Randomness.Mix(h + (ulong)(long)slotCount);
+        h = Randomness.Mix(h + (ulong)(long)liveCount);
+        h = Randomness.Mix(h + (ulong)(long)freeHead);
+        h = Randomness.Mix(h + nextId);
 
         hash = h;
     }
@@ -278,10 +296,7 @@ public abstract class Rows
     {
         ulong h = hash;
 
-        h = Randomness.Mix(h + (ulong)(long)_slotCount);
-        h = Randomness.Mix(h + (ulong)(long)_liveCount);
-        h = Randomness.Mix(h + (ulong)(long)_freeHead);
-        h = Randomness.Mix(h + _nextId);
+        FoldScalars(ref h, _slotCount, _liveCount, _freeHead, _nextId);
 
         foreach (Column column in _columns)
         {
@@ -348,6 +363,52 @@ public abstract class Rows
     /// and one got it</em> is a complete explanation where <em>it has a lower id</em> is not one at all.
     /// </remarks>
     public ulong IdAt(int slot) => _id[slot];
+
+    /// <summary>The <c>id</c> column itself, for a reader that has to find it in a save.</summary>
+    /// <remarks>
+    /// <b>Exposed by identity rather than by position</b> (<c>adr/0112</c>). <c>SaveHash</c> has to
+    /// locate this column's bytes in a file, and it does that by walking <see cref="SavedColumns"/>
+    /// until it finds this reference. Trusting that <c>id</c> and <c>generation</c> are declared first
+    /// would be true today and would be a silent wrong answer the day somebody declares a column above
+    /// them.
+    /// </remarks>
+    internal Column IdColumn => _id;
+
+    /// <inheritdoc cref="IdColumn"/>
+    /// <summary>The <c>generation</c> column itself.</summary>
+    internal Column GenerationColumn => _generation;
+
+    /// <summary>
+    /// Whether a handle's <c>{index, generation}</c> pair addresses a live row of this table.
+    /// </summary>
+    /// <remarks>
+    /// <b>The non-generic half of <c>Rows{T}.IsValid</c>, which delegates to it.</b> The rule is stated
+    /// once because a save folds handles too and cannot see the element type: a generation of zero is
+    /// the unset handle, an index past the slot count is out of range, and a generation that does not
+    /// match the slot's is a handle whose row has been freed. Live generations are odd, so a matching
+    /// generation implies a live slot and no separate liveness test is needed.
+    /// </remarks>
+    internal bool IsValidSlot(uint index, uint generation) =>
+        generation != 0
+        && index < (uint)_slotCount
+        && _generation[(int)index] == generation;
+
+    /// <summary>The monotonic id at a handle's slot, or false if the handle addresses no live row.</summary>
+    /// <remarks>
+    /// <b>What <see cref="TargetIds.Live"/> calls, and therefore what the State Hash folds for every
+    /// handle column.</b> The saved counterpart reads the same two columns out of a file.
+    /// </remarks>
+    internal bool TryIdAt(uint index, uint generation, out ulong id)
+    {
+        if (!IsValidSlot(index, generation))
+        {
+            id = 0;
+            return false;
+        }
+
+        id = _id[(int)index];
+        return true;
+    }
 
     private protected uint GenerationAt(int slot) => _generation[slot];
 
@@ -722,10 +783,7 @@ public sealed class Rows<T> : Rows
     public void Free(Handle<T> handle) => FreeSlot(Resolve(handle));
 
     /// <summary>True when the handle still addresses the row it was issued for.</summary>
-    public bool IsValid(Handle<T> handle) =>
-        handle.Generation != 0
-        && handle.Index < (uint)SlotCount
-        && GenerationAt((int)handle.Index) == handle.Generation;
+    public bool IsValid(Handle<T> handle) => IsValidSlot(handle.Index, handle.Generation);
 
     /// <summary>
     /// The slot a handle addresses, or a throw.
@@ -764,16 +822,15 @@ public sealed class Rows<T> : Rows
     public Handle<T> At(int slot) =>
         IsLive(slot) ? new Handle<T>((uint)slot, GenerationAt(slot)) : default;
 
-    /// <summary>The target's monotonic id, for the hash and for anything needing a stable key.</summary>
-    public bool TryIdOf(Handle<T> handle, out ulong id)
-    {
-        if (!IsValid(handle))
-        {
-            id = 0;
-            return false;
-        }
-
-        id = IdAt((int)handle.Index);
-        return true;
-    }
+    /// <summary>The target's monotonic id — the stable per-entity key, for anything that needs one.</summary>
+    /// <remarks>
+    /// ⚠ <b>The hash no longer comes through here, and the rule it used to state now lives in
+    /// <see cref="Rows.TryIdAt"/>.</b> <c>HandleColumn.Fold</c> resolves through
+    /// <see cref="TargetIds"/> as of <c>adr/0112</c>, because a save resolves the same handles without
+    /// being able to see <typeparamref name="T"/>. This is the typed door to the same answer and
+    /// delegates rather than restating it — two spellings of one validity rule is exactly what that
+    /// refactor existed to avoid.
+    /// </remarks>
+    public bool TryIdOf(Handle<T> handle, out ulong id) =>
+        TryIdAt(handle.Index, handle.Generation, out id);
 }

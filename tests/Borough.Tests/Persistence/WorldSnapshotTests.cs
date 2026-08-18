@@ -130,9 +130,13 @@ public sealed class WorldSnapshotTests(ITestOutputHelper output)
 
         Assert.Equal(first.Bytes.Length, second.Bytes.Length);
 
-        // The city moved on by one Tick, so the bytes differ. What must not differ is the shape.
-        Assert.Equal(1, first.Writes);
-        Assert.Equal(1, second.Writes);
+        // The city moved on by one Tick, so the bytes differ. What must not differ is the shape:
+        // the header, then the whole body in one hand-over. Two rather than one since task 10 --
+        // the header carries a number folded from the body, so it cannot be written into the copy
+        // ahead of it and goes to the destination on its own (adr/0112).
+        Assert.Equal(2, first.Writes);
+        Assert.Equal(2, second.Writes);
+        Assert.Equal(first.Bytes.Length - SaveHeader.Bytes, first.LargestWrite);
     }
 
     /// <summary>

@@ -546,7 +546,7 @@ unless asked.
 | `docs/04-economy-and-goods.md` | The five Goods, chains, Office |
 | `docs/05-technical-architecture.md` | Project layout, sim/render boundary, data layout, threading, saves |
 | `docs/06-roadmap.md` | **The phase model, the four pacing rules, and the risk each milestone retires. Nothing else** — it sequences work and never describes the simulation (`adr/0042`). Also names the mechanisms with no milestone yet |
-| `docs/adr/` | **95** decision records, numbered to **`0096`** — `0028` is reserved and unwritten |
+| `docs/adr/` | **111** decision records, numbered to **`0112`** — `0028` is reserved and unwritten |
 | `docs/deferred.md` | What is deliberately not being built, with retrofit costs and revisit triggers |
 | `docs/references.md` | Reference games and prior art, with standing of each decision |
 | `plans/0000-board.md` | **The board. Read this first on any cold start** — it opens with a **What is next** block, then done, unblocked, owed and blocked. A view over `0002` and `0003`, never a source, and **never the home of an open question**. ⚠ **A closed row leaves the board**, because a view that carries its own history stops being scannable: it has been cleared twice, on 2026-08-12 (999 lines) and 2026-08-15 (~400) |
@@ -690,6 +690,15 @@ thereby a cost of that decision** — read the primitive in the inner loop befor
 `SOLVE THE ACTUAL PROBLEM`, `HONEST DEGRADATION`, `PLAYER GOVERNS`, `NO VERDICT`,
 `FAST ITERATION`. A decision that cites none is a decision without a justification.
 
+⚠ **`Borough` is the *codename* and it is frozen; the *public* name is a separate, deferred decision.**
+Settled 2026-08-18 — [`plans/0003`](plans/0003-build-plan.md) → *The name* owns the record and the
+boundary. The line is *does a human who is not a developer read the string?*: the namespace prefix,
+`World.HashSeed` and the save's **`borosave`** magic number are codename and never change; the only
+player-visible strings are two file extensions (`.borough`, `.borough-crash`) that **nothing dispatches
+on**. So milestone 8's rename trigger is ***discharged rather than met***. ⚠ **Two names for one project
+is `plans/0012` *Cause 1* by construction**, so they live in disjoint domains and that section is the one
+record of which is which.
+
 **Prose style is British** — modelled, behaviour, optimise, serialisation, sterilise. Documents
 cross-reference by section (`02 §4.1`) and link relatively. The register is dense and
 argumentative: state the claim, then the reasoning that survives objection. Match it.
@@ -722,8 +731,14 @@ in 32 bits), `BOR0301`–`BOR0302`
 (hash-map enumeration, `System.Random`), `BOR0701` (managed state) and `BOR0801`–`BOR0803` (the
 `purpose_tag` enum). `BOR0901` is `adr/0003`'s per-field declaration — storage in a `[Table]` type
 that is not a declared `Column` or the table's own `Rows`. Neither `BOR08xx` nor `BOR0901` is one of
-the seven lints; the count stays seven. Lint 5 is live — `ReplayTests` and the golden baseline. Lints 4
-and 6 need machinery that does not exist yet.
+the seven lints; the count stays seven. Lint 5 is live — `ReplayTests` and the golden baseline. **Lint 6 is
+live as of milestone 8** — `FactorioTests` over seven cases and two Rulesets, and ⚠ **it is stronger than
+a test suite as of task 10**: a save's header carries the State Hash of the world it holds, folded from
+the **copy** rather than from the live world, so **every load** restores, rebuilds, recomputes and
+refuses a mismatch ([`adr/0112`](docs/adr/0112-the-saved-set-is-the-hashed-set-so-a-save-can-compute-its-own-state-hash.md)).
+***A test asserts this for the cases somebody wrote down; the header asserts it for the ones nobody
+did.*** **Lint 4 alone still needs machinery that does not exist yet** — it wants a parallel phase, and
+S5's clean 2-thread result is explicitly not a discharge.
 Every diagnostic has a test that writes the violation and watches it fire — do not add one without.
 
 **Every field in a table is declared once** as `(saved AND hashed)` or `(derived AND rebuilt)`, and

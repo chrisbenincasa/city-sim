@@ -26,7 +26,7 @@ using Borough.Core.Tables;
 /// because there is nothing to lay out.***
 /// </para>
 /// <para>
-/// <b>The only fixed-size buffer is 52 bytes of header and 24 of table scalars</b>, both stack-allocated.
+/// <b>The only fixed-size buffer is 60 bytes of header and 20 of table scalars</b>, both stack-allocated.
 /// </para>
 /// </remarks>
 public static class SaveFile
@@ -42,10 +42,20 @@ public static class SaveFile
     /// </param>
     /// <param name="sink">Where the bytes go.</param>
     /// <remarks>
+    /// <para>
     /// <b>⚠ It does not take the copy <c>adr/0087</c> requires, and must not be handed a live world on a
-    /// thread that is stepping it.</b> The copy is task 6's and the seam is drawn around this call:
-    /// what moves to a background thread later is the hash, this, and the write, with the copy staying
-    /// on the simulation thread. Called synchronously in this milestone (<c>plans/0030</c> D4).
+    /// thread that is stepping it.</b> The copy is task 6's, and
+    /// <see cref="Write(World, ulong, WorldSnapshot, ISaveSink)"/> is the overload a Tick uses —
+    /// <c>Simulation.SaveAtEndOfTick</c> goes through that one, so every save a session actually takes
+    /// is copied first.
+    /// </para>
+    /// <para>
+    /// <b>⚠ This overload folds the <em>live</em> world for the header's hash, at 32.47 ms at 1M</b>
+    /// (<c>adr/0112</c>), because it has no copy to fold instead. That is the cost the copy path exists
+    /// to avoid, so this is for a caller that already has the world in hand and is not on a Tick's
+    /// critical path — a test, or a one-off dump. ***Having both is deliberate: the two paths must agree,
+    /// and <c>SaveHashTests</c> is what says they do.***
+    /// </para>
     /// </remarks>
     public static void Write(World world, ulong rulesetInForce, ISaveSink sink)
     {
@@ -53,8 +63,84 @@ public static class SaveFile
         ArgumentNullException.ThrowIfNull(sink);
 
         Span<byte> header = stackalloc byte[SaveHeader.Bytes];
-        SaveHeader.Of(world, rulesetInForce).Write(header);
+        SaveHeader.Of(world, rulesetInForce, world.HashState()).Write(header);
         sink.Write(header);
+
+        WriteBody(world, sink);
+    }
+
+    /// <summary>
+    /// Writes a world through a copy, taking the hash from the copy — the save path proper.
+    /// </summary>
+    /// <param name="world">The world to write. Read, never modified.</param>
+    /// <param name="rulesetInForce">The content hash of the Ruleset in force.</param>
+    /// <param name="copy">
+    /// The buffer <c>adr/0087</c> requires. Reset and refilled; the caller keeps it across saves so an
+    /// autosave costs no allocation.
+    /// </param>
+    /// <param name="sink">Where the bytes go.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>⚠ The seam is between the first line and the rest, and it moved outwards</b>
+    /// (<c>adr/0112</c>). Only <see cref="WriteBody"/> into <paramref name="copy"/> has to happen on the
+    /// simulation thread — ~10 ms at 1M, once per autosave. <see cref="SaveHash.Of"/>, the header and
+    /// the drain all read the copy and the world's <em>schema</em>, so all three are a thread's to take.
+    /// Task 6 drew the seam at <c>copy | write</c>; the hash sits on the far side of it, which is why
+    /// carrying one costs the simulation thread nothing.
+    /// </para>
+    /// <para>
+    /// <b>The header is written after the body is copied and before the body is drained</b>, because it
+    /// carries a number that is a function of the body. Nothing seeks backwards: the copy is in memory,
+    /// so the hash is known before the first byte reaches <paramref name="sink"/>.
+    /// </para>
+    /// <para>
+    /// <b>⚠ A copy is now part of the format rather than an optimisation.</b> Before this, a save could
+    /// have been streamed straight out of the live world and the copy was there to keep the write off
+    /// the simulation thread. The hash is computed from the copy, so there is no longer a way to write a
+    /// version-1 save without taking one.
+    /// </para>
+    /// </remarks>
+    public static void Write(World world, ulong rulesetInForce, WorldSnapshot copy, ISaveSink sink)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(copy);
+        ArgumentNullException.ThrowIfNull(sink);
+
+        copy.Reset();
+        WriteBody(world, copy);
+
+        Span<byte> header = stackalloc byte[SaveHeader.Bytes];
+        SaveHeader.Of(world, rulesetInForce, SaveHash.Of(world, copy.Bytes)).Write(header);
+        sink.Write(header);
+
+        copy.DrainTo(sink);
+    }
+
+    /// <summary>
+    /// Writes the body — every table, no header. The copy, and the second half of a file.
+    /// </summary>
+    /// <param name="world">The world to write. Read, never modified.</param>
+    /// <param name="sink">Where the bytes go.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>⚠ The header is not part of a copy of the world, and separating them is what lets a save carry
+    /// a hash.</b> A header states what the <em>build</em> was — the format version, four world-creation
+    /// constants, the Ruleset in force — and the ninth field states a fact about the body, so it cannot
+    /// be written until the body exists. Task 6 had one writer producing header-and-body into both a
+    /// file and a snapshot; splitting it means the copy is the hash's input exactly, with nothing in
+    /// front of it to skip.
+    /// </para>
+    /// <para>
+    /// <b>This is the walk <c>World.HashState</c> makes</b>, which is the property <see cref="SaveHash"/>
+    /// rests on: the same tables in the same order, the same four scalars, the same saved columns over
+    /// the same slots. Changing the order here without changing it there is caught by
+    /// <c>SaveHashTests</c> on the first run.
+    /// </para>
+    /// </remarks>
+    public static void WriteBody(World world, ISaveSink sink)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(sink);
 
         Span<byte> scalars = stackalloc byte[ScalarBytes];
 
@@ -125,6 +211,17 @@ public static class SaveFile
         }
 
         world.RebuildDerived();
+
+        ulong reloaded = world.HashState();
+
+        if (reloaded != header.StateHash)
+        {
+            throw new InvalidOperationException(
+                $"this save says its world hashes to 0x{header.StateHash:X16} and the world it loaded "
+                + $"into hashes to 0x{reloaded:X16}. The file's columns were restored and the world "
+                + "they describe is not the world that was saved — a corrupt file, or a build whose "
+                + "declaration matches the writer's in shape and not in meaning (05 §4 invariant 6).");
+        }
 
         return world;
     }

@@ -829,8 +829,13 @@ public sealed class Simulation
     /// <c>05 §6</c>'s threading policy is session R's and decides nothing a save needs, so this
     /// milestone writes synchronously (<c>plans/0030</c> D4) — but the boundary a thread would wrap is
     /// drawn now: <see cref="WorldSnapshot"/> is filled on the simulation thread, at ~10 ms once per
-    /// autosave, and <see cref="WorldSnapshot.DrainTo"/> is the unbounded half that moves. Calling this
-    /// from outside a Tick would put the copy at a moment nothing guarantees is a boundary.
+    /// autosave, and everything after that moves. Calling this from outside a Tick would put the copy at
+    /// a moment nothing guarantees is a boundary.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The hash is on the movable side, which is task 10's whole result</b> (<c>adr/0112</c>).
+    /// <c>SaveHash</c> folds the copy rather than the world, so the ninth header field costs this thread
+    /// nothing — where folding the live world would have cost <b>32.47 ms</b> at 1M, on top of the copy.
     /// </para>
     /// <para>
     /// <b>One save may be outstanding.</b> Asking twice before a Tick runs replaces the destination
@@ -860,15 +865,13 @@ public sealed class Simulation
         // Allocated on the first save rather than with the Simulation: a session that never saves must
         // not carry 131.33 MiB of buffer for the option.
         _snapshot ??= new WorldSnapshot();
-        _snapshot.Reset();
 
-        // The copy. Blocking, ~10 ms at 1M, once per autosave -- and the only part of a save that has
-        // to happen on this thread at all. Still serial and still after every phase; what moved against
-        // adr/0087's wording is that it is after the clock increment rather than before it.
-        SaveFile.Write(_world, _inForce, _snapshot);
-
-        // The unbounded half. Synchronous in this milestone; this call is what moves.
-        _snapshot.DrainTo(destination);
+        // The copy, the hash and the write. Only the copy has to happen on this thread -- ~10 ms at 1M,
+        // once per autosave, serial and after every phase; what moved against adr/0087's wording is that
+        // it is after the clock increment rather than before it. The hash is folded from the copy rather
+        // than from the world (adr/0112), so it is on the far side of the seam with the write and the
+        // simulation thread pays nothing for a save that verifies itself on load.
+        SaveFile.Write(_world, _inForce, _snapshot, destination);
     }
 
     /// <summary>

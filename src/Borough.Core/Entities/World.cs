@@ -55,7 +55,7 @@ public sealed class World
     // differently* -- the clock was state that already existed, re-composed. New state is a design
     // change under 05 §4: the city genuinely has more in it, the baselines move because the world
     // moved, and signing that would file a real change as a bookkeeping one.
-    private const ulong HashSeed = 0x426F_726F_7567_6802UL;
+    internal const ulong HashSeed = 0x426F_726F_7567_6802UL;
 
     private readonly Rows[] _tables;
 

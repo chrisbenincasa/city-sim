@@ -80,14 +80,33 @@ meant to continue. ***"The end of phase 7" and "the end of the Tick" are differe
 difference is one increment of saved state.*** `0058` shipped before this ADR and the phrase reads as
 though the two are the same moment; the hash is what said otherwise.
 
-⚠ **And the hash clause below is not buildable as written.** *"That hash is computed on the background
+~~⚠ **And the hash clause below is not buildable as written.** *"That hash is computed on the background
 thread from the copy"* cannot be done: `HandleColumn.Fold` folds the **target row's monotonic id**, which
 lives in another table and is not a function of the handle's bytes, so folding the copy produces a number
 that is not the State Hash. This ADR's own table calls that divergence out in `0086`'s voice and then asks
 for the thing it rules out. ***A hash that folds a value the bytes do not contain cannot be computed from
 the bytes.*** The clause is conditional — *"if a save is to carry a verified hash"* — and milestone 8
 carries none, so nothing rests on it; what a verified hash would cost, and where it would have to be
-computed, is recorded in `plans/0030` task 6 as an open question rather than settled here.
+computed, is recorded in `plans/0030` task 6 as an open question rather than settled here.~~
+
+⚠ **THAT AMENDMENT IS WITHDRAWN, 2026-08-18, by milestone 8 task 10 —
+[`0112`](0112-the-saved-set-is-the-hashed-set-so-a-save-can-compute-its-own-state-hash.md). The clause
+below is buildable exactly as written, and it is built.** Every sentence of the withdrawn paragraph is
+true and the conclusion drawn from them is too wide: the id a handle resolves to is not in **the
+handle's bytes** and it *is* in **the copy**, because `Rows` declares `id` and `generation` as `Saved`
+columns (`Rows.cs:72-73`) — so both arrays are in the file, in another table's block. ***A value absent
+from a column's own bytes can still be present in the copy.*** `SaveHash.Of` folds the copy and
+reproduces `World.HashState()` exactly, reading the live world for its **schema** and never for a value,
+which is what makes it a thread's to take. **So the clause below is honoured rather than overturned, and
+the simulation thread pays nothing for a save that verifies itself on load.**
+
+⚠ **The withdrawal is worth more than the correction, and it is [`0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+on a surface that ADR does not list.** The claim was pinned by a test —
+`WorldSnapshotTests.A_fold_over_the_bytes_is_not_the_state_hash` — which is still green and was always
+about something else: it folds the buffer flat, byte after byte, which is a thing nobody would want.
+***A test name is a description of the build, so it says which symbol to read and never what is in it***
+— and a **negative** test is the most quotable kind of all, because it reads as a closed door. Three
+documents cited it. None of them opened it.
 
 ### The blocking part is the copy and not the write, which is the whole point
 

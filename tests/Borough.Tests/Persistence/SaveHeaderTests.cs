@@ -31,11 +31,36 @@ public sealed class SaveHeaderTests
 {
     private const ulong Ruleset = 0xFEED_FACE_CAFE_BABEUL;
 
+    /// <summary>
+    /// A stand-in for <c>World.HashState</c>. These tests are about the header's own layout and
+    /// refusals, so what matters is that the ninth field is a <c>ulong</c> that survives the round trip
+    /// — not that it is the hash of the world beside it.
+    /// </summary>
+    private const ulong StateHash = 0x0112_0112_0112_0112UL;
+
+    /// <summary>
+    /// The ninth field survives the round trip like the other eight, and a header that differs only in
+    /// it is a different header — so nothing can quietly drop it.
+    /// </summary>
+    [Fact]
+    public void The_state_hash_round_trips_and_is_part_of_the_headers_identity()
+    {
+        var world = new World(1000, Core.Rules.Ruleset.Empty, WorldKey.FromSeed(0x8000_0001UL));
+
+        Span<byte> bytes = stackalloc byte[SaveHeader.Bytes];
+        SaveHeader.Of(world, Ruleset, StateHash).Write(bytes);
+
+        Assert.Equal(StateHash, SaveHeader.Read(bytes).StateHash);
+        Assert.NotEqual(
+            SaveHeader.Of(world, Ruleset, StateHash),
+            SaveHeader.Of(world, Ruleset, StateHash + 1));
+    }
+
     [Fact]
     public void A_header_round_trips()
     {
         var world = new World(1000, Core.Rules.Ruleset.Empty, WorldKey.FromSeed(0x8000_0001UL));
-        SaveHeader written = SaveHeader.Of(world, Ruleset);
+        SaveHeader written = SaveHeader.Of(world, Ruleset, StateHash);
 
         Span<byte> bytes = stackalloc byte[SaveHeader.Bytes];
         written.Write(bytes);
@@ -54,7 +79,7 @@ public sealed class SaveHeaderTests
         var world = new World(1000, Core.Rules.Ruleset.Empty, key);
 
         Span<byte> bytes = stackalloc byte[SaveHeader.Bytes];
-        SaveHeader.Of(world, Ruleset).Write(bytes);
+        SaveHeader.Of(world, Ruleset, StateHash).Write(bytes);
 
         SaveHeader read = SaveHeader.Read(bytes);
 
@@ -90,7 +115,7 @@ public sealed class SaveHeaderTests
     [Fact]
     public void A_file_too_short_to_hold_a_header_is_refused()
     {
-        Assert.Contains("52 bytes and this file is 51", Refusal(HeaderOfThisBuild().AsSpan(0, 51)));
+        Assert.Contains("60 bytes and this file is 59", Refusal(HeaderOfThisBuild().AsSpan(0, 59)));
     }
 
     /// <summary>
@@ -153,10 +178,11 @@ public sealed class SaveHeaderTests
     [Fact]
     public void The_header_is_exactly_as_wide_as_its_fields()
     {
-        Assert.Equal(52, SaveHeader.Bytes);
+        Assert.Equal(60, SaveHeader.Bytes);
 
-        // magic 8, format version 4, sentinel 8, key 8, Ruleset 8, four constants at 4 each.
-        Assert.Equal(SaveHeader.Bytes, 8 + 4 + 8 + 8 + 8 + (4 * 4));
+        // magic 8, format version 4, sentinel 8, key 8, Ruleset 8, four constants at 4 each,
+        // State Hash 8 -- the ninth field, adr/0112, and 52 before it.
+        Assert.Equal(SaveHeader.Bytes, 8 + 4 + 8 + 8 + 8 + (4 * 4) + 8);
     }
 
     /// <summary>
@@ -167,7 +193,7 @@ public sealed class SaveHeaderTests
     public void A_destination_too_narrow_to_write_into_is_refused()
     {
         var world = new World(1000, Core.Rules.Ruleset.Empty, WorldKey.FromSeed(1));
-        SaveHeader header = SaveHeader.Of(world, Ruleset);
+        SaveHeader header = SaveHeader.Of(world, Ruleset, StateHash);
         byte[] narrow = new byte[SaveHeader.Bytes - 1];
 
         Assert.Throws<ArgumentException>(() => header.Write(narrow));
@@ -178,7 +204,7 @@ public sealed class SaveHeaderTests
         var world = new World(1000, Core.Rules.Ruleset.Empty, WorldKey.FromSeed(0x8000_0001UL));
         byte[] bytes = new byte[SaveHeader.Bytes];
 
-        SaveHeader.Of(world, Ruleset).Write(bytes);
+        SaveHeader.Of(world, Ruleset, StateHash).Write(bytes);
 
         return bytes;
     }

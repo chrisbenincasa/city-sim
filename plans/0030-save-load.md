@@ -6,19 +6,31 @@
 
 ## Status
 
-✅ **DONE. Scoped 2026-08-17, ungated; tasks 1–6 shipped 2026-08-17 and tasks 7–9 on 2026-08-18** —
-the rebuild audit and `Disposition.Scratch`, the column storage accessor, `Rows.Restore`, the header,
-the writer and reader, the copy, **the Factorio test**, **`--save`/`--load`**, and **the long
-acceptance run**. ⚠ **Two questions are open that were not on the list and both need the user**: whether
-a save carries a verified State Hash (task 6), and **whether `Borough` is the name** — because task 4
-wrote a magic number against D2's decision not to, which fires `plans/0003 §The name`'s rename trigger
-(D2's 2026-08-18 amendment). ✅ **All five open decisions are closed**,
-each by the task it blocked. ⚠ **One question
-is open that was not on the list**: whether a save carries a verified State Hash — `adr/0087` says it
-would be computed from the copy and **that is not buildable**, because a fold over bytes is not the
-State Hash. See task 6. **1,539 tests green
-and no baseline re-recorded**, because the milestone adds no table and no column, `Scratch` was already
-outside the fold, and a header is not part of the city. ⚠ **`05 §4` invariant 6 — *run N, save, reload,
+✅ **DONE. Scoped 2026-08-17, ungated; tasks 1–6 shipped 2026-08-17, tasks 7–9 on 2026-08-18, and
+task 10 the same day** — the rebuild audit and `Disposition.Scratch`, the column storage accessor,
+`Rows.Restore`, the header, the writer and reader, the copy, **the Factorio test**, **`--save`/`--load`**,
+**the long acceptance run**, and **the save's own State Hash**. ✅ **All five open decisions are closed**,
+each by the task it blocked, and ✅ **both of the two questions that were not on the list are closed
+with the user in the room, 2026-08-18.**
+
+⚠ **The first was *does a save carry a verified State Hash?*, and it closed by the claim underneath it
+turning out to be false.** Task 6 recorded that a hash could not be folded from the copy, because
+`HandleColumn.Fold` folds the target row's monotonic id and a handle's bytes do not contain one. True of
+**a column** and not of **the file**: `Rows` declares `id` and `generation` as `Saved` columns, so the id
+is in another table's block of the same copy. ***A value absent from a column's own bytes can still be
+present in the copy.*** So the hash is folded from the copy at **no cost to the simulation thread**,
+`adr/0087`'s clause is honoured rather than overturned, and `05 §4` **invariant 6 is now a property of
+every load**. That is **task 10** and [`adr/0112`](../docs/adr/0112-the-saved-set-is-the-hashed-set-so-a-save-can-compute-its-own-state-hash.md);
+`adr/0087` and `adr/0111` are both amended.
+
+⚠ **The second was *is `Borough` the name?*, and it closed by splitting the question.** `Borough` is the
+**codename** and stays; a **public name** is deferred and is a different decision with different filters.
+Task 4's magic number is a codename in a file header, which is what magic numbers usually are, so
+`plans/0003 §The name`'s trigger is **discharged rather than met** — see that section.
+
+**1,549 tests green and no baseline re-recorded**, because the milestone adds no table and no column,
+`Scratch` was already outside the fold, the fold produces the same numbers from the same inputs, and a
+header is not part of the city. ⚠ **`05 §4` invariant 6 — *run N, save, reload,
 run M* — has machinery for the first time in the project's life**, and it is green over seven cases and
 two Rulesets. Session **K** checked it and found nothing in front of
 it: [`adr/0086`](../docs/adr/0086-a-save-has-no-schema-of-its-own-and-the-field-declaration-is-the-format.md)
@@ -27,7 +39,8 @@ settles the cadence, and `05 §6`'s threading policy — the one thing that look
 nothing this milestone needs, because `adr/0087`'s opening sentence already decides the one threading
 fact a save has.
 
-**Nine tasks.** Three decisions were taken with the user in the room — *the magic number is deferred*
+**Ten tasks** — nine planned, and task 10 added on 2026-08-18 when one of the two leftover questions
+turned out to want a mechanism rather than a decision. Three decisions were taken with the user in the room — *the magic number is deferred*
 before scoping, and **the third `Disposition`** and **the synchronous write** on review of this brief —
 and **the other two by task 5 and task 4** — the I/O boundary (D7), and the `Simulation`'s residual
 fields plus the generator version (D5, D6). All five are struck in place under *Open decisions this
@@ -878,6 +891,7 @@ would**. ***A theory that explains the failure is not thereby the mechanism that
 cheapest discriminator was a prediction the theory had to make about a case it had not been fitted to.
 
 ⚠ **`adr/0087`'s hash clause is not buildable as written, and this is the one thing task 6 leaves open.**
+***(⚠ WRONG, and corrected by task 10 on 2026-08-18 — see below the paragraph.)***
 *"That hash is computed on the background thread from the copy"* cannot be done: `HandleColumn.Fold`
 folds the **target row's monotonic id**, which lives in another table and is not a function of the
 handle's bytes — the very divergence `adr/0086` names — so a fold over the copy produces a number that
@@ -888,6 +902,22 @@ serialise + write*, ~42 ms rather than ~10 — and with no hash the seam is back
 is `adr/0087`'s own shape table. **D4's conclusion survives and one of its two reasons falls**, which is
 `adr/0088`'s *a decision given several grounds is load-bearing on whichever ones survive*. A negative
 assertion holds the line: `A_fold_over_the_bytes_is_not_the_state_hash`.
+
+⚠ **THE PARAGRAPH ABOVE IS WRONG AND IS KEPT RATHER THAN DELETED, because how it was wrong is the
+milestone's sharpest finding.** Every sentence in it is true and the conclusion is too wide. *A fold over
+the copy produces a number that is not the State Hash* holds for **a column's own bytes** and fails for
+**the file**: `Rows.cs:72-73` declares `id` and `generation` as `Saved` columns, so the id a handle
+resolves to is in the copy, in another table's block. ***A value absent from a column's own bytes can
+still be present in the copy.*** **Task 10 folds it and the seam comes back to D4's shape after all** —
+*copy | hash + serialise + write* — with the hash on the **movable** side, so it costs the simulation
+thread nothing. `adr/0112`.
+
+⚠ **And the negative assertion did not hold the line; it is what made the wrong line look held.**
+`A_fold_over_the_bytes_is_not_the_state_hash` is still green and was always about something else — it
+folds the buffer flat, byte after byte, which is a thing nobody would ever want. ***A test name is a
+description of the build, so it says which symbol to read and never what is in it***, and a **negative**
+test is the most quotable kind of all because it reads as a closed door. `adr/0093`, on a surface that
+ADR does not list. Three documents cited this test; none of them opened it.
 
 **⚠ What this milestone cannot test, stated so it is not mistaken for tested.** Nothing is parallel
 around the save, so a writer that walked the live world would produce a correct file today — which is
@@ -1123,6 +1153,108 @@ the same shape as task 7's finding pointed the other way: there, a test's *alloc
 not its allocation in a suite either. **Both are consequences of the same parallelism and neither is
 visible from inside the test.** The prediction is recorded rather than deleted because it was written
 down before it was checked, and checking it took one command.
+
+### Task 10 — the save carries its own State Hash, folded from the copy
+
+⚠ **Not on the original list. It is the second of the milestone's two open questions, settled with the
+user in the room on 2026-08-18** — and it was settled by finding that the thing task 6 recorded as
+unbuildable is buildable, so the decision it needed was much smaller than the one it was going to need.
+
+**What was open.** Task 6 left one question: does a save carry a verified State Hash? The reversible
+default — **no hash in the file** — shipped through tasks 7, 8 and 9. `adr/0087` says such a hash would
+be *"computed on the background thread from the copy, never on the simulation thread as part of taking
+it"*, and task 6 recorded that as not buildable, because `HandleColumn.Fold` folds the target row's
+monotonic id and a handle's bytes do not contain one. That left two options, both bad: fold the **live
+world** on the simulation thread, which contradicts the clause and puts a **~42 ms** hitch at 1M where
+`adr/0087`'s own revisit trigger says ~40 ms is visible; or take a **typed** copy, at 170.49 MiB against
+the byte copy's 131.33 and a second `World`-shaped object graph.
+
+⚠ **There was a third and the corpus had the evidence for it the whole time.**
+
+```csharp
+_id         = Saved<ulong>("id", Touch.Wake);        // Rows.cs:72
+_generation = Saved<uint>("generation", Touch.Wake); // Rows.cs:73
+```
+
+**The id a handle resolves to is saved state**, so it is in the file — in *another table's block* of the
+same copy, which is the whole of the difficulty and none of the impossibility. ***A value absent from a
+column's own bytes can still be present in the copy.*** So the hash comes off the copy, the clause is
+honoured rather than overturned, and the **simulation thread pays nothing**.
+[`adr/0112`](../docs/adr/0112-the-saved-set-is-the-hashed-set-so-a-save-can-compute-its-own-state-hash.md).
+
+**What shipped.** `src/Borough.Core/Persistence/SaveHash.cs`, a ninth header field, and a refactor of
+the fold so that there is **one implementation against two sources**:
+
+- **`Column.Fold` takes its bytes and a `TargetIds`.** The live path passes the column's own storage and
+  the live target table; the save path passes a slice of the copy and that table's `id` and `generation`
+  bytes, located in the same buffer. `Rows.FoldScalars` is shared the same way. A second fold written
+  beside the first would have been two copies of one rule that must agree for ever, which is
+  [`0012`](0012-corpus-audit.md) *Cause 1* built on purpose. ***The abstraction to reach for is the one
+  that makes the duplicate impossible, not the one that makes it convenient.***
+- **`SaveHash.Of(world, body)` reproduces `World.HashState()` exactly**, and it can because the two
+  walks are the same walk — same tables in the same order, same four allocator scalars, same saved
+  columns over the same slots. **The save file is the hash's input, written down**, which is `adr/0086`
+  arriving at a consequence `adr/0086` did not draw.
+- **It reads the world for its schema and never for a value** — table order, column widths, and which
+  table a handle column points at, all fixed at `Rows.Seal`. ***A schema read is not a state read***,
+  and that is what makes the call a thread's to take.
+- **The header is nine fields and 60 bytes**, amending `adr/0111` on the count and nothing else. **Zero
+  is not a sentinel**: a world can genuinely hash to zero, so there is no *unverified save* — which is
+  only available because the field went in before release rather than being retrofitted as optional.
+- **`SaveFile.WriteBody` is the copy and the body; `SaveFile.Write` puts a header in front.** The header
+  carries a number that is a function of the body, so it cannot precede it into the snapshot. ***A
+  header is a statement about the build and a copy is a statement about the world***, and the two were
+  only ever adjacent.
+- **`SaveFile.Read` verifies.** Restore, `RebuildDerived`, recompute, compare, refuse. So **`05 §4`
+  invariant 6 is a property of every load** rather than of the seven cases in the suite. The load side
+  folds the *live* world at 32.47 ms at 1M, which is free — a load is not inside a Tick loop, and only
+  the save side ever had a budget to protect.
+
+**What it catches, stated as the case nothing else could.** `Rows.Restore`'s consistency walk already
+refuses a flipped byte in `id`, `generation` or `free_next`. It cannot see a flipped byte in a
+Household's money: the file is the right length, every table restores, the world loads, and it is a
+different city. `A_flipped_byte_in_the_body_is_refused_by_the_load` is that case.
+
+⚠ **The sharpest finding is about how the claim was pinned, not about the hash.** Task 6's conclusion
+was held in place by a **test** — `A_fold_over_the_bytes_is_not_the_state_hash` — which is still green
+and was always about something else: it folds the buffer flat, byte after byte, which is a thing nobody
+would ever want. ***A test name is a description of the build, so it says which symbol to read and never
+what is in it*** — [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+on a surface it does not list, and **a negative test is the most quotable kind of all, because it reads
+as a closed door**. Three documents cited it and none of them opened it. The four sightings `adr/0093`
+records are an ADR summary, a plan's recommendation and two doc-comments; this is the fifth and the
+first where the false description is a **test**.
+
+⚠ **The second finding is that the cheap-looking answer would have spent a revisit trigger.** Folding
+the live world was defensible on `adr/0087`'s own arithmetic — 32.47 ms once per in-world Day is 0.03%
+of a Tick budget amortised, and the clause forbidding it is a **per-Tick** argument applied to a
+**per-autosave** event, which is the exact error `adr/0087` was written to correct in `adr/0037`. It was
+the recommendation carried into this session. What it would also have done is take the save's blocking
+half from ~10 ms to **~42 ms at 1M**, which is the size `adr/0087`'s own revisit trigger names as
+*visible* — reached by adding a feature rather than by growing the city. ***An argument that a cost is
+affordable is not a reason to pay it when it can be moved.***
+
+**Two smaller things.** A **copy is now part of the format rather than an optimisation**: the hash comes
+off it, so there is no way to write a version-1 save without taking one, and `adr/0087`'s mechanism is
+load-bearing twice. And `Rows<T>.IsValid` now delegates to a non-generic `IsValidSlot`, so **handle
+validity is stated once** where it was about to be stated twice — the save path needs the same rule and
+cannot see the element type.
+
+**Tests.** `SaveHashTests`, 10 cases. The load-bearing one is `A_fold_over_the_copy_is_the_state_hash`
+at 0, 1, 64, 256 and 1,024 Ticks — stepped, because the interesting content is handles into recycled
+slots, which is where folding an id and folding a handle come apart. `The_copied_hash_moves_when_the_world_does`
+is the discriminator without which the first passes for a fold that returns a constant.
+
+⚠ **No baseline moved.** The State Hash is unchanged — the fold produces the same numbers from the same
+inputs — and a header is not part of the city. **1,549 green.**
+
+⚠ **One thing seen and deliberately not fixed here, routed rather than absorbed** (`adr/0073`). Every
+load refusal reaches the user as an **unhandled exception with a stack trace** — the new hash mismatch,
+and equally the pre-existing *truncated save* and *this is not a borough save*. It is `Session.Resume`
+having no catch, it predates this task, and the messages themselves are right; **fixing it inside a save
+commit would have hidden a runner defect inside a `Core` change**. Filed to [`0003`](0003-build-plan.md)
+as a runner paper cut. ***A refusal a user meets as a stack trace is a refusal that reads as a crash***,
+which is the opposite of what these messages were written to do.
 
 ---
 
