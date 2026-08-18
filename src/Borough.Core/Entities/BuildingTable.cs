@@ -38,6 +38,11 @@ public sealed class BuildingTable
         RuleHead = _rows.Derived<int>("rule_head");
         RuleTail = _rows.Derived<int>("rule_tail");
 
+        // A Building has at most one Car Park, so this is a slot rather than a list head -- the Lot's
+        // reverse index shape and not the Bins'. Derived for BinHead's reason: it is reproducible
+        // from CarParkTable.Owner, which is saved, so storing it twice would let the two disagree.
+        CarPark = _rows.Derived<int>("car_park");
+
         CellNext = _rows.Derived<int>("cell_next");
 
         _rows.Seal();
@@ -93,6 +98,39 @@ public sealed class BuildingTable
 
     /// <summary>Tail of the Rule Instance list.</summary>
     public Column<int> RuleTail { get; }
+
+    /// <summary>
+    /// This Building's Car Park slot, <b>plus one</b>, or zero for a Building that has none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One rather than a list</b>, because <c>[[building]] parking</c> is one number per kind. A
+    /// Segment-held Car Park (<c>adr/0113</c>, not built) has no Building at all and would be found
+    /// spatially rather than through here, so this column does not have to grow for it.
+    /// </para>
+    /// <para>
+    /// <b>Plus one, for <c>LotTable.BuildingSlot</c>'s reason exactly.</b> A freshly allocated or
+    /// freed row is zero-filled, so a <see cref="Rows.NoSlot"/> sentinel would make every Building
+    /// with no parking read as owning <em>Car Park slot 0</em> — one real Car Park claimed by the
+    /// whole city, with every hash moving and every test passing. Read it through
+    /// <see cref="HasCarPark"/> and <see cref="CarParkOf"/>; the encoding is not meant to travel.
+    /// </para>
+    /// </remarks>
+    public Column<int> CarPark { get; }
+
+    /// <summary>Whether this Building has a Car Park at all.</summary>
+    public bool HasCarPark(int slot) => CarPark[slot] != 0;
+
+    /// <summary>
+    /// This Building's Car Park slot, or <see cref="Rows.NoSlot"/> if it has none.
+    /// </summary>
+    public int CarParkOf(int slot) => CarPark[slot] - 1;
+
+    /// <summary>Records that this Building's parking lives in <paramref name="carParkSlot"/>.</summary>
+    internal void AttachCarPark(int slot, int carParkSlot) => CarPark[slot] = carParkSlot + 1;
+
+    /// <summary>Records that this Building has no Car Park.</summary>
+    internal void DetachCarPark(int slot) => CarPark[slot] = 0;
 
     /// <summary>
     /// The next Building in the same Cell. The element side of

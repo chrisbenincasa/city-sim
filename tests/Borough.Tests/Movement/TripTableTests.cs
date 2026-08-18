@@ -1,5 +1,6 @@
 using Borough.Core.Entities;
 using Borough.Core.Movement;
+using Borough.Core.Parking;
 using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -191,7 +192,8 @@ public sealed class TripTableTests
         LotTable lots = new(4);
         BuildingTable buildings = new(4, lots);
         HouseholdTable households = new(4, buildings);
-        CitizenTable citizens = new(4, households, buildings);
+        CarParkTable carParks = new(4, buildings, graph.Segments);
+        CitizenTable citizens = new(4, households, buildings, carParks);
         TravellerTable travellers = new(4, citizens, trips);
 
         Address door = At(0, 0, StreetSide.Left);

@@ -288,6 +288,33 @@ so the trail is empty at Tick 64 and never empty again. **A session shortened be
 would cover the mechanism exactly as poorly as task 1's re-record did**, with a full set of freshly
 correct hashes to say so — slice 10 task 11's finding, in the one place it can still bite this table.
 
+**Milestone 7 task 1 re-recorded all four artefacts, and it is the *first* re-record where a shipped
+Ruleset gained a key for the baseline's own sake rather than for the mechanism's.** `car_park` joined
+`World._tables`, appended, and `CitizenTable` gained a saved `parked_in` handle — so the composition
+changed and both hash files moved for the ordinary reason. Both Ruleset content hashes moved because
+**every shipped file gained a `[[building]] parking`**, which put this back on the *four literals in
+two files* path, in the order the 5a note gives.
+
+⚠ **The key was added to `minimal.toml` deliberately, and the alternative is the thing worth naming.**
+`adr/0113` and `CarParkTable` could have shipped with **no Ruleset declaring parking at all** — the
+table would have joined the hash, every number here would have moved, and **not one Car Park would
+ever have been created.** That is `world-hash.txt`'s own milestone 6 task 1 note repeating one
+milestone later: ***a baseline that covers a table's declaration reads exactly like one that covers its
+behaviour***, and this time it was foreseen rather than found. With the key stated, the hand-built
+world's four Buildings each carry a Car Park, so the fixture folds **four live rows** rather than
+four zeroed ones and demolition frees them.
+
+⚠ **What it still does not cover is a Car Park being *occupied*, and the reason is a second file.**
+Occupancy needs somebody to drive, driving needs `[households] car_ownership_percent`, and
+`minimal.toml` states none — so nobody in the committed session owns a car and every Car Park here is
+permanently empty. That is **exactly 5c task 6's hole on a new mechanism**, and it closes the same way
+or not at all: the session would have to adopt `congested.toml`, which is a decision about the
+committed trace rather than about parking. The acquire and the release do not exist yet either; they
+are task 4's, and task 5 is the one that makes a walk Leg cost something in this directory.
+
+**`World.HashSeed`'s version byte is deliberately unmoved**, for the reason milestone 6 task 1 gives:
+a world with more tables in it is not a change to the fold.
+
 ⚠ **The re-record was blocked before it could start, and the refusal was the right one.** The runner
 would not replay a session naming a Ruleset hash nobody supplied — *Rules nobody has are not a
 mismatch, and `--force-ruleset` cannot waive it* — so the two literals in `session.borough` and the two

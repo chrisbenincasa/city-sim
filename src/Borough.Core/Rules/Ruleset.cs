@@ -387,6 +387,37 @@ public readonly record struct KindDefinition(
     public int Jobs { get; init; }
 
     /// <summary>
+    /// How many Vehicles a Building of this kind can park. Zero means it provides no parking.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Occupants"/>'s rule a third time</b> (<c>adr/0068</c>, <c>adr/0113</c>,
+    /// milestone 7 task 1), and it transplants for the reason the others did rather than by analogy:
+    /// an authored number keyed on the kind, read at a write site, pointed at by no live state — so
+    /// it is a property of the Ruleset in force, and lowering it reaches every Building already
+    /// standing. The overflow is <b>dismissed</b> rather than left to drain, on <see cref="Jobs"/>'
+    /// side of <c>adr/0064</c>'s line: a Bin is left to drain because it has a consumer, and a parked
+    /// car has a <em>holder</em> and no consumer exactly as a job does, so nothing would ever spend a
+    /// Building's surplus parking down.
+    /// </para>
+    /// <para>
+    /// <b>Zero rather than absent, and it is the one of these three where zero is the interesting
+    /// value.</b> A tower with no parking is a real building and a real balance decision — it is the
+    /// second row of <c>adr/0009</c>'s own player-tool table, <em>a detached house carries a
+    /// driveway, a tower may not</em> — where a dwelling employing nobody is merely the common case.
+    /// So this key needs no <em>unset</em> spelling: every value in range means something, and
+    /// absence means the same as zero because a kind that says nothing about parking provides none.
+    /// </para>
+    /// <para>
+    /// <b>It counts Vehicles, never Citizens and never Households.</b> That is not pedantry about
+    /// units: <see cref="Entities.World.ModeOf"/> drives every member of a car-owning Household, so
+    /// the three quantities differ by construction and a Car Park sized in people would be sized in
+    /// the wrong currency (<c>adr/0112</c>).
+    /// </para>
+    /// </remarks>
+    public int Parking { get; init; }
+
+    /// <summary>
     /// The earliest in-world hour a job of this kind starts at. See <see cref="ShiftStartLatestHour"/>.
     /// </summary>
     /// <remarks>

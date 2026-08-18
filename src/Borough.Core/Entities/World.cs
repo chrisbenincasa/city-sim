@@ -121,9 +121,22 @@ public sealed class World
         Lots = new LotTable(PerThousand(citizens, 225));
         Buildings = new BuildingTable(PerThousand(citizens, 150), Lots);
         Households = new HouseholdTable(PerThousand(citizens, 360), Buildings);
-        Citizens = new CitizenTable(citizens, Households, Buildings);
         Layers = new MapLayers(rules.Layers);
+
+        // Roads and the Car Parks moved ahead of the Citizens on 2026-08-18, milestone 7 task 1, and
+        // the reorder is free: CONSTRUCTION order is not composition order. What the State Hash folds
+        // is the order of `_tables` below, which is unchanged and says so at its own site. A
+        // CitizenTable now takes a CarParkTable because `ParkedIn` is a handle rather than a slot --
+        // Address.cs's rule, one table over: a saved slot index folds the city's whole demolition
+        // history into the hash, so two runs building the same city would disagree.
         Roads = new RoadGraph(rules.Roads);
+
+        // One Car Park per Building, so this is the Building ratio and not a fourth guessed one --
+        // which 0002 §D1 asks in as many words that nobody add. A kind declaring `parking = 0` still
+        // gets no row, so this is a ceiling on what a fully-provisioned city allocates.
+        CarParks = new Parking.CarParkTable(PerThousand(citizens, 150), Buildings, Roads.Segments);
+
+        Citizens = new CitizenTable(citizens, Households, Buildings, CarParks);
 
         // Sized for a city in trouble rather than a healthy one: the Pool is empty when everybody is
         // housed, and the table's job is to absorb a District emptying without reallocating mid-Tick.
@@ -189,10 +202,29 @@ public sealed class World
             // history rather than present state, and 02 §9's "why is this Lot vacant" cannot be
             // answered from a world that did not keep it.
             CondemnationTrail.Rows,
+
+            // Appended for the same reason, milestone 7 task 1. A Car Park's occupancy is saved state
+            // and nothing recomputes it: adr/0084 calls a leak here an adr/0006-class *permanent*
+            // capacity loss, so a reload that re-derived occupancy would launder exactly the defect
+            // the two invariants exist to catch. Appending is still the one edit to this list that
+            // moves no row relative to another, and the version byte above is deliberately NOT
+            // bumped -- this is new state, so the baselines move because the world moved.
+            CarParks.Rows,
         ];
 
         WorldInvariants.RegisterAll(Invariants);
     }
+
+    /// <summary>
+    /// Every Car Park in the city — the supply side of <c>adr/0009</c>'s parking model.
+    /// </summary>
+    /// <remarks>
+    /// <b>Buildings only in this milestone, and Road Segments are omitted rather than foreclosed</b>
+    /// (<c>adr/0113</c>). A Car Park is located by an <c>Address</c>, which is already
+    /// <c>(Segment, offset, side)</c>, so a Segment-held one needs no new column — only rows and a
+    /// balance pass. The omission is filed in <c>06</c>'s <em>Mechanisms with no milestone</em>.
+    /// </remarks>
+    public Parking.CarParkTable CarParks { get; }
 
     /// <summary>
     /// Trips in flight and Trips resolved but not yet read out. <c>adr/0075</c>'s <em>what</em>.
@@ -898,6 +930,8 @@ public sealed class World
         Citizens.CommuteNext.Span.Clear();
         Buildings.BinHead.Span.Clear();
         Buildings.BinTail.Span.Clear();
+        Buildings.CarPark.Span.Clear();
+        CarParks.Capacity.Span.Clear();
         Buildings.RuleHead.Span.Clear();
         Buildings.RuleTail.Span.Clear();
         Households.DwellingNext.Span.Clear();
@@ -927,6 +961,21 @@ public sealed class World
                 && Lots.Rows.TryResolve(Buildings.Lot[slot], out int lotSlot))
             {
                 Lots.Occupy(lotSlot, slot);
+            }
+        }
+
+        // The Car Park's reverse index. The Lot's shape rather than the Bins' -- a Building has at
+        // most one, so there is nothing to insert in order, and a second Car Park naming the same
+        // Building is a violation the whole-world tier reports rather than a list this would silently
+        // lengthen. The TryResolve does real work: CarParkTable.Owner outlives nothing, but a Car
+        // Park whose Building has gone is a row DestroyBuilding should already have freed, so one
+        // surviving here is a leak this walk declines to re-attach.
+        for (int slot = 0; slot < CarParks.Rows.SlotCount; slot++)
+        {
+            if (CarParks.Rows.IsLive(slot)
+                && Buildings.Rows.TryResolve(CarParks.Owner[slot], out int ownerSlot))
+            {
+                Buildings.AttachCarPark(ownerSlot, slot);
             }
         }
 
@@ -1250,6 +1299,18 @@ public sealed class World
             }
         }
 
+        // The Car Park, asked rather than assumed for the Bins' reason: a refit meets a Building that
+        // already has one. A kind declaring `parking = 0` gets no row at all, which is not the same
+        // as a row of capacity zero -- the shed walks rows, so an empty row would be a Car Park that
+        // is permanently full rather than a Building that has none, and the two read differently in
+        // every diagnosis adr/0009 exists to give.
+        if (!Buildings.HasCarPark(buildingSlot)
+            && TryDeclaredParking(kind, out int spaces)
+            && spaces > 0)
+        {
+            CreateCarPark(building, spaces);
+        }
+
         int armed = 0;
 
         foreach (RuleId rule in Rules.RulesOf(kind))
@@ -1351,6 +1412,28 @@ public sealed class World
                 : (byte)0;
 
             Bins.SetCapacity(slot, DeclaredCapacity(kind, Bins.Resource[slot]));
+        }
+
+        // The Car Parks, on the Bins' rule and with the difference stated at CarParkTable.SpaceAt: a
+        // lowered ceiling leaves a Bin to drain and leaves a Car Park over-full, because a Bin has a
+        // consumer and a parked car has a holder. The dismissal that resolves it is a write to the
+        // *holders* as well as to this column, so it does not belong in a capacity rebuild -- it is
+        // task 4's, beside the acquire and the release it has to stay paired with.
+        for (int slot = 0; slot < CarParks.Rows.SlotCount; slot++)
+        {
+            if (!CarParks.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            // A derelict Building keeps the parking it had, exactly as it keeps its jobs: TryDeclared
+            // says *the Ruleset no longer describes this*, which is a statement about a file rather
+            // than about the city (CONTEXT.md -> Dereliction).
+            if (Buildings.Rows.TryResolve(CarParks.Owner[slot], out int buildingSlot)
+                && TryDeclaredParking(Buildings.Kind[buildingSlot], out int spaces))
+            {
+                CarParks.SetCapacity(slot, spaces);
+            }
         }
     }
 
@@ -1517,6 +1600,63 @@ public sealed class World
 
         jobs = Rules.Kind(kind).Jobs;
         return true;
+    }
+
+    /// <summary>
+    /// How many Vehicles a kind can park, and whether the Ruleset in force declares the kind at all.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="TryDeclaredJobs"/>'s shape and its reason</b> (<c>adr/0113</c>): the two answers
+    /// have to stay apart, because a kind the Ruleset does not declare is <em>derelict</em> and must
+    /// not be treated as a kind that declares no parking. Dereliction must not evict a city's cars any
+    /// more than it may sack a District.
+    /// </remarks>
+    internal bool TryDeclaredParking(byte kind, out int spaces)
+    {
+        if (!Rules.Declares(kind))
+        {
+            spaces = 0;
+            return false;
+        }
+
+        spaces = Rules.Kind(kind).Parking;
+        return true;
+    }
+
+    /// <summary>
+    /// Gives a Building a Car Park at its vehicle Access Point.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The Address is taken once, here, and is saved from then on</b> (<c>adr/0113</c>, corrected
+    /// by this task). It is not derived from the owner, and the reason is the Segment case: a
+    /// Building-held Car Park's Address is recoverable from its Building, a Segment-held one's is
+    /// where the player put it, and a column is declared once — so deriving would have forced street
+    /// parking to bring a second column and made <c>adr/0113</c>'s <em>needs no new column</em> false.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A Building with no frontage yet gets a Car Park with no Address, and nothing re-points it
+    /// today.</b> That is the cost the saved disposition buys, it is bounded to Buildings raised
+    /// before their Street exists, and the repair belongs to task 3: the Parking Shed rebuilds on the
+    /// per-Segment Epoch, which is the one pass that already runs when frontage changes. Recorded
+    /// here rather than worked around, because a silent no-Address Car Park is invisible supply.
+    /// </para>
+    /// </remarks>
+    internal Handle<Parking.CarPark> CreateCarPark(Handle<Building> building, int spaces)
+    {
+        int buildingSlot = Buildings.Rows.Resolve(building);
+        Address door = VehicleAccessPoint(buildingSlot);
+
+        Handle<RoadSegment> segment = door.Exists
+            ? Roads.Segments.Rows.At(door.Segment)
+            : default;
+
+        Handle<Parking.CarPark> carPark =
+            CarParks.Create(building, segment, door.Offset, door.Side, spaces);
+
+        Buildings.AttachCarPark(buildingSlot, CarParks.Rows.Resolve(carPark));
+
+        return carPark;
     }
 
     /// <summary>
@@ -1998,6 +2138,23 @@ public sealed class World
             WakeAll(bin, tick);
             Bins.Rows.Free(Bins.Rows.At(bin));
             bin = BuildingBins.PopFront(slot);
+        }
+
+        // The Car Park, and it goes with the Building because the parking a garage provides stops
+        // existing when the garage does. The cars in it are NOT unparked here, and that is deliberate
+        // rather than an oversight: CitizenTable.ParkedIn is Reference.Severable, so every holder's
+        // handle stops resolving in the same act -- which is what keeps adr/0084's conservation sum
+        // balanced across a demolition instead of reporting the leak it exists to catch.
+        //
+        // ⚠ It is also adr/0084's named second mutation site -- *a car displaced by a bulldozed
+        // garage* -- and that ADR says the write-site predicate needs restating before it ships. What
+        // is restated here is only the conservation half. Whether a displaced car should re-query a
+        // shed, and where, is task 4's, and it is the acquire/release pairing that decides it.
+        if (Buildings.HasCarPark(slot))
+        {
+            int carPark = Buildings.CarParkOf(slot);
+            Buildings.DetachCarPark(slot);
+            CarParks.Rows.Free(CarParks.Rows.At(carPark));
         }
 
         // Before the Lot is freed below, because BuildingResidency reads the Lot's position through

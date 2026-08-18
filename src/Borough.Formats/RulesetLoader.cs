@@ -892,6 +892,31 @@ public static class RulesetLoader
                     }
                 }
 
+                // adr/0068's rule applied to parking (adr/0113, milestone 7 task 1). Optional and
+                // refused negative on `jobs`' reasoning exactly -- a negative reads as "remove spaces
+                // that are not there", which is not a sentence anybody meant to write.
+                //
+                // Unlike the Shift band below this needs NO paired key and no *unset* spelling, and
+                // that is the decision rather than an omission: zero is the interesting value here.
+                // A tower with no parking is adr/0009's own second player-tool row -- "a detached
+                // house carries a driveway, a tower may not" -- so every value in range means
+                // something and absence means what zero means.
+                int parking = 0;
+
+                if (TryInteger(table, "parking", out long parks, required: false, name))
+                {
+                    if (parks < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "parking") ?? table), name,
+                            $"parking is {parks}. It counts Vehicles a Building of this kind can "
+                            + "park, so it cannot be negative; omit it for a kind that parks none.");
+                    }
+                    else
+                    {
+                        parking = parks > int.MaxValue ? int.MaxValue : (int)parks;
+                    }
+                }
+
                 // adr/0101's Shift band. Paired with `jobs` in both directions, because a workplace
                 // with no hours and an hour with no workplace are each half a mechanism -- and
                 // because the defaulted 0,0 would otherwise mean *midnight*, which is a legitimate
@@ -904,6 +929,7 @@ public static class RulesetLoader
                     CondemnAfter = condemnAfter,
                     Occupants = occupants,
                     Jobs = jobs,
+                    Parking = parking,
                     ShiftStartEarliestHour = shiftFrom,
                     ShiftStartLatestHour = shiftTo,
                 };

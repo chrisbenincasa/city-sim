@@ -10,8 +10,10 @@
 [`adr/0112`](../docs/adr/0112-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)
 *a parking space is held by the Citizen* and
 [`adr/0113`](../docs/adr/0113-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md)
-*a Car Park is not a Bin*, with amendments in place to `adr/0009` and `adr/0084` — **and no task is
-started. Ungated** — session **H** cleared this row on 2026-08-12 and the clearance is written in
+*a Car Park is not a Bin*, with amendments in place to `adr/0009` and `adr/0084`. ✅ **TASK 1 SHIPPED
+2026-08-18** — `CarParkTable`, the `[[building]] parking` key, and the supply created, ceilinged,
+located and freed; 1,514 tests green and all four golden artefacts re-recorded. **Seven tasks left, and
+task 2 is next. Ungated** — session **H** cleared this row on 2026-08-12 and the clearance is written in
 [`0002`](0002-open-questions.md) §F2 as well as on the board, so both copies agree.
 
 ⚠ **This document's own recommendation on decision 1 was wrong, and the sitting is what found it.** It
@@ -165,6 +167,59 @@ two **wait lists** are meaningless here, because `adr/0009`'s superseding note t
 **drains**, and the two differ on whether the quantity has a consumer. A parked car has a **holder**,
 like a job and unlike a Good — so the shape to copy is `[[building]] jobs`' **dismissal**, and what a
 dismissed car does is a question this task must answer rather than discover.
+
+> ✅ **DONE 2026-08-18. `src/Borough.Core/Parking/CarParkTable.cs`, a `[[building]] parking` key in all
+> five shipped Rulesets, `CitizenTable.ParkedIn`, `BuildingTable.CarPark`, and creation, capacity
+> rebuild and demolition wired through `World`. 1,514 tests green — `CarParkTests` (18) and four in
+> `RulesetLoaderTests` — and all four golden artefacts re-recorded.** The heading above says *the
+> parking Bin*; decision 2 settled that it is **not** one, and the heading is left as written because a
+> renamed task reads as a task nobody changed their mind about.
+>
+> ⚠ **The task's sharpest finding is about the Address's disposition, and the first cut had it wrong.**
+> A Building-held Car Park's Address is recoverable from its Building, so **deriving** it looks free —
+> and it is not, because *a column is declared once*: a **Segment**-held Car Park's Address is where the
+> player put it and is recoverable from nothing. Deriving would therefore have made
+> [`adr/0113`](../docs/adr/0113-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md)'s
+> own *needs no new column* **false on the day it was written**, and the milestone that discovered it
+> would have been the one this milestone deliberately deferred. ***A disposition chosen against the
+> case in front of you is chosen against every case the column will ever hold*** — the saved/derived
+> question read one milestone forward rather than one call site out.
+>
+> ⚠ **The cost of that is recorded rather than worked around: a Building raised before its Street exists
+> gets a Car Park with no Address, and nothing re-points it today.** It is bounded to exactly that
+> ordering, and the repair belongs to **task 3** — the Parking Shed rebuilds on the per-Segment Epoch,
+> which is the one pass already running when frontage changes. It is a **test** rather than a comment
+> (`A_building_with_no_frontage_gets_a_car_park_with_no_address`), and that test is written to be
+> *inverted* by task 3 rather than deleted, because a silent no-Address Car Park is **invisible supply**
+> and the state has to stay named while it exists.
+>
+> ⚠ **The over-capacity question was answered and its write was moved, which is not the same as
+> deferring it.** The brief asked what a dismissed car does and said this task must *answer rather than
+> discover* it. The answer is **dismissal** — `[[building]] jobs`' side of `adr/0064`'s line, because a
+> Bin is left to drain when it has a consumer and a parked car has a **holder** — and the answer's
+> *write site* is task 4's, because a dismissal writes to the **holders** as well as to the column and
+> therefore cannot be split from the acquire and release it has to stay paired with. What ships here is
+> the state made **representable and asserted**: `SpaceAt` returns a negative between a lowered
+> provision and its dismissal, `A_lowered_provision_leaves_the_car_park_over_full` says so, and task 4
+> changes a test rather than discovering a case.
+>
+> **Three smaller ones.** The `CitizenTable` constructor now takes a `CarParkTable`, which moved the
+> Car Parks ahead of the Citizens in `World`'s constructor — **free, because construction order is not
+> composition order**; what the State Hash folds is `_tables`, which is appended to and says so at its
+> own site. `BuildingTable.CarPark` is **plus-one encoded** for `LotTable.BuildingSlot`'s reason, and
+> the test that falsifies it needs a **second kind**: in a world where everything parks, *owns Car Park
+> slot 0* and *owns none* are indistinguishable. And `parking = 8` in `minimal.toml` is **`jobs`' own
+> derivation rather than a second guess** — `1000/360 × 3` floored, both keys counting **Citizens** —
+> which is deliberate: sizing it per *Household* would have under-provisioned by 2.8× and baked in the
+> exact confusion `adr/0112` had just corrected.
+>
+> ⚠ **What the re-recorded baseline covers is the table's declaration and not its behaviour, and this
+> time it was foreseen rather than found.** `minimal.toml` states no `[households] car_ownership_percent`,
+> so nobody in the committed session drives and **no Car Park is ever occupied**. That is milestone 6
+> task 1's note one milestone later — ***a baseline that covers a table's declaration reads exactly like
+> one that covers its behaviour*** — and it closes by the golden session adopting `congested.toml` or
+> not at all, which is a decision about the committed trace rather than about parking. Written into
+> `tests/Borough.Tests/Golden/README.md` on the day.
 
 ### Task 2 — the `[parking]` table and the shed radius
 

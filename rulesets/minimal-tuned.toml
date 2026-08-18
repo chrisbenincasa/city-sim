@@ -158,6 +158,12 @@ occupants = 3
 # workplace kind of its own, and why 8 is the floor of 1000/360 x 3 rather than a chosen number.
 jobs = 8
 
+# HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. Identical to minimal.toml's, including the
+# value. See there for why eight is `jobs`' own derivation rather than a second guess -- both count
+# CITIZENS, and adr/0112 settled that a parking space is held by the Citizen because World.ModeOf
+# drives every MEMBER of a car-owning Household. UNRATIFIED; ratifier is milestone 7 task 8.
+parking = 8
+
 # WHEN THIS KIND'S JOBS START, as a band of in-world hours, from which each BUILDING draws its own one
 # against its own id. adr/0101, and the band rather than an hour is the load-bearing part: this corpus
 # has exactly ONE Building kind, so a single authored hour would send the entire city to work at the

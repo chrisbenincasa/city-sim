@@ -157,6 +157,30 @@ occupants = 3
 # own remark exists to refuse.
 jobs = 8
 
+# HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. adr/0009's supply, adr/0113's Car Park, and
+# `occupants`' rule on a third axis (adr/0068): an authored number keyed on the kind, derived from the
+# Ruleset in force rather than frozen when the Building was raised, so lowering it reaches every
+# Building standing. The overflow is DISMISSED rather than left to drain, which is `jobs`' side of
+# adr/0064's line -- a Bin is left to drain because it has a consumer, and a parked car has a HOLDER.
+#
+# EIGHT IS `jobs`' OWN DERIVATION AND NOT A SECOND GUESS, because both count CITIZENS: 1000/360 x 3
+# = 8.33, floored. That is deliberate rather than convenient. adr/0112 settled that a parking space is
+# held by the CITIZEN, and the reason is that World.ModeOf drives every MEMBER of a car-owning
+# Household -- so a Building of 3 Households puts ~8.3 cars on the road, not 3. Sizing this per
+# HOUSEHOLD would have under-provisioned by 2.8x and baked in the exact confusion that ADR corrected;
+# 01 §8 ledger #2's "every Household owning a car" is about WHO OWNS and was never about HOW MANY.
+#
+# ONE CAR PER RESIDENT, NOT PER DRIVER, IS WHAT THIS ACTUALLY BUYS. This file states no
+# `car_ownership_percent`, so nobody here drives at all and no Car Park is ever occupied -- the
+# provision is exercised at creation and demolition and nowhere else. congested.toml is where cars
+# exist, and it is where a full Car Park first means something.
+#
+# UNRATIFIED. The named ratifier is milestone 7 task 8's long run, on the shed radius's own machine,
+# and it needs the WORLD that row now names -- a sixth Ruleset in which parking is scarce, because a
+# generated city cannot vary parking occupancy: capacity is per kind and demand is per Citizen, both
+# sized by the generator from one population. THE SAME NUMBER SIZES BOTH THE DEMAND AND THE SUPPLY.
+parking = 8
+
 # WHEN THIS KIND'S JOBS START, as a band of in-world hours, from which each BUILDING draws its own one
 # against its own id. adr/0101, and the band rather than an hour is the load-bearing part: this corpus
 # has exactly ONE Building kind, so a single authored hour would send the entire city to work at the

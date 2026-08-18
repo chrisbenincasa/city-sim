@@ -1186,6 +1186,87 @@ public sealed class RulesetLoaderTests
         Assert.Equal(0, ruleset.Kind(1).Occupants);
         Assert.Equal(9, ruleset.Kind(1).Jobs);
     }
+    // ---- [[building]] parking (adr/0113) ---------------------------------------------------------
+
+    /// <summary>A kind that declares no <c>parking</c> parks nothing.</summary>
+    /// <remarks>
+    /// <b>Absence means what zero means here, and that is the decision rather than a default.</b>
+    /// <c>occupants</c> and <c>jobs</c> both have to keep <em>declared zero</em> and <em>not declared
+    /// at all</em> apart, because a kind the Ruleset dropped is <em>derelict</em> and must not be
+    /// treated as one declaring none. That distinction lives in <c>World.TryDeclaredParking</c>, on
+    /// whether the <em>kind</em> is declared — not on this key, which a kind either states or does
+    /// not. A kind saying nothing about parking provides none.
+    /// </remarks>
+    [Fact]
+    public void A_kind_that_declares_no_parking_parks_nothing()
+    {
+        Ruleset ruleset = Accepted(Bakery);
+
+        Assert.Equal(0, ruleset.Kind(1).Parking);
+    }
+
+    /// <summary>A kind that declares <c>parking</c> carries the number through to the core.</summary>
+    /// <remarks>
+    /// <b>It counts Vehicles, never Citizens and never Households</b> (<c>adr/0112</c>):
+    /// <c>World.ModeOf</c> drives every member of a car-owning Household, so the three quantities
+    /// differ by construction and a Car Park sized in people would be sized in the wrong currency.
+    /// </remarks>
+    [Fact]
+    public void A_kind_that_declares_parking_carries_the_number()
+    {
+        Ruleset ruleset = Accepted(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\nparking = 24\n",
+            StringComparison.Ordinal));
+
+        Assert.Equal(24, ruleset.Kind(1).Parking);
+    }
+
+    /// <summary>
+    /// A negative <c>parking</c> is refused rather than clamped.
+    /// </summary>
+    /// <remarks>
+    /// <c>jobs</c>' reasoning exactly: clamped to zero it reads as <em>remove spaces that are not
+    /// there</em>, which is not a sentence anybody meant to write, and the symptom — a District whose
+    /// cars have nowhere to go — names neither the file nor the key. Written rather than inherited,
+    /// because a guard with no test is invisible to the next reader (<c>adr/0064</c>).
+    /// </remarks>
+    [Fact]
+    public void A_negative_parking_is_refused()
+    {
+        RulesetRefusal refusal = Refused(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\nparking = -1\n",
+            StringComparison.Ordinal));
+
+        Assert.Contains("parking is -1", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("parks none", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>Zero parking is a real declaration, and it is the value this key exists to make
+    /// authorable.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>The one of the three ceilings where zero is the interesting value.</b> A tower with no
+    /// parking is <c>adr/0009</c>'s own second player-tool row — <em>a detached house carries a
+    /// driveway, a tower may not</em> — where a dwelling employing nobody is merely the common case.
+    /// So the three are declared independently and none defaults from another.
+    /// </remarks>
+    [Fact]
+    public void Occupancy_employment_and_parking_are_declared_independently()
+    {
+        Ruleset ruleset = Accepted(Bakery.Replace(
+            "name = \"bakery\"\n",
+            "name = \"bakery\"\noccupants = 40\njobs = 9\nparking = 0\n"
+            + "shift_start_earliest_hour = 6\nshift_start_latest_hour = 10\n",
+            StringComparison.Ordinal));
+
+        Assert.Equal(40, ruleset.Kind(1).Occupants);
+        Assert.Equal(9, ruleset.Kind(1).Jobs);
+        Assert.Equal(0, ruleset.Kind(1).Parking);
+    }
+
     // ---- [placement] (adr/0069) --------------------------------------------------------------------
 
     /// <summary>A Ruleset with no <c>[placement]</c> loads, and houses nobody.</summary>
