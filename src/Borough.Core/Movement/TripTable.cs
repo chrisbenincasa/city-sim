@@ -229,13 +229,24 @@ public sealed class TripTable
     /// a single write site to assert at rather than a rule every caller has to remember. Resolving a
     /// Trip twice is refused rather than tolerated: the second Fate would overwrite the first, and
     /// the first is the one that is true.
+    /// <para>
+    /// ⚠ <b><c>internal</c> as of milestone 6 task 7, and prefer <c>World.ResolveTrip</c>.</b> A Fate
+    /// now has a second consumer — <c>CitizenTable.LastTripFate</c>, which is how <c>02 §9</c>'s
+    /// <i>"current or last Trip with its Fate"</i> survives this row being freed on the next line —
+    /// and this method cannot write it, because a table does not reach across to another table. So
+    /// <b>this is the one door onto the column and no longer the one door onto the event</b>: that is
+    /// <c>World.ResolveTrip</c>, which does both and requires the Citizen. Calling this directly
+    /// resolves the Trip and leaves the Citizen's answer stale, which is correct only where the
+    /// Citizen write is being made separately or where there is no Citizen —
+    /// <c>TripEngine.AdvanceTravellers</c> and this table's own tests, and nowhere else.
+    /// </para>
     /// </remarks>
     /// <param name="slot">The Trip.</param>
     /// <param name="fate">How the journey ended. Never <see cref="TripFate.InFlight"/>.</param>
     /// <param name="failingLeg">
     /// The ordinal of the Leg that failed, or <see cref="Rows.NoSlot"/> when the Trip completed.
     /// </param>
-    public void Resolve(int slot, TripFate fate, int failingLeg = Tables.Rows.NoSlot)
+    internal void Resolve(int slot, TripFate fate, int failingLeg = Tables.Rows.NoSlot)
     {
         if (fate == TripFate.InFlight)
         {

@@ -128,6 +128,15 @@ public static class Evidence
             ? world.Citizens.Workplace[slot]
             : default;
 
+        // InFlight stored means no journey of theirs has ever ended, so the answer is absent rather
+        // than a Fate nobody can interpret. CitizenTable.LastTripFate: the sentinel is the one the
+        // Fate set already reserved for `not an outcome`, so it costs nothing and cannot collide.
+        var lastFate = (TripFate)world.Citizens.LastTripFate[slot];
+
+        PastTripEvidence? last = lastFate == TripFate.InFlight
+            ? null
+            : new PastTripEvidence(lastFate, world.Citizens.LastTripEndedDay[slot]);
+
         return new CitizenEvidence(
             citizen,
             household,
@@ -136,7 +145,8 @@ public static class Evidence
             world.Citizens.Activity[slot],
             world.Citizens.PlannedCommute[slot],
             world.Citizens.ReachFailures[slot],
-            InFlightTrip(world, citizen));
+            InFlightTrip(world, citizen),
+            last);
     }
 
     /// <summary>

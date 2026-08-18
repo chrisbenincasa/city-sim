@@ -221,6 +221,53 @@ public sealed class EvidenceDumpTests
         Assert.Contains("picture", complaint!, Ordinal);
     }
 
+    /// <summary>
+    /// <b>The journeys panel names the silent population</b> — everybody the commute has not reached.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Milestone 6 task 7. <c>CitizenTable.LastTripFate</c> is a saved column that would otherwise
+    /// have had no reader outside the suite, which is 5b-bis task 6's finding exactly: ***a Census
+    /// family with no reader is a family nobody can see***.
+    /// </para>
+    /// <para>
+    /// <b>The assertion is an identity rather than a threshold, and that is what makes it a test.</b>
+    /// Nobody commutes without a job, and the commute is the only Trip generator there is
+    /// (<c>adr/0081</c>; <c>TripPurpose.Commanded</c> is a test affordance under <c>adr/0080</c>), so
+    /// <em>never travelled</em> must be exactly the unemployed — 2,208 of 4,000 on this fixture, which
+    /// is the 1,792 employed subtracted from the population. A count that merely looked plausible
+    /// would survive a panel counting the wrong thing; this one does not.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Three of the four Fates read zero and that is the world rather than the panel.</b> Nothing
+    /// this runner can generate refuses a commute at the shipped fifty-minute ceiling, and
+    /// <c>TripFate.Stranded</c> has no producer anywhere in the build. The zeros are asserted so that
+    /// the day one of them moves, somebody has to read this note — 5b-bis task 4's precedent.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_journeys_panel_counts_everybody_the_commute_never_reached()
+    {
+        string report = Dump("diagnosed.toml");
+
+        Assert.Contains("## Journeys, by how each Citizen's last one ended", report, Ordinal);
+
+        int completed = Count(report, "  completed");
+        int never = Count(report, "  never travelled");
+
+        Assert.True(completed > 0, "nobody in this city ever finished a journey.");
+        Assert.Equal(int.Parse(Population, CultureInfo.InvariantCulture), completed + never);
+
+        Assert.Equal(0, Count(report, "  no route found"));
+        Assert.Equal(0, Count(report, "  beyond commute budget"));
+        Assert.Equal(0, Count(report, "  stranded"));
+    }
+
+    /// <summary>The trailing number on a panel line.</summary>
+    private static int Count(string report, string label) => int.Parse(
+        Line(report, label).Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1],
+        CultureInfo.InvariantCulture);
+
     private const StringComparison Ordinal = StringComparison.Ordinal;
 
     /// <summary>The trail's summary line, which is every count the two runs must agree on.</summary>

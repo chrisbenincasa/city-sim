@@ -68,6 +68,11 @@ public sealed class CitizenTable
         MemberNext = _rows.Derived<int>("member_next");
         WorkerNext = _rows.Derived<int>("worker_next");
 
+        // Cold: a Fate is written once per journey and read only by a panel. Appended after the
+        // per-Tick columns for that reason and never interleaved among them.
+        LastTripFate = _rows.Saved<byte>("last_trip_fate", Touch.Cold);
+        LastTripEndedDay = _rows.Saved<ushort>("last_trip_ended_day", Touch.Cold);
+
         Age = _rows.Saved<ushort>("age", Touch.Cold);
         Health = _rows.Saved<byte>("health", Touch.Cold);
 
@@ -276,6 +281,90 @@ public sealed class CitizenTable
     /// </para>
     /// </remarks>
     public Column<ushort> ReachFailures { get; }
+
+    /// <summary>
+    /// <b>How this Citizen's last journey ended</b>, as a <c>Movement.TripFate</c> — or
+    /// <c>InFlight</c>, which here means <em>no journey of theirs has ever ended</em>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>02 §9</c>'s <i>"current or last Trip with its Fate"</i>, second half.</b> The first half
+    /// is a scan of <c>Movement.TravellerTable</c> and needs no state; this half needed some, because
+    /// <c>TripEngine.Release</c> frees the Trip row on the line after asserting it carries a Fate and
+    /// <c>AdvanceTravellers</c> frees the <b>Traveller</b> — the only Citizen-to-Trip link there is —
+    /// earlier in the same pass. The Fate and the association with the person who made the journey
+    /// ceased to exist together, so the answer was unrecoverable rather than merely unassembled.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A column and not a trail, and the brief said trail.</b> Milestone 6 scoped this as
+    /// <i>"task 2's situation verbatim"</i> — the abandonment reason, where the fact is copied into
+    /// <c>Rules.CondemnationTrailTable</c> before the row is freed. The two look identical from the
+    /// freeing site and differ at the <b>subject</b>. A condemnation's subject is the Building, which
+    /// is destroyed, so there is no entity left to hang the fact on and a trail is the only shape —
+    /// that is the milestone's D3 argument in its own words. A Trip's subject is the <b>Citizen</b>,
+    /// who outlives the journey by design, and <c>02 §9</c> asks this question <em>of a Citizen</em>.
+    /// ***What is freed is not always the subject, and it is the subject that decides the shape.***
+    /// </para>
+    /// <para>
+    /// <b>The scale argument agrees and is the reason a trail would have been wrong rather than
+    /// merely indirect.</b> A commute is two journeys a Day, so a million Citizens end roughly two
+    /// million Trips a Day — about <b>a thousand per Tick</b>. A 256-entry window would cover a
+    /// quarter of a Tick and would answer <i>what happened in the city lately</i> rather than
+    /// <i>what happened to this person</i>. Milestone 6 task 6 found the same shape from the other
+    /// end: ***the unit a bound is written in is not the unit its argument is about***. Here there is
+    /// no bound to size and no <c>adr/0052</c> number: every Citizen's answer is exact, for ever.
+    /// </para>
+    /// <para>
+    /// <b><c>TripFate.InFlight</c> is the never-travelled sentinel, and it is free rather than
+    /// chosen.</b> That enum reserves zero for <em>the Trip has not ended</em> precisely so a row
+    /// nothing has written cannot read back as an outcome, and a freshly allocated Citizen is
+    /// zero-filled — so the value that means <i>unset</i> here is the one the Fate set already
+    /// reserved for it. A stored <c>InFlight</c> is impossible as a real reading, because a Fate is
+    /// recorded only when a journey ends. ***A sentinel outside the range of legitimate answers is
+    /// the one kind that can announce itself*** — the rule <c>adr/0074</c>'s crossing cost and
+    /// <c>adr/0098</c>'s ownership rate both had to reach for, available here for nothing.
+    /// </para>
+    /// <para>
+    /// <b>Written in <see cref="World.RecordTripFate"/> and nowhere else.</b> That is
+    /// <see cref="World.Employ"/>'s door discipline on a third axis: all four of
+    /// <c>TripEngine</c>'s Fate sites have the Citizen in hand — <c>TripEngine.Start</c> takes one as
+    /// its first parameter and <c>AdvanceTravellers</c> reads <c>TravellerTable.Citizen</c> — so the
+    /// door can require it and a fifth site cannot be added without deciding whose journey it was.
+    /// </para>
+    /// </remarks>
+    public Column<byte> LastTripFate { get; }
+
+    /// <summary>
+    /// Which Day <see cref="LastTripFate"/> was recorded on. Meaningless while that column reads
+    /// <c>TripFate.InFlight</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Without it the Fate is undated, and an undated Fate is the weakest exactly where it is
+    /// most needed.</b> Anybody who still commutes overwrites this daily, so staleness can only
+    /// afflict somebody who makes no journeys at all — which is precisely the person a decline
+    /// diagnosis is about. <c>NoRouteFound</c> from four hundred Days ago and <c>NoRouteFound</c>
+    /// this morning are different evidence and would otherwise read identically.
+    /// </para>
+    /// <para>
+    /// <b>Days rather than Ticks, and the precedent is four lines below.</b> <see cref="Age"/> is a
+    /// <c>ushort</c> denominated in Days for the same reason: <c>Ticks</c> is a <c>ulong</c>, so a
+    /// Tick-denominated column is <b>8 MB at a million Citizens</b> — around a tenth of the 85.98 MiB
+    /// S0a measured for the whole table set — against <b>2 MB</b> here, for a field no code path from
+    /// <c>step()</c> reads. ⚠ <b>What it costs is within-Day resolution, and a commute is a
+    /// within-Day phenomenon</b>: <i>this morning</i> against <i>this evening</i> is not recoverable
+    /// from this column, and a panel that wants it wants the <em>current</em> Trip, which carries a
+    /// real Tick. ***A column recording that something happened is denominated differently from one
+    /// recording when to do something next.***
+    /// </para>
+    /// <para>
+    /// <b>It saturates rather than wrapping</b> (<c>adr/0003</c>), on <see cref="ReachFailures"/>'
+    /// argument and with the same slack: 65,535 Days against <c>01 §4</c>'s twenty-hour campaign of
+    /// <b>562</b>, so no world this project can build reaches it and the saturation is a wrap guard
+    /// rather than a bound anybody chose.
+    /// </para>
+    /// </remarks>
+    public Column<ushort> LastTripEndedDay { get; }
 
     /// <summary>Link in the Household's member list.</summary>
     public Column<int> MemberNext { get; }

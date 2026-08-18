@@ -6,12 +6,14 @@
 
 ## Status
 
-🟢 **IN FLIGHT. Scoped 2026-08-16; tasks 1, 2, 3, 4, 5 and 6 shipped. Ungated** — it is the first row of
-the re-derived Phase 2 spine and no session, spike or milestone stands in front of it. **Task 7 is what
-remains**, and **every open decision this milestone owed is now closed** — the last of them, *what task 4
+✅ **DONE 2026-08-17. Scoped 2026-08-16; all seven tasks shipped. Ungated throughout** — it was the
+first row of the re-derived Phase 2 spine and no session, spike or milestone stood in front of it.
+**Every open decision it owed is closed** — the last of them, *what task 4
 answers where the mechanism is missing*, on 2026-08-17. ⚠ **Settling it added a seventh task**: a Trip's
 Fate is freed on the line after it is computed, which is this milestone's residue by its own definition
-and was missed at scoping.
+and was missed at scoping. ⚠ **That task then found the brief wrong about its own shape** — it was
+scoped as a trail, on task 2's pattern, and the subject of a Trip is the **Citizen**, who survives it.
+***What is freed is not always the subject, and it is the subject that decides the shape.***
 
 ⚠ **Task 6 found that this milestone's two halves fail `06`'s long-run obligation in opposite
 directions.** The **collection** cannot grow — the trail's 257 rows are allocated in its constructor —
@@ -578,7 +580,93 @@ own discipline is what is being tested here**: entry count is monotonic to the c
 the assertion is a **slot high-water mark that saturates**, not a live count. 5c task 8 found that
 distinction the hard way and its record carries the reasoning.
 
-### Task 7 — a Trip's Fate outlives its Trip — **ADDED 2026-08-17**
+### Task 7 — a Trip's Fate outlives its Trip — ✅ **DONE 2026-08-17**
+
+Two saved columns on `CitizenTable` — `LastTripFate` (a `byte`) and `LastTripEndedDay` (a `ushort`) —
+written through `World.ResolveTrip`/`World.RecordTripFate`, assembled into
+`CitizenEvidence.LastTrip`, and shown by a fourth `--evidence` panel. Ten tests across
+`LastTripFateTests` and `EvidenceDumpTests`. **`session-trace.txt` and `world-hash.txt` re-recorded;
+neither Ruleset content hash moved**, because no Ruleset changed.
+
+#### Four findings
+
+⚠ **1. The brief said *"task 2's situation verbatim"* and it is not. The two differ at the subject,
+and the subject is what decides the shape.** Task 2 copies a condemnation into
+`CondemnationTrailTable` because its subject — the **Building** — is destroyed, so there is no entity
+left to hang the fact on; that is this milestone's own **D3** argument in its own words. Here the
+subject is the **Citizen**, who outlives the journey by design, and `02 §9` asks the question *of a
+Citizen*. ***What is freed is not always the subject, and it is the subject that decides the shape.***
+The two situations are genuinely indistinguishable **from the freeing site** — a row computed, checked
+and given back on the next line — which is why the brief read them as one, and reading from the
+freeing site is what made it wrong. **Settled with the user in the room.**
+
+**And a trail would have been wrong rather than merely indirect.** A commute is two journeys a Day, so
+a million Citizens end roughly **two million Trips a Day — about a thousand per Tick** — and a
+256-entry window would cover **a quarter of one Tick**. It would have answered *what happened in the
+city lately* while `02 §9` asks *what happened to this person*. That is task 6's finding 4 arriving
+one task early and from the other end: ***the unit a bound is written in is not the unit its argument
+is about***. As built there is no window to size, no `adr/0052` number, and every Citizen's answer is
+exact for ever.
+
+⚠ **2. `TripFate.Stranded` is produced by no site in the build**, which is stronger than the corpus
+knew. 5b-bis task 8 read `trips stranded` as **0** over 100,000 Ticks and filed it as *unexercised by
+any run*; in fact `TripEngine.cs:563` says in its own comment that the Fate *"is a question for whoever
+builds `TripFate.Stranded`"*, and grep confirms the enum member is declared, documented with exactly
+when it applies, counted in the Census — and **written by nothing**. `adr/0070`'s **unbuilt** class.
+***A count that reads zero because nothing exercises it and one that reads zero because nothing writes
+it are different facts, and a Census cannot tell them apart.*** So the store is tested over the **Fate
+set** rather than over today's producers: three Fates through the engine, the fourth through the door,
+with the reason beside it.
+
+⚠ **3. Two new saved columns moved the *world* hash on a fixture that has never run a Trip**, so both
+columns are all zeros there. That is the per-field declaration working exactly as `05 §3` claims —
+declaring a column is what allocates it and what puts it in the fold, so a column **nothing has ever
+written still enters the State Hash** and cannot be silently absent. Worth stating because the
+comfortable expectation is the opposite: an all-zero column reads like it should be invisible.
+
+⚠ **4. The three Fates the engine does produce need three different worlds, and one of them cannot be
+a generated city.** `NoRouteFound` arrives through `Start`'s first branch — `adr/0079`'s hole, an
+Address that does not exist — and task 4 measured that **0 of 150** vacant Lots in a generated city
+lack frontage, because `RoadGenerator` lays the lattice the Lots are carved from. So that branch is
+unreachable in every world `CommandKind.Populate` can build, and the fixture is a hand-built world
+with Lots, Buildings and **no Segments at all**. ***A branch unreachable in a generated city is
+reachable in a hand-built one, and which of the two you use is a statement about what you are
+testing.*** The test is a `[Theory]` over the three because they are written at three structurally
+different places — two inside `Start` before a Traveller exists, one in `AdvanceTravellers` after it
+has been freed — so **a mechanism wired at one of the three passes a single-Fate test**. **Verified by
+mutation**: dropping the `AdvanceTravellers` write fails 3 of 9, and reverting the over-budget site to
+the bare table door fails **exactly 1**.
+
+#### The door, and what it can and cannot enforce
+
+`World.ResolveTrip` resolves the Trip **and** records whose journey it was, in one method, on
+`World.Employ`'s argument: the two are one event, and a caller that can do one without the other
+eventually will. **Requiring the Citizen is what makes that structural, and it cost nothing** — all
+four Fate sites already had one, since `TripEngine.Start` takes a Citizen as its *first parameter* and
+`AdvanceTravellers` reads `TravellerTable.Citizen`. A fifth site cannot now be written without deciding
+whose journey it was.
+
+⚠ **`TripTable.Resolve` went `internal` and is no longer the one door onto the event.** It is still the
+one door onto the **column**, and it cannot be the other, because a table does not reach across to
+another table. The distinction is written at the declaration, because the phrase *"the one door a Fate
+goes through"* was already in that doc-comment and is now true of less than it says. ***A sentence that
+was exactly right becomes a false description of the build when a second consumer appears, and nothing
+re-reads it.***
+
+#### Something to look at
+
+A fourth `--evidence` panel, on 5b-bis task 6's finding — ***a Census family with no reader is a family
+nobody can see***, which 5b committed by building `TripCounter`, wiring it through the Census, testing
+it, and printing it nowhere. It prints a **distribution** rather than one Citizen, because a single
+Fate is a value a test already asserts. What it shows that nothing else can is the **silent
+population**: on the shipped fixture, **2,208 of 4,000 Citizens have never finished a journey**, which
+is exactly the 4,000 less the 1,792 employed — nobody commutes without a job and the commute is the
+only generator there is. The test asserts that **identity** rather than a threshold, so a panel
+counting the wrong thing cannot pass by looking plausible.
+
+*Original scope follows.*
+
+### ~~Task 7 — a Trip's Fate outlives its Trip~~ — **ADDED 2026-08-17**
 
 `02 §9`'s Citizen row asks for *"current or last Trip with its Fate"*. **The *current* half is a scan
 and the *last* half is unrecoverable today.** `TripEngine.Release` asserts the Trip carries a

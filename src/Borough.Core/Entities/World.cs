@@ -1618,6 +1618,66 @@ public sealed class World
     }
 
     /// <summary>
+    /// Records how a Citizen's journey ended, and resolves the Trip. <b>The one door onto
+    /// <see cref="CitizenTable.LastTripFate"/>.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Milestone 6 task 7, and it exists because the answer is unrecoverable a line later.</b>
+    /// <c>Movement.TripEngine.Release</c> frees the Trip row immediately after asserting it carries a
+    /// Fate, and <c>AdvanceTravellers</c> frees the <b>Traveller</b> — which holds the only
+    /// Citizen-to-Trip link there is — earlier in the same pass. So the Fate and the association with
+    /// the person who made the journey ceased to exist together, which is <c>02 §9</c>'s
+    /// <i>"current or last Trip with its Fate"</i> failing on its second half.
+    /// </para>
+    /// <para>
+    /// <b>The two writes are one method rather than two calls, on <see cref="Employ"/>'s argument.</b>
+    /// Resolving a Trip and recording whose journey it was are the same event, and a caller that can
+    /// do one without the other will eventually do one without the other. Requiring the Citizen is
+    /// what makes that structural: all four of <c>TripEngine</c>'s Fate sites already have one —
+    /// <c>Start</c> takes it as its first parameter and <c>AdvanceTravellers</c> reads
+    /// <c>TravellerTable.Citizen</c> — so nothing had to be threaded anywhere to satisfy it, and a
+    /// fifth site cannot be written without deciding whose journey it was.
+    /// </para>
+    /// <para>
+    /// <b>The Tick is read here rather than passed in</b>, so a caller cannot date a journey wrongly
+    /// and there is no argument that could disagree with the clock.
+    /// </para>
+    /// </remarks>
+    /// <param name="citizenSlot">Whose journey it was.</param>
+    /// <param name="tripSlot">The Trip that ended.</param>
+    /// <param name="fate">How it ended. Never <c>TripFate.InFlight</c> — the table refuses that.</param>
+    /// <param name="failingLeg">The Leg that produced the Fate, where there is one.</param>
+    internal void ResolveTrip(
+        int citizenSlot, int tripSlot, Movement.TripFate fate, int failingLeg = Rows.NoSlot)
+    {
+        Trips.Resolve(tripSlot, fate, failingLeg);
+        RecordTripFate(citizenSlot, fate);
+    }
+
+    /// <summary>
+    /// Records how a Citizen's journey ended, without touching the Trip.
+    /// </summary>
+    /// <remarks>
+    /// <b>Separate from <see cref="ResolveTrip"/> only because one Fate is recorded where the Trip row
+    /// is reached by handle rather than by slot</b> — see its caller in <c>AdvanceTravellers</c>.
+    /// </remarks>
+    /// <param name="citizenSlot">Whose journey it was.</param>
+    /// <param name="fate">How it ended.</param>
+    internal void RecordTripFate(int citizenSlot, Movement.TripFate fate)
+    {
+        Citizens.LastTripFate[citizenSlot] = (byte)fate;
+
+        // Days, not Ticks: CitizenTable.LastTripEndedDay carries why, and it is a memory argument
+        // rather than a precision one. FloorDiv because 05 §4's lint 3 bans the raw operator, and the
+        // quotient IS the answer here rather than something thrown away.
+        long day = IntegerMath.FloorDiv((long)Tick.Raw, Quantities.Ticks.PerDay);
+
+        Citizens.LastTripEndedDay[citizenSlot] =
+            day >= ushort.MaxValue ? ushort.MaxValue : (ushort)day;
+    }
+
+    /// <summary>
     /// Takes a Citizen's Workplace away, leaving everything else about them alone.
     /// </summary>
     /// <remarks>

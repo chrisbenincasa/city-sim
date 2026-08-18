@@ -187,7 +187,7 @@ public sealed class TripEngine
             // that were made. adr/0079's hole is a journey nobody can take, and there is no honest
             // duration for it -- which is what the sentinel means.
             _tickCosts[(int)BucketOf(TravelTime.Impassable)]++;
-            _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound);
+            _world.ResolveTrip(citizen, tripSlot, TripFate.NoRouteFound);
 
             return TripFate.NoRouteFound;
         }
@@ -258,7 +258,7 @@ public sealed class TripEngine
 
         if (cost.IsImpassable)
         {
-            _world.Trips.Resolve(tripSlot, TripFate.NoRouteFound, tail);
+            _world.ResolveTrip(citizen, tripSlot, TripFate.NoRouteFound, tail);
             return TripFate.NoRouteFound;
         }
 
@@ -269,7 +269,7 @@ public sealed class TripEngine
         // Budget" needs the number that failed, not just the count.
         if (!rules.WithinBudget(cost))
         {
-            _world.Trips.Resolve(tripSlot, TripFate.ExceededCommuteBudget, tail);
+            _world.ResolveTrip(citizen, tripSlot, TripFate.ExceededCommuteBudget, tail);
             return TripFate.ExceededCommuteBudget;
         }
 
@@ -688,6 +688,15 @@ public sealed class TripEngine
                 if (trips.Rows.TryResolve(travellers.Trip[slot], out int trip))
                 {
                     trips.Resolve(trip, TripFate.Completed);
+                }
+
+                // Recorded whether or not the Trip row is still there, and read off the Traveller
+                // rather than out of the branch above: the Citizen made the journey either way, and
+                // a Trip freed out from under its Traveller is a defect this must not swallow by
+                // silently forgetting whose journey it was. milestone 6 task 7.
+                if (_world.Citizens.Rows.TryResolve(travellers.Citizen[slot], out int who))
+                {
+                    _world.RecordTripFate(who, TripFate.Completed);
                 }
 
                 travellers.Rows.Free(travellers.Rows.At(slot));

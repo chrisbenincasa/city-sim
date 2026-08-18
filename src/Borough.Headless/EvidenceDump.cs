@@ -5,6 +5,7 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Evidence;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
@@ -78,8 +79,88 @@ internal static class EvidenceDump
         WorstBuilding(output, world, rules, names);
         output.WriteLine();
         Vacancy(output, world);
+        output.WriteLine();
+        Journeys(output, world);
 
         return 0;
+    }
+
+    /// <summary>
+    /// How the city's journeys ended, per Citizen, from the answer the assembler gives.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Milestone 6 task 7, and it exists because of a finding this corpus has already made
+    /// twice.</b> 5b-bis task 6: ***a Census family with no reader is a family nobody can see*** — 5b
+    /// built <c>TripCounter</c>, wired it through the Census, tested it, and printed it nowhere, so for
+    /// a whole milestone its only reader was the suite. <c>CitizenTable.LastTripFate</c> would have
+    /// been the same shape: a saved column, tested, assembled, and invisible.
+    /// </para>
+    /// <para>
+    /// <b>A distribution rather than one Citizen</b>, because a single Citizen's Fate is a value a test
+    /// already asserts and tells a reader nothing about the city. What this shows that nothing else can
+    /// is the <b>silent population</b> — how many people have never finished a journey at all — which
+    /// is a count of everybody the commute has never reached, and is the number this column exists to
+    /// make nameable.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It reads through <c>Evidence.OfCitizen</c> rather than off the column</b>, so the panel and
+    /// the panel a host would build take the same path. Reading the column directly would print a
+    /// number the assembler could disagree with.
+    /// </para>
+    /// </remarks>
+    private static void Journeys(TextWriter output, World world)
+    {
+        int[] counts = new int[5];
+        int never = 0;
+        int inFlight = 0;
+        ushort newest = 0;
+
+        for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
+        {
+            if (!world.Citizens.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            CitizenEvidence evidence = Evidence.OfCitizen(world, world.Citizens.Rows.At(slot));
+
+            if (evidence.Trip is not null)
+            {
+                inFlight++;
+            }
+
+            if (evidence.LastTrip is not PastTripEvidence last)
+            {
+                never++;
+                continue;
+            }
+
+            counts[(int)last.Fate]++;
+
+            if (last.EndedDay > newest)
+            {
+                newest = last.EndedDay;
+            }
+        }
+
+        output.WriteLine("## Journeys, by how each Citizen's last one ended");
+        output.WriteLine();
+        output.WriteLine(
+            "  A Trip row is freed on the line after its Fate is asserted, so this is the Citizen's");
+        output.WriteLine(
+            "  copy and not the Trip's. `never travelled` is everybody the commute has not reached.");
+        output.WriteLine();
+
+        output.WriteLine($"  completed               {counts[(int)TripFate.Completed],8}");
+        output.WriteLine($"  no route found          {counts[(int)TripFate.NoRouteFound],8}");
+        output.WriteLine($"  beyond commute budget   {counts[(int)TripFate.ExceededCommuteBudget],8}");
+        output.WriteLine($"  stranded                {counts[(int)TripFate.Stranded],8}");
+        output.WriteLine($"  never travelled         {never,8}");
+        output.WriteLine();
+        output.WriteLine($"  in flight right now     {inFlight,8}");
+        output.WriteLine(
+            $"  newest ended on Day     {newest,8}  (of {world.Tick.Raw / Ticks.PerDay} elapsed)");
     }
 
     /// <summary>
