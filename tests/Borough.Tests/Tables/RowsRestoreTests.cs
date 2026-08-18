@@ -2,6 +2,7 @@ using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
+using Borough.Core.Persistence;
 using Borough.Core.Tables;
 using Borough.Tests.Golden;
 
@@ -261,9 +262,47 @@ public sealed class RowsRestoreTests
         throw new InvalidOperationException($"table '{table.Name}' is not in this world.");
     }
 
-    private static void Apply(Rows table, Snapshot snapshot) =>
+    private static void Apply(Rows table, Snapshot snapshot)
+    {
+        var source = new BlobSource(snapshot.Bytes);
+
         table.Restore(
-            snapshot.SlotCount, snapshot.LiveCount, snapshot.FreeHead, snapshot.NextId, snapshot.Bytes);
+            snapshot.SlotCount, snapshot.LiveCount, snapshot.FreeHead, snapshot.NextId, source);
+
+        if (source.Unread != 0)
+        {
+            throw new InvalidOperationException(
+                $"table '{table.Name}' left {source.Unread} of {snapshot.Bytes.Length} bytes unread. A "
+                + "column set that is the right shape and the wrong length is a format version the "
+                + "header should have refused.");
+        }
+    }
+
+    /// <summary>
+    /// One table's saved columns, concatenated, as a source. ⚠ <b>A save is streamed rather than
+    /// blobbed as of task 5</b> — this exists so these tests can still corrupt a byte at a known offset,
+    /// which is the whole point of them; <c>SaveFileTests</c> is where the real one-pass source is
+    /// exercised.
+    /// </summary>
+    private sealed class BlobSource(byte[] bytes) : ISaveSource
+    {
+        private int _read;
+
+        public int Unread => bytes.Length - _read;
+
+        public void Read(Span<byte> into)
+        {
+            if (_read + into.Length > bytes.Length)
+            {
+                throw new InvalidOperationException(
+                    $"this blob is {bytes.Length} bytes and a reader asked for {into.Length} more at "
+                    + $"offset {_read}.");
+            }
+
+            bytes.AsSpan(_read, into.Length).CopyTo(into);
+            _read += into.Length;
+        }
+    }
 
     /// <summary>Where a named saved column's bytes begin inside a table's blob.</summary>
     private static int ColumnOffset(Rows table, string name)
@@ -301,9 +340,9 @@ public sealed class RowsRestoreTests
 
             foreach (Column column in table.SavedColumns)
             {
-                int width = column.BytesPerRow * table.SlotCount;
-                column.WriteBytes(bytes.AsSpan(offset, width), table.SlotCount);
-                offset += width;
+                Span<byte> storage = column.StorageBytes(table.SlotCount);
+                storage.CopyTo(bytes.AsSpan(offset, storage.Length));
+                offset += storage.Length;
             }
 
             snapshots.Add(new Snapshot(

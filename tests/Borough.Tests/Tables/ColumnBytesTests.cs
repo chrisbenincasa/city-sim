@@ -97,24 +97,23 @@ public sealed class ColumnBytesTests(ITestOutputHelper output)
     /// read.
     /// </summary>
     /// <remarks>
-    /// The refusal exists because this is the layer a format-version mismatch reaches if the header
-    /// let one through: a short buffer would otherwise leave the tail of a column holding whatever it
-    /// held before, which is state from another city with no mark on it.
+    /// ⚠ <b>The refusal moved in task 5 and did not disappear.</b> Task 2 had the column check the
+    /// length of a buffer it was handed; a streaming load hands the column's storage to the
+    /// <c>ISaveSource</c> instead, so it is the <em>source</em> that runs out of file and refuses. What
+    /// is asserted here is the property that made the check worth having — <b>a column's width is its
+    /// declaration's, exactly</b> — and the refusal itself is asserted in <c>SaveFileTests</c>, where
+    /// it now lives.
     /// </remarks>
     [Fact]
-    public void A_byte_count_that_disagrees_with_the_declaration_is_refused()
+    public void A_columns_width_is_its_declarations_and_the_storage_span_is_exactly_that_wide()
     {
         World world = Stepped(64);
         Rows table = world.Citizens.Rows;
-        Column column = table.SavedColumns[0];
 
-        byte[] correct = new byte[column.BytesPerRow * table.SlotCount];
-        column.WriteBytes(correct, table.SlotCount);
-
-        InvalidOperationException refused = Assert.Throws<InvalidOperationException>(
-            () => column.ReadBytes(correct.AsSpan(0, correct.Length - 1), table.SlotCount));
-
-        Assert.Contains("expects", refused.Message, StringComparison.Ordinal);
+        foreach (Column column in table.SavedColumns)
+        {
+            Assert.Equal(column.BytesPerRow * table.SlotCount, column.StorageBytes(table.SlotCount).Length);
+        }
     }
 
     /// <summary>
@@ -152,10 +151,23 @@ public sealed class ColumnBytesTests(ITestOutputHelper output)
 
         long savedTotal = 0;
         long allTotal = 0;
+        long widestColumn = 0;
+        string widestName = "none";
 
         foreach (Rows table in world.Tables)
         {
             int rows = table.SlotCount > 0 ? table.SlotCount : table.Capacity;
+
+            foreach (Column column in table.SavedColumns)
+            {
+                long width = (long)column.BytesPerRow * rows;
+
+                if (width > widestColumn)
+                {
+                    widestColumn = width;
+                    widestName = $"{table.Name}.{column.Name}";
+                }
+            }
 
             int allPerRow = table.BytesPerRow(Touch.PerTick)
                           + table.BytesPerRow(Touch.Wake)
@@ -179,6 +191,14 @@ public sealed class ColumnBytesTests(ITestOutputHelper output)
         text.AppendLine(
             $"saved is {100.0 * savedTotal / allTotal:F1}% of storage, "
             + $"{savedTotal / 1024.0 / 1024.0:F2} MiB against {allTotal / 1024.0 / 1024.0:F2} MiB");
+
+        // Task 5's number rather than task 2's: the save streams column by column, so this is the
+        // largest run of bytes in play at any instant and therefore what a save costs above the world
+        // itself. The saved total above is what the FILE weighs and is never resident as a buffer.
+        text.AppendLine(
+            $"widest single column is {widestName} at {widestColumn:N0} B "
+            + $"({widestColumn / 1024.0 / 1024.0:F2} MiB), "
+            + $"{100.0 * widestColumn / savedTotal:F2}% of the file");
 
         _output.WriteLine(text.ToString());
 
@@ -210,9 +230,7 @@ public sealed class ColumnBytesTests(ITestOutputHelper output)
         {
             foreach (Column column in table.SavedColumns)
             {
-                byte[] bytes = new byte[column.BytesPerRow * table.SlotCount];
-                column.WriteBytes(bytes, table.SlotCount);
-                buffers.Add(bytes);
+                buffers.Add(column.StorageBytes(table.SlotCount).ToArray());
             }
         }
 
@@ -227,7 +245,8 @@ public sealed class ColumnBytesTests(ITestOutputHelper output)
         {
             foreach (Column column in table.SavedColumns)
             {
-                column.ReadBytes(buffers[index++], table.SlotCount);
+                buffers[index++].CopyTo(column.StorageBytes(table.SlotCount));
+                column.MirrorToBack(table.SlotCount);
             }
         }
 
@@ -241,9 +260,8 @@ public sealed class ColumnBytesTests(ITestOutputHelper output)
         {
             foreach (Column column in table.SavedColumns)
             {
-                byte[] rubbish = new byte[column.BytesPerRow * table.SlotCount];
-                Array.Fill(rubbish, (byte)0xC3);
-                column.ReadBytes(rubbish, table.SlotCount);
+                column.StorageBytes(table.SlotCount).Fill(0xC3);
+                column.MirrorToBack(table.SlotCount);
             }
         }
     }

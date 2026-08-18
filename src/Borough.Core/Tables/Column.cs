@@ -55,7 +55,7 @@ public abstract class Column
     internal abstract void Fold(ref ulong hash, int slotCount);
 
     /// <summary>
-    /// Copies slots <c>[0, slotCount)</c> into <paramref name="destination"/>. The save's half of
+    /// Slots <c>[0, slotCount)</c> as raw bytes, readable and writable. The save's half of
     /// <see cref="Fold"/>.
     /// </summary>
     /// <remarks>
@@ -76,17 +76,30 @@ public abstract class Column
     /// is the reason to copy rather than to invent a second byte order here: one representation, one
     /// place to fix if a port ever happens.
     /// </para>
+    /// <para>
+    /// <b>⚠ It hands out the storage itself rather than copying into or out of a buffer</b> (task 5).
+    /// Task 2 built a <c>WriteBytes</c>/<c>ReadBytes</c> pair and both are gone: a column's slots are
+    /// already contiguous, so a save writes them by handing this span to a sink and a load fills them
+    /// by handing it to a source. ***The file needs no intermediate copy at either end, and a buffer
+    /// the size of the save would have doubled the peak the copy in adr/0087 already costs.***
+    /// </para>
+    /// <para>
+    /// <b>The write half is a real span into live storage, so the caller may fill it.</b> A load that
+    /// fails partway leaves a column half-filled, which is safe only because a failed load discards
+    /// the world it was building — stated here because nothing structural enforces it.
+    /// </para>
     /// </remarks>
-    internal abstract void WriteBytes(Span<byte> destination, int slotCount);
+    internal abstract Span<byte> StorageBytes(int slotCount);
 
-    /// <summary>Reads slots <c>[0, slotCount)</c> back from <paramref name="source"/>.</summary>
+    /// <summary>Copies slots <c>[0, slotCount)</c> of the live half over the write half, if there is one.</summary>
     /// <remarks>
-    /// The inverse of <see cref="WriteBytes"/>, and it places rows at their saved slots rather than
-    /// allocating them — slot-exactness is the whole constraint (adr/0086), because the free list and
-    /// the id counter are saved state and a loader that recomputed them would produce a different
-    /// hash.
+    /// <b>Called after a load fills <see cref="StorageBytes"/>, and it cannot be skipped.</b>
+    /// <see cref="Clear"/> says why: a <c>_back</c> left holding an old row would resurrect it on the
+    /// next swap, and a load is the one moment the front half changes without a swap having produced
+    /// it. It is a separate call rather than part of the fill because the fill is the caller's write
+    /// and this has to happen after it.
     /// </remarks>
-    internal abstract void ReadBytes(ReadOnlySpan<byte> source, int slotCount);
+    internal abstract void MirrorToBack(int slotCount);
 
     /// <summary>Copies the live half over the write half, before a partial parallel write.</summary>
     /// <remarks>
@@ -250,32 +263,19 @@ public class Column<T> : Column
     /// already note *"would be correct for both uses the hash has today"* and is required rather than
     /// merely adequate here, since a load must restore the slots the handles address.
     /// </remarks>
-    internal sealed override void WriteBytes(Span<byte> destination, int slotCount) =>
-        MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount)).CopyTo(destination);
+    internal sealed override Span<byte> StorageBytes(int slotCount) =>
+        MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount));
 
     /// <inheritdoc/>
-    internal sealed override void ReadBytes(ReadOnlySpan<byte> source, int slotCount)
+    internal sealed override void MirrorToBack(int slotCount)
     {
-        Span<byte> storage = MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount));
-
-        if (source.Length != storage.Length)
+        if (_back is null)
         {
-            throw new InvalidOperationException(
-                $"column '{Name}' of table '{Owner.Name}' expects {storage.Length} bytes for "
-                + $"{slotCount} slots and was given {source.Length}. A column's width is its "
-                + "declaration's, so a mismatch here is a format version the reader should have "
-                + "refused at the header.");
+            return;
         }
 
-        source.CopyTo(storage);
-
-        // The back half, on a Buffering.TwoCopies table. Column.Clear says why it cannot be skipped:
-        // a _back left holding an old row would resurrect it on the next swap, and a load is the one
-        // moment the front half changes without a swap having produced it.
-        if (_back is not null)
-        {
-            source.CopyTo(MemoryMarshal.AsBytes(_back.AsSpan(0, slotCount)));
-        }
+        MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount))
+            .CopyTo(MemoryMarshal.AsBytes(_back.AsSpan(0, slotCount)));
     }
 
     /// <summary>

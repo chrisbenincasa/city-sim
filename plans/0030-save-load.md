@@ -6,8 +6,9 @@
 
 ## Status
 
-🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; tasks 1–4 shipped 2026-08-17** — the rebuild audit and
-`Disposition.Scratch`, the column byte accessor, `Rows.Restore`, and now the header. **1,504 tests green
+🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; tasks 1–5 shipped 2026-08-17** — the rebuild audit and
+`Disposition.Scratch`, the column storage accessor, `Rows.Restore`, the header, and the writer and
+reader. ✅ **All five open decisions are closed**, each by the task it blocked. **1,504 tests green
 and no baseline re-recorded**, because the milestone adds no table and no column, `Scratch` was already
 outside the fold, and a header is not part of the city. Session **K** checked it and found nothing in front of
 it: [`adr/0086`](../docs/adr/0086-a-save-has-no-schema-of-its-own-and-the-field-declaration-is-the-format.md)
@@ -18,9 +19,9 @@ fact a save has.
 
 **Nine tasks.** Three decisions were taken with the user in the room — *the magic number is deferred*
 before scoping, and **the third `Disposition`** and **the synchronous write** on review of this brief —
-and **one remains open** — items 3 and 5 were closed by task 4, which is what they blocked (D5, D6).
-The survivor is listed under *Open decisions this milestone owes* with the
-task each blocks.
+and **the other two by task 5 and task 4** — the I/O boundary (D7), and the `Simulation`'s residual
+fields plus the generator version (D5, D6). All five are struck in place under *Open decisions this
+milestone owes*, with the task each blocked.
 
 ⚠ **Scoping it moved the milestone's weight from the write side to the load side, and the survey is
 what moved it.** `06` records that the milestone *"got smaller"* when `adr/0086` deleted the authored
@@ -287,6 +288,40 @@ written down here rather than discovered there.
 **per-session** count against a **per-world** total, in one sentence. It reads correctly today only
 because no session has ever begun from a save. ***Two quantities agree for as long as the mechanism that
 separates them does not exist***, and this milestone is that mechanism.
+
+### D7 — the I/O boundary is two interfaces, and the save is streamed rather than assembled
+
+**Settled 2026-08-17 by task 5**, closing open decision 1, **and the deciding argument came from
+outside the three options the brief listed**. The question was `Stream` against `Span<byte>` against a
+callback per table; what settled it is that ***a whole-buffer shape doubles the peak at the one moment
+memory is already highest***. `adr/0087` spends a **copy of the world** at save time by decision, so a
+staged file puts a second body of the same order beside it — **131.33 MiB at 1,000,000 Citizens**.
+
+**`Stream` was out for the stated reason** — `Borough.Core` holds no `System.IO`, which is `adr/0039`'s
+shape one level down: `Core` decides what the bytes are and never where they land. So:
+
+```
+public interface ISaveSink   { void Write(ReadOnlySpan<byte> bytes); }
+public interface ISaveSource { void Read(Span<byte> into); }
+```
+
+⚠ **The payoff is that nothing proportional to the save is allocated at either end, and it costs
+nothing to get.** A column's slots are contiguous, so `Column.StorageBytes` hands the sink a window
+onto storage that already exists and hands the source the destination to fill. **The largest run of
+bytes in play at any instant is the largest single column — `citizen.id` at 7.63 MiB at 1M, 5.81% of the
+file — and the only buffers are 52 bytes of header and 20 of table scalars, both stack-allocated.**
+***A format with no authored layout can be streamed, because there is nothing to lay out*** — which is
+`adr/0086` paying for itself a third time, after the hash having no coverage hole and the file having
+none either.
+
+⚠ **A round trip cannot assert this and the test says so.** A writer that assembled the file and handed
+it over in one call passes every equality test there is, so `MemorySave` records the **largest single
+hand-over** and `SaveFileTests` bounds it by the widest column — a fact about the declaration rather
+than about the writer.
+
+⚠ **It also settles the shape D4 said must be *movable off the simulation thread whole***: what moves
+is `SaveFile.Write` plus the sink, and the sink is where any real buffering would live, so the decision
+about buffered I/O belongs to the shell that owns the file rather than to `Core`.
 
 ### D6 — there is no generator version, because a version number guards the artefact that re-derives
 
@@ -690,6 +725,61 @@ replay, a generator version mismatch always, a format version **newer** than the
 format version older runs the migration chain — which has **no entries yet**, and shipping the chain
 with none is correct: the version number is what makes the first migration writable later.
 
+#### ✅ Task 5 shipped 2026-08-17 — `SaveFile`, and the buffer the brief assumed turned out to be unnecessary rather than merely large
+
+**`src/Borough.Core/Persistence/SaveFile.cs` and `SaveStream.cs`, 7 new tests, 20 across the namespace,
+and open decision 1 closed (D7).** `World` → bytes → `World`, in one pass each way, ending in
+`RebuildDerived()`.
+
+⚠ **The shape was decided by a memory objection rather than by the three options the brief listed**, and
+the objection was right: `adr/0087` already spends a copy of the world at save time, so a staged file
+would put a second body of the same order beside it at the one moment memory is highest — **131.33 MiB
+at 1,000,000 Citizens**. **It is not needed at all.** A column's slots are contiguous, so the writer
+hands the sink a window onto storage that already exists and the reader hands the source the destination
+to fill.
+
+| | Golden fixture | Stepped, 4,000 | 1,000,000 allocated |
+|---|---|---|---|
+| The file | 305,389 B | 595,101 B | **131.33 MiB** |
+| Largest single hand-over | 16,384 B | 32,000 B | **7.63 MiB** (`citizen.id`) |
+| Share of the file | 5.36% | 5.38% | **5.81%** |
+
+⚠ **Task 2's `WriteBytes`/`ReadBytes` pair is deleted, and the deletion is the finding.** It was built to
+copy a column *out to* and *in from* a buffer, and streaming needs neither — one `StorageBytes(slotCount)`
+replaces both. ***A copy exists to bridge two layouts, and there is only one layout here.*** The width
+check `ReadBytes` performed has not gone: it moved to the **source**, which is the thing that runs out of
+file, so it fires once instead of once per column.
+
+⚠ **Task 3's `Rows.Restore` keeps its indivisible door and changes what it is handed.** It took the
+table's saved bytes as one span, which made a loader's peak the largest *table*'s saved set — 22.5 MB at
+1M. It now takes the `ISaveSource` and pulls each column straight into its own storage. **Splitting it
+into scalars-then-columns was considered and refused**, because task 3's own remark argues that the pair
+has a forgettable half; the price is that `Rows` now names a `Persistence` type, and the door being
+indivisible was the argued property.
+
+⚠ **Two growth defects, and one of them was mine from task 3.** `Rows.GrowTo` doubled from the declared
+capacity, and **`0 × 2` is `0`, so it did not terminate** — reachable directly, because the loader builds
+its world at zero capacity and every table is sized per thousand Citizens. It now grows to the **exact**
+slot count, which is also tighter: a restore is told its final size, so doubling would round a 132-slot
+table to 256 and hold the difference for the life of the world. The allocator's own `Grow` **shares the
+premise and fails differently**, returning a capacity of zero and then indexing past the end of an empty
+array; it has a floor of one now. ***A doubling growth rule assumes a non-zero base, and neither site
+said so*** — invisible while a world could only be built by construction, and `A_loaded_world_can_be_allocated_into`
+is the test that would have caught it.
+
+**What is deliberately not here.** The Ruleset policy: `SaveFile.Read` **reports** the header and
+enforces nothing, because `05 §7` gives cross-Ruleset loading two answers — lenient in play, refused on
+an unaccounted mismatch in replay — and which applies is a property of the **shell**, so deciding it here
+would give `Borough.Godot` the headless runner's policy. ⚠ **The lenient half is more than a policy and
+is not built**: a load into a *different* Ruleset must **degrade** — drop Bins whose Resource is gone,
+derelict Buildings whose kind is gone — which is `World.Adopt`, and this constructs the world with the
+Rules it is handed and calls `RebuildDerived` instead. A same-Ruleset load is complete and correct, and
+that is every load this milestone tests. ***The cross-Ruleset load is a mechanism rather than a
+branch***, and naming it here is what stops it being discovered as a gap in task 8. The migration chain: there is one version and
+nothing to migrate from, and an empty chain is correct rather than missing. And the Factorio test, which
+is task 7 — what is asserted here is a round trip, and ***a round trip cannot catch a derived column that
+rebuilds to the wrong value***, because only running on carries a wrong derived value into saved state.
+
 ### Task 6 — the copy at the end of phase 7
 
 `adr/0087`'s structural requirement, and it is the one clause of that ADR that constrains the code
@@ -805,11 +895,22 @@ it retires it for **every milestone below** — fifteen rows each of which adds 
 
 ## Open decisions this milestone owes, before the task that needs them
 
-**One of the five remains.** Items 2 and 4 were settled on review of this brief, and items 3 and 5 by
-task 4, which is what they blocked. Each is struck in place, per the corpus rule that a closed decision
-keeps its number and its reasoning.
+✅ **None remain.** Items 2 and 4 were settled on review of this brief, items 3 and 5 by task 4, and
+item 1 by task 5 — each by the task it blocked. Each is struck in place, per the corpus rule that a
+closed decision keeps its number and its reasoning.
 
-### 1. Where the I/O boundary sits — **blocks task 5**
+### ~~1. Where the I/O boundary sits~~ — ✅ **SETTLED 2026-08-17 by D7. Two interfaces, and the file is never assembled.**
+
+**The question was `Stream` against `Span<byte>` against a callback per table, and the user's objection
+picked it: a whole-buffer shape inflates memory at the one moment it is already highest.** `adr/0087`
+already spends a **copy of the world** at save time, and a staged file would put a second body of the
+same order beside it — **131.33 MiB at 1,000,000 Citizens**. It is not needed, because a column's slots
+are already contiguous: `Column.StorageBytes` hands the sink a window onto storage that exists, and hands
+the source the destination to fill. **The largest run of bytes in play is the largest single column —
+7.63 MiB at 1M, 5.81% of the file — and nothing proportional to the save is allocated at either end.**
+The full reasoning is D7; the original text stands unedited beneath.
+
+*Original, 2026-08-17 — **blocked task 5**:*
 
 `Borough.Core` has zero `System.IO`. `Core` must own serialisation (D1) and cannot own the file.
 **Recommendation: `Core` reads and writes a byte buffer, and the shell does the I/O**, which is

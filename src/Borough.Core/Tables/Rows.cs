@@ -1,6 +1,7 @@
 namespace Borough.Core.Tables;
 
 using Borough.Core.Determinism;
+using Borough.Core.Persistence;
 
 /// <summary>
 /// The shared half of a hand-written table: a generation array, a free list, a monotonic id, a count,
@@ -418,9 +419,9 @@ public abstract class Rows
     /// <param name="liveCount">How many of those slots held live rows.</param>
     /// <param name="freeHead">The head of the free list, or <see cref="NoSlot"/>.</param>
     /// <param name="nextId">The monotonic id counter, which is never reset.</param>
-    /// <param name="savedBytes">
-    /// This table's <see cref="SavedColumns"/>, in declaration order, each
-    /// <c>BytesPerRow × slotCount</c> long and concatenated.
+    /// <param name="source">
+    /// The file, positioned at this table's first saved column. Each of <see cref="SavedColumns"/> is
+    /// pulled from it in declaration order, <c>BytesPerRow × slotCount</c> at a time.
     /// </param>
     /// <remarks>
     /// <para>
@@ -440,6 +441,13 @@ public abstract class Rows
     /// <c>plans/0002</c> §C's raw-table-door row is about; this one cannot.
     /// </para>
     /// <para>
+    /// <b>⚠ It pulls from the file straight into column storage, and holds no buffer at all.</b> Task 3
+    /// took the table's bytes as one span, which made the loader's peak the largest table's saved set
+    /// — 22.5 MB at 1,000,000 Citizens — on top of the world being built. <c>Column.StorageBytes</c>
+    /// hands out the destination instead, so the file's bytes land where they are going to live.
+    /// ***A restore that knows the final size has nothing to stage.***
+    /// </para>
+    /// <para>
     /// <b>It restores the <see cref="Disposition.Saved"/> columns and nothing else.</b> Derived columns
     /// are rebuilt afterwards by <c>World.RebuildDerived</c> and scratch columns are meaningless
     /// between phases (adr/0110), so neither is in the file. The tail beyond
@@ -455,8 +463,10 @@ public abstract class Rows
     /// </para>
     /// </remarks>
     internal void Restore(
-        int slotCount, int liveCount, int freeHead, ulong nextId, ReadOnlySpan<byte> savedBytes)
+        int slotCount, int liveCount, int freeHead, ulong nextId, ISaveSource source)
     {
+        ArgumentNullException.ThrowIfNull(source);
+
         if (_declaring is not null)
         {
             throw new InvalidOperationException(
@@ -497,29 +507,10 @@ public abstract class Rows
         _freeHead = freeHead;
         _nextId = nextId;
 
-        int offset = 0;
-
         foreach (Column column in _savedColumns)
         {
-            int width = column.BytesPerRow * slotCount;
-
-            if (offset + width > savedBytes.Length)
-            {
-                throw new InvalidOperationException(
-                    $"table '{Name}' needs {offset + width} bytes to reach the end of column "
-                    + $"'{column.Name}' and was given {savedBytes.Length}.");
-            }
-
-            column.ReadBytes(savedBytes.Slice(offset, width), slotCount);
-            offset += width;
-        }
-
-        if (offset != savedBytes.Length)
-        {
-            throw new InvalidOperationException(
-                $"table '{Name}' consumed {offset} of {savedBytes.Length} bytes. A column set that is "
-                + "the right shape and the wrong length is a format version the header should have "
-                + "refused.");
+            source.Read(column.StorageBytes(slotCount));
+            column.MirrorToBack(slotCount);
         }
 
         // Slots the save did not cover. See the remark above: AllocateSlot hands out a slot without
@@ -617,6 +608,24 @@ public abstract class Rows
     }
 
     /// <summary>Grows capacity to hold at least <paramref name="slots"/>, doubling as the allocator does.</summary>
+    /// <summary>Widens the table to hold <paramref name="slots"/>. A restore's growth, not the allocator's.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>⚠ It grows to the exact size, where the allocator doubles, and the difference is that this
+    /// caller knows where it is going.</b> <see cref="Grow"/> doubles to amortise a cost that is about
+    /// to recur; a restore is told the final slot count up front, so doubling here would round a
+    /// 132-slot table up to 256 and hold the difference for the life of the world. **Capacity is not
+    /// folded and the tail beyond <c>_slotCount</c> is cleared either way**, so the size is free to be
+    /// exact.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Task 3 shipped this as a doubling loop and it did not terminate from a capacity of zero</b>
+    /// — <c>0 × 2</c> is <c>0</c> — which a load into a <c>new World(0)</c> reaches directly, since
+    /// every table is sized per thousand Citizens. <see cref="Grow"/> carries the same premise and
+    /// fails differently: it returns a capacity of zero and the allocator then indexes past the end.
+    /// ***A doubling growth rule assumes a non-zero base, and neither site said so.***
+    /// </para>
+    /// </remarks>
     private void GrowTo(int slots)
     {
         if (slots <= _capacity)
@@ -624,14 +633,7 @@ public abstract class Rows
             return;
         }
 
-        int capacity = _capacity;
-
-        while (capacity < slots)
-        {
-            capacity *= 2;
-        }
-
-        _capacity = capacity;
+        _capacity = slots;
 
         foreach (Column column in _columns)
         {
@@ -671,9 +673,18 @@ public abstract class Rows
         }
     }
 
+    /// <summary>The allocator's growth: double, because the cost is about to recur.</summary>
+    /// <remarks>
+    /// <b>⚠ The floor of one is load-bearing rather than defensive.</b> A table declared with a capacity
+    /// of zero is ordinary — every table is sized per thousand Citizens, so <c>new World(0)</c> declares
+    /// several — and <c>0 × 2</c> is <c>0</c>, after which the allocator hands out slot 0 of an
+    /// empty array. It was unreachable while a world could only be built by construction; a load can
+    /// produce a table with zero slots and then allocate into it. See <see cref="GrowTo"/>, which had
+    /// the same premise and failed by not terminating.
+    /// </remarks>
     private void Grow()
     {
-        _capacity *= 2;
+        _capacity = _capacity == 0 ? 1 : _capacity * 2;
 
         foreach (Column column in _columns)
         {
