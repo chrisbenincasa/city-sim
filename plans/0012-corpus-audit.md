@@ -764,7 +764,7 @@ complies with it** — it names a **symbol**, not a time, so one `find_symbol` s
 symbol makes a claim checkable; it does not make anybody check it*, which is the half of that ADR
 nothing enforces.
 
-### Milestone 8's scoping collection — four, all unpaid; the first is a new surface for Cause 4 and the last two are a matched pair
+### Milestone 8's collection — seven; the first is a new surface for Cause 4, items 3 and 4 are a matched pair, and the last three came out of building it — including one against check 6 itself
 
 **1. ⚠ `BOR0901`'s diagnostic message describes a save serialiser that does not exist.** The
 message a developer reads when they trip the lint says *"both the save serialiser and the State Hash
@@ -847,6 +847,85 @@ but a wrong fact positioned where it is load-bearing on a decision about its own
 **Repair is one sentence** — state the count as of a date, or state no count and name the disposition's
 rule instead. Prefer the second: it is the form that cannot rot. Unpaid because it is the same sweep as
 item 3, and both are one commit by whoever does either.
+
+**5. ⚠ `Column.FoldBytes`'s remark claims a byte-order property the fold does not have.** It reads
+*"a State Hash whose value depends on the host's byte order is a hash that reports a divergence on a
+port"*, and assembles `ulong`s through `BinaryPrimitives.ReadUInt64LittleEndian` on that ground
+(`src/Borough.Core/Tables/Column.cs`). **That fixes the combination step and not the layout.** The
+bytes it combines come from `MemoryMarshal.AsBytes` over the column's `T[]`, and a multi-byte field
+inside an `unmanaged` struct sits in memory in the **machine's** order — so on a big-endian host the
+byte sequence itself differs and **the State Hash differs for the same city**, which is precisely what
+the remark says it prevents. ***A byte order fixed at the point of combination is not a byte order
+fixed at the point of storage.***
+
+⚠ **Cause 4 with the trigger read one level too shallow**, which is that pattern's own signature: the
+sentence is right about *what the code does* (it does read little-endian) and wrong about *what that
+achieves*, because the input to the step it describes is not the input the claim needs. **Not
+repaired, and the reason is that the repair does not exist**: per-field byte swapping over an
+arbitrary `unmanaged` struct is not expressible without knowing the struct's layout, which is the same
+wall `adr/0086`'s *the field declaration is the format* leans on from the other side. Every platform
+.NET supports is little-endian, so nothing is broken today. **The repair is the sentence**: say that
+the representation is the host's and that the project is little-endian by platform rather than by
+construction. Found 2026-08-17 by milestone 8 task 2, which had to decide whether the save could
+inherit the discipline and found there was less of it than advertised.
+
+**6. ⚠ S0a's 85.98 MiB is quoted in five places as the world's table footprint at 1M, and the declared
+width is now 170.49 MiB.** Milestone 8 task 2 totalled the columns for the first time: Σ(declared
+column bytes × allocated capacity) on a `new World(1_000_000)` is **178,770,767 B**, of which the
+**saved** set — what a file holds — is **137,706,463 B, 131.33 MiB**. S0a's figure is a **resident**
+measurement from a populated run and this is a **declared-width** computation, so ***the two must not
+be subtracted***: they are different instruments and the gap is not a delta anybody measured.
+
+⚠ **What it is consistent with is that the figure is simply old.** Five milestones have added columns
+since S0a ran — the three Movement tables, the commute columns on `citizen`, the worker list on
+`building`, the trail — and ***nothing re-measures a footprint when a column is added***, which is the
+same shape as item 3 and item 4 one level up: a **measurement** stated as a fact about the build, ageing
+against the build, with every conclusion resting on it unable to report the drift. **The consequence is
+live rather than archival**: `adr/0087` prices the save's copy at ~10 ms citing `adr/0037`'s *8–15 ms
+for 80–150 MB*, and 131 MiB is the **top** of that band — so its first revisit trigger, *the copy
+becoming unaffordable at a single occurrence*, is closer than the ADR states. **Unpaid**: the repair is
+a re-measurement rather than an edit, it belongs to S0a's owner, and milestone 8 task 9 is the run that
+would produce it.
+
+**7. ⚠ Check 6 cannot tell a quotation from a coincidence of magnitude, and it failed a document for
+the second kind.** The registry row for `adr/0094`'s larder quantity registers **`22.5`** as an
+alternate spelling of *90 in-world minutes*, requiring the phrase `pre-clock` wherever it appears.
+Milestone 8 task 2 totalled the saved set per table, `bin` came out at **22,500,000 B**, and writing
+that as *22.5 MB* failed
+`DisqualifierTests.No_registered_figure_is_quoted_without_its_disqualifier` — for a quantity in
+**megabytes** that has no relationship to a quantity in **in-world minutes** beyond sharing three
+characters.
+
+⚠ **This is the registry failing its own rule.** *Cause 5*'s writing half is ***name a number after
+what it measures, not after where it sits*** — and a row whose pin is the bare digits `22.5` has named
+the number after neither. **The shorter the figure, the more coincidences there are**: `186,624` and
+`532,750` are effectively unique in any corpus, `10.37` and `82.84` are unlikely, and `22.5` and `3,700`
+are magnitudes ordinary quantities land on routinely. So the registry's rows are **not equally strong**,
+and nothing says which are weak.
+
+⚠ **It is the instrument's second self-inflicted defect and the two are opposite in kind.** The first
+is recorded in the test's own remarks: the parser split the alternates cell on commas, turned
+`186,600` into `186` and `600`, and reported four clean documents — a **false positive from parsing**.
+This is a **false positive from under-specification**, and it will recur, because the corpus keeps
+producing new quantities and the registry keeps pinning short decimals. ***A check that fires on the
+digits alone gets less specific every time the corpus grows.***
+
+**Not repaired, and the shape of the repair is the open part.** Making the pin `22.5 in-world minutes`
+would defeat the row, because every genuine site writes it bare — *"where it held 22.5"*,
+*"90-vs-22.5"*, *"Restoring 22.5"*. The candidates are a **negative** pin (fire unless a unit follows),
+a **strength column** saying which rows are safe to match bare, or accepting the false positives and
+requiring the tripped document to say why — which is what happened here, and what this entry is.
+⚠ **Do not repair it by deleting the row**: the row is doing real work, and the failure is that it is
+doing more than its share.
+
+⚠ **The document tripped the check a second time on the sentence explaining the first trip**, which is
+worth recording because it shows where the escape hatch actually is. The test says *"if the figure is
+genuinely being used another way, say so explicitly"* — and the only thing it can detect is **the
+phrase**. So *saying so explicitly* and *satisfying the check* are the same act only if the explanation
+**names the disqualifier**, which is a better outcome than it sounds: a reader grepping `pre-clock`
+now lands on a sentence stating that `plans/0030`'s megabytes are not that quantity. ***The instrument
+has one signal and it is the phrase, so the way to disclaim a coincidence is to name what it is not.***
+That is the usable reading of the escape hatch and it was not obvious from the message.
 
 ---
 

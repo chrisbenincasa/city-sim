@@ -54,6 +54,40 @@ public abstract class Column
 
     internal abstract void Fold(ref ulong hash, int slotCount);
 
+    /// <summary>
+    /// Copies slots <c>[0, slotCount)</c> into <paramref name="destination"/>. The save's half of
+    /// <see cref="Fold"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A sibling to <see cref="Fold"/> rather than a reuse of it, because the two diverge in
+    /// exactly one place and by design</b> (adr/0086). <see cref="Fold"/> is overridden by
+    /// <see cref="HandleColumn{TTarget}"/> to fold the target's monotonic id, so the hash is blind to
+    /// slot recycling; the file must store the handle itself, because a load has to restore the same
+    /// slots. ***A save round-trip must preserve the hash and need not preserve the bytes.***
+    /// </para>
+    /// <para>
+    /// <b>⚠ The bytes are the host's, and so is the hash's reading of them.</b> <see cref="FoldBytes"/>
+    /// assembles <c>ulong</c>s little-endian, which fixes the *combination* step and not the *layout*:
+    /// the bytes it combines come from <see cref="MemoryMarshal.AsBytes"/> over a struct whose field
+    /// order in memory is the machine's. So a big-endian host would produce a different State Hash for
+    /// the same city today, before any save existed — see this file's note on
+    /// <see cref="FoldBytes"/>. The save inherits that exposure exactly and adds none of its own, which
+    /// is the reason to copy rather than to invent a second byte order here: one representation, one
+    /// place to fix if a port ever happens.
+    /// </para>
+    /// </remarks>
+    internal abstract void WriteBytes(Span<byte> destination, int slotCount);
+
+    /// <summary>Reads slots <c>[0, slotCount)</c> back from <paramref name="source"/>.</summary>
+    /// <remarks>
+    /// The inverse of <see cref="WriteBytes"/>, and it places rows at their saved slots rather than
+    /// allocating them — slot-exactness is the whole constraint (adr/0086), because the free list and
+    /// the id counter are saved state and a loader that recomputed them would produce a different
+    /// hash.
+    /// </remarks>
+    internal abstract void ReadBytes(ReadOnlySpan<byte> source, int slotCount);
+
     /// <summary>Copies the live half over the write half, before a partial parallel write.</summary>
     /// <remarks>
     /// <b>Seeding rather than clearing, because a parallel phase is entitled to write only part of
@@ -207,6 +241,42 @@ public class Column<T> : Column
 
     internal override void Fold(ref ulong hash, int slotCount) =>
         FoldBytes(ref hash, MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount)));
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <b>Not overridden by <see cref="HandleColumn{TTarget}"/>, which is the interesting half.</b>
+    /// That type overrides <see cref="Fold"/> and inherits this, so a handle reaches the file as its
+    /// stored <c>{index, generation}</c> — which <see cref="HandleColumn{TTarget}"/>'s own remarks
+    /// already note *"would be correct for both uses the hash has today"* and is required rather than
+    /// merely adequate here, since a load must restore the slots the handles address.
+    /// </remarks>
+    internal sealed override void WriteBytes(Span<byte> destination, int slotCount) =>
+        MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount)).CopyTo(destination);
+
+    /// <inheritdoc/>
+    internal sealed override void ReadBytes(ReadOnlySpan<byte> source, int slotCount)
+    {
+        Span<byte> storage = MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount));
+
+        if (source.Length != storage.Length)
+        {
+            throw new InvalidOperationException(
+                $"column '{Name}' of table '{Owner.Name}' expects {storage.Length} bytes for "
+                + $"{slotCount} slots and was given {source.Length}. A column's width is its "
+                + "declaration's, so a mismatch here is a format version the reader should have "
+                + "refused at the header.");
+        }
+
+        source.CopyTo(storage);
+
+        // The back half, on a Buffering.TwoCopies table. Column.Clear says why it cannot be skipped:
+        // a _back left holding an old row would resurrect it on the next swap, and a load is the one
+        // moment the front half changes without a swap having produced it.
+        if (_back is not null)
+        {
+            source.CopyTo(MemoryMarshal.AsBytes(_back.AsSpan(0, slotCount)));
+        }
+    }
 
     /// <summary>
     /// Folds a column's bytes through slice 2's <c>mix</c>, eight at a time, little-endian.

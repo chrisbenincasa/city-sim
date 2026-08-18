@@ -44,6 +44,8 @@ public abstract class Rows
     private List<Column>? _declaring = [];
     private Column[] _columns = [];
 
+    private Column[] _savedColumns = [];
+
     private readonly Column<ulong> _id;
     private readonly Column<uint> _generation;
     private readonly Column<int> _freeNext;
@@ -96,6 +98,20 @@ public abstract class Rows
 
     /// <summary>Every column, in declaration order — which is the order the hash folds them in.</summary>
     public ReadOnlySpan<Column> Columns => _columns;
+
+    /// <summary>
+    /// The <see cref="Disposition.Saved"/> columns, in declaration order. What the hash folds and
+    /// what the save writes, which are the same set by construction.
+    /// </summary>
+    /// <remarks>
+    /// <b>One accessor rather than the fourth hand-written filter.</b> Three call sites wrote the
+    /// <c>if</c> themselves before milestone 8 — the fold here, the footprint report, and a test — and
+    /// the save would have been a fourth. The set is the same question each time and the answers had
+    /// no way to disagree loudly, which is the shape <c>plans/0012</c> <em>Cause 1</em> describes:
+    /// several copies of one fact, none of them able to notice the others. Computed once at
+    /// <see cref="Seal"/>, because the declaration is closed there and cannot change afterwards.
+    /// </remarks>
+    public ReadOnlySpan<Column> SavedColumns => _savedColumns;
 
     /// <summary>Declares a column of state: written to the save and folded into the hash.</summary>
     public Column<TField> Saved<TField>(string name, Touch touch = Touch.Wake)
@@ -158,6 +174,7 @@ public abstract class Rows
         }
 
         _columns = [.. _declaring];
+        _savedColumns = [.. _declaring.FindAll(column => column.Disposition == Disposition.Saved)];
         _declaring = null;
     }
 
@@ -180,6 +197,33 @@ public abstract class Rows
         return total;
     }
 
+    /// <summary>
+    /// Bytes of <see cref="Disposition.Saved"/> column storage per slot — the width of one row in the
+    /// save.
+    /// </summary>
+    /// <remarks>
+    /// <b>The figure <c>adr/0087</c> names as owed and forbids guessing.</b> It is deliberately not
+    /// <see cref="BytesPerRow(Touch)"/> summed over the three tiers: that figure counts every column,
+    /// derived and scratch included, because it sizes <em>memory</em>. This sizes the <em>file</em>,
+    /// and the two differ by whatever the declaration says is rebuildable. ⚠ <b>S0a's 85.98 MiB at 1M
+    /// is the memory figure and must never be quoted as a save's size</b> (<c>plans/0012</c>
+    /// <em>Cause 5</em>).
+    /// </remarks>
+    public int SavedBytesPerRow
+    {
+        get
+        {
+            int total = 0;
+
+            foreach (Column column in _savedColumns)
+            {
+                total += column.BytesPerRow;
+            }
+
+            return total;
+        }
+    }
+
     /// <summary>Folds this table's saved state into <paramref name="hash"/>, in index order.</summary>
     public void Fold(ref ulong hash)
     {
@@ -192,12 +236,9 @@ public abstract class Rows
         h = Randomness.Mix(h + (ulong)(long)_freeHead);
         h = Randomness.Mix(h + _nextId);
 
-        foreach (Column column in _columns)
+        foreach (Column column in _savedColumns)
         {
-            if (column.Disposition == Disposition.Saved)
-            {
-                column.Fold(ref h, _slotCount);
-            }
+            column.Fold(ref h, _slotCount);
         }
 
         hash = h;

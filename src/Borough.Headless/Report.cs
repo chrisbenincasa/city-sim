@@ -72,21 +72,23 @@ internal static class Report
 
         foreach (Rows table in world.Tables)
         {
-            int saved = 0;
+            // The saved count comes from Rows.SavedColumns rather than from a filter written here,
+            // because this was one of the three places that each wrote the same `if` by hand and the
+            // save would have been a fourth. The other two are told apart three-way: an `else` would
+            // count scratch as derived, which is a miscount the moment Disposition grew a third value.
+            int saved = table.SavedColumns.Length;
             int derived = 0;
             int scratch = 0;
 
-            // Three-way rather than saved-against-everything-else. An `else` here counted scratch as
-            // derived, which is a miscount the moment Disposition grew a third value -- and the
-            // saved column is the one the save's size is read off, so the other two have to be told
-            // apart where somebody can see them.
             foreach (Column column in table.Columns)
             {
-                switch (column.Disposition)
+                if (column.Disposition == Disposition.Derived)
                 {
-                    case Disposition.Saved: saved++; break;
-                    case Disposition.Derived: derived++; break;
-                    default: scratch++; break;
+                    derived++;
+                }
+                else if (column.Disposition == Disposition.Scratch)
+                {
+                    scratch++;
                 }
             }
 

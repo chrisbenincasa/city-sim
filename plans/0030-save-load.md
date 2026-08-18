@@ -388,6 +388,78 @@ is the `Saved` set and nothing else, which is what task 7's structural test asse
 **Deliverable beyond the code: the saved set in bytes**, per table and totalled, at the golden fixture
 and at 1M, from `Rows.BytesPerRow`. `adr/0087` names this as owed and nobody has computed it.
 
+#### ✅ Task 2 shipped 2026-08-17 — the byte accessor, the shared filter, and the size `adr/0087` said not to guess
+
+**Built:** `Column.WriteBytes`/`ReadBytes`, the type-erased sibling to `Fold`, implemented once on
+`Column<T>` and **deliberately not overridden by `HandleColumn<T>`** — so a handle reaches the file as
+its stored `{index, generation}` while the hash keeps folding the target's monotonic id, which is
+`adr/0086`'s ***a save round-trip must preserve the hash and need not preserve the bytes***.
+`Rows.SavedColumns` is the one shared filter, computed at `Seal()`, and the three hand-written `if`s
+are gone — `Rows.Fold`, `Report.cs` and `CondemnationTrailTests`. `Rows.SavedBytesPerRow` is the width
+of one row in the file. `ColumnBytesTests`, four tests.
+
+**The saved set, per table and totalled** — `adr/0087` names this as owed and forbids guessing it.
+Σ(declared saved column bytes × slots), so a **width** figure and not a resident-memory measurement:
+
+| World | Saved | All storage | Saved share |
+|---|---|---|---|
+| Golden fixture | **305,389 B** (0.29 MiB) | 339,237 B | 90.0% |
+| Stepped, 4,000 Citizens, 512 Ticks | **595,101 B** (0.57 MiB) | 746,881 B | 79.7% |
+| **1,000,000 Citizens, allocated capacity** | **137,706,463 B — 131.33 MiB** | 178,770,767 B (170.49 MiB) | **77.0%** |
+
+`citizen` is **64 of its 84 bytes saved and 46% of the whole file at 1M** — 64,000,000 B — followed by
+`rule_instance` at 25,650,000 B, `bin` at 22,500,000 B and `household` at 14,760,000 B.
+`wheel_bucket` and `unplaced` are **100% saved**; `building` is the loosest at 25 of 61 bytes, because
+nine of its columns are derived list heads and tails.
+
+⚠ **Those four are written in bytes rather than abbreviated to megabytes, and the reason is a finding
+about check 6 rather than a style choice.** `bin`'s saved figure abbreviates to *22.5 MB*, and `22.5`
+is a **registered disqualifier alternate**: it is `adr/0094`'s larder quantity in **in-world minutes**,
+whose required phrase is *pre-clock*, and the registry test duly failed this document. **To say it
+explicitly, as that test asks: the megabyte figures in the table above have nothing to do with the
+pre-clock larder — they are bytes of column storage, and the only thing they share with a quantity in
+in-world minutes is three characters.** ***A check for a caveat-free quotation cannot tell a quotation
+from a coincidence of magnitude, and the shorter the figure the more coincidences there are.*** Filed
+to [`0012`](0012-corpus-audit.md), which also records that the sentence you are reading tripped the
+check a second time before it named the phrase.
+
+⚠ **The number lands on `adr/0087`'s copy estimate, and it lands at the wrong end of it.** That ADR
+prices the copy at **~10 ms**, citing `adr/0037`'s *8–15 ms for 80–150 MB*. The saved set at 1M is
+**131 MiB**, which is the **top** of that band rather than the middle — so the copy is nearer **13–15 ms**
+than 10, and under **D4** the copy is the half that **stays in the Tick for ever**. It is still one
+copy per autosave against a 15.6 ms Tick, so `adr/0087`'s *0.008% amortised* conclusion is untouched
+at an autosave per Day; what moves is the **single-occurrence hitch**, which is that ADR's own first
+revisit trigger — *"the copy becoming unaffordable at a single occurrence"* — and it is now **~1 Tick
+budget rather than two-thirds of one**. Reported here rather than acted on: task 9 measures the copy
+and this is a prediction, not a measurement.
+
+⚠ **It also does not reconcile with S0a's 85.98 MiB, and the two must not be subtracted.** S0a
+measured **resident tables** in a populated 1M run in 2026-08; this is **declared width × allocated
+capacity** on a `new World(1_000_000)`. Different instruments, and the corpus's standing rule is to
+quote the sentence rather than the digits (`plans/0012` *Cause 5*). What the gap is **consistent with**
+is that five milestones have added columns since — the Movement tables, the commute columns on
+`citizen`, the worker list on `building` — and ***nothing re-measures a footprint when a column is
+added***. Filed as a question rather than a correction: the honest reading is that **the 85.98 MiB
+figure is old**, not that either number is wrong.
+
+⚠ **The endianness discipline the file inherits is weaker than the comment claiming it.**
+`Column.FoldBytes`'s remark says a State Hash whose value depends on the host's byte order *"is a hash
+that reports a divergence on a port"*, and it assembles `ulong`s with `BinaryPrimitives` accordingly.
+That fixes the **combination** step and not the **layout**: the bytes being combined come from
+`MemoryMarshal.AsBytes` over a struct whose field order in memory is the machine's, so **a big-endian
+host would already produce a different State Hash for the same city**, before any save existed. The
+save copies the same representation, so it **inherits that exposure exactly and adds none** — which is
+the reason to copy rather than invent a second byte order here: one representation, one place to fix.
+***A byte order fixed at the point of combination is not a byte order fixed at the point of storage.***
+Filed to [`0012`](0012-corpus-audit.md); not repaired, because per-field swapping over an arbitrary
+`unmanaged` struct is not expressible without knowing its layout, and every platform .NET supports is
+little-endian.
+
+**What task 2 did not build:** the allocator restore. `ReadBytes` places bytes at slots
+`[0, slotCount)` and changes no scalar, so the round-trip test restores the hash **because the four
+allocator scalars were never disturbed**. That is task 3, and it is still the item with no precedent
+in the tree.
+
 ### Task 3 — the allocator restore path, slot-exact
 
 `Rows` gains the ability to be restored: `_slotCount`, `_liveCount`, `_freeHead` and `_nextId` set
