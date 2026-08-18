@@ -108,6 +108,19 @@ public abstract class Rows
         Declare(new Column<TField>(this, name, Disposition.Derived, touch, _capacity));
 
     /// <summary>
+    /// Declares scratch: neither saved, hashed, nor rebuilt, and read only inside the phase that
+    /// writes it.
+    /// </summary>
+    /// <remarks>
+    /// Read <see cref="Disposition.Scratch"/> before choosing this. It carries an obligation the
+    /// other two do not — nothing may read the column outside the phase that wrote it — and the
+    /// rebuild audit skips it on the strength of that obligation.
+    /// </remarks>
+    public Column<TField> Scratch<TField>(string name, Touch touch = Touch.Wake)
+        where TField : unmanaged =>
+        Declare(new Column<TField>(this, name, Disposition.Scratch, touch, _capacity));
+
+    /// <summary>
     /// Declares a column of handles into <paramref name="target"/>. Saved, and hashed by the target's
     /// monotonic id rather than by the slot the handle happens to address.
     /// </summary>

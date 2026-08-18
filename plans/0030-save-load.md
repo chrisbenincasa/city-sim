@@ -6,7 +6,9 @@
 
 ## Status
 
-🟡 **SCOPED 2026-08-17, not started, ungated.** Session **K** checked it and found nothing in front of
+🟢 **IN FLIGHT. Scoped 2026-08-17, ungated; task 1 shipped 2026-08-17** — the rebuild audit and
+`Disposition.Scratch`, **1,479 tests green and no baseline re-recorded**, because the milestone adds no
+table and no column and `Scratch` was already outside the fold. Session **K** checked it and found nothing in front of
 it: [`adr/0086`](../docs/adr/0086-a-save-has-no-schema-of-its-own-and-the-field-declaration-is-the-format.md)
 settles the format, [`adr/0087`](../docs/adr/0087-a-save-is-copied-at-save-cadence-not-read-from-a-past-that-no-longer-exists.md)
 settles the cadence, and `05 §6`'s threading policy — the one thing that looked like a gate — decides
@@ -291,6 +293,73 @@ start writing"* (`:341-342`), which is this task's whole premise reached from th
 passes the audit today **by intent**, and it stops passing the moment milestone **22** writes real
 Stress into it, at which point the rebuild would silently zero a live value. Assert the constant now,
 so the day it becomes false is a red test rather than a divergence.
+
+#### ✅ Task 1 shipped 2026-08-17 — `DerivedRebuildAuditTests`, and four of its five findings are about the instrument
+
+**Built:** `Disposition.Scratch` and `Rows.Scratch<T>()`; `layer_cell.pollution_pass` redeclared;
+`Report.cs`'s saved/derived count made three-way; and `tests/Borough.Tests/Tables/DerivedRebuildAuditTests.cs`
+— eight tests over five worlds. **Coverage went from 2 of 28 to all 32 derived columns**, one of which
+is covered by a stronger dedicated test rather than by the audit loop. Nothing in `Borough.Core`'s
+behaviour moved: `Rows.Fold` already filtered on `Saved`, so a third disposition was invisible to the
+hash by construction, and all three golden baselines stood.
+
+⚠ **1. The audit this brief specified could not have failed on the column that motivated it.** The
+task text says *fold every column, call `RebuildDerived()`, fold again, assert equal* — and that form
+catches a rebuild producing the **wrong** value while being **vacuous** against a column nothing
+rebuilds **at all**: an absent rebuild leaves the storage untouched, so the two folds agree and the
+audit reports a pass. `layer_cell.pollution_pass` was raised in this document as *declared `Derived`
+and nothing rebuilds it*, and under the specified form it would have sailed through. The brief's
+*"it cannot pass as written"* is therefore **exactly backwards** — it passes as written, and it is the
+**corrupt-first** form (clear every derived column, rebuild, compare to the original) that fails.
+***An audit that cannot fail on its own motivating case is an audit of something else***, and the
+distinction is invisible from outside the code because both forms describe as *rebuild and compare*.
+
+⚠ **2. The golden fixture — the world every committed baseline is recorded from — was carrying an
+empty derived index, and the audit found it on its first run.** `GoldenFixtures.Build()` creates
+Buildings through `BuildingTable.Create`, which is the raw table door; the **Cell residency index** is
+maintained by `World.CreateBuilding` (`World.cs:1189-1191`), which the fixture never calls. So the
+fixture held four Buildings and a `building.cell_next` of all zeroes, and a rebuild **populated** a
+structure the live world had never filled. **No hash could ever have reported this** — `CellNext` is
+`(derived AND rebuilt)` and `BuildingResidency`'s head, tail and count are plain arrays rather than
+columns, so the structure is outside the fold twice over. Repaired in the fixture by adding the call
+the world's own door makes; switching it to `World.CreateBuilding` would also create the kind's Bins
+and arm its chain heads, which **is** saved state and would re-baseline three artefacts to fix a
+derived index. ⚠ **The question underneath it is not answered here**: whether a raw table door should
+be reachable at all without the world's index. Filed to [`0002`](0002-open-questions.md) §C per
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md) —
+***route the finding before working around it***, and the fixture repair is the workaround.
+
+⚠ **3. The survey's count was wrong and the machine now owns it.** Scoping said **28 derived columns
+across 9 tables**; there were **33**, and there are **32** now that `pollution_pass` is `Scratch`. The
+tables were right and the count was not. `Every_derived_column_is_exercised_by_some_world` asserts it
+in both directions, so a new derived column that no fixture populates fails **on the day it is
+declared** rather than silently shrinking the coverage — slice 10 task 11's finding, mechanised.
+***A hand count of a declaration is a measurement written into prose***, which is `plans/0026` task 8's
+lesson arriving on a plan rather than on a doc-comment.
+
+⚠ **4. A connectivity label in a connected city is all zeroes, so the corruption cannot reach it — and
+the file that fixes that exists for a different reading.** `RoadConnectivity.Label` numbers components
+from 0, so a city in one piece labels every live node `0`: clearing `road_node.car_component` changes
+nothing and rebuilding it changes nothing, and a zeroing corruption reports a pass it has not earned.
+The world that exercises it is **`rulesets/severance.toml`**, which exists because *`minimal.toml`
+cannot demonstrate Severance and that is measured*. ***A fixture built to make a reading possible is
+the fixture that makes the test of that reading's storage possible***, which is `plans/0024`'s *a
+measurement answers every question its numbers bear on* one level down. The test asserts
+`FootComponents > 1` rather than assuming it, so the day that Ruleset stops severing the coverage
+claim fails instead of quietly reverting.
+
+⚠ **5. One column no world can exercise, named with the test that covers it instead of excused.**
+`road_segment.fidelity` is written to a constant `0` everywhere in `src/` and `tests/` —
+`adr/0007`'s named hole — so no fixture can make it non-zero until milestone **22**. Its own test
+fills it with `0xAB` and asserts the rebuild returns it to zero, which is **strictly stronger** than
+anything the audit loop can do to it, and which turns milestone 22's first real Stress write into a red
+test rather than a load that silently drops the field. That is a **pointer**, not an exemption: the
+covering test is named in the assertion, and if it is deleted the coverage assertion fails.
+
+**What task 1 did *not* find:** no derived column in the build rebuilds to a wrong value. The two
+producers `LotTable.cs:208-210` warned about — the maintained write path and the rebuild path for
+`lots.frontage_slot`, `frontage_offset` and `building_slot` — **agree on every world tested**, which is
+the first time that claim has been checked rather than asserted.
 
 ### Task 2 — a column's bytes, out and in, and the saved set totalled
 

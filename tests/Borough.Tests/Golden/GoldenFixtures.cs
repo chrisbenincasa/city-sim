@@ -315,6 +315,21 @@ internal static class GoldenFixtures
         for (int i = 0; i < buildings.Length; i++)
         {
             buildings[i] = world.Buildings.Create(world.Lots, lots[i], kind: (byte)(1 + (i % 3)));
+
+            // The Cell residency index, which World.CreateBuilding maintains and BuildingTable.Create
+            // knows nothing about. ⚠ Found 2026-08-17 by milestone 8 task 1's rebuild audit, on its
+            // first run: this fixture held four Buildings and an EMPTY Cell index, so a rebuild
+            // populated a structure the live world had never filled. No hash could report it --
+            // CellNext is (derived AND rebuilt) and the head/tail arrays are not columns at all --
+            // and the world every committed baseline is recorded from was the one carrying it.
+            //
+            // Adding the call rather than switching to World.CreateBuilding: that door also creates
+            // the kind's Bins and arms its chain heads, which is saved state and would re-baseline
+            // three artefacts to fix a derived index. Whether the raw table door should be reachable
+            // without the world's index at all is a question about doors, filed rather than answered
+            // here (adr/0073 -- route the finding, do not work around it).
+            world.BuildingsInCells.Add(
+                world.Buildings, world.Lots, world.Buildings.Rows.Resolve(buildings[i]));
         }
 
         var households = new Handle<Household>[8];

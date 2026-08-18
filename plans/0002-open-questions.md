@@ -823,6 +823,19 @@ levers are Ruleset numbers section D already lists as unset:~~ **The diversion p
   design has needed hysteresis in three places to stop that shape oscillating. The poverty interaction
   is unresolved: an unemployed Household sells the car, freeing money and removing reach, so **the
   absorbing state tightens by the act of surviving.**
+- **Should a raw table door be reachable without the world's derived indices?** ⚠ **Filed 2026-08-17
+  by milestone 8 task 1, which found the consequence rather than the question.** `BuildingTable.Create`
+  creates a row; `World.CreateBuilding` (`World.cs:1189-1191`) creates the row **and** adds it to the
+  Cell residency index. Both are reachable, they are one line apart in the same assembly, and the
+  cheaper one leaves a derived structure stale with **nothing able to report it** — `CellNext` is
+  `(derived AND rebuilt)` and `BuildingResidency`'s head, tail and count are not columns at all, so the
+  gap is outside the State Hash twice over. It was live in `GoldenFixtures.Build()`, **the world every
+  committed baseline is recorded from**, and the rebuild audit caught it on its first run.
+  ***A door that maintains an index and a door that does not are indistinguishable at the call site,
+  and the one that does less is the one with the shorter name.*** The repair candidates are all
+  structural rather than diligence — make the table door `private protected` so the world's is the only
+  way in, have the rebuild audit run over every fixture, or fold the residency arrays so the hash can
+  see them — and they differ in what else they cost. **Arguable**: no number refutes any of them.
 
 ---
 

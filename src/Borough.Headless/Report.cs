@@ -67,23 +67,26 @@ internal static class Report
 
     private static void WriteTables(World world)
     {
-        Console.WriteLine("table       buffering     rows  saved  derived   B/row");
-        Console.WriteLine("-----------------------------------------------------------");
+        Console.WriteLine("table       buffering     rows  saved  derived  scratch   B/row");
+        Console.WriteLine("--------------------------------------------------------------------");
 
         foreach (Rows table in world.Tables)
         {
             int saved = 0;
             int derived = 0;
+            int scratch = 0;
 
+            // Three-way rather than saved-against-everything-else. An `else` here counted scratch as
+            // derived, which is a miscount the moment Disposition grew a third value -- and the
+            // saved column is the one the save's size is read off, so the other two have to be told
+            // apart where somebody can see them.
             foreach (Column column in table.Columns)
             {
-                if (column.Disposition == Disposition.Saved)
+                switch (column.Disposition)
                 {
-                    saved++;
-                }
-                else
-                {
-                    derived++;
+                    case Disposition.Saved: saved++; break;
+                    case Disposition.Derived: derived++; break;
+                    default: scratch++; break;
                 }
             }
 
@@ -91,7 +94,8 @@ internal static class Report
                       + table.BytesPerRow(Touch.Wake)
                       + table.BytesPerRow(Touch.Cold);
 
-            string counts = F($"{table.LiveCount,7:N0}  {saved,5}  {derived,7}  {bytes,6}");
+            string counts =
+                F($"{table.LiveCount,7:N0}  {saved,5}  {derived,7}  {scratch,7}  {bytes,6}");
             Write($"{table.Name,-10}  {Describe(table.Buffering),-9}  {counts}");
         }
     }
