@@ -213,7 +213,7 @@ Ana lives on Elm and works across town.
    junction upstream force-promotes that one too. A Trip crosses both regimes freely, transitioning at
    Segment boundaries.
 8. **She arrives, and does not circle for parking — ever.** Arrival queries the **Parking Shed**, the
-   parking Bins within acceptable walking distance of the destination, nearest-first, and takes the
+   Car Parks within acceptable walking distance of the destination, nearest-first, and takes the
    first with space ([`adr/0009`](adr/0009-parking-is-modelled-supply-never-search.md)). The walk from
    it is her third **Leg**. Scarcity shows up as that walk getting longer, not as a failure — and a
    Trip fails only when it genuinely blows its **Commute Budget**.
@@ -241,7 +241,7 @@ Ana lives on Elm and works across town.
 | **Statistical / Microscopic** | no vehicles and exact free-flow arithmetic / real vehicles in Lane queues |
 | **Lane** | the entity that owns its Vehicles as a sorted queue and updates them all in one pass |
 | **Microscopic Cap** | the ceiling on how many Segments may be Microscopic at once. A world constant, and reaching it is not a failure of the city |
-| **Parking Shed** | the parking Bins within walking distance of a destination. Nearest-first, never a search |
+| **Parking Shed** | the Car Parks within walking distance of a destination. Nearest-first, never a search |
 | **Epoch** | the road graph's version stamp, which tells a stored route it may be wrong |
 | **`T` / `d`** | how long a Habit may stay wrong about a new road / how near a new road must be to flag it |
 

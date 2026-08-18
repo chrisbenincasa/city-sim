@@ -6,9 +6,21 @@
 
 ## Status
 
-🟡 **SCOPED 2026-08-17. Eight tasks, four open decisions, none of them started. Ungated** — session
-**H** cleared this row on 2026-08-12 and the clearance is written in
+🟡 **SCOPED 2026-08-17. Eight tasks. ✅ ALL FOUR DECISIONS SETTLED 2026-08-18** —
+[`adr/0112`](../docs/adr/0112-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)
+*a parking space is held by the Citizen* and
+[`adr/0113`](../docs/adr/0113-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md)
+*a Car Park is not a Bin*, with amendments in place to `adr/0009` and `adr/0084` — **and no task is
+started. Ungated** — session **H** cleared this row on 2026-08-12 and the clearance is written in
 [`0002`](0002-open-questions.md) §F2 as well as on the board, so both copies agree.
+
+⚠ **This document's own recommendation on decision 1 was wrong, and the sitting is what found it.** It
+recommended the **Household**; `World.ModeOf` drives *every member* of a car-owning Household, so a
+Household of three workers parks three cars and one column would leak two of them. The holder is the
+**`Citizen`**. Full record under *Open decisions* below, which is kept unedited above the settlement so
+the error stays readable. ***A brief's recommendation is a hypothesis about the build, and the build is
+the thing to open*** — [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+reaching a planning document rather than a doc-comment.
 
 **This is the best-specified row in the Phase 2 spine and it is not the smallest.** Three ADRs settle
 most of it in advance — [`adr/0009`](../docs/adr/0009-parking-is-modelled-supply-never-search.md)
@@ -319,6 +331,43 @@ The four cumulative obligations from `CLAUDE.md`, plus:
 ---
 
 ## Open decisions this milestone owes, before the task that needs them
+
+> ✅ **ALL FOUR SETTLED 2026-08-18, with the user in the room, in one sitting before task 1 —
+> [`adr/0112`](../docs/adr/0112-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)
+> and [`adr/0113`](../docs/adr/0113-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md),
+> plus amendments in place to `adr/0009` and `adr/0084`.** The recommendations below are kept unedited,
+> because **one of them was wrong and the reason it was wrong is the sitting's largest finding.**
+>
+> 1. **The holder is the `Citizen`.** ⚠ **This document recommended the Household and the build refuses
+>    it.** `World.ModeOf` (`World.cs:1117`) returns `TravelMode.Car` for **every member** of a car-owning
+>    Household, so a Household of three workers parks **three cars**, and one column would overwrite two
+>    of them — *the `adr/0006`-class leak this milestone's own risk is about*. ***The repair for the
+>    invariant's operand would have been the defect the invariant exists to catch.*** `adr/0098` says
+>    this out loud in its own **revisit trigger** (*"A Household of three workers with one car puts three
+>    cars on the road here"*), where it is filed as a **fidelity** complaint about fleet size — so
+>    ***a revisit trigger names the reading that would reopen a decision and says nothing about which
+>    other decisions rest on the same fact.*** The argument that settles it was already written for
+>    **jobs**, about the same two people: `CONTEXT.md` → Building, *"two adults in one Household working
+>    opposite sides of the city is the case a per-Household count could not express."*
+> 2. **A `Car Park` is its own table**, and `CONTEXT.md` gains the term. ⚠ **The decision was already in
+>    `CONTEXT.md`, unnamed** — *Supply and Space* reserves `Bin` for Goods and Money and uses **a full
+>    Parking Shed as its own worked example of a ceiling that is not a Bin**. ***The distinction existed
+>    and the word did not.*** The name was chosen against two collisions: `Space` is a **bound** and
+>    `Lot` is a **unit of land**, so *parking space* and *parking lot* were both unavailable.
+> 3. **The radius's ratifier is restated and now names a world** — a **sixth Ruleset**, `congested.toml`'s
+>    precedent on a third axis, with refuting readings denominated in **walk length**. Filed to
+>    [`0002`](0002-open-questions.md) §D2 on the day, before task 2.
+> 4. **Buildings only**, Segments not foreclosed. The omission is filed to `06`'s *Mechanisms with no
+>    milestone*, ⚠ **as two halves rather than one** — the **capacity** half owes a milestone and the
+>    **verb** half is refused — because *a mechanism whose most visible half is refused reads as wholly
+>    refused*, which is why this had sat in no verb list, no inventory row and no milestone.
+>
+> ⚠ **A fifth thing was settled that no decision asked about: the ADR numbers.** `0110` and `0111` are
+> **already claimed by the unmerged `milestone-8-save-load` worktree**, so this sitting took `0112` and
+> `0113`. The collision was found by reading filenames off `git log --all`, which is the only instrument
+> that sees it — ***two sessions on two branches cannot both hold the next free number, and neither
+> branch's tree contains the other's claim.*** `plans/0000`'s last commit named this hazard for **plan**
+> numbers on the same day; it is the same hazard on ADRs and nothing checks either.
 
 ### 1. What holds a parking space — and it is not a Trip or a Traveller. **Owed before task 1**
 

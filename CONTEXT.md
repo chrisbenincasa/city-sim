@@ -251,6 +251,8 @@ The two ways a Bin can stop a Rule, and **they are one quantity read from two en
 
 **Both apply to anything with a ceiling, not only to a Bin.** A workplace with no free post refuses on Space; so does a full Parking Shed. The bound vocabulary is general even though the `Bin` type is reserved for Goods and Money (`adr/0068`: a Bin has a consumer and occupancy has none).
 
+⚠ **This sentence decided a type question two milestones before it was asked.** Milestone 7 had to settle whether a parking Bin was a `BinTable` row, and the reservation stated here — with a full Parking Shed as its own worked example of a ceiling that is *not* a Bin — is what settled it (`adr/0113`). See **Car Park**. ***A vocabulary rule stated once, generally, answers questions nobody had thought to ask of it***, which is the argument for keeping this file general rather than enumerating the types it covers.
+
 **Rule Instance**
 One `Bin Rule` on one `Building` — the row carrying where that Rule has got to. It is created with the Building and freed with it, and it is in exactly one of two states at every moment: **armed**, scheduled on the `Event Wheel` for the Tick its `rate` re-armed it to, or **waiting**, on the wait list of the one Bin it was short of, recording *which* Bin stopped it and *why* — never *how much*, which is derived from the Bin when the drain asks (`adr/0063`).
 
@@ -781,7 +783,7 @@ A part of the city made unreachable on foot by infrastructure — most often an 
 It is the clearest payoff of treating walking as real. A city can be perfectly well connected for cars and broken for people, and the game can say so. `LEGIBLE CAUSE`
 
 **Address**
-**A location on the Road Graph: a Segment, an offset along it, and which side of it.** Never a Node. It is the value every query about *where something is* takes and returns — a Building's Access Point is a Building's Address, a Leg runs from one Address to another, and a parking Bin will have one.
+**A location on the Road Graph: a Segment, an offset along it, and which side of it.** Never a Node. It is the value every query about *where something is* takes and returns — a Building's Access Point is a Building's Address, a Leg runs from one Address to another, and a `Car Park` has one.
 
 **The word is chosen because a street address is literally this triple**: a distance along a street plus an odd or even side. The **side** is left or right of the Segment's forward direction, which is fixed A→B by its endpoints, so it needs no geometry and no coordinate — the simulation still never sees a spline.
 
@@ -802,8 +804,19 @@ The distinction is load-bearing rather than pedantic: a car's real access point 
 
 ⚠ **The Parking Shed is queried around the *pedestrian* Access Point, not the vehicle one**, so the vehicle Access Point has no consumer until parking exists. It is modelled anyway, because `adr/0008`'s third consequence exists precisely so that parking does not restructure the Building later. **The vehicle Access Point is never a fallback from a failed Shed query** — a full car park must not cost less than an empty one. See [`docs/adr/0074`](docs/adr/0074-side-of-street-is-a-property-of-the-access-point-not-of-the-graph.md), [`docs/adr/0008`](docs/adr/0008-walking-is-a-simulated-leg.md).
 
+**Car Park**
+**A Building's parking provision: an `Address`, a capacity, and how much of it is occupied.** A driveway, a garage and a multi-storey are one type at three capacities. It is what a `Parking Shed` is a set *of*, and it is the reason a car's `Access Point` is not its destination's.
+
+**It is not a `Bin`, and the distinction was in this file before the word was** ([`docs/adr/0113`](docs/adr/0113-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md)). See *Supply and Space* above: the bound vocabulary is general, the `Bin` type is reserved for Goods and Money, and a full Parking Shed is that entry's own worked example of a ceiling that is not a Bin. `adr/0068`'s test is what separates them — **a Bin has a consumer and a parked car has a holder** — so a Car Park over a lowered ceiling **dismisses** on `[[building]] jobs`' precedent rather than draining on a Bin's. It has **no wait list**: nothing about parking ever waits, because the shed widens instead.
+
+**A space is held by a `Citizen`, never by a Trip, a Traveller or a Household** ([`docs/adr/0112`](docs/adr/0112-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)). A Trip and a Traveller are both freed when the journey ends, and a car is parked when no journey is happening — *a household's car sits at home overnight*. A Household is the wrong subject for the opposite reason: **a Citizen of a car-owning Household drives** (`adr/0098`), so a Household of three workers parks three cars, and *two adults in one Household driving to opposite sides of the city is the case a per-Household count could not express* — which is the sentence **Building** already makes about jobs, about the same two people.
+
+**Capacity is declared per Building kind**, in the Ruleset, and is derived from the one in force rather than frozen when the Building was raised — the same disposition an occupancy ceiling and a Bin's ceiling have, and for the same reason. Residential and commercial provision **must be balanced separately**: residential occupancy is static overnight and commercial occupancy is a flow through the day, so one number cannot serve both.
+
+**Supply at Road Segments is designed and not yet built.** `adr/0009` holds parking at Buildings *and* at Segments; only the first exists. Nothing forecloses the second — a Car Park is located by an `Address`, which is already `(Segment, offset, side)` — and the player tool for it, *allow or ban street parking per Segment side*, is a **seventh verb** and is refused (`adr/0091`).
+
 **Parking Shed**
-The set of parking Bins within acceptable walking distance of a destination's pedestrian Access Point. On arrival it is queried **nearest-first**, taking the first Bin with free capacity — a handful of lookups, never a search.
+The set of Car Parks within acceptable walking distance of a destination's pedestrian Access Point. On arrival it is queried **nearest-first**, taking the first with free capacity — a handful of lookups, never a search.
 
 Scarcity widens the shed rather than blocking the Trip: you park further away, the walk Leg grows, and the Trip fails only if it exceeds its Commute Budget. There is deliberately **no *no parking* Trip Fate** — pressure arrives as a gradient of rising walk times before it arrives as failure. `HONEST DEGRADATION`
 
