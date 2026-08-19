@@ -121,6 +121,38 @@ public class IndexListTests
         Assert.Equal([3], Walk(fixture.List, 2));
     }
 
+    /// <summary>
+    /// <b>Inserting a node already in the list is refused, because the alternative is a self-link
+    /// and a traversal that never returns.</b>
+    /// </summary>
+    /// <remarks>
+    /// The ordered scan stops at the first element whose slot is not below <c>node</c>'s, which for a
+    /// node already present is that node — so <c>_next[node]</c> would be set to <c>node</c>'s own
+    /// encoded index. Nothing reads as wrong until the next walk, insert or remove on that owner,
+    /// each of which then spins for ever. ⚠ <b>This is not hypothetical: milestone 7's
+    /// <c>CarParkResidency</c> reached it</b> — a bulldozed Street severed a Car Park's Address,
+    /// the unlist that goes <em>through</em> that Address silently did nothing, the row was freed
+    /// still listed, and the recycled slot was inserted into the same Segment's list a second time.
+    /// The whole suite hung with no failing test and no stack.
+    /// </remarks>
+    [Fact]
+    public void Ordered_insertion_refuses_a_node_already_in_the_list()
+    {
+        Fixture fixture = Fixture.Create();
+
+        fixture.List.InsertOrdered(0, 1);
+        fixture.List.InsertOrdered(0, 3);
+
+        Fixture captured = fixture;
+        InvalidOperationException error =
+            Assert.Throws<InvalidOperationException>(() => captured.List.InsertOrdered(0, 3));
+
+        Assert.Contains("already in owner", error.Message, StringComparison.Ordinal);
+
+        // And the list it refused to corrupt is untouched.
+        Assert.Equal([1, 3], Walk(fixture.List, 0));
+    }
+
     private static int[] Walk(IndexList list, int owner)
     {
         var found = new List<int>();

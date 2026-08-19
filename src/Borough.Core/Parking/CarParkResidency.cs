@@ -97,4 +97,73 @@ public sealed class CarParkResidency
     /// <summary>Whether any Car Park sits on <paramref name="segment"/>.</summary>
     public bool Any(int segment) =>
         (uint)segment < (uint)Segments && _head[segment] != 0;
+
+    /// <summary>Lists a newly created Car Park against the Segment its Address names.</summary>
+    /// <remarks>
+    /// <b>The door half of the rebuild above, and the two must agree by construction rather than by
+    /// inspection</b> — both go through <see cref="IndexList.InsertOrdered"/>, so a list accumulated
+    /// across a run and a list rebuilt from the same rows come out in the same order whatever order
+    /// the rows arrived in. That equality is what <c>DerivedRebuildAuditTests</c> asserts, and it is
+    /// the reason this is not simply a whole rebuild triggered on supply change: a rebuild is
+    /// <c>O(Car Parks)</c> and a Building is placed every few Ticks.
+    /// </remarks>
+    public void Add(CarParkTable carParks, RoadSegmentTable segments, int slot)
+    {
+        ArgumentNullException.ThrowIfNull(carParks);
+        ArgumentNullException.ThrowIfNull(segments);
+
+        Grow(segments);
+
+        // A Car Park with no resolvable Segment is in no list, exactly as Rebuild leaves it. That is
+        // adr/0079's severed Address rather than a leak -- the row is live supply that no shed can
+        // reach, and a Street returning re-indexes it on the next rebuild.
+        if (carParks.Rows.IsLive(slot)
+            && segments.Rows.TryResolve(carParks.WhereSegment[slot], out int segment))
+        {
+            new IndexList(_head, _tail, carParks.SegmentNext).InsertOrdered(segment, slot);
+        }
+    }
+
+    /// <summary>Unlists a Car Park before its row is freed.</summary>
+    /// <remarks>
+    /// <b>Before the free rather than after, because the walk needs the row's Address</b> — a freed
+    /// row's <c>WhereSegment</c> is whatever the next allocation writes, so unlisting afterwards
+    /// would search the wrong Segment's list and leave the entry dangling for that next allocation
+    /// to be inserted into twice. It is the same ordering constraint <c>BuildingsInCells.Remove</c>
+    /// carries a few lines further down the same method, and for the same reason.
+    /// </remarks>
+    public void Remove(CarParkTable carParks, RoadSegmentTable segments, int slot)
+    {
+        ArgumentNullException.ThrowIfNull(carParks);
+        ArgumentNullException.ThrowIfNull(segments);
+
+        if (segments.Rows.TryResolve(carParks.WhereSegment[slot], out int segment)
+            && (uint)segment < (uint)Segments)
+        {
+            new IndexList(_head, _tail, carParks.SegmentNext).Remove(segment, slot);
+        }
+    }
+
+    /// <summary>Widens the head and tail arrays to cover every Segment slot that exists.</summary>
+    /// <remarks>
+    /// The Road Graph's slot count only grows within a world, so this never shrinks and never
+    /// reorders — a Segment's index is its slot, and an index that moved would move every list.
+    /// </remarks>
+    private void Grow(RoadSegmentTable segments)
+    {
+        int wanted = segments.Rows.SlotCount;
+
+        if (wanted <= Segments)
+        {
+            return;
+        }
+
+        if (_head.Length < wanted)
+        {
+            Array.Resize(ref _head, wanted);
+            Array.Resize(ref _tail, wanted);
+        }
+
+        Segments = wanted;
+    }
 }

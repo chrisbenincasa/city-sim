@@ -285,15 +285,20 @@ the one that has twice produced a surprise. *(§F has stopped tracking new ADRs 
 **What the project is.** A city-builder whose simulation is an ordinary C# library with no game engine
 inside it. Godot will be the display layer and has not been started.
 
-**Where it is.** **Phase 2, inside milestone 6.** 5c — statistical resolution and the travel-time matrix
-— closed 2026-08-16 on all eight tasks, and **6, Evidence, closed 2026-08-17 on all seven**. ⚠ **The
+**Where it is.** **Phase 2, between milestones.** 5c — statistical resolution and the travel-time matrix
+— closed 2026-08-16 on all eight tasks, **6, Evidence, closed 2026-08-17 on all seven**, and **8,
+Save/load, closed 2026-08-18 on all ten** — the last two ran in parallel, 8 in a worktree, which it
+could because it adds no table and no column. ⚠ **The
 next code row is unpicked**: nothing here has scoped one. Phase 1 is
 closed and **its code column is empty**; slices 0–10 all shipped, and
-[`0003`](0003-build-plan.md)'s hash-moving queue has one open item (**item 8**, a live wake-predicate
-defect, filed unfixed because its two repairs are a design question); **item 9** was filed and built on
+[`0003`](0003-build-plan.md)'s hash-moving queue has two open items (**item 8**, a live wake-predicate
+defect, filed unfixed because its two repairs are a design question, and **item 10**, every load refusal
+reaching the user as a stack trace, filed unfixed because the finding came out of a `Core` commit and the
+cause is in the runner); **item 9** was filed and built on
 2026-08-15, so a player-shaped network can be given a population through the build's own door. Phase 2 has shipped **5a** (the
 Road Graph), **5a-bis** (Lots and the road editor), **5b** (Trips and Legs), **5b-bis** (jobs and the
-commute) and **5c** (the matrix, the route cache, the vehicular Leg and the volume-delay function).
+commute), **5c** (the matrix, the route cache, the vehicular Leg and the volume-delay function), **6**
+(Evidence) and **8** (Save/load).
 
 **No gate is red anywhere in the corpus, and no session gates a slice** — F was the last one that did.
 S4, S0a, S0b, S2 R0–R8 and S5 have all run. Sessions A, B, C, D, E, F, H, J, K, M, P, Q, T, eight and
@@ -442,6 +447,8 @@ summary.
 | **5b** | **Trips, Legs and the pedestrian layer** | [`0021`](0021-trips-legs-and-the-pedestrian-layer.md) | **A walk search has no unit cost** — 86.2 ns to 38.4 µs, a 446× span, because the search settles a *disc*. And ***Severance is a tail, not a median***, which makes the Commute Budget's being a **percentile** a measured requirement |
 | **5b-bis** | **Jobs, the commute and the first Trip generator** | [`0023`](0023-jobs-and-the-commute.md) | **Four of its eight tasks found something about an *instrument* rather than about jobs** — a missing derivation, a censored distribution, a lossy conversion and a small-sample maximum. ***`adr/0043` types a claim by whether a machine could produce the number, and every one of these produced it*** |
 | **5c** | **Statistical resolution and the travel-time matrix** — ✅ **DONE 2026-08-16**, all eight tasks | [`0026`](0026-statistical-resolution-and-the-travel-time-matrix.md) | ***A premise licensing one quantity to stand in for another is itself a measurement, and a constant moved in another document can retire it silently.*** And **a generated city cannot congest itself** — the same number sizes both the demand and the supply |
+| **6** | **Evidence — the accumulators** — ✅ **DONE 2026-08-17**, all seven tasks | [`0028`](0028-evidence-the-accumulators.md) | ***What is freed is not always the subject, and it is the subject that decides the shape*** — a Building is destroyed and a Citizen outlives the journey, so the two cases are indistinguishable **from the freeing site** and the brief read them as one |
+| **8** | **Save/load** — ✅ **DONE 2026-08-18**, all ten tasks, run in a worktree in parallel with 6 | [`0030`](0030-save-load.md) | ***A value absent from a column's own bytes can still be present in the copy***, so a save carries its own State Hash and the simulation thread pays nothing ([`adr/0112`](../docs/adr/0112-the-saved-set-is-the-hashed-set-so-a-save-can-compute-its-own-state-hash.md)). The claim that it could not was pinned by a **green negative test** that was always about something else — ***a negative test is the most quotable description of the build there is, because it reads as a closed door*** |
 
 ### Spikes
 

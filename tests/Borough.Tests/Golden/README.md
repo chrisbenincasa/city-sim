@@ -345,3 +345,33 @@ in `GoldenFixtures` had to be corrected **before** the trace could be regenerate
 is not an inconvenience: a runner that had quietly played the session against whichever Rulesets it was
 handed would have produced a full set of freshly correct hashes for a session that was no longer the
 committed one, which is 5a-bis's finding wearing different clothes.
+
+**Milestone 7 task 3 moved them twice more, and the second time was an ADR renumber.** The first was
+ordinary: `[parking] shed_keeps = 24` joined all five shipped Rulesets with a long header defending it,
+so both content hashes moved and the trace's `ruleset` line moved with them — a key and its prose, the
+same shape as task 2.
+
+⚠ **The second had no key in it at all.** This branch's two ADRs were renumbered `0112` → `0119` and
+`0113` → `0120` to clear a collision with `main` and with `milestone-10-conserved-money`, and the sweep
+that rewrote every citation rewrote **five ruleset comments** along with the ninety-odd document ones.
+Both content hashes moved, the golden suite went red, and the change that did it was a **rename with no
+semantic content whatsoever**. ***A renumber is a hash-moving change, and nothing about a renumber looks
+like one*** — the diff is filenames and citations, the reviewer's whole attention is on whether the
+citations resolve, and `CitationTests` was green throughout because every one of them did.
+
+This is the *comments are content* rule above, arriving from the one direction it had not yet arrived
+from. Task 2's second re-record was prose **about a number**, which at least sits next to the thing the
+hash is for. This was prose about **where a document lives**. The rule survives intact and the reason it
+should is unchanged — a Ruleset's comments are how its numbers are defended — but the working corollary
+is worth stating on its own: ***any sweep that rewrites text across the repository must be assumed to
+have touched `rulesets/`, and the golden suite is the only thing that will say so.*** Renumber first,
+re-record second, and expect the second.
+
+⚠ **And a mechanical trap in the re-record itself, which cost a red run.** `session-trace.txt` is a
+content file copied to the build output, so the sequence *build → regenerate trace → `dotnet test
+--no-build`* checks the **stale copy in `bin/`** against the fresh literals and fails with a hash
+mismatch that looks exactly like a real regression. The regenerated trace has to be followed by a build
+before the suite means anything. ***A `--no-build` run is only as fresh as the last build, and that is
+true of the fixtures as well as of the code*** — the same defect as the `const` this session hit two
+commits earlier, where a stale binary reported the pre-edit `RulesetHash` and the failure message
+quoted a number that no longer existed anywhere in the tree.

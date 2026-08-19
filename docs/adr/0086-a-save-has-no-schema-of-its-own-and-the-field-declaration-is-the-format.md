@@ -85,12 +85,25 @@ currently implies one"* as an unpaid item. Settled here:
 |---|---|---|
 | **Format version** | the **declaration set** — which tables exist, which columns, which disposition | run the migration chain forward from the recorded version |
 | **Ruleset content hash** | the content the Rules are made of | `05 §7`'s two policies, already closed: lenient in play, refused on an unaccounted mismatch in replay |
-| **Generator version** | the procedural generator's output for a given seed | the terrain moved under the city. `0021` calls this the same class of failure as `System.Random` changing under `0003` |
+| ~~**Generator version**~~ | ~~the procedural generator's output for a given seed~~ | ~~the terrain moved under the city. `0021` calls this the same class of failure as `System.Random` changing under `0003`~~ |
 
 They are three because they fail in three different ways and are repaired in three different ways. The
 format version is the only one with a migration chain; the Ruleset hash has a degradation function and a
 provenance trail; the generator version has **neither**, which is why `0021` pins it rather than
 migrating it.
+
+⚠ **AMENDED 2026-08-17 by [`0111`](0111-a-save-that-re-derives-nothing-needs-neither-a-seed-nor-a-generator-version.md),
+which built the header: the third row is struck and replaced by a *class*.** The generator version and
+`05 §7`'s world seed are **one requirement rather than two** — a seed is consumed only by something that
+regenerates from it, and no load path in this build calls a generator. What the third row was reaching
+for is *a world-creation value that lives in the binary rather than in a table*, of which the generator
+version is the **unbuilt** member and four are built: `TICKS_PER_DAY`, `WHEEL_SIZE`,
+`CellGrid.WorldCells` and `CellGrid.TilesPerCell`, each of which says *baked into the save* in its own
+file and none of which had anywhere to be baked into. ***A placeholder version number is worse than an
+absent one, because `0021` pins this one — so an absent one is refused by the format version and a
+placeholder is compared against itself, agrees, and loads a pre-terrain save into a build that will
+regenerate a landscape underneath it.*** The paragraph above stands unedited otherwise, and its last
+sentence is the amendment's own premise.
 
 ### A migration is a function over saved columns, and most schema changes need none
 
@@ -134,7 +147,8 @@ described as measuring the **rebuild**, not the write.
   of it. The section keeps its migration-chain paragraph, its whole Ruleset-versioning subsection, the
   provenance trail and the hash-broken mark, none of which this touches.
 - **`06-roadmap.md`'s owed item is paid.** Milestone 8 carries three version numbers and the table above
-  says what each does on a mismatch.
+  says what each does on a mismatch. ⚠ **It carries two and a class as of [`0111`](0111-a-save-that-re-derives-nothing-needs-neither-a-seed-nor-a-generator-version.md)**,
+  and the owed item is still paid: what `06` asked for was that the number be more than one.
 - **The save has no size decision in it, and its size is already measured.** S0a reports **85.98 MiB** of
   tables at 1M, which is the saved-and-derived total; the file is smaller by the derived columns. Nothing
   here may be argued against a guessed size — that is `0043`, and the number exists.

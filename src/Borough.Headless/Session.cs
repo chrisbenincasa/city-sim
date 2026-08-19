@@ -2,7 +2,9 @@ using System.Globalization;
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Input;
+using Borough.Core.Entities;
 using Borough.Core.Instruments;
+using Borough.Core.Persistence;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Formats;
@@ -35,6 +37,13 @@ internal static class Session
 
     public static int Run(Options options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.LoadPath is not null)
+        {
+            return Resume(options);
+        }
+
         Supplied[] supplied = [.. options.RulesetPaths.Select(
             path => new Supplied(path, RulesetFile.HashOf(path)))];
 
@@ -66,7 +75,26 @@ internal static class Session
 
         try
         {
-            Replay.Trace(simulation, log, new Ticks(options.Ticks), options.HashEvery, hashes, census);
+            if (options.SavePath is null)
+            {
+                Replay.Trace(
+                    simulation, log, new Ticks(options.Ticks), options.HashEvery, hashes, census);
+            }
+            else
+            {
+                // Split so the save lands on the Tick the operator asked for rather than one past
+                // it. `SaveAtEndOfTick` arms the NEXT Step, so the last Tick of the run is the one
+                // that carries it -- and splitting the loop moves no sample, because Replay.Trace
+                // decides what to sample from the simulation's own Tick and not from a loop counter.
+                using var stream = File.Create(options.SavePath);
+
+                Replay.Trace(
+                    simulation, log, new Ticks(options.Ticks - 1), options.HashEvery, hashes, census);
+
+                simulation.SaveAtEndOfTick(new SaveSink(stream));
+
+                Replay.Trace(simulation, log, new Ticks(1), options.HashEvery, hashes, census);
+            }
 
             // 02 §10's end-of-run tier, on every run rather than behind a flag. It is O(world) once,
             // so it costs nothing against a run of any length, and a check that is off by default is
@@ -88,6 +116,14 @@ internal static class Session
             }
 
             ReportReloads(simulation);
+
+            // After the trace and the census, because it is the only part of a run that steps the
+            // world further than the operator asked -- so it must not be able to change the numbers
+            // above it, and a reader who wanted only those has already stopped.
+            if (options.SavePath is not null)
+            {
+                RoundTrip(options, log, simulation, rulesets);
+            }
 
             simulation.CheckEndOfRun();
         }
@@ -111,6 +147,179 @@ internal static class Session
                     : simulation.RulesetInForce,
                 fault);
         }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Reloads the save the run just wrote and runs both cities on, side by side. <b>The picture.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A file on disk is not evidence that a save works, and this is what makes it one.</b>
+    /// <c>05 §7</c>'s <em>replay from save</em> is a claim that a resumed city <em>is</em> the same
+    /// city; the only thing that can show it is the resumed city being run and not agreeing by
+    /// accident. So both worlds step the same further stretch against the same log, and the traces
+    /// are printed together with the Tick each sample was taken at.
+    /// </para>
+    /// <para>
+    /// <b>The further stretch is <c>--ticks</c> again rather than a number chosen here.</b> A fixed
+    /// tail would be a hash-bearing quantity nobody ratified in the one place it is cheapest not to
+    /// have one, and the operator already told the runner how long is interesting.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a demonstration and not the test.</b> <c>FactorioTests</c> is the assertion — seven
+    /// cases, two Rulesets, compared at every Tick — and this compares on the trace cadence, over one
+    /// invocation, so a divergence between samples would be reported at the sample after it. What it
+    /// is for is a person watching a round trip happen, which no test can be.
+    /// </para>
+    /// </remarks>
+    private static void RoundTrip(
+        Options options, InputLog log, Simulation control, RulesetCatalogue rulesets)
+    {
+        World reloaded;
+        SaveHeader header;
+
+        using (var stream = File.OpenRead(options.SavePath!))
+        {
+            reloaded = SaveFile.Read(new SaveSource(stream), rulesets.Opening, out header);
+        }
+
+        var resumed = new Simulation(reloaded, header.Key);
+        resumed.VerifyDecideWritesNothing = options.DecideGuard;
+
+        var saved = new FileInfo(options.SavePath!);
+
+        Console.Out.WriteLine();
+        Console.Out.WriteLine(F(
+            $"Saved {saved.Length:N0} bytes at Tick {control.Tick.Raw} to {options.SavePath}"));
+        Console.Out.WriteLine(F(
+            $"Reloaded at Tick {resumed.Tick.Raw}, hash {reloaded.HashState():X16} against {control.World.HashState():X16}"));
+        Console.Out.WriteLine();
+
+        List<ulong> unbroken = [];
+        List<ulong> roundTripped = [];
+
+        Replay.Trace(control, log, new Ticks(options.Ticks), options.HashEvery, unbroken);
+        Replay.Trace(resumed, log, new Ticks(options.Ticks), options.HashEvery, roundTripped);
+
+        Console.Out.WriteLine("        tick  unbroken          round-tripped");
+
+        int disagreements = 0;
+
+        for (int i = 0; i < unbroken.Count; i++)
+        {
+            ulong tick = control.Tick.Raw - (ulong)((unbroken.Count - 1 - i) * options.HashEvery);
+            bool agrees = unbroken[i] == roundTripped[i];
+
+            if (!agrees)
+            {
+                disagreements++;
+            }
+
+            Console.Out.WriteLine(F(
+                $"  {tick,10}  {unbroken[i]:X16}  {roundTripped[i]:X16}  {(agrees ? "" : "DIVERGED")}"));
+        }
+
+        Console.Out.WriteLine();
+        Console.Out.WriteLine(
+            disagreements == 0
+                ? F($"The round trip agrees, over {unbroken.Count} samples and {options.Ticks} Ticks.")
+                : F($"⚠ {disagreements} of {unbroken.Count} samples DIVERGED."));
+    }
+
+    /// <summary>
+    /// Resumes a save and runs on. <c>05 §7</c>'s <em>replay from save</em>, as a thing to type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A separate invocation rather than a phase of one, because the file outliving the process is
+    /// the only property a save has that <c>WorldSnapshot</c> does not.</b> A round trip inside one
+    /// run exercises the format; this exercises the format <em>and</em> the claim that a city can be
+    /// put down and picked up.
+    /// </para>
+    /// <para>
+    /// <b>It steps with no commands, and that is a property of a save rather than a limitation
+    /// here.</b> A save records a world at a Tick; the session that produced it is a different
+    /// artefact, which is why <c>--load</c> refuses <c>--log</c>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A save resumed under a Ruleset it was not saved under is refused, and forcing it marks
+    /// the trace <c>hash-broken</c>.</b> That is <c>RulesetCheck</c>'s polarity applied to a file
+    /// rather than to a log — <c>05 §7</c> asks for exactly this mark, and the header carries the
+    /// content hash that makes it checkable.
+    /// </para>
+    /// </remarks>
+    private static int Resume(Options options)
+    {
+        Supplied[] supplied = [.. options.RulesetPaths.Select(
+            path => new Supplied(path, RulesetFile.HashOf(path)))];
+
+        if (!TryCatalogue(supplied, supplied[0].Hash, out RulesetCatalogue rulesets))
+        {
+            return Refused;
+        }
+
+        World world;
+        SaveHeader header;
+
+        using (var stream = File.OpenRead(options.LoadPath!))
+        {
+            world = SaveFile.Read(new SaveSource(stream), rulesets.Opening, out header);
+        }
+
+        bool hashBroken = header.RulesetInForce != rulesets.OpeningHash;
+
+        if (hashBroken && !options.ForceRuleset)
+        {
+            Console.Error.WriteLine(F(
+                $"{options.LoadPath} was saved under Ruleset {header.RulesetInForce:X16} and {options.RulesetPaths[0]} hashes to {rulesets.OpeningHash:X16}."));
+            Console.Error.WriteLine(
+                "A city resumed under different Rules is a different city; --force-ruleset runs it "
+                + "anyway and marks the trace hash-broken.");
+
+            return Refused;
+        }
+
+        var simulation = new Simulation(world, header.Key);
+        simulation.VerifyDecideWritesNothing = options.DecideGuard;
+
+        // An empty log, because a save carries no session. It exists so the trace has somewhere to
+        // read the Ruleset in force from -- Replay.Trace asks the log at every Tick, and the answer
+        // for a resumed world is "the one it was saved under" for the whole run.
+        // The Citizen count is the loaded world's own and not `--citizens`, which a resumed run never
+        // supplied. The trace header records what would have to match for two traces to be
+        // comparable, so a default sitting in that field is the one kind of wrong value it must not
+        // carry -- it would read as a city of 10,000 that hashes like a city of 4,000.
+        InputLog log = new InputLogBuilder(
+                options.Seed,
+                new WorldConfiguration(world.Citizens.Rows.LiveCount),
+                rulesets.OpeningHash)
+            .Build();
+
+        var hashes = new List<ulong>();
+        Census? census = options.Census ? new Census(simulation.World) : null;
+
+        ulong resumedAt = simulation.Tick.Raw;
+
+        Console.Out.WriteLine(F(
+            $"Resumed {options.LoadPath} at Tick {resumedAt}, hash {world.HashState():X16}"));
+
+        Replay.Trace(simulation, log, new Ticks(options.Ticks), options.HashEvery, hashes, census);
+
+        Write(options, log, hashes, hashBroken, resumedAt);
+
+        if (census is not null)
+        {
+            CensusReport.Print(Console.Out, simulation.World, census, options.Ticks);
+        }
+
+        if (census is not null && options.Series)
+        {
+            SeriesReport.Print(Console.Out, simulation.World, census, options.Ticks);
+        }
+
+        simulation.CheckEndOfRun();
 
         return 0;
     }
@@ -423,7 +632,8 @@ internal static class Session
     /// the question anybody diffing them is really asking. A trace whose seed differs from the one
     /// beside it is not a divergence, and should not cost anybody an afternoon.
     /// </remarks>
-    private static void Write(Options options, InputLog log, List<ulong> hashes, bool hashBroken)
+    private static void Write(
+        Options options, InputLog log, List<ulong> hashes, bool hashBroken, ulong from = 0)
     {
         HashTrace trace = HashTrace.Create()
             .With("seed", log.Seed)
@@ -443,7 +653,13 @@ internal static class Session
 
         for (int i = 0; i < hashes.Count; i++)
         {
-            trace.Add((ulong)(i + 1) * (ulong)options.HashEvery, hashes[i]);
+            // ⚠ `from` is 0 for every run that starts at Tick 0, which was EVERY run this runner
+            // could do until --load existed: a trace's Tick label was the sample index times the
+            // cadence, and the assumption that those are the same number was nowhere written down.
+            // A resumed run labelled its samples 128 and 256 while standing at Ticks 640 and 768 --
+            // plausible numbers, wrong ones, and a trace's whole job is to be diffed against
+            // another. A LABEL DERIVED FROM A LOOP COUNTER IS A CLAIM ABOUT WHERE THE LOOP STARTED.
+            trace.Add(from + ((ulong)(i + 1) * (ulong)options.HashEvery), hashes[i]);
         }
 
         string[] preamble =

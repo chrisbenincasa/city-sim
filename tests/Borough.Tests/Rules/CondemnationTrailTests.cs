@@ -324,10 +324,10 @@ public sealed class CondemnationTrailTests
 
         ReadOnlySpan<Column> columns = world.CondemnationTrail.Rows.Columns;
 
-        foreach (Column column in columns)
-        {
-            Assert.Equal(Disposition.Saved, column.Disposition);
-        }
+        // Through Rows.SavedColumns rather than a filter written here. Milestone 8 task 2 made that
+        // the one accessor, because this was the third site to write the same `if` by hand and the
+        // save would have been a fourth -- and the set the save writes is the set this asserts.
+        Assert.Equal(columns.Length, world.CondemnationTrail.Rows.SavedColumns.Length);
 
         // The three intrinsic columns Rows declares for itself are not Cold, so only the five this
         // table declares are asserted -- by name, because a count would pass while naming nothing.

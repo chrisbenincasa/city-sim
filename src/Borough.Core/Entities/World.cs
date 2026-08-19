@@ -55,7 +55,7 @@ public sealed class World
     // differently* -- the clock was state that already existed, re-composed. New state is a design
     // change under 05 §4: the city genuinely has more in it, the baselines move because the world
     // moved, and signing that would file a real change as a bookkeeping one.
-    private const ulong HashSeed = 0x426F_726F_7567_6802UL;
+    internal const ulong HashSeed = 0x426F_726F_7567_6802UL;
 
     private readonly Rows[] _tables;
 
@@ -315,6 +315,19 @@ public sealed class World
     /// <see cref="Tables"/>.
     /// </remarks>
     public BuildingResidency BuildingsInCells { get; } = new();
+
+    /// <summary>Which Car Parks sit on which Segment — the Parking Shed query's supply index.</summary>
+    /// <remarks>
+    /// <b>Owned here rather than by the caller, and that is what makes it survive a load.</b> Its
+    /// element column is <c>car_park.segment_next</c>, declared <see cref="Disposition.Derived"/>,
+    /// and a derived column's whole claim is that a load can reproduce it — which is only true if
+    /// something inside the world rebuilds it. ⚠ <b>It was a caller-owned scratch structure when the
+    /// shed query was written, and every shed in a loaded world would have come back empty</b>:
+    /// nothing read it yet, so nothing was wrong, and the defect was invisible until milestone 8's
+    /// <c>DerivedRebuildAuditTests</c> asked which derived columns no world populates. ***A structure
+    /// that lives outside the world is not derived state, however it is declared.***
+    /// </remarks>
+    public Parking.CarParkResidency CarParksOnSegments { get; } = new();
 
     /// <summary>
     /// Whether this world has a Street lattice for a Lot to front.
@@ -945,6 +958,13 @@ public sealed class World
         Lots.FrontageSlot.Span.Clear();
         Lots.FrontageOffset.Span.Clear();
         Bins.Capacity.Span.Clear();
+
+        // The Parking Shed's supply index, rebuilt wholesale from the Car Parks' saved Addresses.
+        // After Roads.RebuildDerived because it resolves a Segment handle against the rebuilt graph,
+        // and it clears car_park.segment_next itself rather than being cleared above -- the head and
+        // tail arrays live outside any table, so the two halves have to be cleared together or a
+        // stale head would point into an emptied column.
+        CarParksOnSegments.Rebuild(CarParks, Roads.Segments);
 
         // Frontage before the reverse indices below, because it reads only the Lot's saved position
         // and the Street lattice — which Roads.RebuildDerived has just rebuilt — and nothing else
@@ -1654,7 +1674,10 @@ public sealed class World
         Handle<Parking.CarPark> carPark =
             CarParks.Create(building, segment, door.Offset, door.Side, spaces);
 
-        Buildings.AttachCarPark(buildingSlot, CarParks.Rows.Resolve(carPark));
+        int carParkSlot = CarParks.Rows.Resolve(carPark);
+
+        Buildings.AttachCarPark(buildingSlot, carParkSlot);
+        CarParksOnSegments.Add(CarParks, Roads.Segments, carParkSlot);
 
         return carPark;
     }
@@ -2154,6 +2177,11 @@ public sealed class World
         {
             int carPark = Buildings.CarParkOf(slot);
             Buildings.DetachCarPark(slot);
+
+            // Before the Free, because unlisting reads the row's own Address to find which Segment's
+            // list to walk -- see CarParkResidency.Remove.
+            CarParksOnSegments.Remove(CarParks, Roads.Segments, carPark);
+
             CarParks.Rows.Free(CarParks.Rows.At(carPark));
         }
 

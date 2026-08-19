@@ -85,6 +85,59 @@ migration written for no reason but vanity. **The trigger is therefore milestone
 second, softer one: the first time the name is shown to somebody who is not the author.** If it is
 going to change, it changes before slice 10.
 
+⚠ **THE TRIGGER HAS FIRED, 2026-08-18, and it fired in silence four tasks before anybody looked.**
+`SaveHeader` writes eight bytes of **`borosave`** at offset 0 of every save
+([`plans/0030`](0030-save-load.md), task 4). Milestone 8's **D2** had *deferred* the magic number
+precisely so this trigger would not fire — and then task 4 wrote one anyway, against that decision,
+with four documents describing the header that was built rather than the one that was decided.
+***A decision is reversed by the build far more quietly than by an argument***, and every mechanical
+check in this corpus reads one document against another, so none of them can see a header.
+
+~~**The window is still open and it is the user's call.**~~ ⚠ **The name is in a second place**, which
+this section did not know when it priced the rename at an hour: `World.HashSeed` is
+`0x426F_726F_7567_6802` — `"Borough"` plus a version byte — so a rename **moves every State Hash**,
+which is one re-record command today and is exactly the cost
+[`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+says not to defer work over.
+
+## ✅ SETTLED 2026-08-18, with the user in the room — and by splitting the question
+
+**`Borough` is the *codename*. It stays, and it is frozen.** A **public name** is a different decision
+with different filters, it is **deferred**, and it has no deadline. ***The trigger is discharged rather
+than met***, which is a better outcome than either answer it was asking for, because it removes the
+deadline instead of meeting it.
+
+**The line is one test: does a human who is not a developer read the string?**
+
+| | | |
+|---|---|---|
+| **Codename — frozen, never changes** | the namespace prefix (793 occurrences in `src/`), the assembly and project names, `World.HashSeed`, and **`borosave` at offset 0 of a save** | none of it is legible without a hex editor or a decompiler |
+| **Public — two strings, both cosmetic** | `InputLogCodec.Extension` (`.borough`) and `CrashArtifact.Extension` (`.borough-crash`) | **nothing dispatches on either**; their only use is naming a crash file the runner writes (`Session.cs:348`), and the reader sniffs the magic line *inside* the file |
+
+**So the magic number is a codename in a file header, which is what a magic number usually is**, and the
+thing this section priced the deadline against — *a rename either breaks every save or needs a migration
+written for vanity* — applies to the magic number alone, which is now never renamed. The whole cost of
+the split is **two `const string` lines**, changeable any day, with no format-compatibility burden at
+all.
+
+⚠ **The risk is this corpus's own and is named rather than waved at.** Two names for one project is
+[`0012`](0012-corpus-audit.md) *Cause 1* by construction — two copies of one fact, and the second drifts.
+What holds it: the two live in **disjoint domains** and never both describe one artefact, and this table
+is the record of which is which. **Without it, in a year nobody knows whether `.borough` was a decision
+or a leftover somebody forgot to rename.**
+
+⚠ **The split changes the filters, and that is the useful half.** The four above were written for a
+*codename*, and three of them are void for a public name: filter 2 (*PascalCases into a namespace
+prefix*) and filter 3 (*no ecosystem collision*) are pure code concerns, and filter 1 (*not a
+`CONTEXT.md` term*) exists so the codebase does not contain `Borough.Core.Ledger` inside a project called
+Ledger. **Filter 4 survives** — it fails on *meaning*, and `NO VERDICT` and `adr/0005`'s refusal of
+Cohorts are design pillars rather than conventions. So the two candidates this section calls the best,
+`Ledger` and `Provenance`, were killed on filter 1 alone and **are back on the table** whenever the
+public name is chosen.
+
+**The remaining trigger is the soft one, unchanged**: the first time the name is shown to somebody who is
+not the author. Nothing in the save format touches it.
+
 Not recorded as an ADR, deliberately. The ADR series decides *how the city works*; a project name
 decides nothing about the simulation and would dilute a series whose value is that every entry is
 load-bearing. Reverse this if the name ever becomes a decision with consequences beyond a rename.
@@ -515,6 +568,27 @@ become three.
 > half refuses a world that already has people; and it refuses a world with no Lots. The second exists
 > because the obvious way to close this gap was to soften `LayInto`, and this queue entry said in as many
 > words not to.
+
+> ⚠ **ITEM 10, added 2026-08-18 by milestone 8 task 10: every load refusal reaches the user as an
+> unhandled exception with a stack trace.** `Session.Resume` has no catch, so *this is not a borough
+> save*, *truncated save*, a format-version mismatch, a world-creation-constant disagreement and the new
+> State Hash mismatch all arrive as a .NET crash dump with the message buried in line one.
+>
+> **It moves no hash** — it is in `Borough.Headless` and touches no state — and it is in this queue
+> rather than in a milestone because it is a defect with no owner otherwise. ***A refusal a user meets as
+> a stack trace is a refusal that reads as a crash***, which is the opposite of what
+> [`adr/0086`](../docs/adr/0086-a-save-has-no-schema-of-its-own-and-the-field-declaration-is-the-format.md)'s
+> refusal messages were written to do: `SaveHeader.Read`'s own remark says *"the order of the checks is
+> the point... a reader that checked them in any other order would report the wrong cause for the right
+> refusal"*, and then the runner reports the right cause under a heading that says the program broke.
+>
+> ⚠ **It is filed rather than fixed, deliberately, and the rule is [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)'s.**
+> The finding came out of a save commit and the cause is in the runner, so fixing it there would have put
+> a `Borough.Headless` error-handling change inside a `Borough.Core` format change — where a reviewer
+> looking for the format would not find it and a reviewer looking for the runner would not look. **The
+> repair is small**: `Session.Resume` catches `InvalidOperationException`, prints the message, and exits
+> non-zero. What it must not do is catch broadly enough to swallow a `Core` invariant throw, which is a
+> crash and should look like one.
 
 > ~~**✅ THE QUEUE IS EMPTY. All four items shipped 2026-08-10.**~~ **REOPENED the same day by session N
 > task 2, with items 4 and 5 — and ✅ BOTH SHIPPED 2026-08-11, so it is empty again.** They were [`adr/0068`](../docs/adr/0068-a-buildings-occupancy-is-declared-by-its-kind-and-an-over-capacity-building-evicts.md)

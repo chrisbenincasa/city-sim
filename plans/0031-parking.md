@@ -397,6 +397,29 @@ fraction of Trips failing on Commute Budget **whose shed was stale about an addi
 rebuilding the shed on failure and re-querying. If it is material the repair is `adr/0012`'s proximity
 wake over the witness set, and `d` already exists as a number.
 
+> ⚠ **The supply index was built outside the `World`, and merging `main` is what found it.** The shed
+> query takes a `CarParkResidency` — Segment to Car Parks, the thing it walks — and for the whole of
+> task 3 that structure was constructed by each caller, which meant every caller in the tree was a
+> test. Its element column `car_park.segment_next` was nonetheless declared
+> `(derived AND rebuilt)` on `CarParkTable`, so it looked like world state and was not: **a load would
+> have restored every Car Park and rebuilt no list, and every shed in a loaded world would have come
+> back empty.** Nothing could have failed — task 4's arrival is the first reader and it does not exist
+> — so the defect was **invisible on this branch by construction and invisible on `main` for want of
+> the column.** ***The two branches were green apart and red together.***
+>
+> Milestone 8's `DerivedRebuildAuditTests` is what caught it, and specifically its **coverage** half
+> rather than its correctness half: *clear every derived column, rebuild, and name the ones no fixture
+> populates*. The correctness half — fold, clear, rebuild, fold — would have passed, because a column
+> nothing rebuilds and nothing populates folds to zero either way. That is the vacuity milestone 8 task
+> 1 wrote its brief against, arriving from a branch that had not merged it.
+>
+> Repaired by giving the `World` the residency: rebuilt in `RebuildDerived`, inserted at
+> `CreateCarPark`, unlisted at `DestroyBuilding` **before** the row is freed, both through
+> `IndexList.InsertOrdered` so the accumulated list and the rebuilt one agree by construction rather
+> than by inspection. ⚠ **It moves no State Hash** — a derived column is rebuilt and not folded — so
+> this is the rare repair with no re-record. ***A structure that lives outside the world is not derived
+> state, however it is declared***, and the declaration is the part that made it look settled.
+
 ---
 
 ## What this milestone must not do

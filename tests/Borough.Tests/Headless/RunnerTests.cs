@@ -830,4 +830,89 @@ public sealed class RunnerTests
         Assert.Contains("--trips", Options.Usage, StringComparison.Ordinal);
         Assert.Contains("DETOUR", Options.Usage, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// ⚠ <b>Both save flags are flags rather than a ninth mode, and the criterion is the runner's own
+    /// rather than a judgement.</b> Every mode here builds a city of its own to photograph; these ride
+    /// the run that is already happening, which is the stated reason <c>--series</c> is a flag while
+    /// <c>--traffic</c> is a mode. So both select <see cref="Mode.Run"/>.
+    /// </summary>
+    [Theory]
+    [InlineData("--save")]
+    [InlineData("--load")]
+    public void A_save_flag_asks_for_a_run_rather_than_a_picture(string flag)
+    {
+        Assert.True(Options.TryParse(
+            [flag, "city.borosave", "--ruleset", "minimal.toml"], out Options options, out _));
+
+        Assert.Equal(Mode.Run, options.Mode);
+    }
+
+    /// <summary>
+    /// A save is what a run produces and a load is what it starts from, so one invocation asking for
+    /// both would produce a trace that is neither — it would save a world it had itself resumed.
+    /// </summary>
+    [Fact]
+    public void A_save_and_a_load_in_one_invocation_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--save", "out.borosave", "--load", "in.borosave", "--ruleset", "minimal.toml"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("--save and --load disagree", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>A save carries no Rules</b> — <c>adr/0086</c> makes the file the field declaration dumped,
+    /// with no schema of its own — so the Rules a loaded city runs under cannot be guessed. This is
+    /// <c>--zones</c>' polarity: a world loaded under no Rules is inert, which reads as a broken save.
+    /// </summary>
+    [Fact]
+    public void A_load_with_no_ruleset_is_refused()
+    {
+        Assert.False(Options.TryParse(
+            ["--load", "city.borosave"], out _, out string? complaint));
+
+        Assert.Contains("--load needs --ruleset", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The round trip <c>--save</c> prints is only evidence if the city changed between its two
+    /// traces, and a world with no Rules does nothing between Ticks.
+    /// </summary>
+    [Fact]
+    public void A_save_with_no_ruleset_is_refused()
+    {
+        Assert.False(Options.TryParse(
+            ["--save", "city.borosave"], out _, out string? complaint));
+
+        Assert.Contains("--save needs --ruleset", complaint, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// ⚠ <b>A save records a world and a log records the session that made one</b>, so there is
+    /// nothing in a save a log could be checked against. Permitting both would replay one session's
+    /// commands into another session's world from whatever Tick the save sits at, and no divergence
+    /// in that run could be attributed to either artefact.
+    /// </summary>
+    [Fact]
+    public void A_load_and_a_log_disagree()
+    {
+        Assert.False(Options.TryParse(
+            ["--load", "city.borosave", "--ruleset", "minimal.toml", "--log", "session.borough"],
+            out _,
+            out string? complaint));
+
+        Assert.Contains("--load and --log disagree", complaint, StringComparison.Ordinal);
+    }
+
+    /// <inheritdoc cref="The_usage_text_names_the_road_dump"/>
+    [Fact]
+    public void The_usage_text_names_both_save_flags()
+    {
+        Assert.Contains("--save PATH", Options.Usage, StringComparison.Ordinal);
+        Assert.Contains("--load PATH", Options.Usage, StringComparison.Ordinal);
+        Assert.Contains("RELOAD", Options.Usage, StringComparison.Ordinal);
+    }
 }

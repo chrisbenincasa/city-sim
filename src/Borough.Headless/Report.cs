@@ -67,23 +67,28 @@ internal static class Report
 
     private static void WriteTables(World world)
     {
-        Console.WriteLine("table       buffering     rows  saved  derived   B/row");
-        Console.WriteLine("-----------------------------------------------------------");
+        Console.WriteLine("table       buffering     rows  saved  derived  scratch   B/row");
+        Console.WriteLine("--------------------------------------------------------------------");
 
         foreach (Rows table in world.Tables)
         {
-            int saved = 0;
+            // The saved count comes from Rows.SavedColumns rather than from a filter written here,
+            // because this was one of the three places that each wrote the same `if` by hand and the
+            // save would have been a fourth. The other two are told apart three-way: an `else` would
+            // count scratch as derived, which is a miscount the moment Disposition grew a third value.
+            int saved = table.SavedColumns.Length;
             int derived = 0;
+            int scratch = 0;
 
             foreach (Column column in table.Columns)
             {
-                if (column.Disposition == Disposition.Saved)
-                {
-                    saved++;
-                }
-                else
+                if (column.Disposition == Disposition.Derived)
                 {
                     derived++;
+                }
+                else if (column.Disposition == Disposition.Scratch)
+                {
+                    scratch++;
                 }
             }
 
@@ -91,7 +96,8 @@ internal static class Report
                       + table.BytesPerRow(Touch.Wake)
                       + table.BytesPerRow(Touch.Cold);
 
-            string counts = F($"{table.LiveCount,7:N0}  {saved,5}  {derived,7}  {bytes,6}");
+            string counts =
+                F($"{table.LiveCount,7:N0}  {saved,5}  {derived,7}  {scratch,7}  {bytes,6}");
             Write($"{table.Name,-10}  {Describe(table.Buffering),-9}  {counts}");
         }
     }

@@ -1,7 +1,8 @@
 namespace Borough.Core.Tables;
 
 /// <summary>
-/// What a column is for: state the simulation owns, or a cache it can rebuild.
+/// What a column is for: state the simulation owns, a cache it can rebuild, or scratch that means
+/// nothing between the phases that use it.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -17,6 +18,17 @@ namespace Borough.Core.Tables;
 /// completeness</b>. A field that is saved is hashed by construction, so the save/reload test cannot
 /// pass while the hash is incomplete. That is why this is structural rather than a test: a test for
 /// hash coverage has the same blind spot as the thing it tests.
+/// </para>
+/// <para>
+/// <b><see cref="Scratch"/> is a third answer and not a third flag, and it does not reopen what the
+/// welding closes.</b> The forbidden state is <em>saved but not hashed</em>; scratch is neither, so
+/// the pair above stays welded and the enum stays one enum. What made the third value necessary is
+/// that <see cref="Derived"/>'s contract is a <em>claim</em> — that the field is a pure function of
+/// saved state — and a scratch intermediate makes no such claim, so declaring it
+/// <see cref="Derived"/> is not a weaker version of that claim but a false one. The alternative was an
+/// exemption list inside the rebuild audit, which is the arrangement <see cref="Reference"/> refused
+/// one file below for the reason that outlives both: <b>a list of fields shares its blind spot with
+/// the bug it exists to find.</b>
 /// </para>
 /// </remarks>
 public enum Disposition
@@ -36,6 +48,34 @@ public enum Disposition
     /// one way to reintroduce the defect this enum closes.
     /// </remarks>
     Derived = 1,
+
+    /// <summary>
+    /// Scratch. Neither saved, hashed, nor rebuilt — its content between the phases that use it is
+    /// meaningless by declaration. adr/0110.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The rule this value carries, and it is an obligation rather than an exemption.</b> A
+    /// scratch column <em>must be written before it is read within the phase that uses it, and
+    /// nothing outside that phase may read it.</em> That is checkable and it is checked: filling
+    /// every scratch column with garbage at a phase boundary must not move the State Hash trace. So
+    /// the rebuild audit skips these columns by declaration, and the skip is paid for by an assertion
+    /// rather than by a name in somebody else's test.
+    /// </para>
+    /// <para>
+    /// <b>Choosing this is a claim too, and it is the stronger one.</b> <see cref="Derived"/> claims
+    /// the field can be recovered; this claims nothing ever needs to recover it, because no read of
+    /// it outlives the write. A column that is genuinely recoverable and merely happens to have no
+    /// rebuild yet is <see cref="Derived"/> with a missing rebuild — a defect — and not this.
+    /// </para>
+    /// <para>
+    /// <b>Why it is storage at all, rather than a local or a bare array.</b> The intermediate has to
+    /// live across calls within the phase and be sized with the table. Declaring it here is what
+    /// keeps it inside the declaration: <c>BOR0901</c> rejects the bare array, and it is right to —
+    /// scratch that escapes the declaration is scratch nobody audits.
+    /// </para>
+    /// </remarks>
+    Scratch = 2,
 }
 
 /// <summary>

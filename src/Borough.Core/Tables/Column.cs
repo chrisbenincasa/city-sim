@@ -52,7 +52,108 @@ public abstract class Column
 
     internal abstract void Clear(int slot);
 
-    internal abstract void Fold(ref ulong hash, int slotCount);
+    /// <summary>
+    /// Folds slots <c>[0, slotCount)</c> into <paramref name="hash"/>, from
+    /// <paramref name="storage"/> rather than from this column's own array.
+    /// </summary>
+    /// <param name="hash">The running hash.</param>
+    /// <param name="storage">
+    /// The bytes to fold — this column's live storage, or the same column's bytes inside a save.
+    /// Its length is the slot count times <see cref="BytesPerRow"/>.
+    /// </param>
+    /// <param name="targets">
+    /// Where <see cref="HandleColumn{TTarget}"/> resolves a handle to the monotonic id it folds.
+    /// <c>default</c> for every column that holds no handle, which ignores it.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// <b>⚠ It takes its bytes rather than reading its own array, and that is the whole of milestone 8
+    /// task 10.</b> The State Hash and the save are the same values in the same order — <c>Rows.Fold</c>
+    /// and <c>SaveFile.WriteBody</c> both walk <see cref="Rows.SavedColumns"/> over the same slots — so
+    /// a fold that takes a span can be run against a <c>WorldSnapshot</c> as easily as against the live
+    /// world, and a save can carry a verified hash that <b>costs the simulation thread nothing</b>
+    /// (<c>adr/0112</c>).
+    /// </para>
+    /// <para>
+    /// <b>One implementation against two sources, deliberately, rather than a second fold beside this
+    /// one.</b> A snapshot-folding routine written separately would be two copies of one rule that must
+    /// agree for ever, which is <c>plans/0012</c> <em>Cause 1</em> built on purpose. This signature is
+    /// what makes the live path and the save path the same code.
+    /// </para>
+    /// </remarks>
+    internal abstract void Fold(ref ulong hash, ReadOnlySpan<byte> storage, in TargetIds targets);
+
+    /// <summary>Folds this column's own storage, resolving handles against the live target table.</summary>
+    /// <remarks>
+    /// <b>The live world's half of the pair, and not a second implementation of anything.</b> It fills
+    /// in the two arguments a live fold always has the same answers for — this column's storage, and
+    /// its target table — and hands them to the one <see cref="Fold(ref ulong, ReadOnlySpan{byte}, in TargetIds)"/>
+    /// that <c>SaveHash</c> also calls.
+    /// </remarks>
+    internal void Fold(ref ulong hash, int slotCount) =>
+        Fold(ref hash, StorageBytes(slotCount), LiveTargets);
+
+    /// <summary>Where this column's handles resolve when the world holding it is the live one.</summary>
+    private TargetIds LiveTargets =>
+        HandleTarget is { } target ? TargetIds.Live(target) : default;
+
+    /// <summary>
+    /// The table this column's handles address, or <c>null</c> if it holds no handles.
+    /// </summary>
+    /// <remarks>
+    /// <b>Non-generic on purpose.</b> A save folder has to find a handle column's target table without
+    /// knowing its element type, in order to locate that table's <c>id</c> and <c>generation</c> bytes
+    /// in the file. <see cref="HandleColumn{TTarget}.Target"/> is the typed answer to the same question
+    /// and is the one to use where the type is in hand.
+    /// </remarks>
+    internal virtual Rows? HandleTarget => null;
+
+    /// <summary>
+    /// Slots <c>[0, slotCount)</c> as raw bytes, readable and writable. The save's half of
+    /// <see cref="Fold"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A sibling to <see cref="Fold"/> rather than a reuse of it, because the two diverge in
+    /// exactly one place and by design</b> (adr/0086). <see cref="Fold"/> is overridden by
+    /// <see cref="HandleColumn{TTarget}"/> to fold the target's monotonic id, so the hash is blind to
+    /// slot recycling; the file must store the handle itself, because a load has to restore the same
+    /// slots. ***A save round-trip must preserve the hash and need not preserve the bytes.***
+    /// </para>
+    /// <para>
+    /// <b>⚠ The bytes are the host's, and so is the hash's reading of them.</b> <see cref="FoldBytes"/>
+    /// assembles <c>ulong</c>s little-endian, which fixes the *combination* step and not the *layout*:
+    /// the bytes it combines come from <see cref="MemoryMarshal.AsBytes"/> over a struct whose field
+    /// order in memory is the machine's. So a big-endian host would produce a different State Hash for
+    /// the same city today, before any save existed — see this file's note on
+    /// <see cref="FoldBytes"/>. The save inherits that exposure exactly and adds none of its own, which
+    /// is the reason to copy rather than to invent a second byte order here: one representation, one
+    /// place to fix if a port ever happens.
+    /// </para>
+    /// <para>
+    /// <b>⚠ It hands out the storage itself rather than copying into or out of a buffer</b> (task 5).
+    /// Task 2 built a <c>WriteBytes</c>/<c>ReadBytes</c> pair and both are gone: a column's slots are
+    /// already contiguous, so a save writes them by handing this span to a sink and a load fills them
+    /// by handing it to a source. ***The file needs no intermediate copy at either end, and a buffer
+    /// the size of the save would have doubled the peak the copy in adr/0087 already costs.***
+    /// </para>
+    /// <para>
+    /// <b>The write half is a real span into live storage, so the caller may fill it.</b> A load that
+    /// fails partway leaves a column half-filled, which is safe only because a failed load discards
+    /// the world it was building — stated here because nothing structural enforces it.
+    /// </para>
+    /// </remarks>
+    internal abstract Span<byte> StorageBytes(int slotCount);
+
+    /// <summary>Copies slots <c>[0, slotCount)</c> of the live half over the write half, if there is one.</summary>
+    /// <remarks>
+    /// <b>Called after a load fills <see cref="StorageBytes"/>, and it cannot be skipped.</b>
+    /// <see cref="Clear"/> says why: a <c>_back</c> left holding an old row would resurrect it on the
+    /// next swap, and a load is the one moment the front half changes without a swap having produced
+    /// it. It is a separate call rather than part of the fill because the fill is the caller's write
+    /// and this has to happen after it.
+    /// </remarks>
+    internal abstract void MirrorToBack(int slotCount);
 
     /// <summary>Copies the live half over the write half, before a partial parallel write.</summary>
     /// <remarks>
@@ -205,8 +306,38 @@ public class Column<T> : Column
             $"column '{Name}' has one copy; table '{Owner.Name}' did not declare Buffering.TwoCopies. "
             + "adr/0037: a table is double-buffered if and only if a parallel phase reads and writes it.");
 
-    internal override void Fold(ref ulong hash, int slotCount) =>
-        FoldBytes(ref hash, MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount)));
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <b>The bytes are the whole of it, which is why a save needs no second fold for this case.</b>
+    /// A column's file bytes <em>are</em> its storage bytes (<see cref="StorageBytes"/> hands out the
+    /// same span), so folding one is folding the other. <see cref="HandleColumn{TTarget}"/> is the
+    /// single exception in the whole table layer.
+    /// </remarks>
+    internal override void Fold(ref ulong hash, ReadOnlySpan<byte> storage, in TargetIds targets) =>
+        FoldBytes(ref hash, storage);
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <b>Not overridden by <see cref="HandleColumn{TTarget}"/>, which is the interesting half.</b>
+    /// That type overrides <see cref="Fold"/> and inherits this, so a handle reaches the file as its
+    /// stored <c>{index, generation}</c> — which <see cref="HandleColumn{TTarget}"/>'s own remarks
+    /// already note *"would be correct for both uses the hash has today"* and is required rather than
+    /// merely adequate here, since a load must restore the slots the handles address.
+    /// </remarks>
+    internal sealed override Span<byte> StorageBytes(int slotCount) =>
+        MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount));
+
+    /// <inheritdoc/>
+    internal sealed override void MirrorToBack(int slotCount)
+    {
+        if (_back is null)
+        {
+            return;
+        }
+
+        MemoryMarshal.AsBytes(_values.AsSpan(0, slotCount))
+            .CopyTo(MemoryMarshal.AsBytes(_back.AsSpan(0, slotCount)));
+    }
 
     /// <summary>
     /// Folds a column's bytes through slice 2's <c>mix</c>, eight at a time, little-endian.
@@ -319,10 +450,20 @@ public sealed class HandleColumn<TTarget> : Column<Handle<TTarget>>
         return !handle.IsNone && !_target.IsValid(handle);
     }
 
-    internal override void Fold(ref ulong hash, int slotCount)
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <b>⚠ Everything this needs is in the save, which is the finding milestone 8 task 10 rests on.</b>
+    /// The id it folds lives in the target table rather than in the handle — so a fold over
+    /// <em>these</em> bytes alone is not the State Hash, and <c>plans/0030</c> task 6 concluded from
+    /// that the hash could not come from a copy at all. It can: <c>Rows</c> declares <c>id</c> and
+    /// <c>generation</c> as <see cref="Disposition.Saved"/> columns, so both arrays are in the file
+    /// too. ***The value is not in these bytes and it is in the copy.*** <see cref="TargetIds"/> is the
+    /// one line of difference between reading it from the live table and reading it from the save.
+    /// </remarks>
+    internal override void Fold(ref ulong hash, ReadOnlySpan<byte> storage, in TargetIds targets)
     {
         ulong h = hash;
-        Span<Handle<TTarget>> handles = Raw[..slotCount];
+        ReadOnlySpan<Handle<TTarget>> handles = MemoryMarshal.Cast<byte, Handle<TTarget>>(storage);
 
         for (int i = 0; i < handles.Length; i++)
         {
@@ -330,11 +471,14 @@ public sealed class HandleColumn<TTarget> : Column<Handle<TTarget>>
 
             ulong value = handle.IsNone
                 ? 0
-                : _target.TryIdOf(handle, out ulong id) ? id : Dangling;
+                : targets.TryIdOf(handle.Index, handle.Generation, out ulong id) ? id : Dangling;
 
             h = Randomness.Mix(h + value);
         }
 
         hash = h;
     }
+
+    /// <inheritdoc/>
+    internal override Rows HandleTarget => _target;
 }

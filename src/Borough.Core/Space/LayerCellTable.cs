@@ -48,7 +48,7 @@ public sealed class LayerCellTable
 
         PollutionSource = _rows.Saved<int>("pollution_source");
         Pollution = _rows.Saved<int>("pollution");
-        PollutionPass = _rows.Derived<int>("pollution_pass");
+        PollutionPass = _rows.Scratch<int>("pollution_pass");
 
         LandValue = _rows.Saved<int>("land_value");
         LandValueTarget = _rows.Saved<int>("land_value_target");
@@ -94,11 +94,22 @@ public sealed class LayerCellTable
     /// The horizontal pass's intermediate, scaled by <see cref="SeparableKernel.Gain"/> once.
     /// </summary>
     /// <remarks>
-    /// <b>Derived, and its content between two diffusions is meaningless by declaration.</b> It is
-    /// written and read entirely within one call to <see cref="LayerDiffusion"/>; it survives to the
-    /// next only because a column is storage rather than a local. It is a column rather than a bare
-    /// array so that it is declared once like everything else — <c>BOR0901</c> would reject the array,
-    /// and it is right to: scratch that escapes the declaration is scratch nobody audits.
+    /// <para>
+    /// <b><see cref="Disposition.Scratch"/>, and its content between two diffusions is meaningless by
+    /// declaration.</b> It is written and read entirely within one call to
+    /// <see cref="LayerDiffusion"/>; it survives to the next only because a column is storage rather
+    /// than a local. It is a column rather than a bare array so that it is declared once like
+    /// everything else — <c>BOR0901</c> would reject the array, and it is right to: scratch that
+    /// escapes the declaration is scratch nobody audits.
+    /// </para>
+    /// <para>
+    /// <b>It was <see cref="Disposition.Derived"/> until milestone 8 task 1, and that was the wrong
+    /// declaration rather than a loose one.</b> <see cref="Disposition.Derived"/> claims the field is
+    /// a pure function of saved state; nothing rebuilds this one and nothing should, because there is
+    /// nothing to recover. The rebuild audit that made the difference matter is what created the
+    /// third value — this column is the reason it exists, and the obligation it now carries (no read
+    /// outlives the phase that wrote it) is asserted rather than assumed.
+    /// </para>
     /// </remarks>
     public Column<int> PollutionPass { get; }
 

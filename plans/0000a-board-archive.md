@@ -37,6 +37,7 @@ sentence, which is `plans/0012` **Cause 5** by construction. Follow the link.
 | 11 | Milestone **5c** task 8 — the long acceptance run, which closed the milestone | 2026-08-16 | [`0026`](0026-statistical-resolution-and-the-travel-time-matrix.md) → *Task 8* |
 | 12 | [`0003`](0003-build-plan.md) hash-moving queue **item 9** — the populator's land half and people half come apart, so a `Connect`-laid network can hold a population | 2026-08-15 | [`0003`](0003-build-plan.md) → *The hash-moving queue* |
 | 13 | Argument — `04 §6` and `§7`, then the corpus-wide sweep for unscheduled mechanisms | 2026-08-15 | [`adr/0102`](../docs/adr/0102-a-housed-departure-is-a-comparison-the-household-re-runs-not-a-threshold-it-crosses.md)–[`adr/0104`](../docs/adr/0104-a-skill-tier-is-earned-by-attendance-and-the-credential-stays-a-wall.md), [`06`](../docs/06-roadmap.md) → *Mechanisms with no milestone* |
+| 1b | Milestone **8** — Save/load, all ten tasks, and the two questions it added closed with the user in the room | 2026-08-18 | [`0030`](0030-save-load.md), [`adr/0111`](../docs/adr/0111-a-save-that-re-derives-nothing-needs-neither-a-seed-nor-a-generator-version.md), [`adr/0112`](../docs/adr/0112-the-saved-set-is-the-hashed-set-so-a-save-can-compute-its-own-state-hash.md) |
 
 ## Closed prose that sat beneath that table
 

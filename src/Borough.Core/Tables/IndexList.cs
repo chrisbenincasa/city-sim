@@ -168,6 +168,21 @@ public readonly ref struct IndexList
             encoded = _next[previous];
         }
 
+        // A node already in this list would be linked to itself by the assignment below -- the scan
+        // stops on the node itself, so `encoded` is its own encoded index. That is a silent
+        // corruption whose only symptom is that every later walk, insert and remove on this owner
+        // never terminates, which reads as a hang with no failing test and no stack. adr/0004's
+        // argument for the checked Resolve applies unchanged: the check is a compare on a value
+        // already in hand, and what it buys is a loud failure instead of a spin.
+        if (encoded == node + 1)
+        {
+            throw new InvalidOperationException(
+                $"slot {node} is already in owner {owner}'s list. Inserting it again would link it "
+                + "to itself, and every subsequent traversal of this list would never terminate. "
+                + "The caller's bookkeeping is wrong: something was listed twice, or unlisted "
+                + "through an identity that had already changed.");
+        }
+
         _next[node] = encoded;
 
         if (previous == Rows.NoSlot)

@@ -34,9 +34,31 @@ public readonly struct WorldKey : IEquatable<WorldKey>
 
     private WorldKey(ulong raw) => Raw = raw;
 
-    /// <summary>Derives the key for a world seed. The one way to obtain a <see cref="WorldKey"/>.</summary>
+    /// <summary>Derives the key for a world seed. The one way to <em>choose</em> a <see cref="WorldKey"/>.</summary>
     public static WorldKey FromSeed(ulong worldSeed) =>
         new(Randomness.Mix(unchecked(worldSeed + Randomness.Golden)));
+
+    /// <summary>Reads back a key a save wrote. Not a way to choose one.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The second door, and it is <c>internal</c> because the first door's guarantee is what is
+    /// being spent.</b> The type has no public constructor so that a raw <c>ulong</c> cannot be passed
+    /// where a key belongs; this reopens exactly that, for one caller —
+    /// <see cref="Persistence.SaveHeader"/> — which is restoring a key that was already derived rather
+    /// than inventing one. A load is the one moment where <em>this world's key</em> is a fact to be
+    /// read and not a value to be chosen.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The remark above says <em>save the seed, not the key</em>, and a version-1 save does the
+    /// opposite on purpose</b> — see adr/0111. That sentence is honoured by the artefact it was written
+    /// for: <c>InputLogCodec</c> writes <c>seed 0x…</c> and derives the key on replay, because a replay
+    /// <em>re-derives</em>. A version-1 save re-derives nothing, so it has no use for a seed and would
+    /// be storing a value whose only reader is <see cref="FromSeed"/> — a derivation it would then be
+    /// hostage to. The seed returns to the save the day something regenerates from it.
+    /// </para>
+    /// </remarks>
+    internal static WorldKey Restore(ulong raw) => new(raw);
+
 
     /// <inheritdoc/>
     public bool Equals(WorldKey other) => Raw == other.Raw;

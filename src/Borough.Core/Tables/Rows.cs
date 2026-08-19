@@ -1,6 +1,7 @@
 namespace Borough.Core.Tables;
 
 using Borough.Core.Determinism;
+using Borough.Core.Persistence;
 
 /// <summary>
 /// The shared half of a hand-written table: a generation array, a free list, a monotonic id, a count,
@@ -43,6 +44,8 @@ public abstract class Rows
 
     private List<Column>? _declaring = [];
     private Column[] _columns = [];
+
+    private Column[] _savedColumns = [];
 
     private readonly Column<ulong> _id;
     private readonly Column<uint> _generation;
@@ -94,8 +97,40 @@ public abstract class Rows
     /// <summary>Allocated slots, live or free. A sizing figure; it never reaches the hash.</summary>
     public int Capacity => _capacity;
 
+    /// <summary>The head of the free list, or <see cref="NoSlot"/>. Saved state, not bookkeeping.</summary>
+    /// <remarks>
+    /// <b>Exposed for the save and for nothing else, which is why it is <c>internal</c>.</b> It is in
+    /// the State Hash already — <see cref="Fold"/> folds it beside the other three scalars — so a save
+    /// that omitted it would reload to a world whose next allocation lands somewhere else, and the
+    /// hash would move at the load with nothing to attribute it to. Reading it outside the serialiser
+    /// is reading the allocator's private business.
+    /// </remarks>
+    internal int FreeHead => _freeHead;
+
+    /// <summary>The monotonic id counter. Saved state; never reset and never recomputed.</summary>
+    /// <remarks>
+    /// <see cref="FreeHead"/>'s reasoning, on the axis that matters for <see cref="Handle{T}"/>:
+    /// recomputing this as <em>one past the largest live id</em> would reissue the ids of rows freed
+    /// since, and the hash folds a handle as its target's id.
+    /// </remarks>
+    internal ulong NextId => _nextId;
+
     /// <summary>Every column, in declaration order — which is the order the hash folds them in.</summary>
     public ReadOnlySpan<Column> Columns => _columns;
+
+    /// <summary>
+    /// The <see cref="Disposition.Saved"/> columns, in declaration order. What the hash folds and
+    /// what the save writes, which are the same set by construction.
+    /// </summary>
+    /// <remarks>
+    /// <b>One accessor rather than the fourth hand-written filter.</b> Three call sites wrote the
+    /// <c>if</c> themselves before milestone 8 — the fold here, the footprint report, and a test — and
+    /// the save would have been a fourth. The set is the same question each time and the answers had
+    /// no way to disagree loudly, which is the shape <c>plans/0012</c> <em>Cause 1</em> describes:
+    /// several copies of one fact, none of them able to notice the others. Computed once at
+    /// <see cref="Seal"/>, because the declaration is closed there and cannot change afterwards.
+    /// </remarks>
+    public ReadOnlySpan<Column> SavedColumns => _savedColumns;
 
     /// <summary>Declares a column of state: written to the save and folded into the hash.</summary>
     public Column<TField> Saved<TField>(string name, Touch touch = Touch.Wake)
@@ -106,6 +141,19 @@ public abstract class Rows
     public Column<TField> Derived<TField>(string name, Touch touch = Touch.Wake)
         where TField : unmanaged =>
         Declare(new Column<TField>(this, name, Disposition.Derived, touch, _capacity));
+
+    /// <summary>
+    /// Declares scratch: neither saved, hashed, nor rebuilt, and read only inside the phase that
+    /// writes it.
+    /// </summary>
+    /// <remarks>
+    /// Read <see cref="Disposition.Scratch"/> before choosing this. It carries an obligation the
+    /// other two do not — nothing may read the column outside the phase that wrote it — and the
+    /// rebuild audit skips it on the strength of that obligation.
+    /// </remarks>
+    public Column<TField> Scratch<TField>(string name, Touch touch = Touch.Wake)
+        where TField : unmanaged =>
+        Declare(new Column<TField>(this, name, Disposition.Scratch, touch, _capacity));
 
     /// <summary>
     /// Declares a column of handles into <paramref name="target"/>. Saved, and hashed by the target's
@@ -145,6 +193,7 @@ public abstract class Rows
         }
 
         _columns = [.. _declaring];
+        _savedColumns = [.. _declaring.FindAll(column => column.Disposition == Disposition.Saved)];
         _declaring = null;
     }
 
@@ -167,25 +216,67 @@ public abstract class Rows
         return total;
     }
 
+    /// <summary>
+    /// Bytes of <see cref="Disposition.Saved"/> column storage per slot — the width of one row in the
+    /// save.
+    /// </summary>
+    /// <remarks>
+    /// <b>The figure <c>adr/0087</c> names as owed and forbids guessing.</b> It is deliberately not
+    /// <see cref="BytesPerRow(Touch)"/> summed over the three tiers: that figure counts every column,
+    /// derived and scratch included, because it sizes <em>memory</em>. This sizes the <em>file</em>,
+    /// and the two differ by whatever the declaration says is rebuildable. ⚠ <b>S0a's 85.98 MiB at 1M
+    /// is the memory figure and must never be quoted as a save's size</b> (<c>plans/0012</c>
+    /// <em>Cause 5</em>).
+    /// </remarks>
+    public int SavedBytesPerRow
+    {
+        get
+        {
+            int total = 0;
+
+            foreach (Column column in _savedColumns)
+            {
+                total += column.BytesPerRow;
+            }
+
+            return total;
+        }
+    }
+
     /// <summary>Folds this table's saved state into <paramref name="hash"/>, in index order.</summary>
     public void Fold(ref ulong hash)
     {
         ulong h = hash;
 
-        // The allocator's scalars first. _freeHead is -1 when the list is empty and sign-extends to
-        // a value no slot index can collide with, which is the intent.
-        h = Randomness.Mix(h + (ulong)(long)_slotCount);
-        h = Randomness.Mix(h + (ulong)(long)_liveCount);
-        h = Randomness.Mix(h + (ulong)(long)_freeHead);
-        h = Randomness.Mix(h + _nextId);
+        FoldScalars(ref h, _slotCount, _liveCount, _freeHead, _nextId);
 
-        foreach (Column column in _columns)
+        foreach (Column column in _savedColumns)
         {
-            if (column.Disposition == Disposition.Saved)
-            {
-                column.Fold(ref h, _slotCount);
-            }
+            column.Fold(ref h, _slotCount);
         }
+
+        hash = h;
+    }
+
+    /// <summary>
+    /// Folds the allocator's four scalars, which is where every table's contribution to the hash
+    /// begins.
+    /// </summary>
+    /// <remarks>
+    /// <b>Static and shared with the save folder</b> (<c>adr/0112</c>), because a save writes these
+    /// same four numbers in this same order and a copy of the mixing here would be a copy that could
+    /// drift. <c>freeHead</c> is -1 when the list is empty and sign-extends to a value no slot index
+    /// can collide with, which is the intent.
+    /// </remarks>
+    internal static void FoldScalars(
+        ref ulong hash, int slotCount, int liveCount, int freeHead, ulong nextId)
+    {
+        ulong h = hash;
+
+        h = Randomness.Mix(h + (ulong)(long)slotCount);
+        h = Randomness.Mix(h + (ulong)(long)liveCount);
+        h = Randomness.Mix(h + (ulong)(long)freeHead);
+        h = Randomness.Mix(h + nextId);
 
         hash = h;
     }
@@ -205,10 +296,7 @@ public abstract class Rows
     {
         ulong h = hash;
 
-        h = Randomness.Mix(h + (ulong)(long)_slotCount);
-        h = Randomness.Mix(h + (ulong)(long)_liveCount);
-        h = Randomness.Mix(h + (ulong)(long)_freeHead);
-        h = Randomness.Mix(h + _nextId);
+        FoldScalars(ref h, _slotCount, _liveCount, _freeHead, _nextId);
 
         foreach (Column column in _columns)
         {
@@ -276,6 +364,52 @@ public abstract class Rows
     /// </remarks>
     public ulong IdAt(int slot) => _id[slot];
 
+    /// <summary>The <c>id</c> column itself, for a reader that has to find it in a save.</summary>
+    /// <remarks>
+    /// <b>Exposed by identity rather than by position</b> (<c>adr/0112</c>). <c>SaveHash</c> has to
+    /// locate this column's bytes in a file, and it does that by walking <see cref="SavedColumns"/>
+    /// until it finds this reference. Trusting that <c>id</c> and <c>generation</c> are declared first
+    /// would be true today and would be a silent wrong answer the day somebody declares a column above
+    /// them.
+    /// </remarks>
+    internal Column IdColumn => _id;
+
+    /// <inheritdoc cref="IdColumn"/>
+    /// <summary>The <c>generation</c> column itself.</summary>
+    internal Column GenerationColumn => _generation;
+
+    /// <summary>
+    /// Whether a handle's <c>{index, generation}</c> pair addresses a live row of this table.
+    /// </summary>
+    /// <remarks>
+    /// <b>The non-generic half of <c>Rows{T}.IsValid</c>, which delegates to it.</b> The rule is stated
+    /// once because a save folds handles too and cannot see the element type: a generation of zero is
+    /// the unset handle, an index past the slot count is out of range, and a generation that does not
+    /// match the slot's is a handle whose row has been freed. Live generations are odd, so a matching
+    /// generation implies a live slot and no separate liveness test is needed.
+    /// </remarks>
+    internal bool IsValidSlot(uint index, uint generation) =>
+        generation != 0
+        && index < (uint)_slotCount
+        && _generation[(int)index] == generation;
+
+    /// <summary>The monotonic id at a handle's slot, or false if the handle addresses no live row.</summary>
+    /// <remarks>
+    /// <b>What <see cref="TargetIds.Live"/> calls, and therefore what the State Hash folds for every
+    /// handle column.</b> The saved counterpart reads the same two columns out of a file.
+    /// </remarks>
+    internal bool TryIdAt(uint index, uint generation, out ulong id)
+    {
+        if (!IsValidSlot(index, generation))
+        {
+            id = 0;
+            return false;
+        }
+
+        id = _id[(int)index];
+        return true;
+    }
+
     private protected uint GenerationAt(int slot) => _generation[slot];
 
     private protected int AllocateSlot(out uint generation)
@@ -338,6 +472,236 @@ public abstract class Rows
         _liveCount--;
     }
 
+    /// <summary>
+    /// Restores this table from a save: the four allocator scalars, then every
+    /// <see cref="Disposition.Saved"/> column's bytes, then a consistency walk.
+    /// </summary>
+    /// <param name="slotCount">The high-water slot count the save was taken at.</param>
+    /// <param name="liveCount">How many of those slots held live rows.</param>
+    /// <param name="freeHead">The head of the free list, or <see cref="NoSlot"/>.</param>
+    /// <param name="nextId">The monotonic id counter, which is never reset.</param>
+    /// <param name="source">
+    /// The file, positioned at this table's first saved column. Each of <see cref="SavedColumns"/> is
+    /// pulled from it in declaration order, <c>BytesPerRow × slotCount</c> at a time.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// <b>Slot-exactness is the whole constraint</b> (adr/0086). The free list and the id counter are
+    /// <em>saved state</em> rather than bookkeeping to recompute: a loader that rebuilt the free list
+    /// by scanning for dead rows would produce a different <c>_freeHead</c>, hand the next allocation
+    /// a different slot, and diverge from the run it was supposed to continue — with a State Hash
+    /// that moved at the load and nothing to say why. So all four scalars come off the file and none
+    /// is derived.
+    /// </para>
+    /// <para>
+    /// <b>One call rather than a scalars-then-columns pair, because the pair has a forgettable half.</b>
+    /// The columns cannot be read before <see cref="SlotCount"/> is set (it is what sizes them) and the
+    /// consistency walk cannot run before they are read (the generations and the free list <em>are</em>
+    /// columns), so the ordering is fixed and there is no state in which a caller should be holding a
+    /// half-restored table. A door that leaves a structure half-maintained is the defect
+    /// <c>plans/0002</c> §C's raw-table-door row is about; this one cannot.
+    /// </para>
+    /// <para>
+    /// <b>⚠ It pulls from the file straight into column storage, and holds no buffer at all.</b> Task 3
+    /// took the table's bytes as one span, which made the loader's peak the largest table's saved set
+    /// — 22.5 MB at 1,000,000 Citizens — on top of the world being built. <c>Column.StorageBytes</c>
+    /// hands out the destination instead, so the file's bytes land where they are going to live.
+    /// ***A restore that knows the final size has nothing to stage.***
+    /// </para>
+    /// <para>
+    /// <b>It restores the <see cref="Disposition.Saved"/> columns and nothing else.</b> Derived columns
+    /// are rebuilt afterwards by <c>World.RebuildDerived</c> and scratch columns are meaningless
+    /// between phases (adr/0110), so neither is in the file. The tail beyond
+    /// <paramref name="slotCount"/> is cleared, because <see cref="AllocateSlot"/> does not clear the
+    /// slot it hands out — it relies on storage starting zeroed — and a restore into a table that was
+    /// previously longer would otherwise hand a future row somebody else's bytes.
+    /// </para>
+    /// <para>
+    /// <b>⚠ A stale <see cref="Reference.Severable"/> handle is restored stale, deliberately.</b>
+    /// Nothing here normalises a handle whose target is not live: the stale handle <em>is</em> the
+    /// state, and a Citizen whose Workplace no longer resolves is exactly the fact that the job no
+    /// longer exists.
+    /// </para>
+    /// </remarks>
+    internal void Restore(
+        int slotCount, int liveCount, int freeHead, ulong nextId, ISaveSource source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        if (_declaring is not null)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' has not been sealed; a restore ran while the schema was open.");
+        }
+
+        if (slotCount < 0)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' was restored with a negative slot count ({slotCount}).");
+        }
+
+        if ((uint)liveCount > (uint)slotCount)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' was restored with {liveCount} live rows in {slotCount} slots. A live "
+                + "count above the slot count is a header that does not describe the bytes beneath it.");
+        }
+
+        if (freeHead != NoSlot && (uint)freeHead >= (uint)slotCount)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' was restored with a free head of {freeHead}, which is outside "
+                + $"[0, {slotCount}).");
+        }
+
+        if (nextId == 0)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}' was restored with an id counter of 0. Ids start at 1 and 0 is what a "
+                + "freed slot holds, so a counter of 0 would mint an id indistinguishable from absence.");
+        }
+
+        GrowTo(slotCount);
+
+        _slotCount = slotCount;
+        _liveCount = liveCount;
+        _freeHead = freeHead;
+        _nextId = nextId;
+
+        foreach (Column column in _savedColumns)
+        {
+            source.Read(column.StorageBytes(slotCount));
+            column.MirrorToBack(slotCount);
+        }
+
+        // Slots the save did not cover. See the remark above: AllocateSlot hands out a slot without
+        // clearing it, so this is what keeps that assumption true after a restore.
+        for (int slot = slotCount; slot < _capacity; slot++)
+        {
+            foreach (Column column in _columns)
+            {
+                column.Clear(slot);
+            }
+        }
+
+        VerifyRestored();
+    }
+
+    /// <summary>
+    /// Walks what the save just claimed and refuses a table that does not hold together.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is where slot-exactness stops being a hope.</b> Every check here is a property the
+    /// allocator maintains as an invariant and which a corrupt, truncated or hand-edited file breaks
+    /// — and each is cheap, runs once per table per load, and stands against a defect whose
+    /// alternative symptom is a State Hash that diverges thousands of Ticks later with no way back to
+    /// the cause. <b>The free-list walk is bounded by the slot count</b> rather than trusting
+    /// termination, because a cycle in a restored free list is the one shape here that would otherwise
+    /// hang the load rather than fail it.
+    /// </remarks>
+    private void VerifyRestored()
+    {
+        int free = 0;
+
+        for (int slot = _freeHead; slot != NoSlot; slot = _freeNext[slot])
+        {
+            if ((uint)slot >= (uint)_slotCount)
+            {
+                throw new InvalidOperationException(
+                    $"table '{Name}': the restored free list reaches slot {slot}, outside "
+                    + $"[0, {_slotCount}).");
+            }
+
+            if ((_generation[slot] & 1u) == 1u)
+            {
+                throw new InvalidOperationException(
+                    $"table '{Name}': restored free-list slot {slot} has an odd generation, which is "
+                    + "this table's encoding for live. A slot cannot be both on the free list and "
+                    + "occupied.");
+            }
+
+            if (++free > _slotCount)
+            {
+                throw new InvalidOperationException(
+                    $"table '{Name}': the restored free list does not terminate within {_slotCount} "
+                    + "steps, so it contains a cycle.");
+            }
+        }
+
+        if (free != _slotCount - _liveCount)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}': the restored free list holds {free} slots and the header says "
+                + $"{_slotCount - _liveCount} are not live. The free list is saved state, so a "
+                + "disagreement here is the file contradicting itself rather than something to repair.");
+        }
+
+        int live = 0;
+
+        for (int slot = 0; slot < _slotCount; slot++)
+        {
+            if ((_generation[slot] & 1u) == 1u)
+            {
+                live++;
+
+                if (_id[slot] == 0 || _id[slot] >= _nextId)
+                {
+                    throw new InvalidOperationException(
+                        $"table '{Name}': live slot {slot} carries id {_id[slot]} against an id "
+                        + $"counter of {_nextId}. A live row's id is minted below the counter and is "
+                        + "never 0.");
+                }
+            }
+            else if (_id[slot] != 0)
+            {
+                throw new InvalidOperationException(
+                    $"table '{Name}': free slot {slot} carries id {_id[slot]} rather than 0. FreeSlot "
+                    + "zeroes every column, so a non-zero id in a dead slot means the residue in this "
+                    + "file was not produced by this allocator.");
+            }
+        }
+
+        if (live != _liveCount)
+        {
+            throw new InvalidOperationException(
+                $"table '{Name}': {live} slots have live generations and the header says {_liveCount}.");
+        }
+    }
+
+    /// <summary>Grows capacity to hold at least <paramref name="slots"/>, doubling as the allocator does.</summary>
+    /// <summary>Widens the table to hold <paramref name="slots"/>. A restore's growth, not the allocator's.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>⚠ It grows to the exact size, where the allocator doubles, and the difference is that this
+    /// caller knows where it is going.</b> <see cref="Grow"/> doubles to amortise a cost that is about
+    /// to recur; a restore is told the final slot count up front, so doubling here would round a
+    /// 132-slot table up to 256 and hold the difference for the life of the world. **Capacity is not
+    /// folded and the tail beyond <c>_slotCount</c> is cleared either way**, so the size is free to be
+    /// exact.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Task 3 shipped this as a doubling loop and it did not terminate from a capacity of zero</b>
+    /// — <c>0 × 2</c> is <c>0</c> — which a load into a <c>new World(0)</c> reaches directly, since
+    /// every table is sized per thousand Citizens. <see cref="Grow"/> carries the same premise and
+    /// fails differently: it returns a capacity of zero and the allocator then indexes past the end.
+    /// ***A doubling growth rule assumes a non-zero base, and neither site said so.***
+    /// </para>
+    /// </remarks>
+    private void GrowTo(int slots)
+    {
+        if (slots <= _capacity)
+        {
+            return;
+        }
+
+        _capacity = slots;
+
+        foreach (Column column in _columns)
+        {
+            column.Grow(_capacity);
+        }
+    }
+
     private TColumn Declare<TColumn>(TColumn column)
         where TColumn : Column
     {
@@ -370,9 +734,18 @@ public abstract class Rows
         }
     }
 
+    /// <summary>The allocator's growth: double, because the cost is about to recur.</summary>
+    /// <remarks>
+    /// <b>⚠ The floor of one is load-bearing rather than defensive.</b> A table declared with a capacity
+    /// of zero is ordinary — every table is sized per thousand Citizens, so <c>new World(0)</c> declares
+    /// several — and <c>0 × 2</c> is <c>0</c>, after which the allocator hands out slot 0 of an
+    /// empty array. It was unreachable while a world could only be built by construction; a load can
+    /// produce a table with zero slots and then allocate into it. See <see cref="GrowTo"/>, which had
+    /// the same premise and failed by not terminating.
+    /// </remarks>
     private void Grow()
     {
-        _capacity *= 2;
+        _capacity = _capacity == 0 ? 1 : _capacity * 2;
 
         foreach (Column column in _columns)
         {
@@ -410,10 +783,7 @@ public sealed class Rows<T> : Rows
     public void Free(Handle<T> handle) => FreeSlot(Resolve(handle));
 
     /// <summary>True when the handle still addresses the row it was issued for.</summary>
-    public bool IsValid(Handle<T> handle) =>
-        handle.Generation != 0
-        && handle.Index < (uint)SlotCount
-        && GenerationAt((int)handle.Index) == handle.Generation;
+    public bool IsValid(Handle<T> handle) => IsValidSlot(handle.Index, handle.Generation);
 
     /// <summary>
     /// The slot a handle addresses, or a throw.
@@ -452,16 +822,15 @@ public sealed class Rows<T> : Rows
     public Handle<T> At(int slot) =>
         IsLive(slot) ? new Handle<T>((uint)slot, GenerationAt(slot)) : default;
 
-    /// <summary>The target's monotonic id, for the hash and for anything needing a stable key.</summary>
-    public bool TryIdOf(Handle<T> handle, out ulong id)
-    {
-        if (!IsValid(handle))
-        {
-            id = 0;
-            return false;
-        }
-
-        id = IdAt((int)handle.Index);
-        return true;
-    }
+    /// <summary>The target's monotonic id — the stable per-entity key, for anything that needs one.</summary>
+    /// <remarks>
+    /// ⚠ <b>The hash no longer comes through here, and the rule it used to state now lives in
+    /// <see cref="Rows.TryIdAt"/>.</b> <c>HandleColumn.Fold</c> resolves through
+    /// <see cref="TargetIds"/> as of <c>adr/0112</c>, because a save resolves the same handles without
+    /// being able to see <typeparamref name="T"/>. This is the typed door to the same answer and
+    /// delegates rather than restating it — two spellings of one validity rule is exactly what that
+    /// refactor existed to avoid.
+    /// </remarks>
+    public bool TryIdOf(Handle<T> handle, out ulong id) =>
+        TryIdAt(handle.Index, handle.Generation, out id);
 }

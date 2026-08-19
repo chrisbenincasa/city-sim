@@ -88,6 +88,17 @@ public static class InputLogCodec
     /// reader parses happily and gets wrong, which is exactly the case a version exists for.
     /// </para>
     /// <para>
+    /// ⚠ <b><em>A different meaning for <c>seed</c></em> includes a change to what a seed builds, and
+    /// that is the widest of the three</b> (added 2026-08-17 by <c>adr/0111</c>). The three examples
+    /// above are all changes to this file; this one is a change to <c>SyntheticCity</c> or
+    /// <c>RoadGenerator</c>, which nothing here imports and which would leave every line of an old log
+    /// parsing perfectly and replaying into a different city. <b>This is the version number
+    /// <c>adr/0021</c> asks for and calls the same class of failure as <c>System.Random</c> changing
+    /// under <c>adr/0003</c></b> — <c>adr/0086</c> put it in the save header, where nothing regenerates
+    /// and it can never differ, and it belongs here, where a seed is re-read on every replay.
+    /// ***A version number guards the artefact that re-derives, not the one that restores.***
+    /// </para>
+    /// <para>
     /// <b>That rule is the one that governs, and 5a-bis is where it was tested.</b> The class remark
     /// above used to assert that a declared verb's arrival could never bump the version, which
     /// contradicts this paragraph the moment a verb needs a payload the four fields cannot hold.

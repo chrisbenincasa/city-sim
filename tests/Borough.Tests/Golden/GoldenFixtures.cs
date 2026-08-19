@@ -62,7 +62,7 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0x9C51_3AD1_4C05_AD10UL;
+    internal const ulong RulesetHash = 0x084B_6257_DD94_36E9UL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>
@@ -75,7 +75,7 @@ internal static class GoldenFixtures
     /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
     /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
     /// </remarks>
-    internal const ulong TunedRulesetHash = 0x1135_293A_C5EA_4167UL;
+    internal const ulong TunedRulesetHash = 0xFE11_C522_A609_F98DUL;
 
     /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
     internal static string TunedRulesetPath =>
@@ -315,6 +315,21 @@ internal static class GoldenFixtures
         for (int i = 0; i < buildings.Length; i++)
         {
             buildings[i] = world.Buildings.Create(world.Lots, lots[i], kind: (byte)(1 + (i % 3)));
+
+            // The Cell residency index, which World.CreateBuilding maintains and BuildingTable.Create
+            // knows nothing about. ⚠ Found 2026-08-17 by milestone 8 task 1's rebuild audit, on its
+            // first run: this fixture held four Buildings and an EMPTY Cell index, so a rebuild
+            // populated a structure the live world had never filled. No hash could report it --
+            // CellNext is (derived AND rebuilt) and the head/tail arrays are not columns at all --
+            // and the world every committed baseline is recorded from was the one carrying it.
+            //
+            // Adding the call rather than switching to World.CreateBuilding: that door also creates
+            // the kind's Bins and arms its chain heads, which is saved state and would re-baseline
+            // three artefacts to fix a derived index. Whether the raw table door should be reachable
+            // without the world's index at all is a question about doors, filed rather than answered
+            // here (adr/0073 -- route the finding, do not work around it).
+            world.BuildingsInCells.Add(
+                world.Buildings, world.Lots, world.Buildings.Rows.Resolve(buildings[i]));
         }
 
         var households = new Handle<Household>[8];
