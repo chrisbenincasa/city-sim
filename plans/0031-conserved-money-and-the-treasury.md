@@ -248,7 +248,21 @@ derived from the share of a mature city's budget Upkeep should occupy"* — so *
 output of a budget that does not exist yet**, which makes them unauthorable in this milestone by
 `adr/0052` rather than merely awkward.
 
-### 5. Does a `Govern` command fit the Input Log's four fields?
+### ~~5. Does a `Govern` command fit the Input Log's four fields?~~ — ✅ **SETTLED 2026-08-18 with the user in the room. It fits, with room left, and the hard part is elsewhere.** [`adr/0118`](../docs/adr/0118-govern-fits-the-four-fields-and-the-hard-part-is-that-it-writes-to-the-ruleset-rather-than-to-the-world.md)
+
+**The format stays at version 1.** A lever is *which lever*, *what value* and *where* — and `CONTEXT.md`'s scoping rule maps straight onto the fields: *"anything attached to a place can be overridden per District… **global is the default level, not a separate category**."* So `Zone`'s sixteen bits carry the lever and its value, and `East`/`North` carry the override's place.
+
+⚠ **A District is named by a point and never by an index**, and that is required rather than convenient: **there is no `DistrictTable`**, a District is `RoutingPartition`'s partition at a **provisional, unratified 4 Cells**, so an index in a log is a log whose meaning moves when that constant is ratified. `Connect` already carries an origin and derives the far endpoint for the same reason. ***A log names places and never derived indices.***
+
+⚠ **Global is a bit in `Zone`, never a sentinel coordinate** — every Tile coordinate is a legitimate place, so none can mean *unset*. **Third application of session F's placeholder rule in this milestone**, after the money unit and the opening balance.
+
+⚠ **The examination's real finding is not about the fields.** ***Every verb before this one wrote to the world; `Govern` writes to the Ruleset in force.*** `Zone`, `Connect`, `Trip` and `Populate` are one-shot mutations on world entities; a tax rate is a **standing setting** that is saved, hashed state keyed on a **`RuleId`** — a dense **positional** index whose name lives only in `Borough.Formats` (`adr/0048`). **Replay is safe by construction** (`TickInput.RulesetHash` is per Tick and the reload runs at the top of Phase 0) **and the live hot reload is not**: inserting a `[[rule]]` shifts every later index, `RulesetDegradation` re-arms the world's Rules, and ***a saved setting cannot be re-derived***. What a Policy is keyed on is filed to [`0002`](0002-open-questions.md) §C.
+
+✅ **And it does not block task 5.** That task's tax and transfer are `[[rule]]`s a demonstration Ruleset states; nothing has to set a rate from outside, so **milestone 10 builds no `Govern` command at all**. Fourth decision running whose expected requirement turned out not to be one. The examination stands because `Command.cs` asked for it **in writing**, and an unexamined claim in a doc-comment is what `adr/0093` is about — ⚠ **`Service` is still unexamined** and that half of the sentence stands.
+
+⚠ **Borrowing is not this milestone's, and `06` said otherwise inside a bundled row.** Its inventory placed *"Conserved Money, treasury, balance of payments, **borrowing**"* at 10 while milestone 10's own row never mentions it — **fourth sighting of a mechanism hidden inside another row**. Split out and marked unplaced. A borrow amount is a `long` that sixteen bits cannot hold; `East`/`North` are sixty-four bits and are **free exactly when the lever is global**, which `CONTEXT.md` says borrowing alone is — **noted as a fit and deliberately not designed**, since what a borrow command carries is *undesigned*.
+
+⚠ **The entry as scoped follows, kept rather than struck.**
 
 ⚠ **Blocks task 5.** `Command.cs:24-28` records that *"Service and Govern have not been examined
 against that test"* — the test being whether their payload fits the log's four fields. A Policy is a
