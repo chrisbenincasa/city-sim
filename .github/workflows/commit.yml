@@ -1,0 +1,34 @@
+# The blocking lane. Everything here is short on purpose -- see
+# docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md
+#
+# It runs the SAME command CLAUDE.md tells a developer to run before committing, and that identity
+# is deliberate: a CI lane that checks something the developer cannot reproduce locally is a lane
+# that reports failures nobody can act on.
+name: commit
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  assertions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # No GPU and no Godot on this runner, which is the cheapest continuous check that
+      # Borough.Core's engine-agnostic boundary still holds (adr/0002).
+      - name: Build
+        run: dotnet build -c Release
+
+      # tier!=instrument, never tier=assertion: the default tier is reached by ABSENCE, so the
+      # positive filter selects only the seventeen tests that said what they were and silently
+      # drops the sixteen hundred that did not. tests/Borough.Tests/Tier.cs carries the reasoning.
+      - name: Assertion tier
+        run: dotnet test -c Release --no-build --filter "tier!=instrument"

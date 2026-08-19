@@ -135,6 +135,7 @@ public sealed class ColumnBytesTests(ITestOutputHelper output)
     /// <c>plans/0030</c>.
     /// </para>
     /// </remarks>
+    [Trait(Tier.Key, Tier.Instrument)]
     [Fact]
     public void The_saved_set_is_reported_per_table_and_totalled()
     {

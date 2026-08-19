@@ -136,6 +136,7 @@ public sealed class CarRouteLengthTests(ITestOutputHelper output)
     /// ratified is a test of the fixture***.
     /// </para>
     /// </remarks>
+    [Trait(Tier.Key, Tier.Instrument)]
     [Fact]
     public void What_a_car_commute_costs_to_store()
     {

@@ -40,6 +40,7 @@ namespace Borough.Tests.Parking;
 /// until then.
 /// </para>
 /// </remarks>
+[Trait(Tier.Key, Tier.Instrument)]
 public sealed class ParkingShedSizeTests
 {
     /// <summary>How many the caller keeps in the capped shape. The spike's number, for comparison.</summary>

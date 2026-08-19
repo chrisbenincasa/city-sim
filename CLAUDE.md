@@ -62,6 +62,7 @@ are still open, so do not write implementation code beyond the current slice unl
 | `plans/0012-corpus-audit.md` | ***What a document says wrongly.*** The debt ledger, its numbered Causes, the disqualifier registry and the mechanical checks. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | ***What a Tick costs.*** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
 | `plans/0004`–`0033` | **One document per slice, spike or session, and each owns its own findings in full.** The board's third column is a pointer to these, never a summary — so read the plan rather than any description of it. `0001` predates ADRs 0005–0011 and is **stale**; `06` supersedes its build order |
+| `.github/workflows/` | **The post-submit lane, and the repository's first CI.** `commit.yml` runs the assertion tier on every push; `post-submit.yml` runs the whole suite and a long headless balance run nightly. ⚠ **A runner is not the reference machine**, so nothing it prints is a figure a document may quote ([`adr/0121`](docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)) |
 | `rulesets/` | **Ruleset content, in TOML** — data the binary interprets, hot-reloadable under `adr/0015`. Seven files, each a **demonstration rather than a city**, and **every one carries its own header explaining what it exists to show and what it must not be read as**: `minimal.toml`, the smallest Ruleset that makes Bins move; `minimal-tuned.toml`, the same file with one number changed, which the golden session reloads into at Tick 128; `severance.toml`, the rung at which the Severance dial does anything; `congested.toml`, the only file that states `[traffic]` and `[households]`, because a generated city cannot congest itself; `diagnosed.toml`, the only one authoring an `on_fail` chain, because otherwise nothing records *why* a Building fell down; `monetised.toml`, the first to declare a `family = "money"` Resource, whose whole content is three lines because a Resource declaration is all a Ruleset can say about money until there is an owner to name; and `taxed.toml`, which puts money in Households and a Policy circuit that moves it, because every Household on `minimal.toml` holds exactly zero and a tax over a city of paupers collects nothing. **Read the header before quoting a number out of one** |
 
 ## Working with the corpus
@@ -190,7 +191,6 @@ returns a formatted string because a panel wanted one.
 
 ```
 dotnet build                  # must succeed with no GPU and no Godot installed
-dotnet test                   # must be green
 dotnet run --project src/Borough.Headless
 dotnet run --project src/Borough.Headless -- --zones --ruleset rulesets/minimal.toml --ticks 5000
 dotnet run --project src/Borough.Headless -- --commute --ruleset rulesets/minimal.toml --ticks 4096
@@ -199,6 +199,64 @@ dotnet run --project src/Borough.Headless -- --evidence --ruleset rulesets/diagn
 dotnet run --project src/Borough.Headless -- \
   --ruleset rulesets/minimal.toml --reload-at 200 --ruleset rulesets/minimal-tuned.toml --ticks 400
 ```
+
+## Running the tests
+
+**Do not run the whole suite on every change, and do not run it before every commit either.** A full
+`dotnet test` is **36m22s** in Release, of which **34m22s is one test** — and that test prices an
+allocator rather than asking whether the city is correct. **Three lanes**
+([`adr/0121`](docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)):
+what you run while working, what gates a commit, and what a runner does afterwards while nobody
+waits.
+
+| When | Command | Cost |
+|---|---|---|
+| **While working** — the default, and what you should be running nearly all the time | `dotnet test -c Release --filter "tier!=instrument"` | **50s**, 1,683 tests |
+| **Narrower still** — while iterating on one area | `dotnet test -c Release --filter "tier!=instrument&FullyQualifiedName~Policy"` | seconds |
+| **Before a commit** — the gate, and deliberately the same command as the default | `dotnet test -c Release --filter "tier!=instrument"` | **50s** |
+| **Post-submit** — `.github/workflows/post-submit.yml`, nightly, on a runner | `dotnet test -c Release`, then a long headless run | nobody's |
+| **At a milestone** — the Definition of done, on the reference machine | `dotnet test -c Release` | **~36m** |
+
+⚠ **The 50s is an upper bound rather than a reading**, because it was taken with a second test run
+contending for the same six cores. Contention can only make it slower, so the uncontended figure is
+somewhere at or below it — and ***a contended measurement is an upper bound, which is the one thing
+a spoiled measurement is still good for.*** An earlier, more heavily contended run read 1m52s.
+
+⚠ **Past five minutes a test stifles iteration and ten is the ceiling** — the band `adr/0121` records,
+and it is a preference about a working loop rather than a claim about the city, so no measurement
+settles it and [`adr/0043`](docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
+does not reach it.
+
+⚠ **A runner may report that an instrument *broke*; it may never supply a number a document
+quotes.** Every timing figure in this corpus names the reference machine
+([`adr/0106`](docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md))
+and a hosted runner is not it — its class is not even stable between runs. ***A number produced on
+an unnamed machine is not the number it looks like.*** **Producing a figure stays a deliberate act
+on the reference machine**; CI tells you to go and re-measure, and is not the measurement.
+
+⚠ **Release, not Debug.** Every figure above is Release. Debug is several times slower and is not
+what any measurement in this corpus was taken on — a Debug full run was still going at **42 minutes**
+with the three slowest *classes* excluded. ***A duration quoted without its build configuration is not a
+duration***, which is [`adr/0106`](docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)'s
+rule about a wall-clock budget arriving one level down.
+
+**The axis is `assertion` against `instrument`, never small/medium/large** ([`plans/0032`](plans/0032-test-tiers.md)).
+An **assertion** fails when the city changes and must run every time. An **instrument** produces a
+figure for a document to quote, and re-running it re-derives a constant that did not move. The test
+is *what would you do on the day it failed* — find out what broke, or paste the new number into a
+document.
+
+**The default is assertion, by absence.** A new test needs no attribute. Only an instrument opts out,
+with `[Trait(Tier.Key, Tier.Instrument)]` — so **filter on `tier!=instrument` and never on
+`tier=assertion`**, because the positive form selects only the seventeen tests that said what they
+were and drops the sixteen hundred that did not.
+
+**Two things keep this honest, and they are tests rather than conventions.** `TierBudgetTests` times
+every test through an assembly-level hook and fails if an assertion-tier one exceeds **4 minutes** —
+so a slow test landing untagged goes red rather than quietly becoming the new critical path. And
+`TierDeclarationTests` refuses a third tier and asserts instruments stay under a quarter of the
+suite. ⚠ **Neither is a licence to raise the budget**: a test over it is either an instrument that
+forgot to say so, or an assertion that has become a real regression in the city.
 
 ## Constants
 
@@ -248,7 +306,14 @@ change to the city under `05 §4`, not an optimisation.
 This list is owned here; `docs/06-roadmap.md` rule 2 requires it and cites it. Cumulative
 obligations, not milestones of their own. Refined per slice by `plans/0003 §Definition of done`.
 
-- `dotnet build` succeeds and `dotnet test` is green, on a machine with no GPU and no Godot
+- `dotnet build` succeeds and **`dotnet test` — the whole suite, unfiltered — is green**, on a
+  machine with no GPU and no Godot. ⚠ **This sentence is a *milestone*'s gate and always was; a
+  commit's is the assertion tier, and a runner's is neither**
+  ([`adr/0121`](docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)).
+  Not one word of it changed when the tiers landed, and the tiers are a filter you pass rather than
+  a default that was moved. ***Narrowing what the gate names is an ADR and not a config edit***
+  ([`plans/0032`](plans/0032-test-tiers.md)) — which is what `adr/0121` is, and what makes the
+  narrowing legible rather than silent
 - The invariants pass. **Sorted by frequency, never gated on build configuration** (`02 §10`) —
   `O(1)` at the write site per Tick, `O(n)` staggered, whole-world at end of run. The runs that
   surface these bugs are the million-Tick headless balance runs, and those are release builds

@@ -132,6 +132,7 @@ public sealed class TravelTimeMatrixTests(ITestOutputHelper output)
     /// reject margin built on it is a measurement with a safety factor rather than a proof.
     /// </para>
     /// </remarks>
+    [Trait(Tier.Key, Tier.Instrument)]
     [Fact]
     public void The_entry_error_against_a_real_walk()
     {
@@ -204,6 +205,7 @@ public sealed class TravelTimeMatrixTests(ITestOutputHelper output)
     /// separately, because they fire for unrelated reasons: <b>severed</b> is topology and needs no
     /// margin, <b>far</b> is an estimate and needs the whole overstatement tail subtracted from it.
     /// </remarks>
+    [Trait(Tier.Key, Tier.Instrument)]
     [Fact]
     public void What_a_reject_would_refuse()
     {
@@ -428,6 +430,7 @@ public sealed class TravelTimeMatrixTests(ITestOutputHelper output)
     /// the reject in place; the figure without it is in <c>plans/0026</c>'s record, taken by removing
     /// the reject and re-running this.
     /// </remarks>
+    [Trait(Tier.Key, Tier.Instrument)]
     [Fact]
     public void What_the_reachability_reject_is_worth()
     {

@@ -131,6 +131,7 @@ public sealed class VolumeDelayReachTests(ITestOutputHelper output)
     /// about one Segment per Tick</i> — a sentence that was true under the 8192-Tick Day and that
     /// <c>adr/0094</c> retired without touching it.
     /// </remarks>
+    [Trait(Tier.Key, Tier.Instrument)]
     [Fact]
     public void How_loaded_a_generated_city_gets()
     {
@@ -224,6 +225,7 @@ public sealed class VolumeDelayReachTests(ITestOutputHelper output)
     /// milestone exists to build.
     /// </para>
     /// </remarks>
+    [Trait(Tier.Key, Tier.Instrument)]
     [Fact]
     public void Where_the_curve_starts_to_bite()
     {

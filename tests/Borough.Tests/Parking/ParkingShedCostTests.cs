@@ -88,6 +88,7 @@ namespace Borough.Tests.Parking;
 /// all three orders side by side so the difference is a column rather than a hazard.
 /// </para>
 /// </remarks>
+[Trait(Tier.Key, Tier.Instrument)]
 public sealed class ParkingShedCostTests
 {
     /// <summary>What the caller keeps in production. <see cref="ParkingShedSizeTests"/>' cap.</summary>

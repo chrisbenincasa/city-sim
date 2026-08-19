@@ -29,6 +29,7 @@ namespace Borough.Tests.Parking;
 /// <b>A measurement that has never been re-derived is a measurement nobody has checked.</b>
 /// </para>
 /// </remarks>
+[Trait(Tier.Key, Tier.Instrument)]
 public sealed class ParkingArrivalStreamTests
 {
     /// <summary>Four Days of capture, so a destination recurs and reuse distance is measurable.</summary>

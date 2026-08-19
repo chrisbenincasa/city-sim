@@ -7,7 +7,29 @@ about the city.
 
 ## Status
 
-🟡 **PROPOSED 2026-08-19, unscoped, and it owns no decision yet.** It exists because a full
+✅ **BUILT 2026-08-19, the same day it was proposed, on `milestone-10-conserved-money`.** The
+assertion tier is **50s over 1,683 tests in Release**, against a full suite of **36m22s** — Q1
+answered, and the proposal's own guess of *"plausibly ~1 minute"* was right rather than merely the
+right order. ⚠ **The 50s is an upper bound**: both readings of it were taken with a second test run
+contending for the same six cores, and contention can only make it slower. ***A contended
+measurement is an upper bound, which is the one thing a spoiled measurement is still good for.***
+The uncontended figure is owed and nothing turns on it. `CLAUDE.md`
+→ *Running the tests* is the operator-facing half and is where the commands live.
+
+⚠ **The sweep found seventeen instruments across eight classes, and the table below reaches three of
+those classes.** Seven of the seventeen are the Parking rows named here; the other **ten** are in
+`Movement` and `Tables`, and not one of them was suspected. ***A list of the slow things you noticed
+is not a list of the slow things.*** The tell is a measurement rather than an argument: excluding
+exactly the three classes this table names left a run **still going at 42 minutes**. What closed the
+gap was classifying by *what a test is for* — the axis this document argued for — rather than by
+which tests had been observed being slow, and the second reading is that the axis paid off in a
+direction its own author did not expect.
+
+⚠ **And every figure in the table below is Release while the diagnosis that produced it was Debug**,
+which is a second reason the four looked sufficient. ***A duration quoted without its build
+configuration is not a duration.***
+
+*Original status follows.* 🟡 **PROPOSED 2026-08-19, unscoped, and it owns no decision yet.** It exists because a full
 `dotnet test` was measured at **36m22s** on the reference machine while
 [`plans/0030`](0030-save-load.md) records the same suite at **9m38s** the day before — and because
 **34m22s of the 36 is one test**, which is not catching anything.
@@ -96,6 +118,14 @@ undeclared tier is the one thing this must not ship**, because a tier nothing ch
 status stored in a second place, which is `plans/0012` **Cause 1** — *every document that stores
 per-slice status drifted*.
 
+⚠ **AMENDED 2026-08-19 BY THE BUILD, and the prohibition is right about the risk and wrong about the
+remedy.** *An undeclared tier must not ship* was read as *every test must declare one*, which is 142
+files today and every new file for ever. What shipped instead is a **default the guard applies**:
+absence means assertion, and an assertion is held to the budget automatically — so an undeclared test
+is the **most** checked one rather than the least. ***A default the guard applies is not a second copy
+of a status; a default the guard skips is.*** The exhaustive form would have paid friction on every
+future file to protect a case the budget already catches by timing.
+
 ---
 
 ## What this must not do
@@ -109,9 +139,49 @@ per-slice status drifted*.
   [`plans/0003`](0003-build-plan.md) both say *`dotnet test` must be green*. If some tests stop
   running by default then that sentence names an invocation it no longer describes, and **changing
   what it names is an ADR** rather than a config edit.
+  ✅ **DISCHARGED 2026-08-19 by [`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)**,
+  which is that ADR. The sentence turned out to be a **milestone**'s gate that was being honoured at
+  every commit, so it changed by not one word; what changed is what a *commit* is gated on, and the
+  instruments gained a **third lane** — post-submit, on a runner, nightly. ⚠ **The lane has never
+  run**, so under [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)
+  it is *unbuilt* until its first green run and nothing may yet lean on it.
 - **It must not touch the State Hash.** Nothing here is a change to the city, so
   [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
   does not arise and no baseline moves.
+
+---
+
+## What was built
+
+Five files in `tests/Borough.Tests`, thirteen tag sites, and one section of `CLAUDE.md`.
+
+| File | What it is |
+|---|---|
+| `Tier.cs` | The two values and the trait key. ⚠ **Filter on `tier!=instrument` and never on `tier=assertion`** — the default is reached by *absence*, so the positive form selects the handful that bothered to say what they already were and drops the ~1,600 that did not |
+| `TierTimingFramework.cs` | An assembly-level `[assembly: TestFramework]` hook that records every test's duration. **It observes and never decides** |
+| `TierBudget.cs` | The 4-minute assertion budget and the recorded durations |
+| `Corpus/TierBudgetTests.cs` | Fails when an assertion-tier test exceeds the budget, and prints the slowest ten either way |
+| `Corpus/TierDeclarationTests.cs` | A declared tier is one that exists, and instruments stay under a quarter of the suite |
+
+⚠ **`[Trait]` rather than a custom attribute, and that is a decision.** xUnit 2's custom trait
+attributes need an `ITraitDiscoverer` named by **string** in a `[TraitDiscoverer]` — a citation no
+compiler checks, in a project whose corpus rules exist because uncheckable citations rot. What the
+plumbing buys is a prettier call site. ***A mechanism whose only advantage is syntax is not worth an
+unchecked string.***
+
+⚠ **Reading a trait back needs `CustomAttributeData`, and the obvious reflection fails silently.**
+`TraitAttribute` takes its name and value as constructor arguments and **stores neither** — there is
+no `Name` or `Value` property — so `GetCustomAttributes<TraitAttribute>()` yields objects with
+nothing readable on them and both guards would have passed by finding *nothing* rather than by
+finding *everything*. ***A check that reads the wrong surface reports the same green as a check that
+passes*** — [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+on a library rather than on this build.
+
+⚠ **The budget's own limit is that it cannot see a test it did not run.** `TierBudgetTests` reads
+durations recorded when a test *finishes*, so it observes only what completed before it, and a
+filtered run times only what passed the filter. This is why `CLAUDE.md` names the **full Release
+run** as the pre-commit gate and not this test. ***A guard that runs inside the thing it measures
+cannot bound the part of it that has not happened yet.***
 
 ---
 
@@ -120,20 +190,35 @@ per-slice status drifted*.
 Typed per [`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md).
 **None may be cited as decided until the number beside it exists.**
 
-**Q1 — what does the suite cost with the instruments excluded? *Measurable*, and unmeasured.**
-The refuting number is a wall clock; the machine that produces it is one `dotnet test --filter` run.
-The session that wrote this guessed *"plausibly ~1 minute"* from the parallelism argument above and
-**that guess is not evidence**. Measure it before any of the rest is worth arguing.
+✅ **Q1 — what does the suite cost with the instruments excluded? MEASURED 2026-08-19: 50s over
+1,683 tests, Release, all green.** Against 36m22s for the full suite, which is **~44×**. Two readings
+were taken, **1m52s** and **50s**, and *both* had another test run contending for the same six cores
+— so both are **upper bounds** and the second is the tighter one. The guess of *"plausibly ~1
+minute"* is retired as a guess and turned out to be right.
 
-**Q2 — is the discriminator assertion-against-instrument, or duration? *Arguable*.**
-The case above is that duration describes the symptom. The case against is that an operator wants to
-ask *"what can I run in ten seconds?"* and a tier named after a purpose does not answer that. A
-resolution may well carry both — the tier is the purpose, the budget is the check.
+⚠ **The number depends on the classification and not on the exclusion count, which is the finding.**
+Excluding the three classes *this document names* left a run unfinished at **42 minutes**; it took
+all **seventeen** instruments to reach under a minute, and **ten** of those had never been observed being
+slow. The measurement that mattered was a **reading of every test's purpose**, not a stopwatch.
 
-**Q3 — should selection ever be driven by the change rather than by the tier? *Measurable, and
-gated on Q1.*** If Q1 comes back at a minute, the whole question is moot and closing it costs
-nothing. It only becomes live if the assertion-only suite is itself too slow to run on every change,
-and the number that would settle *that* is the same wall clock.
+✅ **Q2 — is the discriminator assertion-against-instrument, or duration? SETTLED 2026-08-19, and it
+carries both: the tier is the purpose, the budget is the check.** `Tier` declares two values and
+`TierDeclarationTests` refuses a third, so the taxonomy is a purpose. `TierBudget` holds an
+assertion-tier test to **4 minutes** — derived from the slowest honest assertion in the suite, the
+100,000-Tick save run at 1m34s, doubled and rounded — and `TierTimingFramework` times every test
+through an assembly-level hook so the budget applies to a test *nobody thought about*.
+
+⚠ **The budget is the half that does the work, because the failure is an untagged test rather than a
+mislabelled one.** A declaration guard asks whether somebody wrote a word down; a budget asks whether
+the fast tier is still fast. ***A tier nothing times degrades silently, because every test in it
+stays green while it gets slower.***
+
+✅ **Q3 — should selection ever be driven by the change rather than by the tier? CLOSED AS MOOT
+2026-08-19, on its own stated condition.** It was gated on Q1 and Q1 came back at 50s, which is
+*"a minute"* for the purposes of the sentence that gated it. Test-impact analysis needs per-test
+coverage data and a map this document already refused; nothing now justifies that work.
+***A question that writes down the number that would close it can be closed by a measurement nobody
+took for its sake.***
 
 ⚠ **No number here is hash-bearing**, so
 [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)

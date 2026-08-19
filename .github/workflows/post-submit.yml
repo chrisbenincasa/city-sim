@@ -1,0 +1,72 @@
+# The notifying lane. Nobody is waiting at this one, which is what makes an hour affordable --
+# docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md
+#
+# WARNING, and it is the whole reason this file has a comment: a hosted runner is NOT the reference
+# machine. Every timing figure in this corpus names a 2020 six-core i5-10400, powersave,
+# single-threaded (adr/0106). This lane may report that an instrument BROKE or that something moved
+# against its own history. It may NEVER supply a number that a document quotes -- producing a figure
+# stays a deliberate act on the reference machine. See adr/0121 section 4.
+name: post-submit
+
+on:
+  schedule:
+    # 06:00 UTC daily. A day is the window a regression in a long play state may hide for; the
+    # trade is against a runner-hour, and nothing here is urgent enough to buy a shorter one.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      ticks:
+        description: 'Ticks for the headless balance run'
+        required: false
+        default: '100000'
+
+jobs:
+  full-suite:
+    runs-on: ubuntu-latest
+    # The suite is 36m22s on the reference machine and this runner's class is unknown, so the
+    # ceiling is generous rather than derived. The first green run is what replaces this guess.
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build -c Release
+
+      # Unfiltered: this is the run that includes the instruments, and including them is this
+      # lane's entire purpose.
+      - name: Whole suite
+        run: dotnet test -c Release --no-build
+
+  balance-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build -c Release
+
+      # What this catches is a CRASH or a thrown invariant in a long play state -- not a trend.
+      # "No collection and no magnitude trending upward at steady state" is asserted by
+      # SaveLongRunTests inside the suite above; this run reaches further out in Ticks than any
+      # test does and has no assertion of its own beyond the process surviving.
+      #
+      # 100,000 is a starting number and is NOT a budget: CLAUDE.md's Definition of done names
+      # MILLION-Tick headless balance runs, and the reason this does not start there is that
+      # nobody has measured what a million costs on a runner. The first scheduled run is that
+      # measurement, and raising this is the point.
+      - name: Headless balance run
+        run: |
+          dotnet run -c Release --no-build --project src/Borough.Headless -- \
+            --ruleset rulesets/minimal.toml \
+            --ticks ${{ github.event.inputs.ticks || '100000' }}

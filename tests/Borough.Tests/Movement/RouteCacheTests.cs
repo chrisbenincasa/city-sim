@@ -155,6 +155,7 @@ public sealed class RouteCacheTests(ITestOutputHelper output)
     /// actually changed the graph — and prints the rest for <c>plans/0026</c> to carry. A tripwire
     /// here would be a number chosen to pass, which is the failure `adr/0043` is about.
     /// </remarks>
+    [Trait(Tier.Key, Tier.Instrument)]
     [Fact]
     public void What_each_staleness_rung_costs_on_a_real_commute_draw()
     {
@@ -306,6 +307,7 @@ public sealed class RouteCacheTests(ITestOutputHelper output)
     /// repetition means the cache cannot pay at any size, and a store smaller than the working set means
     /// it pays at a larger one. The distinct-pair count separates them and this sweep confirms which.
     /// </remarks>
+    [Trait(Tier.Key, Tier.Instrument)]
     [Fact]
     public void Whether_the_hit_rate_is_the_citys_or_the_stores()
     {
@@ -489,6 +491,7 @@ public sealed class RouteCacheTests(ITestOutputHelper output)
     /// error <c>plans/0012</c> **Cause 5** governs, committed on a number this session produced itself.
     /// </para>
     /// </remarks>
+    [Trait(Tier.Key, Tier.Instrument)]
     [Fact]
     public void Which_replacement_policy_survives_a_commute_scan()
     {
