@@ -32,6 +32,17 @@ test; the first was invisible and the second was a hang**, which is the shape wo
 ***a defect that produces no output is not caught by a suite that reports failures.***
 [`0032`](0032-test-tiers.md) is the other thing that fell out of the same day.
 
+⚠ **Task 3 moved the golden baseline, and `main` learned it through a merge whose subject said the
+opposite.** The hand-built world's hash went **`0x4D7675CF9217B955` → `0x817C9B00CA65113D`**, with
+`session-trace.txt` and `session.borough` beside it. The re-record happened **on this branch, where it
+was correct and authorised** — the Parking Shed and its per-Segment supply index are a change to the
+city under `05 §4` and not an optimisation, so the baseline was supposed to move. What `main` saw was
+`0d8b114`, a merge carrying the already-re-recorded baseline, whose message reads *"the State Hash does
+not move"* — true of the **test**, which passed, and false of **`main`**, whose city changed.
+***A baseline that travels in the same commit as the change it authorises cannot also witness it***,
+which is why `tests/Borough.Tests/Golden/README.md` → *Re-baselining* step 5 forbids the pairing.
+Filed as a Cause 5 sighting in [`0012`](0012-corpus-audit.md).
+
 ⚠ **This document's own recommendation on decision 1 was wrong, and the sitting is what found it.** It
 recommended the **Household**; `World.ModeOf` drives *every member* of a car-owning Household, so a
 Household of three workers parks three cars and one column would leak two of them. The holder is the
