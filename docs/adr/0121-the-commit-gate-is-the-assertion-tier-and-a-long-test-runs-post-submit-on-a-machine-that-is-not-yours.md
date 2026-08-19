@@ -1,6 +1,6 @@
 # The commit gate is the assertion tier, and a long test runs post-submit on a machine that is not yours
 
-**Three lanes, not two. A commit is gated locally on `dotnet test -c Release --filter "tier!=instrument"` — the assertion tier, **50s** over 1,683 tests — contended, so an upper bound. The instruments and the long play states run **post-submit on a schedule, on a runner**, where their wall clock costs nobody's attention. [`CLAUDE.md`](../../CLAUDE.md)'s *Definition of done for any milestone* is unchanged and stays the whole unfiltered suite on the reference machine.** The band underneath is the operator's: **past five minutes a test stifles iteration and ten is the ceiling.** `FAST ITERATION` `HONEST DEGRADATION`
+**Three lanes, not two. A commit is gated locally on `dotnet test -c Release --filter "tier!=instrument"` — the assertion tier, **42s** over 1,690 tests with nothing else running. The instruments and the long play states run **post-submit on a schedule, on a runner**, where their wall clock costs nobody's attention. [`CLAUDE.md`](../../CLAUDE.md)'s *Definition of done for any milestone* is unchanged and stays the whole unfiltered suite on the reference machine.** The band underneath is the operator's: **past five minutes a test stifles iteration and ten is the ceiling.** `FAST ITERATION` `HONEST DEGRADATION`
 
 ## Why
 
@@ -50,7 +50,7 @@ So the two things the post-submit lane may and may not do:
 
 ## Consequences
 
-- **The pre-commit run drops from ~36m to 50s**, Release, reference machine — and the 50s is an **upper bound**, taken with a second test run contending for the same cores. Both figures are `plans/0032`'s and move with it.
+- **The pre-commit run drops from ~36m to 42s**, Release, reference machine, nothing else running. ⚠ **Two earlier readings of it, 1m52s and 50s, were taken while a second session ran the same suite on the same six cores** and are upper bounds rather than readings. Both figures are `plans/0032`'s and move with it.
 - **A first `.github/workflows` lands in a repository that had none.** Two workflows: the assertion tier on every push and pull request, and the full suite plus the long headless runs on a schedule. ⚠ **Neither has ever run**, so under [`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) the post-submit lane is **unbuilt until its first green run** and nothing may yet be justified by its existence. The milestone gate is what covers the instruments in the meantime, and it is unchanged.
 - **An instrument still compiles on every commit**, because `dotnet build` is untouched. The failure a deferral can hide is narrowed from *any* breakage to **runtime** breakage.
 - **`CLAUDE.md`'s *Definition of done for any milestone* changes by not one word.** Its *Running the tests* table gains the post-submit lane and relabels the pre-commit row. [`plans/0003`](../../plans/0003-build-plan.md)'s *`dotnet test` must be green* likewise keeps meaning what it said.

@@ -8,12 +8,9 @@ about the city.
 ## Status
 
 ✅ **BUILT 2026-08-19, the same day it was proposed, on `milestone-10-conserved-money`.** The
-assertion tier is **50s over 1,683 tests in Release**, against a full suite of **36m22s** — Q1
+assertion tier is **42s over 1,690 tests in Release**, against a full suite of **36m22s** — Q1
 answered, and the proposal's own guess of *"plausibly ~1 minute"* was right rather than merely the
-right order. ⚠ **The 50s is an upper bound**: both readings of it were taken with a second test run
-contending for the same six cores, and contention can only make it slower. ***A contended
-measurement is an upper bound, which is the one thing a spoiled measurement is still good for.***
-The uncontended figure is owed and nothing turns on it. `CLAUDE.md`
+right order. `CLAUDE.md`
 → *Running the tests* is the operator-facing half and is where the commands live.
 
 ⚠ **The sweep found seventeen instruments across eight classes, and the table below reaches three of
@@ -190,11 +187,17 @@ cannot bound the part of it that has not happened yet.***
 Typed per [`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md).
 **None may be cited as decided until the number beside it exists.**
 
-✅ **Q1 — what does the suite cost with the instruments excluded? MEASURED 2026-08-19: 50s over
-1,683 tests, Release, all green.** Against 36m22s for the full suite, which is **~44×**. Two readings
-were taken, **1m52s** and **50s**, and *both* had another test run contending for the same six cores
-— so both are **upper bounds** and the second is the tighter one. The guess of *"plausibly ~1
-minute"* is retired as a guess and turned out to be right.
+✅ **Q1 — what does the suite cost with the instruments excluded? MEASURED 2026-08-19: 42s over
+1,690 tests, Release, all green, nothing else running.** Against 36m22s for the full suite, which is
+**~52×**. The guess of *"plausibly ~1 minute"* is retired and turned out to be right.
+
+⚠ **It took three readings to get one, and the first two are why this paragraph names its controls.**
+1m52s and 50s were both taken while a **second session was running `Borough.Tests` on the same six
+cores** — 804% combined on a twelve-core box. They were written down as **upper bounds**, which is
+the one thing a spoiled measurement is still good for, and 42s is the first reading with the box to
+itself. ***A test-cost capture is a parallelism measurement, so it takes a parallelism measurement's
+controls*** — the rule [`plans/0000`](0000-board.md) already carried from a threading capture that
+read bimodally on 2026-08-14, arriving at a second instrument that had not thought it applied.
 
 ⚠ **The number depends on the classification and not on the exclusion count, which is the finding.**
 Excluding the three classes *this document names* left a run unfinished at **42 minutes**; it took
@@ -214,7 +217,7 @@ the fast tier is still fast. ***A tier nothing times degrades silently, because 
 stays green while it gets slower.***
 
 ✅ **Q3 — should selection ever be driven by the change rather than by the tier? CLOSED AS MOOT
-2026-08-19, on its own stated condition.** It was gated on Q1 and Q1 came back at 50s, which is
+2026-08-19, on its own stated condition.** It was gated on Q1 and Q1 came back at 42s, which is
 *"a minute"* for the purposes of the sentence that gated it. Test-impact analysis needs per-test
 coverage data and a map this document already refused; nothing now justifies that work.
 ***A question that writes down the number that would close it can be closed by a measurement nobody

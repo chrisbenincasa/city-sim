@@ -1,0 +1,1102 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Local copy of a published Claude artifact.
+     Source of truth: https://claude.ai/code/artifact/caa5e8d2-eee2-4cff-ae7a-af8787ded687
+     Downloaded 2026-08-14. Self-contained: no external CSS, JS, fonts or images.
+     The host's frame-runtime script has been removed; its minimal reset is inlined below. -->
+<style>
+:root{color-scheme:light dark}
+body{margin:0;padding:0}
+img{max-width:100%}
+</style>
+<title>Borough Contributor Handbook</title>
+
+<style>
+:root{
+  --ground:#EDEFF3;
+  --surface:#FBFCFE;
+  --surface-2:#E3E7EE;
+  --ink:#13161B;
+  --ink-2:#4B545F;
+  --ink-3:#6D7783;
+  --rule:#D2D8E1;
+  --rule-2:#BAC3D0;
+  --accent:#1D6A53;
+  --accent-2:#12503E;
+  --accent-soft:#DCEBE4;
+  --warn:#8B4C0A;
+  --warn-soft:#F5E6D2;
+  --code-bg:#E7EBF1;
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --measure: 68ch;
+  --s1:.35rem; --s2:.7rem; --s3:1.1rem; --s4:1.8rem; --s5:2.8rem; --s6:4.4rem;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1116;
+    --surface:#151A21;
+    --surface-2:#1C232C;
+    --ink:#E2E7EE;
+    --ink-2:#A5AFBC;
+    --ink-3:#7A8494;
+    --rule:#242C36;
+    --rule-2:#333D49;
+    --accent:#5FC29E;
+    --accent-2:#8AD8BB;
+    --accent-soft:#122A22;
+    --warn:#DFA366;
+    --warn-soft:#2C2013;
+    --code-bg:#1A2029;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1116;
+  --surface:#151A21;
+  --surface-2:#1C232C;
+  --ink:#E2E7EE;
+  --ink-2:#A5AFBC;
+  --ink-3:#7A8494;
+  --rule:#242C36;
+  --rule-2:#333D49;
+  --accent:#5FC29E;
+  --accent-2:#8AD8BB;
+  --accent-soft:#122A22;
+  --warn:#DFA366;
+  --warn-soft:#2C2013;
+  --code-bg:#1A2029;
+}
+
+*{box-sizing:border-box;}
+
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.62;
+  margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+
+.page{
+  max-width:1180px;
+  margin:0 auto;
+  padding:var(--s5) var(--s4) var(--s6);
+  display:grid;
+  grid-template-columns:1fr;
+  gap:var(--s5);
+}
+@media (min-width:1040px){
+  .page{ grid-template-columns:196px minmax(0,1fr); align-items:start; gap:var(--s6); }
+}
+
+/* ---------- masthead ---------- */
+.masthead{ grid-column:1/-1; border-bottom:2px solid var(--ink); padding-bottom:var(--s4); }
+.eyebrow{
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); margin:0 0 var(--s3);
+}
+.masthead h1{
+  font-family:var(--mono);
+  font-size:clamp(1.9rem,5vw,3.1rem);
+  font-weight:600; letter-spacing:-.03em; line-height:1.06;
+  margin:0 0 var(--s3); text-wrap:balance;
+}
+.standfirst{
+  font-size:1.08rem; color:var(--ink-2); max-width:62ch; margin:0;
+}
+.stamps{
+  display:flex; flex-wrap:wrap; gap:var(--s2) var(--s3);
+  margin-top:var(--s4);
+  font-family:var(--mono); font-size:.76rem; color:var(--ink-3);
+}
+.stamps b{ color:var(--ink); font-weight:600; }
+
+/* ---------- nav ---------- */
+.toc{ font-family:var(--mono); font-size:.78rem; }
+@media (min-width:1040px){ .toc{ position:sticky; top:var(--s4); } }
+.toc h2{
+  font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); margin:0 0 var(--s3); font-weight:600;
+}
+.toc ol{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--s1); }
+.toc a{
+  color:var(--ink-2); text-decoration:none; display:flex; gap:.6em;
+  padding:.16em 0; border-bottom:1px solid transparent;
+}
+.toc a:hover{ color:var(--accent); }
+.toc a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.toc .n{ color:var(--ink-3); }
+
+/* ---------- sections ---------- */
+main{ min-width:0; display:flex; flex-direction:column; gap:var(--s6); }
+section{ scroll-margin-top:var(--s3); }
+
+.sec-head{ border-top:1px solid var(--rule-2); padding-top:var(--s3); margin-bottom:var(--s4); }
+.sec-num{
+  font-family:var(--mono); font-size:.74rem; letter-spacing:.12em;
+  color:var(--accent); display:block; margin-bottom:var(--s2);
+}
+h2{
+  font-family:var(--mono); font-weight:600; letter-spacing:-.02em;
+  font-size:clamp(1.3rem,3vw,1.65rem); line-height:1.2; margin:0; text-wrap:balance;
+}
+h3{
+  font-family:var(--sans); font-weight:650; font-size:1.02rem;
+  letter-spacing:-.01em; margin:var(--s5) 0 var(--s2); text-wrap:balance;
+}
+h3:first-child{ margin-top:0; }
+h4{
+  font-family:var(--mono); font-weight:600; font-size:.82rem;
+  letter-spacing:.02em; color:var(--ink-2); margin:var(--s4) 0 var(--s2);
+}
+p{ margin:0 0 var(--s3); max-width:var(--measure); }
+ul,ol.body{ margin:0 0 var(--s3); padding-left:1.25em; max-width:var(--measure); }
+li{ margin-bottom:var(--s1); }
+li::marker{ color:var(--ink-3); }
+strong{ font-weight:650; }
+a{ color:var(--accent); text-decoration-thickness:1px; text-underline-offset:2px; }
+a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+code{
+  font-family:var(--mono); font-size:.86em;
+  background:var(--code-bg); padding:.1em .34em; border-radius:2px;
+  overflow-wrap:break-word;
+}
+pre{
+  font-family:var(--mono); font-size:.78rem; line-height:1.55;
+  background:var(--surface); color:var(--ink);
+  border:1px solid var(--rule); border-left:2px solid var(--accent);
+  padding:var(--s3); margin:0 0 var(--s3);
+  overflow-x:auto;
+}
+pre code{ background:none; padding:0; font-size:inherit; }
+
+/* ---------- devices ---------- */
+.card{
+  background:var(--surface); border:1px solid var(--rule);
+  padding:var(--s3) var(--s4); margin:0 0 var(--s3);
+}
+.card > :last-child{ margin-bottom:0; }
+
+.note{
+  border-left:2px solid var(--warn); background:var(--warn-soft);
+  padding:var(--s3) var(--s4); margin:0 0 var(--s3);
+}
+.note > :last-child{ margin-bottom:0; }
+.note .tag{
+  font-family:var(--mono); font-size:.7rem; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--warn); display:block; margin-bottom:var(--s1);
+}
+
+.rule-box{
+  border-left:2px solid var(--accent); background:var(--accent-soft);
+  padding:var(--s3) var(--s4); margin:0 0 var(--s3);
+}
+.rule-box > :last-child{ margin-bottom:0; }
+.rule-box .tag{
+  font-family:var(--mono); font-size:.7rem; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--accent-2); display:block; margin-bottom:var(--s1);
+}
+
+.scroll{ overflow-x:auto; margin:0 0 var(--s3); border:1px solid var(--rule); background:var(--surface); }
+table{ border-collapse:collapse; width:100%; font-size:.84rem; min-width:520px; }
+th,td{ text-align:left; padding:.52em .8em; border-bottom:1px solid var(--rule); vertical-align:top; }
+th{
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:600; background:var(--surface-2); white-space:nowrap;
+}
+tbody tr:last-child td{ border-bottom:none; }
+td code{ white-space:nowrap; }
+.num{ font-variant-numeric:tabular-nums; }
+
+figure{ margin:0 0 var(--s3); }
+figure .frame{
+  background:var(--surface); border:1px solid var(--rule);
+  padding:var(--s3); overflow-x:auto;
+}
+figure svg{ display:block; width:100%; min-width:640px; height:auto; color:var(--ink); }
+figcaption{
+  font-size:.82rem; color:var(--ink-3); margin-top:var(--s2);
+  max-width:var(--measure); font-family:var(--sans);
+}
+.svg-accent{ color:var(--accent); }
+
+.kicker{
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-3); margin:0 0 var(--s2);
+}
+
+.split{ display:grid; gap:var(--s3); }
+@media (min-width:720px){ .split{ grid-template-columns:1fr 1fr; } }
+.split > .card{ margin:0; }
+
+footer{
+  grid-column:1/-1; border-top:1px solid var(--rule-2);
+  padding-top:var(--s3); margin-top:var(--s4);
+  font-family:var(--mono); font-size:.74rem; color:var(--ink-3);
+}
+
+@media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <p class="eyebrow">Borough &middot; orientation for a new contributor</p>
+    <h1>Borough Contributor Handbook</h1>
+    <p class="standfirst">A city-builder whose simulation is an ordinary C# library with no game engine inside it. Everything here is verified by a 64-bit State Hash, computed with integers only, and replayable from a log. This is the map of what exists, what the rules are, and where the live work is.</p>
+    <div class="stamps">
+      <span><b>~36k</b> lines simulation</span>
+      <span><b>~36k</b> lines tests</span>
+      <span><b>1,050</b> test methods</span>
+      <span><b>99</b> ADRs</span>
+      <span><b>~33k</b> lines of prose</span>
+      <span>build verified <b>green, 3.1&nbsp;s, 0 warnings</b></span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#s0"><span class="n">00</span> First hour</a></li>
+      <li><a href="#s1"><span class="n">01</span> The projects</a></li>
+      <li><a href="#s2"><span class="n">02</span> Non&#8209;negotiables</a></li>
+      <li><a href="#s3"><span class="n">03</span> Tables &amp; the hash</a></li>
+      <li><a href="#s4"><span class="n">04</span> The Tick</a></li>
+      <li><a href="#s5"><span class="n">05</span> Rules &amp; Rulesets</a></li>
+      <li><a href="#s6"><span class="n">06</span> Movement</a></li>
+      <li><a href="#s7"><span class="n">07</span> Tests &amp; baselines</a></li>
+      <li><a href="#s8"><span class="n">08</span> The corpus</a></li>
+      <li><a href="#s9"><span class="n">09</span> Traps &amp; stale docs</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ================= 00 ================= -->
+    <section id="s0">
+      <div class="sec-head"><span class="sec-num">00</span><h2>Your first hour</h2></div>
+
+      <p>Three commands. All of them work today, on a machine with no GPU and no Godot installed.</p>
+
+<pre><code>dotnet build      # 4 projects + tests + 2 spikes. ~3s. Warnings are errors.
+dotnet test       # 1,050 test methods
+dotnet run --project src/Borough.Headless</code></pre>
+
+      <p>That last one builds a 10,000&#8209;Citizen city and prints its tables and a State Hash. This is the real output:</p>
+
+<pre><code>Borough — table report at 10,000 Citizens
+
+table       buffering     rows  saved  derived   B/row
+-----------------------------------------------------------
+lot         single       3,601      7        3      39
+building    single       3,601      5        9      61
+household   single       3,600      7        4      57
+citizen     single      10,000     12        3      66
+...
+route_hop   single           0      6        0      29
+
+State Hash  0x19A197F53D4457E1</code></pre>
+
+      <p>Seventeen tables, each declaring how many of its columns are <em>saved</em> and how many are <em>derived</em>. That split is the central idea of the codebase &mdash; see <a href="#s3">03</a>.</p>
+
+      <h3>The four documents to read, in this order</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>File</th><th>Answers</th><th>Why first</th></tr></thead>
+          <tbody>
+            <tr><td><code>PROCESS.md</code></td><td>What the project's words mean</td><td>169 lines, plainly written. Slice, spike, gate, session, milestone. Read it before any plan document or you will mis&#8209;parse everything.</td></tr>
+            <tr><td><code>CONTEXT.md</code></td><td>What the city's words mean</td><td>The domain vocabulary, authoritative. Every capitalised noun in this repo is defined there with exactly one meaning. Ends with a list of banned words.</td></tr>
+            <tr><td><code>plans/0000-board.md</code></td><td>What is next</td><td>A <em>view</em>, never a source. Slightly stale by design.</td></tr>
+            <tr><td><code>docs/movement-primer.md</code></td><td>How movement works</td><td>264 lines, owns nothing, cites everything. The best single explanation in the repo of the hardest subsystem.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box">
+        <span class="tag">The one sentence that explains the whole design</span>
+        <p>A million people need to get to work, a Tick is 15.6&nbsp;ms, and a path search per journey costs more than the entire budget &mdash; <strong>so nobody searches.</strong> A driver remembers a route, glances one junction ahead, and is stubborn about changing its mind. Almost every mechanism in this codebase is a consequence of not being able to afford the obvious thing.</p>
+      </div>
+    </section>
+
+    <!-- ================= 01 ================= -->
+    <section id="s1">
+      <div class="sec-head"><span class="sec-num">01</span><h2>The projects, and the boundary between them</h2></div>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Project</th><th>Lines</th><th>What it is</th></tr></thead>
+          <tbody>
+            <tr><td><code>Borough.Core</code></td><td class="num">~24k</td><td><strong>This is the game.</strong> Pure C#, zero Godot references. Typed tables, integer maths, the Event Wheel, the Ruleset interpreter, <code>Step()</code>.</td></tr>
+            <tr><td><code>Borough.Formats</code></td><td class="num">~4k</td><td>The artefacts that spell things in words: the TOML Ruleset loader, the Input Log codec (<code>.borough</code>), the crash artifact. Neither shell may parse or emit a log itself.</td></tr>
+            <tr><td><code>Borough.Headless</code></td><td class="num">~4k</td><td>The console runner. Seven modes. <strong>Must never require Godot to be installed</strong> &mdash; that is the cheapest continuous check that the boundary holds.</td></tr>
+            <tr><td><code>Borough.Analysers</code></td><td class="num">~1.5k</td><td><code>netstandard2.0</code> Roslyn analysers. Referenced by Core <em>as an analyser</em>, never as a dependency. Nothing in it reaches the running sim.</td></tr>
+            <tr><td><code>Borough.Tests</code></td><td class="num">~36k</td><td>xUnit and BenchmarkDotNet in one assembly.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <span class="tag">Correction to CLAUDE.md</span>
+        <p><code>CLAUDE.md</code> describes <strong>five</strong> projects including <code>Borough.Godot</code>. That project <strong>does not exist on disk.</strong> <code>docs/dev-environment.md:142</code> says so explicitly and gives the commands to create it later. There are four production projects plus tests, and two throwaway spike harnesses under <code>spikes/</code>.</p>
+      </div>
+
+      <h3>The boundary rule, and how it is enforced</h3>
+      <p><strong><code>Core</code> returns ids and numbers, never human&#8209;readable strings.</strong> The shell owns every string a human reads, resolved through the Ruleset. The real leak vector is not <code>using Godot;</code> &mdash; it is a method that returns a formatted string because a panel wanted one. <code>tests/Borough.Tests/BoundaryTests.cs</code> asserts all three by reflection: no Godot reference, no floating&#8209;point state, no human&#8209;readable strings.</p>
+
+      <h3>Toolchain</h3>
+      <ul>
+        <li>.NET <strong>10.0.x</strong>, pinned by <code>global.json</code> with <code>rollForward: latestFeature</code> &mdash; accepts 10.x, refuses 11.0.</li>
+        <li><code>Directory.Build.props</code> applies to every project: <code>net10.0</code>, <code>Nullable=enable</code>, <code>TreatWarningsAsErrors=true</code>, <code>Deterministic=true</code>, and <strong><code>InvariantGlobalization=true</code></strong> &mdash; culture must never reach a number or a parse.</li>
+        <li>The solution file is <code>Borough.slnx</code> (XML format), not <code>.sln</code>.</li>
+        <li><strong><code>.editorconfig</code> at the root is not optional.</strong> Warnings&#8209;as&#8209;errors plus the recommended analysers turns CA1707 (underscores in member names) into a build error, and every test name in this repo is a sentence with underscores.</li>
+      </ul>
+    </section>
+
+    <!-- ================= 02 ================= -->
+    <section id="s2">
+      <div class="sec-head"><span class="sec-num">02</span><h2>The non&#8209;negotiables, and the compiler errors that enforce them</h2></div>
+
+      <p>These rules fail <em>silently</em> when broken &mdash; a divergence appears three hundred Ticks later on somebody else's machine. So they are compiler errors, not conventions. Every diagnostic has a test that writes the violation and watches it fire; do not add one without.</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Id</th><th>Fires on</th><th>Use instead</th></tr></thead>
+          <tbody>
+            <tr><td><code>BOR0201</code></td><td>Any <code>float</code>/<code>double</code>/<code>decimal</code> &mdash; field, param, local, literal, or any conversion. Structural, so <code>double?</code>, <code>List&lt;double&gt;</code>, <code>Vector2</code> all trip it.</td><td><code>int</code>, <code>long</code>, or Q16.16 via <code>Fixed</code></td></tr>
+            <tr><td><code>BOR0202</code></td><td><code>System.Math</code> / <code>System.MathF</code>, anywhere including the arithmetic namespace</td><td><code>IntegerMath</code>, <code>Transcendental</code></td></tr>
+            <tr><td><code>BOR0203</code></td><td>Built&#8209;in integer <code>/</code> or <code>/=</code></td><td><code>IntegerMath.FloorDiv</code> / <code>CeilDiv</code> / <code>RoundDiv</code>, or <code>Fixed.Div</code></td></tr>
+            <tr><td><code>BOR0204</code></td><td><code>&lt;&lt;</code> / <code>&gt;&gt;</code> with a <strong>non&#8209;constant</strong> count &mdash; the CPU silently masks it, so <code>x &lt;&lt; 32 == x &lt;&lt; 0</code></td><td><code>IntegerMath.ShiftLeft</code> / <code>ShiftRight</code>. Constant counts are legal and silent.</td></tr>
+            <tr><td><code>BOR0205</code></td><td><code>DateTime</code>, <code>Stopwatch</code>, <code>TimeProvider</code>, <code>Environment.TickCount</code></td><td><code>Ticks</code></td></tr>
+            <tr><td><code>BOR0206</code></td><td><code>Guid.NewGuid()</code>, default <code>GetHashCode()</code>, <code>string.GetHashCode</code>, <code>System.HashCode</code></td><td>declared ids, <code>Randomness.Mix</code></td></tr>
+            <tr><td><code>BOR0207</code></td><td>A 32&#8209;bit numerator pre&#8209;scaled by a constant &ge;1,000 feeding a division &mdash; e.g. <code>FloorDiv(cost * 10_000, total)</code></td><td><code>10_000L</code>, an explicit <code>(long)</code>, or <code>Fixed.Mul</code></td></tr>
+            <tr><td><code>BOR0301</code></td><td><code>foreach</code> over a <code>Dictionary</code>/<code>HashSet</code>/frozen/concurrent/immutable equivalent. Base chain walked, so subclassing does not launder it.</td><td>Build one and <em>look up</em> in it freely &mdash; never walk it. <code>SortedDictionary</code> is allowed.</td></tr>
+            <tr><td><code>BOR0302</code></td><td><code>System.Random</code>, anywhere</td><td><code>Randomness.Draw(...)</code></td></tr>
+            <tr><td><code>BOR0701</code></td><td>A <code>struct</code> in Core that is not <code>unmanaged</code> and lacks <code>[ColdPath("why")]</code></td><td>Flat arrays; or the attribute, with a written reason</td></tr>
+            <tr><td><code>BOR0801-3</code></td><td>Duplicate <code>PurposeTag</code> value; a non&#8209;<code>None</code> tag at 0; a backing type that is not <code>ulong</code></td><td>&mdash;</td></tr>
+            <tr><td><code>BOR0901</code></td><td>A field inside a <code>[Table]</code> class that is not a declared <code>Column</code> or <code>Rows</code> &mdash; a bare <code>int[]</code> beside the columns</td><td>Declare it through <code>Rows.Saved</code>/<code>Derived</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The arithmetic substrate</h3>
+      <p><code>Borough.Core.Arithmetic</code> is the one namespace exempt from <code>BOR0203</code>/<code>BOR0204</code>, because it is where their replacements are implemented. The match is on the <strong>exact</strong> namespace, not a prefix &mdash; a child namespace does not inherit the exemption. There is no <code>Math.*</code> anywhere, including there.</p>
+
+      <ul>
+        <li><strong><code>IntegerMath</code></strong> &mdash; <code>FloorDiv</code> is the default rounding. C# truncates toward zero, which is deterministic but is a directional bias that flips sign at every zero crossing.</li>
+        <li><strong><code>Fixed</code></strong> &mdash; Q16.16 is a raw <code>int</code> plus a static helper class, not a struct. <code>One = 65536</code>. This is the <em>only</em> place <code>checked</code> appears in Core, and it always wraps an expression rather than a block.</li>
+        <li><strong><code>Transcendental</code></strong> &mdash; 256&#8209;entry committed tables plus linear interpolation for <code>Exp</code>/<code>Log</code>. The tables are hash&#8209;bearing world constants.</li>
+      </ul>
+
+      <h3>Quantities carry their units</h3>
+      <p>Every quantity is a <code>readonly record struct X(TRaw Raw)</code> with hand&#8209;written operators. The discipline: <strong>a quantity multiplies by an <code>int</code> count or by a <code>Ratio</code>, never by its own kind.</strong> Conversions from human units (km/h, seconds, minutes) happen at Ruleset load, never per&#8209;Tick.</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Type</th><th>Backing</th><th>Scale</th></tr></thead>
+          <tbody>
+            <tr><td><code>Ticks</code></td><td><code>ulong</code></td><td>whole Ticks. <code>PerDay = 2048</code>; one Tick is 42.1875&nbsp;s of in&#8209;world time</td></tr>
+            <tr><td><code>Tiles</code></td><td><code>int</code></td><td>whole Tiles; <code>Metres = 4</code></td></tr>
+            <tr><td><code>SubTiles</code></td><td>Q16.16</td><td>Tiles &mdash; <strong>positions only</strong></td></tr>
+            <tr><td><code>Speed</code></td><td>Q16.16</td><td>Tiles per Tick</td></tr>
+            <tr><td><code>TravelTime</code></td><td>Q16.16</td><td>Ticks. <code>Impassable</code> is a sentinel, and <code>+</code> <strong>saturates</strong></td></tr>
+            <tr><td><code>Money</code></td><td><code>long</code></td><td>smallest unit; signed on purpose</td></tr>
+            <tr><td><code>Ratio</code></td><td>Q16.16</td><td>dimensionless &mdash; the only type where <code>fixed &times; fixed</code> is legal</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <p class="kicker">Two bugs this discipline caught, both of which would have shipped silently</p>
+        <p><code>TravelTime.operator+</code> was prose with no implementation, and the bare <code>int</code> addition wrapped <code>Impassable + 1</code> to a large <strong>negative</strong> cost &mdash; which a shortest&#8209;path search would then have <em>preferred</em> over every real route. And <code>Speed.PerKilometrePerHour</code> was a hardcoded literal <code>48_000</code>; when the clock changed, an authored <code>walk_speed_kph = 5</code> would have walked the city at <strong>1.25&nbsp;km/h</strong> with nothing failing to compile. It is now derived from <code>Ticks.PerDay</code> and <code>Tiles.Metres</code>.</p>
+      </div>
+
+      <h3>Randomness is a function, not a stream</h3>
+<pre><code>public static ulong Draw(WorldKey world, ulong entityId, Ticks tick, PurposeTag purpose)</code></pre>
+      <p>Three SplitMix64 rounds, one per varying coordinate. Because it is counter&#8209;based, a draw does not depend on how many draws preceded it &mdash; which is what lets the Decide phase be parallelised later with bit&#8209;identical results. Save the <em>seed</em>, never the key; <code>WorldKey.FromSeed</code> is the only constructor.</p>
+
+      <div class="rule-box">
+        <span class="tag">Adding a PurposeTag</span>
+        <p><strong>Append</strong> at the end of the enum with an explicit value one higher. Never renumber, never slot one beside a sibling &mdash; the value is a hash input, so renumbering invalidates every Input Log and hash baseline. Add it only when the mechanism that draws under it is being built. Write the doc comment saying <em>which other tag it is distinct from and what correlation sharing would create</em> &mdash; every existing member does this. Values 0&ndash;15 are in use today.</p>
+      </div>
+
+      <p>The failure that enum exists for is recorded in its own source: a spike drew one hash and pre&#8209;shifted it for two coordinates, the reduction ate the top bits, and <strong>every Arterial took the same heading</strong> &mdash; while the footprint table looked healthy throughout.</p>
+    </section>
+
+    <!-- ================= 03 ================= -->
+    <section id="s3">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Typed tables and the State Hash</h2></div>
+
+      <p>There is no ECS (rejected explicitly &mdash; the population is homogeneous, and ECS earns its complexity through heterogeneous composition) and no object graph. Storage is structure&#8209;of&#8209;arrays: a hand&#8209;written class marked <code>[Table]</code> that <em>holds</em> a <code>Rows&lt;T&gt;</code>. The tag <code>T</code> is an <strong>empty struct</strong> whose only job is to type <code>Handle&lt;T&gt;</code>, so a Citizen handle cannot index the Building table.</p>
+
+<pre><code>[Table]
+public sealed class BuildingTable
+{
+    private readonly Rows&lt;Building&gt; _rows;
+
+    public BuildingTable(int capacity, LotTable lots)
+    {
+        _rows = new Rows&lt;Building&gt;("building", capacity, Buffering.OneCopy);
+
+        Lot          = _rows.SavedHandle("lot", lots.Rows);   // HandleColumn&lt;Lot&gt;
+        Kind         = _rows.Saved&lt;byte&gt;("kind");             // Column&lt;byte&gt;
+        OccupantHead = _rows.Derived&lt;int&gt;("occupant_head");   // rebuilt, never hashed
+        BinHead      = _rows.Derived&lt;int&gt;("bin_head", Touch.PerTick);
+
+        _rows.Seal();
+    }
+    ...
+}</code></pre>
+
+      <div class="rule-box">
+        <span class="tag">The mechanism worth internalising</span>
+        <p><strong>Declaring a column is what allocates its storage.</strong> There is no way to get an array without stating a <code>Disposition</code>, so the State Hash cannot have a coverage hole. <code>Disposition</code> is one enum &mdash; <code>Saved</code> (written to the save <em>and</em> folded into the hash, both, by construction) or <code>Derived</code> (neither, rebuilt from saved state) &mdash; rather than two booleans, precisely to make "saved but not hashed" unrepresentable.</p>
+      </div>
+
+      <h3>How the hash is composed</h3>
+
+      <figure>
+        <div class="frame">
+          <svg viewBox="0 0 760 420" role="img" aria-label="The State Hash folds a seed, then each table in declaration order; within a table the allocator scalars fold first, then only the saved columns, and a handle column folds the target row's monotonic id rather than its slot index.">
+            <defs>
+              <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+              </marker>
+            </defs>
+
+            <text x="0" y="14" font-family="monospace" font-size="11" fill="currentColor" opacity=".6">World.HashState()</text>
+
+            <rect x="0" y="26" width="200" height="34" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="100" y="47" font-family="monospace" font-size="12" text-anchor="middle" fill="currentColor">HashSeed 0x…6802</text>
+
+            <line x1="100" y1="60" x2="100" y2="84" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+            <text x="0" y="80" font-family="monospace" font-size="10" fill="currentColor" opacity=".55">tables, in declaration order</text>
+
+            <rect x="0" y="90" width="200" height="26" fill="none" stroke="currentColor" opacity=".55"/>
+            <text x="12" y="107" font-family="monospace" font-size="11" fill="currentColor" opacity=".8">01 lot</text>
+            <rect x="0" y="120" width="200" height="26" fill="none" stroke="currentColor" opacity=".55"/>
+            <text x="12" y="137" font-family="monospace" font-size="11" fill="currentColor" opacity=".8">02 building</text>
+            <rect x="0" y="150" width="200" height="26" fill="none" stroke="currentColor" stroke-width="1.5" class="svg-accent"/>
+            <text x="12" y="167" font-family="monospace" font-size="11" fill="currentColor" class="svg-accent">03 household</text>
+            <rect x="0" y="180" width="200" height="26" fill="none" stroke="currentColor" opacity=".55"/>
+            <text x="12" y="197" font-family="monospace" font-size="11" fill="currentColor" opacity=".8">04 citizen</text>
+            <text x="12" y="222" font-family="monospace" font-size="11" fill="currentColor" opacity=".55">⋮</text>
+            <rect x="0" y="232" width="200" height="26" fill="none" stroke="currentColor" opacity=".55"/>
+            <text x="12" y="249" font-family="monospace" font-size="11" fill="currentColor" opacity=".8">17 route_hop</text>
+
+            <text x="0" y="284" font-family="monospace" font-size="10" fill="currentColor" opacity=".55">appending a table moves no</text>
+            <text x="0" y="298" font-family="monospace" font-size="10" fill="currentColor" opacity=".55">row relative to another —</text>
+            <text x="0" y="312" font-family="monospace" font-size="10" fill="currentColor" opacity=".55">reordering re-baselines all</text>
+
+            <line x1="200" y1="163" x2="286" y2="163" stroke="currentColor" stroke-width="1.5" class="svg-accent" marker-end="url(#ar)"/>
+            <text x="243" y="156" font-family="monospace" font-size="10" text-anchor="middle" fill="currentColor" class="svg-accent">Fold</text>
+
+            <rect x="294" y="40" width="250" height="246" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="306" y="60" font-family="monospace" font-size="11" fill="currentColor" opacity=".6">Rows.Fold — allocator first</text>
+
+            <text x="310" y="84" font-family="monospace" font-size="11" fill="currentColor">_slotCount</text>
+            <text x="310" y="102" font-family="monospace" font-size="11" fill="currentColor">_liveCount</text>
+            <text x="310" y="120" font-family="monospace" font-size="11" fill="currentColor">_freeHead</text>
+            <text x="310" y="138" font-family="monospace" font-size="11" fill="currentColor">_nextId</text>
+
+            <line x1="306" y1="152" x2="532" y2="152" stroke="currentColor" opacity=".4"/>
+            <text x="306" y="172" font-family="monospace" font-size="11" fill="currentColor" opacity=".6">then columns, declared order</text>
+
+            <text x="310" y="196" font-family="monospace" font-size="11" fill="currentColor">id · generation · free_next</text>
+            <text x="310" y="216" font-family="monospace" font-size="11" fill="currentColor">dwelling  →  handle</text>
+            <text x="310" y="236" font-family="monospace" font-size="11" fill="currentColor">money · savings</text>
+            <text x="310" y="256" font-family="monospace" font-size="11" fill="currentColor" opacity=".38">member_head   (derived — skipped)</text>
+            <text x="310" y="274" font-family="monospace" font-size="11" fill="currentColor" opacity=".38">pool_slot     (derived — skipped)</text>
+
+            <line x1="544" y1="216" x2="600" y2="216" stroke="currentColor" stroke-width="1.5" class="svg-accent" marker-end="url(#ar)"/>
+
+            <rect x="606" y="188" width="152" height="58" fill="none" stroke="currentColor" stroke-width="1.5" class="svg-accent"/>
+            <text x="682" y="208" font-family="monospace" font-size="10.5" text-anchor="middle" fill="currentColor" class="svg-accent">folds the target's</text>
+            <text x="682" y="222" font-family="monospace" font-size="10.5" text-anchor="middle" fill="currentColor" class="svg-accent">monotonic id —</text>
+            <text x="682" y="236" font-family="monospace" font-size="10.5" text-anchor="middle" fill="currentColor" class="svg-accent">never the slot</text>
+
+            <text x="606" y="272" font-family="monospace" font-size="10" fill="currentColor" opacity=".55">slots recycle;</text>
+            <text x="606" y="286" font-family="monospace" font-size="10" fill="currentColor" opacity=".55">ids never do</text>
+
+            <line x1="294" y1="330" x2="758" y2="330" stroke="currentColor" opacity=".35"/>
+            <text x="294" y="352" font-family="monospace" font-size="10.5" fill="currentColor" opacity=".6">FoldAll() folds every column including derived ones.</text>
+            <text x="294" y="368" font-family="monospace" font-size="10.5" fill="currentColor" opacity=".6">It is not the State Hash — it is the Decide-phase guard,</text>
+            <text x="294" y="384" font-family="monospace" font-size="10.5" fill="currentColor" opacity=".6">proving phase 2 wrote nothing at all.</text>
+          </svg>
+        </div>
+        <figcaption>Three nested levels, all stated as format rather than left to implementation. The allocator's own state is hashed deliberately: a divergence in <em>which slot the next entity lands in</em> is a divergence in the city.</figcaption>
+      </figure>
+
+      <h3>Handles, slots and ids</h3>
+      <p>A <code>Handle&lt;T&gt;</code> is <code>{index, generation}</code>. Generation is <strong>even&nbsp;=&nbsp;free, odd&nbsp;=&nbsp;live</strong>, and 0 is reserved for the unset handle, so parity survives a 2<sup>31</sup> wrap. The table has a free list and <strong>never compacts</strong> &mdash; relocation would be undetectable by the generation counter. There is deliberately no unchecked fast path on <code>Resolve</code>: a dangling read in a deterministic sim is a divergence, not a crash.</p>
+      <p><code>Handle&lt;T&gt;</code> is <strong>not <code>IComparable</code></strong> and has no relational operators, because ordering by a handle index is a determinism bug &mdash; indices recycle.</p>
+
+      <h3>Intrusive index lists</h3>
+      <p>Every variable&#8209;length collection in Core is one of these: a <code>head</code>/<code>tail</code> on the owner, a <code>next</code> on the element, all in flat arrays. Never a per&#8209;entity collection object &mdash; measured at 6.98&nbsp;ms against 100.20&nbsp;ms at the 1M target, which is what makes <code>BOR0701</code> an error rather than advice.</p>
+
+      <div class="card">
+        <p class="kicker">Two details that will bite you</p>
+        <p><strong>The stored value is slot&nbsp;index&nbsp;+&nbsp;1, so 0 means empty.</strong> Zero&#8209;filled and freed rows would otherwise read as "owns slot 0".</p>
+        <p><strong>A <code>Derived</code> list must use <code>InsertOrdered</code>; a <code>Saved</code> list whose order carries meaning uses <code>Append</code>.</strong> A rebuild only has slot order available, so a derived list built with <code>Append</code> reproduces <em>plausibly</em> rather than <em>exactly</em>, and the hash notices.</p>
+      </div>
+    </section>
+
+    <!-- ================= 04 ================= -->
+    <section id="s4">
+      <div class="sec-head"><span class="sec-num">04</span><h2>The Tick</h2></div>
+
+      <p>The whole simulation is one method. It is written out straight rather than table&#8209;driven, because the phase ordering <em>is</em> the determinism contract.</p>
+
+<pre><code>public void Step(in TickInput input)
+{
+    Ticks tick = _world.Tick;
+
+    Reload(input, tick);        // inside phase 0
+    ApplyInput(input, tick);    // 0  Input
+    Wake(tick);                 // 1  Wake
+    Decide(tick);               // 2  Decide
+    Settle(tick);               // 3  Settle
+    Move(tick);                 // 4  Move
+    Layers(tick);               // 5  Layers
+    Growth(tick);               // 6  Growth
+    Commit(tick);               // 7  Commit
+
+    _world.Advance();
+}</code></pre>
+
+      <figure>
+        <div class="frame">
+          <svg viewBox="0 0 980 250" role="img" aria-label="The eight Tick phases in order: Input, Wake, Decide, Settle, Move, Layers, Growth, Commit — each labelled with the engine it calls, looping back to Input via world.Advance.">
+            <defs>
+              <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+              </marker>
+            </defs>
+
+            <g font-family="monospace" fill="currentColor">
+              <text x="20" y="18" font-size="10" opacity=".55">phase</text>
+
+              <g>
+                <text x="70" y="18" font-size="12" text-anchor="middle" class="svg-accent">0</text>
+                <rect x="20" y="28" width="100" height="46" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="70" y="56" font-size="12" text-anchor="middle">Input</text>
+                <text x="70" y="94" font-size="10" text-anchor="middle" opacity=".7">LotSubdivider</text>
+                <text x="70" y="107" font-size="10" text-anchor="middle" opacity=".7">RoadGraph</text>
+                <text x="70" y="120" font-size="10" text-anchor="middle" opacity=".7">SyntheticCity</text>
+              </g>
+              <line x1="120" y1="51" x2="138" y2="51" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+
+              <g>
+                <text x="190" y="18" font-size="12" text-anchor="middle" class="svg-accent">1</text>
+                <rect x="140" y="28" width="100" height="46" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="190" y="56" font-size="12" text-anchor="middle">Wake</text>
+                <text x="190" y="94" font-size="10" text-anchor="middle" opacity=".7">EventWheel</text>
+                <text x="190" y="107" font-size="10" text-anchor="middle" opacity=".7">CollectDue</text>
+              </g>
+              <line x1="240" y1="51" x2="258" y2="51" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+
+              <g>
+                <text x="310" y="18" font-size="12" text-anchor="middle" class="svg-accent">2</text>
+                <rect x="260" y="28" width="100" height="46" fill="none" stroke="currentColor" stroke-width="1.5" class="svg-accent"/>
+                <text x="310" y="56" font-size="12" text-anchor="middle" class="svg-accent">Decide</text>
+                <text x="310" y="94" font-size="10" text-anchor="middle" opacity=".7">RuleEngine</text>
+                <text x="310" y="107" font-size="10" text-anchor="middle" opacity=".7">.Evaluate</text>
+                <text x="310" y="122" font-size="10" text-anchor="middle" class="svg-accent">writes nothing</text>
+              </g>
+              <line x1="360" y1="51" x2="378" y2="51" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+
+              <g>
+                <text x="430" y="18" font-size="12" text-anchor="middle" class="svg-accent">3</text>
+                <rect x="380" y="28" width="100" height="46" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="430" y="56" font-size="12" text-anchor="middle">Settle</text>
+                <text x="430" y="94" font-size="10" text-anchor="middle" opacity=".7">RuleEngine</text>
+                <text x="430" y="107" font-size="10" text-anchor="middle" opacity=".7">.Apply</text>
+              </g>
+              <line x1="480" y1="51" x2="498" y2="51" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+
+              <g>
+                <text x="550" y="18" font-size="12" text-anchor="middle" class="svg-accent">4</text>
+                <rect x="500" y="28" width="100" height="46" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="550" y="56" font-size="12" text-anchor="middle">Move</text>
+                <text x="550" y="94" font-size="10" text-anchor="middle" opacity=".7">CommuteEngine</text>
+                <text x="550" y="107" font-size="10" text-anchor="middle" opacity=".7">TripEngine</text>
+              </g>
+              <line x1="600" y1="51" x2="618" y2="51" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+
+              <g>
+                <text x="670" y="18" font-size="12" text-anchor="middle" class="svg-accent">5</text>
+                <rect x="620" y="28" width="100" height="46" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="670" y="56" font-size="12" text-anchor="middle">Layers</text>
+                <text x="670" y="94" font-size="10" text-anchor="middle" opacity=".7">MapLayers</text>
+                <text x="670" y="107" font-size="10" text-anchor="middle" opacity=".7">staggered</text>
+              </g>
+              <line x1="720" y1="51" x2="738" y2="51" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+
+              <g>
+                <text x="790" y="18" font-size="12" text-anchor="middle" class="svg-accent">6</text>
+                <rect x="740" y="28" width="100" height="46" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="790" y="56" font-size="12" text-anchor="middle">Growth</text>
+                <text x="790" y="94" font-size="10" text-anchor="middle" opacity=".7">Placement →</text>
+                <text x="790" y="107" font-size="10" text-anchor="middle" opacity=".7">Employment →</text>
+                <text x="790" y="120" font-size="10" text-anchor="middle" opacity=".7">ZoneRule</text>
+              </g>
+              <line x1="840" y1="51" x2="858" y2="51" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+
+              <g>
+                <text x="910" y="18" font-size="12" text-anchor="middle" class="svg-accent">7</text>
+                <rect x="860" y="28" width="100" height="46" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="910" y="56" font-size="12" text-anchor="middle">Commit</text>
+                <text x="910" y="94" font-size="10" text-anchor="middle" opacity=".7">staggered</text>
+                <text x="910" y="107" font-size="10" text-anchor="middle" opacity=".7">invariants</text>
+              </g>
+
+              <path d="M910 148 L910 186 L70 186 L70 84" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar2)"/>
+              <text x="490" y="180" font-size="11" text-anchor="middle" opacity=".75">_world.Advance()  —  Clock.Tick += 1</text>
+
+              <line x1="20" y1="212" x2="960" y2="212" stroke="currentColor" opacity=".3"/>
+              <text x="20" y="234" font-size="10.5" opacity=".6">The State Hash is NOT emitted here. Its cadence belongs to the caller (Replay.Trace), so a run can sample it as often as it likes.</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>Phase 2 proposes and phase 3 applies. Between them, an intent may be lowered on re&#8209;check and may never be raised &mdash; an earlier intent may have deposited, and helping yourself to that is consuming a quantity that did not exist when you decided.</figcaption>
+      </figure>
+
+      <div class="note">
+        <span class="tag">Correction to CLAUDE.md and the board</span>
+        <p>Both say <em>"two of the eight Tick phases are still empty"</em> and that <em>nothing in the Tick calls the Movement tables</em>. <strong>Neither is true any more.</strong> All eight phases call at least one engine; phase 4 has run <code>CommuteEngine</code> then <code>TripEngine</code> since milestone 5b. The nearest thing to a stub is phase 7, which does only the staggered invariant slice.</p>
+      </div>
+
+      <h3>The Decide guard</h3>
+      <p><code>Simulation.VerifyDecideWritesNothing</code> defaults to <strong>on</strong>. It folds every column of every table &mdash; including derived ones &mdash; before and after phase 2, and throws on a mismatch. It is <code>O(world)</code> twice per Tick, so long runs at scale need <code>--no-decide-guard</code>. Leave it on for everything else; it is the check that keeps the propose/apply split honest.</p>
+
+      <h3>Commands, and the Input Log</h3>
+      <p>A <code>Command</code> is 12 bytes with no padding: <code>Kind</code>, a payload word, and two <code>Tiles</code>. Payloads pack into that single word so the log format stays at version&nbsp;1 &mdash; <strong>a sixth field would bump the codec version and cost every log ever written.</strong></p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>CommandKind</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><code>None = 0</code></td><td>reserved, never valid</td></tr>
+            <tr><td><code>Zone = 1</code></td><td>zones the <strong>block</strong> the named Tile falls in; the subdivider carves it</td></tr>
+            <tr><td><code>Connect = 2</code></td><td>one Street Segment, laid or bulldozed. Arterials refused by name</td></tr>
+            <tr><td><code>Service = 3</code></td><td>declared, <strong>not applied</strong> &mdash; throws</td></tr>
+            <tr><td><code>Govern = 4</code></td><td>declared, <strong>not applied</strong> &mdash; throws</td></tr>
+            <tr><td><code>Populate = 5</code></td><td>synthetic city. An instrument verb, expected to be deleted</td></tr>
+            <tr><td><code>Trip = 6</code></td><td>a test affordance rather than the only door. Also expected to be deleted</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>What guarantees replay: a replay <strong>starts from an empty world</strong> &mdash; there is no initial&#8209;state file, so every difference between two cities is a difference in their logs. Randomness is counter&#8209;based. And <code>Apply</code> throws on any verb it does not apply, so a log can never run "successfully" while diverging.</p>
+
+      <h3>Invariants</h3>
+      <p>Three tiers, <strong>sorted by frequency and never gated on build configuration</strong> &mdash; the runs that surface these bugs are release&#8209;build, million&#8209;Tick balance runs.</p>
+      <ol class="body">
+        <li><strong>PerTick</strong> &mdash; <code>O(1)</code>, at the write site. A mutation asserting about itself. Not in a registry.</li>
+        <li><strong>Staggered</strong> &mdash; one slice of rows per Tick; the whole world covered every 64 Ticks.</li>
+        <li><strong>EndOfRun</strong> &mdash; expensive whole&#8209;world walks, once per run however long.</li>
+      </ol>
+      <p>To add one: append to <code>enum Invariant</code> with the <strong>next unused number</strong> (0&ndash;39 today), write the check in <code>WorldInvariants.cs</code>, and register it. <strong>Ids are retired, never reused</strong> &mdash; <code>HouseholdHomeExists = 3</code> is <code>[Obsolete]</code> and kept, because that number travels in crash artifacts written before the change.</p>
+    </section>
+
+    <!-- ================= 05 ================= -->
+    <section id="s5">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Rules and Rulesets</h2></div>
+
+      <p><strong>No tuning number is a <code>const</code> in simulation source.</strong> Everything a designer would want to change lives in a TOML Ruleset and is hot&#8209;reloadable. A <code>const</code> where a Ruleset value belongs is a defect, not a shortcut.</p>
+
+      <h3>Two Rule families, and what actually distinguishes them</h3>
+      <p>They differ in <strong>when an effect becomes visible within a Tick</strong> &mdash; which is observable behaviour, so moving a mechanism between families is a change to the city, never an optimisation.</p>
+
+      <div class="split">
+        <div class="card">
+          <p class="kicker">Bin Rules — phases 1&ndash;3</p>
+          <p>Scheduled on the Event Wheel, evaluated read&#8209;only, applied atomically in a drawn order. On failure they <em>subscribe</em> to the Bin that stopped them and cost nothing until supply arrives.</p>
+        </div>
+        <div class="card">
+          <p class="kicker">Sweep Rules — phase 6</p>
+          <p>Fire on an interval, sample a derived number of rows, and act where they run. No wheel entry, no subscription, no proposal.</p>
+        </div>
+      </div>
+
+      <figure>
+        <div class="frame">
+          <svg viewBox="0 0 900 300" role="img" aria-label="A Bin Rule instance moves between two states: armed on an Event Wheel bucket, or waiting on one of a Bin's two wait lists. It is drained into the due list in phase 1, checked read-only in phase 2, and in phase 3 either fires and re-arms at plus rate, or stops and subscribes to the blocking Bin.">
+            <defs>
+              <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+              </marker>
+            </defs>
+            <g font-family="monospace" fill="currentColor">
+
+              <rect x="16" y="60" width="140" height="52" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <text x="86" y="82" font-size="12" text-anchor="middle">ARMED</text>
+              <text x="86" y="99" font-size="10" text-anchor="middle" opacity=".7">wheel bucket</text>
+
+              <line x1="156" y1="86" x2="192" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+              <text x="174" y="76" font-size="10" text-anchor="middle" opacity=".7">ph 1</text>
+
+              <rect x="196" y="60" width="130" height="52" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <text x="261" y="82" font-size="12" text-anchor="middle">DUE</text>
+              <text x="261" y="99" font-size="10" text-anchor="middle" opacity=".7">on no queue</text>
+
+              <line x1="326" y1="86" x2="362" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+              <text x="344" y="76" font-size="10" text-anchor="middle" opacity=".7">ph 2</text>
+
+              <rect x="366" y="52" width="150" height="68" fill="none" stroke="currentColor" stroke-width="1.5" class="svg-accent"/>
+              <text x="441" y="74" font-size="12" text-anchor="middle" class="svg-accent">CHECK</text>
+              <text x="441" y="90" font-size="10" text-anchor="middle" opacity=".75">net delta per Bin</text>
+              <text x="441" y="104" font-size="10" text-anchor="middle" opacity=".75">→ verdict + order</text>
+
+              <line x1="516" y1="86" x2="552" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+              <text x="534" y="76" font-size="10" text-anchor="middle" opacity=".7">ph 3</text>
+
+              <rect x="556" y="52" width="120" height="68" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <text x="616" y="74" font-size="12" text-anchor="middle">RE-CHECK</text>
+              <text x="616" y="90" font-size="10" text-anchor="middle" opacity=".75">may lower,</text>
+              <text x="616" y="104" font-size="10" text-anchor="middle" opacity=".75">never raise</text>
+
+              <line x1="676" y1="70" x2="722" y2="46" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+              <line x1="676" y1="102" x2="722" y2="128" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+
+              <rect x="726" y="18" width="158" height="48" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <text x="805" y="38" font-size="12" text-anchor="middle">FIRE</text>
+              <text x="805" y="54" font-size="10" text-anchor="middle" opacity=".75">re-arm at +rate</text>
+
+              <rect x="726" y="106" width="158" height="48" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <text x="805" y="126" font-size="12" text-anchor="middle">STOP</text>
+              <text x="805" y="142" font-size="10" text-anchor="middle" opacity=".75">subscribe to the Bin</text>
+
+              <path d="M884 42 L896 42 L896 6 L86 6 L86 60" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+
+              <path d="M805 154 L805 196" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+
+              <rect x="666" y="200" width="218" height="66" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <text x="775" y="222" font-size="12" text-anchor="middle">WAITING</text>
+              <text x="775" y="238" font-size="10" text-anchor="middle" opacity=".75">Bin's level list</text>
+              <text x="775" y="252" font-size="10" text-anchor="middle" opacity=".75">or headroom list</text>
+
+              <path d="M666 233 L200 233" fill="none" stroke="currentColor" stroke-width="1.5" class="svg-accent" marker-end="url(#ar3)"/>
+              <text x="432" y="224" font-size="10.5" text-anchor="middle" class="svg-accent">Drain — a write to the Bin wakes the head of the line</text>
+
+              <path d="M196 233 L86 233 L86 112" fill="none" stroke="currentColor" stroke-width="1.5" class="svg-accent" marker-end="url(#ar3)"/>
+              <text x="100" y="180" font-size="10" class="svg-accent">arm at +1</text>
+
+              <line x1="16" y1="286" x2="884" y2="286" stroke="currentColor" opacity=".3"/>
+              <text x="16" y="300" font-size="10.5" opacity=".6">One link column, two states. Armed AND waiting is unrepresentable, not merely checked.</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>The wake is at <code>+1</code>, never this Tick, because Bins are written in phase 3 and Rules evaluate in phase 2. The drain is <strong>head&#8209;of&#8209;line and stops rather than skipping</strong> &mdash; skipping past a waiter it cannot cover would starve a large consumer behind small ones for ever.</figcaption>
+      </figure>
+
+      <h3>Atomicity, in one paragraph</h3>
+      <p><code>Check</code> accumulates <strong>net deltas per distinct Bin</strong> &mdash; not term by term. That is not a refinement: term&#8209;by&#8209;term, a Rule naming one Bin on both sides can be refused headroom in a Bin it was about to empty, and nothing else would ever drain it. Then per Bin, <code>affordable = level ÷ |delta|</code> (or <code>headroom ÷ delta</code>), and the count is <code>min(ceiling, every affordable)</code>. <strong>Checking at <em>n</em> and applying at <em>n</em> are one arithmetic, not a search.</strong></p>
+
+      <h3>Fallback chains</h3>
+      <p>Out&#8209;degree 1, so a chain is a path. The rule that surprises everybody: <strong>a terminal link is never evaluated.</strong> Evaluating it would succeed, re&#8209;arm the head at <code>rate</code>, and walk the chain every <code>rate</code> Ticks for the whole shortage &mdash; which is the polling defect that subscription exists to remove. Every link must relieve the same Bin the head can fail on (enforced at load), so one subscription covers every rescue path and <strong>depth costs no subscriptions</strong>.</p>
+
+      <h3>The Ruleset file</h3>
+      <p>Three shipped files, all under <code>rulesets/</code>. <code>minimal.toml</code> says in its own header, at length, that <strong>it models no city and is not the beginning of one</strong>. Read that header &mdash; it is a design record, not boilerplate.</p>
+
+<pre><code>[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48 },
+    { resource = "repairs",  capacity = 4 },
+]
+condemn_after = 4
+occupants     = 3
+jobs          = 8
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { derived = "occupancy" }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048</code></pre>
+
+      <p>Twelve top&#8209;level tables exist: <code>[[resource]]</code>, <code>[[building]]</code>, <code>[[rule]]</code>, <code>[[zone_rule]]</code>, <code>[layers]</code>, <code>[placement]</code>, <code>[roads]</code>, <code>[lots]</code>, <code>[trips]</code>, <code>[jobs]</code>, <code>[households]</code>, <code>[traffic]</code>. The last two are stated by no shipped file.</p>
+
+      <div class="rule-box">
+        <span class="tag">Three conventions that recur everywhere</span>
+        <ul style="margin-bottom:0">
+          <li><strong>The file states a duration; the engine derives the count.</strong> <code>revisit_ticks</code> plus <code>interval</code> gives <code>sample = ceil(rows &times; interval ÷ revisit)</code>. Authoring the sample directly is how a mechanism silently stops existing as the city grows &mdash; the retired key <code>sample</code> is now <strong>refused by name</strong>, because a silently&#8209;ignored key is how a designer's tuning stops taking effect with nothing saying so.</li>
+          <li><strong>Absence is a stated city, and the polarity is chosen per table.</strong> No <code>[traffic]</code> means roads never slow down; no <code>[households]</code> means nobody drives; no <code>[placement]</code> means the city houses nobody. Only <code>[layers]</code> has a working default, because its default <em>is</em> the prior behaviour.</li>
+          <li><strong>Derived&#8209;from&#8209;the&#8209;Ruleset&#8209;in&#8209;force beats saved</strong> for anything that is a pure function of the Rules &mdash; Bin capacity, occupancy ceiling, car ownership, the departure window. Freeze it at construction and a hot reload divides the city into before&#8209;and&#8209;after with the cause recoverable from no state.</li>
+        </ul>
+      </div>
+
+      <p><strong>No decimals anywhere</strong>, in any section, including ones this build does not read &mdash; a <code>double</code> that exists for microseconds becomes a cross&#8209;machine hash divergence with no diff. Quote them if you need them. And <strong>declaration order is content</strong>: it assigns ids, and it is the Zone Rule tie&#8209;break.</p>
+
+      <h3>Adding a Ruleset key, end to end</h3>
+      <ol class="body">
+        <li><code>src/Borough.Core/Rules/Ruleset.cs</code> &mdash; add the field, and <strong>decide the polarity of absence explicitly</strong> and write it in the remarks.</li>
+        <li><code>src/Borough.Formats/RulesetLoader.cs</code> &mdash; four edits: a case in <code>Enumerate</code>, the <code>default:</code> message listing the sections, a <code>ReadX()</code> returning <code>X.None</code>, and the range refusals. <strong>Give each refusal the mechanism sentence, not just the range.</strong></li>
+        <li><code>src/Borough.Core/Rules/RulesetShape.cs</code> &mdash; re&#8209;run the membership test: <em>anything a live row can point at is structure; anything only read through a row is a number.</em> Get this wrong in one direction and every tuning reload becomes a migration.</li>
+        <li>If the value is derived&#8209;and&#8209;rebuilt, add the rebuild to <code>World.Adopt</code>.</li>
+        <li>Tests: there is already one file per table under <code>tests/Borough.Tests/Formats/</code>.</li>
+        <li>State the number in <code>rulesets/*.toml</code> &mdash; <strong>which moves the file's content hash and therefore re&#8209;baselines the golden session.</strong> See <a href="#s7">07</a>.</li>
+        <li>Record the unratified number in <code>plans/0002</code> §D with a named ratifier.</li>
+      </ol>
+
+      <h3>Hot reload</h3>
+      <p>A Ruleset is identified by the <strong>content hash of its file</strong> (CRLF normalised, nothing else &mdash; whitespace, key order and comments are content). The log carries the hash, never the Rules, so supplying the wrong file is loud rather than quiet. An unresolvable hash <em>throws</em>: silently ignoring a reload is the named failure mode of the whole feature.</p>
+      <p><code>World.Adopt</code> refuses first, then applies. <code>World.Migrate</code> is four separate walks rather than one loop doing four things &mdash; step 4 allocates rows step 2 just freed, so interleaving is a different slot assignment and therefore a different State Hash.</p>
+      <p>The acceptance test for the whole feature &mdash; <em>change a production ratio and see the effect in seconds</em> &mdash; reads <strong>0.70&nbsp;s</strong>.</p>
+    </section>
+
+    <!-- ================= 06 ================= -->
+    <section id="s6">
+      <div class="sec-head"><span class="sec-num">06</span><h2>Movement &mdash; the live frontier</h2></div>
+
+      <p>This is where the work is right now, and it is the subsystem with the most decisions behind it. Read <code>docs/movement-primer.md</code> first; it exists exactly for this.</p>
+
+      <h3>The three&#8209;way split</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Row</th><th>Owns</th><th>Lifetime</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Trip</strong></td><td>purpose, origin, destination, an ordered list of Legs, and a Fate</td><td>one journey</td></tr>
+            <tr><td><strong>Leg</strong></td><td>the plan: one mode&#8209;homogeneous piece, with a cost and now a route</td><td>one journey</td></tr>
+            <tr><td><strong>Traveller</strong></td><td>the cursor: which Leg, which hop, sub&#8209;Tick carry, arrival Tick</td><td>released on arrival &mdash; <strong>a view, never an owner</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>A car commute is <strong>never fewer than three Legs</strong> &mdash; <code>walk → drive → walk</code> &mdash; because Buildings connect to the pedestrian network rather than to the road graph. The two flanking walks are zero&#8209;length until parking exists (milestone 8), and that placeholder is <em>named</em> rather than silent.</p>
+
+      <p><code>TripFate</code> is a closed set of four, with <code>InFlight = 0</code> so an unwritten row cannot read as an outcome: <code>Completed</code>, <code>NoRouteFound</code>, <code>ExceededCommuteBudget</code>, <code>Stranded</code>.</p>
+
+      <h3>Routing</h3>
+      <ul>
+        <li><strong><code>WalkRouting.Cost</code></strong> &mdash; a real Dijkstra, but with three closed&#8209;form answers before any search: absent/dead endpoints, the same&#8209;Segment case, and an exact <strong>reachability reject</strong> off per&#8209;mode connectivity components. It seeds <em>both</em> origin endpoints and reads <em>both</em> destination endpoints, which is why it is Dijkstra and not A*.</li>
+        <li><strong><code>WalkScratch</code></strong> &mdash; generation&#8209;stamped search state, never cleared. Arrays beside the search, deliberately not a <code>[Table]</code>: never saved, never hashed. One per caller, never shared across threads.</li>
+        <li><strong><code>RouteCache</code></strong> &mdash; four&#8209;way set&#8209;associative, keyed on a node pair, <em>never on an agent</em>. Stores each Segment's handle <em>and</em> its Epoch, so a lookup rejects if the graph moved. This is the <strong>first reader the per&#8209;Segment Epoch has ever had.</strong> Eviction is <strong>MRU</strong>, chosen structurally &mdash; a commute is a once&#8209;per&#8209;Day cyclic scan, which is LRU's worst case (measured: LRU 2.83% hit rate, MRU 19.54%).</li>
+        <li><strong><code>TravelTimeMatrix</code></strong> &mdash; free&#8209;flow time between every ordered pair of routing partitions. Times only, no routes. Asymmetric: n², never n²/2.</li>
+      </ul>
+
+      <div class="card">
+        <p class="kicker">Milestone 5c — in flight, tasks 1&ndash;6 of 8 done</p>
+        <p>Shipped in the working tree right now: the routing partition, the travel&#8209;time matrix, the path source, the route cache, the <strong>vehicular Leg</strong>, and the volume&#8209;delay function. <code>RouteHopTable.cs</code> is still <strong>untracked</strong>. Remaining: <strong>task 7</strong>, a runner mode showing where the traffic is, and <strong>task 8</strong>, the 100,000&#8209;Tick long run &mdash; which is the named ratifier for four hash&#8209;bearing numbers that <em>no shipped Ruleset states</em>.</p>
+      </div>
+
+      <h3>Space: Tile, Cell, Chunk</h3>
+      <ul>
+        <li><strong>Tile</strong> &asymp; 4&nbsp;m.</li>
+        <li><strong>Cell</strong> = 32&times;32 Tiles &asymp; 128&nbsp;m. A <strong>frozen design constant</strong>, never tuned, because changing it changes the State Hash. Every conversion is a shift.</li>
+        <li><strong>Chunk</strong> = a multiple of the Cell, provisionally 1:1.</li>
+        <li>Map: 512 Cells a side = 16,384 Tiles = 65.5&nbsp;km.</li>
+      </ul>
+
+      <p>The graph is <strong>Nodes, Segments and a directed Arc adjacency</strong>. The mode mask is <strong>saved on the Arc and derived on the Segment</strong> &mdash; one&#8209;way streets are the entire reason. This is where <strong>Severance</strong> lives: an Arterial's Arcs carry <code>Car</code> and not <code>Foot</code>, so a pedestrian route genuinely does not exist. Nobody deletes it.</p>
+
+      <p>The per&#8209;Segment <code>Epoch</code> is monotone and <strong>saturates</strong> at <code>uint.MaxValue</code> rather than wrapping &mdash; a wrapped Epoch makes a stale route compare valid. Laying a Street moves <em>no</em> standing Segment's Epoch: an addition cannot make an existing route <em>wrong</em>, only suboptimal.</p>
+
+      <h3>Runner modes</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Mode</th><th>Steps the world?</th><th>Command</th></tr></thead>
+          <tbody>
+            <tr><td>Report</td><td>no</td><td><code>dotnet run --project src/Borough.Headless</code></td></tr>
+            <tr><td>Run</td><td><strong>yes</strong></td><td><code>-- --seed 1 --ticks 10000 --ruleset rulesets/minimal.toml</code></td></tr>
+            <tr><td>Layer</td><td>no</td><td><code>-- --layer pollution</code></td></tr>
+            <tr><td>Zones</td><td><strong>yes</strong></td><td><code>-- --zones --ruleset rulesets/minimal.toml --ticks 5000</code></td></tr>
+            <tr><td>Roads</td><td>no</td><td><code>-- --roads --ruleset rulesets/minimal.toml --seed 3</code></td></tr>
+            <tr><td>Trips</td><td>no</td><td><code>-- --trips --ruleset rulesets/minimal.toml</code></td></tr>
+            <tr><td>Commute</td><td><strong>yes</strong></td><td><code>-- --commute --ruleset rulesets/minimal.toml --ticks 4096</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Modes refuse flags that would make them lie rather than degrading &mdash; <code>--zones</code> without a <code>--ruleset</code> is refused, because an unchanging grid would read as a broken mechanism instead of as a file that declares no Zone Rules.</p>
+    </section>
+
+    <!-- ================= 07 ================= -->
+    <section id="s7">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Tests, and the baselines that will catch you out</h2></div>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Directory</th><th>Tests</th><th>What it holds</th></tr></thead>
+          <tbody>
+            <tr><td><code>Rules/</code></td><td class="num">218</td><td>the Rule engine, Ruleset shape, reload, migration</td></tr>
+            <tr><td><code>Formats/</code></td><td class="num">190</td><td>the loader &mdash; one file per Ruleset table</td></tr>
+            <tr><td><code>Space/</code></td><td class="num">109</td><td>graph, lattice, Layers, diffusion</td></tr>
+            <tr><td><code>Movement/</code></td><td class="num">86</td><td>Trips, routing, volume</td></tr>
+            <tr><td><code>Headless/</code></td><td class="num">63</td><td>option parsing and the dumps</td></tr>
+            <tr><td><code>Analysers/</code></td><td class="num">50</td><td>each diagnostic, watched firing <em>and</em> staying silent</td></tr>
+            <tr><td><code>Session/</code></td><td class="num">43</td><td>replay equivalence</td></tr>
+            <tr><td><code>Golden/</code></td><td class="num">14</td><td>the committed baselines</td></tr>
+            <tr><td><code>Corpus/</code></td><td class="num">9</td><td><strong>tests over the prose</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The suite tests the documentation</h3>
+      <p>Five checks in <code>tests/Borough.Tests/Corpus/</code>: every ADR is cited by something outside <code>docs/adr/</code>; every relative markdown link resolves (2,292 of them); every ADR has a row in the coverage map; certain dangerous figures are never quoted without their disqualifying caveat; and markdown tables are not split into fragments that will not render. If you edit a document and the build goes red, this is why.</p>
+
+      <h3>The golden baselines</h3>
+      <div class="rule-box">
+        <span class="tag">The point, stated in the README's first line</span>
+        <p><strong>Not that the State Hash never moves &mdash; that it never moves without somebody saying so.</strong> Every other determinism test is a closed loop: it runs a thing twice and checks the two runs agree, which stays true however far the simulation has drifted from what it used to compute. These are the only numbers recorded on a previous day.</p>
+      </div>
+
+      <p>Three committed artefacts, plus two that are part of the baseline and live elsewhere:</p>
+      <ul>
+        <li><code>Golden/session.borough</code> &mdash; the Input Log: seed, 4,000 Citizens, 21 commands, a reload at Tick 1,024.</li>
+        <li><code>Golden/session-trace.txt</code> &mdash; 32 hash samples of that 2,048&#8209;Tick session.</li>
+        <li><code>Golden/world-hash.txt</code> &mdash; one hash over a hand&#8209;built city that reaches free&#8209;list state a session cannot.</li>
+        <li><strong><code>rulesets/minimal.toml</code> and <code>minimal-tuned.toml</code></strong> &mdash; named by content hash, so <strong>editing either moves every sample above</strong>.</li>
+      </ul>
+
+      <h4>Re-baselining</h4>
+      <ol class="body">
+        <li><strong>Establish which kind of change it is.</strong> A change is an <em>optimisation</em> if the State Hash is unchanged and a <em>design change</em> otherwise, however it was motivated. <strong>If you believed you were writing an optimisation, this test has just told you that you were not.</strong> Stop and find out what moved.</li>
+        <li>Regenerate:
+<pre><code>dotnet run --project src/Borough.Headless -- \
+  --log tests/Borough.Tests/Golden/session.borough \
+  --ruleset rulesets/minimal.toml \
+  --ruleset rulesets/minimal-tuned.toml \
+  --ticks 2048 --hash-every 64 \
+  --out tests/Borough.Tests/Golden/session-trace.txt</code></pre>
+        Both <code>--ruleset</code> flags are mandatory, because the session reloads. For <code>world-hash.txt</code>, copy it out of the failure message &mdash; the test prints the file in full.</li>
+        <li>If the <em>fold itself</em> changed &mdash; composition order, <code>Randomness.Mix</code>, what a column contributes &mdash; bump the version byte in <code>World.HashSeed</code>. A behaviour change moves the baselines and leaves the seed alone.</li>
+        <li><strong>Say why in the commit message</strong>, naming the document or ADR that authorises it. A re&#8209;baseline whose message is <em>"update golden hashes"</em> is one nobody can audit later.</li>
+        <li><strong>Never in the same commit as an unrelated change.</strong> The diff is the record.</li>
+      </ol>
+
+      <p>There is deliberately <strong>no <code>--update-baselines</code> switch and no environment variable.</strong> A baseline that can rewrite itself is one CI misconfiguration away from approving every change it sees.</p>
+
+      <div class="note">
+        <span class="tag">The gotcha, documented twice in that README</span>
+        <p>When a Ruleset gains a table, <strong>four literals in two files must move before the trace can be regenerated at all</strong>: <code>GoldenFixtures.RulesetHash</code>, <code>GoldenFixtures.TunedRulesetHash</code>, and the <code>ruleset</code> and <code>reload</code> lines inside <code>session.borough</code>. Regenerating against a log that still names the old Ruleset produces a green run of the wrong session.</p>
+      </div>
+
+      <h3>The failure a baseline is structurally blind to</h3>
+      <p>A baseline records what a run <em>did</em>, so <strong>a change that narrows what the run <em>reaches</em> is invisible in it by construction</strong> &mdash; every hash moves, every test passes, and half a mechanism goes uncovered. This has now happened twice, so it is a test rather than a paragraph: <code>GoldenSessionCoverageTests</code> asserts what the session <em>reaches</em>. If you move a command in that session, that file is what tells you the move cost coverage.</p>
+    </section>
+
+    <!-- ================= 08 ================= -->
+    <section id="s8">
+      <div class="sec-head"><span class="sec-num">08</span><h2>How the corpus works</h2></div>
+
+      <p>~33,000 lines of prose against ~36,000 lines of simulation. That ratio is known, is on the board as a standing concern, and is why the rule is: <em>an argument session runs when something concrete is blocked on it, never because it is available.</em></p>
+
+      <h3>Where a fact lives</h3>
+      <p>A <strong>source</strong> owns a fact; a <strong>view</strong> restates facts owned elsewhere and can be stale. When a view disagrees with a source, the source wins.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>File</th><th>Kind</th><th>Answers</th></tr></thead>
+          <tbody>
+            <tr><td><code>plans/0000-board.md</code></td><td>view</td><td>what is next</td></tr>
+            <tr><td><code>plans/0003-build-plan.md</code></td><td>source</td><td>what is done</td></tr>
+            <tr><td><code>plans/0002-open-questions.md</code></td><td>source</td><td>what needs answering &mdash; <strong>every</strong> open question, nowhere else</td></tr>
+            <tr><td><code>plans/0012-corpus-audit.md</code></td><td>source</td><td>what a document says wrongly. A correction is not a question</td></tr>
+            <tr><td><code>plans/0013-tick-budget.md</code></td><td>view</td><td>what a Tick costs</td></tr>
+            <tr><td><code>docs/adr/</code></td><td>source</td><td>settled decisions, one per file</td></tr>
+            <tr><td><code>docs/spike-results.md</code></td><td>source</td><td>measured numbers, and the decision each produced</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>ADRs</h3>
+      <p>99 of them, numbered to 0099 (0028 is reserved and unwritten). <strong>The filename is the claim, stated as a sentence</strong> &mdash; <code>0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md</code>. Structure: title as a claim, the decision in bold up front, <code>## Why</code>, <code>## Consequences</code>, <code>## What would trigger revisiting</code>. That last section is <strong>not optional</strong> &mdash; a decision with no revisit trigger is a decision nobody can reopen honestly. ADRs are never deleted or silently amended; a wrong one gets a correction block, so the reasoning that was wrong stays readable.</p>
+
+      <h3>Four rules of inference, and one of quotation</h3>
+      <p>These are the load&#8209;bearing meta&#8209;rules. They will feel like overhead until the first time one saves you a week.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Rule</th><th>Governs</th><th>What it says</th></tr></thead>
+          <tbody>
+            <tr><td><code>adr/0043</code></td><td>claims</td><td>A claim a measurement could settle must not be settled by argument. Type it first: <em>can you name the number that would refute this, and the machine that would produce it?</em> Six claims here have been measured false, two of them sitting in documents marked fully argued.</td></tr>
+            <tr><td><code>adr/0052</code></td><td>numbers</td><td>A hash&#8209;bearing number is chosen with a <strong>named</strong> ratifier or not at all. A category is not a name &mdash; "a future spike" satisfies the letter and defeats the point.</td></tr>
+            <tr><td><code>adr/0070</code></td><td>absences</td><td>An unbuilt mechanism is not a design constraint. Classify it: <em>unbuilt</em>, <em>undesigned</em>, or <em>refused</em> &mdash; and <strong>only refused is evidence</strong>. Most of this project does not exist, so <em>"the sim does not do X"</em> almost always means nobody built X.</td></tr>
+            <tr><td><code>adr/0093</code></td><td>the build</td><td>A description of the build is <strong>where to look</strong>, and never <strong>what you found</strong>. Where such a sentence is wrong it is wrong about the <em>trigger</em>. The writing half is what compounds: <strong>name a symbol, never a time.</strong> "At world creation" cannot be checked without already knowing the answer; "when <code>SyntheticCity</code> runs" is one grep.</td></tr>
+            <tr><td><code>0012</code> Cause 5</td><td>quotation</td><td>A caveat attached to a number does not travel with it. Quote the <em>sentence</em>, never the digits. <strong>Carry the bill, not the percentage</strong> &mdash; a share of a budget is a measurement over a product decision, so state the milliseconds and let the share follow.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Vocabulary discipline</h3>
+      <p>Domain terms are capitalised in prose. If a concept needs a name that is not in <code>CONTEXT.md</code>, <strong>add it there first</strong>. The file ends with <em>Terms we deliberately do not use</em>, and several of them name failure modes the design has already rejected &mdash; <strong>Agent</strong> (say Citizen, Traveller or Vehicle), <strong>Cohort</strong> (there is no group&#8209;level Citizen representation anywhere), <strong>Demand</strong> (there is no RCI meter; the Unplaced Pool <em>is</em> the demand signal), <strong>Region</strong>, <strong>hour</strong> and <strong>minute</strong> (there is no clock face).</p>
+      <p>Prose is British &mdash; modelled, behaviour, optimise. The register is dense and argumentative. <strong>This governs documents only</strong>; chat and commit messages are plain English.</p>
+
+      <h3>The five things not to reach for</h3>
+      <ul>
+        <li><strong>An ECS.</strong> Rejected explicitly: the population is homogeneous.</li>
+        <li><strong>A demand scalar.</strong> There is no RCI meter.</li>
+        <li><strong>Collapsing Citizens into groups.</strong> No Cohorts, ever.</li>
+        <li><strong>Fidelity that depends on the camera.</strong> Fidelity is a property of place, driven by Stress. The renderer cannot influence the simulation.</li>
+        <li><strong>A collection with no sink.</strong> Nothing grows with elapsed time.</li>
+      </ul>
+    </section>
+
+    <!-- ================= 09 ================= -->
+    <section id="s9">
+      <div class="sec-head"><span class="sec-num">09</span><h2>Traps, stale docs, and a first contribution</h2></div>
+
+      <h3>Where the documentation is currently wrong</h3>
+      <p>Verified against the build on 2026&#8209;08&#8209;14. This is normal here &mdash; the corpus has a whole file (<code>plans/0012</code>) for exactly this &mdash; but know it before you reason from a sentence.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Says</th><th>Where</th><th>Actually</th></tr></thead>
+          <tbody>
+            <tr><td>Five projects, including <code>Borough.Godot</code></td><td><code>CLAUDE.md</code></td><td>Four. The Godot shell does not exist on disk yet.</td></tr>
+            <tr><td>"Two of the eight Tick phases are still empty"</td><td><code>CLAUDE.md</code>, <code>plans/0000</code></td><td>All eight call an engine.</td></tr>
+            <tr><td>"Movement is built and unwired &mdash; nothing in the Tick calls them"</td><td><code>CLAUDE.md</code></td><td>Wired since 5b. Phase 4 runs <code>CommuteEngine</code> then <code>TripEngine</code>; the Movement tables are in <code>World._tables</code>.</td></tr>
+            <tr><td>"No jobs, money, traffic"</td><td><code>plans/0000</code></td><td>Jobs shipped in 5b&#8209;bis; traffic (a volume&#8209;delay function) shipped in 5c task 6. Money is still true.</td></tr>
+            <tr><td>Phase 2 is blocked pending S0</td><td><code>docs/06</code></td><td>Amended in place: Phase 2 has plainly been running for weeks. <em>A block nobody enforces is a document disagreeing with the build, and the build wins.</em></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Operational traps</h3>
+      <ul>
+        <li><strong>Do not delete <code>spikes/S2.Routing/</code>.</strong> It is 29,719 lines awaiting deletion and has been held twice for <em>unrelated</em> reasons. The first gate is discharged; the second (another session is doing live research inside it) is not. Reading the first clearance as the second's is exactly how a row gets struck wrongly.</li>
+        <li><strong>Turn off the Decide guard for long runs only.</strong> <code>--no-decide-guard</code>. It is <code>O(world)</code> twice a Tick.</li>
+        <li><strong>Do not share the machine with a benchmark.</strong> A <code>dotnet test</code> run at ~1018% CPU has been recorded corrupting a parallel&#8209;scaling measurement in another session.</li>
+        <li><strong>Every diagnostic needs a test that watches it fire.</strong> The analyser harness asserts the probe compiles clean first &mdash; otherwise a typo makes the positive test fail for the wrong reason and the negative one pass for no reason at all.</li>
+        <li><strong>Rebuilding derived state is a real obligation.</strong> A derived structure caching a Ruleset value reads as <em>absent</em> rather than <em>stale</em> before its first rebuild &mdash; and absent is the state every guard is written against.</li>
+      </ul>
+
+      <h3>A first contribution, in order of increasing blast radius</h3>
+      <ol class="body">
+        <li><strong>Read <code>PROCESS.md</code>, then <code>CONTEXT.md</code>'s heading list, then <code>docs/movement-primer.md</code>.</strong> Ninety minutes. You will stop mis&#8209;parsing every other document.</li>
+        <li><strong>Run all seven runner modes.</strong> <code>--zones</code>, <code>--roads</code>, <code>--commute</code> and <code>--layer</code> each print a picture. This is faster than reading about them.</li>
+        <li><strong>Break something on purpose.</strong> Write a <code>double</code> in Core and watch <code>BOR0201</code> fire; change one number in <code>rulesets/minimal.toml</code> and watch the golden baseline fail with a diff. Both take a minute and teach you more than any document.</li>
+        <li><strong>Pick up 5c task 7</strong> &mdash; the traffic runner mode. It is scoped in <code>plans/0026</code>, it is an eighth mode alongside seven existing examples to copy, it touches no hash&#8209;bearing state, and the milestone is blocked on it. That is about as good as a first issue gets here.</li>
+      </ol>
+
+      <div class="rule-box">
+        <span class="tag">The habit that matters most</span>
+        <p>When you find that a document is wrong, <strong>route the finding to the code or to a named document with an owner, on the day, and before working around it.</strong> The order is the rule &mdash; the filing survives, and doing the workaround first is how the filing stops feeling necessary. A defect goes to the code or <code>plans/0003</code>; a cost to <code>0013</code>; a question to <code>0002</code>; a document now wrong to <code>0012</code>. There is no fifth class.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    Compiled 2026-08-14 by reading the build, not the prose. Where this page and a source document disagree, check the code — that is this project's own rule.
+  </footer>
+
+</div>
+</body>
+</html>

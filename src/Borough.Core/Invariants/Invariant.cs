@@ -621,4 +621,33 @@ public enum Invariant
     /// </para>
     /// </remarks>
     MoneyIsConserved = 40,
+
+    /// <summary>
+    /// A Citizen giving up a parking space holds one that resolves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A write-site check on a condition that holds by construction, which is exactly when it is
+    /// worth writing</b> — <see cref="TripHasAFate"/>'s shape, and <c>adr/0084</c> asks for this half
+    /// at the write site rather than per Tick for that ADR's own reason. <c>World.ReleaseParking</c>
+    /// is the only code that decrements <c>CarParkTable.Occupied</c>, and nothing today reaches it
+    /// without a resolving <c>CitizenTable.ParkedIn</c>, so it cannot fire. What it guards is the
+    /// <em>second</em> release site.
+    /// </para>
+    /// <para>
+    /// <b>An unpaired release is an <c>adr/0006</c>-class defect that presents as good news.</b>
+    /// Occupancy decremented without a holder is capacity conjured from nothing: the city reports
+    /// more parking than it built, every shed query succeeds, and the shortage the player is supposed
+    /// to feel simply never arrives. It reads as a well-provisioned city rather than as a leak, which
+    /// is why <c>CarParkTable.Move</c> is <see langword="internal"/> and pairing it with the holder's
+    /// column is <see cref="Entities.World"/>'s job alone.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Holding <em>two</em> spaces is unrepresentable rather than checked</b>, because
+    /// <c>adr/0119</c> puts the space on the Citizen in a single column. That is the Rule Instance
+    /// armed/waiting precedent — the corpus prefers a state it cannot express to a state it verifies —
+    /// so this invariant is about the release naming a live Car Park and never about the count.
+    /// </para>
+    /// </remarks>
+    ParkingSpaceIsReleasedOnce = 41,
 }

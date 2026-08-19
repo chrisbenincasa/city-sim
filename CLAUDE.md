@@ -211,16 +211,18 @@ waits.
 
 | When | Command | Cost |
 |---|---|---|
-| **While working** — the default, and what you should be running nearly all the time | `dotnet test -c Release --filter "tier!=instrument"` | **50s**, 1,683 tests |
+| **While working** — the default, and what you should be running nearly all the time | `dotnet test -c Release --filter "tier!=instrument"` | **42s**, 1,690 tests |
 | **Narrower still** — while iterating on one area | `dotnet test -c Release --filter "tier!=instrument&FullyQualifiedName~Policy"` | seconds |
-| **Before a commit** — the gate, and deliberately the same command as the default | `dotnet test -c Release --filter "tier!=instrument"` | **50s** |
+| **Before a commit** — the gate, and deliberately the same command as the default | `dotnet test -c Release --filter "tier!=instrument"` | **42s** |
 | **Post-submit** — `.github/workflows/post-submit.yml`, nightly, on a runner | `dotnet test -c Release`, then a long headless run | nobody's |
 | **At a milestone** — the Definition of done, on the reference machine | `dotnet test -c Release` | **~36m** |
 
-⚠ **The 50s is an upper bound rather than a reading**, because it was taken with a second test run
-contending for the same six cores. Contention can only make it slower, so the uncontended figure is
-somewhere at or below it — and ***a contended measurement is an upper bound, which is the one thing
-a spoiled measurement is still good for.*** An earlier, more heavily contended run read 1m52s.
+⚠ **The 42s names *nothing else running in this repository* as its first control**, and the two
+readings before it did not: 1m52s and 50s were both taken while a second session was running
+`Borough.Tests` on the same six cores. They were recorded as **upper bounds** for that reason, which
+is the one thing a spoiled measurement is still good for. ***A test-cost capture is a parallelism
+measurement, so it takes a parallelism measurement's controls*** — the rule `plans/0000` already
+carried from a threading capture that read bimodally on 2026-08-14.
 
 ⚠ **Past five minutes a test stifles iteration and ten is the ceiling** — the band `adr/0121` records,
 and it is a preference about a working loop rather than a claim about the city, so no measurement

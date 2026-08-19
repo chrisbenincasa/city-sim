@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Local copy of a published Claude artifact.
+     Source of truth: https://claude.ai/code/artifact/a922940a-42c9-428d-9c2a-9df292241901
+     Downloaded 2026-08-14. Self-contained: no external CSS, JS, fonts or images.
+     The host's frame-runtime script has been removed; its minimal reset is inlined below. -->
+<style>
+:root{color-scheme:light dark}
+body{margin:0;padding:0}
+img{max-width:100%}
+</style>
+<title>The Bin and the wait list — a trace</title>
+
+<style>
+  :root {
+    --paper:    #ecedef;
+    --raised:   #f6f7f8;
+    --sunk:     #e2e4e7;
+    --ink:      #15181c;
+    --mid:      #656e78;
+    --hair:     #c9ced4;
+    --rule:     #2b6a60;
+    --stock:    #9d6b12;
+    --blocked:  #a03a2b;
+    --ok:       #3d6b45;
+
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+    --measure: 68ch;
+    --wide: 1180px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:   #14171a;
+      --raised:  #1c2024;
+      --sunk:    #0f1215;
+      --ink:     #e4e7ea;
+      --mid:     #98a2ac;
+      --hair:    #333a41;
+      --rule:    #63b0a4;
+      --stock:   #d9a544;
+      --blocked: #e2795f;
+      --ok:      #7fb086;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:   #14171a;
+    --raised:  #1c2024;
+    --sunk:    #0f1215;
+    --ink:     #e4e7ea;
+    --mid:     #98a2ac;
+    --hair:    #333a41;
+    --rule:    #63b0a4;
+    --stock:   #d9a544;
+    --blocked: #e2795f;
+    --ok:      #7fb086;
+  }
+
+  :root[data-theme="light"] {
+    --paper:   #ecedef;
+    --raised:  #f6f7f8;
+    --sunk:    #e2e4e7;
+    --ink:     #15181c;
+    --mid:     #656e78;
+    --hair:    #c9ced4;
+    --rule:    #2b6a60;
+    --stock:   #9d6b12;
+    --blocked: #a03a2b;
+    --ok:      #3d6b45;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: var(--wide);
+    margin: 0 auto;
+    padding: 4rem 1.5rem 7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.6rem;
+  }
+
+  .col { max-width: var(--measure); }
+
+  header.masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--rule);
+    margin: 0;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.1rem);
+    line-height: 1.06;
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 1.16rem;
+    color: var(--mid);
+    margin: 0;
+    max-width: 60ch;
+    text-wrap: pretty;
+  }
+
+  h2 {
+    font-size: 1.62rem;
+    line-height: 1.2;
+    margin: 1.4rem 0 0;
+    font-weight: 600;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+  }
+
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--rule);
+    display: block;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.35rem;
+    font-weight: 400;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    margin: 1.1rem 0 0;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+
+  p { margin: 0.85rem 0 0; text-wrap: pretty; }
+  .col > p:first-child, .col > h2:first-child { margin-top: 0; }
+
+  b, strong { font-weight: 600; }
+  em { font-style: italic; }
+
+  code, .m {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    font-variant-ligatures: none;
+  }
+
+  code {
+    background: var(--sunk);
+    padding: 0.08em 0.34em;
+    border-radius: 2px;
+  }
+
+  pre {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    background: var(--sunk);
+    border-left: 2px solid var(--rule);
+    padding: 1rem 1.1rem;
+    margin: 1.1rem 0 0;
+    overflow-x: auto;
+    tab-size: 4;
+  }
+
+  pre .cm { color: var(--mid); }
+  pre .hot { color: var(--blocked); font-weight: 600; }
+
+  ul, ol { margin: 0.85rem 0 0; padding-left: 1.4rem; }
+  li { margin: 0.4rem 0; }
+  li::marker { color: var(--mid); }
+
+  /* ---- panels ---- */
+
+  .panel {
+    background: var(--raised);
+    border: 1px solid var(--hair);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .panel-label {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  .callout {
+    border-left: 3px solid var(--blocked);
+    background: var(--raised);
+    padding: 1.05rem 1.3rem;
+    margin: 1.3rem 0 0;
+  }
+
+  .callout.good { border-left-color: var(--ok); }
+  .callout.note { border-left-color: var(--rule); }
+  .callout p:first-child { margin-top: 0; }
+
+  /* ---- tables ---- */
+
+  .scroll { overflow-x: auto; margin-top: 1.2rem; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.92rem;
+    min-width: 620px;
+  }
+
+  th {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--mid);
+    text-align: left;
+    padding: 0 0.85rem 0.5rem 0;
+    border-bottom: 1px solid var(--ink);
+    vertical-align: bottom;
+  }
+
+  td {
+    padding: 0.6rem 0.85rem 0.6rem 0;
+    border-bottom: 1px solid var(--hair);
+    vertical-align: top;
+  }
+
+  td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+
+  .tag {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.16em 0.5em;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+    display: inline-block;
+  }
+  .tag.bad  { color: var(--blocked); }
+  .tag.good { color: var(--ok); }
+  .tag.warn { color: var(--stock); }
+  .tag.flat { color: var(--mid); }
+
+  /* ---- the bin gauge ---- */
+
+  .trace {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 1.3rem;
+    border-top: 1px solid var(--ink);
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 4.6rem 1fr 12.5rem;
+    gap: 1.1rem;
+    align-items: center;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  .step .tick {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    color: var(--mid);
+    letter-spacing: 0.02em;
+  }
+
+  .gauge { display: flex; align-items: center; gap: 0.7rem; }
+
+  .cells { display: flex; gap: 2px; }
+
+  .cell {
+    width: 15px;
+    height: 24px;
+    background: var(--sunk);
+    border: 1px solid var(--hair);
+  }
+  .cell.filled { background: var(--stock); border-color: var(--stock); }
+  .cell.want   { background: transparent; border: 1px dashed var(--blocked); }
+
+  .level {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--mid);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .verdict {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    line-height: 1.4;
+  }
+  .verdict.sleep { color: var(--blocked); }
+  .verdict.fire  { color: var(--ok); }
+  .verdict.quiet { color: var(--mid); }
+
+  /* ---- 2x2 ---- */
+
+  .matrix {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr 1fr;
+    gap: 1px;
+    background: var(--hair);
+    border: 1px solid var(--hair);
+    margin-top: 1.3rem;
+    font-size: 0.9rem;
+  }
+
+  .matrix > * { background: var(--raised); padding: 0.9rem 1rem; }
+
+  .matrix .hd {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--mid);
+    background: var(--sunk);
+  }
+
+  .matrix .rowhd {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--ink);
+    background: var(--sunk);
+    display: flex;
+    align-items: center;
+  }
+
+  .matrix .cellname {
+    font-family: var(--sans);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+  .matrix .cellname.now  { color: var(--blocked); }
+  .matrix .cellname.part { color: var(--stock); }
+  .matrix .cellname.all  { color: var(--ok); }
+
+  .matrix .pick { outline: 2px solid var(--ok); outline-offset: -2px; }
+
+  .fixline { font-family: var(--mono); font-size: 0.74rem; color: var(--mid); display: block; margin-top: 0.4rem; }
+
+  /* ---- figures ---- */
+
+  figure { margin: 1.5rem 0 0; }
+  figure svg { max-width: 100%; height: auto; display: block; }
+  figcaption {
+    font-size: 0.87rem;
+    color: var(--mid);
+    margin-top: 0.7rem;
+    max-width: 62ch;
+    text-wrap: pretty;
+  }
+
+  .cite {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    color: var(--mid);
+  }
+
+  hr.div {
+    border: none;
+    border-top: 1px solid var(--hair);
+    margin: 1rem 0 0;
+  }
+
+  .ask {
+    border: 2px solid var(--ink);
+    padding: 1.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .ask h2 { margin-top: 0; }
+
+  a { color: var(--rule); text-underline-offset: 2px; }
+  a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--rule); outline-offset: 2px; }
+
+  @media (max-width: 720px) {
+    .step { grid-template-columns: 1fr; gap: 0.4rem; }
+    .matrix { grid-template-columns: 1fr; }
+    .matrix .hd:first-child { display: none; }
+    .cell { width: 11px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <p class="eyebrow">Session N1 · task 1 · the Bin half</p>
+    <h1>A Rule asleep beside the thing it needs</h1>
+    <p class="standfirst">One mechanism, traced end to end with the shipped Ruleset's own numbers — because it
+      has never been written down in one place, and four of the sentences that describe it are stale.</p>
+  </header>
+
+  <div class="col">
+    <p>You said the invariants feel circular and spread across too many documents. They are. This mechanism
+      is currently assembled from <code>CONTEXT.md</code>, <code>02 §3</code>–<code>§4</code>, four ADRs and a
+      handful of doc-comments, and <b>no single place traces it</b>. That is why it is hard to reason about,
+      and it is not a failure of attention on your part.</p>
+    <p>So: the cast, the loop, the working case, the broken case, and then the decision — with every number
+      taken from <code>rulesets/minimal.toml</code> and every behaviour read off the code rather than the prose.</p>
+  </div>
+
+  <div class="col">
+    <h2><span class="num">01</span>The cast — five things, and only five</h2>
+    <p>Everything in this argument is one of these. If a document introduces a sixth, it is describing
+      something that does not exist yet.</p>
+  </div>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Thing</th><th>What it holds</th><th>The one fact that matters here</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Bin</b></td>
+          <td><span class="m">{owner, resource, capacity, level}</span> plus four wait-list links</td>
+          <td>An integer store, <span class="m">[0, capacity]</span>. <b>One writer</b>, and the write drains the wait list</td>
+        </tr>
+        <tr>
+          <td><b>Rule</b></td>
+          <td>Inputs and outputs, a <span class="m">rate</span>, an apply count</td>
+          <td>Declared in the Ruleset. Applies <b>in its entirety or not at all</b></td>
+        </tr>
+        <tr>
+          <td><b>Rule Instance</b></td>
+          <td>One Rule on one Building — where it has got to</td>
+          <td><b>Armed or waiting, never both.</b> The two states share one link field, so "both" is unrepresentable</td>
+        </tr>
+        <tr>
+          <td><b>Level wait list</b></td>
+          <td>Consumers that found too little stock</td>
+          <td>Blocked reason <span class="m">Level</span>. Drained by a <b>deposit</b></td>
+        </tr>
+        <tr>
+          <td><b>Headroom wait list</b></td>
+          <td>Producers that found no room</td>
+          <td>Blocked reason <span class="m">Headroom</span>. Drained by a <b>withdrawal</b></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col">
+    <p>Two Bins, two lists each. A Rule that fails names <em>one</em> Bin and <em>one</em> reason, and sleeps
+      on that list holding the quantity it was short of.</p>
+  </div>
+
+  <div class="col">
+    <h2><span class="num">02</span>The crux: the Goods arrive <em>before</em> anyone decides who wakes</h2>
+    <p>This is the single fact that reframes the whole question, and it is four lines of code.</p>
+  </div>
+
+  <pre><span class="cm">// World.cs:994 — the only way a Bin's level ever moves upward</span>
+public void Deposit(Handle&lt;Bin&gt; bin, int amount, Ticks tick)
+{
+    Bins.Move(slot, amount);                      <span class="cm">// 1003 — the level rises FIRST</span>
+    Drain(slot, Blocking.Level, amount, tick);    <span class="cm">// 1004 — then we choose who wakes</span>
+}</pre>
+
+  <figure>
+    <svg viewBox="0 0 900 190" role="img" aria-label="A deposit raises the Bin's level before the drain decides which waiters to wake, so stock can sit in the Bin while a waiter that could consume it stays asleep.">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,1 9,5 0,9" fill="currentColor"/>
+        </marker>
+      </defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="20" y="58" width="130" height="60"/>
+        <rect x="330" y="58" width="150" height="60"/>
+        <rect x="660" y="58" width="216" height="60"/>
+      </g>
+      <g font-family="ui-monospace, Menlo, monospace" font-size="12.5" fill="currentColor">
+        <text x="85" y="83" text-anchor="middle">producer</text>
+        <text x="85" y="101" text-anchor="middle">deposits 1</text>
+        <text x="405" y="83" text-anchor="middle">Bins.Move</text>
+        <text x="405" y="101" text-anchor="middle">level += 1</text>
+        <text x="768" y="83" text-anchor="middle">Drain(arriving = 1)</text>
+        <text x="768" y="101" text-anchor="middle">wake? shortfall 3 &gt; 1</text>
+      </g>
+      <g stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)" fill="none">
+        <line x1="150" y1="88" x2="322" y2="88"/>
+        <line x1="480" y1="88" x2="652" y2="88"/>
+      </g>
+      <g font-family="ui-sans-serif, sans-serif" font-size="11" fill="currentColor" opacity="0.72">
+        <text x="236" y="78" text-anchor="middle">always happens</text>
+        <text x="566" y="78" text-anchor="middle">then, and only then</text>
+      </g>
+      <g stroke="#a03a2b" stroke-width="1.5" fill="none" marker-end="url(#ar)" stroke-dasharray="5 4">
+        <path d="M 768 118 L 768 158 L 405 158 L 405 124"/>
+      </g>
+      <text x="586" y="176" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11.5" fill="#a03a2b">
+        no — so the stock stays in the Bin and the consumer stays asleep
+      </text>
+    </svg>
+    <figcaption>The deposit is unconditional; the wake is conditional. Nothing is ever withheld from a
+      waiter — the Goods are already in the Bin. Only <em>permission to attempt</em> is being rationed.</figcaption>
+  </figure>
+
+  <div class="col">
+    <div class="callout note">
+      <p><b>So "partial fill" cannot be the fix, and not for the reason I first gave you.</b> There is no
+        held-back quantity to distribute. The Bin already fills partially, one unit at a time. What fails is
+        the predicate that decides whether the sleeping Rule is told about it.</p>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2><span class="num">03</span>Why a sleeping Rule cannot help itself</h2>
+    <p>Because <b>armed and waiting are mutually exclusive</b>. A waiting Rule is not in a Wheel bucket, so
+      Phase 1 never collects it, so Phase 2 never evaluates it. It cannot notice the stock beside it. That is
+      the whole reason the wake predicate is load-bearing rather than an optimisation.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 900 240" role="img" aria-label="A Rule Instance is either armed on the Event Wheel, where it is evaluated each time it comes due, or waiting on a Bin's list, where it is never evaluated until a drain wakes it and arms it for the next Tick.">
+      <defs>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,1 9,5 0,9" fill="currentColor"/>
+        </marker>
+        <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,1 9,5 0,9" fill="#3d6b45"/>
+        </marker>
+      </defs>
+
+      <g font-family="ui-sans-serif, sans-serif" font-size="10.5" letter-spacing="1.4" fill="currentColor" opacity="0.6">
+        <text x="150" y="26" text-anchor="middle">ARMED</text>
+        <text x="700" y="26" text-anchor="middle">WAITING</text>
+      </g>
+
+      <g fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="52" y="42" width="196" height="56"/>
+        <rect x="52" y="132" width="196" height="56"/>
+        <rect x="602" y="42" width="196" height="56"/>
+      </g>
+      <g stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4" fill="none">
+        <rect x="602" y="132" width="196" height="56"/>
+      </g>
+
+      <g font-family="ui-monospace, Menlo, monospace" font-size="12.5" fill="currentColor">
+        <text x="150" y="66" text-anchor="middle">Wheel bucket</text>
+        <text x="150" y="84" text-anchor="middle">next_tick</text>
+        <text x="150" y="156" text-anchor="middle">Phase 2: Check</text>
+        <text x="150" y="174" text-anchor="middle">evaluates</text>
+        <text x="700" y="66" text-anchor="middle">Bin wait list</text>
+        <text x="700" y="84" text-anchor="middle">shortfall = 3</text>
+        <text x="700" y="156" text-anchor="middle" opacity="0.55">never evaluated</text>
+        <text x="700" y="174" text-anchor="middle" opacity="0.55">cannot notice stock</text>
+      </g>
+
+      <g stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#ar2)">
+        <line x1="150" y1="98" x2="150" y2="126"/>
+        <line x1="248" y1="160" x2="590" y2="160"/>
+      </g>
+      <text x="419" y="150" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11" fill="currentColor" opacity="0.72">fails → subscribes, does not retry</text>
+
+      <g stroke="#3d6b45" stroke-width="1.5" fill="none" marker-end="url(#ar3)">
+        <path d="M 602 70 L 420 70 L 420 70 L 256 70"/>
+      </g>
+      <text x="429" y="60" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11" fill="#3d6b45">drain wakes it → armed for tick + 1</text>
+
+      <text x="450" y="222" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11.5" fill="currentColor" opacity="0.75">
+        one link field carries both states, so “armed and waiting” cannot be written down
+      </text>
+    </svg>
+    <figcaption>The wake is not a re-evaluation. <code>Wake</code> zeroes the stored shortfall and arms the
+      row for <span class="m">tick + 1</span>, because a Bin is written in Phase 3 and Rules evaluate in
+      Phase 2, which has already run. The Rule then re-checks everything from scratch and may fail again.</figcaption>
+  </figure>
+
+  <div class="col">
+    <div class="callout">
+      <p><b>Consequence, and it kills one of the two readings I offered you.</b> The stored shortfall is
+        <em>never honoured</em>. It authorises nothing, guarantees nothing, and is thrown away on wake. It is
+        a <b>filter deciding whether to re-arm</b> — nothing more. So the wait list is not a queue of claims,
+        and I should not have put that to you as a live option when the code had already settled it.</p>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2><span class="num">04</span>The working case — the shipped Ruleset, traced</h2>
+    <p>The <span class="m">dwelling</span> kind from <code>rulesets/minimal.toml</code>, with the numbers as
+      authored. Occupancy is <b>3</b>, because <span class="m">SyntheticCity</span> seats three Households
+      per Building.</p>
+    <ul>
+      <li><b><span class="m">restock</span></b> — <span class="m">rate 8</span>,
+        <span class="m">apply {min 1, max 4}</span>, no inputs, outputs <span class="m">+1 sundries</span>.
+        A greedy producer.</li>
+      <li><b><span class="m">consume</span></b> — <span class="m">rate 32</span>,
+        <span class="m">apply {derived = occupancy}</span>, inputs <span class="m">−1 sundries</span>.
+        Draws exactly 3.</li>
+      <li>The <span class="m">sundries</span> Bin has <b>capacity 12</b>.</li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <span class="panel-label">Trace A — surplus, and it works for ever</span>
+    <div class="trace">
+      <div class="step">
+        <span class="tick">t = 96</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+          </span>
+          <span class="level">12 / 12 · headroom 0</span>
+        </span>
+        <span class="verdict sleep">restock due → headroom 0 &lt; min 1<br>subscribes, shortfall = <b>1</b></span>
+      </div>
+      <div class="step">
+        <span class="tick">t = 104</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+          </span>
+          <span class="level">12 / 12 · asleep</span>
+        </span>
+        <span class="verdict quiet">restock not due — it is not on the Wheel at all</span>
+      </div>
+      <div class="step">
+        <span class="tick">t = 128</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+          </span>
+          <span class="level">9 / 12 · headroom 3</span>
+        </span>
+        <span class="verdict fire">consume fires ×3 → Withdraw(3)<br>drain: 1 ≤ 3 → <b>restock wakes</b></span>
+      </div>
+      <div class="step">
+        <span class="tick">t = 129</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+          </span>
+          <span class="level">12 / 12 · headroom 0</span>
+        </span>
+        <span class="verdict fire">restock greedy → applies 3 → Deposit(3)<br>Bin back at its ceiling</span>
+      </div>
+      <div class="step">
+        <span class="tick">t = 136</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+          </span>
+          <span class="level">12 / 12 · headroom 0</span>
+        </span>
+        <span class="verdict sleep">restock due → subscribes again, shortfall = <b>1</b><br>the cycle repeats for ever</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <p>Nothing trends, both Rules move for ever, and <b>no Rule is ever wrongly asleep</b>. This is the only
+      steady state the project has ever observed.</p>
+    <div class="callout">
+      <p><b>And now the answer to the question I flagged: it is not luck, but it is not robustness either.</b>
+        <span class="m">restock</span>'s shortfall is <em>always exactly 1</em>, because
+        <span class="m">min = 1</span> and <span class="m">amount = 1</span>, so its deficit is the smallest
+        quantity the engine can express. Any withdrawal at all covers it.</p>
+      <p>Change <span class="m">min</span> to 2, or the output <span class="m">amount</span> to 2, and a
+        producer fed by withdrawals of 1 sleeps for ever against a Bin with room in it. <b>The shipped
+        Ruleset dodges the defect by having the minimum possible quantum</b>, and the same defect is waiting
+        on the headroom list for anything coarser.</p>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2><span class="num">05</span>The broken case — a trickle, which is what <span class="m">pool</span> is</h2>
+    <p>Same Bin, same consumer needing <b>3</b>. The difference is only the <em>granularity of supply</em>:
+      deliveries arrive one unit at a time, which is exactly what a District Pool draw will look like.</p>
+  </div>
+
+  <div class="panel">
+    <span class="panel-label">Trace B — the trickle, and the predicate that never passes</span>
+    <div class="trace">
+      <div class="step">
+        <span class="tick">t = 0</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell want"></span><span class="cell want"></span><span class="cell want"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+          </span>
+          <span class="level">0 / 12 · needs 3</span>
+        </span>
+        <span class="verdict sleep">consume fails → subscribes<br>shortfall = (3 × 1) − 0 = <b>3</b></span>
+      </div>
+      <div class="step">
+        <span class="tick">t = 1</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell filled"></span><span class="cell want"></span><span class="cell want"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+          </span>
+          <span class="level">1 / 12</span>
+        </span>
+        <span class="verdict sleep">Deposit(1) → drain: <b>3 &gt; 1</b> → return</span>
+      </div>
+      <div class="step">
+        <span class="tick">t = 2</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell want"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+          </span>
+          <span class="level">2 / 12</span>
+        </span>
+        <span class="verdict sleep">Deposit(1) → drain: <b>3 &gt; 1</b> → return</span>
+      </div>
+      <div class="step">
+        <span class="tick">t = 3</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell"></span>
+          </span>
+          <span class="level">3 / 12 · <b>satisfiable</b></span>
+        </span>
+        <span class="verdict sleep">the Bin now holds exactly what it needs<br>drain: <b>3 &gt; 1</b> → return</span>
+      </div>
+      <div class="step">
+        <span class="tick">t = 12</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+          </span>
+          <span class="level">12 / 12 · full</span>
+        </span>
+        <span class="verdict sleep">still asleep, shortfall still <b>3</b><br>and now the producer blocks too</span>
+      </div>
+      <div class="step">
+        <span class="tick">t = ∞</span>
+        <span class="gauge">
+          <span class="cells">
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+            <span class="cell filled"></span><span class="cell filled"></span><span class="cell filled"></span>
+          </span>
+          <span class="level">12 / 12 · deadlocked</span>
+        </span>
+        <span class="verdict sleep">both parties asleep with the Bin full<br><span class="tag bad">illegal state</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="callout">
+      <p><b>That end state is not merely undesirable — the corpus has already declared it illegal.</b>
+        <code>adr/0033</code> requires the invariant <em>“no Rule is asleep with all inputs satisfiable”</em>
+        and says the two mitigations for subscription's silent failure mode are <b>both required</b>.
+        <code>02 §10</code> lists it in the end-of-run tier. <code>plans/0008</code> repeats it.</p>
+      <p><b>It has never been implemented.</b> A sweep for <span class="m">satisfiab</span> across the tree
+        returns those three statements of intent and one unrelated doc-comment. So the defect and the missing
+        instrument are the same omission seen from two ends — which is why this went undetected through a
+        100,000-Tick acceptance run.</p>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2><span class="num">06</span>The finding: this is <em>two</em> bugs, and the brief filed them as one</h2>
+    <p>The question you were handed — <em>does a wait list wake on the arrival or on the state?</em> — bundles
+      two independent defects. Separating them is what makes the decision tractable.</p>
+  </div>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th style="width:6.5rem">Bug</th><th>What is wrong</th><th>Where it shows</th><th style="width:9rem">Which part of the predicate</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>1</b></td>
+          <td>The budget is <b>this write's delta</b>, not what the Bin holds. A trickle never reaches the threshold, however much accumulates</td>
+          <td>Trace B. Trigger is <span class="m">pool</span></td>
+          <td><b>the denominator</b><span class="fixline">remaining = arriving</span></td>
+        </tr>
+        <tr>
+          <td><b>2</b></td>
+          <td>The stored requirement was computed under the <b>Ruleset that was in force when it failed</b>, and nothing re-derives it</td>
+          <td>Halve a Rule's input on a hot reload; the starving Building is the one the edit never reaches</td>
+          <td><b>the numerator</b><span class="fixline">Shortfall[head]</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col">
+    <p>Once they are apart, the candidates stop being two options and become a grid — and the grid shows that
+      <b>the option labelled B on the brief does not fix bug 1 at all</b>. Re-deriving the requirement while
+      still comparing it against a single arrival gives <span class="m">3 &gt; 1</span> exactly as before.</p>
+  </div>
+
+  <figure>
+    <div class="matrix">
+      <span class="hd"></span>
+      <span class="hd">Budget = <b>arriving</b> · this write's delta</span>
+      <span class="hd">Budget = <b>level</b> · what the Bin holds</span>
+
+      <span class="rowhd">Requirement<br>stored at failure</span>
+      <span>
+        <span class="cellname now">Today</span>
+        Trickle never wakes anyone. A retuned Rule keeps an old requirement.
+        <span class="fixline">bug 1 ✗ · bug 2 ✗</span>
+      </span>
+      <span>
+        <span class="cellname part">Minimal fix</span>
+        Fixes the trickle with <b>one word changed</b> and no new writes. Requirement still goes stale on reload.
+        <span class="fixline">bug 1 ✓ · bug 2 ✗</span>
+      </span>
+
+      <span class="rowhd">Requirement<br>derived at drain</span>
+      <span>
+        <span class="cellname part">“B”, as briefed</span>
+        Fixes the reload face and <b>leaves the trickle exactly as broken</b>. Incomplete.
+        <span class="fixline">bug 1 ✗ · bug 2 ✓</span>
+      </span>
+      <span class="pick">
+        <span class="cellname all">Both</span>
+        Wakes precisely the prefix the Bin can serve, against the Ruleset in force. <b>Deletes a saved, hash-bearing column.</b>
+        <span class="fixline">bug 1 ✓ · bug 2 ✓</span>
+      </span>
+    </div>
+    <figcaption>The two axes are independent, which is the thing the one-line framing hid. The brief's
+      option A — decrementing the stored shortfall on every arrival — is a <em>third</em> way to fix bug 1,
+      and it is dominated: it writes a saved, hashed column on every deposit for every waiter, where moving
+      the budget to <span class="m">level</span> writes nothing at all.</figcaption>
+  </figure>
+
+  <div class="col">
+    <h2><span class="num">07</span>What the level budget costs, honestly</h2>
+    <p>It wakes strictly more waiters than today. Everything it additionally wakes was, by definition, asleep
+      beside satisfiable stock — so every extra wake is a state the corpus calls illegal being corrected. But
+      two costs are real and neither is rhetorical.</p>
+    <h3>An evaluation each</h3>
+    <p>Every wake buys one evaluation next Tick: <b>82.84 ns</b> synthetic, <b>552 ns</b> in a real 1M world.
+      Waking a wider prefix is not free, and the Rule engine is already the largest priced consumer in
+      <code>plans/0013</code>.</p>
+    <h3>The wake predicate's promise is not binding</h3>
+    <p>This is the one that touches behaviour. Waking three waiters whose requirements sum to the level does
+      not mean all three are served: Phase 3 applies in a <b>fresh per-Tick shuffle</b>, re-checking atomicity
+      as each is reached, and a greedy waiter can take more than its floor. The losers resubscribe — which is
+      already the designed behaviour, but it means <b>a large waiter loses more often, because it needs
+      more</b>.</p>
+    <div class="callout note">
+      <p><b>And this is where the corpus misled us both.</b> <code>CONTEXT.md</code> → Bin and
+        <span class="m">World.Drain</span>'s own remarks justify the narrow budget by saying that waking
+        everybody <em>“would let the sorted settle order pick a permanent winner”</em>. There is no sorted
+        settle order:</p>
+      <p><code>_order[i] = Randomness.Draw(_key, IdAt(instance), tick, PurposeTag.RuleSettleOrder)</code></p>
+      <p><span class="m">tick</span> is in the draw, so the order is re-randomised every Tick and no permanent
+        winner is possible. The sentence describes the defect the shuffle was introduced to <em>fix</em>. The
+        worry underneath it survives in a different form — <b>size bias, not identity permanence</b> — which
+        is the fourth time in this corpus that a justification has been false in the letter and true in the
+        substance.</p>
+    </div>
+  </div>
+
+  <div class="col">
+    <h2><span class="num">08</span>Why reservations are the wrong exit</h2>
+    <p>The natural instinct — hand each waiter a share as stock arrives — needs a per-waiter committed
+      quantity inside the Bin, because the waiters all draw from one shared Bin and there is nowhere else for
+      an allocation to live. That is worth drawing, because it fails in a way the current defect does not.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 900 210" role="img" aria-label="Three waiters each needing six units reserve two units apiece from a full Bin, so the Bin is full, no waiter can reach its floor, and nothing can drain the Bin to release the reservations.">
+      <g fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="40" y="52" width="250" height="104"/>
+      </g>
+      <text x="165" y="40" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11" letter-spacing="1.2" fill="currentColor" opacity="0.6">BIN · 6 / 6 · FULL</text>
+      <g>
+        <rect x="56" y="70" width="70" height="30" fill="#9d6b12" opacity="0.9"/>
+        <rect x="136" y="70" width="70" height="30" fill="#9d6b12" opacity="0.9"/>
+        <rect x="216" y="70" width="58" height="30" fill="#9d6b12" opacity="0.9"/>
+      </g>
+      <g font-family="ui-monospace, Menlo, monospace" font-size="11.5" fill="currentColor">
+        <text x="91" y="122" text-anchor="middle">2 held</text>
+        <text x="171" y="122" text-anchor="middle">2 held</text>
+        <text x="245" y="122" text-anchor="middle">2 held</text>
+        <text x="165" y="144" text-anchor="middle" opacity="0.65">nothing spendable</text>
+      </g>
+
+      <g fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="470" y="26" width="200" height="44"/>
+        <rect x="470" y="82" width="200" height="44"/>
+        <rect x="470" y="138" width="200" height="44"/>
+      </g>
+      <g font-family="ui-monospace, Menlo, monospace" font-size="12" fill="currentColor">
+        <text x="570" y="54" text-anchor="middle">waiter A · needs 6</text>
+        <text x="570" y="110" text-anchor="middle">waiter B · needs 6</text>
+        <text x="570" y="166" text-anchor="middle">waiter C · needs 6</text>
+      </g>
+      <g stroke="#a03a2b" stroke-width="1.5" stroke-dasharray="4 4" fill="none">
+        <line x1="290" y1="85" x2="464" y2="48"/>
+        <line x1="290" y1="104" x2="464" y2="104"/>
+        <line x1="290" y1="123" x2="464" y2="160"/>
+      </g>
+      <g font-family="ui-sans-serif, sans-serif" font-size="11.5" fill="#a03a2b">
+        <text x="700" y="54">2 &lt; 6 — cannot fire</text>
+        <text x="700" y="110">2 &lt; 6 — cannot fire</text>
+        <text x="700" y="166">2 &lt; 6 — cannot fire</text>
+      </g>
+      <text x="450" y="202" text-anchor="middle" font-family="ui-sans-serif, sans-serif" font-size="11.5" fill="currentColor" opacity="0.75">
+        the Bin is neither available nor spent, and nothing exists that can release it
+      </text>
+    </svg>
+    <figcaption>Reservations reproduce the ~200-Tick deadlock <em>through the fairness mechanism</em> — and
+      worse than the original, which was at least honest: there, every Rule visibly failed on headroom. Here
+      stock sits in a Bin that is neither available nor spent. Reservations also break
+      <span class="m">level</span> being the whole truth about a Bin, which every arithmetic decision in the
+      engine rests on, including the unbounded-Money case.</figcaption>
+  </figure>
+
+  <div class="col">
+    <h2><span class="num">09</span>Which sentences in the corpus you can trust</h2>
+    <p>Directly addressing your complaint. This is every claim we leaned on, and its actual standing.</p>
+  </div>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Claim</th><th style="width:11rem">Stated in</th><th style="width:8rem">Standing</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>A Bin Rule applies <b>in its entirety or not at all</b></td>
+          <td class="cite">CONTEXT → Bin Rule; 02 §3.2</td>
+          <td><span class="tag good">holds</span></td>
+        </tr>
+        <tr>
+          <td>Armed or waiting, <b>never both</b>; the two states share one link</td>
+          <td class="cite">CONTEXT → Rule Instance</td>
+          <td><span class="tag good">holds</span></td>
+        </tr>
+        <tr>
+          <td>A recorded shortfall may be stale; it re-checks in Phase 2, fails, resubscribes</td>
+          <td class="cite">plans/0011 §2</td>
+          <td><span class="tag good">holds</span></td>
+        </tr>
+        <tr>
+          <td><em>“Six flour arriving wakes exactly the one bakery that needs six”</em></td>
+          <td class="cite">02 §4.1; CONTEXT → Bin</td>
+          <td><span class="tag warn">holds — and is the bug</span></td>
+        </tr>
+        <tr>
+          <td>Skipping an uncovered waiter would starve large waiters behind small ones</td>
+          <td class="cite">CONTEXT → Bin</td>
+          <td><span class="tag good">holds</span></td>
+        </tr>
+        <tr>
+          <td>Waking everybody lets <b>the sorted settle order</b> pick a permanent winner</td>
+          <td class="cite">CONTEXT → Bin; World.Drain</td>
+          <td><span class="tag bad">false vs code</span></td>
+        </tr>
+        <tr>
+          <td>Drained round-robin so shortage <b>degrades a District evenly</b></td>
+          <td class="cite">02 §4.1</td>
+          <td><span class="tag bad">never exercised</span></td>
+        </tr>
+        <tr>
+          <td><b>No Rule is asleep with all inputs satisfiable</b></td>
+          <td class="cite">adr/0033; 02 §10; plans/0008</td>
+          <td><span class="tag bad">never built</span></td>
+        </tr>
+        <tr>
+          <td>Conservation is <b>one invariant</b> across all nine Resources</td>
+          <td class="cite">adr/0031</td>
+          <td><span class="tag bad">false vs code</span></td>
+        </tr>
+        <tr>
+          <td>Maximum chain depth of <b>three</b></td>
+          <td class="cite">adr/0031</td>
+          <td><span class="tag warn">untyped number</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col">
+    <p><b>Three of ten false or unexercised, and one of them was load-bearing in this very argument.</b>
+      "Never exercised" is worth dwelling on: under <span class="m">local</span> scope, no two Buildings share
+      a Bin, so <b>no wait list in a running world has ever held two waiters</b>. The round-robin has never
+      round-robined. Every fairness property we have been weighing is untested.</p>
+  </div>
+
+  <div class="col ask">
+    <p class="eyebrow">What I need from you</p>
+    <h2>One decision, and it is narrower than it was</h2>
+    <p>Reservations are out, partial fill is a non-question, and option A is dominated. What remains is
+      whether the wake predicate is <b>behaviour</b> or <b>bookkeeping</b>:</p>
+    <ul>
+      <li><b>Bookkeeping.</b> Its job is to never leave a Rule asleep beside satisfiable stock, as cheaply as
+        possible. Take the whole grid — derived requirement, level budget — accept the wider wake set, and let
+        Phase 3's shuffle sort out contention. <b>This deletes a saved column</b>, which is the shape
+        <code>adr/0059</code> rewarded.</li>
+      <li><b>Behaviour.</b> Its job is also to decide <em>who gets served</em> when supply is short, in which
+        case the narrow budget is a feature, large waiters need protecting from the shuffle, and
+        <code>adr/0033</code>'s <em>“the two families differ in who wins a contested resource”</em> applies to
+        the predicate directly.</li>
+    </ul>
+    <p>My recommendation is <b>bookkeeping</b>, and the reason is the last table: the fairness property has
+      never run, its stated justification is false against the code, and the alternative reading requires us
+      to protect a behaviour nobody has ever observed. If fairness is wanted, it should be designed on
+      purpose once <span class="m">pool</span> exists and two Buildings can actually contend — not inferred
+      from a predicate that was written for a different reason.</p>
+    <hr class="div">
+    <p><b>The counter-argument I would make if you pick behaviour</b>, so you have it: shortage is the regime
+      the entire economy exists to produce (<code>04 §6</code>), the city has never been in it, and choosing
+      the cheap predicate now sets the shape of the first shortage anybody ever sees. That is not nothing.</p>
+  </div>
+
+</div>
+</body>
+</html>

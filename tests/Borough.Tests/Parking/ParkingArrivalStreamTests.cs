@@ -144,6 +144,84 @@ public sealed class ParkingArrivalStreamTests
     }
 
     /// <summary>
+    /// <b>What moving the shed query from arrival to Trip creation does to the per-Tick peak.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Milestone 7 task 4 has to query the shed at Trip creation, and this measures what that
+    /// costs.</b> <c>adr/0083</c> calls the shed's one caller <em>arrival</em>, and it is right about
+    /// the <em>occasion</em> — one query per car journey, at the destination. It is silent about the
+    /// <em>instant</em>, and <c>adr/0075</c> settles that instead: every Leg is created at Trip
+    /// creation, and the drive Leg's second Address is the Car Park it is driving to, so the Car Park
+    /// has to be chosen before the car sets off. The alternative prices the Commute Budget on a
+    /// journey missing its last walk, which <c>TripEngine.Start</c> refuses by name — <i>"a person who
+    /// can see the journey is too long does not make two thirds of it and stop"</i>.
+    /// </para>
+    /// <para>
+    /// <b>The two streams hold the same queries and differ only in when they fire</b>, so this is not
+    /// a cost comparison between two designs — it is the same work, moved. The working set, the shed
+    /// sizes and every cache figure in this file are untouched by the move. What moves is the
+    /// per-Tick peak, and therefore the Tick budget, which is priced against the peak and not the
+    /// mean.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This does not ratify anything and no number here is hash-bearing.</b> It reports a shape.
+    /// The disqualifier is the edge truncation named on <see cref="Departure"/> — a Trip spanning
+    /// either boundary appears in one stream and not the other — so the two counts are printed and a
+    /// reading is only worth quoting while they are close.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_query_stream_is_smoother_at_creation_than_at_arrival()
+    {
+        Stream stream = Capture(64_000, Driving());
+
+        int[] atArrival = new int[Captured];
+        int[] atCreation = new int[Captured];
+
+        foreach (Arrival arrival in stream.Arrivals)
+        {
+            atArrival[arrival.Tick]++;
+        }
+
+        foreach (Departure departure in stream.Departures)
+        {
+            atCreation[departure.Tick]++;
+        }
+
+        _out.WriteLine($"{stream.Population:N0} Citizens, {stream.MicrosecondsPerShed:F2} us a shed");
+        _out.WriteLine(string.Empty);
+        _out.WriteLine("fired at   queries   mean/Tick   p95   p99   peak   peak/mean   ms at peak");
+
+        int arrivalPeak = Spread("arrival", atArrival, stream);
+        int creationPeak = Spread("creation", atCreation, stream);
+
+        _out.WriteLine(string.Empty);
+        _out.WriteLine(
+            $"moving the query to Trip creation multiplies the peak by "
+            + $"{(double)creationPeak / Math.Max(1, arrivalPeak):F2}x");
+
+        Assert.True(
+            stream.Arrivals.Count > 0 && stream.Departures.Count > 0,
+            "one of the two streams was empty, so nothing was compared.");
+    }
+
+    /// <summary>One row of the comparison: a per-Tick count, described and priced.</summary>
+    private int Spread(string when, int[] perTick, Stream stream)
+    {
+        double mean = Mean(perTick);
+        int peak = perTick.Max();
+
+        _out.WriteLine(
+            $"{when,-10} {perTick.Sum(),-9} {mean,-11:F2} {Quantile(perTick, 0.95),-5} "
+            + $"{Quantile(perTick, 0.99),-5} {peak,-6} "
+            + $"{peak / Math.Max(0.01, mean),-11:F1} "
+            + $"{peak * stream.MicrosecondsPerShed / 1000.0:F3}");
+
+        return peak;
+    }
+
+    /// <summary>
     /// <b>How the ideal cache compares</b>, so the rotation's own cost is separable from the workload's.
     /// </summary>
     [Fact]
@@ -348,6 +426,7 @@ public sealed class ParkingArrivalStreamTests
 
         Dictionary<ulong, Destination> inFlight = [];
         List<Arrival> arrivals = [];
+        List<Departure> departures = [];
         HashSet<ulong> live = [];
         List<ulong> ended = [];
         int dropped = 0;
@@ -379,8 +458,18 @@ public sealed class ParkingArrivalStreamTests
                 if (world.Roads.Segments.Rows.TryResolve(
                     trips.DestinationSegment[slot], out int segment))
                 {
-                    inFlight[id] = new Destination(
+                    Destination where = new(
                         segment, trips.DestinationOffset[slot].Raw, trips.DestinationSide[slot]);
+
+                    inFlight[id] = where;
+
+                    // The Tick a Trip is first seen is the Tick it was created on, which this loop
+                    // has always known and thrown away. It is the other candidate query stream --
+                    // see Departure -- and capturing it costs one list.
+                    if (tick >= Settle)
+                    {
+                        departures.Add(new Departure(tick - Settle, where));
+                    }
                 }
                 else if (tick >= Settle)
                 {
@@ -411,7 +500,7 @@ public sealed class ParkingArrivalStreamTests
 
         Dictionary<Destination, int> sheds = ShedSizes(world, arrivals, out double microseconds);
 
-        return new Stream(population, arrivals, sheds, microseconds, dropped);
+        return new Stream(population, arrivals, departures, sheds, microseconds, dropped);
     }
 
     /// <summary>How big each distinct destination's shed is, and what one costs to build.</summary>
@@ -567,10 +656,41 @@ public sealed class ParkingArrivalStreamTests
     /// <summary>One shed query: where, and <b>on which Tick</b>.</summary>
     private readonly record struct Arrival(int Tick, Destination Where);
 
+    /// <summary>
+    /// The same shed query, timed at Trip <b>creation</b> instead of at arrival.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The destination set is identical to <see cref="Arrival"/>'s and only the Tick differs</b>,
+    /// which is the whole question. Milestone 7 task 4 queries the shed when the Trip is built rather
+    /// than when the car lands, because <c>adr/0075</c> creates every Leg at Trip creation and the
+    /// drive Leg has to be routed to the Car Park it is heading for — so the working set, the shed
+    /// sizes and the cache's hit rate are unchanged by the choice and <em>only the per-Tick peak
+    /// moves</em>.
+    /// </para>
+    /// <para>
+    /// <b>The two streams are predicted to differ, and the mechanism is written down rather than
+    /// guessed.</b> <c>adr/0101</c> anchors a commute on the <em>Workplace's</em> Shift start, and
+    /// <c>CommuteRoster.TryTimes</c> derives the outbound Tick as
+    /// <c>start − planned − early</c> — so a city's arrivals share one clock while its departures are
+    /// spread by each Citizen's own journey length. ***A stream anchored on a shared instant is
+    /// peakier than the same stream anchored on that instant minus a distribution.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both streams are truncated at the window's edges and in opposite directions.</b> A Trip
+    /// departing before <see cref="Settle"/> and arriving after it is an arrival with no departure;
+    /// one departing near the end of <see cref="Captured"/> is a departure with no arrival. The bias
+    /// is bounded by the longest journey against a four-Day window, and the counts are printed so it
+    /// is visible rather than assumed.
+    /// </para>
+    /// </remarks>
+    private readonly record struct Departure(int Tick, Destination Where);
+
     /// <summary>The captured stream, the size of every shed in it, and what one cost to build.</summary>
     private sealed record Stream(
         int Population,
         List<Arrival> Arrivals,
+        List<Departure> Departures,
         Dictionary<Destination, int> Sheds,
         double MicrosecondsPerShed,
         int Dropped);

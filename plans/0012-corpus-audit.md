@@ -375,6 +375,7 @@ between them can see anything wrong.
 | **`adr/0089`'s amendment**, written 2026-08-13, found 2026-08-14 | the Commute Budget rungs **20 / 40 / 50** minutes | [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s own finding, in the commit that shipped it: *"percentiles of a free-flow, **foot-only** distribution"* | substituted into the map table's *Commutes across* column, whose denominator is a **25–36 km/h vehicle** and always was — the table carries *Foot crossing* as a **separate** column. Reports **2.2–3.1** crossings where the same map on foot is **15.7**. Corrected in `adr/0089` |
 | **`plans/0002` §D2**, written 2026-08-13, found 2026-08-14 | S2 R1's entry-error sweep, **24.70%–3.80%** | ⚠ **none — the clause that was written is *wrong*.** §D2 says the sweep *"was measured with the store in the denominator and on the District axis"*; `MatrixReport.MeasureError` divides by the **per-query A\* cost** and the route store is a separate size table, while the harness's partition is a Cell-aligned grid over nodes and is geometrically the routing partition | nothing yet — **5c task 1 caught it before quoting it**, which is the first time the tell fired before the damage. The three real disqualifiers had never been written: a **uniform** O-D draw (R4: *a different city*), **pre-`adr/0094` Ticks** at 8192 a Day, and **car** times against foot rungs. Corrected in §D2 and `RoutingPartition.DesignEdge` |
 | ⚠ **`plans/0013`'s routing row**, found 2026-08-16 by session **T** | the **routing bill**, ≥17.8 ms, quoted as the ledger's whole sum | not a caveat — a **correction**. `adr/0094`'s ×4 was stated in `01 §1`, in `CLAUDE.md`, **and twice inside `plans/0013` itself**: the *volume attribution* row was re-derived for it on 2026-08-14 and a sidebar on `adr/0061` stated it on 2026-08-13 | the routing row was never multiplied, so the document that **owns** the sum under-reported it by ~2.6× for three days while two views of it were right. Corrected: **≥44–50 ms** |
+| ⚠ **`0d8b114`'s merge subject**, committed and found 2026-08-19 | **the State Hash is unchanged** — a claim rather than a figure | *"the golden world still reproduces its committed hash"*, which is true of the **test** and silent about **`main`**: the baseline file arrived in that same merge, already re-recorded on the parking branch for milestone 7 | It shipped as the message of the merge that moved `main`'s hash from **`0x4D7675CF9217B955`** to **`0x817C9B00CA65113D`**, so the one commit a later reader would search for the move is the commit that denies it. ⚠ **`tests/Borough.Tests/Golden/README.md` → *Re-baselining* asks for the opposite at step 4** — *say why, in the commit message: what moved, whether it was intended, and which document authorises it* — and forbids at step 5 the pairing a merge creates by construction. ***A green baseline test proves the committed number matches the built world; it does not prove that number is the one that was there yesterday.*** Recorded rather than repaired: the merge stands and [`0031`](0031-parking.md) now carries the move |
 
 > ⚠ **That last row is a third form of this Cause and it is the one no check can reach.** The first two
 > forms are a **caveat** left behind when digits are copied, and a **compressed caveat** acquiring a new
@@ -567,6 +568,24 @@ other prose document containing the figure contains the phrase too**.
 | `82.84` | | `synthetic` | `plans/0011-rule-engine-bins-and-rules.md` |
 | `861.87` | | `15.6 ms` | `docs/spike-results.md` |
 | `90 in-world minutes` | `22.5` | `pre-clock` | `docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md` |
+
+⚠ **The registry cannot hold a low-precision figure, and that bound was found by trying.** On
+2026-08-19 milestone 7 task 4's two provisional parking costs — **6.40 µs** and **1.58–1.63 ms** — were
+registered here and check 6 failed instantly against **nineteen** documents. None of them was quoting a
+parking cost. `Mentions` is a bare `text.Contains` with no word boundary, so the spelling `6.4` matched
+*"the full **16.4** km map width"* in `02` and *"**6.4×** past budget"* in `adr/0036`, and `1.63` matched
+*"moves the pass **1.63–1.75×**"* in `adr/0016`. ***A substring match on a short decimal is a match on
+arithmetic, not on a citation.*** Every row this table has ever held is a long distinctive figure —
+`186,624`, `532,750`, `861.87` — and **the reason was never written down**, so the first attempt to add
+a short one read as a corpus-wide violation rather than as a registry that could not express the claim.
+
+**The rows were withdrawn rather than the check weakened**, and the repair went to the number's own home:
+[`0013`](0013-tick-budget.md) marks both cells *PROVISIONAL, do not quote* in the cell itself. That is
+weaker — it is prose, and prose is what Cause 5 defeats — so it is recorded here as a **gap in check 6's
+reach** rather than as a discharge. The figure a registry can protect is one whose digits are their own
+citation, and a three-digit decimal is not. ⚠ **Do not repair this by padding the figure with units or
+context** into the Figure column: `Mentions` tests the raw string against prose that is written freely,
+so a longer key does not match less, it matches nothing.
 
 **The last four rows were added by a sweep for 186,624's siblings**, on 2026-08-13, and each is the
 same shape: a figure that is **one half of a ratio**, quoted into an argument, whose scope clause lives
