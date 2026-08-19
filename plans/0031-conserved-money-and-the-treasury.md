@@ -418,13 +418,77 @@ ten thousand of them."* That ADR also names the escape hatch if it bites — *"t
 Districts their own budget Bins, not to reintroduce polling"* — so a hot treasury wait list has a
 decided response and does not reopen the design.
 
-### Task 2 — a money Resource reaches a shipped Ruleset
+### Task 2 — a money Resource reaches a shipped Ruleset — ✅ **DONE 2026-08-18**
+
+**`rulesets/monetised.toml`**, the sixth shipped Ruleset and the first in the project's life to
+declare `family = "money"`. It is `minimal.toml` **verbatim** with one `[[resource]]` block added,
+on `severance.toml`'s and `congested.toml`'s precedent rather than `diagnosed.toml`'s, and the
+header carries why. `TreasuryFromAFileTests` holds it to three claims — that it is `minimal.toml`
+plus exactly three content lines, that a world on it opens with one empty unbounded treasury Bin
+named `money`, and that **every other shipped file gives the treasury none**. 1,581 green, **no
+golden baseline moved**.
+
+⚠ **Its content is three lines and that is the decision rather than a stub.** `World.FitTreasury`
+walks the Ruleset's Resources at world creation and fits the treasury a Bin per **conserved** one
+([`adr/0116`](../docs/adr/0116-the-treasury-opens-empty-and-a-founding-balance-is-a-ratio-this-milestone-holds-neither-side-of.md)),
+so a `[[resource]]` block is the **entire vocabulary a Ruleset has** for making the treasury real:
+no table names it, no kind declares it, nothing tunes it. A three-line block is the difference
+between a treasury with a Bin in it and a treasury with none, and that is asserted in both
+directions rather than in one — a guard covering one of two near-identical files is worse than no
+guard, which is 5a-bis's finding and the reason the negative runs over all five older files.
+
+⚠ **It declares no Bin and writes no money term, and the reason is the task's sharpest sentence.**
+A money term needs a Bin, a Bin needs an owner, and
+[`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)
+settled **two days before this file was written** that a Building never holds money — a Building
+holds a *list* of Occupants, so money on it is an average wearing a total. The two actors that may
+hold money are the Household and the Business, and `BinOwnerKind` names both and **throws on both**;
+they are tasks 5 and 4b. So the **one money-Bin door the loader has** is `[[building]] bins`, whose
+money branch refuses an authored capacity in a sentence written for exactly this case — *"a finite
+one would mean an actor too full of money to be paid"* — and **that door now opens onto a shape a
+decision refuses**. ***A Resource declaration is the whole of what a shipped Ruleset can say about
+money today, because every other spelling names an owner that does not exist.***
+
+⚠ **This task's brief said the unit is spent here and it is not.**
+[`adr/0115`](../docs/adr/0115-moneys-unit-is-fixed-by-the-smallest-fraction-the-design-multiplies-by.md)
+fixes money's unit by the smallest fraction the design multiplies by, and that is a discipline about
+**amounts**. This file writes no amount, so there is nothing for it to bind on: the first money
+quantity in a shipped Ruleset is the tax rate in **task 5**. ***A scale discipline binds on the first
+number, not on the first declaration*** — and the brief conflated the two because a Resource
+declaration is where a *unit key* would have gone, in the design where there is one. There is not
+(`adr/0115`), which is the same finding arriving from the other side.
+
+⚠ **The cost is measured rather than argued.** Against `minimal.toml` at 2,048 Ticks on the
+4,000-Citizen fixture, **every census row is identical but one**, and that one moves by exactly one
+in every column — `bin` live **962 → 963**, slots **962 → 963** — with the State Hash moving from
+the first sample because `BinTable.Rows` has one more row in it. That is `adr/0094`'s rescale
+precedent again: a byte-identical city with only the hash moving.
+
+⚠ **The Resource is named `money`, after its family, and that is `sundries`' argument on a second
+axis.** `minimal.toml` picks *"a word for goods too unimportant to name"* so that nothing in it reads
+as a decision about content; a currency is different in kind, because its name is on every panel a
+player sees. Naming one here would be the file making the one decision its first line says it makes
+none of.
+
+*Original scoping text follows.*
+
+### ~~Task 2's brief~~
 
 **No shipped Ruleset declares one.** Follow the precedent the last three demonstration files set —
 *the same file with one thing changed*, with the header carrying why — rather than editing
 `minimal.toml`, whose own header says it models no city. This is where decision 2's unit is spent.
 
 ### Task 3 — refusal 4 is relaxed to exactly the extent `global` widens it
+
+⚠ **CORRECTED 2026-08-18 while writing task 2: the loader does *not* refuse this milestone's
+transfer.** `RefuseUnbalancedMoney` (`RulesetLoader.cs:1403-1416`) sums a Rule's money terms
+**across every scope**, so `local` money in and `global` money out of the same amount balances and
+passes today. What the guard refuses is what the doc-comment's own example names — a **wage** and an
+**import payment**, both of which are *unbalanced* explicit money terms because their counterparty
+cannot be spelt. So this task is a **stale sentence** rather than a stale guard, and the arithmetic
+underneath it was right all along. ***A doc-comment saying a guard refuses more than it needs to is
+a claim about the guard's reach, and the guard is the thing to open*** (`adr/0093`). Read the rest
+of this row with that correction in front of it.
 
 ⚠ **The loader currently refuses the transfer this milestone is built to write, and says so.**
 `RulesetLoader.cs:1372-1375`: *"**It refuses more than it needs to today, deliberately.** A wage… and
