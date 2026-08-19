@@ -1139,6 +1139,43 @@ it would be scheduled rather than discovered.
   it is `adr/0098`'s blind-spot finding on a second axis — that one was about the *undesigned*, this one
   is about the *designed elsewhere*. `06` now carries the row and the second blind spot. **Sequencing is
   session K's**, and this is a better input than K had.
+- ⚠ **The suite's cost is one guard left on in nine tests, and the marking is what is still owed.**
+  **NEW 2026-08-19, and the reading is taken rather than owed.** A full `dotnet test` is **9m35s over
+  1,592 tests**; per-test durations were captured with `-l "console;verbosity=detailed"` and the
+  distribution is extreme — **917 tests carry measurable time and 675 run in under a millisecond**, the
+  **top 5 are 42%** of summed CPU and the **top 20 are 69%**, and everything under a second put together
+  is **1.4%**. ⚠ **Summed CPU is 2,560 s against 576 s of wall clock**, so xUnit is getting ~4.4× out of
+  collection parallelism and ***the wall clock is set by the longest single test, not by the sum*** —
+  trimming the 735 fast tests would return nothing at all.
+  ⚠ **The folklore was that the long acceptance runs are the cost, and it is wrong.** Every
+  100,000-Tick run in the suite is **3–29 s** — Layer 14, Evidence 14, Traffic 28, Placement 4, Zone
+  Rule 4, Road 4, Commute 5 — **except one**. `SaveLongRunTests.The_hundred_thousand_Tick_save_run` is
+  **6m35s, 69% of the entire wall clock on its own**, and the second and third places are not long runs
+  at all: `JobSearchBoxTests` two tests at **327 s and 191 s**, 20% of summed CPU.
+  ⚠ **The cause is measured and it is not the saving.** That test's own instrumentation reports **1.55
+  ms mean copy and 0.26 ms mean write over 49 saves — 0.09 s of 395 s, 0.02%**. What costs is the
+  100,352 `Step` calls, and the reason this run is 15× its siblings is that **every other long-run test
+  sets `VerifyDecideWritesNothing = false` and this one does not** — the `O(world)`-twice-per-Tick guard
+  S0a found at 76.4 ms a Tick and 95% of a run, which is why `--no-decide-guard` exists at all.
+  **Verified by measurement rather than argued: switching it off takes the test 395 s → 26 s, a 15.2×,
+  with byte-identical per-Day file sizes and Building counts.** ⚠ **Nine of the top ten are the same
+  shape** — `JobSearchBoxTests`, `EmploymentRungTests`, `CarRouteLengthTests`, `VolumeDelayReachTests`,
+  `StatisticalTravelTimeTests`, `RouteCacheTests`, `GoldenSessionCoverageTests`, `ReplayTests` and
+  `JobAssignmentTests` all step many Ticks with the guard on and none of them is testing the guard.
+  ***A guard whose cost is documented in one place and whose call sites are opted out of one at a time
+  is a default nobody chose.***
+  ⚠ **What is owed is the decision and then the marking, in that order.** The decision is whether the
+  default should invert — the guard is `adr/0037`'s read-only-Decide proof and `RuleEvaluationTests`
+  already asserts it defaults on, so leaving it on in a *correctness* test and off in a *volume* test is
+  the distinction to write down rather than to apply case by case. **Then mark the expensive tier** with
+  an xUnit trait so it can be named and excluded on demand, which is `02 §10`'s own *sort by frequency,
+  never by build configuration* applied to the suite rather than to the invariants. ⚠ **Marking first
+  would have been the wrong order**: a trait applied to whatever happened to be slow would have recorded
+  `SaveLongRunTests` as inherently expensive, when 94% of it is a guard nobody meant to leave on.
+  ⚠ **And this is not only a convenience cost** — S5's threading re-capture came back bimodal because
+  another session's `dotnet test` was running at ~1018% CPU ([`spike-results`](../docs/spike-results.md)
+  → *S5 L6*), so the suite's footprint is already a measurement hazard on the board's *the three tracks
+  do not contend*.
 - **Generation with playability guarantees.** A seed producing no buildable land or no water access is
   a broken map, not a hard one (`adr/0021`).
 - **Dial playability floors.** A Hinterland at minimum depth and minimum recovery produces no
