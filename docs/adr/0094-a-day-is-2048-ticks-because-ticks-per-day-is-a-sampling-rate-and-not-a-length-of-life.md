@@ -148,6 +148,21 @@ results: **carry the bill, not the percentage** (`plans/0013`).* The simulation 
 its unit is a maximum with a 9.4–10.5 ms spread — but ×4 on the largest uncertain row is not nothing, and
 it is recorded here rather than discovered later.
 
+> ⚠ **AMENDED 2026-08-16 by session T ([`plans/0027`](../../plans/0027-session-t-the-target-speed.md),
+> [`0105`](0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md)):
+> every ledger figure in the paragraph above is superseded, and this ADR is the reason they were
+> wrong.** `plans/0013` never applied the ×4 this section states, so the row it sums stayed at its
+> pre-clock value **inside the one file that owns the sum**, while the correction sat in `01 §1`, in
+> `CLAUDE.md`, and twice in `plans/0013`'s own sidebar. Re-summed at the shipped clock the ledger is
+> **≥44–50 ms on one core of the reference class**, of which routing is **37.6–42.0 ms — 85% of the
+> whole bill**; against the target settled by `0105` that is **283–318% at 4×**, replacing *~47.6 ms*,
+> *~305%* and *~76%*. ***A correction attached to a number does not travel with it any more readily
+> than a caveat does*** — `plans/0012` **Cause 5**'s third form, and the only document that was wrong
+> is the one that owns the sum, so **no document-to-document check could ever have seen it**; the only
+> instrument that finds this is somebody re-summing the table by hand, and nothing schedules that.
+> **Carry the bill and the machine class, never the share alone**
+> ([`0106`](0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)).
+
 **The Microscopic Cap's per-Tick cost rises 4×.** The sub-step band goes **21–45 → 84–180**, so a Vehicle
 held Microscopic costs four times more per Tick.
 

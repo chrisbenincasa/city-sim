@@ -686,6 +686,13 @@ the rest is the fixture's arithmetic.
 by any balance of rates — it is a missing door, and it was one. It is now **10%**, the floor a city that
 is continuously building carries, and it is what `PlacementLongRunTests` asserts.
 
+**The 10% is the fixture's floor rather than the mechanism's ceiling, and a second test says so.**
+`PlacementTests` drains the Unplaced Pool to **zero** on a fixture that does not demolish itself — so
+*everybody is housed* is reachable, and what holds the long run at 10% is `minimal.toml` condemning as
+fast as it builds rather than any limit in the pass. ***A residual measured against a fixture that
+churns is a property of the churn***, and stating only the 10% would have left the mechanism looking
+permanently short by a tenth.
+
 **The general form is worth more than the instance.** A long run against a fixture reports the
 **fixture's** arithmetic in every quantity the fixture determines, and the only readings that carry
 information are the ones it does **not** determine. `minimal.toml` fixes the demolition rate, the

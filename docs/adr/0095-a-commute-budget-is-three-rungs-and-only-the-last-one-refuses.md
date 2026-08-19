@@ -84,6 +84,20 @@ can be found* — with *accepted* now meaning the ceiling.
 
 ### What it does to the map, and `adr/0089` survives on the recomputation
 
+> ⚠ **THIS SECTION IS WITHDRAWN, 2026-08-14, and the map decision it was written to support stands
+> without it.** The recomputation below plugs a **foot**-derived rung into a **vehicle**-denominated
+> column. [`0089`](0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)'s *Commutes across* has
+> always been a vehicle commute — that document carries *Foot crossing* as a **separate** column — so
+> backing the speed out of both figures shows that ***only the minutes moved***, and the table below
+> therefore restates `adr/0089`'s own speed rather than corroborating it from a second direction. **On
+> foot the same map is far more ceilings across than the figure below.** The three rungs are percentiles
+> of a **free-flow, foot-only** distribution — this ADR says so itself, twice, in *The mechanism has two
+> drivers* and in its fourth revisit trigger — and a number read off one distribution cannot be a term in
+> a ratio denominated in another. What falls is the claim that these values corroborate the map size;
+> **what stands is the map**, on the vehicle column, which is the right column for a game whose commutes
+> are driven. [`plans/0012`](../../plans/0012-corpus-audit.md) **Cause 5**, and `adr/0089`'s third
+> correction owns the full derivation.
+
 [`0089`](0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) sized the map on **how many Commute
 Budgets fit across it**, at **3.7–5.2 for a 30-minute Budget** over 65.5 km — implying a 25–35 km/h
 effective road speed. Thirty minutes is a rung that no longer exists, so the ratio has to be restated,

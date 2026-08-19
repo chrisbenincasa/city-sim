@@ -12,6 +12,16 @@ already makes it free.
 queue item 6, which gave `RoadGenerator.LayInto` an extent and had `SyntheticCity` derive it from the Lot
 count the population asks for.
 
+**The extent is derived from the Lot count and not from the Building count, and the second was tried
+first.** `SyntheticCity` reads `World`'s own **225 Lots per 1,000 Citizens** and paves the smallest
+square lattice yielding at least that many. Deriving it from the Buildings the populator raises was
+written first and refused on a measurement: it **moved the Unplaced Pool's equilibrium**, so a change to
+geometry would have read as a change to housing. ***An extent derived from what a city has built is
+derived from a quantity the simulation is still moving***, and only an allocation is stationary enough to
+size ground with. At 1M the derivation asks for a **4,800-Tile lattice, 8.6% of a 512-Cell map**, which
+is the buildable fraction this ADR reasoned about; the golden fixture's world goes from **16,641 Nodes
+and 33,671 Segments to 36 and ~60**.
+
 ~~⚠ **The constant must not move yet.** `RoadGenerator` paves the entire map at world creation, which is
 the one structure in the build that scales with map **area** rather than with development — and it makes
 `0021`'s central claim false. That defect is this decision's named blocker.~~ ⚠ **The blocker was real
