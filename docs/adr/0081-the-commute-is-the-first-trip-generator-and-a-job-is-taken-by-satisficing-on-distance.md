@@ -123,7 +123,14 @@ then be rewritten twice.
   and `occupants`. It is **tuning, hot-reloadable and hash-bearing**, and it is subject to `0068`'s rule
   for occupancy: derived from the Ruleset in force rather than frozen at construction, so lowering it
   **evicts** — a job has a holder and no consumer, exactly as occupancy does.
-- **A second `[[building]]` kind exists in a shipped Ruleset for the first time.** `dwelling` has been
+- ⚠ ~~**A second `[[building]]` kind exists in a shipped Ruleset for the first time.**~~ **PREDICTED AND
+  NOT BUILT — struck 2026-08-19.** `jobs = 8` shipped on **`dwelling`**, and `dwelling` is still the only
+  kind in all **five** shipped files, because a second kind needs a second `[[zone_rule]]` and a second
+  decline Rule before the city stops filling with offices — three decisions about content that
+  `rulesets/minimal.toml`'s own first line refuses to make. ***A consequence is a prediction until
+  somebody checks it***, and this one survived a milestone because the fact refuting it lives in a
+  Ruleset comment, which every mechanical check in this corpus is blind to. *Original text follows.*
+  **A second `[[building]]` kind exists in a shipped Ruleset for the first time.** `dwelling` has been
   the only kind in all three files since the Ruleset existed, so every loader and Zone Rule path that has
   only ever seen one kind gets its first real exercise, and `adr/0055`'s permission-set scoping gets its
   first case with something to distinguish.

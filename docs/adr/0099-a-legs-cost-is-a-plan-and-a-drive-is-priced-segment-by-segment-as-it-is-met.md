@@ -178,6 +178,26 @@ Vehicles an hour and a 128 m Segment is crossed in 9.2 s, so it holds **9.2 Vehi
   accumulating without exercise; the place both tables are stated together is task 8. The test suite says
   so in its own remarks rather than leaving a reader to infer it from a green board.
 
+### ⚠ The volume-delay function is a loop and not a formula
+
+*Added 2026-08-15, from the first city that ever evaluated this function off its flat part.*
+
+**Congestion slows a Vehicle, a slower Vehicle dwells on its Segment longer, and longer dwell *is* higher
+volume** — because the volume this function reads is a **stock**, and the Little's Law term above is
+exactly what puts the dwell inside it. Past `v/c` = 1 that feeds itself. On
+`ConnectedCityCongestionTests`' dumbbell — two zoned districts joined by **one** Street corridor, every
+Segment laid by `CommandKind.Connect`, at the **shipped** capacity — a free-flow control peaking at
+**130%** gives a priced world peaking at **1,074%**, and 1,074% is not what BPR returns for 130%.
+
+***A formula evaluated on its own output is a dynamical system, and the first reading off the steep part
+is the first one that can say so.*** The corpus has only ever quoted BPR as a static curve, this ADR
+included, and every figure above it was taken where the curve is nearly flat — which is the same defect
+as citing a premise that has expired, one section up, arriving on the mechanism rather than on a
+constant. It is `03 §3.2`'s *use it only where it is strong* with a number attached, and it is an
+argument for the Microscopic tier from a direction nobody took it from. **It does not move α, β or the
+clamp**: the clamp is what bounds the feedback, and it takes well under one percent of the loaded
+Segment-Ticks over that ladder, so it is holding a quartic's tail without touching its body.
+
 ## What would trigger revisiting
 
 - **A Segment gets short enough, or a Tick long enough, that a vehicle crosses several per Tick and the

@@ -527,8 +527,14 @@ contains for writing a rule down rather than observing it well.
 **A percentage of a budget is the special case, and it has its own rule: *carry the bill, not the
 percentage*.** A share is a measurement divided by a **product decision** — which speed rung, which
 clock — so it is two facts glued together and only one of them is about the code. `plans/0013`'s whole
-last row is the demonstration: ≥229%, ≥114%, ≥57% and ≥29% are **≥17.8 ms** over four candidate budgets,
-and reading them as four results is reading one measurement four times. **The failure mode is specific
+last row is the demonstration: ~~≥229%, ≥114%, ≥57% and ≥29% are **≥17.8 ms**~~ **≥44–50 ms, re-summed
+2026-08-16 by session T** over four candidate budgets, and reading them as four results is reading one
+measurement four times. ⚠ **The struck figure is this Cause's own third form caught inside this Cause's
+own paragraph**: `adr/0094`'s ×4 reached `plans/0013`'s volume row and never its routing row, the
+correction was stated in that file's own sidebar, and *a correction attached to a number does not travel
+with it any more readily than a caveat does* — so the sentence teaching the rule went on quoting the
+uncorrected sum for three days. ***The instrument that finds this is somebody re-summing the table by
+hand, and nothing schedules that.*** **The failure mode is specific
 and it has happened**: `861.87%` survived `adr/0096` repricing its denominator *and* `adr/0094`
 multiplying its numerator, to within 0.4%, because the two moved in opposite directions — invisible as a
 percentage, obvious as **134.135 ms**. ***A percentage hides which side moved.*** Swept through the

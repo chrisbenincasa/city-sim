@@ -216,7 +216,20 @@ The full list is in `CLAUDE.md` and `plans/0003 §Definition of done`. In short:
 
 - ADR filenames are the claim, stated as a sentence:
   `0048-the-ruleset-is-validated-where-it-is-parsed-….md`.
+- **An ADR has four sections and the last one is not optional**: the title as a claim, the decision in
+  bold up front, `## Why`, `## Consequences`, `## What would trigger revisiting`. *A decision with no
+  revisit trigger is a decision nobody can reopen honestly*, which is why the fourth is required rather
+  than conventional.
 - ADRs are never deleted or silently amended. A wrong one gets a correction block or a banner, so the
-  reasoning that was wrong stays readable.
-- Prose is British — modelled, behaviour, optimise.
+  reasoning that was wrong stays readable. **The form is the banner at the top of
+  [`docs/adr/0005-two-fidelity-tiers.md`](docs/adr/0005-two-fidelity-tiers.md)** — named here because
+  *a convention with no exemplar is a convention every author re-invents*.
+- **Every significant decision cites a guiding concept** from `CONTEXT.md`'s tag table. A decision that
+  cites none is a decision without a justification.
+- Prose is British — modelled, behaviour, optimise, serialisation, sterilise. **The register is dense
+  and argumentative: state the claim, then the reasoning that survives objection.** ⚠ **This governs
+  documents only.** A reply to the user in the terminal is plain English — lead with the answer, explain
+  each term and citation inline as it is used, and debrief at the end of a chunk of work. *The corpus's
+  register is a property of the corpus and not of the project*, and carrying it into a chat reply makes
+  a status report unreadable.
 - Documents cross-reference by section: `02 §4.1`, `05 §9`.

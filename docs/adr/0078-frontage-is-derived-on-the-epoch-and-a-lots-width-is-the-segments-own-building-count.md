@@ -40,6 +40,17 @@ The **disposition** half is arguable under [`0043`](0043-a-claim-a-measurement-c
 | Buildings per Segment | **5** | `CONTEXT.md` → Address, the premise of the Node refusal |
 | Lots at full zoning | **165,120** | the product |
 
+> ⚠ **AMENDED 2026-08-19: the cross-check below is circular as of 2026-08-13, and the Segment count is
+> stale.** `SyntheticCity.PavedTiles` now sizes the paved lattice from `world.Lots.Rows.Capacity` **and**
+> `LotsPerSegment` together ([`plans/0003`](../../plans/0003-build-plan.md) queue item 6), so the Lot
+> count and `World`'s row sizing are **one figure read twice** rather than two figures that never met,
+> and the agreement is guaranteed instead of earned. The Segment figure quoted below is the
+> fully-paved-map count; [`0089`](0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) took the
+> map to 16384² and the generator stopped paving it, so no shipped world produces it. ***A corroboration
+> between two quantities survives only as long as nothing wires them together***, and nothing in this
+> corpus re-checks one when a commit made for an unrelated reason closes the loop. What the paragraph
+> below claims was true when it was written and is false now.
+
 **The cross-check is the part worth trusting, because neither side was derived from the other.** `World` sizes its Lot table at **225 Lots per 1,000 Citizens** — S4 task 2's ratio, chosen from row-count sizing years of documents before there was a graph — which is 225,000 at the 1M target. The subdivider's 165,120 is 73% of it, from a completely independent route. Two figures that never met agreeing within a quarter is the first spatial corroboration this project has had, and it is why `lots_per_segment` is a *derived* number rather than a plausible one.
 
 **It also survives its own arithmetic.** A Segment shared by two blocks carries Lots on both sides, and five alternating positions give each adjacent block two or three of them. That is odd-and-even house numbering — which is not a coincidence dressed up, because it is the *reason the corpus chose the word Address*: `CONTEXT.md` → Address says the word is used *"because a street address is literally this triple: a distance along a street plus an odd or even side."* The subdivider walking a Segment and alternating sides is that sentence executed.
@@ -65,6 +76,17 @@ The consumer that would read it is [`0025`](0025-density-is-a-cap-and-it-trades-
 **A Building's occupancy and a Segment's Lot count are now two independent capacity figures**, and nothing checks that they are consistent with the population. That is not this slice's to fix — it is the same shape as the standing *synthetic fixture and `World`'s sizing disagree* item on [`plans/0000`](../../plans/0000-board.md) — but it is now one row larger, and the 165,120-against-225,000 gap above is where somebody should start.
 
 ## What would trigger revisiting
+
+⚠ **AMENDED 2026-08-19: the ratifier named in this section is structurally defeated, not merely unrun.**
+`LotSubdivider.Face` creates exactly `LotsPerSegment` Lots on a Segment and `LotTable.BuildingSlot` holds
+one Building per Lot, so **Buildings per Segment cannot exceed the number this ADR is ratifying** and no
+run can report a distribution the constant did not censor. ***A quantity a mechanism bounds cannot be
+evidence about that bound.*** The ratifier is therefore not a milestone but a **world** — one whose
+Buildings are placed under density bands, which is the same event this section already names as the
+reopen trigger. Recorded rather than quietly re-pointed, because
+[`0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)'s 2026-08-15
+amendment — *a ratifier names a machine, a world **and** a quantity* — is what makes the defect visible,
+and it postdates this decision.
 
 **`CONTEXT.md` → Address's five moving.** It is a *working figure* and has never been measured against a real city — no Ruleset that models one exists. The first long run that produces a real Building-per-Segment distribution can refute it, and this number follows it without argument. **That is the honest ratifier and it is milestone 5b's**, because a Trip is what makes Buildings-per-Segment observable rather than assumed.
 

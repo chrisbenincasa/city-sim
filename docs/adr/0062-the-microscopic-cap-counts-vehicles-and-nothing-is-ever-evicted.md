@@ -62,7 +62,37 @@ When a force-promotion cannot be admitted, `03 §3.9` already says what happens:
 | Is a lossy demotion under Cap pressure safe? | does the jam persist after the volume that caused it is gone? | `§5.1` **hysteresis** scenario |
 | Does a virtual queue qualify as a representation? | does it pass **all three**? | the whole suite |
 | Does VDF error grow with queue **age**? | divergence against Ticks since threshold crossing | `§5.1` **queueing** scenario |
-| **The Cap's value** | Vehicles affordable in 15.6 ms, against Vehicles a real city stresses | **S5**, and `06` **5b** |
+| **The Cap's value** | Vehicles affordable in ~~15.6 ms~~ **62.5 ms** ([`0096`](0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)), against Vehicles a real city stresses | **S5**, and ~~`06` **5b**~~ **an under-provisioned `CommandKind.Connect` world** |
+
+> ⚠ **AMENDED 2026-08-13 by [`0096`](0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md) — the budget in the last row above is the retired one, and this is the ADR a reader arrives at.**
+> The Cap is priced against the **design speed's 62.5 ms**, never against the top rung. Setting it at the
+> top rung buys a stutter-free fast-forward by making every player's traffic permanently less accurate,
+> which is `03 §3.9`'s own table read backwards — a **simulation** limit and a **hardware** limit are
+> different boxes with different responses, and this decision's own `HONEST DEGRADATION` tag is precisely
+> what forbids spending the first to avoid the second. On one core at S5's measured cost that supply side
+> is **~25,400 Vehicles**: a `powersave` lower bound, and one half of a ratio rather than a Cap.
+> ⚠ **[`0105`](0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md)
+> has since fired `0096`'s revisit trigger and the basis survived on one leg of two** — a rung is never
+> withdrawn, so *the rung the binding case will not be running* is false, and the Cap stays where it is
+> because ***a Cap and a bill are different objects***: dilation absorbs a bill, and nothing absorbs a
+> permanently coarser city.
+>
+> ⚠ **Every figure the supply side has ever been quoted at is one core, and its threading multiple must
+> not be quoted bare.** S5's L6 capture settles **2 threads at 1.84–1.93×** and leaves **4 bimodal on a
+> contended machine**, nothing between, the dominant co-tenant being another session's test suite — so
+> the rung is owed a re-take on a quiet machine and the multiple is *at least 1.84× and plausibly near
+> 4×* ([`spike-results`](../spike-results.md) → *S5 L6*). A bare *near 4×* carried out of here without
+> *bimodal, one machine, contended* would be [`plans/0012`](../../plans/0012-corpus-audit.md) **Cause 5**
+> committed on this ADR's own owed measurement.
+>
+> ⚠ **And the demand half named in that row has had three owners and no producer.** *Vehicles a real city
+> stresses at once* was **5b**'s, then **5b-bis**'s, then 5b-bis task 8's; all three shipped and none of
+> them produced it — and no **generated** city can, because the paved extent scales with the population it
+> serves ([`0090`](0090-the-generator-makes-land-and-the-player-makes-every-road.md)) and ***the same
+> number sizes both the demand and the supply***. The producer is a **fixture rather than a milestone**,
+> an under-provisioned `CommandKind.Connect` world, which is why every hand-off looked reasonable and no
+> single one of them was wrong. ***An obligation re-assigned to each successive milestone is discharged by
+> none, and the ledger reads green the whole way.***
 
 ## Rejected
 

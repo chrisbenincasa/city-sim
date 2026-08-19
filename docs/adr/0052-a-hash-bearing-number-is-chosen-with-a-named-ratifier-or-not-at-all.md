@@ -16,6 +16,11 @@ a date and a written-out quantity still cannot fire if the only city available t
 which the number does not vary — and that failure is **worse than an unnamed ratifier**, because the
 row reads as discharged the moment the instrument runs. See §*A ratifier names a machine and a world*.
 
+⚠ **AMENDED AGAIN 2026-08-15: and *a quantity*.** A world in which the number varies is still not
+enough if the refuting readings are denominated in a consequence the number does not have — and that
+failure is worse again, because the readings **fire** and the row reads as *refuted* rather than as
+unserved. See §*A third clause*.
+
 ## Why
 
 **These numbers are the expensive class and the corpus already says so.** `05 §4`'s test is that a
@@ -186,6 +191,47 @@ the number that would refute this, and the machine that would produce it?* — t
 the missing third exactly as it was here. It is not amended in its own file because nothing has yet gone
 wrong there; this sentence is the warning rather than the correction, and the first `adr/0043` claim
 that turns out to be void for want of a world should carry it over.
+
+### ⚠ A third clause, 2026-08-15: a ratifier names a machine, a world **and a quantity**
+
+*The amendment above cost a day and the world cost an afternoon. Reading that world cost an hour, and
+the reading is what found the third gap.*
+
+`ConnectedCityCongestionTests` was built to serve **two** rows: `[traffic]`'s three parameters from
+[`0099`](0099-a-legs-cost-is-a-plan-and-a-drive-is-priced-segment-by-segment-as-it-is-met.md) and
+`[households] car_ownership_percent` from
+[`0098`](0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md).
+**It serves the first and it cannot serve the second, and this time the world is not what defeats it.**
+Both of that row's stated refuting readings **fired** on the dumbbell ladder — `jobs beyond budget` is
+**0**, *moderate* and *unsavoury* are **0** at every rung — and **neither is a fact about the ownership
+rate**. At 100% ownership every commute is a **drive at 50 km/h across a city at most 4 km wide**, while
+[`0095`](0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s three rungs are
+percentiles of a **foot-only** distribution. The readings measure the rungs against the wrong mode. The
+rate is **inert on reach and load-bearing on congestion**, and congestion is what the world was built to
+expose.
+
+***A refuting reading named against one consequence cannot refute a number whose live consequence is a
+different one.*** That is not the failure the amendment above describes — the instrument ran, the world
+varied the number, and the row still cannot close — so the question this ADR enforces gains a third
+clause:
+
+> *Name the thing that would tell us this is wrong, **the world you would run it in, in which this
+> quantity actually varies**, and **the quantity the reading is denominated in, which must be one this
+> number actually moves**.*
+
+**The tell is the same shape one level further in.** An unnamed ratifier announces itself. A ratifier
+naming only the instrument is discharged by running the instrument. **A ratifier naming a world but not
+a quantity is *refuted* by a reading that is about something else** — and a fired refutation is harder
+to argue with than a green tick, because it looks like evidence rather than like an absence.
+[`plans/0012`](../../plans/0012-corpus-audit.md) **Cause 5** again: a *status* travelling without the
+condition it was earned under, the condition now being *what the number is for*.
+
+⚠ **And this is a variant of the second sighting the revisit trigger below asks about, not an instance
+of it.** *A second ratifier defeated by its world rather than by its instrument* has not recurred; what
+recurred is a ratifier defeated by its **quantity** while its world worked. One sighting each is two
+findings rather than a pattern, and the repair is the same either way: if a third lands, `plans/0002`
+§D wants a **world** column and a **quantity** column rather than clauses buried inside the ratifier
+cell.
 
 ## What would trigger revisiting
 
