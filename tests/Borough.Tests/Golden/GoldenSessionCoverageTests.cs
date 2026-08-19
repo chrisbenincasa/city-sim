@@ -293,6 +293,9 @@ public sealed class GoldenSessionCoverageTests
     private static World At(InputLog session, Ticks tick)
     {
         Simulation simulation = Replay.Start(session, GoldenFixtures.Catalogue());
+        // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
+        // and the guard's own correctness is covered by the tests written for it.
+        simulation.VerifyDecideWritesNothing = false;
 
         Replay.Trace(simulation, session, tick, (int)tick.Raw, []);
 

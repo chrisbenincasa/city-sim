@@ -65,6 +65,9 @@ public sealed class VolumeDelayReachTests(ITestOutputHelper output)
             GoldenFixtures.Seed, new WorldConfiguration(population), GoldenFixtures.RulesetHash);
 
         Simulation simulation = Replay.Start(builder.Build(), rules.Ruleset!);
+        // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
+        // and the guard's own correctness is covered by the tests written for it.
+        simulation.VerifyDecideWritesNothing = false;
 
         simulation.Step(new TickInput(
             [new Command(CommandKind.Populate, default, default)], rulesetHash: 0));

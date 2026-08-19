@@ -187,8 +187,20 @@ public sealed class JobSearchBoxTests
     /// <para>
     /// Isolated with <c>[[building]] jobs = 0</c>: no candidate ever has a vacancy, so <c>TryEmploy</c>
     /// walks the box and never routes, and nobody is employed at either ceiling, which holds the seeker
-    /// count equal. Measured 2026-08-14 — a <b>5.34×</b> box costs <b>4.7%</b> at 4,000 Citizens and
-    /// <b>6.1%</b> at 40,000.
+    /// count equal. ⚠ <b>Re-measured 2026-08-19 and the published figure was an artefact: a
+    /// <b>5.34×</b> box costs <b>1.79×</b>, not 1.06×.</b> Five runs give 1.73–1.84 and the spread is
+    /// tight; solving <c>(1 − f) + 5.34f</c> puts box walking at ~<b>18%</b> of the pass, where 1.06×
+    /// implied 1.4%.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What was wrong is the denominator, and it was 94% of it.</b> This test ran with
+    /// <c>Simulation.VerifyDecideWritesNothing</c> left on — an <c>O(world)</c> fold twice a Tick,
+    /// identical in both arms — so each arm read ~31 s of which ~29 s was the guard, and the ratio was
+    /// compressed toward 1 by a term that has nothing to do with the box. Measured both ways on one
+    /// machine within the minute: guard on <b>30,938 / 34,320 ms → 1.11×</b>, guard off
+    /// <b>2,248 / 4,129 ms → 1.84×</b>. ***A common term that does not move still moves a ratio, by
+    /// diluting it*** — which is the sibling of the confound recorded below, and the harder one to see,
+    /// because the paragraph below was written by somebody watching for a term that <em>moves</em>.
     /// </para>
     /// <para>
     /// ⚠ <b>The comparison this replaces was confounded, and the confound cancelled rather than
@@ -246,11 +258,17 @@ public sealed class JobSearchBoxTests
 
         _out.WriteLine($"box x{boxRatio:F2}, cost x{costRatio:F2}");
 
+        // 2.2 rather than 1.5, and the bound is set from the spread rather than from taste: five runs
+        // on 2026-08-19 gave 1.73-1.84 with the decide guard off, so a 1.5 written against a diluted
+        // 1.06 now fails on a correct city. The headroom is deliberately wider than the observed band
+        // -- 5c task 8's finding is that a band transplanted from a quieter quantity fails one run in
+        // ten with nothing wrong under it -- and 2.2 still catches the failure this guards: box walking
+        // going from ~18% of the pass to ~28%, which is where a 5.34x box starts to dominate it.
         Assert.True(
-            costRatio < 1.5,
+            costRatio < 2.2,
             $"growing the box {boxRatio:F2}x cost {costRatio:F2}x, so walking the box has become a "
-            + "material share of the pass. It was 1.06x when this was written, which is what made the "
-            + "box's width a question about behaviour rather than about the Tick budget.");
+            + "material share of the pass. It was 1.79x when this bound was set, which is what keeps "
+            + "the box's width a question about behaviour rather than about the Tick budget.");
     }
 
     /// <summary>
@@ -351,6 +369,10 @@ public sealed class JobSearchBoxTests
     {
         InputLog log = Log(population);
         Simulation simulation = Replay.Start(log, rules);
+
+        // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
+        // and the guard's own correctness is covered by the tests written for it.
+        simulation.VerifyDecideWritesNothing = false;
 
         Replay.Trace(simulation, log, new Ticks(Ticks), HashEvery, []);
 

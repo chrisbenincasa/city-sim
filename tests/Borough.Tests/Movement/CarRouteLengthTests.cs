@@ -67,6 +67,9 @@ public sealed class CarRouteLengthTests(ITestOutputHelper output)
 
         InputLog log = builder.Build();
         Simulation simulation = Replay.Start(log, rules);
+        // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
+        // and the guard's own correctness is covered by the tests written for it.
+        simulation.VerifyDecideWritesNothing = false;
 
         Replay.Trace(simulation, log, new Core.Quantities.Ticks(Ticks), HashEvery, []);
 

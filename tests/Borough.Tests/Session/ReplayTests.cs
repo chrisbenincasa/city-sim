@@ -203,6 +203,11 @@ public sealed class ReplayTests
     {
         InputLog log = Log();
         Simulation simulation = Replay.Start(log, Rules);
+
+        // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
+        // and the guard's own correctness is covered by the tests written for it.
+        simulation.VerifyDecideWritesNothing = false;
+
         var trace = new List<ulong>();
 
         for (int i = 0; i < TickCount; i++)

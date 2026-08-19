@@ -161,6 +161,10 @@ public sealed class EmploymentRungTests
         InputLog log = builder.Build();
         Simulation simulation = Replay.Start(log, rules ?? GoldenFixtures.Rules());
 
+        // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
+        // and the guard's own correctness is covered by the tests written for it.
+        simulation.VerifyDecideWritesNothing = false;
+
         Replay.Trace(simulation, log, new Ticks(Ticks), HashEvery, []);
 
         return simulation.Employment.Drain();

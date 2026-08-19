@@ -1176,6 +1176,35 @@ it would be scheduled rather than discovered.
   another session's `dotnet test` was running at ~1018% CPU ([`spike-results`](../docs/spike-results.md)
   → *S5 L6*), so the suite's footprint is already a measurement hazard on the board's *the three tracks
   do not contend*.
+  ✅ **APPLIED 2026-08-19, and the guard fix found something bigger than the time it saved.** Nine of
+  the ten opted out at the site that steps — **9m35s → 4m03s wall, summed CPU 2,560 s → 1,297 s**, 1,592
+  green — with `SaveLongRunTests.The_hundred_thousand_Tick_save_run` going **6m35s → 21 s**. ⚠ **The
+  tenth was left on deliberately**: `ReplayTests` reaches the world through `Replay.Run`, which builds
+  its own `Simulation`, so opting it out means a parameter on a **production** API for a test's speed —
+  and at **54 s against a 192 s longest test** it would return **nothing in wall clock**, because the
+  wall is now set by one test rather than by the sum. ***A cost worth removing from a sum is not thereby
+  a cost worth removing from a maximum.***
+  ⚠ **The finding: the guard was sitting in the denominator of a published ratio, and it was 94% of
+  it.** `JobSearchBoxTests.The_box_is_not_where_the_pass_spends_its_time` compares a narrow box against
+  a wide one and reported **1.06×** for a 5.34× widening — the number `CLAUDE.md`'s Commute Budget row
+  cites as the third ground for **not repairing the box**. The guard is an `O(world)` fold twice a Tick,
+  **identical in both arms**, and each arm was ~31 s of which ~29 s was the guard. Measured both ways on
+  one machine within the minute: guard on **30,938 / 34,320 ms → 1.11×**, guard off **2,248 / 4,129 ms →
+  1.84×**, five runs spanning **1.73–1.84**. Solving `(1 − f) + 5.34f` puts box walking at ~**18%** of
+  the pass where 1.06× implied **1.4%**. ***A common term that does not move still moves a ratio, by
+  diluting it*** — `plans/0012` **Cause 5**'s form for a *measurement* rather than for a quotation, and
+  the sibling of the confound that test's own doc-comment warns about, which is a term that **moves**.
+  **The harder of the two to see**, because the author watching for a moving term has already thought
+  about confounds. The test's bound is re-derived from the spread (1.5 → **2.2**), `CLAUDE.md` carries
+  the correction, and the other two grounds for not repairing the box stand — [`adr/0088`](../docs/adr/0088-the-price-of-a-far-hinterland-is-paid-in-your-own-traffic.md):
+  a decision given several grounds is load-bearing on whichever survive.
+  ⚠ **Still owed: the marking, and one thing the guard fix exposed.** The expensive tier wants an xUnit
+  trait so it can be named and excluded, which is now a smaller and better-informed job. And **nothing
+  in the suite watches the guard fire** — `RuleEvaluationTests.Deciding_writes_nothing_even_on_a_tick_where_rules_fire`
+  watches it **pass**, non-vacuously, which is what licensed the opt-outs, but a guard nobody has seen
+  reject is `adr/0064`'s *a guard with no test* one step removed. It is not testable without a seam: the
+  thing that would have to write in Phase 2 is `RuleEngine.Evaluate`, and there is no way to substitute
+  a writing one. Recorded rather than built.
 - **Generation with playability guarantees.** A seed producing no buildable land or no water access is
   a broken map, not a hard one (`adr/0021`).
 - **Dial playability floors.** A Hinterland at minimum depth and minimum recovery produces no

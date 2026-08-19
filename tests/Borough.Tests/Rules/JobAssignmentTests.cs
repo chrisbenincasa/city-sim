@@ -43,6 +43,10 @@ public sealed class JobAssignmentTests
         InputLog log = Log();
         Simulation simulation = Replay.Start(log, rules);
 
+        // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
+        // and the guard's own correctness is covered by the tests written for it.
+        simulation.VerifyDecideWritesNothing = false;
+
         Replay.Trace(simulation, log, new Ticks((ulong)ticks), HashEvery, []);
 
         return simulation;
@@ -328,6 +332,10 @@ public sealed class JobAssignmentTests
 
         InputLog log = builder.Build();
         Simulation simulation = Replay.Start(log, GoldenFixtures.Rules());
+
+        // O(world) twice per Tick against a phase meant to be O(woken). --no-decide-guard's reason,
+        // and the guard's own correctness is covered by the tests written for it.
+        simulation.VerifyDecideWritesNothing = false;
 
         Replay.Trace(simulation, log, new Ticks((ulong)Ticks), HashEvery, []);
 
