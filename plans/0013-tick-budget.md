@@ -99,6 +99,8 @@ the durable half of the document.
 | **Pollution diffusion**, whole map | **1.01 ms** | — | as above |
 | One **State Hash** at 1M | **32.47 ms** | — | [S0a](../docs/spike-results.md) |
 | **One routing worst Tick** at 16 Trip starts | **~9.4–10.5 ms** (published as 10.37) | — | [S2 R5](../docs/spike-results.md), five pinned captures |
+| **One Parking Shed query** at the shipped 400 m radius | **6.40 µs** | — | `ParkingArrivalStreamTests`, milestone 7 task 3 |
+| ⚠️ **Parking Shed, the worst Tick** at **64,000** Citizens | **1.58–1.63 ms** | ⚠️ **unknown, and the population is the point** — this is 64k against a budget denominated at 1M, so it may not be quoted as a share of a Tick until the same capture runs at the budget's own population | `ParkingArrivalStreamTests`, milestone 7 task 4 |
 | ⚠️ **One walk search**, 128 m | **86.2 ns** | **no, and this is the finding — see below** | `WalkSearchBenchmarks`, 5b |
 | ⚠️ **One walk search**, 512 m | **347.5 ns** | — | as above |
 | ⚠️ **One walk search**, 1.02 km | **1.43 µs** | — | as above |

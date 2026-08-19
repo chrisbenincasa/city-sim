@@ -350,6 +350,37 @@ survives* distinction generalises rather than being a routing idiom.
 The query, nearest-first, taking the first Bin with capacity, and the write that records who holds it.
 **Decision 1 settles what the holder is**, and this task is where it lands.
 
+⚠ **`adr/0083` names the *occasion* and `adr/0075` names the *instant*, and they are not the same
+question.** The shed's one caller is *arrival* — one query per car journey, at the destination — and
+that is right about **which** event. But `adr/0075` creates every Leg at Trip creation, and the drive
+Leg's second Address **is the Car Park it is driving to**, so the Car Park has to be chosen before the
+car sets off. Choosing it on arrival instead would price the Commute Budget on a journey missing its
+last walk, which `TripEngine.Start` refuses in as many words — *"a person who can see the journey is
+too long does not make two thirds of it and stop"*. ***An ADR that settles which event a mechanism
+belongs to has not thereby settled which instant of it.***
+
+**So the shape is: choose at Trip creation, occupy at the Leg 2 → Leg 3 boundary, and re-query on
+arrival if the chosen space filled during the drive.** The release is the mirror — after Leg 1, when
+the driver has walked to the car and pulls out. `Occupied` therefore counts **cars standing in a
+space** and never a car in transit, the Budget verdict stays whole, and no claim column is needed.
+⚠ **The re-query is unobservable in any world this project can currently generate** — decision 3's
+finding is that nothing here drives occupancy near 1 — so it is written for correctness and cannot be
+witnessed until the sixth Ruleset exists.
+
+⚠ **The amortisation the shape was hoped to buy is not there, and it was measured rather than
+assumed.** Moving the query from arrival to Trip creation was expected to smooth the per-Tick peak,
+because `CommuteRoster.TryTimes` derives the outbound Tick as `start − planned − early` — arrivals
+share a Shift start, departures are spread by each Citizen's own journey length. At 64,000 Citizens the
+two streams hold **the identical 106,571 queries** and their peaks are **254 against 246**, a ratio of
+**0.97×**. ***A stream anchored on a shared instant minus a distribution is no smoother than the
+stream anchored on the instant, when both inherit the same two waves a Day.*** The peak is the
+commute wave and the fine structure inside it does not reach the maximum.
+`The_query_stream_is_smoother_at_creation_than_at_arrival` is the machine, and it is named for a claim
+its own numbers refuse — kept that way deliberately, because the prediction is the thing a later reader
+would otherwise make again. **Both cost rows are filed to [`0013`](0013-tick-budget.md)**, and the worst
+Tick carries its **population** in the cell, because 64,000 is not the population the budget is
+denominated in.
+
 The **write-site release check** ships here rather than in task 6, and the reason is `adr/0084`'s own:
 it is a check *at the write site*, `O(1)`, on a condition that holds **by construction** — which is
 `TripHasAFate`'s shape, and construction is exactly what a later edit breaks. Registering it later
