@@ -898,6 +898,31 @@ levers are Ruleset numbers section D already lists as unset:~~ **The diversion p
   structural rather than diligence — make the table door `private protected` so the world's is the only
   way in, have the rebuild audit run over every fixture, or fold the residency arrays so the hash can
   see them — and they differ in what else they cost. **Arguable**: no number refutes any of them.
+- **Where does a departing Household's balance go?** ⚠ **Filed 2026-08-19 by milestone 10 task 4, which
+  found it by building the check that reports it.** `World.DestroyHousehold` frees the row with whatever
+  is in `Money` and `Savings`, so a Household dying rich destroys conserved money — and
+  `Invariant.MoneyIsConserved` now says so, loudly, the first time it happens. Nothing in the corpus
+  states a destination: `adr/0054` covers **eviction**, where the Household survives and keeps what it
+  owns, and the only sink `CONTEXT.md` → Money admits is the **Outside Connection**, which is milestone
+  **11**. So the answer today is *there is nowhere for it to go*, which makes this `adr/0070`'s
+  **unbuilt** class with a date on it rather than a decision anybody is free to take now. ⚠ **It has no
+  production caller and that is not reassurance** — the one caller is `GoldenFixtures.Build()`, and the
+  fixture is why the invariant fired on day one. What has to be settled is whether a departure is a
+  **gate crossing** (the money leaves the city and the supply of record falls with it, which is
+  milestone 11's machinery used for a second purpose) or an **inheritance** (the balance moves to
+  another Household or to the treasury, which needs a rule saying which). **Arguable**: no measurement
+  distinguishes them, and both conserve.
+- **Should the loader refuse a money Bin on a `[[building]]`?** ⚠ **Filed 2026-08-19 by milestone 10
+  task 4.** [`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)
+  says a Building never holds money, and it is a decision with teeth — the clause is
+  [`adr/0025`](../docs/adr/0025-density-is-a-cap-and-it-trades-land-for-materials.md)'s Cohort
+  prohibition applied to the container, because `BuildingTable.OccupantHead` is the head of a **list**
+  and a Bin on the Building is a sum over however many are in it. **The loader does not enforce it**: a
+  `[[building]]` may declare a money Bin today and the only thing refused is a `capacity` key on one
+  (`RulesetLoader.cs:1275-1290`). ***A decision whose whole content is a prohibition is worth nothing
+  until something refuses.*** It is filed rather than built because it belongs beside **task 4b**, which
+  is what gives a Business somewhere legitimate to hold a balance — a refusal shipped before the
+  alternative exists refuses a shape with no replacement. **Arguable.**
 
 ---
 

@@ -147,8 +147,7 @@ public sealed class OccupancyTests
         World world = City(households: 2, occupants: 2);
         int slot = world.Households.Rows.Resolve(world.Households.Rows.At(0));
 
-        world.Households.Money[slot] = new Money(1_234);
-        world.Households.Savings[slot] = new Money(5_678);
+        world.Endow(world.Households.Rows.At(0), new Money(1_234), new Money(5_678));
 
         world.Adopt(Load(Housing(0)), HashB, new Ticks(64), Key);
 

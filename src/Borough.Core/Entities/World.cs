@@ -136,6 +136,7 @@ public sealed class World
         RuleInstances = new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins);
         Clock = new ClockTable();
         Treasury = new TreasuryTable();
+        MoneySupply = new MoneySupplyTable();
         RulesetTrail = new RulesetTrailTable();
         CondemnationTrail = new CondemnationTrailTable(Lots.Rows);
 
@@ -191,6 +192,12 @@ public sealed class World
             // answered from a world that did not keep it.
             CondemnationTrail.Rows,
 
+            // Appended for the same reason, milestone 10 task 4. The money supply of record is saved
+            // state a snapshot cannot re-derive -- summing the balances to recover it is what would
+            // make Invariant.MoneyIsConserved recompute the producer's own expression -- so it is in
+            // the composition, unlike the treasury row below it.
+            MoneySupply.Rows,
+
             // TreasuryTable is deliberately NOT here, milestone 10 task 1. Both its columns are
             // Derived, and 5a's finding is that a wholly-derived table cannot join this list: Rows.Fold
             // folds the allocator's four scalars BEFORE consulting any column's disposition, so such a
@@ -237,6 +244,13 @@ public sealed class World
     /// The city's balance sheet: one row, holding the head of the treasury's Bins (<c>adr/0114</c>).
     /// </summary>
     public TreasuryTable Treasury { get; }
+
+    /// <summary>
+    /// How much money has been issued into this world, as one saved row. The anchor
+    /// <see cref="Invariant.MoneyIsConserved"/> is an equality against, and <b>not</b> the treasury's
+    /// balance — see <see cref="MoneySupplyTable"/>.
+    /// </summary>
+    public MoneySupplyTable MoneySupply { get; }
 
     /// <summary>
     /// The Tick this world is about to run.
@@ -700,6 +714,53 @@ public sealed class World
         Occupants.InsertOrdered(buildingSlot, slot);
 
         return handle;
+    }
+
+    /// <summary>
+    /// Gives a Household money that did not exist before. <b>The only way money enters this world.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One door, because conservation is a claim about doors.</b> <c>adr/0031</c> asks that nothing
+    /// be created or destroyed except at the gate, and a claim of that shape is only checkable if the
+    /// gates can be counted. Writing <c>Households.Money</c> directly is therefore a defect rather than
+    /// a shortcut — <see cref="Invariant.MoneyIsConserved"/> reports it, because the balance moved and
+    /// <see cref="MoneySupplyTable.Issued"/> did not. This is <see cref="Deposit"/>'s argument on the
+    /// money axis: there is no second spelling in which the other half can be forgotten.
+    /// </para>
+    /// <para>
+    /// <b>It is the founding door and it is not the gate.</b> Money's only runtime source and sink is
+    /// the Outside Connection (<c>CONTEXT.md</c> → Money), which is milestone <b>11</b>; until that
+    /// exists a world's supply is fixed at whatever it was founded with, which is what makes the
+    /// invariant an exact equality rather than a sum with a flow term. Nothing in the build calls this
+    /// yet — no production writer sets a Household's money at all — so every world the simulation can
+    /// make on its own is founded on nothing, and the check is correct and temporarily trivial.
+    /// </para>
+    /// <para>
+    /// <b>Both columns, because <c>Savings</c> is the same conserved quantity in a second place.</b> A
+    /// door that could reach only <c>Money</c> would leave the other pokeable, and the invariant would
+    /// then fire on a world nobody had done anything wrong to. Moving money <em>between</em> the two
+    /// conserves it and needs no door; that is the balance sheet, and it is task 5's.
+    /// </para>
+    /// </remarks>
+    /// <param name="household">Who is being endowed.</param>
+    /// <param name="onHand">Money to add to what it holds.</param>
+    /// <param name="savings">Money to add to what it has set aside.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Either amount is negative.</exception>
+    public void Endow(Handle<Household> household, Money onHand, Money savings)
+    {
+        // Refused rather than treated as a withdrawal. A negative endowment would be money leaving the
+        // world through the door money comes in by, which is the gate's job and the gate does not
+        // exist -- and adr/0003's signed Money makes it representable, so nothing else would notice.
+        ArgumentOutOfRangeException.ThrowIfNegative(onHand.Raw, nameof(onHand));
+        ArgumentOutOfRangeException.ThrowIfNegative(savings.Raw, nameof(savings));
+
+        int slot = Households.Rows.Resolve(household);
+
+        Households.Money[slot] += onHand;
+        Households.Savings[slot] += savings;
+
+        MoneySupply.Issued[MoneySupplyTable.Slot] += onHand + savings;
     }
 
     /// <summary>

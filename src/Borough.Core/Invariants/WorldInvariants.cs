@@ -40,6 +40,12 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, EveryHandleResolves);
         invariants.Register(InvariantTier.EndOfRun, EveryoneIsInExactlyOnePlace);
         invariants.Register(InvariantTier.EndOfRun, MoneyIsRepresentable);
+
+        // Registered after the overflow check and never before it. RunEndOfRun walks the list in order
+        // and Require throws on the first violation, so a city whose money has run away has to report
+        // as unrepresentable rather than as unconserved -- a sum that has overflowed is also unequal to
+        // its anchor, and the second diagnosis is the one that names the bug.
+        invariants.Register(InvariantTier.EndOfRun, MoneyIsConserved);
         invariants.Register(InvariantTier.EndOfRun, LayerMagnitudesAreBounded);
         invariants.Register(InvariantTier.EndOfRun, RuleInstancesAreQueuedExactlyOnce);
         invariants.Register(InvariantTier.EndOfRun, NoBuildingRunsRulesItsKindDoesNotDeclare);
@@ -652,6 +658,73 @@ public static class WorldInvariants
                 return;
             }
         }
+    }
+
+    /// <summary>
+    /// <c>adr/0031</c>'s conservation invariant: the city holds exactly the money issued into it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two independent quantities, which is what <see cref="TrafficIsConserved"/> does and why it
+    /// has content.</b> The left side walks the places money can sit; the right side is
+    /// <see cref="MoneySupplyTable.Issued"/>, which only <c>World.Endow</c> moves. The argument for
+    /// each half is on <see cref="Invariant.MoneyIsConserved"/>.
+    /// </para>
+    /// <para>
+    /// <b>The places money can sit are two today and three tomorrow.</b> A Household's two columns and
+    /// any Bin whose Resource is conserved — which today is the treasury's alone, since
+    /// <c>World.FitTreasury</c> is the only thing that makes one. A Business's balance is the third
+    /// (<c>adr/0113</c>), and task 4b adds a walk here rather than changing anything else: a place
+    /// money can sit that this method does not visit reads as money destroyed, so the list is the
+    /// thing to check when the invariant fires on a milestone that added an actor.
+    /// </para>
+    /// <para>
+    /// <b>It returns silently on overflow rather than reporting.</b> A sum that cannot be represented
+    /// is <see cref="Invariant.MoneyIsRepresentable"/>'s failure and that check is registered first, so
+    /// it has already spoken; reporting here as well would give one bug two names, and the second name
+    /// would be the misleading one.
+    /// </para>
+    /// </remarks>
+    internal static void MoneyIsConserved(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        HouseholdTable households = world.Households;
+        long held = 0;
+
+        for (int slot = 0; slot < households.Rows.SlotCount; slot++)
+        {
+            if (!households.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (!TryAdd(ref held, households.Money[slot])
+                || !TryAdd(ref held, households.Savings[slot]))
+            {
+                return;
+            }
+        }
+
+        BinTable bins = world.Bins;
+
+        for (int slot = 0; slot < bins.Rows.SlotCount; slot++)
+        {
+            if (!bins.Rows.IsLive(slot) || !world.Rules.IsConserved(bins.Resource[slot]))
+            {
+                continue;
+            }
+
+            if (!TryAdd(ref held, new Money(bins.LevelAt(slot))))
+            {
+                return;
+            }
+        }
+
+        long issued = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
+
+        report.Require(held == issued, Invariant.MoneyIsConserved, other: held - issued);
     }
 
     /// <summary>

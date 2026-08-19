@@ -86,3 +86,19 @@ public readonly struct Unplaced;
 /// scalar outside it is a coverage hole by construction. See <see cref="ClockTable"/>.
 /// </remarks>
 public readonly struct Clock;
+
+/// <summary>
+/// The city's money supply of record, of which there is exactly one.
+/// </summary>
+/// <remarks>
+/// <b>It is the world's own position in <em>money</em>, exactly as <see cref="Clock"/> is its position
+/// in time, and it is a row for that struct's reason</b> — a scalar outside the field declaration is a
+/// coverage hole in the save and in the State Hash by construction.
+/// <para>
+/// <b>It is deliberately not a column on <see cref="Treasury"/>.</b> <c>01 §6</c> distinguishes the two
+/// by name where it prices a trade deficit — <em>"a different bill — the money supply, not the
+/// treasury"</em> — because most of the supply is in Households and never passes through the city's
+/// hands at all. See <see cref="MoneySupplyTable"/>.
+/// </para>
+/// </remarks>
+public readonly struct MoneySupply;

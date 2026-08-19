@@ -147,8 +147,7 @@ public sealed class UnplacedPoolTests
         Handle<Household> household = Household(world, 0);
         int slot = world.Households.Rows.Resolve(household);
 
-        world.Households.Money[slot] = new Money(1_234);
-        world.Households.Savings[slot] = new Money(5_678);
+        world.Endow(household, new Money(1_234), new Money(5_678));
 
         world.Unplace(household);
 

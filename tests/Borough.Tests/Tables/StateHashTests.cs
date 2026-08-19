@@ -183,7 +183,7 @@ public class StateHashTests
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 3);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 2);
 
-        world.Households.Money[world.Households.Rows.Resolve(household)] = new Money(500);
+        world.Endow(household, new Money(500), Money.Zero);
 
         for (int i = 0; i < 3; i++)
         {

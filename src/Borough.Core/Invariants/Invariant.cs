@@ -582,4 +582,43 @@ public enum Invariant
     /// </para>
     /// </remarks>
     CitizenIsInExactlyOneWorkplace = 39,
+
+    /// <summary>The city holds exactly the money that was issued into it.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0031</c>'s promise, and the other half of
+    /// <see cref="MoneyIsRepresentable"/>.</b> That one catches an accumulator with no sink — a sum
+    /// that has run away — and this one catches the failures a well-behaved magnitude hides: money
+    /// created by a write that had no counterparty, and money destroyed with the row it was sitting
+    /// on. Both are end-of-run walks, and they are two checks rather than one because the second is
+    /// only possible once there is an anchor to compare against.
+    /// </para>
+    /// <para>
+    /// <b>Two sums arrived at differently.</b> Every live Household's <c>Money</c> and <c>Savings</c>,
+    /// plus every live Bin holding a conserved Resource, against
+    /// <see cref="Entities.MoneySupplyTable.Issued"/> — which moves only at <c>World.Endow</c>. An
+    /// anchor recovered by summing the balances would be the failure milestone 10 task 1 found in a
+    /// different invariant: recomputing the producer's own expression checks that the write happened
+    /// and never what was written.
+    /// </para>
+    /// <para>
+    /// <b>The Bin side walks every owner rather than the treasury's list</b>, because conservation is a
+    /// claim about totals and not about placement. A Building holding money is refused by
+    /// <c>adr/0113</c> and would be a violation of <em>that</em>; counting it here would report it as
+    /// money destroyed, which is the wrong diagnosis and would go on being wrong after the placement
+    /// rule was enforced.
+    /// </para>
+    /// <para>
+    /// <b>The reported <c>other</c> is the discrepancy</b> — what the city holds minus what was issued
+    /// — because that number says which way the leak runs, and a slot cannot: the failure is a
+    /// property of the whole world and no single row is to blame for it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An exact equality is a property of the schedule and it expires.</b> Money's only source and
+    /// sink is the Outside Connection, which is milestone <b>11</b>; the supply is constant for the
+    /// whole of milestone 10, so the reading is taken here. When the gate lands it writes the anchor
+    /// and this check is unchanged.
+    /// </para>
+    /// </remarks>
+    MoneyIsConserved = 40,
 }

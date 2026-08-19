@@ -337,9 +337,22 @@ internal static class GoldenFixtures
         {
             households[i] = world.CreateHousehold(buildings[i % buildings.Length], lifeStage: (byte)(i % 5));
 
-            int slot = world.Households.Rows.Resolve(households[i]);
-            world.Households.Money[slot] = new Money(1_000 + (i * 137));
-            world.Households.Savings[slot] = new Money(i * 2_500);
+            // Through the door rather than into the columns, milestone 10 task 4. World.Endow is the
+            // one site that puts money into a world, and it moves MoneySupplyTable.Issued with it --
+            // a fixture writing the columns direct would found a city whose money is unaccounted for
+            // and fail Invariant.MoneyIsConserved before it had done anything.
+            //
+            // Household 5 is endowed with nothing, and that is the invariant's first catch rather
+            // than a tidy-up. It is retired below to take the free list off its initial value, and
+            // DestroyHousehold frees the row with whatever is in those two columns -- so a fixture
+            // that endowed it would burn 14,185 at the founding. Where a departing Household's
+            // balance should go is undesigned (adr/0070): the Outside Connection is money's only
+            // sink (CONTEXT -> Money) and it is milestone 11, so there is no legitimate destination
+            // to send it to today. Filed to plans/0002 §C rather than answered here.
+            if (i != 5)
+            {
+                world.Endow(households[i], new Money(1_000 + (i * 137)), new Money(i * 2_500));
+            }
         }
 
         var citizens = new Handle<Citizen>[20];

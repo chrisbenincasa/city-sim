@@ -556,7 +556,75 @@ refused."* Once `global` names one, the over-refusal is no longer deliberate —
 once already**: `adr/0048` names it, `adr/0015` names it, and `adr/0048` records that the number went
 out of step before. Update all three in the same commit, or the next reader re-derives the wrong one.
 
-### Task 4 — the conservation invariant `adr/0031` promises
+### Task 4 — the conservation invariant `adr/0031` promises — ✅ **DONE 2026-08-19**
+
+**`Invariant.MoneyIsConserved` is in the end-of-run tier, and it is an exact equality against a saved
+anchor.** Every live Household's `Money` and `Savings`, plus every live Bin holding a conserved
+Resource, against **`MoneySupplyTable.Issued`** — a new one-row saved table, on `ClockTable`'s
+precedent, appended to `World._tables`. `MoneyIsRepresentable` is kept and is registered **first**, so a
+sum that has run away reports as unrepresentable rather than as unconserved; that ordering is a test
+rather than a property of the list.
+
+⚠ **The task's shape was decided by a fact the brief could not have known: *nothing in the build writes
+a Household's money at all*.** The only writers in the tree were **six test fixtures poking the
+columns**, so *the Households' opening money* is a quantity the simulation has no door for. That makes
+the anchor unrecoverable at check time — and recovering it by summing the balances is precisely task
+1's finding, ***an invariant that recomputes the producer's own expression checks that the write
+happened and never what was written***. So the task built the door as well as the check:
+**`World.Endow` is the one site money enters a world by**, and it moves the balance and the supply of
+record together, on `World.Deposit`'s argument (*there is no second spelling in which the other half can
+be forgotten*). ***A conservation invariant is a claim about doors, so it cannot be built before the
+doors can be counted.***
+
+⚠ **The anchor is deliberately not a column on `TreasuryTable`, and `01 §6` is what decides it.** That
+document separates the two by name where it prices a trade deficit — *"a different bill — the money
+supply, not the treasury"* — and the separation is structural rather than editorial: at the founding
+the treasury holds **nothing** (`adr/0116`) and the whole supply is in Households. There is a mechanical
+reason underneath the editorial one: a `Saved` column has to be in the hash composition, and task 1
+kept `TreasuryTable` **out** of `World._tables` on 5a's finding that a wholly-derived table folds its
+allocation history rather than any state. ***A table excluded from the composition cannot acquire a
+saved column without re-opening the exclusion.***
+
+⚠ **It fired on the golden fixture within a minute of being registered, and what it found is a design
+question nobody had asked.** `GoldenFixtures.Build()` retires household 5 to take the free list off its
+initial value, and `World.DestroyHousehold` frees the row with whatever is in those two columns — so an
+endowed fixture burnt **14,185** at the founding. **Where a departing Household's balance should go is
+*undesigned***: the Outside Connection is money's only sink (`CONTEXT.md` → Money) and it is milestone
+**11**, so there is no legitimate destination today. Filed to [`plans/0002`](0002-open-questions.md) §C
+rather than answered here, and the fixture endows the other seven with the reason written beside the
+`if`.
+
+⚠ **A write-site refusal was considered and rejected on an argument worth keeping.** `02 §10` prefers
+the cheapest tier, and *a Household may not be freed holding money* is an `O(1)` check at the free
+site. It would not have worked: **the refusal is satisfiable by zeroing the column first**, which
+destroys the money by a second spelling the free site cannot see. ***A guard at the site where a
+quantity disappears can only ever check that it disappeared tidily; the whole-world walk is what checks
+that it did not disappear at all.***
+
+⚠ **The Bin side walks every owner rather than the treasury's list, and that is a diagnosis decision.**
+Conservation is a claim about totals and not about placement. A Building holding money is refused by
+`adr/0113` — and ⚠ **the loader does not enforce that**: a `[[building]]` may declare a money Bin
+today, and the only thing refused is a `capacity` key on it (`RulesetLoader.cs:1275-1290`). Counting
+such a Bin here would report it as money **destroyed**, which is the wrong diagnosis and would go on
+being wrong after the placement rule was enforced. The missing refusal is filed rather than smuggled in
+— it belongs beside task 4b, which is the milestone that gives a Business somewhere legitimate to hold
+a balance.
+
+⚠ **It is correct and temporarily trivial, and that is the good side of 5b's distinction.** With no
+production writer, every world the simulation builds on its own is founded on zero and both sides of
+the equality are zero with it. Nothing about the assertion's shape is wrong and no edit is needed to
+make it load-bearing — task 5's tax circuit is what makes it so. The transfer test (`a Household paying
+the treasury conserves money`) is what stops that triviality from being vacuous: it moves money on the
+moneyed Ruleset and the check stays quiet, which is the only assertion here that could distinguish a
+real walk from an equality on a constant.
+
+**Cost:** one new saved table, so the State Hash moves and **`world-hash.txt` and `session-trace.txt`
+re-record** (`0xAEA76319A8CB1A06`; neither Ruleset content hash moves, so the two literals inside
+`session.borough` are untouched). **1,592 tests green**, seven of them new.
+
+*Original scoping text follows.*
+
+### ~~Task 4's brief~~
 
 *Nothing is created or destroyed except at the gate*, as a whole-world end-of-run check, with
 `MoneyIsRepresentable`'s overflow half kept rather than replaced — they catch different failures and
