@@ -11,6 +11,59 @@ namespace Borough.Core.Rules;
 public readonly struct Bin;
 
 /// <summary>
+/// What owns a <see cref="Bin"/>. The discriminator <c>adr/0114</c> puts on
+/// <see cref="BinTable.Owner"/>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The four are enumerated because <c>adr/0114</c> enumerated them, not because four are built.</b>
+/// Money an actor holds lives in a Bin, and the actors that hold money are a Building, a Household, a
+/// Business and the treasury. <see cref="Household"/> and <see cref="Business"/> are declared and
+/// throw by name where they would be resolved — <c>plans/0031</c> tasks 4b and 5 bring them — on
+/// <see cref="Scope.Pool"/>'s precedent, that a named hole is better than a case that silently falls
+/// through.
+/// </para>
+/// <para>
+/// <b>It is <c>(saved AND hashed)</c>, and that is <c>adr/0114</c>'s own consequence rather than a
+/// default.</b> A handle column folds the target row's monotonic never-reused id, so two owners of
+/// <em>different kinds</em> sharing an id would fold identically. Here the kind is a second folded
+/// column beside <see cref="BinTable.Owner"/> rather than a field inside the handle, which keeps
+/// <see cref="Tables.HandleColumn{TTarget}"/> single-target and its dangling check honest.
+/// </para>
+/// <para>
+/// ⚠ <b>This is also what makes an unset <see cref="BinTable.Owner"/> readable.</b> A treasury Bin is
+/// nobody's Building, so its owner handle is <c>default</c> — and before this column existed that was
+/// indistinguishable from a Building Bin whose owner was never written. Session F's rule: a
+/// placeholder whose value sits inside the range of legitimate answers cannot announce itself. The
+/// kind announces it, and <see cref="Building"/> beside an unset handle is now a detectable defect
+/// rather than an invisible one.
+/// </para>
+/// </remarks>
+public enum BinOwnerKind : byte
+{
+    /// <summary>
+    /// Reserved, and never a live Bin's owner. A zeroed row must be recognisable rather than reading
+    /// as whichever owner happened to be declared first — <c>CommandKind.None</c>'s reason.
+    /// </summary>
+    None = 0,
+
+    /// <summary>A Building. Every Bin in the build before <c>plans/0031</c> task 1.</summary>
+    Building = 1,
+
+    /// <summary>A Household. <b>Declared and not yet owned</b> — <c>plans/0031</c> task 5.</summary>
+    Household = 2,
+
+    /// <summary>A Business. <b>Declared and not yet owned</b> — <c>plans/0031</c> task 4b.</summary>
+    Business = 3,
+
+    /// <summary>
+    /// The city's own balance sheet. <b>A singleton</b>, so it carries no owner id: there is one
+    /// treasury, and its Bins hang off <see cref="Entities.TreasuryTable"/>'s single row.
+    /// </summary>
+    Treasury = 4,
+}
+
+/// <summary>
 /// One Bin Rule on one Building — the row carrying where that Rule has got to.
 /// </summary>
 /// <remarks>

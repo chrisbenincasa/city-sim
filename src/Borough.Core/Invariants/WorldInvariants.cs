@@ -260,6 +260,21 @@ public static class WorldInvariants
                 continue;
             }
 
+            // The treasury's ceiling comes from 04 §2 -- "Money is a Resource too, and its Bin is
+            // unbounded" -- and not from a Building kind it does not have. Asserting it against
+            // DeclaredCapacity would be asserting it against the zero returned for a kind nobody
+            // declared, so the assertion here is the one the design actually makes.
+            if (bins.OwnerKind[bin] != BinOwnerKind.Building)
+            {
+                report.Require(
+                    bins.Capacity[bin] == long.MaxValue,
+                    Invariant.BinCapacityMatchesItsDeclaration,
+                    bin,
+                    bins.Capacity[bin]);
+
+                continue;
+            }
+
             byte kind = world.Buildings.Rows.TryResolve(bins.Owner[bin], out int building)
                 ? world.Buildings.Kind[building]
                 : (byte)0;

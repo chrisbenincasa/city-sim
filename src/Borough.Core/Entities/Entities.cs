@@ -51,6 +51,17 @@ public readonly struct Household;
 /// <summary>A structure on a Lot, with Occupants. See <see cref="Citizen"/> for why it is empty.</summary>
 public readonly struct Building;
 
+/// <summary>
+/// The city's balance sheet — a singleton. See <see cref="Citizen"/> for why it is empty.
+/// </summary>
+/// <remarks>
+/// It exists so that <c>Handle&lt;Treasury&gt;</c> is a different type from
+/// <c>Handle&lt;Building&gt;</c>, and so that <see cref="TreasuryTable"/> has a row for the treasury's
+/// Bins to hang off. Nothing constructs a handle to it today: the treasury is a singleton, so its Bins
+/// are found through <c>BinOwnerKind.Treasury</c> and not through an id.
+/// </remarks>
+public readonly struct Treasury;
+
 /// <summary>A parcel of land. See <see cref="Citizen"/> for why it is empty.</summary>
 public readonly struct Lot;
 

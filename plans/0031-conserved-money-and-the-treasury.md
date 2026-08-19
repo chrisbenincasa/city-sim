@@ -340,7 +340,70 @@ consider: its whole subject is prose being wrong about the build.
 
 Ordered so that nothing is built before the decision it rests on. Tasks 1–4 need only decision 2.
 
-### Task 1 — the treasury is a global Bin, and `Scope.Global` stops throwing
+### ~~Task 1 — the treasury is a global Bin, and `Scope.Global` stops throwing~~ — ✅ **DONE 2026-08-18**
+
+`Scope.Global` resolves. A `[[rule]]` drawing `local` money and returning `global` money executes,
+money is conserved across it, and a Building that cannot pay **waits on its own Bin** — which is
+[`adr/0114`](../docs/adr/0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md)'s
+entire reason, asserted. **1,574 tests green; one golden baseline re-recorded.**
+
+**What it built.** `BinOwnerKind` — `None`, `Building`, `Household`, `Business`, `Treasury`, all four
+enumerated because `adr/0114` enumerated them, with the two unbuilt ones **throwing by name** on
+`Scope.Pool`'s precedent. `BinTable.OwnerKind`, a `(saved AND hashed)` column beside `Owner`, which is
+`adr/0114`'s *the kind is part of the value* satisfied as a second folded column rather than inside the
+handle. `TreasuryTable` — one row, allocated in its constructor on `RulesetTrailTable`'s precedent,
+holding nothing but the head and tail of the treasury's Bins. `World.FindTreasuryBin`,
+`CreateTreasuryBin` and `FitTreasury`, which gives the treasury **one Bin per *conserved* Resource**,
+unbounded, empty.
+
+⚠ **`Owner` stayed a `HandleColumn<Building>` and that was a real fork.** A single polymorphic column
+addressing four tables needs a new column type whose fold dispatches over the kind and whose dangling
+check does the same — machinery paid by every Bin in the world so one singleton need not be spelled
+separately. The treasury has no owner row to point at under either shape, so its handle is unset either
+way. **`adr/0114`'s wording — *gains an owner kind* — is the cheaper half and it is the one built.**
+
+⚠ **The sharpest finding is in `RebuildDerived`, and it would have shipped silently.** The existing Bin
+relink is `if (IsLive(slot) && Buildings.Rows.TryResolve(Bins.Owner[slot], out …))`. A treasury Bin's
+owner handle is unset **by design**, so `TryResolve` fails and the Bin would have been dropped from
+every list **on every load** — the money still in a saved row that nothing could reach, with no error.
+***A walk that cannot tell "points at nothing by design" from "points at something that is gone" drops
+both.*** And `HandleColumn.IsDangling` says exactly this in its own remark — *"The unset handle is not
+dangling… a walk that could not tell those apart would report every empty field in the city"* — so
+**the column had already made the distinction and the walk had not**. The relink now branches on the
+**kind**. A test asserts the round trip and that the State Hash is unchanged across it.
+
+⚠ **The invariant could not have caught the capacity defect, because it recomputes the producer's own
+expression.** `RebuildCapacities` derives a ceiling from `(Building kind, Resource)`; the treasury has
+no kind, so it would have been handed the **zero** `DeclaredCapacity` returns for a kind nobody
+declared — a treasury that can hold nothing, and therefore one that every transfer into it fails
+against. `BinCapacityMatchesItsDeclaration` asserts `Capacity == DeclaredCapacity(kind, resource)`, the
+same call, so it would have read **true** over the wrong number. ***An invariant that recomputes the
+producer's expression checks that the write happened and never what was written.*** Both sites now
+branch on the kind, and the invariant asserts the treasury against `04 §2`'s *"Money is a Resource too,
+and its Bin is unbounded"* instead.
+
+⚠ **`FitTreasury` runs in the constructor as well as in `Adopt`, and only one of those is obvious.**
+`Adopt` is the **swap** path; a world constructed with a Ruleset never adopts one. Fitting only on swap
+would have left every world that loaded its Ruleset at construction with a `global` scope resolving to
+nothing — *the same hole this task exists to close, differently spelt*. ***A reconcile that runs on
+change never runs on the first one.***
+
+⚠ **`TreasuryTable` is deliberately NOT in `World._tables`**, and the rule is 5a's: **a wholly-derived
+table cannot join it**, because `Rows.Fold` folds the allocator's four scalars *before* consulting any
+column's disposition, so such a table hashes its own allocation history. It is harmless here only
+because the one row is allocated once and never freed — and a constant is not a reason to add a row to
+a list whose order is a re-baseline to change. **The treasury's state is in `Bins.Rows`, which is in
+the list.** The reason is a comment at the list, where the next person will look.
+
+⚠ **The named hole moved rather than closing.** `A_scope_this_build_does_not_have_is_a_named_hole` lost
+its `Global` row and kept `Pool`, and `global` naming a **non-conserved** Resource now refuses by name:
+`02 §4.3` is narrow about what `global` is for, so a city-wide larder of Flour is a different mechanism
+nothing has designed. **The negative test was narrowed and replaced by positive assertions rather than
+deleted** — milestone 8 task 10's *a negative test was a closed door*, applied on the way out.
+
+*Original scoping text follows.*
+
+### ~~Task 1's brief~~
 
 `02 §4.3` gives the shape exactly, and it is narrower than *a Bin like any other*: *"`global` names
 the **treasury**, and it appears only as the far end of an explicit **transfer** — `local` money out,

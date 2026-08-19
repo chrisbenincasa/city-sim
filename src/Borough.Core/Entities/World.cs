@@ -135,6 +135,7 @@ public sealed class World
         Bins = new BinTable(PerThousand(citizens, 450), Buildings);
         RuleInstances = new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins);
         Clock = new ClockTable();
+        Treasury = new TreasuryTable();
         RulesetTrail = new RulesetTrailTable();
         CondemnationTrail = new CondemnationTrailTable(Lots.Rows);
 
@@ -189,9 +190,23 @@ public sealed class World
             // history rather than present state, and 02 §9's "why is this Lot vacant" cannot be
             // answered from a world that did not keep it.
             CondemnationTrail.Rows,
+
+            // TreasuryTable is deliberately NOT here, milestone 10 task 1. Both its columns are
+            // Derived, and 5a's finding is that a wholly-derived table cannot join this list: Rows.Fold
+            // folds the allocator's four scalars BEFORE consulting any column's disposition, so such a
+            // table hashes its own allocation history rather than any state. It is safe here only
+            // because the one row is allocated in the constructor and never freed, which makes the
+            // contribution a constant -- and a constant is not a reason to add a row to a list whose
+            // order is a re-baseline to change. The treasury's *state* is in Bins.Rows, which is here.
         ];
 
         WorldInvariants.RegisterAll(Invariants);
+
+        // adr/0114 and adr/0116, and it is here rather than only in Adopt because a world constructed
+        // with a Ruleset never adopts one -- Adopt is the SWAP path. A treasury fitted only on swap
+        // would leave every world that loaded its Ruleset at construction with a global scope that
+        // resolves to nothing, which is the same hole this task exists to close, differently spelt.
+        FitTreasury();
     }
 
     /// <summary>
@@ -217,6 +232,11 @@ public sealed class World
 
     /// <summary>The world's position in time, as one saved row.</summary>
     public ClockTable Clock { get; }
+
+    /// <summary>
+    /// The city's balance sheet: one row, holding the head of the treasury's Bins (<c>adr/0114</c>).
+    /// </summary>
+    public TreasuryTable Treasury { get; }
 
     /// <summary>
     /// The Tick this world is about to run.
@@ -460,6 +480,12 @@ public sealed class World
         // used to reach no Building already standing. After Migrate, because that pass frees Bins and
         // creates others, and a rebuild before it would derive ceilings for rows about to move.
         RebuildCapacities();
+
+        // adr/0114, and it runs for every swap for RebuildCapacities' reason: a Ruleset that adds a
+        // conserved Resource is a RulesetChange.None edit if it declares no new kind, so a treasury
+        // that was fitted only at world creation would never acquire the Bin. It adds and never
+        // removes -- see FitTreasury.
+        FitTreasury();
 
         // adr/0068's other half, and it runs after the rebuild for the same reason the rebuild runs
         // after Migrate: this reads the kinds the incoming Ruleset declares, and a Building whose kind
@@ -898,6 +924,8 @@ public sealed class World
         Citizens.CommuteNext.Span.Clear();
         Buildings.BinHead.Span.Clear();
         Buildings.BinTail.Span.Clear();
+        Treasury.BinHead.Span.Clear();
+        Treasury.BinTail.Span.Clear();
         Buildings.RuleHead.Span.Clear();
         Buildings.RuleTail.Span.Clear();
         Households.DwellingNext.Span.Clear();
@@ -982,13 +1010,50 @@ public sealed class World
         // are not, and are untouched here. That asymmetry is the point of the two declarations: which
         // Bins a Building has follows from the Bins' own owner column, and the order a queue was
         // joined in follows from nothing.
+        //
+        // The owner KIND is what the walk branches on rather than whether the owner handle resolves,
+        // and the difference is the whole of adr/0114's discriminator. A treasury Bin's handle is unset
+        // by design, so a TryResolve alone would drop it exactly as it drops a Bin whose Building is
+        // gone -- one is the state being modelled and the other is a broken row, and a walk that could
+        // not tell them apart would silently unlink the treasury on every load.
         IndexList buildingBins = BuildingBins;
+        IndexList treasuryBins = TreasuryBins;
         for (int slot = 0; slot < Bins.Rows.SlotCount; slot++)
         {
-            if (Bins.Rows.IsLive(slot)
-                && Buildings.Rows.TryResolve(Bins.Owner[slot], out int buildingSlot))
+            if (!Bins.Rows.IsLive(slot))
             {
-                buildingBins.InsertOrdered(buildingSlot, slot);
+                continue;
+            }
+
+            switch (Bins.OwnerKind[slot])
+            {
+                case BinOwnerKind.Building:
+                    if (Buildings.Rows.TryResolve(Bins.Owner[slot], out int buildingSlot))
+                    {
+                        buildingBins.InsertOrdered(buildingSlot, slot);
+                    }
+
+                    break;
+
+                case BinOwnerKind.Treasury:
+                    treasuryBins.InsertOrdered(TreasuryTable.Slot, slot);
+                    break;
+
+                case BinOwnerKind.Household:
+                case BinOwnerKind.Business:
+                    throw new NotSupportedException(
+                        $"bin {slot} names owner kind {Bins.OwnerKind[slot]}, which nothing creates "
+                        + "yet. adr/0114 enumerated the four owners a Bin may have; a Household's "
+                        + "balance arrives with plans/0031 task 5 and a Business's with task 4b, each "
+                        + "with the list head its own table has to declare. Reaching here means a save "
+                        + "was written by a build ahead of this one.");
+
+                case BinOwnerKind.None:
+                default:
+                    throw new InvalidOperationException(
+                        $"bin {slot} is live and names no owner kind. Every Bin is created through "
+                        + "BinTable.Create, which writes one; a zero here is a row that was allocated "
+                        + "and never initialised, or a save whose owner_kind column did not load.");
             }
         }
 
@@ -1037,6 +1102,20 @@ public sealed class World
     /// <summary>The Bins on each Building.</summary>
     /// <inheritdoc cref="Occupants"/>
     public IndexList BuildingBins => new(Buildings.BinHead, Buildings.BinTail, Bins.BinNext);
+
+    /// <summary>
+    /// The treasury's Bins — the city's own balance sheet (<c>adr/0114</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>It threads the same <see cref="BinTable.BinNext"/> as <see cref="BuildingBins"/>, and that
+    /// is safe rather than a shortcut</b>: a Bin has exactly one owner, so it is in exactly one of
+    /// these lists, and one link column is the representation of that fact rather than a saving.
+    /// The head and tail live on <see cref="TreasuryTable"/>'s one row for the reason every other
+    /// intrusive list's do — a list needs an owner row, and the treasury had none until it had a
+    /// table.
+    /// </remarks>
+    /// <inheritdoc cref="Occupants"/>
+    public IndexList TreasuryBins => new(Treasury.BinHead, Treasury.BinTail, Bins.BinNext);
 
     /// <summary>The Rule Instances each Building runs.</summary>
     /// <inheritdoc cref="Occupants"/>
@@ -1322,6 +1401,97 @@ public sealed class World
     }
 
     /// <summary>
+    /// The treasury's Bin for <paramref name="resource"/>, or <see cref="Rows.NoSlot"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>It takes no owner, because the treasury is a singleton.</b> <see cref="FindBin"/>'s walk is
+    /// short because a Building's Bin set is its kind's; this one is short because the treasury holds
+    /// one Bin per conserved Resource and <c>04 §2</c> declares exactly one money Resource.
+    /// </remarks>
+    public int FindTreasuryBin(ResourceId resource)
+    {
+        foreach (int bin in TreasuryBins.Walk(TreasuryTable.Slot))
+        {
+            if (Bins.Resource[bin] == resource)
+            {
+                return bin;
+            }
+        }
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>
+    /// Gives the treasury a Bin for <paramref name="resource"/>, empty and unbounded.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Unbounded, and it is derived rather than declared.</b> <c>04 §2</c>: <em>"Money is a Resource
+    /// too, and its Bin is unbounded."</em> There is no <c>[[building]]</c> kind to read a ceiling off
+    /// — the treasury has no kind — so <see cref="DeclaredCapacity"/> has nothing to say here and
+    /// <see cref="long.MaxValue"/> is what <see cref="BinTable.SpaceAt"/>'s own remark calls the
+    /// unbounded spelling. That is also why <see cref="RebuildCapacities"/> skips it: a rebuild from a
+    /// declaration it does not have would write zero, and a treasury that could hold nothing is a
+    /// treasury every transfer into it fails against.
+    /// </para>
+    /// <para>
+    /// <b>It opens empty and nothing authors a value</b>
+    /// (<c>adr/0116</c>). The tax flows in before the transfer pays out, so the circuit needs no
+    /// opening stock — and an empty treasury is what makes <c>02 §4.2</c>'s <em>pays whom it reaches
+    /// and reports where it stopped</em> branch reachable on the first sweep. ⚠ This is <b>not</b> the
+    /// founding balance, which is a different quantity with a different owner and happens to share
+    /// this one's range.
+    /// </para>
+    /// </remarks>
+    public Handle<Bin> CreateTreasuryBin(ResourceId resource)
+    {
+        Invariants.Require(
+            FindTreasuryBin(resource) == Rows.NoSlot,
+            Invariant.BuildingHasOneBinPerResource,
+            TreasuryTable.Slot,
+            resource.Raw);
+
+        Handle<Bin> handle = Bins.Create(BinOwnerKind.Treasury, resource, long.MaxValue);
+
+        TreasuryBins.InsertOrdered(TreasuryTable.Slot, Bins.Rows.Resolve(handle));
+
+        return handle;
+    }
+
+    /// <summary>
+    /// Gives the treasury one Bin per conserved Resource the Ruleset in force declares.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Conserved rather than every Resource</b>, which is <see cref="Ruleset.IsConserved"/>'s own
+    /// test — the Money family. <c>02 §4.3</c> is narrow about what <c>global</c> is for: it
+    /// <em>"names the treasury, and it appears only as the far end of an explicit transfer — local
+    /// money out, global money in"</em>. A treasury Bin for Food would be a city-wide larder nothing
+    /// in the design describes.
+    /// </para>
+    /// <para>
+    /// <b>Asked rather than assumed, exactly as <see cref="Fit"/> asks.</b> This runs at world load and
+    /// at every Ruleset swap, and a swap meets a treasury that already holds the Bins that survived the
+    /// migration. ⚠ <b>It adds and never removes</b>: a Resource that leaves the Ruleset leaves its
+    /// treasury Bin standing with its stock, which is the same answer the migration gives a Building —
+    /// dropping it would destroy conserved money to satisfy a file edit, and <c>adr/0024</c> puts the
+    /// Outside Connection between money and non-existence.
+    /// </para>
+    /// </remarks>
+    internal void FitTreasury()
+    {
+        for (int raw = 1; raw <= Rules.ResourceCount; raw++)
+        {
+            var resource = new ResourceId((ushort)raw);
+
+            if (Rules.IsConserved(resource) && FindTreasuryBin(resource) == Rows.NoSlot)
+            {
+                CreateTreasuryBin(resource);
+            }
+        }
+    }
+
+    /// <summary>
     /// Writes every live Bin's ceiling from the Ruleset in force (<c>adr/0064</c>).
     /// </summary>
     /// <remarks>
@@ -1342,6 +1512,16 @@ public sealed class World
         for (int slot = 0; slot < Bins.Rows.SlotCount; slot++)
         {
             if (!Bins.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            // A ceiling is a function of (Building kind, Resource) and the treasury has no kind, so
+            // there is nothing here to derive one from -- and deriving anyway would write the zero
+            // DeclaredCapacity returns for a kind it does not know, which is a treasury that can hold
+            // nothing and therefore a treasury every transfer into it fails against. Its unbounded
+            // ceiling is 04 §2's rather than a Ruleset's, so it is set once at creation and left.
+            if (Bins.OwnerKind[slot] != BinOwnerKind.Building)
             {
                 continue;
             }

@@ -22,6 +22,13 @@ public sealed class RuleEvaluationTests
     private static readonly ResourceId Flour = new(1);
     private static readonly ResourceId Bread = new(2);
 
+    /// <summary>
+    /// The money Resource, for the treasury cases. <b>Id 1, the same slot <see cref="Flour"/> uses</b>
+    /// — a Ruleset's Resource ids are positional, so which family id 1 belongs to is that Ruleset's
+    /// own declaration and the two never appear in one.
+    /// </summary>
+    private static readonly ResourceId Coin = new(1);
+
     private const byte Bakery = 1;
     private const uint Rate = 8;
 
@@ -640,12 +647,18 @@ public sealed class RuleEvaluationTests
         zoneRules: []);
 
     /// <summary>
-    /// <c>pool</c> and <c>global</c> throw rather than resolving to an empty Bin, which is slice 6's
-    /// pattern: a placeholder returning zero is a value somebody reads and tunes around.
+    /// <c>pool</c> throws rather than resolving to an empty Bin, which is slice 6's pattern: a
+    /// placeholder returning zero is a value somebody reads and tunes around.
     /// </summary>
+    /// <remarks>
+    /// <b>⚠ <c>global</c> was the second row of this theory and left it in milestone 10 task 1</b>,
+    /// which is the whole point of that task — <c>adr/0114</c> supplied the entity decision the throw
+    /// was waiting on. It is not deleted: it is replaced by the positive assertions below, because a
+    /// closed hole whose negative test simply vanishes leaves nothing saying what it closed to.
+    /// <c>pool</c> stays a hole until milestone 12, and it is a <b>market</b> rather than a Bin lookup.
+    /// </remarks>
     [Theory]
     [InlineData(Scope.Pool)]
-    [InlineData(Scope.Global)]
     public void A_scope_this_build_does_not_have_is_a_named_hole(Scope scope)
     {
         (World world, Simulation simulation, Handle<Building> building) = Built(Scoped(scope));
@@ -653,6 +666,126 @@ public sealed class RuleEvaluationTests
         world.Deposit(world.Bins.Rows.At(BinOf(world, building, Flour)), 60, Ticks.Zero);
 
         Assert.Throws<NotSupportedException>(() => StepToTheFiring(simulation));
+    }
+
+    // ---- the treasury -------------------------------------------------------------------------------
+
+    /// <summary><c>02 §4.3</c>'s transfer: local money out, global money in, in one atomic Rule.</summary>
+    private static Ruleset Taxing(int amount = 6) => new(
+        resources: [ResourceFamily.Money],
+        rules: [Rule(0, 1, 0, 1)],
+        kinds: [new KindDefinition(0, 1, 0, 1)],
+        inputs: [new Term(new BinRef(Scope.Local, Coin), amount)],
+        outputs: [new Term(new BinRef(Scope.Global, Coin), amount)],
+        emissions: [],
+        bins: [new BinDeclaration(Coin, BinCapacity.Unbounded)],
+        kindRules: [new RuleId(1)],
+        zoneRules: []);
+
+    /// <summary>The treasury holds one Bin per conserved Resource, empty, from world creation.</summary>
+    /// <remarks>
+    /// <b>Empty is asserted rather than assumed</b> (<c>adr/0116</c>): the treasury opens at zero and
+    /// nothing authors a value, and it is an empty treasury that makes <c>02 §4.2</c>'s <em>pays whom
+    /// it reaches and reports where it stopped</em> branch reachable at all.
+    /// </remarks>
+    [Fact]
+    public void The_treasury_opens_with_one_empty_unbounded_bin_per_conserved_resource()
+    {
+        var world = new World(1_000, Taxing());
+
+        int treasury = world.FindTreasuryBin(Coin);
+
+        Assert.NotEqual(Rows.NoSlot, treasury);
+        Assert.Equal(0, world.Bins.LevelAt(treasury));
+        Assert.Equal(long.MaxValue, world.Bins.Capacity[treasury]);
+        Assert.Equal(BinOwnerKind.Treasury, world.Bins.OwnerKind[treasury]);
+    }
+
+    /// <summary>
+    /// <b>The task's own acceptance</b>: <c>global</c> resolves, a transfer executes, and money is
+    /// conserved across it — the sum over both Bins is what it was before.
+    /// </summary>
+    [Fact]
+    public void A_transfer_moves_money_to_the_treasury_and_conserves_it()
+    {
+        (World world, Simulation simulation, Handle<Building> building) = Built(Taxing());
+
+        world.Deposit(world.Bins.Rows.At(BinOf(world, building, Coin)), 60, Ticks.Zero);
+
+        int treasury = world.FindTreasuryBin(Coin);
+        long before = Level(world, building, Coin) + world.Bins.LevelAt(treasury);
+
+        StepToTheFiring(simulation);
+
+        Assert.Equal(54, Level(world, building, Coin));
+        Assert.Equal(6, world.Bins.LevelAt(treasury));
+        Assert.Equal(before, Level(world, building, Coin) + world.Bins.LevelAt(treasury));
+    }
+
+    /// <summary>
+    /// A Building with no money leaves the transfer waiting on its <b>own</b> Bin, not the treasury's.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is <c>adr/0114</c>'s reason for the whole decision, asserted.</b> A balance held in a
+    /// column has no blame target and no wait list; here the Rule that could not pay names the Bin
+    /// that stopped it, which is what makes <c>adr/0050</c>'s bankruptcy-versus-starvation diagnosis a
+    /// mechanism rather than a paragraph.
+    /// </remarks>
+    [Fact]
+    public void A_transfer_a_building_cannot_afford_waits_on_its_own_bin()
+    {
+        (World world, Simulation simulation, Handle<Building> building) = Built(Taxing());
+
+        StepToTheFiring(simulation);
+
+        Assert.Equal(Blocking.Supply, world.RuleInstances.Blocked[0]);
+        Assert.Equal(0, world.Bins.LevelAt(world.FindTreasuryBin(Coin)));
+        Assert.Equal(
+            BinOf(world, building, Coin),
+            world.Bins.Rows.Resolve(world.RuleInstances.WaitingOn[0]));
+    }
+
+    /// <summary>
+    /// <c>global</c> naming a Resource that is not conserved says so, rather than resolving to nothing.
+    /// </summary>
+    /// <remarks>
+    /// <b>The named hole moved rather than closing entirely.</b> <c>02 §4.3</c> is narrow about what
+    /// <c>global</c> is for — the far end of an explicit money transfer — so a city-wide larder of
+    /// Flour is a different mechanism that nothing has designed, and the refusal says which.
+    /// </remarks>
+    [Fact]
+    public void A_global_term_on_a_good_says_the_treasury_holds_no_bin_for_it()
+    {
+        (World world, Simulation simulation, Handle<Building> building) = Built(Scoped(Scope.Global));
+
+        world.Deposit(world.Bins.Rows.At(BinOf(world, building, Flour)), 60, Ticks.Zero);
+
+        Assert.Throws<InvalidOperationException>(() => StepToTheFiring(simulation));
+    }
+
+    /// <summary>
+    /// The treasury's Bins survive a rebuild of every derived structure, which is what a load does.
+    /// </summary>
+    /// <remarks>
+    /// <b>The walk branches on the owner KIND and not on whether the owner handle resolves.</b> A
+    /// treasury Bin's handle is unset by design, so a <c>TryResolve</c> alone would drop it exactly as
+    /// it drops a Bin whose Building is gone — and the treasury would quietly unlink itself on every
+    /// load, with the money still in a row nothing could reach.
+    /// </remarks>
+    [Fact]
+    public void The_treasury_keeps_its_bins_across_a_rebuild_of_derived_state()
+    {
+        (World world, Simulation simulation, _) = Built(Taxing());
+
+        StepToTheFiring(simulation);
+
+        ulong before = world.HashState();
+        int treasury = world.FindTreasuryBin(Coin);
+
+        world.RebuildDerived();
+
+        Assert.Equal(treasury, world.FindTreasuryBin(Coin));
+        Assert.Equal(before, world.HashState());
     }
 
     /// <summary>

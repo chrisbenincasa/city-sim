@@ -56,6 +56,7 @@ public sealed class BinTable
 
         _rows = new Rows<Bin>("bin", capacity, Buffering.OneCopy);
 
+        OwnerKind = _rows.Saved<BinOwnerKind>("owner_kind");
         Owner = _rows.SavedHandle("owner", buildings.Rows);
         Resource = _rows.Saved<ResourceId>("resource");
         _level = _rows.Saved<long>("level", Touch.PerTick);
@@ -72,7 +73,30 @@ public sealed class BinTable
     /// <summary>The slot allocator, the generation counters and the column list.</summary>
     public Rows<Bin> Rows => _rows;
 
-    /// <summary>The Building this Bin sits on.</summary>
+    /// <summary>
+    /// What owns this Bin — a Building, an actor, or the treasury (<c>adr/0114</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>It is folded, and it has to be.</b> <see cref="Owner"/> folds the target row's monotonic
+    /// never-reused id, so two owners of different kinds sharing an id would fold identically; the
+    /// kind is what keeps two distinct Bins distinct in the State Hash. It also makes an unset
+    /// <see cref="Owner"/> legible instead of ambiguous — see <see cref="BinOwnerKind"/>.
+    /// </remarks>
+    public Column<BinOwnerKind> OwnerKind { get; }
+
+    /// <summary>
+    /// The Building this Bin sits on. <b>Unset unless <see cref="OwnerKind"/> is
+    /// <see cref="BinOwnerKind.Building"/></b>, and read only through that.
+    /// </summary>
+    /// <remarks>
+    /// <b>It stayed a <see cref="HandleColumn{TTarget}"/> rather than becoming a polymorphic one</b>,
+    /// which is what <c>adr/0114</c>'s <em>gains an owner kind</em> asks for and is the cheaper half
+    /// of a real fork. A single column addressing four tables would need a new column type whose fold
+    /// dispatches over the kind to four different <c>Rows</c>, and whose dangling check does the same
+    /// — machinery paid by every Bin in the world so that one singleton need not be spelled
+    /// separately. The treasury has no owner row to point at in any case, so the handle would be
+    /// unset there under either shape.
+    /// </remarks>
     public HandleColumn<Building> Owner { get; }
 
     /// <summary>Which Resource this Bin stores. One Bin, one Resource.</summary>
@@ -170,7 +194,31 @@ public sealed class BinTable
         Handle<Bin> handle = _rows.Allocate();
         int slot = _rows.Resolve(handle);
 
+        OwnerKind[slot] = BinOwnerKind.Building;
         Owner[slot] = owner;
+        Resource[slot] = resource;
+        Capacity[slot] = capacity;
+        _level[slot] = 0;
+
+        return handle;
+    }
+
+    /// <summary>Allocates a Bin on an owner that is not a Building, empty.</summary>
+    /// <remarks>
+    /// <b><see cref="Owner"/> is left unset on purpose and <see cref="OwnerKind"/> is what says so.</b>
+    /// The treasury is a singleton with no row in <see cref="BuildingTable"/> to address, which is the
+    /// entity decision <c>RuleEngine</c>'s <c>Scope.Global</c> throw was waiting on: <em>a city-wide
+    /// Bin is one no Building owns.</em> The level is written for
+    /// <see cref="Create(Handle{Building}, ResourceId, long)"/>'s reason — a recycled slot carries its
+    /// predecessor's contents.
+    /// </remarks>
+    internal Handle<Bin> Create(BinOwnerKind kind, ResourceId resource, long capacity)
+    {
+        Handle<Bin> handle = _rows.Allocate();
+        int slot = _rows.Resolve(handle);
+
+        OwnerKind[slot] = kind;
+        Owner[slot] = default;
         Resource[slot] = resource;
         Capacity[slot] = capacity;
         _level[slot] = 0;

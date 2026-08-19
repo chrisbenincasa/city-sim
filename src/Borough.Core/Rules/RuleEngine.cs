@@ -811,10 +811,25 @@ public sealed class RuleEngine
                     + "unconserved economy, and no refusal can catch that.");
 
             case Scope.Global:
-                throw new NotSupportedException(
-                    "there are no global Bins. A city-wide Bin is one no Building owns, and where it "
-                    + "would live is an entity decision — the treasury is the only content named for "
-                    + "it and Money is conserved in Phase 2 of the roadmap.");
+                // The entity decision this case waited on is adr/0114's: a Bin's owner is
+                // discriminated, and one of the four kinds is the treasury. The building parameter is
+                // unused here and that is the point of the scope -- global names one Bin per Resource
+                // for the whole city, so there is nothing to resolve it against.
+                int treasury = world.FindTreasuryBin(reference.Resource);
+
+                if (treasury == Rows.NoSlot)
+                {
+                    throw new InvalidOperationException(
+                        $"rule {rule.Raw} names global Resource {reference.Resource.Raw}, and the "
+                        + "treasury holds no Bin for it. World.FitTreasury gives the treasury one Bin "
+                        + "per CONSERVED Resource, so this is a money term naming a Resource whose "
+                        + "[[resource]] family is not money -- which 02 §4.3 does not describe: "
+                        + "global is the far end of an explicit transfer, local money out and global "
+                        + "money in. A city-wide larder of Food is a different mechanism and nothing "
+                        + "has designed it.");
+                }
+
+                return treasury;
 
             case Scope.Map:
             default:
