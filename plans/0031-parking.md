@@ -13,8 +13,24 @@
 *a Car Park is not a Bin*, with amendments in place to `adr/0009` and `adr/0084`. ✅ **TASKS 1 AND 2
 SHIPPED 2026-08-18** — `CarParkTable`, the `[[building]] parking` key and the supply created, ceilinged,
 located and freed; then `[parking] radius_metres = 400` in all five shipped Rulesets. 1,531 tests green.
-**Six tasks left, and task 3 — the Parking Shed — is next. Ungated** — session **H** cleared this row on 2026-08-12 and the clearance is written in
-[`0002`](0002-open-questions.md) §F2 as well as on the board, so both copies agree.
+✅ **TASK 3 — THE PARKING SHED — SHIPPED 2026-08-19**, `639a3a0` and `601b0f8`. **Five tasks left, and
+task 4 — arrival, acquire, and what holds the space — is next. Ungated** — session **H** cleared this
+row on 2026-08-12 and the clearance is written in [`0002`](0002-open-questions.md) §F2 as well as on
+the board, so both copies agree.
+
+⚠ **Task 3 shipped with two defects in the index it introduced, both found on 2026-08-19 and both
+fixed in `0d8b114`, and neither was found by anything task 3 wrote.** `CarParkResidency` was a
+**caller-owned** structure, so `car_park.segment_next` was declared `Derived` while nothing inside the
+`World` rebuilt it and every shed in a loaded world would have come back **empty**; milestone 8's
+`DerivedRebuildAuditTests` is what asked, four days after the column was declared. ***A structure that
+lives outside the world is not derived state, however it is declared.*** Moving it onto the `World`
+then exposed the second: a bulldozed Street severs a Car Park's Address, `CarParkResidency.Remove`
+finds the list *through* that Address, so the unlist silently did nothing, the row was freed still
+listed, and the recycled slot was inserted into the same Segment's list twice —
+`IndexList.InsertOrdered` self-linked it and **the suite stopped terminating**. ⚠ **Neither failed a
+test; the first was invisible and the second was a hang**, which is the shape worth keeping:
+***a defect that produces no output is not caught by a suite that reports failures.***
+[`0032`](0032-test-tiers.md) is the other thing that fell out of the same day.
 
 ⚠ **This document's own recommendation on decision 1 was wrong, and the sitting is what found it.** It
 recommended the **Household**; `World.ModeOf` drives *every member* of a car-owning Household, so a
