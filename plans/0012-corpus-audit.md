@@ -569,6 +569,24 @@ other prose document containing the figure contains the phrase too**.
 | `861.87` | | `15.6 ms` | `docs/spike-results.md` |
 | `90 in-world minutes` | `22.5` | `pre-clock` | `docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md` |
 
+⚠ **The registry cannot hold a low-precision figure, and that bound was found by trying.** On
+2026-08-19 milestone 7 task 4's two provisional parking costs — **6.40 µs** and **1.58–1.63 ms** — were
+registered here and check 6 failed instantly against **nineteen** documents. None of them was quoting a
+parking cost. `Mentions` is a bare `text.Contains` with no word boundary, so the spelling `6.4` matched
+*"the full **16.4** km map width"* in `02` and *"**6.4×** past budget"* in `adr/0036`, and `1.63` matched
+*"moves the pass **1.63–1.75×**"* in `adr/0016`. ***A substring match on a short decimal is a match on
+arithmetic, not on a citation.*** Every row this table has ever held is a long distinctive figure —
+`186,624`, `532,750`, `861.87` — and **the reason was never written down**, so the first attempt to add
+a short one read as a corpus-wide violation rather than as a registry that could not express the claim.
+
+**The rows were withdrawn rather than the check weakened**, and the repair went to the number's own home:
+[`0013`](0013-tick-budget.md) marks both cells *PROVISIONAL, do not quote* in the cell itself. That is
+weaker — it is prose, and prose is what Cause 5 defeats — so it is recorded here as a **gap in check 6's
+reach** rather than as a discharge. The figure a registry can protect is one whose digits are their own
+citation, and a three-digit decimal is not. ⚠ **Do not repair this by padding the figure with units or
+context** into the Figure column: `Mentions` tests the raw string against prose that is written freely,
+so a longer key does not match less, it matches nothing.
+
 **The last four rows were added by a sweep for 186,624's siblings**, on 2026-08-13, and each is the
 same shape: a figure that is **one half of a ratio**, quoted into an argument, whose scope clause lives
 in one document and not in the others.
