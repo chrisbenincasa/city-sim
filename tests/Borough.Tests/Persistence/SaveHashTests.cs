@@ -152,6 +152,13 @@ public sealed class SaveHashTests(ITestOutputHelper output)
     /// documenting it: it names the table and the column, so appending a table cannot reach this and a
     /// <em>renamed</em> column fails loudly instead of quietly.
     /// </para>
+    /// <para>
+    /// ✅ <b>Both halves were exercised within the day, by accident.</b> Task 4c deleted
+    /// <c>household.money</c> — the column this flip had just been pointed at — and the test failed
+    /// with <em>no saved column 'money' in a table named 'household'</em> rather than passing against
+    /// whatever now occupies that offset. Under <c>bytes[^9]</c> the same deletion would have moved
+    /// every byte after the household block and said nothing.
+    /// </para>
     /// </remarks>
     [Fact]
     public void A_flipped_byte_in_the_body_is_refused_by_the_load()
@@ -162,7 +169,7 @@ public sealed class SaveHashTests(ITestOutputHelper output)
         SaveFile.Write(world, InForce, new WorldSnapshot(), file);
 
         byte[] bytes = file.Bytes;
-        bytes[ByteIn(world, "household", "money", slot: 0)] ^= 0xFF;
+        bytes[ByteIn(world, "household", "balance", slot: 0)] ^= 0xFF;
 
         var corrupt = new MemorySave();
         corrupt.Write(bytes);

@@ -270,7 +270,7 @@ Rule with, per `01 §2`, *"a named payer and named beneficiaries"*, and per `CON
 *"moves conserved Money between named parties."* That is more structure than a tax rate. Examine it
 **before** writing the command, because the Input Log's shape is replay's shape.
 
-### ~~6. How a Rule reaches a balance~~ — ✅ **SETTLED 2026-08-18 with the user in the room. A balance is a Bin, and a Bin's owner is discriminated.** [`adr/0114`](../docs/adr/0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md)
+### ~~6. How a Rule reaches a balance~~ — ✅ **SETTLED 2026-08-18, and ✅ BUILT 2026-08-19 by task 4c — which was added because this decision was the only one of the six with no task.** [`adr/0114`](../docs/adr/0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md)
 
 **Money an actor holds lives in a Bin. `BinTable.Owner` becomes a discriminated handle — Building,
 Household, Business, treasury — and `HouseholdTable.Money` and `.Savings` are both deleted.**
@@ -739,6 +739,122 @@ property a Bin on the Building lacks — but it **does** block the first money t
 workplace, because `local` money must resolve to *an* actor and a list does not name one. It lands
 with decision 6.
 
+### Task 4c — a balance is a Bin, and decision 6 had no task — ✅ **DONE 2026-08-19**
+
+`adr/0114`'s second half, built. `HouseholdTable.Money`, `HouseholdTable.Savings` and task 4b's
+`BusinessTable.Money` are **deleted**; each actor carries one saved `HandleColumn<Bin>` named
+`balance`; `World.FitBalances` opens one per actor for the conserved Resource the Ruleset in force
+declares, on `FitTreasury`'s trigger and for its reason; and all five shipped Rulesets gained a
+three-line `[[resource]]` money block.
+
+⚠ **THE MILESTONE'S LARGEST DECISION HAD NO TASK, AND TWO TASKS BUILT AGAINST THE THING IT
+DELETED.** Decision 6 is settled — *"`HouseholdTable.Money` and `.Savings` are both deleted"* — and
+no task in this document claimed it. Task 1 built the cheaper half and said so (*"`adr/0114`'s
+wording — **gains an owner kind** — is the cheaper half and it is the one built"*), leaving
+`BinOwnerKind.Household` and `.Business` throwing by name. Task 5's brief says *"needs decisions 1
+and 5"* and does not name 6, though its whole content — a Rule drawing a tax from a Household — is
+unbuildable without it. **A settled decision with no owner is invisible to a reading of the task
+list**, which is `plans/0012` *Cause 1* on the axis the board is normally the guard for: the decision
+was recorded correctly, in the right document, and nothing scheduled it.
+
+⚠ **The cause is an ordering inside one sitting, and the build was right where the prose was wrong.**
+Task 4b's brief is *"NEW 2026-08-18, from decision 1"* and specifies a `Money` **column** *"on
+`HouseholdTable.Money`'s precedent"*. Decision 6 was **opened by** settling decision 1 and landed
+after that brief was written — so the brief cites a precedent the same document retires nine sections
+above it, and nothing recomputed the brief. Meanwhile `Rules.cs:57`, written in **task 1** after
+decision 6 settled, says `BinOwnerKind.Business` is *"declared and not yet owned — plans/0031 task
+4b"*, and `World.RebuildDerived`'s throw says *"a Household's balance arrives with task 5 and a
+Business's with task 4b, **each with the list head its own table has to declare**"*. ***Two sites in
+one repository disagreed about what a task was, and the one that was right is the one written after
+the decision rather than before it.*** `adr/0093` assumes prose is wrong about code; here the code
+was the record and the plan was the drift.
+
+**How a Bin names an actor — settled with the user in the room, and `adr/0114` underdetermined it.**
+That ADR's hash consequence (*"two owners of different kinds may share an id, so the kind is part of
+the value"*) only makes sense for **one** column holding handles into several tables, which is not
+what task 1 built: `BinTable.Owner` stayed a `HandleColumn<Building>` with the kind folded beside it,
+justified on the ground that *"the treasury has no owner row to point at in any case"*. ⚠ **That
+ground holds for a singleton and expires the moment a non-singleton owner arrives** — a Household is
+a real row. Three shapes were weighed; the chosen one puts a saved `HandleColumn<Bin>` **on the
+actor**, so `BinTable` is untouched, `RebuildDerived` has nothing to rebuild for either new kind, and
+the lookup is O(1) rather than a list walk. The two rejected: two more typed handle columns on
+`BinTable` (symmetric, and ~16 bytes on every Bin in the world including the ~500k Building Bins that
+never use either — ~13 MB at a million Citizens), and a polymorphic handle column (what the ADR's
+sentence implies; needs a new column type whose fold and dangling check dispatch over the kind, and it
+breaks `SaveHash.TargetsOf`, which resolves exactly one target table per handle column).
+***The asymmetry with a Building is cardinality and not carelessness***: a Building holds many Bins
+because its kind declares many Resources, and an actor holds one because money is one Resource.
+`World.TryMoneyResource` **throws** on a second conserved Resource rather than silently balancing on
+the first — which would give every actor a balance in one currency and none in the other, while every
+conservation sum still added up, because money in a Resource nobody can hold is money nothing can
+lose.
+
+✅ **The conservation walk got *smaller*, which is the strongest evidence the decision is right.**
+`MoneyIsConserved` and `MoneyIsRepresentable` enumerated the actors — two Household columns, a
+Business column, then the conserved Bins — and each new actor owed them an edit, which task 4b duly
+paid. Both now share `TrySumBalances`, one owner-agnostic walk over live Bins filtered on
+`Rules.IsConserved`. ***An enumeration of owners is a list somebody has to remember to extend; a
+filter on the Resource is not.*** Shared rather than written twice, so the two cannot disagree about
+where money lives — if one walked a place the other did not, an overflow there would be reported
+under the other's name, which is the exact confusion their registration order exists to prevent.
+
+⚠ **A LIVE SAVE/LOAD DEFECT FELL OUT, AND IT HAD BEEN THERE SINCE TASK 1.** A Bin's `capacity` is
+`(derived AND rebuilt)`, and `RebuildCapacities` **skipped** every non-Building Bin — its comment
+saying the treasury's unbounded ceiling *"is set once at creation and left"*. A load creates a Bin
+through `Rows.Restore` and never through `CreateTreasuryBin`, so *at creation* never happens on that
+path: **a reloaded treasury would have come back with a ceiling of zero**, which is a treasury every
+transfer into it fails against — precisely the outcome the comment named as its reason for skipping.
+It was invisible because **no fixture in the rebuild audit had a treasury Bin**: `Ruleset.Empty` names
+no money, so `FitTreasury` made none, and it surfaced within a minute of the golden fixture gaining a
+currency. ***A derived column with one write site outside the rebuild is a column that does not
+survive a load, and a fixture that never creates one cannot report it.*** `adr/0093` on the
+**lifecycle** axis rather than the trigger axis: the comment was right about where the number comes
+from and wrong about when it is written. The ceiling now derives from the **Resource** (`04 §2`:
+*"Money is a Resource too, and its Bin is unbounded"*), so no owner is resolved for it, and a
+non-Building Bin holding a non-conserved Resource **throws** rather than defaulting to a zero ceiling.
+
+⚠ **Money became a property of the Ruleset, and that reached further than the code.** A Bin exists
+only for a declared Resource, so a Household on a moneyless file cannot hold money **at all** — where
+a column held it whatever the file said. Four fixtures broke on exactly that and each is a statement
+now rather than an accident: `OccupancyTests` and `UnplacedPoolTests` name money in their own
+Rulesets because they endow somebody, and `StateHashTests`, `InvariantTierTests` and `GoldenFixtures`
+share `TestRulesets.MoneyOnly`. ***Making a quantity conditional on the Ruleset turns every fixture's
+Ruleset into a statement about what that fixture can test.*** ⚠ **The obvious repair for the golden
+world was wrong and the suite said so**: putting it on the session's `minimal.toml` — which would
+have made the two golden artefacts agree about the Ruleset for the first time — turns on the
+`[roads]` table, so the world generates a Road Graph, `Invariant.VacantLotHasFrontage` stops
+returning early on a world with no Streets, and Lot 4 fails. That world's Lots were placed by hand
+before this project had roads. ***A Ruleset is not a bag of settings a fixture can take one of***:
+loading a bigger one to obtain a small property turns on every mechanism in between.
+
+**All five shipped Rulesets name money, not just the two the golden pair needs.** Each of
+`severance.toml`, `congested.toml` and `diagnosed.toml` says in its own header that it is
+*minimal.toml with N changes*, and that sentence is what keeps them auditable — so leaving them
+moneyless would have made three headers false to save duplicating a block in files that are already
+whole copies by construction. ⚠ **`monetised.toml` is thereby redundant and is NOT deleted in this
+commit**: it carries an uncommitted edit belonging to a concurrent session, and its 74-line header —
+the survey finding that opened this milestone, and the *why it declares no Bin* half — has been
+migrated into `minimal.toml` rather than dropped. ***Deleting a Ruleset deletes an argument, not a
+duplicate***, which is the milestone 8 session's correction to a claim of mine that the two files
+would become byte-identical: on **content** they differ by three lines and on **text** by 78, and
+`RulesetFile.HashOf` treats comments as content by design. `TreasuryFromAFileTests` is repointed at
+all five and its negative half — the one that makes the positive mean anything — moved to a Ruleset
+built in code, where it now asserts **both** ends of `adr/0114`: no treasury Bin *and* no actor
+balance.
+
+**Two smaller things.** `World.Endow` takes one amount where it took two, and **refuses** a Household
+with no balance rather than founding one silently — ***a door that creates the thing it was asked to
+fill cannot report that the request was wrong***. And it deposits through `World.Deposit` rather than
+writing the level, because founding a balance is exactly the arrival a waiter is waiting for; a
+transfer is now two Bin writes summing to zero, and **both drain a wait list**, which is the property
+the pair of column writes did not have and the whole reason the Rule engine can fail on money at all.
+
+**Cost:** three saved columns deleted and two added, so **all three baselines re-record** —
+`world-hash.txt` `0x47E1A7AAEB34043E` → **`0x70666EA6FD05EBC6`**, and **both Ruleset content hashes
+move**, which means the two literals inside `session.borough` had to be corrected before the trace
+could be regenerated at all. **1,602 tests green.** `CONTEXT.md` → Bin, Eviction and Occupant carry
+the new shape.
+
 ### Task 5 — the Household balance sheet gets a production writer
 
 The circuit that needs neither a price nor a wage: **a Policy sweeps a tax from Households into the
@@ -752,7 +868,9 @@ Policy paying out of a treasury that runs dry *"pays whom it reaches and reports
 
 ⚠ **It also builds the instrument decision 2 left owed** ([`adr/0115`](../docs/adr/0115-moneys-unit-is-fixed-by-the-smallest-fraction-the-design-multiplies-by.md)): a Census count of **percentage applications that floor to zero**. `FloorDiv(readout × percent, 100)` is zero below `100 ÷ percent`, so a coarse money unit makes this tax collect nothing from the poorest and the stated rate from everybody else — a **regressive** outcome nobody chose, in the mechanic `adr/0024` requires the game take no position on. **A loader cannot check it**, because a readout's magnitude is not known at load time, which is why it is a counter and not a refusal. ***A discipline the loader cannot check needs a counter or it is a comment.*** It is the tax circuit's own instrument and belongs here rather than to a later milestone: **this is the first Rule in the project that ever multiplies money by a fraction.**
 
-Needs decisions 1 and 5.
+Needs decisions 1 and 5. ⚠ **And decision 6, which this brief did not name and which had no task at
+all** — see **task 4c**, which is that decision built. A Rule cannot draw a tax from a Household whose
+balance is a column, so the whole of this task rested on it.
 
 ### ~~Task 6 — Upkeep~~ — ✅ **DISCHARGED AT SCOPING 2026-08-18, and it is the written record rather than the mechanism**
 

@@ -62,7 +62,7 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0x95CF_4B91_77D9_40A7UL;
+    internal const ulong RulesetHash = 0x0FF2_F812_587E_B4E8UL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>
@@ -75,7 +75,7 @@ internal static class GoldenFixtures
     /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
     /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
     /// </remarks>
-    internal const ulong TunedRulesetHash = 0x00F4_7AA3_4A24_45AAUL;
+    internal const ulong TunedRulesetHash = 0x08A2_7298_B1AB_EC00UL;
 
     /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
     internal static string TunedRulesetPath =>
@@ -303,7 +303,17 @@ internal static class GoldenFixtures
     /// </remarks>
     internal static World Build()
     {
-        var world = new World(Population);
+        // ⚠ Ruleset.Empty PLUS MONEY since milestone 10 task 4c, where it was Ruleset.Empty. adr/0114
+        // made a balance a Bin and a Bin exists only for a Resource a Ruleset declares, so on the empty
+        // one World.Endow below has nowhere to put anything and refuses.
+        //
+        // NOT the session's minimal.toml, which was tried first and is the more obvious repair: that
+        // file states a [roads] table, so a world on it generates a Road Graph at construction, and
+        // Invariant.VacantLotHasFrontage -- which returns early on a world with no Streets -- stops
+        // being vacuous and fails on Lot 4. This world's Lots were placed by hand before this project
+        // had roads. Loading a bigger Ruleset to obtain a small property turns on every mechanism in
+        // between.
+        var world = new World(Population, TestRulesets.MoneyOnly);
 
         var lots = new Handle<Lot>[6];
         for (int i = 0; i < lots.Length; i++)
@@ -337,21 +347,21 @@ internal static class GoldenFixtures
         {
             households[i] = world.CreateHousehold(buildings[i % buildings.Length], lifeStage: (byte)(i % 5));
 
-            // Through the door rather than into the columns, milestone 10 task 4. World.Endow is the
-            // one site that puts money into a world, and it moves MoneySupplyTable.Issued with it --
-            // a fixture writing the columns direct would found a city whose money is unaccounted for
-            // and fail Invariant.MoneyIsConserved before it had done anything.
+            // Through the door rather than into the Bin, milestone 10 task 4. World.Endow is the one
+            // site that puts money into a world, and it moves MoneySupplyTable.Issued with it -- a
+            // fixture depositing straight into the balance would found a city whose money is
+            // unaccounted for and fail Invariant.MoneyIsConserved before it had done anything.
             //
             // Household 5 is endowed with nothing, and that is the invariant's first catch rather
             // than a tidy-up. It is retired below to take the free list off its initial value, and
-            // DestroyHousehold frees the row with whatever is in those two columns -- so a fixture
-            // that endowed it would burn 14,185 at the founding. Where a departing Household's
-            // balance should go is undesigned (adr/0070): the Outside Connection is money's only
-            // sink (CONTEXT -> Money) and it is milestone 11, so there is no legitimate destination
-            // to send it to today. Filed to plans/0002 §C rather than answered here.
+            // DestroyHousehold frees its balance Bin with whatever is in it -- so a fixture that
+            // endowed it would burn 3,685 at the founding. Where a departing Household's balance
+            // should go is undesigned (adr/0070): the Outside Connection is money's only sink
+            // (CONTEXT -> Money) and it is milestone 11, so there is no legitimate destination to
+            // send it to today. Filed to plans/0002 §C rather than answered here.
             if (i != 5)
             {
-                world.Endow(households[i], new Money(1_000 + (i * 137)), new Money(i * 2_500));
+                world.Endow(households[i], new Money(1_000 + (i * 537)));
             }
         }
 
@@ -406,8 +416,14 @@ internal static class GoldenFixtures
         Handle<Business> business = world.CreateBusiness(buildings[2]);
         world.CreateBusiness(buildings[2]);
 
-        world.Households.Money[world.Households.Rows.Resolve(households[0])] -= new Money(400);
-        world.Businesses.Money[world.Businesses.Rows.Resolve(business)] += new Money(400);
+        // Two Bin writes summing to zero, which is the whole of what a transfer is since adr/0114 --
+        // and both drain a wait list, which is the property the pair of column writes this replaced
+        // did not have.
+        world.Withdraw(
+            world.Households.Balance[world.Households.Rows.Resolve(households[0])], 400, world.Tick);
+
+        world.Deposit(
+            world.Businesses.Balance[world.Businesses.Rows.Resolve(business)], 400, world.Tick);
 
         // Retirements, so the free list and the never-reused id counter are both off their initial
         // values by the time the hash is taken. Household 5 takes its two members with it.

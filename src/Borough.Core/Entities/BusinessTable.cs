@@ -1,6 +1,6 @@
 namespace Borough.Core.Entities;
 
-using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Tables;
 
 /// <summary>
@@ -8,17 +8,20 @@ using Borough.Core.Tables;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>A balance is a column on the actor, because that is already how the one existing actor holds
-/// one</b> (<c>adr/0113</c>). <see cref="HouseholdTable.Money"/> is a saved column rather than a Bin,
-/// and <c>adr/0024</c>'s <em>"one integer per Household and per Business"</em> is trivial in the way
-/// that sentence claims only if both actors spell it the same way.
+/// <b>A balance sits on the actor, because that is already how the one existing actor holds one</b>
+/// (<c>adr/0113</c>) — <c>adr/0024</c>'s <em>"one integer per Household and per Business"</em> is
+/// trivial in the way that sentence claims only if both actors spell it the same way. ⚠ <b>They do,
+/// and the spelling is a Bin rather than the column task 4b built</b> (<c>adr/0114</c>): see
+/// <see cref="Balance"/>.
 /// </para>
 /// <para>
 /// <b>A Building never holds money, and this table is what makes that affordable.</b>
 /// <see cref="BuildingTable.OccupantHead"/> is the head of a <em>list</em>, so a money Bin on the
 /// Building would be a sum over however many Occupants are in it — an average wearing a total, which
-/// is <c>adr/0025</c>'s Cohort prohibition applied to the container. A balance on the actor is right
-/// at any cardinality, which is the property the Bin lacks.
+/// is <c>adr/0025</c>'s Cohort prohibition applied to the container. A balance belonging to the actor
+/// is right at any cardinality, which is the property a Bin <em>on the Building</em> lacks. ⚠ <b>That
+/// is an argument about whose balance it is, not about how it is stored</b>, and reading it as the
+/// second is what put a column here for a day.
 /// </para>
 /// <para>
 /// <b>The occupant list stays homogeneous.</b> This is a <em>second</em> list on the Building rather
@@ -48,9 +51,11 @@ public sealed class BusinessTable
 
     /// <param name="capacity">Initial slot count.</param>
     /// <param name="buildings">The table this one's premises handles address.</param>
-    public BusinessTable(int capacity, BuildingTable buildings)
+    /// <param name="bins">The table this one's balance handles address.</param>
+    public BusinessTable(int capacity, BuildingTable buildings, BinTable bins)
     {
         ArgumentNullException.ThrowIfNull(buildings);
+        ArgumentNullException.ThrowIfNull(bins);
 
         _rows = new Rows<Business>("business", capacity, Buffering.OneCopy);
 
@@ -60,7 +65,7 @@ public sealed class BusinessTable
         // clearing it in DestroyBuilding -- is a write to a saved column, so a demolition would move
         // the State Hash for a reason that has nothing to do with the demolition.
         Building = _rows.SavedHandle("building", buildings.Rows, reference: Reference.Severable);
-        Money = _rows.Saved<Money>("money", Touch.Cold);
+        Balance = _rows.SavedHandle("balance", bins.Rows, reference: Reference.Required);
         BuildingNext = _rows.Derived<int>("building_next");
 
         _rows.Seal();
@@ -73,16 +78,27 @@ public sealed class BusinessTable
     public HandleColumn<Building> Building { get; }
 
     /// <summary>
-    /// This Business's balance.
+    /// This Business's money Bin — its balance (<c>adr/0114</c>).
     /// </summary>
     /// <remarks>
-    /// <b>Counted by <see cref="Invariants.Invariant.MoneyIsConserved"/> from the day the column
-    /// exists</b>, which is what keeps the conservation walk honest: a place money can sit that the
-    /// walk does not visit reads as money destroyed. Nothing funds one yet — a Business is created
-    /// with a zero balance and there is no door that pays it, because the counterparty that would is
-    /// milestone <b>13</b>'s price surface.
+    /// <para>
+    /// <b>Task 4b shipped this as a <c>Column&lt;Money&gt;</c> and task 4c replaced it</b>, because
+    /// <c>adr/0114</c> — settled the same day as the decision that created this table — says a balance
+    /// a Rule can fail on is a Bin. See <see cref="HouseholdTable.Balance"/> for the shape and the
+    /// reason the link sits on the actor.
+    /// </para>
+    /// <para>
+    /// <b>The column was not merely a different spelling of the same thing.</b> <c>adr/0024</c>'s
+    /// <em>"one integer per Household and per Business"</em> is only trivial if both actors spell it
+    /// the same way — which was 4b's argument for a column, and survives the reversal intact, because
+    /// the Household moved too. ***An argument for symmetry does not name which side to move.***
+    /// </para>
+    /// <para>
+    /// <b>Nothing funds one.</b> A Business opens with an empty Bin and there is no door that pays it,
+    /// because the counterparty that would is milestone <b>13</b>'s price surface.
+    /// </para>
     /// </remarks>
-    public Column<Money> Money { get; }
+    public HandleColumn<Bin> Balance { get; }
 
     /// <summary>Link in the premises' Business list.</summary>
     public Column<int> BuildingNext { get; }

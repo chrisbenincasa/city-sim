@@ -902,7 +902,15 @@ levers are Ruleset numbers section D already lists as unset:~~ **The diversion p
   found it by building the check that reports it, and widened by task 4b the same day — it has two
   subjects, a Household and a Business, and one answer would settle both.** `World.DestroyHousehold` frees the row with whatever
   is in `Money` and `Savings`, so a Household dying rich destroys conserved money — and
-  `Invariant.MoneyIsConserved` now says so, loudly, the first time it happens. Nothing in the corpus
+  `Invariant.MoneyIsConserved` now says so, loudly, the first time it happens. ⚠ **Task 4c rewrote the
+  mechanism and left the question exactly where it was**: those two columns are deleted, a balance is a
+  money Bin ([`adr/0114`](../docs/adr/0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md)),
+  and `DestroyHousehold` now wakes that Bin's waiters and frees its row — so the money still leaves the
+  world, by a second route, reported by the same invariant. ***A change of representation moves where a
+  leak is written and never whether it leaks.*** It did make the loss **legible** for the first time: a
+  freed Bin is a blame target disappearing, so a Rule sleeping on that balance is woken rather than left
+  waiting on a slot nobody will ever write to again — which is why the free is a `WakeAll` and not a
+  `Free` alone. Nothing in the corpus
   states a destination: `adr/0054` covers **eviction**, where the Household survives and keeps what it
   owns, and the only sink `CONTEXT.md` → Money admits is the **Outside Connection**, which is milestone
   **11**. So the answer today is *there is nowhere for it to go*, which makes this `adr/0070`'s

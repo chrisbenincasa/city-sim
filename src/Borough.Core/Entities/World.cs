@@ -120,7 +120,15 @@ public sealed class World
 
         Lots = new LotTable(PerThousand(citizens, 225));
         Buildings = new BuildingTable(PerThousand(citizens, 150), Lots);
-        Households = new HouseholdTable(PerThousand(citizens, 360), Buildings);
+
+        // Ahead of the actors rather than beside the Rule engine, because since adr/0114 a Household
+        // and a Business each hold a saved handle INTO this table -- their balance -- so this one has
+        // to exist before either constructor can name its Rows. It sizes off ~3 Bins on each of ~150
+        // Buildings per 1,000 Citizens, plus one apiece for the 360 Households and the Businesses.
+        // Construction order is not composition order: _tables below is what the State Hash walks.
+        Bins = new BinTable(PerThousand(citizens, 450), Buildings);
+
+        Households = new HouseholdTable(PerThousand(citizens, 360), Buildings, Bins);
         Citizens = new CitizenTable(citizens, Households, Buildings);
         Layers = new MapLayers(rules.Layers);
         Roads = new RoadGraph(rules.Roads);
@@ -129,10 +137,10 @@ public sealed class World
         // housed, and the table's job is to absorb a District emptying without reallocating mid-Tick.
         UnplacedPool = new UnplacedTable(PerThousand(citizens, 36), Households);
 
-        // ~3 Bins and ~3 Rules on each of ~150 Buildings per 1,000 Citizens. Both multipliers are
-        // capacity hints rather than bounds — the tables grow — but they are numbers nobody has
-        // justified, so plans/0002 carries them as unratified until a real Ruleset supplies the shape.
-        Bins = new BinTable(PerThousand(citizens, 450), Buildings);
+        // ~3 Rules on each of ~150 Buildings per 1,000 Citizens. A capacity hint rather than a bound —
+        // the table grows — but it is a number nobody has justified, so plans/0002 carries it as
+        // unratified until a real Ruleset supplies the shape. Bins is constructed above, with the
+        // actors that hold handles into it.
         RuleInstances = new RuleInstanceTable(PerThousand(citizens, 450), Buildings, Bins);
         Clock = new ClockTable();
         Treasury = new TreasuryTable();
@@ -142,7 +150,7 @@ public sealed class World
         // so what bounds it is how many premises there are. How many may share one is undesigned
         // (adr/0070), so one apiece is the capacity hint that assumes least -- and it is a hint, since
         // the table grows.
-        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings);
+        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins);
         RulesetTrail = new RulesetTrailTable();
         CondemnationTrail = new CondemnationTrailTable(Lots.Rows);
 
@@ -517,6 +525,11 @@ public sealed class World
         // removes -- see FitTreasury.
         FitTreasury();
 
+        // And the actors, for the same reason on the same trigger: a file that adds money has to reach
+        // every Household standing, not only the ones built after the swap. O(actors) rather than
+        // O(1), which is the class RebuildCapacities and EvictOverflow already put this pass in.
+        FitBalances();
+
         // adr/0068's other half, and it runs after the rebuild for the same reason the rebuild runs
         // after Migrate: this reads the kinds the incoming Ruleset declares, and a Building whose kind
         // the migration is about to change would be measured against the wrong ceiling. A world that
@@ -721,6 +734,13 @@ public sealed class World
         Households.Dwelling[slot] = dwelling;
         Households.LifeStage[slot] = lifeStage;
 
+        // adr/0114: a balance is a Bin, opened here so that a Household never exists without one in a
+        // world whose Ruleset names money. Empty -- World.Endow is the only door money enters by.
+        if (TryMoneyResource(out ResourceId money))
+        {
+            Households.Balance[slot] = OpenBalance(BinOwnerKind.Household, money);
+        }
+
         Invariants.Require(
             !Lists(Occupants, buildingSlot, slot),
             Invariant.HouseholdIsNotAlreadyInThisBuilding,
@@ -761,6 +781,12 @@ public sealed class World
 
         Businesses.Building[slot] = premises;
 
+        // CreateHousehold's line, for its reason (adr/0114).
+        if (TryMoneyResource(out ResourceId money))
+        {
+            Businesses.Balance[slot] = OpenBalance(BinOwnerKind.Business, money);
+        }
+
         BuildingBusinesses.InsertOrdered(buildingSlot, slot);
 
         return handle;
@@ -787,40 +813,80 @@ public sealed class World
     /// make on its own is founded on nothing, and the check is correct and temporarily trivial.
     /// </para>
     /// <para>
-    /// <b>Both columns, because <c>Savings</c> is the same conserved quantity in a second place.</b> A
-    /// door that could reach only <c>Money</c> would leave the other pokeable, and the invariant would
-    /// then fire on a world nobody had done anything wrong to. Moving money <em>between</em> the two
-    /// conserves it and needs no door; that is the balance sheet, and it is task 5's.
+    /// ⚠ <b>It refuses a Household with no balance rather than founding one silently.</b> A balance is
+    /// a Bin since <c>adr/0114</c> and a Bin exists only for a Resource the Ruleset declares, so an
+    /// unset handle means <em>this world's Ruleset names no money</em> — and endowing there would be
+    /// asked to put a quantity somewhere the file says does not exist. ***A door that creates the
+    /// thing it was asked to fill cannot report that the request was wrong.*** The failure is loud
+    /// because the caller is a fixture author, and the fix is the Ruleset rather than the call.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It took an <c>onHand</c> and a <c>savings</c> until task 4c, and <c>savings</c> is gone
+    /// rather than folded in.</b> Two amounts existed because two columns did; every design sentence
+    /// about savings describes a <em>threshold</em> rather than a second pile, so what a Household has
+    /// set aside is a reserve computed from its Life Stage when something spends money — milestone
+    /// <b>14</b> — and not a quantity a founder can hand it.
     /// </para>
     /// </remarks>
     /// <param name="household">Who is being endowed.</param>
-    /// <param name="onHand">Money to add to what it holds.</param>
-    /// <param name="savings">Money to add to what it has set aside.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Either amount is negative.</exception>
-    public void Endow(Handle<Household> household, Money onHand, Money savings)
+    /// <param name="amount">Money to add to its balance.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The amount is negative.</exception>
+    /// <exception cref="InvalidOperationException">The Ruleset in force names no money.</exception>
+    public void Endow(Handle<Household> household, Money amount)
     {
         // Refused rather than treated as a withdrawal. A negative endowment would be money leaving the
         // world through the door money comes in by, which is the gate's job and the gate does not
         // exist -- and adr/0003's signed Money makes it representable, so nothing else would notice.
-        ArgumentOutOfRangeException.ThrowIfNegative(onHand.Raw, nameof(onHand));
-        ArgumentOutOfRangeException.ThrowIfNegative(savings.Raw, nameof(savings));
+        ArgumentOutOfRangeException.ThrowIfNegative(amount.Raw, nameof(amount));
 
         int slot = Households.Rows.Resolve(household);
+        Handle<Bin> balance = Households.Balance[slot];
 
-        Households.Money[slot] += onHand;
-        Households.Savings[slot] += savings;
+        if (balance.IsNone)
+        {
+            throw new InvalidOperationException(
+                $"household {slot} has no balance, so the Ruleset in force declares no money Resource "
+                + "(adr/0114: a balance is a Bin, and a Bin exists only for a Resource a Ruleset "
+                + "names). Endowing would put money where the file says money does not exist. Load a "
+                + "Ruleset with a `family = \"money\"` [[resource]] block.");
+        }
 
-        MoneySupply.Issued[MoneySupplyTable.Slot] += onHand + savings;
+        // Through Deposit rather than into the level, for Deposit's own reason: a Bin written without
+        // draining its wait list leaves whoever was short of money asleep for ever. Founding a balance
+        // is exactly the arrival a waiter is waiting for.
+        Deposit(balance, amount.Raw, Tick);
+
+        MoneySupply.Issued[MoneySupplyTable.Slot] += amount;
     }
 
     /// <summary>
-    /// Moves a housed Household into the Unplaced Pool, keeping its Money and Savings.
+    /// What a Household holds.
+    /// </summary>
+    /// <remarks>
+    /// <b>Zero when the Ruleset in force names no money</b>, which is a different fact from a
+    /// Household that has spent everything and is deliberately not distinguished here. The two are
+    /// distinguishable — <c>Households.Balance[slot].IsNone</c> — and nothing needs to be: a world with
+    /// no currency and a Household with none behave identically at every call site money has.
+    /// </remarks>
+    public Money BalanceOf(Handle<Household> household) =>
+        Bins.Rows.TryResolve(Households.Balance[Households.Rows.Resolve(household)], out int bin)
+            ? new Money(Bins.LevelAt(bin))
+            : Money.Zero;
+
+    /// <inheritdoc cref="BalanceOf(Handle{Household})"/>
+    public Money BalanceOf(Handle<Business> business) =>
+        Bins.Rows.TryResolve(Businesses.Balance[Businesses.Rows.Resolve(business)], out int bin)
+            ? new Money(Bins.LevelAt(bin))
+            : Money.Zero;
+
+    /// <summary>
+    /// Moves a housed Household into the Unplaced Pool, keeping its balance.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>Eviction is free, and that is <c>adr/0054</c>'s finding rather than a convenience.</b> This
-    /// touches the dwelling handle and the occupant list. It does not touch <c>Money</c> or
-    /// <c>Savings</c>, so <em>"a Household keeps what it owns when the city stops housing it"</em>
+    /// touches the dwelling handle and the occupant list. It does not touch <see cref="Household"/>'s
+    /// balance handle, so <em>"a Household keeps what it owns when the city stops housing it"</em>
     /// needed no code — it is what not writing to those columns already means, and it is what keeps
     /// demolition from becoming a hole in <c>adr/0024</c>'s conserved Money.
     /// </para>
@@ -1009,6 +1075,24 @@ public sealed class World
             Occupants.Remove(buildingSlot, slot);
         }
 
+        // The balance Bin goes with the Household, because a Bin nothing points at is a row nothing
+        // will ever free -- adr/0006 through the same back door the members came through four lines
+        // up. It is NOT a Severable handle left dangling on purpose: a Business keeps its row through
+        // a demolition because the Business outlives its premises, and a Household being destroyed
+        // outlives nothing.
+        //
+        // ⚠ THE MONEY IN IT IS DESTROYED, and that is deliberately not repaired here.
+        // Invariant.MoneyIsConserved reports it, which is the whole point of having the invariant
+        // before the mechanism: what becomes of a departing Household's balance is an undesigned
+        // question (plans/0002 §C) and the first production caller of this method is what has to
+        // answer it. Zeroing the Bin first would satisfy the check and answer nothing -- a guard at
+        // the site where a quantity disappears can only ever check that it disappeared tidily.
+        if (Bins.Rows.TryResolve(Households.Balance[slot], out int balance))
+        {
+            WakeAll(balance, Tick);
+            Bins.Rows.Free(Bins.Rows.At(balance));
+        }
+
         Households.Rows.Free(household);
     }
 
@@ -1170,12 +1254,18 @@ public sealed class World
 
                 case BinOwnerKind.Household:
                 case BinOwnerKind.Business:
-                    throw new NotSupportedException(
-                        $"bin {slot} names owner kind {Bins.OwnerKind[slot]}, which nothing creates "
-                        + "yet. adr/0114 enumerated the four owners a Bin may have; a Household's "
-                        + "balance arrives with plans/0031 task 5 and a Business's with task 4b, each "
-                        + "with the list head its own table has to declare. Reaching here means a save "
-                        + "was written by a build ahead of this one.");
+                    // Nothing to rebuild, and that is task 4c's shape rather than an omission. A
+                    // Building's Bins hang off a DERIVED list, so this walk is the only thing that can
+                    // put them back; an actor's balance is a single SAVED handle on the actor
+                    // (HouseholdTable.Balance), so the link came out of the file already made. What is
+                    // asymmetric is the cardinality and not the care: a Building holds many Bins
+                    // because its kind declares many Resources, and an actor holds one because money
+                    // is one Resource.
+                    //
+                    // The case is spelled out rather than folded into the default, because falling
+                    // through to a throw that says `names no owner kind` would be a true statement
+                    // about the wrong Bin.
+                    break;
 
                 case BinOwnerKind.None:
                 default:
@@ -1566,9 +1656,10 @@ public sealed class World
     /// too, and its Bin is unbounded."</em> There is no <c>[[building]]</c> kind to read a ceiling off
     /// — the treasury has no kind — so <see cref="DeclaredCapacity"/> has nothing to say here and
     /// <see cref="long.MaxValue"/> is what <see cref="BinTable.SpaceAt"/>'s own remark calls the
-    /// unbounded spelling. That is also why <see cref="RebuildCapacities"/> skips it: a rebuild from a
-    /// declaration it does not have would write zero, and a treasury that could hold nothing is a
-    /// treasury every transfer into it fails against.
+    /// unbounded spelling. ⚠ <b><see cref="RebuildCapacities"/> derives the same number rather than
+    /// skipping this Bin</b>, and it must: the ceiling is a <see cref="Disposition.Derived"/> column,
+    /// so it is not in the save and a load — which creates a Bin through <c>Rows.Restore</c> and never
+    /// through this method — would otherwise restore a treasury that can hold nothing.
     /// </para>
     /// <para>
     /// <b>It opens empty and nothing authors a value</b>
@@ -1628,6 +1719,123 @@ public sealed class World
     }
 
     /// <summary>
+    /// The one conserved Resource the Ruleset in force declares, if it declares one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An actor's balance is a single Bin, so there is exactly one money Resource or none</b>
+    /// (<c>adr/0114</c>, and see <see cref="HouseholdTable.Balance"/> for why the link sits on the
+    /// actor). The treasury is the asymmetric one and it is right to be: it holds one Bin per
+    /// conserved Resource because <see cref="TreasuryBins"/> is a list, and a list is what a singleton
+    /// can afford.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A second conserved Resource throws here rather than being quietly ignored.</b> Silently
+    /// balancing on the first would give every actor a balance in one currency and none in the other,
+    /// and every sum in <see cref="Invariant.MoneyIsConserved"/> would still add up — money in a
+    /// Resource nobody can hold is money nothing can lose. <c>adr/0114</c>'s revisit trigger already
+    /// calls a second money Resource <em>"a decision rather than a detail"</em>; this is that decision
+    /// being demanded rather than defaulted.
+    /// </para>
+    /// </remarks>
+    internal bool TryMoneyResource(out ResourceId money)
+    {
+        money = default;
+
+        bool found = false;
+
+        for (int raw = 1; raw <= Rules.ResourceCount; raw++)
+        {
+            var resource = new ResourceId((ushort)raw);
+
+            if (!Rules.IsConserved(resource))
+            {
+                continue;
+            }
+
+            if (found)
+            {
+                throw new NotSupportedException(
+                    $"the Ruleset in force declares conserved Resources {money.Raw} and {resource.Raw}. "
+                    + "An actor's balance is one saved Bin handle (adr/0114), so a second money "
+                    + "Resource is a decision about what a Household holds two of, and that ADR's "
+                    + "revisit trigger names it as one. It is not defaulted here.");
+            }
+
+            money = resource;
+            found = true;
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    /// Gives every actor that has no balance yet a money Bin, if the Ruleset in force names money.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="FitTreasury"/>'s argument, on the actors.</b> It runs at world load and at every
+    /// Ruleset swap, and for the swap's reason: a Ruleset that adds a conserved Resource is a
+    /// <see cref="RulesetChange.None"/> edit if it declares no new kind, so a world balanced only at
+    /// creation would never acquire the Bins. ⚠ <b>It adds and never removes</b> — a Resource that
+    /// leaves the Ruleset leaves every balance standing with its stock, because dropping them would
+    /// destroy conserved money to satisfy a file edit and <c>adr/0024</c> puts the Outside Connection
+    /// between money and non-existence.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is <c>O(actors)</c> at a Ruleset swap and that is a real cost at a million Citizens</b>
+    /// — 360,000 Households — where <see cref="FitTreasury"/> is <c>O(1)</c>. It is the same order as
+    /// <see cref="RebuildCapacities"/> and <see cref="EvictOverflow"/>, which run beside it for the
+    /// same reason, so a swap was already a whole-world pass and this does not change its class.
+    /// </para>
+    /// </remarks>
+    internal void FitBalances()
+    {
+        if (!TryMoneyResource(out ResourceId money))
+        {
+            return;
+        }
+
+        for (int slot = 0; slot < Households.Rows.SlotCount; slot++)
+        {
+            if (Households.Rows.IsLive(slot) && Households.Balance[slot].IsNone)
+            {
+                Households.Balance[slot] = OpenBalance(BinOwnerKind.Household, money);
+            }
+        }
+
+        for (int slot = 0; slot < Businesses.Rows.SlotCount; slot++)
+        {
+            if (Businesses.Rows.IsLive(slot) && Businesses.Balance[slot].IsNone)
+            {
+                Businesses.Balance[slot] = OpenBalance(BinOwnerKind.Business, money);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opens one actor's money Bin — empty, unbounded, and owned by nothing the Bin can point at.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Unbounded for <see cref="CreateTreasuryBin"/>'s reason and not by analogy with it</b>:
+    /// <c>04 §2</c> says money's Bin is unbounded, and there is no <c>[[building]]</c> kind to read a
+    /// ceiling off, because the owner is not a Building. <see cref="RebuildCapacities"/> derives the
+    /// same number from the same sentence, so the write here is the one that makes a Bin usable before
+    /// the next rebuild rather than the one that decides what its ceiling is.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><see cref="BinTable.Owner"/> is left unset and <see cref="BinTable.OwnerKind"/> is the
+    /// whole of what says who owns this.</b> That column is a <c>HandleColumn&lt;Building&gt;</c> and
+    /// an actor is not a Building, so there is nothing to write; the link that can be walked runs the
+    /// other way, from the actor's own saved handle. The kind is still folded, so two Bins with the
+    /// same Resource and different owner kinds stay distinct in the State Hash.
+    /// </para>
+    /// </remarks>
+    private Handle<Bin> OpenBalance(BinOwnerKind kind, ResourceId money) =>
+        Bins.Create(kind, money, long.MaxValue);
+
+    /// <summary>
     /// Writes every live Bin's ceiling from the Ruleset in force (<c>adr/0064</c>).
     /// </summary>
     /// <remarks>
@@ -1652,21 +1860,63 @@ public sealed class World
                 continue;
             }
 
-            // A ceiling is a function of (Building kind, Resource) and the treasury has no kind, so
-            // there is nothing here to derive one from -- and deriving anyway would write the zero
-            // DeclaredCapacity returns for a kind it does not know, which is a treasury that can hold
-            // nothing and therefore a treasury every transfer into it fails against. Its unbounded
-            // ceiling is 04 §2's rather than a Ruleset's, so it is set once at creation and left.
-            if (Bins.OwnerKind[slot] != BinOwnerKind.Building)
+            // ⚠ A MONEY BIN'S CEILING IS DERIVED HERE AND WAS `SET ONCE AT CREATION AND LEFT` UNTIL
+            // TASK 4C, WHICH WAS A LIVE SAVE/LOAD DEFECT. Capacity is a DERIVED column (adr/0064), so
+            // it is not in the file and a load rebuilds it from nothing -- and a load creates a Bin
+            // through Rows.Restore rather than through CreateTreasuryBin, so `at creation` never
+            // happens on that path. A reloaded treasury would have come back with a ceiling of ZERO:
+            // a treasury every transfer into it fails against, which is exactly the outcome the old
+            // comment here named as the reason for skipping.
+            //
+            // It was invisible because no fixture in the audit had a treasury Bin -- Ruleset.Empty
+            // names no money, so FitTreasury made none -- and it surfaced the moment task 4c gave the
+            // golden fixture a currency. ***A derived column with one write site outside the rebuild
+            // is a column that does not survive a load, and a fixture that never creates one cannot
+            // report it.*** adr/0093 on the lifecycle axis: the comment was right about where the
+            // number comes from and wrong about when it is written.
+            //
+            // 04 §2 is the source -- "Money is a Resource too, and its Bin is unbounded" -- so the
+            // ceiling is derived from the RESOURCE rather than from a kind, which is why no owner
+            // needs to be resolved for it.
+            ResourceId resource = Bins.Resource[slot];
+
+            // ⚠ A Bin naming a Resource the INCOMING Ruleset does not declare, which a swap reaches
+            // and a fresh world cannot: ids run 1..ResourceCount, so asking this file about a
+            // Resource it never heard of indexes past the end. It keeps the ceiling it has, which is
+            // FitTreasury and FitBalances' answer to the same situation -- they add and never remove,
+            // because a Resource leaving a file must not destroy the stock held in it (adr/0024 puts
+            // the Outside Connection between money and non-existence). A migration that means to drop
+            // the Bin says so through RulesetMigration, and that runs before this.
+            if (resource.Raw > Rules.ResourceCount)
             {
                 continue;
+            }
+
+            if (Rules.IsConserved(resource))
+            {
+                Bins.SetCapacity(slot, long.MaxValue);
+                continue;
+            }
+
+            // Anything else owned by something that is not a Building has no ceiling to derive: a
+            // ceiling is a function of (Building kind, Resource), and there is no second source. It
+            // cannot happen today -- the only non-Building Bins anything creates are money -- so it
+            // throws rather than defaulting, because the alternative is a zero ceiling that reads as
+            // a Bin nothing can ever put anything into.
+            if (Bins.OwnerKind[slot] != BinOwnerKind.Building)
+            {
+                throw new NotSupportedException(
+                    $"bin {slot} holds a non-conserved Resource and is owned by "
+                    + $"{Bins.OwnerKind[slot]} rather than a Building, so there is no declaration to "
+                    + "derive its ceiling from. A ceiling is a function of (Building kind, Resource) "
+                    + "and 04 §2's unbounded spelling is money's alone (adr/0064, adr/0114).");
             }
 
             byte kind = Buildings.Rows.TryResolve(Bins.Owner[slot], out int buildingSlot)
                 ? Buildings.Kind[buildingSlot]
                 : (byte)0;
 
-            Bins.SetCapacity(slot, DeclaredCapacity(kind, Bins.Resource[slot]));
+            Bins.SetCapacity(slot, DeclaredCapacity(kind, resource));
         }
     }
 
@@ -2243,7 +2493,7 @@ public sealed class World
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The Occupants are evicted into the Unplaced Pool, with their Money and Savings intact</b>
+    /// <b>The Occupants are evicted into the Unplaced Pool, with their balances intact</b>
     /// (<c>adr/0054</c>). Destroying them instead would delete their Money, which <c>adr/0024</c>
     /// forbids — the Outside Connection is money's only sink — and would be an unbounded population
     /// sink with no Departure record. It happens first, while the Building is still whole, because

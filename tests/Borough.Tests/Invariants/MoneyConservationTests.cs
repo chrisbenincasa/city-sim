@@ -30,19 +30,46 @@ namespace Borough.Tests.Invariants;
 public sealed class MoneyConservationTests
 {
     /// <summary>One Building on one Lot, one Household in it. No money anywhere.</summary>
+    /// <remarks>
+    /// <b>It loads a Ruleset that names money, because since <c>adr/0114</c> a moneyless one is a
+    /// world in which none of these tests can fail.</b> A balance is a Bin and a Bin exists only for a
+    /// declared Resource, so on a moneyless file every sum below is zero on both sides and every
+    /// negative case is unwritable. <c>TreasuryFromAFileTests</c> owns the moneyless world.
+    /// </remarks>
     private static World Built(Ruleset? rules = null)
     {
-        World world = rules is null ? new World(1_000) : new World(1_000, rules);
+        World world = new(1_000, rules ?? Moneyed());
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
 
+        // Two, because an overflow test needs two places to put long.MaxValue and one Bin cannot hold
+        // it twice -- Deposit refuses above the ceiling, and the ceiling is what makes the sum the
+        // only thing that can run away.
+        world.CreateHousehold(building, lifeStage: 1);
         world.CreateHousehold(building, lifeStage: 1);
 
         return world;
     }
 
     private static Handle<Household> First(World world) => world.Households.Rows.At(0);
+
+    /// <summary>
+    /// Puts money in a Household's balance <em>without</em> the door. <b>The defect, spelled.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>It is <c>World.Deposit</c> and nothing else, which is the point.</b> Depositing into a Bin
+    /// is an ordinary, correct, wait-list-draining write that every Rule will make; what makes it a
+    /// defect here is only that <see cref="MoneySupplyTable.Issued"/> did not move with it. There is
+    /// no illegal call to write — the failure this invariant catches is a <em>missing second half</em>,
+    /// not a bad first one, and a test that reached past the API to produce it would be testing a
+    /// state the build cannot reach.
+    /// </remarks>
+    private static void Poke(World world, Handle<Household> household, long amount) =>
+        world.Deposit(
+            world.Households.Balance[world.Households.Rows.Resolve(household)],
+            amount,
+            world.Tick);
 
     private static Violation CaughtAtEnd(World world) =>
         Assert.Throws<InvariantViolationException>(
@@ -74,10 +101,9 @@ public sealed class MoneyConservationTests
     {
         World world = Built();
 
-        world.Endow(First(world), new Money(700), new Money(300));
+        world.Endow(First(world), new Money(1_000));
 
-        Assert.Equal(new Money(700), world.Households.Money[0]);
-        Assert.Equal(new Money(300), world.Households.Savings[0]);
+        Assert.Equal(new Money(1_000), world.BalanceOf(First(world)));
         Assert.Equal(new Money(1_000), world.MoneySupply.Issued[MoneySupplyTable.Slot]);
 
         world.Invariants.RunEndOfRun(world);
@@ -97,7 +123,7 @@ public sealed class MoneyConservationTests
     {
         World world = Built();
 
-        world.Households.Money[0] = new Money(1_000);
+        Poke(world, First(world), 1_000);
 
         Violation caught = CaughtAtEnd(world);
 
@@ -121,7 +147,7 @@ public sealed class MoneyConservationTests
         World world = Built();
 
         Handle<Household> household = First(world);
-        world.Endow(household, new Money(1_000), Money.Zero);
+        world.Endow(household, new Money(1_000));
 
         world.DestroyHousehold(household);
 
@@ -144,13 +170,13 @@ public sealed class MoneyConservationTests
     [Fact]
     public void A_household_paying_the_treasury_conserves_money()
     {
-        World world = Built(Moneyed());
+        World world = Built();
 
         int bin = Assert.Single<int>([.. world.TreasuryBins.Walk(TreasuryTable.Slot)]);
 
-        world.Endow(First(world), new Money(1_000), Money.Zero);
+        world.Endow(First(world), new Money(1_000));
 
-        world.Households.Money[0] -= new Money(400);
+        world.Withdraw(world.Households.Balance[0], 400, world.Tick);
         world.Deposit(world.Bins.Rows.At(bin), 400, world.Tick);
 
         Assert.Equal(400, world.Bins.LevelAt(bin));
@@ -173,8 +199,8 @@ public sealed class MoneyConservationTests
     {
         World world = Built();
 
-        world.Households.Money[0] = new Money(long.MaxValue);
-        world.Households.Savings[0] = new Money(long.MaxValue);
+        Poke(world, First(world), long.MaxValue);
+        Poke(world, world.Households.Rows.At(1), long.MaxValue);
 
         Assert.Equal(Invariant.MoneyIsRepresentable, CaughtAtEnd(world).Invariant);
     }
@@ -195,17 +221,14 @@ public sealed class MoneyConservationTests
         World world = Built();
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => world.Endow(First(world), new Money(-1), Money.Zero));
-
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => world.Endow(First(world), Money.Zero, new Money(-1)));
+            () => world.Endow(First(world), new Money(-1)));
     }
 
-    /// <summary>The one shipped Ruleset that declares money, loaded as the runner loads it.</summary>
+    /// <summary>A shipped Ruleset, loaded as the runner loads it. All five name money.</summary>
     private static Ruleset Moneyed()
     {
         RulesetLoadResult result = RulesetLoader.Load(
-            Path.Combine(AppContext.BaseDirectory, "Rulesets", "monetised.toml"));
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml"));
 
         Assert.True(result.Ok, result.Describe());
 

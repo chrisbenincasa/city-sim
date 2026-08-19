@@ -137,8 +137,11 @@ public sealed class RowsRestoreTests
         Assert.NotEqual(Rows.NoSlot, free);
         Assert.False(households.IsLive(free));
         Assert.Equal(0UL, households.IdAt(free));
-        Assert.Equal(new Money(0), world.Households.Money[free]);
-        Assert.Equal(new Money(0), world.Households.Savings[free]);
+        // The balance handle, which is what a Household's money is since adr/0114. A freed slot must
+        // hold a NONE handle rather than the last occupant's Bin: the next allocation of this slot
+        // would otherwise open holding somebody else's money, and the conservation sum would not
+        // notice, because the Bin is counted once either way.
+        Assert.True(world.Households.Balance[free].IsNone);
     }
 
     /// <summary>A header claiming more live rows than there are slots is refused.</summary>

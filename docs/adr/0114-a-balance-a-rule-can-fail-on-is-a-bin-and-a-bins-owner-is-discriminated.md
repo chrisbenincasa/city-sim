@@ -49,6 +49,15 @@ So a Household has one pool. What varies is how much of it the Household will sp
 
 ## Consequences
 
+✅ **BUILT 2026-08-19** — [`plans/0031`](../../plans/0031-conserved-money-and-the-treasury.md) tasks **1** (the discriminator and the treasury) and **4c** (the actors). Three amendments this ADR owes to its own build:
+
+⚠ **It underdetermined how a Bin names an actor, and the consequence below is written for a shape that was not built.** *"Two owners of different kinds may share an id, so the kind is part of the value"* presumes **one** handle column addressing four tables. Task 1 kept `BinTable.Owner` typed to `Building` and folded the kind as a separate column — satisfying the hash consequence a different way — on the ground that *"the treasury has no owner row to point at in any case"*. That ground holds for a **singleton** and expired the moment a Household needed naming. Task 4c settled it the third way: the link is a saved `HandleColumn<Bin>` **on the actor**, so `BinTable` is untouched, a rebuild has nothing to do, and the lookup is O(1). ***A Building holds many Bins because its kind declares many Resources; an actor holds one because money is one Resource*** — the asymmetry is cardinality, not carelessness.
+
+⚠ **A balance is conditional on the Ruleset in force, which this ADR does not say and which is its largest practical consequence.** A Bin exists only for a declared Resource, so a Household in a world whose file names no money **cannot hold any** — where `HouseholdTable.Money` held it whatever the file said. All five shipped Rulesets therefore gained a money `[[resource]]` block, and every code-built fixture that endows anybody had to start declaring one. ***Making a quantity conditional on the Ruleset turns every fixture's Ruleset into a statement about what that fixture can test.***
+
+⚠ **An actor holds at most one Bin, not one per Resource.** The final consequence below says *"at most one Bin per Resource, since `FindBin` is keyed (owner, resource)"*; a single saved handle is tighter than that, and `World.TryMoneyResource` **throws** on a second conserved Resource rather than balancing on the first — which would leave every actor holding one currency and none of the other while every conservation sum still added up, because money in a Resource nobody can hold is money nothing can lose. That is this ADR's third revisit trigger being demanded rather than defaulted.
+
+
 - **`BinTable.Owner` gains an owner kind**; `Building`, `Household`, `Business` and `Treasury` are the four. `World.FindBin` takes an owner rather than a Building slot, and `Scope.Global` resolves to the treasury Bin instead of throwing.
 - **`HouseholdTable.Money` and `.Savings` are both deleted**; a Household's balance is its money Bin. The State Hash moves and all three golden baselines re-record.
 - **`adr/0065`'s open question is closed**, and closed on a ground that ADR did not consider — it weighed width, arithmetic and denomination, and the answer came from the wait list.

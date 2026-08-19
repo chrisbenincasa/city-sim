@@ -38,10 +38,20 @@ public sealed class OccupancyTests
     private static readonly WorldKey Key = WorldKey.FromSeed(0x8000_0001UL);
 
     /// <summary>A dwelling, with the ceiling left as a token for <see cref="Housing"/> to fill.</summary>
+    /// <remarks>
+    /// <b>It names money because <c>The_evicted_keep_what_they_own</c> endows somebody</b>, and since
+    /// <c>adr/0114</c> a balance is a Bin — so a Household in a world whose Ruleset declares no money
+    /// has nowhere to hold any and <c>World.Endow</c> refuses. ***A fixture's Ruleset is a statement
+    /// about what that fixture can test***, which a column never made it.
+    /// </remarks>
     private const string Template = """
         [[resource]]
         name = "sundries"
         family = "good"
+
+        [[resource]]
+        name = "money"
+        family = "money"
 
         [[building]]
         name = "dwelling"
@@ -145,15 +155,12 @@ public sealed class OccupancyTests
     public void The_evicted_keep_what_they_own()
     {
         World world = City(households: 2, occupants: 2);
-        int slot = world.Households.Rows.Resolve(world.Households.Rows.At(0));
-
-        world.Endow(world.Households.Rows.At(0), new Money(1_234), new Money(5_678));
+        world.Endow(world.Households.Rows.At(0), new Money(6_912));
 
         world.Adopt(Load(Housing(0)), HashB, new Ticks(64), Key);
 
         Assert.Equal(2, world.UnplacedPool.Count);
-        Assert.Equal(new Money(1_234), world.Households.Money[slot]);
-        Assert.Equal(new Money(5_678), world.Households.Savings[slot]);
+        Assert.Equal(new Money(6_912), world.BalanceOf(world.Households.Rows.At(0)));
     }
 
     /// <summary>Raising the ceiling evicts nobody, and a reload that changes nothing evicts nobody.</summary>

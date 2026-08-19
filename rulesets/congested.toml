@@ -112,6 +112,53 @@ family = "good"
 name = "repairs"
 family = "good"
 
+# THE CURRENCY, AND IT IS THE ONE THING IN THIS FILE THAT IS NOT ABOUT GOODS MOVING.
+#
+# WHY IT IS HERE. Milestone 10 (plans/0031) builds conserved money, and the survey that opened it
+# found the gap is not that Money is missing but that NOTHING PRODUCES IT: Money is a signed 64-bit
+# quantity type, ResourceFamily.Money is a live enum member, and the loader refuses a capacity on a
+# money Bin by name -- while ALL FIVE SHIPPED RULESETS DECLARED family = "good" ON EVERY RESOURCE.
+# The only family = "money" declaration in the whole tree was inside a loader test, so the machinery
+# that refuses a badly-authored currency had never once met an authored one.
+#
+# THIS BLOCK IS THE WHOLE VOCABULARY A RULESET HAS FOR MONEY, and that is a decision rather than a
+# stub. World.FitTreasury walks the Resources at world creation and gives the treasury one unbounded
+# empty Bin per CONSERVED one (adr/0116); World.FitBalances does the same for every Household and
+# Business (adr/0114). So three lines is the entire authored surface -- no table, no kind to declare
+# it on, no key, nothing to tune.
+#
+# ⚠ IT ARRIVED IN THIS FILE IN TASK 4C AND LIVED IN A SEPARATE monetised.toml BEFORE THAT. That file
+# existed because minimal.toml named no money; adr/0114 then made a balance a BIN rather than a
+# column, and a Bin exists only for a Resource a Ruleset declares -- so a Household in a world on a
+# moneyless file cannot hold money AT ALL, where a column held it whatever the file said. The golden
+# session runs on this file, so keeping money out of it would have kept the committed baseline out of
+# the money model entirely. ***MAKING A QUANTITY CONDITIONAL ON THE RULESET MAKES EVERY FIXTURE'S
+# RULESET A STATEMENT ABOUT WHAT THAT FIXTURE CAN TEST.***
+#
+# IT IS NAMED AFTER ITS FAMILY BECAUSE NAMING A CURRENCY IS CONTENT. `sundries` above is deliberately
+# a word for goods too unimportant to name, which is this file's first line being obeyed; a currency
+# is different in kind, because it has a name a player reads on every panel in the game. Choosing one
+# here would be this file making precisely the decision it says it makes none of. `money` claims
+# nothing and cannot be mistaken for a claim.
+#
+# `family = "money"` IS WHAT MAKES IT CONSERVED -- never created or destroyed inside the city, the
+# Outside Connection being its only source and sink (adr/0024). That Connection is milestone 11 and
+# does not exist, so the money supply of a city on this file is FIXED for the whole of its life. A
+# closed system is the strongest form of the conservation invariant rather than a weaker one: the sum
+# is a constant checkable to the unit, with no gate flow to subtract first.
+#
+# AND IT IS FIXED AT ZERO IN EVERY WORLD THE SIMULATION BUILDS ON ITS OWN, because World.Endow is the
+# only door money enters by and no pass calls it. Every Household here opens an empty money Bin and
+# keeps it. Invariant.MoneyIsConserved is therefore correct and temporarily trivial, which is the
+# good side of 5b's vacuously-satisfied invariant: it becomes load-bearing the day a production
+# writer exists, with no edit to the assertion.
+#
+# THERE IS NO CAPACITY KEY HERE AND THE LOADER WOULD REFUSE ONE. A money Bin has no ceiling, and the
+# family is what says so; there is nothing to author and nothing to tune.
+[[resource]]
+name = "money"
+family = "money"
+
 # Kind 1, which is what Borough.Core.Entities.SyntheticCity builds and what Households are placed in.
 # A dwelling holding a Bin its Occupants draw from is CONTEXT -> Building's own sentence, and it is
 # the one shape available while `local` is the only scope with a Bin behind it.

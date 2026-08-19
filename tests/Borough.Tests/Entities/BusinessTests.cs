@@ -1,8 +1,10 @@
 using Borough.Core.Entities;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
+using Borough.Formats;
 
 namespace Borough.Tests.Entities;
 
@@ -27,12 +29,48 @@ public sealed class BusinessTests
 {
     private static (World World, Handle<Building> Premises) Built()
     {
-        var world = new World(1_000);
+        // A Ruleset that names money, because since adr/0114 a balance is a Bin and a Bin exists only
+        // for a declared Resource -- so on a moneyless file a Business has no balance to test.
+        var world = new World(1_000, Moneyed());
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
 
         return (world, building);
+    }
+
+    /// <summary>
+    /// Moves money between two actors' Bins. <b>The transfer, in the only spelling available.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Two halves of one movement, and neither touches the money supply</b>, which is what makes a
+    /// transfer conserving by construction rather than by arithmetic that happens to cancel. Since
+    /// <c>adr/0114</c> both halves are Bin writes, so both drain a wait list — a payee who was short
+    /// wakes on the arrival, and a payer's own output waiters wake on the space. That is the property
+    /// a pair of column writes did not have, and it is why the Rule engine can fail on money at all.
+    /// </remarks>
+    private static void Transfer(
+        World world,
+        Handle<Household> from,
+        Handle<Business> to,
+        long amount)
+    {
+        world.Withdraw(
+            world.Households.Balance[world.Households.Rows.Resolve(from)], amount, world.Tick);
+
+        world.Deposit(
+            world.Businesses.Balance[world.Businesses.Rows.Resolve(to)], amount, world.Tick);
+    }
+
+    /// <summary>A shipped Ruleset, loaded as the runner loads it. All five name money.</summary>
+    private static Ruleset Moneyed()
+    {
+        RulesetLoadResult result = RulesetLoader.Load(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "minimal.toml"));
+
+        Assert.True(result.Ok, result.Describe());
+
+        return result.Ruleset!;
     }
 
     [Fact]
@@ -43,7 +81,8 @@ public sealed class BusinessTests
         Handle<Business> business = world.CreateBusiness(premises);
         int slot = world.Businesses.Rows.Resolve(business);
 
-        Assert.Equal(Money.Zero, world.Businesses.Money[slot]);
+        Assert.Equal(Money.Zero, world.BalanceOf(business));
+        Assert.False(world.Businesses.Balance[slot].IsNone);
         Assert.Equal(
             premises,
             world.Businesses.Building[slot]);
@@ -94,8 +133,14 @@ public sealed class BusinessTests
     {
         (World world, Handle<Building> premises) = Built();
 
-        world.Businesses.Money[world.Businesses.Rows.Resolve(world.CreateBusiness(premises))]
-            = new Money(750);
+        Handle<Business> business = world.CreateBusiness(premises);
+
+        // Deposit and nothing else: an ordinary Bin write whose only fault is that the money supply
+        // did not move with it. See MoneyConservationTests.Poke.
+        world.Deposit(
+            world.Businesses.Balance[world.Businesses.Rows.Resolve(business)],
+            750,
+            world.Tick);
 
         Violation caught = Assert.Throws<InvariantViolationException>(
             () => world.Invariants.RunEndOfRun(world)).Violation;
@@ -119,13 +164,14 @@ public sealed class BusinessTests
         (World world, Handle<Building> premises) = Built();
 
         Handle<Household> household = world.CreateHousehold(premises, lifeStage: 1);
-        world.Endow(household, new Money(1_000), Money.Zero);
+        world.Endow(household, new Money(1_000));
 
-        int payer = world.Households.Rows.Resolve(household);
-        int payee = world.Businesses.Rows.Resolve(world.CreateBusiness(premises));
+        Handle<Business> business = world.CreateBusiness(premises);
 
-        world.Households.Money[payer] -= new Money(400);
-        world.Businesses.Money[payee] += new Money(400);
+        Transfer(world, household, business, 400);
+
+        Assert.Equal(new Money(600), world.BalanceOf(household));
+        Assert.Equal(new Money(400), world.BalanceOf(business));
 
         world.Invariants.RunEndOfRun(world);
     }
@@ -153,17 +199,17 @@ public sealed class BusinessTests
         (World world, Handle<Building> premises) = Built();
 
         Handle<Household> household = world.CreateHousehold(premises, lifeStage: 1);
-        world.Endow(household, new Money(1_000), Money.Zero);
+        world.Endow(household, new Money(1_000));
 
-        int slot = world.Businesses.Rows.Resolve(world.CreateBusiness(premises));
+        Handle<Business> business = world.CreateBusiness(premises);
+        int slot = world.Businesses.Rows.Resolve(business);
 
-        world.Households.Money[world.Households.Rows.Resolve(household)] -= new Money(600);
-        world.Businesses.Money[slot] += new Money(600);
+        Transfer(world, household, business, 600);
 
         world.DestroyBuilding(premises, Ticks.Zero);
 
         Assert.True(world.Businesses.Rows.IsLive(slot));
-        Assert.Equal(new Money(600), world.Businesses.Money[slot]);
+        Assert.Equal(new Money(600), world.BalanceOf(business));
         Assert.False(world.Buildings.Rows.TryResolve(world.Businesses.Building[slot], out _));
 
         world.Invariants.RunEndOfRun(world);

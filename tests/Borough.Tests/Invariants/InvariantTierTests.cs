@@ -35,6 +35,19 @@ public sealed class InvariantTierTests
 {
     // A world where the interesting rows exist: one Building on one Lot, one Household in it, two
     // Citizens in that Household.
+    /// <summary><see cref="Built"/>, on a Ruleset that names money so a balance exists.</summary>
+    private static World Moneyed()
+    {
+        var world = new World(1_000, TestRulesets.MoneyOnly);
+
+        Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
+        Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 1);
+
+        world.CreateHousehold(building, lifeStage: 1);
+
+        return world;
+    }
+
     private static World Built()
     {
         var world = new World(1_000);
@@ -301,14 +314,27 @@ public sealed class InvariantTierTests
     }
 
     /// <summary><c>adr/0003</c>'s overflow detector: an accumulator with no sink, at the far end.</summary>
+    /// <remarks>
+    /// <b>It builds its own world because <see cref="Built"/>'s Ruleset names no money</b>, and since
+    /// <c>adr/0114</c> that means its Households have no balance to overflow. Leaving the fixture
+    /// moneyless is deliberate: it is the world every other test in this class runs on, and the point
+    /// of those is that the ordinary API violates nothing.
+    /// </remarks>
     [Fact]
     public void Money_that_has_run_away_is_caught()
     {
-        World world = Built();
+        World world = Moneyed();
         Handle<Household> second = world.CreateHousehold(world.Buildings.Rows.At(0), lifeStage: 1);
 
-        world.Households.Money[0] = new Money(long.MaxValue);
-        world.Households.Savings[world.Households.Rows.Resolve(second)] = new Money(long.MaxValue);
+        // Deposited rather than assigned, because a balance is a Bin since adr/0114 -- and Deposit is
+        // a correct call, which is the point: what overflows is the SUM over two legitimate balances,
+        // not any one of them. Two Households because one unbounded Bin cannot hold long.MaxValue
+        // twice.
+        world.Deposit(world.Households.Balance[0], long.MaxValue, world.Tick);
+        world.Deposit(
+            world.Households.Balance[world.Households.Rows.Resolve(second)],
+            long.MaxValue,
+            world.Tick);
 
         Assert.Equal(Invariant.MoneyIsRepresentable, CaughtAtEnd(world));
     }

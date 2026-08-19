@@ -1,5 +1,6 @@
 using Borough.Core.Entities;
 using Borough.Core.Movement;
+using Borough.Core.Rules;
 using Borough.Core.Quantities;
 using Borough.Core.Space;
 using Borough.Core.Tables;
@@ -190,7 +191,8 @@ public sealed class TripTableTests
 
         LotTable lots = new(4);
         BuildingTable buildings = new(4, lots);
-        HouseholdTable households = new(4, buildings);
+        BinTable bins = new(4, buildings);
+        HouseholdTable households = new(4, buildings, bins);
         CitizenTable citizens = new(4, households, buildings);
         TravellerTable travellers = new(4, citizens, trips);
 

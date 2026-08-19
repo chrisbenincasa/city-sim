@@ -36,8 +36,13 @@ public sealed class UnplacedPoolTests
     /// so the spare place is the fixture stating that it is testing the Pool and not the ceiling.
     /// </para>
     /// </remarks>
+    /// <remarks>
+    /// <b>It names money because <c>An_evicted_household_keeps_its_balance</c> endows somebody</b>, and
+    /// since <c>adr/0114</c> a balance is a Bin — so a Household in a world whose Ruleset declares no
+    /// money has nowhere to hold any and <c>World.Endow</c> refuses.
+    /// </remarks>
     private static Ruleset Housing(int occupants) => new(
-        resources: [],
+        resources: [ResourceFamily.Money],
         rules: [],
         kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = occupants }],
         inputs: [],
@@ -135,24 +140,22 @@ public sealed class UnplacedPoolTests
     /// <c>adr/0054</c>'s cheapest claim: a Household keeps what it owns when the city stops housing it.
     /// </summary>
     /// <remarks>
-    /// <b>Worth a test precisely because it required no code.</b> Eviction does not write to
-    /// <c>Money</c> or <c>Savings</c>, so the property holds by omission — and a property that holds
-    /// by omission is one a later edit can remove without noticing. <c>adr/0024</c> makes it a leak in
+    /// <b>Worth a test precisely because it required no code.</b> Eviction does not write to the
+    /// balance handle, so the property holds by omission — and a property that holds by omission is one
+    /// a later edit can remove without noticing. <c>adr/0024</c> makes it a leak in
     /// conserved Money, which the end-of-run walk would report far from the cause.
     /// </remarks>
     [Fact]
-    public void An_evicted_household_keeps_its_money_and_savings()
+    public void An_evicted_household_keeps_its_balance()
     {
         World world = Built();
         Handle<Household> household = Household(world, 0);
-        int slot = world.Households.Rows.Resolve(household);
 
-        world.Endow(household, new Money(1_234), new Money(5_678));
+        world.Endow(household, new Money(6_912));
 
         world.Unplace(household);
 
-        Assert.Equal(new Money(1_234), world.Households.Money[slot]);
-        Assert.Equal(new Money(5_678), world.Households.Savings[slot]);
+        Assert.Equal(new Money(6_912), world.BalanceOf(household));
     }
 
     [Fact]

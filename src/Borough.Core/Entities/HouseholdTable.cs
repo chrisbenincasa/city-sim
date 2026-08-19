@@ -1,6 +1,6 @@
 namespace Borough.Core.Entities;
 
-using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Tables;
 
 /// <summary>
@@ -29,9 +29,11 @@ public sealed class HouseholdTable
 
     /// <param name="capacity">Initial slot count. 360 Households per 1,000 Citizens, per S4 task 2.</param>
     /// <param name="buildings">The table this one's dwelling handles address.</param>
-    public HouseholdTable(int capacity, BuildingTable buildings)
+    /// <param name="bins">The table this one's balance handles address.</param>
+    public HouseholdTable(int capacity, BuildingTable buildings, BinTable bins)
     {
         ArgumentNullException.ThrowIfNull(buildings);
+        ArgumentNullException.ThrowIfNull(bins);
 
         _rows = new Rows<Household>("household", capacity, Buffering.OneCopy);
 
@@ -41,8 +43,7 @@ public sealed class HouseholdTable
         PoolSlot = _rows.Derived<int>("pool_slot");
         MemberHead = _rows.Derived<int>("member_head");
         MemberTail = _rows.Derived<int>("member_tail");
-        Money = _rows.Saved<Money>("money", Touch.Cold);
-        Savings = _rows.Saved<Money>("savings", Touch.Cold);
+        Balance = _rows.SavedHandle("balance", bins.Rows, reference: Reference.Required);
 
         _rows.Seal();
     }
@@ -84,11 +85,45 @@ public sealed class HouseholdTable
     /// <summary>Tail of the member list.</summary>
     public Column<int> MemberTail { get; }
 
-    /// <summary>Money on hand.</summary>
-    public Column<Money> Money { get; }
-
-    /// <summary>Money set aside.</summary>
-    public Column<Money> Savings { get; }
+    /// <summary>
+    /// This Household's money Bin — its balance (<c>adr/0114</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A balance is a Bin because a Bin is the only thing a Rule can blame and wait on.</b> This
+    /// was two <c>Saved&lt;Money&gt;</c> columns, <c>money</c> and <c>savings</c>, until milestone 10
+    /// task 4c. A Rule short of money held in a column cannot say what stopped it, has no list to
+    /// join, is woken by nothing and reports no <c>Blocking</c> — so <c>adr/0050</c>'s bankruptcy
+    /// diagnosis, which is the whole payoff, could not be written.
+    /// </para>
+    /// <para>
+    /// <b>The link is here rather than on the Bin, and the asymmetry with a Building has a reason.</b>
+    /// A Building holds <em>many</em> Bins because its kind declares many Resources, so it carries a
+    /// list and each Bin names it back through <see cref="BinTable.Owner"/>. An actor holds
+    /// exactly <em>one</em>, because money is one Resource — so a single saved handle is the whole
+    /// relationship, <c>World.FindActorBin</c> is O(1) rather than a list walk, and
+    /// <c>World.RebuildDerived</c> has nothing to rebuild. ⚠ <b>A second conserved Resource makes this
+    /// wrong and throws by name</b> rather than silently holding the first one; <c>adr/0114</c>'s own
+    /// revisit trigger already calls that a decision rather than a detail.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Unset means the Ruleset in force names no money, not that this Household is broke.</b> A
+    /// Bin exists only for a Resource a Ruleset declares, so a balance is conditional on the file —
+    /// which a column never was. <see cref="Reference.Required"/> is still right: an unset handle is
+    /// not dangling, and a <em>set</em> one whose Bin was freed under a living Household is a defect
+    /// <c>Invariant.CrossTableHandleResolves</c> reports for free.
+    /// </para>
+    /// <para>
+    /// ✅ <b><c>savings</c> is deleted rather than moved, and it was never a second account.</b> Every
+    /// design sentence about it describes a <em>threshold</em> — <c>adr/0024</c>'s <em>"reserve sized
+    /// by its Life Stage"</em>, its revisit trigger's <em>"savings buffer… where velocity is set"</em>
+    /// — so a Household has one pool and what varies is how much of it it will spend. The reserve is
+    /// derived from Life Stage and the Ruleset in force when something spends money, which is
+    /// milestone <b>14</b>. ***A threshold stored as a stock reads as a second account, and every
+    /// document that later names the pair inherits it.***
+    /// </para>
+    /// </remarks>
+    public HandleColumn<Bin> Balance { get; }
 
     /// <summary>Whether this Household is in the Unplaced Pool.</summary>
     public bool IsUnplaced(int slot) => PoolSlot[slot] != 0;

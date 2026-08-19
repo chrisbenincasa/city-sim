@@ -641,23 +641,62 @@ public static class WorldInvariants
     /// </remarks>
     internal static void MoneyIsRepresentable(World world, InvariantRegistry report)
     {
-        HouseholdTable households = world.Households;
-        long total = 0;
-
-        for (int slot = 0; slot < households.Rows.SlotCount; slot++)
+        if (!TrySumBalances(world, out _, out int overflowed))
         {
-            if (!households.Rows.IsLive(slot))
+            report.Report(Invariant.MoneyIsRepresentable, overflowed);
+        }
+    }
+
+    /// <summary>
+    /// Sums every live Bin holding a conserved Resource, whoever owns it. <b>All the money there is.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One walk, and it is owner-agnostic on purpose.</b> Before <c>adr/0114</c> money sat in three
+    /// kinds of place — two columns on a Household, a column on a Business, and the treasury's Bin —
+    /// so both checks that read it enumerated the actors, and every new actor owed them an edit. Task
+    /// 4b paid exactly that edit. A balance is now a Bin whatever holds it, so a milestone adding a
+    /// fifth owner kind is covered the day it creates its first Bin. ***An enumeration of owners is a
+    /// list somebody has to remember to extend; a filter on the Resource is not.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Keyed on the Resource being conserved rather than on the owner kind</b>, which is what
+    /// makes a Building's money Bin — should <c>adr/0113</c> ever be reversed — counted rather than
+    /// missed. <c>Ruleset.IsConserved</c> is the Money family, so a Ruleset naming no money sums
+    /// nothing and both checks are vacuous rather than wrong.
+    /// </para>
+    /// <para>
+    /// <b>Shared rather than written twice, because the two checks must not be able to disagree about
+    /// where money lives.</b> If one walked a place the other did not, an overflow in that place would
+    /// be reported as a conservation failure or the reverse — one bug under the other's name, which is
+    /// the exact confusion the registration order below exists to prevent.
+    /// </para>
+    /// </remarks>
+    /// <param name="world">The world to sum.</param>
+    /// <param name="total">The sum, valid only when this returns <c>true</c>.</param>
+    /// <param name="overflowed">The Bin the sum ran away on, or <c>Rows.NoSlot</c>.</param>
+    private static bool TrySumBalances(World world, out long total, out int overflowed)
+    {
+        BinTable bins = world.Bins;
+
+        total = 0;
+
+        for (int slot = 0; slot < bins.Rows.SlotCount; slot++)
+        {
+            if (!bins.Rows.IsLive(slot) || !world.Rules.IsConserved(bins.Resource[slot]))
             {
                 continue;
             }
 
-            if (!TryAdd(ref total, households.Money[slot])
-                || !TryAdd(ref total, households.Savings[slot]))
+            if (!TryAdd(ref total, new Money(bins.LevelAt(slot))))
             {
-                report.Report(Invariant.MoneyIsRepresentable, slot);
-                return;
+                overflowed = slot;
+                return false;
             }
         }
+
+        overflowed = Rows.NoSlot;
+        return true;
     }
 
     /// <summary>
@@ -671,13 +710,10 @@ public static class WorldInvariants
     /// each half is on <see cref="Invariant.MoneyIsConserved"/>.
     /// </para>
     /// <para>
-    /// <b>The places money can sit are three.</b> A Household's two columns; a Business's balance
-    /// (<c>adr/0113</c>, task 4b); and any Bin whose Resource is conserved — which today is the
-    /// treasury's alone, since <c>World.FitTreasury</c> is the only thing that makes one. A place money
-    /// can sit that this method does not visit reads as money <em>destroyed</em>, so this list is the
-    /// thing to check when the invariant fires on a milestone that added an actor. Adding the Business
-    /// walk was the whole of what task 4b owed this check, which is the property a balance-on-the-actor
-    /// has and a Bin-on-the-container would not.
+    /// <b>The places money can sit are one</b> since <c>adr/0114</c>: a Bin whose Resource is
+    /// conserved. Its owner may be a Household, a Business or the treasury and this does not ask — see
+    /// <see cref="TrySumBalances"/>, which is where that stopped being a list of actors to keep up to
+    /// date.
     /// </para>
     /// <para>
     /// <b>It returns silently on overflow rather than reporting.</b> A sum that cannot be represented
@@ -691,51 +727,9 @@ public static class WorldInvariants
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(report);
 
-        HouseholdTable households = world.Households;
-        long held = 0;
-
-        for (int slot = 0; slot < households.Rows.SlotCount; slot++)
+        if (!TrySumBalances(world, out long held, out _))
         {
-            if (!households.Rows.IsLive(slot))
-            {
-                continue;
-            }
-
-            if (!TryAdd(ref held, households.Money[slot])
-                || !TryAdd(ref held, households.Savings[slot]))
-            {
-                return;
-            }
-        }
-
-        BusinessTable businesses = world.Businesses;
-
-        for (int slot = 0; slot < businesses.Rows.SlotCount; slot++)
-        {
-            if (!businesses.Rows.IsLive(slot))
-            {
-                continue;
-            }
-
-            if (!TryAdd(ref held, businesses.Money[slot]))
-            {
-                return;
-            }
-        }
-
-        BinTable bins = world.Bins;
-
-        for (int slot = 0; slot < bins.Rows.SlotCount; slot++)
-        {
-            if (!bins.Rows.IsLive(slot) || !world.Rules.IsConserved(bins.Resource[slot]))
-            {
-                continue;
-            }
-
-            if (!TryAdd(ref held, new Money(bins.LevelAt(slot))))
-            {
-                return;
-            }
+            return;
         }
 
         long issued = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;

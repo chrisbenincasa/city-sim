@@ -1,5 +1,6 @@
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Tables;
 
 namespace Borough.Tests.Tables;
@@ -52,17 +53,24 @@ public class StateHashTests
     }
 
     /// <summary>
-    /// A cold column counts as much as a per-Tick one. Household economics is entirely
-    /// <see cref="Touch.Cold"/> and entirely <see cref="Disposition.Saved"/>; a hash that skipped it
-    /// would go blind precisely where the money is.
+    /// A cold column counts as much as a per-Tick one. The money supply is
+    /// <see cref="Touch.Cold"/> and <see cref="Disposition.Saved"/>; a hash that skipped it would go
+    /// blind precisely where the money is.
     /// </summary>
+    /// <remarks>
+    /// <b>It read <c>Households.Savings</c> until milestone 10 task 4c</b>, which <c>adr/0114</c>
+    /// deleted along with <c>Households.Money</c> — a balance is a Bin now, and a Bin's level is not a
+    /// cold column. <see cref="MoneySupplyTable.Issued"/> is the cold saved column money left behind,
+    /// so the claim is unchanged and the subject moved. The write leaves the world unconserved, which
+    /// costs nothing here because this class asserts on the hash and never runs the invariants.
+    /// </remarks>
     [Fact]
     public void Changing_a_cold_saved_field_moves_the_hash()
     {
         World world = Build();
         ulong before = world.HashState();
 
-        world.Households.Savings[0] = new Money(1);
+        world.MoneySupply.Issued[MoneySupplyTable.Slot] += new Money(1);
 
         Assert.NotEqual(before, world.HashState());
     }
@@ -177,13 +185,15 @@ public class StateHashTests
 
     private static World Build(int population)
     {
-        var world = new World(population);
+        // A Ruleset naming money, because Endow below needs somewhere to put it: since adr/0114 a
+        // balance is a Bin, and a Bin exists only for a Resource a Ruleset declares.
+        var world = new World(population, TestRulesets.MoneyOnly);
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(4), new Tiles(6), zone: 1);
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, kind: 3);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 2);
 
-        world.Endow(household, new Money(500), Money.Zero);
+        world.Endow(household, new Money(500));
 
         for (int i = 0; i < 3; i++)
         {
