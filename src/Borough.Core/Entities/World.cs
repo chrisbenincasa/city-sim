@@ -1683,6 +1683,137 @@ public sealed class World
     }
 
     /// <summary>
+    /// Takes the nearest parking space with room to <paramref name="door"/>, and records that
+    /// <paramref name="citizenSlot"/> holds it.
+    /// </summary>
+    /// <param name="citizenSlot">The driver. <c>adr/0119</c> puts the space on the Citizen.</param>
+    /// <param name="door">The Access Point being arrived at.</param>
+    /// <param name="scratch">The caller's own scratch. Never shared across threads.</param>
+    /// <param name="carParkSlot">The Car Park taken, or <see cref="Rows.NoSlot"/>.</param>
+    /// <returns>Whether a space was found.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The two writes are here together because neither is correct alone</b>, which is why
+    /// <see cref="Parking.CarParkTable.Move"/> is <see langword="internal"/>. An occupancy bumped
+    /// without a holder is capacity conjured from nothing and a holder written without an occupancy is
+    /// a space two Citizens can take — the <c>adr/0006</c>-class pair <c>adr/0084</c>'s two invariants
+    /// exist to catch, and the only defence that does not rely on remembering is that one method does
+    /// both.
+    /// </para>
+    /// <para>
+    /// <b>Nearest-first, first with room, and <em>not</em> nearest-with-room</b>, which is
+    /// <c>adr/0009</c>'s sentence taken literally: <i>"nearest-first, and takes the first with
+    /// capacity"</i>. The distinction is invisible while the shed is ordered — the first with room
+    /// <em>is</em> the nearest with room — and it stops being invisible if anything ever reorders the
+    /// answer, so the walk is written to depend on the order rather than to re-derive it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>An exhausted shed answers <see langword="false"/> and must never answer
+    /// <see cref="VehicleAccessPoint"/>.</b> <c>adr/0008</c> forbids the fallback by name, because a
+    /// kerbside space at zero cost makes a full car park cheaper than an empty one — the failure that
+    /// reads as generosity rather than as a bug. The caller's honest answers are to widen or to fail;
+    /// what it may not do is arrive for free.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><see cref="Parking.CarParkTable.SpaceAt"/> may read negative and the test is therefore
+    /// <c>&gt; 0</c> rather than <c>!= 0</c>.</b> A lowered <c>[[building]] parking</c> lands the
+    /// derived ceiling under the standing occupancy until the overflow is dismissed, and a
+    /// <c>!= 0</c> test would read that as room.
+    /// </para>
+    /// </remarks>
+    internal bool TryTakeParking(
+        int citizenSlot, Address door, Parking.ShedScratch scratch, out int carParkSlot)
+    {
+        ArgumentNullException.ThrowIfNull(scratch);
+
+        carParkSlot = Rows.NoSlot;
+
+        if (!Rules.Parking.Runs || !door.Exists)
+        {
+            return false;
+        }
+
+        Span<int> shed = stackalloc int[Rules.Parking.Keeps];
+
+        int kept = Parking.ParkingShed.Nearest(
+            Roads, CarParks, CarParksOnSegments, door, Rules.Parking.Radius, scratch, shed, out _);
+
+        for (int i = 0; i < kept; i++)
+        {
+            int candidate = shed[i];
+
+            if (CarParks.SpaceAt(candidate) > 0)
+            {
+                CarParks.Move(candidate, 1);
+                Citizens.ParkedIn[citizenSlot] = CarParks.Rows.At(candidate);
+                carParkSlot = candidate;
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Gives up the parking space <paramref name="citizenSlot"/> holds, if it holds one.
+    /// </summary>
+    /// <returns>Whether a space was given up.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>It consults no shed, which is <c>adr/0083</c>'s own sentence</b> — <i>"a departing car knows
+    /// which Bin it holds, so it decrements that Bin directly"</i>. That is what makes the release
+    /// <c>O(1)</c> against the acquire's ball, and it is why the holder is a column rather than a
+    /// thing to be searched for.
+    /// </para>
+    /// <para>
+    /// <b>A Citizen holding nothing is the ordinary answer and not a violation.</b> A walker, a
+    /// Citizen who has never driven, and a driver already in motion are all <i>parked nowhere</i>, and
+    /// <c>CitizenTable.ParkedIn</c>'s zero handle says so without a sentinel. The invariant fires on
+    /// the different case below.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A handle that does not resolve is a demolished Car Park, and it is <em>not</em> a
+    /// violation either</b> — <c>ParkedIn</c> is <c>Reference.Severable</c> exactly so this is
+    /// representable. Both sides of <c>adr/0084</c>'s conservation sum lose the row together, so a
+    /// garage torn down under a parked car cannot read as a leak. What the column is cleared to is the
+    /// same zero, and the occupancy is not decremented because the row it would be decremented on is
+    /// gone.
+    /// </para>
+    /// </remarks>
+    internal bool ReleaseParking(int citizenSlot)
+    {
+        Handle<Parking.CarPark> held = Citizens.ParkedIn[citizenSlot];
+
+        if (held.Equals(default))
+        {
+            return false;
+        }
+
+        if (!CarParks.Rows.TryResolve(held, out int carParkSlot))
+        {
+            // The garage was demolished under a parked car. adr/0079's named absence: the holding is
+            // dropped without a decrement, because DestroyBuilding already freed the row that carried
+            // the occupancy. Decrementing here would be adr/0084's sum losing one side and not the
+            // other, which is the leak the invariant is for rather than a repair of it.
+            Citizens.ParkedIn[citizenSlot] = default;
+
+            return false;
+        }
+
+        Invariants.Require(
+            CarParks.Occupied[carParkSlot] > 0,
+            Invariant.ParkingSpaceIsReleasedOnce,
+            citizenSlot,
+            carParkSlot);
+
+        CarParks.Move(carParkSlot, -1);
+        Citizens.ParkedIn[citizenSlot] = default;
+
+        return true;
+    }
+
+    /// <summary>
     /// Whether <paramref name="buildingSlot"/> has a job nobody holds.
     /// </summary>
     /// <remarks>

@@ -387,6 +387,15 @@ it is a check *at the write site*, `O(1)`, on a condition that holds **by constr
 would be writing it at the moment its author is least able to notice the pairing is wrong, which is
 5b's argument for shipping `SegmentVolumeIsConserved` vacuously, running forwards.
 
+⚠ **Task 4 ships a mechanism with no production caller, and task 5 is what gives it one.** `World`'s
+`TryTakeParking`/`ReleaseParking` pair, `Invariant.ParkingSpaceIsReleasedOnce` and the seven tests in
+`ParkingHoldTests` are reachable only from the test assembly until the Legs are wired. **That is the
+same shape this document already complains about two paragraphs down** — `World.AccessPoint` was
+written for this milestone and has been dead since — so it is recorded rather than discovered later:
+***a mechanism whose only caller is its test is a claim about the build that no run holds.*** It is
+acceptable here for one task and is not acceptable at the end of the milestone; if task 5 slips, this
+pair is what should be deleted rather than left standing.
+
 ### Task 5 — the endpoint swap, and the walk that stops being free
 
 `TripEngine.cs:423-424` — two lines. `waypoints[1]` and `waypoints[2]` stop being
