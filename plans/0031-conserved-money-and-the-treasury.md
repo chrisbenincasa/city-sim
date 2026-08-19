@@ -683,8 +683,28 @@ flip landed in the free list, `Rows.Restore`'s structural walk refused it, and *
 refused**, so only the message assertion noticed that a different mechanism had taken over. ***A byte
 index counted from the end of a file is a claim about which table is last***, and `World._tables`'
 own remark calls appending *"the only edit to this list that does not move rows relative to one
-another"* — which is true of the composition and false of the file's tail. The fixture now puts a
-Business in that world so the last table has data.
+another"* — which is true of the composition and false of the file's tail.
+
+⚠ **The first repair was a fixture and it would have re-broken on the next appended table** — put a
+Business in that world so the last table has data, and the flip lands in a data column again *today*.
+`bytes[^9]` still meant *the ninth byte from the end*, so milestone 11's first table would have moved the
+mechanism a second time, and the paragraph above would have been the thing somebody read on the way to
+adding a row to *that* table instead. ***An annotation that names a trap exactly is not a removal of
+it***, and the tell is that it has to be read at the moment of a change nobody is thinking about this
+test during. **Corrected the same day**, flagged by the milestone 8 session — whose subject area the save
+format is, and which had swept the suite and established the class has exactly one member, the
+distinguishing property being not *counts from the end* but *counts from the end **and** must land in a
+particular kind of byte*. `SaveHashTests.ByteIn(world, "household", "money", slot: 0)` derives the offset
+from the field declaration in force — per table, `SaveFile.ScalarBytes` then each saved column at
+`BytesPerRow × SlotCount`, which is what `adr/0086` makes the format — and **refuses an allocator column
+by name** rather than trusting a position to miss one. Appending a table now cannot reach it, adding a
+column moves it correctly, and *renaming* `household.money` fails loudly where it used to fail silently.
+The Business stays in the fixture for a **different** reason, which is the durable one:
+`business.building` is a saved **severable** handle column, and a fold over a copy differs from a fold
+over a live column exactly there. ***A trap removed and a fixture kept are two changes, and the fixture
+needed a reason that survives the removal.*** One smaller thing fell out: `SaveFile.ScalarBytes` was
+restated privately in `SaveHash` and about to be restated a third time in the test, so it is **internal
+now with one home** — `plans/0012` *Cause 1* in code, caught before the third copy rather than after it.
 
 **Cost:** one new table with two saved columns and three derived ones, so **`world-hash.txt` and
 `session-trace.txt` re-record** (`0x47E1A7AAEB34043E`); neither Ruleset content hash moves.

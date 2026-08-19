@@ -3,6 +3,7 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Persistence;
 using Borough.Core.Quantities;
+using Borough.Core.Tables;
 using Borough.Tests.Golden;
 using Xunit.Abstractions;
 
@@ -132,10 +133,25 @@ public sealed class SaveHashTests(ITestOutputHelper output)
     /// quietly not the one that was saved.
     /// </summary>
     /// <remarks>
-    /// <b>The byte is flipped near the end of the file on purpose.</b> The first columns of the first
-    /// table are <c>id</c>, <c>generation</c> and <c>free_next</c>, and corrupting those trips
-    /// <c>Rows.Restore</c>'s own walk — which is a different mechanism refusing for a different reason.
-    /// What is being tested is the case that walk cannot see.
+    /// <para>
+    /// <b>The byte has to land in a data column, and it is located from the field declaration rather
+    /// than from either end of the file.</b> Every table opens with <c>id</c>, <c>generation</c> and
+    /// <c>free_next</c>, and every table's block opens with four allocator scalars; corrupting any of
+    /// those trips <c>Rows.Restore</c>'s own consistency walk, which is a different mechanism refusing
+    /// for a different reason. What is being tested is the case that walk cannot see.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It was <c>bytes[^9]</c> until milestone 10 task 4b, and appending one table silently changed
+    /// which mechanism this test exercises.</b> <c>business</c> went on the end of <c>World.Tables</c>
+    /// with no rows in it, so the last twenty bytes of the file became that table's allocator scalars
+    /// and the flip landed in its free head. The load still refused, the test still passed, and only the
+    /// assertion on the <em>message</em> noticed. ***A byte index counted from the end of a file is a
+    /// claim about which table is last***, and <c>World.Tables</c>' own remark calls appending <em>"the
+    /// only edit to this list that does not move rows relative to one another"</em> — true of the
+    /// composition, false of the file's tail. <see cref="ByteIn"/> removes the trap rather than
+    /// documenting it: it names the table and the column, so appending a table cannot reach this and a
+    /// <em>renamed</em> column fails loudly instead of quietly.
+    /// </para>
     /// </remarks>
     [Fact]
     public void A_flipped_byte_in_the_body_is_refused_by_the_load()
@@ -146,7 +162,7 @@ public sealed class SaveHashTests(ITestOutputHelper output)
         SaveFile.Write(world, InForce, new WorldSnapshot(), file);
 
         byte[] bytes = file.Bytes;
-        bytes[^9] ^= 0xFF;
+        bytes[ByteIn(world, "household", "money", slot: 0)] ^= 0xFF;
 
         var corrupt = new MemorySave();
         corrupt.Write(bytes);
@@ -182,6 +198,53 @@ public sealed class SaveHashTests(ITestOutputHelper output)
         Assert.Contains("save body", refusal);
     }
 
+    /// <summary>
+    /// The offset, in a whole save file, of slot <paramref name="slot"/>'s first byte in a named saved
+    /// column of a named table.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It walks the layout <see cref="SaveFile.WriteBody"/> writes</b> — per table, four allocator
+    /// scalars then every saved column at <c>BytesPerRow × SlotCount</c> — which <c>adr/0086</c> makes
+    /// the format. So the position is derived from the field declaration in force, and a build that
+    /// appends a table, adds a column or changes a width moves it correctly with no edit here.
+    /// </para>
+    /// <para>
+    /// <b>It refuses an allocator column rather than returning its offset</b>, because those three are
+    /// the ones <c>Rows.Restore</c> checks structurally, so a flip in them tests a different mechanism.
+    /// Asking by name is what makes that mistake impossible to make quietly.
+    /// </para>
+    /// </remarks>
+    private static int ByteIn(World world, string table, string column, int slot)
+    {
+        string[] allocator = ["id", "generation", "free_next"];
+
+        int offset = SaveHeader.Bytes;
+
+        foreach (Rows rows in world.Tables)
+        {
+            int at = offset + SaveFile.ScalarBytes;
+
+            foreach (Column field in rows.SavedColumns)
+            {
+                if (rows.Name == table && field.Name == column)
+                {
+                    Assert.DoesNotContain(field.Name, allocator);
+                    Assert.InRange(slot, 0, rows.SlotCount - 1);
+
+                    return at + (field.BytesPerRow * slot);
+                }
+
+                at += field.BytesPerRow * rows.SlotCount;
+            }
+
+            offset = at;
+        }
+
+        Assert.Fail($"no saved column '{column}' in a table named '{table}'.");
+        return 0;
+    }
+
     private static World Stepped(int ticks)
     {
         var key = WorldKey.FromSeed(GoldenFixtures.Seed);
@@ -195,16 +258,11 @@ public sealed class SaveHashTests(ITestOutputHelper output)
             simulation.Step(default);
         }
 
-        // A Business, so the LAST table in the composition has rows in it. Milestone 10 task 4b
-        // appended `business` and no pass creates one, so this world's final table was four allocator
-        // scalars and nothing else -- and A_flipped_byte_in_the_body_is_refused_by_the_load flips
-        // bytes[^9], which then landed in the free-list scalar and tripped Rows.Restore's structural
-        // walk instead of the hash check. The load still refused, so only the message assertion
-        // noticed.
-        //
-        // ⚠ A byte index counted from the END of a file is a claim about which table is last, and
-        // World._tables' own remark calls appending "the only edit to this list that does not move
-        // rows relative to one another". That is true of the composition and false of the file's tail.
+        // A Business, so `business` has rows. Nothing in the build creates one -- milestone 10 task 4b
+        // appended the table and its only door has no production caller yet -- so without this every
+        // case here folds an empty block, and `business.building` is a saved SEVERABLE handle column:
+        // exactly the kind whose fold over a copy differs from its fold over a live column, and the
+        // reason A_fold_over_the_copy_is_the_state_hash sweeps Ticks at all.
         world.CreateBusiness(world.Buildings.Rows.At(0));
 
         return world;

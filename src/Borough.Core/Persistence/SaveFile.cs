@@ -31,8 +31,16 @@ using Borough.Core.Tables;
 /// </remarks>
 public static class SaveFile
 {
-    /// <summary>The four allocator scalars, per table: slot count, live count, free head, next id.</summary>
-    private const int ScalarBytes = 4 + 4 + 4 + 8;
+    /// <summary>
+    /// The four allocator scalars, per table: slot count, live count, free head, next id.
+    /// </summary>
+    /// <remarks>
+    /// <b>Internal because it is the format, and the format has readers other than the writer.</b>
+    /// <see cref="SaveHash"/> walks the same layout to find a column's bytes, and a test locating a byte
+    /// inside a named column walks it too. It was restated in each; ***a layout constant copied per
+    /// reader is one fact in three files***, which is <c>plans/0012</c> Cause 1 in code.
+    /// </remarks>
+    internal const int ScalarBytes = 4 + 4 + 4 + 8;
 
     /// <summary>Writes a world. The sink owns the file; this owns the order.</summary>
     /// <param name="world">The world to write. Read, never modified.</param>

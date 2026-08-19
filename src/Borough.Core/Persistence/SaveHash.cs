@@ -43,8 +43,8 @@ using Borough.Core.Tables;
 /// </remarks>
 public static class SaveHash
 {
-    /// <summary>The four allocator scalars, per table. <see cref="SaveFile"/>'s, restated.</summary>
-    private const int ScalarBytes = 4 + 4 + 4 + 8;
+    /// <summary>The four allocator scalars, per table. <see cref="SaveFile.ScalarBytes"/>.</summary>
+    private const int ScalarBytes = SaveFile.ScalarBytes;
 
     /// <summary>
     /// The State Hash of the world <paramref name="body"/> describes.
