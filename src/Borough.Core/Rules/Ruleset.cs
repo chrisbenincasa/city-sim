@@ -1119,7 +1119,7 @@ public readonly record struct HouseholdRuleset(int CarOwnershipPercent)
 /// than only as <see cref="Radius"/></b>: a diagnostic that reported a rounded Tile count would be
 /// reporting a number the designer never wrote, and reload comparison is against the file.
 /// </param>
-public readonly record struct ParkingRuleset(int RadiusMetres)
+public readonly record struct ParkingRuleset(int RadiusMetres, int ShedKeeps)
 {
     /// <summary>
     /// A Ruleset whose cities have no Parking Shed.
@@ -1143,6 +1143,27 @@ public readonly record struct ParkingRuleset(int RadiusMetres)
     /// silently shorter than its file says is supply the city has and cannot find.
     /// </remarks>
     public Tiles Radius => Tiles.FromMetres(RadiusMetres);
+
+    /// <summary>
+    /// How many Car Parks a Building's shed holds — the nearest <see cref="ShedKeeps"/> of them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This and <see cref="RadiusMetres"/> are not two knobs for one thing, and which one binds is
+    /// a property of the world rather than of the file.</b> The <b>cap bounds the work</b> and binds
+    /// where supply is dense; the <b>radius bounds the walk</b> and binds where supply is sparse —
+    /// because with fewer than this many Car Parks in reach the kept set never fills, the ball's early
+    /// exit never fires, and it walks the whole radius. Measured on a generated city at 400 m, the
+    /// <em>minimum</em> over every Building is 35 Car Parks in range, so there the cap binds at every
+    /// door and the radius binds nowhere. A player's thinly-built edge is the other case.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>World-creation, and it must not be hot-reloadable</b>, on <c>[layers] kernel_metres</c>'
+    /// precedent: the shed table is fixed-width, so a reload that changed this would reallocate every
+    /// shed in the city.
+    /// </para>
+    /// </remarks>
+    public int Keeps => ShedKeeps;
 }
 
 public readonly record struct JobRuleset(

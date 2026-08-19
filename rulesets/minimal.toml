@@ -127,7 +127,7 @@ condemn_after = 4
 # and a 100,000-Tick run settled five-sixths homeless -- an equilibrium produced by a quantity this
 # file could not state. THREE keeps that populator's figure, which is S4 task 2's row ratio (360
 # Households against ~120 Buildings per 1,000 Citizens), so this line changes no world it did not
-# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D2: the first long run in which
+# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D1: the first long run in which
 # placement and eviction both run.
 #
 # It is a property of the RULESET rather than of the Building, so lowering it here reaches every
@@ -135,7 +135,7 @@ condemn_after = 4
 # drain, because a Bin has a consumer and occupancy has none.
 occupants = 3
 
-# 5b-bis task 4, and the ratifier plans/0002 §D2 named for this key: the first Ruleset that grants
+# 5b-bis task 4, and the ratifier plans/0002 §D1 named for this key: the first Ruleset that grants
 # employment. HOW MANY CITIZENS THIS BUILDING EMPLOYS -- Citizens, never Households, because a job
 # has one holder (adr/0068 on a second axis).
 #
@@ -286,7 +286,7 @@ revisit_ticks = 2048
 # `candidates` IS 02 §5.3'S N AND IT IS THE ONE FREE NUMBER HERE. A family looks at this many
 # dwellings and takes the first with room. It is a BEHAVIOUR MODEL rather than a budget -- bounded
 # knowledge, not an optimiser being approximated -- and it is hash-bearing and UNRATIFIED
-# (plans/0002 §D2). Nothing can ratify it yet: with no rent, no commute and no tolerance every
+# (plans/0002 §D1). Nothing can ratify it yet: with no rent, no commute and no tolerance every
 # candidate with room scores identically, so today it is only a rate.
 [placement]
 interval      = 32
@@ -465,13 +465,23 @@ lots_per_segment = 5
 # 4.8-minute walk against a 50-minute ceiling.
 #
 # ⚠ 400 IS S2 R5.6'S MEASURED RUNG AND IS NOT THE FIVE-MINUTE INTUITION, AND THE TWO NEARLY
-# COINCIDE -- WHICH IS THE TRAP RATHER THAN THE CORROBORATION. R5.6 reports 110 Car Parks found at
-# 400 m against 596 at 800 m, so doubling the radius is roughly 5x the shed and 400 is the rung
-# whose cost this project has actually measured. Five minutes at 5 km/h is 417 m. Those agree to
-# within 4%, and adr/0083 warns against the second one by name because it is exactly the sort of
-# plausible figure adr/0044 had to measure back out of three documents that cited it as settled. A
-# NUMBER THAT AGREES WITH A FORBIDDEN DERIVATION CANNOT ANNOUNCE ITSELF, so this comment is the
-# only thing standing between the measured rung and a later reader re-deriving it from the walk.
+# COINCIDE -- WHICH IS THE TRAP RATHER THAN THE CORROBORATION. 400 is the rung whose cost this
+# project has actually measured. Five minutes at 5 km/h is 417 m. Those agree to within 4%, and
+# adr/0083 warns against the second one by name because it is exactly the sort of plausible figure
+# adr/0044 had to measure back out of three documents that cited it as settled. A NUMBER THAT
+# AGREES WITH A FORBIDDEN DERIVATION CANNOT ANNOUNCE ITSELF, so this comment is the only thing
+# standing between the measured rung and a later reader re-deriving it from the walk.
+#
+# ⚠ THIS COMMENT USED TO SAY "110 CAR PARKS FOUND AT 400 M AGAINST 596 AT 800 M, SO DOUBLING THE
+# RADIUS IS ROUGHLY 5X THE SHED". STRUCK 2026-08-19 BY MILESTONE 7 TASK 3, WHICH MEASURED IT.
+# On a generated city it is 132.8 in range at 400 m (min 35, median 135, max 166) and the gradient
+# is x3.81 from 400 to 800 and x4.23 from 200 to 400 -- not x5. A shed is an AREA, so the gradient
+# is an area ratio damped by the lattice, and x5 was never a number this geometry could produce.
+# The deeper error was the NOUN: S2 R5.6's ShedBuilder stored KeptBins = 8 and counted the rest in
+# a separate accumulator, so 110 was what its BALL ENCOUNTERED and 8 was what it KEPT. "Roughly 5x
+# the shed" was a claim about the ball wearing the word shed -- and of a capped shed it is false
+# outright, because a capped shed's size is CONSTANT. plans/0012 Cause 5: the digits travelled and
+# the clause stayed behind, and A NUMBER THAT IS ONE HALF OF A RATIO SAYS WHICH HALF.
 #
 # UNRATIFIED. The named ratifier is milestone 7 task 8's run reporting the walk-Leg length
 # distribution as shed occupancy approaches 1, AND IT NEEDS A WORLD THIS FILE IS NOT: capacity is
@@ -485,6 +495,55 @@ lots_per_segment = 5
 # this number is stated and inert. It is here rather than withheld because a file that states Car
 # Parks and no radius describes half a mechanism.
 radius_metres = 400
+
+# HOW MANY CAR PARKS A BUILDING'S PARKING SHED HOLDS -- the nearest 24 of them. Milestone 7 task 3.
+#
+# WHERE 24 CAME FROM, AND IT IS NOT A DERIVATION. The search for one was made and it failed, which
+# is a result rather than a silence (plans/0023 task 3). Every candidate reduces to picking a
+# number of Segments and multiplying by [lots] lots_per_segment = 5: adr/0009's own payoff sentence
+# "you parked three blocks away" gives about 15, and "your own Street plus everything one junction
+# away" is 7 Segments and gives about 35. 24 sits between them at roughly 4.8 Segments. Each of
+# those is a sentence chosen to justify a number rather than a number falling out of a mechanism.
+# SO THIS IS CHOSEN, NOT DERIVED, and it is written down that way so nobody re-derives it later and
+# believes the derivation.
+#
+# IT IS A DIFFERENT DIAL FROM radius_metres AND THEY ARE NOT REDUNDANT. The CAP BOUNDS THE WORK and
+# binds where supply is dense; the RADIUS BOUNDS THE WALK and binds where supply is sparse. That is
+# mechanical rather than rhetorical: with fewer than 24 Car Parks in reach the kept set never fills,
+# ParkingShed's early exit never fires, and the ball walks the whole radius. Measured on a generated
+# city at 400 m the MINIMUM over every Building is 35 in range, so THERE the cap binds at every door
+# and the radius binds nowhere. A player's thinly-built edge is the case where that reverses.
+#
+# WORLD-CREATION, AND IT MUST NOT BE HOT-RELOADED, on [layers] kernel_metres' precedent. A shed is
+# materialised per Building at a fixed width, so a reload that changed this would reallocate every
+# shed in the city.
+#
+# IT BELONGS IN [parking] AND NOT ON [[building]], AND THAT IS CORRECTNESS RATHER THAN TIDINESS. A
+# per-kind cap is a perfectly plausible design -- a shopping centre's shed reaching further than a
+# house's -- and it would sit on [[building]] next to `parking`, where it looks like it belongs.
+# CarParkTable.Capacity is (derived AND rebuilt) from the Ruleset in force (adr/0064, adr/0068), so
+# a key on the KIND moves the STANDING city's State Hash with no code change and no mechanism
+# reading it. Here it moves only this file's content hash. WHAT PROTECTS THE HASH IS THE KEY'S
+# LOCATION, NOT THE ABSENCE OF A READER.
+#
+# ⚠ HASH-BEARING ON A DELAY, WHICH IS WORSE THAN HASH-BEARING NOW. Today nothing reads the shed, so
+# adding this moves no per-tick State Hash and the re-record it forces is complete and covers
+# nothing. At task 4 the cap decides which Car Park a Traveller reaches, which writes CarParkTable
+# Occupied, which is Saved with Touch.PerTick and IS folded. adr/0100 says hash movement is free
+# because the commit that causes it explains it -- and that assumes the movement and the cause land
+# in the SAME commit. Here they cannot. The commit that introduces this number has a clean diff and
+# nothing to attribute, and the commit that moves every hash two tasks later will not contain it.
+#
+# UNRATIFIED, and its ratifier is NOT the radius's. adr/0052 as amended twice wants a machine, a
+# world and a QUANTITY. The world is the sixth Ruleset milestone 7 decision 3 already owes, because
+# a generated city cannot vary parking occupancy -- capacity is per kind and demand is per Citizen
+# and the generator sizes both from one population, so occupancy is flat at every population. The
+# quantity is EXHAUSTION and never walk length: a shed NEVER exhausted means 24 is larger than it
+# needs to be, and one routinely exhausted means it is too small. The radius is ratified on walk
+# length instead, and the two must not share a reading -- car_ownership_percent's refuting readings
+# were named against reach while its live consequence was congestion, so both fired and refuted the
+# wrong thing.
+shed_keeps = 24
 
 [trips]
 # What travelling costs, and what makes a journey fail. Two numbers, both hash-bearing, and they
@@ -601,7 +660,7 @@ commute_budget_minutes = 50
 # ADR predicted no numbers, the pass needed exactly these three, and the first of them shipped at a
 # value copied from a default that meant something else and left 45% of the housing stock empty.
 # This is the same shape of pass, so it is the same three keys, and all three are hash-bearing and
-# UNRATIFIED in plans/0002 §D2 with a named ratifier each.
+# UNRATIFIED in plans/0002 §D1 with a named ratifier each.
 #
 # `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED (adr/0059, a third time): it is how long
 # the pass takes to look at every Citizen once, and the engine derives

@@ -69,7 +69,19 @@ public sealed class ParkingRulesetLoadTests
         return result.Refusals[0];
     }
 
-    private static string With(string body) => $"{Nothing}\n\n[parking]\n{body}";
+    /// <summary>
+    /// A <c>[parking]</c> table around <paramref name="body"/>, completed with the key the case under
+    /// test is not about.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>shed_keeps</c> is supplied unless the body states it</b>, so that a test about the radius
+    /// stays a test about the radius. The alternative — writing both keys into every fixture — makes
+    /// each one assert two things, and the day a third required key arrives every unrelated test in the
+    /// file fails at once and says nothing about why.
+    /// </remarks>
+    private static string With(string body) =>
+        $"{Nothing}\n\n[parking]\n{body}"
+        + (body.Contains("shed_keeps", StringComparison.Ordinal) ? string.Empty : "\nshed_keeps = 24");
 
     // ---- the absent table -------------------------------------------------------------------------
 
@@ -249,6 +261,7 @@ public sealed class ParkingRulesetLoadTests
 
             [parking]
             radius_metres = 40000
+            shed_keeps = 24
             """);
 
         Assert.Equal(40_000, ruleset.Parking.RadiusMetres);
@@ -271,13 +284,90 @@ public sealed class ParkingRulesetLoadTests
         string fast = Streets.Replace(
             "walk_speed_kph = 5", "walk_speed_kph = 9", StringComparison.Ordinal);
 
-        Tiles atFive = Accepted($"{Nothing}\n\n{slow}\n\n[parking]\nradius_metres = 400")
+        Tiles atFive = Accepted($"{Nothing}\n\n{slow}\n\n[parking]\nradius_metres = 400\nshed_keeps = 24")
             .Parking.Radius;
-        Tiles atNine = Accepted($"{Nothing}\n\n{fast}\n\n[parking]\nradius_metres = 400")
+        Tiles atNine = Accepted($"{Nothing}\n\n{fast}\n\n[parking]\nradius_metres = 400\nshed_keeps = 24")
             .Parking.Radius;
 
         Assert.Equal(atFive, atNine);
         Assert.Equal(new Tiles(100), atFive);
+    }
+
+    // ---- the cap ----------------------------------------------------------------------------------
+
+    /// <summary>A <c>[parking]</c> table carries the cap through to the core.</summary>
+    [Fact]
+    public void A_parking_table_carries_the_shed_cap()
+    {
+        Ruleset ruleset = Accepted(With("radius_metres = 400\nshed_keeps = 24"));
+
+        Assert.Equal(24, ruleset.Parking.ShedKeeps);
+        Assert.Equal(24, ruleset.Parking.Keeps);
+    }
+
+    /// <summary>A <c>[parking]</c> table that states no cap is refused.</summary>
+    /// <remarks>
+    /// <b>Required rather than defaulted, for <c>radius_metres</c>' reason and one of its own.</b> A
+    /// default would have to be a number, the number would be hash-bearing at milestone 7 task 4, and
+    /// it would arrive in every Ruleset that never mentioned it — which is a hash-bearing number
+    /// chosen by omission, the case <c>adr/0052</c> exists to prevent.
+    /// </remarks>
+    [Fact]
+    public void A_parking_table_with_no_cap_is_refused()
+    {
+        RulesetRefusal refusal = Refused($"{Nothing}\n\n[parking]\nradius_metres = 400");
+
+        Assert.Contains("shed_keeps", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A cap of zero or less is refused rather than read as <em>keep everything</em>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Zero is not merely meaningless here, it is the one value that silently buys the exhaustive
+    /// ball.</b> <c>ParkingShed</c>'s early exit fires on a <em>full</em> kept set, and a kept set of
+    /// zero is never full — so <c>shed_keeps = 0</c> would load, find nothing, and walk the whole
+    /// radius doing it, at roughly three and a half times the cost of a working shed.
+    /// <b>A performance cliff must not be reachable by a value that reads as <em>off</em>.</b>
+    /// </remarks>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-24)]
+    public void A_shed_that_keeps_nothing_is_refused(int keeps)
+    {
+        RulesetRefusal refusal = Refused(With($"radius_metres = 400\nshed_keeps = {keeps}"));
+
+        Assert.Contains($"shed_keeps is {keeps}", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("finds nothing", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>An absurd cap is refused, and the ceiling is arithmetic rather than taste.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>[traffic] beta</c>'s precedent. A shed is materialised for <em>every Building</em> at this
+    /// width, so the key multiplies the whole city rather than one query: at the 1,000,000-Citizen
+    /// target's 84,320 Buildings, 24 is 8.0 MiB and 4,096 would be 1.3 GiB. What is refused is the rung
+    /// where a plausible typo stops being a tuning choice and becomes an allocation failure carrying no
+    /// line number.
+    /// </remarks>
+    [Theory]
+    [InlineData(1025)]
+    [InlineData(4096)]
+    public void A_shed_cap_past_any_measured_radius_is_refused(int keeps)
+    {
+        RulesetRefusal refusal = Refused(With($"radius_metres = 400\nshed_keeps = {keeps}"));
+
+        Assert.Contains($"shed_keeps is {keeps}", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("per-city cost", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>The largest accepted cap loads, so the boundary is tested from both sides.</summary>
+    [Fact]
+    public void The_largest_shed_cap_loads()
+    {
+        Assert.Equal(1024, Accepted(With("radius_metres = 400\nshed_keeps = 1024")).Parking.ShedKeeps);
     }
 
     /// <summary>

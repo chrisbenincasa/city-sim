@@ -28,8 +28,21 @@ namespace Borough.Core.Tables;
 /// <para>
 /// <b>Appending at the tail, not the head.</b> adr/0033's round-robin drain wants the order things
 /// arrived in; a push-front list hands back the reverse, which is a different city rather than a
-/// different implementation. The three consumers — Bin wait lists, Parking Sheds, Event Wheel buckets
-/// — arrive in later slices and must not invent their own.
+/// different implementation. The consumers — Bin wait lists and Event Wheel buckets — arrive in later
+/// slices and must not invent their own.
+/// </para>
+/// <para>
+/// ⚠ <b>This said <em>three</em> consumers and named the Parking Shed as the middle one. It cannot be
+/// one, for two independent reasons, and milestone 7 task 3 found both.</b> A shed is
+/// <b>many-to-many</b> — one Car Park is within reach of ~133 Buildings at the shipped radius — so no
+/// single <c>next</c> column on <c>CarParkTable</c> can thread it, and an intrusive list has exactly
+/// one. And a shed is <b>fixed-width by decision</b>: it holds the nearest <c>k</c>, so that a Segment
+/// whose Epoch bumps can be repaired by overwriting one Building's row in place, which a variable-length
+/// list cannot do without an allocator and compaction.
+/// <b>An intended consumer named in advance is a prediction about a mechanism nobody has built</b>
+/// (<c>adr/0070</c>), and this one was wrong about the shape twice over while reading as a design
+/// commitment. <c>CarParkResidency</c> — Segment to Car Parks, which genuinely is one-to-many — is the
+/// consumer this sentence was reaching for.
 /// </para>
 /// </remarks>
 public readonly ref struct IndexList

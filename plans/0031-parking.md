@@ -231,8 +231,12 @@ sections in prose and would otherwise be wrong the moment a twelfth is added
 car takes, which decides the walk Leg, which counts against the Commute Budget, which decides whether
 the Trip fails. `0002` §D2 holds it. **Two constraints are stated and neither is a value:** it is
 bounded above by the Commute Budget's walk allowance, since a shed wider than a Trip can afford to walk
-has outer Bins that can never be taken; and its cost gradient is measured at **110 Bins found at 400 m
-against 596 at 800 m**, so doubling the radius is roughly 5× the shed. ⚠ **Do not reach for the
+has outer Bins that can never be taken; and its cost gradient is measured at ~~**110 Bins found at 400 m
+against 596 at 800 m**, so doubling the radius is roughly 5× the shed~~ — ⚠ **STRUCK BY TASK 3, which
+measured it: 132.8 in range at 400 m and a gradient of ×3.81, and R5.6's 110 was its *ball's* encounter
+count rather than a shed, since it kept 8. A capped shed's size is constant.** See
+[`adr/0083`](../docs/adr/0083-a-sheds-use-is-the-arrival-query-and-a-stale-shed-is-wrong-by-a-bounded-walk.md)'s
+third consequence. ⚠ **Do not reach for the
 walking-time intuition** — five minutes at 5 km/h is 417 m, and `adr/0044` had to measure exactly that
 sort of number back out of three documents that cited it as settled. **Decision 3 names what ratifies
 it**, and that must be written on the day the number is, not at task 8.
@@ -254,8 +258,11 @@ it**, and that must be written on the day the number is, not at task 8.
 > rather than a remark.
 >
 > ⚠ **400 is S2 R5.6's measured rung and not the walking-time intuition, and they agree to within 4% —
-> which is the trap rather than the corroboration.** R5.6 gives 110 Car Parks at 400 m against 596 at
-> 800 m, so 400 is the rung whose cost this project has actually measured; five minutes at 5 km/h is
+> which is the trap rather than the corroboration.** ~~R5.6 gives 110 Car Parks at 400 m against 596 at
+> 800 m~~ *(⚠ **struck by task 3**: measured at **132.8** in range at 400 m, gradient **×3.81**, and
+> R5.6's 110 counted what its **ball encountered** rather than a shed — it kept 8. Left visible rather
+> than deleted, because this paragraph is task 2's record of what it believed.)*
+> so 400 is the rung whose cost this project has actually measured; five minutes at 5 km/h is
 > 417 m, and `adr/0083` warns against that figure by name. ***A number that agrees with a forbidden
 > derivation cannot announce itself*** — nothing mechanical can tell the two apart, so the file's own
 > header is the only thing standing between the measured rung and a later reader re-deriving it from the

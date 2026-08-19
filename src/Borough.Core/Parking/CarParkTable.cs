@@ -68,6 +68,8 @@ public sealed class CarParkTable
         Capacity = _rows.Derived<int>("capacity");
         Occupied = _rows.Saved<int>("occupied", Touch.PerTick);
 
+        SegmentNext = _rows.Derived<int>("segment_next");
+
         _rows.Seal();
     }
 
@@ -112,6 +114,17 @@ public sealed class CarParkTable
     /// about the file.
     /// </remarks>
     public Column<int> Occupied { get; }
+
+    /// <summary>
+    /// The next Car Park on the same Segment. The element side of <see cref="CarParkResidency"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A Car Park sits on exactly one Segment, which is what makes an intrusive list legal here
+    /// and illegal for the shed itself.</b> The Parking Shed is many-to-many — one Car Park is within
+    /// walking distance of many Buildings — so it cannot thread a single <c>next</c> through this
+    /// table. This index is one-to-many and can.
+    /// </remarks>
+    public Column<int> SegmentNext { get; }
 
     /// <summary>
     /// Where this Car Park is, or <see cref="Address.None"/> if its Street has been bulldozed.

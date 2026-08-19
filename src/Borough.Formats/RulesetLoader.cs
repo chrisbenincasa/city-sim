@@ -2426,9 +2426,20 @@ public static class RulesetLoader
         /// </summary>
         /// <remarks>
         /// <para>
-        /// <b>One required key in an optional table</b>, on <c>[households]</c>' shape. Omitting the
+        /// <b>Two required keys in an optional table</b>, on <c>[households]</c>' shape. Omitting the
         /// table is a city with no Parking Shed — which is every city this project described before
         /// milestone 7, so omission is behaviour-preserving rather than a placeholder.
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>shed_keeps</c> belongs here and nowhere else, and that is a correctness constraint
+        /// rather than a filing preference.</b> A per-<em>kind</em> cap is a plausible design — a
+        /// shopping centre's shed reaching further than a house's — and it would go on
+        /// <c>[[building]]</c> beside <c>parking</c>, where it looks like it belongs. It must not.
+        /// <c>CarParkTable.Capacity</c> is <c>(derived AND rebuilt)</c> from the Ruleset in force
+        /// (<c>adr/0064</c>, <c>adr/0068</c>), so a key on the kind moves the <em>standing</em> city's
+        /// State Hash with no code change and no mechanism reading it. In <c>[parking]</c> it moves
+        /// only the Ruleset content hash. <b>What protects the hash is the key's location, not the
+        /// absence of a reader.</b>
         /// </para>
         /// <para>
         /// ⚠ <b>The radius is authored in <em>metres</em> and every consumer sees Tiles</b>, which is
@@ -2481,7 +2492,42 @@ public static class RulesetLoader
                 metres = int.MaxValue;
             }
 
-            return new ParkingRuleset((int)metres);
+            if (!TryInteger(_parkingTable, "shed_keeps", out long keeps, required: true))
+            {
+                return ParkingRuleset.None;
+            }
+
+            // Refused at zero for radius_metres' reason and one of its own. A shed that keeps nothing
+            // is a city whose arrivals all fail to park, which nobody means to write -- and zero is
+            // also the one value that disables ParkingShed's early exit, so a file could silently buy
+            // itself the exhaustive ball. A performance cliff must not be reachable by a value that
+            // reads as "off".
+            if (keeps < 1)
+            {
+                Refuse(LineOfParking("shed_keeps"), null,
+                    $"shed_keeps is {keeps}. It is how many Car Parks a Building's Parking Shed holds, "
+                    + "so a shed that keeps none finds nothing and every arrival fails to park. Delete "
+                    + "the [parking] table for a city with no Parking Shed at all.");
+
+                return ParkingRuleset.None;
+            }
+
+            // The ceiling is arithmetic rather than taste, on [traffic] beta's precedent. A shed is
+            // materialised per Building at a fixed width, so this multiplies the whole city: at the
+            // 1M target's 84,320 Buildings a keep of 24 is 8.0 MiB and 4,096 would be 1.3 GiB. The
+            // rung refused here is the one where a plausible typo stops being a tuning choice and
+            // becomes an allocation failure with no line number.
+            if (keeps > 1024)
+            {
+                Refuse(LineOfParking("shed_keeps"), null,
+                    $"shed_keeps is {keeps}. A shed is stored for every Building at this width, so "
+                    + "this is a per-city cost rather than a per-query one; 1024 is already far past "
+                    + "any radius this project has measured a shed at.");
+
+                return ParkingRuleset.None;
+            }
+
+            return new ParkingRuleset((int)metres, (int)keeps);
         }
 
         /// <summary>The line a <c>[parking]</c> key is on, or the table's.</summary>
