@@ -94,13 +94,22 @@ public sealed class RulesetLoaderTests
         return result.Ruleset!;
     }
 
-    private static RulesetRefusal Refused(string toml)
+    private static RulesetRefusal Refused(string toml) => AllRefusals(toml)[0];
+
+    /// <summary>
+    /// Every refusal, for the tests whose claim is about <em>how many</em> a file produces.
+    /// </summary>
+    /// <remarks>
+    /// <b>One mistake should read as one sentence.</b> A file that trips two checks for one error
+    /// sends its author to the second one's line, which is not where the edit goes.
+    /// </remarks>
+    private static RulesetRefusal[] AllRefusals(string toml)
     {
         RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
 
         Assert.False(result.Ok, "the Ruleset was accepted.");
 
-        return result.Refusals[0];
+        return [.. result.Refusals];
     }
 
     [Fact]
@@ -600,6 +609,118 @@ public sealed class RulesetLoaderTests
         Assert.Equal(1, ruleset.RuleCount);
         Assert.Equal(ResourceFamily.Money, ruleset.Family(new ResourceId(1)));
         Assert.True(ruleset.IsConserved(new ResourceId(1)));
+    }
+
+    // ---- the global scope names the treasury --------------------------------------------------------
+
+    /// <summary>
+    /// <c>global</c> on a Good is refused, because the treasury holds conserved Resources only.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Milestone 10, and it is <c>02 §4.3</c> acquiring an implementation rather than a new
+    /// rule</b> — that section already said <em>"that is the shape the loader accepts"</em>. The
+    /// loader accepted every other shape as well for six slices, and nothing noticed, because
+    /// <c>Scope.Global</c> threw in the Rule engine before a term could reach a running world.
+    /// <b>A scope that throws is a scope nothing has to validate.</b>
+    /// </para>
+    /// <para>
+    /// <b>The term balances, which is the point of testing it here.</b> Refusal 4 sums a Rule's
+    /// money terms and this Rule has none, so no arithmetic check could ever have caught it: the
+    /// defect is in what the scope <em>names</em>, not in what the amounts add up to.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_global_term_naming_a_good_is_refused()
+    {
+        RulesetRefusal refusal = Refused("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "silo"
+            bins = [ { resource = "flour", capacity = 60 } ]
+
+            [[rule]]
+            name    = "stockpile"
+            kind    = "silo"
+            rate    = 10
+            apply   = { min = 1, max = 1 }
+            inputs  = [ { scope = "local",  resource = "flour", amount = 3 } ]
+            outputs = [ { scope = "global", resource = "flour", amount = 3 } ]
+            """);
+
+        Assert.Contains("treasury", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("'flour' is declared as a good", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <c>pool</c> on a Good is <em>not</em> refused beside it, and the difference is the whole
+    /// argument.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>pool</c> is unbuilt and <c>global</c>-on-a-Good is not a mechanism at all</b>
+    /// (<c>adr/0070</c>). The District Pool arrives at milestone 12 and every Good in the design
+    /// crosses it, so refusing this file would refuse one that is going to be legal — the Rule
+    /// engine's named hole is the right instrument for an absence with a date on it. Asserted
+    /// rather than left implicit, because the two sit one line apart in <c>TryScope</c> and the
+    /// next person to widen one will read this.
+    /// </remarks>
+    [Fact]
+    public void A_pool_term_naming_a_good_is_accepted_because_that_scope_is_unbuilt_rather_than_wrong()
+    {
+        Ruleset ruleset = Accepted("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "silo"
+            bins = [ { resource = "flour", capacity = 60 } ]
+
+            [[rule]]
+            name    = "deliver"
+            kind    = "silo"
+            rate    = 10
+            apply   = { min = 1, max = 1 }
+            inputs  = [ { scope = "pool", resource = "flour", amount = 3 } ]
+            outputs = [ { scope = "local", resource = "flour", amount = 3 } ]
+            """);
+
+        Assert.Equal(1, ruleset.RuleCount);
+    }
+
+    /// <summary>
+    /// A Resource whose family is itself refused is not reported twice.
+    /// </summary>
+    /// <remarks>
+    /// <b>The second sentence would point at the Rule</b>, and the line that has to change is the
+    /// <c>[[resource]]</c> declaration. One mistake, one refusal, at the line a designer edits.
+    /// </remarks>
+    [Fact]
+    public void A_global_term_on_a_resource_with_no_valid_family_is_refused_once()
+    {
+        RulesetRefusal[] refusals = AllRefusals("""
+            [[resource]]
+            name = "flour"
+            family = "goods"
+
+            [[building]]
+            name = "silo"
+            bins = [ { resource = "flour", capacity = 60 } ]
+
+            [[rule]]
+            name    = "stockpile"
+            kind    = "silo"
+            rate    = 10
+            apply   = { min = 1, max = 1 }
+            inputs  = [ { scope = "local",  resource = "flour", amount = 3 } ]
+            outputs = [ { scope = "global", resource = "flour", amount = 3 } ]
+            """);
+
+        Assert.Single(refusals);
+        Assert.Contains("is not a Resource family", refusals[0].Reason, StringComparison.Ordinal);
     }
 
     // ---- the Resource family ------------------------------------------------------------------------

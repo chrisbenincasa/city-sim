@@ -1006,6 +1006,33 @@ generation-scoped and nothing in its two-column form says so.*** Each block now 
 
 Unambiguous factual errors, no judgement required.
 
+- [x] `adr/0048` and `adr/0015` — **the Ruleset loader's refusal count of record, stale by 36 and carried in three
+      places.** **Found and fixed 2026-08-18**, milestone 10 task 3. The count read *twenty-two at load and a
+      twenty-third on reload*, corrected to that figure on 2026-08-11; a walk of the loader put it at **58** before
+      this milestone added one. ⚠ **The shape of the drift outranks the size: 17 of the 36 sit in `[[rule]]`,
+      `[[resource]]` and `[[building]]`, every one of which existed on the day of the correction.** So the 2026-08-11
+      pass walked the four ADRs it knew had moved the number and never walked the loader — ***a count corrected by
+      adding what you remember adding is still a count nobody has taken***, which is `adr/0093` applied to a number
+      rather than to a mechanism. **Repaired in two moves.** `adr/0048` keeps the number and the enumeration; `adr/0015`
+      and this plan's sibling `0003` now **cite** it and state none, because ***the cheapest way to stop two copies
+      drifting is to have one copy***. And because the single copy went stale anyway, **check 11** now holds it to the
+      build: `RefusalCountTests` counts `RulesetLoader.cs`'s `Refuse(` call sites and fails when `adr/0048` disagrees.
+      ⚠ **It is the corpus's first document-to-*code* check** — checks 1–9 are all document-to-document, and **check
+      10**, proposed at *A `Rows.Saved` column whose only writer is a test*, named the direction first and is **still
+      unbuilt**; this one arrived from a different task and does not discharge it. What it holds is the **site count**,
+      which is a fact; the semantic subset is a judgement under `adr/0048`'s own *loads clean and misbehaves in silence*
+      rule, and a judgement cannot be a test. ***The checkable part of a claim about the build is the part that is
+      counted.***
+
+- [ ] ⚠ **The corpus's count of its own mechanical checks now reads three different values, which is the failure
+      `adr/0093` predicted about itself.** `adr/0093` and `CLAUDE.md` say **six** (counting test *classes*), this
+      document's 2026-08-18 entry above says *"all eight compare documents"*, and its check-10 proposal says
+      *"checks 1–9"*. All three are defensible readings of different units — classes, checks, checks-plus-proposals —
+      and **no document says which unit it is counting**, which is why they were never comparable in the first place.
+      ***A count with no stated unit cannot drift, because it never agreed.*** Not fixed here: the repair is a canonical
+      numbered list of the checks with one owner, and inventing one inside a task about the Ruleset loader is how the
+      thing being counted grows a third copy. ⚠ **Do not increment any of the three.** Owner: whoever writes the list.
+
 - [x] `06` — **ten `Placed:` numbers left behind by its own reorder.** **Found and fixed 2026-08-18**, milestone 10
       decision 5. The economic reorder earlier the same day permuted the milestone table — old 9 → **12**, old 11 → **9**,
       old 12 → **14**, old 14 → **11** — and did not reach the *Mechanisms with no milestone* inventory, so ten rows named a

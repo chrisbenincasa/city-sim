@@ -628,7 +628,7 @@ that *the Zone Rule condemns in its own time*, which `Condemn` never does; `adr/
 saying `RoadGenerator` lays *"at world creation"*, when its one production call site is `SyntheticCity`.
 **The writing half is what compounds: name a symbol, never a time.** *"At world creation"* cannot be
 checked without already knowing the answer; *"when `SyntheticCity` runs"* is one grep. This corpus cannot
-catch the failure any other way — its ~~three~~ ~~five~~ **six** mechanical checks are all document-to-document.
+catch the failure any other way — its ~~three~~ ~~five~~ **six** mechanical checks are all document-to-document. ⚠ **AMENDED 2026-08-18: `RefusalCountTests` is the first document-to-*code* check**, counting `RulesetLoader.cs`'s `Refuse(` call sites and holding `adr/0048`'s count of record to the total — built because that number had drifted **22 → 58** with every test green, and **17 of the 36 it missed were in sections that already existed** when it was last corrected. It checks a *number inside* a sentence rather than the sentence, which is the only part of a claim about the build a machine can read.
 `plans/0012` **Cause 4**. ⚠ **And `adr/0093` committed its own defect in the sentence that listed them**,
 found 2026-08-13: it said `CitationTests` *"checks that links resolve"*, which it does not — it regex-matches
 `adr/\d{4}` and **never opens a target**, so a link to a file that did not exist passed every check there

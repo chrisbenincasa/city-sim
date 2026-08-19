@@ -746,11 +746,79 @@ public static class RulesetLoader
                     continue;
                 }
 
-                if (TryResource(inline, rule, LineOf(inline), out ResourceId resource))
+                if (!TryResource(inline, rule, LineOf(inline), out ResourceId resource))
                 {
-                    into.Add(new Term(new BinRef(scope, resource), (int)amount));
+                    continue;
                 }
+
+                if (!GlobalNamesAConservedResource(inline, rule, scope, resource))
+                {
+                    continue;
+                }
+
+                into.Add(new Term(new BinRef(scope, resource), (int)amount));
             }
+        }
+
+        /// <summary>
+        /// Refusal — a <c>global</c> term names the treasury, so its Resource must be a conserved one.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>This is <c>02 §4.3</c> enforced literally rather than a new rule.</b> That section says
+        /// <c>global</c> <em>"names the treasury, and it appears only as the far end of an explicit
+        /// transfer… That is the shape the loader accepts"</em> — and until milestone 10 the loader
+        /// accepted every other shape as well, because <c>Scope.Global</c> threw in the Rule engine
+        /// before any of them could reach a running world. <b>A scope that throws is a scope nothing
+        /// has to validate</b>, and the throw had been doing the validating by accident. Making
+        /// <c>global</c> resolve is what turned that into a hole.
+        /// </para>
+        /// <para>
+        /// <b>Only the family half of that sentence is enforced.</b> It also says <em>local money
+        /// out, global money in</em>, which is one direction, and the mechanism has two: a Policy
+        /// paying out of the treasury is a <c>global</c> <em>input</em>, and <c>02 §4.2</c> asks for
+        /// exactly that. So the direction is not checked — <b>a sentence describing the first use of
+        /// a shape is not a specification of the shape</b>.
+        /// </para>
+        /// <para>
+        /// <b><c>pool</c> is deliberately not refused beside it.</b> That scope is <em>unbuilt</em>
+        /// rather than wrong (<c>adr/0070</c>) — it arrives with the District Pool — so refusing it
+        /// here would refuse a file that is going to be legal, and the Rule engine's named hole is
+        /// the right instrument for an absence with a date on it. This one is different in kind: a
+        /// city-wide store of a Good is not a mechanism waiting to be built, and the treasury is
+        /// fitted from the conserved Resources alone, so there is nothing for such a term to resolve
+        /// to in any world this design describes.
+        /// </para>
+        /// </remarks>
+        private bool GlobalNamesAConservedResource(
+            InlineTableSyntax inline, string? rule, Scope scope, ResourceId resource)
+        {
+            if (scope != Scope.Global)
+            {
+                return true;
+            }
+
+            ResourceFamily family = _families[resource.Raw - 1];
+
+            // None means this [[resource]] was already refused for its family. Reporting it again
+            // here would name one mistake twice, and the second sentence would point at the Rule
+            // rather than at the declaration that has to change.
+            if (family is ResourceFamily.Money or ResourceFamily.None)
+            {
+                return true;
+            }
+
+            TryString(inline, "resource", out string? name, required: false, rule);
+
+            Refuse(LineOf(inline), rule,
+                "the global scope names the treasury, and a treasury holds conserved Resources only "
+                + $"-- money and nothing else (adr/0024). '{name}' is declared as a "
+                + $"{(family == ResourceFamily.Utility ? "utility" : "good")}, so no global Bin is "
+                + "fitted for it at world creation and this term could never resolve. 02 section 4.3 "
+                + "says what the global scope is: the far end of a transfer whose counterparty is "
+                + "not a market.");
+
+            return false;
         }
 
         private void ReadEmission(

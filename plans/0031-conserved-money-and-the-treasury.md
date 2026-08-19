@@ -478,7 +478,64 @@ none of.
 *the same file with one thing changed*, with the header carrying why — rather than editing
 `minimal.toml`, whose own header says it models no city. This is where decision 2's unit is spent.
 
-### Task 3 — refusal 4 is relaxed to exactly the extent `global` widens it
+### Task 3 — refusal 4 is relaxed to exactly the extent `global` widens it — ✅ **DONE 2026-08-18, and nothing was relaxed**
+
+**Refusal 4 needed no change, and the task's real content turned out to be a refusal it did not have.**
+`RefuseUnbalancedMoney` sums a Rule's money terms **across every scope**, so `local` money in and
+`global` money out of the same amount balances and always passed. ***A refusal that counts a sum is
+indifferent to how the sum is spread across scopes, so widening the scope set could not have moved
+it.*** The proof was already in the tree and green:
+`RulesetLoaderTests.A_rule_moving_money_between_two_named_scopes_is_accepted` has asserted exactly
+this milestone's transfer since slice 7, **in the same file as the doc-comment the brief read**. And
+that doc-comment was never wrong — it says the guard over-refuses **a wage and an import payment**,
+both of which are *unbalanced* and both of which are still refused and still unwriteable. ⚠ **What was
+wrong is this brief**, which read *refuses more than it needs to* as covering its own transfer:
+`adr/0093` exactly, and wrong about **reach**, which is that ADR's own stated tell.
+
+⚠ **What `global` widens is what the loader must CHECK, not what it must stop refusing.** So the task
+built one refusal instead of removing one: **a `global` term naming a non-conserved Resource is
+refused at load**. That is `02 §4.3`'s own sentence — *"`global` names the treasury… **that is the
+shape the loader accepts**"* — acquiring an implementation. The loader accepted every other shape for
+six slices and nothing noticed, because `Scope.Global` threw in the Rule engine first. ***A scope that
+throws is a scope nothing has to validate***, and task 1 removed the throw.
+
+⚠ **Only the family half of that sentence is enforced, and the other half would have broken task 5.**
+It also says *local money out, global money in* — one direction — and the mechanism has two: a Policy
+paying **out** of the treasury is a `global` **input**, which `02 §4.2` asks for by name. ***A sentence
+describing the first use of a shape is not a specification of the shape.***
+
+⚠ **`pool` is deliberately not refused beside it, and the asymmetry is the argument.** `pool` is
+*unbuilt* (`adr/0070`) and arrives with the District Pool, so refusing it would refuse a file that is
+going to be legal; the Rule engine's named hole is the right instrument for an absence with a date on
+it. `global`-on-a-Good is not early — no Bin is fitted for it in any world this design describes.
+**Both directions are asserted**, one line apart in the suite, because the next person to widen one
+will read the other.
+
+⚠ **`02 §4.3` bundled the two under one reason and the reason was `pool`'s.** *"Neither is refused at
+load — deliberately, because a Ruleset naming a Pool is well-formed and merely early."* That is true
+of `pool` and false of `global` the moment `global` is built. ***An `and` in a consequence is two
+consequences*** (session F), and the tell is one reason offered for two holes. Amended there, together
+with *"Only `local` and `map` are implemented"* and *"No transfer executes today, since `global`
+throws"*, both now false.
+
+⚠ **The refusal count of record was stale by 36, and the recount is the task's largest finding.**
+Three documents carried it at *twenty-two at load and a twenty-third on reload*, corrected to that on
+2026-08-11. A walk of the loader puts it at **58** before this milestone's own, so **59 at load and a
+sixtieth on reload**. **Seventeen of the thirty-six sit in `[[rule]]`, `[[resource]]` and
+`[[building]]` — sections that all existed on the day of the correction** — so the number was an
+undercount of its own scope when it was last written down: ***a count corrected by adding what you
+remember adding is still a count nobody has taken.*** Repaired in two moves: `adr/0048` keeps the
+number and gains the enumeration, `adr/0015` and `plans/0003` now **cite** and state none
+(***the cheapest way to stop two copies drifting is to have one copy***), and — because the single
+copy went stale anyway — **`RefusalCountTests` holds it to the build**, counting `RulesetLoader.cs`'s
+`Refuse(` call sites. ⚠ **It is the corpus's first document-to-*code* check**; `plans/0012`'s proposed
+**check 10** named that direction and is still unbuilt. It holds the **site** count, which is a fact,
+not the semantic subset, which is a judgement — ***the checkable part of a claim about the build is
+the part that is counted.***
+
+*Original scoping text follows.*
+
+### ~~Task 3's brief~~
 
 ⚠ **CORRECTED 2026-08-18 while writing task 2: the loader does *not* refuse this milestone's
 transfer.** `RefuseUnbalancedMoney` (`RulesetLoader.cs:1403-1416`) sums a Rule's money terms
