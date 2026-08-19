@@ -1006,6 +1006,17 @@ generation-scoped and nothing in its two-column form says so.*** Each block now 
 
 Unambiguous factual errors, no judgement required.
 
+- [x] `06` — **ten `Placed:` numbers left behind by its own reorder.** **Found and fixed 2026-08-18**, milestone 10
+      decision 5. The economic reorder earlier the same day permuted the milestone table — old 9 → **12**, old 11 → **9**,
+      old 12 → **14**, old 14 → **11** — and did not reach the *Mechanisms with no milestone* inventory, so ten rows named a
+      milestone that had become a different one: Hinterlands and Settlements read **14** (now the Provider List), the
+      nine-Resource abstraction read **9** (now land value), the Provider List itself read **12**, and four Layer rows read
+      **11** (now the Hinterland). ⚠ **Committed by the same session that wrote the *Retired numbering* block against exactly
+      this failure** — `plans/0012` **Cause 2**, a write that did not land, inside the commit that was guarding against it.
+      ***A renumbering is a write to every document that names a number, and the table that lists the numbers is the easiest
+      one to forget because it looks like the source.*** ⚠ **No mechanical check can see this**: all eight compare documents
+      or resolve links, and a stale integer in a prose cell resolves to a real milestone that happens to be the wrong one
+
 - [x] `01 §3` — **half a sentence, from the wrong entry.** **Found and fixed 2026-08-18**, milestone 10 decision 3
       ([`adr/0116`](../docs/adr/0116-the-treasury-opens-empty-and-a-founding-balance-is-a-ratio-this-milestone-holds-neither-side-of.md)).
       It cited *"`CONTEXT.md` → Resource"* for *"a deficit becomes a debt burden and never a stop"*; the sentence is
