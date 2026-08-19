@@ -11,7 +11,7 @@ currently empty.
 `LEGIBLE CAUSE`
 
 > ⚠ **AMENDED IN PLACE 2026-08-18 by milestone 7's opening sitting —
-> [`0112`](0112-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md).**
+> [`0119`](0119-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md).**
 > **The conservation sum's right-hand side is wrong, and nothing else here is.** It reads *count of
 > **Travellers** currently parked*, and a Traveller is freed when the journey ends — so on this design's
 > own canonical case, *"a household's car sits at home overnight"* ([`0009`](0009-parking-is-modelled-supply-never-search.md)),
@@ -69,7 +69,7 @@ as certainly. `0009` wrote *"at every Tick"* before either precedent existed.
 | **`ParkingSpaceIsReleasedOnce`** | write site, `O(1)` | A release names a ~~Bin this Traveller holds~~ **Car Park this Citizen holds**, and holds it exactly once | Double release, release of a Car Park never acquired, release after the ~~Traveller~~ **Citizen** was freed |
 | **`ParkingOccupancyIsConserved`** | end of run | Σ occupied over all ~~parking Bins~~ **Car Parks** = count of ~~Travellers currently parked~~ **Citizens holding a Car Park** | The **leak** — an acquire with no matching release, which is the `0006`-class defect |
 
-⚠ **Both right-hand sides were amended 2026-08-18 by [`0112`](0112-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)**;
+⚠ **Both right-hand sides were amended 2026-08-18 by [`0119`](0119-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)**;
 the tiers and the split are untouched. **The write-site check got *stronger* in the move**: one column on
 the Citizen makes *holds it exactly once* **unrepresentable** rather than asserted, which is the
 `Rule Instance` armed/waiting precedent — the corpus prefers a state it cannot express to a state it
@@ -132,7 +132,7 @@ is precisely the workaround this finding must not stop at.
   car"*). **Two independent requirements landing on one field is corroboration**, and it is worth
   recording because the field was previously justified only by the return walk.~~
 
-  > ⚠ **WITHDRAWN 2026-08-18 by [`0112`](0112-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md).**
+  > ⚠ **WITHDRAWN 2026-08-18 by [`0119`](0119-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md).**
   > The constraint survives and the corroboration does not. **A release is `O(1)` only if the holder
   > carries the Car Park it parked in** — that is true and is why the column exists. But `0009` put the
   > field on the **Trip** and this ADR put it on the **Traveller**, which are *two objects*, not one

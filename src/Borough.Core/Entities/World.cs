@@ -220,7 +220,7 @@ public sealed class World
     /// </summary>
     /// <remarks>
     /// <b>Buildings only in this milestone, and Road Segments are omitted rather than foreclosed</b>
-    /// (<c>adr/0113</c>). A Car Park is located by an <c>Address</c>, which is already
+    /// (<c>adr/0120</c>). A Car Park is located by an <c>Address</c>, which is already
     /// <c>(Segment, offset, side)</c>, so a Segment-held one needs no new column — only rows and a
     /// balance pass. The omission is filed in <c>06</c>'s <em>Mechanisms with no milestone</em>.
     /// </remarks>
@@ -1606,7 +1606,7 @@ public sealed class World
     /// How many Vehicles a kind can park, and whether the Ruleset in force declares the kind at all.
     /// </summary>
     /// <remarks>
-    /// <b><see cref="TryDeclaredJobs"/>'s shape and its reason</b> (<c>adr/0113</c>): the two answers
+    /// <b><see cref="TryDeclaredJobs"/>'s shape and its reason</b> (<c>adr/0120</c>): the two answers
     /// have to stay apart, because a kind the Ruleset does not declare is <em>derelict</em> and must
     /// not be treated as a kind that declares no parking. Dereliction must not evict a city's cars any
     /// more than it may sack a District.
@@ -1628,11 +1628,11 @@ public sealed class World
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The Address is taken once, here, and is saved from then on</b> (<c>adr/0113</c>, corrected
+    /// <b>The Address is taken once, here, and is saved from then on</b> (<c>adr/0120</c>, corrected
     /// by this task). It is not derived from the owner, and the reason is the Segment case: a
     /// Building-held Car Park's Address is recoverable from its Building, a Segment-held one's is
     /// where the player put it, and a column is declared once — so deriving would have forced street
-    /// parking to bring a second column and made <c>adr/0113</c>'s <em>needs no new column</em> false.
+    /// parking to bring a second column and made <c>adr/0120</c>'s <em>needs no new column</em> false.
     /// </para>
     /// <para>
     /// ⚠ <b>A Building with no frontage yet gets a Car Park with no Address, and nothing re-points it

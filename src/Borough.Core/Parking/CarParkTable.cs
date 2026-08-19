@@ -17,7 +17,7 @@ public readonly struct CarPark;
 /// <remarks>
 /// <para>
 /// <b>It is not a <c>BinTable</c> row, and the distinction was in <c>CONTEXT.md</c> before the word
-/// was</b> (<c>adr/0113</c>). Four structural mismatches against the shared name: a Bin is located
+/// was</b> (<c>adr/0120</c>). Four structural mismatches against the shared name: a Bin is located
 /// only by <c>Handle&lt;Building&gt;</c>, its Resource is a Good, it carries two wait lists in a
 /// mechanism where <em>nothing about parking ever waits</em> (<c>adr/0009</c>), and <c>CONTEXT.md</c>
 /// → Supply and Space reserves the <c>Bin</c> type for Goods and Money by name — using <em>a full
@@ -31,7 +31,7 @@ public readonly struct CarPark;
 /// the cost. The Bin's two most expensive features are the two parking has no use for.
 /// </para>
 /// <para>
-/// <b>The space is held by the <see cref="Citizen"/></b> (<c>adr/0112</c>) — see
+/// <b>The space is held by the <see cref="Citizen"/></b> (<c>adr/0119</c>) — see
 /// <c>CitizenTable.ParkedIn</c>. Not by a Trip and not by a Traveller, both of which are freed when
 /// the journey ends, and a car is parked when no journey is happening at all. Not by the Household
 /// either: <see cref="World.ModeOf"/> drives <em>every member</em> of a car-owning Household, so a
@@ -79,7 +79,7 @@ public sealed class CarParkTable
     /// <summary>The Building this Car Park belongs to.</summary>
     /// <remarks>
     /// <b>Not how the Car Park is located</b> — that is <see cref="AddressAt"/>. A Bin is located by
-    /// its owner and nothing else, which is exactly the mismatch <c>adr/0113</c> cites first; keeping
+    /// its owner and nothing else, which is exactly the mismatch <c>adr/0120</c> cites first; keeping
     /// the Address a real column is what leaves a Segment-held Car Park needing no new one.
     /// </remarks>
     public HandleColumn<Building> Owner { get; }
@@ -98,7 +98,7 @@ public sealed class CarParkTable
     /// </summary>
     /// <remarks>
     /// <b>Derived and rebuilt, never saved and hashed</b> (<c>adr/0068</c>, <c>adr/0064</c>,
-    /// <c>adr/0113</c>). It is a pure function of the Building's kind against the Ruleset in force —
+    /// <c>adr/0120</c>). It is a pure function of the Building's kind against the Ruleset in force —
     /// <c>[[building]] parking</c> — so it is rebuilt at world load and at every Ruleset swap, and a
     /// retuned provision therefore reaches every Building standing rather than only the next one
     /// raised. <see cref="World.RebuildCapacities"/> is the one writer.
@@ -148,7 +148,7 @@ public sealed class CarParkTable
     /// <b>May return a negative, and a caller assuming otherwise is wrong rather than unlucky.</b>
     /// <see cref="Capacity"/> comes from the Ruleset in force, so a lowered provision can land under
     /// the current <see cref="Occupied"/> — and unlike a Bin, which is left to drain because it has a
-    /// consumer, the overflow here is <b>dismissed</b> (<c>adr/0113</c>). Between the reload and the
+    /// consumer, the overflow here is <b>dismissed</b> (<c>adr/0120</c>). Between the reload and the
     /// dismissal this reads negative.
     /// </remarks>
     public int SpaceAt(int slot) => Capacity[slot] - Occupied[slot];

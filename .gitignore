@@ -508,3 +508,12 @@ spikes/**/results/bdn/
 # git; keeping benchmarks runnable needs the worktree OUTSIDE the repo root, because the glob is
 # over the filesystem and knows nothing about gitignore.
 .claude/worktrees/
+# Ignore user-specific Claude Code configurations
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Ignore ephemeral workspace and session tracking
+.claude/sessions/
+.claude/todos/
+.claude/scheduled_tasks.*
+.claude/handoff

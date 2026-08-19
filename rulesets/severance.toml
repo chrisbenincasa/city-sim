@@ -147,7 +147,7 @@ jobs = 8
 
 # HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. Identical to minimal.toml's, including the
 # value. See there for why eight is `jobs`' own derivation rather than a second guess -- both count
-# CITIZENS, and adr/0112 settled that a parking space is held by the Citizen because World.ModeOf
+# CITIZENS, and adr/0119 settled that a parking space is held by the Citizen because World.ModeOf
 # drives every MEMBER of a car-owning Household. UNRATIFIED; ratifier is milestone 7 task 8.
 parking = 8
 

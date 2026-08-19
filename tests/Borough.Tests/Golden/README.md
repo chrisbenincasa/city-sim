@@ -296,7 +296,7 @@ changed and both hash files moved for the ordinary reason. Both Ruleset content 
 two files* path, in the order the 5a note gives.
 
 ⚠ **The key was added to `minimal.toml` deliberately, and the alternative is the thing worth naming.**
-`adr/0113` and `CarParkTable` could have shipped with **no Ruleset declaring parking at all** — the
+`adr/0120` and `CarParkTable` could have shipped with **no Ruleset declaring parking at all** — the
 table would have joined the hash, every number here would have moved, and **not one Car Park would
 ever have been created.** That is `world-hash.txt`'s own milestone 6 task 1 note repeating one
 milestone later: ***a baseline that covers a table's declaration reads exactly like one that covers its

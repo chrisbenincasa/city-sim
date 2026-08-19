@@ -1186,7 +1186,7 @@ public sealed class RulesetLoaderTests
         Assert.Equal(0, ruleset.Kind(1).Occupants);
         Assert.Equal(9, ruleset.Kind(1).Jobs);
     }
-    // ---- [[building]] parking (adr/0113) ---------------------------------------------------------
+    // ---- [[building]] parking (adr/0120) ---------------------------------------------------------
 
     /// <summary>A kind that declares no <c>parking</c> parks nothing.</summary>
     /// <remarks>
@@ -1207,7 +1207,7 @@ public sealed class RulesetLoaderTests
 
     /// <summary>A kind that declares <c>parking</c> carries the number through to the core.</summary>
     /// <remarks>
-    /// <b>It counts Vehicles, never Citizens and never Households</b> (<c>adr/0112</c>):
+    /// <b>It counts Vehicles, never Citizens and never Households</b> (<c>adr/0119</c>):
     /// <c>World.ModeOf</c> drives every member of a car-owning Household, so the three quantities
     /// differ by construction and a Car Park sized in people would be sized in the wrong currency.
     /// </remarks>

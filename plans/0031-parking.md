@@ -7,9 +7,9 @@
 ## Status
 
 🟡 **SCOPED 2026-08-17. Eight tasks. ✅ ALL FOUR DECISIONS SETTLED 2026-08-18** —
-[`adr/0112`](../docs/adr/0112-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)
+[`adr/0119`](../docs/adr/0119-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)
 *a parking space is held by the Citizen* and
-[`adr/0113`](../docs/adr/0113-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md)
+[`adr/0120`](../docs/adr/0120-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md)
 *a Car Park is not a Bin*, with amendments in place to `adr/0009` and `adr/0084`. ✅ **TASKS 1 AND 2
 SHIPPED 2026-08-18** — `CarParkTable`, the `[[building]] parking` key and the supply created, ceilinged,
 located and freed; then `[parking] radius_metres = 400` in all five shipped Rulesets. 1,531 tests green.
@@ -179,7 +179,7 @@ dismissed car does is a question this task must answer rather than discover.
 > A Building-held Car Park's Address is recoverable from its Building, so **deriving** it looks free —
 > and it is not, because *a column is declared once*: a **Segment**-held Car Park's Address is where the
 > player put it and is recoverable from nothing. Deriving would therefore have made
-> [`adr/0113`](../docs/adr/0113-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md)'s
+> [`adr/0120`](../docs/adr/0120-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md)'s
 > own *needs no new column* **false on the day it was written**, and the milestone that discovered it
 > would have been the one this milestone deliberately deferred. ***A disposition chosen against the
 > case in front of you is chosen against every case the column will ever hold*** — the saved/derived
@@ -211,7 +211,7 @@ dismissed car does is a question this task must answer rather than discover.
 > slot 0* and *owns none* are indistinguishable. And `parking = 8` in `minimal.toml` is **`jobs`' own
 > derivation rather than a second guess** — `1000/360 × 3` floored, both keys counting **Citizens** —
 > which is deliberate: sizing it per *Household* would have under-provisioned by 2.8× and baked in the
-> exact confusion `adr/0112` had just corrected.
+> exact confusion `adr/0119` had just corrected.
 >
 > ⚠ **What the re-recorded baseline covers is the table's declaration and not its behaviour, and this
 > time it was foreseen rather than found.** `minimal.toml` states no `[households] car_ownership_percent`,
@@ -453,8 +453,8 @@ The four cumulative obligations from `CLAUDE.md`, plus:
 ## Open decisions this milestone owes, before the task that needs them
 
 > ✅ **ALL FOUR SETTLED 2026-08-18, with the user in the room, in one sitting before task 1 —
-> [`adr/0112`](../docs/adr/0112-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)
-> and [`adr/0113`](../docs/adr/0113-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md),
+> [`adr/0119`](../docs/adr/0119-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)
+> and [`adr/0120`](../docs/adr/0120-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md),
 > plus amendments in place to `adr/0009` and `adr/0084`.** The recommendations below are kept unedited,
 > because **one of them was wrong and the reason it was wrong is the sitting's largest finding.**
 >
@@ -482,12 +482,18 @@ The four cumulative obligations from `CLAUDE.md`, plus:
 >    **verb** half is refused — because *a mechanism whose most visible half is refused reads as wholly
 >    refused*, which is why this had sat in no verb list, no inventory row and no milestone.
 >
-> ⚠ **A fifth thing was settled that no decision asked about: the ADR numbers.** `0110` and `0111` are
-> **already claimed by the unmerged `milestone-8-save-load` worktree**, so this sitting took `0112` and
-> `0113`. The collision was found by reading filenames off `git log --all`, which is the only instrument
-> that sees it — ***two sessions on two branches cannot both hold the next free number, and neither
-> branch's tree contains the other's claim.*** `plans/0000`'s last commit named this hazard for **plan**
-> numbers on the same day; it is the same hazard on ADRs and nothing checks either.
+> ⚠ **A fifth thing was settled that no decision asked about: the ADR numbers — and the settlement did
+> not hold.** `0110` and `0111` were already claimed by the unmerged `milestone-8-save-load` worktree,
+> so this sitting took `0112` and `0113`, found by reading filenames off `git log --all` and described
+> as *the only instrument that sees it*. **Both collided within the day**: `git log --all` sees refs,
+> the other branches went on committing, `main` reached `0112` and `milestone-10-conserved-money`
+> reached `0118`. Renumbered to **`0119`/`0120`** on 2026-08-19, before merging `main` in, because a
+> renumber is cheap while the citations are all on one branch and expensive once two trees hold the
+> same number meaning different things. ***A number claimed by reading what other branches have already
+> written is claimed against a set that is still growing.*** `plans/0000` named this hazard for **plan**
+> numbers on the same day; it is the same hazard on ADRs, and the check that would catch it is in
+> [`0002`](0002-open-questions.md) §F2 — **compare filenames per number**, because comparing numbers is
+> 98% false positives and comparing content is 91%.
 
 ### 1. What holds a parking space — and it is not a Trip or a Traveller. **Owed before task 1**
 

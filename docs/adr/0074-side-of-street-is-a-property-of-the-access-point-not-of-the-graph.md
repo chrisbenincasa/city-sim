@@ -1,6 +1,6 @@
 # Side of street is a property of the Access Point, not of the graph
 
-**Which side of a Segment a place sits on is one saved bit on that place, and a crossing is a cost term — not a second footway edge.** A location on the Road Graph is therefore a triple, `(Segment, offset, side)`, and it has a name: an **Address**. A Building's pedestrian Access Point is a Building's Address; a Leg runs from one Address to another; ~~a parking Bin will have one~~ **a `Car Park` has one** ([`0113`](0113-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md) — the prediction held and only the type's name changed). The graph is untouched — no Segment, no Arc and no Epoch changes because side of street exists.
+**Which side of a Segment a place sits on is one saved bit on that place, and a crossing is a cost term — not a second footway edge.** A location on the Road Graph is therefore a triple, `(Segment, offset, side)`, and it has a name: an **Address**. A Building's pedestrian Access Point is a Building's Address; a Leg runs from one Address to another; ~~a parking Bin will have one~~ **a `Car Park` has one** ([`0120`](0120-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md) — the prediction held and only the type's name changed). The graph is untouched — no Segment, no Arc and no Epoch changes because side of street exists.
 
 Guiding concepts: `EMERGENCE`, `LEGIBLE CAUSE`, `SOLVE THE ACTUAL PROBLEM`, `HONEST DEGRADATION`.
 

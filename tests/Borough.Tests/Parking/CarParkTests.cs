@@ -11,7 +11,7 @@ using Borough.Formats;
 namespace Borough.Tests.Parking;
 
 /// <summary>
-/// Milestone 7 task 1: the Car Park — <c>adr/0009</c>'s supply, <c>adr/0113</c>'s table.
+/// Milestone 7 task 1: the Car Park — <c>adr/0009</c>'s supply, <c>adr/0120</c>'s table.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -292,7 +292,7 @@ public sealed class CarParkTests
     /// </summary>
     /// <remarks>
     /// <c>adr/0074</c> predicted this row — <em>"a parking Bin will have one"</em> — and only the
-    /// type's name changed (<c>adr/0113</c>). The Address is <b>saved</b> rather than derived from the
+    /// type's name changed (<c>adr/0120</c>). The Address is <b>saved</b> rather than derived from the
     /// owner, because a Segment-held Car Park's Address is where the player put it; deriving would
     /// have forced street parking to bring a second column.
     /// </remarks>

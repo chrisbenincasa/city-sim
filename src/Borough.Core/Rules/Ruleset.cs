@@ -391,7 +391,7 @@ public readonly record struct KindDefinition(
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b><see cref="Occupants"/>'s rule a third time</b> (<c>adr/0068</c>, <c>adr/0113</c>,
+    /// <b><see cref="Occupants"/>'s rule a third time</b> (<c>adr/0068</c>, <c>adr/0120</c>,
     /// milestone 7 task 1), and it transplants for the reason the others did rather than by analogy:
     /// an authored number keyed on the kind, read at a write site, pointed at by no live state — so
     /// it is a property of the Ruleset in force, and lowering it reaches every Building already
@@ -412,7 +412,7 @@ public readonly record struct KindDefinition(
     /// <b>It counts Vehicles, never Citizens and never Households.</b> That is not pedantry about
     /// units: <see cref="Entities.World.ModeOf"/> drives every member of a car-owning Household, so
     /// the three quantities differ by construction and a Car Park sized in people would be sized in
-    /// the wrong currency (<c>adr/0112</c>).
+    /// the wrong currency (<c>adr/0119</c>).
     /// </para>
     /// </remarks>
     public int Parking { get; init; }

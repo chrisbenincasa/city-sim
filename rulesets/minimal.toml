@@ -157,14 +157,14 @@ occupants = 3
 # own remark exists to refuse.
 jobs = 8
 
-# HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. adr/0009's supply, adr/0113's Car Park, and
+# HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. adr/0009's supply, adr/0120's Car Park, and
 # `occupants`' rule on a third axis (adr/0068): an authored number keyed on the kind, derived from the
 # Ruleset in force rather than frozen when the Building was raised, so lowering it reaches every
 # Building standing. The overflow is DISMISSED rather than left to drain, which is `jobs`' side of
 # adr/0064's line -- a Bin is left to drain because it has a consumer, and a parked car has a HOLDER.
 #
 # EIGHT IS `jobs`' OWN DERIVATION AND NOT A SECOND GUESS, because both count CITIZENS: 1000/360 x 3
-# = 8.33, floored. That is deliberate rather than convenient. adr/0112 settled that a parking space is
+# = 8.33, floored. That is deliberate rather than convenient. adr/0119 settled that a parking space is
 # held by the CITIZEN, and the reason is that World.ModeOf drives every MEMBER of a car-owning
 # Household -- so a Building of 3 Households puts ~8.3 cars on the road, not 3. Sizing this per
 # HOUSEHOLD would have under-provisioned by 2.8x and baked in the exact confusion that ADR corrected;
