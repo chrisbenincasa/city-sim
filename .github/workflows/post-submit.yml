@@ -8,6 +8,10 @@
 # stays a deliberate act on the reference machine. See adr/0121 section 4.
 name: post-submit
 
+# ⚠ A scheduled workflow runs ONLY on the default branch, and it runs the copy of this file that
+# lives there. So this lane does not exist until it is merged to `main`, and editing it on a branch
+# changes nothing until that branch lands. workflow_dispatch is the only way to exercise it from
+# anywhere else.
 on:
   schedule:
     # 06:00 UTC daily. A day is the window a regression in a long play state may hide for; the

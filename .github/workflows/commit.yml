@@ -6,9 +6,13 @@
 # that reports failures nobody can act on.
 name: commit
 
+# EVERY branch, deliberately. This project works on long-lived worktree branches that are merged
+# down locally rather than through pull requests, so a pull_request trigger would fire rarely and a
+# branches: [main] filter would mean the lane never sees a change until after it landed. There is no
+# separate pull_request trigger because a PR from a branch in this repository is already covered by
+# the push -- adding one would double every run.
 on:
   push:
-  pull_request:
 
 jobs:
   assertions:
