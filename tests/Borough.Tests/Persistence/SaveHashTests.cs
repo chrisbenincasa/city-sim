@@ -195,6 +195,18 @@ public sealed class SaveHashTests(ITestOutputHelper output)
             simulation.Step(default);
         }
 
+        // A Business, so the LAST table in the composition has rows in it. Milestone 10 task 4b
+        // appended `business` and no pass creates one, so this world's final table was four allocator
+        // scalars and nothing else -- and A_flipped_byte_in_the_body_is_refused_by_the_load flips
+        // bytes[^9], which then landed in the free-list scalar and tripped Rows.Restore's structural
+        // walk instead of the hash check. The load still refused, so only the message assertion
+        // noticed.
+        //
+        // ⚠ A byte index counted from the END of a file is a claim about which table is last, and
+        // World._tables' own remark calls appending "the only edit to this list that does not move
+        // rows relative to one another". That is true of the composition and false of the file's tail.
+        world.CreateBusiness(world.Buildings.Rows.At(0));
+
         return world;
     }
 }

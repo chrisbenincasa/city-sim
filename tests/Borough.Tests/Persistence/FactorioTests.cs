@@ -110,13 +110,17 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// and — worse — makes it look as though the rebuild is being checked when it is not.
     /// </para>
     /// <para>
-    /// ⚠ <b>Three worlds, because a corruption test can only speak about a table that has rows in it,
+    /// ⚠ <b>Four worlds, because a corruption test can only speak about a table that has rows in it,
     /// and one fixture covered 170 of 187 columns.</b> The golden fixture leaves <c>route_hop</c> empty
     /// — 5c made the path source opt-in, so a world with nobody driving produces none — and <b>no
     /// shipped Ruleset fills <c>layer_cell</c> at all</b>, since none of the four emits pollution and
-    /// <c>SetLandValueTarget</c> has only test callers. ***A structural test over one fixture measures
-    /// the fixture's content as much as the structure.*** The union of the three is 187 of 187, and
-    /// <see cref="UnreachableColumns"/> pins that there is no residue.
+    /// <c>SetLandValueTarget</c> has only test callers. ⚠ <b>The fourth is milestone 10 task 4b's</b>:
+    /// <c>business</c> has no production writer either, so only <c>GoldenFixtures.Build()</c> holds one.
+    /// ***A structural test over one fixture measures the fixture's content as much as the
+    /// structure***, and the corollary this keeps re-proving is that <b>a table with no production
+    /// writer needs a fixture named for it or its columns are carried by the format and checked by
+    /// nothing</b>. The union of the four is 202 of 202, and <see cref="UnreachableColumns"/> pins that
+    /// there is no residue.
     /// </para>
     /// </remarks>
     [Fact]
@@ -128,6 +132,13 @@ public sealed class FactorioTests(ITestOutputHelper output)
         Scan(Stepped(GoldenFixtures.Rules(), GoldenFixtures.Population, 512).World, reached, every);
         Scan(Stepped(Congested(), GoldenFixtures.Population, 512).World, reached, []);
         Scan(WithLayerCells(512), reached, []);
+
+        // The golden fixture, milestone 10 task 4b, and it is here for the reason the paragraph above
+        // gives rather than a new one: `business` has no production writer -- no pass places one,
+        // because what would is milestone 13's commercial placement -- so a stepped world leaves the
+        // table empty and all five of its saved columns unreachable. This fixture is the only world
+        // that holds a Business.
+        Scan(GoldenFixtures.Build(), reached, []);
 
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 

@@ -560,6 +560,10 @@ See [`docs/adr/0101`](docs/adr/0101-a-commute-is-two-journeys-and-the-days-shape
 **Occupant**
 A Household or a Business. What fills a Building.
 
+⚠ **It is a concept spanning two lists rather than a type** ([`docs/adr/0113`](docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md), built milestone 10 task 4b). A Building carries `OccupantHead` into `HouseholdTable.DwellingNext` and `BusinessHead` into `BusinessTable.BuildingNext` — two homogeneous intrusive lists, not one polymorphic list holding two row types — so every handle stays typed and lint 7 is satisfied without a discriminated union. **Nothing in `Borough.Core` takes *an Occupant* as an argument**, and that is the shape rather than a gap: a reader that wanted to means a reader that has to discriminate, which is the Cohort pressure `adr/0025` warns about arriving through the container.
+
+**The two are Occupants in the same sense and are evicted in different ones.** A Household leaves a demolished Building for the Unplaced Pool with its money intact (`adr/0054`); a Business has no pool, so its row survives holding a **severed** premises handle on `CitizenTable.Workplace`'s precedent — *the premises stopped existing*. ⚠ **What becomes of a Business with no premises is undesigned** (`adr/0070`) and is filed in [`plans/0002`](plans/0002-open-questions.md) §C. Neither route destroys money, which is what `Invariant.MoneyIsConserved` holds them to.
+
 ---
 
 ## Services

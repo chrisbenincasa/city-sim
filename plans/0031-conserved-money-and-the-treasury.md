@@ -636,7 +636,64 @@ correct and temporarily strict*** is 5b's distinction and the good side of it.
 
 ⚠ **The constant is the Households' opening money alone** ([`adr/0116`](../docs/adr/0116-the-treasury-opens-empty-and-a-founding-balance-is-a-ratio-this-milestone-holds-neither-side-of.md)): the treasury opens **empty** and contributes nothing to it. **Decision 3 blocked this task and the brief said it blocked only task 9** — an anchor is a founding-balance question — and it resolves to a *zero term* rather than to a value, which makes the equality tighter rather than looser.
 
-### Task 4b — `BusinessTable`, and the second Occupant kind the build has never had
+### Task 4b — `BusinessTable`, and the second Occupant kind the build has never had — ✅ **DONE 2026-08-19**
+
+**`BusinessTable` exists with a Building handle, a `Money` column and a `BuildingNext` link;
+`BuildingTable` gains `BusinessHead`/`BusinessTail`; `World.CreateBusiness` is the door.** The
+conservation walk gained its third place and nothing else changed, **which is the property a
+balance-on-the-actor has and a Bin-on-the-container would not**.
+
+⚠ **The demolition path is where the decision actually was, and the brief did not mention it.** A
+Building carries three lists now and `DestroyBuilding` treats them differently: Households are
+**evicted to the Unplaced Pool** (`adr/0054`), workers are **unlisted and keep a severed handle**, and
+a Business takes the **worker** branch — unlisted, row kept, premises handle severed, balance intact.
+The Household branch was unavailable for a reason that is about money rather than about occupancy:
+*there is no pool for a Business, and freeing the row would take its balance out of the world through
+a demolition*, which is exactly the hole `adr/0024` exists to close and which task 4's invariant would
+have reported far from the cause. ⚠ **It leaves a row nothing will ever free**, which is `adr/0006`'s
+shape — unreachable today because no pass creates a Business, and a leak the moment milestone **13**
+places one. Filed to [`plans/0002`](0002-open-questions.md) §C, where it **widened the existing row
+rather than opening a second**: ***two actors were given different eviction rules by two milestones, on
+the strength of what each happened to have somewhere to go to.***
+
+⚠ **`Clear` was written first and is wrong, and the file that warned about it is the file it was written
+in.** `IndexList.Clear` drops the two heads without touching any element's `next`, which is correct only
+when the elements are about to be freed or re-linked — and `DestroyBuilding`'s **worker** branch says so
+in a comment four lines above where the Business branch went. A cleared list leaves each Business
+pointing at its old sibling, in no list, which `RebuildDerived` would never produce: **a
+`(derived AND rebuilt)` disagreement no hash can see**, because a derived column folds into nothing.
+Drained instead, and `The_maintained_business_list_is_what_a_rebuild_produces` puts demolition in the
+fixture so the two paths are compared on the one operation that unlinks.
+
+⚠ **Three guards failed on the day the table was declared, and all three failed for one reason: no
+fixture held a Business.** `DerivedRebuildAuditTests` (a derived column no world populates),
+`FactorioTests.Every_saved_column_reaches_the_file_and_no_other_one_does` (five saved columns
+unreachable, because a corruption test cannot speak about an empty table), and
+`SaveHashTests.A_flipped_byte_in_the_body_is_refused_by_the_load`. ***A table with no production
+writer needs a fixture named for it, or its columns are carried by the format and checked by
+nothing*** — and the repair is a Business in `GoldenFixtures.Build()`, funded by a **transfer** from a
+Household rather than by a second endowment, which also puts all three of the conservation walk's
+places in the committed baseline at once. **Two of them**, sharing one Building, because
+`business.building_next` is zero for a list of one.
+
+⚠ **The third failure is the sharpest and it is not about Businesses.** That test flips `bytes[^9]` —
+*"near the end of the file on purpose"*, to miss the `id`/`generation`/`free_next` walk of the first
+table — and appending an empty `business` table put four allocator scalars at the end of the file. The
+flip landed in the free list, `Rows.Restore`'s structural walk refused it, and **the load still
+refused**, so only the message assertion noticed that a different mechanism had taken over. ***A byte
+index counted from the end of a file is a claim about which table is last***, and `World._tables`'
+own remark calls appending *"the only edit to this list that does not move rows relative to one
+another"* — which is true of the composition and false of the file's tail. The fixture now puts a
+Business in that world so the last table has data.
+
+**Cost:** one new table with two saved columns and three derived ones, so **`world-hash.txt` and
+`session-trace.txt` re-record** (`0x47E1A7AAEB34043E`); neither Ruleset content hash moves.
+`DerivedRebuildAuditTests`' machine count goes **32 → 35**. **1,598 tests green**, six of them new.
+`CONTEXT.md` → Occupant now states the two-list shape and the two eviction rules.
+
+*Original scoping text follows.*
+
+### ~~Task 4b's brief~~
 
 ⚠ **NEW 2026-08-18, from decision 1** ([`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)).
 A `BusinessTable` with a Building handle and a `Money` column, plus a `BusinessHead` on

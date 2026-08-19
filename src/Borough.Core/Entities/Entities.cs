@@ -102,3 +102,14 @@ public readonly struct Clock;
 /// </para>
 /// </remarks>
 public readonly struct MoneySupply;
+
+/// <summary>
+/// The commercial or industrial economic actor occupying a Building.
+/// </summary>
+/// <remarks>
+/// <b>Empty for <see cref="Citizen"/>'s reason</b>, and an Occupant beside <see cref="Household"/>
+/// rather than a second kind of <see cref="Building"/> — <c>adr/0113</c>. Milestone 10 gives it a
+/// balance and nothing else: inputs, outputs, employment and market behaviour belong to the
+/// milestones that already own them. See <see cref="BusinessTable"/>.
+/// </remarks>
+public readonly struct Business;

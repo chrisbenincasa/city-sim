@@ -898,8 +898,9 @@ levers are Ruleset numbers section D already lists as unset:~~ **The diversion p
   structural rather than diligence — make the table door `private protected` so the world's is the only
   way in, have the rebuild audit run over every fixture, or fold the residency arrays so the hash can
   see them — and they differ in what else they cost. **Arguable**: no number refutes any of them.
-- **Where does a departing Household's balance go?** ⚠ **Filed 2026-08-19 by milestone 10 task 4, which
-  found it by building the check that reports it.** `World.DestroyHousehold` frees the row with whatever
+- **Where does a departing actor's balance go?** ⚠ **Filed 2026-08-19 by milestone 10 task 4, which
+  found it by building the check that reports it, and widened by task 4b the same day — it has two
+  subjects, a Household and a Business, and one answer would settle both.** `World.DestroyHousehold` frees the row with whatever
   is in `Money` and `Savings`, so a Household dying rich destroys conserved money — and
   `Invariant.MoneyIsConserved` now says so, loudly, the first time it happens. Nothing in the corpus
   states a destination: `adr/0054` covers **eviction**, where the Household survives and keeps what it
@@ -912,6 +913,16 @@ levers are Ruleset numbers section D already lists as unset:~~ **The diversion p
   milestone 11's machinery used for a second purpose) or an **inheritance** (the balance moves to
   another Household or to the treasury, which needs a rule saying which). **Arguable**: no measurement
   distinguishes them, and both conserve.
+  ⚠ **The Business is the same question with a different subject and a different accident.** Task 4b
+  gave a demolished Building's Business the **worker** branch's treatment rather than the Household's —
+  unlisted, row kept, premises handle severed — because there is no pool for a Business and freeing the
+  row would take its balance out of the world. That conserves money and it leaves **a row nothing will
+  ever free**, which is `adr/0006`'s shape. It is unreachable today (no pass creates a Business, so the
+  loop is empty in every world the simulation builds on its own) and it is a leak the moment milestone
+  **13** places one. ***Two actors were given different eviction rules by two milestones, on the
+  strength of what each happened to have somewhere to go to*** — which is a reason about the build's
+  furniture rather than about what should become of an actor the city stops housing, and it is why this
+  row now has one question and two subjects rather than two rows.
 - **Should the loader refuse a money Bin on a `[[building]]`?** ⚠ **Filed 2026-08-19 by milestone 10
   task 4.** [`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)
   says a Building never holds money, and it is a decision with teeth — the clause is

@@ -671,12 +671,13 @@ public static class WorldInvariants
     /// each half is on <see cref="Invariant.MoneyIsConserved"/>.
     /// </para>
     /// <para>
-    /// <b>The places money can sit are two today and three tomorrow.</b> A Household's two columns and
-    /// any Bin whose Resource is conserved — which today is the treasury's alone, since
-    /// <c>World.FitTreasury</c> is the only thing that makes one. A Business's balance is the third
-    /// (<c>adr/0113</c>), and task 4b adds a walk here rather than changing anything else: a place
-    /// money can sit that this method does not visit reads as money destroyed, so the list is the
-    /// thing to check when the invariant fires on a milestone that added an actor.
+    /// <b>The places money can sit are three.</b> A Household's two columns; a Business's balance
+    /// (<c>adr/0113</c>, task 4b); and any Bin whose Resource is conserved — which today is the
+    /// treasury's alone, since <c>World.FitTreasury</c> is the only thing that makes one. A place money
+    /// can sit that this method does not visit reads as money <em>destroyed</em>, so this list is the
+    /// thing to check when the invariant fires on a milestone that added an actor. Adding the Business
+    /// walk was the whole of what task 4b owed this check, which is the property a balance-on-the-actor
+    /// has and a Bin-on-the-container would not.
     /// </para>
     /// <para>
     /// <b>It returns silently on overflow rather than reporting.</b> A sum that cannot be represented
@@ -702,6 +703,21 @@ public static class WorldInvariants
 
             if (!TryAdd(ref held, households.Money[slot])
                 || !TryAdd(ref held, households.Savings[slot]))
+            {
+                return;
+            }
+        }
+
+        BusinessTable businesses = world.Businesses;
+
+        for (int slot = 0; slot < businesses.Rows.SlotCount; slot++)
+        {
+            if (!businesses.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (!TryAdd(ref held, businesses.Money[slot]))
             {
                 return;
             }

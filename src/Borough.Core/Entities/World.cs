@@ -137,6 +137,12 @@ public sealed class World
         Clock = new ClockTable();
         Treasury = new TreasuryTable();
         MoneySupply = new MoneySupplyTable();
+
+        // Sized off the Building count rather than off the population: a Business occupies premises,
+        // so what bounds it is how many premises there are. How many may share one is undesigned
+        // (adr/0070), so one apiece is the capacity hint that assumes least -- and it is a hint, since
+        // the table grows.
+        Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings);
         RulesetTrail = new RulesetTrailTable();
         CondemnationTrail = new CondemnationTrailTable(Lots.Rows);
 
@@ -198,6 +204,11 @@ public sealed class World
             // the composition, unlike the treasury row below it.
             MoneySupply.Rows,
 
+            // Appended for the same reason, milestone 10 task 4b. adr/0113: a Business is the second
+            // Occupant kind, its balance is a saved column on the actor, and conserved money sitting
+            // outside the composition would be money the State Hash cannot see.
+            Businesses.Rows,
+
             // TreasuryTable is deliberately NOT here, milestone 10 task 1. Both its columns are
             // Derived, and 5a's finding is that a wholly-derived table cannot join this list: Rows.Fold
             // folds the allocator's four scalars BEFORE consulting any column's disposition, so such a
@@ -244,6 +255,11 @@ public sealed class World
     /// The city's balance sheet: one row, holding the head of the treasury's Bins (<c>adr/0114</c>).
     /// </summary>
     public TreasuryTable Treasury { get; }
+
+    /// <summary>
+    /// The Businesses, each occupying a Building and holding its own balance (<c>adr/0113</c>).
+    /// </summary>
+    public BusinessTable Businesses { get; }
 
     /// <summary>
     /// How much money has been issued into this world, as one saved row. The anchor
@@ -717,6 +733,40 @@ public sealed class World
     }
 
     /// <summary>
+    /// Puts a Business into a Building, linking it into the premises' Business list.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It opens with a zero balance and there is no door that funds one</b> (<c>adr/0113</c>).
+    /// Milestone 10 needs exactly one property of a Business — somewhere for conserved money to sit
+    /// that is not a Building — and the counterparty that would pay it is milestone <b>13</b>'s price
+    /// surface. <see cref="Endow"/> is deliberately not widened to reach here: money entering the
+    /// world is a founding act about Households, and a Business funded from nowhere is the failure
+    /// <see cref="Invariant.MoneyIsConserved"/> exists to report.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nothing in the simulation calls this.</b> A Business is placed by no pass, because what
+    /// would place one is commercial and industrial placement, which is milestone <b>13</b>. The door
+    /// exists so the table is reachable and its balance is testable, which is <c>adr/0070</c>'s
+    /// <em>unbuilt</em> rather than an omission.
+    /// </para>
+    /// </remarks>
+    /// <param name="premises">The Building it occupies.</param>
+    public Handle<Business> CreateBusiness(Handle<Building> premises)
+    {
+        int buildingSlot = Buildings.Rows.Resolve(premises);
+
+        Handle<Business> handle = Businesses.Rows.Allocate();
+        int slot = Businesses.Rows.Resolve(handle);
+
+        Businesses.Building[slot] = premises;
+
+        BuildingBusinesses.InsertOrdered(buildingSlot, slot);
+
+        return handle;
+    }
+
+    /// <summary>
     /// Gives a Household money that did not exist before. <b>The only way money enters this world.</b>
     /// </summary>
     /// <remarks>
@@ -981,6 +1031,9 @@ public sealed class World
         Buildings.OccupantTail.Span.Clear();
         Buildings.WorkerHead.Span.Clear();
         Buildings.WorkerTail.Span.Clear();
+        Buildings.BusinessHead.Span.Clear();
+        Buildings.BusinessTail.Span.Clear();
+        Businesses.BuildingNext.Span.Clear();
         Citizens.WorkerNext.Span.Clear();
         Citizens.CommuteNext.Span.Clear();
         Buildings.BinHead.Span.Clear();
@@ -1064,6 +1117,21 @@ public sealed class World
                 && Buildings.Rows.TryResolve(Citizens.Workplace[slot], out int workplaceSlot))
             {
                 workers.InsertOrdered(workplaceSlot, slot);
+            }
+        }
+
+        // The Business list, and the TryResolve carries the same weight it does above for the same
+        // reason: BusinessTable.Building is Reference.Severable, so a demolished Building leaves a
+        // live Business pointing at a freed row and this walk drops it -- the answer DestroyBuilding
+        // gives on the write path. A Business whose premises no longer resolve is in no Building's
+        // list under either route.
+        IndexList businesses = BuildingBusinesses;
+        for (int slot = 0; slot < Businesses.Rows.SlotCount; slot++)
+        {
+            if (Businesses.Rows.IsLive(slot)
+                && Buildings.Rows.TryResolve(Businesses.Building[slot], out int premisesSlot))
+            {
+                businesses.InsertOrdered(premisesSlot, slot);
             }
         }
 
@@ -1159,6 +1227,13 @@ public sealed class World
     /// <inheritdoc cref="Occupants"/>
     public IndexList Workers =>
         new(Buildings.WorkerHead, Buildings.WorkerTail, Citizens.WorkerNext);
+
+    /// <summary>
+    /// The Businesses occupying each Building — the second Occupant list (<c>adr/0113</c>).
+    /// </summary>
+    /// <inheritdoc cref="Occupants"/>
+    public IndexList BuildingBusinesses =>
+        new(Buildings.BusinessHead, Buildings.BusinessTail, Businesses.BuildingNext);
 
     /// <summary>The Bins on each Building.</summary>
     /// <inheritdoc cref="Occupants"/>
@@ -2221,6 +2296,30 @@ public sealed class World
         {
             Commutes.Remove(Citizens, worker);
             worker = workers.PopFront(slot);
+        }
+
+        // The Businesses next, unlisted and NOT destroyed, which is the worker branch's answer on the
+        // Occupant axis rather than the Household branch's. A Household is evicted to the Unplaced
+        // Pool because there is somewhere for it to go; there is no pool for a Business, and freeing
+        // the row would destroy its balance -- money out of the world through a demolition, which is
+        // the hole adr/0024 exists to close and which Invariant.MoneyIsConserved would report far from
+        // here. So the row survives with its money, holding a severed premises handle that says `the
+        // premises stopped existing`.
+        //
+        // ⚠ WHAT BECOMES OF A BUSINESS WITH NO PREMISES IS UNDESIGNED (adr/0070), and it is the
+        // departing Household's question with a different subject -- both are filed in plans/0002 §C.
+        // Nothing reaches it today: no pass creates a Business, so this loop is empty in every world
+        // the simulation builds on its own. Left as a leak that cannot be reached rather than closed
+        // by inventing a destination for money.
+        //
+        // Drained rather than Clear()ed, for the reason the worker branch above states: the rows stay
+        // live and are not re-linked, and IndexList.Clear drops the two heads without touching any
+        // element's next link. A Business left holding a stale BuildingNext is in no list and points
+        // at its old sibling, which RebuildDerived would never produce -- so Clear here would break
+        // the (derived AND rebuilt) agreement in exactly the direction no hash can see.
+        IndexList premises = BuildingBusinesses;
+        while (premises.PopFront(slot) != Rows.NoSlot)
+        {
         }
 
         // The Rules next, so that any of them asleep on this Building's own Bins are off those wait

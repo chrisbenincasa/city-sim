@@ -388,6 +388,27 @@ internal static class GoldenFixtures
             world.Citizens.Health[slot] = (byte)(100 - i);
         }
 
+        // A Business, milestone 10 task 4b, and it is HERE rather than in a test of its own because
+        // this fixture is what DerivedRebuildAuditTests and FactorioTests draw a world from: a table
+        // with no live row leaves its columns unreachable, so both guards fail the day the table is
+        // declared and neither is satisfied by a test that builds its own world. That is those guards
+        // working -- a column no fixture populates is a column the save format is not really holding.
+        //
+        // It is funded by a TRANSFER rather than by a second endowment, because there is no door that
+        // funds a Business (adr/0113) and there should not be: money entering the world is a founding
+        // act about Households, and paying one actor out of another creates none. This is also what
+        // puts all three of MoneyIsConserved's places in the committed baseline at once.
+        // TWO of them, sharing one Building, because one Business never exercises the link column:
+        // business.building_next is zero for a list of one, and DerivedRebuildAuditTests reports a
+        // derived column no world populates. How many Businesses may share a Building is undesigned
+        // (adr/0070) and this does not settle it -- the list is what keeps that question open, and a
+        // fixture holding one element would leave the list's own machinery uncovered.
+        Handle<Business> business = world.CreateBusiness(buildings[2]);
+        world.CreateBusiness(buildings[2]);
+
+        world.Households.Money[world.Households.Rows.Resolve(households[0])] -= new Money(400);
+        world.Businesses.Money[world.Businesses.Rows.Resolve(business)] += new Money(400);
+
         // Retirements, so the free list and the never-reused id counter are both off their initial
         // values by the time the hash is taken. Household 5 takes its two members with it.
         world.DestroyCitizen(citizens[13]);

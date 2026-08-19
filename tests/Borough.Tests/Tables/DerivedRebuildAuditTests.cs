@@ -164,12 +164,13 @@ public sealed class DerivedRebuildAuditTests
         // covers it with a NON-zero fill, which is strictly stronger than anything this loop can do.
         Assert.Equal(["road_segment.fidelity"], never);
 
-        // 33 columns were declared Derived before this task and 32 are now, because
-        // layer_cell.pollution_pass became Disposition.Scratch. Both numbers are the machine's; the
+        // 33 columns were declared Derived before milestone 8 task 1 and 32 after, because
+        // layer_cell.pollution_pass became Disposition.Scratch. 35 as of milestone 10 task 4b, which
+        // added building.business_head, building.business_tail and business.building_next. Both numbers are the machine's; the
         // scoping survey's hand count said 28 across 9 tables, and it is the count that was wrong
         // rather than the tables. Asserting it pins the coverage in both directions -- a new derived
         // column no world here populates fails this test on the day it is declared.
-        Assert.Equal(32, all.Length);
+        Assert.Equal(35, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

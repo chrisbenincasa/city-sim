@@ -33,6 +33,8 @@ public sealed class BuildingTable
         OccupantTail = _rows.Derived<int>("occupant_tail");
         WorkerHead = _rows.Derived<int>("worker_head");
         WorkerTail = _rows.Derived<int>("worker_tail");
+        BusinessHead = _rows.Derived<int>("business_head");
+        BusinessTail = _rows.Derived<int>("business_tail");
         BinHead = _rows.Derived<int>("bin_head", Touch.PerTick);
         BinTail = _rows.Derived<int>("bin_tail");
         RuleHead = _rows.Derived<int>("rule_head");
@@ -72,6 +74,20 @@ public sealed class BuildingTable
 
     /// <summary>Tail of the worker list, so a Citizen appends rather than push-fronts.</summary>
     public Column<int> WorkerTail { get; }
+
+    /// <summary>
+    /// Head of the Business list — see <see cref="BusinessTable.BuildingNext"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A second Occupant list rather than a polymorphic one</b> (<c>adr/0113</c>). A Household and
+    /// a Business are both Occupants and are different row types, so <c>CONTEXT.md</c> → Occupant is a
+    /// concept spanning two lists and every handle here stays typed — which is what lint 7 wants and
+    /// what <see cref="WorkerHead"/> already established as the shape.
+    /// </remarks>
+    public Column<int> BusinessHead { get; }
+
+    /// <summary>Tail of the Business list, so a Business appends rather than push-fronts.</summary>
+    public Column<int> BusinessTail { get; }
 
     /// <summary>
     /// Head of this Building's Bins — see <see cref="Rules.BinTable.BinNext"/>.
