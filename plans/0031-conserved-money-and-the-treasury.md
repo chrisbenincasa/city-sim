@@ -6,15 +6,22 @@
 
 ## Status
 
-⚠ **SCOPED 2026-08-18, ungated, not started.** Picked because milestone **7** is running in a
-concurrent session and the District Pool — then milestone **9**, now **12** — turned out not to be the
-independent root [`06`](../docs/06-roadmap.md)'s dependency graph says it is. See *What scoping
-found* → **F1**.
+**SCOPED 2026-08-18, ungated, IN FLIGHT.** Picked because milestone **7** is running in a concurrent
+session and the District Pool — then milestone **9**, now **12** — turned out not to be the independent
+root [`06`](../docs/06-roadmap.md)'s dependency graph says it is. See *What scoping found* → **F1**.
 
-**Six decisions, of which two are settled and four are open**, each named against the task it blocks.
-Two of the open ones are hash-bearing numbers that the corpus declares owed in prose and that sit in
-**no ledger**, so they have no ratifier — [`0002`](0002-open-questions.md) §D had never held a row
-for either until this brief filed them.
+✅ **All six decisions are settled**, `adr/0113`–`adr/0118`, every one with the user in the room. Two of
+them were hash-bearing numbers the corpus declared owed in prose while they sat in **no ledger**, so
+they had no ratifier — [`0002`](0002-open-questions.md) §D had never held a row for either until this
+brief filed them, and ⚠ **one of the two dissolved rather than closing**: `adr/0115` found money has no
+unit to choose, so what the milestone owed was an **instrument** rather than a value, and task 5 built
+it.
+
+✅ **Tasks 1, 2, 3, 4, 4b, 4c and 5 are DONE**, and task 6 was **discharged at scoping**. ⚠ **Two of
+those tasks did not exist when this document was written** — 4b and 4c — and 4c is the one that
+matters: it is decision 6 built, ***the milestone's largest decision had no task at all***, and task 5
+rested wholly on it while naming decisions 1 and 5 and not 6. **What is left is 7, 8 and 9** — something
+to look at, Evidence answering the question it currently declines, and the long acceptance run.
 
 ✅ **Decision 1 settled 2026-08-18 with the user in the room** —
 [`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md):
@@ -855,7 +862,123 @@ move**, which means the two literals inside `session.borough` had to be correcte
 could be regenerated at all. **1,602 tests green.** `CONTEXT.md` → Bin, Eviction and Occupant carry
 the new shape.
 
-### Task 5 — the Household balance sheet gets a production writer
+### Task 5 — a Policy is the Sweep family's second member — ✅ **DONE 2026-08-19**
+
+`02 §4.2` built. A `[[policy]]` triggers on an interval, sweeps a **whole population** and moves money
+between one Bin and another. `PolicyEngine` runs in Tick phase 6 **ahead of** placement, employment and
+the Zone Rules — a fifth engine and the first to run in front of the other three, because a Policy
+*changes what an actor holds* and the three passes behind it should respond to the city it just
+changed. That is phase 5 → phase 6's own argument one level in, and **nothing downstream reads a
+balance yet**, which is precisely why the ordering is stated now rather than discovered later: `02 §1.1`
+calls the phase order the determinism contract, and a contract is cheapest to write before anybody
+relies on it.
+
+**What shipped besides the engine.** `PolicySubject` declaring four populations and building one;
+`Readouts.Balance` and a new `ReadoutScope`; `[households] opening_balance_min/max`, read by
+`SyntheticCity` through `World.Endow` so the issuance lands in `MoneySupply.Issued` and conservation
+stays exactly checkable **across** it rather than in spite of it; two `purpose_tag`s; `PolicyActivity`,
+the **eighth** Census family, printed by `--census` on the day it was built (5b-bis task 6's finding
+taken as an instruction: *a Census family whose only reader is the suite is a family no operator can
+see*); and `rulesets/taxed.toml`, the **seventh** shipped Ruleset, `minimal.toml` verbatim plus three
+appended tables. **1,633 tests green and no baseline moves** — the golden session runs on
+`minimal.toml`, which states no `[[policy]]`.
+
+⚠ **THE LEVY CANNOT FAIL, AND THAT IS A PROPERTY OF THE READOUT RATHER THAN OF THE FIXTURE.** A derived
+apply count taken off the same Bin the term then draws from can **never overdraw**, because `n` is a
+fraction of what is there. ***A Rule whose apply count is read off the Bin it spends is unfailable by
+construction*** — so a levy on holdings never joins a wait list, never reports bankruptcy, and touches
+none of the failure surface `adr/0114` built. It is the transfer in the **other** direction, paid out
+of a treasury that can empty, that exercises any of it. This was not foreseen: the brief describes both
+ends as *"`local`↔`global` transfers, both Sweep Rules"*, symmetric in every sentence, and they are
+asymmetric in the one property the milestone is about. It is also the reason `Readouts.Balance` needed
+a paragraph rather than a line — a balance is **both** a thing a Rule spends and a thing a Rule
+consults, which is the one line `Readout`'s own summary draws.
+
+⚠ **A Readout gained a *scope*, and the loader gained a refusal that is new in kind.** Every Readout
+before `balance` hangs off a **Building**, because the only consumer was a Bin Rule and a Bin Rule is
+attached to one. A Policy sweeps **Households**, so the entity a Readout hangs off is now part of its
+declaration (`Readouts.ScopeOf`) rather than a property of its consumer. What that buys is that
+`occupancy` in a `[[policy]]` and `balance` in a `[[rule]]` are **both real names with no row to read
+them from** — a mismatch the loader refuses by name, which is `adr/0048`'s division of labour exactly:
+*the loader refuses an unusable name, the interpreter refuses an unusable id*. ⚠ **The file predicted
+this would need a wider switch and it needed a second entry point**, which is the cheaper answer and
+the one a reading of the existing enum would not have produced.
+
+⚠ **`[[policy]]` moves money and gets NO money-balance refusal, and the reason is worth more than the
+count.** Refusal 4 exists because a `[[rule]]`'s money terms are two free-form lists that have to be
+walked to know whether they balance. A Policy states a `from` and a `to`, so the same quantity leaves
+one Bin and enters the other **by construction**. ***A transfer written as a direction cannot leak; one
+written as two lists has to be checked.*** So a whole new section arrived and the refusal count went up
+by **less than the surface did** — eleven, taking `adr/0048`'s count of record to **seventy** at load
+and a seventy-first on reload, with the enumeration in that ADR. **A shape can be validated by being
+unable to express the error**, which is a cheaper guard than one that detects it.
+
+**The rotation is drawn rather than strided, and that is a number avoided rather than a number chosen.**
+`02 §4.2` asks for the scan start to move per trigger so that a payer running dry produces *a gradient
+across the population rather than a permanent boundary*. A fixed stride meets the letter and adds a
+second hash-bearing number that can **resonate with the population size** — a stride sharing a factor
+with the row count visits a subset for ever, which is the failure the rotation exists to prevent,
+reintroduced by the mechanism meant to fix it. A draw needs no number and cannot resonate, so
+`adr/0052` has nothing to ratify. ⚠ **It is keyed on the Policy's *index***, which is the one place in
+`PurposeTag` where the entity coordinate is not an entity: two Policies triggering on one Tick and
+sharing a start would tax and pay the same Households first for ever, so **who the treasury runs out on
+would correlate with who was taxed hardest** — `02 §8` rule 5's bias arriving *between* two Rules
+rather than inside one.
+
+**Exhaustion stops the sweep; a member who cannot pay does not.** The two look alike at the call site
+and are opposite facts. A treasury that cannot cover the next payment cannot cover any of the ones
+behind it, so continuing is a walk that pays nobody — and `02 §4.2` asks for *where it stopped*, which
+only exists if it stops. A Household that cannot cover a levy says nothing about the next Household,
+and **nobody is entitled to be taxed**. They are separate counters for that reason (`sweeps run dry`
+against `could not pay`), and `exhausted` counts **sweeps** where everything else counts **members**,
+so the row says *sweeps* in its own name: a reader who sums that column gets a number about nothing.
+
+⚠ **TWO TEST DEFECTS, AND THEY ARE THE SAME MISTAKE — READING A QUANTITY AT THE WRONG MOMENT.** Both
+passed review as prose and failed as arithmetic.
+
+`A_percentage_that_floors_to_zero...` classified balances **after** the sweep and said so in a comment
+defending it. A Household holding 10 pays 1 and lands on 9, so the after-picture counts it among the
+floored when the levy floored nothing on it — 16 counted against 18 classified. The levy floors on the
+balance it was **handed**. ***A balance after a transfer cannot say what the transfer saw***, and the
+comment is the tell: it stated the reading it wanted rather than the one the mechanism supports.
+
+`Two_triggers_of_an_exhausting_sweep...` seeded the treasury **once**, so the second sweep met an
+**empty** treasury rather than a **short** one. It paid nobody, and a sweep that pays nobody says
+nothing about the scan order the test exists to assert — the assertion would have failed for a reason
+unrelated to the rotation, which is worse than not having it. Seeded before each trigger, both sweeps
+are short and the rotation is readable. ***Exhausted and empty are different states, and only the first
+is what "pays whom it reaches and reports where it stopped" is about.***
+
+**The circuit's numbers are derived except one, and the exception is chosen to make a branch reachable
+rather than to model anything.** `interval = 2048` is `Ticks.PerDay` on `adr/0059`'s argument;
+`percent = 10` is `adr/0115`'s own fraction, found in both existing sites (`02 §5.6`'s tatonnement
+clamp and `02 §4.1`'s apply count), which makes this file's flooring threshold **exactly** that ADR's
+floor of ten smallest units — so the counter reads *the discipline* rather than a number chosen beside
+it. The rebate's `amount = 100` is the one free number: at a mean opening balance of 500 the levy takes
+about 50 a Household a Day against 100 owed, so the treasury runs dry about **halfway through every
+sweep**. ⚠ **A city that paid everybody would demonstrate less, not more** — the exhaustion branch would
+never run and the rotation would be decoration.
+
+✅ **A consequence nobody claimed in advance, and it runs in the helpful direction.** A proportional
+levy with a flat rebate drives every balance toward the same figure: take is `0.1b` and the payment is
+flat, so a Household above the crossing point loses and one below it gains. The total never moves —
+money is conserved and this file has no gate — so what changes is only the **spread**. That means the
+rebate lifts the poorest **out of** the flooring band, so `floored to zero` is largest on the first
+sweeps and falls. ***A transfer cures the rounding artefact a levy produces***, which is visible in
+`--census` in a few Days and was not predicted by `adr/0115`, this brief, or the file's own author until
+the numbers were written down.
+
+**Two smaller things.** `PurposeTag.OpeningBalance` is consumed **once** where `CarOwnership` is
+re-derived on every read, and the difference is the mechanism rather than the tag: ownership is a
+standing property, so a retuned rate moves a nested set; an endowment is **issued** — it enters a Bin,
+is spent, and cannot be recovered by redrawing. What that costs is that the band is not retroactive on
+reload, which is correct, because **money already issued is money in the world**. And the sweep is a
+sweep rather than a sample **on semantics, not on cost**: `02 §4.2` makes a transfer an *entitlement*,
+so paying a random subset of the eligible is a defect rather than a behaviour model — anything reaching
+for a sample to make this affordable has confused the two. It is affordable anyway, at about ten
+integer comparisons a Tick amortised for eight Policies over ten thousand Households.
+
+### ~~Task 5's brief~~
 
 The circuit that needs neither a price nor a wage: **a Policy sweeps a tax from Households into the
 treasury, and a transfer pays it back out.** Both ends are `local`↔`global` transfers, both are Sweep
