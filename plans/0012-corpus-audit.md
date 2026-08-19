@@ -959,7 +959,7 @@ milestone creates the first load. Nothing enumerates them; this is the one that 
 **1. ⚠ [`06`](../docs/06-roadmap.md)'s dependency graph makes the District Pool a root, and
 [`adr/0050`](../docs/adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md)
 makes it downstream of two milestones.** Found 2026-08-18 while scoping milestone 10
-([`0031`](0031-conserved-money-and-the-treasury.md) → **F1**), and it is why milestone **9** was not
+([`0033`](0033-conserved-money-and-the-treasury.md) → **F1**), and it is why milestone **9** was not
 the row picked.
 
 `06`'s roots table lists **the District Pool | 9 | Needs road connectivity, which shipped in 5a**,

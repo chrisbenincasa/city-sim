@@ -387,6 +387,37 @@ public readonly record struct KindDefinition(
     public int Jobs { get; init; }
 
     /// <summary>
+    /// How many Vehicles a Building of this kind can park. Zero means it provides no parking.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Occupants"/>'s rule a third time</b> (<c>adr/0068</c>, <c>adr/0120</c>,
+    /// milestone 7 task 1), and it transplants for the reason the others did rather than by analogy:
+    /// an authored number keyed on the kind, read at a write site, pointed at by no live state — so
+    /// it is a property of the Ruleset in force, and lowering it reaches every Building already
+    /// standing. The overflow is <b>dismissed</b> rather than left to drain, on <see cref="Jobs"/>'
+    /// side of <c>adr/0064</c>'s line: a Bin is left to drain because it has a consumer, and a parked
+    /// car has a <em>holder</em> and no consumer exactly as a job does, so nothing would ever spend a
+    /// Building's surplus parking down.
+    /// </para>
+    /// <para>
+    /// <b>Zero rather than absent, and it is the one of these three where zero is the interesting
+    /// value.</b> A tower with no parking is a real building and a real balance decision — it is the
+    /// second row of <c>adr/0009</c>'s own player-tool table, <em>a detached house carries a
+    /// driveway, a tower may not</em> — where a dwelling employing nobody is merely the common case.
+    /// So this key needs no <em>unset</em> spelling: every value in range means something, and
+    /// absence means the same as zero because a kind that says nothing about parking provides none.
+    /// </para>
+    /// <para>
+    /// <b>It counts Vehicles, never Citizens and never Households.</b> That is not pedantry about
+    /// units: <see cref="Entities.World.ModeOf"/> drives every member of a car-owning Household, so
+    /// the three quantities differ by construction and a Car Park sized in people would be sized in
+    /// the wrong currency (<c>adr/0119</c>).
+    /// </para>
+    /// </remarks>
+    public int Parking { get; init; }
+
+    /// <summary>
     /// The earliest in-world hour a job of this kind starts at. See <see cref="ShiftStartLatestHour"/>.
     /// </summary>
     /// <remarks>
@@ -540,7 +571,7 @@ public enum PolicySubject : byte
     /// </summary>
     None = 0,
 
-    /// <summary>Every live Household. The only one built (<c>plans/0031</c> task 5).</summary>
+    /// <summary>Every live Household. The only one built (<c>plans/0033</c> task 5).</summary>
     Household = 1,
 
     /// <summary>
@@ -1193,6 +1224,92 @@ public readonly record struct HouseholdRuleset(
             < (ulong)(uint)CarOwnershipPercent;
 }
 
+/// <summary>
+/// The <c>[parking]</c> table — <b>how far a driver will walk from a Car Park</b> (<c>adr/0009</c>,
+/// milestone 7 task 2).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>One number, and it is the shed's whole shape.</b> A Parking Shed is the ordered set of Car
+/// Parks within this reach of a Building's pedestrian Access Point; arrival takes the nearest with
+/// space, and the walk from it is a Leg. So the radius decides which Car Park a car takes, which
+/// decides the walk Leg, which counts against the Commute Budget, which decides whether the Trip
+/// fails — <b>hash-bearing</b> by four steps, and unratified since 2018-era prose.
+/// </para>
+/// <para>
+/// <b>Authored in metres and stored in <see cref="Tiles"/>, and the unit was a decision.</b> Every
+/// measurement this corpus holds about the quantity is in metres — S2 R5.6's <em>110 Car Parks found
+/// at 400 m against 596 at 800 m</em> — so a key in metres is the one a reader can check against the
+/// evidence without converting, which is <c>plans/0012</c> <b>Cause 5</b>'s reading half: quote the
+/// sentence, not the digits. ⚠ <b>Minutes were the live alternative and were refused</b>: the shed's
+/// bound is stated in the Commute Budget's currency, which would have made the upper bound a refusal
+/// rather than a sentence — but a key in minutes invites the one derivation
+/// <c>adr/0083</c> forbids by name (<em>five minutes at 5 km/h is 417 m</em>), and it would make shed
+/// membership move when a designer retunes <c>walk_speed_kph</c>. <b>A radius in metres is the same
+/// set of Car Parks however fast anybody walks.</b>
+/// </para>
+/// <para>
+/// ⚠ <b><c>adr/0083</c>'s upper bound is stated and not enforced, and a guard for it was written and
+/// withdrawn.</b> A shed wider than the Commute Budget's walk allowance has outer Car Parks that can
+/// never be taken — but the Budget is a ceiling on a <b>whole journey</b> and a parking walk is one
+/// <b>Leg</b> inside it, so the only non-arbitrary threshold available is the whole Budget, which is
+/// far looser than the real constraint. ***A bound stated as a constraint on choosing a number is not
+/// thereby a predicate over two files.*** It lives in <c>plans/0002</c> §D2 and in
+/// <c>minimal.toml</c>'s header.
+/// </para>
+/// </remarks>
+/// <param name="RadiusMetres">
+/// How far a driver will walk from a Car Park, in metres, as authored. <b>Kept as authored rather
+/// than only as <see cref="Radius"/></b>: a diagnostic that reported a rounded Tile count would be
+/// reporting a number the designer never wrote, and reload comparison is against the file.
+/// </param>
+public readonly record struct ParkingRuleset(int RadiusMetres, int ShedKeeps)
+{
+    /// <summary>
+    /// A Ruleset whose cities have no Parking Shed.
+    /// </summary>
+    /// <remarks>
+    /// <b>Absence is the unset spelling, on <see cref="HouseholdRuleset.None"/>'s rule.</b> Every
+    /// radius in range means something — a small one is a city of driveways, a large one a city of
+    /// long walks — so no value inside the range can do duty as <em>unset</em>, and the absence has
+    /// to be the absence of the table. A file that states <c>[parking]</c> must state the radius.
+    /// </remarks>
+    public static ParkingRuleset None => default;
+
+    /// <summary>Whether this city has a Parking Shed at all.</summary>
+    public bool Runs => RadiusMetres > 0;
+
+    /// <summary>
+    /// The reach, in <see cref="Tiles"/> — what the shed is actually built against.
+    /// </summary>
+    /// <remarks>
+    /// <b>Rounded up</b> (<see cref="Tiles.FromMetres"/>), because a radius is a reach and a shed
+    /// silently shorter than its file says is supply the city has and cannot find.
+    /// </remarks>
+    public Tiles Radius => Tiles.FromMetres(RadiusMetres);
+
+    /// <summary>
+    /// How many Car Parks a Building's shed holds — the nearest <see cref="ShedKeeps"/> of them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This and <see cref="RadiusMetres"/> are not two knobs for one thing, and which one binds is
+    /// a property of the world rather than of the file.</b> The <b>cap bounds the work</b> and binds
+    /// where supply is dense; the <b>radius bounds the walk</b> and binds where supply is sparse —
+    /// because with fewer than this many Car Parks in reach the kept set never fills, the ball's early
+    /// exit never fires, and it walks the whole radius. Measured on a generated city at 400 m, the
+    /// <em>minimum</em> over every Building is 35 Car Parks in range, so there the cap binds at every
+    /// door and the radius binds nowhere. A player's thinly-built edge is the other case.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>World-creation, and it must not be hot-reloadable</b>, on <c>[layers] kernel_metres</c>'
+    /// precedent: the shed table is fixed-width, so a reload that changed this would reallocate every
+    /// shed in the city.
+    /// </para>
+    /// </remarks>
+    public int Keeps => ShedKeeps;
+}
+
 public readonly record struct JobRuleset(
     uint Interval,
     int RevisitTicks,
@@ -1487,6 +1604,20 @@ public sealed class Ruleset
     public HouseholdRuleset Households { get; init; } = HouseholdRuleset.None;
 
     /// <summary>
+    /// <b>How far a driver will walk from a Car Park</b> — the <c>[parking]</c> table (milestone 7
+    /// task 2).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ParkingRuleset.None"/> when the file states no <c>[parking]</c>, and that is a city
+    /// with no Parking Shed rather than one whose sheds are empty — <see cref="Jobs"/>' polarity, for
+    /// <see cref="Jobs"/>' reason. ⚠ <b>It is independent of <c>[[building]] parking</c></b>, which is
+    /// the <em>supply</em>: a file may state Car Parks and no radius, which is a city whose parking
+    /// exists and cannot be reached, and the two are separate keys because a designer retunes them for
+    /// separate reasons.
+    /// </remarks>
+    public ParkingRuleset Parking { get; init; } = ParkingRuleset.None;
+
+    /// <summary>
     /// <b>What a Segment costs to drive when other people are on it</b> — the <c>[traffic]</c> table
     /// (5c task 6).
     /// </summary>
@@ -1499,7 +1630,7 @@ public sealed class Ruleset
 
     /// <summary>
     /// <b>The Policies in force</b> — every <c>[[policy]]</c> table, in declaration order
-    /// (<c>plans/0031</c> task 5).
+    /// (<c>plans/0033</c> task 5).
     /// </summary>
     /// <remarks>
     /// <para>

@@ -206,7 +206,7 @@ family = "good"
 
 # THE CURRENCY, AND IT IS THE ONE THING IN THIS FILE THAT IS NOT ABOUT GOODS MOVING.
 #
-# WHY IT IS HERE. Milestone 10 (plans/0031) builds conserved money, and the survey that opened it
+# WHY IT IS HERE. Milestone 10 (plans/0033) builds conserved money, and the survey that opened it
 # found the gap is not that Money is missing but that NOTHING PRODUCES IT: Money is a signed 64-bit
 # quantity type, ResourceFamily.Money is a live enum member, and the loader refuses a capacity on a
 # money Bin by name -- while ALL FIVE SHIPPED RULESETS DECLARED family = "good" ON EVERY RESOURCE.

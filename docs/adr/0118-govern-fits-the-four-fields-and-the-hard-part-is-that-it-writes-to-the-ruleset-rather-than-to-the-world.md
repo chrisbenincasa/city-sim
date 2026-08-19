@@ -57,7 +57,7 @@ A borrow amount is **money**, a `long`. Sixteen bits cannot hold it. `East` and 
 
 ### Milestone 10 needs no `Govern` command at all
 
-`plans/0031`'s task 5 is a tax and a transfer authored as `[[rule]]`s in a Ruleset. **A demonstration Ruleset states the rate; nothing has to set it from outside.** So decision 5 was recorded as blocking task 5 and does not: like decisions 2, 3 and 4 before it, the thing the brief expected to need turned out not to be needed here. The examination stands on its own, because `Command.cs` asked for it in writing and an unexamined claim in a doc-comment is exactly what `adr/0093` is about.
+`plans/0033`'s task 5 is a tax and a transfer authored as `[[rule]]`s in a Ruleset. **A demonstration Ruleset states the rate; nothing has to set it from outside.** So decision 5 was recorded as blocking task 5 and does not: like decisions 2, 3 and 4 before it, the thing the brief expected to need turned out not to be needed here. The examination stands on its own, because `Command.cs` asked for it in writing and an unexamined claim in a doc-comment is exactly what `adr/0093` is about.
 
 ## Consequences
 

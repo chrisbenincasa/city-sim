@@ -193,6 +193,35 @@ public class QuantityTests
         Assert.Equal(new Tiles(-1), justBelowZero.ToTilesFloor());
     }
 
+    /// <summary>
+    /// <b>A range authored in metres becomes Tiles rounded <em>up</em>, because a range is a
+    /// reach.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>CellGrid.FromMetres</c>' rule at the finer unit, and the direction is the whole content:
+    /// rounding down silently shortens something that was defended from reality, and the truncation
+    /// is invisible in whatever the reach produced — a plume that does not carry, a Parking Shed that
+    /// cannot see the Car Park at its own stated edge. <b>Metres are an authoring unit and never a
+    /// stored one</b>, so this conversion runs once at load and nothing downstream holds a metre.
+    /// </remarks>
+    [Fact]
+    public void Tiles_convert_from_metres_by_rounding_up()
+    {
+        Assert.Equal(new Tiles(1), Tiles.FromMetres(Tiles.Metres));
+        Assert.Equal(new Tiles(100), Tiles.FromMetres(400));
+
+        // Every metre past a boundary buys a whole Tile, and the last one before the next boundary
+        // buys nothing more -- which is the assertion that fails if somebody makes this round to
+        // nearest for tidiness.
+        Assert.Equal(new Tiles(101), Tiles.FromMetres(401));
+        Assert.Equal(new Tiles(101), Tiles.FromMetres(404));
+        Assert.Equal(new Tiles(102), Tiles.FromMetres(405));
+
+        // A range smaller than a Tile is still a range.
+        Assert.Equal(new Tiles(1), Tiles.FromMetres(1));
+        Assert.Equal(Tiles.Zero, Tiles.FromMetres(0));
+    }
+
     [Fact]
     public void Quantities_order_by_their_representation()
     {

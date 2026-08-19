@@ -769,7 +769,7 @@ Task 4b's brief is *"NEW 2026-08-18, from decision 1"* and specifies a `Money` *
 `HouseholdTable.Money`'s precedent"*. Decision 6 was **opened by** settling decision 1 and landed
 after that brief was written — so the brief cites a precedent the same document retires nine sections
 above it, and nothing recomputed the brief. Meanwhile `Rules.cs:57`, written in **task 1** after
-decision 6 settled, says `BinOwnerKind.Business` is *"declared and not yet owned — plans/0031 task
+decision 6 settled, says `BinOwnerKind.Business` is *"declared and not yet owned — plans/0033 task
 4b"*, and `World.RebuildDerived`'s throw says *"a Household's balance arrives with task 5 and a
 Business's with task 4b, **each with the list head its own table has to declare**"*. ***Two sites in
 one repository disagreed about what a task was, and the one that was right is the one written after

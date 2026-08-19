@@ -10,6 +10,26 @@ currently empty.
 
 `LEGIBLE CAUSE`
 
+> ⚠ **AMENDED IN PLACE 2026-08-18 by milestone 7's opening sitting —
+> [`0119`](0119-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md).**
+> **The conservation sum's right-hand side is wrong, and nothing else here is.** It reads *count of
+> **Travellers** currently parked*, and a Traveller is freed when the journey ends — so on this design's
+> own canonical case, *"a household's car sits at home overnight"* ([`0009`](0009-parking-is-modelled-supply-never-search.md)),
+> the sum reads **0 = high** every night. The right-hand side is now **the count of Citizens holding a
+> Car Park**. The **tier** is right, the **split** is right, and what each half catches is right.
+>
+> **The error was writable only because the state did not exist**, which is this ADR's own central
+> argument working against the ADR: it refused to *build* an invariant over absent state and then
+> *specified* one, and a specification over absent state has no operand to check either. ***Refusing to
+> write a check over state that does not exist does not license naming its operands.***
+>
+> **A second correction follows from the first.** *Two independent requirements landing on one field is
+> corroboration* is withdrawn: `0009` put the field on the **Trip** and this ADR put it on the
+> **Traveller**, and those are two objects, not one field. **Both are freed at the same moment and for
+> the same reason**, so the agreement was two authors making one mistake rather than two arguments
+> reaching one answer. ***Corroboration requires the two witnesses to be independent, and two objects
+> with the same lifetime are one witness.***
+
 ## Why
 
 ### The obligation is at four documents and zero builds
@@ -46,8 +66,14 @@ as certainly. `0009` wrote *"at every Tick"* before either precedent existed.
 
 | | Tier | What it asserts | What it catches |
 |---|---|---|---|
-| **`ParkingSpaceIsReleasedOnce`** | write site, `O(1)` | A release names a Bin this Traveller holds, and holds it exactly once | Double release, release of a Bin never acquired, release after the Traveller was freed |
-| **`ParkingOccupancyIsConserved`** | end of run | Σ occupied over all parking Bins = count of Travellers currently parked | The **leak** — an acquire with no matching release, which is the `0006`-class defect |
+| **`ParkingSpaceIsReleasedOnce`** | write site, `O(1)` | A release names a ~~Bin this Traveller holds~~ **Car Park this Citizen holds**, and holds it exactly once | Double release, release of a Car Park never acquired, release after the ~~Traveller~~ **Citizen** was freed |
+| **`ParkingOccupancyIsConserved`** | end of run | Σ occupied over all ~~parking Bins~~ **Car Parks** = count of ~~Travellers currently parked~~ **Citizens holding a Car Park** | The **leak** — an acquire with no matching release, which is the `0006`-class defect |
+
+⚠ **Both right-hand sides were amended 2026-08-18 by [`0119`](0119-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md)**;
+the tiers and the split are untouched. **The write-site check got *stronger* in the move**: one column on
+the Citizen makes *holds it exactly once* **unrepresentable** rather than asserted, which is the
+`Rule Instance` armed/waiting precedent — the corpus prefers a state it cannot express to a state it
+checks.
 
 **The first is `TripHasAFate`'s shape** — a write-site check on a condition that holds by construction,
 which is exactly when it is worth writing, because construction is what a later edit breaks. **The
@@ -100,11 +126,20 @@ is precisely the workaround this finding must not stop at.
 - **`0009`'s consequence bullet is amended in place**, not superseded: the defect it names is real, the
   `0006` classification is right, and only *"at every Tick"* and *"an explicit invariant"* (singular)
   change.
-- **The write-site check constrains the acquire/release representation.** *A release names a Bin this
+- ~~**The write-site check constrains the acquire/release representation.** *A release names a Bin this
   Traveller holds* is only `O(1)` if the Traveller carries the Bin it parked in — which `0009` already
   requires for a different reason (*"A Trip must remember where it parked** in order to walk back to the
   car"*). **Two independent requirements landing on one field is corroboration**, and it is worth
-  recording because the field was previously justified only by the return walk.
+  recording because the field was previously justified only by the return walk.~~
+
+  > ⚠ **WITHDRAWN 2026-08-18 by [`0119`](0119-a-parking-space-is-held-by-the-citizen-and-a-household-holds-as-many-cars-as-it-has-drivers.md).**
+  > The constraint survives and the corroboration does not. **A release is `O(1)` only if the holder
+  > carries the Car Park it parked in** — that is true and is why the column exists. But `0009` put the
+  > field on the **Trip** and this ADR put it on the **Traveller**, which are *two objects*, not one
+  > field, and **both are freed at the end of the journey for the same reason**. ***Corroboration
+  > requires the two witnesses to be independent, and two objects with the same lifetime are one
+  > witness.*** The holder is the **Citizen**, and the return walk is no longer the field's only
+  > justification — the overnight case is, and it is the case both original candidates could not express.
 - **Nothing is built in this sitting and no State Hash moves.** What milestone 7 inherits is a
   specification it cannot get wrong by reading, rather than four documents it must reconcile.
 

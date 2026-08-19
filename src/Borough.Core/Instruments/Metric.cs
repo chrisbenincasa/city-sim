@@ -402,7 +402,7 @@ public enum Aggregate : byte
 /// <remarks>
 /// <para>
 /// <b>Counts, and no money magnitude.</b> A magnitude is a <c>Money</c> rather than a count and
-/// belongs to <c>plans/0031</c> task 7, which reports the money supply and the treasury separately
+/// belongs to <c>plans/0033</c> task 7, which reports the money supply and the treasury separately
 /// (<c>01 §5.1</c>). This family answers <em>did it run and whom did it reach</em>.
 /// </para>
 /// <para>

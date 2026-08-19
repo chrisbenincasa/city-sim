@@ -19,7 +19,7 @@ public readonly struct Bin;
 /// <b>The four are enumerated because <c>adr/0114</c> enumerated them, not because four are built.</b>
 /// Money an actor holds lives in a Bin, and the actors that hold money are a Building, a Household, a
 /// Business and the treasury. <see cref="Household"/> and <see cref="Business"/> are declared and
-/// throw by name where they would be resolved — <c>plans/0031</c> tasks 4b and 5 bring them — on
+/// throw by name where they would be resolved — <c>plans/0033</c> tasks 4b and 5 bring them — on
 /// <see cref="Scope.Pool"/>'s precedent, that a named hole is better than a case that silently falls
 /// through.
 /// </para>
@@ -47,13 +47,13 @@ public enum BinOwnerKind : byte
     /// </summary>
     None = 0,
 
-    /// <summary>A Building. Every Bin in the build before <c>plans/0031</c> task 1.</summary>
+    /// <summary>A Building. Every Bin in the build before <c>plans/0033</c> task 1.</summary>
     Building = 1,
 
-    /// <summary>A Household. <b>Declared and not yet owned</b> — <c>plans/0031</c> task 5.</summary>
+    /// <summary>A Household. <b>Declared and not yet owned</b> — <c>plans/0033</c> task 5.</summary>
     Household = 2,
 
-    /// <summary>A Business. <b>Declared and not yet owned</b> — <c>plans/0031</c> task 4b.</summary>
+    /// <summary>A Business. <b>Declared and not yet owned</b> — <c>plans/0033</c> task 4b.</summary>
     Business = 3,
 
     /// <summary>

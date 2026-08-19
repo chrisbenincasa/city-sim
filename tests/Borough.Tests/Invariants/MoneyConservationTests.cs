@@ -21,7 +21,7 @@ namespace Borough.Tests.Invariants;
 /// and nothing more.
 /// </para>
 /// <para>
-/// <b>The exactness is a property of the schedule and it expires</b> (<c>plans/0031</c> F5). Money's
+/// <b>The exactness is a property of the schedule and it expires</b> (<c>plans/0033</c> F5). Money's
 /// only source and sink is the Outside Connection, which is milestone <b>11</b>, so the supply is
 /// fixed for the whole of milestone 10 and the assertions below are equalities. When the gate lands
 /// they become an equality against a supply the gate has moved, and none of them changes shape.

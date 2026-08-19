@@ -25,7 +25,7 @@ namespace Borough.Tests.Rules;
 /// </para>
 /// <para>
 /// <b>Money is conserved across all of it and that is asserted as an exact equality</b>, which is
-/// what <c>plans/0031</c> F5 says this milestone is the only one able to do: the Outside Connection
+/// what <c>plans/0033</c> F5 says this milestone is the only one able to do: the Outside Connection
 /// is money's only sink and it arrives in 11, so until then every movement is internal and the sum
 /// cannot legitimately drift by one.
 /// </para>

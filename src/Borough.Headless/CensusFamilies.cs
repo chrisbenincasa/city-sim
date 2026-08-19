@@ -119,7 +119,7 @@ internal static class CensusFamilies
     ];
 
     /// <summary>
-    /// The Policy sweeps' six counters — <c>02 §4.2</c>'s Flow Policies (<c>plans/0031</c> task 5).
+    /// The Policy sweeps' six counters — <c>02 §4.2</c>'s Flow Policies (<c>plans/0033</c> task 5).
     /// </summary>
     /// <remarks>
     /// <para>

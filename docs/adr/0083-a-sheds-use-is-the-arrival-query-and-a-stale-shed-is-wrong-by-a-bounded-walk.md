@@ -102,10 +102,32 @@ witness.
   which is `0002` §B's *does parking scarcity degrade as a gradient* and is the same instrument, so the
   number and the claim ratify together. **Two constraints are stated now and neither is a value.** It is
   bounded above by the Commute Budget's walk allowance, since a shed wider than a Trip can afford to
-  walk is a shed whose outer Bins can never be taken. And its cost gradient is measured: R5.6 gives 110
-  Bins found at 400 m against **596 at 800 m**, so doubling the radius is roughly 5× the shed. **Do not
+  walk is a shed whose outer Bins can never be taken. And its cost gradient is measured: ~~R5.6 gives 110
+  Bins found at 400 m against **596 at 800 m**, so doubling the radius is roughly 5× the shed.~~ **Do not
   reach for a value from the walking-time intuition** — five minutes at 5 km/h is 417 m and it is
   exactly the sort of number `0044` had to measure back out of three documents.
+
+  ⚠ **THAT GRADIENT IS STRUCK, 2026-08-19, and it was wrong twice over — measured by milestone 7 task 3
+  on the world this project actually generates.** The count is **132.8** Car Parks in range at 400 m at
+  1,000,000 Citizens (min 35, median 135, p95 146, max 166), and the gradient is **×3.81** from 400 m to
+  800 m and ×4.23 from 200 m to 400 m — *not* ×5. **A shed is an area, so the gradient is an area ratio
+  damped by the lattice, and ×5 was never a number this geometry could produce.**
+
+  ⚠ **The deeper error is the noun.** S2 R5.6's `ShedBuilder` stores `KeptBins = 8` and counts the rest
+  in a separate accumulator, so **110 is what its ball *encountered* and 8 is what it *kept*.** The
+  sentence *doubling the radius is roughly 5× the shed* is therefore a claim about the **ball** wearing
+  the word **shed** — and of a capped shed it is false in the strongest way available: a shed's size is
+  **constant**, because it is the cap. `plans/0012` **Cause 5**: the digits travelled and the clause
+  stayed behind. ***A number that is one half of a ratio says which half***, and this one did not say
+  which quantity.
+
+  ⚠ **And the gradient turned out to be a cost figure about a query that no longer works this way.**
+  The ball is what the gradient prices, and milestone 7 task 3 gave it an early exit — it stops once
+  nothing further out could displace a full kept set — so at the shipped cap it settles **3.6** nodes
+  rather than 20.8 and walks **37** Car Parks rather than 182.3. The radius bounds the ball only where
+  supply is **sparse** enough that the kept set never fills; where it is dense the **cap** bounds it and
+  the radius never binds at all. So this bullet's *cost gradient* is now a property of two numbers
+  rather than one, and the radius is the one that acts in the world with less parking in it.
 - **A shed carries no staleness bit and no epoch of its own beyond its witness set.** This is a
   *smaller* structure than routes need, and the saving is the point: `0012`'s belt-and-braces exists
   because a route's addition error is unbounded, and paying for it here would be paying for a bound the

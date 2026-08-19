@@ -35,6 +35,27 @@ public readonly record struct Tiles(int Raw) : IComparable<Tiles>
     /// <summary>No distance.</summary>
     public static Tiles Zero => new(0);
 
+    /// <summary>
+    /// The Tile extent that covers a range stated in metres, rounded <b>up</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>CellGrid.FromMetres</c>' rule at the finer unit, and it rounds up for that method's
+    /// reason.</b> A range authored in metres is a <em>reach</em>, so rounding down would silently
+    /// shorten something defended from reality — and the truncation is invisible in whatever the
+    /// reach produced. The two conversions differ only in what they land on: a Cell is 128 m, so a
+    /// range rounded to one can be out by up to 127 m; a Tile is <see cref="Metres"/>, so the same
+    /// range is out by at most three.
+    /// </para>
+    /// <para>
+    /// <b>Metres are an authoring unit and never a stored one.</b> Nothing in <c>Borough.Core</c>
+    /// holds a distance in metres — the Ruleset states one, this converts it once at load, and every
+    /// consumer sees <see cref="Tiles"/>. That is what keeps a metre out of the State Hash, where a
+    /// second unit for one quantity would be two widths for one number (<c>adr/0065</c>).
+    /// </para>
+    /// </remarks>
+    public static Tiles FromMetres(int metres) => new(IntegerMath.CeilDiv(metres, Metres));
+
     /// <summary>Distance ignoring direction.</summary>
     public Tiles Magnitude => new(IntegerMath.Abs(Raw));
 

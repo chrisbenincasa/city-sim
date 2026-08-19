@@ -306,7 +306,7 @@ public enum PurposeTag : ulong
     CommutePunctuality = 18,
 
     /// <summary>
-    /// What a Household is founded with, inside its Ruleset's band (<c>plans/0031</c> task 5).
+    /// What a Household is founded with, inside its Ruleset's band (<c>plans/0033</c> task 5).
     /// </summary>
     /// <remarks>
     /// <para>
@@ -331,7 +331,7 @@ public enum PurposeTag : ulong
     OpeningBalance = 19,
 
     /// <summary>
-    /// Where a Policy's sweep starts on one trigger (<c>02 §4.2</c>, <c>plans/0031</c> task 5).
+    /// Where a Policy's sweep starts on one trigger (<c>02 §4.2</c>, <c>plans/0033</c> task 5).
     /// </summary>
     /// <remarks>
     /// <para>

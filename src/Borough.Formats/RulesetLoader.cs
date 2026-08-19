@@ -136,6 +136,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _jobsTable;
         private TableSyntaxBase? _householdsTable;
         private TableSyntaxBase? _trafficTable;
+        private TableSyntaxBase? _parkingTable;
 
         public RulesetLoadResult Read()
         {
@@ -177,6 +178,7 @@ public static class RulesetLoader
             JobRuleset jobs = ReadJobs(trips);
             HouseholdRuleset households = ReadHouseholds();
             TrafficRuleset traffic = ReadTraffic();
+            ParkingRuleset parking = ReadParking();
 
             if (_refusals.Count == 0)
             {
@@ -221,6 +223,7 @@ public static class RulesetLoader
                     Households = households,
                     Traffic = traffic,
                     Policies = policies,
+                    Parking = parking,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 },
@@ -392,12 +395,25 @@ public static class RulesetLoader
                         _trafficTable = table;
                         break;
 
+                    case "parking":
+                        // Singular and optional, on [traffic]' reasoning exactly.
+                        if (_parkingTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [parking] is declared. There is one Parking Shed radius, "
+                                + "so two tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _parkingTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
-                            + "[[resource]], [[building]], [[rule]], [[zone_rule]], [[policy]], [layers], "
-                            + "[placement], [roads], [lots], [trips], [jobs], [households] and "
-                            + "[traffic].");
+                            + "[[resource]], [[building]], [[rule]], [[zone_rule]], [[policy]], "
+                            + "[layers], [placement], [roads], [lots], [trips], [jobs], "
+                            + "[households], [traffic] and [parking].");
                         break;
                 }
             }
@@ -995,6 +1011,31 @@ public static class RulesetLoader
                     }
                 }
 
+                // adr/0068's rule applied to parking (adr/0120, milestone 7 task 1). Optional and
+                // refused negative on `jobs`' reasoning exactly -- a negative reads as "remove spaces
+                // that are not there", which is not a sentence anybody meant to write.
+                //
+                // Unlike the Shift band below this needs NO paired key and no *unset* spelling, and
+                // that is the decision rather than an omission: zero is the interesting value here.
+                // A tower with no parking is adr/0009's own second player-tool row -- "a detached
+                // house carries a driveway, a tower may not" -- so every value in range means
+                // something and absence means what zero means.
+                int parking = 0;
+
+                if (TryInteger(table, "parking", out long parks, required: false, name))
+                {
+                    if (parks < 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "parking") ?? table), name,
+                            $"parking is {parks}. It counts Vehicles a Building of this kind can "
+                            + "park, so it cannot be negative; omit it for a kind that parks none.");
+                    }
+                    else
+                    {
+                        parking = parks > int.MaxValue ? int.MaxValue : (int)parks;
+                    }
+                }
+
                 // adr/0101's Shift band. Paired with `jobs` in both directions, because a workplace
                 // with no hours and an hour with no workplace are each half a mechanism -- and
                 // because the defaulted 0,0 would otherwise mean *midnight*, which is a legitimate
@@ -1007,6 +1048,7 @@ public static class RulesetLoader
                     CondemnAfter = condemnAfter,
                     Occupants = occupants,
                     Jobs = jobs,
+                    Parking = parking,
                     ShiftStartEarliestHour = shiftFrom,
                     ShiftStartLatestHour = shiftTo,
                 };
@@ -2842,6 +2884,121 @@ public static class RulesetLoader
 
             return (new Money(min), new Money(max));
         }
+
+        // ---- parking ----------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[parking]</c> table: how far a driver will walk from a Car Park.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Two required keys in an optional table</b>, on <c>[households]</c>' shape. Omitting the
+        /// table is a city with no Parking Shed — which is every city this project described before
+        /// milestone 7, so omission is behaviour-preserving rather than a placeholder.
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>shed_keeps</c> belongs here and nowhere else, and that is a correctness constraint
+        /// rather than a filing preference.</b> A per-<em>kind</em> cap is a plausible design — a
+        /// shopping centre's shed reaching further than a house's — and it would go on
+        /// <c>[[building]]</c> beside <c>parking</c>, where it looks like it belongs. It must not.
+        /// <c>CarParkTable.Capacity</c> is <c>(derived AND rebuilt)</c> from the Ruleset in force
+        /// (<c>adr/0064</c>, <c>adr/0068</c>), so a key on the kind moves the <em>standing</em> city's
+        /// State Hash with no code change and no mechanism reading it. In <c>[parking]</c> it moves
+        /// only the Ruleset content hash. <b>What protects the hash is the key's location, not the
+        /// absence of a reader.</b>
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The radius is authored in <em>metres</em> and every consumer sees Tiles</b>, which is
+        /// <c>[layers] kernel_metres</c>' shape and was chosen against a key in minutes. Minutes would
+        /// have put the radius in the Commute Budget's own currency — but a key in minutes invites the
+        /// one derivation <c>adr/0083</c> forbids by name, and it would make shed membership move
+        /// whenever somebody retuned <c>walk_speed_kph</c>. <b>A radius in metres is the same set of
+        /// Car Parks however fast anybody walks.</b>
+        /// </para>
+        /// <para>
+        /// ⚠ <b><c>adr/0083</c>'s upper bound is <em>not</em> enforced here, and that is a decision.</b>
+        /// A shed wider than the Commute Budget's walk allowance has outer Car Parks that can never be
+        /// taken, and a guard was written and withdrawn: the Budget is a ceiling on a <b>whole
+        /// journey</b> and a parking walk is one <b>Leg</b> inside it, so the only non-arbitrary
+        /// threshold available — the whole Budget — is far looser than the real constraint, and it
+        /// refuses nothing a designer would plausibly write while breaking every fixture that tightens
+        /// a Budget for reasons of its own. ***A bound stated as a constraint on choosing a number is
+        /// not thereby a predicate over two files.*** It lives in <c>plans/0002</c> §D2 and in
+        /// <c>minimal.toml</c>'s own header, where <c>adr/0083</c> put it.
+        /// </para>
+        /// </remarks>
+        private ParkingRuleset ReadParking()
+        {
+            if (_parkingTable is null)
+            {
+                return ParkingRuleset.None;
+            }
+
+            if (!TryInteger(_parkingTable, "radius_metres", out long metres, required: true))
+            {
+                return ParkingRuleset.None;
+            }
+
+            // Refused at zero rather than defaulted, because zero is not "no parking" here -- the
+            // supply is [[building]] parking and this is the reach. A shed of zero metres is a city
+            // whose Car Parks all exist and none can be walked to from anywhere, which is a sentence
+            // nobody meant to write and whose symptom names neither this key nor that one.
+            if (metres < 1)
+            {
+                Refuse(LineOfParking("radius_metres"), null,
+                    $"radius_metres is {metres}. It is how far a driver will walk from a Car Park, "
+                    + "so a shed with no reach finds nothing and every arrival fails to park. Delete "
+                    + "the [parking] table for a city with no Parking Shed at all.");
+
+                return ParkingRuleset.None;
+            }
+
+            if (metres > int.MaxValue)
+            {
+                metres = int.MaxValue;
+            }
+
+            if (!TryInteger(_parkingTable, "shed_keeps", out long keeps, required: true))
+            {
+                return ParkingRuleset.None;
+            }
+
+            // Refused at zero for radius_metres' reason and one of its own. A shed that keeps nothing
+            // is a city whose arrivals all fail to park, which nobody means to write -- and zero is
+            // also the one value that disables ParkingShed's early exit, so a file could silently buy
+            // itself the exhaustive ball. A performance cliff must not be reachable by a value that
+            // reads as "off".
+            if (keeps < 1)
+            {
+                Refuse(LineOfParking("shed_keeps"), null,
+                    $"shed_keeps is {keeps}. It is how many Car Parks a Building's Parking Shed holds, "
+                    + "so a shed that keeps none finds nothing and every arrival fails to park. Delete "
+                    + "the [parking] table for a city with no Parking Shed at all.");
+
+                return ParkingRuleset.None;
+            }
+
+            // The ceiling is arithmetic rather than taste, on [traffic] beta's precedent. A shed is
+            // materialised per Building at a fixed width, so this multiplies the whole city: at the
+            // 1M target's 84,320 Buildings a keep of 24 is 8.0 MiB and 4,096 would be 1.3 GiB. The
+            // rung refused here is the one where a plausible typo stops being a tuning choice and
+            // becomes an allocation failure with no line number.
+            if (keeps > 1024)
+            {
+                Refuse(LineOfParking("shed_keeps"), null,
+                    $"shed_keeps is {keeps}. A shed is stored for every Building at this width, so "
+                    + "this is a per-city cost rather than a per-query one; 1024 is already far past "
+                    + "any radius this project has measured a shed at.");
+
+                return ParkingRuleset.None;
+            }
+
+            return new ParkingRuleset((int)metres, (int)keeps);
+        }
+
+        /// <summary>The line a <c>[parking]</c> key is on, or the table's.</summary>
+        private int LineOfParking(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_parkingTable!, key) ?? _parkingTable!);
 
         // ---- traffic ----------------------------------------------------------------------------
 

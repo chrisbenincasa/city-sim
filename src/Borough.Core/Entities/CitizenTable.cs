@@ -38,10 +38,12 @@ public sealed class CitizenTable
     /// <param name="capacity">Initial slot count. The population; 1M is a floor rather than a cap.</param>
     /// <param name="households">The table this one's household handles address.</param>
     /// <param name="buildings">The table this one's workplace handles address.</param>
-    public CitizenTable(int capacity, HouseholdTable households, BuildingTable buildings)
+    public CitizenTable(
+        int capacity, HouseholdTable households, BuildingTable buildings, Parking.CarParkTable carParks)
     {
         ArgumentNullException.ThrowIfNull(households);
         ArgumentNullException.ThrowIfNull(buildings);
+        ArgumentNullException.ThrowIfNull(carParks);
 
         _rows = new Rows<Citizen>("citizen", capacity, Buffering.OneCopy);
 
@@ -72,6 +74,17 @@ public sealed class CitizenTable
         // per-Tick columns for that reason and never interleaved among them.
         LastTripFate = _rows.Saved<byte>("last_trip_fate", Touch.Cold);
         LastTripEndedDay = _rows.Saved<ushort>("last_trip_ended_day", Touch.Cold);
+
+        // Severable, for Workplace's reason and with one difference worth stating. A Car Park is on
+        // somebody else's Building, so demolition frees it out from under this handle -- and a car
+        // park that no longer resolves is the garage no longer existing, which is the fact rather
+        // than a break in it. The difference: adr/0084's conservation sum reads *resolving* holdings,
+        // so a demolished Car Park removes both sides of the equation together and cannot read as a
+        // leak. adr/0084 names the displaced car as a second mutation site whose write-site predicate
+        // needs restating; that restatement is task 4's, and this declaration is what makes the case
+        // representable rather than silent.
+        ParkedIn = _rows.SavedHandle(
+            "parked_in", carParks.Rows, reference: Reference.Severable);
 
         Age = _rows.Saved<ushort>("age", Touch.Cold);
         Health = _rows.Saved<byte>("health", Touch.Cold);
@@ -365,6 +378,47 @@ public sealed class CitizenTable
     /// </para>
     /// </remarks>
     public Column<ushort> LastTripEndedDay { get; }
+
+    /// <summary>
+    /// The Car Park this Citizen's car is parked in, or an unresolving handle if it is parked in none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The holder of a parking space is the Citizen</b> (<c>adr/0119</c>), and the two objects the
+    /// corpus named before it are both wrong for one reason: <c>adr/0009</c> put it on the
+    /// <b>Trip</b> and <c>adr/0084</c> put it on the <b>Traveller</b>, and <em>both are freed when
+    /// the journey ends</em>. Since <c>adr/0101</c> made a commute two journeys, the space is held
+    /// across a gap in which neither exists — which is that ADR's own canonical case, <i>a
+    /// household's car sits at home overnight</i>. ***What is freed is not always the subject, and it
+    /// is the subject that decides the shape*** — the rule <see cref="LastTripFate"/> above was
+    /// placed by, one milestone earlier and on the same table.
+    /// </para>
+    /// <para>
+    /// <b>Not the Household, which is the obvious repair and the one the brief recommended.</b>
+    /// <see cref="World.ModeOf"/> returns <c>TravelMode.Car</c> for <em>every member</em> of a
+    /// car-owning Household, so a Household of three workers parks three cars at three destinations
+    /// and one column would overwrite two of them — an acquire with no matching release, which is
+    /// exactly the <c>adr/0006</c>-class leak <c>adr/0084</c>'s invariants exist to catch. The
+    /// argument is <see cref="Workplace"/>'s, about the same two people: <c>CONTEXT.md</c> → Building
+    /// says employment <i>counts Citizens and never Households</i> because <i>two adults in one
+    /// Household working opposite sides of the city is the case a per-Household count could not
+    /// express</i>. Driving to opposite sides is the same case.
+    /// </para>
+    /// <para>
+    /// <b>One column is what makes <c>ParkingSpaceIsReleasedOnce</c> nearly free.</b> That invariant
+    /// asserts a release names a Car Park this Citizen holds <em>exactly once</em>, and holding two
+    /// is <b>unrepresentable</b> here rather than checked — the <c>Rule Instance</c> armed/waiting
+    /// precedent, where the corpus prefers a state it cannot express to a state it verifies.
+    /// </para>
+    /// <para>
+    /// <b>An unresolving handle is the sentinel and it is free rather than chosen</b>, on
+    /// <see cref="LastTripFate"/>'s argument: a freshly allocated Citizen is zero-filled, a
+    /// zero handle resolves to nothing, and <i>parked nowhere</i> is what a walker, a Citizen who has
+    /// never driven, and a driver in motion all are. There is no value inside the range of legitimate
+    /// answers doing duty as <i>unset</i>.
+    /// </para>
+    /// </remarks>
+    public HandleColumn<Parking.CarPark> ParkedIn { get; }
 
     /// <summary>Link in the Household's member list.</summary>
     public Column<int> MemberNext { get; }

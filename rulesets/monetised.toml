@@ -1,7 +1,7 @@
 # THE MONEYED RULESET -- minimal.toml with a currency in it, and nothing that can spend one.
 #
 # ===========================================================================================
-# WHY IT EXISTS. Milestone 10 (plans/0031) builds conserved money and the treasury, and the survey
+# WHY IT EXISTS. Milestone 10 (plans/0033) builds conserved money and the treasury, and the survey
 # that opened it found the gap is not that Money is missing but that NOTHING PRODUCES IT: Money is a
 # signed 64-bit quantity type, ResourceFamily.Money is a live enum member, and the loader refuses a
 # capacity on a money Bin by name -- while ALL FIVE SHIPPED RULESETS DECLARED family = "good" ON
@@ -25,7 +25,7 @@
 # sum over however many are in it, which is an average wearing a total, and it is adr/0005's deleted
 # Cohort coming back in through the container. The two actors that may hold money are the Household
 # and the Business. BinOwnerKind names both and throws on both, by name, because neither is built;
-# they arrive in plans/0031 tasks 5 and 4b.
+# they arrive in plans/0033 tasks 5 and 4b.
 #
 # So the ONE money-Bin door this loader has is `[[building]] bins`, which refuses an authored capacity
 # on a money Bin in a sentence written for exactly this case -- "a finite one would mean an actor too
@@ -45,11 +45,11 @@
 # city with only the hash moving. NO GOLDEN BASELINE MOVES -- this is a sixth file and the committed
 # session runs on minimal.toml.
 #
-# THE UNIT IS NOT SPENT HERE, AND plans/0031's own brief said it would be. adr/0115 fixes money's unit
+# THE UNIT IS NOT SPENT HERE, AND plans/0033's own brief said it would be. adr/0115 fixes money's unit
 # by the smallest fraction the design multiplies by -- 10%, so any money quantity a fraction is ever
 # taken of must be at least ten smallest units to move at all -- and that is a discipline about
 # AMOUNTS. This file writes no amount. The first money quantity in a shipped Ruleset is the tax rate
-# in plans/0031 task 5, and the unit is spent there. ***A SCALE DISCIPLINE BINDS ON THE FIRST NUMBER,
+# in plans/0033 task 5, and the unit is spent there. ***A SCALE DISCIPLINE BINDS ON THE FIRST NUMBER,
 # NOT ON THE FIRST DECLARATION.***
 #
 # IT IS STILL NOT A CITY, for every reason minimal.toml gives below.

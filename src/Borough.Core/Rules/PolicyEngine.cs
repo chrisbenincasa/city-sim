@@ -17,7 +17,7 @@ using Borough.Core.Tables;
 /// </para>
 /// <para>
 /// <b>Five counters and no money magnitude, which is a scope line rather than an oversight.</b>
-/// <c>plans/0031</c> task 7 is <em>the circular flow, printed</em> — where money is and what moved —
+/// <c>plans/0033</c> task 7 is <em>the circular flow, printed</em> — where money is and what moved —
 /// and a magnitude is a <c>Money</c> rather than a count, so it wants the 64-bit sample
 /// <c>Series</c> already carries and a reader that reports the money supply and the treasury
 /// separately (<c>01 §5.1</c>). Counting here and measuring there keeps this family answering

@@ -49,7 +49,7 @@ So a Household has one pool. What varies is how much of it the Household will sp
 
 ## Consequences
 
-✅ **BUILT 2026-08-19** — [`plans/0031`](../../plans/0031-conserved-money-and-the-treasury.md) tasks **1** (the discriminator and the treasury) and **4c** (the actors). Three amendments this ADR owes to its own build:
+✅ **BUILT 2026-08-19** — [`plans/0033`](../../plans/0033-conserved-money-and-the-treasury.md) tasks **1** (the discriminator and the treasury) and **4c** (the actors). Three amendments this ADR owes to its own build:
 
 ⚠ **It underdetermined how a Bin names an actor, and the consequence below is written for a shape that was not built.** *"Two owners of different kinds may share an id, so the kind is part of the value"* presumes **one** handle column addressing four tables. Task 1 kept `BinTable.Owner` typed to `Building` and folded the kind as a separate column — satisfying the hash consequence a different way — on the ground that *"the treasury has no owner row to point at in any case"*. That ground holds for a **singleton** and expired the moment a Household needed naming. Task 4c settled it the third way: the link is a saved `HandleColumn<Bin>` **on the actor**, so `BinTable` is untouched, a rebuild has nothing to do, and the lookup is O(1). ***A Building holds many Bins because its kind declares many Resources; an actor holds one because money is one Resource*** — the asymmetry is cardinality, not carelessness.
 

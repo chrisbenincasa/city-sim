@@ -165,12 +165,30 @@ public sealed class DerivedRebuildAuditTests
         Assert.Equal(["road_segment.fidelity"], never);
 
         // 33 columns were declared Derived before milestone 8 task 1 and 32 after, because
-        // layer_cell.pollution_pass became Disposition.Scratch. 35 as of milestone 10 task 4b, which
-        // added building.business_head, building.business_tail and business.building_next. Both numbers are the machine's; the
+        // layer_cell.pollution_pass became Disposition.Scratch. Both numbers are the machine's; the
         // scoping survey's hand count said 28 across 9 tables, and it is the count that was wrong
         // rather than the tables. Asserting it pins the coverage in both directions -- a new derived
         // column no world here populates fails this test on the day it is declared.
-        Assert.Equal(35, all.Length);
+        //
+        // 35 as of milestone 7, which brought three: building.car_park and car_park.capacity, both
+        // exercised the day they were declared, and car_park.segment_next, which was not.
+        //
+        // ⚠ The third is why this assertion exists. It is the element side of the Parking Shed's
+        // supply index, and it was declared Derived while the structure deriving it -- a
+        // CarParkResidency -- lived in the test fixtures rather than in the World. So RebuildDerived
+        // did not rebuild it, and every shed in a loaded world would have come back empty. Nothing
+        // read the column yet, so no other test in either milestone could have failed; the two
+        // branches were green apart and red together. ***A structure that lives outside the world is
+        // not derived state however it is declared***, and the coverage assertion earned itself on
+        // the first foreign column it ever saw.
+        //
+        // 38 as of the milestone 7 / milestone 10 merge, 2026-08-19: milestone 10 task 4b brought
+        // three more -- building.business_head, building.business_tail and business.building_next --
+        // and the two sets are disjoint, so the counts add. ⚠ Each branch wrote 35 and each was right
+        // about its own tree, which is the sentence above happening to the assertion rather than to a
+        // column: ***a count of a whole is a fact no single branch holds***, and only the merge can
+        // take it.
+        Assert.Equal(38, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

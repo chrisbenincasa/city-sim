@@ -520,9 +520,18 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
     /// from the separate question of whether the split has to be <em>spatial</em>.
     /// </para>
     /// </remarks>
-    private static Ruleset WithASecondKind(int earliestHour, int latestHour)
-    {
-        string toml = File.ReadAllText(GoldenFixtures.RulesetPath) + $$"""
+    /// <summary>
+    /// The shipped file plus a second employing kind, as TOML.
+    /// </summary>
+    /// <remarks>
+    /// <b><see langword="internal"/> and returning text rather than a <see cref="Ruleset"/>, so a
+    /// second reader can add a key without copying the fixture.</b>
+    /// <c>Parking.ParkingArrivalStreamTests</c> needs this city with <c>parking</c> on the second
+    /// kind, and a duplicate would be <c>plans/0012</c> <i>Cause 1</i> by construction — one fact,
+    /// two files, and the copy nobody is looking at is the one that drifts.
+    /// </remarks>
+    internal static string SecondKindToml(int earliestHour, int latestHour) =>
+        File.ReadAllText(GoldenFixtures.RulesetPath) + $$"""
 
             [[building]]
             name = "workshop"
@@ -568,7 +577,10 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
             revisit_ticks = 2048
             """;
 
-        RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
+    private static Ruleset WithASecondKind(int earliestHour, int latestHour)
+    {
+        RulesetLoadResult result =
+            RulesetLoader.Parse(SecondKindToml(earliestHour, latestHour), "test.toml");
 
         Assert.True(result.Ok, result.Describe());
 

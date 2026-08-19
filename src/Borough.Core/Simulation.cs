@@ -473,6 +473,18 @@ public sealed class Simulation
         // The graph edit has already rebuilt the Street lattice; frontage follows it, and only then
         // can the subdivider tell which Lots have lost their Street and which faces have gained one.
         _world.Frontage.Rebuild(_world.Lots, _world.Roads.Streets);
+
+        // The Parking Shed's supply index is keyed on Segment slots, so a graph edit invalidates it
+        // for the same reason it invalidates frontage -- and it must be rebuilt BEFORE the subdivider
+        // runs, because resubdividing condemns Buildings and a condemnation unlists their Car Parks.
+        // ⚠ Bulldozing frees the Segment row, which severs every Car Park Address naming it, and
+        // CarParkResidency.Remove finds a Car Park's list *through* that Address -- so an unlist
+        // attempted after the sever silently does nothing and leaves the row listed as it is freed.
+        // The recycled slot is then inserted into the same list twice, which self-links it. This is
+        // where BuildingsInCells' shape stops being a guide: a Cell never goes away, and a Segment
+        // does.
+        _world.CarParksOnSegments.Rebuild(_world.CarParks, _world.Roads.Segments);
+
         LotSubdivider.Resubdivide(_world);
     }
 

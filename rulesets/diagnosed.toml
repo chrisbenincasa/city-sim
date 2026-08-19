@@ -164,7 +164,7 @@ family = "good"
 
 # THE CURRENCY, AND IT IS THE ONE THING IN THIS FILE THAT IS NOT ABOUT GOODS MOVING.
 #
-# WHY IT IS HERE. Milestone 10 (plans/0031) builds conserved money, and the survey that opened it
+# WHY IT IS HERE. Milestone 10 (plans/0033) builds conserved money, and the survey that opened it
 # found the gap is not that Money is missing but that NOTHING PRODUCES IT: Money is a signed 64-bit
 # quantity type, ResourceFamily.Money is a live enum member, and the loader refuses a capacity on a
 # money Bin by name -- while ALL FIVE SHIPPED RULESETS DECLARED family = "good" ON EVERY RESOURCE.
@@ -231,7 +231,7 @@ condemn_after = 4
 # and a 100,000-Tick run settled five-sixths homeless -- an equilibrium produced by a quantity this
 # file could not state. THREE keeps that populator's figure, which is S4 task 2's row ratio (360
 # Households against ~120 Buildings per 1,000 Citizens), so this line changes no world it did not
-# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D2: the first long run in which
+# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D1: the first long run in which
 # placement and eviction both run.
 #
 # It is a property of the RULESET rather than of the Building, so lowering it here reaches every
@@ -239,7 +239,7 @@ condemn_after = 4
 # drain, because a Bin has a consumer and occupancy has none.
 occupants = 3
 
-# 5b-bis task 4, and the ratifier plans/0002 §D2 named for this key: the first Ruleset that grants
+# 5b-bis task 4, and the ratifier plans/0002 §D1 named for this key: the first Ruleset that grants
 # employment. HOW MANY CITIZENS THIS BUILDING EMPLOYS -- Citizens, never Households, because a job
 # has one holder (adr/0068 on a second axis).
 #
@@ -260,6 +260,12 @@ occupants = 3
 # with no shortage and for a mechanism that had stopped, which is the reading PlacementCounter's
 # own remark exists to refuse.
 jobs = 8
+
+# HOW MANY VEHICLES A DWELLING OF THIS KIND CAN PARK. Identical to minimal.toml's, including the
+# value. See there for why eight is `jobs`' own derivation rather than a second guess -- both count
+# CITIZENS, and adr/0119 settled that a parking space is held by the Citizen because World.ModeOf
+# drives every MEMBER of a car-owning Household. UNRATIFIED; ratifier is milestone 7 task 8.
+parking = 8
 
 # WHEN THIS KIND'S JOBS START, as a band of in-world hours, from which each BUILDING draws its own one
 # against its own id. adr/0101, and the band rather than an hour is the load-bearing part: this corpus
@@ -394,7 +400,7 @@ revisit_ticks = 2048
 # `candidates` IS 02 §5.3'S N AND IT IS THE ONE FREE NUMBER HERE. A family looks at this many
 # dwellings and takes the first with room. It is a BEHAVIOUR MODEL rather than a budget -- bounded
 # knowledge, not an optimiser being approximated -- and it is hash-bearing and UNRATIFIED
-# (plans/0002 §D2). Nothing can ratify it yet: with no rent, no commute and no tolerance every
+# (plans/0002 §D1). Nothing can ratify it yet: with no rent, no commute and no tolerance every
 # candidate with room scores identically, so today it is only a rate.
 [placement]
 interval      = 32
@@ -547,6 +553,17 @@ foot_path_capacity_per_hour    = 1000
 # nobody has designed. Lots hang on Segments and the rest of the block is interior.
 lots_per_segment = 5
 
+[parking]
+# How far a driver will walk from a Car Park, in metres. adr/0009's radius, milestone 7 task 2.
+# minimal.toml's header carries why it is metres rather than minutes, why 400 is R5.6's measured
+# rung rather than the five-minute intuition it nearly coincides with, and what ratifies it.
+radius_metres = 400
+
+# How many Car Parks a Building's Parking Shed holds. minimal.toml's header carries where 24
+# came from, why the search for a derivation failed, why it is a different dial from the radius
+# rather than a second spelling of it, and why it must live here rather than on [[building]].
+shed_keeps = 24
+
 [trips]
 # What travelling costs, and what makes a journey fail. Two numbers, both hash-bearing, and they
 # are unset in two DIFFERENT senses -- which is the whole reason one of them is here and the
@@ -662,7 +679,7 @@ commute_budget_minutes = 50
 # ADR predicted no numbers, the pass needed exactly these three, and the first of them shipped at a
 # value copied from a default that meant something else and left 45% of the housing stock empty.
 # This is the same shape of pass, so it is the same three keys, and all three are hash-bearing and
-# UNRATIFIED in plans/0002 §D2 with a named ratifier each.
+# UNRATIFIED in plans/0002 §D1 with a named ratifier each.
 #
 # `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED (adr/0059, a third time): it is how long
 # the pass takes to look at every Citizen once, and the engine derives

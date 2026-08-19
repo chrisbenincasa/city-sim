@@ -61,7 +61,7 @@ are still open, so do not write implementation code beyond the current slice unl
 | `plans/0003-build-plan.md` | ***What is done.*** The ordered slice ledger for Phase 0 and Phase 1 with its gate board, plus the hash-moving queue. **Start here when picking up the *code* cold** |
 | `plans/0012-corpus-audit.md` | ***What a document says wrongly.*** The debt ledger, its numbered Causes, the disqualifier registry and the mechanical checks. Delete it when everything in it is struck |
 | `plans/0013-tick-budget.md` | ***What a Tick costs.*** One row per consumer, each citing its owner, and the column that is the point: whether the row's multiplicand was **measured or guessed**. A view, never a source |
-| `plans/0004`–`0031` | **One document per slice, spike or session, and each owns its own findings in full.** The board's third column is a pointer to these, never a summary — so read the plan rather than any description of it. `0001` predates ADRs 0005–0011 and is **stale**; `06` supersedes its build order |
+| `plans/0004`–`0033` | **One document per slice, spike or session, and each owns its own findings in full.** The board's third column is a pointer to these, never a summary — so read the plan rather than any description of it. `0001` predates ADRs 0005–0011 and is **stale**; `06` supersedes its build order |
 | `rulesets/` | **Ruleset content, in TOML** — data the binary interprets, hot-reloadable under `adr/0015`. Seven files, each a **demonstration rather than a city**, and **every one carries its own header explaining what it exists to show and what it must not be read as**: `minimal.toml`, the smallest Ruleset that makes Bins move; `minimal-tuned.toml`, the same file with one number changed, which the golden session reloads into at Tick 128; `severance.toml`, the rung at which the Severance dial does anything; `congested.toml`, the only file that states `[traffic]` and `[households]`, because a generated city cannot congest itself; `diagnosed.toml`, the only one authoring an `on_fail` chain, because otherwise nothing records *why* a Building fell down; `monetised.toml`, the first to declare a `family = "money"` Resource, whose whole content is three lines because a Resource declaration is all a Ruleset can say about money until there is an owner to name; and `taxed.toml`, which puts money in Households and a Policy circuit that moves it, because every Household on `minimal.toml` holds exactly zero and a tax over a city of paupers collects nothing. **Read the header before quoting a number out of one** |
 
 ## Working with the corpus
@@ -122,10 +122,9 @@ pre-scaled in 32 bits), `BOR0301`–`BOR0302` (hash-map enumeration, `System.Ran
 declaration). `BOR08xx` and `BOR0901` are not among the seven lints; the count stays seven. Lint 5 is
 live via `ReplayTests` and the golden baseline. **Lint 6 is live as of milestone 8** — `FactorioTests`,
 and stronger than a suite: a save's header carries the State Hash of the world it holds, folded from the
-copy, so **every load** recomputes and refuses a mismatch
+**copy**, so every load restores, rebuilds, recomputes and refuses a mismatch
 ([`adr/0112`](docs/adr/0112-the-saved-set-is-the-hashed-set-so-a-save-can-compute-its-own-state-hash.md)).
-*A test asserts this for the cases somebody wrote down; the header asserts it for the ones nobody did.*
-Lint 4 alone still needs machinery that does not exist yet.
+**Lint 4 alone still needs machinery that does not exist yet.**
 **Every diagnostic ships with a test that writes the violation and watches it fire** — do not add one
 without.
 
@@ -134,6 +133,15 @@ declaring it through `Rows.Saved`/`Rows.Derived`/`Rows.SavedHandle` is what *all
 State Hash cannot have a coverage hole. The hash folds values, never identity: a handle column folds
 the target row's monotonic never-reused id, not the recycled slot index. Composition order is
 **tables in declaration order, arrays in index order**.
+
+⚠ **Declaring a column `Derived` allocates it; it does not make anything rebuild it.** The
+allocation-by-declaration trick closes the *hash*'s coverage hole and leaves the *rebuild*'s wide open —
+a column can be declared `Derived` while the structure that derives it lives outside the `World`
+entirely, in which case a load restores the rows and the index is simply never built. Nothing fails,
+because a column nobody reads yet is a column nobody reads yet. ***A structure that lives outside the
+world is not derived state, however it is declared.*** `DerivedRebuildAuditTests` is the only thing that
+asks — it clears every derived column, rebuilds, and names the ones no fixture populates — and it caught
+exactly this on milestone 7's `car_park.segment_next`.
 
 Also banned in the core: `DateTime`, `Stopwatch`, `Environment.TickCount`, `Guid.NewGuid()`,
 default `object.GetHashCode()`, and parallel loops accumulating into shared state.
@@ -228,6 +236,8 @@ change to the city under `05 §4`, not an optimisation.
 | Volume-delay function | **α 15%, β 4, clamp 400%** — `rulesets/congested.toml` only | tuning, hash-bearing — `[traffic]` ([`adr/0099`](docs/adr/0099-a-legs-cost-is-a-plan-and-a-drive-is-priced-segment-by-segment-as-it-is-met.md)). BPR, priced **on entry** from that Segment's volume at that instant. **Absent means roads never slow down.** ⚠ **It is a loop and not a formula** — congestion slows a Vehicle, a slower Vehicle dwells longer, longer dwell *is* higher volume |
 | Household car ownership | **100%** — `rulesets/congested.toml` only | tuning, hash-bearing — `[households] car_ownership_percent` ([`adr/0098`](docs/adr/0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md)). A Citizen drives everywhere or walks everywhere. ⚠ **Mode choice is a different question, settled by no ADR** and *undesigned* rather than unbuilt. **Absent means nobody drives**, reached by omitting the table rather than by a defaulted key |
 | The Shift model | `shift_start_earliest_hour`/`latest_hour` **6–10**; `[jobs] shift_hours_min`/`max` **6–10**; `[jobs] arrive_early_max_minutes` **15** | tuning, hash-bearing ([`adr/0101`](docs/adr/0101-a-commute-is-two-journeys-and-the-days-shape-is-a-property-of-the-job.md)). A commute is **two journeys** anchored on a Shift start hour belonging to the **Workplace**, so a Citizen stores no start hour at all. **The Day's shape is emergent.** Tick 0 is midnight |
+| The Parking Shed's radius | **400 m** — `[parking] radius_metres`, all seven Rulesets | tuning, hash-bearing ([`adr/0009`](docs/adr/0009-parking-is-modelled-supply-never-search.md), [`adr/0120`](docs/adr/0120-a-car-park-is-not-a-bin-and-supply-is-at-buildings-until-a-segment-needs-one.md)). How far a driver will walk from a Car Park |
+| The Parking Shed's cap | **24** — `[parking] shed_keeps`, all seven Rulesets | tuning; **hash-neutral today, hash-bearing once the shed is materialised**. How many Car Parks a shed keeps, and therefore how far the query walks before it stops. **Not redundant with the radius** — the cap bounds the work and the radius bounds the walk, and they bind in different worlds |
 | Microscopic Cap | **unset** | fixed world constant, still open. **It counts *Vehicles*, not Segments** ([`adr/0062`](docs/adr/0062-the-microscopic-cap-counts-vehicles-and-nothing-is-ever-evicted.md)), and it is priced against the **design speed's** budget rather than the top rung ([`adr/0096`](docs/adr/0096-the-microscopic-cap-derives-from-the-design-speeds-budget-and-not-from-the-top-rungs.md)). Its value is a ratio nobody has both halves of |
 | Sight Horizon | **1 Segment — derived, and there is nothing to choose** | **not tuning.** The floor is graph geometry; the ceiling is comparison symmetry ([`adr/0046`](docs/adr/0046-a-driver-routes-on-habit-sight-and-temperament-never-on-current-cost.md)). ⚠ The other parameter this name was wearing is the **Rejoin crossing budget**, which is unset and is a different number |
 | Temperament base and spread | **unset** | tuning. **The base/jitter blend weight has no argument behind it at all** and is the routing model's weakest number |

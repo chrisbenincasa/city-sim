@@ -288,6 +288,56 @@ so the trail is empty at Tick 64 and never empty again. **A session shortened be
 would cover the mechanism exactly as poorly as task 1's re-record did**, with a full set of freshly
 correct hashes to say so — slice 10 task 11's finding, in the one place it can still bite this table.
 
+**Milestone 7 task 1 re-recorded all four artefacts, and it is the *first* re-record where a shipped
+Ruleset gained a key for the baseline's own sake rather than for the mechanism's.** `car_park` joined
+`World._tables`, appended, and `CitizenTable` gained a saved `parked_in` handle — so the composition
+changed and both hash files moved for the ordinary reason. Both Ruleset content hashes moved because
+**every shipped file gained a `[[building]] parking`**, which put this back on the *four literals in
+two files* path, in the order the 5a note gives.
+
+⚠ **The key was added to `minimal.toml` deliberately, and the alternative is the thing worth naming.**
+`adr/0120` and `CarParkTable` could have shipped with **no Ruleset declaring parking at all** — the
+table would have joined the hash, every number here would have moved, and **not one Car Park would
+ever have been created.** That is `world-hash.txt`'s own milestone 6 task 1 note repeating one
+milestone later: ***a baseline that covers a table's declaration reads exactly like one that covers its
+behaviour***, and this time it was foreseen rather than found. With the key stated, the hand-built
+world's four Buildings each carry a Car Park, so the fixture folds **four live rows** rather than
+four zeroed ones and demolition frees them.
+
+⚠ **What it still does not cover is a Car Park being *occupied*, and the reason is a second file.**
+Occupancy needs somebody to drive, driving needs `[households] car_ownership_percent`, and
+`minimal.toml` states none — so nobody in the committed session owns a car and every Car Park here is
+permanently empty. That is **exactly 5c task 6's hole on a new mechanism**, and it closes the same way
+or not at all: the session would have to adopt `congested.toml`, which is a decision about the
+committed trace rather than about parking. The acquire and the release do not exist yet either; they
+are task 4's, and task 5 is the one that makes a walk Leg cost something in this directory.
+
+**`World.HashSeed`'s version byte is deliberately unmoved**, for the reason milestone 6 task 1 gives:
+a world with more tables in it is not a change to the fold.
+
+**Milestone 7 task 2 moved the two Ruleset content hashes and nothing else, and that is the honest
+outcome rather than a near miss.** `[parking] radius_metres = 400` joined all five shipped Rulesets;
+no table joined `World._tables`, no column was declared, and no behaviour changed — the shed that reads
+this number is task 3. So `world-hash.txt` is untouched, every sample in `session-trace.txt` is
+byte-identical, and the only line that moved in the trace is the header naming the Ruleset. ***A number
+a Ruleset states and no mechanism reads does not move the world***, which is the clean case of the
+distinction task 1's note had to make the hard way.
+
+⚠ **It moved them twice, and the second time was a comment.** The first re-record was taken with a
+loader guard that has since been withdrawn, and withdrawing it edited `minimal.toml`'s header — so the
+content hash moved again for a change to **prose**. That is `RulesetHash` working exactly as designed:
+it is a hash of the *file*, comments included, because a Ruleset's comments are how its numbers are
+defended and a file whose defence changed is not the file the session ran against.
+
+⚠ **`[parking]` sits before `[trips]` rather than at the end of the file, and a fixture is why.**
+`TripCommandTests.RulesWithTripsTable` truncates the golden Ruleset at `[trips]` and asserts that what
+goes with it is **exactly `[jobs]`** — which is a schema constraint rather than an accident, since a
+`[jobs]` table is refused without a Commute Budget. Appending `[parking]` after them put a third,
+independent table inside that deletion, and the assertion fired. ***A fixture that depends on a file's
+section order is depending on something no document promises*** — the guard was written for exactly this
+and caught it on its first occasion. `JobAssignmentTests.WithoutJobs` had the same dependency and was
+repaired the other way, by excising the section it names instead of truncating the tail.
+
 ⚠ **The re-record was blocked before it could start, and the refusal was the right one.** The runner
 would not replay a session naming a Ruleset hash nobody supplied — *Rules nobody has are not a
 mismatch, and `--force-ruleset` cannot waive it* — so the two literals in `session.borough` and the two
@@ -295,3 +345,33 @@ in `GoldenFixtures` had to be corrected **before** the trace could be regenerate
 is not an inconvenience: a runner that had quietly played the session against whichever Rulesets it was
 handed would have produced a full set of freshly correct hashes for a session that was no longer the
 committed one, which is 5a-bis's finding wearing different clothes.
+
+**Milestone 7 task 3 moved them twice more, and the second time was an ADR renumber.** The first was
+ordinary: `[parking] shed_keeps = 24` joined all five shipped Rulesets with a long header defending it,
+so both content hashes moved and the trace's `ruleset` line moved with them — a key and its prose, the
+same shape as task 2.
+
+⚠ **The second had no key in it at all.** This branch's two ADRs were renumbered `0112` → `0119` and
+`0113` → `0120` to clear a collision with `main` and with `milestone-10-conserved-money`, and the sweep
+that rewrote every citation rewrote **five ruleset comments** along with the ninety-odd document ones.
+Both content hashes moved, the golden suite went red, and the change that did it was a **rename with no
+semantic content whatsoever**. ***A renumber is a hash-moving change, and nothing about a renumber looks
+like one*** — the diff is filenames and citations, the reviewer's whole attention is on whether the
+citations resolve, and `CitationTests` was green throughout because every one of them did.
+
+This is the *comments are content* rule above, arriving from the one direction it had not yet arrived
+from. Task 2's second re-record was prose **about a number**, which at least sits next to the thing the
+hash is for. This was prose about **where a document lives**. The rule survives intact and the reason it
+should is unchanged — a Ruleset's comments are how its numbers are defended — but the working corollary
+is worth stating on its own: ***any sweep that rewrites text across the repository must be assumed to
+have touched `rulesets/`, and the golden suite is the only thing that will say so.*** Renumber first,
+re-record second, and expect the second.
+
+⚠ **And a mechanical trap in the re-record itself, which cost a red run.** `session-trace.txt` is a
+content file copied to the build output, so the sequence *build → regenerate trace → `dotnet test
+--no-build`* checks the **stale copy in `bin/`** against the fresh literals and fails with a hash
+mismatch that looks exactly like a real regression. The regenerated trace has to be followed by a build
+before the suite means anything. ***A `--no-build` run is only as fresh as the last build, and that is
+true of the fixtures as well as of the code*** — the same defect as the `const` this session hit two
+commits earlier, where a stale binary reported the pre-edit `RulesetHash` and the failure message
+quoted a number that no longer existed anywhere in the tree.

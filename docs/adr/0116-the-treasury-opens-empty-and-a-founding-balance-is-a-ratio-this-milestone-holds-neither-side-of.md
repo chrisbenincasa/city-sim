@@ -6,7 +6,7 @@
 
 ### Zero is what the circuit needs, so there is nothing to choose
 
-[`plans/0031`](../../plans/0031-conserved-money-and-the-treasury.md) task 5 is a tax sweeping Households into the treasury and a transfer paying it back out. **Tax flows in before the transfer pays out**, so the circuit runs on an empty treasury from Tick 0 and never needs an opening stock.
+[`plans/0033`](../../plans/0033-conserved-money-and-the-treasury.md) task 5 is a tax sweeping Households into the treasury and a transfer paying it back out. **Tax flows in before the transfer pays out**, so the circuit runs on an empty treasury from Tick 0 and never needs an opening stock.
 
 It is better than merely sufficient. [`02 §4.2`](../02-simulation-model.md) specifies the exhaustion case — a Policy paying out of a treasury that runs dry *"pays whom it reaches and reports where it stopped"* — and that branch is **only reachable from a treasury that can be empty**. Opening at zero reaches it on the first sweep instead of after a long run somebody has to construct. Slice 10 task 11's rule applies directly: ***a baseline records what a run did, so a change that narrows what the run reaches is invisible in it by construction.*** An opening stock large enough to be comfortable would have hidden the branch the milestone exists to demonstrate.
 
@@ -57,7 +57,7 @@ Under `adr/0070` this is **undesigned** rather than unbuilt: no document states 
 - **The fixture Ruleset's header states that its treasury opens empty and why**, because the value is inside the founding balance's legitimate range and only a sentence separates them.
 - ⚠ **No document may call this the founding balance**, and this ADR is the reason a later reader will not: they are different quantities with different owners, and the shared value is a coincidence of the milestone's shape.
 - **Task 4's conservation constant is the Households' opening money alone.** The treasury contributes nothing to it, which makes the equality tighter rather than looser.
-- ⚠ **Task 9 is unblocked and its exact-equality assertion is unaffected.** `plans/0031` recorded decision 3 as blocking task 9; it also blocks **task 4**, which nothing said — the invariant's anchor is a founding-balance question, and it resolves to *zero contribution* rather than to a term.
+- ⚠ **Task 9 is unblocked and its exact-equality assertion is unaffected.** `plans/0033` recorded decision 3 as blocking task 9; it also blocks **task 4**, which nothing said — the invariant's anchor is a founding-balance question, and it resolves to *zero contribution* rather than to a term.
 - **`01 §3` is corrected in place**, restoring the dropped clause and the right `CONTEXT.md` entry, with the superseded wording kept.
 - **Two rows are filed rather than answered**: the founding balance in `plans/0002` §D2, owned by the first playable build with `01 §3`'s own ratifier; and the unaffordable command in §C, owned by `04`/`05`.
 
