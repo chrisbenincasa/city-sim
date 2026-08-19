@@ -38,7 +38,10 @@ public sealed class TreasuryFromAFileTests
 {
     /// <summary>Every Ruleset this project ships.</summary>
     public static TheoryData<string> Shipped =>
-        ["minimal.toml", "minimal-tuned.toml", "severance.toml", "congested.toml", "diagnosed.toml"];
+        [
+            "minimal.toml", "minimal-tuned.toml", "severance.toml", "congested.toml",
+            "diagnosed.toml", "taxed.toml",
+        ];
 
     /// <summary>
     /// A world on any shipped Ruleset opens with one treasury Bin, empty and unbounded.

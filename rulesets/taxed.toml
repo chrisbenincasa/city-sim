@@ -1,60 +1,102 @@
-# THE MONEYED RULESET -- minimal.toml with a currency in it, and nothing that can spend one.
+# THE POLICY RULESET -- minimal.toml with money in the city and a circuit that moves it.
 #
 # ===========================================================================================
-# WHY IT EXISTS. Milestone 10 (plans/0031) builds conserved money and the treasury, and the survey
-# that opened it found the gap is not that Money is missing but that NOTHING PRODUCES IT: Money is a
-# signed 64-bit quantity type, ResourceFamily.Money is a live enum member, and the loader refuses a
-# capacity on a money Bin by name -- while ALL FIVE SHIPPED RULESETS DECLARED family = "good" ON
-# EVERY RESOURCE. The only family = "money" declaration in the whole tree was inside a loader test.
-# So the machinery that refuses a badly-authored currency had never once met an authored one.
+# WHY IT EXISTS. Milestone 10 task 5 built the Sweep family's second member: a Policy triggers on an
+# interval, sweeps a whole population and moves money between one Bin and another (02 section 4.2).
+# MINIMAL.TOML CANNOT DEMONSTRATE IT, and not for want of a table -- every Household in a world on
+# that file holds EXACTLY ZERO, because adr/0024 makes the Outside Connection money's only source and
+# that is milestone 11. A tax over a city of paupers collects nothing, a transfer pays nothing, and a
+# conservation assertion over it holds vacuously. This is the file that circuit is for. It is
+# severance.toml's, congested.toml's and diagnosed.toml's precedent exactly, for their reason: a
+# mechanism minimal.toml structurally cannot demonstrate needs a file where it does.
 #
-# It is severance.toml's, congested.toml's and diagnosed.toml's precedent exactly, for their reason:
-# a mechanism minimal.toml structurally cannot demonstrate needs a file where it does. VERBATIM,
-# like the first two and unlike diagnosed.toml: one [[resource]] block is added, and nothing else in
-# this file moved.
+# IT IS VERBATIM AND APPENDS THREE TABLES. severance.toml and congested.toml keep minimal.toml
+# unchanged and append; diagnosed.toml edits one Rule in place and says why. This one appends and
+# changes nothing: a [households] table and two [[policy]] tables, marked ADDITION 1 OF 3 through
+# 3 OF 3 where they sit. Every Rule, kind, Bin and Resource above them is minimal.toml's, unedited.
 #
-# WHAT ONE RESOURCE BUYS, AND IT IS MORE THAN IT LOOKS. World.FitTreasury walks the Ruleset's
-# Resources at world creation and gives the treasury ONE UNBOUNDED, EMPTY BIN PER CONSERVED RESOURCE
-# (adr/0116). So this block is the whole of what a Ruleset has to say to make the treasury real: no
-# key names it, no kind declares it, and `global` in a Rule term resolves to it. A world loaded from
-# this file has a treasury with a Bin in it; a world loaded from any other has a treasury with none.
-#
-# WHY IT DECLARES NO BIN AND WRITES NO MONEY TERM, WHICH IS THE INTERESTING HALF. A money term needs
-# a Bin, a Bin needs an owner, and adr/0113 settled -- two days before this file was written -- that
-# A BUILDING NEVER HOLDS MONEY: a Building holds a LIST of Occupants, so money on the Building is a
-# sum over however many are in it, which is an average wearing a total, and it is adr/0005's deleted
-# Cohort coming back in through the container. The two actors that may hold money are the Household
-# and the Business. BinOwnerKind names both and throws on both, by name, because neither is built;
-# they arrive in plans/0031 tasks 5 and 4b.
-#
-# So the ONE money-Bin door this loader has is `[[building]] bins`, which refuses an authored capacity
-# on a money Bin in a sentence written for exactly this case -- "a finite one would mean an actor too
-# full of money to be paid" -- and that door now opens onto a shape a decision refuses. ***A RESOURCE
-# DECLARATION IS THE WHOLE OF WHAT A SHIPPED RULESET CAN SAY ABOUT MONEY TODAY, BECAUSE EVERY OTHER
-# SPELLING NAMES AN OWNER THAT DOES NOT EXIST.***
-#
-# WHAT IT COSTS THE CITY: ONE BIN ROW, AND THAT IS MEASURED RATHER THAN ARGUED. Against minimal.toml
-# at 2,048 Ticks on the 4,000-Citizen fixture, EVERY CENSUS ROW IS IDENTICAL except one, and that one
-# moves by exactly one in every column --
-#
-#     bin  live 962 becomes 963, slots 962 becomes 963
-#
-# -- because no Rule names this Resource, so nothing is evaluated differently and no Bin moves. What
-# the city gains is a treasury holding zero. The State Hash moves from the first sample, because
-# BinTable.Rows has one more row in it, which is adr/0094's rescale precedent again: a byte-identical
-# city with only the hash moving. NO GOLDEN BASELINE MOVES -- this is a sixth file and the committed
-# session runs on minimal.toml.
-#
-# THE UNIT IS NOT SPENT HERE, AND plans/0031's own brief said it would be. adr/0115 fixes money's unit
-# by the smallest fraction the design multiplies by -- 10%, so any money quantity a fraction is ever
-# taken of must be at least ten smallest units to move at all -- and that is a discipline about
-# AMOUNTS. This file writes no amount. The first money quantity in a shipped Ruleset is the tax rate
-# in plans/0031 task 5, and the unit is spent there. ***A SCALE DISCIPLINE BINDS ON THE FIRST NUMBER,
-# NOT ON THE FIRST DECLARATION.***
-#
-# IT IS STILL NOT A CITY, for every reason minimal.toml gives below.
 # ===========================================================================================
+# WHERE THE MONEY COMES FROM, AND WHY IT IS A BAND RATHER THAN A FIGURE.
 #
+# [households] opening_balance_min/max is read by Borough.Core.Entities.SyntheticCity, which is
+# reached only by CommandKind.Populate -- a verb no player has (adr/0090's generator/player line).
+# It is the ONLY production issuance of money in the build and it is fixture content, not a founding
+# balance: adr/0116 deferred THAT for want of a denominator, and this is the populator that already
+# invents Households, Buildings and Lots from nothing doing the same thing with their pocket money.
+# It goes through World.Endow, which records it in MoneySupply.Issued, so conservation stays exactly
+# checkable ACROSS the issuance rather than in spite of it.
+#
+# A BAND IS WHAT MAKES adr/0115'S INSTRUMENT READABLE AT ALL. That ADR's concern is that
+# FloorDiv(readout x percent, 100) is zero below 100/percent, so a percentage tax collects nothing
+# from the poorest and the stated rate from everybody else -- a REGRESSIVE outcome produced by
+# rounding, in the mechanic adr/0024 requires the game take no position on. It is a DISTRIBUTIONAL
+# artefact, so a city where everybody opens with the same figure reads 0% or 100% and measures
+# nothing. Uniform over the band, with no shape parameter: a real wealth distribution is skewed and
+# a skew is a second decision with a number in it that nothing has measured (adr/0052).
+#
+# ===========================================================================================
+# THE CIRCUIT, AND EVERY NUMBER IN IT IS DERIVED RATHER THAN CHOSEN EXCEPT ONE.
+#
+#   interval = 2048 on both        one Day. Ticks.PerDay, so it is derived -- 02 section 4.2 makes
+#                                  the interval a balance constant ("a Policy paying daily is a
+#                                  different city from one paying weekly"), and a Day is the period
+#                                  the rest of the simulation is denominated in. Same argument as
+#                                  adr/0059's revisit_ticks default, which ships unratified for the
+#                                  same reason: there is no free parameter to ratify.
+#
+#   percent = 10 on the levy       THE DESIGN'S OWN FRACTION. adr/0115 derives money's unit from the
+#                                  smallest fraction the design multiplies by, and finds 10% in both
+#                                  existing sites -- 02 section 5.6's tatonnement clamp and 02
+#                                  section 4.1's apply count. Using it here makes this file's
+#                                  flooring threshold EXACTLY that ADR's floor of ten smallest units,
+#                                  so the counter reads the discipline rather than a number chosen
+#                                  beside it.
+#
+#   amount = 100 on the rebate     THE ONE CHOSEN NUMBER, and it is chosen to make a branch
+#                                  reachable rather than to model anything. See below.
+#
+#   opening band 0..1000           MEASURED. See the sweep below.
+#
+# ===========================================================================================
+# WHY THE REBATE IS BIGGER THAN THE LEVY, WHICH IS DELIBERATE AND IS THE POINT OF THE FILE.
+#
+# 02 section 4.2: "A Policy paying out of a treasury that runs dry pays whom it reaches and reports
+# where it stopped." adr/0116 chose an EMPTY opening treasury partly to make that branch reachable
+# on the first sweep rather than after a long run somebody constructs -- and an empty treasury alone
+# does not reach it, because the levy declared above the rebate funds it on the same trigger. What
+# reaches it is a rebate the levy cannot cover.
+#
+# At a mean opening balance of 500 the levy takes about 50 a Household a Day and the rebate owes 100,
+# so the treasury runs dry about halfway through every sweep. THAT IS WHAT THE SCAN ROTATION IS FOR:
+# under a fixed order the same low-index Households would be paid for the life of the city and the
+# tail never, which is the permanent boundary 02 section 4.2's rotation exists to prevent. With the
+# rotation it is a gradient, and `sweeps run dry` in --census counts the event.
+#
+# A CITY THAT PAYS EVERYBODY WOULD DEMONSTRATE LESS, not more: the exhaustion branch would never run
+# and the rotation would be decoration.
+#
+# ===========================================================================================
+# WHAT THE CIRCUIT DOES TO THE CITY, WHICH IS THE THING TO WATCH.
+#
+# A PROPORTIONAL LEVY WITH A FLAT REBATE DRIVES EVERY BALANCE TOWARD THE SAME FIGURE. Take is 0.1b
+# and the expected payment is flat, so a Household above the crossing point loses and one below it
+# gains, and the distribution collapses toward the mean. The total never moves -- money is conserved
+# and this file has no gate -- so what changes is only the SPREAD.
+#
+# That has a consequence for adr/0115's instrument and it runs in the helpful direction: the rebate
+# lifts the poorest OUT of the flooring band, so `floored to zero` is largest on the first sweeps and
+# falls. ***A transfer cures the rounding artefact a levy produces***, which is not a claim anybody
+# made in advance and is visible in --census in a run of a few Days.
+#
+# ===========================================================================================
+# IT IS A DEMONSTRATION, NOT A CITY. minimal.toml's first line says it models no city and every word
+# of that survives here. There is no wage, no price, no rent and nothing to buy, so a balance is a
+# number that goes up and down and buys nothing -- which is exactly the state milestone 10 is for:
+# the circuit that needs neither a price nor a wage. What a rate should be, who should be exempt and
+# what the money is for are content questions for a Ruleset that models a city, and no such Ruleset
+# exists yet.
+#
+# ===========================================================================================
 # The minimal Ruleset. It models no city, and it is not the beginning of one.
 #
 # Slice 7 task 10a of plans/0011-rule-engine-bins-and-rules.md. Its whole job is to be the smallest
@@ -162,7 +204,28 @@ family = "good"
 name = "repairs"
 family = "good"
 
-# CHANGE 1 OF 1, AND THE ENTIRE CONTENT OF THIS FILE. See the banner at the top.
+# THE CURRENCY, AND IT IS THE ONE THING IN THIS FILE THAT IS NOT ABOUT GOODS MOVING.
+#
+# WHY IT IS HERE. Milestone 10 (plans/0031) builds conserved money, and the survey that opened it
+# found the gap is not that Money is missing but that NOTHING PRODUCES IT: Money is a signed 64-bit
+# quantity type, ResourceFamily.Money is a live enum member, and the loader refuses a capacity on a
+# money Bin by name -- while ALL FIVE SHIPPED RULESETS DECLARED family = "good" ON EVERY RESOURCE.
+# The only family = "money" declaration in the whole tree was inside a loader test, so the machinery
+# that refuses a badly-authored currency had never once met an authored one.
+#
+# THIS BLOCK IS THE WHOLE VOCABULARY A RULESET HAS FOR MONEY, and that is a decision rather than a
+# stub. World.FitTreasury walks the Resources at world creation and gives the treasury one unbounded
+# empty Bin per CONSERVED one (adr/0116); World.FitBalances does the same for every Household and
+# Business (adr/0114). So three lines is the entire authored surface -- no table, no kind to declare
+# it on, no key, nothing to tune.
+#
+# ⚠ IT ARRIVED IN THIS FILE IN TASK 4C AND LIVED IN A SEPARATE monetised.toml BEFORE THAT. That file
+# existed because minimal.toml named no money; adr/0114 then made a balance a BIN rather than a
+# column, and a Bin exists only for a Resource a Ruleset declares -- so a Household in a world on a
+# moneyless file cannot hold money AT ALL, where a column held it whatever the file said. The golden
+# session runs on this file, so keeping money out of it would have kept the committed baseline out of
+# the money model entirely. ***MAKING A QUANTITY CONDITIONAL ON THE RULESET MAKES EVERY FIXTURE'S
+# RULESET A STATEMENT ABOUT WHAT THAT FIXTURE CAN TEST.***
 #
 # IT IS NAMED AFTER ITS FAMILY BECAUSE NAMING A CURRENCY IS CONTENT. `sundries` above is deliberately
 # a word for goods too unimportant to name, which is this file's first line being obeyed; a currency
@@ -172,10 +235,15 @@ family = "good"
 #
 # `family = "money"` IS WHAT MAKES IT CONSERVED -- never created or destroyed inside the city, the
 # Outside Connection being its only source and sink (adr/0024). That Connection is milestone 11 and
-# does not exist, so the money supply of a city on this file is FIXED for the whole of its life, and
-# it is fixed AT ZERO: HouseholdTable.Money has no production writer yet either. A closed system is
-# the strongest form of the conservation invariant, not a weaker one -- the sum is a constant
-# checkable to the unit, with no gate flow to subtract first -- and zero is the strongest case of it.
+# does not exist, so the money supply of a city on this file is FIXED for the whole of its life. A
+# closed system is the strongest form of the conservation invariant rather than a weaker one: the sum
+# is a constant checkable to the unit, with no gate flow to subtract first.
+#
+# AND IT IS FIXED AT ZERO IN EVERY WORLD THE SIMULATION BUILDS ON ITS OWN, because World.Endow is the
+# only door money enters by and no pass calls it. Every Household here opens an empty money Bin and
+# keeps it. Invariant.MoneyIsConserved is therefore correct and temporarily trivial, which is the
+# good side of 5b's vacuously-satisfied invariant: it becomes load-bearing the day a production
+# writer exists, with no edit to the assertion.
 #
 # THERE IS NO CAPACITY KEY HERE AND THE LOADER WOULD REFUSE ONE. A money Bin has no ceiling, and the
 # family is what says so; there is nothing to author and nothing to tune.
@@ -205,7 +273,7 @@ condemn_after = 4
 # and a 100,000-Tick run settled five-sixths homeless -- an equilibrium produced by a quantity this
 # file could not state. THREE keeps that populator's figure, which is S4 task 2's row ratio (360
 # Households against ~120 Buildings per 1,000 Citizens), so this line changes no world it did not
-# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D1: the first long run in which
+# have to. It is UNRATIFIED and the ratifier is named in plans/0002 SS D2: the first long run in which
 # placement and eviction both run.
 #
 # It is a property of the RULESET rather than of the Building, so lowering it here reaches every
@@ -213,7 +281,7 @@ condemn_after = 4
 # drain, because a Bin has a consumer and occupancy has none.
 occupants = 3
 
-# 5b-bis task 4, and the ratifier plans/0002 §D1 named for this key: the first Ruleset that grants
+# 5b-bis task 4, and the ratifier plans/0002 §D2 named for this key: the first Ruleset that grants
 # employment. HOW MANY CITIZENS THIS BUILDING EMPLOYS -- Citizens, never Households, because a job
 # has one holder (adr/0068 on a second axis).
 #
@@ -340,7 +408,7 @@ revisit_ticks = 2048
 # `candidates` IS 02 §5.3'S N AND IT IS THE ONE FREE NUMBER HERE. A family looks at this many
 # dwellings and takes the first with room. It is a BEHAVIOUR MODEL rather than a budget -- bounded
 # knowledge, not an optimiser being approximated -- and it is hash-bearing and UNRATIFIED
-# (plans/0002 §D1). Nothing can ratify it yet: with no rent, no commute and no tolerance every
+# (plans/0002 §D2). Nothing can ratify it yet: with no rent, no commute and no tolerance every
 # candidate with room scores identically, so today it is only a rate.
 [placement]
 interval      = 32
@@ -608,7 +676,7 @@ commute_budget_minutes = 50
 # ADR predicted no numbers, the pass needed exactly these three, and the first of them shipped at a
 # value copied from a default that meant something else and left 45% of the housing stock empty.
 # This is the same shape of pass, so it is the same three keys, and all three are hash-bearing and
-# UNRATIFIED in plans/0002 §D1 with a named ratifier each.
+# UNRATIFIED in plans/0002 §D2 with a named ratifier each.
 #
 # `revisit_ticks` IS A DURATION AND THE SAMPLE IS DERIVED (adr/0059, a third time): it is how long
 # the pass takes to look at every Citizen once, and the engine derives
@@ -662,3 +730,51 @@ shift_hours_max = 10
 # would move the anchor without spreading the staff standing behind it. 0 is a legitimate city --
 # everybody cutting it fine -- and is the control this can be run against.
 arrive_early_max_minutes = 15
+
+# ===========================================================================================
+# ADDITION 1 OF 3 -- the money in the city. Nothing above this line moved.
+
+[households]
+# NOBODY DRIVES, which is minimal.toml's own state said out loud rather than by omission. The table
+# has to exist to carry the two keys below and car_ownership_percent is required inside it, so 0 is
+# the value that leaves this file behaving exactly as minimal.toml does. adr/0098: 0 is a legitimate
+# city -- one before the motor car -- and is not a placeholder.
+car_ownership_percent = 0
+
+# WHAT A HOUSEHOLD IS FOUNDED WITH, drawn uniformly per Household at creation and issued through
+# World.Endow. See the header for why this is fixture content rather than adr/0116's deferred
+# founding balance, and why it is a band.
+#
+# THE FLOOR IS ZERO ON PURPOSE. A Household that opens with nothing is a Household the levy takes
+# nothing from and the rebate lifts, which is the first thing worth watching in this circuit -- and
+# it is what makes `floored to zero` read non-zero on the first sweep instead of being a counter
+# nobody has ever seen fire.
+opening_balance_min = 0
+opening_balance_max = 1000
+
+# ===========================================================================================
+# ADDITION 2 OF 3 -- the levy. DECLARED FIRST, and the order is load-bearing: a Policy acts where it
+# runs (there is no proposal and no settle), so the levy declared above the rebate funds it on the
+# same trigger. The same pair in the other order pays out of last Day's remainder.
+
+[[policy]]
+name = "household_levy"
+sweeps = "household"
+interval = 2048
+apply = { derived = "balance", percent = 10 }
+transfer = { from = "local", to = "global", resource = "money", amount = 1 }
+
+# ===========================================================================================
+# ADDITION 3 OF 3 -- the rebate. A FLAT amount, which CONTEXT -> Policy prefers against because a
+# flat amount goes stale as the economy grows. It is flat here anyway and the reason is that the
+# alternative is worse: a percentage paid OUT of a balance pays the rich most, which is a mechanic
+# nobody would author. What CONTEXT actually asks for -- a percentage of gross income below a line --
+# needs an income (milestone 15) and a poverty line (a hash-bearing number with no ratifier), and
+# adr/0070 says the answer to an unbuilt mechanism is to build it rather than to approximate it.
+
+[[policy]]
+name = "household_rebate"
+sweeps = "household"
+interval = 2048
+apply = { min = 100, max = 100 }
+transfer = { from = "global", to = "local", resource = "money", amount = 1 }

@@ -119,6 +119,39 @@ internal static class CensusFamilies
     ];
 
     /// <summary>
+    /// The Policy sweeps' six counters — <c>02 §4.2</c>'s Flow Policies (<c>plans/0031</c> task 5).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Printed on the day the family was built</b>, which is 5b-bis task 6's finding taken as an
+    /// instruction rather than as a story: a Census family whose only reader is the suite is a family
+    /// no operator can see.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>floored to zero</c> is the row the milestone owes and is the reason the others are
+    /// here.</b> <c>adr/0115</c> makes it the named ratifier for money's unit — <em>a discipline the
+    /// loader cannot check needs a counter or it is a comment</em> — and it is unreadable without
+    /// <c>considered</c> beside it, since a count of floorings means nothing without the population
+    /// it is a share of.
+    /// </para>
+    /// <para>
+    /// <b><c>exhausted</c> counts sweeps and everything else counts members</b>, so the two are not
+    /// comparable and the row says <em>sweeps</em> in its own name. A reader who sums this column
+    /// gets a number that is about nothing.
+    /// </para>
+    /// </remarks>
+    public static readonly (PolicyCounter Counter, Aggregate Aggregate, string Name)[] PolicyCounters =
+    [
+        (PolicyCounter.Triggers, Aggregate.Sum, "triggers"),
+        (PolicyCounter.Considered, Aggregate.Sum, "considered"),
+        (PolicyCounter.Applied, Aggregate.Sum, "applied"),
+        (PolicyCounter.Applied, Aggregate.Peak, "applied peak"),
+        (PolicyCounter.Floored, Aggregate.Sum, "floored to zero"),
+        (PolicyCounter.Unaffordable, Aggregate.Sum, "could not pay"),
+        (PolicyCounter.Exhausted, Aggregate.Sum, "sweeps run dry"),
+    ];
+
+    /// <summary>
     /// The four Trip Fates and the two Leg-mode counters, and <b>the Fates were built in 5b and
     /// printed by nothing until 5b-bis task 6.</b>
     /// </summary>

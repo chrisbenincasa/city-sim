@@ -42,6 +42,7 @@ public sealed class Simulation
     private readonly WorldKey _key;
     private readonly RuleEngine _rules;
     private readonly ZoneRuleEngine _zoning;
+    private readonly PolicyEngine _policies;
     private readonly PlacementEngine _placement;
     private readonly EmploymentEngine _employment;
     private readonly TripEngine _trips;
@@ -102,6 +103,7 @@ public sealed class Simulation
         _key = key;
         _rules = new RuleEngine(world, key);
         _zoning = new ZoneRuleEngine(world, key);
+        _policies = new PolicyEngine(world, key);
         _placement = new PlacementEngine(world, key);
         _employment = new EmploymentEngine(world, key);
 
@@ -162,6 +164,20 @@ public sealed class Simulation
     /// <c>02 §1.1</c> calls the determinism contract and asks to be stated rather than inherited.
     /// </remarks>
     public EmploymentEngine Employment => _employment;
+
+    /// <summary>
+    /// The Sweep family's second member: Policies sweep a population and move money, in phase 6
+    /// <em>ahead of</em> <see cref="Placement"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A fifth engine, and the first that runs in front of the other three rather than behind
+    /// them.</b> Placement, employment and the Zone Rules each read the world the pass before it
+    /// left; a Policy <em>changes what an actor holds</em>, so it belongs at the head of the phase
+    /// for the reason phase 5 precedes phase 6 — growth this Tick sees the diffusion this Tick, and a
+    /// Household paid this Tick is judged on what it holds now. Nothing downstream reads a balance
+    /// yet, which is why the ordering is stated here rather than discovered later.
+    /// </remarks>
+    public PolicyEngine Policies => _policies;
 
     /// <summary>Tick phase 4, and the Trip Fate counters the Census drains.</summary>
     public TripEngine Trips => _trips;
@@ -769,6 +785,12 @@ public sealed class Simulation
         // the RESIDUAL -- the Households the existing stock could not house. That is what makes the
         // create predicate a statement about vacancy rather than about population, and it is what
         // replaces the self-limiting property construction used to supply by housing one itself.
+        // Ahead of everything else in the phase, and the ORDER is the decision. A Policy moves what
+        // an actor holds, so the three passes behind it respond to the city it just changed rather
+        // than to last Tick's -- phase 5 -> phase 6's own argument, one level in. Nothing downstream
+        // reads a balance today, which is exactly why this is the cheap moment to fix it.
+        _policies.Sweep(tick);
+
         _placement.Place(tick);
 
         // adr/0081, and behind placement rather than in front of it: a commute is anchored at a

@@ -112,6 +112,15 @@ internal static class CensusReport
             WriteRow(writer, "jobs", label, series);
         }
 
+        foreach ((PolicyCounter counter, Aggregate aggregate, string label)
+            in CensusFamilies.PolicyCounters)
+        {
+            Series series = census.Series(Metric.Of(counter, aggregate), window);
+            truncated |= !series.Complete;
+
+            WriteRow(writer, "policies", label, series);
+        }
+
         foreach ((TripCounter counter, Aggregate aggregate, string label) in CensusFamilies.TripCounters)
         {
             Series series = census.Series(Metric.Of(counter, aggregate), window);

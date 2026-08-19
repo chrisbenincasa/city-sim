@@ -41,21 +41,82 @@ public enum Readout : ushort
     /// resident count is a different Readout and is not declared until a Rule reads one.
     /// </remarks>
     Occupancy = 1,
+
+    /// <summary>
+    /// What a Household holds, in the smallest money unit.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The first Household-scoped Readout, and this file predicted it would need a second entry
+    /// point rather than a wider switch.</b> Every Readout before it hangs off a Building, because
+    /// the only consumer was a Bin Rule and a Bin Rule is attached to one. A Policy sweeps Households
+    /// (<c>02 §4.2</c>), so the entity a Readout hangs off is now part of its declaration —
+    /// <see cref="Readouts.ScopeOf"/> — and the loader refuses a Rule that names one of the wrong
+    /// shape.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It reads a Bin, which is the one line this enum's own summary draws</b> — <em>Bins are
+    /// what a Rule spends; Readouts are what a Rule consults.</em> A balance is both, and the
+    /// consequence is worth stating rather than smoothing over: a derived apply count taken off the
+    /// same Bin the term then draws from <b>can never overdraw</b>, because <c>n</c> is a fraction of
+    /// what is there. ***A Rule whose apply count is read off the Bin it spends is unfailable by
+    /// construction.*** So a levy on holdings never joins a wait list and never reports bankruptcy,
+    /// and it is the transfer in the other direction — paid out of a treasury that can empty — that
+    /// exercises the failure surface <c>adr/0114</c> built.
+    /// </para>
+    /// <para>
+    /// <b>It is not gross income and must not be quoted as it.</b> <c>CONTEXT</c> → Policy's worked
+    /// example is <em>"15% of gross income"</em>, and income is a <em>flow</em> that arrives with
+    /// wages in milestone 15. This is a <em>stock</em>. A percentage of a stock and a percentage of a
+    /// flow are different instruments with different incidence, and the only reason this one is here
+    /// is that it is the only money magnitude the build has (<c>adr/0070</c>: income is
+    /// <b>unbuilt</b>, so nothing is being approximated — a different thing is being measured).
+    /// </para>
+    /// <para>
+    /// <b>Zero when the Ruleset in force names no money</b>, for <c>World.BalanceOf</c>'s reason: a
+    /// world with no currency and a Household with none behave identically at every call site money
+    /// has, and a Rule reading zero applies zero times, which is a success that does nothing rather
+    /// than the silent non-event <c>02 §4.1</c> bans.
+    /// </para>
+    /// </remarks>
+    Balance = 2,
+}
+
+/// <summary>
+/// Which entity a <see cref="Readout"/> hangs off, and therefore which Rule family may name it.
+/// </summary>
+/// <remarks>
+/// <b>Part of a Readout's declaration rather than a property of its consumer.</b>
+/// <c>02 §4.1</c> attaches a Bin Rule to a Building and <c>02 §4.2</c> attaches a Policy to a
+/// population, so <em>occupancy</em> and <em>balance</em> are not two values of one thing — they are
+/// scalars of different entities, and a Rule naming the wrong one has no row to read it from. The
+/// loader refuses the mismatch by name, which is <c>adr/0048</c>'s division of labour: the loader
+/// refuses an unusable <em>name</em>, the interpreter refuses an unusable <em>id</em>.
+/// </remarks>
+public enum ReadoutScope : byte
+{
+    /// <summary>Read against a Building row. Every Readout declared before milestone 10 task 5.</summary>
+    Building = 0,
+
+    /// <summary>Read against a Household row.</summary>
+    Household = 1,
 }
 
 /// <summary>
 /// Reads a declared <see cref="Readout"/>, and enumerates the declared set.
 /// </summary>
 /// <remarks>
-/// <b>Every Readout reachable today is scoped to a Building</b>, because the only consumer that exists
-/// is a Bin Rule's derived apply count and a Bin Rule is attached to a Building. The scalars
-/// <c>CONTEXT</c> names — gross income, time unemployed — are Household-scoped and have no consumer
-/// yet; the entity a Readout hangs off is part of its declaration and this class will need a second
-/// entry point rather than a wider switch when one arrives.
+/// <b>The entity a Readout hangs off is part of its declaration</b> — <see cref="ScopeOf"/> — and the
+/// two scopes have <b>two entry points</b> rather than one switch, which is what this class predicted
+/// it would need before there was a second scope to need it. <see cref="Read"/> takes a Building row
+/// and <see cref="ReadHousehold"/> a Household row; a single method taking an <c>(entity kind, slot)</c>
+/// pair would be two switches wearing one signature and would let a Building slot be read as a
+/// Household. The scalars <c>CONTEXT</c> still names and this build still lacks — gross income, time
+/// unemployed, experience — are Household-scoped and arrive with the mechanisms that produce them.
 /// </remarks>
 public static class Readouts
 {
-    private static readonly Readout[] DeclaredSet = [Readout.Occupancy];
+    private static readonly Readout[] DeclaredSet = [Readout.Occupancy, Readout.Balance];
 
     /// <summary>
     /// Every declared Readout, which is the set a shell may enumerate to build an inspector.
@@ -80,6 +141,47 @@ public static class Readouts
         return false;
     }
 
+    /// <summary>Which entity <paramref name="id"/> is read against.</summary>
+    /// <remarks>
+    /// <b>An undeclared id is <see cref="ReadoutScope.Building"/> rather than a throw</b>, and the
+    /// asymmetry with <see cref="Read"/> is deliberate: this is asked by the loader, which is deciding
+    /// whether to <em>refuse</em>, and a validator that throws on the input it exists to reject turns
+    /// a refusal with a file and a line into a crash. The unreadable id is refused a line later, by
+    /// the check that already exists for it.
+    /// </remarks>
+    public static ReadoutScope ScopeOf(ReadoutId id) =>
+        (Readout)id.Raw == Readout.Balance ? ReadoutScope.Household : ReadoutScope.Building;
+
+    /// <summary>Reads a Household-scoped Readout.</summary>
+    /// <remarks>
+    /// <b>A second entry point rather than a wider switch</b>, which this class's own summary called
+    /// for before there was anything to put in it. The two take different rows and share no case, so
+    /// one method taking an <c>(entity kind, slot)</c> pair would be two switches wearing one
+    /// signature and would let a Building slot be read as a Household.
+    /// </remarks>
+    /// <param name="world">The tables to read.</param>
+    /// <param name="household">The Household row the Policy is sweeping.</param>
+    /// <param name="id">A declared Household-scoped Readout.</param>
+    public static long ReadHousehold(World world, int household, ReadoutId id)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        switch ((Readout)id.Raw)
+        {
+            case Readout.Balance:
+                return world.BalanceOf(world.Households.Rows.At(household)).Raw;
+
+            case Readout.Occupancy:
+            case Readout.None:
+            default:
+                throw new InvalidOperationException(
+                    $"readout id {id.Raw} is not a Household-scoped Readout. The scope is part of a "
+                    + "Readout's declaration (Readouts.ScopeOf) and the loader refuses a Rule that "
+                    + "names one of the wrong shape, so reaching here means a Ruleset was built in "
+                    + "code rather than loaded.");
+        }
+    }
+
     /// <summary>Reads a Building-scoped Readout.</summary>
     /// <remarks>
     /// <b>An undeclared id throws rather than returning zero</b>, which is slice 6's named-hole rule
@@ -100,6 +202,13 @@ public static class Readouts
         {
             case Readout.Occupancy:
                 return Count(world.Occupants, building);
+
+            case Readout.Balance:
+                throw new InvalidOperationException(
+                    $"readout id {id.Raw} is declared and is Household-scoped, so it has no value "
+                    + "against a Building row. Use ReadHousehold. The loader refuses a [[rule]] that "
+                    + "names it, so reaching here means a Ruleset was built in code rather than "
+                    + "loaded.");
 
             case Readout.None:
             default:

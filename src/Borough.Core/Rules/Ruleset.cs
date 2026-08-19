@@ -523,6 +523,92 @@ public readonly record struct ZoneRuleDefinition(byte Kind, byte Zone, uint Inte
 }
 
 /// <summary>
+/// Which population a <see cref="PolicyDefinition"/> sweeps.
+/// </summary>
+/// <remarks>
+/// <b><c>02 §4.2</c> names three — <em>Households, Businesses, or Buildings matching a predicate</em>
+/// — and one is built.</b> The other two are declared and throw by name where they would be resolved,
+/// on <see cref="Scope.Pool"/>'s precedent, because a named hole is better than a case that silently
+/// falls through and sweeps nobody. A Policy that swept nobody would report a trigger, no
+/// applications and no failure, which is the silent non-event <c>02 §4.1</c> bans.
+/// </remarks>
+public enum PolicySubject : byte
+{
+    /// <summary>
+    /// Reserved, and never a declared Policy's subject. A zeroed row must not read as whichever
+    /// population happened to be declared first — <see cref="BinOwnerKind.None"/>'s reason.
+    /// </summary>
+    None = 0,
+
+    /// <summary>Every live Household. The only one built (<c>plans/0031</c> task 5).</summary>
+    Household = 1,
+
+    /// <summary>
+    /// Every live Business. <b>Declared and not yet swept</b> — a Business has a balance and nothing
+    /// that moves it.
+    /// </summary>
+    Business = 2,
+
+    /// <summary>
+    /// Every standing Building matching a predicate. <b>Declared and not yet swept</b>, and it needs
+    /// the predicate first.
+    /// </summary>
+    Building = 3,
+}
+
+/// <summary>
+/// One Policy: the Sweep family's second member, and <c>02 §4.2</c>'s <em>Flow</em> kind.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A Policy sweeps where a Zone Rule samples, and that is a semantic difference rather than a
+/// performance one</b> (<c>02 §4.2</c>). A developer genuinely does not evaluate every parcel, so a
+/// <see cref="ZoneRuleDefinition"/>'s sample <em>is</em> the behaviour model; a transfer is an
+/// <b>entitlement</b>, and paying a random subset of the eligible would be a defect rather than a
+/// model. Anything reaching for a sample to make a Policy affordable has confused the two.
+/// </para>
+/// <para>
+/// ⚠ <b>The transfer is a direction and an amount rather than two term lists, and that is what makes
+/// conservation unrepresentable-wrong.</b> A <c>[[rule]]</c>'s terms are free-form, so
+/// <c>RulesetLoader</c> needs <b>refusal 4</b> — <em>every money term needs a counterparty; a cost
+/// paid to nobody is a leak, not a cost</em> — to catch a Rule that draws money and returns none. A
+/// Policy names <see cref="From"/> and <see cref="To"/>, so the same quantity leaves one Bin and
+/// enters the other by construction and there is no unbalanced shape to refuse.
+/// ***A transfer written as a direction cannot leak; one written as two lists has to be checked.***
+/// </para>
+/// <para>
+/// <b><see cref="Interval"/> is Ruleset data rather than a scheduling knob</b>, which <c>02 §4.2</c>
+/// settles in the sentence this type is the first instance of — <em>a Policy paying daily is a
+/// different city from one paying weekly</em>. A Sweep Rule never subscribes, so there is nothing for
+/// a scheduler to be clever about.
+/// </para>
+/// <para>
+/// <b>Only <see cref="Scope.Local"/> and <see cref="Scope.Global"/> are authorable.</b>
+/// <see cref="Scope.Pool"/> is a <em>market</em> whose payment is implicit at the prevailing price
+/// (<c>adr/0050</c>), so a Policy writing one would be authoring a payment the design says is never
+/// authored; <see cref="Scope.Map"/> is not a Bin at all. The loader refuses both by name.
+/// </para>
+/// </remarks>
+/// <param name="Subject">Which population this sweeps.</param>
+/// <param name="Interval">Ticks between triggers. <b>Hash-bearing.</b></param>
+/// <param name="Apply">
+/// How much moves per member: a band, or a percentage of a Readout scoped to
+/// <paramref name="Subject"/>. <b>Hash-bearing.</b>
+/// </param>
+/// <param name="From">Whose Bin the money leaves.</param>
+/// <param name="To">Whose Bin it enters.</param>
+/// <param name="Resource">The conserved Resource moved. <b>Structure</b>, not a number.</param>
+/// <param name="Amount">How much one application moves. <b>Hash-bearing.</b></param>
+public readonly record struct PolicyDefinition(
+    PolicySubject Subject,
+    uint Interval,
+    ApplyCount Apply,
+    Scope From,
+    Scope To,
+    ResourceId Resource,
+    int Amount);
+
+/// <summary>
 /// Everything the placement pass takes from the Ruleset: how often it runs, how long it takes to
 /// look at everybody, and how many dwellings a Household considers per occasion.
 /// </summary>
@@ -1020,10 +1106,68 @@ public readonly record struct TrafficRuleset(Ratio Alpha, int Beta, Ratio Clamp)
 /// The share of Households keeping a car, 0–100. <b>Hash-bearing</b>: it decides who drives, which
 /// decides what a commute costs, which decides who takes which job.
 /// </param>
-public readonly record struct HouseholdRuleset(int CarOwnershipPercent)
+/// <param name="OpeningBalanceMin">
+/// The bottom of the band a Household is endowed from when the populator creates it, inclusive.
+/// <b>Hash-bearing.</b> <see cref="Money.Zero"/> with <paramref name="OpeningBalanceMax"/> also zero
+/// means the populator endows nobody, which is what every Ruleset written before milestone 10 task 5
+/// meant by saying nothing.
+/// </param>
+/// <param name="OpeningBalanceMax">
+/// The top of that band, inclusive. <b>Hash-bearing.</b>
+/// </param>
+public readonly record struct HouseholdRuleset(
+    int CarOwnershipPercent, Money OpeningBalanceMin, Money OpeningBalanceMax)
 {
     /// <summary>The whole range a rate may be authored in.</summary>
     public const int MaxPercent = 100;
+
+    /// <summary>Whether the populator endows the Households it creates.</summary>
+    public bool Endows => OpeningBalanceMax.Raw > 0;
+
+    /// <summary>
+    /// What the Household whose never-reused id is <paramref name="entityId"/> is founded with.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A band rather than one figure, and the band is what makes <c>adr/0115</c>'s instrument
+    /// readable at all.</b> That ADR's concern is a percentage that floors to zero on a small balance
+    /// and to the stated rate on every other — a <em>distributional</em> artefact. A single opening
+    /// figure has no distribution: every Household either floors or none does, so the counter reads
+    /// 0% or 100% and says nothing about the city. ***An instrument that measures a spread cannot be
+    /// read in a world that has none.***
+    /// </para>
+    /// <para>
+    /// <b>Uniform over the band, with no shape parameter.</b> A real wealth distribution is skewed and
+    /// this one is not; a skew is a second decision with a number in it and nothing has measured which
+    /// (<c>adr/0052</c>). <c>adr/0101</c>'s triangular Shift draw is the counter-example that shows
+    /// what a warrant looks like — it borrowed its shape from inside the mechanism, because a return
+    /// is the sum of two uniforms — and there is no such argument here.
+    /// </para>
+    /// <para>
+    /// <b>Drawn on the Household's own id at <see cref="Ticks.Zero"/></b>, which is
+    /// <see cref="OwnsCar"/>'s form: it answers <em>what sort of Household is this</em> rather than
+    /// <em>what happens now</em>. Unlike ownership it is <em>not</em> re-derived on every read — an
+    /// endowment is issued once and then spent, so it is drawn at creation and lives in the balance
+    /// Bin afterwards. Retuning the band therefore moves the Households created after the reload and
+    /// leaves every standing one holding what it holds, which is correct: money already issued is
+    /// money in the world, and a hot reload that redistributed it would be a Ruleset editing history.
+    /// </para>
+    /// </remarks>
+    /// <param name="key">The world seed.</param>
+    /// <param name="entityId">The Household's monotonic id — never its slot, which is recycled.</param>
+    public Money OpeningBalance(WorldKey key, ulong entityId)
+    {
+        long span = (OpeningBalanceMax - OpeningBalanceMin).Raw + 1;
+
+        if (span <= 1)
+        {
+            return OpeningBalanceMin;
+        }
+
+        ulong draw = Randomness.Draw(key, entityId, Ticks.Zero, PurposeTag.OpeningBalance);
+
+        return OpeningBalanceMin + new Money((long)(draw % (ulong)span));
+    }
 
     /// <summary>
     /// A Ruleset whose city keeps no cars.
@@ -1354,6 +1498,33 @@ public sealed class Ruleset
     public TrafficRuleset Traffic { get; init; } = TrafficRuleset.None;
 
     /// <summary>
+    /// <b>The Policies in force</b> — every <c>[[policy]]</c> table, in declaration order
+    /// (<c>plans/0031</c> task 5).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An <c>init</c> property rather than a tenth constructor parameter, and the reason is not
+    /// laziness.</b> This class already argues the split: a positional parameter is for something a
+    /// Ruleset is <em>not complete without</em>, and an empty Policy set is a complete Ruleset — it is
+    /// every Ruleset written before this task. A tenth parameter would also have touched 56
+    /// construction sites, all but one of them fixtures, to say <c>[]</c>.
+    /// </para>
+    /// <para>
+    /// <b>Declaration order is load-bearing</b>, as it is for <see cref="ZoneRules"/>: the index is a
+    /// coordinate of the scan-start draw, so reordering <c>[[policy]]</c> tables changes which
+    /// Households a Policy reaches first when its payer runs dry, and moves the State Hash. That is
+    /// the Ruleset being content rather than configuration.
+    /// </para>
+    /// <para>
+    /// <b>No id lookup</b>, for <see cref="ZoneRules"/>' reason: nothing in a Ruleset refers to a
+    /// Policy, so giving it an id would invent a reference nothing holds. Its name exists in
+    /// <c>Borough.Formats</c> for refusal messages and nowhere else. An array rather than a span
+    /// because a span cannot be <c>init</c>, which is <see cref="ResourceKeys"/>' shape exactly.
+    /// </para>
+    /// </remarks>
+    public PolicyDefinition[] Policies { get; init; } = [];
+
+    /// <summary>
     /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.
     /// </summary>
     /// <remarks>
@@ -1391,16 +1562,37 @@ public sealed class Ruleset
 
     /// <summary>This Ruleset with different Map Layer data, and everything else shared.</summary>
     /// <remarks>
+    /// <para>
     /// <b>What <c>with</c> would give a record, spelled by hand because this is a class.</b> It exists
     /// for the two callers that legitimately hold Rules and Layer data separately: a world constructed
     /// from a stated cadence and no Rules — <c>adr/0044</c>'s measurement door — and a test that
     /// reloads a Ruleset differing only in cadence. The arrays are shared rather than copied because a
     /// loaded Ruleset is immutable.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It copied three of the ten <c>init</c> properties and dropped the rest, and it had done so
+    /// since the fourth one was added.</b> <c>Placement</c>, <c>Roads</c>, <c>Lots</c>, <c>Trips</c>,
+    /// <c>Jobs</c>, <c>Households</c> and <c>Traffic</c> all came back at their defaults, so a Ruleset
+    /// put through here lost its road geometry, its Commute Budget and its car ownership rate in
+    /// silence. Found on milestone 10 task 5, by an eighth property needing to be threaded and the
+    /// other seven not being there. ***Spelling <c>with</c> by hand makes adding a field a two-site
+    /// edit, and the second site is the one nothing points at*** — <c>plans/0012</c> <b>Cause 1</b>
+    /// where the second copy is not a document but an omission. <b>Every property added to this class
+    /// belongs in this list.</b>
+    /// </para>
     /// </remarks>
     public Ruleset WithLayers(LayerRuleset layers) =>
         new(_resources, _rules, _kinds, _inputs, _outputs, _emissions, _bins, _kindRules, _zoneRules)
         {
             Layers = layers,
+            Placement = Placement,
+            Roads = Roads,
+            Lots = Lots,
+            Trips = Trips,
+            Jobs = Jobs,
+            Households = Households,
+            Traffic = Traffic,
+            Policies = Policies,
             ResourceKeys = ResourceKeys,
             KindKeys = KindKeys,
         };

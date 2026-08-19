@@ -103,6 +103,12 @@ public sealed class Census
     /// <summary>The Trip cost histogram's share, on the same terms.</summary>
     private const int TripCostMetrics = TripCostCounters * AggregatesPerRuleCounter;
 
+    /// <summary>The members of <see cref="PolicyCounter"/>.</summary>
+    private const int PolicyCounters = 6;
+
+    /// <summary>The Policy sweeps' share, on the same terms.</summary>
+    private const int PolicyMetrics = PolicyCounters * AggregatesPerRuleCounter;
+
     /// <summary>
     /// Readings held before the oldest is overwritten.
     /// </summary>
@@ -133,6 +139,9 @@ public sealed class Census
 
     /// <summary>Where the Trip cost histogram's begin, which is where the job pass's end.</summary>
     private readonly int _tripCostBase;
+
+    /// <summary>Where the Policy sweeps' begin, which is where the Trip cost histogram's end.</summary>
+    private readonly int _policyBase;
 
     private readonly int _metrics;
     private readonly int _capacity;
@@ -168,7 +177,8 @@ public sealed class Census
         _tripBase = _placementBase + PlacementMetrics;
         _jobBase = _tripBase + TripMetrics;
         _tripCostBase = _jobBase + JobMetrics;
-        _metrics = _tripCostBase + TripCostMetrics;
+        _policyBase = _tripCostBase + TripCostMetrics;
+        _metrics = _policyBase + PolicyMetrics;
         _capacity = capacity;
         _ticks = new ulong[capacity];
         _values = new long[capacity * _metrics];
@@ -227,7 +237,8 @@ public sealed class Census
             simulation.Zoning.Drain(),
             simulation.Placement.Drain(),
             simulation.Trips.Drain(),
-            simulation.Employment.Drain());
+            simulation.Employment.Drain(),
+            simulation.Policies.Drain());
     }
 
     /// <summary>
@@ -248,6 +259,7 @@ public sealed class Census
     /// <param name="placement">The placement pass's interval since the previous reading, already drained.</param>
     /// <param name="trips">Tick phase 4's interval since the previous reading, already drained.</param>
     /// <param name="jobs">The assignment pass's interval since the previous reading, already drained.</param>
+    /// <param name="policies">The Policy sweeps' interval since the previous reading, already drained.</param>
     public void Observe(
         World world,
         Ticks tick,
@@ -255,7 +267,8 @@ public sealed class Census
         ZoneActivity zoning = default,
         PlacementActivity placement = default,
         TripActivity trips = default,
-        EmploymentActivity jobs = default)
+        EmploymentActivity jobs = default,
+        PolicyActivity policies = default)
     {
         ArgumentNullException.ThrowIfNull(world);
 
@@ -310,6 +323,13 @@ public sealed class Census
         Write(_values, at + _jobBase, (int)JobCounter.Fast, jobs.Fast);
         Write(_values, at + _jobBase, (int)JobCounter.Moderate, jobs.Moderate);
         Write(_values, at + _jobBase, (int)JobCounter.Unsavoury, jobs.Unsavoury);
+
+        Write(_values, at + _policyBase, (int)PolicyCounter.Triggers, policies.Triggers);
+        Write(_values, at + _policyBase, (int)PolicyCounter.Considered, policies.Considered);
+        Write(_values, at + _policyBase, (int)PolicyCounter.Applied, policies.Applied);
+        Write(_values, at + _policyBase, (int)PolicyCounter.Floored, policies.Floored);
+        Write(_values, at + _policyBase, (int)PolicyCounter.Exhausted, policies.Exhausted);
+        Write(_values, at + _policyBase, (int)PolicyCounter.Unaffordable, policies.Unaffordable);
 
         for (int bucket = 0; bucket < TripCostCounters; bucket++)
         {
@@ -456,6 +476,21 @@ public sealed class Census
 
             return _jobBase
                 + ((int)metric.JobCounter * AggregatesPerRuleCounter)
+                + (int)metric.Aggregate;
+        }
+
+        if (metric.Source is MetricSource.Policies)
+        {
+            if (metric.PolicyCounter is not (PolicyCounter.Triggers or PolicyCounter.Considered
+                or PolicyCounter.Applied or PolicyCounter.Floored or PolicyCounter.Exhausted
+                or PolicyCounter.Unaffordable))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.PolicyCounter, "not a policy counter this census reads.");
+            }
+
+            return _policyBase
+                + ((int)metric.PolicyCounter * AggregatesPerRuleCounter)
                 + (int)metric.Aggregate;
         }
 

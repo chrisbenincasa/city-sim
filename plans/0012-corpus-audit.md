@@ -948,7 +948,7 @@ milestone creates the first load. Nothing enumerates them; this is the one that 
 
 ---
 
-### Milestone 10's scoping collection — one, and it is a new form of Cause 1: two copies that disagree about a *direction*
+### Milestone 10's collection — three; the first is a new form of Cause 1 (two copies that disagree about a *direction*), and the second and third are new *surfaces* — a path, and the space across working trees
 
 **1. ⚠ [`06`](../docs/06-roadmap.md)'s dependency graph makes the District Pool a root, and
 [`adr/0050`](../docs/adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md)
@@ -999,6 +999,116 @@ two columns, *Was → Is now*, which **assumes exactly one renumber**; there hav
 *"milestone 12"* resolves differently either side of 2026-08-18. ***A retired-numbering table is
 generation-scoped and nothing in its two-column form says so.*** Each block now carries its window.
 **PAID in the same edit.**
+
+**2. ⚠ A worktree's directory name is a claim about which branch is in it, and nothing re-checks
+it.** Found 2026-08-19, by a peer session reasoning from the path and asking a question this branch
+could not have answered.
+
+`.claude/worktrees/milestone-8-save-load` has **`milestone-10-conserved-money`** checked out in it. A
+second session read the directory name, concluded this branch was building save/load, and asked
+whether it carried a saved world pinning a Ruleset content hash under
+[`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+before re-recording the golden baselines. Milestone 8 has shipped and merged; the
+`milestone-8-save-load` branch holds **zero commits against `main`**. The question was well-formed,
+urgent, and about a milestone this branch has nothing to do with.
+
+⚠ **This is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+on a path rather than on a doc-comment**, and it fails in exactly the way that ADR predicts. A
+worktree directory is a description of the build whose name is fixed once, at `git worktree add`, and
+whose subject — the branch checked out in it — moves freely afterwards with `git checkout -b`. So the
+name states what the directory was **created for** and never what is **in** it, which is that ADR's
+*a description explains a mechanism's purpose, and a purpose is not a trigger* with the two halves a
+filesystem apart. **Cause 4**, on a surface none of this corpus's eight mechanical checks can reach:
+every one of them reads a **document**, and this is a path.
+
+⚠ **The cost is the shape of the question that arrives, not the confusion.** Answering it meant
+opening `src/Borough.Core/Persistence/SaveHeader.cs` — reading the build, which is the ADR's own
+repair — and the answer was reassuring: `SaveHeader.RulesetInForce` does store the content hash of
+the Ruleset in force, so the worry had the right shape, but `git ls-files` finds **no save artifact
+anywhere in the repository**, every save in the suite is written and read inside one run, and the
+persistence tests assert against locally-declared constants rather than real file hashes. `adr/0100`
+holds. ***It was cheap here because the answer was reassuring.*** A session that had reasoned from
+the same path to a **conclusion** rather than to a question would have had nothing stop it.
+
+✅ **RECORDED 2026-08-19, and there is nothing to pay** — the defect is in a path, and renaming it
+would only re-arm the same trap at the next `git checkout`. A worktree outlives the branch it was
+made for, which is what makes it worth keeping. **The repair is in how it is cited: `git worktree
+list` prints the pairing in one command, and where a document or a message names a worktree it should
+name the *branch*.** `adr/0093`'s ***name a symbol, never a time***, with a branch as the symbol.
+
+**3. ⚠ A cross-branch ADR numbering check that compares *content* is twenty-one false positives out
+of twenty-three, because an ADR's identity is its filename and its content is the one part this corpus
+guarantees will move.** Found 2026-08-19 by the milestone-7-parking session, relayed by a third
+session sharing this working tree, and measured here before being written down.
+
+**The occasion is a real collision and it is two, not three.** `0112` is `main`'s *the saved set is
+the hashed set* against milestone-7-parking's *a parking space is held by the Citizen*; `0113` is
+milestone-10's *a Business is an occupant* against milestone-7-parking's *a car park is not a Bin*.
+Both are being renumbered to `0119`/`0120`, which is free — milestone-10's highest is `0118`.
+
+**The instrument is worth more than the collision.** The detection method was `git ls-tree -r` over
+every branch compared by **number**, and it reported milestone-10 as colliding with `main` on
+`0110`–`0112` when `main` is a strict ancestor of milestone-10 and those three files are
+byte-identical — inherited, not duplicated. Measured across `main`, `milestone-7-parking` and
+`milestone-10-conserved-money`, **112 ADR numbers appear on two or more branches**:
+
+| Compared by | Reports | Of which false | Why it fails |
+|---|---|---|---|
+| number | 112 | **110** | every branch collides with everything it descends from |
+| content | 23 | **21** | an amended ADR is not a duplicated number |
+| filename | 2 | **0** | — |
+
+⚠ **The proposed repair is the half worth correcting, because it is still wrong and it is the version
+somebody would build.** *Compare content and report only numbers whose files differ* fails on two of
+this corpus's own conventions meeting. An ADR's **filename is the claim** — `CLAUDE.md` states it
+outright, *"The filename is the claim, stated as a sentence"* — so the filename is the identity. And
+**a superseded document gets a banner, never a deletion**, so an ADR's content is expected to move for
+the whole of its life: milestone-10 amends six ADRs that exist on `main` and milestone-7-parking
+amends fifteen, and not one of them is a collision. ***An instrument that compares content is
+measuring the one thing the corpus guarantees will differ.***
+
+⚠ **The content row moved while this entry was being written, and that is the finding rather than an
+erratum.** It was measured at **22/20** and re-measured at **23/21** within the hour, because
+`milestone-7-parking` committed an amendment to `adr/0083` — a *third* branch moving a file neither of
+the two branches in the comparison had touched. The filename row did not move, and could not have.
+***The quantity content-comparison keys on drifts continuously and the quantity filename-comparison
+keys on changes only when somebody claims a number***, which is the same fact the table states,
+arriving as a measurement instead of an argument. It is also [`plans/0026`](0026-statistical-resolution-and-the-travel-time-matrix.md)'s
+***a measurement written into prose does not re-run itself when the mechanism underneath it moves***,
+caught this time only because the re-run happened to be cheap and somebody happened to do it.
+
+⚠ **The two rows have different *dynamics*, and the mechanism is measured rather than argued.** The
+content row's false positives are **exactly** the ADRs amended on some branch since its merge-base
+with the branch it is compared against — 21 against 21, with both differences empty, so this is an
+identity and not a correlation. A merge moves the merge-base past the amendment and takes the number
+out of the set, so ***the content row's error term rises with every unmerged amendment anybody makes
+and falls only on merge***, while the filename row's count moves only when somebody claims a number,
+which is the event being detected. Signal, against signal plus a term proportional to how much work is
+in flight.
+
+**What follows from that is a judgement rather than a measurement, and it is the half worth keeping**
+(raised by the session sharing this working tree, and marked as an argument per
+[`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)): a
+cross-branch collision check exists *for* a world with many branches open at once, and content-compare
+degrades in exact proportion to how true that world is — **least reliable precisely when it is most
+needed**. So the twenty-one is not a tolerable constant. ***A reader who decides today that twenty-one
+false positives are worth living with is setting that tolerance against a quantity that grows.***
+
+**So the check compares filenames per number**, treating a differing filename as the collision and
+differing content as an amendment. It needs **no ancestry test at all**, which is the property that
+matters: a merge-base filter also gets to two here, but it can only compare branches that have met,
+and the case this exists to catch is two branches that have not.
+
+⚠ **This is the third surface in this section that none of the corpus's eight mechanical checks can
+reach, and it is the widest.** Item 2 is a **path**; this is **across working trees**, and every check
+in this document is document-to-document **within one tree**. ***What the two share is the shape of
+the repair: neither wants a stricter version of an existing check, both want a check with a different
+domain*** — and a domain no existing check has is a domain nobody notices is missing.
+
+✅ **RECORDED 2026-08-19 as a constraint on an instrument rather than as a check to build.** Nothing
+here is owed an edit: the collision is being paid by the branch that made it, and the check does not
+exist. The naive version is the obvious one to write and the corrected-by-content version is the
+obvious repair, which is exactly why both are written down before anybody writes either.
 
 ---
 

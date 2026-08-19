@@ -247,7 +247,7 @@ public sealed class CarOwnershipTests
 
         foreach (int percent in rungs)
         {
-            var rules = new HouseholdRuleset(percent);
+            var rules = new HouseholdRuleset(percent, Money.Zero, Money.Zero);
             Dictionary<ulong, bool> here = [];
 
             for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)

@@ -109,6 +109,14 @@ internal static class SeriesReport
             writer,
             census,
             window,
+            "policies — a flow, accumulated between samples",
+            [.. CensusFamilies.PolicyCounters.Select(
+                row => (row.Name, Metric.Of(row.Counter, row.Aggregate)))]);
+
+        Block(
+            writer,
+            census,
+            window,
             "trips — a flow, accumulated between samples",
             [.. CensusFamilies.TripCounters.Select(
                 row => (row.Name, Metric.Of(row.Counter, row.Aggregate)))]);

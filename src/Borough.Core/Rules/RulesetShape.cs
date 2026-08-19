@@ -65,6 +65,21 @@ public enum RulesetChange
 
     /// <summary>A Zone Rule's kind or permission bit changed.</summary>
     ZoneRuleShape,
+
+    /// <summary>A Policy was added or removed.</summary>
+    /// <remarks>
+    /// <b>On <see cref="ZoneRuleCount"/>'s precedent rather than on this file's stated test</b>, and
+    /// the divergence is worth knowing. The test is <em>what does live state point at</em>, and
+    /// nothing points at a Policy: no saved row holds a Policy id, and a Policy allocates nothing, so
+    /// adding one needs no degradation. What puts it here is the same thing that puts a Zone Rule
+    /// here — a Policy's identity is its position in declaration order, and that index is a
+    /// coordinate of the scan-start draw, so inserting one silently repoints every other Policy's
+    /// rotation.
+    /// </remarks>
+    PolicyCount,
+
+    /// <summary>A Policy's population, its transfer's direction, or the Resource it moves changed.</summary>
+    PolicyShape,
 }
 
 /// <summary>
@@ -189,6 +204,31 @@ public static class RulesetShape
             if (was.Kind != now.Kind || was.Zone != now.Zone)
             {
                 return RulesetChange.ZoneRuleShape;
+            }
+        }
+
+        if (current.Policies.Length != replacement.Policies.Length)
+        {
+            return RulesetChange.PolicyCount;
+        }
+
+        for (int i = 0; i < current.Policies.Length; i++)
+        {
+            PolicyDefinition was = current.Policies[i];
+            PolicyDefinition now = replacement.Policies[i];
+
+            // The RATE is a number and moves freely, which is the point: a tax rate is exactly what
+            // adr/0015's acceptance test is about, and it is the apply count. What is structure here
+            // is the Resource -- a live Bin holds a Resource id, so a Policy repointed at a different
+            // one moves money into Bins that hold something else -- and the two scopes, because
+            // local->global and global->local are opposite cities and neither is a tuning of the
+            // other. The subject is structure for the same reason a Rule's kind is.
+            if (was.Subject != now.Subject
+                || was.From != now.From
+                || was.To != now.To
+                || current.ResourceKey(was.Resource) != replacement.ResourceKey(now.Resource))
+            {
+                return RulesetChange.PolicyShape;
             }
         }
 

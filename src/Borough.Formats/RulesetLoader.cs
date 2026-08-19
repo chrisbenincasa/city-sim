@@ -125,6 +125,7 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _kindTables = [];
         private readonly List<TableSyntaxBase> _ruleTables = [];
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
+        private readonly List<TableSyntaxBase> _policyTables = [];
 
         private TableSyntaxBase? _layersTable;
         private TableSyntaxBase? _placementTable;
@@ -167,6 +168,7 @@ public static class RulesetLoader
             KindDefinition[] kinds = ReadKinds(rules, out BinDeclaration[] bins,
                 out RuleId[] kindRules);
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
+            PolicyDefinition[] policies = ReadPolicies();
             LayerRuleset layers = ReadLayers();
             PlacementRuleset placement = ReadPlacement();
             RoadRuleset roads = ReadRoads();
@@ -218,6 +220,7 @@ public static class RulesetLoader
                     Jobs = jobs,
                     Households = households,
                     Traffic = traffic,
+                    Policies = policies,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 },
@@ -261,6 +264,13 @@ public static class RulesetLoader
                     case "rule":
                         _ruleTables.Add(table);
                         Register(_rules, table, "rule", (ushort)(_rules.Count + 1));
+                        break;
+
+                    case "policy":
+                        // Not registered into a name table, for the reason zone_rule is not: nothing
+                        // in a Ruleset ever refers to a Policy, so it needs no id and a duplicate
+                        // name is not an ambiguity. The name is carried into refusals only.
+                        _policyTables.Add(table);
                         break;
 
                     case "zone_rule":
@@ -385,7 +395,7 @@ public static class RulesetLoader
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
-                            + "[[resource]], [[building]], [[rule]], [[zone_rule]], [layers], "
+                            + "[[resource]], [[building]], [[rule]], [[zone_rule]], [[policy]], [layers], "
                             + "[placement], [roads], [lots], [trips], [jobs], [households] and "
                             + "[traffic].");
                         break;
@@ -548,7 +558,20 @@ public static class RulesetLoader
                 + "carry-over of a warehouse. Remove the key; the hole is named rather than hidden.");
         }
 
-        private ApplyCount ReadApply(TableSyntaxBase table, string? rule)
+        /// <summary>
+        /// An <c>apply</c> count, checked against the scope of the entity the Rule is attached to.
+        /// </summary>
+        /// <remarks>
+        /// <b><paramref name="scope"/> is refusal 69, and it exists because the Sweep family gave a
+        /// Readout a second entity to hang off.</b> Every Readout before <c>balance</c> was
+        /// Building-scoped, so a Bin Rule could name any declared one and the question did not arise.
+        /// A Policy sweeps Households, so <c>occupancy</c> in a <c>[[policy]]</c> and <c>balance</c>
+        /// in a <c>[[rule]]</c> are both names of real Readouts with no row to read them from. The
+        /// interpreter throws on either; the loader refuses it with a file and a line, which is
+        /// <c>adr/0048</c>'s division of labour.
+        /// </remarks>
+        private ApplyCount ReadApply(
+            TableSyntaxBase table, string? rule, ReadoutScope scope = ReadoutScope.Building)
         {
             KeyValueSyntax? entry = Find(table, "apply");
 
@@ -591,6 +614,18 @@ public static class RulesetLoader
                         $"'{readout}' is not a declared Readout. The readable set is declared in the "
                         + "simulation (02 section 4.1), not in the Ruleset, so a name is refused here "
                         + $"rather than defaulted. Declared: {ReadoutNames.Declared}.");
+
+                    return ApplyCount.Band(1, 1);
+                }
+
+                if (Readouts.ScopeOf(id) != scope)
+                {
+                    Refuse(LineOf(derived), rule,
+                        $"'{readout}' is a {Readouts.ScopeOf(id)}-scoped Readout and this Rule is "
+                        + $"attached to a {scope}. The entity a Readout hangs off is part of its "
+                        + "declaration (02 section 4.1), so this names a real quantity with no row "
+                        + "here to read it from -- a Bin Rule runs on a Building and a Policy sweeps "
+                        + "a population.");
 
                     return ApplyCount.Band(1, 1);
                 }
@@ -1138,13 +1173,35 @@ public static class RulesetLoader
         }
 
         /// <summary>
-        /// A Zone Rule's trigger interval, bounded like a Bin Rule's rate and for the same reason.
+        /// A Sweep Rule's trigger interval — <c>[[zone_rule]]</c>, <c>[placement]</c>, <c>[jobs]</c>
+        /// and <c>[[policy]]</c>.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// <b>Not <see cref="ReadRate"/>, because the key is spelled differently and that is
         /// deliberate.</b> <c>rate</c> is how often a Building's Rule re-arms; <c>interval</c> is how
         /// often the city sweeps. Sharing a word would invite the reading that a Zone Rule is armed
         /// per Lot, which is exactly the Bin Rule shape it is not.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>The ceiling was <c>WHEEL_SIZE</c> and it had no ground under any caller, which
+        /// milestone 10 task 5 found by writing the first interval that wanted to be a Day.</b> The
+        /// old reason was that an interval <em>"at or beyond WHEEL_SIZE would re-arm into the bucket
+        /// it just came off"</em> — true of a Bin Rule's <c>rate</c>, and about a mechanism <b>none
+        /// of this method's four callers uses</b>: a Sweep Rule has no wheel entry, no subscription
+        /// and no arming, and all four test <c>tick % interval</c>. This method's own summary said so
+        /// two sentences above the check. ***A bound is inherited with a word, not with a mechanism***
+        /// — <c>interval</c> was bounded like <c>rate</c> because the doc-comment said it was bounded
+        /// <em>like a Bin Rule's rate</em>, which is <c>adr/0093</c> running inside one method.
+        /// </para>
+        /// <para>
+        /// <b>What replaces it is the representation and nothing else, because there is no other true
+        /// bound.</b> An interval is a period; a sweep at any period is well-defined and one longer
+        /// than the run simply fires once. Inventing a ceiling to keep a refusal would be choosing a
+        /// number with nothing behind it (<c>adr/0052</c>), and the check that mattered — a modulus of
+        /// zero — is the floor, which is unchanged. **This is a relaxation and it reaches all four
+        /// callers**, because the ground was never specific to one.
+        /// </para>
         /// </remarks>
         private uint ReadInterval(TableSyntaxBase table, string? name)
         {
@@ -1153,12 +1210,12 @@ public static class RulesetLoader
                 return 1;
             }
 
-            if (interval < 1 || interval >= Borough.Core.Rules.EventWheel.Size)
+            if (interval < 1 || interval > uint.MaxValue)
             {
                 Refuse(LineOf((SyntaxNodeBase?)Find(table, "interval") ?? table), name,
-                    $"interval {interval} is outside 1..{Borough.Core.Rules.EventWheel.Size - 1}. An "
-                    + "interval is a reschedule in Ticks, and one at or beyond WHEEL_SIZE would "
-                    + "re-arm into the bucket it just came off.");
+                    $"interval {interval} is outside 1..{uint.MaxValue}. An interval is a period in "
+                    + "Ticks: below 1 it is a modulus of zero, and above the range it does not fit "
+                    + "the field it is stored in.");
                 return 1;
             }
 
@@ -1448,8 +1505,8 @@ public static class RulesetLoader
             for (int i = 0; i < rules.Length; i++)
             {
                 RuleDefinition rule = rules[i];
-                long drawn = Money(inputs, rule.InputFirst, rule.InputCount);
-                long returned = Money(outputs, rule.OutputFirst, rule.OutputCount);
+                long drawn = MoneyIn(inputs, rule.InputFirst, rule.InputCount);
+                long returned = MoneyIn(outputs, rule.OutputFirst, rule.OutputCount);
 
                 if (drawn == returned)
                 {
@@ -1468,7 +1525,17 @@ public static class RulesetLoader
             }
         }
 
-        private long Money(Term[] terms, int first, int count)
+        /// <summary>Sums the money amounts in a slice of a Rule's terms.</summary>
+        /// <remarks>
+        /// <b>Named <c>MoneyIn</c> rather than <c>Money</c>, and the rename is the finding.</b> A
+        /// private method named after a type makes that type unnameable everywhere inside the class:
+        /// <c>Money.Zero</c> and <c>new Money(x)</c> both resolve to this method and fail to compile,
+        /// so the next reader to want the quantity in this file reaches for a fully-qualified name and
+        /// leaves it there. Found on milestone 10 task 5, which wanted a <c>Money</c> in
+        /// <see cref="ReadOpeningBalance"/> five sentences away. ***A helper named after a type does
+        /// not shadow one call site, it shadows the whole class.***
+        /// </remarks>
+        private long MoneyIn(Term[] terms, int first, int count)
         {
             long total = 0;
 
@@ -1731,6 +1798,245 @@ public static class RulesetLoader
 
             return keys;
         }
+
+        // ---- policies ---------------------------------------------------------------------------
+
+        /// <summary>
+        /// Every <c>[[policy]]</c> table — refusals 60 to 68.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Shaped on <see cref="ReadZoneRules"/>, because a Policy is that section's sibling</b>
+        /// (<c>02 §4.2</c>: the Sweep family has two members). Same idiom throughout — the name is
+        /// read first and non-required, every failed key leaves a sentinel and the loop continues, and
+        /// nothing aborts on a refusal.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>There is no money-balance refusal here and that is structural rather than an
+        /// omission.</b> A <c>[[rule]]</c>'s money terms are two free-form lists, so <b>refusal 4</b>
+        /// has to walk them and check that what is drawn is returned. A Policy states a
+        /// <c>from</c> and a <c>to</c>, so the same quantity leaves one Bin and enters the other by
+        /// construction. ***A transfer written as a direction cannot leak; one written as two lists
+        /// has to be checked.***
+        /// </para>
+        /// </remarks>
+        private PolicyDefinition[] ReadPolicies()
+        {
+            var definitions = new List<PolicyDefinition>(_policyTables.Count);
+
+            foreach (TableSyntaxBase table in _policyTables)
+            {
+                string? name = TryString(table, "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                PolicySubject subject = ReadSubject(table, name);
+                uint interval = ReadInterval(table, name);
+                ApplyCount apply = ReadApply(table, name, ScopeFor(subject));
+                (Scope from, Scope to, ResourceId resource, int amount) = ReadTransfer(table, name);
+
+                definitions.Add(new PolicyDefinition(subject, interval, apply, from, to, resource, amount));
+            }
+
+            return [.. definitions];
+        }
+
+        /// <summary>Which Readout scope a Policy over <paramref name="subject"/> may name.</summary>
+        private static ReadoutScope ScopeFor(PolicySubject subject) =>
+            subject == PolicySubject.Building ? ReadoutScope.Building : ReadoutScope.Household;
+
+        /// <summary>The <c>sweeps</c> key — refusals 60 and 61.</summary>
+        /// <remarks>
+        /// <b>Refusal 61 refuses a population the engine has, and that is the unusual half.</b>
+        /// <c>business</c> and <c>building</c> are declared in <see cref="PolicySubject"/> because
+        /// <c>02 §4.2</c> names three, and a Ruleset may not author them because nothing sweeps them.
+        /// Accepting one would produce a Policy that triggers, reaches nobody and reports nothing —
+        /// the silent non-event <c>02 §4.1</c> bans — where a refusal names the milestone.
+        /// </remarks>
+        private PolicySubject ReadSubject(TableSyntaxBase table, string? name)
+        {
+            if (!TryString(table, "sweeps", out string? subject, required: true, name))
+            {
+                return PolicySubject.Household;
+            }
+
+            switch (subject)
+            {
+                case "household":
+                    return PolicySubject.Household;
+
+                case "business":
+                case "building":
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "sweeps") ?? table), name,
+                        $"sweeps = \"{subject}\" names a population 02 section 4.2 declares and this "
+                        + "build does not sweep. A Business has a balance and no pass that moves it; "
+                        + "a Building population needs the predicate that selects it, and neither "
+                        + "exists. The only population is \"household\".");
+
+                    return PolicySubject.Household;
+
+                default:
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "sweeps") ?? table), name,
+                        $"sweeps = \"{subject}\" is not a population. 02 section 4.2 names three -- "
+                        + "\"household\", \"business\", \"building\" -- of which \"household\" is the "
+                        + "one this build sweeps.");
+
+                    return PolicySubject.Household;
+            }
+        }
+
+        /// <summary>The <c>transfer</c> inline table — refusals 62 to 68.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Four keys, all required, and the pair of scopes is what makes this a transfer rather
+        /// than a term list.</b> <c>02 §4.3</c>: <em>"global names the treasury, and it appears only
+        /// as the far end of an explicit transfer — local money out, global money in, balancing
+        /// within the one atomic Rule."</em> This is that sentence as a syntax.
+        /// </para>
+        /// <para>
+        /// <b><c>pool</c> and <c>map</c> are refused by name rather than falling through.</b> A pool
+        /// term is a <em>purchase</em> whose payment is implicit at the prevailing price
+        /// (<c>adr/0050</c>), so a Policy writing one would author the money side of a trade the
+        /// design says is never authored; a map term is a <c>MapEmission</c> and has no capacity to
+        /// draw from. Both would otherwise land in <c>RuleEngine.Bin</c>'s named holes at run time,
+        /// which is a crash where a file and a line will do.
+        /// </para>
+        /// </remarks>
+        private (Scope From, Scope To, ResourceId Resource, int Amount) ReadTransfer(
+            TableSyntaxBase table, string? name)
+        {
+            var fallback = (Scope.Local, Scope.Global, default(ResourceId), 1);
+
+            KeyValueSyntax? entry = Find(table, "transfer");
+
+            if (entry is null)
+            {
+                Refuse(LineOf(table), name,
+                    "no transfer. A Policy of the flow kind moves money, and it states which way: "
+                    + "transfer = { from = \"local\", to = \"global\", resource = \"money\", "
+                    + "amount = 1 }.");
+
+                return fallback;
+            }
+
+            if (entry.Value is not InlineTableSyntax inline)
+            {
+                Refuse(LineOf(entry), name,
+                    "transfer must be an inline table: { from, to, resource, amount }.");
+
+                return fallback;
+            }
+
+            Scope from = ReadTransferScope(inline, "from", name);
+            Scope to = ReadTransferScope(inline, "to", name);
+
+            if (from == to)
+            {
+                Refuse(LineOf(entry), name,
+                    $"transfer goes from \"{Spell(from)}\" to \"{Spell(to)}\". A transfer between one "
+                    + "Bin and itself nets to zero and bounds nothing (02 section 4.3), so it is a "
+                    + "Policy that triggers and cannot be observed to have run.");
+            }
+
+            ResourceId resource = ReadTransferResource(inline, name, entry);
+            int amount = ReadTransferAmount(inline, name, entry);
+
+            return (from, to, resource, amount);
+        }
+
+        /// <summary>One end of a transfer — refusals 62 and 63.</summary>
+        private Scope ReadTransferScope(InlineTableSyntax inline, string key, string? name)
+        {
+            if (!TryString(inline, key, out string? scope, required: true, name))
+            {
+                return key == "from" ? Scope.Local : Scope.Global;
+            }
+
+            switch (scope)
+            {
+                case "local":
+                    return Scope.Local;
+
+                case "global":
+                    return Scope.Global;
+
+                default:
+                    Refuse(LineOf((SyntaxNodeBase?)Find(inline, key) ?? inline), name,
+                        $"{key} = \"{scope}\" is not an end of a transfer. The two are \"local\" -- "
+                        + "the swept actor's own balance -- and \"global\", the treasury. \"pool\" is "
+                        + "a market, so its payment is implicit at the prevailing price and is never "
+                        + "authored (adr/0050); \"map\" is a Layer emission and holds nothing.");
+
+                    return key == "from" ? Scope.Local : Scope.Global;
+            }
+        }
+
+        /// <summary>What a transfer moves — refusals 64, 65 and 66.</summary>
+        /// <remarks>
+        /// <b>Conserved or refused.</b> <c>adr/0024</c> makes money the conserved family, and a
+        /// transfer of Goods between a Household and the treasury is a city-wide larder — a mechanism
+        /// nothing in the corpus has designed, so accepting it would be inventing one in a switch
+        /// statement. It is the same refusal <c>global</c> already carries on a <c>[[rule]]</c>,
+        /// arriving from the other family.
+        /// </remarks>
+        private ResourceId ReadTransferResource(InlineTableSyntax inline, string? name, KeyValueSyntax entry)
+        {
+            if (!TryString(inline, "resource", out string? resource, required: true, name))
+            {
+                return default(ResourceId);
+            }
+
+            if (!_resources.TryGetValue(resource!, out ushort id))
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(inline, "resource") ?? entry), name,
+                    $"no [[resource]] is named '{resource}'.");
+
+                return default(ResourceId);
+            }
+
+            if (_families[id - 1] != ResourceFamily.Money)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(inline, "resource") ?? entry), name,
+                    $"'{resource}' is not money, so a Policy cannot transfer it. A transfer names the "
+                    + "treasury at one end (02 section 4.3) and the treasury holds one Bin per "
+                    + "CONSERVED Resource; a city-wide larder of a Good is a different mechanism and "
+                    + "nothing has designed it.");
+
+                return default(ResourceId);
+            }
+
+            return new ResourceId(id);
+        }
+
+        /// <summary>How much one application moves — refusals 67 and 68.</summary>
+        private int ReadTransferAmount(InlineTableSyntax inline, string? name, KeyValueSyntax entry)
+        {
+            if (!TryInteger(inline, "amount", out long amount, required: true, name))
+            {
+                return 1;
+            }
+
+            if (amount < 1 || amount > int.MaxValue)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(inline, "amount") ?? entry), name,
+                    $"amount = {amount} is not a quantity per application. It is at least 1 -- a "
+                    + "transfer of nothing is a Policy that cannot be observed to have run, and the "
+                    + "way to move less is a smaller apply count.");
+
+                return 1;
+            }
+
+            return (int)amount;
+        }
+
+        /// <summary>A scope as a Ruleset author spells it, for a refusal to quote back.</summary>
+        private static string Spell(Scope scope) => scope switch
+        {
+            Scope.Local => "local",
+            Scope.Pool => "pool",
+            Scope.Global => "global",
+            _ => "map",
+        };
 
         // ---- layers ---------------------------------------------------------------------------
 
@@ -2442,7 +2748,99 @@ public static class RulesetLoader
                 return HouseholdRuleset.None;
             }
 
-            return new HouseholdRuleset((int)percent);
+            (Money min, Money max) = ReadOpeningBalance();
+
+            return new HouseholdRuleset((int)percent, min, max);
+        }
+
+        /// <summary>
+        /// The <c>[households]</c> table's optional opening-balance band.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and omission means the populator endows nobody</b> — which is what every
+        /// Ruleset written before milestone 10 task 5 meant by saying nothing, so omission is
+        /// behaviour-preserving. That is <c>[traffic]</c>'s argument rather than
+        /// <c>car_ownership_percent</c>'s: zero is a legitimate answer here <em>and</em> it is the
+        /// standing one, so a defaulted zero cannot be mistaken for a placeholder nobody set.
+        /// </para>
+        /// <para>
+        /// <b>Both keys or neither</b>, on <c>[trips]</c>' rung precedent — a band with one end
+        /// authored is a range whose other end somebody has to guess, and the two guesses available
+        /// (the other end, or zero) are a fixed endowment and a band starting at destitute. Those are
+        /// different cities.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A band in a Ruleset that names no money is refused rather than ignored.</b> A balance
+        /// is a Bin and a Bin exists only for a declared Resource (<c>adr/0114</c>), so
+        /// <c>World.Endow</c> would throw on the first Household. The loader can see both halves —
+        /// the families are read in the first pass — so this is a refusal at load with a file and a
+        /// line rather than a crash at world creation.
+        /// </para>
+        /// </remarks>
+        private (Money Min, Money Max) ReadOpeningBalance()
+        {
+            KeyValueSyntax? low = Find(_householdsTable!, "opening_balance_min");
+            KeyValueSyntax? high = Find(_householdsTable!, "opening_balance_max");
+
+            if (low is null && high is null)
+            {
+                return (Money.Zero, Money.Zero);
+            }
+
+            if (low is null || high is null)
+            {
+                Refuse(
+                    LineOf((SyntaxNodeBase?)low ?? (SyntaxNodeBase?)high ?? _householdsTable!),
+                    null,
+                    "an opening balance is a band and this file states one end of it. Write both "
+                    + "opening_balance_min and opening_balance_max, or neither. One end alone has "
+                    + "two readings -- a fixed endowment, or a band reaching down to destitute -- "
+                    + "and they are different cities.");
+
+                return (Money.Zero, Money.Zero);
+            }
+
+            if (!TryInteger(_householdsTable!, "opening_balance_min", out long min, required: true)
+                || !TryInteger(_householdsTable!, "opening_balance_max", out long max, required: true))
+            {
+                return (Money.Zero, Money.Zero);
+            }
+
+            if (min < 0)
+            {
+                Refuse(
+                    LineOf(low), null,
+                    $"opening_balance_min is {min}. A balance is a stock and a stock is never "
+                    + "negative -- a debt is not negative money (adr/0003), and founding a city in "
+                    + "arrears is a mechanism nobody has designed.");
+
+                return (Money.Zero, Money.Zero);
+            }
+
+            if (max < min)
+            {
+                Refuse(
+                    LineOf(high), null,
+                    $"opening_balance_max is {max}, below opening_balance_min of {min}. A band is "
+                    + "drawn inclusive of both ends, so an inverted one is empty rather than "
+                    + "narrow.");
+
+                return (Money.Zero, Money.Zero);
+            }
+
+            if (max > 0 && !_families.Contains(ResourceFamily.Money))
+            {
+                Refuse(
+                    LineOf(high), null,
+                    "this file endows Households and names no money. A balance is a Bin and a Bin "
+                    + "exists only for a declared Resource (adr/0114), so there would be nowhere to "
+                    + "put it. Add a [[resource]] block with family = \"money\".");
+
+                return (Money.Zero, Money.Zero);
+            }
+
+            return (new Money(min), new Money(max));
         }
 
         // ---- traffic ----------------------------------------------------------------------------

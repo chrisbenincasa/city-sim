@@ -3,6 +3,7 @@ namespace Borough.Core.Entities;
 using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Space;
 using Borough.Core.Tables;
 
@@ -197,9 +198,36 @@ public static class SyntheticCity
             world.CreateBuilding(lot, DwellingKind, now, key);
         }
 
+        HouseholdRuleset rules = world.Rules.Households;
+
         for (int i = 0; i < households; i++)
         {
-            world.CreateHousehold(Dwelling(world, i % buildings), lifeStage: (byte)(i % 5));
+            Handle<Household> household =
+                world.CreateHousehold(Dwelling(world, i % buildings), lifeStage: (byte)(i % 5));
+
+            // THE ONLY PRODUCTION ISSUANCE OF MONEY IN THE BUILD, and it is here rather than
+            // anywhere a player can reach. adr/0024 makes the Outside Connection money's only source
+            // and that is milestone 11; adr/0116 deferred the treasury's founding balance for want of
+            // a denominator. So a generated city would hold no money at all, and every mechanism
+            // milestone 10 builds -- the tax, the transfer, adr/0115's floor-to-zero instrument,
+            // the conservation equality -- would be exercised over zero and pass vacuously.
+            //
+            // What makes this legitimate rather than a founding balance smuggled in early is WHOSE
+            // act it is. This populator is reached only by CommandKind.Populate, a verb no player
+            // has (adr/0090's generator/player line), and it already invents Households, Buildings
+            // and Lots from nothing. Issuing their pocket money is the same act, and it goes through
+            // World.Endow, which records it in MoneySupply.Issued -- so conservation stays exactly
+            // checkable ACROSS the issuance rather than in spite of it.
+            //
+            // A BAND rather than a figure, and the band is what the instrument needs: a percentage
+            // that floors to zero is a distributional artefact, so a city where everybody holds the
+            // same amount reads 0% or 100% and measures nothing.
+            if (rules.Endows)
+            {
+                world.Endow(
+                    household,
+                    rules.OpeningBalance(key, world.Households.Rows.IdAt(world.Households.Rows.Resolve(household))));
+            }
         }
 
         for (int i = 0; i < population; i++)

@@ -396,6 +396,50 @@ public enum Aggregate : byte
     Peak,
 }
 
+/// <summary>
+/// One counter of the Policy sweeps — <c>02 §4.2</c>'s <em>Flow</em> Policies.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Counts, and no money magnitude.</b> A magnitude is a <c>Money</c> rather than a count and
+/// belongs to <c>plans/0031</c> task 7, which reports the money supply and the treasury separately
+/// (<c>01 §5.1</c>). This family answers <em>did it run and whom did it reach</em>.
+/// </para>
+/// <para>
+/// <b>The four outcomes are exclusive and exhaustive per member swept</b>, which is the property a
+/// reader relies on without being told: every one of <see cref="Considered"/> either had money moved
+/// (<see cref="Applied"/>), owed nothing, could not cover it (<see cref="Unaffordable"/>), or was
+/// never reached because the sweep had already stopped. <see cref="Floored"/> is a <em>reason</em>
+/// for owing nothing rather than a fifth outcome, and <see cref="Exhausted"/> counts sweeps rather
+/// than members — both are deliberately not members of the partition and both say so here, because
+/// a counter in a family whose members look like a partition will be summed by somebody.
+/// </para>
+/// </remarks>
+public enum PolicyCounter : byte
+{
+    /// <summary>Policy firings — one per Policy per Tick its interval divides.</summary>
+    Triggers,
+
+    /// <summary>Live members swept. The denominator.</summary>
+    Considered,
+
+    /// <summary>Members the transfer moved money for.</summary>
+    Applied,
+
+    /// <summary>
+    /// ⚠ <b><c>adr/0115</c>'s instrument.</b> Percentage applications that floored to zero from a
+    /// non-zero Readout — the poorest paying nothing and everybody else the stated rate, which is a
+    /// regressive outcome produced by rounding and chosen by nobody.
+    /// </summary>
+    Floored,
+
+    /// <summary>Sweeps that stopped early because the payer ran dry. <b>Counts sweeps, not members.</b></summary>
+    Exhausted,
+
+    /// <summary>Members skipped because they could not cover the transfer. Does not stop the sweep.</summary>
+    Unaffordable,
+}
+
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>
 /// <remarks>
 /// <b>Two families rather than one, because a level and a flow are not the same kind of number.</b>
@@ -456,6 +500,17 @@ public enum MetricSource : byte
     /// on without being told.
     /// </remarks>
     TripCosts,
+
+    /// <summary>One counter of the Policy sweeps: a flow, accumulated and drained.</summary>
+    /// <remarks>
+    /// <b>An eighth family, and the second the Sweep family owns.</b> It is not more
+    /// <see cref="Zones"/>: a Zone Rule samples Lots and builds, a Policy sweeps a population and
+    /// moves money, and <c>02 §4.2</c>'s whole table is the argument that those differ on coverage
+    /// and on what they act by. Sharing an arithmetic would make <em>triggered</em> mean two things
+    /// and would put a Zone Rule's sample beside a Policy's sweep as though the two counted the same
+    /// event.
+    /// </remarks>
+    Policies,
 }
 
 /// <summary>
@@ -537,6 +592,11 @@ public readonly record struct Metric
         ? (JobCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not carry a job counter.");
 
+    /// <summary>Which of the Policy sweeps' counters.</summary>
+    public PolicyCounter PolicyCounter => Source is MetricSource.Policies
+        ? (PolicyCounter)_counter
+        : throw new InvalidOperationException($"a {Source} metric does not carry a policy counter.");
+
     /// <summary>Which bucket of the Trip cost histogram.</summary>
     public TripCostBucket TripCostBucket => Source is MetricSource.TripCosts
         ? (TripCostBucket)_counter
@@ -550,6 +610,7 @@ public readonly record struct Metric
     public Aggregate Aggregate =>
         Source is MetricSource.Rules or MetricSource.Zones or MetricSource.Placement
             or MetricSource.Trips or MetricSource.Jobs or MetricSource.TripCosts
+            or MetricSource.Policies
         ? (Aggregate)_aggregate
         : throw new InvalidOperationException($"a {Source} metric is a level and is not aggregated.");
 
@@ -594,4 +655,10 @@ public readonly record struct Metric
     /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
     public static Metric Of(TripCostBucket bucket, Aggregate aggregate) =>
         new(MetricSource.TripCosts, 0, (byte)bucket, (byte)aggregate);
+
+    /// <summary>One counter of the Policy sweeps, under one reduction.</summary>
+    /// <param name="counter">Which of the sweeps' counters.</param>
+    /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
+    public static Metric Of(PolicyCounter counter, Aggregate aggregate) =>
+        new(MetricSource.Policies, 0, (byte)counter, (byte)aggregate);
 }

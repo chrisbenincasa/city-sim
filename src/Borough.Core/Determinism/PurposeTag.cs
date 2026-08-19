@@ -304,4 +304,56 @@ public enum PurposeTag : ulong
     /// ones, which is a correlation with no cause and a visible signature in both tails at once.
     /// </remarks>
     CommutePunctuality = 18,
+
+    /// <summary>
+    /// What a Household is founded with, inside its Ruleset's band (<c>plans/0031</c> task 5).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A <see cref="Ticks.Zero"/> draw on the Household's own id, and the third of that shape</b>
+    /// — it answers <i>what sort of Household is this</i> rather than <i>what happens now</i>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Unlike <see cref="CarOwnership"/> the draw is consumed once rather than re-derived, and
+    /// the difference is the mechanism rather than the tag.</b> Ownership is a standing property, so
+    /// it is recomputed on every read and a retuned rate moves a nested set. An endowment is
+    /// <em>issued</em> — it enters a Bin, is spent, and cannot be recovered by redrawing — so this
+    /// tag is read exactly once per Household, at creation. What that costs is that the band is not
+    /// retroactive on reload, which is correct: money already issued is money in the world.
+    /// </para>
+    /// <para>
+    /// <b>Distinct from <see cref="CarOwnership"/> because both are drawn on the same Household at
+    /// the same instant.</b> Sharing would make the richest Households exactly the ones that own
+    /// cars — a wealth-mobility correlation with no cause in the city, which is the one pattern a
+    /// player would most readily believe was designed.
+    /// </para>
+    /// </remarks>
+    OpeningBalance = 19,
+
+    /// <summary>
+    /// Where a Policy's sweep starts on one trigger (<c>02 §4.2</c>, <c>plans/0031</c> task 5).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>02 §4.2</c>'s rotation, drawn rather than advanced.</b> That section asks for the scan
+    /// start to move per trigger so that a payer running dry produces <em>a gradient across the
+    /// population rather than a permanent boundary</em> between the always-paid and the never-paid. A
+    /// fixed stride would meet the letter and add a second hash-bearing number that can resonate with
+    /// the population size — a stride sharing a factor with the row count visits a subset for ever.
+    /// A draw needs no number and cannot resonate.
+    /// </para>
+    /// <para>
+    /// <b>Keyed on the Policy's index rather than on a Household</b>, which is the one place in this
+    /// enum where the entity coordinate is not an entity. It has to be: two Policies triggering on
+    /// one Tick and sharing a start would pay and tax the same Households first for ever, so who the
+    /// treasury runs out on would correlate with who was taxed hardest — <c>02 §8</c> rule 5's bias,
+    /// arriving between two Rules rather than inside one.
+    /// </para>
+    /// <para>
+    /// <b>Distinct from <see cref="ZoneRuleSample"/> even though both are the Sweep family choosing
+    /// where to look.</b> Sharing would tie the Lots a Zone Rule samples to the Households a Policy
+    /// reaches, so a District would appear to be both developed and paid first, with no cause.
+    /// </para>
+    /// </remarks>
+    PolicyScanStart = 20,
 }

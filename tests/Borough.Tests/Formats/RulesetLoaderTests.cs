@@ -1148,16 +1148,50 @@ public sealed class RulesetLoaderTests
         Assert.Equal("housing", refusal.Rule);
     }
 
-    /// <summary>An interval is bounded like a rate, and for the same Event Wheel reason.</summary>
+    /// <summary>
+    /// ⚠ <b>A Sweep Rule may trigger at any period, and the bound that said otherwise was about a
+    /// mechanism no Sweep Rule uses.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>This test read <c>A_zone_rule_triggering_beyond_the_wheel_is_refused</c> until milestone 10
+    /// task 5, and it asserted a refusal with no ground.</b> The loader bounded <c>interval</c> below
+    /// <c>WHEEL_SIZE</c> on the reason that one at or beyond it <em>"would re-arm into the bucket it
+    /// just came off"</em> — true of a Bin Rule's <c>rate</c>, and false of every caller of the
+    /// check: a Zone Rule, the placement pass, the job pass and a Policy all test
+    /// <c>tick % interval</c> and none of them touches the Event Wheel. It was found by the first
+    /// interval that wanted to be a <b>Day</b>, which is <c>Ticks.PerDay</c> and therefore exactly
+    /// <c>WHEEL_SIZE</c>. ***A bound is inherited with a word, not with a mechanism.***
+    /// <para>
+    /// Kept as the positive case rather than deleted, because a relaxation with no test is a refusal
+    /// that can come back by accident.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void A_zone_rule_triggering_beyond_the_wheel_is_refused()
+    public void A_zone_rule_may_trigger_once_a_day()
+    {
+        Ruleset ruleset = Accepted(Zoned.Replace(
+            "interval      = 64",
+            string.Create(CultureInfo.InvariantCulture, $"interval      = {Ticks.PerDay}"),
+            StringComparison.Ordinal));
+
+        Assert.Equal((uint)Ticks.PerDay, ruleset.ZoneRules[0].Interval);
+    }
+
+    /// <summary>An interval that does not fit the field it is stored in is refused.</summary>
+    /// <remarks>
+    /// <b>The representation is the only true ceiling left</b>, and it is a real one: the interval is
+    /// stored as a <c>uint</c>, so a larger figure would be cast rather than kept. Everything between
+    /// 1 and that is a well-defined period, and one longer than the run fires once.
+    /// </remarks>
+    [Fact]
+    public void An_interval_past_the_field_it_is_stored_in_is_refused()
     {
         RulesetRefusal refusal = Refused(Zoned.Replace(
             "interval      = 64",
-            string.Create(CultureInfo.InvariantCulture, $"interval      = {EventWheel.Size}"),
+            string.Create(CultureInfo.InvariantCulture, $"interval      = {(long)uint.MaxValue + 1}"),
             StringComparison.Ordinal));
 
-        Assert.Contains("WHEEL_SIZE", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("does not fit the field", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>

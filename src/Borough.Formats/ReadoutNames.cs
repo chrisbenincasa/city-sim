@@ -28,6 +28,7 @@ public static class ReadoutNames
     private static readonly (string Name, Readout Readout)[] Table =
     [
         ("occupancy", Readout.Occupancy),
+        ("balance", Readout.Balance),
     ];
 
     /// <summary>Every declared name, comma-separated, for a refusal to quote back at the author.</summary>
