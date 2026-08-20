@@ -650,4 +650,49 @@ public enum Invariant
     /// </para>
     /// </remarks>
     ParkingSpaceIsReleasedOnce = 41,
+
+    /// <summary>
+    /// Summed Car Park occupancy equals the number of Citizens holding a space that resolves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The invariant <c>plans/0012</c> check 7 was filed over</b>, and the reason that check exists:
+    /// it was specified in <b>four</b> documents — <c>adr/0009</c>, <c>02 §10</c>, <c>05 §60</c> and
+    /// <c>06</c>'s milestone 7 risk — and built in <b>none</b>, which is invisible because an
+    /// obligation with no member reads as absent rather than as owed. It is declared here and owed by
+    /// milestone 7 task 6.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>adr/0084</c> states its right-hand side wrongly and this milestone corrected it.</b>
+    /// That ADR sums against <i>"Travellers currently parked"</i>, and a car parked overnight has no
+    /// Traveller — so the sum as specified reads <b>0 against a full car park</b> every night, on the
+    /// design's own canonical case. <c>adr/0119</c> puts the space on the <b>Citizen</b>, so the
+    /// operand is Citizens whose holding resolves. The ADR is not wrong about the tier or the split.
+    /// </para>
+    /// </remarks>
+    [Unbuilt("06 milestone 7 task 6")]
+    ParkingOccupancyIsConserved = 42,
+
+    /// <summary>Goods are conserved across every Bin and every movement.</summary>
+    /// <remarks>
+    /// ⚠ <b>Named by <c>02 §10</c>'s staggered tier since before the ADRs and owned by no milestone
+    /// anywhere.</b> It is not deferred, not gated and not refused — nothing in <c>06</c>, <c>0003</c>
+    /// or <c>0002</c> claims it, which is why it has sat unbuilt without ever appearing as owed. Found
+    /// by building check 7 rather than by anybody reading the tier table, which is precisely that
+    /// check's argument for existing.
+    /// </remarks>
+    [Unbuilt("nothing — 02 §10 names it and no milestone claims it. plans/0012 check 7's own finding")]
+    GoodsAreConserved = 43,
+
+    /// <summary>No Citizen is in two places at once.</summary>
+    /// <remarks>
+    /// ⚠ <b><c>02 §10</c>'s staggered tier again, and owned by no milestone either.</b> Its sibling
+    /// <see cref="CitizenIsInExactlyOneHousehold"/> is live and is a different claim — that one is about
+    /// <em>membership</em>, this one about <em>location</em>, and a Citizen can be in exactly one
+    /// Household while a Traveller and a Workplace disagree about where they are standing. ***A live
+    /// invariant with a similar name is how an unbuilt one stays invisible***, and it is why this is
+    /// declared separately rather than read as already covered.
+    /// </remarks>
+    [Unbuilt("nothing — 02 §10 names it and no milestone claims it. plans/0012 check 7's own finding")]
+    CitizenIsInExactlyOnePlace = 44,
 }

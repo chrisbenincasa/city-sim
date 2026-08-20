@@ -2260,8 +2260,10 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    `.prettierignore` and `[markdown]` in `.vscode/settings.json`, both of which carry the measurement
    as their comment so the next person does not re-derive it.
 
-7. **Every invariant `02 §10` names has a member of the `Invariant` enum, and every member is either
-   registered or explicitly marked unbuilt with the milestone that owes it.** **Filed 2026-08-12 by
+7. ~~**Every invariant `02 §10` names has a member of the `Invariant` enum, and every member is either
+   registered or explicitly marked unbuilt with the milestone that owes it.**~~ **BUILT 2026-08-19**,
+   `tests/Borough.Tests/Corpus/InvariantCoverageTests.cs`, and **it found three gaps rather than the one
+   it was filed over — two of which no milestone owns.** See below. **Filed 2026-08-12 by
    session H** ([`adr/0084`](../docs/adr/0084-parking-occupancy-is-two-checks-and-an-invariant-over-absent-state-cannot-be-written.md)),
    which found *parking occupancy is conserved* specified in **four** documents — `adr/0009`, `02 §10`,
    `05 §60` and `06`'s milestone 7 risk — and built in **none**. **This is check 5's shape pointed at
@@ -2282,6 +2284,38 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    be *written* early**: `adr/0084` finds that an invariant over **absent** state cannot be written at
    all — *zero is a value; undefined is not* — so what the check asserts is that the gap is **declared**,
    not that it is closed.
+
+   ✅ **Built 2026-08-19, in three assertions, and the design note about the copy decided the shape.**
+   Reading arbitrary prose out of `02 §10` is brittle, and a hand-written list in the test is *Cause 1*
+   inside the instrument — so **the convention became the check**: the tier table now names each
+   invariant's enum member in backticks, and a member that does not exist cannot be named. The three
+   assertions are *every name in the table resolves to a member*, *every member is live, retired or
+   `[Unbuilt]`*, and *every `[Unbuilt]` member is named in the table*. The third is the one that keeps
+   the marking honest — ***a gap declared only in the enum is invisible to every reader of the document
+   that owns the tiers***, which is the same failure in the opposite file.
+
+   ⚠ **It found three gaps, and only one of them was the one it was filed over.**
+   `ParkingOccupancyIsConserved` is owed by milestone 7 task 6 and was the founding case.
+   **`GoodsAreConserved` and `CitizenIsInExactlyOnePlace` are named in `02 §10`'s staggered tier, have
+   never had a member, and are owned by nothing** — not deferred, not gated, not refused; no row in
+   `06`, `0003` or `0002` claims either. ***An obligation nobody scheduled is indistinguishable from one
+   nobody wrote down***, and both had been sitting in the tier table since before the ADRs existed.
+   `CitizenIsInExactlyOnePlace` also has a live near-namesake, `CitizenIsInExactlyOneHousehold`, which
+   is a claim about **membership** where this one is about **location** — ***a live invariant with a
+   similar name is how an unbuilt one stays invisible.***
+
+   ⚠ **`[Unbuilt]`'s argument is a string and the honest value is often *nothing*.** The filing says
+   *marked unbuilt with the milestone that owes it*, and two of the three had no milestone to name. The
+   attribute takes free text so that **"nothing owns this"** is expressible, because that is the case no
+   board or roadmap is showing anybody — a marking that could only name a milestone would have forced a
+   lie or an omission on exactly the two entries that most needed recording.
+
+   ⚠ **The enum's ids collided across two sessions on the day this was built.** `ParkingSpaceIsReleasedOnce`
+   shipped as **40** from the parking branch and `MoneyIsConserved` shipped as **40** from the money
+   branch; the merge resolved it by moving parking's to **41**. Harmless here — neither had reached a
+   crash artifact — and it is the plan-number collision again on a third axis. `adr/0084` refuses to
+   reserve ids in advance precisely because *an id travels in a crash artifact and a reused id cannot be
+   un-reused*, which makes **concurrent** allocation the residual risk that refusal does not cover.
 
 6. ~~**A distinctive figure appearing in more than one document carries the same qualifying clause in
    each.**~~ **BUILT the same day it was specified, in a different shape, because the specified shape was
