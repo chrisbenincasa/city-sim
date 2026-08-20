@@ -2295,7 +2295,13 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    that owns the tiers***, which is the same failure in the opposite file.
 
    ⚠ **It found three gaps, and only one of them was the one it was filed over.**
-   `ParkingOccupancyIsConserved` is owed by milestone 7 task 6 and was the founding case.
+   ~~`ParkingOccupancyIsConserved` is owed by milestone 7 task 6 and was the founding case.~~
+   **CLOSED 2026-08-19 by milestone 7 task 6** — the member is live, registered in the end-of-run tier,
+   and the `[Unbuilt]` marking is gone. ⚠ **The gap it left behind was in `02 §10` and not in the enum,
+   and the check could not see it**: the tier table named the member in its **per-Tick** row, which is
+   the tier `adr/0084` had already demoted it out of, so the document was pointing at a live member and
+   describing the wrong frequency. ***A check that an obligation has a member does not check that the
+   row it sits in is true of it***, and the same hole is open for every other name in that table.
    **`GoodsAreConserved` and `CitizenIsInExactlyOnePlace` are named in `02 §10`'s staggered tier, have
    never had a member, and are owned by nothing** — not deferred, not gated, not refused; no row in
    `06`, `0003` or `0002` claims either. ***An obligation nobody scheduled is indistinguishable from one
@@ -2316,6 +2322,30 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    crash artifact — and it is the plan-number collision again on a third axis. `adr/0084` refuses to
    reserve ids in advance precisely because *an id travels in a crash artifact and a reused id cannot be
    un-reused*, which makes **concurrent** allocation the residual risk that refusal does not cover.
+
+12. **Every invariant `02 §10` names sits in the tier it is registered into — NEW 2026-08-19, from
+    milestone 7 task 6, and it is check 7's own blind spot.** Check 7 asks whether every name in the
+    tier table resolves to a member, and it passed the whole time `ParkingOccupancyIsConserved` was
+    named in the **per-Tick** row — the tier
+    [`adr/0084`](../docs/adr/0084-parking-occupancy-is-two-checks-and-an-invariant-over-absent-state-cannot-be-written.md)
+    had demoted it out of before the member existed. ***A check that an obligation has a member does not
+    check that the row it sits in is true of it***, and the failure is worse than a missing member
+    because the document reads as covered by an instrument that is genuinely running.
+
+    **The mechanical form is cheap and the tier is already legible from the code.** A `Walk` registered
+    through `Register(InvariantTier.EndOfRun, …)`, a `Sweep` through
+    `Register(InvariantTier.Staggered, …)`, and a per-Tick check is a bare `Require` at a write site
+    with no registration at all — so the tier a member is *in* is derivable from `src/` by which
+    registration mentions it, and the tier a member is *claimed* to be in is the row of the table its
+    backticked name appears in. ⚠ **A member may legitimately appear in two tiers** — `02 §10` says so
+    itself, *where a corpus invariant splits across two tiers, both halves are here* — so the assertion
+    is that every row naming it is one of the tiers it is registered into, never that there is exactly
+    one.
+
+    ⚠ **This is the third time a check has been filed off the thing it was already meant to catch**, and
+    it is the same shape as check 8's own note that the cheaper check was found by committing the defect.
+    ***An instrument's blind spot is discovered by the first task that walks into it***, which is an
+    argument for building the founding case rather than admiring the check that declared it.
 
 6. ~~**A distinctive figure appearing in more than one document carries the same qualifying clause in
    each.**~~ **BUILT the same day it was specified, in a different shape, because the specified shape was

@@ -56,6 +56,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, TheAdjacencyDescribesTheSegments);
         invariants.Register(InvariantTier.EndOfRun, VacantLandHasAStreetToBuildOff);
         invariants.Register(InvariantTier.EndOfRun, TrafficIsConserved);
+        invariants.Register(InvariantTier.EndOfRun, ParkingOccupancyIsConserved);
     }
 
     /// <summary>
@@ -114,6 +115,74 @@ public static class WorldInvariants
 
         report.Require(
             onTheRoad == driving, Invariant.SegmentVolumeIsConserved, (int)onTheRoad, (int)driving);
+    }
+
+    /// <summary>
+    /// Summed Car Park occupancy equals the number of Citizens holding a space that still resolves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0084</c>'s conservation half, with <c>adr/0119</c>'s right-hand side rather than the
+    /// one that ADR wrote. The argument for the sum, for the tier and for what each side skips is on
+    /// <see cref="Invariant.ParkingOccupancyIsConserved"/>.
+    /// </para>
+    /// <para>
+    /// <b>The two sides are walked over different tables and neither is derived from the other</b>,
+    /// which is what makes the equality worth asserting. <c>CarParkTable.Occupied</c> is the running
+    /// count <c>World.TryTakeParking</c> and <c>World.ReleaseParking</c> move; the holders are
+    /// counted from <c>CitizenTable.ParkedIn</c>, the column those same two methods write beside it.
+    /// Recomputing one from the other would check that a write happened and never what was written —
+    /// milestone 10 task 1's failure in <see cref="Invariant.MoneyIsConserved"/>, which is the
+    /// nearest precedent for a whole-world sum against an independently held total.
+    /// </para>
+    /// <para>
+    /// <b>A holding that does not resolve is skipped rather than counted</b>, because a demolished
+    /// Car Park takes its occupancy column and its holders' resolution in the same act — see the
+    /// severing note at <c>World.DestroyBuilding</c>. Counting it would make every demolition read
+    /// as the leak this exists to catch.
+    /// </para>
+    /// </remarks>
+    internal static void ParkingOccupancyIsConserved(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        Parking.CarParkTable carParks = world.CarParks;
+
+        long occupied = 0;
+
+        for (int slot = 0; slot < carParks.Rows.SlotCount; slot++)
+        {
+            if (!carParks.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            occupied += carParks.Occupied[slot];
+        }
+
+        long holders = 0;
+
+        CitizenTable citizens = world.Citizens;
+
+        for (int slot = 0; slot < citizens.Rows.SlotCount; slot++)
+        {
+            if (!citizens.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (carParks.Rows.TryResolve(citizens.ParkedIn[slot], out _))
+            {
+                holders++;
+            }
+        }
+
+        report.Require(
+            occupied == holders,
+            Invariant.ParkingOccupancyIsConserved,
+            (int)occupied,
+            holders);
     }
 
     /// <summary>

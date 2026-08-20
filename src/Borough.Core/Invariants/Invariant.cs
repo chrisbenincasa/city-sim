@@ -669,8 +669,38 @@ public enum Invariant
     /// design's own canonical case. <c>adr/0119</c> puts the space on the <b>Citizen</b>, so the
     /// operand is Citizens whose holding resolves. The ADR is not wrong about the tier or the split.
     /// </para>
+    /// <para>
+    /// <b>It is an end-of-run walk and not the per-Tick check <c>02 §10</c>'s table said it was</b>,
+    /// which is <c>adr/0084</c>'s ruling and the reason it gives: occupancy is conserved every Tick
+    /// <em>structurally</em>, because <see cref="Entities.World.TryTakeParking"/> and
+    /// <see cref="Entities.World.ReleaseParking"/> write the occupancy and the holder's column
+    /// together. What can break is the <b>pairing</b>, and a pairing defect is a property of a run
+    /// rather than of a moment — so a whole-world sum every Tick spends <c>O(world)</c> to find what
+    /// one sum at the end finds just as certainly. <see cref="SegmentVolumeIsConserved"/> and
+    /// <see cref="BinCapacityMatchesItsDeclaration"/> are the two precedents that were demoted for
+    /// this reason before it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both sides skip a Car Park that has been demolished, and that is the check having
+    /// content rather than being weakened.</b> <c>CitizenTable.ParkedIn</c> is
+    /// <c>Reference.Severable</c>, so a bulldozed garage takes its occupancy column and every
+    /// holder's resolution in one act — counting an unresolvable holding would report a demolition
+    /// as a leak, which is the wrong diagnosis for the only mutation site that is allowed to drop a
+    /// holding without a decrement.
+    /// </para>
+    /// <para>
+    /// <b>The leak it is actually for is a Citizen freed while holding a space.</b>
+    /// <see cref="Entities.World.DestroyCitizen"/> and <see cref="Entities.World.DestroyHousehold"/>
+    /// unlink a Citizen from everything except a Car Park, so the occupancy would stay up with
+    /// nobody standing in it: the city would report more parking taken than it has drivers, and
+    /// every subsequent shed query would find less room than exists. That is the <c>adr/0006</c>
+    /// class — a quantity with a source and no sink — and it presents as a <em>shortage</em> rather
+    /// than as a crash, which is why nothing else would report it. ⚠ Neither method has a caller
+    /// outside a test, so this is a check on a pairing that has not been made yet rather than on one
+    /// that is broken — <see cref="TripHasAFate"/>'s shape, and the same argument
+    /// <see cref="ParkingSpaceIsReleasedOnce"/> makes about the second release site.
+    /// </para>
     /// </remarks>
-    [Unbuilt("06 milestone 7 task 6")]
     ParkingOccupancyIsConserved = 42,
 
     /// <summary>Goods are conserved across every Bin and every movement.</summary>

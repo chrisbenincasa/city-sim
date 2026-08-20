@@ -13,10 +13,13 @@
 *a Car Park is not a Bin*, with amendments in place to `adr/0009` and `adr/0084`. ✅ **TASKS 1 AND 2
 SHIPPED 2026-08-18** — `CarParkTable`, the `[[building]] parking` key and the supply created, ceilinged,
 located and freed; then `[parking] radius_metres = 400` in all five shipped Rulesets. 1,531 tests green.
-✅ **TASK 3 — THE PARKING SHED — SHIPPED 2026-08-19**, `639a3a0` and `601b0f8`. **Five tasks left, and
-task 4 — arrival, acquire, and what holds the space — is next. Ungated** — session **H** cleared this
-row on 2026-08-12 and the clearance is written in [`0002`](0002-open-questions.md) §F2 as well as on
-the board, so both copies agree.
+✅ **TASK 3 — THE PARKING SHED — SHIPPED 2026-08-19**, `639a3a0` and `601b0f8`. ✅ **TASK 4 — ARRIVAL,
+ACQUIRE AND THE HOLDER — SHIPPED 2026-08-19**, `44e11e2` and `bf04db8`. ✅ **TASK 5 — THE ENDPOINT
+SWAP — SHIPPED 2026-08-19**, `f53710e`. ✅ **TASK 6 — THE CONSERVATION SUM — SHIPPED 2026-08-19**;
+`Invariant.ParkingOccupancyIsConserved` is live in the end-of-run tier, 1,700 assertion-tier tests
+green and no baseline moved. **Two tasks left, and task 7 — something to look at, the tenth runner
+mode — is next. Ungated** — session **H** cleared this row on 2026-08-12 and the clearance is written
+in [`0002`](0002-open-questions.md) §F2 as well as on the board, so both copies agree.
 
 ⚠ **Task 3 shipped with two defects in the index it introduced, both found on 2026-08-19 and both
 fixed in `0d8b114`, and neither was found by anything task 3 wrote.** `CarParkResidency` was a
@@ -482,6 +485,64 @@ known and is worse**. `adr/0100`: moving the hash costs nothing while nobody is 
 citing hash movement as a reason to defer or split is itself a defect.
 
 ### Task 6 — the conservation sum
+
+✅ **SHIPPED 2026-08-19.** `Invariant.ParkingOccupancyIsConserved` — id **42**, not the 40 predicted
+below, because two sessions allocated 40 on the same day and the merge moved parking's — is live,
+registered last in the end-of-run tier, and its `[Unbuilt]` marking is gone.
+`WorldInvariants.ParkingOccupancyIsConserved` sums `CarParkTable.Occupied` over live rows against the
+Citizens whose `ParkedIn` still **resolves**. Assertion tier **1,700 green**, and **no baseline moved**:
+an invariant only reads, so `05 §4`'s test makes it an optimisation by construction.
+
+⚠ **The prediction that check 7 would have to be built first was right, and it was built first — and
+the check still could not see the defect this task found.** `02 §10`'s tier table named
+`ParkingOccupancyIsConserved` in its **per-Tick** row, which is the tier
+[`adr/0084`](../docs/adr/0084-parking-occupancy-is-two-checks-and-an-invariant-over-absent-state-cannot-be-written.md)
+demoted it out of two months ago. Check 7 asks whether every name in the table has a member; it does
+not ask whether the **row** is true of it, so a document naming a live member in the wrong tier reads
+as fully covered. ***A check that an obligation has a member does not check that the row it sits in is
+true of it***, and that hole is open for every other name in that table. The cell is repaired and
+carries the correction; the general form is filed to [`0012`](0012-corpus-audit.md) beside check 7.
+
+⚠ **The leak it is written for cannot happen yet, and naming what it guards is the point.**
+`World.DestroyCitizen` and `World.DestroyHousehold` unlink a Citizen from its Household, its employer
+and its Commute — and from no Car Park — so a Citizen freed while holding a space leaves the occupancy
+up with nobody standing in it. **Neither has a caller outside a test**, so this is a check on a pairing
+that has not been made rather than on one that is broken, which is `TripHasAFate`'s shape and the same
+argument `ParkingSpaceIsReleasedOnce` makes about the second release site. ⚠ **It presents as a
+well-provisioned city**: the spaces are simply gone, every shed query finds less room than the city
+built, and the shortage the player feels is one nobody caused.
+
+⚠ **The demolition case is what decides whether this can run in a city at all, and it is the reason
+both sides skip an unresolvable holding.** `CitizenTable.ParkedIn` is `Reference.Severable` exactly so
+a garage can come down under a parked car; `World.DestroyBuilding` frees the Car Park row without
+unparking anybody, so **both sides lose the row in the same act**. A version counting any non-default
+handle would fire on every demolition — the wrong diagnosis for the one mutation site allowed to drop
+a holding without a decrement.
+
+✅ **Task 5's hand-rolled copy of the sum is gone.** `ParkingCommuteTests` computed this equality
+inline over a 4,096-Tick driving city, written before the invariant existed; it now asserts
+`Occupied(world) > 0` and calls `RunEndOfRun`. ***A conservation check cannot also be a coverage
+check*** — the sum balances perfectly in a city where nothing happens, so the liveness half stays in
+the test and the equality moves to the tier. Two copies of one arithmetic is
+[`0012`](0012-corpus-audit.md) **Cause 1** pointed at the suite, and they would have gone on agreeing
+until one operand was corrected in one of them.
+
+✅ **Four tests, each verified by a mutation that kills exactly one.** Weakening the equality to `>=`
+kills only the leak test; to `<=` only the unpaired-holder test; counting any non-default handle kills
+only the demolition test; and forcing the sum to zero kills only the driving-city test, which is what
+says the invariant is reached by a real run and not merely registered.
+
+⚠ **One thing was expected here and is not owed after all.** This section says the right-hand side is
+*"not what `adr/0084` says it is"* and that this task carries the correction. It does not:
+`adr/0119` amended that ADR **in place on 2026-08-18**, at the opening sitting, so what shipped here
+matches the ADR as it now reads and the correction was already carried before the first task shipped,
+let alone this one. ***A correction filed at the sitting is not still owed at the task*** — and a
+scoping warning is written before the sitting, so it goes stale the moment the sitting discharges it
+and nothing rereads it until the task comes round.
+
+---
+
+*Original section follows, unedited.*
 
 `ParkingOccupancyIsConserved`, end of run, on `TrafficIsConserved`'s and
 `BinCapacitiesMatchTheirDeclarations`' precedent. **The next free `Invariant` id is 40** — the enum runs

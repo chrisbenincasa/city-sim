@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Invariants;
 using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -37,31 +38,36 @@ public sealed class ParkingCommuteTests
     /// <b>Somebody drives, parks, and is recorded as holding the space they took.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The assertion is on the <em>pair</em> across a whole run, exactly as
     /// <c>ParkingHoldTests</c> asserts it at one write site: summed occupancy against the number of
     /// Citizens whose holding resolves. That equality is <c>adr/0084</c>'s conservation sum with the
     /// operand this milestone corrected — <b>Citizens</b>, not Travellers, so a car parked overnight
     /// with no journey in flight still counts on both sides.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Task 5 wrote that sum out here by hand and task 6 made it
+    /// <see cref="Invariant.ParkingOccupancyIsConserved"/>, so the loop is gone and the tier is
+    /// asked instead.</b> A test holding its own copy of an invariant's arithmetic is
+    /// <c>plans/0012</c> <i>Cause 1</i> with the drift pointed at the suite: the two would go on
+    /// agreeing right up until one operand was corrected in one of them.
+    /// </para>
+    /// <para>
+    /// <b>What stays here is the half the invariant must never make — that anybody parked at all.</b>
+    /// The sum balances perfectly in a city where nothing ever happens, so an invariant asserting
+    /// liveness would fire on every legitimately empty world, and a test that only ran the invariant
+    /// would pass on one. ***A conservation check cannot also be a coverage check***, which is why
+    /// the two claims sit on either side of this line.
+    /// </para>
     /// </remarks>
     [Fact]
     public void A_driving_city_parks_its_cars_and_the_two_sides_agree()
     {
         World world = Run(ownership: 100);
 
-        int occupied = 0;
+        Assert.True(Occupied(world) > 0, "nobody parked anywhere, so the wiring is not reached at all.");
 
-        for (int slot = 0; slot < world.CarParks.Rows.SlotCount; slot++)
-        {
-            if (world.CarParks.Rows.IsLive(slot))
-            {
-                occupied += world.CarParks.Occupied[slot];
-            }
-        }
-
-        int holders = Holders(world);
-
-        Assert.True(occupied > 0, "nobody parked anywhere, so the wiring is not reached at all.");
-        Assert.Equal(holders, occupied);
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>
@@ -78,15 +84,24 @@ public sealed class ParkingCommuteTests
     {
         World world = Run(ownership: 0);
 
+        Assert.Equal(0, Occupied(world));
+        Assert.Equal(0, Holders(world));
+    }
+
+    /// <summary>Summed occupancy over every live Car Park.</summary>
+    private static int Occupied(World world)
+    {
+        int occupied = 0;
+
         for (int slot = 0; slot < world.CarParks.Rows.SlotCount; slot++)
         {
             if (world.CarParks.Rows.IsLive(slot))
             {
-                Assert.Equal(0, world.CarParks.Occupied[slot]);
+                occupied += world.CarParks.Occupied[slot];
             }
         }
 
-        Assert.Equal(0, Holders(world));
+        return occupied;
     }
 
     /// <summary>

@@ -689,6 +689,106 @@ public sealed class InvariantTierTests
                 () => engine.Release(world.Trips.Rows.Resolve(trip))).Violation.Invariant);
     }
 
+    // ---- Parking: adr/0084's conservation half ----
+
+    /// <summary>
+    /// <b>Occupancy nobody is standing in is caught.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0084</c>'s leak, written by hand: an acquire with no matching release. The realistic
+    /// route to it is a Citizen freed while holding a space — <see cref="World.DestroyCitizen"/>
+    /// unlinks a Citizen from its Household, its employer and its Commute and from no Car Park — and
+    /// the freeing is what this test does, so the failure it watches is the one that would happen
+    /// rather than a shape invented for the check.
+    /// </para>
+    /// <para>
+    /// <b>It presents as a well-provisioned city rather than as a crash</b>, which is why nothing
+    /// else would report it: the spaces are gone, every shed query finds less room than the city
+    /// built, and the shortage the player feels is one nobody caused.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_car_park_holding_a_car_nobody_owns_is_caught()
+    {
+        World world = Built();
+        int carPark = Park(world, citizen: 0);
+
+        world.DestroyCitizen(world.Citizens.Rows.At(0));
+
+        Assert.Equal(Invariant.ParkingOccupancyIsConserved, CaughtAtEnd(world));
+        Assert.Equal(1, world.CarParks.Occupied[carPark]);
+    }
+
+    /// <summary>
+    /// <b>The other direction: a driver holding a space the occupancy does not count.</b>
+    /// </summary>
+    /// <remarks>
+    /// An equality asserted in one direction only is an inequality, and this is the half a
+    /// <c>&gt;=</c> would let through. It is <see cref="Invariant.ParkingSpaceIsReleasedOnce"/>'s
+    /// failure surviving to the end of the run — a decrement made without the holder's column being
+    /// cleared — which the write-site check catches only if the release goes through
+    /// <see cref="World.ReleaseParking"/> at all.
+    /// </remarks>
+    [Fact]
+    public void A_driver_holding_a_space_the_occupancy_does_not_count_is_caught()
+    {
+        World world = Built();
+        int carPark = Park(world, citizen: 0);
+
+        world.CarParks.Move(carPark, -1);
+
+        Assert.Equal(Invariant.ParkingOccupancyIsConserved, CaughtAtEnd(world));
+    }
+
+    /// <summary>
+    /// <b>A garage demolished under a parked car is not a violation, and this is the case that
+    /// decides whether the check can be run in a city at all.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>CitizenTable.ParkedIn</c> is <c>Reference.Severable</c> exactly so that a Car Park can be
+    /// torn down under a holder, and <c>World.DestroyBuilding</c> frees the row without unparking
+    /// anybody. Both sides of the sum lose the row in the same act — the occupancy with the column it
+    /// sat on, the holder with its resolution — so a demolition that read as a leak would make the
+    /// invariant fire on the ordinary operation of the city.
+    /// </remarks>
+    [Fact]
+    public void A_garage_demolished_under_a_parked_car_is_not_a_violation()
+    {
+        World world = Built();
+        int carPark = Park(world, citizen: 0);
+
+        world.CarParks.Rows.Free(world.CarParks.Rows.At(carPark));
+
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// Parks <paramref name="citizen"/> in a Car Park raised for the purpose, and returns its slot.
+    /// </summary>
+    /// <remarks>
+    /// <b>Both writes, made the way <see cref="World.TryTakeParking"/> makes them</b>, because a
+    /// fixture that wrote only one would start every test below in the state one of them is trying to
+    /// detect. There is no shed here and none is wanted: <c>[parking]</c> is a Ruleset table and
+    /// <see cref="Built"/> loads no Ruleset, and what this suite corrupts is the world rather than
+    /// the query that reaches it.
+    /// </remarks>
+    private static int Park(World world, int citizen)
+    {
+        int carPark = world.CarParks.Rows.Resolve(
+            world.CarParks.Create(
+                world.Buildings.Rows.At(0),
+                default,
+                Tiles.Zero,
+                StreetSide.Right,
+                capacity: 4));
+
+        world.CarParks.Move(carPark, 1);
+        world.Citizens.ParkedIn[citizen] = world.CarParks.Rows.At(carPark);
+
+        return carPark;
+    }
+
     private static Invariant Caught(World world) =>
         Assert.Throws<InvariantViolationException>(() => Sweep(world)).Violation.Invariant;
 
