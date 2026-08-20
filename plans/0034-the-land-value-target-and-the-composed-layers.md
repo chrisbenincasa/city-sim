@@ -360,7 +360,58 @@ non-integral whenever the composition is, `w₁` or no `w₁`.
 ⚠ **This list is contingent on decisions 1 to 4** and is written in the shape the recommendations
 above imply. If decision 2 goes to (c) there is no milestone here and that is the finding.
 
-### Task 1 — noise and near-road pollution, as point-of-use queries
+### Task 1 — noise and near-road pollution, as point-of-use queries — ✅ **DONE 2026-08-20**
+
+> ✅ **Shipped.** `LineSourceQueries.Noise` and `.NearRoadPollution` compose; `.Amenity` still throws.
+> **No Ruleset key and no hash moved** — nothing calls either query yet, and the range and weights go in
+> with task 3's so the eight Rulesets take **one** edit rather than two.
+>
+> ⚠ **The landing site already existed and this document's survey missed it.** `LineSourceQueries.cs`
+> shipped in **3c** as a documentation-only stub carrying the two constraints, and **all three** of its
+> throw messages said the Road Graph *"does not exist in Phase 1"* — a third stale sentence beside the
+> two already found. Its constraints were kept verbatim and the implementation written against them.
+>
+> ✅ **`02 §2.5`'s seven questions were run and confirmed the classification rather than changing it**:
+> line source, superposes, isotropic, no memory, read by a Rule, derived from stored volume → **local
+> query**, admitted on *the source set is small or known by construction*.
+>
+> **Four findings, and three are defects the tests caught rather than things the design said.**
+>
+> **F8 — the sum's domain was never stated, and both readings are available from the prose.** `02 §2.4`
+> says the falloff is logarithmic **and** that the query sums. **Summing log-domain values is wrong** —
+> two equal sources are half a bel louder, not twice as loud. Intensities accumulate linearly and
+> `Log1P` is applied **once**, which makes the wrong arithmetic unreachable rather than discouraged.
+> `Log1P` and not `Log` so **silence returns zero**, which `adr/0123` needs to be an honest reading.
+> ***Two correct sentences that constrain the build jointly, and neither says so*** — decision 1's shape,
+> a third time.
+>
+> **F9 — `IntensityPerFlow` is not a scale, and the reasoning that it is one is the trap.** Under a plain
+> logarithm it would be. Under `Log1P` it decides **which regime the city sits in**: set too low, every
+> intensity lands in the linear stretch, two sources come out *exactly* twice as loud, and the field is
+> the linear sum the logarithm was chosen to prevent — **while still looking like a level**. Found
+> because the test asserted **sub-linearity** rather than a number; a test asserting a number would have
+> been rewritten to match the bug. ⚠ **This makes it a shape parameter, so decision 5's floor reads it
+> too.**
+>
+> **F10 — `Frontage.Locate` looks like the background function and is not.** It answers *which Segment
+> does this Address front* and returns nothing unless the Tile lies **exactly on** a lattice line —
+> correct for an Address, which is never anywhere else. Used for the ambient background it gave **zero
+> everywhere except on the carriageway**, disabling the enumerate-by-loudness crossover **without failing
+> anything**. The background is now the nearest local Street, and an off-lattice Street counts while an
+> Arterial never does.
+>
+> **F11 — `RoadFixtures.Chain` is not on the lattice, and it reads as though it is.** Its nodes are 32
+> Tiles apart and its Ruleset declares `block_tiles = **512**`, so every Segment it makes is off-lattice.
+> Every test written against it exercised the **linear scan**, and the lattice window — the half the
+> query exists to be fast in — had no coverage while the file looked thorough. ***A fixture named for a
+> shape is not a fixture of that shape.*** Covered now by a local fixture, plus an equivalence assertion
+> that both halves of the source set return the **same** answer for the same geometry.
+>
+> ⚠ **Owed to [`0013`](0013-tick-budget.md) when task 4 lands, not now**: the query walks a
+> `ceil(range/block)` window twice plus the off-lattice scan, and task 4 calls it per live Cell every 256
+> Ticks. **It is a Tick consumer with a guessed multiplicand and no row yet** — filed on the day the
+> caller exists, per [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md).
+
 
 The one unbuilt desirability input whose blocker has cleared. `02 §2.4` and `adr/0034` have already
 decided everything about it except the code:

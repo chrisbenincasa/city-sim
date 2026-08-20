@@ -295,9 +295,16 @@ public class LayerFieldsTests
     /// <remarks>
     /// <c>plans/0009</c> task 7: <b>leave named holes rather than placeholders.</b> A placeholder
     /// returning zero is a value that will be read, believed, and tuned around; a hole that fails
-    /// loudly is a hole. Each of these composes or queries something that does not exist — terrain
-    /// suitability needs the world generator, and noise, near-road pollution and amenity all need the
-    /// Road Graph.
+    /// loudly is a hole.
+    /// <para>
+    /// ⚠ <b>This test used to name five holes and now names three, and the two that left did so on
+    /// different days for different reasons.</b> Noise and near-road pollution were built by milestone
+    /// 9 task 1. <see cref="MapLayers.Desirability"/> is next and will leave by
+    /// <c>adr/0123</c>. What is left is terrain suitability, which needs the world generator at
+    /// milestone 24 (<c>adr/0124</c>), and amenity, which needs a <b>kind</b> on a Business at
+    /// milestone 15 — <em>not</em> the Road Graph, which shipped in 5a and which this test's own
+    /// remark named as the blocker for three fields it was not the blocker for.
+    /// </para>
     /// </remarks>
     [Fact]
     public void Every_composite_and_every_line_source_refuses_rather_than_answering()
@@ -308,10 +315,6 @@ public class LayerFieldsTests
 
         Assert.Throws<NotSupportedException>(() => layers.Fertility(east, north));
         Assert.Throws<NotSupportedException>(() => layers.Desirability(east, north));
-
-        Assert.Throws<NotSupportedException>(() => LineSourceQueries.Noise(new Tiles(4), new Tiles(4)));
-        Assert.Throws<NotSupportedException>(
-            () => LineSourceQueries.NearRoadPollution(new Tiles(4), new Tiles(4)));
         Assert.Throws<NotSupportedException>(() => LineSourceQueries.Amenity(new Tiles(4), new Tiles(4)));
     }
 

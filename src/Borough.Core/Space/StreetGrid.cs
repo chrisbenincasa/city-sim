@@ -56,6 +56,7 @@ public sealed class StreetGrid
     private int[] _horizontal = [];
     private int[] _vertical = [];
     private int[] _nodes = [];
+    private int[] _offLattice = [];
 
     /// <summary>Intersections along one edge of the map. Zero where the world has no roads.</summary>
     public int Span { get; private set; }
@@ -65,6 +66,39 @@ public sealed class StreetGrid
 
     /// <summary>Blocks along one edge of the map — one fewer than the intersections.</summary>
     public int Blocks => Span > 0 ? Span - 1 : 0;
+
+    /// <summary>
+    /// Live Segments this index does <b>not</b> hold. <b>The complement, and it is recorded rather
+    /// than derivable.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A Segment earns a lattice place by geometry, so everything else — every
+    /// <see cref="RoadKind.Arterial"/>, every Street whose endpoints miss the lattice, every Street on
+    /// the lattice but not one step long — falls out of <see cref="Rebuild"/> through a
+    /// <c>continue</c> and was, until this list existed, <b>invisible to any caller that asked the
+    /// index what roads are near a Tile</b>.
+    /// </para>
+    /// <para>
+    /// <b>It exists for <see cref="LineSourceQueries"/>, and the alternative was a silent gap.</b>
+    /// <c>02 §2.4</c> names noise's sources as <em>frontage Street volume + Arterials within ~300 m</em>,
+    /// so a lattice-only query omits the loudest ones and returns a quiet answer with nothing to say it
+    /// is incomplete. ⚠ <b>It is a linear scan on purpose.</b> <c>adr/0014</c>'s grid-plus-sparse-Arterials
+    /// layout is what makes the set small, and that premise is already load-bearing for this field —
+    /// <c>02 §2.4</c>'s enumerate-by-loudness rule rests on the same bimodality. <b>Using the model's own
+    /// premise as the implementation strategy is deliberate</b>: if the premise fails, the query's
+    /// classification fails with it and a fast index would not have saved it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Rebuilt only by <see cref="Rebuild"/></b>, in the pass that fills the lattice, so it cannot
+    /// disagree with the lattice about which Segments are on it. A second pass could.
+    /// </para>
+    /// </remarks>
+    public int OffLatticeCount { get; private set; }
+
+    /// <summary>The slot of the <paramref name="index"/>th Segment this index does not hold.</summary>
+    public int OffLatticeAt(int index) =>
+        index < 0 || index >= OffLatticeCount ? Rows.NoSlot : _offLattice[index];
 
     /// <summary>
     /// The Segment running east from intersection <c>(column, row)</c>, or
@@ -138,6 +172,13 @@ public sealed class StreetGrid
             _nodes = new int[intersections];
         }
 
+        if (_offLattice.Length < segments.Rows.SlotCount)
+        {
+            _offLattice = new int[segments.Rows.SlotCount];
+        }
+
+        OffLatticeCount = 0;
+
         // NoSlot rather than zero, because zero is a real Segment slot. The same plus-one reasoning
         // Address and LotTable.BuildingSlot give, spelled the other way round: here the array is
         // cleared explicitly, so the sentinel is free to be -1.
@@ -145,14 +186,9 @@ public sealed class StreetGrid
         Array.Fill(_vertical, Rows.NoSlot, 0, edges);
         Array.Fill(_nodes, Rows.NoSlot, 0, intersections);
 
-        if (Span == 0)
-        {
-            return;
-        }
-
         // The nodes first, because the Segment pass reads lattice positions off them and a Segment
         // whose endpoints are not on the lattice is not a block face.
-        for (int slot = 0; slot < nodes.Rows.SlotCount; slot++)
+        for (int slot = 0; Span > 0 && slot < nodes.Rows.SlotCount; slot++)
         {
             if (nodes.Rows.IsLive(slot) && OnLattice(nodes, slot, out int column, out int row))
             {
@@ -160,25 +196,40 @@ public sealed class StreetGrid
             }
         }
 
+        // Every live Segment is placed on the lattice or recorded as off it, in ONE pass. The
+        // complement is what LineSourceQueries walks, and computing it here rather than in a second
+        // pass is what stops the two disagreeing about which Segments are on the lattice.
         for (int slot = 0; slot < segments.Rows.SlotCount; slot++)
         {
-            if (!segments.Rows.IsLive(slot)
-                || (RoadKind)segments.Kind[slot] != RoadKind.Street
-                || !nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
-                || !nodes.Rows.TryResolve(segments.NodeB[slot], out int b)
-                || !OnLattice(nodes, a, out int columnA, out int rowA)
-                || !OnLattice(nodes, b, out int columnB, out int rowB))
+            if (!segments.Rows.IsLive(slot))
             {
                 continue;
             }
 
-            if (rowA == rowB && columnB == columnA + 1)
+            bool placed = false;
+
+            if (Span > 0
+                && (RoadKind)segments.Kind[slot] == RoadKind.Street
+                && nodes.Rows.TryResolve(segments.NodeA[slot], out int a)
+                && nodes.Rows.TryResolve(segments.NodeB[slot], out int b)
+                && OnLattice(nodes, a, out int columnA, out int rowA)
+                && OnLattice(nodes, b, out int columnB, out int rowB))
             {
-                _horizontal[(rowA * Blocks) + columnA] = slot;
+                if (rowA == rowB && columnB == columnA + 1)
+                {
+                    _horizontal[(rowA * Blocks) + columnA] = slot;
+                    placed = true;
+                }
+                else if (columnA == columnB && rowB == rowA + 1)
+                {
+                    _vertical[(columnA * Blocks) + rowA] = slot;
+                    placed = true;
+                }
             }
-            else if (columnA == columnB && rowB == rowA + 1)
+
+            if (!placed)
             {
-                _vertical[(columnA * Blocks) + rowA] = slot;
+                _offLattice[OffLatticeCount++] = slot;
             }
         }
     }
