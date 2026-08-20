@@ -17,8 +17,10 @@ located and freed; then `[parking] radius_metres = 400` in all five shipped Rule
 ACQUIRE AND THE HOLDER — SHIPPED 2026-08-19**, `44e11e2` and `bf04db8`. ✅ **TASK 5 — THE ENDPOINT
 SWAP — SHIPPED 2026-08-19**, `f53710e`. ✅ **TASK 6 — THE CONSERVATION SUM — SHIPPED 2026-08-19**;
 `Invariant.ParkingOccupancyIsConserved` is live in the end-of-run tier, 1,700 assertion-tier tests
-green and no baseline moved. **Two tasks left, and task 7 — something to look at, the tenth runner
-mode — is next. Ungated** — session **H** cleared this row on 2026-08-12 and the clearance is written
+green and no baseline moved. ✅ **TASK 7 — `--parking`, THE TENTH RUNNER MODE — SHIPPED 2026-08-19**;
+1,717 tests green, and ⚠ **its first run found the arrival walk bounded by the shed and the departure
+walk bounded by nothing**, filed to [`0002`](0002-open-questions.md) §C. **One task left, and task 8 —
+the long acceptance run and the two questions it ratifies — is next. Ungated** — session **H** cleared this row on 2026-08-12 and the clearance is written
 in [`0002`](0002-open-questions.md) §F2 as well as on the board, so both copies agree.
 
 ⚠ **Task 3 shipped with two defects in the index it introduced, both found on 2026-08-19 and both
@@ -560,6 +562,76 @@ it removes its worked example, so the check should be built **before** this task
 its motivating case will have evaporated.
 
 ### Task 7 — something to look at
+
+✅ **SHIPPED 2026-08-19.** `--parking`, `src/Borough.Headless/ParkingDump.cs`, three panels: the walk
+**from** the car, the walk **to** it, and supply against holding. Seventeen tests, assertion tier
+**1,717 green**. It refuses a Ruleset stating no `[parking]` and one whose Households keep no car —
+`--traffic`'s polarity — and **the second refuses four of the seven shipped files**, `minimal.toml`
+among them, which is the same coverage hole that kept this milestone off the golden baseline.
+
+⚠ **The instrument found something on its first run, and it is a claim rather than an impression: the
+arrival walk is bounded by the shed and the departure walk is bounded by nothing.** A space is chosen
+by `World.TryChooseParking` from a ball of `[parking] radius_metres` around the **destination's** door,
+so the walk *from* the car cannot exceed a walk across the shed — **4.8 minutes** at 400 m. Nothing
+bounds the walk *to* it: `TripEngine.Itinerary` sets `waypoints[1]` from `World.HeldParkingAddress`,
+which is where the **last** journey left the car, and relates it to `waypoints[0]` not at all. On
+`congested.toml` at 4,000 Citizens over 4,096 Ticks: **0 of 3,330** arrival walks exceed the ceiling
+and **57 of 3,330** departure walks do, the longest at **16.6 minutes**. ***A walk more than three
+times the shed's own diameter is not a shed walk***, which is what makes the reading a proof rather
+than a large number.
+
+⚠ **The first explanation was wrong and the run refuted it in one command.** The obvious cause is a
+failed morning journey leaving a Citizen somewhere their car is not — and `--evidence` on the same
+city reports **2,364 completed, 0 no-route, 0 beyond budget, 0 stranded**. Nothing failed. So the
+departure walk is long in a city where every Trip succeeds, and the cause is upstream of any failure.
+***An instrument is worth building at the moment it can refute the story you would otherwise have
+written down.*** What it is remains open and is filed rather than guessed.
+
+⚠ **The ceiling is printed under *both* panels and that is the design of the picture.** On the arrival
+panel it is an assertion about the build — a walk past it is a space nothing could have chosen — and
+on the departure panel it is a contrast. Printing one number under one panel would have made the
+asymmetry an impression; printing the same number under both makes it a reading, and it is what the
+load-bearing test asserts. Two mutations kill it: pointing `waypoints[1]` at the origin collapses the
+departure tail, and shrinking the stated ceiling breaks the arrival half.
+
+✅ **The gap is a walk and never a grid, which is the brief's instruction and it held.** Capacity is
+declared per building **kind**, so a map of occupied spaces is the map `--zones` already draws — and
+`Supply_is_a_balance_rather_than_a_map` exists to fail on the day somebody adds the obvious picture.
+What the supply panel prints instead is the balance and the **peak**, because a closing occupancy is a
+statement about what time the run stopped: `adr/0101` anchors a commute on the Workplace's Shift and
+Tick 0 is midnight, so a run ending mid-morning ends with the residential sheds empty.
+
+✅ **Decision 3's finding is printed rather than left for a reader to notice.** Where the peak is under
+half the supply the panel says so *and* says no `--citizens` will change it, because capacity is per
+kind and demand is per Citizen and the generator sizes both from one population. That is the shed
+radius's ratifier — `plans/0002` **D1**, *the walk-Leg distribution as occupancy approaches 1* —
+telling the operator in the instrument that this world cannot reach its own condition.
+
+⚠ **Two defects were found in the wiring rather than in the picture, and one of them predates this
+task.** `--evidence` shipped with **no mutual-exclusion block at all**, so `--evidence --traffic`
+parsed silently and whichever mode sat higher in the ternary won. ***A picture flag that loses an
+argument it never announced is worse than a refused one*** — the operator reads the other picture's
+output as the one they asked for. Both blocks landed here and
+`The_evidence_flag_now_refuses_a_second_picture_too` is the row that would have failed yesterday. And
+`--parking` had to be added to the census disjunction or the flag would have been *accepted and
+silently ignored*, which is the exact hole that block was written to close.
+
+⚠ **Four sentences in `src/` said a Tick was `10.546875` seconds and
+[`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+made it `42.1875` — a factor of four, one of them printed to the operator.** Found on the way in,
+because this task needed the same conversion. **All five statements derive it correctly and then quote
+the old value**, which is Cause 5 inverted: there the digits travel away from their clause, and here
+***the clause stayed put and went on producing digits nobody recomputed***. The arithmetic was never
+wrong — `TripDump.Minutes` divides by `Ticks.PerDay` — so no test could fail and no output disagreed.
+Repaired at all four sites and filed to [`0012`](0012-corpus-audit.md) as milestone 7's collection.
+
+✅ **Three stale counts were repaired by deleting the count.** *Nine flags*, *a ninth mode* twice, *the
+eight pictures before it* — ***a count in prose is a fact that drifts***, and the tenth mode is what
+made the drift legible. None of them wanted a bigger number; each wanted the number gone.
+
+---
+
+*Original section follows, unedited.*
 
 The **tenth** runner mode, after `--traffic` (eighth) and `--evidence` (ninth). The quantity is
 `adr/0009`'s own sentence: **where people parked against where they were going**, and the walk between.

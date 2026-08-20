@@ -973,6 +973,42 @@ milestone creates the first load. Nothing enumerates them; this is the one that 
 
 ---
 
+### Milestone 7's collection — one, and it is the first defect in this ledger that a **printed number** carried
+
+**1. ⚠ A Tick's duration in seconds was stated as `10.546875` in four places in `src/`, and
+[`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+made it `42.1875` — a factor of four, in one string the runner prints to its operator.** Found
+2026-08-19 while scoping milestone 7 task 7, which needed the same conversion.
+
+The four sites were `Borough.Headless/TripDump.cs` at the **printed** line and twice in the comments
+either side of `Minutes`, `Borough.Core/Quantities/Speed.cs` twice, and
+`Borough.Core/Quantities/TravelTime.cs` once. **All five statements derive it correctly and then quote
+the old value** — *"a Day is 86,400 s over `Ticks.PerDay` Ticks, so a Tick is 10.546875 s"* — which is
+**Cause 5 inverted**: there the digits travel away from the clause that qualifies them, and here the
+**clause stayed put and went on producing digits nobody recomputed**. `Ticks.cs` names both values in
+one sentence, so the corpus knew the whole time. ***A derivation written out beside its result is not
+self-correcting; it is two claims, and only one of them is checked by anything.***
+
+⚠ **The arithmetic was never wrong.** `TripDump.Minutes` divides by `Ticks.PerDay`, so every figure the
+instrument printed was right and the sentence explaining it was wrong by 4×. That is the worst
+available arrangement — a wrong statement no test can fail and no output disagrees with — and it is
+why this was found by somebody about to reuse the method rather than by the suite.
+
+⚠ **`Speed.cs`'s was a stated *consequence* and not just a value**: *"at 10.546875 s a car clears a
+128 m Segment in 0.9 Ticks, which is far too coarse for Lane queues to form."* At 42.1875 s it is
+**0.22** Ticks, so the correction makes that argument **stronger** and nothing downstream of it moves.
+[`03 §3`](../docs/03-agent-architecture.md) already carried the corrected figure from the other end —
+the crossing rate is **~4.6** Segments a Tick, not `adr/0041`'s *about one* — so a **document and the
+code it describes disagreed about one number for a month**, which no check in this corpus can see:
+they are all document-to-document.
+
+**Repaired 2026-08-19** at all four sites, each carrying what it used to say. **The mechanical check
+is the open half** and it is not obviously cheap: what would have caught this is a test that a derived
+constant quoted in prose agrees with the constant, and the prose is free text in a doc comment. The
+narrow form worth having is a **disqualifier registry entry for `10.546875`**, on *Cause 5*'s
+precedent — a retired value is exactly the sort of figure that should never appear again without the
+clause saying it is retired.
+
 ### Milestone 10's collection — three; the first is a new form of Cause 1 (two copies that disagree about a *direction*), and the second and third are new *surfaces* — a path, and the space across working trees
 
 **1. ⚠ [`06`](../docs/06-roadmap.md)'s dependency graph makes the District Pool a root, and

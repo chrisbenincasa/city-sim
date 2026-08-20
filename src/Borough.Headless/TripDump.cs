@@ -297,7 +297,7 @@ internal static class TripDump
                 + "before, so the 32-block row is 17-to-32 blocks and its walks are shorter than "
                 + "its label.");
             output.WriteLine(
-                "Walks are IN-WORLD minutes (a Tick is 10.55 in-world seconds, not the 1/16 s of "
+                "Walks are IN-WORLD minutes (a Tick is 42.19 in-world seconds, not the 1/16 s of "
                 + "wall clock plans/0013 is denominated in). Detour is the real walk against the "
                 + "grid ideal: 100% is the ideal, 160% is half again as far.");
             output.WriteLine();
@@ -490,7 +490,7 @@ internal static class TripDump
     /// <b>⚠ The conversion is the IN-WORLD one and this got it wrong first time, which is worth a
     /// sentence because the two rates are both real and both correct about different things.</b> A
     /// Tick is <b>1/16 s of wall clock</b> at the reference rate — that is the 15.6 ms budget's
-    /// world, and it is what <c>plans/0013</c> is denominated in — and <b>10.546875 s of in-world
+    /// world, and it is what <c>plans/0013</c> is denominated in — and <b>42.1875 s of in-world
     /// time</b>, because a Day is 86,400 s over <see cref="Core.Quantities.Ticks.PerDay"/> Ticks
     /// (<c>Speed.PerKilometrePerHour</c>'s derivation). A walk is a thing a <em>resident</em> does,
     /// so it is the second. The first reads a 3 km walk as 13 seconds, which is wrong by 169× and
@@ -501,7 +501,7 @@ internal static class TripDump
     internal static string Minutes(long rawTicks)
     {
         // Scaled BEFORE the fraction is dropped, and the order is the whole of the correction. This
-        // read `rawTicks >> 16` first, which floors to a whole Tick -- 10.546875 s of in-world time --
+        // read `rawTicks >> 16` first, which floors to a whole Tick -- 42.1875 s of in-world time --
         // and only then converted, so every figure this instrument printed was short by up to that
         // much. It showed up as the shipped 20-minute Commute Budget printing as 19.9, which is a
         // rounding artefact nobody would look twice at; on a 2.5-minute band it is 7%. The

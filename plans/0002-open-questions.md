@@ -254,6 +254,35 @@ rule is **when something concrete is blocked on it, not because it is available.
 
 ### `03-agent-architecture.md`
 
+- ⚠ **Does anything bound the walk *to* the car, and is a journey that begins with an unbounded walk
+  priced correctly? — NEW 2026-08-19, from milestone 7 task 7's first run.** ***Arguable.*** The walk
+  **from** the car is bounded by construction: `World.TryChooseParking` picks from a ball of
+  `[parking] radius_metres` around the **destination's** door, so it cannot exceed a walk across the
+  shed — **4.8 minutes** at 400 m. The walk **to** the car is bounded by nothing:
+  `TripEngine.Itinerary` sets `waypoints[1]` from `World.HeldParkingAddress`, which is where the
+  **last** journey left the car, and relates it to `waypoints[0]` not at all. `--parking` on
+  `rulesets/congested.toml` at 4,000 Citizens over 4,096 Ticks reports **0 of 3,330** arrival walks
+  past the ceiling and **57 of 3,330** departure walks past it, the longest **16.6 minutes**.
+  ***A walk more than three times the shed's own diameter is not a shed walk.***
+  - **The obvious explanation is refuted and that is why this is a row rather than a fix.** A failed
+    morning journey would strand a Citizen away from their car — and `--evidence` on the same city
+    reports **2,364 completed and zero failures of any kind**. The tail exists in a city where every
+    Trip succeeds, so whatever produces it is upstream of any failure and has not been named.
+  - **Two questions, and only the second is arguable.** *What produces it* is a fact somebody can go
+    and look at, and is work rather than a question. *Whether it should be bounded* is the design
+    question: [`adr/0009`](../docs/adr/0009-parking-is-modelled-supply-never-search.md)'s graceful
+    degradation is stated entirely about the **arrival** — *"the shed widens, the walk Leg lengthens"*
+    — and says nothing about the departure, which the build has since made the longer of the two.
+  - ⚠ **It is not obviously a defect.** A person who parked at work and slept at home really does have
+    a walk ahead of them, and refusing to model it would be the *unbuilt mechanism as a design
+    constraint* trap ([`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)).
+    What is genuinely open is whether the **Commute Budget** should be spending against it, since
+    [`adr/0095`](../docs/adr/0095-a-commute-budget-is-three-rungs-and-only-the-last-one-refuses.md)'s
+    three rungs are percentiles of a **free-flow, foot-only** distribution taken before either flanking
+    Leg had a cost at all.
+  - **Blocked on nothing and blocking nothing today.** Milestone 7 task 8's run is the machine that
+    would size it, and this row is what that task should read first.
+
 - ⚠ **Where a route lives at 1M — NEW 2026-08-14, and the premise is a *sharing rate* rather than a
   memory figure.** [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) moved route
   storage out of the travel-time matrix and sent the routes to *"the route cache"*; 5c task 4 built

@@ -471,8 +471,9 @@ internal static class Session
     /// </summary>
     /// <remarks>
     /// <b>Only a mode that prints a Ruleset-defined <em>name</em> needs this</b>, which until
-    /// <see cref="Mode.Evidence"/> was none of them — the eight pictures before it print quantities,
-    /// and a quantity needs no vocabulary. <see cref="RulesetNames.None"/> comes back for a run with
+    /// <see cref="Mode.Evidence"/> was none of them — every picture before it printed quantities, and
+    /// a quantity needs no vocabulary. <see cref="Mode.Parking"/> prints quantities too and takes the
+    /// two-argument overload. <see cref="RulesetNames.None"/> comes back for a run with
     /// no <c>--ruleset</c>, which is the honest answer: there was no file, so there are no names.
     /// </remarks>
     internal static bool TryRules(string? path, out Ruleset rules, out RulesetNames names)
@@ -784,5 +785,19 @@ internal static class Session
 
         using var writer = new StreamWriter(options.OutPath);
         return EvidenceDump.Run(options, writer);
+    }
+
+    /// <summary>Runs the Parking dump. Milestone 7 task 7.</summary>
+    internal static int DumpParking(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return ParkingDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return ParkingDump.Run(options, writer);
     }
 }
