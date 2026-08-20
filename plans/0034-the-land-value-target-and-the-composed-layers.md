@@ -6,9 +6,12 @@
 
 ## Status
 
-🟡 **SCOPED 2026-08-20, unstarted.** Six decisions are owed and **five of them must be settled before
-the task that composes anything**, because between them they decide whether the composition this
-milestone exists to write is arithmetically well-formed at all.
+🟡 **SCOPED 2026-08-20, unstarted. Decision 1 of six is SETTLED** — `w₁` is deleted,
+[`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md).
+**Five remain, four of them before the task that composes anything**, because between them they decide
+whether the composition this milestone exists to write is arithmetically well-formed at all. ✅ The
+first one was the one that decided whether it was well-formed *at all*, and the answer was that it was
+not.
 
 ⚠ **This milestone had no row anywhere until the day it was scoped.** Not in
 [`0000`](0000-board.md)'s ranked table, not in its per-milestone gate table, not in
@@ -65,7 +68,7 @@ Read from `src/`, not from any description of it.
 | `MapLayers.DriftLandValue` — the momentum, a first-order integer lag | `MapLayers.cs:280` | ✅ ships, runs on cadence, **converges to zero because the target is never set** |
 | `MapLayers.SetLandValueTarget` — the landing site | `MapLayers.cs:319` | ✅ ships. **Callers: `LayerFieldsTests`, `LayerQueryTests`, `FactorioTests`. None in `src/`** |
 | The land value cadence, `tick % 256 == 16` | `LayerSchedule` | ✅ ships, hash-bearing, `adr/0044` |
-| `MapLayers.Desirability` | `MapLayers.cs:550` | 🔴 **throws.** Three of five inputs do not exist |
+| `MapLayers.Desirability` | `MapLayers.cs:550` | 🔴 **throws.** Three of **four** inputs do not exist, post-[`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md) |
 | `MapLayers.Fertility` | `MapLayers.cs:523` | 🔴 **throws.** Terrain suitability does not exist |
 | Sealing — `Seal`, `Sealing` | `MapLayers.cs:338`, `:349` | ✅ ships, clamped at the write site |
 | `MapLayers.DecaySealing` | `MapLayers.cs:361` | ⚠ **ships and is never scheduled**, because its rate is keyed by terrain and there is no terrain to key it by |
@@ -104,7 +107,19 @@ the neighbourhood ships with it, and the recommendation in each is *less than `0
 **Five of the six are owed before any task that composes.** They are not independent: decision 1 can
 delete a term, decision 2 can defer two, and what is left is what decision 5 has to find ratifiers for.
 
-### 1. Is `w₁` a weight at all? **Owed before every other decision.** Typed *arguable*
+### 1. Is `w₁` a weight at all? ✅ **SETTLED 2026-08-20 — it is not, and it is deleted.** Typed *arguable*
+
+> ✅ **Settled with the user in the room, 2026-08-20:
+> [`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md).**
+> `w₁·land_value` is **deleted**. The composition is `− w₂·pollution − w₃·noise + w₄·amenity −
+> w₅·shoreline`; the momentum operator supplies the persistence `w₁` looked like it was for. The
+> question put was *accident of notation, or prestige feedback somebody meant to build?* and the answer
+> was **accident**. Prestige feedback is not refused — it is **undesigned** under
+> [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md), and if it returns
+> it returns as its own mechanism with a stated gain and a bound, never as the first item in a list of
+> five weights. ⚠ **No bound and no load-time refusal are written**, because policing a deleted term is
+> machinery with no subject. Three copies of the formula amended: `02 §2.4`, `plans/0009` §7 and
+> `MapLayers.Desirability`'s doc-comment.
 
 `02 §2.4` says two things which have never been read together:
 
@@ -134,13 +149,14 @@ sends it to argument rather than to a machine. The formula appears in exactly tw
 it jointly. If it stays, it stays with the gain stated beside it and a bound `w₁ < 1` that something
 refuses at load.
 
-### 2. What does this milestone compose, when two of five inputs are unbuilt? **Owed before the composition task.** Typed *arguable*
+### 2. What does this milestone compose, when two of four inputs are unbuilt? **Owed before the composition task.** Typed *arguable*
 
-Of desirability's five inputs: **pollution ships**; **noise** is unbuilt and, since 5a, buildable;
-**amenity** is unbuilt and is *the count of distinct Business types reachable on foot*
-([`CONTEXT.md`](../CONTEXT.md) → Amenity), which needs Businesses and the Provider List and is placed
-at milestone **15**; **shoreline** needs Water Bodies, which nothing has built; and `w₁·land_value` is
-decision 1's.
+⚠ **Four inputs rather than five, since decision 1 deleted `w₁·land_value`.** Of them: **pollution
+ships**; **noise** is unbuilt and, since 5a, buildable; **amenity** is unbuilt and is *the count of
+distinct Business types reachable on foot* ([`CONTEXT.md`](../CONTEXT.md) → Amenity), which needs
+Businesses and the Provider List and is placed at milestone **15**; and **shoreline** needs Water
+Bodies, which nothing has built. So this decision is now *two of four*, and shape (c)'s cost fell with
+it — holding `Desirability` closed no longer waits on a term that has stopped existing.
 
 Three shapes, and the first is refused rather than merely unattractive:
 
@@ -347,10 +363,19 @@ asking each row for its inputs, not re-read.
 ### F3 — `w₁` is not a weight, and no document has ever said so
 
 Decision 1's algebra. The formula puts land value on both sides of a first-order lag, which makes `w₁`
-a gain of `1/(1 − w₁)` on the other four terms and makes the field divergent at `w₁ ≥ 1`. Two documents
-state the formula and neither states the loop. ⚠ **It was findable at any point since slice 6** — both
-halves have been in `02 §2.4` in adjacent paragraphs the whole time — and it was not found, because
-nobody had to compose anything until now. ***A formula nobody evaluates is not checked by being read.***
+a gain of `1/(1 − w₁)` on the other four terms and makes the field divergent at `w₁ ≥ 1`. ⚠ **It was
+findable at any point since slice 6** — both halves have been in `02 §2.4` in adjacent paragraphs the
+whole time — and it was not found, because nobody had to compose anything until now. ***A formula nobody
+evaluates is not checked by being read.*** ✅ Settled and deleted the same day,
+[`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md).
+
+⚠ **This paragraph said *"two documents state the formula"* and there are THREE.** The third is
+`MapLayers.Desirability`'s own doc-comment — the copy a *programmer* reads, and the one that would have
+been consulted by whoever wrote the producer. It is **invisible to every check in
+`tests/Borough.Tests/Corpus/`**, because those are document-to-document by construction, which
+`CLAUDE.md` states as a known blind spot and which this is a worked instance of. ***A count of where a
+claim lives, taken by reading the documents, is a count of the documents.*** Corrected on the day the
+decision was settled, by a `grep` over `src` and `tests` that the scoping session had not run.
 
 ### F4 — the dead-band repair and a moving target are correct alone and wrong together
 

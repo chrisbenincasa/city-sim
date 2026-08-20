@@ -146,9 +146,17 @@ Only what is actually a Layer under `adr/0034`'s classification:
 layer would need invalidating whenever any input changed, and would drift.
 
 ```
-Desirability = w₁·land_value − w₂·pollution − w₃·noise + w₄·amenity − w₅·shoreline
+Desirability = − w₂·pollution − w₃·noise + w₄·amenity − w₅·shoreline
 fertility(cell) = terrain suitability − Sealing − pollution
 ```
+
+> ⚠ **Amended 2026-08-20 — the composition's first term was `w₁·land_value` and it is deleted**
+> ([`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md)).
+> This section wrote the formula down and the table above it says land value *"moves toward current
+> desirability"*, so the field was a lag on a function of itself and `w₁` was a **gain** of `1/(1 − w₁)`
+> on the other four terms — divergent at `w₁ ≥ 1`, and at any value the thing that made an authored `w₂`
+> differ from the `w₂` in force. Nothing built here evaluated it, which is why the slice closed green
+> with the defect in it.
 
 Both are **derived and never stored**. Both also need inputs that do not exist yet — noise and
 amenity need the Road Graph, terrain suitability needs the generator. **Leave named holes rather

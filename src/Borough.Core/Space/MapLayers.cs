@@ -526,12 +526,18 @@ public sealed class MapLayers
             + "needs the world generator (02 §2.3). Composed at the point of use and never stored.");
 
     /// <summary>
-    /// <c>w₁·land_value − w₂·pollution − w₃·noise + w₄·amenity − w₅·shoreline</c>. <b>A named hole.</b>
+    /// <c>− w₂·pollution − w₃·noise + w₄·amenity − w₅·shoreline</c>. <b>A named hole.</b>
     /// </summary>
     /// <remarks>
     /// <para>
+    /// <b>Land value is not a term in its own target</b> (<c>adr/0122</c>). It was, and the field
+    /// drifts toward this composition, so <c>w₁</c> was a gain of <c>1/(1 − w₁)</c> on the remaining
+    /// terms rather than a fifth weight. The momentum operator supplies the persistence it looked like
+    /// it was for; four terms remain, of which two are buildable.
+    /// </para>
+    /// <para>
     /// <b>Derived and never stored</b> (<c>02 §2.4</c>): a stored desirability Layer would need
-    /// invalidating whenever any input changed, and would drift. Three of its five inputs do not
+    /// invalidating whenever any input changed, and would drift. Three of its four inputs do not
     /// exist. Noise and amenity both need the Road Graph, and neither is a Map Layer:
     /// </para>
     /// <para>
