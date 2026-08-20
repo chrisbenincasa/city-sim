@@ -670,7 +670,47 @@ them ([`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-buil
 > peak **1.07** — so the lag runs about **4%** behind its target, and about **209 of 262** Cells move on
 > a typical cadence sample.
 
-### Task 7 — the long acceptance run
+### Task 7 — the long acceptance run — ✅ **DONE 2026-08-20**
+
+> ✅ **100,000 Ticks on `rulesets/fouled.toml` at 1,000 Citizens, 49 Days read**, in
+> `LandValueLongRunTests`. **The level settles** — a mean of about **−168,000** Q16.16 from Day 13 to
+> Day 49, drifting under 10% between the two halves of that window. **The flow does not trend** — Day
+> -over-Day movement collapses from **11,135,893** on the fill to a band of roughly 200,000 to
+> 1,700,000, and never doubles. **The collection does not grow**: 163 Cell rows, constant.
+>
+> ⚠ **F29 — THE FLOOR REFUTED ONE OF ITS OWN READINGS, AND THAT IS WHAT A FLOOR IS FOR.** Readings 1
+> and 2 pass — the field varies, both terms are visible, pollution running about 8 to 11 times noise.
+> **Reading 3 fails**: pollution and noise are rank-concordant across Cells at **86 to 100 percent** on
+> every readable Day, so ***no ratio between `w₂` and `w₃` is identifiable in this world at all.***
+> [`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-built-is-not-reachable-so-the-weights-get-a-floor-and-a-debt.md)
+> said in its own words **it refutes and never confirms**, and it did.
+>
+> ⚠ **And the cause is sharper than the one `plans/0002` §D1 anticipated.** That entry expected the two
+> to co-vary because *industry and roads are both placed in proportion to the same population*. In
+> `fouled.toml` they do not merely correlate — ***they have the same source***: the emitting kind is
+> `dwelling` (F19), and dwellings are also what generate the commute. **The simplification that made
+> the floor reachable is what makes its third reading unreadable.** What is owed is the hand-authored
+> world §D1 already named, and it is now owed for a reason a run produced rather than a reason a
+> sitting predicted.
+>
+> ⚠ **F30 — the instrument had to be fixed twice before the quantity stopped depending on the
+> sampling.** A reading every 2,048 Ticks lands at the same hour every Day, and the obvious phase —
+> `(tick + 1) % 2048 == 0` — lands at **23:59**, where every Segment is empty and the noise term is
+> zero in every Cell. ***A periodic reading of an instantaneous quantity samples ONE HOUR of the day,
+> and which hour is a choice somebody has to make on purpose.*** Moved to 08:00: the noise term still
+> read **zero on ten of forty-nine Days**, because Shift starts spread over 6 to 10 and a
+> 1,000-Citizen city can have nobody on the road at that exact Tick. Four attempts cut it to two Days;
+> the shipped band — 06:00 to 12:00 every 32 Ticks — cuts it to **one**, and that one is asserted as a
+> quiet morning rather than tuned away. ***A silent Day is a reading about the world; it becomes a
+> reading about the instrument only when there are many of them.***
+>
+> ⚠ **The flatness is asserted on the FLOW, and the exempt axis is named.** Land value is a magnitude
+> that is *supposed* to move, so `adr/0006` is asserted on the mean over a window and on the total
+> absolute Day-over-Day movement. **The level within a Day is exempt**, because the target itself moves
+> with the Day ([`adr/0127`](../docs/adr/0127-the-land-value-target-never-stops-moving-so-the-question-is-what-the-lag-rests-around.md));
+> the flow across Days is not exempt and is what is checked.
+
+### Task 7 — as scoped
 
 100k+ Ticks, **no collection and no magnitude trending upward at steady state**. Land value is the
 awkward one: it is a magnitude that is *supposed* to move, so state the exception the way milestone 6
