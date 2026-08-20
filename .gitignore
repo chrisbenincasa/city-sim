@@ -519,4 +519,4 @@ CLAUDE.local.md
 .claude/handoff
 
 # plans/0002 §B: the allocation probe writes here when BOROUGH_ALLOC_PROBE points into the tree
-alloc-probe*.csv
+alloc-probe*.*

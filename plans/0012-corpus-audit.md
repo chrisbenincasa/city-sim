@@ -2620,3 +2620,74 @@ exceptions to that sentence**, for opposite reasons — thinning cannot help che
 documents do not disagree with each other but are all stale against a third thing neither stores; and it
 cannot help check 6 either, because there the documents are both *correct* and the defect is in what one
 of them declined to copy.
+
+---
+
+## Filed 2026-08-20, by the §B allocation measurement — two findings it did not go looking for
+
+Both surfaced while running six full unfiltered suites for `plans/0002` §B on an M4 Pro. Routed here
+on the day under [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md),
+before anything was worked around, because neither is owned by the code that found them.
+
+### The suite's test count is quoted as 1,745 in two documents and read 1,779 six times
+
+`plans/0000-board.md` and `plans/0033-conserved-money-and-the-treasury.md` both state the whole
+unfiltered suite is green at **1,745** on 2026-08-20. Six unfiltered Release runs at `243f22b` on that
+same date reported **1,779 total, 0 skipped**, every time. **A gap of 34, and it is stable rather than
+flapping**, so it is not a conditional-fact or a platform-skip artefact.
+
+⚠ **`243f22b` did not cause it.** That commit is the probe, and `git show --stat` says it touched nine
+files and added no `[Fact]` — it instrumented eight assertions that already existed. So the 1,745 was
+already wrong when it was written, or was taken against a different tree than the one it names.
+
+**This is *Cause 5* in its plainest form and also its most boring**: a count is a four-digit figure that
+travels beautifully and carries no clause, and both sightings are the same digits in two documents, which
+is *Cause 1* underneath. ⚠ **No mechanical check in this repository can see it** — every corpus check
+compares a document to another document, and here the two documents **agree with each other** and are
+both stale against a third thing neither stores. That is the shape `check 4` is already recorded as
+being unable to help with.
+
+**Needs judgement**: whether the repair is to correct the digits or to stop quoting a suite size in
+prose at all. `CLAUDE.md` already says *count them rather than quoting a total* about the ADRs, for
+exactly this reason, and nothing extends that rule to tests.
+
+⚠ **And the assertion tier has drifted the same way, in four places.** `CLAUDE.md`, `plans/0002`,
+`plans/0032` (twice) and [`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)
+all state the commit gate is **1,690 tests**. `--filter "tier!=instrument"` at `243f22b` reports
+**1,760**. **A gap of 70**, and it is the same defect one lane over — so the repair, whatever it is,
+has **six sites** and not two. ⚠ **Do not read the wall clock beside it the same way**: the 42s is
+correctly caveated to the reference machine and this run's **27s** is a different machine, so those two
+figures do not disagree. ***A count carries no machine and a duration does***, which is why the count
+drifted silently and the duration could not.
+
+### `JobSearchBoxTests.The_box_is_not_where_the_pass_spends_its_time` is a wall-clock ratio in the assertion tier, and it failed one run in six
+
+Run 2 of 6 went red on it: **a 5.34× box cost 2.21×** against a bound of **2.2**. The other five runs
+passed. It is **untagged**, therefore assertion tier, therefore it gates every commit.
+
+⚠ **The bound is not obviously wrong, and that is the finding.** Its own comment records the derivation
+— five runs on 2026-08-19 spanning **1.73–1.84** with the `decide` guard off, and 2.2 chosen
+*deliberately wider than the observed band* because 5c task 8 found that a band transplanted from a
+quieter quantity fails one run in ten with nothing wrong under it. **It then failed one run in six on a
+different machine**, at 2.21 — over by half a percent.
+
+**So the test measures wall clock and the corpus has a rule about that.**
+[`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)
+says a wall-clock budget names a machine class and a thread count or it is not a budget. This assertion
+names neither, and its comment's *"the ratio survives a slow CI box where an absolute would not"* is the
+reasoning that a **ratio** is machine-portable. ⚠ **A ratio of two timings taken inside a 14-way
+parallel suite is not machine-portable, because the two arms contend for cores differently** — the wide
+arm is longer and therefore more exposed to whatever else the scheduler is running. ***A ratio removes
+the machine's speed and does not remove its scheduler.***
+
+⚠ **It is separately in tension with `adr/0121`**: an assertion is a test that fails when the city
+changes, and this one can fail when the city has not changed. By `plans/0032`'s own discriminator —
+*what would you do on the day it failed* — the answer here was **re-run it**, which is neither of the
+two permitted answers.
+
+**Needs judgement, and three ways out are visible**: widen the bound again (which buys another machine
+and loses the guard), tag it `instrument` and move it post-submit (which matches what it actually is and
+loses the commit-time guard entirely), or replace the timing with a **counter** — box cells walked per
+pass — which is what the test is really asserting and is machine-independent by construction. **The
+third is the only one that does not trade the guard away**, and it is more work than the sitting that
+found this had. Recorded rather than built.

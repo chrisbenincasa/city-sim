@@ -61,6 +61,27 @@ namespace Borough.Tests.Tables;
 /// parallel suite at all.
 /// </para>
 /// <para>
+/// ⚠⚠ <b>AMENDED AGAIN 2026-08-20 by the machine above actually being run, and the amendment is that
+/// A COLLECTION IN THE WINDOW IS NOT NEARLY SUFFICIENT — while the question itself is STILL OPEN.</b>
+/// Six assertion-tier runs and then <b>six full unfiltered runs on a second machine</b> (Apple M4 Pro,
+/// 10P+4E, Release, workstation GC) have now produced <b>96 readings and not one firing</b>. Five of
+/// those windows <em>contained</em> collections and every one read <b>exactly zero bytes</b> — the
+/// worst of them <b>thirteen gen0 collections</b>, another carrying a <b>gen2</b>. The hypothesis this
+/// remark carried was <em>a collection forced by another thread retires this thread's context and the
+/// counter jumps</em>; ***the sufficiency half is refuted, and refuted with room to spare.***
+/// </para>
+/// <para>
+/// ⚠ <b>What survives is the weaker <em>a jump requires a collection</em>, and twelve runs have not
+/// tested it.</b> That claim is about jumps, and <b>nothing jumped</b>, so ninety-six zeroes are
+/// silent on it. ⚠ <b>Nor are twelve green runs evidence the fault is gone.</b> This is this remark's
+/// own protocol arriving at n=12 and still biting: at a per-run rate <c>p</c> the chance of six clean
+/// runs is <c>(1−p)⁶</c>, which excludes only <c>p</c> above <b>~39%</b> at 95% — and the rate
+/// actually observed on the reference machine is about <b>one run in three</b>, which this sample does
+/// not exclude. ***A rare event's absence is a statement about the sample size before it is a statement
+/// about the machine.*** <b>So neither branch may be taken</b>: the assertions are not yet known to be
+/// safe, and they are not yet known to be unsafe. <c>adr/0043</c> holds rather than being discharged.
+/// </para>
+/// <para>
 /// The claim being pinned is narrow and is the one adr/0006 cares about: <b>steady state allocates
 /// nothing</b>. Growth allocates, deliberately and once per doubling; it is excluded by pre-growing
 /// the table before the measured loop.
