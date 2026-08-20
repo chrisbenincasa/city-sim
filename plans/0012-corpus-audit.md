@@ -2654,8 +2654,16 @@ exactly this reason, and nothing extends that rule to tests.
 ⚠ **And the assertion tier has drifted the same way, in four places.** `CLAUDE.md`, `plans/0002`,
 `plans/0032` (twice) and [`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)
 all state the commit gate is **1,690 tests**. `--filter "tier!=instrument"` at `243f22b` reports
-**1,760**. **A gap of 70**, and it is the same defect one lane over — so the repair, whatever it is,
-has **six sites** and not two. ⚠ **Do not read the wall clock beside it the same way**: the 42s is
+**1,760**. ✅ **Reproduced on the reference machine 2026-08-20 — 1,760 passed, 0 failed** — so this
+half is confirmed on *both* machines rather than argued from one. ***That is the entry's own claim
+being tested rather than asserted***: a count carries no machine, so if the two machines had
+disagreed the finding would have been something else entirely. **A gap of 70**, and it is the same defect one lane over — so the repair, whatever it is,
+has ~~**six sites**~~ **seven sites across six documents** and not two — `CLAUDE.md`, `plans/0032`
+**twice**, `adr/0121` and `plans/0002` for the 1,690, and `plans/0000-board.md` and `plans/0033` for
+the 1,745. ⚠ **The site count was itself off by one**, corrected 2026-08-20 by opening all seven,
+which is this entry's own defect arriving inside the entry that reports it. ⚠ **And all five 1,690
+sites state the count and the 42s *in one sentence*** — so a repair that corrects the digits must
+leave the duration's machine caveat standing beside them, and cannot be a blind substitution. ⚠ **Do not read the wall clock beside it the same way**: the 42s is
 correctly caveated to the reference machine and this run's **27s** is a different machine, so those two
 figures do not disagree. ***A count carries no machine and a duration does***, which is why the count
 drifted silently and the duration could not.
