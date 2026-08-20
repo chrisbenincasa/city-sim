@@ -6,12 +6,18 @@
 
 ## Status
 
-🟡 **SCOPED 2026-08-20, unstarted. Decision 1 of six is SETTLED** — `w₁` is deleted,
-[`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md).
-**Five remain, four of them before the task that composes anything**, because between them they decide
-whether the composition this milestone exists to write is arithmetically well-formed at all. ✅ The
-first one was the one that decided whether it was well-formed *at all*, and the answer was that it was
-not.
+🟡 **SCOPED 2026-08-20, unstarted. Decisions 1 and 2 of six are SETTLED** —
+[`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md)
+deletes `w₁`, and [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md)
+settles the composition at **two terms, `− w₂·pollution − w₃·noise`**. **Four remain, three of them
+before the task that composes anything.**
+
+✅ **The formula went from five terms to two, and the milestone got smaller both times.** Decision 1
+asked whether the composition was well-formed at all and the answer was that it was not; decision 2
+found that *absent in the world* and *absent in the build* are different absences and only **one** term
+is the second kind. **Two weights to author rather than five**, which is what decision 5 has to find
+ratifiers for. ⚠ **What ships is bounded above by zero** — a **disamenity field**, because amenity is the
+only positive term and it belongs to milestone 15.
 
 ⚠ **This milestone had no row anywhere until the day it was scoped.** Not in
 [`0000`](0000-board.md)'s ranked table, not in its per-milestone gate table, not in
@@ -149,13 +155,50 @@ sends it to argument rather than to a machine. The formula appears in exactly tw
 it jointly. If it stays, it stays with the gain stated beside it and a bound `w₁ < 1` that something
 refuses at load.
 
-### 2. What does this milestone compose, when two of four inputs are unbuilt? **Owed before the composition task.** Typed *arguable*
+### 2. What does this milestone compose, when two of four inputs are unbuilt? ✅ **SETTLED 2026-08-20 — two terms, and the caveat gets a test.** Typed *arguable*
+
+> ✅ **Settled with the user in the room, 2026-08-20:
+> [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md).**
+> **Shape (b), and the composition is `− w₂·pollution − w₃·noise`.** Noise is built here; **amenity and
+> shoreline are absent from the formula rather than defaulted**; `MapLayers.Desirability` keeps its name
+> and stops throwing.
+>
+> ⚠ **The framing below is superseded on its central point, and by a fact read out of `src/`.** This
+> section lists the unbuilt terms together. They **split**, and the split decides the milestone:
+> ***absent in the world and absent in the build are not the same absence.*** Noise where nobody drives
+> is zero **and zero is true** — [`adr/0098`](../docs/adr/0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md)
+> already says a city before the motor car is a legitimate city. Shoreline is zero and **true of every
+> world that exists**: nothing in `src/` mentions a Water Body at all. **Only amenity is a false zero**,
+> so shape (a)'s objection reaches exactly one term and the decision was only ever about that one.
+>
+> ⚠ **And amenity is the only *positive* term**, so what ships is **bounded above by zero** — a
+> **disamenity field**, whose maximum is clean empty ground far from everything. That is not a hole that
+> fails loudly; it is a working mechanism that says something false, and it is the opposite failure from
+> the one the named-hole discipline was built for. It ships because **the producer is the milestone** and
+> holding `Desirability` closed means shipping no caller at all.
+>
+> ⚠ **A Ruleset base value to restore an upside was offered and refused**: a number whose only job is to
+> stand in for an absent term can be ratified against nothing, and
+> [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)
+> asks for a machine, a world and a quantity.
+>
+> ✅ **The caveat gets a mechanical check, not just prose** — a corpus test refusing any document to say
+> desirability is composed without naming amenity's absence, extending the **disqualifier registry**'s
+> idiom from a figure to a claim. **Owed by task 2 and written by it**, never before: today no document
+> makes the claim, so the test would pass vacuously, and ***a vacuously-passing obligation is an unread
+> one***.
 
 ⚠ **Four inputs rather than five, since decision 1 deleted `w₁·land_value`.** Of them: **pollution
 ships**; **noise** is unbuilt and, since 5a, buildable; **amenity** is unbuilt and is *the count of
-distinct Business types reachable on foot* ([`CONTEXT.md`](../CONTEXT.md) → Amenity), which needs
-Businesses and the Provider List and is placed at milestone **15**; and **shoreline** needs Water
-Bodies, which nothing has built. So this decision is now *two of four*, and shape (c)'s cost fell with
+distinct Business types reachable on foot* ([`CONTEXT.md`](../CONTEXT.md) → Amenity), placed at milestone
+**15**; and **shoreline** needs Water Bodies, which nothing has built.
+
+⚠ **This paragraph said amenity *"needs Businesses and the Provider List"* and both of those exist.**
+Businesses shipped with milestone **10** — [`06`](../docs/06-roadmap.md)'s own note says it *"builds the
+entity and its balance and nothing else of it"* — and `BusinessTable` holds exactly `building`, `balance`
+and `building_next`. What is missing is that **a Business has no kind**, so *distinct Business types* has
+nothing to be distinct in. One column and a walkable catchment query, both milestone 15's. ***A blocker
+named by listing what a mechanism needs is not the same as the one found by opening the table.*** So this decision is now *two of four*, and shape (c)'s cost fell with
 it — holding `Desirability` closed no longer waits on a term that has stopped existing.
 
 Three shapes, and the first is refused rather than merely unattractive:
@@ -259,9 +302,23 @@ exist in Phase 1"*. That sentence is stale — the Road Graph shipped in 5a.** F
 
 ### Task 2 — `Desirability` stops throwing, and composes what exists
 
-Three terms under decision 2's recommendation, with the two deferred ones **named in the method** and
-not defaulted to zero. Derived at the point of use and **never stored** — a stored desirability Layer
-would need invalidating whenever any input changed, and would drift.
+**Two terms** under [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md)
+— `− w₂·pollution − w₃·noise` — with amenity and shoreline **named in the method** and not defaulted to
+zero. Derived at the point of use and **never stored**: a stored desirability Layer would need
+invalidating whenever any input changed, and would drift.
+
+**Definition of done for this task, and the second item is not optional:**
+
+1. `MapLayers.Desirability` returns rather than throwing, and its doc-comment names both absent terms and
+   says the field is bounded above by zero.
+2. ✅ **The corpus check `adr/0123` schedules** — a test in `tests/Borough.Tests/Corpus/` refusing any
+   document to claim desirability is composed or built without also naming amenity's absence. It is
+   written **here**, by the task that makes the claim true, because before this task it passes vacuously.
+   ⚠ **It is deleted at milestone 15**, not kept: a check policing an absence outlives its subject the
+   day the absence ends.
+3. `02 §2.4` carries the shortfall in prose, and so does the acceptance run's own output.
+
+⚠ **`Fertility` still throws** and is untouched — its blocker is the world generator at milestone 24.
 
 ### Task 3 — the weights reach a shipped Ruleset
 

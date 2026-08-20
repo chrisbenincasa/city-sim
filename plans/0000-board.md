@@ -39,6 +39,20 @@ the copy a programmer reads, and it is invisible to every check in `tests/Boroug
 document-to-document by construction — ***a count of where a claim lives, taken by reading the documents, is a
 count of the documents.*** Five decisions remain, four before the composing task.
 
+✅ **Decision 2 is SETTLED, 2026-08-20 — the composition is TWO terms, `− w₂·pollution − w₃·noise`**
+([`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md)).
+Scoping listed the unbuilt terms together and **they split**: ***absent in the world and absent in the build are not
+the same absence.*** Noise where nobody drives is zero **and zero is true**; shoreline is zero and true of every world
+that exists, since nothing in `src/` mentions a Water Body at all. **Only amenity is a false zero** — and it is the
+only ***positive*** term, so what ships is **bounded above by zero**, a **disamenity field** whose maximum is clean
+empty ground far from everything. ***That is not a hole that fails loudly; it is a working mechanism that says
+something false*** — the opposite failure from the one the named-hole discipline was built for. It ships because the
+producer **is** the milestone. ✅ **The caveat gets a mechanical check and not prose alone**, extending the
+**disqualifier registry** from a figure to a claim, written by task 2 and deleted at 15. ⚠ **Amenity's blocker was
+misrecorded**: Businesses shipped at milestone 10 and `BusinessTable` has **no kind** column, so the gap is one column
+and a query rather than a subsystem — ***a blocker named by listing what a mechanism needs is not the one found by
+opening the table.*** **Four decisions remain, three before the composing task; two weights to author, not five.**
+
 ✅ **Milestone 7 — Parking is DONE, all eight tasks.** Scoped 2026-08-17
 ([`0031`](0031-parking.md)), ungated by session **H** on 2026-08-12, all four decisions settled
 2026-08-18, tasks 1 and 2 the same day and tasks 3 through 8 on 2026-08-19 — so **cars park, the
