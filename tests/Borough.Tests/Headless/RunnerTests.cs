@@ -832,7 +832,7 @@ public sealed class RunnerTests
     }
 
     /// <summary>
-    /// ⚠ <b>Both save flags are flags rather than a ninth mode, and the criterion is the runner's own
+    /// ⚠ <b>Both save flags are flags rather than modes of their own, and the criterion is the runner's own
     /// rather than a judgement.</b> Every mode here builds a city of its own to photograph; these ride
     /// the run that is already happening, which is the stated reason <c>--series</c> is a flag while
     /// <c>--traffic</c> is a mode. So both select <see cref="Mode.Run"/>.

@@ -973,6 +973,112 @@ milestone creates the first load. Nothing enumerates them; this is the one that 
 
 ---
 
+### Milestone 7's collection — four; the first is the first defect in this ledger that a **printed number** carried, and the last three came out of task 8
+
+**1. ⚠ A Tick's duration in seconds was stated as `10.546875` in four places in `src/`, and
+[`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+made it `42.1875` — a factor of four, in one string the runner prints to its operator.** Found
+2026-08-19 while scoping milestone 7 task 7, which needed the same conversion.
+
+The four sites were `Borough.Headless/TripDump.cs` at the **printed** line and twice in the comments
+either side of `Minutes`, `Borough.Core/Quantities/Speed.cs` twice, and
+`Borough.Core/Quantities/TravelTime.cs` once. **All five statements derive it correctly and then quote
+the old value** — *"a Day is 86,400 s over `Ticks.PerDay` Ticks, so a Tick is 10.546875 s"* — which is
+**Cause 5 inverted**: there the digits travel away from the clause that qualifies them, and here the
+**clause stayed put and went on producing digits nobody recomputed**. `Ticks.cs` names both values in
+one sentence, so the corpus knew the whole time. ***A derivation written out beside its result is not
+self-correcting; it is two claims, and only one of them is checked by anything.***
+
+⚠ **The arithmetic was never wrong.** `TripDump.Minutes` divides by `Ticks.PerDay`, so every figure the
+instrument printed was right and the sentence explaining it was wrong by 4×. That is the worst
+available arrangement — a wrong statement no test can fail and no output disagrees with — and it is
+why this was found by somebody about to reuse the method rather than by the suite.
+
+⚠ **`Speed.cs`'s was a stated *consequence* and not just a value**: *"at 10.546875 s a car clears a
+128 m Segment in 0.9 Ticks, which is far too coarse for Lane queues to form."* At 42.1875 s it is
+**0.22** Ticks, so the correction makes that argument **stronger** and nothing downstream of it moves.
+[`03 §3`](../docs/03-agent-architecture.md) already carried the corrected figure from the other end —
+the crossing rate is **~4.6** Segments a Tick, not `adr/0041`'s *about one* — so a **document and the
+code it describes disagreed about one number for a month**, which no check in this corpus can see:
+they are all document-to-document.
+
+**Repaired 2026-08-19** at all four sites, each carrying what it used to say. **The mechanical check
+is the open half** and it is not obviously cheap: what would have caught this is a test that a derived
+constant quoted in prose agrees with the constant, and the prose is free text in a doc comment. The
+narrow form worth having is a **disqualifier registry entry for `10.546875`**, on *Cause 5*'s
+precedent — a retired value is exactly the sort of figure that should never appear again without the
+clause saying it is retired.
+
+**2. ⚠ [`0031`](0031-parking.md)'s Definition of done named a fixture that could not satisfy it, and
+could never have satisfied it.** The item reads *"the walk Leg's cost is non-zero for at least one
+Citizen in the committed golden session, so the baseline covers the mechanism."* The committed golden
+session runs `rulesets/minimal.toml`, which states no `[households]` table **by design** — so nobody in
+it owns a car, no car Trip is ever generated, and **no walk in it can cost anything at any point in the
+milestone's future.** Found 2026-08-19, at task 8, by the task that had to meet it.
+
+⚠ **This is a new shape and it is worth naming precisely: it is not Cause 1 and not Cause 5.** The
+sentence is not a stale copy of a true one and it carries no travelling digits. It is an obligation
+written against a **fixture the author had not opened**, in a document whose own header warns that a
+description of the build is where to look and never what you found
+([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)).
+***An obligation naming a fixture that cannot satisfy it is not a demanding obligation, it is an unread
+one*** — and the failure mode is that it reads as **rigorous** right up to the day somebody tries to
+discharge it. ⚠ **It would have been discharged silently by an easier reading.** *At least one Citizen*
+over a session with zero drivers is vacuously unsatisfiable, but a reader in a hurry could have written
+a test asserting *no walk Leg has a negative cost*, watched it pass, and closed the item.
+
+**Repaired 2026-08-19 by meeting it rather than by editing it**: a second committed session on
+`congested.toml`, so nothing the first covers stopped being covered. The item now carries the amendment
+above it. ⚠ **The mechanical check is not obviously available** — this is a plan sentence about a test
+fixture, and every check in `tests/Borough.Tests/Corpus/` is document-to-document. The cheap partial
+form is the one **check 12** already has the shape of: *a document that names a fixture by name must
+name one that exists*, which would not have caught this, because the fixture existed and merely could
+not do the thing.
+
+**3. ⚠ `[parking] shed_keeps`'s ratifier fired and refuted it, and the finding above it is that the
+*radius*'s ratifier named a condition the mechanism makes unreachable.**
+[`0002`](0002-open-questions.md) §D1 asked for the walk-Leg distribution *as shed occupancy approaches
+1*. Occupancy **saturates at 83.0% and then falls**, because a Trip that cannot park is refused and a
+refused Trip is a car that needs no space — ***a shed cannot be filled by shrinking it, because the
+refusal that scarcity causes removes the demand that would have filled it.*** Found 2026-08-19 by
+milestone 7 task 8's sweep.
+
+⚠ **This is a ratifier defeated by the thing it was written to observe, and that is a harder failure
+than the one D1 had already corrected for.** That row was amended once before, in 2026-08-18, because
+*a generated city cannot vary parking occupancy* — and **that** was fixed by building a world
+([`rulesets/scarce.toml`](../rulesets/scarce.toml)). **No world fixes this one.** The clause is amended
+to *as occupancy approaches its ceiling*, and the number stands, because the ceiling is a property of
+the mechanism rather than a shortfall in the world.
+
+⚠ **The general form is worth carrying forward past this row**:
+[`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md) as
+amended twice asks a ratifier to name **a machine, a world and a quantity**, and this one named all
+three correctly and was still unreachable. ***A ratifier can name a state the mechanism it ratifies
+prevents***, and nothing in `adr/0052`'s checklist asks whether the named state is reachable. Filed
+here rather than as an amendment because one sighting is not a rule, and because the repair — *ask
+whether the mechanism can produce the state you propose to read* — is a sentence for whoever writes the
+next ratifier rather than a fourth clause.
+
+**4. ⚠ `TreasuryFromAFileTests.Shipped` enumerated the shipped Rulesets by hand, so two of the eight
+sat outside the only test that surveys every one of them.** It was a six-element string array —
+`minimal`, `minimal-tuned`, `severance`, `congested`, `diagnosed`, `taxed` — and the tree held
+**seven** before task 8 and eight after: `monetised.toml` had never been added, and `scarce.toml`
+would not have been. **Nothing failed on either occasion**, because a hand-written list is complete
+with respect to itself. ⚠ **And the doc-comment above it made the stronger claim in the wrong
+tense**: it says this fails *in the direction that will actually fail, a sixth file added without
+money* — describing a check that a sixth file had already walked past. Found and repaired 2026-08-19
+at task 8 — it is a directory glob now, on **check 5**'s own precedent, so a ninth file becomes a case
+on the next build with nothing to remember.
+
+⚠ **It is `plans/0012`'s own subject arriving inside `tests/`.** ***A test that enumerates the
+repository by hand stops covering the repository the first time somebody adds to it***, which is Cause
+1 — *every document that stores per-slice status drifted, and the only large one that did not stores
+none* — with `rulesets/` as the thing being stored and a `string[]` as the second copy. Routed on the
+day under
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md),
+since the defect is in a suite task 8 does not own. ⚠ **The mechanical check is a sweep worth running
+once**: any other test holding a literal list of files that a directory listing would produce.
+
 ### Milestone 10's collection — six; the first is a new form of Cause 1 (two copies that disagree about a *direction*), the second and third are new *surfaces* — a path, and the space across working trees — the fourth is Cause 2 at its widest reach yet and is PAID, the fifth was split out of it, and the sixth is the first defect a document committed against **itself**
 
 **1. ⚠ [`06`](../docs/06-roadmap.md)'s dependency graph makes the District Pool a root, and
@@ -2390,8 +2496,10 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    `.prettierignore` and `[markdown]` in `.vscode/settings.json`, both of which carry the measurement
    as their comment so the next person does not re-derive it.
 
-7. **Every invariant `02 §10` names has a member of the `Invariant` enum, and every member is either
-   registered or explicitly marked unbuilt with the milestone that owes it.** **Filed 2026-08-12 by
+7. ~~**Every invariant `02 §10` names has a member of the `Invariant` enum, and every member is either
+   registered or explicitly marked unbuilt with the milestone that owes it.**~~ **BUILT 2026-08-19**,
+   `tests/Borough.Tests/Corpus/InvariantCoverageTests.cs`, and **it found three gaps rather than the one
+   it was filed over — two of which no milestone owns.** See below. **Filed 2026-08-12 by
    session H** ([`adr/0084`](../docs/adr/0084-parking-occupancy-is-two-checks-and-an-invariant-over-absent-state-cannot-be-written.md)),
    which found *parking occupancy is conserved* specified in **four** documents — `adr/0009`, `02 §10`,
    `05 §60` and `06`'s milestone 7 risk — and built in **none**. **This is check 5's shape pointed at
@@ -2412,6 +2520,68 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    be *written* early**: `adr/0084` finds that an invariant over **absent** state cannot be written at
    all — *zero is a value; undefined is not* — so what the check asserts is that the gap is **declared**,
    not that it is closed.
+
+   ✅ **Built 2026-08-19, in three assertions, and the design note about the copy decided the shape.**
+   Reading arbitrary prose out of `02 §10` is brittle, and a hand-written list in the test is *Cause 1*
+   inside the instrument — so **the convention became the check**: the tier table now names each
+   invariant's enum member in backticks, and a member that does not exist cannot be named. The three
+   assertions are *every name in the table resolves to a member*, *every member is live, retired or
+   `[Unbuilt]`*, and *every `[Unbuilt]` member is named in the table*. The third is the one that keeps
+   the marking honest — ***a gap declared only in the enum is invisible to every reader of the document
+   that owns the tiers***, which is the same failure in the opposite file.
+
+   ⚠ **It found three gaps, and only one of them was the one it was filed over.**
+   ~~`ParkingOccupancyIsConserved` is owed by milestone 7 task 6 and was the founding case.~~
+   **CLOSED 2026-08-19 by milestone 7 task 6** — the member is live, registered in the end-of-run tier,
+   and the `[Unbuilt]` marking is gone. ⚠ **The gap it left behind was in `02 §10` and not in the enum,
+   and the check could not see it**: the tier table named the member in its **per-Tick** row, which is
+   the tier `adr/0084` had already demoted it out of, so the document was pointing at a live member and
+   describing the wrong frequency. ***A check that an obligation has a member does not check that the
+   row it sits in is true of it***, and the same hole is open for every other name in that table.
+   **`GoodsAreConserved` and `CitizenIsInExactlyOnePlace` are named in `02 §10`'s staggered tier, have
+   never had a member, and are owned by nothing** — not deferred, not gated, not refused; no row in
+   `06`, `0003` or `0002` claims either. ***An obligation nobody scheduled is indistinguishable from one
+   nobody wrote down***, and both had been sitting in the tier table since before the ADRs existed.
+   `CitizenIsInExactlyOnePlace` also has a live near-namesake, `CitizenIsInExactlyOneHousehold`, which
+   is a claim about **membership** where this one is about **location** — ***a live invariant with a
+   similar name is how an unbuilt one stays invisible.***
+
+   ⚠ **`[Unbuilt]`'s argument is a string and the honest value is often *nothing*.** The filing says
+   *marked unbuilt with the milestone that owes it*, and two of the three had no milestone to name. The
+   attribute takes free text so that **"nothing owns this"** is expressible, because that is the case no
+   board or roadmap is showing anybody — a marking that could only name a milestone would have forced a
+   lie or an omission on exactly the two entries that most needed recording.
+
+   ⚠ **The enum's ids collided across two sessions on the day this was built.** `ParkingSpaceIsReleasedOnce`
+   shipped as **40** from the parking branch and `MoneyIsConserved` shipped as **40** from the money
+   branch; the merge resolved it by moving parking's to **41**. Harmless here — neither had reached a
+   crash artifact — and it is the plan-number collision again on a third axis. `adr/0084` refuses to
+   reserve ids in advance precisely because *an id travels in a crash artifact and a reused id cannot be
+   un-reused*, which makes **concurrent** allocation the residual risk that refusal does not cover.
+
+12. **Every invariant `02 §10` names sits in the tier it is registered into — NEW 2026-08-19, from
+    milestone 7 task 6, and it is check 7's own blind spot.** Check 7 asks whether every name in the
+    tier table resolves to a member, and it passed the whole time `ParkingOccupancyIsConserved` was
+    named in the **per-Tick** row — the tier
+    [`adr/0084`](../docs/adr/0084-parking-occupancy-is-two-checks-and-an-invariant-over-absent-state-cannot-be-written.md)
+    had demoted it out of before the member existed. ***A check that an obligation has a member does not
+    check that the row it sits in is true of it***, and the failure is worse than a missing member
+    because the document reads as covered by an instrument that is genuinely running.
+
+    **The mechanical form is cheap and the tier is already legible from the code.** A `Walk` registered
+    through `Register(InvariantTier.EndOfRun, …)`, a `Sweep` through
+    `Register(InvariantTier.Staggered, …)`, and a per-Tick check is a bare `Require` at a write site
+    with no registration at all — so the tier a member is *in* is derivable from `src/` by which
+    registration mentions it, and the tier a member is *claimed* to be in is the row of the table its
+    backticked name appears in. ⚠ **A member may legitimately appear in two tiers** — `02 §10` says so
+    itself, *where a corpus invariant splits across two tiers, both halves are here* — so the assertion
+    is that every row naming it is one of the tiers it is registered into, never that there is exactly
+    one.
+
+    ⚠ **This is the third time a check has been filed off the thing it was already meant to catch**, and
+    it is the same shape as check 8's own note that the cheaper check was found by committing the defect.
+    ***An instrument's blind spot is discovered by the first task that walks into it***, which is an
+    argument for building the founding case rather than admiring the check that declared it.
 
 6. ~~**A distinctive figure appearing in more than one document carries the same qualifying clause in
    each.**~~ **BUILT the same day it was specified, in a different shape, because the specified shape was

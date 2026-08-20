@@ -11,7 +11,11 @@ using Borough.Core.Tables;
 /// <para>
 /// <b>Thin on purpose.</b> Slice 4's job is the table layer, not the schema — enough columns to hash
 /// something and to prove create, free and reuse. A wide table now is a wide table to migrate later,
-/// and the save format that would make a migration necessary is milestone 10.
+/// and the save format that would make a migration necessary arrived in milestone <b>8</b> — this
+/// sentence said <em>milestone 10</em> before the renumber. ⚠ <b>It did not bring the migration cost
+/// this paragraph anticipated</b>: <c>adr/0086</c> settles that a save has <em>no schema of its own
+/// and the field declaration is the format</em>, so a column added here is a column the save learns
+/// rather than one it has to be migrated across.
 /// </para>
 /// <para>
 /// <b>A Lot does not point back at its Building.</b> The handle runs one way, Building to Lot, which

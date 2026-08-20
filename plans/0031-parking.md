@@ -13,10 +13,21 @@
 *a Car Park is not a Bin*, with amendments in place to `adr/0009` and `adr/0084`. ✅ **TASKS 1 AND 2
 SHIPPED 2026-08-18** — `CarParkTable`, the `[[building]] parking` key and the supply created, ceilinged,
 located and freed; then `[parking] radius_metres = 400` in all five shipped Rulesets. 1,531 tests green.
-✅ **TASK 3 — THE PARKING SHED — SHIPPED 2026-08-19**, `639a3a0` and `601b0f8`. **Five tasks left, and
-task 4 — arrival, acquire, and what holds the space — is next. Ungated** — session **H** cleared this
-row on 2026-08-12 and the clearance is written in [`0002`](0002-open-questions.md) §F2 as well as on
-the board, so both copies agree.
+✅ **TASK 3 — THE PARKING SHED — SHIPPED 2026-08-19**, `639a3a0` and `601b0f8`. ✅ **TASK 4 — ARRIVAL,
+ACQUIRE AND THE HOLDER — SHIPPED 2026-08-19**, `44e11e2` and `bf04db8`. ✅ **TASK 5 — THE ENDPOINT
+SWAP — SHIPPED 2026-08-19**, `f53710e`. ✅ **TASK 6 — THE CONSERVATION SUM — SHIPPED 2026-08-19**;
+`Invariant.ParkingOccupancyIsConserved` is live in the end-of-run tier, 1,700 assertion-tier tests
+green and no baseline moved. ✅ **TASK 7 — `--parking`, THE TENTH RUNNER MODE — SHIPPED 2026-08-19**;
+1,717 tests green, and ⚠ **its first run found the arrival walk bounded by the shed and the departure
+walk bounded by nothing**, filed to [`0002`](0002-open-questions.md) §C. ✅ **TASK 8 — THE LONG
+ACCEPTANCE RUN — SHIPPED 2026-08-19**; `rulesets/scarce.toml` as the eighth shipped file, the scarcity
+sweep, the forty-eight-Day `adr/0006` run, and **a second golden session that drives**. ⚠ **The three
+ratifications came out one held, one refuted and one amended**: `adr/0009`'s gradient **holds** under
+the one reading that could have refuted it, `[parking] shed_keeps = 24` is **refuted** in the *too
+small* direction §D1 named, and the shed radius **stands** with its ratifying clause amended, because
+*occupancy approaching 1* is unreachable — a shed cannot be filled by shrinking it. **All eight tasks
+shipped. Ungated** — session **H** cleared this row on 2026-08-12 and the clearance is written
+in [`0002`](0002-open-questions.md) §F2 as well as on the board, so both copies agree.
 
 ⚠ **Task 3 shipped with two defects in the index it introduced, both found on 2026-08-19 and both
 fixed in `0d8b114`, and neither was found by anything task 3 wrote.** `CarParkResidency` was a
@@ -437,10 +448,31 @@ rather than by review.**
 journey starts from the kerb. It cannot occur in any world this project can generate — decision 3 —
 and the repair is a decision rather than a line of code.
 
-**Owed, and deliberately not done here: the stale milestone comments.** The renumber's traps are still
-in `src/` and `tests/`, and they are **no longer the set this document describes** — `milestone 10` now
-names a real money milestone, so a bulk rename would break correct comments to fix stale ones. It needs
-its own pass with each site read.
+✅ **The stale milestone comments are repaired, and renumbering was the wrong repair for most of
+them.** 73 sites in `src/` and `tests/` name a milestone; **14 were stale**, exactly the two groups this
+document predicted — seven saying *milestone 8* and meaning parking, seven saying *milestone 10* and
+meaning Save/load. ⚠ **Only one of the fourteen wanted a new number.**
+
+- **The seven parking ones described a future that has since happened.** *"equal by construction until
+  milestone 8 gives a car somewhere else to be"* is not repaired by writing **7** — task 5 gave a car
+  somewhere else to be, so the sentence needed a **tense**, not a digit.
+- **Two of them were wrong about more than the number.** `World.VehicleAccessPoint` and
+  `AccessPointTests` both named parking as the milestone that would separate a Building's two Access
+  Points. **It arrived and did not separate them** — a Trip's flanking Legs name a *Car Park's Address*
+  instead of a Building growing a second door — so `03 §6.6`'s freight is now the only candidate left.
+  ***A mechanism can arrive and leave the distinction it was expected to force still unforced.***
+- **The seven Save/load ones point at a milestone that shipped without doing the thing.** *"checkpoints
+  arrive in milestone 10"* becomes **false** if written as *milestone 8*: 8 is closed, `CrashArtifact.From`
+  is still always zero, and the reader still refuses a non-zero one. A save exists and would serve as a
+  checkpoint; nothing wires it to an artifact and no milestone owns doing so, which is `adr/0070`'s
+  **unbuilt**. Repaired by naming the state instead of a time — `adr/0093` — with only `LotTable`'s
+  taking a number, and even that one gained a correction: `adr/0086` makes a wide table **not** the
+  migration cost that paragraph anticipated.
+
+***A stale milestone reference is a claim about the future, and the repair is whatever became true —
+which is a new number only when the work is still pending.*** That is why the mechanical check
+`plans/0012` wants here cannot be a rename: three different repairs were needed and a fourth site was
+correct as written.
 
 
 `TripEngine.cs:423-424` — two lines. `waypoints[1]` and `waypoints[2]` stop being
@@ -462,6 +494,64 @@ citing hash movement as a reason to defer or split is itself a defect.
 
 ### Task 6 — the conservation sum
 
+✅ **SHIPPED 2026-08-19.** `Invariant.ParkingOccupancyIsConserved` — id **42**, not the 40 predicted
+below, because two sessions allocated 40 on the same day and the merge moved parking's — is live,
+registered last in the end-of-run tier, and its `[Unbuilt]` marking is gone.
+`WorldInvariants.ParkingOccupancyIsConserved` sums `CarParkTable.Occupied` over live rows against the
+Citizens whose `ParkedIn` still **resolves**. Assertion tier **1,700 green**, and **no baseline moved**:
+an invariant only reads, so `05 §4`'s test makes it an optimisation by construction.
+
+⚠ **The prediction that check 7 would have to be built first was right, and it was built first — and
+the check still could not see the defect this task found.** `02 §10`'s tier table named
+`ParkingOccupancyIsConserved` in its **per-Tick** row, which is the tier
+[`adr/0084`](../docs/adr/0084-parking-occupancy-is-two-checks-and-an-invariant-over-absent-state-cannot-be-written.md)
+demoted it out of two months ago. Check 7 asks whether every name in the table has a member; it does
+not ask whether the **row** is true of it, so a document naming a live member in the wrong tier reads
+as fully covered. ***A check that an obligation has a member does not check that the row it sits in is
+true of it***, and that hole is open for every other name in that table. The cell is repaired and
+carries the correction; the general form is filed to [`0012`](0012-corpus-audit.md) beside check 7.
+
+⚠ **The leak it is written for cannot happen yet, and naming what it guards is the point.**
+`World.DestroyCitizen` and `World.DestroyHousehold` unlink a Citizen from its Household, its employer
+and its Commute — and from no Car Park — so a Citizen freed while holding a space leaves the occupancy
+up with nobody standing in it. **Neither has a caller outside a test**, so this is a check on a pairing
+that has not been made rather than on one that is broken, which is `TripHasAFate`'s shape and the same
+argument `ParkingSpaceIsReleasedOnce` makes about the second release site. ⚠ **It presents as a
+well-provisioned city**: the spaces are simply gone, every shed query finds less room than the city
+built, and the shortage the player feels is one nobody caused.
+
+⚠ **The demolition case is what decides whether this can run in a city at all, and it is the reason
+both sides skip an unresolvable holding.** `CitizenTable.ParkedIn` is `Reference.Severable` exactly so
+a garage can come down under a parked car; `World.DestroyBuilding` frees the Car Park row without
+unparking anybody, so **both sides lose the row in the same act**. A version counting any non-default
+handle would fire on every demolition — the wrong diagnosis for the one mutation site allowed to drop
+a holding without a decrement.
+
+✅ **Task 5's hand-rolled copy of the sum is gone.** `ParkingCommuteTests` computed this equality
+inline over a 4,096-Tick driving city, written before the invariant existed; it now asserts
+`Occupied(world) > 0` and calls `RunEndOfRun`. ***A conservation check cannot also be a coverage
+check*** — the sum balances perfectly in a city where nothing happens, so the liveness half stays in
+the test and the equality moves to the tier. Two copies of one arithmetic is
+[`0012`](0012-corpus-audit.md) **Cause 1** pointed at the suite, and they would have gone on agreeing
+until one operand was corrected in one of them.
+
+✅ **Four tests, each verified by a mutation that kills exactly one.** Weakening the equality to `>=`
+kills only the leak test; to `<=` only the unpaired-holder test; counting any non-default handle kills
+only the demolition test; and forcing the sum to zero kills only the driving-city test, which is what
+says the invariant is reached by a real run and not merely registered.
+
+⚠ **One thing was expected here and is not owed after all.** This section says the right-hand side is
+*"not what `adr/0084` says it is"* and that this task carries the correction. It does not:
+`adr/0119` amended that ADR **in place on 2026-08-18**, at the opening sitting, so what shipped here
+matches the ADR as it now reads and the correction was already carried before the first task shipped,
+let alone this one. ***A correction filed at the sitting is not still owed at the task*** — and a
+scoping warning is written before the sitting, so it goes stale the moment the sitting discharges it
+and nothing rereads it until the task comes round.
+
+---
+
+*Original section follows, unedited.*
+
 `ParkingOccupancyIsConserved`, end of run, on `TrafficIsConserved`'s and
 `BinCapacitiesMatchTheirDeclarations`' precedent. **The next free `Invariant` id is 40** — the enum runs
 `None = 0` through `CitizenIsInExactlyOneWorkplace = 39` — and `adr/0084` refuses to reserve ids in
@@ -478,6 +568,76 @@ it removes its worked example, so the check should be built **before** this task
 its motivating case will have evaporated.
 
 ### Task 7 — something to look at
+
+✅ **SHIPPED 2026-08-19.** `--parking`, `src/Borough.Headless/ParkingDump.cs`, three panels: the walk
+**from** the car, the walk **to** it, and supply against holding. Seventeen tests, assertion tier
+**1,717 green**. It refuses a Ruleset stating no `[parking]` and one whose Households keep no car —
+`--traffic`'s polarity — and **the second refuses four of the seven shipped files**, `minimal.toml`
+among them, which is the same coverage hole that kept this milestone off the golden baseline.
+
+⚠ **The instrument found something on its first run, and it is a claim rather than an impression: the
+arrival walk is bounded by the shed and the departure walk is bounded by nothing.** A space is chosen
+by `World.TryChooseParking` from a ball of `[parking] radius_metres` around the **destination's** door,
+so the walk *from* the car cannot exceed a walk across the shed — **4.8 minutes** at 400 m. Nothing
+bounds the walk *to* it: `TripEngine.Itinerary` sets `waypoints[1]` from `World.HeldParkingAddress`,
+which is where the **last** journey left the car, and relates it to `waypoints[0]` not at all. On
+`congested.toml` at 4,000 Citizens over 4,096 Ticks: **0 of 3,330** arrival walks exceed the ceiling
+and **57 of 3,330** departure walks do, the longest at **16.6 minutes**. ***A walk more than three
+times the shed's own diameter is not a shed walk***, which is what makes the reading a proof rather
+than a large number.
+
+⚠ **The first explanation was wrong and the run refuted it in one command.** The obvious cause is a
+failed morning journey leaving a Citizen somewhere their car is not — and `--evidence` on the same
+city reports **2,364 completed, 0 no-route, 0 beyond budget, 0 stranded**. Nothing failed. So the
+departure walk is long in a city where every Trip succeeds, and the cause is upstream of any failure.
+***An instrument is worth building at the moment it can refute the story you would otherwise have
+written down.*** What it is remains open and is filed rather than guessed.
+
+⚠ **The ceiling is printed under *both* panels and that is the design of the picture.** On the arrival
+panel it is an assertion about the build — a walk past it is a space nothing could have chosen — and
+on the departure panel it is a contrast. Printing one number under one panel would have made the
+asymmetry an impression; printing the same number under both makes it a reading, and it is what the
+load-bearing test asserts. Two mutations kill it: pointing `waypoints[1]` at the origin collapses the
+departure tail, and shrinking the stated ceiling breaks the arrival half.
+
+✅ **The gap is a walk and never a grid, which is the brief's instruction and it held.** Capacity is
+declared per building **kind**, so a map of occupied spaces is the map `--zones` already draws — and
+`Supply_is_a_balance_rather_than_a_map` exists to fail on the day somebody adds the obvious picture.
+What the supply panel prints instead is the balance and the **peak**, because a closing occupancy is a
+statement about what time the run stopped: `adr/0101` anchors a commute on the Workplace's Shift and
+Tick 0 is midnight, so a run ending mid-morning ends with the residential sheds empty.
+
+✅ **Decision 3's finding is printed rather than left for a reader to notice.** Where the peak is under
+half the supply the panel says so *and* says no `--citizens` will change it, because capacity is per
+kind and demand is per Citizen and the generator sizes both from one population. That is the shed
+radius's ratifier — `plans/0002` **D1**, *the walk-Leg distribution as occupancy approaches 1* —
+telling the operator in the instrument that this world cannot reach its own condition.
+
+⚠ **Two defects were found in the wiring rather than in the picture, and one of them predates this
+task.** `--evidence` shipped with **no mutual-exclusion block at all**, so `--evidence --traffic`
+parsed silently and whichever mode sat higher in the ternary won. ***A picture flag that loses an
+argument it never announced is worse than a refused one*** — the operator reads the other picture's
+output as the one they asked for. Both blocks landed here and
+`The_evidence_flag_now_refuses_a_second_picture_too` is the row that would have failed yesterday. And
+`--parking` had to be added to the census disjunction or the flag would have been *accepted and
+silently ignored*, which is the exact hole that block was written to close.
+
+⚠ **Four sentences in `src/` said a Tick was `10.546875` seconds and
+[`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
+made it `42.1875` — a factor of four, one of them printed to the operator.** Found on the way in,
+because this task needed the same conversion. **All five statements derive it correctly and then quote
+the old value**, which is Cause 5 inverted: there the digits travel away from their clause, and here
+***the clause stayed put and went on producing digits nobody recomputed***. The arithmetic was never
+wrong — `TripDump.Minutes` divides by `Ticks.PerDay` — so no test could fail and no output disagreed.
+Repaired at all four sites and filed to [`0012`](0012-corpus-audit.md) as milestone 7's collection.
+
+✅ **Three stale counts were repaired by deleting the count.** *Nine flags*, *a ninth mode* twice, *the
+eight pictures before it* — ***a count in prose is a fact that drifts***, and the tenth mode is what
+made the drift legible. None of them wanted a bigger number; each wanted the number gone.
+
+---
+
+*Original section follows, unedited.*
 
 The **tenth** runner mode, after `--traffic` (eighth) and `--evidence` (ninth). The quantity is
 `adr/0009`'s own sentence: **where people parked against where they were going**, and the walk between.
@@ -534,6 +694,114 @@ wake over the witness set, and `d` already exists as a number.
 
 ---
 
+#### Task 8, as it landed
+
+✅ **SHIPPED 2026-08-19.** Five artefacts, and the ratifications came out **one held, one refuted and
+one amended** rather than the two clean answers the brief expected.
+
+**The world had to be built before anything could be read, and that was decision 3's whole point.**
+[`rulesets/scarce.toml`](../rulesets/scarce.toml) is the **eighth** shipped Ruleset: `minimal.toml`
+verbatim with `[[building]] parking` cut 8 → 1 and a `[households] car_ownership_percent = 100`, on
+`congested.toml`'s precedent — *one number changed, the sweep that chose it carried in its own header,
+and the word demonstration rather than city in the first line.* `ParkingScarcityTests` is the sweep,
+**instrument tier**: seven rungs, four whole Days, 4,000 Citizens, probing every Building door with
+`World.TryChooseParking` and pricing the walk it returns.
+
+| `parking` | spaces | held | occupancy | exhausted doors | with room past the cap | walk p50 | walk p90 | walk max |
+|---|---|---|---|---|---|---|---|---|
+| 8 | 1,976 | 807 | 40.8% | 0 of 247 | 0 | 0.0 min | 0.6 min | 0.9 min |
+| 6 | 1,482 | 883 | 59.6% | 0 of 247 | 0 | 0.0 min | 0.8 min | 2.2 min |
+| 5 | 1,235 | **917** | 74.3% | 0 of 247 | 0 | 0.6 min | 1.2 min | 2.2 min |
+| 4 | 988 | 792 | 80.2% | 1 of 247 | **1** | 0.8 min | 1.5 min | 3.1 min |
+| 3 | 741 | 604 | 81.5% | 1 of 247 | **1** | 0.8 min | 1.8 min | 3.1 min |
+| 2 | 494 | 406 | 82.2% | 1 of 247 | **1** | 0.8 min | 1.8 min | 3.1 min |
+| 1 | 247 | 205 | **83.0%** | 3 of 247 | **3** | 0.9 min | 1.9 min | 3.1 min |
+
+*A walk across the whole shed is **4.8** clock minutes at 400 m. Read the sentence, not the digits.*
+
+✅ **The gradient holds, and it is the one claim in this milestone a run could have refuted.**
+`adr/0009` chose graceful degradation *"because it converts a cliff into a gradient"*, and the refuting
+reading was named as **a jump in the walk-Leg distribution, whatever the mechanism intended**. There is
+no jump: p50 walks 0.0 → 0.9, p90 0.6 → 1.9, max 0.9 → 3.1, monotone at every rung, and the longest
+walk at the scarcest rung is still well inside the shed. **`adr/0009`'s central claim survives
+measurement rather than argument** — [`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
+discharged on the question it was written for.
+
+⚠ **`shed_keeps = 24` is REFUTED, in the direction [`0002`](0002-open-questions.md) §D1 named.** That
+row's *too small* reading is *a driver running out of shed while Car Parks remain **inside the
+radius***, and it is what every exhausted door in the sweep shows: the room-past-the-cap column equals
+the exhausted column at **every** rung. `shed_keeps` is declining to keep supply the radius admitted.
+⚠ **No successor value is set**, because `adr/0052` asks for a ratifier on the day a number is written
+down and choosing one now would open a fresh unratified row to close a refuted one — and because the
+cap is still **hash-neutral**, so what it costs today is a longer walk inside the radius and never a
+refusal. ***A dial refuted while it is hash-neutral is a debt with a due date, not a defect***, and the
+due date is the day the shed is materialised.
+
+⚠ **The radius's ratifier fired, the number stands, and its stated condition turns out to be
+unreachable.** §D1 asked for the distribution *as shed occupancy approaches 1*. **Occupancy saturates
+at 83.0% and will not climb**: spaces *held* peak at `parking = 5` and **fall** as capacity shrinks
+further, because a Trip that cannot park is refused and a refused Trip is a car that needs no space.
+***A shed cannot be filled by shrinking it, because the refusal that scarcity causes removes the
+demand that would have filled it.*** The clause is amended — *as occupancy approaches its ceiling* —
+and the number is not, because the ceiling is a property of the mechanism rather than a shortfall in
+the world. ⚠ **This is a ratifier defeated by the thing it was written to observe**, which is a
+sharper failure than the *a generated city cannot vary occupancy* one D1 already corrected for: that
+one was fixed by building a world, and no world fixes this one.
+
+✅ **The `adr/0006` run is `ParkingLongRunTests`, assertion tier, and it is whole Days.** Forty-eight
+Days at 2,048 Ticks — 98,304 — at 2,000 Citizens, on `minimal.toml` **plus** a `[households]` table
+rather than on `congested.toml`, deliberately: `congested.toml` also states `[traffic]`, which would
+put the volume-delay loop inside an `adr/0006` run and make a trend in occupancy indistinguishable from
+a trend in congestion. One reading a Day at midnight, the first eight discarded as ramp. ⚠ **The
+vacuity guard is first and is not a formality** — on a Ruleset granting nobody a car every assertion in
+the file passes perfectly over a city in which nothing ever parked. The collection half is first-against-last
+slot count; the magnitude half is the leak, and **the magnitude is the one that matters and the one a
+reader would skip**: a leaked space is *capacity destroyed for ever*, and it presents as a
+well-provisioned city becoming a crowded one with nobody having built or demolished anything. It ends
+by running `Invariant.ParkingOccupancyIsConserved`, which says the same thing in one number from the
+other side.
+
+✅ **The Definition of done's golden-session obligation was unmeetable as written, and it is met by a
+second session.** *The walk Leg's cost is non-zero for at least one Citizen in the committed golden
+session* — and the committed golden session runs `minimal.toml`, which grants nobody a car **by
+design**, so no walk in it can ever cost anything. `tests/Borough.Tests/Golden/README.md` had recorded
+the same hole twice, at 5c task 6 for the volume-delay loop and at milestone 7 task 1 for occupancy,
+and both times said it closes by a session adopting `congested.toml`. **It closed that way, with one
+correction: a second session adopted it.** `driving-session.borough` is `populate` and nothing else on
+`congested.toml`, **4,096 Ticks — two whole Days** — sampled every 128, with
+`GoldenSessionCoverageTests.The_driving_session_walks_to_and_from_a_car` holding it to what it reaches.
+⚠ **Widening the first session instead would have paid for the new coverage with the old**: it zones
+eleven blocks, edits seven road faces and reloads halfway, and moving it onto another Ruleset puts
+every one of those claims up for re-derivation in a commit whose subject is parking. ⚠ **Two Days
+rather than one, and the count is the argument** — a Citizen's first drive starts at their own kerb
+because they hold no space, so departure walks that leave their starting Address run **0 of 975** at
+half a Day, **2 of 1,883** at one Day and **136 of 3,330** at two. ***One Day is not vacuous; it is
+worse — it clears the assertion on two walks, which is a coverage claim one tuning change away from
+being false with nothing in the suite to say the claim had narrowed.***
+
+⚠ **The fourth reading this brief offered *for free* is VOID, and it was void the day it was written.**
+`adr/0083`'s first revisit trigger asks for the fraction of Trips failing on Commute Budget **whose
+shed was stale about an addition**. `World.TryChooseParking` calls `ParkingShed.Nearest` **fresh on
+every arrival**; no shed is stored anywhere in the `World`, none outlives the query that built it, and
+**a structure that does not persist cannot go stale**. The trigger describes a *materialised* shed —
+which `adr/0083` deliberately did not build and which this document's own *must not do* list forbids.
+***A revisit trigger written against a design is not a revisit trigger against the build that design
+chose***, which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+arriving at a **ratifier** rather than at a doc-comment. Filed and struck in one entry in
+[`0002`](0002-open-questions.md) §B, because ***a trigger nobody wrote down is a trigger nobody will
+fire***, and it goes live on the same day the cap does.
+
+⚠ **And one repair that belongs to nobody's task.** `TreasuryFromAFileTests.Shipped` was a
+**hand-written list of six Ruleset filenames** against a tree holding seven — `monetised.toml` had
+never been added — so the only test that surveys every shipped file had been surveying all but one of
+them, and `scarce.toml` would have made it two. It is a directory glob now. ***A test that enumerates
+the repository by hand stops covering the repository the first time somebody adds to it***, and
+nothing failed on either occasion, because a hand-written list is complete with respect to itself.
+Routed under [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+on the day, since the defect is in a suite this milestone does not own.
+
+---
+
 ## What this milestone must not do
 
 - **Not reintroduce search.** It is the ADR's title and it survives every amendment to it.
@@ -575,10 +843,18 @@ The four cumulative obligations from `CLAUDE.md`, plus:
   baseline covers the mechanism. ⚠ Slice 10 task 11's rule: *a baseline records what a run **did**, so
   a change that narrows what the run **reaches** is invisible in it by construction* — this is a
   positive coverage assertion, of the kind `GoldenSessionCoverageTests` holds, and not a hash.
+  ⚠ **AMENDED AT TASK 8: *the* committed golden session could not meet this and never could.** It runs
+  `minimal.toml`, which states no `[households]` table by design, so nobody in it owns a car and no
+  walk in it can cost anything — the obligation was written against a baseline that had no way to
+  satisfy it. Met by **a second** committed session on `congested.toml`, so that nothing the first one
+  covers stopped being covered. ***An obligation naming a fixture that cannot satisfy it is not a
+  demanding obligation, it is an unread one.***
 - **The long run reports no leak over whole Days**, with the collection half stated on the same *who
   reads it* axis milestone 6 had to use if the occupancy magnitude turns out to have no sink.
 - **The State Hash moves, deliberately, once**, with a commit whose subject says why. All three golden
-  baselines re-recorded.
+  baselines re-recorded. ⚠ **There are five now** — task 8 added `driving-session.borough` and
+  `driving-session-trace.txt`, and a count in prose is a fact that drifts, so read the *What is
+  committed* table in `tests/Borough.Tests/Golden/README.md` rather than this sentence.
 - **The tenth runner mode prints something no other mode can produce**, and it prints its numbers
   before it asserts anything — 5c task 8's rule, because an acceptance run that speaks only on success
   is one you cannot use on the day it fails.

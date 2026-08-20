@@ -25,15 +25,19 @@ namespace Borough.Core.Quantities;
 /// <para>
 /// <b>A Tick's duration in seconds is DERIVED, not free</b> (<c>adr/0082</c>). The Ruleset authors
 /// speeds in km/h, <c>05 §26</c> fixes a Tile at ~4 m, and <c>02 §2</c> mandates Tiles/Tick — three
-/// quantities that determine the fourth. A Tick is <b>10.546875 s of in-world time</b>, because a Day
+/// quantities that determine the fourth. A Tick is <b>42.1875 s of in-world time</b>, because a Day
 /// is 24 in-world hours over <see cref="Ticks.PerDay"/>. What remains genuinely free is the
 /// <em>other</em> Ticks→seconds rate, the host's wall-clock one, which is the speed ladder and which
 /// nothing here reads. <c>adr/0019</c> had one table row where there are two rates, which is how a
 /// Tick came to have three different durations across the corpus.
 /// </para>
 /// <para>
-/// <b>A Tick is a behavioural unit and car-following does not use it.</b> At 10.546875 s a car clears
-/// a 128 m Segment in 0.9 Ticks, which is far too coarse for Lane queues to form. The Lane kernel
+/// <b>A Tick is a behavioural unit and car-following does not use it.</b> At 42.1875 s a car clears
+/// a 128 m Segment in <b>0.22</b> Ticks, which is far too coarse for Lane queues to form. ⚠ This read
+/// <em>10.546875 s</em> and <em>0.9 Ticks</em> until 2026-08-19 — the 8192-Tick Day <c>adr/0094</c>
+/// retired — and the correction makes the argument <b>stronger</b> rather than weaker, which is why
+/// nothing downstream of it moves. <c>03 §3</c> already carries the same figure the other way up: the
+/// crossing rate is <b>~4.6</b> Segments a Tick, not <c>adr/0041</c>'s <em>about one</em>. The Lane kernel
 /// therefore takes an integer <b>sub-step ratio</b> inside Tick phase 4 (<c>adr/0082</c>); making that
 /// resolution global costs 108× the measured Tick budget. Walking needs nothing from this — a walk Leg
 /// is a departure, an arrival and a cost (<c>03 §3.8</c>).

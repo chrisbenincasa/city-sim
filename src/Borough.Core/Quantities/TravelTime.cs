@@ -87,8 +87,9 @@ public readonly record struct TravelTime(int Raw) : IComparable<TravelTime>
     /// <see cref="Speed.FromKilometresPerHour"/>'s does and for the same reason: <c>02 §2</c> is
     /// categorical that there are no seconds in the library, so the conversion happens where a human
     /// authors a number and never in a Tick. A Day is 86,400 s over <see cref="Ticks.PerDay"/> Ticks,
-    /// so a Tick is 10.546875 s — the same derivation <see cref="Speed"/> runs, and if one moves both
-    /// move.
+    /// so a Tick is 42.1875 s — the same derivation <see cref="Speed"/> runs, and if one moves both
+    /// move. ⚠ It said <b>10.546875</b> until 2026-08-19, which is the figure at the 8192-Tick Day
+    /// <c>adr/0094</c> retired: the derivation above travelled and the digits it produces did not.
     /// </para>
     /// <para>
     /// <b>Unlike km/h this conversion is not exact, and the rounding is stated rather than

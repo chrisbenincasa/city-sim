@@ -239,9 +239,12 @@ public sealed class StatisticalTravelTimeTests(ITestOutputHelper output)
     /// <remarks>
     /// <b>Every Leg rather than the one being driven</b>, because what is being compared is the
     /// journey: <c>adr/0008</c> makes a car commute <c>walk → drive → walk</c>, and the two flanking
-    /// walks are zero-length by construction today, so the sum is the drive plus nothing. Taking the
-    /// drive Leg alone would agree today and stop agreeing the moment milestone 8 gives parking a real
-    /// endpoint — which is the case this measurement most needs to keep working.
+    /// walks were zero-length by construction until milestone <b>7</b> task 5 — this sentence said
+    /// <em>milestone 8</em> before the renumber — so the sum was the drive plus nothing. <b>That moment
+    /// has arrived</b>: a flanking walk now runs to the Car Park the driver holds, so the sum is the
+    /// drive plus two real walks, and taking the drive Leg alone would now be wrong rather than merely
+    /// fragile. This is the case the measurement most needed to keep working, and it is why it walks
+    /// every Leg.
     /// </remarks>
     private static long QuotedRaw(World world, int travellerSlot)
     {

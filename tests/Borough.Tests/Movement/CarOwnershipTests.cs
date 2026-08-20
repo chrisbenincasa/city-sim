@@ -148,8 +148,11 @@ public sealed class CarOwnershipTests
     /// <para>
     /// <c>adr/0008</c>: <b>a car commute is never one Leg, it is at minimum
     /// <c>walk → drive → walk</c></b>. The two flanking walks run from the pedestrian Access Point to
-    /// the vehicle one, which are equal by construction until milestone 8 gives a car somewhere else
-    /// to be — so they cost <b>zero</b> and cross no Segment, and they exist anyway.
+    /// the vehicle one, which are equal by construction — so they cost <b>zero</b> and cross no
+    /// Segment, and they exist anyway. ⚠ <b>Milestone 7 task 5 gave a car somewhere else to be</b>
+    /// (this sentence said <em>milestone 8</em> before the renumber), so a flanking walk now runs to
+    /// the Car Park the driver holds and may cost something. <b>What this test asserts is the Leg
+    /// <em>count</em> and not its cost</b>, which is why it is unaffected either way.
     /// </para>
     /// <para>
     /// ⚠ <b>This assertion is the one that catches the mistake this task nearly shipped.</b> The first

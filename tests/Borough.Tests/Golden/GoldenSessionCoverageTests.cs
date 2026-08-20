@@ -277,6 +277,117 @@ public sealed class GoldenSessionCoverageTests
             + "samples across its run, so nothing in the baseline covers the commute generator.");
     }
 
+    /// <summary>
+    /// <b>The driving session parks cars and walks at both ends of the drive.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Milestone 7's Definition of done: <i>the walk Leg's cost is non-zero for at least one Citizen
+    /// in the committed golden session, so the baseline covers the mechanism.</i> A trace cannot say
+    /// this — every sample in <c>driving-session-trace.txt</c> would be just as green over a city in
+    /// which every Car Park sat empty and every walk cost nothing, which is precisely what the first
+    /// session's numbers <em>are</em>. The obligation is a claim about what the run reaches, so it is
+    /// a test here rather than a number there.
+    /// </para>
+    /// <para>
+    /// <b>Both ends, because they are different mechanisms and only one of them is bounded.</b> The
+    /// walk <em>from</em> the car is the arrival: <c>World.TryChooseParking</c> picked a space inside
+    /// a ball of <c>[parking] radius_metres</c> around the destination's door, so this walk exists
+    /// the first time anybody drives anywhere. The walk <em>to</em> the car is the departure, and it
+    /// costs nothing until somebody has parked away from home and come back — which is what
+    /// <see cref="GoldenFixtures.DrivingTicks"/> is two Days for, and its remarks carry the counts.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It observes every Tick rather than sampling, and that is not thoroughness.</b>
+    /// <c>TripEngine.Release</c> frees a Leg as its Trip resolves, so a Leg exists for the length of
+    /// one journey and no instant holds them all — the failure milestone 7 task 5 paid for with a
+    /// test that walked <c>world.Legs</c> after the run and found <b>zero</b> Legs of either mode.
+    /// The eight-sample shape of <see cref="The_session_sends_people_to_work_without_a_trip_command"/>
+    /// works there because a Trip outlives its Legs; it would not work here.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_driving_session_walks_to_and_from_a_car()
+    {
+        InputLog session = GoldenFixtures.DrivingSession();
+        Simulation simulation = Replay.Start(session, GoldenFixtures.DrivingCatalogue());
+        simulation.VerifyDecideWritesNothing = false;
+
+        int drives = 0;
+        int arrival = 0;
+        int departure = 0;
+
+        for (int step = 0; step < GoldenFixtures.DrivingTicks; step++)
+        {
+            // A cadence no Tick in this run divides, so Trace steps without folding a State Hash.
+            // Hashing the world 4,096 times to reach a claim about Legs would be the run's whole
+            // cost spent on the one thing this test is not about.
+            Replay.Trace(simulation, session, new Ticks(1), int.MaxValue, []);
+
+            LegTable legs = simulation.World.Legs;
+
+            for (int slot = 0; slot < legs.Rows.SlotCount; slot++)
+            {
+                if (!legs.Rows.IsLive(slot) || (TravelMode)legs.Mode[slot] != TravelMode.Car)
+                {
+                    continue;
+                }
+
+                drives++;
+                departure = Longer(legs, Preceding(legs, slot), departure);
+                arrival = Longer(legs, legs.Next[slot] - 1, arrival);
+            }
+        }
+
+        Assert.True(drives > 0, "nobody in the driving session ever drove, so the whole of "
+            + "congested.toml's [households] table is outside the committed trace. The session's "
+            + "Ruleset or its populate command has moved.");
+
+        Assert.True(arrival > 0, "every walk FROM a car in the driving session cost nothing, so the "
+            + "baseline covers parking supply and not the walk it buys. adr/0008 makes the walk a "
+            + "simulated Leg; a zero everywhere means the endpoint swap is not reaching the Car "
+            + "Park's own Address.");
+
+        Assert.True(departure > 0, "every walk TO a car in the driving session cost nothing, which is "
+            + "what a session too short to reach a second journey looks like -- a Citizen's first "
+            + "drive starts at their own kerb because they hold no space yet. Check "
+            + "GoldenFixtures.DrivingTicks before looking at the simulation.");
+    }
+
+    /// <summary>
+    /// The greater of <paramref name="best"/> and the cost of the foot Leg at <paramref name="slot"/>.
+    /// </summary>
+    private static int Longer(LegTable legs, int slot, int best)
+    {
+        if (slot < 0 || !legs.Rows.IsLive(slot) || (TravelMode)legs.Mode[slot] != TravelMode.Foot)
+        {
+            return best;
+        }
+
+        int cost = (int)legs.Time[slot].Raw;
+
+        return cost > best ? cost : best;
+    }
+
+    /// <summary>The Leg whose <c>Next</c> is <paramref name="target"/>, or <c>-1</c>.</summary>
+    /// <remarks>
+    /// A Leg list is singly linked — <c>adr/0075</c>, and a back pointer would be a second copy of
+    /// the order — so the Leg before one is found by looking, exactly as <c>TripDump</c> and
+    /// <c>ParkingDump</c> do it.
+    /// </remarks>
+    private static int Preceding(LegTable legs, int target)
+    {
+        for (int slot = 0; slot < legs.Rows.SlotCount; slot++)
+        {
+            if (legs.Rows.IsLive(slot) && legs.Next[slot] - 1 == target)
+            {
+                return slot;
+            }
+        }
+
+        return -1;
+    }
+
     /// <summary>How many Lots one block of the lattice carries when all four of its faces are Streets.</summary>
     private const int LotsPerBlock = 10;
 

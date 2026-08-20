@@ -650,4 +650,79 @@ public enum Invariant
     /// </para>
     /// </remarks>
     ParkingSpaceIsReleasedOnce = 41,
+
+    /// <summary>
+    /// Summed Car Park occupancy equals the number of Citizens holding a space that resolves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The invariant <c>plans/0012</c> check 7 was filed over</b>, and the reason that check exists:
+    /// it was specified in <b>four</b> documents — <c>adr/0009</c>, <c>02 §10</c>, <c>05 §60</c> and
+    /// <c>06</c>'s milestone 7 risk — and built in <b>none</b>, which is invisible because an
+    /// obligation with no member reads as absent rather than as owed. It is declared here and owed by
+    /// milestone 7 task 6.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>adr/0084</c> states its right-hand side wrongly and this milestone corrected it.</b>
+    /// That ADR sums against <i>"Travellers currently parked"</i>, and a car parked overnight has no
+    /// Traveller — so the sum as specified reads <b>0 against a full car park</b> every night, on the
+    /// design's own canonical case. <c>adr/0119</c> puts the space on the <b>Citizen</b>, so the
+    /// operand is Citizens whose holding resolves. The ADR is not wrong about the tier or the split.
+    /// </para>
+    /// <para>
+    /// <b>It is an end-of-run walk and not the per-Tick check <c>02 §10</c>'s table said it was</b>,
+    /// which is <c>adr/0084</c>'s ruling and the reason it gives: occupancy is conserved every Tick
+    /// <em>structurally</em>, because <see cref="Entities.World.TryTakeParking"/> and
+    /// <see cref="Entities.World.ReleaseParking"/> write the occupancy and the holder's column
+    /// together. What can break is the <b>pairing</b>, and a pairing defect is a property of a run
+    /// rather than of a moment — so a whole-world sum every Tick spends <c>O(world)</c> to find what
+    /// one sum at the end finds just as certainly. <see cref="SegmentVolumeIsConserved"/> and
+    /// <see cref="BinCapacityMatchesItsDeclaration"/> are the two precedents that were demoted for
+    /// this reason before it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Both sides skip a Car Park that has been demolished, and that is the check having
+    /// content rather than being weakened.</b> <c>CitizenTable.ParkedIn</c> is
+    /// <c>Reference.Severable</c>, so a bulldozed garage takes its occupancy column and every
+    /// holder's resolution in one act — counting an unresolvable holding would report a demolition
+    /// as a leak, which is the wrong diagnosis for the only mutation site that is allowed to drop a
+    /// holding without a decrement.
+    /// </para>
+    /// <para>
+    /// <b>The leak it is actually for is a Citizen freed while holding a space.</b>
+    /// <see cref="Entities.World.DestroyCitizen"/> and <see cref="Entities.World.DestroyHousehold"/>
+    /// unlink a Citizen from everything except a Car Park, so the occupancy would stay up with
+    /// nobody standing in it: the city would report more parking taken than it has drivers, and
+    /// every subsequent shed query would find less room than exists. That is the <c>adr/0006</c>
+    /// class — a quantity with a source and no sink — and it presents as a <em>shortage</em> rather
+    /// than as a crash, which is why nothing else would report it. ⚠ Neither method has a caller
+    /// outside a test, so this is a check on a pairing that has not been made yet rather than on one
+    /// that is broken — <see cref="TripHasAFate"/>'s shape, and the same argument
+    /// <see cref="ParkingSpaceIsReleasedOnce"/> makes about the second release site.
+    /// </para>
+    /// </remarks>
+    ParkingOccupancyIsConserved = 42,
+
+    /// <summary>Goods are conserved across every Bin and every movement.</summary>
+    /// <remarks>
+    /// ⚠ <b>Named by <c>02 §10</c>'s staggered tier since before the ADRs and owned by no milestone
+    /// anywhere.</b> It is not deferred, not gated and not refused — nothing in <c>06</c>, <c>0003</c>
+    /// or <c>0002</c> claims it, which is why it has sat unbuilt without ever appearing as owed. Found
+    /// by building check 7 rather than by anybody reading the tier table, which is precisely that
+    /// check's argument for existing.
+    /// </remarks>
+    [Unbuilt("nothing — 02 §10 names it and no milestone claims it. plans/0012 check 7's own finding")]
+    GoodsAreConserved = 43,
+
+    /// <summary>No Citizen is in two places at once.</summary>
+    /// <remarks>
+    /// ⚠ <b><c>02 §10</c>'s staggered tier again, and owned by no milestone either.</b> Its sibling
+    /// <see cref="CitizenIsInExactlyOneHousehold"/> is live and is a different claim — that one is about
+    /// <em>membership</em>, this one about <em>location</em>, and a Citizen can be in exactly one
+    /// Household while a Traveller and a Workplace disagree about where they are standing. ***A live
+    /// invariant with a similar name is how an unbuilt one stays invisible***, and it is why this is
+    /// declared separately rather than read as already covered.
+    /// </remarks>
+    [Unbuilt("nothing — 02 §10 names it and no milestone claims it. plans/0012 check 7's own finding")]
+    CitizenIsInExactlyOnePlace = 44,
 }

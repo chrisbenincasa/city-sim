@@ -161,7 +161,10 @@ public sealed class CrashArtifactTests
     /// An artifact that starts from a checkpoint is refused rather than replayed from zero.
     /// </summary>
     /// <remarks>
-    /// Checkpoints arrive in milestone 10 and the field is written now so that milestone fills one in
+    /// ⚠ <b>This said checkpoints arrive in <em>milestone 10</em>, which the renumber made 8 — and
+    /// milestone 8 shipped, so the number was not the repair.</b> A save exists now and would serve as
+    /// a checkpoint; nothing wires it to a crash artifact, and no milestone owns doing so, which is
+    /// <c>adr/0070</c>'s <b>unbuilt</b>. The field is written now so that whoever does fills one in
     /// rather than replacing a mechanism. Until then, honouring a non-zero <c>from</c> by ignoring it
     /// would rebuild a different city and blame the difference on the crash.
     /// </remarks>

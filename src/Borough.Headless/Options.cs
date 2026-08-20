@@ -104,7 +104,7 @@ internal enum Mode
     /// Print where the city's money is and what moved it there. Milestone 10's.
     /// </summary>
     /// <remarks>
-    /// A tenth mode, and the fourth that <b>steps the world</b>, for <see cref="Evidence"/>'s reason
+    /// A mode that <b>steps the world</b>, for <see cref="Evidence"/>'s reason
     /// turned into a stronger one: a flow is a thing that happens over an interval, so a city at Tick
     /// 0 has a balance sheet with no circuit under it at all. ⚠ <b>It refuses a Ruleset with no
     /// <c>[[policy]]</c> and one whose Policies move nothing conserved</b> — <see cref="Zones"/>'
@@ -114,6 +114,22 @@ internal enum Mode
     /// <c>rulesets/taxed.toml</c> is the file written for this picture.
     /// </remarks>
     Money,
+
+    /// <summary>
+    /// Print where people parked against where they were going. Milestone 7's.
+    /// </summary>
+    /// <remarks>
+    /// A mode that <b>steps the world</b> — a car is parked somewhere only
+    /// after somebody has driven there, so Tick 0 is empty on every input and there is no
+    /// <em>before</em> panel to take. ⚠ <b>The quantity is a walk and not an occupancy</b>: capacity
+    /// is declared per building <b>kind</b>, so a grid of occupied spaces is a grid of land use and
+    /// <see cref="Zones"/> already draws that. It refuses a Ruleset that states no <c>[parking]</c>
+    /// and one whose Households keep no car — <see cref="Traffic"/>'s polarity — and ⚠ <b>the second
+    /// of those refuses four of the seven shipped files</b>, including <c>minimal.toml</c>, which is
+    /// the same recorded coverage hole and the reason this milestone moved no baseline. See
+    /// <c>ParkingDump</c>.
+    /// </remarks>
+    Parking,
 }
 
 /// <summary>
@@ -129,9 +145,11 @@ internal enum Mode
 /// <para>
 /// <b>Hand-rolled rather than a parsing library.</b> <c>adr/0018</c> prefers off-the-shelf
 /// infrastructure and requires a written exception naming the property no library provides — this is
-/// not that. It is below the threshold the ADR is aimed at: nine flags, no subcommands, no
+/// not that. It is below the threshold the ADR is aimed at: a flat list of flags, no subcommands, no
 /// completion, and no dependency worth carrying into the one project whose job is to prove it can
-/// build with nothing installed. If the surface grows subcommands, take the library.
+/// build with nothing installed. If the surface grows subcommands, take the library. ⚠ It said
+/// <em>nine flags</em> and there were more than nine when it said it — a count in prose is a fact
+/// that drifts, and the threshold this paragraph is about was never a number anyway.
 /// </para>
 /// </remarks>
 internal sealed class Options
@@ -232,7 +250,7 @@ internal sealed class Options
     /// Print the census ring as a time series as well as a summary.
     /// </summary>
     /// <remarks>
-    /// <b>A flag rather than a ninth mode, because it builds no world.</b> Each of the eight modes
+    /// <b>A flag rather than a mode of its own, because it builds no world.</b> Every picture mode
     /// populates a city of its own to take a picture of; this one is a second rendering of a run that
     /// is already happening, so it implies <c>--census</c> and rides the same ring. Its own flag
     /// rather than folded into that one because it is hundreds of lines: <c>--census</c> answers
@@ -270,7 +288,7 @@ internal sealed class Options
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>A flag rather than a ninth mode, on <c>--series</c>' criterion and not on a judgement
+    /// <b>A flag rather than a mode of its own, on <c>--series</c>' criterion and not on a judgement
     /// call.</b> Every mode in this runner builds a city of its own to photograph; this one rides the
     /// run that is already happening, which is the stated reason <c>--series</c> is a flag while
     /// <c>--traffic</c> is a mode.
@@ -350,6 +368,7 @@ internal sealed class Options
         bool traffic = false;
         bool evidence = false;
         bool money = false;
+        bool parking = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -431,6 +450,14 @@ internal sealed class Options
                 // prints both.
                 case "--money":
                     money = true;
+                    session = true;
+                    continue;
+
+                // A session flag for the same reason again, and the most literal case of it: a car is
+                // parked somewhere only after somebody has driven there, so a world that has not
+                // stepped has every space empty and every walk unmeasured.
+                case "--parking":
+                    parking = true;
                     session = true;
                     continue;
 
@@ -641,10 +668,48 @@ internal sealed class Options
 
         // Ahead of --traffic's for the reason --traffic's is ahead of --commute's: the most specific
         // complaint wins, and every flag below is also a picture that builds its own world.
-        if (money && (evidence || traffic || commute || zones || roads || trips || dump is not null))
+        //
+        // ⚠ THE COUNT IS GONE FROM THIS COMPLAINT RATHER THAN CORRECTED, and the merge is what took
+        // it. It read `a seventh picture, and each of the seven`, which was true on the branch that
+        // wrote it and false the moment milestone 7's picture landed beside it -- two branches each
+        // added a tenth mode and neither could see the other's. ***A count in prose is a fact that
+        // drifts, and a count on a branch drifts without anybody editing it.*** plans/0012.
+        //
+        // ⚠ --parking is in this condition and --money is NOT in --parking's below, which is the
+        // ordering rule and not an omission: this block runs first and returns, so the pair is
+        // refused here or not at all. A textual union of the two branches would have left
+        // `--money --parking` parsing silently -- the exact hole the block below was written to
+        // close, re-opened by the merge that landed the fix.
+        if (money && (parking || evidence || traffic || commute || zones || roads || trips
+                      || dump is not null))
         {
-            complaint = "--money asks for a seventh picture, and each of the seven builds its own "
-                      + "world. Ask for one.";
+            complaint = "--money asks for another picture, and each picture builds its own world. "
+                      + "Ask for one.";
+            return false;
+        }
+
+        // Ahead of --traffic's on the ordering rule stated below, and the two blocks here close a
+        // hole rather than extend a pattern: --evidence shipped with NO exclusion block at all, so
+        // `--evidence --traffic` parsed silently and the ternary below picked whichever sat higher.
+        // A picture flag that loses an argument it never announced is worse than a refused one --
+        // the operator reads the other picture's output as the one they asked for. plans/0012.
+        //
+        // ⚠ NONE OF THE THREE COMPLAINTS ABOVE AND HERE COUNT THE PICTURES, and the ones below still
+        // do. `--traffic asks for a sixth picture` was true of five and is now true of nothing: a
+        // count in prose is a fact that drifts, and the tenth mode is what made the drift legible.
+        // The counts are left where they are because a test asserts one of the strings; the new ones
+        // do not start another.
+        if (parking && (evidence || traffic || commute || zones || roads || trips || dump is not null))
+        {
+            complaint = "--parking asks for another picture, and each picture builds its own world. "
+                      + "Ask for one.";
+            return false;
+        }
+
+        if (evidence && (traffic || commute || zones || roads || trips || dump is not null))
+        {
+            complaint = "--evidence asks for another picture, and each picture builds its own world. "
+                      + "Ask for one.";
             return false;
         }
 
@@ -787,6 +852,26 @@ internal sealed class Options
             return false;
         }
 
+        // --traffic's refusal and its polarity: a picture of parking needs content, and BOTH halves
+        // are content -- supply nobody can find and drivers nobody has are different empty pictures.
+        // ParkingDump makes the two Ruleset-level checks because they need the file loaded; this only
+        // says a file is needed at all.
+        if (parking && rulesets.Count == 0)
+        {
+            complaint = "--parking needs --ruleset PATH. Parking is content twice over: [parking] "
+                      + "states the shed a driver queries and [households] states whether anybody "
+                      + "keeps a car, and a file missing either parks nobody. "
+                      + "rulesets/congested.toml is the only shipped file that states both.";
+            return false;
+        }
+
+        if (parking && log is not null)
+        {
+            complaint = "--parking and --log disagree: the dump populates its own world and steps "
+                      + "it, so a recorded session would be replayed and then over-populated.";
+            return false;
+        }
+
         // --commute's refusal for --commute's reason: the dump populates and steps its own world.
         if (traffic && log is not null)
         {
@@ -826,7 +911,7 @@ internal sealed class Options
         // than one that is refused, because the operator reads the absence of a census as a census
         // with nothing in it. Found while adding --series; the hole was --census's since slice 10.
         if ((census || series)
-            && (zones || commute || traffic || evidence || money || roads || trips
+            && (zones || commute || traffic || evidence || money || parking || roads || trips
                 || dump is not null))
         {
             string asked = series ? "--series" : "--census";
@@ -896,6 +981,7 @@ internal sealed class Options
         options = new Options
         {
             Mode = money ? Mode.Money
+                 : parking ? Mode.Parking
                  : evidence ? Mode.Evidence
                  : traffic ? Mode.Traffic
                  : commute ? Mode.Commute
@@ -1017,6 +1103,13 @@ internal sealed class Options
                                 something, and runs a session because a trail records what
                                 has happened. Run it past 2048 Ticks or the trail has not
                                 filled and there is no aggregate to expand
+          --parking             dump where people parked against where they were going: the
+                                walk from the car and the walk to it, as distributions, and
+                                the supply those walks were spent on. NOT a grid -- capacity
+                                is per building kind, so a map of occupied spaces is the map
+                                --zones already draws. Needs --ruleset with a [parking] and
+                                a [households] table, and runs a session because a car is
+                                parked somewhere only after somebody has driven there
           --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
                                 than as an ASCII field
 

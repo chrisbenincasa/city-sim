@@ -264,6 +264,121 @@ internal static class GoldenFixtures
     internal static RulesetCatalogue Catalogue() => RulesetCatalogue.Of(
         [RulesetHash, TunedRulesetHash], [Load(RulesetPath), Load(TunedRulesetPath)]);
 
+    /// <summary>
+    /// The content hash of <see cref="DrivingRulesetPath"/>, as the driving session records it.
+    /// </summary>
+    /// <remarks>
+    /// A literal for <see cref="RulesetHash"/>'s reason, and
+    /// <c>The_golden_ruleset_is_the_one_the_session_names</c> covers all three files rather than two
+    /// — which is 5a-bis's finding applied before it could bite a third time.
+    /// </remarks>
+    internal const ulong DrivingRulesetHash = 0xB7DD_39A6_DBE1_B9BBUL;
+
+    /// <summary>
+    /// The Ruleset the driving session runs under: the one shipped file in which anybody owns a car.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>congested.toml</c> is not a preference here, it is the only candidate among the shipped
+    /// files that has been one since milestone 5c.</b> Driving needs
+    /// <c>[households] car_ownership_percent</c>; parking needs somebody driving; and <c>minimal.toml</c>
+    /// states no <c>[households]</c> table at all by design. The README beside this file has named
+    /// this Ruleset as the thing the baseline <em>would have to adopt</em> twice — once for the
+    /// volume-delay loop at 5c task 6 and again for Car Park occupancy at milestone 7 task 1 — and
+    /// both times the adoption was deferred because it is a decision about the committed trace.
+    /// <b>Milestone 7 task 8 makes it, and it makes it by adding a session rather than by moving
+    /// one</b>, so <see cref="Session()"/> is untouched and nothing that was covered stops being.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Adopting it buys <c>[traffic]</c> as well as <c>[households]</c>, and that is a gain
+    /// rather than a side effect.</b> Those two tables are stated together in exactly one file, so
+    /// the volume-delay function, the Segment volume it reads and the parking walks all enter the
+    /// hash on the same day. What no hash here can tell you is <em>which</em> of them moved a sample;
+    /// <c>GoldenSessionCoverageTests</c> is where that claim lives, as it does for the first session.
+    /// </para>
+    /// </remarks>
+    internal static string DrivingRulesetPath =>
+        Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml");
+
+    /// <summary>
+    /// How far the driving session runs — <b>two whole Days</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two, because at one the second half of the mechanism is reached twice.</b> A Citizen's
+    /// first car journey walks to their own Building's kerb — they hold no space, so the departure
+    /// walk is zero by construction — and the walk <em>to</em> a car only costs anything once
+    /// somebody has parked away from home and come back for it. Measured on this Ruleset at this
+    /// population by <c>--parking</c>: at half a Day <b>0</b> departure walks of 975 leave the
+    /// Address they start on, at one Day <b>2</b> of 1,883 do, and at two Days <b>136</b> of 3,330.
+    /// ⚠ <b>So one Day is not vacuous and is worse than vacuous</b>: it clears the assertion on two
+    /// walks, which is a coverage claim one tuning change away from being false with nothing in the
+    /// suite to say the claim had narrowed. That is this directory's own standing finding —
+    /// <em>a baseline records what a run did, so a change that narrows what the run reaches is
+    /// invisible in it by construction</em> — arriving as a choice of length rather than as a
+    /// surprise.
+    /// </para>
+    /// <para>
+    /// <b>Whole Days rather than a round number</b>, for <c>ParkingLongRunTests</c>' reason:
+    /// <c>adr/0101</c> gives the Day a shape and Tick 0 is midnight, so a run that stops on a Tick
+    /// chosen for its roundness stops at a different hour whenever the population or the Ruleset
+    /// moves, and every reading taken from it is a statement about that hour.
+    /// </para>
+    /// </remarks>
+    internal const int DrivingTicks = 2 * Borough.Core.Quantities.Ticks.PerDay;
+
+    /// <summary>
+    /// The driving trace's sampling cadence, chosen to hold it at thirty-two samples.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="HashEvery"/>'s reason, arithmetic moved: the bisection message is what a trace is
+    /// read for, and thirty-two lines is the size at which its diff is still read.
+    /// </remarks>
+    internal const int DrivingHashEvery = DrivingTicks / 32;
+
+    /// <summary>
+    /// The driving session: a population, and then nothing at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One command, and the emptiness is the design.</b> This session exists to put driving,
+    /// congestion and parking under a committed hash; every player verb is already under one, in
+    /// <see cref="Session()"/>, which zones eleven blocks and edits seven road faces. Copying those
+    /// commands here would buy no coverage and would create a second set of block coordinates to keep
+    /// in agreement with a lattice — <c>plans/0012</c> <i>Cause 1</i> by construction, in the one
+    /// directory whose whole purpose is noticing when two records disagree.
+    /// </para>
+    /// <para>
+    /// <b>So what this session covers is what a populated city <em>does</em> over two Days</b>:
+    /// Households acquire cars, Citizens take Trips in them, Legs are priced through the volume-delay
+    /// function as Segments fill, spaces are taken and released, and a walk at each end costs
+    /// something. <c>GoldenSessionCoverageTests.The_driving_session_walks_to_and_from_a_car</c> is
+    /// what says the run went through that door, because a trace never can.
+    /// </para>
+    /// <para>
+    /// <b>It does not reload.</b> A transition is <see cref="Session()"/>'s to cover and there is no
+    /// second driving file to reload into; a session that reloaded into itself would be a transition
+    /// that moved nothing, which is the defect the README's own reload paragraph is about.
+    /// </para>
+    /// </remarks>
+    internal static InputLog DrivingSession()
+    {
+        InputLogBuilder builder = new(Seed, new WorldConfiguration(Population), DrivingRulesetHash);
+
+        builder.Append(new Ticks(0), new Command(CommandKind.Populate, default, default));
+
+        return builder.Build();
+    }
+
+    /// <summary>The one Ruleset the driving session names.</summary>
+    /// <remarks>
+    /// A catalogue of one rather than a bare Ruleset, so that <c>Replay</c> is entered by the same
+    /// door in both sessions and a driving session that later gains a transition needs no new call
+    /// site.
+    /// </remarks>
+    internal static RulesetCatalogue DrivingCatalogue() =>
+        RulesetCatalogue.Of([DrivingRulesetHash], [Load(DrivingRulesetPath)]);
+
     private static Ruleset Load(string path)
     {
         RulesetLoadResult result = RulesetLoader.Load(path);

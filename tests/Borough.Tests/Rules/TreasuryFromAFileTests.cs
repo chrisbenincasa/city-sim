@@ -36,12 +36,45 @@ namespace Borough.Tests.Rules;
 /// </remarks>
 public sealed class TreasuryFromAFileTests
 {
-    /// <summary>Every Ruleset this project ships.</summary>
-    public static TheoryData<string> Shipped =>
-        [
-            "minimal.toml", "minimal-tuned.toml", "severance.toml", "congested.toml",
-            "diagnosed.toml", "taxed.toml",
-        ];
+    /// <summary>
+    /// Every Ruleset this project ships, <b>read from the directory rather than listed here</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>It was a hand-written list of six and the tree held seven, and nothing could say so.</b>
+    /// <c>monetised.toml</c> shipped and was never named here, so the one test that surveys every
+    /// shipped file had been surveying all but one of them — and the paragraph above claiming this
+    /// fails <i>in the direction that will actually fail, a sixth file added without money</i> was
+    /// describing a check that a sixth file had already walked past. ***A hand-written list of the
+    /// files in a directory is a copy of that directory, and it goes stale the first time somebody
+    /// adds one*** — <c>plans/0012</c> <b>Cause 1</b>, inside the instrument, which is the shape
+    /// mechanical check 5 was written against.
+    /// </para>
+    /// <para>
+    /// <b>Generated, on check 5's own precedent</b> — <i>generate the ADR column from the directory,
+    /// because only that column is generable and a missing row makes an unassessed decision read as
+    /// absent</i>. The <c>.csproj</c> copies <c>rulesets/*.toml</c> by glob, so a file added to the
+    /// repository is a case here on the next build with nothing to remember.
+    /// </para>
+    /// </remarks>
+    public static TheoryData<string> Shipped
+    {
+        get
+        {
+            TheoryData<string> files = [];
+
+            foreach (string path in Directory
+                .EnumerateFiles(System.IO.Path.Combine(AppContext.BaseDirectory, "Rulesets"), "*.toml")
+                .OrderBy(path => path, StringComparer.Ordinal))
+            {
+                files.Add(System.IO.Path.GetFileName(path));
+            }
+
+            Assert.NotEmpty(files);
+
+            return files;
+        }
+    }
 
     /// <summary>
     /// A world on any shipped Ruleset opens with one treasury Bin, empty and unbounded.
