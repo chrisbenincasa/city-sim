@@ -6,22 +6,45 @@
 
 ## Status
 
-🟡 **SCOPED 2026-08-20, unstarted. Decisions 1 and 2 of six are SETTLED** —
-[`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md)
-deletes `w₁`, and [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md)
-settles the composition at **two terms, `− w₂·pollution − w₃·noise`**. **Decisions 3 and 4 are SETTLED too** — [`adr/0124`](../docs/adr/0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md) places Fertility, Sealing's decay,
-Woodland, replanting and Water Bodies on milestone **24**, and **task 8 is DONE ahead of the rest of the
-milestone**, because the amendment *is* their deliverable. **Decision 5 is SETTLED too** — [`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-built-is-not-reachable-so-the-weights-get-a-floor-and-a-debt.md) gives each weight a
-reachable **floor** and an **owed** real ratifier, because nothing in the city reads land value.
-**One decision remains: 6, the ±1 oscillation**, and it is *measurable then arguable*, so it wants a run
-rather than a sitting.
+✅ **SCOPED 2026-08-20, ungated, COMPLETE 2026-08-20** — scoped and closed inside one day, which is the
+shortest a milestone has run, and the reason is that the mechanism was already in the tree: the Layer,
+its drift and its cadence shipped in slice **3c** and what was missing was a **producer**.
 
-✅ **The formula went from five terms to two, and the milestone got smaller both times.** Decision 1
-asked whether the composition was well-formed at all and the answer was that it was not; decision 2
-found that *absent in the world* and *absent in the build* are different absences and only **one** term
-is the second kind. **Two weights to author rather than five**, which is what decision 5 has to find
-ratifiers for. ⚠ **What ships is bounded above by zero** — a **disamenity field**, because amenity is the
-only positive term and it belongs to milestone 15.
+✅ **All six decisions are settled**, [`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md)–[`adr/0127`](../docs/adr/0127-the-land-value-target-never-stops-moving-so-the-question-is-what-the-lag-rests-around.md),
+every one with the user in the room. **The formula went from five terms to two and the milestone got
+smaller both times**: decision 1 found `w₁` was a **gain** rather than a weight and deleted it; decision
+2 found that *absent in the world* and *absent in the build* are different absences and that only
+**amenity** is the second kind. ⚠ **What ships is bounded above by zero** — a **disamenity field**,
+because amenity is the only positive term and it belongs to milestone **15**.
+
+✅ **All eight tasks are DONE.** Task 8 shipped **first**, because decisions 3 and 4 settled together and
+[`adr/0124`](../docs/adr/0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md)
+**is** its deliverable; then 1 the two point-of-use queries, 2 the composition, 3 the Ruleset keys, 4 the
+producer, 5 the bound and decision 6's reading, 6 `--land-value`, and 7 the acceptance run. ⚠ **A ninth
+Ruleset was authored on the way and it was not in the scope** — [`rulesets/fouled.toml`](../rulesets/fouled.toml),
+`congested.toml` plus one emitting Rule.
+
+✅ **The risk is retired, and the acceptance criterion was about the caller rather than the value.**
+`MapLayers.SetLandValueTargets` runs from phase 5 on the land value cadence, and
+`06`'s *six decisions read a field nothing sets* no longer holds.
+
+🔴 ⚠ **The milestone's largest finding is that its own floor refuted one of its three readings, and that
+is what a floor is for.** Pollution and noise are rank-concordant across Cells at **86 to 100 percent**
+on every readable Day of the acceptance run, so ***no ratio between `w₂` and `w₃` is identifiable in this
+world at all*** — not because the two co-vary with population, which is what [`0002`](0002-open-questions.md)
+§D1 predicted, but because in `fouled.toml` they have ***the same source***: the emitting kind is
+`dwelling`, and dwellings are also what generate the commute. **The simplification that made the floor
+reachable is what makes its third reading unreadable.** The **hand-authored world** §D1 already named is
+owed, now for a reason a run produced; `LandValueLongRunTests` asserts the correlation is **high**,
+deliberately backwards, so the day somebody separates the sources it goes red and the ratifier reopens
+rather than the bound being lowered.
+
+⚠ **The producer was built, correct and unobservable for half a day** (**F17**, **F18**). Nothing in the
+build creates a Cell row except a pollution emission and **no shipped Ruleset emitted any**, so the
+acceptance world was empty, no baseline moved, and decision 5's floor — written four hours earlier —
+was unreachable in the same way the record it came from warns about. ***`adr/0052` still does not ask
+whether the named state can occur.*** Discharged by authoring the world rather than by weakening the
+reading.
 
 ⚠ **This milestone had no row anywhere until the day it was scoped.** Not in
 [`0000`](0000-board.md)'s ranked table, not in its per-milestone gate table, not in
@@ -816,17 +839,28 @@ task's scope as written**: absorbing five rows into 24 falsified 24's own *depen
 
 [`CLAUDE.md`](../CLAUDE.md)'s list, refined per [`0003`](0003-build-plan.md) → *Definition of done*:
 
-- `dotnet build` green with no GPU and no Godot; **the whole unfiltered `dotnet test` green** — the
+- ✅ `dotnet build` green with no GPU and no Godot; **the whole unfiltered `dotnet test` green** — the
   milestone gate, which [`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)
-  did not move.
-- **`MapLayers.SetLandValueTarget` has a caller in `src/`**, and a test that fails if it stops having
+  did not move. **Run on the reference machine at the close, 2026-08-20 — 1,815 passed, 0 failed**, and
+  ⚠ **run detached beside other work**, which that record permits by name: a quiet machine is a control
+  on a *capture* and this is a *gate*. ⚠ **Its duration is therefore NOT a figure this corpus may
+  quote** — the run shared the machine with a session and a CI watcher, and ***a spoiled measurement is
+  still a valid gate and is no longer a reading.*** The post-submit lane was green on the same code
+  (post-submit run **32420267630**, both jobs), which is a report that nothing broke and not a
+  number either.
+- ✅ **`MapLayers.SetLandValueTarget` has a caller in `src/`**, and a test that fails if it stops having
   one. ⚠ The risk this milestone retires is *a field nothing sets*, so the acceptance criterion is
   about the **caller**, not about the value.
-- **Land value is not uniform** over the acceptance world, and the assertion names the spread rather
+- ✅ **Land value is not uniform** over the acceptance world — **177 to 180 of about 262 resident Cells hold distinct values** on `fouled.toml` — and the assertion names the spread rather
   than the mean. A field that is non-zero everywhere and equal everywhere has not retired the risk.
-- The long run: no collection growing, and land value's exception **stated on the flow**.
-- `--layer` shows land value lagging desirability.
-- Every weight that reached a Ruleset has a row in `0002` §D1 with a machine, a world and a quantity.
+- ✅ **The long run**: 100,000 Ticks, **163 Cell rows constant**, and land value's exception **stated on the flow** — the level within a Day is exempt because the target moves with the Day; the flow across Days is not.
+- ~~`--layer` shows land value lagging desirability.~~ ✅ **MET by `--land-value` and not by `--layer`**,
+  and the substitution is task 6's **F26**: `--layer` hand-places sources, land value is a **history**,
+  and ***a lag is not a property of a value but of a pair***, so one grid could never have carried the
+  claim. Three grids — the target, the lag, the gap.
+- ✅ **Every weight that reached a Ruleset has a row in `0002` §D1 with a machine, a world and a
+  quantity** — seven rows, and 🔴 **one of the three readings they name came back REFUTED**, so `w₂` and
+  `w₃` stand unratified until **13** and the hand-authored world §D1 named is owed.
 
 ---
 
