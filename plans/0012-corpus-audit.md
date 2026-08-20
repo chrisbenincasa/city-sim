@@ -973,7 +973,7 @@ milestone creates the first load. Nothing enumerates them; this is the one that 
 
 ---
 
-### Milestone 10's collection — five; the first is a new form of Cause 1 (two copies that disagree about a *direction*), the second and third are new *surfaces* — a path, and the space across working trees — the fourth is Cause 2 at its widest reach yet and is PAID, and the fifth was split out of it
+### Milestone 10's collection — six; the first is a new form of Cause 1 (two copies that disagree about a *direction*), the second and third are new *surfaces* — a path, and the space across working trees — the fourth is Cause 2 at its widest reach yet and is PAID, the fifth was split out of it, and the sixth is the first defect a document committed against **itself**
 
 **1. ⚠ [`06`](../docs/06-roadmap.md)'s dependency graph makes the District Pool a root, and
 [`adr/0050`](../docs/adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md)
@@ -1225,7 +1225,49 @@ until then.
 
 ---
 
+**6. ⚠ `plans/0033` OPENED `# 0031` — WHICH IS `plans/0031-parking.md` — FROM THE DAY IT WAS CREATED.**
+✅ **PAID 2026-08-19**, found while closing milestone 10 by reading the file's own first line. Conserved
+Money was drafted as `0031`; parking took that number *"first by sixteen hours, so conserved money
+renumbered to **`0033`**"* ([`0002`](0002-open-questions.md) records it); and the renumber moved the
+**filename** and every citation while leaving the **heading** behind. So a reader who opened the file
+was told it was a different, existing plan about a different milestone — and every reader who arrived
+by citation was told correctly, which is why it survived a full day of work inside the document.
+
+⚠ **This is a new form of Cause 1 and it is the smallest possible one: the two copies are in the same
+file, four characters apart in meaning and one line apart on screen.** ***A document's own title is a
+second copy of its number.*** Nothing in this ledger had counted a filename as a *copy* of anything.
+
+⚠ **No existing check could have reached it, and the reason generalises.** Every mechanical check in
+`tests/Borough.Tests/Corpus/` is **document-to-document** — citations resolve, links open, tables
+render, no registry figure appears bare. A **self**-reference is none of those: the number in a heading
+is a claim about the file it is already in, so no second document has to agree with it and no link has
+to open. ***The checks are built to catch two documents disagreeing, and this was one document
+disagreeing with itself.***
+
+✅ **`PlanIdentityTests` is the discharge**, and it is `adr/0073` in its literal form — the finding
+went to the code that can prevent it on the day, not into a note. It fires only where a heading
+**states** a number, because a heading with no number claims nothing: `plans/0001` and `plans/0025`
+both open with a bare title and neither is a contradiction. ***A check that also enforced a house
+style would be choosing one, and this ledger is for contradictions.*** Watched fail on the real
+violation before the heading was corrected.
+
+---
+
 ## Fixed in the sitting that found them
+
+**⚠ The board's headline paragraph and the board's own table disagreed about what was in flight.**
+Found and struck 2026-08-19 while closing milestone 10. [`0000`](0000-board.md) → *What is next* opened
+*"One milestone is scoped and in flight, and it is 7"* while *Do these next* row **1b** read
+*"milestone 10 … 🟡 IN FLIGHT"* — both current, both correct about their own subject, and
+contradictory read together. **Cause 1** at the shortest range this ledger has recorded: not two
+documents, not two files, but **two sections of the page whose entire job is to be the single view**.
+***A view is only one copy if it is written in one place***, and a headline paragraph standing beside a
+table is two copies with a sentence between them. ⚠ **It was struck by the milestone closing rather
+than by anybody noticing**, which is the wrong repair arriving by luck — the paragraph became true on
+the day the row it contradicted went away, and would have stayed false for as long as milestone 10 ran.
+**No mechanical check reaches it**: every citation resolves, every link opens, and the two statements
+are prose about status, which is exactly the class this ledger exists for because no test can hold it.
+
 
 Unambiguous factual errors, no judgement required.
 

@@ -1,12 +1,23 @@
-# 0031 — Conserved Money and the treasury
+# 0033 — Conserved Money and the treasury
 
 `06` milestone **10**. The brief.
+
+> ⚠ **This heading read `# 0031` from the day the file was created until 2026-08-19, and `0031` is
+> [`plans/0031-parking.md`](0031-parking.md).** The renumber is recorded — [`0002`](0002-open-questions.md)
+> notes that parking took the number *"first by sixteen hours, so conserved money renumbered to
+> `0033`"* — and the **filename** moved with it while the heading did not. Every citation in the
+> corpus says `0033`, so the only reader the stale number could reach is one who opened the file, and
+> what it told them was the name of a **different, existing plan about a different milestone**.
+> ***A document's own title is a second copy of its number***, which is `plans/0012` **Cause 1** on a
+> surface that ledger had never considered a copy at all. Struck 2026-08-19, and
+> `PlanIdentityTests` is what stops the next one.
 
 ---
 
 ## Status
 
-**SCOPED 2026-08-18, ungated, IN FLIGHT.** Picked because milestone **7** is running in a concurrent
+✅ **SCOPED 2026-08-18, ungated, COMPLETE 2026-08-19** — two days from an empty scope to a closed
+milestone. Picked because milestone **7** is running in a concurrent
 session and the District Pool — then milestone **9**, now **12** — turned out not to be the independent
 root [`06`](../docs/06-roadmap.md)'s dependency graph says it is. See *What scoping found* → **F1**.
 
@@ -17,11 +28,16 @@ brief filed them, and ⚠ **one of the two dissolved rather than closing**: `adr
 unit to choose, so what the milestone owed was an **instrument** rather than a value, and task 5 built
 it.
 
-✅ **Tasks 1, 2, 3, 4, 4b, 4c, 5, 7 and 8 are DONE**, and task 6 was **discharged at scoping**. ⚠ **Two of
-those tasks did not exist when this document was written** — 4b and 4c — and 4c is the one that
-matters: it is decision 6 built, ***the milestone's largest decision had no task at all***, and task 5
-rested wholly on it while naming decisions 1 and 5 and not 6. **What is left is 9** — the long
-acceptance run.
+✅ **Every task is DONE** — 1, 2, 3, 4, 4b, 4c, 5, 7, 8 and 9 — and task 6 was **discharged at
+scoping**. ⚠ **Two of those tasks did not exist when this document was written** — 4b and 4c — and 4c is
+the one that matters: it is decision 6 built, ***the milestone's largest decision had no task at all***,
+and task 5 rested wholly on it while naming decisions 1 and 5 and not 6.
+
+⚠ **The acceptance run's finding is not about conservation.** Task 9 asserts the money sum as an exact
+equality at all 48 readings, which is what the milestone was for; it also runs the counterfactual, and
+***a city with 188 of its 360 Households destitute conserves money to the unit exactly as well as a
+healthy one***. **A conservation invariant cannot see distribution**, which is the argument for
+`01 §5.1`'s money supply and treasury being **two** reported figures rather than one.
 
 ⚠ **Task 7 was taken ahead of 8 and moves no baseline**, which is worth stating because the milestone's
 other tasks all did: the Census is an instrument outside the world, so the picture could land at any
@@ -1146,11 +1162,58 @@ back. This task is that condition being met, and it is milestone **6**'s assembl
 scoping claim — that Evidence is an assembler rather than a store, so a new fact becomes readable
 without a new accumulator.
 
-### Task 9 — the long acceptance run
+### Task 9 — the long acceptance run — ✅ **DONE 2026-08-19**
 
-100,000+ Ticks. **The money sum is invariant to the unit**, so it is asserted as an exact equality and
-not a band — the only exact conservation assertion this project will ever have, and it stops being
-available the moment milestone 11 opens the gate. ⚠ **Take it while it is exact.** ~~Needs decision 3.~~ ✅ **Unblocked** — the treasury opens empty, so the sum's opening term is the Households' money and nothing else.
+`MoneyLongRunTests`, four assertions over one 100,000-Tick run of `rulesets/taxed.toml` shared through
+an `IClassFixture`. **48 readings, one every 2,048 Ticks — the Policy interval — and the money sum is
+`174127` at every one of them.** Not a band, not a tolerance, not a drift bound: one value, forty-eight
+times. **1,726 tests green, +4.** The equality is checked by calling `Simulation.CheckEndOfRun` at each
+reading rather than by restating it, so what passes is the production invariant and not a copy of it.
+
+⚠ **Checking it forty-eight times rather than once is the whole reason for the length.** An end-of-run
+check passes over a run in which money leaked and came back — and a levy-and-rebate circuit is exactly
+the shape that could do that, because its two halves are equal and opposite by construction. What the
+interval readings add is ***when***.
+
+**And a second assertion the task did not name, which is the one that earns its place**: `Issued` never
+moves either. `adr/0031`'s equality is against `MoneySupplyTable.Issued`, so an equality against a
+*moving* anchor is two errors agreeing — the sum is asserted to hold **one distinct value across the
+whole run**, which is a strictly stronger claim than matching the anchor at every reading.
+
+#### What the run found, and it is not about conservation
+
+⚠⚠ **THE SUM IS BLIND TO WHO HOLDS IT, AND THE COUNTERFACTUAL MAKES THAT EXACT.** `rulesets/taxed.toml`'s
+rebate pays a flat 100 out of a treasury holding one Day's levy, so it funds **172 of 360** Households
+and then stops — `adr/0035`'s refusal of an automatic overdraft arriving as behaviour rather than as a
+refusal message. Which 172 is a fresh draw each Day (`PurposeTag.PolicyScanStart`). **Pinning that draw
+to a constant and running the same 100,000 Ticks leaves 172 Households at the ceiling and the other 188
+holding exactly zero, for ever — and every conservation reading is identical to the healthy run's.**
+
+***A conserved economy tells you nothing about who holds it.*** That is why this file holds four
+assertions rather than the one the task named, and it is the argument for `01 §5.1`'s money-supply and
+treasury indicators being **two** figures rather than one.
+
+#### The other three, and what each would catch
+
+| Assertion | What it says | What it catches |
+|---|---|---|
+| `The_treasury_is_a_conduit_rather_than_an_accumulator` | the treasury carries **< 100** between Days | `adr/0006`'s magnitude half on the one balance that could accumulate unnoticed. ⚠ **The bound is the rebate's own grain, not a number read off the run**: the sweep pays until it cannot pay 100 again, so the carry is strictly less than one payment |
+| `The_treasury_genuinely_empties_and_the_sweep_waits` | `Exhausted ≥ 1` on **every** Day, `Unaffordable == 0` | `adr/0035` observed over 48 Days rather than argued. Also the guard that stops the row above passing over a treasury that never received anything |
+| `No_household_is_driven_destitute_and_the_spread_does_not_diverge` | nobody holds zero; the spread does not trend up | the distribution failure the sum cannot report. **The destitution half is earned by the counterfactual above** — 0 against ≥137 — rather than by a threshold anybody chose |
+
+⚠ **There is deliberately NO assertion that the spread narrows, because it does not.** It goes
+996 → 820 → **888** → 341 and then wanders between roughly 340 and 700 with no trend under it: the
+poorest Household climbing and the richest climbing faster widens the band before the rotation pulls
+it in. Forty-eight Days is not long enough to converge, and a bound tight enough to mean anything would
+have been **read off this run rather than derived from the Ruleset**. What is asserted instead is the
+weaker claim `adr/0006` actually makes — it does not trend upward.
+
+⚠ **The shipped Ruleset rather than an inline fixture, which is the opposite of `PolicyTests`' choice
+and for the opposite reason.** A unit test authors its Ruleset inline so the assertion states its own
+premises; an acceptance run must be able to fail when the shipped content changes, because that is what
+it is accepting.
+
+~~Needs decision 3.~~ ✅ **Unblocked** — the treasury opens empty, so the sum's opening term is the Households' money and nothing else.
 
 ---
 
@@ -1174,18 +1237,25 @@ available the moment milestone 11 opens the gate. ⚠ **Take it while it is exac
 
 ## Definition of done
 
+✅ **Every line below is met as of 2026-08-19.** The one that needed the last task is the second: the
+equality is exact, it is checked 48 times across 100,000 Ticks by `MoneyLongRunTests`, and
+`MoneyIsRepresentable` runs beside it in the same tier rather than instead of it.
+
 `CLAUDE.md`'s cumulative list, plus:
 
-- `Scope.Global` no longer throws, and a `[[rule]]` in a shipped Ruleset executes a transfer in both
+- ✅ `Scope.Global` no longer throws, and a `[[rule]]` in a shipped Ruleset executes a transfer in both
   directions.
-- The conservation invariant is an **exact** equality over a whole run, and it is in the end-of-run
+- ✅ The conservation invariant is an **exact** equality over a whole run, and it is in the end-of-run
   tier with `MoneyIsRepresentable` beside it rather than instead of it.
-- A Household's **money Bin** has a production writer, and `CitizenEvidence` reports finances.
+- ✅ A Household's **money Bin** has a production writer, and `CitizenEvidence` reports finances.
   `HouseholdTable.Money` and `.Savings` are both **deleted**, and `MoneyIsRepresentable` is rewritten
   over Bins rather than retargeted ([`adr/0114`](../docs/adr/0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md)).
-- Every hash-bearing number this milestone chooses has a **row** in `0002` §D naming a machine, a
-  world and a quantity — decisions 2 and 3 are both currently rows that do not exist.
-- The State Hash moves and all three golden baselines are re-recorded, with a commit subject that
+- ✅ Every hash-bearing number this milestone chooses has a **row** in `0002` §D naming a machine, a
+  world and a quantity — decisions 2 and 3 were both rows that did not exist, and both exist now. ⚠
+  **Neither closed with a value**: `adr/0115` retired money's unit rather than filling it, and
+  `adr/0116` moved the founding balance out of this milestone for want of a denominator. ***A ledger
+  row is discharged by having an owner, not by having a number.***
+- ✅ The State Hash moves and all three golden baselines are re-recorded, with a commit subject that
   says why ([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).
   ⚠ **Milestone 7 is in flight in another session and also moves the hash**; whichever lands second
   re-records again, which is scheduling and not cost.
