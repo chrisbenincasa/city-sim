@@ -37,6 +37,8 @@ public sealed class GoldenHashTests
     private const string TraceFile = "session-trace.txt";
     private const string WorldFile = "world-hash.txt";
     private const string SessionFile = "session.borough";
+    private const string DrivingTraceFile = "driving-session-trace.txt";
+    private const string DrivingSessionFile = "driving-session.borough";
 
     /// <summary>The command that regenerates <c>session-trace.txt</c>. Named by the failure message.</summary>
     private const string Regenerate =
@@ -44,6 +46,18 @@ public sealed class GoldenHashTests
         + "--log tests/Borough.Tests/Golden/session.borough --ruleset rulesets/minimal.toml "
         + "--ruleset rulesets/minimal-tuned.toml --ticks 2048 --hash-every 64 "
         + "--out tests/Borough.Tests/Golden/session-trace.txt";
+
+    /// <summary>The command that regenerates <c>driving-session-trace.txt</c>.</summary>
+    /// <remarks>
+    /// <b>No second <c>--ruleset</c>, because the driving session does not reload.</b> The first
+    /// session's command needs both files and the runner refuses it without them — <i>Rules nobody
+    /// has are not a mismatch</i> — so the two commands differ in a way worth not copying wrong.
+    /// </remarks>
+    private const string RegenerateDriving =
+        "dotnet run --project src/Borough.Headless -- "
+        + "--log tests/Borough.Tests/Golden/driving-session.borough "
+        + "--ruleset rulesets/congested.toml --ticks 4096 --hash-every 128 "
+        + "--out tests/Borough.Tests/Golden/driving-session-trace.txt";
 
     /// <summary>
     /// <b>The committed reload does something, and it does it from the reload onwards.</b>
@@ -281,18 +295,114 @@ public sealed class GoldenHashTests
     [Theory]
     [InlineData("minimal.toml", "RulesetHash")]
     [InlineData("minimal-tuned.toml", "TunedRulesetHash")]
+    [InlineData("congested.toml", "DrivingRulesetHash")]
     public void The_golden_ruleset_is_the_one_the_session_names(string file, string constant)
     {
-        bool tuned = constant == "TunedRulesetHash";
-        ulong named = tuned ? GoldenFixtures.TunedRulesetHash : GoldenFixtures.RulesetHash;
-        ulong observed = RulesetFile.HashOf(
-            tuned ? GoldenFixtures.TunedRulesetPath : GoldenFixtures.RulesetPath);
+        (ulong named, string path, string log, string command) = constant switch
+        {
+            "TunedRulesetHash" => (
+                GoldenFixtures.TunedRulesetHash, GoldenFixtures.TunedRulesetPath, SessionFile, Regenerate),
+            "DrivingRulesetHash" => (
+                GoldenFixtures.DrivingRulesetHash,
+                GoldenFixtures.DrivingRulesetPath,
+                DrivingSessionFile,
+                RegenerateDriving),
+            _ => (GoldenFixtures.RulesetHash, GoldenFixtures.RulesetPath, SessionFile, Regenerate),
+        };
+
+        ulong observed = RulesetFile.HashOf(path);
 
         Assert.True(
             observed == named,
             $"{file} hashes to 0x{observed:X16} and the session names 0x{named:X16}. If you meant to "
-            + $"change it, put that number in GoldenFixtures.{constant} and in session.borough, then "
-            + $"re-baseline the trace:\n\n  {Regenerate}");
+            + $"change it, put that number in GoldenFixtures.{constant} and in {log}, then "
+            + $"re-baseline the trace:\n\n  {command}");
+    }
+
+    /// <summary>
+    /// The committed driving session still produces its committed trace, sample for sample.
+    /// </summary>
+    /// <remarks>
+    /// <b>The second baseline, and the mechanisms under it are ones no hash in this directory
+    /// covered before milestone 7 task 8.</b> <c>congested.toml</c> is the one shipped file stating
+    /// both <c>[traffic]</c> and <c>[households]</c>, so this is the first committed number that
+    /// moves when the volume-delay function, a Segment's volume, a Car Park's occupancy or a parking
+    /// walk's cost changes. The README beside this file recorded that hole twice — at 5c task 6 and
+    /// again at milestone 7 task 1 — and both times said it closes by a session adopting the file.
+    /// </remarks>
+    [Fact]
+    public void The_driving_session_reproduces_its_committed_trace()
+    {
+        HashTrace baseline = Read(DrivingTraceFile);
+        ulong[] recorded = baseline.Hashes();
+        ulong[] observed = Replay.Run(
+            GoldenFixtures.DrivingSession(),
+            new Ticks(GoldenFixtures.DrivingTicks),
+            GoldenFixtures.DrivingHashEvery,
+            GoldenFixtures.DrivingCatalogue());
+
+        if (!observed.AsSpan().SequenceEqual(recorded))
+        {
+            Assert.Fail(
+                Divergence(recorded, observed)
+                + $"\n\nIf you meant it, re-baseline with:\n\n  {RegenerateDriving}\n\n"
+                + "and say why in the commit message. README.md beside this file has the rest.");
+        }
+    }
+
+    /// <summary>
+    /// The committed driving trace still describes the session the fixture builds.
+    /// </summary>
+    /// <inheritdoc cref="The_committed_trace_still_describes_the_fixture_session"/>
+    [Fact]
+    public void The_committed_driving_trace_still_describes_the_fixture_session()
+    {
+        HashTrace baseline = Read(DrivingTraceFile);
+        InputLog session = GoldenFixtures.DrivingSession();
+
+        Assert.Equal(session.Seed, baseline.Number("seed"));
+        Assert.Equal((ulong)session.Configuration.Citizens, baseline.Number("citizens"));
+        Assert.Equal(session.RulesetHash, baseline.Number("ruleset"));
+        Assert.Equal((ulong)session.Count, baseline.Number("commands"));
+        Assert.Equal((ulong)GoldenFixtures.DrivingTicks, baseline.Number("ticks"));
+        Assert.Equal((ulong)GoldenFixtures.DrivingHashEvery, baseline.Number("hash-every"));
+        Assert.Equal(GoldenFixtures.DrivingTicks / GoldenFixtures.DrivingHashEvery, baseline.Samples.Count);
+    }
+
+    /// <summary>
+    /// <b>The committed <c>driving-session.borough</c> is the session the fixture builds.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>It stops at the log and does not replay, which is the difference from its twin.</b>
+    /// <c>The_committed_session_file_parses_to_the_fixture_and_reproduces_the_trace</c> replays
+    /// because the codec's whole argument — a log written by one shell replays in another — wanted a
+    /// file, parsed by the one codec, reproducing a hash sequence recorded independently of it, and
+    /// that property is established once rather than per session. Replaying here would buy a second
+    /// demonstration of it at the price of a second 4,096-Tick run in the assertion tier.
+    /// </remarks>
+    [Fact]
+    public void The_committed_driving_session_file_parses_to_the_fixture()
+    {
+        using var reader = new StreamReader(Path(DrivingSessionFile));
+        InputLog parsed = InputLogCodec.Read(reader);
+        InputLog fixture = GoldenFixtures.DrivingSession();
+
+        Assert.Equal(fixture.Seed, parsed.Seed);
+        Assert.Equal(fixture.Configuration.Citizens, parsed.Configuration.Citizens);
+        Assert.Equal(fixture.RulesetHash, parsed.RulesetHash);
+        Assert.Equal(fixture.Count, parsed.Count);
+
+        for (int i = 0; i < fixture.Count; i++)
+        {
+            (Ticks tick, Command command) = fixture.Entry(i);
+            (Ticks parsedTick, Command parsedCommand) = parsed.Entry(i);
+
+            Assert.Equal(tick, parsedTick);
+            Assert.Equal(command.Kind, parsedCommand.Kind);
+            Assert.Equal(command.East, parsedCommand.East);
+            Assert.Equal(command.North, parsedCommand.North);
+            Assert.Equal(command.Zone, parsedCommand.Zone);
+        }
     }
 
     /// <summary>

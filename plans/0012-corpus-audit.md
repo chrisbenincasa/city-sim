@@ -973,7 +973,7 @@ milestone creates the first load. Nothing enumerates them; this is the one that 
 
 ---
 
-### Milestone 7's collection — one, and it is the first defect in this ledger that a **printed number** carried
+### Milestone 7's collection — four; the first is the first defect in this ledger that a **printed number** carried, and the last three came out of task 8
 
 **1. ⚠ A Tick's duration in seconds was stated as `10.546875` in four places in `src/`, and
 [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md)
@@ -1008,6 +1008,76 @@ constant quoted in prose agrees with the constant, and the prose is free text in
 narrow form worth having is a **disqualifier registry entry for `10.546875`**, on *Cause 5*'s
 precedent — a retired value is exactly the sort of figure that should never appear again without the
 clause saying it is retired.
+
+**2. ⚠ [`0031`](0031-parking.md)'s Definition of done named a fixture that could not satisfy it, and
+could never have satisfied it.** The item reads *"the walk Leg's cost is non-zero for at least one
+Citizen in the committed golden session, so the baseline covers the mechanism."* The committed golden
+session runs `rulesets/minimal.toml`, which states no `[households]` table **by design** — so nobody in
+it owns a car, no car Trip is ever generated, and **no walk in it can cost anything at any point in the
+milestone's future.** Found 2026-08-19, at task 8, by the task that had to meet it.
+
+⚠ **This is a new shape and it is worth naming precisely: it is not Cause 1 and not Cause 5.** The
+sentence is not a stale copy of a true one and it carries no travelling digits. It is an obligation
+written against a **fixture the author had not opened**, in a document whose own header warns that a
+description of the build is where to look and never what you found
+([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)).
+***An obligation naming a fixture that cannot satisfy it is not a demanding obligation, it is an unread
+one*** — and the failure mode is that it reads as **rigorous** right up to the day somebody tries to
+discharge it. ⚠ **It would have been discharged silently by an easier reading.** *At least one Citizen*
+over a session with zero drivers is vacuously unsatisfiable, but a reader in a hurry could have written
+a test asserting *no walk Leg has a negative cost*, watched it pass, and closed the item.
+
+**Repaired 2026-08-19 by meeting it rather than by editing it**: a second committed session on
+`congested.toml`, so nothing the first covers stopped being covered. The item now carries the amendment
+above it. ⚠ **The mechanical check is not obviously available** — this is a plan sentence about a test
+fixture, and every check in `tests/Borough.Tests/Corpus/` is document-to-document. The cheap partial
+form is the one **check 12** already has the shape of: *a document that names a fixture by name must
+name one that exists*, which would not have caught this, because the fixture existed and merely could
+not do the thing.
+
+**3. ⚠ `[parking] shed_keeps`'s ratifier fired and refuted it, and the finding above it is that the
+*radius*'s ratifier named a condition the mechanism makes unreachable.**
+[`0002`](0002-open-questions.md) §D1 asked for the walk-Leg distribution *as shed occupancy approaches
+1*. Occupancy **saturates at 83.0% and then falls**, because a Trip that cannot park is refused and a
+refused Trip is a car that needs no space — ***a shed cannot be filled by shrinking it, because the
+refusal that scarcity causes removes the demand that would have filled it.*** Found 2026-08-19 by
+milestone 7 task 8's sweep.
+
+⚠ **This is a ratifier defeated by the thing it was written to observe, and that is a harder failure
+than the one D1 had already corrected for.** That row was amended once before, in 2026-08-18, because
+*a generated city cannot vary parking occupancy* — and **that** was fixed by building a world
+([`rulesets/scarce.toml`](../rulesets/scarce.toml)). **No world fixes this one.** The clause is amended
+to *as occupancy approaches its ceiling*, and the number stands, because the ceiling is a property of
+the mechanism rather than a shortfall in the world.
+
+⚠ **The general form is worth carrying forward past this row**:
+[`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md) as
+amended twice asks a ratifier to name **a machine, a world and a quantity**, and this one named all
+three correctly and was still unreachable. ***A ratifier can name a state the mechanism it ratifies
+prevents***, and nothing in `adr/0052`'s checklist asks whether the named state is reachable. Filed
+here rather than as an amendment because one sighting is not a rule, and because the repair — *ask
+whether the mechanism can produce the state you propose to read* — is a sentence for whoever writes the
+next ratifier rather than a fourth clause.
+
+**4. ⚠ `TreasuryFromAFileTests.Shipped` enumerated the shipped Rulesets by hand, so two of the eight
+sat outside the only test that surveys every one of them.** It was a six-element string array —
+`minimal`, `minimal-tuned`, `severance`, `congested`, `diagnosed`, `taxed` — and the tree held
+**seven** before task 8 and eight after: `monetised.toml` had never been added, and `scarce.toml`
+would not have been. **Nothing failed on either occasion**, because a hand-written list is complete
+with respect to itself. ⚠ **And the doc-comment above it made the stronger claim in the wrong
+tense**: it says this fails *in the direction that will actually fail, a sixth file added without
+money* — describing a check that a sixth file had already walked past. Found and repaired 2026-08-19
+at task 8 — it is a directory glob now, on **check 5**'s own precedent, so a ninth file becomes a case
+on the next build with nothing to remember.
+
+⚠ **It is `plans/0012`'s own subject arriving inside `tests/`.** ***A test that enumerates the
+repository by hand stops covering the repository the first time somebody adds to it***, which is Cause
+1 — *every document that stores per-slice status drifted, and the only large one that did not stores
+none* — with `rulesets/` as the thing being stored and a `string[]` as the second copy. Routed on the
+day under
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md),
+since the defect is in a suite task 8 does not own. ⚠ **The mechanical check is a sweep worth running
+once**: any other test holding a literal list of files that a directory listing would produce.
 
 ### Milestone 10's collection — three; the first is a new form of Cause 1 (two copies that disagree about a *direction*), and the second and third are new *surfaces* — a path, and the space across working trees
 

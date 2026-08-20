@@ -5,7 +5,7 @@ Slice 5 task 4 of [`plans/0008`](../../../plans/0008-tick-and-replay.md).
 **The point is not that the State Hash never moves. It is that it never moves without somebody
 saying so.** Every other determinism test in this repository is a closed loop — it runs a thing
 twice and checks the two runs agree, which stays true however far the simulation has drifted from
-what it used to compute. The two files here are the only numbers recorded on a previous day, so they
+what it used to compute. The files here are the only numbers recorded on a previous day, so they
 are the only thing that can notice a change nobody was looking for.
 
 ## What is committed
@@ -15,6 +15,8 @@ are the only thing that can notice a change nobody was looking for.
 | `session.borough` | The session itself, as the Input Log the runner replays | hand-written; checked against `GoldenFixtures.Session()` |
 | `session-trace.txt` | Thirty-two State Hash samples from that 2,048-Tick session | `Borough.Headless --out` |
 | `world-hash.txt` | One State Hash over a hand-built city, with its row counts | `GoldenFixtures.Build()` |
+| `driving-session.borough` | **The second session**, on the one shipped Ruleset in which anybody owns a car | hand-written; checked against `GoldenFixtures.DrivingSession()` |
+| `driving-session-trace.txt` | Thirty-two samples from that 4,096-Tick session | `Borough.Headless --out` |
 
 **Two further artefacts are not in this directory and are part of the baseline anyway**:
 **[`rulesets/minimal.toml`](../../../rulesets/minimal.toml)**, which the session opens on, and
@@ -230,8 +232,9 @@ Both `[roads]`-era literals stayed put because **no shipped Ruleset states the n
 so this re-record needed no edit to `session.borough` and none to `GoldenFixtures`, which is the first
 time since 5a that a table could join the hash without four literals moving in two files first.
 
-⚠ **And that is also the coverage hole this re-record leaves, stated here rather than discovered later.**
-Neither shipped Ruleset states `[traffic]` *or* `[households]`, so nobody in the committed session drives
+⚠ ~~**And that is also the coverage hole this re-record leaves, stated here rather than discovered later.**~~
+**CLOSED BY MILESTONE 7 TASK 8**, by a second session rather than by this one adopting the file — see
+*The driving session* below. Neither shipped Ruleset states `[traffic]` *or* `[households]`, so nobody in the committed session drives
 and **the whole volume-delay mechanism sits outside every hash in this directory** — the same shape as
 5b-bis task 3's *the golden session contains no `trip` command at all*. `SegmentVolumeTests`,
 `VolumeDelayReachTests` and `TrafficRulesetLoadTests` are the only things that run it, and they say so in
@@ -239,8 +242,11 @@ their own remarks. The place both tables get stated together is **5c task 8's lo
 named ratifier; if that lands and this directory still covers none of it, the session is what wants
 changing.
 
-⚠ **Task 7 shipped `rulesets/congested.toml` and the hole did not close, which is worth being precise
-about.** That file states both tables, so the mechanism now has a Ruleset — but the golden session loads
+⚠ ~~**Task 7 shipped `rulesets/congested.toml` and the hole did not close, which is worth being precise
+about.**~~ **CLOSED BY MILESTONE 7 TASK 8.** The paragraph's own prediction — *the session would have to
+adopt it* — is what happened, with one correction: a **second** session adopted it, so nothing this one
+covers stopped being covered.
+ That file states both tables, so the mechanism now has a Ruleset — but the golden session loads
 `minimal.toml` and reloads into `minimal-tuned.toml`, and neither states either table, so **nothing in
 this directory has changed**. A Ruleset existing is not a Ruleset the baseline runs. The session would
 have to adopt it, which is a decision about the committed trace rather than about congestion, and it is
@@ -304,7 +310,10 @@ behaviour***, and this time it was foreseen rather than found. With the key stat
 world's four Buildings each carry a Car Park, so the fixture folds **four live rows** rather than
 four zeroed ones and demolition frees them.
 
-⚠ **What it still does not cover is a Car Park being *occupied*, and the reason is a second file.**
+⚠ ~~**What it still does not cover is a Car Park being *occupied*, and the reason is a second file.**~~
+**CLOSED BY TASK 8**, and the sentence below called the shape of it exactly — *it closes the same way or
+not at all.* It closed the same way.
+
 Occupancy needs somebody to drive, driving needs `[households] car_ownership_percent`, and
 `minimal.toml` states none — so nobody in the committed session owns a car and every Car Park here is
 permanently empty. That is **exactly 5c task 6's hole on a new mechanism**, and it closes the same way
@@ -375,3 +384,81 @@ before the suite means anything. ***A `--no-build` run is only as fresh as the l
 true of the fixtures as well as of the code*** — the same defect as the `const` this session hit two
 commits earlier, where a stale binary reported the pre-edit `RulesetHash` and the failure message
 quoted a number that no longer existed anywhere in the tree.
+
+## The driving session
+
+**Milestone 7 task 8 added a second session, and the reason it is a second rather than a wider first is
+the whole decision.** Two paragraphs above have been standing open — 5c task 6's *the whole volume-delay
+mechanism sits outside every hash in this directory*, and milestone 7 task 1's *what it still does not
+cover is a Car Park being **occupied*** — and both diagnosed the same cause and named the same repair.
+Driving needs `[households] car_ownership_percent`; parking needs somebody driving; **`rulesets/congested.toml`
+is the only shipped file stating that key**, and `minimal.toml` states no `[households]` table at all by
+design. Both paragraphs said the session would have to adopt the file, and both deferred it, *because it
+is a decision about the committed trace rather than about the mechanism*.
+
+**Adopting it in `session.borough` would have paid for the new coverage with the old.** That session
+zones eleven blocks, edits seven road faces, reloads halfway and is held to what it reaches by
+`GoldenSessionCoverageTests`; moving it onto a different Ruleset re-baselines all of that and puts every
+one of those claims back up for re-derivation, in a commit whose subject is parking. **A second session
+costs one file, one trace and one fixture method, and costs the first session nothing.**
+
+| | `session.borough` | `driving-session.borough` |
+|---|---|---|
+| Ruleset | `minimal.toml`, reloading into `minimal-tuned.toml` | `congested.toml`, no reload |
+| Length | 2,048 Ticks — one Day | 4,096 Ticks — **two** Days |
+| Cadence | every 64 Ticks, 32 samples | every 128 Ticks, 32 samples |
+| Commands | `populate`, 12 × `zone`, 7 × `connect` | `populate`, **and nothing else** |
+| What it is for | the player's verbs, the Rule engine, the reload | **what a populated city does**: driving, congestion, parking, the walks at each end |
+
+**The emptiness of the second session is the design and not a stub.** Every player verb is already under
+a committed hash in the first; copying the commands across would buy no coverage and would create a
+second set of block coordinates to hold in agreement with a lattice — `plans/0012` **Cause 1** by
+construction, in the one directory whose entire purpose is noticing when two records disagree.
+
+⚠ **Two Days rather than one, and the count is the argument.** A Citizen's first car journey walks to
+their own Building's kerb, because they hold no space — so the departure walk is zero by construction
+and only the *arrival* walk costs anything until somebody has parked away from home and come back for
+it. Measured by `--parking` on this Ruleset at this population: **0 of 975** departure walks leave their
+starting Address at half a Day, **2 of 1,883** at one Day, **136 of 3,330** at two. One Day is not
+vacuous; it is worse — it clears the assertion on two walks, which is a coverage claim one tuning change
+away from being false with nothing in the suite to say the claim had narrowed. That is this file's own
+standing finding arriving as a choice of length rather than as a surprise.
+
+**`GoldenSessionCoverageTests.The_driving_session_walks_to_and_from_a_car` is what makes the trace mean
+something**, and it is milestone 7's Definition of done item stated as a test: *the walk Leg's cost is
+non-zero for at least one Citizen in the committed golden session.* A trace cannot say that — every
+sample in `driving-session-trace.txt` would be just as green over a city in which every Car Park sat
+empty and every walk cost nothing, which is exactly what the *first* session's numbers are. It observes
+every Tick rather than sampling, because `TripEngine.Release` frees a Leg as its Trip resolves and no
+instant holds them all.
+
+⚠ **What it still does not cover is a city where parking is scarce.** `congested.toml` declares
+`parking = 8` per `dwelling`, which at this population is **1,952 spaces against 4,000 drivers** — and
+the run's peak holding is **1,326**, sixty-eight per cent of supply. So the sheds are working well
+inside themselves, `adr/0009`'s gradient is being walked at its shallow end, and the refusal at the far
+end of it is not something these hashes can be trusted to have reached. ⚠ **Nor can they say it was
+never reached**, and that is the sharper half: a refusal presents as `TripFate.ExceededCommuteBudget`
+(`adr/0009` refused a *no parking* Fate on purpose), so a locally exhausted shed and a genuinely long
+commute arrive down the same channel and nothing in this directory tells them apart. **The Ruleset that reaches them is `rulesets/scarce.toml`**, and the file that measures
+them is `ParkingScarcityTests`, which is an instrument. Adopting a third session for it would be a third
+baseline to re-record on every change to the fold, for a branch a test already walks deliberately; the
+note is here so that whoever wants it knows what it costs and that nobody forgot.
+
+### Re-baselining the driving session
+
+Step 1 and steps 3–5 above are unchanged. Step 2's command is different, and the difference matters:
+
+```
+dotnet run --project src/Borough.Headless -- \
+  --log tests/Borough.Tests/Golden/driving-session.borough \
+  --ruleset rulesets/congested.toml \
+  --ticks 4096 --hash-every 128 \
+  --out tests/Borough.Tests/Golden/driving-session-trace.txt
+```
+
+**One `--ruleset`, not two.** This session does not reload, so there is no transition to resolve and a
+second file would be Rules nobody names. And **`congested.toml` is now a baseline artefact**: it was a
+demonstration Ruleset that only three suites read, and editing it — including editing its comments, and
+including a repository-wide citation sweep touching them — now moves thirty-two committed hashes.
+`The_golden_ruleset_is_the_one_the_session_names` covers all three files and fails with the number to
+paste in.
