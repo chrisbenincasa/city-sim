@@ -641,13 +641,27 @@ public sealed class MapLayers
         Cells cellEast = CellGrid.ToCells(east);
         Cells cellNorth = CellGrid.ToCells(north);
 
-        int pollution = Fixed.Mul(weights.Pollution, Fixed.FromInt(Pollution(cellEast, cellNorth)));
-        int noise = Fixed.Mul(
-            weights.Noise, LineSourceQueries.Noise(graph, weights.NoiseSource, east, north));
+        // POLLUTION IS A COUNT AND THE WEIGHT IS A RATIO, so the product is already Q16.16 and the
+        // count is never lifted into it. Fixed.Mul(w, Fixed.FromInt(p)) is arithmetically the same
+        // thing and OVERFLOWS AT p > 32,767, which is a tenth of what
+        // Invariant.LayerMagnitudeIsBounded permits a Cell to hold -- so the composition used to
+        // throw on a world the invariant calls legal. That is a missing conversion rather than a
+        // width: Fixed.Mul's own remark says the fix for an out-of-range product is a range assertion
+        // and not a wider type, and it is right, because the defect here was the conversion.
+        long pollution = (long)weights.Pollution * Pollution(cellEast, cellNorth);
+        long noise = ((long)weights.Noise
+            * LineSourceQueries.Noise(graph, weights.NoiseSource, east, north)) >> Fixed.FractionalBits;
 
         // Both terms subtract, and there is no term that adds. See the remark above: this is a
         // disamenity field until milestone 15, and its maximum is clean, quiet, empty ground.
-        return -pollution - noise;
+        //
+        // Saturated rather than checked, on LineSourceQueries.Saturate's reasoning: a read-only query
+        // must not throw on a world somebody is allowed to build. The thing that catches a world gone
+        // mad is Invariant.LayerMagnitudeIsBounded at end of run, and it is a better instrument for it
+        // than an exception raised wherever somebody happened to read a Cell.
+        long total = -pollution - noise;
+
+        return total < int.MinValue ? int.MinValue : total > int.MaxValue ? int.MaxValue : (int)total;
     }
 
     /// <summary>

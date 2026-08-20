@@ -590,12 +590,50 @@ them ([`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-buil
 > one Tick in 256; resident Cells is **guessed at zero** for F17's reason. ***A row whose multiplicand
 > is zero because the world is empty is not a cheap row, it is an unpriced one.***
 
-### Task 5 — the bound, and decision 6's reading
+### Task 5 — the bound, and decision 6's reading — ✅ **DONE 2026-08-20**
 
-`WorldInvariants` already bounds Layer magnitudes as an overflow guard. This task asks the sharper
-question: **at steady state, how many Cells are still moving?** That number is decision 6's, and it is
-the difference between a field that has settled and a field that is oscillating quietly inside its
-bounds for ever.
+> ✅ **Decision 6 is settled** ([`adr/0127`](../docs/adr/0127-the-land-value-target-never-stops-moving-so-the-question-is-what-the-lag-rests-around.md)),
+> and **the milestone's six scoped decisions are all closed.** The reading, on `rulesets/fouled.toml`,
+> eight Days to settle and four observed, 262 resident Cells, 32 cadence samples:
+>
+> | Reading | Value |
+> |---|---|
+> | Cells moving per sample | **185** of 262 (min 0, max 212) |
+> | Cells that never moved | **50** |
+> | Widest peak-to-trough swing | **74,373** raw Q16.16 |
+> | Mean swing | **22,863** — ≈0.35 units against a deepest Cell of ≈−28 |
+> | Mean value, early half vs late | **−567,787** vs **−563,871** — no trend |
+>
+> ⚠ **F24 — the thing decision 6 worried about is not what the field does, and the SIZE of the motion
+> is what says so.** The minimum-step-of-one is safe: [`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md)
+> deleted `w₁`, so the target is exogenous, the gap reaches exactly zero and the operator stops — and
+> **the fifty still Cells are the direct proof**, clean ground with target zero and gap zero. What moves
+> the field is that the *target* never settles (F21). ***A ±1 flicker is a swing of ONE raw unit and the
+> observed swing is 74,373, so a test that merely asked whether it moves would have confirmed the wrong
+> phenomenon.*** The assertion therefore checks the swing is **large**, and goes red if the motion ever
+> collapses to the dead band's size.
+>
+> ⚠ **F25 — the task asked for a bound and found the bound was already wrong by a factor of ten.**
+> `Invariant.LayerMagnitudeIsBounded` bounds a Cell's pollution *source* at
+> `SeparableKernel.SourceCeiling` — about **327,000** at the shipped radius. `Desirability` then lifted
+> the read value into Q16.16 with `Fixed.FromInt`, which is `checked` and throws above **32,767**. ***So
+> the composition threw an `OverflowException` on a world the invariant calls legal***, at whatever Cell
+> somebody happened to read. **The repair is a conversion removed rather than a type widened**: pollution
+> is a *count* and the weight is a *ratio*, so the product is already Q16.16 and the count never needed
+> lifting — `Fixed.Mul`'s own remark that the fix is a range assertion and not a wider type is right, and
+> the call site's defect was the conversion. The result saturates rather than throwing, on
+> `LineSourceQueries.Saturate`'s reasoning.
+>
+> ⚠ **And the first version of that test did not bite.** One Cell at the ceiling contributes only
+> `source / gain` ≈ **4,041** to its own read value, because the kernel is normalised; it takes a full
+> kernel support of ceiling Cells — which the invariant permits — to sum back to the ceiling itself.
+> ***A bound stated per Cell is not a bound on what a Cell reads***, because a diffused field is a sum
+> over its neighbours. Verified by reverting the fix and watching the test throw.
+>
+> ⚠ **What is left is arguable and is filed rather than decided**: *should* land value swing with rush
+> hour? A land value that rises overnight and falls at eight is a traffic meter with a lag on it, and
+> the case for a time-averaged noise term has no number that refutes it. [`0002`](0002-open-questions.md)
+> §C, trigger **milestone 13**. ⚠ **Do not close it by tuning `land_value_tau`.**
 
 ### Task 6 — something to look at
 
