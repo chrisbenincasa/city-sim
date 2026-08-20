@@ -72,9 +72,61 @@ First run, 2026-08-19, `workflow_dispatch` on `main`, GitHub-hosted `ubuntu-late
 
 **None of the three may be quoted as a cost of anything but the lane itself.** They say a job fits inside its ceiling. They do not price the suite, the simulation, or a Tick, and the moment one appears beside a reference-machine figure in a table it has become [`plans/0012`](../../plans/0012-corpus-audit.md) **Cause 5**.
 
+## The lane runs on every push to `main`, and a quiet machine was never what made it pass
+
+*Amendment, 2026-08-20. Nothing above is withdrawn; §3's window narrows and §4 is unchanged.*
+
+**The trigger becomes `push` to `main`, and the nightly `schedule` stays as the backstop.** §3 chose a
+daily window with a stated trade — *a day is the window a regression in a long play state may hide for;
+the trade is against a runner-hour.* The operator's reading is that the window is too long when the
+alternative is a developer running the 36-minute suite locally to find out sooner, and ***a lane nobody
+will wait for is a lane whose window is set by how long somebody is willing to be blocked, not by how
+long a regression may hide.*** A push-triggered run reports within the hour, on nobody's machine.
+
+⚠ **§1's tax argument does not reach this and it is worth saying why.** *A gate applied more often than
+it was written to be is not extra safety; it is an unpriced tax on every commit in between* — the tax
+is **wall clock somebody is waiting on**. This lane is notifying rather than blocking, so its cost is a
+runner-hour and not a developer-minute, and running it more often taxes nobody. **The cron stays**
+because a repository with no pushes for a day still wants one reading, and because a scheduled run is
+what survives a branch being the only place work is happening.
+
+### ⚠ And the correction that matters more than the trigger: a quiet machine is a control on a CAPTURE, not on a RUN
+
+`CLAUDE.md` states the quiet-machine control beside the test-cost table — *the 42s names nothing else
+running in this repository as its first control* — and it is right, and it is about **taking a
+reading**. It was then read, in this project, on 2026-08-20, as a reason not to run the full suite in
+the background while doing anything else. ***That reading is wrong, and it is the expensive kind of
+wrong, because it converts a rule about measurement into a rule about when you are allowed to work.***
+
+Read from the test rather than from the prose about it
+([`0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)):
+`ParkingArrivalStreamTests` is `[Trait(Tier.Key, Tier.Instrument)]`, and the **only two assertions in
+the whole class** are `stream.Arrivals.Count > 0` and its twin — *the stream was not empty*. **Nothing
+in it asserts a wall clock.** A noisy machine cannot make it fail. What a noisy machine costs is the
+**accuracy of the figure it prints**, which is `0106`'s subject and nobody's until somebody copies that
+figure into a document.
+
+So, stated as the rule this ADR should have carried from the start:
+
+| | Needs a quiet reference machine | Does not |
+|---|---|---|
+| **Producing a figure a document will quote** | ✅ and this is `0106`, unchanged | |
+| **Running a suite to see whether it is green** | | ✅ noise cannot fail an assertion that does not name a clock |
+
+⚠ **The corollary the operator asked for directly**: the 36-minute suite may be run detached while
+other work continues, including other tests. The only thing lost is the printed figure, and losing it
+costs nothing on a run nobody was going to quote. ***A gate is a question about correctness; a capture
+is a question about speed; and only the second one needs the room to be silent.***
+
+⚠ **And the premise underneath the complaint was already false.** The 34-minute instrument does **not**
+run on every change and never did — §1 is exactly the decision that removed it. The working gate and
+the commit gate are both `--filter "tier!=instrument"`, and both are **42s**. What costs 36 minutes is
+the *milestone* gate and this lane, neither of which is a dev cycle.
+
 ## What would trigger revisiting
 
 - **The assertion tier passing five minutes.** The band's own trigger, produced by one filtered run. The response is to find what landed untagged, never to raise the band.
 - **The post-submit lane going red and staying red.** A notifying gate that is permanently red has stopped notifying, and at that point it is worse than no lane because it launders a real failure as background noise. The repair is to fix or delete it, not to mute it.
 - **A CI figure appearing in a document with a machine clause it did not earn.** That is §4 failing in practice, and the response is a mechanical check in `tests/Borough.Tests/Corpus/` rather than a stronger warning in prose.
+- **The push-triggered lane costing more than it returns.** A runner-hour per push is affordable at this repository's rate and would not be at ten times it. The response is to move the trigger back to a cron with a shorter window, not to delete the lane.
 - **A cheap way to run the 34m instrument.** Its cost is a population sweep to a million Citizens; if that becomes minutes, the reason it left the commit gate is gone and it should come back.

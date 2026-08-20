@@ -13,9 +13,18 @@ name: post-submit
 # changes nothing until that branch lands. workflow_dispatch is the only way to exercise it from
 # anywhere else.
 on:
+  # ⚠ EVERY PUSH TO `main`, as of 2026-08-20 -- adr/0121's amendment. The daily window was set by how
+  # long a regression may hide for; it was being set in practice by how long a developer was willing
+  # to be blocked, and they were running the 36-minute suite LOCALLY to find out sooner. This lane is
+  # notifying rather than blocking, so its cost is a runner-hour and not a developer-minute --
+  # adr/0121 section 1's tax argument is about wall clock somebody is WAITING on, and nobody waits
+  # here.
+  push:
+    branches:
+      - main
   schedule:
-    # 06:00 UTC daily. A day is the window a regression in a long play state may hide for; the
-    # trade is against a runner-hour, and nothing here is urgent enough to buy a shorter one.
+    # 06:00 UTC daily, KEPT as the backstop. A repository with no pushes for a day still wants one
+    # reading, and a scheduled run is what survives a branch being the only place work is happening.
     - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
@@ -23,6 +32,14 @@ on:
         description: 'Ticks for the headless balance run'
         required: false
         default: '1000000'
+
+# One run of this lane at a time, per branch, and a queued one supersedes the one behind it. Three
+# pushes in five minutes want the result of the THIRD; running all three would spend three
+# runner-hours to answer the same question, which is adr/0121 section 1's tax arriving on the runner
+# instead of on the developer.
+concurrency:
+  group: post-submit-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   full-suite:
@@ -76,3 +93,19 @@ jobs:
           dotnet run -c Release --no-build --project src/Borough.Headless -- \
             --ruleset rulesets/minimal.toml \
             --ticks ${{ github.event.inputs.ticks || '1000000' }}
+
+      # ⚠ A SECOND BALANCE RUN, AND ON THE ONLY WORLD WHERE THE MAP LAYERS DO ANYTHING. The run above
+      # is on minimal.toml, whose Rules emit nothing -- so its Cell table is EMPTY, land value is zero
+      # everywhere, and it exercises none of milestone 9. rulesets/fouled.toml is the one shipped file
+      # whose Rules emit, and it also carries [traffic] and [households], so it is the only long run
+      # that reaches diffusion, the desirability composition and the land value lag at all.
+      #
+      # A tenth of the Ticks, because it is a far denser world than minimal.toml -- cars, congestion
+      # and a diffused field on every land value cadence -- and because the class of regression it is
+      # here for is a crash or a thrown invariant, which does not need a million Ticks to surface.
+      - name: Headless balance run, on the world that emits
+        run: |
+          dotnet run -c Release --no-build --project src/Borough.Headless -- \
+            --ruleset rulesets/fouled.toml \
+            --citizens 4000 \
+            --ticks 100000
