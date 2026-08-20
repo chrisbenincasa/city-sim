@@ -139,9 +139,15 @@ future file to protect a case the budget already catches by timing.
   ✅ **DISCHARGED 2026-08-19 by [`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)**,
   which is that ADR. The sentence turned out to be a **milestone**'s gate that was being honoured at
   every commit, so it changed by not one word; what changed is what a *commit* is gated on, and the
-  instruments gained a **third lane** — post-submit, on a runner, nightly. ⚠ **The lane has never
-  run**, so under [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)
-  it is *unbuilt* until its first green run and nothing may yet lean on it.
+  instruments gained a **third lane** — post-submit, on a runner, nightly. ✅ **Both lanes ran green
+  2026-08-19** — the assertion job in **1m59s**, the whole suite in **40m03s**, a 100,000-Tick
+  headless balance run in **5m04s**, all on a GitHub-hosted runner of unstated class, so
+  [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s *unbuilt* is
+  discharged for the **jobs**. ⚠ **Not for the *schedule***: that run was reached by
+  `workflow_dispatch` and no cron has ever fired, so ***a workflow proven by hand is a proven job and
+  an unproven trigger.*** ⚠ **And none of those three figures may be quoted as a cost of anything but
+  the lane** — 40m03s sits close enough to the reference machine's 36m22s to read as corroboration,
+  and it includes checkout, an SDK install and a full build on a machine nobody named.
 - **It must not touch the State Hash.** Nothing here is a change to the city, so
   [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
   does not arise and no baseline moves.

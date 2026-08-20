@@ -22,7 +22,7 @@ on:
       ticks:
         description: 'Ticks for the headless balance run'
         required: false
-        default: '100000'
+        default: '1000000'
 
 jobs:
   full-suite:
@@ -65,12 +65,14 @@ jobs:
       # SaveLongRunTests inside the suite above; this run reaches further out in Ticks than any
       # test does and has no assertion of its own beyond the process surviving.
       #
-      # 100,000 is a starting number and is NOT a budget: CLAUDE.md's Definition of done names
-      # MILLION-Tick headless balance runs, and the reason this does not start there is that
-      # nobody has measured what a million costs on a runner. The first scheduled run is that
-      # measurement, and raising this is the point.
+      # A MILLION, which is what CLAUDE.md's Definition of done actually names. It started at
+      # 100,000 because nobody had measured what a runner costs; the first dispatch did that job in
+      # 5m04s end to end, of which roughly a minute is checkout, SDK and build. A million is
+      # therefore an EXTRAPOLATION rather than a measurement -- call it half an hour -- and the run
+      # that proves or refutes it is the next one. The 180-minute ceiling has room for being wrong
+      # by a factor of five.
       - name: Headless balance run
         run: |
           dotnet run -c Release --no-build --project src/Borough.Headless -- \
             --ruleset rulesets/minimal.toml \
-            --ticks ${{ github.event.inputs.ticks || '100000' }}
+            --ticks ${{ github.event.inputs.ticks || '1000000' }}

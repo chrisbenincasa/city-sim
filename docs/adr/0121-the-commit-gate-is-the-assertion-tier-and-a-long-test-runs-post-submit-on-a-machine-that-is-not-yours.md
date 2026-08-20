@@ -51,11 +51,26 @@ So the two things the post-submit lane may and may not do:
 ## Consequences
 
 - **The pre-commit run drops from ~36m to 42s**, Release, reference machine, nothing else running. ⚠ **Two earlier readings of it, 1m52s and 50s, were taken while a second session ran the same suite on the same six cores** and are upper bounds rather than readings. Both figures are `plans/0032`'s and move with it.
-- **A first `.github/workflows` lands in a repository that had none.** Two workflows: the assertion tier on every push and pull request, and the full suite plus the long headless runs on a schedule. ⚠ **Neither has ever run**, so under [`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) the post-submit lane is **unbuilt until its first green run** and nothing may yet be justified by its existence. The milestone gate is what covers the instruments in the meantime, and it is unchanged.
+- **A first `.github/workflows` lands in a repository that had none.** Two workflows: the assertion tier on every push, and the full suite plus a long headless balance run on a schedule.
+- ✅ **BOTH LANES RAN GREEN 2026-08-19**, so [`0070`](0070-an-unbuilt-mechanism-is-not-a-design-constraint.md)'s *unbuilt* classification is discharged for the **jobs**. ⚠ **It is not discharged for the *schedule***: the post-submit run was reached by `workflow_dispatch`, and a cron trigger has still never fired. ***A workflow proven by hand is a proven job and an unproven trigger***, which are two mechanisms sharing one file.
 - **An instrument still compiles on every commit**, because `dotnet build` is untouched. The failure a deferral can hide is narrowed from *any* breakage to **runtime** breakage.
 - **`CLAUDE.md`'s *Definition of done for any milestone* changes by not one word.** Its *Running the tests* table gains the post-submit lane and relabels the pre-commit row. [`plans/0003`](../../plans/0003-build-plan.md)'s *`dotnet test` must be green* likewise keeps meaning what it said.
 - **The assertion tier's own wall clock is now the number that matters, and nothing guards it automatically.** `TierBudgetTests` bounds one test at 4 minutes; it cannot bound the tier's total, because a total is a wall clock and no test can observe the run it is running inside. What guards it is the figure in `CLAUDE.md` and somebody re-measuring — weaker than a test, and stated here rather than hidden.
 - **`plans/0032`'s *must not weaken the Definition of done by stealth* is discharged rather than violated.** It required that changing what the gate names be an ADR. This is that ADR.
+
+## What the runner actually cost, and the trap in reading it
+
+First run, 2026-08-19, `workflow_dispatch` on `main`, GitHub-hosted `ubuntu-latest`, **class unstated and not stable between runs**:
+
+| Job | Wall clock | What it did |
+|---|---|---|
+| `commit` / assertions | **1m59s** | checkout, SDK, `dotnet build -c Release`, the assertion tier |
+| `post-submit` / `balance-run` | **5m04s** | the same setup, then 100,000 Ticks of `minimal.toml` |
+| `post-submit` / `full-suite` | **40m03s** | the same setup, then `dotnet test -c Release` unfiltered |
+
+⚠ **40m03s sits close enough to the reference machine's 36m22s to invite the exact error §4 forbids, and the closeness is what makes it dangerous.** Two numbers that disagree loudly are never confused; two that nearly agree read as corroboration. They are not comparable: the CI figure includes checkout, an SDK install and a full Release build, and it was produced on a machine whose core count, clock and neighbours are unknown and differ run to run. ***A figure that nearly matches a trusted one is quoted more readily than a figure that does not, and it is wrong in exactly the same way.***
+
+**None of the three may be quoted as a cost of anything but the lane itself.** They say a job fits inside its ceiling. They do not price the suite, the simulation, or a Tick, and the moment one appears beside a reference-machine figure in a table it has become [`plans/0012`](../../plans/0012-corpus-audit.md) **Cause 5**.
 
 ## What would trigger revisiting
 
