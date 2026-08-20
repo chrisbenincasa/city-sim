@@ -437,10 +437,31 @@ rather than by review.**
 journey starts from the kerb. It cannot occur in any world this project can generate — decision 3 —
 and the repair is a decision rather than a line of code.
 
-**Owed, and deliberately not done here: the stale milestone comments.** The renumber's traps are still
-in `src/` and `tests/`, and they are **no longer the set this document describes** — `milestone 10` now
-names a real money milestone, so a bulk rename would break correct comments to fix stale ones. It needs
-its own pass with each site read.
+✅ **The stale milestone comments are repaired, and renumbering was the wrong repair for most of
+them.** 73 sites in `src/` and `tests/` name a milestone; **14 were stale**, exactly the two groups this
+document predicted — seven saying *milestone 8* and meaning parking, seven saying *milestone 10* and
+meaning Save/load. ⚠ **Only one of the fourteen wanted a new number.**
+
+- **The seven parking ones described a future that has since happened.** *"equal by construction until
+  milestone 8 gives a car somewhere else to be"* is not repaired by writing **7** — task 5 gave a car
+  somewhere else to be, so the sentence needed a **tense**, not a digit.
+- **Two of them were wrong about more than the number.** `World.VehicleAccessPoint` and
+  `AccessPointTests` both named parking as the milestone that would separate a Building's two Access
+  Points. **It arrived and did not separate them** — a Trip's flanking Legs name a *Car Park's Address*
+  instead of a Building growing a second door — so `03 §6.6`'s freight is now the only candidate left.
+  ***A mechanism can arrive and leave the distinction it was expected to force still unforced.***
+- **The seven Save/load ones point at a milestone that shipped without doing the thing.** *"checkpoints
+  arrive in milestone 10"* becomes **false** if written as *milestone 8*: 8 is closed, `CrashArtifact.From`
+  is still always zero, and the reader still refuses a non-zero one. A save exists and would serve as a
+  checkpoint; nothing wires it to an artifact and no milestone owns doing so, which is `adr/0070`'s
+  **unbuilt**. Repaired by naming the state instead of a time — `adr/0093` — with only `LotTable`'s
+  taking a number, and even that one gained a correction: `adr/0086` makes a wide table **not** the
+  migration cost that paragraph anticipated.
+
+***A stale milestone reference is a claim about the future, and the repair is whatever became true —
+which is a new number only when the work is still pending.*** That is why the mechanical check
+`plans/0012` wants here cannot be a rename: three different repairs were needed and a fourth site was
+correct as written.
 
 
 `TripEngine.cs:423-424` — two lines. `waypoints[1]` and `waypoints[2]` stop being

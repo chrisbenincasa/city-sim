@@ -198,11 +198,9 @@ public sealed class TripEngine
         }
 
         // adr/0008: a car commute is never one Leg, it is at minimum walk -> drive -> walk. The two
-        // flanking walks run from the pedestrian Access Point to the vehicle one, which are equal by
-        // construction today (World.VehicleAccessPoint) and therefore cost zero -- session F's named
-        // placeholder, and the retrofit at milestone 8 is one endpoint swap because a parking Bin has
-        // an Address and so does a Building. The trap that ADR warns about is a *fallback* from an
-        // exhausted Parking Shed, which no Shed exists to produce.
+        // flanking walks ran from a Building's pedestrian Access Point to its vehicle one until
+        // milestone 7 task 5, and World.VehicleAccessPoint makes those the same Address, so both cost
+        // zero -- session F's named placeholder. They are real Addresses now: see Itinerary.
         Span<Address> waypoints = stackalloc Address[4];
         Span<TravelMode> modes = stackalloc TravelMode[3];
         int legCount = Itinerary(
@@ -407,12 +405,20 @@ public sealed class TripEngine
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b><c>adr/0008</c>'s <c>walk → drive → walk</c>, built rather than deferred, and the two
-    /// flanking Legs are zero-length today.</b> They run from the pedestrian Access Point to the
-    /// vehicle one, which <see cref="World.VehicleAccessPoint"/> makes the same Address until
-    /// milestone 8 gives a car somewhere else to be. **Building them now is what keeps that retrofit
-    /// to one endpoint swap** — the Trip table is sized on the real Leg count, `mean Legs per Trip` is
-    /// a real number, and `AdvanceTravellers` walks a cursor that has somewhere to go.
+    /// <b><c>adr/0008</c>'s <c>walk → drive → walk</c>, and since milestone 7 task 5 the two flanking
+    /// Legs run between real and generally different Addresses.</b> The first ends at the Car Park the
+    /// driver holds — <see cref="World.HeldParkingAddress"/> — and the last begins at the one they will
+    /// take, chosen here by <see cref="World.TryChooseParking"/> and actually taken on arrival. They
+    /// were both <see cref="World.VehicleAccessPoint"/>, and therefore zero, until then; building them
+    /// zero-length rather than deferring them is what kept that change to two endpoints, because the
+    /// Trip table was already sized on the real Leg count and <c>AdvanceTravellers</c> already walked a
+    /// cursor with somewhere to go.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero is still a legitimate answer and that is why the placeholder could not announce
+    /// itself.</b> A Building's own Car Park sits at its own door, so in a lattice where every dwelling
+    /// parks its own occupants most flanking Legs are genuinely zero-length even now. What changed is
+    /// that they are no longer zero <em>by construction</em>.
     /// </para>
     /// <para>
     /// ⚠ <b>The trap <c>adr/0008</c> names is a <em>fallback</em>, and it is not this.</b> A zero-length

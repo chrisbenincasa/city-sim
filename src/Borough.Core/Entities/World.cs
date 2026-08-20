@@ -1453,14 +1453,20 @@ public sealed class World
     /// because side of street is a property of the Address; <see cref="LotSubdivider"/> derives
     /// <em>one</em> Address per Lot, from the Lot's own position and side. A second would need a
     /// second saved fact, and inventing one for a consumer that does not exist is the position
-    /// <c>adr/0070</c> forbids. The two diverge when something makes them: milestone 8's parking, and
-    /// <c>03 §6.6</c>'s freight.
+    /// <c>adr/0070</c> forbids. ⚠ <b>Parking was the milestone expected to separate them and it did
+    /// not.</b> Milestone <b>7</b> — renumbered from 8, which is what this sentence used to say — gave
+    /// a car somewhere else to be, but it did so by having a Trip's flanking Legs name a <b>Car Park's
+    /// Address</b> directly rather than by giving a Building a second door. So the two are still equal,
+    /// and the remaining candidate is <c>03 §6.6</c>'s freight. ***A mechanism can arrive and leave the
+    /// distinction it was expected to force still unforced***, which is why this remark names what
+    /// would separate them rather than when.
     /// </para>
     /// <para>
-    /// <b>This is never a fallback from an exhausted Parking Shed.</b> Milestone 8's rule, written
-    /// now because the shape is easier to forbid than to remove: a full car park must not cost less
-    /// than an empty one, so a Shed with no room <em>widens</em> its search rather than resolving to
-    /// the Building's own kerb at zero cost.
+    /// <b>This is never a fallback from an exhausted Parking Shed</b>, and as of milestone 7 task 5
+    /// that is enforced rather than merely written down: a full car park must not cost less than an
+    /// empty one, so a Shed with no room widens its search — <see cref="TryChooseParking"/> — and a
+    /// destination with no room anywhere refuses the Trip on the Commute Budget rather than resolving
+    /// to the Building's own kerb at zero cost.
     /// </para>
     /// </remarks>
     public Address VehicleAccessPoint(int buildingSlot) => AccessPointOf(buildingSlot);
@@ -1505,8 +1511,8 @@ public sealed class World
     /// <summary>Where a traveller in this mode arrives at a Building.</summary>
     /// <remarks>
     /// <b>The two are the same Address today and the caller must not know that.</b>
-    /// <see cref="VehicleAccessPoint"/> explains why they are equal and what would separate them —
-    /// milestone 8's parking, and <c>03 §6.6</c>'s freight. A caller that reached for
+    /// <see cref="VehicleAccessPoint"/> explains why they are equal and what would separate them,
+    /// which after milestone 7 is <c>03 §6.6</c>'s freight alone. A caller that reached for
     /// <see cref="PedestrianAccessPoint"/> for both would be correct now and silently wrong on the day
     /// they diverge, with no compile error and no failing test to say so.
     /// </remarks>

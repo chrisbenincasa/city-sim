@@ -32,10 +32,14 @@ namespace Borough.Formats;
 /// somebody who did not produce it.
 /// </para>
 /// <para>
-/// <b><see cref="From"/> is the checkpoint-shaped field, and it is zero for the whole of Phase 1.</b>
-/// There are no checkpoints until milestone 10, so the reproduction starts at world creation and the
-/// artifact is the seed plus the whole log — equivalent, and smaller. Writing the field now means
-/// milestone 10 fills it in rather than replacing a mechanism; and a reader that meets a non-zero
+/// <b><see cref="From"/> is the checkpoint-shaped field, and it is still always zero.</b> The
+/// reproduction starts at world creation and the artifact is the seed plus the whole log —
+/// equivalent, and smaller. ⚠ <b>This paragraph said checkpoints arrive in <em>milestone 10</em>,
+/// which the renumber made 8 — and milestone 8 shipped, so the number is not the repair.</b> A save
+/// exists now (<c>Borough.Core.Persistence.SaveFile</c>) and would serve as a checkpoint; nothing has
+/// wired it to this artifact, and no milestone owns doing so. Under <c>adr/0070</c> that is
+/// <b>unbuilt</b> rather than scheduled. Writing the field now still means somebody fills it in rather
+/// than replacing a mechanism; and a reader that meets a non-zero
 /// <see cref="From"/> it cannot honour <b>refuses</b>, because replaying from Tick zero instead would
 /// reproduce a different city while claiming to reproduce this one.
 /// </para>
@@ -79,7 +83,8 @@ public sealed class CrashArtifact
     /// <summary>The Tick the panic landed on. Replay to the Tick before this one.</summary>
     public Ticks Panic { get; }
 
-    /// <summary>The Tick the reproduction starts at. Always zero before milestone 10.</summary>
+    /// <summary>The Tick the reproduction starts at. Always zero — nothing writes a checkpoint here
+    /// yet.</summary>
     /// <inheritdoc cref="CrashArtifact" path="/remarks/para[5]"/>
     public Ticks From { get; }
 
@@ -137,8 +142,9 @@ public sealed class CrashArtifact
             ? broken.Violation
             : Violation.None;
 
-        // Tick zero: no checkpoints exist before milestone 10, so every reproduction starts at world
-        // creation. See the type's remarks for why the field is written at all.
+        // Tick zero: nothing writes a checkpoint into an artifact, so every reproduction starts at
+        // world creation. See the type's remarks for why the field is written at all, and for why the
+        // number this comment used to name was not the repair.
         return new CrashArtifact(log, panic, new Ticks(0), rulesetHash, violation, Sanitise(fault));
     }
 
@@ -192,8 +198,9 @@ public sealed class CrashArtifact
         {
             throw lines.Complain(
                 $"this artifact reproduces from Tick {from}, and reproducing from anywhere but world "
-                + "creation needs a checkpoint, which arrives in milestone 10. Replaying from zero "
-                + "instead would rebuild a different city and blame it on this crash.");
+                + "creation needs a checkpoint, and nothing writes one into an artifact yet. "
+                + "Replaying from zero instead would rebuild a different city and blame it on this "
+                + "crash.");
         }
 
         if (lines.Next() is not Separator)

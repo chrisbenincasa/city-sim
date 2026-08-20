@@ -50,7 +50,11 @@ public sealed class AccessPointTests
     /// one.</b> A second would need a second <em>saved</em> fact — the Lot's position and side is what
     /// is stored — and inventing one for a consumer that does not exist is the position
     /// <c>adr/0070</c> forbids. The two are kept as two accessors rather than collapsed into one so
-    /// that milestone 8's parking and <c>03 §6.6</c>'s freight are a change at one call site each.
+    /// that whatever separates them is a change at one call site each. ⚠ <b>Parking was the named
+    /// candidate and it did not separate them</b> — milestone <b>7</b>, which this sentence called 8
+    /// before the renumber, gave a car somewhere else to be by having a Trip's flanking Legs name a
+    /// <b>Car Park's Address</b> rather than by giving a Building a second door. <c>03 §6.6</c>'s
+    /// freight is the remaining candidate.
     /// <para>
     /// <b>This test is expected to be deleted rather than to fail.</b> The day something makes them
     /// diverge it stops describing the city, and a test asserting equality that somebody weakens to
