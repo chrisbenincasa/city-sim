@@ -785,4 +785,20 @@ internal static class Session
         using var writer = new StreamWriter(options.OutPath);
         return EvidenceDump.Run(options, writer);
     }
+
+    /// <summary>Milestone 10's picture: the circular flow, printed.</summary>
+    /// <param name="options">The parsed command line.</param>
+    /// <returns>The process exit code.</returns>
+    internal static int DumpMoney(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return MoneyDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return MoneyDump.Run(options, writer);
+    }
 }

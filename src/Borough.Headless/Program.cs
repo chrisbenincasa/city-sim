@@ -66,6 +66,9 @@ internal static class Program
                 case Mode.Evidence:
                     return Session.DumpEvidence(options);
 
+                case Mode.Money:
+                    return Session.DumpMoney(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

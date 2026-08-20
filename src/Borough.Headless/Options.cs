@@ -99,6 +99,21 @@ internal enum Mode
     /// this milestone exists to produce. See <c>EvidenceDump</c>.
     /// </remarks>
     Evidence,
+
+    /// <summary>
+    /// Print where the city's money is and what moved it there. Milestone 10's.
+    /// </summary>
+    /// <remarks>
+    /// A tenth mode, and the fourth that <b>steps the world</b>, for <see cref="Evidence"/>'s reason
+    /// turned into a stronger one: a flow is a thing that happens over an interval, so a city at Tick
+    /// 0 has a balance sheet with no circuit under it at all. ⚠ <b>It refuses a Ruleset with no
+    /// <c>[[policy]]</c> and one whose Policies move nothing conserved</b> — <see cref="Zones"/>'
+    /// polarity rather than <see cref="Evidence"/>'s, because the absence here is not legible: a
+    /// conservation identity that holds vacuously prints exactly like one that holds, so a city of
+    /// paupers would print a balance sheet that says money is conserved and mean nothing by it.
+    /// <c>rulesets/taxed.toml</c> is the file written for this picture.
+    /// </remarks>
+    Money,
 }
 
 /// <summary>
@@ -334,6 +349,7 @@ internal sealed class Options
         bool commute = false;
         bool traffic = false;
         bool evidence = false;
+        bool money = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -407,6 +423,14 @@ internal sealed class Options
                 // world that has not stepped has nothing in one.
                 case "--evidence":
                     evidence = true;
+                    session = true;
+                    continue;
+
+                // A session flag for --evidence's reason, one step further on: a level needs a world
+                // that has been populated and a flow needs one that has been stepped, and this dump
+                // prints both.
+                case "--money":
+                    money = true;
                     session = true;
                     continue;
 
@@ -615,6 +639,15 @@ internal sealed class Options
             return false;
         }
 
+        // Ahead of --traffic's for the reason --traffic's is ahead of --commute's: the most specific
+        // complaint wins, and every flag below is also a picture that builds its own world.
+        if (money && (evidence || traffic || commute || zones || roads || trips || dump is not null))
+        {
+            complaint = "--money asks for a seventh picture, and each of the seven builds its own "
+                      + "world. Ask for one.";
+            return false;
+        }
+
         // Ahead of --commute's for the same reason --commute's is ahead of --roads': --traffic is
         // also a session, so the more general complaint below would fire first and name the wrong
         // mistake. The most specific complaint wins.
@@ -723,6 +756,29 @@ internal sealed class Options
             return false;
         }
 
+        // The polarity is --zones' rather than --evidence's, and the difference is that this absence
+        // is not legible. An empty trail under a heading naming the file that fills it is milestone
+        // 6's legible absence; a balance sheet of six zeroes says "supply == held" and is TRUE, so
+        // the reader learns that money is conserved in a city that has none. The Ruleset-level check
+        // that the Policies move something conserved is MoneyDump's, because it needs the file
+        // loaded; this only says a file is needed at all.
+        if (money && rulesets.Count == 0)
+        {
+            complaint = "--money needs --ruleset PATH. A circuit is content: without a [[policy]] "
+                      + "moving a family = \"money\" Resource nothing ever moves, and a balance "
+                      + "sheet over a city of paupers holds vacuously and prints as though it held. "
+                      + "rulesets/taxed.toml is the file written for this picture.";
+            return false;
+        }
+
+        // --evidence's refusal for --evidence's reason.
+        if (money && log is not null)
+        {
+            complaint = "--money and --log disagree: the dump populates its own world and steps it, "
+                      + "so a recorded session would be replayed and then over-populated.";
+            return false;
+        }
+
         // --commute's and --traffic's refusal, for their reason.
         if (evidence && log is not null)
         {
@@ -770,7 +826,8 @@ internal sealed class Options
         // than one that is refused, because the operator reads the absence of a census as a census
         // with nothing in it. Found while adding --series; the hole was --census's since slice 10.
         if ((census || series)
-            && (zones || commute || traffic || evidence || roads || trips || dump is not null))
+            && (zones || commute || traffic || evidence || money || roads || trips
+                || dump is not null))
         {
             string asked = series ? "--series" : "--census";
 
@@ -838,7 +895,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = evidence ? Mode.Evidence
+            Mode = money ? Mode.Money
+                 : evidence ? Mode.Evidence
                  : traffic ? Mode.Traffic
                  : commute ? Mode.Commute
                  : trips ? Mode.Trips
@@ -943,6 +1001,15 @@ internal sealed class Options
                                 once with [traffic] and once without. Needs --ruleset with
                                 a [traffic] and a [households] table; no shipped file has
                                 either, so this one needs a Ruleset written for it
+          --money               dump the circular flow: where the city's money is and what
+                                moved it there. Two blocks -- the balance sheet, with the
+                                money supply and the treasury on separate rows because
+                                01 section 5.1 makes them different bills, and the circuit,
+                                one row per sweep round with both directions unnetted.
+                                Steps its own world. Needs --ruleset, and refuses one whose
+                                Policies move nothing conserved: a balance sheet over a city
+                                with no money says "conserved" and means nothing by it.
+                                rulesets/taxed.toml is the file written for it
           --evidence            dump what the city can say about why something happened to
                                 it: the condemnation trail with its aggregate expanded,
                                 one Building's answer assembled from live state, and why

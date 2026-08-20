@@ -641,62 +641,12 @@ public static class WorldInvariants
     /// </remarks>
     internal static void MoneyIsRepresentable(World world, InvariantRegistry report)
     {
-        if (!TrySumBalances(world, out _, out int overflowed))
+        MoneyLedger ledger = MoneyLedger.Of(world);
+
+        if (!ledger.Representable)
         {
-            report.Report(Invariant.MoneyIsRepresentable, overflowed);
+            report.Report(Invariant.MoneyIsRepresentable, ledger.Overflowed);
         }
-    }
-
-    /// <summary>
-    /// Sums every live Bin holding a conserved Resource, whoever owns it. <b>All the money there is.</b>
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>One walk, and it is owner-agnostic on purpose.</b> Before <c>adr/0114</c> money sat in three
-    /// kinds of place — two columns on a Household, a column on a Business, and the treasury's Bin —
-    /// so both checks that read it enumerated the actors, and every new actor owed them an edit. Task
-    /// 4b paid exactly that edit. A balance is now a Bin whatever holds it, so a milestone adding a
-    /// fifth owner kind is covered the day it creates its first Bin. ***An enumeration of owners is a
-    /// list somebody has to remember to extend; a filter on the Resource is not.***
-    /// </para>
-    /// <para>
-    /// ⚠ <b>Keyed on the Resource being conserved rather than on the owner kind</b>, which is what
-    /// makes a Building's money Bin — should <c>adr/0113</c> ever be reversed — counted rather than
-    /// missed. <c>Ruleset.IsConserved</c> is the Money family, so a Ruleset naming no money sums
-    /// nothing and both checks are vacuous rather than wrong.
-    /// </para>
-    /// <para>
-    /// <b>Shared rather than written twice, because the two checks must not be able to disagree about
-    /// where money lives.</b> If one walked a place the other did not, an overflow in that place would
-    /// be reported as a conservation failure or the reverse — one bug under the other's name, which is
-    /// the exact confusion the registration order below exists to prevent.
-    /// </para>
-    /// </remarks>
-    /// <param name="world">The world to sum.</param>
-    /// <param name="total">The sum, valid only when this returns <c>true</c>.</param>
-    /// <param name="overflowed">The Bin the sum ran away on, or <c>Rows.NoSlot</c>.</param>
-    private static bool TrySumBalances(World world, out long total, out int overflowed)
-    {
-        BinTable bins = world.Bins;
-
-        total = 0;
-
-        for (int slot = 0; slot < bins.Rows.SlotCount; slot++)
-        {
-            if (!bins.Rows.IsLive(slot) || !world.Rules.IsConserved(bins.Resource[slot]))
-            {
-                continue;
-            }
-
-            if (!TryAdd(ref total, new Money(bins.LevelAt(slot))))
-            {
-                overflowed = slot;
-                return false;
-            }
-        }
-
-        overflowed = Rows.NoSlot;
-        return true;
     }
 
     /// <summary>
@@ -712,8 +662,8 @@ public static class WorldInvariants
     /// <para>
     /// <b>The places money can sit are one</b> since <c>adr/0114</c>: a Bin whose Resource is
     /// conserved. Its owner may be a Household, a Business or the treasury and this does not ask — see
-    /// <see cref="TrySumBalances"/>, which is where that stopped being a list of actors to keep up to
-    /// date.
+    /// <see cref="MoneyLedger"/>, which is where that stopped being a list of actors to keep up to
+    /// date, and which the Census now reads as well.
     /// </para>
     /// <para>
     /// <b>It returns silently on overflow rather than reporting.</b> A sum that cannot be represented
@@ -727,14 +677,17 @@ public static class WorldInvariants
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(report);
 
-        if (!TrySumBalances(world, out long held, out _))
+        MoneyLedger ledger = MoneyLedger.Of(world);
+
+        if (!ledger.Representable)
         {
             return;
         }
 
         long issued = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
 
-        report.Require(held == issued, Invariant.MoneyIsConserved, other: held - issued);
+        report.Require(
+            ledger.Total == issued, Invariant.MoneyIsConserved, other: ledger.Total - issued);
     }
 
     /// <summary>
@@ -999,29 +952,6 @@ public static class WorldInvariants
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Adds, or reports that it cannot.
-    /// </summary>
-    /// <remarks>
-    /// Tested rather than caught. A <c>checked</c> block would express the same thing, but this
-    /// check exists precisely because the sum is expected to be near its limit when it fires, and
-    /// throwing to detect a condition you are deliberately looking for turns the diagnostic into the
-    /// thing being diagnosed.
-    /// </remarks>
-    private static bool TryAdd(ref long total, Money amount)
-    {
-        long value = amount.Raw;
-
-        if ((value > 0 && total > long.MaxValue - value)
-            || (value < 0 && total < long.MinValue - value))
-        {
-            return false;
-        }
-
-        total += value;
-        return true;
     }
 
     /// <summary>

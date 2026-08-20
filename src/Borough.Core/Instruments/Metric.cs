@@ -440,6 +440,98 @@ public enum PolicyCounter : byte
     Unaffordable,
 }
 
+/// <summary>
+/// The money aggregates: where the city's money is, read at an instant.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Levels rather than flows, and the first magnitudes the Census has ever carried.</b> Every
+/// other family here counts events between two readings; these are stocks, and a stock read at an
+/// instant means the same thing at any cadence — which is <see cref="MetricSource.Table"/>'s
+/// property, not a flow's. So a money metric takes no <see cref="Aggregate"/>, for the same reason a
+/// table counter does not.
+/// </para>
+/// <para>
+/// ⚠ <b><see cref="Supply"/> and <see cref="Treasury"/> are reported separately because
+/// <c>01 §5.1</c> requires it</b>, and it is a separation between two <em>trajectories</em> rather
+/// than an editorial preference: insolvency is the treasury emptying, a trade deficit is the money
+/// supply contracting, and the table that names them says of the second that it is <em>"a different
+/// bill — the money supply, not the treasury"</em>. A picture showing one is a picture hiding the
+/// one the endgame turns on.
+/// </para>
+/// <para>
+/// <b><see cref="Held"/> against <see cref="Supply"/> is <c>Invariant.MoneyIsConserved</c> made
+/// visible</b>, and it is deliberately redundant: <see cref="Held"/> is what the walk over the Bins
+/// found and <see cref="Supply"/> is what <c>World.Endow</c> issued, arrived at differently, and the
+/// milestone exists to make them equal. Reading them off the same series is how a reader sees that
+/// without running the invariant.
+/// </para>
+/// </remarks>
+public enum MoneyCounter : byte
+{
+    /// <summary>
+    /// Money issued into this world, net of anything that has left it: <c>MoneySupplyTable.Issued</c>.
+    /// </summary>
+    /// <remarks>
+    /// Flat for the whole of milestone 10, because <c>adr/0024</c> makes the Outside Connection
+    /// money's only source and sink and that is milestone 11. A reading that moves before then is a
+    /// leak, not a trade balance.
+    /// </remarks>
+    Supply,
+
+    /// <summary>
+    /// Every conserved Bin in the city, summed — <c>MoneyLedger.Total</c>. The four below decompose it.
+    /// </summary>
+    Held,
+
+    /// <summary>What the treasury holds. <c>01 §5.1</c>'s insolvency reading.</summary>
+    Treasury,
+
+    /// <summary>What the Households hold, summed.</summary>
+    Households,
+
+    /// <summary>What the Businesses hold, summed.</summary>
+    Businesses,
+
+    /// <summary>
+    /// <see cref="Held"/> less the three named holders: money in a place this family does not name.
+    /// </summary>
+    /// <remarks>
+    /// Zero because <c>adr/0113</c> says a Building never holds money and there is no fifth owner
+    /// kind — and it is carried precisely so that ceasing to be true is visible. Without it the
+    /// unaccounted money would simply not appear in any row, and a decomposition that silently stops
+    /// decomposing reads exactly like one that still does.
+    /// </remarks>
+    Elsewhere,
+}
+
+/// <summary>
+/// The money magnitudes the Policy sweeps moved: the flow half of the balance sheet.
+/// </summary>
+/// <remarks>
+/// <b>Its own family rather than two more <see cref="PolicyCounter"/>s, because a count and an amount
+/// are not commensurable.</b> <c>PolicyCounter.Applied</c> is how many members a transfer moved money
+/// for; these are how much money. Printed in one block they would sit under one heading and share a
+/// column width, which is the report telling a reader they are the same kind of number. They are also
+/// the only members of the Census folded through <c>MoneyFlow</c> rather than <c>RuleFlow</c>, and
+/// that is a width difference an amount needs and a count does not.
+/// </remarks>
+public enum MoneyFlowCounter : byte
+{
+    /// <summary>Money moved into the treasury over the interval.</summary>
+    ToTreasury,
+
+    /// <summary>
+    /// Money moved out of the treasury over the interval, reported apart from
+    /// <see cref="ToTreasury"/> rather than netted.
+    /// </summary>
+    /// <remarks>
+    /// A net is the one figure that cannot say whether a city taxed nothing and paid nothing or
+    /// taxed heavily and paid it all back, and those are different cities.
+    /// </remarks>
+    FromTreasury,
+}
+
 /// <summary>Which family of thing a <see cref="Metric"/> names.</summary>
 /// <remarks>
 /// <b>Two families rather than one, because a level and a flow are not the same kind of number.</b>
@@ -511,6 +603,27 @@ public enum MetricSource : byte
     /// event.
     /// </remarks>
     Policies,
+
+    /// <summary>One money aggregate: a level, read at an instant and not aggregated.</summary>
+    /// <remarks>
+    /// <b>A ninth family, and the first since <see cref="Table"/> that is a level rather than a
+    /// flow.</b> It is not a table counter, though it is read the same way: a table counter is a row
+    /// count and this is a magnitude, and <c>Series.cs</c> widened a sample to 64 bits for exactly
+    /// this member — <em>"a magnitude is a <c>Money</c> or a <c>Fixed</c> rather than a count"</em> —
+    /// against a table counter that has never needed the width. Filing money as a synthetic table
+    /// would make <c>live</c>, <c>slots</c> and <c>capacity</c> name three things money has none of.
+    /// </remarks>
+    Money,
+
+    /// <summary>One money magnitude the Policy sweeps moved: a flow, accumulated and drained.</summary>
+    /// <remarks>
+    /// <b>A tenth family, and the pair to <see cref="Money"/> rather than to
+    /// <see cref="Policies"/>.</b> <c>plans/0033</c> task 7's sentence is that a balance sheet is a
+    /// level and a flow at once, and these two families are that sentence: <see cref="Money"/> is
+    /// where the money is and this is what moved. Kept out of <see cref="Policies"/> because that
+    /// family counts events and this one measures amounts.
+    /// </remarks>
+    MoneyFlow,
 }
 
 /// <summary>
@@ -593,6 +706,18 @@ public readonly record struct Metric
         : throw new InvalidOperationException($"a {Source} metric does not carry a job counter.");
 
     /// <summary>Which of the Policy sweeps' counters.</summary>
+    /// <summary>The money aggregate this names.</summary>
+    /// <exception cref="InvalidOperationException">This metric is not a money level.</exception>
+    public MoneyCounter MoneyCounter => Source is MetricSource.Money
+        ? (MoneyCounter)_counter
+        : throw new InvalidOperationException($"a {Source} metric does not name a money aggregate.");
+
+    /// <summary>The money movement this names.</summary>
+    /// <exception cref="InvalidOperationException">This metric is not a money flow.</exception>
+    public MoneyFlowCounter MoneyFlowCounter => Source is MetricSource.MoneyFlow
+        ? (MoneyFlowCounter)_counter
+        : throw new InvalidOperationException($"a {Source} metric does not name a money movement.");
+
     public PolicyCounter PolicyCounter => Source is MetricSource.Policies
         ? (PolicyCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not carry a policy counter.");
@@ -610,7 +735,7 @@ public readonly record struct Metric
     public Aggregate Aggregate =>
         Source is MetricSource.Rules or MetricSource.Zones or MetricSource.Placement
             or MetricSource.Trips or MetricSource.Jobs or MetricSource.TripCosts
-            or MetricSource.Policies
+            or MetricSource.Policies or MetricSource.MoneyFlow
         ? (Aggregate)_aggregate
         : throw new InvalidOperationException($"a {Source} metric is a level and is not aggregated.");
 
@@ -661,4 +786,17 @@ public readonly record struct Metric
     /// <param name="aggregate">How its Ticks are reduced into one reading.</param>
     public static Metric Of(PolicyCounter counter, Aggregate aggregate) =>
         new(MetricSource.Policies, 0, (byte)counter, (byte)aggregate);
+
+    /// <summary>Names one money aggregate. A level, so it takes no <see cref="Aggregate"/>.</summary>
+    /// <param name="counter">Which aggregate.</param>
+    /// <returns>The metric.</returns>
+    public static Metric Of(MoneyCounter counter) =>
+        new(MetricSource.Money, 0, (byte)counter, 0);
+
+    /// <summary>Names one money movement, reduced one way.</summary>
+    /// <param name="counter">Which movement.</param>
+    /// <param name="aggregate">How to reduce it over the interval.</param>
+    /// <returns>The metric.</returns>
+    public static Metric Of(MoneyFlowCounter counter, Aggregate aggregate) =>
+        new(MetricSource.MoneyFlow, 0, (byte)counter, (byte)aggregate);
 }

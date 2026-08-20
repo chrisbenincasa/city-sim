@@ -16,12 +16,20 @@ using Borough.Core.Tables;
 /// instant, so each is accumulated between readings and a reading drains it.
 /// </para>
 /// <para>
-/// <b>Five counters and no money magnitude, which is a scope line rather than an oversight.</b>
-/// <c>plans/0033</c> task 7 is <em>the circular flow, printed</em> — where money is and what moved —
-/// and a magnitude is a <c>Money</c> rather than a count, so it wants the 64-bit sample
-/// <c>Series</c> already carries and a reader that reports the money supply and the treasury
-/// separately (<c>01 §5.1</c>). Counting here and measuring there keeps this family answering
-/// <em>did the Policy run and whom did it reach</em>, which is the question a sweep is the answer to.
+/// <b>Six counters and two magnitudes, and the split is kept where it matters rather than here.</b>
+/// Task 5 left the money magnitude out on a scope line — <em>counting here and measuring there</em> —
+/// and task 7 discharged it by finding that the line it wanted was in the <em>reader</em>, not in the
+/// producer. A count and an amount are not commensurable and must not share a block of a report; they
+/// are produced by the same method on the same Tick, and draining them separately would be two drains
+/// a caller can get one of right. So the counts and the two <see cref="MoneyFlow"/>s ride together
+/// and the Census splits them, surfacing these two under its money family
+/// (<c>MetricSource.MoneyFlow</c>) and never beside <c>PolicyCounter</c>.
+/// </para>
+/// <para>
+/// <b>The two are denominated in the direction of the treasury rather than in a Ruleset's names for
+/// them.</b> <c>rulesets/taxed.toml</c> calls them a levy and a rebate; the Core holds ids and
+/// numbers and never the words a human reads, and a Policy with <c>to = "global"</c> moves money to
+/// the treasury whatever it is called.
 /// </para>
 /// </remarks>
 /// <param name="Triggers">Policy firings — one per Policy per Tick its interval divides.</param>
@@ -43,13 +51,57 @@ using Borough.Core.Tables;
 /// Members skipped because <em>they</em> could not cover the transfer, which is a different fact from
 /// the payer running dry and does not stop the sweep. Nobody is entitled to be taxed.
 /// </param>
+/// <param name="ToTreasury">
+/// Money moved <em>into</em> the treasury — every transfer whose <c>to</c> is <c>Scope.Global</c>,
+/// summed. One half of the circular flow.
+/// </param>
+/// <param name="FromTreasury">
+/// Money moved <em>out of</em> the treasury. The other half, and it is reported apart from
+/// <paramref name="ToTreasury"/> rather than netted: a net is the one figure that cannot say whether
+/// a city taxed nothing and paid nothing or taxed heavily and paid it all back, and those are
+/// different cities.
+/// </param>
 public readonly record struct PolicyActivity(
     RuleFlow Triggers,
     RuleFlow Considered,
     RuleFlow Applied,
     RuleFlow Floored,
     RuleFlow Exhausted,
-    RuleFlow Unaffordable);
+    RuleFlow Unaffordable,
+    MoneyFlow ToTreasury = default,
+    MoneyFlow FromTreasury = default);
+
+/// <summary>
+/// A money magnitude accumulated between two Census readings: how much moved, and the most that
+/// moved on any one Tick.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b><see cref="RuleFlow"/>'s shape in <c>Money</c>'s width, and the width is the whole reason it
+/// is a second type.</b> <c>RuleFlow.Peak</c> is an <c>int</c> because it counts events, and a count
+/// of events on one Tick has a ceiling the city's size supplies. An amount does not:
+/// <c>Quantities/Money.cs</c> argues 64 bits from <em>"income flow at the target population is on
+/// the order of 10⁹ per period against an <c>int</c> maximum of 2.1×10⁹"</em>, and a levy sweeping a
+/// million Households on one Tick is exactly that period compressed into one reading. Folding an
+/// amount through an <c>int</c> peak would overflow at the population this project is built for,
+/// silently, in the instrument rather than in the city.
+/// </para>
+/// <para>
+/// <b>Widening <see cref="RuleFlow"/> instead was the alternative and was refused.</b> Every counter
+/// family in the Census folds through it, so the change would have reached the whole instrument to
+/// serve two members — and the two types being distinct is itself the thing that stops a magnitude
+/// being folded into a family of counts by accident.
+/// </para>
+/// </remarks>
+/// <param name="Sum">Everything that moved over the interval.</param>
+/// <param name="Peak">The most that moved on any single Tick of it.</param>
+public readonly record struct MoneyFlow(long Sum, long Peak)
+{
+    /// <summary>Folds one Tick's amount in, returning the flow that includes it.</summary>
+    /// <param name="tick">What moved on this Tick.</param>
+    /// <returns>The extended flow.</returns>
+    public MoneyFlow Fold(long tick) => new(Sum + tick, tick > Peak ? tick : Peak);
+}
 
 /// <summary>
 /// The Sweep family's second member: a Policy triggers on an interval, sweeps a whole population,
@@ -109,6 +161,12 @@ public sealed class PolicyEngine
     private RuleFlow _exhaustedFlow;
     private RuleFlow _unaffordableFlow;
 
+    private long _tickToTreasury;
+    private long _tickFromTreasury;
+
+    private MoneyFlow _toTreasuryFlow;
+    private MoneyFlow _fromTreasuryFlow;
+
     /// <param name="world">The tables this sweeps, and the Ruleset it sweeps under. Not copied.</param>
     /// <param name="key">The world seed, as the scan start's first coordinate.</param>
     public PolicyEngine(World world, WorldKey key)
@@ -123,7 +181,8 @@ public sealed class PolicyEngine
     public PolicyActivity Drain()
     {
         var activity = new PolicyActivity(
-            _triggerFlow, _consideredFlow, _appliedFlow, _flooredFlow, _exhaustedFlow, _unaffordableFlow);
+            _triggerFlow, _consideredFlow, _appliedFlow, _flooredFlow, _exhaustedFlow,
+            _unaffordableFlow, _toTreasuryFlow, _fromTreasuryFlow);
 
         _triggerFlow = default;
         _consideredFlow = default;
@@ -131,6 +190,8 @@ public sealed class PolicyEngine
         _flooredFlow = default;
         _exhaustedFlow = default;
         _unaffordableFlow = default;
+        _toTreasuryFlow = default;
+        _fromTreasuryFlow = default;
 
         return activity;
     }
@@ -296,6 +357,21 @@ public sealed class PolicyEngine
 
         _tickApplied++;
 
+        // Read off the Scopes rather than off the Bins the transfer resolved to, because a Bin is
+        // the treasury's by ownership and a transfer is the treasury's by direction, and task 5's
+        // close-out is the record of what happens when a levy is read off the Bin it spends: the
+        // two agree today and a Policy that moved money between two local Bins would make them
+        // disagree without either being wrong.
+        if (definition.To == Scope.Global)
+        {
+            _tickToTreasury += amount;
+        }
+
+        if (definition.From == Scope.Global)
+        {
+            _tickFromTreasury += amount;
+        }
+
         return true;
     }
 
@@ -340,6 +416,8 @@ public sealed class PolicyEngine
         _flooredFlow = _flooredFlow.Fold(_tickFloored);
         _exhaustedFlow = _exhaustedFlow.Fold(_tickExhausted);
         _unaffordableFlow = _unaffordableFlow.Fold(_tickUnaffordable);
+        _toTreasuryFlow = _toTreasuryFlow.Fold(_tickToTreasury);
+        _fromTreasuryFlow = _fromTreasuryFlow.Fold(_tickFromTreasury);
 
         _tickTriggers = 0;
         _tickConsidered = 0;
@@ -347,5 +425,7 @@ public sealed class PolicyEngine
         _tickFloored = 0;
         _tickExhausted = 0;
         _tickUnaffordable = 0;
+        _tickToTreasury = 0;
+        _tickFromTreasury = 0;
     }
 }

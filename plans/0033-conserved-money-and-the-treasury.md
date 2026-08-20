@@ -17,11 +17,15 @@ brief filed them, and ⚠ **one of the two dissolved rather than closing**: `adr
 unit to choose, so what the milestone owed was an **instrument** rather than a value, and task 5 built
 it.
 
-✅ **Tasks 1, 2, 3, 4, 4b, 4c and 5 are DONE**, and task 6 was **discharged at scoping**. ⚠ **Two of
+✅ **Tasks 1, 2, 3, 4, 4b, 4c, 5 and 7 are DONE**, and task 6 was **discharged at scoping**. ⚠ **Two of
 those tasks did not exist when this document was written** — 4b and 4c — and 4c is the one that
 matters: it is decision 6 built, ***the milestone's largest decision had no task at all***, and task 5
-rested wholly on it while naming decisions 1 and 5 and not 6. **What is left is 7, 8 and 9** — something
-to look at, Evidence answering the question it currently declines, and the long acceptance run.
+rested wholly on it while naming decisions 1 and 5 and not 6. **What is left is 8 and 9** — Evidence
+answering the question it currently declines, and the long acceptance run.
+
+⚠ **Task 7 was taken ahead of 8 and moves no baseline**, which is worth stating because the milestone's
+other tasks all did: the Census is an instrument outside the world, so the picture could land at any
+point in the ordering without scheduling a re-record against milestone 7's concurrent hash move.
 
 ✅ **Decision 1 settled 2026-08-18 with the user in the room** —
 [`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md):
@@ -109,7 +113,7 @@ invariant. ***An obligation specified in three documents and built in none*** is
 | **The treasury** | `RuleEngine.cs:813-817` throws on `Scope.Global` — *"there are no global Bins. A city-wide Bin is one no Building owns, and where it would live is an entity decision — the treasury is the only content named for it"* |
 | Any money Resource in a shipped Ruleset | All five files declare `family = "good"` on every `[[resource]]`. The **only** `family = "money"` declaration in the tree is in a loader test |
 | A Business balance, a price, a wage, a tax, Upkeep, a Policy | See *Open decisions* 1 and 4 |
-| A money magnitude in the Census | No `Metric` member is a money one, so [`01 §6`](../docs/01-player-experience.md)'s **money supply** trajectory indicator is produced by nothing |
+| ~~A money magnitude in the Census~~ ✅ **BUILT by task 7, 2026-08-19** | ~~No `Metric` member is a money one, so [`01 §6`](../docs/01-player-experience.md)'s **money supply** trajectory indicator is produced by nothing~~ — two families now: `MetricSource.Money`, six levels, and `MetricSource.MoneyFlow`, two flows |
 
 ---
 
@@ -999,7 +1003,84 @@ balance is a column, so the whole of this task rested on it.
 
 Decision 4 returned **defer**, so this task is done before the milestone starts. The deferral is written into [`06`](../docs/06-roadmap.md) — struck from milestone 10's row, added to **12**'s with the three surviving blockers, and the inventory row moved — and into [`adr/0035`](../docs/adr/0035-infrastructure-is-priced-by-what-it-consumes.md), which gains an amendment recording that it names a Rule family and no actor and that its formula disagrees with its own title. **Not left in this file**, which was the condition: *a milestone quietly shedding a row its roadmap assigns it is how milestone 10 came to be two milestones wearing one number.*
 
-### Task 7 — something to look at
+### Task 7 — something to look at — ✅ **DONE 2026-08-19**
+
+The circular flow, printed. **Two Census families and a tenth runner mode**, and the split between
+them is the task's own sentence made structural: `MetricSource.Money` is six **levels** — supply,
+held, treasury, households, businesses, elsewhere — and `MetricSource.MoneyFlow` is two **flows**,
+money to the treasury and money out of it. `--money` prints both halves against
+`rulesets/taxed.toml`, and `--census` grew two blocks on the day the families were built (5b-bis task
+6's finding taken as an instruction again: *a Census family whose only reader is the suite is a family
+no operator can see*).
+
+**1,716 tests green, +22, and NO baseline moved.** The Census is an instrument outside the world and
+`PolicyEngine`'s two new accumulators are counters, so nothing here is in the State Hash — which is
+what makes this the one task of the milestone that could land after the golden re-record without
+scheduling anything.
+
+⚠ **TASK 5's SCOPE LINE WAS RIGHT ABOUT THE SPLIT AND WRONG ABOUT WHERE IT GOES, AND THE CORRECTION IS
+THE TASK'S SHARPEST SENTENCE.** `PolicyActivity`'s remark left the money magnitude out with an argument
+— *"counting here and measuring there keeps this family answering did the Policy run and whom did it
+reach"* — and the argument is sound about **commensurability** and wrong about **location**. A count
+and an amount are produced by one method on one Tick; draining them separately is two drains a caller
+can get one of right, and a caller that forgot the second would fold a whole reading's money into the
+next one silently. So they ride together and the **Census** splits them, into families that never share
+a block of a report. ***The line that keeps two quantities from being read as one belongs in the
+reader, not in the producer*** — a producer that splits them buys nothing a report cannot lose and
+costs a drain that can be missed.
+
+⚠ **A NET WOULD HAVE HIDDEN THE ENTIRE CIRCUIT, AND THE SHIPPED FILE IS THE PROOF.** On `taxed.toml`
+at 2,000 Citizens over 8,192 Ticks: **140,491 moved to the treasury, 140,400 moved out, and the
+treasury ends holding 91.** The gross is fifteen hundred times the net. One netted counter would print
+a city that taxes almost nothing; two print a city that taxes heavily and pays it nearly all back, and
+those are different cities. ⚠ **These figures are one seed at one population** and are quoted as the
+shape of the circuit rather than as properties of it — the levy is a fraction of holdings and the
+rebate is flat, so both scale with the city and their *ratio* does not.
+
+**`Elsewhere` is a residue rather than a fourth holder, and it is exercised rather than declared.** It
+is `held` less the three named kinds, so it sums by construction and reads zero today because
+`adr/0113` says a Building never holds money and there is no fifth owner kind. What it buys is that
+the decomposition **cannot silently stop decomposing**: without it, money held somewhere unnamed would
+appear in no row at all, and a reader cannot see a row that is not printed. ⚠ **Milestone 6 task 7's
+finding is why it has a test that makes it non-zero** — ***a count that reads zero because nothing
+exercises it and one that reads zero because nothing writes it are different facts, and a Census cannot
+tell them apart*** — so `MoneyLedgerTests` opens a Building-owned money Bin, which is a world this
+build does not produce, and watches the residue catch it.
+
+⚠ **A THIRD TEST DEFECT OF THE MILESTONE'S OWN KIND: READING A QUANTITY AT THE WRONG MOMENT.** The
+circuit assertion compared a flow's **last reading** against a level's, and they are not comparable —
+a flow reading is what happened since the previous reading and the reading **drains** it, so the last
+one covers the last interval alone, where a level's last reading covers the whole run. It read −1
+against an expected 21 and looked for a moment like a conservation failure. ***A flow and a level do
+not answer "what is it now" with the same arithmetic***, and the helper that fixes it carries the
+sentence, because the mistake is available to every future reader of this instrument. Task 5 found two
+of these and called them one mistake; this is the same mistake in the family the task exists to build.
+
+⚠ **`--money` REFUSES WHERE `--evidence` PRINTS, AND THE DIFFERENCE IS NOT A PREFERENCE.** Milestone 6
+chose a *legible absence* — an empty trail under a heading naming the file that fills it — and it works
+because an empty trail is **visibly** empty. A balance sheet over a city with no money is not: every
+row is zero, `supply == held` is **true**, and the report says money is conserved. ***A conservation
+identity that holds vacuously reads exactly like one that holds***, so this absence cannot be made
+legible and the input is refused instead. Two refusals: no `[[policy]]` at all, and Policies that move
+nothing conserved.
+
+**`TrySumBalances` left `WorldInvariants` and became `MoneyLedger`, and its own sentence gained the
+reader it predicted.** That method's remark already said it was *"shared rather than written twice,
+because the two checks must not be able to disagree about where money lives"*; a third reader arrived
+and the walk moved out rather than being copied. It carries `Representable` and `Overflowed` so the
+instrument can decline to believe a saturated figure without **reporting** one — reporting stays
+`Invariant.MoneyIsRepresentable`'s, so one bug does not get two names.
+
+**Two smaller things.** `MoneyFlow` is a second flow type rather than a widened `RuleFlow`: `Peak` has
+to be a `long` because an amount moved on one Tick has no ceiling the city's size supplies, where a
+count of events does — `Money.cs`'s *"income flow at the target population is on the order of 10⁹"* is
+exactly one sweep of a million Households compressed into one reading. Widening `RuleFlow` would have
+reached every counter family in the Census to serve two members, and the two types being distinct is
+itself what stops a magnitude being folded into a family of counts by accident. And the dump's reading
+cadence is **derived** — one row per sweep round of the shortest-interval Policy — so no row ever
+splits a sweep and `adr/0052` has nothing to ratify.
+
+### ~~Task 7's brief~~
 
 The circular flow, printed: where money is, and what moved. **A balance sheet is a level and a flow at
 once**, and `01 §5.1` requires the two money aggregates be reported **separately** — *"a different

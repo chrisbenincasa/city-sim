@@ -121,6 +121,27 @@ internal static class CensusReport
             WriteRow(writer, "policies", label, series);
         }
 
+        // A third kind of row, and it is printed as its own block for the reason the Rule block is:
+        // a money figure is a magnitude, not a count, and the two are not commensurable. The levels
+        // and the flows are then split again from each other, because a balance sheet is a level and
+        // a flow at once and reading one as the other is the mistake the split exists to stop.
+        foreach ((MoneyCounter counter, string label) in CensusFamilies.MoneyCounters)
+        {
+            Series series = census.Series(Metric.Of(counter), window);
+            truncated |= !series.Complete;
+
+            WriteRow(writer, "money", label, series);
+        }
+
+        foreach ((MoneyFlowCounter counter, Aggregate aggregate, string label)
+            in CensusFamilies.MoneyFlowCounters)
+        {
+            Series series = census.Series(Metric.Of(counter, aggregate), window);
+            truncated |= !series.Complete;
+
+            WriteRow(writer, "money moved", label, series);
+        }
+
         foreach ((TripCounter counter, Aggregate aggregate, string label) in CensusFamilies.TripCounters)
         {
             Series series = census.Series(Metric.Of(counter, aggregate), window);

@@ -109,6 +109,14 @@ public sealed class Census
     /// <summary>The Policy sweeps' share, on the same terms.</summary>
     private const int PolicyMetrics = PolicyCounters * AggregatesPerRuleCounter;
 
+    // Levels, so one slot each -- MetricSource.Money takes no Aggregate for MetricSource.Table's
+    // reason: a stock read at an instant is the same number at any cadence.
+    private const int MoneyCounters = 6;
+
+    private const int MoneyFlowCounters = 2;
+
+    private const int MoneyFlowMetrics = MoneyFlowCounters * AggregatesPerRuleCounter;
+
     /// <summary>
     /// Readings held before the oldest is overwritten.
     /// </summary>
@@ -142,6 +150,10 @@ public sealed class Census
 
     /// <summary>Where the Policy sweeps' begin, which is where the Trip cost histogram's end.</summary>
     private readonly int _policyBase;
+
+    private readonly int _moneyBase;
+
+    private readonly int _moneyFlowBase;
 
     private readonly int _metrics;
     private readonly int _capacity;
@@ -178,7 +190,9 @@ public sealed class Census
         _jobBase = _tripBase + TripMetrics;
         _tripCostBase = _jobBase + JobMetrics;
         _policyBase = _tripCostBase + TripCostMetrics;
-        _metrics = _policyBase + PolicyMetrics;
+        _moneyBase = _policyBase + PolicyMetrics;
+        _moneyFlowBase = _moneyBase + MoneyCounters;
+        _metrics = _moneyFlowBase + MoneyFlowMetrics;
         _capacity = capacity;
         _ticks = new ulong[capacity];
         _values = new long[capacity * _metrics];
@@ -331,6 +345,23 @@ public sealed class Census
         Write(_values, at + _policyBase, (int)PolicyCounter.Exhausted, policies.Exhausted);
         Write(_values, at + _policyBase, (int)PolicyCounter.Unaffordable, policies.Unaffordable);
 
+        // One walk over the Bins per reading, shared with the two conservation invariants so that
+        // the instrument and the checks cannot disagree about where money lives. Cold by
+        // construction: a reading is taken on --hash-every, never inside step().
+        MoneyLedger ledger = MoneyLedger.Of(world);
+
+        _values[at + _moneyBase + (int)MoneyCounter.Supply] =
+            world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
+        _values[at + _moneyBase + (int)MoneyCounter.Held] = ledger.Total;
+        _values[at + _moneyBase + (int)MoneyCounter.Treasury] = ledger.Treasury;
+        _values[at + _moneyBase + (int)MoneyCounter.Households] = ledger.Households;
+        _values[at + _moneyBase + (int)MoneyCounter.Businesses] = ledger.Businesses;
+        _values[at + _moneyBase + (int)MoneyCounter.Elsewhere] = ledger.Elsewhere;
+
+        WriteMoney(_values, at + _moneyFlowBase, (int)MoneyFlowCounter.ToTreasury, policies.ToTreasury);
+        WriteMoney(
+            _values, at + _moneyFlowBase, (int)MoneyFlowCounter.FromTreasury, policies.FromTreasury);
+
         for (int bucket = 0; bucket < TripCostCounters; bucket++)
         {
             Write(_values, at + _tripCostBase, bucket, trips.Costs[(TripCostBucket)bucket]);
@@ -346,6 +377,16 @@ public sealed class Census
         }
 
         static void Write(long[] values, int at, int counter, RuleFlow flow)
+        {
+            int slot = at + (counter * AggregatesPerRuleCounter);
+
+            values[slot + (int)Aggregate.Sum] = flow.Sum;
+            values[slot + (int)Aggregate.Peak] = flow.Peak;
+        }
+
+        // The same fold in Money's width. Separate because MoneyFlow's Peak is a long: an amount
+        // moved on one Tick has no ceiling the city's size supplies, where a count of events does.
+        static void WriteMoney(long[] values, int at, int counter, MoneyFlow flow)
         {
             int slot = at + (counter * AggregatesPerRuleCounter);
 
@@ -430,6 +471,19 @@ public sealed class Census
             return (metric.Table * CountersPerTable) + (int)metric.Counter;
         }
 
+        if (metric.Source is MetricSource.Money)
+        {
+            if (metric.MoneyCounter is not (MoneyCounter.Supply or MoneyCounter.Held
+                or MoneyCounter.Treasury or MoneyCounter.Households or MoneyCounter.Businesses
+                or MoneyCounter.Elsewhere))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.MoneyCounter, "not a money aggregate this census reads.");
+            }
+
+            return _moneyBase + (int)metric.MoneyCounter;
+        }
+
         if (metric.Aggregate is not (Aggregate.Sum or Aggregate.Peak))
         {
             throw new ArgumentOutOfRangeException(
@@ -491,6 +545,20 @@ public sealed class Census
 
             return _policyBase
                 + ((int)metric.PolicyCounter * AggregatesPerRuleCounter)
+                + (int)metric.Aggregate;
+        }
+
+        if (metric.Source is MetricSource.MoneyFlow)
+        {
+            if (metric.MoneyFlowCounter is not (MoneyFlowCounter.ToTreasury
+                or MoneyFlowCounter.FromTreasury))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(metric), metric.MoneyFlowCounter, "not a money movement this census reads.");
+            }
+
+            return _moneyFlowBase
+                + ((int)metric.MoneyFlowCounter * AggregatesPerRuleCounter)
                 + (int)metric.Aggregate;
         }
 

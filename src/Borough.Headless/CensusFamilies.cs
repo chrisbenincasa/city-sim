@@ -170,6 +170,36 @@ internal static class CensusFamilies
     /// conditions arrive — and a zero beside a nonzero is informative in a way a missing row is not.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// The money aggregates, ordered so the report reads as a balance sheet.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>supply</c> and <c>held</c> lead, and they lead in that order</b>, because the pair is
+    /// <c>Invariant.MoneyIsConserved</c> printed: what was issued against what the walk found. The
+    /// four below decompose <c>held</c>, and <c>01 §5.1</c>'s separation is why <c>treasury</c> is a
+    /// row of its own rather than a share of <c>supply</c> — the two are different trajectories, and
+    /// a picture showing one hides the one the endgame turns on.
+    /// </remarks>
+    public static readonly (MoneyCounter Counter, string Name)[] MoneyCounters =
+    [
+        (MoneyCounter.Supply, "supply"),
+        (MoneyCounter.Held, "held"),
+        (MoneyCounter.Treasury, "treasury"),
+        (MoneyCounter.Households, "households"),
+        (MoneyCounter.Businesses, "businesses"),
+        (MoneyCounter.Elsewhere, "elsewhere"),
+    ];
+
+    /// <summary>What the Policy sweeps moved, by direction relative to the treasury.</summary>
+    public static readonly (MoneyFlowCounter Counter, Aggregate Aggregate, string Name)[]
+        MoneyFlowCounters =
+    [
+        (MoneyFlowCounter.ToTreasury, Aggregate.Sum, "to treasury"),
+        (MoneyFlowCounter.ToTreasury, Aggregate.Peak, "to treasury peak"),
+        (MoneyFlowCounter.FromTreasury, Aggregate.Sum, "from treasury"),
+        (MoneyFlowCounter.FromTreasury, Aggregate.Peak, "from treasury peak"),
+    ];
+
     public static readonly (TripCounter Counter, Aggregate Aggregate, string Name)[] TripCounters =
     [
         (TripCounter.Completed, Aggregate.Sum, "completed"),
