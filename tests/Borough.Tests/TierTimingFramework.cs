@@ -79,6 +79,13 @@ public sealed class TierTimingFramework(IMessageSink messageSink) : XunitTestFra
                     System.TimeSpan.FromSeconds((double)finished.ExecutionTime));
             }
 
+            // Every window in the assembly has closed by now, so a file append here cannot be the
+            // cause of a jump somewhere else. plans/0002 §B.
+            if (message is ITestAssemblyFinished)
+            {
+                AllocationProbe.Flush();
+            }
+
             return inner.OnMessage(message);
         }
     }

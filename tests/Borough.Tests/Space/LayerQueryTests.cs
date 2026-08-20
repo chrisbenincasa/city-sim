@@ -150,6 +150,9 @@ public class LayerQueryTests
         // Warm the path first: a first call would otherwise measure the JIT rather than the query.
         _ = layers.LayerCells(box, Layer.IndustrialPollution, readings);
 
+        int gen0 = GC.CollectionCount(0);
+        int gen1 = GC.CollectionCount(1);
+        int gen2 = GC.CollectionCount(2);
         long before = GC.GetAllocatedBytesForCurrentThread();
 
         for (int i = 0; i < 64; i++)
@@ -157,7 +160,16 @@ public class LayerQueryTests
             _ = layers.LayerCells(box, Layer.IndustrialPollution, readings);
         }
 
-        Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+        long after = GC.GetAllocatedBytesForCurrentThread();
+
+        AllocationProbe.Record(
+            "LayerQueryTests.Answering_the_query_allocates_nothing",
+            after - before,
+            GC.CollectionCount(0) - gen0,
+            GC.CollectionCount(1) - gen1,
+            GC.CollectionCount(2) - gen2);
+
+        Assert.Equal(before, after);
     }
 
     /// <summary>

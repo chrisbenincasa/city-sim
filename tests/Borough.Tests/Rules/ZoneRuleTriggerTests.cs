@@ -382,6 +382,9 @@ public sealed class ZoneRuleTriggerTests
         simulation.Step(TickInput.Empty);
         simulation.Step(TickInput.Empty);
 
+        int gen0 = GC.CollectionCount(0);
+        int gen1 = GC.CollectionCount(1);
+        int gen2 = GC.CollectionCount(2);
         long before = GC.GetAllocatedBytesForCurrentThread();
 
         for (int i = 0; i < 500; i++)
@@ -389,6 +392,15 @@ public sealed class ZoneRuleTriggerTests
             simulation.Step(TickInput.Empty);
         }
 
-        Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+        long after = GC.GetAllocatedBytesForCurrentThread();
+
+        AllocationProbe.Record(
+            "ZoneRuleTriggerTests.Sweeping_allocates_nothing_after_the_first_trigger",
+            after - before,
+            GC.CollectionCount(0) - gen0,
+            GC.CollectionCount(1) - gen1,
+            GC.CollectionCount(2) - gen2);
+
+        Assert.Equal(before, after);
     }
 }

@@ -200,6 +200,9 @@ public sealed class ZoneSampleTests
         // Once first, so that nothing being measured is first-call JIT or a lazily built table.
         ZoneSample.Draw(lots, into, Key, new Ticks(1), rule: 0);
 
+        int gen0 = GC.CollectionCount(0);
+        int gen1 = GC.CollectionCount(1);
+        int gen2 = GC.CollectionCount(2);
         long before = GC.GetAllocatedBytesForCurrentThread();
 
         for (ulong tick = 2; tick <= 1_000; tick++)
@@ -207,6 +210,15 @@ public sealed class ZoneSampleTests
             ZoneSample.Draw(lots, into, Key, new Ticks(tick), rule: 0);
         }
 
-        Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+        long after = GC.GetAllocatedBytesForCurrentThread();
+
+        AllocationProbe.Record(
+            "ZoneSampleTests.Sampling_allocates_nothing",
+            after - before,
+            GC.CollectionCount(0) - gen0,
+            GC.CollectionCount(1) - gen1,
+            GC.CollectionCount(2) - gen2);
+
+        Assert.Equal(before, after);
     }
 }

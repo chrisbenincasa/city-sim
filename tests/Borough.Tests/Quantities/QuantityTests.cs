@@ -54,9 +54,19 @@ public class QuantityTests
         // Warm the paths so first-call JIT allocation is not attributed to the measured region.
         Accumulate(4);
 
+        int gen0 = GC.CollectionCount(0);
+        int gen1 = GC.CollectionCount(1);
+        int gen2 = GC.CollectionCount(2);
         long before = GC.GetAllocatedBytesForCurrentThread();
         long result = Accumulate(10_000);
         long after = GC.GetAllocatedBytesForCurrentThread();
+
+        AllocationProbe.Record(
+            "QuantityTests.Arithmetic_on_quantities_allocates_nothing",
+            after - before,
+            GC.CollectionCount(0) - gen0,
+            GC.CollectionCount(1) - gen1,
+            GC.CollectionCount(2) - gen2);
 
         Assert.NotEqual(0, result);
         Assert.Equal(0, after - before);

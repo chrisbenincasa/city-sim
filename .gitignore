@@ -517,3 +517,6 @@ CLAUDE.local.md
 .claude/todos/
 .claude/scheduled_tasks.*
 .claude/handoff
+
+# plans/0002 §B: the allocation probe writes here when BOROUGH_ALLOC_PROBE points into the tree
+alloc-probe*.csv

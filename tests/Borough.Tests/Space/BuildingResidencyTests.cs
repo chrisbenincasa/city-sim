@@ -169,6 +169,9 @@ public sealed class BuildingResidencyTests
         // Warm the path first, or the measurement is of the JIT rather than of the query.
         _ = world.BuildingsInCells.In(box, world.Buildings, into);
 
+        int gen0 = GC.CollectionCount(0);
+        int gen1 = GC.CollectionCount(1);
+        int gen2 = GC.CollectionCount(2);
         long before = GC.GetAllocatedBytesForCurrentThread();
 
         for (int i = 0; i < 64; i++)
@@ -176,7 +179,16 @@ public sealed class BuildingResidencyTests
             _ = world.BuildingsInCells.In(box, world.Buildings, into);
         }
 
-        Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+        long after = GC.GetAllocatedBytesForCurrentThread();
+
+        AllocationProbe.Record(
+            "BuildingResidencyTests.Answering_the_query_allocates_nothing",
+            after - before,
+            GC.CollectionCount(0) - gen0,
+            GC.CollectionCount(1) - gen1,
+            GC.CollectionCount(2) - gen2);
+
+        Assert.Equal(before, after);
     }
 
     /// <summary>

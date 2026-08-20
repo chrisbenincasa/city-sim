@@ -79,9 +79,19 @@ public class TableAllocationTests
         // Reach steady state first: every array is at its final size and the free list is warm.
         Churn(world, handles);
 
+        int gen0 = GC.CollectionCount(0);
+        int gen1 = GC.CollectionCount(1);
+        int gen2 = GC.CollectionCount(2);
         long before = GC.GetAllocatedBytesForCurrentThread();
         Churn(world, handles);
         long after = GC.GetAllocatedBytesForCurrentThread();
+
+        AllocationProbe.Record(
+            "TableAllocationTests.Allocate_free_and_reuse_allocate_no_managed_memory",
+            after - before,
+            GC.CollectionCount(0) - gen0,
+            GC.CollectionCount(1) - gen1,
+            GC.CollectionCount(2) - gen2);
 
         Assert.Equal(0, after - before);
     }
@@ -98,9 +108,19 @@ public class TableAllocationTests
 
         world.HashState();
 
+        int gen0 = GC.CollectionCount(0);
+        int gen1 = GC.CollectionCount(1);
+        int gen2 = GC.CollectionCount(2);
         long before = GC.GetAllocatedBytesForCurrentThread();
         world.HashState();
         long after = GC.GetAllocatedBytesForCurrentThread();
+
+        AllocationProbe.Record(
+            "TableAllocationTests.Hashing_the_world_allocates_no_managed_memory",
+            after - before,
+            GC.CollectionCount(0) - gen0,
+            GC.CollectionCount(1) - gen1,
+            GC.CollectionCount(2) - gen2);
 
         Assert.Equal(0, after - before);
     }
@@ -118,6 +138,9 @@ public class TableAllocationTests
 
         int buildingSlot = world.Buildings.Rows.Resolve(building);
 
+        int gen0 = GC.CollectionCount(0);
+        int gen1 = GC.CollectionCount(1);
+        int gen2 = GC.CollectionCount(2);
         long before = GC.GetAllocatedBytesForCurrentThread();
 
         int seen = 0;
@@ -127,6 +150,13 @@ public class TableAllocationTests
         }
 
         long after = GC.GetAllocatedBytesForCurrentThread();
+
+        AllocationProbe.Record(
+            "TableAllocationTests.Walking_an_intrusive_list_allocates_no_managed_memory",
+            after - before,
+            GC.CollectionCount(0) - gen0,
+            GC.CollectionCount(1) - gen1,
+            GC.CollectionCount(2) - gen2);
 
         Assert.Equal(0, after - before);
         Assert.True(seen > 0);
