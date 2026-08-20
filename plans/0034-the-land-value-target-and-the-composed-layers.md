@@ -635,11 +635,40 @@ them ([`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-buil
 > the case for a time-averaged noise term has no number that refutes it. [`0002`](0002-open-questions.md)
 > §C, trigger **milestone 13**. ⚠ **Do not close it by tuning `land_value_tau`.**
 
-### Task 6 — something to look at
+### Task 6 — something to look at — ✅ **DONE 2026-08-20**
 
-`--layer` already prints a Cell grid and the halo that moved. Grow it to print **land value beside
-desirability**, so that a reader can see the momentum lagging its target rather than infer it from two
-hashes. ⚠ **Every string belongs to the shell** — `Core` hands over Cell coordinates and integers.
+> ✅ **`--land-value`, a mode of its own, printing THREE grids** — the target, the lag, and the gap —
+> plus what the field did over the run. Every string is the shell's; `Core` hands over Cell coordinates
+> and integers.
+>
+> ⚠ **F26 — it is not `--layer` grown, and the task's own sentence is why it could not be.** `--layer`
+> builds its own world and hand-places sources; land value is a **history**, so a picture of it needs a
+> city that has been *running*. ***A lag is not a property of a value, it is a property of a pair***,
+> which is why one grid was never going to be enough — the claim `02 §2.4` makes is about the
+> *difference* between two fields, and neither field alone can carry it.
+>
+> ⚠ **F27 — `--layer`'s refusal carried a stale sentence and it is exactly `adr/0093`'s shape.** It read
+> *"a Layer dump builds its own world with sources in it, because **no session can place a source until
+> Rules exist**"* — true when written, false since slice 7, and **wrong about the trigger** rather than
+> about the mechanism. Corrected in place to the narrower thing that is still true: the dump wants a
+> field it authored so the halo it prints is attributable to the one source it added.
+>
+> ⚠ **F28 — the dump prints the HOUR, and that is the most useful line in the header.** F21's
+> consequence made operational: at a round multiple of 2,048 Ticks the run lands at midnight, every
+> Segment is empty, and the picture is of a **one-term composition wearing a two-term formula** — which
+> would read as working. The demonstration command is therefore **21163** Ticks and not 20480, and the
+> test pins `THE HOUR IS 08:00`. ***A picture of an instantaneous quantity that does not say which
+> instant is not a picture of the city.***
+>
+> ⚠ **And the mode carries no ordinal.** `ParkingDumpTests` says *the tenth runner mode*, `Options`
+> carries a struck sentence saying *a count in prose is a fact that drifts, and the tenth mode is what
+> made the drift legible*, and the board records **two branches each shipping a tenth**. ***Count the
+> enum.*** The window is derived from the world for the same reason — `--layer`'s fixed box would draw
+> a blank grid the first time the generator moved the city.
+>
+> **Read at ten Days and eight hours on `fouled.toml`**: target peak **29.00**, lag peak **29.19**, gap
+> peak **1.07** — so the lag runs about **4%** behind its target, and about **209 of 262** Cells move on
+> a typical cadence sample.
 
 ### Task 7 — the long acceptance run
 

@@ -130,6 +130,20 @@ internal enum Mode
     /// <c>ParkingDump</c>.
     /// </remarks>
     Parking,
+
+    /// <summary>
+    /// Print land value against the desirability it is chasing, and the gap. Milestone 9's.
+    /// </summary>
+    /// <remarks>
+    /// A mode that <b>steps the world</b>, because the quantity is a <em>history</em>: land value
+    /// moves slowly toward the current desirability rather than tracking it, so a world that has not
+    /// run has nothing to show. ⚠ <b>Three grids and not one</b> — the target, the lag, and their
+    /// difference — because ***a lag is not a property of a value, it is a property of a pair***. It
+    /// refuses a Ruleset that declares no map emission, <see cref="Parking"/>'s polarity, and ⚠ <b>that
+    /// refuses eight of the nine shipped files</b>: the only thing that creates a Cell row is a
+    /// pollution emission and only <c>fouled.toml</c> emits. See <c>LandValueDump</c>.
+    /// </remarks>
+    LandValue,
 }
 
 /// <summary>
@@ -369,6 +383,7 @@ internal sealed class Options
         bool evidence = false;
         bool money = false;
         bool parking = false;
+        bool landValue = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -458,6 +473,14 @@ internal sealed class Options
                 // stepped has every space empty and every walk unmeasured.
                 case "--parking":
                     parking = true;
+                    session = true;
+                    continue;
+
+                // A session flag, and the most literal case of it after --parking: land value is a
+                // quantity with MEMORY, so a world that has not run holds the zero it was created
+                // with and a dump of it would be a picture of the initialiser.
+                case "--land-value":
+                    landValue = true;
                     session = true;
                     continue;
 
@@ -603,8 +626,16 @@ internal sealed class Options
 
         if (dump is not null && (session || seeded))
         {
+            // ⚠ THE SECOND SENTENCE USED TO READ "because no session can place a source until Rules
+            // exist" AND IT IS STALE (adr/0093, and it is wrong about the TRIGGER rather than the
+            // mechanism). Rules exist, and rulesets/fouled.toml is a Ruleset whose Rules emit -- so a
+            // session CAN place a source, and --land-value is the mode that steps one. What survives
+            // is the narrower true thing: this dump wants a field it authored, so that the halo it
+            // prints is attributable to the one source it added.
             complaint = "--layer and the session flags disagree: a Layer dump builds its own world "
-                      + "with sources in it, because no session can place a source until Rules exist.";
+                      + "with sources it placed itself, so that the halo it prints is attributable "
+                      + "to the one source it added. For a Layer on a world that has RUN, ask for "
+                      + "--land-value with a Ruleset whose Rules emit.";
             return false;
         }
 
@@ -680,7 +711,7 @@ internal sealed class Options
         // refused here or not at all. A textual union of the two branches would have left
         // `--money --parking` parsing silently -- the exact hole the block below was written to
         // close, re-opened by the merge that landed the fix.
-        if (money && (parking || evidence || traffic || commute || zones || roads || trips
+        if (money && (landValue || parking || evidence || traffic || commute || zones || roads || trips
                       || dump is not null))
         {
             complaint = "--money asks for another picture, and each picture builds its own world. "
@@ -699,6 +730,16 @@ internal sealed class Options
         // count in prose is a fact that drifts, and the tenth mode is what made the drift legible.
         // The counts are left where they are because a test asserts one of the strings; the new ones
         // do not start another.
+        // Above --parking's on the ordering rule stated above: this block runs first and returns, so
+        // `--land-value --parking` is refused here or not at all.
+        if (landValue && (parking || evidence || traffic || commute || zones || roads || trips
+                          || dump is not null))
+        {
+            complaint = "--land-value asks for another picture, and each picture builds its own "
+                      + "world. Ask for one.";
+            return false;
+        }
+
         if (parking && (evidence || traffic || commute || zones || roads || trips || dump is not null))
         {
             complaint = "--parking asks for another picture, and each picture builds its own world. "
@@ -856,6 +897,25 @@ internal sealed class Options
         // are content -- supply nobody can find and drivers nobody has are different empty pictures.
         // ParkingDump makes the two Ruleset-level checks because they need the file loaded; this only
         // says a file is needed at all.
+        // --parking's refusal and its polarity: a picture of a field needs a field. LandValueDump
+        // makes the sharper check -- that some Rule actually emits -- because that needs the file
+        // loaded; this only says a file is needed at all.
+        if (landValue && rulesets.Count == 0)
+        {
+            complaint = "--land-value needs --ruleset PATH. The only thing in the build that creates "
+                      + "a Cell row is a pollution emission, so a world with no Rules has no Cells "
+                      + "and every panel would be blank. rulesets/fouled.toml is the only shipped "
+                      + "file whose Rules emit.";
+            return false;
+        }
+
+        if (landValue && log is not null)
+        {
+            complaint = "--land-value and --log disagree: the dump populates its own world and steps "
+                      + "it, so a recorded session would be replayed and then over-populated.";
+            return false;
+        }
+
         if (parking && rulesets.Count == 0)
         {
             complaint = "--parking needs --ruleset PATH. Parking is content twice over: [parking] "
@@ -981,6 +1041,7 @@ internal sealed class Options
         options = new Options
         {
             Mode = money ? Mode.Money
+                 : landValue ? Mode.LandValue
                  : parking ? Mode.Parking
                  : evidence ? Mode.Evidence
                  : traffic ? Mode.Traffic
@@ -1110,6 +1171,13 @@ internal sealed class Options
                                 --zones already draws. Needs --ruleset with a [parking] and
                                 a [households] table, and runs a session because a car is
                                 parked somewhere only after somebody has driven there
+          --land-value          dump land value against the desirability it is chasing, and
+                                the gap: three grids, because a lag is a property of a pair
+                                and not of a value. Needs --ruleset whose Rules EMIT -- the
+                                only thing that creates a Cell row is a pollution emission,
+                                and rulesets/fouled.toml is the only shipped file that does.
+                                Prints the hour, because desirability's noise term reads a
+                                Segment's volume at the instant it is asked
           --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
                                 than as an ASCII field
 

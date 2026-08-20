@@ -72,6 +72,9 @@ internal static class Program
                 case Mode.Parking:
                     return Session.DumpParking(options);
 
+                case Mode.LandValue:
+                    return Session.DumpLandValue(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

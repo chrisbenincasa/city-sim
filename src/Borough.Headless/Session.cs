@@ -818,4 +818,18 @@ internal static class Session
         using var writer = new StreamWriter(options.OutPath);
         return ParkingDump.Run(options, writer);
     }
+
+    /// <summary>Runs the land value dump, to a file or to the console.</summary>
+    internal static int DumpLandValue(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return LandValueDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return LandValueDump.Run(options, writer);
+    }
 }

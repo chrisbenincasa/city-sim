@@ -198,6 +198,7 @@ dotnet run --project src/Borough.Headless -- --traffic --ruleset rulesets/conges
 dotnet run --project src/Borough.Headless -- --evidence --ruleset rulesets/diagnosed.toml --citizens 4000 --ticks 2048
 dotnet run --project src/Borough.Headless -- --money --ruleset rulesets/taxed.toml --citizens 2000 --ticks 8192
 dotnet run --project src/Borough.Headless -- --parking --ruleset rulesets/congested.toml --citizens 4000 --ticks 4096
+dotnet run --project src/Borough.Headless -- --land-value --ruleset rulesets/fouled.toml --citizens 4000 --ticks 21163
 dotnet run --project src/Borough.Headless -- \
   --ruleset rulesets/minimal.toml --reload-at 200 --ruleset rulesets/minimal-tuned.toml --ticks 400
 ```
