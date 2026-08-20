@@ -85,6 +85,11 @@ public sealed class TripEngine
     /// </remarks>
     private readonly WalkScratch _walk = new();
 
+    /// <summary>
+    /// The Parking Shed's scratch. <b>One per engine, never shared</b>, on <see cref="_walk"/>'s rule.
+    /// </summary>
+    private readonly Parking.ShedScratch _shed = new();
+
     /// <param name="world">The world whose Travellers this advances.</param>
     public TripEngine(World world)
     {
@@ -200,7 +205,20 @@ public sealed class TripEngine
         // exhausted Parking Shed, which no Shed exists to produce.
         Span<Address> waypoints = stackalloc Address[4];
         Span<TravelMode> modes = stackalloc TravelMode[3];
-        int legCount = Itinerary(fromBuilding, toBuilding, from, to, mode, waypoints, modes);
+        int legCount = Itinerary(
+            citizen, fromBuilding, toBuilding, from, to, mode, waypoints, modes);
+
+        // adr/0009: "if the whole shed is full the Trip fails immediately with Fate exceeded commute
+        // budget, which is exactly why this ADR refused a *no parking* Fate." Nothing was taken to be
+        // given back -- TryChooseParking writes nothing -- so the refusal is a plain return, and it is
+        // the Budget's channel rather than a second one. A district with no parking gets rising walk
+        // times first and failures only at the Budget, which is that ADR's gradient-not-cliff.
+        if (legCount == NoParking)
+        {
+            _world.ResolveTrip(citizen, tripSlot, TripFate.ExceededCommuteBudget);
+
+            return TripFate.ExceededCommuteBudget;
+        }
 
         TravelTime cost = TravelTime.Zero;
         int head = Rows.NoSlot;
@@ -406,8 +424,17 @@ public sealed class TripEngine
     /// is that this method is where a reader is sent.
     /// </para>
     /// </remarks>
+    /// <summary>No space anywhere in the destination's shed. Not a Leg count.</summary>
+    /// <remarks>
+    /// <b>A sentinel rather than an <c>out</c> flag</b>, because every other answer this method gives
+    /// is a Leg count and the caller's next act is to refuse the Trip outright. <c>-1</c> is outside
+    /// the range of legitimate answers, which <c>CitizenTable.ParkedIn</c>'s zero handle is not — so
+    /// unlike that column this one can afford to be a sentinel.
+    /// </remarks>
+    private const int NoParking = -1;
+
     private int Itinerary(
-        int fromBuilding, int toBuilding, Address from, Address to, TravelMode mode,
+        int citizen, int fromBuilding, int toBuilding, Address from, Address to, TravelMode mode,
         Span<Address> waypoints, Span<TravelMode> modes)
     {
         if (mode != TravelMode.Car)
@@ -419,9 +446,46 @@ public sealed class TripEngine
             return 1;
         }
 
+        // Where the car actually is. A Citizen who holds a space walks to it; one who has never parked
+        // anywhere walks to their Building's own kerb, which is this Citizen's first car journey and
+        // nothing after it. ⚠ That is NOT adr/0008's forbidden fallback -- the prohibition is against an
+        // EXHAUSTED shed resolving to the kerb, which would make a full car park cost less than an
+        // empty one. Nothing here is exhausted; the car has simply never been anywhere yet.
+        Address car = _world.HeldParkingAddress(citizen);
+
+        if (!car.Exists)
+        {
+            car = _world.VehicleAccessPoint(fromBuilding);
+        }
+
+        // Chosen now, taken on arrival. adr/0075 creates every Leg at Trip creation and a Leg carries
+        // two Addresses, so the drive's far end has to be known before the car sets off -- and pricing
+        // the Commute Budget on a journey missing its last walk is what TripEngine.Start refuses by
+        // name. The occupancy is not moved here: see World.TryChooseParking.
+        if (!_world.Rules.Parking.Runs)
+        {
+            waypoints[0] = from;
+            waypoints[1] = car;
+            waypoints[2] = _world.VehicleAccessPoint(toBuilding);
+            waypoints[3] = to;
+
+            modes[0] = TravelMode.Foot;
+            modes[1] = TravelMode.Car;
+            modes[2] = TravelMode.Foot;
+
+            return 3;
+        }
+
+        Address door = _world.PedestrianAccessPoint(toBuilding);
+
+        if (!_world.TryChooseParking(door, _shed, out int carPark))
+        {
+            return NoParking;
+        }
+
         waypoints[0] = from;
-        waypoints[1] = _world.VehicleAccessPoint(fromBuilding);
-        waypoints[2] = _world.VehicleAccessPoint(toBuilding);
+        waypoints[1] = car;
+        waypoints[2] = _world.CarParks.AddressAt(_world.Roads.Segments, carPark);
         waypoints[3] = to;
 
         modes[0] = TravelMode.Foot;
@@ -494,6 +558,66 @@ public sealed class TripEngine
     /// that permanent by saying a pedestrian network does not saturate. A walk therefore has nothing to
     /// price against and nothing to attribute, so it costs what it was planned to cost.
     /// </remarks>
+    /// <summary>
+    /// Moves the parking, if this Leg change is one of the two that move it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The two events are Leg boundaries and they are found by mode rather than by index</b>, which
+    /// is what the journey physically is: finishing a walk and starting a drive is <em>reaching the car
+    /// and pulling out of the space</em>; finishing a drive and starting a walk is <em>parking and
+    /// setting off on foot</em>. Reading the modes rather than counting Legs means a Trip shape with
+    /// more Legs — <c>03 §6.6</c>'s freight, a mid-journey mode change — does the right thing without
+    /// this method knowing about it.
+    /// </para>
+    /// <para>
+    /// <b>The space is taken here and chosen at Trip creation, and those are deliberately different
+    /// moments.</b> <c>adr/0075</c> forces the choice early because the drive Leg is routed to it;
+    /// <c>adr/0084</c> wants the occupancy to mean <em>a car is standing in this space</em>, which it
+    /// only does if the write happens when the car arrives. <see cref="World.TryChooseParking"/> and
+    /// <see cref="World.TryTakeParking"/> share one walk and one predicate so the two moments agree
+    /// unless the occupancy moved in between.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A take that fails here is a driver who arrived to find the shed full while they were
+    /// driving, and it has no principled answer yet.</b> They complete the walk holding nothing, so the
+    /// car is unrecorded and their next journey starts from the kerb. It cannot happen in any world
+    /// this project can currently generate — <c>plans/0031</c> decision 3: capacity and demand are
+    /// sized from the same population, so occupancy never approaches 1 — and it is left visible rather
+    /// than papered over, because the fix is a decision and not a line of code.
+    /// </para>
+    /// </remarks>
+    private void AtParkingBoundary(int travellerSlot, int finished, int next)
+    {
+        if (!_world.Rules.Parking.Runs
+            || !_world.Citizens.Rows.TryResolve(_world.Travellers.Citizen[travellerSlot], out int who))
+        {
+            return;
+        }
+
+        LegTable legs = _world.Legs;
+
+        var leaving = (TravelMode)legs.Mode[finished];
+        var joining = (TravelMode)legs.Mode[next];
+
+        if (leaving == TravelMode.Foot && joining == TravelMode.Car)
+        {
+            // Walked to the car, now pulling out. adr/0083: a departing car knows which Bin it holds,
+            // so this consults no shed.
+            _world.ReleaseParking(who);
+
+            return;
+        }
+
+        if (leaving == TravelMode.Car && joining == TravelMode.Foot)
+        {
+            // Arrived. The walk that follows was planned from the space chosen at Trip creation, so a
+            // take that lands on a different Car Park leaves that Leg priced against the wrong start --
+            // bounded by the shed radius, which is adr/0083's own "wrong by a bounded walk".
+            _world.TryTakeParking(who, legs.To(next, _world.Roads.Segments), _shed, out _);
+        }
+    }
+
     private Ticks BeginLeg(int travellerSlot, int legSlot, Ticks tick)
     {
         TravellerTable travellers = _world.Travellers;
@@ -676,6 +800,8 @@ public sealed class TripEngine
 
                 if (encoded != 0)
                 {
+                    AtParkingBoundary(slot, current, encoded - 1);
+
                     travellers.CurrentLeg[slot] = encoded - 1;
                     travellers.ArrivesAt[slot] = BeginLeg(slot, encoded - 1, tick);
                     continue;

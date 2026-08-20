@@ -2292,6 +2292,44 @@ public sealed class World
     {
         ArgumentNullException.ThrowIfNull(scratch);
 
+        if (!TryChooseParking(door, scratch, out carParkSlot))
+        {
+            return false;
+        }
+
+        CarParks.Move(carParkSlot, 1);
+        Citizens.ParkedIn[citizenSlot] = CarParks.Rows.At(carParkSlot);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Which space a driver arriving at <paramref name="door"/> would take, <b>without taking it</b>.
+    /// </summary>
+    /// <returns>Whether any Car Park in the shed has room.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The same walk and the same predicate as <see cref="TryTakeParking"/>, which is what lets the
+    /// two run at different moments and still agree.</b> A car Trip chooses its space at Trip creation,
+    /// because <c>adr/0075</c> creates every Leg then and the drive Leg's second Address is the Car
+    /// Park it is driving to; it <em>takes</em> the space on arrival, where the occupancy belongs. Both
+    /// go through this method, so the space chosen at the kerb and the space taken at the far end are
+    /// the same one unless the occupancy moved in between — and when it did, the take walks on to the
+    /// next with room, which is <c>adr/0009</c>'s <i>the shed widens</i> rather than a special case.
+    /// </para>
+    /// <para>
+    /// <b>It writes nothing, and that is the whole reason it exists separately.</b> A Trip refused for
+    /// its Budget, or for having no route, must not have to give a space back — and the way to
+    /// guarantee that is for the choosing not to have taken one. <c>adr/0009</c> puts the refusal on
+    /// the Budget rather than on a Fate of its own: <i>"if the whole shed is full the Trip fails
+    /// immediately with Fate exceeded commute budget, which is exactly why this ADR refused a no
+    /// parking Fate."</i>
+    /// </para>
+    /// </remarks>
+    internal bool TryChooseParking(Address door, Parking.ShedScratch scratch, out int carParkSlot)
+    {
+        ArgumentNullException.ThrowIfNull(scratch);
+
         carParkSlot = Rows.NoSlot;
 
         if (!Rules.Parking.Runs || !door.Exists)
@@ -2306,13 +2344,9 @@ public sealed class World
 
         for (int i = 0; i < kept; i++)
         {
-            int candidate = shed[i];
-
-            if (CarParks.SpaceAt(candidate) > 0)
+            if (CarParks.SpaceAt(shed[i]) > 0)
             {
-                CarParks.Move(candidate, 1);
-                Citizens.ParkedIn[citizenSlot] = CarParks.Rows.At(candidate);
-                carParkSlot = candidate;
+                carParkSlot = shed[i];
 
                 return true;
             }
@@ -2320,6 +2354,20 @@ public sealed class World
 
         return false;
     }
+
+    /// <summary>The Address of the space <paramref name="citizenSlot"/> holds, or none.</summary>
+    /// <remarks>
+    /// <b>Where a driver walks to to reach their car.</b> A Citizen who holds nothing is the ordinary
+    /// answer — they have never parked anywhere — and the caller's fallback is the Building's own
+    /// vehicle Access Point. ⚠ <b>That fallback is not <c>adr/0008</c>'s forbidden one</b>: the
+    /// prohibition is against an <em>exhausted shed</em> resolving to the kerb at zero cost, which
+    /// would make a full car park cheaper than an empty one. This is a car that has never been parked,
+    /// it is one journey per Citizen ever, and the next arrival gives them a real space.
+    /// </remarks>
+    internal Address HeldParkingAddress(int citizenSlot) =>
+        CarParks.Rows.TryResolve(Citizens.ParkedIn[citizenSlot], out int carParkSlot)
+            ? CarParks.AddressAt(Roads.Segments, carParkSlot)
+            : Address.None;
 
     /// <summary>
     /// Gives up the parking space <paramref name="citizenSlot"/> holds, if it holds one.
