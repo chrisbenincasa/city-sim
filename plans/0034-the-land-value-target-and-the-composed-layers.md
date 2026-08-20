@@ -9,8 +9,10 @@
 🟡 **SCOPED 2026-08-20, unstarted. Decisions 1 and 2 of six are SETTLED** —
 [`adr/0122`](../docs/adr/0122-land-value-is-not-a-term-in-its-own-target-and-a-term-on-both-sides-of-a-lag-is-a-gain.md)
 deletes `w₁`, and [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md)
-settles the composition at **two terms, `− w₂·pollution − w₃·noise`**. **Four remain, three of them
-before the task that composes anything.**
+settles the composition at **two terms, `− w₂·pollution − w₃·noise`**. **Decisions 3 and 4 are SETTLED too** — [`adr/0124`](../docs/adr/0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md) places Fertility, Sealing's decay,
+Woodland, replanting and Water Bodies on milestone **24**, and **task 8 is DONE ahead of the rest of the
+milestone**, because the amendment *is* their deliverable. **Two decisions remain — 5, the ratifiers, and
+6, the ±1 oscillation — and both come before the composing and producing tasks.**
 
 ✅ **The formula went from five terms to two, and the milestone got smaller both times.** Decision 1
 asked whether the composition was well-formed at all and the answer was that it was not; decision 2
@@ -217,7 +219,35 @@ defaulted. ⚠ **(b) is a partial composition and must not be recorded as *desir
 is `plans/0000`'s ***a partially-shipped milestone reports as shipped***, which hid the District Pool
 from forty inventory rows.
 
-### 3. Does Fertility close in this milestone? **Owed before the task list is fixed.** Typed *arguable*
+### 3. Does Fertility close in this milestone? ✅ **SETTLED 2026-08-20 — no, and it is placed rather than deferred.** Typed *arguable*
+
+> ✅ **Settled with the user in the room, 2026-08-20: [`adr/0124`](../docs/adr/0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md).** Fertility, Sealing's decay,
+> Woodland and replanting move to milestone **24**, which **absorbs** them rather than a new milestone
+> being created. ⚠ **`06`'s note on 24 — *it depends on nothing in the spine and nothing in the spine
+> depends on it* — was made FALSE by this move and is rewritten in the same edit**, because ***a row that
+> absorbs work absorbs the sentences that were true while it was empty***, and leaving it would be
+> `plans/0012` **Cause 1** created deliberately.
+>
+> ⚠ **The sitting found an artefact 24 owes that no document named**: terrain suitability **baked at
+> world creation into a stored per-Cell column**. [`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md)'s
+> own table says terrain **does** *feed land value and desirability* and **does not** *get read by any
+> Tick phase*, with the rule stated outright — *if a terrain value is read inside a Tick phase, something
+> has gone wrong*. Fertility is composed **at the point of use**, inside a Tick. Both cells are correct
+> and they constrain the implementation **jointly**, which neither says, so a Fertility written the
+> obvious way breaks the checkable rule on the day it is written.
+>
+> ⚠ **And Sealing's decay is blocked twice.** `sealing_decay_tau = 0` is a stated absence the Ruleset
+> headers explain — **and `MapLayers.Step` never calls `DecaySealing` at all.** `MapLayers`' own
+> doc-comment says *"not scheduled"* and is accurate, so this is **not** a wrong description and not
+> [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md);
+> it is a fact living in one place and needed in another. Scheduling it is **not** a freebie: Sealing has
+> no cadence, and a Layer cadence is a hash-bearing world-creation number owing a ratifier
+> ([`adr/0044`](../docs/adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md),
+> [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)),
+> ratifiable only against a world with varied terrain. ⚠ **No Ruleset is edited** — `congested.toml` and
+> `scarce.toml` are golden baseline artefacts whose **comments move hashes**, so the fact was routed to
+> `06`'s milestone 24 row instead. ***Where a fact can go to a document or to a hashed artefact, it goes
+> to the document.***
 
 `06`'s milestone 9 row says *"the Fertility and Desirability holes beside it close in the same row"*.
 **Fertility cannot close here.** It is `terrain suitability − Sealing − pollution`; Sealing and
@@ -229,7 +259,20 @@ The same absence is why `DecaySealing` ships unscheduled: its rate is *keyed by 
 milestone, by a written amendment to `06` — not by being quietly left out of this one.** The
 amendment is the deliverable; ***a task dropped without a document is a task nobody will find again***.
 
-### 4. Do Water Bodies and the shoreline source ship here? **Owed before the task list is fixed.** Typed *arguable*
+### 4. Do Water Bodies and the shoreline source ship here? ✅ **SETTLED 2026-08-20 — no, and 15 was never available.** Typed *arguable*
+
+> ✅ **Settled with the user in the room, 2026-08-20: [`adr/0124`](../docs/adr/0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md).** Water Bodies, the water graph
+> and the shoreline line source go to milestone **24** with the rest.
+>
+> ⚠ **The recommendation below offers 15 *or* 24 and only one of those existed.**
+> [`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md)
+> generates terrain from the world seed and states that **water is immutable** — nothing places water by
+> hand, by Ruleset or by player verb — so a Water Body has **exactly one possible producer** and it is
+> the generator. ***A row with nowhere else to be is not deferred; it is placed, and the placement was
+> already determined by a decision nobody re-read.***
+>
+> ⚠ **Consequence worth carrying**: desirability gains amenity at **15** and shoreline at **24**, so the
+> composition is not complete until the last milestone in `06`'s table, and the two halves are far apart.
 
 `w₅·shoreline` is the fifth term, and `CONTEXT.md` → Water Body already says what it does: *a Water
 Body's effect on land is a shoreline line source whose intensity is the Bin's level*, so a fouled beach
@@ -355,8 +398,11 @@ did — assert flatness on the **flow** rather than the level, and say which axi
 
 ### Task 8 — Fertility, Sealing's decay, Woodland, Water Bodies — the written deferral
 
-Decisions 3 and 4's deliverable. `06`'s milestone 9 row and its two inventory rows are rewritten to
-name the milestone that can actually close them, with the reason. **Not a deletion.**
+✅ **DONE 2026-08-20, ahead of the rest of the milestone**, because decisions 3 and 4 settled together and
+the amendment **is** their deliverable — [`adr/0124`](../docs/adr/0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md). `06`'s milestone 9 row, its two inventory rows
+and **its milestone 24 row** are rewritten; nothing is deleted. ⚠ **The fourth edit was not in this
+task's scope as written**: absorbing five rows into 24 falsified 24's own *depends on nothing* note, and
+***a task that moves work moves the sentences that were true before it***.
 
 ---
 
