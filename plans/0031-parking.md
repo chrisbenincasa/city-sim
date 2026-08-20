@@ -398,6 +398,51 @@ pair is what should be deleted rather than left standing.
 
 ### Task 5 — the endpoint swap, and the walk that stops being free
 
+⚠ **SHIPPED 2026-08-19, and three of this section's claims below were wrong.**
+
+**1. It does not move every number, and it re-records no baseline.** The claim below is that this is
+*"the task that moves every number"* with all three golden baselines re-recording. `minimal.toml`
+declares `parking = 8` and `[parking] radius_metres = 400` but **no `car_ownership_percent`**, so the
+golden session has no drivers, no car Trip and no Leg to swap. The full assertion tier went **1,693
+green** across the swap with every baseline untouched. ***A task that changes what a car Trip costs
+changes nothing in a world with no cars***, and the milestone's own risk — that every congestion figure
+in the corpus was taken on a journey missing both ends — is therefore still unpaid rather than paid
+here.
+
+**2. `World.AccessPoint(int, TravelMode)` is no longer dead.** The obligation below — *give it a caller
+or delete it* — was discharged by other work: `EmploymentEngine.cs:346` and `:440` both call it. Left
+standing, nothing owed.
+
+**3. It is not two lines.** `waypoints[1]` is the space the driver **holds**, `waypoints[2]` is a space
+**chosen but not taken**, and the taking happens at the Leg 2 → Leg 3 boundary in `AdvanceTravellers`.
+An unparkable destination refuses the Trip as `ExceededCommuteBudget`, which is `adr/0009`'s own
+sentence — *"if the whole shed is full the Trip fails immediately with Fate exceeded commute budget,
+which is exactly why this ADR refused a no parking Fate"* — and not a Fate of its own.
+
+⚠ **Two test defects, both of which made a test pass by measuring nothing, and both found by mutation
+rather than by review.**
+
+- **A table emptied by the mechanism under test cannot be read after the mechanism has run.** The first
+  acceptance test walked `world.Legs` after the run and found **zero Legs of either mode** — not zero
+  non-trivial walks, zero Legs — because `TripEngine.Release` frees them as Trips resolve. It would
+  have passed had it asserted the absence it was looking at.
+- ***A test over both ends of a swap is passed by either end.*** One test counted any non-trivial foot
+  Leg beside a drive and went green **with the destination endpoint reverted**, because every walk it
+  found was the walk *to* the car — a driver who parked in a neighbour's Car Park yesterday walks to it
+  today whatever `waypoints[2]` says. Split into `The_walk_to_the_car_costs_something` and
+  `The_walk_from_the_car_costs_something`; only the second dies to that mutation.
+
+⚠ **One case has no principled answer and is left visible.** A driver who arrives to find the shed full
+*while they were driving* completes the walk holding nothing, so the car is unrecorded and their next
+journey starts from the kerb. It cannot occur in any world this project can generate — decision 3 —
+and the repair is a decision rather than a line of code.
+
+**Owed, and deliberately not done here: the stale milestone comments.** The renumber's traps are still
+in `src/` and `tests/`, and they are **no longer the set this document describes** — `milestone 10` now
+names a real money milestone, so a bulk rename would break correct comments to fix stale ones. It needs
+its own pass with each site read.
+
+
 `TripEngine.cs:423-424` — two lines. `waypoints[1]` and `waypoints[2]` stop being
 `World.VehicleAccessPoint` and become **the Address of the Bin the car took**, so the flanking Legs
 stop being `X → X` and acquire a real cost. Release happens on departure and consults **no shed**.
