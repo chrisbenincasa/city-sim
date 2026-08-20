@@ -29,6 +29,38 @@ namespace Borough.Tests.Tables;
 /// heavily is not a local decision here.
 /// </para>
 /// <para>
+/// ⚠⚠ <b>AMENDED 2026-08-20 by milestone 10's gate, and the amendment is that IT IS INTERMITTENT.</b>
+/// The same tree ran the whole unfiltered suite three times and came back <b>red, green, green</b> —
+/// <c>ZoneRuleTriggerTests.Sweeping_allocates_nothing_after_the_first_trigger</c>, <b>7,896 bytes</b>
+/// over 500 Steps that allocate nothing, then twice clean. The paragraph above is about a case where
+/// causation was <em>measured</em>, and nothing here withdraws it; what it does not say, and a reader
+/// would take from it, is that a failure of this shape has a cause you can go and remove.
+/// </para>
+/// <para>
+/// ⚠ <b>The methodological half is the part to keep, because it nearly went wrong.</b> Milestone 10
+/// suspected its own new 100,000-Tick test, moved it aside, ran the suite, and got a green — which
+/// looks exactly like a fix and is worth <b>nothing</b>. ***One green run cannot tell "the cause was
+/// removed" from "the intermittent did not fire",*** and restoring the test produced a second green,
+/// which is what actually settled it. Milestone 8 ran <b>four</b> full suites for precisely this
+/// reason and said so; a reader who takes the conclusion without the protocol repeats the near-miss.
+/// ⚠ <b>The suspicion was quantitative and still wrong</b>: the new test allocates <b>52,360,328</b>
+/// bytes and the <c>RuleLongRunTests</c> already beside it allocates <b>51,769,064</b>, so it doubled
+/// nothing and added one more of a thing the suite already had several of.
+/// </para>
+/// <para>
+/// <b>And a bound is now visible that milestone 8 could not see with two sightings.</b> Every
+/// discrepancy ever recorded is under <b>8,192</b> bytes — 5,672, 5,696, 6,768, 7,896 — which is the
+/// gen0 <em>allocation context</em>, the per-thread buffer whose used portion this counter adds in.
+/// So the hypothesis sharpens to <em>a collection forced by another thread retires this thread's
+/// context, and the counter jumps by at most one context</em>. ⚠ <b>Four samples is a pattern and not
+/// a bound</b>, and <c>adr/0043</c> reaches this directly: the measurement has never been run, so no
+/// document may state it. Filed to <see href="../../plans/0002-open-questions.md">the ledger</see>
+/// §B with the machine that would settle it — <c>GC.CollectionCount</c> recorded either side of the
+/// measured window — because ***what rests on it is a choice and not a fix***: bounded, and these
+/// assertions can stay exact when no collection occurred; unbounded, and they do not belong in a
+/// parallel suite at all.
+/// </para>
+/// <para>
 /// The claim being pinned is narrow and is the one adr/0006 cares about: <b>steady state allocates
 /// nothing</b>. Growth allocates, deliberately and once per doubling; it is excluded by pre-growing
 /// the table before the measured loop.

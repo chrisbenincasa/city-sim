@@ -1193,6 +1193,40 @@ holding exactly zero, for ever — and every conservation reading is identical t
 assertions rather than the one the task named, and it is the argument for `01 §5.1`'s money-supply and
 treasury indicators being **two** figures rather than one.
 
+#### The gate ran three times, and that is the task's other finding
+
+**Milestone 10's Definition of done is the whole unfiltered suite, and it came back red, green,
+green over the same tree.** The red run failed
+`ZoneRuleTriggerTests.Sweeping_allocates_nothing_after_the_first_trigger` on **7,896 bytes** over 500
+Steps that allocate nothing — an allocation-exactness assertion that has nothing to do with money,
+Policies or this milestone. ✅ **Green as of 2026-08-20, 1,745 tests, and the milestone gate is
+passed.**
+
+⚠ **It is [`0030`](0030-save-load.md)'s finding arriving a fourth time**, and the amendment it
+carries is that ***it is intermittent***. Milestone 8 measured causation — a ~300 MB test perturbed
+two unrelated allocation assertions and reducing it made them green over four runs — and the sentence
+that went into `TableAllocationTests` says *a test that allocates heavily is not a local decision*.
+What it does not say, and a reader takes from it, is that a failure of this shape **has a cause you
+can go and remove**.
+
+⚠⚠ **This task suspected its own new test and was wrong, and the way it was nearly right is the part
+worth keeping.** `MoneyLongRunTests` is a 100,000-Tick run; it was moved aside; the suite came back
+green; and that green is worth **nothing**. ***One green run cannot tell "the cause was removed" from
+"the intermittent did not fire."*** Restoring the file and getting a **second** green is what settled
+it. Milestone 8 ran four full suites for exactly this reason and recorded that it did.
+
+⚠ **The suspicion was quantitative and still wrong.** `MoneyLongRunTests` allocates **52,360,328**
+bytes; the `RuleLongRunTests` already sitting beside it allocates **51,769,064**. It doubled nothing.
+⚠ **And the measurement taken while chasing it is worth keeping on its own**: `Simulation.Step`
+allocates **0 bytes over 10,000 Ticks** in steady state, so a long-run test's 52 MB is *all* world
+construction and populate. A first reading of 524 bytes a Tick was arithmetic on the wrong
+denominator and was checked rather than filed.
+
+✅ **A bound is now visible that two sightings could not show.** Every discrepancy on record is under
+**8,192** bytes — 5,672, 5,696, 6,768, 7,896 — which is the gen0 **allocation context**. Filed to
+[`0002`](0002-open-questions.md) **§B** with the machine that settles it, per `adr/0073`, and left
+unstated as a bound per `adr/0043`.
+
 #### The other three, and what each would catch
 
 | Assertion | What it says | What it catches |

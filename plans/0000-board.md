@@ -13,8 +13,16 @@ four decisions settled, tasks 1 and 2 shipped 2026-08-18, and task 3, the Parkin
 2026-08-19**, so **the supply exists, the reach is stated and nothing parks in it yet**; task 4 —
 arrival, acquire, and what holds the space — is next.
 
-✅ **Milestone 10 — Conserved Money and the treasury is CLOSED**, every task, scoped and closed in
-two days. [`0033`](0033-conserved-money-and-the-treasury.md) owns the record and
+✅ **Milestone 10 — Conserved Money and the treasury is CLOSED**, every task, and the whole
+unfiltered suite is green at **1,745** (2026-08-20). ⚠ **The gate ran three times and came back red,
+green, green over the same tree** — an allocation-exactness assertion unrelated to money, which is
+[`0030`](0030-save-load.md)'s finding a fourth time with the amendment that ***it is intermittent***.
+The milestone suspected its own new 100,000-Tick test, moved it aside, got a green, and that green was
+worth nothing: ***one green run cannot tell "the cause was removed" from "the intermittent did not
+fire"***, and restoring the file and getting a second green is what settled it. Filed to
+[`0002`](0002-open-questions.md) **§B** — every discrepancy ever recorded is under **8,192** bytes,
+which is the gen0 allocation context, and the measurement that would turn that pattern into a bound
+has still never been run. Scoped and closed in two days. [`0033`](0033-conserved-money-and-the-treasury.md) owns the record and
 [`0000a`](0000a-board-archive.md) indexes it. Its acceptance run asserts the money sum as an **exact
 equality** at all 48 readings of 100,000 Ticks — the only exact conservation assertion this project
 will ever have, and it expires when milestone **11** opens the Outside Connection. ⚠ **The run's
