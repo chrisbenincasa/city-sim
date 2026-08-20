@@ -11,8 +11,10 @@
 deletes `w₁`, and [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md)
 settles the composition at **two terms, `− w₂·pollution − w₃·noise`**. **Decisions 3 and 4 are SETTLED too** — [`adr/0124`](../docs/adr/0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md) places Fertility, Sealing's decay,
 Woodland, replanting and Water Bodies on milestone **24**, and **task 8 is DONE ahead of the rest of the
-milestone**, because the amendment *is* their deliverable. **Two decisions remain — 5, the ratifiers, and
-6, the ±1 oscillation — and both come before the composing and producing tasks.**
+milestone**, because the amendment *is* their deliverable. **Decision 5 is SETTLED too** — [`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-built-is-not-reachable-so-the-weights-get-a-floor-and-a-debt.md) gives each weight a
+reachable **floor** and an **owed** real ratifier, because nothing in the city reads land value.
+**One decision remains: 6, the ±1 oscillation**, and it is *measurable then arguable*, so it wants a run
+rather than a sitting.
 
 ✅ **The formula went from five terms to two, and the milestone got smaller both times.** Decision 1
 asked whether the composition was well-formed at all and the answer was that it was not; decision 2
@@ -284,7 +286,42 @@ generator that places water — a milestone's worth of work wearing an inventory
 naturally beside Amenity at 15 or beside the generator at 24. Defer with the row rewritten, per
 decision 3's form.
 
-### 5. What ratifies each weight — a machine, a **world**, and a **quantity**? **Owed before any weight is written down.** Typed *measurable*
+### 5. What ratifies each weight — a machine, a **world**, and a **quantity**? ✅ **SETTLED 2026-08-20 — a floor and a debt, two §D1 entries each.** Typed *measurable*
+
+> ✅ **Settled with the user in the room, 2026-08-20: [`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-built-is-not-reachable-so-the-weights-get-a-floor-and-a-debt.md).**
+>
+> ⚠ **The decisive fact was read out of `src/`: nothing in the city reads land value.** Outside
+> `MapLayers`, the only readers of `LayerCellTable.LandValue` are the headless **layer dump** — a picture
+> — and `RulesetLoader` resolving the layer's name. So **the quantity that would refute an absolute
+> scale does not exist**, because every quantity of that kind is produced by a consumer and every
+> consumer is unbuilt. ***A ratifier that needs a consumer nobody built is not reachable***, and writing
+> one anyway repeats **milestone 7 task 8** one milestone after it happened — a ratifier that named all
+> three correctly and was still unreachable, because ***nothing in `adr/0052`'s checklist asks whether
+> the named state can occur***. This time it is visible before the number is written.
+>
+> **The floor** — reachable inside this milestone. *Machine*: the acceptance run (task 7). *World*:
+> `rulesets/congested.toml`, because [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md)
+> established only it and `scarce.toml` have any driver, and **a floor run on a world where one term
+> cannot vary is not a floor**. *Quantity*: that the field varies at all; that **both** terms are visible
+> in it; and the **pollution/noise correlation across Cells**.
+>
+> **The debt** — the real ratifier, **owed**, triggered by **milestone 13, the price surface**, the first
+> named consumer (`02 §5.6`'s initial prices). ⚠ **The weights are unratified from 9 until 13**, and
+> `06`'s dependency graph forces 13's position, so no re-ordering shortens it.
+>
+> ⚠ **The two entries must not be read as one.** The floor can **refute** a weight and can never confirm
+> one — ***a reachable check standing in the place of an unreachable one is how a number comes to look
+> settled***.
+>
+> ⚠ **The fifth-sighting check is in the floor deliberately.** Industry and roads are both placed in
+> proportion to the same population, so pollution and noise may co-vary; if they do, **no ratio is
+> identifiable** and what is owed is a **hand-authored world** rather than a different number. It is the
+> pre-flight the shed radius never got.
+>
+> ⚠ **And `w₃` is not merely unratified — it is not yet meaningful.** Noise is unbuilt, so **its output
+> units are task 1's free choice**, and `w₃` absorbs them exactly: only the product `w₃·noise` is
+> constrained. **`w₃` is chosen after task 1, never before.** `w₂` does not share this — pollution is
+> already stored pre-normalised in kernel units.
 
 Every surviving weight is **tuning, hash-bearing** Ruleset data and needs a named ratifier on the day it
 is written ([`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md),
@@ -365,9 +402,20 @@ invalidating whenever any input changed, and would drift.
 
 ### Task 3 — the weights reach a shipped Ruleset
 
-New `[layers]` keys, hot-reloadable, **no `const` anywhere in simulation source**. Each one goes into
-[`0002`](0002-open-questions.md) **§D1** on the day it is written, with the ratifier decision 5 named
-— a machine, a world and a quantity.
+New `[layers]` keys, hot-reloadable, **no `const` anywhere in simulation source**.
+
+⚠ **`w₃` cannot be written before task 1** — noise's output units are task 1's choice and `w₃` absorbs
+them ([`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-built-is-not-reachable-so-the-weights-get-a-floor-and-a-debt.md)).
+
+**Definition of done — each weight gets TWO §D1 entries on the day it is written, and one is not enough:**
+
+1. **The floor.** *Machine*: task 7's acceptance run. *World*: `rulesets/congested.toml` — **not**
+   `minimal.toml`, which has no driver and therefore no noise. *Quantity*: the field varies across Cells;
+   **both** terms are visible in it; and the pollution/noise correlation across Cells.
+2. **The debt.** The real ratifier, marked **owed and unreachable until a consumer exists**, trigger
+   named as **milestone 13, the price surface** (`02 §5.6`'s initial prices).
+3. Both entries say in their own text that the floor **refutes and never confirms**, so neither can be
+   read as the other.
 
 ### Task 4 — the producer: something inside `src/` sets the target on the cadence
 
@@ -395,6 +443,20 @@ hashes. ⚠ **Every string belongs to the shell** — `Core` hands over Cell coo
 100k+ Ticks, **no collection and no magnitude trending upward at steady state**. Land value is the
 awkward one: it is a magnitude that is *supposed* to move, so state the exception the way milestone 6
 did — assert flatness on the **flow** rather than the level, and say which axis is exempt and why.
+
+✅ **This run is also decision 5's *floor* machine** ([`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-built-is-not-reachable-so-the-weights-get-a-floor-and-a-debt.md)), so it carries three more
+readings and they are not optional:
+
+1. **The field varies.** A `w₂` small enough rounds every Cell onto the same value, and a uniform field
+   is visibly working while carrying no information.
+2. **Both terms are visible.** If `w₃·noise` is negligible beside `w₂·pollution` everywhere, this is a
+   one-term field wearing a two-term formula — [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md)'s
+   concern arriving as a number instead of as an absence.
+3. **The pollution/noise correlation across Cells** — the fifth-sighting check. High correlation means
+   **no ratio is identifiable**, and what is owed is a hand-authored world rather than a better number.
+
+⚠ **On `rulesets/congested.toml`, not `minimal.toml`** — nobody drives in `minimal.toml`, so noise is
+identically zero and readings 2 and 3 are unreadable there. ⚠ **The floor refutes and never confirms.**
 
 ### Task 8 — Fertility, Sealing's decay, Woodland, Water Bodies — the written deferral
 
