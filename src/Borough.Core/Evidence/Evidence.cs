@@ -137,6 +137,14 @@ public static class Evidence
             ? null
             : new PastTripEvidence(lastFate, world.Citizens.LastTripEndedDay[slot]);
 
+        // 02 section 9's household finances. Absent rather than zero where the Household holds no
+        // money Bin, which is what a Ruleset naming no money Resource produces -- World.BalanceOf
+        // conflates the two on purpose and says why, and a reader is the one caller that must not.
+        Money? balance = world.Households.Rows.TryResolve(household, out int financesSlot)
+            && world.Bins.Rows.TryResolve(world.Households.Balance[financesSlot], out int balanceBin)
+                ? new Money(world.Bins.LevelAt(balanceBin))
+                : null;
+
         return new CitizenEvidence(
             citizen,
             household,
@@ -145,6 +153,7 @@ public static class Evidence
             world.Citizens.Activity[slot],
             world.Citizens.PlannedCommute[slot],
             world.Citizens.ReachFailures[slot],
+            balance,
             InFlightTrip(world, citizen),
             last);
     }

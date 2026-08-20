@@ -17,11 +17,11 @@ brief filed them, and ⚠ **one of the two dissolved rather than closing**: `adr
 unit to choose, so what the milestone owed was an **instrument** rather than a value, and task 5 built
 it.
 
-✅ **Tasks 1, 2, 3, 4, 4b, 4c, 5 and 7 are DONE**, and task 6 was **discharged at scoping**. ⚠ **Two of
+✅ **Tasks 1, 2, 3, 4, 4b, 4c, 5, 7 and 8 are DONE**, and task 6 was **discharged at scoping**. ⚠ **Two of
 those tasks did not exist when this document was written** — 4b and 4c — and 4c is the one that
 matters: it is decision 6 built, ***the milestone's largest decision had no task at all***, and task 5
-rested wholly on it while naming decisions 1 and 5 and not 6. **What is left is 8 and 9** — Evidence
-answering the question it currently declines, and the long acceptance run.
+rested wholly on it while naming decisions 1 and 5 and not 6. **What is left is 9** — the long
+acceptance run.
 
 ⚠ **Task 7 was taken ahead of 8 and moves no baseline**, which is worth stating because the milestone's
 other tasks all did: the Census is an instrument outside the world, so the picture could land at any
@@ -1089,7 +1089,57 @@ one the endgame turns on. The Census can carry it: `Series.cs:17` widened a samp
 *"because a magnitude is a `Money` or a `Fixed` rather than a count"*, and no `Metric` member has ever
 been one.
 
-### Task 8 — Evidence answers the question it currently declines
+### Task 8 — Evidence answers the question it currently declines — ✅ **DONE 2026-08-19**
+
+`CitizenEvidence.HouseholdBalance`, a `Money?`, and a finances panel in `--evidence`. **Milestone 6's
+assembler earned its scoping claim exactly**: no accumulator, no column, no save-format change — the
+assembler reads the Bin the Household already names, and a fact that did not exist in any report
+became readable in nine lines of `Evidence.OfCitizen`. **1,722 tests green, +6, and no baseline
+moved.**
+
+⚠ **THE CONDITION HAD TWO HALVES AND ONLY ONE WAS PAID BY A WRITER ARRIVING.** The omission read: the
+columns had no production writer, *and* **a Household with no money and a Household in a world with no
+money read the same**. Tasks 4c and 5 paid the first — a balance is a Bin and the populator endows it.
+The second was still true on the day this task started, and no writer could ever have paid it, because
+it is not a claim about whether the number exists. It is paid by the **shape**: absent where the world
+names no money, present where it does, so a zero is now somebody who has spent everything and nothing
+else. ***A writer arriving does not discharge a condition about what a reader can tell apart.***
+
+⚠ **`World.BalanceOf` CONFLATES THE SAME TWO FACTS, DELIBERATELY, AND BOTH ARE RIGHT.** That method
+returns zero for a Household with no money Bin and argues it: *"a world with no currency and a
+Household with none behave identically at every call site money has."* True of a call site that
+**spends** — both refuse the purchase — and false of a **reader**, which is what an assembler is. Both
+use the same discriminator (`HouseholdTable.Balance` is a handle and can be unset) and reach opposite
+conclusions correctly. ***Two facts a mechanism may treat as one are still two facts to somebody
+reading them.*** A test holds the disagreement open, so that tidying the two into agreement fails
+rather than passes.
+
+⚠ **THE PANEL FOUND THAT NO SHIPPED RULESET PRODUCES THE ABSENT READING, AND IT FOUND IT BY BEING
+WRONG ON SCREEN.** The first run against `diagnosed.toml` was expected to print *this world names no
+money* and printed **2,000 balances at zero** instead. **Task 2 put a `family = "money"` Resource in
+all seven shipped files**, so every Household in every shipped world holds a money Bin — and six of
+the seven then read zero for everybody, because money enters a world only through `[households]
+opening_balance_min/max` and only `taxed.toml` states it. So the shipped corpus demonstrates
+**destitution** against a **distribution**, and the third reading is exercised by the suite alone.
+***A branch no shipped content reaches is still a branch content can reach, and the test is what says
+which*** — milestone 6 task 7's `TripFate.Stranded` finding arriving **before** the branch shipped
+rather than a milestone later. The panel names which of the two it is showing rather than leaving a
+column of zeroes to be read either way.
+
+**Two smaller things.** The absence when the Household handle does not resolve is *not* a second
+meaning, because it is not a state: `Invariant.CitizenIsInExactlyOneHousehold` makes it a defect, and
+reporting it as a distinct absence would hand a reader a distinction with nothing on the other side.
+And it is **one figure rather than two** — `adr/0024`'s reserve is a *behaviour* over one pool rather
+than a second account, which is task 4c's finding when it deleted `HouseholdTable.Savings`; a second
+member would have to be written by something and nothing writes one.
+
+⚠ **`adr/0070`'s line is closer than it looks and is worth having drawn.** A nullable meaning *nobody
+has built this* is the per-clause availability flag that ADR refuses; a nullable meaning *this world
+has no currency* is a state of the world, authored in a Ruleset, and true of a world running the
+finished game. ***An absence the content can produce is a reading; an absence only the roadmap can
+produce is a flag.***
+
+### ~~Task 8's brief~~
 
 `CitizenEvidence.cs:54-62` omits household finances and names the exact condition for putting them
 back. This task is that condition being met, and it is milestone **6**'s assembler earning its

@@ -263,6 +263,40 @@ public sealed class EvidenceDumpTests
         Assert.Equal(0, Count(report, "  stranded"));
     }
 
+    /// <summary>
+    /// <b>The finances panel separates destitution from a world with no money, and says which.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Milestone 10 task 8. <c>CitizenEvidence</c> shipped declining <c>02 §9</c>'s finances clause
+    /// because <em>"a Household with no money and a Household in a world with no money read the
+    /// same"</em>, and this is the pair being told apart in the instrument that shows them.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Neither file here is the absent case, and that is the finding.</b> Milestone 10 task 2 put
+    /// a money Resource in all seven shipped Rulesets, so every Household in every shipped world holds
+    /// a balance — <c>diagnosed.toml</c>'s are all empty because only <c>taxed.toml</c> states an
+    /// opening balance. So what the two panels separate is <b>destitution</b> from a <b>distribution</b>,
+    /// and the third reading is exercised in <c>HouseholdFinancesTests</c> against a Ruleset naming no
+    /// money at all. ***A branch no shipped content reaches is still a branch content can reach.***
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_finances_panel_separates_destitution_from_a_world_with_no_money()
+    {
+        string destitute = Dump("diagnosed.toml");
+        string endowed = Dump("taxed.toml");
+
+        Assert.Contains("## Household finances", destitute, Ordinal);
+        Assert.Contains("DESTITUTION rather than a", destitute, Ordinal);
+        Assert.Equal(Count(destitute, "  citizens with a balance"), Count(destitute, "  holding exactly nothing"));
+
+        // The same panel over a file that endows: balances present, and not all of them zero.
+        Assert.DoesNotContain("DESTITUTION", endowed, Ordinal);
+        Assert.Equal(0, Count(endowed, "  citizens reporting absent"));
+        Assert.True(Count(endowed, "  highest balance") > 0, "taxed.toml endowed nobody.");
+    }
+
     /// <summary>The trailing number on a panel line.</summary>
     private static int Count(string report, string label) => int.Parse(
         Line(report, label).Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1],

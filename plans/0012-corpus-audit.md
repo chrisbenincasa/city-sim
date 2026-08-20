@@ -973,7 +973,7 @@ milestone creates the first load. Nothing enumerates them; this is the one that 
 
 ---
 
-### Milestone 10's collection — three; the first is a new form of Cause 1 (two copies that disagree about a *direction*), and the second and third are new *surfaces* — a path, and the space across working trees
+### Milestone 10's collection — four; the first is a new form of Cause 1 (two copies that disagree about a *direction*), the second and third are new *surfaces* — a path, and the space across working trees — and the fourth is Cause 2 at its widest reach yet
 
 **1. ⚠ [`06`](../docs/06-roadmap.md)'s dependency graph makes the District Pool a root, and
 [`adr/0050`](../docs/adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md)
@@ -1134,6 +1134,50 @@ domain*** — and a domain no existing check has is a domain nobody notices is m
 here is owed an edit: the collision is being paid by the branch that made it, and the check does not
 exist. The naive version is the obvious one to write and the corrected-by-content version is the
 obvious repair, which is exactly why both are written down before anybody writes either.
+
+---
+
+**4. ⚠ `adr/0094` MOVED THE DAY FROM 8192 TICKS TO 2048 AND FOUR NUMBERED DESIGN DOCUMENTS STILL
+STATE 8192 AS SETTLED, IN SEVEN PLACES.** Found 2026-08-19 while building milestone 10 task 8, by
+reading `02 §9` for the clause the task discharges and meeting `02 §11`'s *"`TICKS_PER_DAY = 8192` at
+a reference rate of 16 Ticks/s"* three sections later. **Cause 2** — an ADR issues writes to other
+documents and the writes do not all land — and this is its widest reach recorded: not one document
+missed but **four**, each citing
+[`adr/0019`](../docs/adr/0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md) as the
+authority for a figure `adr/0094` retired.
+
+| Document | Where | What it says |
+|---|---|---|
+| [`00 §Open questions`](../docs/00-vision.md) | `:183` | *"A Day is 8192 Ticks — 8m32s at the default speed, 17m at the slowest"* — **settled**, and both wall-clock figures are 4× wrong with it |
+| [`02 §1.2`](../docs/02-simulation-model.md) | `:89`, `:91` | the constants table: `TICKS_PER_DAY` **8192** and `WHEEL_SIZE` **8192 Ticks** |
+| [`02 §1.2`](../docs/02-simulation-model.md) | `:78` | *"480 Ticks (commute) ÷ 8192 Ticks (Day) = 5.9% of a life spent driving"* — a **derived** figure, so the ratio moves with the denominator |
+| [`02 §1.2`](../docs/02-simulation-model.md) | `:121` | *"8192 is not divisible by 24, so an hour would not land on a Tick boundary"* — ⚠ **an argument whose premise moved**: 2048 is not divisible by 24 either, so the conclusion survives and the sentence supporting it is false |
+| [`02 §11`](../docs/02-simulation-model.md) | `:959` | *"`TICKS_PER_DAY = 8192`… **Settled**"* |
+| [`05 §Open questions`](../docs/05-technical-architecture.md) | `:454` | *"**Settled** — `TICKS_PER_DAY = 8192`"*, and the `WHEEL_SIZE` argument *"lands on the same number, 8192"* |
+
+⚠ **`03` is the one that WAS corrected, and it is what makes this a Cause 2 sighting rather than a
+sweep nobody ran.** `03:106` says of a different consequence that it *"followed from
+`TICKS_PER_DAY = 8192`"* and that *"`adr/0094` retired [it] without touching it"* — so somebody
+walked this exact edge, in this exact document, and repaired one sentence. ***A document that names
+the retirement of a figure is evidence the sweep was thought of, not evidence it ran.***
+
+⚠ **The most interesting of the seven is `02:121`, and it is a shape this ledger has not held
+before.** It is an argument whose **premise** moved and whose **conclusion** did not: 8192 is not
+divisible by 24, and neither is 2048, so the paragraph is still right about hours and is wrong about
+why. ***A conclusion that survives its premise moving is the hardest kind of stale sentence to find,
+because nothing it claims is false.*** No mechanical check reaches it — check 8 opens links and check
+6 refuses a registry figure quoted bare, and this figure is in neither category.
+
+**What is owed.** Six edits and one judgement. The five plain restatements take 2048 and a pointer to
+`adr/0094`; `00:183`'s two wall-clock figures are **derived** and must be re-derived rather than
+divided (the reference rate is 16 Ticks/s, so a Day is 2m08s — `CLAUDE.md`'s Constants table already
+carries it); and `02:121` needs its premise rewritten rather than its number replaced. ⚠ **`adr/0019`
+itself needs the banner**, because six of the seven sites cite it and a reader following the citation
+lands on an ADR that still argues 8192 with no supersession note —
+[`PROCESS.md`](../PROCESS.md) → *Conventions*: **superseded documents get a banner, never a
+deletion**. **Not paid in the sitting that found it**: this is a corpus edit across four design
+documents and an ADR banner, and milestone 10 task 8 is a code task — `adr/0073` requires the finding
+be **routed** on the day, which this is, and does not require it be paid by whoever tripped over it.
 
 ---
 

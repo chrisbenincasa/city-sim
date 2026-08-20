@@ -80,9 +80,129 @@ internal static class EvidenceDump
         output.WriteLine();
         Vacancy(output, world);
         output.WriteLine();
+        Finances(output, world);
+        output.WriteLine();
         Journeys(output, world);
 
         return 0;
+    }
+
+    /// <summary>
+    /// <c>02 §9</c>'s household finances, and the clause <c>CitizenEvidence</c> shipped declining.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The panel's first job is to say whether the question applies at all.</b> A Ruleset naming
+    /// no <c>family = "money"</c> Resource opens no money Bin on anybody, so every reading is absent
+    /// — and printing a table of zeroes there would be the exact failure the clause was omitted to
+    /// avoid, which is a Household with nothing reading the same as a world with no currency.
+    /// </para>
+    /// <para>
+    /// <b>Where it does apply, the interesting number is the count holding nothing rather than the
+    /// mean.</b> <c>adr/0024</c> makes destitution a real state the game takes no position on, and a
+    /// mean over a conserved pool is fixed by the endowment and the population — it moves only when
+    /// somebody arrives or leaves, so it is the one figure a transfer circuit cannot change.
+    /// </para>
+    /// </remarks>
+    private static void Finances(TextWriter output, World world)
+    {
+        long total = 0;
+        long low = long.MaxValue;
+        long high = long.MinValue;
+        int counted = 0;
+        int destitute = 0;
+        int absent = 0;
+
+        for (int slot = 0; slot < world.Citizens.Rows.SlotCount; slot++)
+        {
+            if (!world.Citizens.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            CitizenEvidence evidence = Evidence.OfCitizen(world, world.Citizens.Rows.At(slot));
+
+            if (evidence.HouseholdBalance is not Money balance)
+            {
+                absent++;
+                continue;
+            }
+
+            counted++;
+            total += balance.Raw;
+            low = balance.Raw < low ? balance.Raw : low;
+            high = balance.Raw > high ? balance.Raw : high;
+
+            if (balance.Raw == 0)
+            {
+                destitute++;
+            }
+        }
+
+        output.WriteLine("## Household finances, as each Citizen's row reports it");
+        output.WriteLine();
+
+        if (counted == 0)
+        {
+            output.WriteLine(
+                "  This Ruleset names no money, so no Household holds a money Bin and every Citizen's");
+            output.WriteLine(
+                "  row reports finances ABSENT rather than zero. That distinction is the whole of what");
+            output.WriteLine(
+                "  milestone 10 task 8 built: a zero here would say every Household is destitute, and");
+            output.WriteLine(
+                "  what is true is that the question does not apply. rulesets/taxed.toml is the file");
+            output.WriteLine(
+                $"  that makes it apply. ({absent} Citizens, all absent.)");
+
+            return;
+        }
+
+        output.WriteLine(
+            "  ⚠ These are HOUSEHOLD balances read through Citizens, so a Household of three is");
+        output.WriteLine(
+            "  counted three times. The panel is 02 section 9's Citizen row rather than a census of");
+        output.WriteLine("  Households, and the sum below is not the city's money.");
+        output.WriteLine();
+
+        output.WriteLine($"  citizens with a balance   {counted,10}");
+        output.WriteLine($"  citizens reporting absent {absent,10}");
+        output.WriteLine($"  holding exactly nothing   {destitute,10}");
+        output.WriteLine();
+        output.WriteLine($"  lowest balance            {low,10}");
+        output.WriteLine($"  highest balance           {high,10}");
+        output.WriteLine($"  mean                      {total / counted,10}");
+
+        if (destitute == counted)
+        {
+            // The reading milestone 10 task 8 exists to separate from ABSENT, and the one every
+            // shipped Ruleset but taxed.toml produces: task 2 put a money Resource in all seven, so
+            // every Household holds a money Bin, and only taxed.toml states an opening balance.
+            output.WriteLine();
+            output.WriteLine(
+                "  ⚠ EVERY Household holds exactly nothing, and this is DESTITUTION rather than a");
+            output.WriteLine(
+                "  world without money. The distinction is the point: this Ruleset names a money");
+            output.WriteLine(
+                "  Resource, so every Household has a balance and every balance is empty. Money");
+            output.WriteLine(
+                "  enters a world one way — [households] opening_balance_min/max, read by the");
+            output.WriteLine(
+                "  populator through World.Endow — and only rulesets/taxed.toml states it. adr/0024");
+            output.WriteLine(
+                "  makes the Outside Connection money's only other door, and that is milestone 11.");
+        }
+
+        if (absent > 0)
+        {
+            output.WriteLine();
+            output.WriteLine(
+                "  ⚠ Some rows report absent and some do not, in one world. A Household holds a money");
+            output.WriteLine(
+                "  Bin from the moment it is fitted, so this is a Citizen whose Household does not");
+            output.WriteLine(
+                "  resolve — CitizenIsInExactlyOneHousehold is the invariant that says so.");
+        }
     }
 
     /// <summary>

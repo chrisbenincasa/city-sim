@@ -51,23 +51,35 @@ public readonly record struct PastTripEvidence(TripFate Fate, ushort EndedDay);
 /// </summary>
 /// <remarks>
 /// <para>
-/// ⚠ <b>Two of <c>02 §9</c>'s clauses are absent and each for a different reason</b> — it was three
-/// until milestone 6 task 7 built the last Trip's Fate.
-/// <b>Need satisfaction</b> has no table anywhere: <c>adr/0103</c> closes the Need set at four and
-/// nothing builds it. <b>Household finances</b> is the interesting one —
-/// <c>HouseholdTable.Money</c> and <c>Savings</c> are declared, <c>Saved</c>, hashed, in the save file
-/// and read by an invariant, and <b>every writer in the repository is a test</b>, so the field would
-/// report a legitimate-looking zero for every Household in every world. It is omitted rather than
-/// returned, because a Household with no money and a Household in a world with no money read the
-/// same. ✅ <b>The <b>last</b> Trip's Fate was the third and is now built</b>
-/// (task 7): see <see cref="CitizenEvidence.LastTrip"/>.
+/// ⚠ <b>One of <c>02 §9</c>'s clauses is absent</b> — it was three when this type shipped.
+/// <b>Need satisfaction</b> is the survivor and has no table anywhere: <c>adr/0103</c> closes the
+/// Need set at four and nothing builds it. ✅ <b>The <b>last</b> Trip's Fate was the second</b>
+/// (milestone 6 task 7): see <see cref="CitizenEvidence.LastTrip"/>. ✅ <b>Household finances was
+/// the third</b> (milestone 10 task 8): see <see cref="CitizenEvidence.HouseholdBalance"/>.
 /// </para>
 /// <para>
-/// <b>None of those absences shaped this type.</b> <c>adr/0070</c> makes an unbuilt mechanism evidence
-/// of nothing, so there is no per-clause availability flag here and no nullable standing in for one —
-/// the rule followed is the narrower <em>do not publish a number that cannot be distinguished from a
-/// real one</em>, which would hold just as well if money were built and merely unread. Each arrives as
-/// an added member when its mechanism does, and adding one changes nothing already returned.
+/// ⚠ <b>The finances clause was omitted under a condition with two halves, and only one of them was
+/// paid by a writer arriving.</b> The condition read: the columns had no production writer, <em>and</em>
+/// a Household with no money and a Household in a world with no money read the same. Milestone 10 task
+/// 4c made a balance a Bin and task 5 gave it a writer, which pays the first half. <b>The second half
+/// is still true and is paid by the shape instead</b> — <see cref="HouseholdBalance"/> is absent where
+/// the world names no money and present where it does, so a zero is now a Household that has spent
+/// everything and nothing else. ***A writer arriving does not discharge a condition about what a
+/// reader can tell apart.***
+/// </para>
+/// <para>
+/// <b>No absence here shaped this type.</b> <c>adr/0070</c> makes an unbuilt mechanism evidence of
+/// nothing, so there is no per-clause availability flag and no nullable standing in for one — the rule
+/// followed is the narrower <em>do not publish a number that cannot be distinguished from a real
+/// one</em>, which would hold just as well if money were built and merely unread. Each arrives as an
+/// added member when its mechanism does, and adding one changes nothing already returned.
+/// </para>
+/// <para>
+/// ⚠ <b><see cref="HouseholdBalance"/> is not a counter-example, and the line is worth stating because
+/// the two look alike.</b> A nullable that means <em>nobody has built this</em> is the availability
+/// flag <c>adr/0070</c> refuses; a nullable that means <em>this world has no currency</em> is a state
+/// of the world, authored in a Ruleset, and true of a world running the finished game. ***An absence
+/// the content can produce is a reading; an absence only the roadmap can produce is a flag.***
 /// </para>
 /// </remarks>
 [ColdPath("02 §9's Citizen answer, assembled when a panel asks. No path from step() reaches it.")]
@@ -81,6 +93,7 @@ public readonly struct CitizenEvidence
         byte activity,
         Ticks plannedCommute,
         ushort reachFailures,
+        Money? householdBalance,
         TripEvidence? trip,
         PastTripEvidence? lastTrip)
     {
@@ -91,6 +104,7 @@ public readonly struct CitizenEvidence
         Activity = activity;
         PlannedCommute = plannedCommute;
         ReachFailures = reachFailures;
+        HouseholdBalance = householdBalance;
         Trip = trip;
         LastTrip = lastTrip;
     }
@@ -148,6 +162,55 @@ public readonly struct CitizenEvidence
     /// re-detecting it costs one array read.
     /// </remarks>
     public ushort ReachFailures { get; }
+
+    /// <summary>
+    /// <b><c>02 §9</c>'s household finances</b>: what their Household holds, or absent where the world
+    /// names no money.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Nullable because a zero and an absence are different facts, and only one of them is about
+    /// this Household.</b> A Ruleset that declares no <c>family = "money"</c> Resource opens no money
+    /// Bin on anybody (<c>World.FitHousehold</c>), so every reading in such a world would be zero and
+    /// would look exactly like destitution. Absent says <em>this world has no currency</em>; present
+    /// says <em>this is the balance</em>, and a present zero is somebody who has spent everything.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>World.BalanceOf</c> conflates the same two facts, deliberately, and both are
+    /// right.</b> That method returns <see cref="Money.Zero"/> for a Household with no money Bin and
+    /// says why: <em>"a world with no currency and a Household with none behave identically at every
+    /// call site money has."</em> True of a call site that <em>spends</em> — both refuse the purchase —
+    /// and false of a reader, which is what this type is. ***Two facts a mechanism may treat as one
+    /// are still two facts to somebody reading them***, and the discriminator both use is the same
+    /// one: <c>HouseholdTable.Balance</c> is a handle, and it can be unset.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>NO SHIPPED RULESET PRODUCES THE ABSENT READING, and that is worth knowing before
+    /// trusting a run.</b> Milestone 10 task 2 put a <c>family = "money"</c> Resource in all seven,
+    /// so every Household in every shipped world holds a money Bin and every reading is present. What
+    /// six of the seven then show is <b>zero for everybody</b> — money enters a world only through
+    /// <c>[households] opening_balance_min/max</c> and only <c>taxed.toml</c> states it — which is
+    /// destitution rather than absence, and is exactly the pair this member exists to separate. The
+    /// absent branch is exercised by the suite against a Ruleset naming no money, which is a world a
+    /// file can describe and no shipped file does. ***A branch no shipped content reaches is still a
+    /// branch content can reach, and the test is what says which.***
+    /// </para>
+    /// <para>
+    /// <b>Also absent when the Household handle does not resolve</b>, which is not a second meaning
+    /// because it is not a state: <c>Invariant.CitizenIsInExactlyOneHousehold</c> makes a Citizen
+    /// without one a defect rather than a condition, so the case is unreachable in a world that
+    /// passes its own checks and reporting it as a distinct absence would give a reader a distinction
+    /// with nothing on the other side of it.
+    /// </para>
+    /// <para>
+    /// <b>One figure and not two.</b> <c>adr/0024</c>'s reserve is a <em>behaviour</em> — what a
+    /// Household will not spend — rather than a second account, which is milestone 10 task 4c's
+    /// finding when it deleted <c>HouseholdTable.Savings</c>: one pool, and the reserve arrives as a
+    /// policy over it. A second member here would have to be written by something, and nothing writes
+    /// one.
+    /// </para>
+    /// </remarks>
+    public Money? HouseholdBalance { get; }
 
     /// <summary>
     /// The journey they are on, or absent.
