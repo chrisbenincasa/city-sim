@@ -635,6 +635,51 @@ identically zero and readings 2 and 3 are unreadable there. ⚠ **The floor refu
 > what unblocks [`0013`](0013-tick-budget.md)'s row — the multiplicand is guessed at zero until it
 > exists.
 
+> ✅ **THE WORLD IS BUILT, 2026-08-20 — `rulesets/fouled.toml`, the ninth Ruleset.** `congested.toml` in
+> every respect except **one Rule that emits pollution**, so the difference between the two files is the
+> field and nothing else, which is what makes it a controlled instrument rather than a second city.
+> **Readings 1 and 2 are taken and pass**; reading 3, the correlation, is still owed and belongs to the
+> run. `FouledRulesetTests` holds them.
+>
+> ⚠ **F19 — the emitting kind is `dwelling`, and that contradicts the sentence the other eight files
+> repeat.** An industrial kind was tried first and abandoned. A Zone Rule creates a Building only while
+> the Unplaced Pool is non-empty, the Pool is unhoused **Households**, so ***the only demand signal the
+> build has is demand for homes*** — industrial demand is **unbuilt** under
+> [`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md), and the two-kind
+> city that resulted was one this sitting could not explain: `works` outnumbered dwellings three to one
+> by day two. ***A demonstration Ruleset nobody can explain is a worse instrument than an honest
+> simplification***, and this milestone had already shipped one mechanism it could not observe.
+>
+> ⚠ **And the reason it could not be explained was a swapped index**, found afterwards: `dwelling` is
+> kind byte **1** and not 0, so the diagnostic's two counters were reading each other's kind and the
+> city was doing the opposite of what it looked like — it was filling with `works`, which is
+> `CLAUDE.md`'s own named hazard, *a workplace kind needs a second `[[zone_rule]]` or the city fills
+> with offices*, arriving exactly as written. ***A count printed against a hand-written index is a
+> measurement of the index.***
+>
+> ⚠ **F20 — the emission was tuned across three orders of magnitude before it landed, and the first two
+> attempts read as zero for two different reasons.** A diffused Layer is stored **in kernel units** and
+> `SeparableKernel.Normalise` divides by the kernel's squared gain at the *read* site, so a raw column
+> holding 1,393 reads as **0** — the field existed, was large in storage, and was invisible to every
+> query. ***A stored magnitude and a read magnitude are different numbers, and nothing in the diagnostic
+> said which one it was printing.*** Settled at `rate = 128`, `amount = 1`: pollution peak **26–29**
+> against noise **2.5–3.8**, so **8 to 11 times** rather than 60 or 600, and land value settles at about
+> **−28 from day 4** with **177–180 of ~262 Cells holding distinct values**.
+>
+> ⚠ **F21 — THE NOISE TERM IS ZERO AT MIDNIGHT, in a city where every Household owns a car**, and this
+> is a property of the composition rather than of the file. A Segment's volume is the count of Vehicles
+> on it **at that instant**, so noise is instantaneous while land value is the only part of the
+> composition with memory. ***The land value target therefore oscillates at the Day's own period***, and
+> what a Cell settles on depends on where the 256-Tick cadence lands against the commute peak. **That is
+> decision 6 arriving as a measurement before its sitting**: the question is not whether the lag can
+> rest, it is what it rests around. Pinned by
+> `Noise_is_zero_at_midnight_and_that_is_the_composition_not_the_world`.
+>
+> ⚠ **F22 — `CLAUDE.md` said *all seven Rulesets* of the two `[parking]` keys while eight files stood
+> and six carried them.** A count in prose, drifting, in the file whose own rulesets row says ***count
+> them rather than quoting a total***. Replaced with the condition rather than a new number: *every
+> Ruleset that states `[parking]`*.
+
 ### Task 8 — Fertility, Sealing's decay, Woodland, Water Bodies — the written deferral
 
 ✅ **DONE 2026-08-20, ahead of the rest of the milestone**, because decisions 3 and 4 settled together and
