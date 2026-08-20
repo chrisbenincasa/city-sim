@@ -20,22 +20,6 @@ namespace Borough.Core.Space;
 public readonly record struct LayerReading(Cells East, Cells North, int Value);
 
 /// <summary>
-/// The Map Layers: sparse Cell storage, the staggered schedule, and incremental re-diffusion.
-/// </summary>
-/// <remarks>
-/// <para>
-/// <b>This is what Phase 5 drives, and it holds the three things a Layer needs that a table cannot
-/// carry</b> — the residency index, the cadence, and the record of which sources have changed since
-/// the last recomputation. None of them is per-row state, so none of them is a column.
-/// </para>
-/// <para>
-/// <b>Composition is not here, and its absence is the design.</b> Desirability and Fertility are
-/// composed at the point of use and never stored (<c>02 §2.4</c>): a stored composite needs
-/// invalidating whenever any input changes, and drifts. See <see cref="Fertility"/> and
-/// <see cref="Desirability"/>, which are named holes rather than placeholders returning zero.
-/// </para>
-/// </remarks>
-/// <summary>
 /// The weights and the noise parameters <see cref="MapLayers.Desirability"/> composes with.
 /// </summary>
 /// <param name="Pollution">Q16.16 <c>w₂</c>. Subtracts.</param>
@@ -48,8 +32,57 @@ public readonly record struct LayerReading(Cells East, Cells North, int Value);
 /// nothing in the city reads land value and the quantity that would refute a scale is a consumer's
 /// (<c>adr/0125</c>).
 /// </remarks>
-public readonly record struct DesirabilityWeights(int Pollution, int Noise, LineSource NoiseSource);
+public readonly record struct DesirabilityWeights(int Pollution, int Noise, LineSource NoiseSource)
+{
+    /// <summary>
+    /// The shipped starting point. <b>Every number here is unratified and each owes two <c>§D1</c>
+    /// entries.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Range 300 m</b> — the outer end of <c>02 §2.4</c>'s <em>50–300 m</em>. ⚠ That band is
+    /// <b>six times wide</b> and is the same defect <c>plans/0012</c> already records against the
+    /// industrial kernel's 1–10 km: it is not a number, it is the absence of one.
+    /// </para>
+    /// <para>
+    /// <b>Intensity 4.0, and it is the one figure here with a derivation.</b> A Street at its stated
+    /// capacity — 3,600 Vehicles an hour, so about 42 a Tick — must sit in <c>Log1P</c>'s
+    /// <em>logarithmic</em> stretch across the whole range rather than its linear one, or the field is
+    /// the physically-wrong linear sum the logarithm was chosen to prevent. Measured: at 1.0 a capacity
+    /// Street falls under unity by about 150 m; at 4.0 it stays above it out to the full 300.
+    /// </para>
+    /// <para>
+    /// <b>Both weights 1.0, and that is deliberately neutral rather than derived.</b> Measured
+    /// magnitudes put the two terms within one order of magnitude — pollution reaches about 12 in kernel
+    /// units under a strong source, noise about 3 beside a capacity Street — so a 1:1 start leaves both
+    /// <em>visible</em>, which is the only property anything can check today.
+    /// ⚠ <b>Nothing distinguishes them beyond that, and nothing can</b>: the quantity that would refute
+    /// a weight is produced by a consumer of land value, and there is no consumer (<c>adr/0125</c>).
+    /// </para>
+    /// </remarks>
+    public static DesirabilityWeights Default { get; } = new(
+        Fixed.One,
+        Fixed.One,
+        new LineSource(Tiles.FromMetres(300), Fixed.FromInt(4)));
+}
 
+/// <summary>
+/// The Map Layers: sparse Cell storage, the staggered schedule, and incremental re-diffusion.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>This is what Phase 5 drives, and it holds the three things a Layer needs that a table cannot
+/// carry</b> — the residency index, the cadence, and the record of which sources have changed since
+/// the last recomputation. None of them is per-row state, so none of them is a column.
+/// </para>
+/// <para>
+/// <b>Composition is not here, and its absence is the design.</b> Desirability and Fertility are
+/// composed at the point of use and never stored (<c>02 §2.4</c>): a stored composite needs
+/// invalidating whenever any input changes, and drifts. <see cref="Fertility"/> is a named hole
+/// rather than a placeholder returning zero; <see cref="Desirability"/> composes, and is bounded
+/// above by zero until amenity arrives (<c>adr/0123</c>).
+/// </para>
+/// </remarks>
 public sealed class MapLayers
 {
     /// <summary>
@@ -564,13 +597,13 @@ public sealed class MapLayers
     /// </para>
     /// <para>
     /// <b>Derived and never stored</b> (<c>02 §2.4</c>): a stored desirability Layer would need
-    /// invalidating whenever any input changed, and would drift. Noise is a Map Layer for no version of
-    /// this field:
+    /// invalidating whenever any input changed, and would drift. Noise is not a Map Layer in any
+    /// version of this field:
     /// </para>
     /// <para>
     /// <b>Noise is a point-of-use distance query and belongs here, not in <see cref="Layer"/>.</b>
-    /// When it is built it must <b>sum</b> rather than take the nearest source — noise superposes, and
-    /// a nearest-source query understates a Lot caught between two busy roads — and it must enumerate
+    /// It <b>sums</b> rather than taking the nearest source — noise superposes, and a nearest-source
+    /// query understates a Lot caught between two busy roads — and it enumerates
     /// <b>by loudness rather than by road class</b>: every linear source in range whose contribution
     /// exceeds the ambient background, where the background is the local-Street level it already
     /// computes. That is a crossover rather than an authored threshold, and it is what catches
@@ -578,7 +611,6 @@ public sealed class MapLayers
     /// which enumeration by class would miss. Near-road pollution is the same query with different
     /// weights.
     /// </para>
-    /// </remarks>
     /// <para>
     /// <b>It composes at a TILE, and the Cell that stores land value samples it.</b> Pollution is a
     /// Cell Layer and upsamples; noise is exact at Tile resolution and its whole gradient fits inside

@@ -337,11 +337,27 @@ public readonly struct LayerRuleset
     /// <param name="rates">How fast each Layer moves when it is.</param>
     /// <param name="constants">The world-creation numbers, frozen for this world's life.</param>
     public LayerRuleset(LayerSchedule schedule, LayerRates rates, LayerConstants constants)
+        : this(schedule, rates, constants, DesirabilityWeights.Default)
+    {
+    }
+
+    /// <inheritdoc cref="LayerRuleset(LayerSchedule, LayerRates)"/>
+    /// <param name="schedule">When each Layer is recomputed.</param>
+    /// <param name="rates">How fast each Layer moves when it is.</param>
+    /// <param name="constants">What is baked into the world rather than tuned.</param>
+    /// <param name="desirability">The weights and noise parameters the composition reads.</param>
+    public LayerRuleset(
+        LayerSchedule schedule, LayerRates rates, LayerConstants constants, DesirabilityWeights desirability)
     {
         Schedule = schedule;
         Rates = rates;
         Constants = constants;
+        Desirability = desirability;
     }
+
+    /// <summary>What <see cref="MapLayers.Desirability"/> composes with. <b>Tuning</b>, and all of it
+    /// unratified.</summary>
+    public DesirabilityWeights Desirability { get; }
 
     /// <summary>The stated defaults of <c>02 §2.4</c>.</summary>
     public static LayerRuleset Default { get; } =

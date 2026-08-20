@@ -2104,6 +2104,7 @@ public static class RulesetLoader
             LayerSchedule schedule = LayerSchedule.Default;
             LayerRates rates = LayerRates.Default;
             LayerConstants constants = LayerConstants.Default;
+            DesirabilityWeights desirability = LayerRuleset.Default.Desirability;
 
             int pollutionPeriod = Cadence("pollution", schedule.IndustrialPollution,
                 out int pollutionOffset);
@@ -2119,6 +2120,28 @@ public static class RulesetLoader
             int sealingTau = Number("sealing_decay_tau", rates.SealingDecayTau, minimum: 0,
                 "It counts scheduled updates, and 0 means Sealing never decays — Phase 1's value, "
                 + "because there is no terrain to key a rate off yet.");
+
+            // The desirability composition's four numbers. All authored as PERCENTS or METRES rather
+            // than as Q16.16, because 02 §2.5 question 2 says author in domain units and because the
+            // corpus already spells a fraction that way -- [traffic] alpha and car_ownership_percent.
+            // Every one of them is unratified and each owes two plans/0002 §D1 entries (adr/0125).
+            int noiseRange = Number("noise_range_metres", desirability.NoiseSource.Range.Raw * Tiles.Metres,
+                minimum: 1,
+                "A line source with no reach is not a source. 02 §2.4 says 50–300 m, and that band is "
+                + "six times wide — the shipped 300 is its outer end, not a derivation.");
+            int noiseIntensity = Number("noise_intensity_percent", 400, minimum: 1,
+                "It is the intensity one Vehicle per Tick radiates at one Tile, as a percent. ⚠ It is "
+                + "NOT a scale: the level is log(1+x), which is linear below unity and logarithmic "
+                + "above it, so this decides which regime the city sits in.");
+            int pollutionWeight = Number("desirability_pollution_percent", 100, minimum: 0,
+                "w₂, as a percent. It subtracts; 0 removes the term rather than defaulting it.");
+            int noiseWeight = Number("desirability_noise_percent", 100, minimum: 0,
+                "w₃, as a percent. It subtracts; 0 removes the term rather than defaulting it.");
+
+            desirability = new DesirabilityWeights(
+                IntegerMath.RoundDiv(Fixed.FromInt(pollutionWeight), 100),
+                IntegerMath.RoundDiv(Fixed.FromInt(noiseWeight), 100),
+                new LineSource(Tiles.FromMetres(noiseRange), IntegerMath.RoundDiv(Fixed.FromInt(noiseIntensity), 100)));
 
             // The one refusal that is a property of the two numbers together rather than of either.
             // A decay shorter than the period it runs at rounds to zero updates, and zero means
@@ -2139,7 +2162,8 @@ public static class RulesetLoader
                     new LayerCadence(pollutionPeriod, pollutionOffset),
                     new LayerCadence(landValuePeriod, landValueOffset)),
                 LayerRates.From(landValueTau, sealingTau, decayTicks, pollutionPeriod),
-                stated);
+                stated,
+                desirability);
         }
 
         /// <summary>One Layer's period and offset, with the offset checked against the period.</summary>

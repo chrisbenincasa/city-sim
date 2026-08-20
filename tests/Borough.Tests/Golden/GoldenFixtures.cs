@@ -62,7 +62,7 @@ internal static class GoldenFixtures
     /// baseline covers. <c>The_golden_ruleset_is_the_one_the_session_names</c> is the test that says
     /// so, and it fails with the number to paste in.
     /// </remarks>
-    internal const ulong RulesetHash = 0xBF7C_FCD8_ED78_13FAUL;
+    internal const ulong RulesetHash = 0x3895_F1B1_D05C_21B4UL;
 
     /// <summary>The Ruleset the golden session runs under, beside the test assembly.</summary>
     internal static string RulesetPath =>
@@ -75,7 +75,7 @@ internal static class GoldenFixtures
     /// A literal for <see cref="RulesetHash"/>'s reason, and it is in <c>session.borough</c> too:
     /// a reload line carries both hashes, so editing either file is a re-baseline of both artefacts.
     /// </remarks>
-    internal const ulong TunedRulesetHash = 0x619D_22AF_E750_5523UL;
+    internal const ulong TunedRulesetHash = 0x0244_F5DF_8F8A_89D3UL;
 
     /// <summary>The Ruleset the golden session reloads into at <see cref="ReloadAt"/>.</summary>
     internal static string TunedRulesetPath =>
@@ -272,7 +272,7 @@ internal static class GoldenFixtures
     /// <c>The_golden_ruleset_is_the_one_the_session_names</c> covers all three files rather than two
     /// — which is 5a-bis's finding applied before it could bite a third time.
     /// </remarks>
-    internal const ulong DrivingRulesetHash = 0xB7DD_39A6_DBE1_B9BBUL;
+    internal const ulong DrivingRulesetHash = 0x05C1_D5D3_038B_67D5UL;
 
     /// <summary>
     /// The Ruleset the driving session runs under: the one shipped file in which anybody owns a car.

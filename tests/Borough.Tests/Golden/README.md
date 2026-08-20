@@ -459,6 +459,14 @@ dotnet run --project src/Borough.Headless -- \
 **One `--ruleset`, not two.** This session does not reload, so there is no transition to resolve and a
 second file would be Rules nobody names. And **`congested.toml` is now a baseline artefact**: it was a
 demonstration Ruleset that only three suites read, and editing it — including editing its comments, and
-including a repository-wide citation sweep touching them — now moves thirty-two committed hashes.
+including a repository-wide citation sweep touching them — now moves a recorded **Ruleset content hash**.
+
+⚠ **CORRECTED 2026-08-20, milestone 9 task 3: that is a file fingerprint, not a State Hash, and the two
+were being said with one word.** Adding four `[layers]` keys to all eight Rulesets moved **eight header
+lines** — three constants here, the `ruleset` line in both `.borough` logs, the `ruleset` line in both
+traces — and **not one of the thirty-two State Hash samples**, because a key nothing reads cannot change
+the city. A *semantic* edit to a key something reads does move them, and that is a different sentence.
+***Saying "moves N committed hashes" of a fingerprint change is Cause 5 with the units dropped***, and it
+is the sentence that makes somebody defer a Ruleset edit — which `adr/0100` forbids by name.
 `The_golden_ruleset_is_the_one_the_session_names` covers all three files and fails with the number to
 paste in.

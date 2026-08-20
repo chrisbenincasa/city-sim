@@ -359,6 +359,34 @@ candidates    = 3
 # it no longer holds. It is also UNRATIFIED — the 1–10 km band is 10× wide (plans/0002 §D1).
 #
 # `sealing_decay_tau = 0` MEANS NEVER, AND IT IS A STATED ABSENCE. 02 §2.4 keys Sealing's decay by
+
+# THE DESIRABILITY COMPOSITION -- FOUR NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
+# land value drifting toward a target whose first term is land value made it a GAIN of 1/(1 - w1) on
+# the others rather than a fifth weight. adr/0123 leaves amenity and shoreline OUT of the formula
+# rather than defaulting them to zero, so what composes is `- w2*pollution - w3*noise` and the field
+# is BOUNDED ABOVE BY ZERO until milestone 15: the best land in the city is clean, quiet and empty.
+#
+# `noise_range_metres` is the cutoff. 02 section 2.4 says 50-300 m; that band is SIX TIMES WIDE and
+# is the same defect plans/0012 records against the industrial kernel's 1-10 km. 300 is its outer
+# end, not a derivation.
+#
+# `noise_intensity_percent` IS NOT A SCALE, and it is the one number here with a derivation. The
+# level is log(1+x) -- linear below unity, logarithmic above it -- so this decides WHICH REGIME the
+# city sits in. At 100 a Street at its stated capacity falls under unity by about 150 m and its
+# noise adds LINEARLY, which is the physically-wrong arithmetic the logarithm was chosen to prevent.
+# At 400 it stays in the logarithmic stretch across the whole 300 m.
+#
+# The two weights are 100 and 100, DELIBERATELY NEUTRAL rather than derived. Measured magnitudes put
+# the terms within one order of magnitude -- pollution about 12 in kernel units under a strong
+# source, noise about 3 beside a capacity Street -- so 1:1 leaves both VISIBLE, which is the only
+# property anything can check today. Nothing distinguishes them further and nothing can: the
+# quantity that would refute a weight comes from a consumer of land value, and there is no consumer
+# in src/ at all (adr/0125). Each owes TWO plans/0002 section D1 entries -- a reachable floor and an
+# owed real ratifier -- and the floor REFUTES and never confirms.
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
 # terrain type; there is no terrain in Phase 1, so there is no key, so there is no rate to look up.
 # Zero is the conservative reading — Sealing only accumulates — and the bound is structural, because a
 # Cell cannot have more Tiles built on it than it has Tiles.

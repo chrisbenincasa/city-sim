@@ -490,7 +490,39 @@ invalidating whenever any input changed, and would drift.
 
 ⚠ **`Fertility` still throws** and is untouched — its blocker is the world generator at milestone 24.
 
-### Task 3 — the weights reach a shipped Ruleset
+### Task 3 — the weights reach a shipped Ruleset — ✅ **DONE 2026-08-20**
+
+> ✅ **Four `[layers]` keys in all eight Rulesets, and five §D1 entries** — two for `w₂` (a floor and the
+> debt), and one each for `w₃`, the range and the intensity. **No `const` in simulation source.**
+>
+> ⚠ **F14 — decision 5 said *two weights, not five*, and the query brought two more hash-bearing numbers
+> with it.** `noise_range_metres` and `noise_intensity_percent` are neither weights nor optional, and
+> nothing had counted them. ***A count of the numbers a decision opens, taken before the mechanism is
+> built, is a count of the ones the decision could see.***
+>
+> **Only one of the four has a derivation, and the file says which.** `noise_intensity_percent = 400`
+> comes from task 1's **F9**: the level is `log(1+x)`, linear below unity, so this number decides **which
+> regime the city sits in**. Measured — at 100 a Street at its **stated capacity** (3,600 Vehicles an hour,
+> ≈ 42 a Tick) falls under unity by about **150 m** and its noise adds *linearly*, the arithmetic the
+> logarithm exists to prevent; at 400 it stays logarithmic across the whole 300 m. The range is
+> `02 §2.4`'s **outer end** of a band six times wide. The two weights are **1:1 and deliberately neutral**
+> — measured magnitudes (pollution ≈ 12 in kernel units under a strong source, noise ≈ 3 beside a capacity
+> Street) put them within one order of magnitude, so both stay *visible*, which is the only property
+> anything can check today.
+>
+> ⚠ **F15 — *editing a golden Ruleset moves thirty-two committed hashes* is wrong, and it is exactly the
+> sentence that makes somebody defer a Ruleset edit.** What moved was a **Ruleset content hash** — a *file
+> fingerprint* — in **eight header lines**: three fixture constants, the `ruleset` line in both `.borough`
+> logs, and the same line in both traces. ***Not one of the thirty-two State Hash samples moved***, because
+> a key nothing reads cannot change the city. ***Saying "moves N committed hashes" of a fingerprint change
+> is Cause 5 with the units dropped.*** Corrected in `CLAUDE.md` and in
+> [`tests/Borough.Tests/Golden/README.md`](../tests/Borough.Tests/Golden/README.md).
+>
+> ⚠ **And I nearly deferred this task into task 4 so the baselines would be regenerated once**, which
+> [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+> forbids by name — ***never cite hash movement as a reason to defer, narrow or split work.*** The ADR
+> caught a live instance of the thing it was written for, and the cost it was guarding against turned out
+> to be eight lines.
 
 New `[layers]` keys, hot-reloadable, **no `const` anywhere in simulation source**.
 
