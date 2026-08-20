@@ -66,19 +66,40 @@ Seconds and metres arrive from two exchange rates, both invented outside the sim
 - **Ticks → real seconds** is the host deciding how often to call `step()`. That is the speed control.
 - **Tiles → metres** is the artist deciding how large to draw a building. Declaring a Tile to be 4 m rather than 8 m means redrawing everything half-size, and the screen is identical. ~~Nothing in the game reads the metre.~~
 
-> **⚠ AMENDED 2026-08-12 by [`adr/0082`](adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md): neither rate is free any more, and the Ruleset is what spent them.** Keep the distinction above — the core's *arithmetic* still holds only Ticks and Tiles, and that is what the paragraph is for. But the `[roads]` table authors speeds in **km/h**, `05 §26` fixes a Tile at **~4 m**, and `02 §2` mandates that speed be stored in **Tiles per Tick**. Three of those four quantities determine the fourth, so **a Tick's duration in seconds is derived**: 86,400 s over `TICKS_PER_DAY` is **10.546875 s**, and `Speed.FromKilometresPerHour` reads the metre on every Ruleset load. ***A degree of freedom is spent by the first document that uses it, and nothing announces the spending.***
+> **⚠ AMENDED 2026-08-12 by [`adr/0082`](adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md): neither rate is free any more, and the Ruleset is what spent them.** Keep the distinction above — the core's *arithmetic* still holds only Ticks and Tiles, and that is what the paragraph is for. But the `[roads]` table authors speeds in **km/h**, `05 §26` fixes a Tile at **~4 m**, and `02 §2` mandates that speed be stored in **Tiles per Tick**. Three of those four quantities determine the fourth, so **a Tick's duration in seconds is derived**: 86,400 s over `TICKS_PER_DAY` is ~~**10.546875 s**~~ **42.1875 s**, and `Speed.FromKilometresPerHour` reads the metre on every Ruleset load. ⚠ **CORRECTED 2026-08-19**: the 10.546875 was `TICKS_PER_DAY = 8192`'s, and [`adr/0094`](adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md) took the Day to **2048** on 2026-08-13. The derivation is unchanged and its input moved. ***A degree of freedom is spent by the first document that uses it, and nothing announces the spending.***
 >
 > **A Tick is a behavioural unit.** Car-following needs ~45× finer and takes a **sub-step ratio** inside Tick phase 4; making it global costs **108×** the measured Tick budget. See `adr/0082`.
 
 #### The one number that is not an exchange rate
 
-`TICKS_PER_DAY` looks like a third exchange rate and is not. A **Day** is not an external unit being converted to — it is a simulation object, the period of a Household's routine. So `TICKS_PER_DAY` lives *inside* the simulation, next to "a commute takes 480 Ticks," and the **ratio** between them is a real dimensionless fact:
+`TICKS_PER_DAY` looks like a third exchange rate and is not. A **Day** is not an external unit being converted to — it is a simulation object, the period of a Household's routine. So `TICKS_PER_DAY` lives *inside* the simulation, next to "a map crossing takes 112 Ticks," and the **ratio** between them is a real dimensionless fact:
 
 ```
-480 Ticks (commute) ÷ 8192 Ticks (Day) = 5.9% of a life spent driving, one way
+112 Ticks (a map crossing) ÷ 2048 Ticks (Day) = 5.5% of a life spent driving, one way
 ```
 
-That figure is invariant under both exchange rates. It is the only time-related quantity in the design that describes the world rather than our view of it — and it is the traffic balance, because *share of life in transit* is the same number as *share of the population on the road at any instant*.
+That figure is invariant under both exchange rates. It is the only time-related quantity in the design that describes the world rather than our view of it — and it is the traffic balance, because *share of life in transit* is the same number as *share of the population on the road at any instant*. ⚠ **Invariant under the two exchange rates is not invariant under everything**, and the section said the first while reading as the second: the **map's width** is neither exchange rate, it is a fact about the world, and moving it moves this number. That is what happened.
+
+> **⚠ REWRITTEN 2026-08-19. Both operands had moved, in opposite directions, and the ratio is not what
+> either move alone would give.** It read `480 ÷ 8192 = 5.9%`. The **numerator** was corrected to ~112
+> Ticks on 2026-08-12 by the *Cross-town trip* row below — the 480 was self-consistent with a
+> ~0.5 Tile/Tick speed under which *"cross-town"* meant about a kilometre. The **denominator** was
+> corrected to 2048 on 2026-08-13 by
+> [`adr/0094`](adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md).
+> Neither correction reached this block.
+>
+> ⚠ **112 Ticks is unchanged by the clock move, and that is cancellation rather than stability.** A
+> crossing is denominated in **in-world time**, so it should have got four times cheaper in Ticks — and
+> [`adr/0089`](adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) made the map four times
+> wider on 2026-08-12, which exactly undid it. ***A figure that survives two changes may be right by
+> cancellation rather than right***, and the way to tell is that neither of its stated inputs was
+> current: the row below said *16.4 km* until this correction, and the map is **65.5 km**.
+>
+> ⚠ **The share itself DID move, from 1.4% to 5.5%, and the reason matters.** The clock move is
+> invariant to it — that is `adr/0094`'s whole argument — and the **map** move is not. So the corpus's
+> standing traffic assumption is back near the 5.9% the 2026-08-12 correction struck, by a route that
+> vindicates neither figure: the old number was wrong about the speed, the correction was right about a
+> map that was superseded the same day, and the current number is what the shipped constants give.
 
 **Shortening the Day does not shorten the drive. It shortens the life around the unchanged drive**, putting proportionally more vehicles on the road at every moment. See [`adr/0019`](adr/0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md), which also records why the traffic model — the only continuous process here — is what forces the Tick to be fine-grained at all.
 
@@ -86,11 +107,11 @@ That figure is invariant under both exchange rates. It is the only time-related 
 
 | Constant | Value | Kind | Notes |
 |---|---|---|---|
-| `TICKS_PER_DAY` | **8192** | world-creation; baked into the save | Not hot-reloadable. Changing it reinterprets every scheduled event |
+| `TICKS_PER_DAY` | ~~**8192**~~ **2048** | world-creation; baked into the save | Not hot-reloadable. Changing it reinterprets every scheduled event. ⚠ **CORRECTED 2026-08-19** to [`adr/0094`](adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md), 2026-08-13, which this table never received. `Ticks.PerDay` |
 | Reference tick rate | **16 Ticks/s** | host-side, runtime | Defines the default speed. Invisible to the simulation |
-| `WHEEL_SIZE` | **8192** Ticks | world-creation | Set by the longest *common* event horizon, which is one Day — so it equals `TICKS_PER_DAY` for an independent reason, not by definition. Overflow tier handles multi-Day countdowns |
+| `WHEEL_SIZE` | ~~**8192**~~ **2048** Ticks | world-creation | Set by the longest *common* event horizon, which is one Day — so it equals `TICKS_PER_DAY` for an independent reason, not by definition. Overflow tier handles multi-Day countdowns. ⚠ **CORRECTED 2026-08-19**: it moved with the Day, for the reason stated — independently, and to the same number. `EventWheel.Size` |
 | Vehicle free-flow speed | ~~**~0.5 Tile/Tick**~~ **Ruleset `*_speed_kph`; 50 / 90 / 5 km/h shipped, which is 36.6 / 65.9 / 3.66 Tiles/Tick** | Ruleset; per road class | ⚠ **CORRECTED 2026-08-12 ([`adr/0082`](adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md)).** Two claims were welded here. **The car-following ceiling is real** — above ~1 Tile/Tick Lane queues stop being meaningful — but it is a constraint on the **Lane kernel's sub-step**, not on a Tick, and it does not set this row. The **~0.5** was derived from the *reads as* column below, which is 65× adrift of its own `Day` column, and it was **73× off the shipped speeds**. It cannot be rescued by scaling the pedestrian down to match: at 0.5 Tile/Tick a walker is 0.05 and a 3 km walk is **1.8 Days** — and the walk-to-drive ratio is the exact quantity `adr/0008`'s single-currency Commute Budget exists to compare, so Severance would stop costing anything. *Under the old row you could have a realistic walk or a realistic mode choice, not both.* |
-| Cross-town trip | ~~**~480 Ticks**~~ **~112 Ticks** — the full 16.4 km map width at 50 km/h | derived | ⚠ **CORRECTED 2026-08-12, and it moves `adr/0019`'s headline ratio by 4.3×.** The 480 was self-consistent with ~0.5 Tile/Tick and travelled with it: at that speed *"cross-town"* was **~1 km**, a District rather than a town, and the row predates the 4096² map. Corrected, a one-way crossing is **1.4% of a Day**, not 5.9% — **2.7% both ways against a stated 11.7%**. Since *share of life in transit* is the same quantity as *share of the population on the road at any instant*, **the corpus has been assuming ~4× the standing traffic the shipped numbers produce.** Name the speed when quoting this: a real commute is shorter than a map crossing and mixes 50 with 90 km/h arterials, so treat 112 as an upper bound on the *distance* and a rough one on the *speed* |
+| Cross-town trip | ~~**~480 Ticks**~~ **~112 Ticks** — the full ~~16.4~~ **65.5** km map width at 50 km/h | derived | ⚠ **CORRECTED 2026-08-12, and it moves `adr/0019`'s headline ratio by 4.3×.** The 480 was self-consistent with ~0.5 Tile/Tick and travelled with it: at that speed *"cross-town"* was **~1 km**, a District rather than a town, and the row predates the 4096² map. Corrected, a one-way crossing is **1.4% of a Day**, not 5.9% — **2.7% both ways against a stated 11.7%**. Since *share of life in transit* is the same quantity as *share of the population on the road at any instant*, **the corpus has been assuming ~4× the standing traffic the shipped numbers produce.** Name the speed when quoting this: a real commute is shorter than a map crossing and mixes 50 with 90 km/h arterials, so treat 112 as an upper bound on the *distance* and a rough one on the *speed*. ⚠ **AMENDED 2026-08-19, and the Tick count is the only part that survived.** This row was written against a **16.4 km** map on the day [`adr/0089`](adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) replaced it with **65.5 km**, and against `TICKS_PER_DAY = 8192` the day before `adr/0094` replaced it with 2048. The two moves are both ×4 and cancel, so **~112 Ticks is still right and both of its stated inputs were wrong**. The **share does not cancel**: a crossing is ~~1.4%~~ **5.5%** of a Day one way, ~~2.7%~~ **10.9%** both ways, because the map move is a change to the world and the clock move is not |
 | Cell | **32×32** Tiles | world-creation; baked into the save | **Design constant.** It is the resolution of pollution, so it changes the State Hash. Never tuned — [`adr/0034`](adr/0034-fields-are-sorted-by-source-geometry.md) |
 | Chunk | **≥ 32×32** Tiles, a multiple of the Cell | tuning; unvalidated | Hash-preserving, so it is a measurement. Probably wants to be larger. See [`05 §5`](05-technical-architecture.md) |
 | Map Layer diffusion | pollution every **64** Ticks at offset 0; land value every **256** at offset 16 | tuning; **hash-bearing** | **The designer's number, not the profiler's** — measured, not argued, in [`adr/0044`](adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md). Hot-reloadable; the dirty set is what makes a mid-run change lossless. §2.4 |
@@ -98,14 +119,28 @@ That figure is invariant under both exchange rates. It is the only time-related 
 
 Derived, for orientation only — none of these are inputs:
 
-| Speed | Ticks/s | Day | Fast-forward | Cross-town trip (16.4 km) |
+| Speed | Ticks/s | Day | Fast-forward | Cross-town trip (65.5 km) |
 |---|---|---|---|---|
-| **Study** (½×) | 8 | 17m04s | 84.4× | 14.0 s |
-| **Normal** (1×) — default | 16 | **8m32s** | **168.75×** | 7.0 s |
-| **Fast** (2×) | 32 | 4m16s | 337.5× | 3.5 s |
-| **Very fast** (4×) | 64 | 2m08s | 675× | 1.7 s |
+| 0.5× | 8 | 4m 16s | 337.5× | 14.0 s |
+| **1×** — the design speed | 16 | **2m 08s** | **675×** | 7.0 s |
+| 2× | 32 | 1m 04s | 1,350× | 3.5 s |
+| 3× | 48 | 42 s | 2,025× | 2.3 s |
+| 4× | 64 | 32 s | 2,700× | 1.7 s |
 
-> **⚠ The *Traffic reads as* column was deleted 2026-08-12, not restated** ([`adr/0082`](adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md); diagnosed in [`plans/0012`](../plans/0012-corpus-audit.md)). It claimed ~65 km/h at Study and ~130 at Normal, marking the first *"visually honest"*. **It was 65× adrift of the `Day` column beside it**, and an orientation figure that disagrees with the row next to it orients nobody. The **fast-forward** column replaces it because that is the quantity the `Day` column actually implies: once a Day of 86,400 s is shown in 512 s, *everything* on screen moves at 168.75×, and a 50 km/h car reads as ~8,400 km/h.
+> **⚠ RECOMPUTED 2026-08-19, and the ladder is now [`01 §1`](01-player-experience.md)'s rather than a
+> second copy of it.** Two things were wrong and one was right by accident. The **Day** and
+> **fast-forward** columns were `TICKS_PER_DAY = 8192`'s and are four times out. The **cross-town**
+> column is unchanged, because the map went ×4 (`adr/0089`) while the fast-forward went ×4
+> (`adr/0094`) — ***the one column nobody had to touch is the one whose inputs were both wrong.***
+>
+> **The rungs are `01 §1`'s five plus pause**, not the four named here since before the ladder was
+> settled, and the names *Study / Normal / Fast / Very fast* are struck: `01 §1` owns the ladder and
+> gives no rung a name. **1× is the design speed** and 4× at 1,000,000 Citizens is the budget
+> ([`adr/0105`](adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md)),
+> which is a different claim from *default* and is why that word is gone. ***A table that restates
+> another document's ladder is a second copy, and this one drifted in three columns at once.***
+
+> **⚠ The *Traffic reads as* column was deleted 2026-08-12, not restated** ([`adr/0082`](adr/0082-the-behavioural-clock-is-global-and-car-following-sub-steps-inside-it.md); diagnosed in [`plans/0012`](../plans/0012-corpus-audit.md)). It claimed ~65 km/h at Study and ~130 at Normal, marking the first *"visually honest"*. **It was 65× adrift of the `Day` column beside it**, and an orientation figure that disagrees with the row next to it orients nobody. The **fast-forward** column replaces it because that is the quantity the `Day` column actually implies: once a Day of 86,400 s is shown in ~~512 s~~ **128 s**, *everything* on screen moves at ~~168.75×~~ **675×**, and a 50 km/h car reads as ~~~8,400~~ **~33,750** km/h. ⚠ **The three figures were CORRECTED 2026-08-19 and the argument is untouched** — they were `TICKS_PER_DAY = 8192`'s, and the point being made is that the mismatch is a *consequence* of the calendar rate rather than a constraint on it, which is why moving the rate moves them and not it.
 >
 > **The deleted claim rested on a category error worth keeping.** Appearance was treated as a **constraint on the simulated speed** when it is a **consequence of the calendar rate** — and the calendar rate was already spent by `TICKS_PER_DAY` and the reference tick rate, so there was no freedom left to buy a car that looks like a car. ***A speed picked to satisfy appearance is bought with currency the pacing decision had already spent.*** The compensation is uniform, so the **ratios survive** — a car still reads as ten times a pedestrian — and only the absolute claim was false.
 >
@@ -118,7 +153,7 @@ Derived, for orientation only — none of these are inputs:
 - **Pacing is never a simulation change.** Session length, "days feel long," and difficulty-by-reaction-time are all served by the speed ladder, which the core cannot observe.
 - **Never skip Ticks to keep up.** When the host cannot sustain the rate, wall-clock time dilates and the Tick sequence stays intact. Skipping would break replay and the State Hash. This is Factorio's documented behaviour.
 - **Traffic pressure is tuned with vehicle speed or city grain, never with the Day.** Both of those are things the player can see and act on; the Day is a hidden global constant, and a hidden global constant that tunes a system-wide outcome is the object `00-vision.md` pillar 1 exists to forbid. `LEGIBLE CAUSE`
-- **There is no hour and no minute.** Time of day is a sun arc with named phases — dawn, morning peak, midday, evening peak, night. 8192 is not divisible by 24, so an hour would not land on a Tick boundary; more importantly, an arc makes no numeric claim and so cannot be caught lying. Commute Budget is drawn as a wedge on that same arc, which removes the last conversion factor between the clock and the thing being measured against it. See [`01-player-experience.md` §7](01-player-experience.md).
+- **There is no hour and no minute.** Time of day is a sun arc with named phases — dawn, morning peak, midday, evening peak, night. ~~8192~~ **2048** is not divisible by 24, so an hour would not land on a Tick boundary; more importantly, an arc makes no numeric claim and so cannot be caught lying. ⚠ **CORRECTED 2026-08-19, and it is a premise moving under a conclusion that survived it.** 8192 was not divisible by 24 and neither is 2048 — 85.33 Ticks to the hour — so this bullet has been right about hours and wrong about why since `adr/0094`. ***A conclusion that survives its premise moving is the hardest kind of stale sentence to find, because nothing it claims is false.*** Commute Budget is drawn as a wedge on that same arc, which removes the last conversion factor between the clock and the thing being measured against it. See [`01-player-experience.md` §7](01-player-experience.md).
 
 ---
 
@@ -956,7 +991,7 @@ The rest:
 
 Genuine forks. Each needs resolving before the system it governs is built.
 
-1. ~~**How many Ticks make a Day.**~~ ~~Whether the city ages.~~ **Settled.** One clock and no calendar (`adr/0010`); Citizens never age and Households advance through Life Stages instead (`adr/0011`); and `TICKS_PER_DAY = 8192` at a reference rate of 16 Ticks/s, fixed at world creation, with pacing delivered entirely by the speed ladder — see §1.2 and [`adr/0019`](adr/0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md). The figure that turned out to matter is not the Day's length in real seconds, which is free, but the **ratio** of commute Ticks to Day Ticks, which is the traffic balance.
+1. ~~**How many Ticks make a Day.**~~ ~~Whether the city ages.~~ **Settled.** One clock and no calendar (`adr/0010`); Citizens never age and Households advance through Life Stages instead (`adr/0011`); and ~~`TICKS_PER_DAY = 8192`~~ **`TICKS_PER_DAY = 2048`** at a reference rate of 16 Ticks/s, fixed at world creation, with pacing delivered entirely by the speed ladder — see §1.2, [`adr/0019`](adr/0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md) and its second amendment, [`adr/0094`](adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md), which **withdrew `adr/0019`'s title claim**: `TICKS_PER_DAY` is a *sampling rate* rather than a balance constant, so lowering it buys four times as much world per real second at no cost to any balance. The figure that turned out to matter is not the Day's length in real seconds, which is free, but the **ratio** of commute Ticks to Day Ticks, which is the traffic balance.
 2. ~~**What the map is.**~~ **Settled.** One bounded procedural rectangle, sparse Chunks, all of it live — [`adr/0020`](adr/0020-one-live-world-and-settlements-are-derived.md), [`adr/0021`](adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md), [`adr/0022`](adr/0022-land-is-a-stock-the-city-spends.md). The region-of-tiles option died on `adr/0010`, not on effort: frozen neighbours are a second clock. What replaced it — Settlements derived from commute range — turned out stronger than what it replaced. **Still open: the map's actual size, and the Outside Connection layout.** See `plans/0002-open-questions.md`.
 3. **Districts: player-drawn or automatic?** Player-drawn gives the player a real lever over the logistics abstraction and is more legible; automatic is less to explain and less to get wrong. Leaning player-drawn with an automatic default.
 4. **Where private capital comes from.** A simple regenerating pool is legible but arbitrary. Deriving it from business profits and household savings is causally honest but adds a feedback loop that could deadlock a struggling city. Probably: derived, with a floor.

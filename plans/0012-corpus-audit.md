@@ -973,7 +973,7 @@ milestone creates the first load. Nothing enumerates them; this is the one that 
 
 ---
 
-### Milestone 10's collection — four; the first is a new form of Cause 1 (two copies that disagree about a *direction*), the second and third are new *surfaces* — a path, and the space across working trees — and the fourth is Cause 2 at its widest reach yet
+### Milestone 10's collection — five; the first is a new form of Cause 1 (two copies that disagree about a *direction*), the second and third are new *surfaces* — a path, and the space across working trees — the fourth is Cause 2 at its widest reach yet and is PAID, and the fifth was split out of it
 
 **1. ⚠ [`06`](../docs/06-roadmap.md)'s dependency graph makes the District Pool a root, and
 [`adr/0050`](../docs/adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md)
@@ -1137,47 +1137,91 @@ obvious repair, which is exactly why both are written down before anybody writes
 
 ---
 
-**4. ⚠ `adr/0094` MOVED THE DAY FROM 8192 TICKS TO 2048 AND FOUR NUMBERED DESIGN DOCUMENTS STILL
-STATE 8192 AS SETTLED, IN SEVEN PLACES.** Found 2026-08-19 while building milestone 10 task 8, by
-reading `02 §9` for the clause the task discharges and meeting `02 §11`'s *"`TICKS_PER_DAY = 8192` at
-a reference rate of 16 Ticks/s"* three sections later. **Cause 2** — an ADR issues writes to other
-documents and the writes do not all land — and this is its widest reach recorded: not one document
-missed but **four**, each citing
-[`adr/0019`](../docs/adr/0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md) as the
-authority for a figure `adr/0094` retired.
+**4. ~~⚠ `adr/0094` moved the Day from 8192 Ticks to 2048 and four numbered design documents still
+state 8192 as settled~~** — ✅ **PAID 2026-08-19, in the sitting after the one that found it**, and
+the filing was wrong twice before it was paid. Found while building milestone 10 task 8, by reading
+`02 §9` for the clause that task discharges and meeting `02 §11`'s *"`TICKS_PER_DAY = 8192`"* three
+sections later. **Cause 2** — an ADR issues writes to other documents and the writes do not all land —
+and it is the widest reach recorded: four documents, not one.
 
-| Document | Where | What it says |
-|---|---|---|
-| [`00 §Open questions`](../docs/00-vision.md) | `:183` | *"A Day is 8192 Ticks — 8m32s at the default speed, 17m at the slowest"* — **settled**, and both wall-clock figures are 4× wrong with it |
-| [`02 §1.2`](../docs/02-simulation-model.md) | `:89`, `:91` | the constants table: `TICKS_PER_DAY` **8192** and `WHEEL_SIZE` **8192 Ticks** |
-| [`02 §1.2`](../docs/02-simulation-model.md) | `:78` | *"480 Ticks (commute) ÷ 8192 Ticks (Day) = 5.9% of a life spent driving"* — a **derived** figure, so the ratio moves with the denominator |
-| [`02 §1.2`](../docs/02-simulation-model.md) | `:121` | *"8192 is not divisible by 24, so an hour would not land on a Tick boundary"* — ⚠ **an argument whose premise moved**: 2048 is not divisible by 24 either, so the conclusion survives and the sentence supporting it is false |
-| [`02 §11`](../docs/02-simulation-model.md) | `:959` | *"`TICKS_PER_DAY = 8192`… **Settled**"* |
-| [`05 §Open questions`](../docs/05-technical-architecture.md) | `:454` | *"**Settled** — `TICKS_PER_DAY = 8192`"*, and the `WHEEL_SIZE` argument *"lands on the same number, 8192"* |
+⚠ **THE FILING SAID `adr/0019` NEEDED A SUPERSESSION BANNER AND IT HAS HAD ONE SINCE 2026-08-13.**
+That banner is thorough: it withdraws the ADR's **title claim**, strikes four things by name, says what
+survives, and records that the State Hashes moved. So the ADR discharged its obligation **completely**
+and four documents citing it still carried the old figure. ***An ADR that supersedes itself correctly
+does not thereby correct the documents that quote it***, which is Cause 2 stated at its purest — and
+the first sighting where the ADR half is provably blameless.
 
-⚠ **`03` is the one that WAS corrected, and it is what makes this a Cause 2 sighting rather than a
-sweep nobody ran.** `03:106` says of a different consequence that it *"followed from
-`TICKS_PER_DAY = 8192`"* and that *"`adr/0094` retired [it] without touching it"* — so somebody
-walked this exact edge, in this exact document, and repaired one sentence. ***A document that names
-the retirement of a figure is evidence the sweep was thought of, not evidence it ran.***
+⚠ **THE FILING SAID SEVEN SITES AND SAID SIX EDITS AND ONE JUDGEMENT.** It was **eleven**, across three
+*independent* stale constants that interact, and the interaction is the whole difficulty:
 
-⚠ **The most interesting of the seven is `02:121`, and it is a shape this ledger has not held
-before.** It is an argument whose **premise** moved and whose **conclusion** did not: 8192 is not
-divisible by 24, and neither is 2048, so the paragraph is still right about hours and is wrong about
-why. ***A conclusion that survives its premise moving is the hardest kind of stale sentence to find,
-because nothing it claims is false.*** No mechanical check reaches it — check 8 opens links and check
-6 refuses a registry figure quoted bare, and this figure is in neither category.
+| Constant | Stated | Actual | Moved by |
+|---|---|---|---|
+| `TICKS_PER_DAY`, `WHEEL_SIZE` | 8192 | **2048** | [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md), 2026-08-13 |
+| a Tick's in-world duration | 10.546875 s | **42.1875 s** | derived from the above |
+| the map's width | 16.4 km / 4096² | **65.5 km / 16384²** | [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md), 2026-08-12 |
 
-**What is owed.** Six edits and one judgement. The five plain restatements take 2048 and a pointer to
-`adr/0094`; `00:183`'s two wall-clock figures are **derived** and must be re-derived rather than
-divided (the reference rate is 16 Ticks/s, so a Day is 2m08s — `CLAUDE.md`'s Constants table already
-carries it); and `02:121` needs its premise rewritten rather than its number replaced. ⚠ **`adr/0019`
-itself needs the banner**, because six of the seven sites cite it and a reader following the citation
-lands on an ADR that still argues 8192 with no supersession note —
-[`PROCESS.md`](../PROCESS.md) → *Conventions*: **superseded documents get a banner, never a
-deletion**. **Not paid in the sitting that found it**: this is a corpus edit across four design
-documents and an ADR banner, and milestone 10 task 8 is a code task — `adr/0073` requires the finding
-be **routed** on the day, which this is, and does not require it be paid by whoever tripped over it.
+⚠ **`02 §1.2`'s HEADLINE RATIO WAS WRONG IN BOTH OPERANDS, AND THE TWO CORRECTIONS THAT EXISTED WERE
+FIFTEEN LINES APART IN THE SAME SECTION.** The block read `480 ÷ 8192 = 5.9%`. The numerator was
+struck on 2026-08-12 by the *Cross-town trip* row **below it in the same table**, which names the
+figure and gives `~112 Ticks`; the denominator was struck the next day by `adr/0094`. ***A correction
+that lands in a table does not land in the prose above the table***, and neither correction crossed
+fifteen lines.
+
+⚠ **THE SHARPEST FINDING IS A FIGURE THAT WAS RIGHT BY CANCELLATION WHILE BOTH ITS INPUTS WERE
+WRONG.** `~112 Ticks` for a map crossing is correct today and was correct on 2026-08-12 — because
+`adr/0089` made the map ×4 wider and `adr/0094` made a Tick ×4 longer, and a crossing is denominated
+in in-world time. The *Cross-town trip* row states **both** inputs and **both were stale**. The same
+holds for the derived table's cross-town-seconds column, which needed no edit at all. ***The one
+column nobody had to touch is the one whose inputs were both wrong***, and `plans/0012` already had
+the phrase for it — *right by cancellation* — from a different sighting. ⚠ **The share does not
+cancel**: a crossing went 1.4% → **5.5%** of a Day, because the map move is a change to the world and
+the clock move is not.
+
+⚠ **AND `02 §1.2` SAID *"invariant under both exchange rates"* WHILE READING AS *invariant*.** The two
+exchange rates are Ticks→seconds and Tiles→metres. The **map's width** is neither; it is a fact about
+the world, and it is what moved the number. The sentence was true and the paragraph around it was not.
+
+⚠ **The stalest sentence claims nothing false.** `02 §1.2`'s *"8192 is not divisible by 24, so an hour
+would not land on a Tick boundary"* — 2048 is not divisible by 24 either, so the **conclusion survived
+its premise moving**. ***A conclusion that survives its premise moving is the hardest kind of stale
+sentence to find, because nothing it claims is false***, and no mechanical check reaches it: check 8
+opens links, check 6 refuses a registry figure quoted bare, and this is neither.
+
+**What was paid.** `02 §1.2` — the `adr/0082` amendment's Tick duration, the headline ratio block and
+its two surrounding claims, both constants-table rows, the *Cross-town trip* row's map width and
+share, the derived orientation table in full, and the divisibility bullet. `02 §11` question 1.
+`00`'s open question 2, whose two wall-clock figures are **derived** and were re-derived against
+[`01 §1`](../docs/01-player-experience.md) rather than divided. `05`'s open question 2 and its
+`WHEEL_SIZE` sentence. Every figure taken from the code — `Ticks.PerDay`, `EventWheel.Size`,
+`CellGrid.WorldCells`, `Tiles.Metres` — rather than from another document.
+
+✅ **The derived table now defers to [`01 §1`](../docs/01-player-experience.md) instead of restating
+it.** It carried a **four**-rung ladder with names — *Study / Normal / Fast / Very fast* — against
+`01 §1`'s five rungs plus pause, none of which are named, and it had drifted in three columns at once.
+***A table that restates another document's ladder is a second copy***, which is **Cause 1** on a
+surface that ledger had only ever recorded for *status*. `01 §1` itself was **already correct** and had
+been all along, which is what makes the copy the defect.
+
+⚠ **NOT PAID, AND DELIBERATELY OUT OF SCOPE — `docs/05` reasons from a 4096² map in five places while
+its own line 31 says `adr/0089` replaced it.** Same shape, different constant, and it needs its own
+sitting: `05 §33`'s *"3.7–5.2 Commute Budgets across"* is `adr/0089`'s derived figure and **could not
+be reproduced from the shipped constants** during this sitting, so it was left rather than guessed at.
+***A figure you cannot re-derive is one to file, not one to correct.*** Filed as item **5** below.
+
+**5. ⚠ `docs/05` reasons from a 4096² map in five places, and its own line 31 records that
+[`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) took the map to
+16384² on 2026-08-12.** Split out of item 4 on 2026-08-19 rather than paid with it. The sites are
+`05:20` (*"a fully-developed 4096² map"*), `:33`, `:37`, `:41` (*"at 4096² the Road Graph is 16× the
+1024² case"*) and `:255` (*"three of the four dissolve under arithmetic at 4096²"*). ⚠ **Three of the
+five are arguments whose conclusions may not survive**, unlike item 4's divisibility bullet: `:41`'s
+route-computation risk is stated as a multiple of a map that is now 16× larger again, and `:255`'s
+Chunk-size tension is claimed to dissolve *under arithmetic at 4096²*. ***A conclusion reached by
+arithmetic on a constant has to be re-reached when the constant moves, not re-stated.*** Also owed:
+`05:33`'s **3.7–5.2 Commute Budgets across** could not be reproduced from the shipped constants — a
+50-minute ceiling at 50 km/h is 41.7 km against a 65.5 km map, which is **1.6**, and the fast rung's
+20 minutes gives **3.9** — so the figure needs its author's derivation before anybody quotes or
+corrects it. **Measurable** under `adr/0043` only once the intended denominator is known; **arguable**
+until then.
 
 ---
 
