@@ -35,6 +35,21 @@ public readonly record struct LayerReading(Cells East, Cells North, int Value);
 /// <see cref="Desirability"/>, which are named holes rather than placeholders returning zero.
 /// </para>
 /// </remarks>
+/// <summary>
+/// The weights and the noise parameters <see cref="MapLayers.Desirability"/> composes with.
+/// </summary>
+/// <param name="Pollution">Q16.16 <c>w₂</c>. Subtracts.</param>
+/// <param name="Noise">Q16.16 <c>w₃</c>. Subtracts.</param>
+/// <param name="NoiseSource">The range and intensity the noise query carries.</param>
+/// <remarks>
+/// ⚠ <b>Two weights and not five</b> — <c>w₁</c> was deleted (<c>adr/0122</c>) and <c>w₄</c> amenity and
+/// <c>w₅</c> shoreline have no term to weigh (<c>adr/0123</c>). ⚠ <b>Both are unratified and each owes
+/// TWO entries in <c>plans/0002</c> §D1</b>, a reachable floor and an owed real ratifier, because
+/// nothing in the city reads land value and the quantity that would refute a scale is a consumer's
+/// (<c>adr/0125</c>).
+/// </remarks>
+public readonly record struct DesirabilityWeights(int Pollution, int Noise, LineSource NoiseSource);
+
 public sealed class MapLayers
 {
     /// <summary>
@@ -526,19 +541,31 @@ public sealed class MapLayers
             + "needs the world generator (02 §2.3). Composed at the point of use and never stored.");
 
     /// <summary>
-    /// <c>− w₂·pollution − w₃·noise + w₄·amenity − w₅·shoreline</c>. <b>A named hole.</b>
+    /// <c>− w₂·pollution − w₃·noise</c>. <b>Two of four terms, and the two that are missing are not
+    /// missing alike.</b>
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>Land value is not a term in its own target</b> (<c>adr/0122</c>). It was, and the field
     /// drifts toward this composition, so <c>w₁</c> was a gain of <c>1/(1 − w₁)</c> on the remaining
     /// terms rather than a fifth weight. The momentum operator supplies the persistence it looked like
-    /// it was for; four terms remain, of which two are buildable.
+    /// it was for.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>AMENITY IS ABSENT AND IT IS THE ONLY POSITIVE TERM, so this is bounded above by zero</b>
+    /// (<c>adr/0123</c>). A Cell rests at zero when it is clean, quiet and empty, and below zero
+    /// everywhere else — <b>the most valuable land in the city is land far from everything.</b> That is
+    /// not a hole that fails loudly; it is a working mechanism that says something false about cities,
+    /// and it is the opposite of the failure the named-hole discipline was built for. Amenity needs a
+    /// <b>kind</b> on a Business, at milestone 15. <b>Shoreline is absent too and differently</b>: it is
+    /// zero, and zero is true of every world that exists, because nothing places water until milestone
+    /// 24 (<c>adr/0124</c>). ***Absent in the world and absent in the build are not the same absence.***
+    /// Neither is defaulted to zero; both are out of the formula.
     /// </para>
     /// <para>
     /// <b>Derived and never stored</b> (<c>02 §2.4</c>): a stored desirability Layer would need
-    /// invalidating whenever any input changed, and would drift. Three of its four inputs do not
-    /// exist. Noise and amenity both need the Road Graph, and neither is a Map Layer:
+    /// invalidating whenever any input changed, and would drift. Noise is a Map Layer for no version of
+    /// this field:
     /// </para>
     /// <para>
     /// <b>Noise is a point-of-use distance query and belongs here, not in <see cref="Layer"/>.</b>
@@ -552,11 +579,37 @@ public sealed class MapLayers
     /// weights.
     /// </para>
     /// </remarks>
-    /// <exception cref="NotSupportedException">Always, until the Road Graph exists.</exception>
-    public int Desirability(Cells east, Cells north) =>
-        throw new NotSupportedException(
-            $"desirability at Cell ({east.Raw}, {north.Raw}) composes noise and amenity, which are "
-            + "queries on a Road Graph that does not exist in Phase 1 (02 §2.4, adr/0034).");
+    /// <para>
+    /// <b>It composes at a TILE, and the Cell that stores land value samples it.</b> Pollution is a
+    /// Cell Layer and upsamples; noise is exact at Tile resolution and its whole gradient fits inside
+    /// one Cell. ⚠ <b>Composing at the Cell would have collapsed the sub-Cell term</b>, which is the
+    /// <em>degrades into is there a road here</em> outcome <c>adr/0034</c> sorted fields by geometry to
+    /// avoid — and the shipped geometry makes the obvious sample the worst one: a Cell is 32 Tiles and
+    /// <c>[roads] block_tiles</c> is 32, so <b>Streets run along Cell edges and a Cell's centre is
+    /// systematically the quietest Tile in it.</b> How a Cell samples this is a stated, hash-bearing
+    /// decision and it belongs to the producer, not here.
+    /// </para>
+    /// <para>
+    /// <b>Q16.16, and not land-value units.</b> The sum is a weighted count plus a weighted logarithm;
+    /// neither is in the units the land value column stores until the weights say so, and the rounding
+    /// belongs where the value is stored rather than where it is computed.
+    /// </para>
+    /// </remarks>
+    public int Desirability(RoadGraph graph, DesirabilityWeights weights, Tiles east, Tiles north)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+
+        Cells cellEast = CellGrid.ToCells(east);
+        Cells cellNorth = CellGrid.ToCells(north);
+
+        int pollution = Fixed.Mul(weights.Pollution, Fixed.FromInt(Pollution(cellEast, cellNorth)));
+        int noise = Fixed.Mul(
+            weights.Noise, LineSourceQueries.Noise(graph, weights.NoiseSource, east, north));
+
+        // Both terms subtract, and there is no term that adds. See the remark above: this is a
+        // disamenity field until milestone 15, and its maximum is clean, quiet, empty ground.
+        return -pollution - noise;
+    }
 
     /// <summary>
     /// One step of a first-order integer lag, with the dead band removed.

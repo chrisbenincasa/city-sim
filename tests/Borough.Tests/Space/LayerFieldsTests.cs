@@ -297,13 +297,20 @@ public class LayerFieldsTests
     /// returning zero is a value that will be read, believed, and tuned around; a hole that fails
     /// loudly is a hole.
     /// <para>
-    /// ⚠ <b>This test used to name five holes and now names three, and the two that left did so on
-    /// different days for different reasons.</b> Noise and near-road pollution were built by milestone
-    /// 9 task 1. <see cref="MapLayers.Desirability"/> is next and will leave by
-    /// <c>adr/0123</c>. What is left is terrain suitability, which needs the world generator at
-    /// milestone 24 (<c>adr/0124</c>), and amenity, which needs a <b>kind</b> on a Business at
-    /// milestone 15 — <em>not</em> the Road Graph, which shipped in 5a and which this test's own
-    /// remark named as the blocker for three fields it was not the blocker for.
+    /// ⚠ <b>This test used to name five holes and now names two, and the three that left did so for
+    /// three different reasons.</b> Noise and near-road pollution were built by milestone 9 task 1;
+    /// <see cref="MapLayers.Desirability"/> composes as of task 2 — <b>partially</b>, and the shortfall
+    /// is policed by <c>DesirabilityShortfallTests</c> rather than by a hole. What is left is terrain
+    /// suitability, which needs the world generator at milestone 24 (<c>adr/0124</c>), and amenity,
+    /// which needs a <b>kind</b> on a Business at milestone 15 — <em>not</em> the Road Graph, which
+    /// shipped in 5a and which this test's own remark named as the blocker for three fields it was not
+    /// the blocker for.
+    /// <para>
+    /// ⚠ <b>A partial composition is exactly what this discipline does NOT cover</b>, and that is worth
+    /// saying in the file that owns it. A hole that throws is safe because nothing can read it;
+    /// desirability now returns plausible numbers with its only positive term missing, and no assertion
+    /// here can tell that apart from a finished field.
+    /// </para>
     /// </para>
     /// </remarks>
     [Fact]
@@ -314,7 +321,6 @@ public class LayerFieldsTests
         Cells north = new(1);
 
         Assert.Throws<NotSupportedException>(() => layers.Fertility(east, north));
-        Assert.Throws<NotSupportedException>(() => layers.Desirability(east, north));
         Assert.Throws<NotSupportedException>(() => LineSourceQueries.Amenity(new Tiles(4), new Tiles(4)));
     }
 

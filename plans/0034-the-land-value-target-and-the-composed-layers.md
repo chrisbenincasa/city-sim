@@ -431,7 +431,46 @@ decided everything about it except the code:
 ⚠ **The doc-comment on `MapLayers.Desirability` says these queries need *"a Road Graph that does not
 exist in Phase 1"*. That sentence is stale — the Road Graph shipped in 5a.** Fix it in this task.
 
-### Task 2 — `Desirability` stops throwing, and composes what exists
+### Task 2 — `Desirability` stops throwing, and composes what exists — ✅ **DONE 2026-08-20**
+
+> ✅ **Shipped**, all three Definition-of-done items, and **no hash moved** — nothing calls it yet.
+>
+> ⚠ **F12 — the composition is per-Cell and one of its inputs is explicitly sub-Cell, and no document
+> had noticed.** Land value is stored per Cell, so `Desirability` took `Cells`; noise's *whole reason
+> for not being a Layer* is that its gradient fits inside one Cell. Composing at the Cell would have
+> collapsed the sub-Cell term — the ***degrades into is there a road here*** outcome
+> [`adr/0034`](../docs/adr/0034-fields-are-sorted-by-source-geometry.md) sorted fields by geometry to
+> avoid — **and the shipped geometry makes the obvious sample the worst available one**: a Cell is 32
+> Tiles and `[roads] block_tiles` is **32**, so Streets run along Cell *edges* and ***a Cell's centre is
+> systematically the quietest Tile in it***. A centre sample would have reported the whole city quiet.
+>
+> ✅ **Settled with the user: the composition works at a TILE.** `Desirability(RoadGraph, weights, Tiles,
+> Tiles)` — pollution upsampled from its Cell, noise exact at the Tile. **How a Cell samples it becomes
+> an explicit, stated, hash-bearing decision belonging to task 4** rather than something buried in the
+> composition. It also serves the Lot- and Address-level consumers, which is what all six of `06`'s named
+> ones are.
+>
+> **Returns Q16.16, not land-value units.** The sum is a weighted count plus a weighted logarithm, and
+> neither is in the units the column stores until the weights say so — ***the rounding belongs where the
+> value is stored, not where it is computed***, which is also where decision 6's ±1 question will bite.
+>
+> ✅ **`DesirabilityShortfallTests` is written, and it bites.** A document may say *desirability is
+> composed* only if it also names **amenity**. Verified by writing the violation and watching it fire,
+> per `CLAUDE.md`'s rule for a diagnostic. It carries **two** tests: the check, and a **vacuity guard**
+> asserting something in the corpus actually makes the claim — without it a rewording would leave the
+> file green over a corpus it had stopped reading, ***and green is what it looks like when it is
+> working***. ⚠ **Its reach is deliberately loose and the file says so**: it asks only that the word
+> appear in the document. A proximity rule was available and refused, because it fails on ordinary
+> rewording and ***a check that cries wolf is a check somebody deletes***. ⚠ **DELETE IT AT MILESTONE
+> 15.**
+>
+> ⚠ **F13 — a partial composition is exactly what the named-hole discipline does not cover**, now
+> recorded in `LayerFieldsTests` itself. That test named five holes and names two. A hole that throws is
+> safe because nothing can read it; desirability now returns plausible numbers with its only positive
+> term missing, and **no assertion in that file can tell that apart from a finished field**. The property
+> is pinned instead by `Desirability_is_never_positive_while_amenity_is_absent` — ⚠ **when that starts
+> failing it is amenity arriving, not a regression.**
+
 
 **Two terms** under [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md)
 — `− w₂·pollution − w₃·noise` — with amenity and shoreline **named in the method** and not defaulted to

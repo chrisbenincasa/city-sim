@@ -259,4 +259,81 @@ public sealed class LineSourceQueryTests
         Assert.True(LineSourceQueries.Noise(graph, Noise, east, north) > 0);
         Assert.Equal(0, LineSourceQueries.NearRoadPollution(graph, shorter, east, north));
     }
+
+    /// <summary>
+    /// <b>The composition is bounded above by zero, and that is the milestone's honest shortfall
+    /// rather than a bug.</b>
+    /// </summary>
+    /// <remarks>
+    /// Amenity is desirability's only positive term and it needs a <b>kind</b> on a Business, at
+    /// milestone 15 (<c>adr/0123</c>). Until then every Cell rests at zero or below and the most
+    /// valuable land in the city is clean, quiet and empty. ⚠ <b>This test is the shortfall stated as a
+    /// property.</b> When it starts failing, that is amenity arriving — not a regression — and this
+    /// assertion and <c>DesirabilityShortfallTests</c> go together.
+    /// </remarks>
+    [Fact]
+    public void Desirability_is_never_positive_while_amenity_is_absent()
+    {
+        RoadGraph graph = RoadFixtures.Chain(4);
+        MapLayers layers = new(LayerRuleset.Default);
+
+        graph.Segments.VolumeForward[0] = 80;
+        layers.EmitPollution(new Cells(0), new Cells(0), 400);
+        layers.Step(Ticks.Zero);
+
+        DesirabilityWeights weights = new(Fixed.One, Fixed.One, Noise);
+
+        for (int tile = 0; tile <= 96; tile += 8)
+        {
+            int value = layers.Desirability(graph, weights, new Tiles(tile), new Tiles(4));
+
+            Assert.True(value <= 0, $"tile {tile} composed to {value}; there is no positive term");
+        }
+    }
+
+    /// <summary>Quiet, clean ground is exactly zero — the field's maximum, and it is reachable.</summary>
+    [Fact]
+    public void Clean_and_silent_ground_composes_to_exactly_zero()
+    {
+        RoadGraph graph = RoadFixtures.Chain(4);
+        MapLayers layers = new(LayerRuleset.Default);
+
+        DesirabilityWeights weights = new(Fixed.One, Fixed.One, Noise);
+
+        Assert.Equal(0, layers.Desirability(graph, weights, new Tiles(16), new Tiles(8)));
+    }
+
+    /// <summary>Each term subtracts, and each one on its own.</summary>
+    /// <remarks>
+    /// Two assertions rather than one, because a composition that read the same input twice — or
+    /// dropped a term — would still be monotone in the other.
+    /// </remarks>
+    [Fact]
+    public void Both_terms_subtract_and_neither_is_the_other()
+    {
+        RoadGraph graph = RoadFixtures.Chain(4);
+        MapLayers layers = new(LayerRuleset.Default);
+
+        DesirabilityWeights weights = new(Fixed.One, Fixed.One, Noise);
+
+        Tiles east = new(16);
+        Tiles north = new(6);
+
+        int clean = layers.Desirability(graph, weights, east, north);
+
+        graph.Segments.VolumeForward[0] = 80;
+
+        int noisy = layers.Desirability(graph, weights, east, north);
+
+        Assert.True(noisy < clean, $"noise subtracts: {noisy} should be under {clean}");
+
+        // Emitting fills the SOURCE column; the field a query reads is the convolution of it, so the
+        // cadence has to run before pollution exists anywhere. Tick 0 is due for it.
+        layers.EmitPollution(CellGrid.ToCells(east), CellGrid.ToCells(north), 400);
+        layers.Step(Ticks.Zero);
+
+        int fouled = layers.Desirability(graph, weights, east, north);
+
+        Assert.True(fouled < noisy, $"pollution subtracts too: {fouled} should be under {noisy}");
+    }
 }
