@@ -279,7 +279,7 @@ public sealed class LineSourceQueryTests
 
         graph.Segments.VolumeForward[0] = 80;
         layers.EmitPollution(new Cells(0), new Cells(0), 400);
-        layers.Step(Ticks.Zero);
+        layers.Step(Ticks.Zero, graph);
 
         DesirabilityWeights weights = new(Fixed.One, Fixed.One, Noise);
 
@@ -330,7 +330,7 @@ public sealed class LineSourceQueryTests
         // Emitting fills the SOURCE column; the field a query reads is the convolution of it, so the
         // cadence has to run before pollution exists anywhere. Tick 0 is due for it.
         layers.EmitPollution(CellGrid.ToCells(east), CellGrid.ToCells(north), 400);
-        layers.Step(Ticks.Zero);
+        layers.Step(Ticks.Zero, graph);
 
         int fouled = layers.Desirability(graph, weights, east, north);
 

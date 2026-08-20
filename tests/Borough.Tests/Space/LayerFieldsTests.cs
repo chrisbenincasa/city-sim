@@ -81,33 +81,45 @@ public class LayerFieldsTests
         Assert.Equal(100, after);
     }
 
-    /// <summary>Nothing computes desirability, so land value has nowhere to go.</summary>
+    /// <summary>
+    /// <b>Land value leaves zero, and this test is the one that used to assert it could not.</b>
+    /// </summary>
     /// <remarks>
-    /// <b>Zero here is the input being absent, not a placeholder in the mechanism.</b> The mechanism
-    /// is exercised by the test above; what is missing is the target, and the place that says so
-    /// loudly is <see cref="MapLayers.Desirability"/>. This test exists so that the day something does
-    /// compute a target, it fails and somebody deletes it deliberately.
+    /// <para>
+    /// What stood here was <c>Land_value_is_zero_everywhere_until_something_computes_desirability</c>,
+    /// a named hole whose own remark said it existed <em>so that the day something does compute a
+    /// target, it fails and somebody deletes it deliberately</em>. Milestone 9 task 4 is that day and
+    /// this is that deletion: the assertion is inverted rather than removed, so the hole leaves a test
+    /// behind instead of a gap. ⚠ <b>A hole that closes silently is a hole nobody can tell closed.</b>
+    /// </para>
+    /// <para>
+    /// It runs a whole <see cref="Simulation"/> rather than calling the producer, because the claim is
+    /// about the wiring: phase 5 has to reach <c>SetLandValueTargets</c> on the land value cadence,
+    /// carrying the world's own Road Graph, and nothing below the phase can show that.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void Land_value_is_zero_everywhere_until_something_computes_desirability()
+    public void Land_value_leaves_zero_once_something_computes_desirability()
     {
         World world = new(Population);
         Simulation simulation = new(world, WorldKey.FromSeed(7));
+        Cells east = new(10);
+        Cells north = new(10);
 
-        world.Layers.EmitPollution(new Cells(10), new Cells(10), 500);
+        world.Layers.EmitPollution(east, north, 500);
 
         for (int tick = 0; tick < 600; tick++)
         {
             simulation.Step(default);
         }
 
-        for (int north = 0; north < CellGrid.WorldCells; north++)
-        {
-            for (int east = 0; east < CellGrid.WorldCells; east++)
-            {
-                Assert.Equal(0, world.Layers.LandValue(new Cells(east), new Cells(north)));
-            }
-        }
+        int fouled = world.Layers.LandValue(east, north);
+
+        Assert.True(fouled < 0, $"the polluted Cell is worth less than nothing, not {fouled}");
+
+        // And a Cell far from the source is still zero -- the producer wrote a target there too, and
+        // the target was zero, which is a true statement about clean empty ground rather than a hole.
+        Assert.Equal(0, world.Layers.LandValue(new Cells(300), new Cells(300)));
     }
 
     [Fact]

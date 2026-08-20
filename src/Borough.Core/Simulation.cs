@@ -768,7 +768,7 @@ public sealed class Simulation
     {
         _phase = TickPhase.Layers;
 
-        _world.Layers.Step(tick);
+        _world.Layers.Step(tick, _world.Roads);
     }
 
     /// <summary>Phase 6 — Zone Rules sample Lots; Buildings with accumulated failure decline.</summary>

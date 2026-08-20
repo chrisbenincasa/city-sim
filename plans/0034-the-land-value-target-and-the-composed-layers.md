@@ -539,13 +539,56 @@ them ([`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-buil
 3. Both entries say in their own text that the floor **refutes and never confirms**, so neither can be
    read as the other.
 
-### Task 4 — the producer: something inside `src/` sets the target on the cadence
+### Task 4 — the producer: something inside `src/` sets the target on the cadence — ✅ **DONE 2026-08-20**
 
-The milestone. `SetLandValueTarget` gets its first non-test caller, on `tick % 256 == 16`, from
-`Desirability`. ⚠ **Every baseline moves here** and that is expected: the land value column stops
-being zero, so it stops folding as zero. A hash move gets a commit whose subject explains it, and
-under [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
-it is never a reason to defer, narrow or split the work.
+> ✅ **`MapLayers.SetLandValueTargets` runs from phase 5 on `tick % 256 == 16`, retargeting before it
+> drifts**, and [`adr/0126`](../docs/adr/0126-a-cell-samples-desirability-at-its-quadrant-centres-and-a-line-sources-area-mean-does-not-converge.md)
+> records the Cell-sampling decision F12 sent here. The named hole
+> `Land_value_is_zero_everywhere_until_something_computes_desirability` was **inverted rather than
+> deleted** — its own remark asked for exactly that — so the hole leaves a test behind instead of a gap.
+>
+> ⚠ **F16 — the derivation this task was opened to write down was REFUTED by the measurement, and that
+> is [`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)
+> working rather than failing.** The plan expected a quadrature order justified by convergence: sample
+> the Cell more finely, watch the answer settle, ship the lowest order that does. **It does not settle.**
+> A line source falls off with distance and the Segments sit on the Cell's *own edges* — a Cell is 32
+> Tiles and `block_tiles` is 32 — so the integrand is unbounded on the boundary and every refinement
+> adds samples where the field is large. Measured at orders 1, 2, 4, 8 on one Cell, in Q16.16:
+> **−252,011 → −296,734 → −323,982 → −337,116**, moving 17.7%, 9.2%, 4.1% and still going one way.
+> ***The sample set defines the Cell's value; it does not estimate one.*** Had this been settled by
+> argument the constant would have shipped with a derivation that reads well and is false, and nothing
+> would ever have gone red.
+>
+> ✅ **What replaced it is a weaker claim that is true, and a ratifier that is reachable today.** Land
+> value is read by *comparison* and never absolutely, so what a sample order has to preserve is the
+> **ordering between Cells** — and it does: **615 of 630 Cell pairs order identically** under order 2
+> and order 8 on a varied world, and all 15 that disagree are pairs the fine sample puts within 1% of
+> each other. `CellDesirabilitySamplingTests` pins **both** halves, the non-convergence deliberately,
+> and it goes red the day a term smooth inside a Cell arrives — which is the signal to reopen, not a
+> regression. ⚠ **Contrast task 3 deliberately**: same milestone, same field, and this number got a
+> ratifier that a machine can reach this week because the property it ratifies is one a *consumer does
+> not have to exist* to produce.
+>
+> ⚠ **F17 — NO BASELINE MOVED, the plan above said every one would, and the reason is worse than the
+> prediction.** The only thing in the whole build that creates a Cell row is `EmitPollution`, and ***no
+> shipped Ruleset emits any pollution*** — all eight say so in their own headers, *a dwelling is not
+> industry*. `MapLayers.Seal` has **no caller in `src/` at all**. So the producer walks an empty table
+> in every world that exists, land value stays zero, and the thirty-two State Hash samples do not move.
+> ***The milestone's mechanism is built and unobservable, and it is unobservable for want of Ruleset
+> content rather than for want of code.***
+>
+> 🔴 ⚠ **F18 — and that makes decision 5's *floor* unreachable, which is `adr/0125`'s own failure
+> arriving one level down four hours after it was written.** That record established a floor precisely
+> because the real ratifier needed a **consumer nobody built**; the floor it chose names
+> `rulesets/congested.toml`, and on `congested.toml` the Cell table is empty, so all three of its
+> readings — the field varies, both terms are visible, the pollution/noise correlation — are unreadable.
+> ***`adr/0052`'s checklist still does not ask whether the named state can occur, and knowing that it
+> does not ask was not enough to make me ask.*** Routed: the two §D1 floor rows now carry the 🔴, the
+> `plans/0013` row is filed with its multiplicand **guessed at zero**, and task 7 below owes the world.
+>
+> ⚠ **A Tick-budget row is filed and it prices nothing.** Four `Desirability` calls a resident Cell on
+> one Tick in 256; resident Cells is **guessed at zero** for F17's reason. ***A row whose multiplicand
+> is zero because the world is empty is not a cheap row, it is an unpriced one.***
 
 ### Task 5 — the bound, and decision 6's reading
 
@@ -579,6 +622,18 @@ readings and they are not optional:
 
 ⚠ **On `rulesets/congested.toml`, not `minimal.toml`** — nobody drives in `minimal.toml`, so noise is
 identically zero and readings 2 and 3 are unreadable there. ⚠ **The floor refutes and never confirms.**
+
+> 🔴 ⚠ **AND `congested.toml` DOES NOT WORK EITHER — task 4's F18.** The only thing that creates a Cell
+> row is a pollution emission and **no shipped Ruleset emits any**, so on `congested.toml` the Cell
+> table is empty and land value is zero everywhere: all three readings above are unreadable there too.
+> **This task therefore owes a world before it owes a run** — a Ruleset with an emitting kind, which is
+> a ninth demonstration file with its own header rather than an edit to `congested.toml`, because
+> `congested.toml` is a golden baseline artefact and because *what it exists to show* is congestion.
+> ⚠ **The new file needs a `[[zone_rule]]` that places the emitting kind without the city filling with
+> it**, which `CLAUDE.md` already names as the hazard behind `[[building]] jobs` sitting on `dwelling`.
+> ⚠ **And a Ruleset that emits is the first world in which the producer costs anything**, so it is also
+> what unblocks [`0013`](0013-tick-budget.md)'s row — the multiplicand is guessed at zero until it
+> exists.
 
 ### Task 8 — Fertility, Sealing's decay, Woodland, Water Bodies — the written deferral
 

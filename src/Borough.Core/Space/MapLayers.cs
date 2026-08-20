@@ -203,8 +203,10 @@ public sealed class MapLayers
     /// so <see cref="LayerSchedule.For"/> answers <see cref="LayerCadence.Never"/> for it rather than
     /// carrying a period nobody reads.
     /// </remarks>
-    public void Step(Ticks tick)
+    public void Step(Ticks tick, RoadGraph graph)
     {
+        ArgumentNullException.ThrowIfNull(graph);
+
         if (Schedule.IsDue(Layer.IndustrialPollution, tick))
         {
             // Absorbed first, then diffused, so the field a Tick publishes is the convolution of the
@@ -217,6 +219,11 @@ public sealed class MapLayers
 
         if (Schedule.IsDue(Layer.LandValue, tick))
         {
+            // Retargeted first, then moved, for the same reason absorption precedes diffusion: a Cell
+            // steps toward the desirability that holds on THIS Tick rather than the one that held a
+            // cadence ago. The order is hash-bearing and the alternative is a whole cadence of lag
+            // added to a lag that is already the point of the column.
+            SetLandValueTargets(graph);
             DriftLandValue();
         }
     }
@@ -641,6 +648,110 @@ public sealed class MapLayers
         // Both terms subtract, and there is no term that adds. See the remark above: this is a
         // disamenity field until milestone 15, and its maximum is clean, quiet, empty ground.
         return -pollution - noise;
+    }
+
+    /// <summary>
+    /// How many Tiles a Cell samples per axis when it reduces <see cref="Desirability"/> to one
+    /// number. <b>Two, so four in all, and it is a design constant rather than Ruleset data.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It is hash-bearing and it is not a designer's number</b>, which is the pair of properties
+    /// <c>adr/0015</c> does not have a slot for. A designer tunes what a road costs and how loud it
+    /// is; nobody tunes the order of a quadrature rule, and exposing it as a key would invite a
+    /// reload that silently rewrites every Cell's target. So it is a <c>const</c> here, and the reason
+    /// it is not a <c>const</c>-where-Ruleset-data-belongs defect is written down rather than assumed.
+    /// </para>
+    /// <para>
+    /// <b>Two is the lowest order that avoids both systematic errors the shipped geometry offers.</b>
+    /// A Cell is <see cref="CellGrid.TilesPerCell"/> = 32 Tiles and <c>[roads] block_tiles</c> is 32,
+    /// so the lattice lines land on Cell edges: <b>a single centre sample is systematically the
+    /// quietest Tile in the Cell, and a corner sample is systematically the loudest.</b> Four
+    /// quadrant-centre samples — the midpoint rule on a 2×2 subdivision — sit at Tile offsets 8 and
+    /// 24, on neither the edge nor the centre, and are symmetric under the Cell's own symmetry group,
+    /// so no orientation of the lattice is privileged.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Two is a claim a measurement settles, and the measurement was run rather than argued</b>
+    /// (<c>adr/0043</c>). See <c>CellDesirabilitySamplingTests</c>, which computes the field at this
+    /// order and at order 4 over the same world and asserts they agree: if a term arrives that varies
+    /// faster than a quadrant, that test goes red rather than this comment going quietly wrong.
+    /// </para>
+    /// </remarks>
+    public const int DesirabilitySamplesPerAxis = 2;
+
+    /// <summary>
+    /// A Cell's desirability: the mean of <see cref="Desirability"/> over its quadrant centres.
+    /// </summary>
+    /// <remarks>
+    /// <b>This is the reduction from Tile resolution to Cell resolution, and it is the whole of the
+    /// sampling decision</b> — see <see cref="DesirabilitySamplesPerAxis"/> for why the sample set is
+    /// what it is. The mean rather than the minimum or the maximum, because land value is what an
+    /// ordinary Address in the Cell experiences and not what its worst Tile does; a nearest-dominates
+    /// reduction belongs to a field whose sources do not superpose, and <c>02 §2.5</c> question 3
+    /// already answered <em>superposes</em> for both terms.
+    /// </remarks>
+    public int CellDesirability(
+        RoadGraph graph, DesirabilityWeights weights, Cells east, Cells north)
+    {
+        int stride = IntegerMath.FloorDiv(CellGrid.TilesPerCell, DesirabilitySamplesPerAxis);
+        Tiles originEast = CellGrid.ToTiles(east) + new Tiles(IntegerMath.FloorDiv(stride, 2));
+        Tiles originNorth = CellGrid.ToTiles(north) + new Tiles(IntegerMath.FloorDiv(stride, 2));
+
+        int total = 0;
+
+        for (int up = 0; up < DesirabilitySamplesPerAxis; up++)
+        {
+            for (int across = 0; across < DesirabilitySamplesPerAxis; across++)
+            {
+                total += Desirability(
+                    graph,
+                    weights,
+                    originEast + new Tiles(across * stride),
+                    originNorth + new Tiles(up * stride));
+            }
+        }
+
+        return IntegerMath.RoundDiv(
+            total, DesirabilitySamplesPerAxis * DesirabilitySamplesPerAxis);
+    }
+
+    /// <summary>
+    /// Points every resident Cell's land value at its current desirability. <b>The producer, and
+    /// <see cref="SetLandValueTarget"/>'s first caller that is not a test.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It walks the rows that exist and creates none</b>, which is why it takes no rectangle and
+    /// why it cannot be the thing that makes the Cell table grow with elapsed time (<c>adr/0006</c>).
+    /// ⚠ <b>The consequence is worth stating rather than discovering</b>: a Cell has a row because
+    /// something emitted pollution into it or sealed a Tile in it, so <b>a Cell carrying roads and
+    /// nothing else has no land value at all</b> — not a low one, no row. That is the right set today,
+    /// because sealing follows construction and land value is only read where there are Buildings; it
+    /// stops being the right set the moment something values empty ground.
+    /// </para>
+    /// <para>
+    /// <b>Q16.16, carried straight through from <see cref="Desirability"/>.</b> The land value column
+    /// stores desirability's units because its target is desirability; there is no second scale and
+    /// no conversion, and inventing one here would be a number nobody asked for.
+    /// </para>
+    /// </remarks>
+    public void SetLandValueTargets(RoadGraph graph)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+
+        DesirabilityWeights weights = _ruleset.Desirability;
+
+        for (int slot = 0; slot < _cells.Rows.SlotCount; slot++)
+        {
+            if (!_cells.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            _cells.LandValueTarget[slot] =
+                CellDesirability(graph, weights, _cells.East[slot], _cells.North[slot]);
+        }
     }
 
     /// <summary>
