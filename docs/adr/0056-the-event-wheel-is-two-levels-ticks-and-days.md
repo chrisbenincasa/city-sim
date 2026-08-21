@@ -1,7 +1,14 @@
 # The Event Wheel is two levels — Ticks and Days
 
-**The Event Wheel has two levels: a fine wheel of 8192 buckets of one Tick, and a coarse wheel of 8192
-buckets of one Day, cascading into the fine wheel at each Day boundary. There is one wheel per
+> ⚠ **Corrected 2026-08-21 by milestone 18's scoping ([`plans/0036`](../../plans/0036-the-coarse-day-wheel.md)). The decision stands; its arithmetic and its sizing *method* do not.** Every number below was written when `TICKS_PER_DAY` and `WHEEL_SIZE` were **8192**. [`0094`](0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md) moved both to **2048**, and the sweep that followed corrected [`02 §7`](../02-simulation-model.md) and [`05`](../05-technical-architecture.md) in place — with strikethrough and a dated note — and reached neither this document nor [`0011`](0011-household-life-stages-and-self-generating-population.md).
+>
+> **Untouched and load-bearing**: two levels and no more; the coarse bucket being one Day; the refusal of both the wrap and the flat overflow list; one wheel per scheduled table; and the partition of every scheduled row into {armed, waiting}. **What changed**: the fine wheel is **2048** buckets, and the coarse wheel's bucket count is **withdrawn rather than restated** — [`0019`](0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md) sizes a wheel by *the longest common event horizon* and this ADR sized it by **symmetry with the fine wheel**, which is not a rule this corpus has.
+>
+> ***A conclusion computed from a constant does not move when the constant does***, and the end-stop under *Consequences* is that conclusion. A restatement is findable by search; a conclusion is not.
+
+**The Event Wheel has two levels: a fine wheel of ~~8192 buckets of~~ one bucket per Tick, spanning
+exactly one Day, and a coarse wheel of ~~8192 buckets of~~ one bucket per Day, cascading into the fine
+wheel at each Day boundary. There is one wheel per
 scheduled table, not one wheel over tagged entities. A sleep longer than the fine period is carried by
 the coarse wheel and never by a wrap — and until a consumer for a long sleep exists, an over-long
 arming is refused rather than represented.** `FAST ITERATION` `HONEST DEGRADATION`
@@ -10,9 +17,18 @@ arming is refused rather than represented.** `FAST ITERATION` `HONEST DEGRADATIO
 
 ### The period is one Day, and the design already schedules in Days
 
-`WHEEL_SIZE` is 8192 Ticks and `TICKS_PER_DAY` is 8192, so **the wheel's period is exactly one Day**.
-`02 §7` justifies that as *"at least as long as the longest routine sleep"* and cites a Citizen at work
-for a third of a Day, which fits.
+`WHEEL_SIZE` is ~~8192~~ **2048** Ticks and `TICKS_PER_DAY` is ~~8192~~ **2048**, so **the wheel's
+period is exactly one Day**. `02 §7` justifies that as *"at least as long as the longest routine sleep"*
+and cites a Citizen at work for a third of a Day, which fits.
+
+> ⚠ **The conclusion survives the correction and the reasoning behind it is not what it looks like.**
+> Both constants moved together under `0094`, so the period is still exactly one Day — but
+> [`0019`](0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md) is emphatic that this is
+> **not a definition**: *"`WHEEL_SIZE` is set by the longest common event horizon, **not by the Day**.
+> These are independent questions that happen to share an answer."* `02 §7`'s own correction note says
+> the same — it *"moved with the Day, for the reason stated — **independently**, and to the same
+> number."* ***Two numbers that agree for two reasons are one number in every document that quotes
+> them***, and the consequence below is where this ADR spent that confusion.
 
 [`0011`](0011-household-life-stages-and-self-generating-population.md) then put Life Stages on the same
 wheel — *"a Household holds a stage and a countdown in **Days**, transitioning on the Event Wheel"* —
@@ -53,10 +69,33 @@ carries its own `next` column, and cross-wheel ordering is fixed by declaration 
 
 ## Consequences
 
-- **The coarse wheel is 8192 Day buckets**, symmetric with the fine wheel and another 64 KiB per
+- ~~**The coarse wheel is 8192 Day buckets**, symmetric with the fine wheel and another 64 KiB per
   consumer. That is ~22 game-years of compressed stages, which means **a third level can never be
   needed** — worth more than the memory saved by sizing it tightly to the longest Life Stage, because a
-  tight size is a number somebody would have to defend and this one is a structural end-stop.
+  tight size is a number somebody would have to defend and this one is a structural end-stop.~~
+  - 🔴 **WITHDRAWN 2026-08-21. The bucket count was chosen by symmetry, and symmetry is not this
+    corpus's sizing rule.** [`0019`](0019-ticks-per-day-is-a-balance-constant-not-a-pacing-knob.md)
+    sizes a wheel by **the longest common event horizon**. The fine wheel's horizon is the longest
+    routine sleep, which is bounded by one Day; **the coarse wheel's is the longest Life Stage arc**,
+    which lives in [`0011`](0011-household-life-stages-and-self-generating-population.md)'s stage
+    table. ***So the count is derived rather than chosen***, which is `lots_per_segment`'s standing and
+    a `[[kind]]`'s employment's — and under
+    [`0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md) **a derived
+    number owes a derivation and not a ratifier**.
+  - ⚠ **The derivation cannot be completed yet, and saying so is the answer rather than a failure.**
+    *A Household's life in Days* is a `plans/0002` **§D2** gap whose only named ratifier is
+    **playtest**, and no `[[life_stage]]` table exists for an arc to be read off. **The count lands
+    with the stage table, at milestone 20.** Until then the coarse wheel has a *shape* and no *size*,
+    and nothing may quote one.
+  - 🔴 **And the end-stop is withdrawn with it.** *"A third level can never be needed"* was not an
+    argument; it was **arithmetic on 8192 Days** — ~22 game-years, against a Household life `0011`
+    puts *"on the order of a thousand Days"*. Sized symmetrically at the corrected constant it would be
+    2048 Days, **~5.6 game-years, about two Household lives** — reachable, and therefore not an
+    end-stop at all. ***Whether a third level can be ruled out is a property of the derived size and
+    not a claim this ADR is entitled to make in advance.***
+  - ⚠ **The memory figure goes too.** *"Another 64 KiB per consumer"* is 8192 buckets × a head and a
+    tail `int`; at the fine wheel's 2048 the same structure is **16 KiB**. Neither is the coarse
+    wheel's, because the coarse wheel has no count. **Quote neither.**
 - **The cascade is a Day-boundary step costing `O(entities waking that Day)`**, not `O(entities
   asleep)`. That is `02 §7`'s own claim, applied one level up.
 - **Every scheduled row is in exactly one of {armed, waiting}, and is unlinked when its owner row is
@@ -112,8 +151,16 @@ carries its own `next` column, and cross-wheel ordering is fixed by declaration 
   reopen the level count rather than the wheel.
 - **A single Day bucket's cascade showing up in a profile.** The remedy is a wider `W`, or a finer
   coarse bucket, never a return to rescanning a flat list.
-- **A consumer whose sleep exceeds 8192 Days.** ~22 game-years is an end-stop chosen to be
-  unreachable; something reaching it is evidence the compression in `0011`'s stage table has drifted,
-  and the stage table is the thing to look at first.
+- **A consumer whose sleep exceeds the coarse wheel's derived period.** ~~~22 game-years is an
+  end-stop chosen to be unreachable~~ **the period is derived from `0011`'s stage table and is unset
+  until that table exists** — but the diagnosis is unchanged and is the useful half: something reaching
+  it is evidence the compression in `0011`'s stage table has drifted, **and the stage table is the
+  thing to look at first.**
+- ⚠ **`TICKS_PER_DAY` moving again.** It has moved once — 8192 → 2048, `0094` — and the sweep that
+  followed reached `02` and `05` and not this document. **Every number here is denominated in Ticks or
+  in Days**, and the two kinds fail differently: a *ratio* claim survives such a move, and a **derived**
+  one does not. ***It is the derived ones that read as settled while being stale***, because they carry
+  no constant a search would find — an end-stop stated in **years**, a memory figure stated in **KiB**.
+  On the day the Day moves, this document is read for its conclusions and not grepped for its digits.
 - **The refusal firing in a build rather than in a test.** That would mean a long sleep acquired a
   consumer without the coarse wheel being built, and the fix is to build it, not to relax `Arm`.

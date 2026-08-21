@@ -61,7 +61,7 @@ is what found the Life Stage arithmetic. Nothing further is owed before code.
 | | State |
 |---|---|
 | `EventWheel`, `WheelBucketTable`, `Arm`, `PopDue`, `Armed` | **In the tree** since slice 7, `src/Borough.Core/Rules/EventWheel.cs` |
-| The buckets folded into the State Hash | **Yes** — `World.cs:131`, `Buffering.OneCopy`, `Saved`, 64 KiB |
+| The buckets folded into the State Hash | **Yes** — `World.cs:131`, `Buffering.OneCopy`, `Saved`, ~~64 KiB~~ **16 KiB** ⚠ **corrected 2026-08-21**: 2048 buckets × a head and a tail `int`. The 64 KiB was written at `WHEEL_SIZE = 8192` and [`adr/0094`](../docs/adr/0094-a-day-is-2048-ticks-because-ticks-per-day-is-a-sampling-rate-and-not-a-length-of-life.md) moved it |
 | `Invariant.RuleInstanceIsArmedOrWaiting` | **In the tree**, both the write-site half (`World.cs:1006`) and the whole-world half (`WorldInvariants.RuleInstancesAreQueuedExactlyOnce`, `InvariantTier.EndOfRun`) |
 | `Invariant.NoFreedRowIsStillLinked` | **In the tree** and tested (`InvariantTierTests.cs:294`) |
 | The current Tick, inside an invariant | **Available** — `InvariantRegistry.Tick`, set at `InvariantRegistry.cs:171`. No new plumbing |
