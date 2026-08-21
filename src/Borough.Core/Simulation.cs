@@ -104,13 +104,17 @@ public sealed class Simulation
         _rules = new RuleEngine(world, key);
         _zoning = new ZoneRuleEngine(world, key);
         _policies = new PolicyEngine(world, key);
-        _placement = new PlacementEngine(world, key);
         _employment = new EmploymentEngine(world, key);
 
         // No WorldKey: nothing in Phase 4 draws. A Traveller advances when its Leg's arrival Tick has
         // come, which is arithmetic over state the log already determines, so there is no decision here
         // for a purpose_tag to separate. If one ever appears, it needs its own tag (BOR0801-BOR0803).
         _trips = new TripEngine(world);
+
+        // Ahead of the Trip engine until milestone 11 task 6, and moved here because placement now
+        // starts the move-in Trip. Construction order is not composition order -- the State Hash
+        // folds World._tables, which nothing here touches.
+        _placement = new PlacementEngine(world, key, _trips);
         _commutes = new CommuteEngine(world, _trips);
         _rulesets = rulesets;
     }
@@ -692,7 +696,7 @@ public sealed class Simulation
             // Stops on the first refusal rather than trying the rest. The only refusal reachable
             // here is the daily ceiling -- the gate resolved a line above -- and a ceiling that has
             // bound once binds for the remainder of the Day.
-            if (!_world.TryArrive(handle, payload.LifeStage, tick, _key, out _))
+            if (!_world.TryArrive(handle, payload.LifeStage, payload.Citizens, tick, out _))
             {
                 break;
             }

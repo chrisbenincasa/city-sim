@@ -111,4 +111,47 @@ public enum TripPurpose : byte
     /// </para>
     /// </remarks>
     Commute = 3,
+
+    /// <summary>
+    /// The move-in: a Citizen travelling from the gate their Household arrived at to the dwelling
+    /// placement has just given it (<c>adr/0023</c>, <c>adr/0129</c>, milestone 11 task 6).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The Trip <c>adr/0023</c> describes, made in the order the build can make it.</b> That
+    /// record reads *arrive as **Trips** … enter the Unplaced Pool, and house themselves* — Trip
+    /// first, Pool second — and it cannot be built that way, because <see cref="TripTable.Start"/>
+    /// takes an origin <em>and a destination</em> Address and a Household the Pool has not placed has
+    /// no destination. ***A journey described in prose can name an endpoint the mechanism has to
+    /// compute.*** <c>adr/0129</c> reorders it and keeps every property: the arrival is still
+    /// physical, still located at a named gate, still bounded by that gate's throughput, and — here —
+    /// still congestion-bearing.
+    /// </para>
+    /// <para>
+    /// <b>Once per journey and never again, which is what separates it from
+    /// <see cref="Commute"/>.</b> A commute is a daily occasion and is a <em>phase</em> rather than a
+    /// schedule; a move-in happens on the Tick a Household is housed and has no recurrence at all. So
+    /// it is started at the placement site rather than armed on the Wheel or partitioned into a
+    /// roster.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Only a Household that came through a gate makes one.</b> Three of the Unplaced Pool's
+    /// four entry routes have no gate — a Household the city generated itself, one evicted by a
+    /// demolition, one that decided to move — so their membership carries a default handle and there
+    /// is no origin to travel from. A re-housed evictee moving across the city is a real journey and
+    /// a <em>different</em> one; giving it this purpose would file an internal move as immigration,
+    /// and the Departure readouts that read by channel would inherit the error.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>It can fail on the Commute Budget, and that is the map working rather than the
+    /// mechanism breaking.</b> <c>TripEngine</c> judges the Budget on <em>every</em> Trip and not
+    /// only on a commute, and <c>adr/0089</c> sizes the map by how many Commute Budgets fit across
+    /// it — so a far gate is outside one by construction: measured on <c>bordered.toml</c>, east
+    /// <b>62</b> minutes by car and north <b>73</b> against a ceiling of <b>49</b>. A move-in from a
+    /// far gate to a dwelling in the corner city therefore resolves
+    /// <see cref="TripFate.ExceededCommuteBudget"/>. ***A far gate is made usable by a dwelling
+    /// beside it, not by a faster road.***
+    /// </para>
+    /// </remarks>
+    Immigration = 4,
 }

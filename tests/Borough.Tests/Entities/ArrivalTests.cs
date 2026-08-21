@@ -3,10 +3,11 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Invariants;
-using Borough.Core.Tables;
+using Borough.Core.Movement;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
+using Borough.Core.Tables;
 using Borough.Formats;
 
 namespace Borough.Tests.Entities;
@@ -119,7 +120,7 @@ public sealed class ArrivalTests
 
         Assert.True(
             world.TryArrive(
-                world.Buildings.Rows.At(gate), lifeStage: 0, Ticks.Zero, Key, out var household));
+                world.Buildings.Rows.At(gate), lifeStage: 0, citizens: 2, Ticks.Zero, out var household));
 
         Assert.Equal(before + 1, world.UnplacedPool.Count);
 
@@ -146,7 +147,7 @@ public sealed class ArrivalTests
 
         Assert.True(
             world.TryArrive(
-                world.Buildings.Rows.At(Gates(world)[0]), lifeStage: 0, Ticks.Zero, Key, out var household));
+                world.Buildings.Rows.At(Gates(world)[0]), lifeStage: 0, citizens: 2, Ticks.Zero, out var household));
 
         int slot = world.Households.Rows.Resolve(household);
 
@@ -180,7 +181,7 @@ public sealed class ArrivalTests
 
         for (int i = 0; i < ceiling * 3; i++)
         {
-            if (world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out _))
+            if (world.TryArrive(world.Buildings.Rows.At(gate), 0, 2, Ticks.Zero, out _))
             {
                 admitted++;
             }
@@ -204,14 +205,14 @@ public sealed class ArrivalTests
 
         for (int i = 0; i < ceiling; i++)
         {
-            Assert.True(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out _));
+            Assert.True(world.TryArrive(world.Buildings.Rows.At(gate), 0, 2, Ticks.Zero, out _));
         }
 
-        Assert.False(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out _));
+        Assert.False(world.TryArrive(world.Buildings.Rows.At(gate), 0, 2, Ticks.Zero, out _));
 
         Assert.True(
             world.TryArrive(
-                world.Buildings.Rows.At(gate), 0, new Ticks(Ticks.PerDay), Key, out _));
+                world.Buildings.Rows.At(gate), 0, 2, new Ticks(Ticks.PerDay), out _));
     }
 
     /// <summary>Each gate meters its own Day, so a full one does not close the others.</summary>
@@ -227,11 +228,11 @@ public sealed class ArrivalTests
 
         for (int i = 0; i < ceiling; i++)
         {
-            Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, Ticks.Zero, Key, out _));
+            Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, 2, Ticks.Zero, out _));
         }
 
-        Assert.False(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, Ticks.Zero, Key, out _));
-        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[1]), 0, Ticks.Zero, Key, out _));
+        Assert.False(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, 2, Ticks.Zero, out _));
+        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[1]), 0, 2, Ticks.Zero, out _));
     }
 
     /// <summary>
@@ -265,7 +266,7 @@ public sealed class ArrivalTests
 
         world.Invariants.Collect = true;
 
-        Assert.False(world.TryArrive(world.Buildings.Rows.At(dwelling), 0, Ticks.Zero, Key, out _));
+        Assert.False(world.TryArrive(world.Buildings.Rows.At(dwelling), 0, 2, Ticks.Zero, out _));
         Assert.Equal(before, world.UnplacedPool.Count);
         Assert.Contains(
             world.Invariants.Collected,
@@ -291,8 +292,8 @@ public sealed class ArrivalTests
 
         Assert.True(gates.Count > 1);
 
-        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, Ticks.Zero, Key, out var first));
-        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[1]), 0, Ticks.Zero, Key, out var second));
+        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, 2, Ticks.Zero, out var first));
+        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[1]), 0, 2, Ticks.Zero, out var second));
 
         int firstPosition = world.Households.PoolPosition(world.Households.Rows.Resolve(first));
 
@@ -357,7 +358,7 @@ public sealed class ArrivalTests
                         CommandKind.Arrive,
                         world.Lots.East[lot],
                         world.Lots.North[lot],
-                        new ArrivePayload(Households: 5, LifeStage: 2).Encode()),
+                        new ArrivePayload(Households: 5, LifeStage: 2, Citizens: 2).Encode()),
                 ],
                 0));
 
@@ -394,7 +395,7 @@ public sealed class ArrivalTests
                         CommandKind.Arrive,
                         world.Lots.East[lot],
                         world.Lots.North[lot],
-                        new ArrivePayload(Households: 200, LifeStage: 0).Encode()),
+                        new ArrivePayload(Households: 200, LifeStage: 0, Citizens: 2).Encode()),
                 ],
                 0));
 
@@ -427,7 +428,7 @@ public sealed class ArrivalTests
                             CommandKind.Arrive,
                             new Tiles(7_777),
                             new Tiles(7_777),
-                            new ArrivePayload(1, 0).Encode()),
+                            new ArrivePayload(1, 0, 1).Encode()),
                     ],
                     0)));
     }
@@ -450,7 +451,7 @@ public sealed class ArrivalTests
         long before = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
         int gate = Gates(world)[0];
 
-        Assert.True(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out var arrival));
+        Assert.True(world.TryArrive(world.Buildings.Rows.At(gate), 0, 2, Ticks.Zero, out var arrival));
 
         long after = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
 
@@ -480,7 +481,7 @@ public sealed class ArrivalTests
 
             Assert.True(world.Rules.TryHinterland(edge, out HinterlandDefinition hinterland));
             Assert.True(
-                world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out var arrival));
+                world.TryArrive(world.Buildings.Rows.At(gate), 0, 2, Ticks.Zero, out var arrival));
 
             Money carried = world.BalanceOf(arrival);
 
@@ -512,7 +513,7 @@ public sealed class ArrivalTests
 
         for (int i = 0; i < 5; i++)
         {
-            Assert.True(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out _));
+            Assert.True(world.TryArrive(world.Buildings.Rows.At(gate), 0, 2, Ticks.Zero, out _));
         }
 
         world.Invariants.Collect = true;
@@ -546,7 +547,7 @@ public sealed class ArrivalTests
         for (int i = 0; i < 8; i++)
         {
             Assert.True(
-                world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out var arrival));
+                world.TryArrive(world.Buildings.Rows.At(gate), 0, 2, Ticks.Zero, out var arrival));
 
             carried.Add(world.BalanceOf(arrival).Raw);
         }
@@ -577,11 +578,163 @@ public sealed class ArrivalTests
 
         world.Invariants.Collect = true;
 
-        Assert.False(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out _));
+        Assert.False(world.TryArrive(world.Buildings.Rows.At(gate), 0, 2, Ticks.Zero, out _));
         Assert.Equal(before, world.UnplacedPool.Count);
         Assert.Contains(
             world.Invariants.Collected,
             violation => violation.Invariant == Invariant.AGateOpensOntoAHinterland);
+    }
+
+    /// <summary>An arriving Household brings the people the command said it would.</summary>
+    /// <remarks>
+    /// <b>A Household with no members is a Household nobody lives in</b>, and — because
+    /// <c>adr/0075</c> makes a Traveller a cursor over a <em>Citizen's</em> journey — it is also one
+    /// that arrives and then never travels. How many is <b>stated</b> rather than modelled: the Life
+    /// Stage table that <c>CONTEXT.md</c> makes composition a property of is <c>adr/0011</c>'s and
+    /// Phase 2's.
+    /// </remarks>
+    [Fact]
+    public void An_arriving_household_brings_its_people()
+    {
+        World world = Bordered();
+
+        Assert.True(
+            world.TryArrive(
+                world.Buildings.Rows.At(Gates(world)[0]), 0, citizens: 3, Ticks.Zero, out var arrival));
+
+        Assert.Equal(3, world.Members.Length(world.Households.Rows.Resolve(arrival)));
+    }
+
+    /// <summary>
+    /// 🔴 <b>The move-in Trip runs gate → dwelling, one per Citizen, when placement houses them.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0023</c>'s arrival Trip, in the order the build can make it</b> (<c>adr/0129</c>).
+    /// A placed Household is the first moment both endpoints exist — the gate has been waiting on the
+    /// Pool membership since it arrived, and the dwelling is what the pass has only now chosen.
+    /// </para>
+    /// <para>
+    /// <b>The gate is read before <c>World.Place</c> and that ordering is load-bearing.</b> Place
+    /// consumes the membership and <c>UnplacedTable.Leave</c> swaps the last member into the vacated
+    /// position, so a gate read afterwards is somebody else's origin — and the Trip it produced would
+    /// be a legitimate journey between two real Addresses, which nothing downstream could see was
+    /// wrong.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Placement is driven directly rather than through <c>Simulation.Step</c>, and the reason
+    /// is <c>bordered.toml</c>.</b> It is the only shipped Ruleset that paves the lattice to the
+    /// map's boundary, so its world holds <b>529,891</b> Segments and a Day of Ticks over it costs
+    /// well over a minute — for a mechanism whose whole trigger is one call. ***A test that steps a
+    /// simulation to reach a method is measuring the simulation.***
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Placing_an_arrival_starts_a_move_in_trip_from_its_gate()
+    {
+        World world = Bordered();
+
+        // The west gate, which stands in the city -- so its move-in is a Trip the Commute Budget
+        // does not refuse. The far two are 62 and 73 minutes from here against a ceiling of 49.
+        Assert.True(
+            world.TryArrive(
+                world.Buildings.Rows.At(NearGate(world)), 0, citizens: 2, Ticks.Zero, out var arrival));
+
+        Assert.Equal(0, MoveIns(world));
+
+        House(world, arrival);
+
+        Assert.Equal(2, MoveIns(world));
+    }
+
+    /// <summary>
+    /// <b>A Household the city housed itself makes no move-in Trip</b>, which is the gate column
+    /// earning its keep.
+    /// </summary>
+    /// <remarks>
+    /// Three of the Pool's four entry routes have no gate at all, so most placements in a running
+    /// city have no origin to travel from. ***An internal move is a real journey and a different
+    /// one***, and giving it <c>TripPurpose.Immigration</c> would file re-housing as immigration in
+    /// every readout that reads by purpose.
+    /// </remarks>
+    [Fact]
+    public void An_evicted_household_being_rehoused_makes_no_immigration_trip()
+    {
+        World world = Bordered();
+        int housed = -1;
+
+        for (int slot = 0; slot < world.Households.Rows.SlotCount; slot++)
+        {
+            if (world.Households.Rows.IsLive(slot) && !world.Households.IsUnplaced(slot))
+            {
+                housed = slot;
+                break;
+            }
+        }
+
+        Assert.True(housed >= 0);
+
+        Handle<Household> evicted = world.Households.Rows.At(housed);
+
+        world.Unplace(evicted);
+        House(world, evicted);
+
+        Assert.False(world.Households.IsUnplaced(world.Households.Rows.Resolve(evicted)));
+        Assert.Equal(0, MoveIns(world));
+    }
+
+    /// <summary>
+    /// Runs placement passes until <paramref name="seeker"/> has a dwelling, and asserts it got one.
+    /// </summary>
+    /// <remarks>
+    /// <b>The engine is built here rather than taken from a <c>Simulation</c></b> so that the pass
+    /// can be driven at its own cadence — <c>[placement] interval</c> is 32, so a pass happens on one
+    /// Tick in thirty-two, and the candidate draw means one seeker is not housed on its first look.
+    /// </remarks>
+    private static void House(World world, Handle<Household> seeker)
+    {
+        var placement = new PlacementEngine(world, Key, new TripEngine(world));
+        int slot = world.Households.Rows.Resolve(seeker);
+
+        for (int tick = 0; tick < Ticks.PerDay * 4 && world.Households.IsUnplaced(slot); tick++)
+        {
+            placement.Place(new Ticks((ulong)tick));
+        }
+
+        Assert.False(
+            world.Households.IsUnplaced(slot),
+            "placement never housed the seeker, so the move-in could not have run.");
+    }
+
+    /// <summary>How many Trips in this world were made by somebody moving in.</summary>
+    private static int MoveIns(World world)
+    {
+        int found = 0;
+
+        for (int slot = 0; slot < world.Trips.Rows.SlotCount; slot++)
+        {
+            if (world.Trips.Rows.IsLive(slot)
+                && (TripPurpose)world.Trips.Purpose[slot] == TripPurpose.Immigration)
+            {
+                found++;
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>The gate inside the city, which is the west one — see <c>GatePlacementTests</c>.</summary>
+    private static int NearGate(World world)
+    {
+        foreach (int gate in Gates(world))
+        {
+            if (world.EdgeOf(world.Lots.Rows.Resolve(world.Buildings.Lot[gate])) == MapEdge.West)
+            {
+                return gate;
+            }
+        }
+
+        throw new InvalidOperationException("bordered.toml should stand a gate on the west edge.");
     }
 
     /// <summary>
@@ -602,7 +755,7 @@ public sealed class ArrivalTests
 
         Assert.True(
             world.TryArrive(
-                world.Buildings.Rows.At(Gates(world)[0]), 0, Ticks.Zero, Key, out _));
+                world.Buildings.Rows.At(Gates(world)[0]), 0, 2, Ticks.Zero, out _));
 
         world.Invariants.Collect = true;
         WorldInvariants.ThePoolWaitsAtRealGates(world, world.Invariants);

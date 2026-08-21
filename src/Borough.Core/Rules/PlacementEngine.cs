@@ -44,6 +44,7 @@ public sealed class PlacementEngine
 {
     private readonly World _world;
     private readonly WorldKey _key;
+    private readonly Movement.TripEngine _trips;
 
     /// <summary>Where the Pool sample is written. Grown to the widest sample, then reused.</summary>
     private int[] _sample = [];
@@ -56,12 +57,19 @@ public sealed class PlacementEngine
 
     /// <param name="world">The tables this drains, and the Ruleset it drains under. Not copied.</param>
     /// <param name="key">The world seed, as the draws' first coordinate.</param>
-    public PlacementEngine(World world, WorldKey key)
+    /// <param name="trips">
+    /// Where the move-in Trip is started. <b>Placement owns it because placement is what supplies the
+    /// missing endpoint</b> — <c>adr/0129</c>: an arrival joins the Pool at a gate and the Trip
+    /// happens when somebody gives it a destination, which is here and nowhere else.
+    /// </param>
+    public PlacementEngine(World world, WorldKey key, Movement.TripEngine trips)
     {
         ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(trips);
 
         _world = world;
         _key = key;
+        _trips = trips;
     }
 
     /// <summary>
@@ -201,11 +209,70 @@ public sealed class PlacementEngine
                 continue;
             }
 
+            // Read BEFORE Place, which is the whole of the ordering constraint here: Place consumes
+            // the Pool membership, and UnplacedTable.Leave swaps the last member into the vacated
+            // position -- so a gate read afterwards is somebody else's origin, and the Trip it
+            // produced would be a legitimate journey between two real Addresses.
+            Handle<Building> gate = _world.UnplacedPool.GateAt(_world.Households.PoolPosition(slot));
+
             _world.Place(seeker, _world.Buildings.Rows.At(building));
+            MoveIn(slot, gate, building, tick);
+
             return true;
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Sends a newly-housed Household's people from the gate they arrived at to their new home.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is <c>adr/0023</c>'s arrival Trip, made in the order the build can make it</b>
+    /// (<c>adr/0129</c>). A Household that has just been placed is the first moment both endpoints
+    /// exist: the gate has been waiting on the Pool membership since it arrived, and the dwelling is
+    /// what this pass has only now chosen.
+    /// </para>
+    /// <para>
+    /// <b>A default gate is the ordinary case and produces nothing.</b> Three of the Pool's four
+    /// entry routes have no gate — a Household the city generated itself, one evicted by a
+    /// demolition, one that decided to move — so most placements in a running city take this branch.
+    /// ***An internal move is a real journey and a different one***, and giving it
+    /// <see cref="Movement.TripPurpose.Immigration"/> would file re-housing as immigration in every readout
+    /// that reads by purpose.
+    /// </para>
+    /// <para>
+    /// <b>One Trip per Citizen rather than one per Household</b>, because <c>adr/0075</c> makes a
+    /// Traveller a cursor over a <em>Citizen's</em> journey and there is no such thing as a Household
+    /// on the road. It is also what makes the congestion real: a Household of four arriving is four
+    /// Vehicles on the network under <c>adr/0098</c>'s per-Household mode, and collapsing them to one
+    /// would understate the thing this task exists to produce.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The Fate is not inspected and the Trip is not retried.</b> A move-in that exceeds the
+    /// Commute Budget is <c>adr/0089</c> rather than a failure to handle — the map is sized by how
+    /// many Commute Budgets fit across it, so a far gate is outside one by construction — and the
+    /// Household is housed either way. ***Placement decides where somebody lives; the Trip records
+    /// how they got there.*** Reacting to the Fate would make housing depend on travel, which is the
+    /// acceptance model at milestone 16.
+    /// </para>
+    /// </remarks>
+    private void MoveIn(int household, Handle<Building> gate, int dwelling, Ticks tick)
+    {
+        if (!_world.Rules.Trips.Runs || !_world.Buildings.Rows.TryResolve(gate, out int origin))
+        {
+            return;
+        }
+
+        // Walk rather than follow MemberNext by hand: the column is 1-based, so 0 is the terminator
+        // and a raw read is both off by one and unbounded -- 0 passes a >= 0 test, which walks off
+        // the end of this Household and into Citizen slot 0's list.
+        foreach (int citizen in _world.Members.Walk(household))
+        {
+            _trips.Start(
+                citizen, origin, dwelling, _world.ModeOf(citizen), Movement.TripPurpose.Immigration, tick);
+        }
     }
 
     /// <summary>

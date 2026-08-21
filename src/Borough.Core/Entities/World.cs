@@ -1015,6 +1015,17 @@ public sealed class World
     /// in one call, so <see cref="Invariant.MoneyIsConserved"/> needs no flow term and is unchanged.
     /// </para>
     /// <para>
+    /// ⚠ <b>How many people arrive is <em>stated</em> by the caller and is not modelled here.</b>
+    /// <c>CONTEXT.md</c> → Life Stage makes composition — *how many adults, how many children* — a
+    /// property of the stage, and that table is <c>adr/0011</c>'s and Phase 2's; nothing in the build
+    /// maps one to the other. The three alternatives were a chosen constant (a hash-bearing number
+    /// with no ratifier under <c>adr/0052</c>), the city's own population-to-Household ratio (a
+    /// stand-in returning plausible results, which is milestone 9's F13), and authoring the stage
+    /// table early (<c>adr/0131</c>'s rule inverted — a field authored in a milestone that does not
+    /// read it). ***An instrument states what it is standing in for, and does not model it***, which
+    /// is <see cref="Input.CommandKind.Arrive"/>'s posture for the Life Stage already.
+    /// </para>
+    /// <para>
     /// 🔴 ⚠ <b>A gate with no <c>[[hinterland]]</c> behind its edge admits nobody, and the refusal is
     /// F13 rather than strictness.</b> A Household admitted through such a gate would carry zero —
     /// and zero is a *legitimate* answer, because <see cref="HinterlandDefinition.Endows"/> says a
@@ -1027,14 +1038,14 @@ public sealed class World
     /// <param name="gate">The Outside Connection they entered by.</param>
     /// <param name="lifeStage">Which Life Stage arrives. The mix is milestone 16's; here it is stated.</param>
     /// <param name="now">The Tick the arrival happens on, which is what names the Day.</param>
-    /// <param name="key">The world seed, which the emigrant balance is drawn against.</param>
+    /// <param name="citizens">How many people are in the Household. See the remarks.</param>
     /// <param name="household">The Household created, or a default handle when the gate refused.</param>
     /// <returns><c>true</c> when the gate admitted them.</returns>
     public bool TryArrive(
         Handle<Building> gate,
         byte lifeStage,
+        byte citizens,
         Ticks now,
-        WorldKey key,
         out Handle<Household> household)
     {
         household = default;
@@ -1098,11 +1109,22 @@ public sealed class World
         // Drawn on the Household's monotonic id rather than its slot, because a slot is recycled and
         // two Households sharing one would draw the same balance -- 02 §8 rule 5, on the coordinate
         // rather than on the stream.
-        Money carried = hinterland.EmigrantBalance(key, Households.Rows.IdAt(slot));
+        Money carried = hinterland.EmigrantBalance(Key, Households.Rows.IdAt(slot));
 
         if (carried.Raw > 0 && !Households.Balance[slot].IsNone)
         {
             Endow(handle, carried);
+        }
+
+        // The people. A Household with no members is a Household nobody lives in, and it is also a
+        // Household nobody can make the move-in Trip for -- adr/0075 makes a Traveller a cursor over
+        // a CITIZEN's journey, so an empty Household would arrive and then never travel.
+        //
+        // They wake on the Tick they arrive, which is the honest reading of the Event Wheel's bucket
+        // key for somebody who has just got here: their next event is this one.
+        for (int i = 0; i < citizens; i++)
+        {
+            CreateCitizen(handle, now);
         }
 
         // The dwelling handle is left default by the allocator -- FreeSlot zeroes every column, so a

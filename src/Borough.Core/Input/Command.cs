@@ -277,7 +277,7 @@ public readonly record struct TripPayload(sbyte BlocksEast, sbyte BlocksNorth)
 
 /// <summary>
 /// <see cref="CommandKind.Arrive"/>'s payload: how many Households present themselves at the gate,
-/// and which Life Stage they are.
+/// which Life Stage they are, and how many people each one is.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -298,13 +298,46 @@ public readonly record struct TripPayload(sbyte BlocksEast, sbyte BlocksNorth)
 /// comparison (<c>adr/0128</c>); a mix invented here would be that model's shape with no argument
 /// behind it. ***An instrument states what it is standing in for, and does not model it.***
 /// </para>
+/// <para>
+/// ⚠ <b>The household size is stated for the same reason and it is a stronger case.</b>
+/// <c>CONTEXT.md</c> → Life Stage makes composition — *how many adults, how many children* — a
+/// property of the stage, and that table is <c>adr/0011</c>'s and Phase 2's. Until it exists the
+/// count is either stated here or invented somewhere that will read as a model: a constant is a
+/// hash-bearing number with no ratifier (<c>adr/0052</c>), and the city's own
+/// population-to-Household ratio is a stand-in returning plausible results, which is milestone 9's
+/// <b>F13</b>. <b>The move-in Trip is what needs it</b> — <c>adr/0075</c> makes a Traveller a cursor
+/// over a <em>Citizen's</em> journey, so a Household with no members arrives and then never travels.
+/// </para>
+/// <para>
+/// <b>Four bits each, and the packing is what keeps the format version still.</b> The count of
+/// Households keeps the low byte; the Life Stage and the household size split the high one.
+/// <see cref="Encode"/> <b>refuses</b> a value that will not fit rather than masking it: a silently
+/// truncated field is a command that replays as a different one, and the log would then be a
+/// faithful record of a session that never happened.
+/// </para>
 /// </remarks>
-public readonly record struct ArrivePayload(byte Households, byte LifeStage)
+public readonly record struct ArrivePayload(byte Households, byte LifeStage, byte Citizens)
 {
+    /// <summary>The widest value the four-bit fields carry.</summary>
+    public const byte MaxNibble = 0x0F;
+
     /// <summary>Reads a payload out of a <see cref="Command.Zone"/> word.</summary>
     public static ArrivePayload Decode(ushort word) =>
-        new((byte)(word & 0xFF), (byte)((word >> 8) & 0xFF));
+        new(
+            (byte)(word & 0xFF),
+            (byte)((word >> 8) & MaxNibble),
+            (byte)((word >> 12) & MaxNibble));
 
     /// <summary>Packs this payload into a <see cref="Command.Zone"/> word.</summary>
-    public ushort Encode() => (ushort)(Households | (LifeStage << 8));
+    /// <exception cref="ArgumentOutOfRangeException">A four-bit field will not hold its value.</exception>
+    public ushort Encode()
+    {
+        // Refused rather than truncated. A silently masked Life Stage or household size is a command
+        // that replays as a different one -- and the log would be a faithful record of a session that
+        // never happened, which is the one outcome the single-door discipline exists to prevent.
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(LifeStage, MaxNibble, nameof(LifeStage));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(Citizens, MaxNibble, nameof(Citizens));
+
+        return (ushort)(Households | (LifeStage << 8) | (Citizens << 12));
+    }
 }
