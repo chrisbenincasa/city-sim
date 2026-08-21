@@ -75,6 +75,9 @@ internal static class Program
                 case Mode.LandValue:
                     return Session.DumpLandValue(options);
 
+                case Mode.Arrivals:
+                    return Session.DumpArrivals(options);
+
                 case Mode.Report:
                 default:
                     return Report.Print(options);

@@ -1,0 +1,194 @@
+# The crowded Ruleset. It is `bordered.toml` with ARRIVALS THAT OUTPACE HOUSING, and it is the only
+# shipped file in which the Unplaced Pool is under pressure.
+#
+# Milestone 11 task 8 of plans/0035-hinterlands-and-arrival-through-the-gate.md, and task 9 needs it
+# too -- that task is specified as "the long acceptance run, ON A WORLD WHERE ARRIVALS OUTPACE
+# HOUSING, because that is the only world in which the give-up bound and adr/0006 can be read at all."
+# No such world existed. plans/0035 F25 is the record of finding that out the expensive way: eleven
+# tests failed on their fixture before one failed on its assertion, because SyntheticCity houses
+# EVERYBODY and the Pool is empty in every world this project has ever generated.
+#
+# WHAT IT CHANGES, AND IT IS TWO NUMBERS. `arrivals_per_day` 12 -> 96, so the doors admit faster than
+# the city builds; and `gives_up_after_days` 120 -> 2, so the Pool's sink is reachable inside a run.
+# Everything else is bordered.toml unchanged, which is minimal.toml unchanged before that.
+#
+# 🔴 ⚠ BOTH CHANGED NUMBERS ARE STOPWATCH SETTINGS AND NEITHER IS A DESIGN CLAIM. A demonstration is
+# allowed to compress a duration the way a demonstration is allowed to build Arterials a city's
+# generator must not (plans/0002 §D1, and rulesets/severance.toml is the precedent). What it is NOT
+# allowed to do is have its numbers quoted as the design's. bordered.toml holds the designer's
+# values; §D1 holds what would ratify them; THIS FILE HOLDS NEITHER.
+#
+# WHY THE ARRIVAL RATE IS STILL THE FILE'S AND NOT THE RUNNER'S. Nothing in the simulation decides to
+# arrive -- adr/0128 puts the comparison at milestone 16, so until then every arrival comes through
+# CommandKind.Arrive and somebody outside has to ask. The runner's --arrivals mode asks each gate for
+# MORE THAN IT CAN TAKE, every Day, so what is admitted is `arrivals_per_day` clipped by the gate
+# itself. ***A demonstration that chose its own rate would be showing the demonstration.*** The
+# number above is the one under observation, and it is the §D1 row task 3 opened.
+#
+# ⚠ THERE IS NO IMMIGRATION RATE IN THIS FILE OR ANYWHERE ELSE, and `arrivals_per_day` is not one.
+# It is a CEILING on a Day's admissions through one door -- what a gate will take, not what a
+# Hinterland will send. adr/0023's first line refuses an arrival scalar and this milestone's scope
+# repeats it. Read the number as the door's width.
+#
+# WHAT IT DOES NOT DEMONSTRATE. It says nothing about whether a city SHOULD be built faster than it
+# is arrived at -- there is no acceptance model until 16, so a Household here takes the first
+# dwelling with room and refuses nothing. The Pool grows because construction is slower than the
+# door, which is one cause of a housing shortage and not the interesting one.
+#
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48 },
+    { resource = "repairs",  capacity = 4 },
+]
+condemn_after = 4
+
+occupants = 3
+
+jobs = 8
+
+parking = 8
+
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[building]]
+name = "port"
+# RAISED FROM bordered.toml's 12. Four gates times 96 is 384 Households a Day asking to come in,
+# against a construction rate the Zone Rule sets -- and the point of this file is that the first
+# number wins. ⚠ THIS IS A CEILING AND NOT A RATE: nothing in the simulation decides to arrive
+# (adr/0128), so what actually arrives is whatever a caller asks for, clipped to this. The runner's
+# --arrivals mode asks for MORE than this every Day precisely so that the ceiling is what answers.
+arrivals_per_day = 96
+
+[[hinterland]]
+edge = "west"
+emigrant_balance_min = 40
+emigrant_balance_max = 400
+
+[[hinterland]]
+edge = "south"
+emigrant_balance_min = 120
+emigrant_balance_max = 900
+
+[[hinterland]]
+edge = "east"
+emigrant_balance_min = 200
+emigrant_balance_max = 1400
+
+[[hinterland]]
+edge = "north"
+emigrant_balance_min = 300
+emigrant_balance_max = 2000
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { derived = "occupancy" }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+# CUT FROM bordered.toml's 120 Days, and the cut is the whole reason this file exists.
+# 🔴 ⚠ IT IS NOT A SECOND OPINION ABOUT HOW LONG A FAMILY WOULD LOOK. bordered.toml's 120 Days is
+# the designer's number and the one plans/0002 §D1 carries; two Days is a COMPRESSION, chosen so
+# that the give-up bound is reachable inside a run somebody will actually sit through. At 120 Days
+# a demonstration would have to run 245,760 Ticks to show one Departure, and milestone 9's F17 is
+# what happens when a mechanism ships correct and unobservable.
+# ⚠ DO NOT QUOTE TWO DAYS AS THE POOL'S BOUND. It is this file's, and this file is a stopwatch.
+gives_up_after_days = 2
+
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+[layers]
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+sealing_decay_tau     = 0
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 16
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+
+[households]
+car_ownership_percent = 100
+
+[parking]
+radius_metres = 400
+
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+shift_hours_min = 6
+shift_hours_max = 10
+
+arrive_early_max_minutes = 15

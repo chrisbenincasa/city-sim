@@ -414,6 +414,9 @@ sitting did not find.
    🔴 **makes no Trip** — an unhoused Household has no dwelling, so there is no origin to travel from.
    ✅ **DONE 2026-08-21.**
 8. **Something to look at** — a runner mode showing arrivals, the Pool, departures and the money flow.
+   ⚠ **It ships the world task 9 was specified against** — `rulesets/crowded.toml` — because **F25**
+   found no such world existed.
+   ✅ **DONE 2026-08-21.**
 9. **The long acceptance run** — ⚠ **on a world where arrivals outpace housing**, because that is the
    only world in which the give-up bound and `adr/0006` can be read at all.
 
@@ -941,6 +944,81 @@ Three findings.
   which is what a fixture for a bound has to be. ⚠ **This is task 9's problem arriving early**: the
   acceptance run is specified *on a world where arrivals outpace housing*, and the reason that clause
   is in the plan is the same reason these tests failed.
+
+### Task 8 — something to look at — ✅ **DONE 2026-08-21**
+
+**What ships**: `--arrivals`, the **eleventh** runner mode; `rulesets/crowded.toml`, the **twelfth**
+shipped Ruleset; and `PlacementCounter.Departed` reaching the Census. **8 new tests**; the assertion
+tier is **1,895 green in 50 s**. **No State Hash moved** — a dump reads.
+
+**Four quantities rather than one, because the milestone's mechanism is a pipe with two ends.**
+Arrivals are a flow in, the Pool is the stock between, Departures are the flow out, and the money
+supply is what all three move. ***A picture of any one of them is a picture of a symptom*** —
+`CONTEXT.md` → Departure is explicit that a large Pool can be a healthy city and a small one a city in
+crisis, and that only the flow tells them apart.
+
+🔴 **It is the first dump that issues Commands, and that is forced rather than chosen.** Every other
+mode steps empty Ticks and watches the city act; this one cannot, because
+[`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md) puts the
+comparison at 16 and **nothing in the build decides to arrive**. So a rate had to come from somewhere.
+⚠ **It comes from the Ruleset**: the mode asks each gate for **more than it can take**, once a Day, and
+what is admitted is `arrivals_per_day` clipped by the gate itself. ***A demonstration that chose its own
+rate would be showing the demonstration.*** The **asked** column is printed beside **admitted** so the
+clipping is visible rather than implied, and the test that asserts `refused` is non-zero is the one
+that keeps the picture honest.
+
+**`rulesets/crowded.toml` is `bordered.toml` with two numbers changed**, and both are stopwatch
+settings: `arrivals_per_day` 12 → 96, so the doors admit faster than the city builds, and
+`gives_up_after_days` 120 → **2**, so the Pool's sink is reachable inside a run somebody will sit
+through. ⚠ **Neither is a second opinion about the design's numbers** — at 120 Days a demonstration
+would need **245,760** Ticks to show one Departure, and `plans/0034` **F17** is what happens when a
+mechanism ships correct and unobservable. The header says so at the top, because ***a caveat attached
+to a number does not travel with it.***
+
+**It is also the world task 9 was specified against** — *"on a world where arrivals outpace housing,
+because that is the only world in which the give-up bound and `adr/0006` can be read at all"* — and
+**F25** is the record of discovering no such world existed. Building it here rather than at 9 is the
+plan's own prerequisite arriving when something first needed it.
+
+⚠ **`PlacementCounter.Departed` was added to the Census here and not at task 7, which is a task-7
+defect this task found.** Task 7 put a third flow on `PlacementActivity` and stopped: the counter
+existed, nothing carried it into the instrument layer, and `--census` could not print it. ***A flow
+that reaches no instrument is a flow nobody can read***, and the milestone whose Definition of done is
+*there is something to look at* is exactly where that shows up. The dump itself drains the engine
+directly rather than reading the Census, and ⚠ **the two are mutually exclusive rather than merely
+different**: `Census.Observe` drains the same engine, so a dump doing both would read each flow at
+whichever ran second and get **zero**.
+
+Two findings, and one is about a test suite rather than about the city.
+
+- 🔴 **F26 — a gated world costs 38.7 ms a Tick at 1,000 Citizens, and the cost does not move with
+  population.** Measured while sizing a demonstration run: 128 Ticks of `bordered.toml` costs
+  **7.53–8.47 s** at **4,000**, **1,000** and **100** Citizens — a fortyfold change in population
+  moving the clock by less than the noise between runs. Against a 0-Tick baseline of **2.81 s** that
+  is **38.7 ms a Tick**, ***at one thousandth of the population the budget is stated at***, where the
+  `minimal.toml` control runs the same 128 Ticks in **3.15 s**.
+  **What differs is the map and not the city**: a Ruleset declaring a gate makes `SyntheticCity` pave
+  the lattice to the map's boundary, so 61 Segments become **535,817** while the population is
+  unchanged. ⚠ **This does not say the simulation is 38.7 ms a Tick** — it says *this world* is, and
+  this world is a village on a continent-sized paved grid. ***A fixed cost measured on an empty map is
+  a fixed cost, not a rate.***
+  ⚠ **The consumer is not named and the finding says so.** Three candidates are plausible and one of
+  them — the traffic volume pass — is **not reachable** in the measured world, because `bordered.toml`
+  states no `[traffic]`. ***A cost with three plausible owners and no measurement has none.***
+  **Routed to [`plans/0013`](0013-tick-budget.md) as a finding rather than a row**, because a row needs
+  a consumer and a multiplicand and this has neither.
+
+- 🔴 **F27 — six tests sharing one fixture built it six times, and `TierBudgetTests` could not have
+  caught it.** The first draft of `ArrivalDumpTests` ran an identical four-Day session per test:
+  **1m30s**, which would have tripled the working-loop tier for one feature. Cached to one run it is
+  **18 s**, and the tier went 46 s → **50 s**.
+  ⚠ **The guard that exists watches the wrong axis.** `TierBudgetTests` fails an assertion-tier test
+  over **four minutes**; no single test here was near it, and what grew was the **tier**. ***A budget
+  per test does not bound a suite***, and the failure mode is a feature landing green with every test
+  individually cheap. **Not filed as a defect in the guard**: a whole-suite ceiling is a second number
+  with its own ratifier and `CLAUDE.md`'s *past five minutes a test stifles iteration* is a preference
+  about a working loop that no measurement settles (`adr/0121`, and `adr/0043` does not reach it). It
+  is named here so the next sitting that adds an expensive fixture knows nothing will stop it.
 
 ### The doc-comment sweep — ✅ **DONE 2026-08-21**, and it is `plans/0012` **Cause 6**
 

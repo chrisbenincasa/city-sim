@@ -819,6 +819,20 @@ internal static class Session
         return ParkingDump.Run(options, writer);
     }
 
+    /// <summary>Runs the arrivals dump, to a file or to the console. Milestone 11 task 8.</summary>
+    internal static int DumpArrivals(Options options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.OutPath is null)
+        {
+            return ArrivalDump.Run(options, Console.Out);
+        }
+
+        using var writer = new StreamWriter(options.OutPath);
+        return ArrivalDump.Run(options, writer);
+    }
+
     /// <summary>Runs the land value dump, to a file or to the console.</summary>
     internal static int DumpLandValue(Options options)
     {

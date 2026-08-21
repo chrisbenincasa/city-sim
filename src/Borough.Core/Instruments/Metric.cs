@@ -178,6 +178,19 @@ public enum PlacementCounter : byte
 
     /// <summary>Of those, the ones that found a dwelling with room.</summary>
     Placed,
+
+    /// <summary>
+    /// Of those, the ones that gave up looking and left the city (<c>adr/0130</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>A different <em>kind</em> of quantity from the two above, and `CONTEXT` → Departure says
+    /// why it cannot be inferred from them.</b> *"Departure rate is a distinct demand signal from
+    /// Pool size: Pool size is a stock of latent demand, departure rate is a flow measuring how badly
+    /// the city is failing to convert its own attractiveness into capacity. A city can have a large
+    /// Pool and be healthy, or a small Pool and be in crisis; only the flow distinguishes them."*
+    /// ***Reporting the Pool without this reports the stock and calls it the diagnosis.***
+    /// </remarks>
+    Departed,
 }
 
 /// <summary>

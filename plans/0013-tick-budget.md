@@ -257,6 +257,49 @@ the ones `adr/0081` already names: `candidates` multiplies the assignment side a
 `commute_peak_factor` moves the peak against the mean without changing the total, and **the Commute
 Budget moves both**, because it is the box's side as well as the acceptance test.
 
+### 🔴 ⚠️ A gated world costs 38.7 ms a Tick at 1,000 Citizens, and the cost does not move with population
+
+**Measured 2026-08-21 by wall-clock delta on the headless runner, `rulesets/bordered.toml`, release
+build, on the reference machine but ⚠️ NOT ON A QUIET ONE — treat every figure here as an upper
+bound.** Found by milestone 11 task 8 while sizing a demonstration run; filed the same day
+(`adr/0073`).
+
+| Citizens | 128 Ticks | Per Tick |
+|---|---|---|
+| **100** | 8.47 s | — |
+| **1,000** | 7.63 s | — |
+| **4,000** | 7.53 s | — |
+
+**The three readings are the finding.** A fortyfold change in population moves the wall clock by less
+than the noise between runs. Isolating the fixed cost — a 0-Tick run of the same world is **2.81 s**,
+and a 128-Tick run is **7.76 s** — puts the per-Tick cost at **38.7 ms**, ***at one thousandth of the
+population the budget is stated at.*** The control is `minimal.toml`, which runs 128 Ticks in
+**3.15 s** on the same machine, most of which is process start.
+
+🔴 **What is different about the world is not the city, it is the map.** A Ruleset declaring an
+Outside Connection kind makes `SyntheticCity` pave the Street lattice **to the map's boundary**,
+because a gate stands on a map edge — 36 nodes and 61 Segments become **263,169 and 535,817**. The
+population is unchanged. So whatever is spending the 38.7 ms is denominated in **Segments**, and
+`bordered.toml`'s header already records the paving as costing *"150 ms"* at world creation, which is
+the one-off half somebody measured and the per-Tick half nobody did.
+
+⚠️ **This does not say the simulation is 38.7 ms a Tick.** It says *this world* is, and this world is
+a demonstration with a pathological ratio — a village on a continent-sized paved grid. A real city at
+1,000,000 Citizens fills the same lattice, so the per-Segment work would be amortised over a
+population a thousand times larger. ***A fixed cost measured on an empty map is a fixed cost, not a
+rate***, and reading it as one is `plans/0012` **Cause 5** waiting to happen.
+
+**What is owed is the consumer's name, and this entry does not have it.** The candidates are the
+staggered invariant tier (`SegmentsAreWellFormed` is sliced, so it should not be this), the Map Layer
+diffusion, and the traffic volume pass — but ⚠️ **`bordered.toml` states no `[traffic]` table**, so the
+volume-delay path is not even reachable in the measured world. ***A cost with three plausible owners
+and no measurement has none.*** The next sitting that touches this should profile rather than reason:
+the readings above are a wall clock on a whole process and name nothing inside it.
+
+⚠️ **It is a row this ledger does not yet have**, because a row needs a consumer and a multiplicand
+and this has neither. It is filed as a **finding** rather than entered as a row, which is the
+distinction §*Notes each row needs* is about.
+
 ### ⚠️ The walk search is not a unit cost, and the row that treated it as one hid the stronger lever
 
 **Measured 2026-08-11 on the shipped 32-Tile lattice — 16,700 nodes, 32,890 Segments, which *is* the

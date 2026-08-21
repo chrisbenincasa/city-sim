@@ -85,6 +85,7 @@ internal static class CensusFamilies
         (PlacementCounter.Considered, Aggregate.Sum, "considered"),
         (PlacementCounter.Placed, Aggregate.Sum, "placed"),
         (PlacementCounter.Placed, Aggregate.Peak, "placed peak"),
+        (PlacementCounter.Departed, Aggregate.Sum, "departed"),
     ];
 
     /// <summary>

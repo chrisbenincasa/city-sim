@@ -144,6 +144,21 @@ internal enum Mode
     /// pollution emission and only <c>fouled.toml</c> emits. See <c>LandValueDump</c>.
     /// </remarks>
     LandValue,
+
+    /// <summary>
+    /// Print who came through the gates, who is waiting, who gave up, and what the money did.
+    /// Milestone 11's.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>The only mode that issues Commands</b>, and it is forced rather than chosen: nothing in
+    /// the simulation decides to arrive until milestone 16 (<c>adr/0128</c>), so a dump that stepped
+    /// empty Ticks would watch a door nobody knocked on. It asks each gate for <em>more than it can
+    /// take</em> every Day, so the rate under observation is the Ruleset's <c>arrivals_per_day</c>
+    /// rather than a cadence chosen here. It refuses a Ruleset declaring no gate kind, on
+    /// <see cref="LandValue"/>'s polarity, and ⚠ <b>that refuses nine of the eleven shipped
+    /// files</b>. See <c>ArrivalDump</c>.
+    /// </remarks>
+    Arrivals,
 }
 
 /// <summary>
@@ -384,6 +399,7 @@ internal sealed class Options
         bool money = false;
         bool parking = false;
         bool landValue = false;
+        bool arrivals = false;
         Layer? dump = null;
 
         for (int i = 0; i < arguments.Length; i++)
@@ -481,6 +497,14 @@ internal sealed class Options
                 // with and a dump of it would be a picture of the initialiser.
                 case "--land-value":
                     landValue = true;
+                    session = true;
+                    continue;
+
+                // A session flag on --land-value's reasoning and one step further: arrivals are not
+                // merely a quantity with memory, they are a quantity nothing produces without being
+                // asked. This mode drives the gates itself.
+                case "--arrivals":
+                    arrivals = true;
                     session = true;
                     continue;
 
@@ -732,6 +756,33 @@ internal sealed class Options
         // do not start another.
         // Above --parking's on the ordering rule stated above: this block runs first and returns, so
         // `--land-value --parking` is refused here or not at all.
+        // Above --land-value's on the ordering rule stated above: this block runs first and returns.
+        if (arrivals && (landValue || parking || evidence || traffic || commute || zones || roads
+                         || trips || dump is not null))
+        {
+            complaint = "--arrivals asks for another picture, and each picture builds its own world. "
+                      + "Ask for one.";
+            return false;
+        }
+
+        if (arrivals && rulesets.Count == 0)
+        {
+            complaint = "--arrivals needs --ruleset PATH. Nothing arrives unless a kind declares "
+                      + "arrivals_per_day, so a world with no Ruleset has no door and every panel "
+                      + "would be blank. rulesets/crowded.toml is the file this mode was written "
+                      + "for, and rulesets/bordered.toml is the same world at the designer's own "
+                      + "numbers.";
+            return false;
+        }
+
+        if (arrivals && log is not null)
+        {
+            complaint = "--arrivals and --log disagree: this mode issues its own arrive commands, so "
+                      + "a recorded session would be replayed and then driven on top of. If you want "
+                      + "a scripted arrival, write the verb into the log and use --log alone.";
+            return false;
+        }
+
         if (landValue && (parking || evidence || traffic || commute || zones || roads || trips
                           || dump is not null))
         {
@@ -1040,7 +1091,8 @@ internal sealed class Options
 
         options = new Options
         {
-            Mode = money ? Mode.Money
+            Mode = arrivals ? Mode.Arrivals
+                 : money ? Mode.Money
                  : landValue ? Mode.LandValue
                  : parking ? Mode.Parking
                  : evidence ? Mode.Evidence
@@ -1178,6 +1230,14 @@ internal sealed class Options
                                 and rulesets/fouled.toml is the only shipped file that does.
                                 Prints the hour, because desirability's noise term reads a
                                 Segment's volume at the instant it is asked
+          --arrivals            dump who came through the gates, who is waiting, who gave
+                                up and what the money did. Needs --ruleset declaring a
+                                kind with arrivals_per_day -- rulesets/crowded.toml is
+                                the file it was written for. THE ONLY MODE THAT ISSUES
+                                COMMANDS: nothing decides to arrive until milestone 16,
+                                so it knocks on every gate once a Day, asking for more
+                                than the door can take, and what is admitted is the
+                                file's ceiling rather than a rate chosen by the runner
           --csv                 dump the Layer, the Lot grid or the Segments as CSV rather
                                 than as an ASCII field
 

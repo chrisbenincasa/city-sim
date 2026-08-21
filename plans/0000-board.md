@@ -8,9 +8,41 @@ place that orders the three tracks against each other.
 ## What is next
 
 **The next code row is `06` milestone **11** — Hinterlands and arrival through the gate, 🟢 IN FLIGHT:
-🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1 to 7 of
-nine shipped**, two to go. **Task 8 is something to look at** — a runner mode showing arrivals, the
-Pool, departures and the money flow.
+🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1 to 8 of
+nine shipped**, one to go. **Task 9 is the long acceptance run** — ⚠ **on a world where arrivals
+outpace housing**, because that is the only world in which the give-up bound and `adr/0006` can be
+read at all. **That world now exists**: task 8 shipped it.
+
+**Task 8 gave the milestone something to look at** — `--arrivals`, the eleventh runner mode, and
+`rulesets/crowded.toml`, the twelfth shipped Ruleset. Four quantities rather than one, because the
+mechanism is a pipe with two ends: arrivals in, the Pool between, Departures out, and the money supply
+that all three move. 🔴 **It is the first dump that issues Commands**, and that is forced — `adr/0128`
+puts the comparison at 16, so **nothing in the build decides to arrive** and a dump stepping empty
+Ticks would watch a door nobody knocked on. ⚠ **So the rate is the Ruleset's, not the runner's**: it
+asks each gate for **more than it can take** and prints *asked* beside *admitted*, so the ceiling
+doing the work is visible rather than implied. ***A demonstration that chose its own rate would be
+showing the demonstration.***
+
+⚠ **And a task-7 defect this task found**: `PlacementCounter.Departed` reached no instrument. Task 7
+added the flow to `PlacementActivity` and stopped, so `--census` could not print it — ***a flow that
+reaches no instrument is a flow nobody can read***, which the milestone whose Definition of done is
+*there is something to look at* is exactly where it surfaces.
+
+🔴 ⚠ **A gated world costs 38.7 ms a Tick at 1,000 Citizens, and the cost does not move with
+population.** 128 Ticks of `bordered.toml` costs 7.53–8.47 s at 4,000, 1,000 and 100 Citizens — a
+fortyfold population change moving the clock by less than the run-to-run noise. What differs is the
+**map**: a Ruleset declaring a gate paves the lattice to the boundary, so 61 Segments become
+**535,817** while the population is unchanged. ⚠ **The consumer is not named and the finding says so**
+— one of the three candidates is not even reachable in the measured world. Filed in
+[`0013`](0013-tick-budget.md) as a **finding rather than a row**, because a row needs a consumer and a
+multiplicand. ***A fixed cost measured on an empty map is a fixed cost, not a rate.*** `0035` **F26**.
+
+🔴 ⚠ **Six tests sharing one fixture built it six times — 1m30s, cached to 18 s — and
+`TierBudgetTests` could not have caught it.** That guard fails a single assertion over four minutes;
+no test here was near it, and what grew was the **tier**. ***A budget per test does not bound a
+suite.*** Not filed as a defect in the guard: a whole-suite ceiling is a second number with its own
+ratifier, and `CLAUDE.md`'s *past five minutes stifles iteration* is a preference no measurement
+settles. `0035` **F27**.
 
 **Task 7 gave the Unplaced Pool its first sink**, and with it ***`adr/0006` discharged for the Pool by
 a mechanism rather than by an absence, for the first time***. The bound is a **duration** and the Pool
@@ -743,7 +775,7 @@ argument session runs when something concrete is blocked on it, and never becaus
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **`06` milestone 11 — Hinterlands and arrival through the gate. 🟢 IN FLIGHT — scoped 2026-08-20, [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), ✅ ASSESSED (no document names a gate), and ✅ TASKS 1 TO 7 OF NINE SHIPPED, 2026-08-20 to 2026-08-21.** ⚠ **An ELEVENTH decision was found by task 1 after the scoping sitting recorded all ten closed** — the throughput ceiling's **unit**, which no document named; the `min()` moved to 12 and `adr/0088` is amended in place twice (decision 9).** It is the next unstarted position in `06`'s sequence now that **9** is closed, and the first one off the **end** rather than a gap. ⚠ **It is money's only source and sink and the anchor every price, wage and rent hangs off**, which is why the 2026-08-18 reorder moved it from **14** to **11**. ✅ **ALL TEN DECISIONS ARE CLOSED, 2026-08-20** — [`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md)–[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md), with the user in the room, and **nine tasks are scoped**. What ships is **the people door and the money that walks through it**: the gate kind, `[[hinterland]]`, a world with a door in it, `World.Arrive` into the Pool at a gate, the move-in Trip, and the unhoused Departure. ⚠ **~~conservation as supply plus flow~~ STRUCK — the invariant needed no rewrite at all** (`0035` **F20**): `MoneySupplyTable.Issued` is declared net of what has left, and `World.Endow` writes the anchor in the same call that deposits, so the equality stays exact. ⚠ **Its named risk has two halves of different sizes** — *where Households come from* is a producer, *no price has an anchor* is an authored object whose consumers are 12 and 13, so ***the anchor ships unread, which is milestone 9's land value one milestone later*** | [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), [`06`](../docs/06-roadmap.md) → milestone 11 | It is the ungated row at the head of the sequence, and **13, the trigger on both weights milestone 9 left unratified, is behind it** |
+| **1** | code | **`06` milestone 11 — Hinterlands and arrival through the gate. 🟢 IN FLIGHT — scoped 2026-08-20, [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), ✅ ASSESSED (no document names a gate), and ✅ TASKS 1 TO 8 OF NINE SHIPPED, 2026-08-20 to 2026-08-21.** ⚠ **An ELEVENTH decision was found by task 1 after the scoping sitting recorded all ten closed** — the throughput ceiling's **unit**, which no document named; the `min()` moved to 12 and `adr/0088` is amended in place twice (decision 9).** It is the next unstarted position in `06`'s sequence now that **9** is closed, and the first one off the **end** rather than a gap. ⚠ **It is money's only source and sink and the anchor every price, wage and rent hangs off**, which is why the 2026-08-18 reorder moved it from **14** to **11**. ✅ **ALL TEN DECISIONS ARE CLOSED, 2026-08-20** — [`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md)–[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md), with the user in the room, and **nine tasks are scoped**. What ships is **the people door and the money that walks through it**: the gate kind, `[[hinterland]]`, a world with a door in it, `World.Arrive` into the Pool at a gate, the move-in Trip, and the unhoused Departure. ⚠ **~~conservation as supply plus flow~~ STRUCK — the invariant needed no rewrite at all** (`0035` **F20**): `MoneySupplyTable.Issued` is declared net of what has left, and `World.Endow` writes the anchor in the same call that deposits, so the equality stays exact. ⚠ **Its named risk has two halves of different sizes** — *where Households come from* is a producer, *no price has an anchor* is an authored object whose consumers are 12 and 13, so ***the anchor ships unread, which is milestone 9's land value one milestone later*** | [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), [`06`](../docs/06-roadmap.md) → milestone 11 | It is the ungated row at the head of the sequence, and **13, the trigger on both weights milestone 9 left unratified, is behind it** |
 | **2** | spike | ⚠ **STILL BLOCKED — do not delete `spikes/S2.Routing/`.** The 5a gate is discharged (the port is done; nothing in `src/` or `tests/` compiles against it), but **another session is doing research inside it**, so it is live work and that is the gate now. **51 tracked C# files, 29,719 lines**; `Borough.slnx` still lists the project | [`0010`](0010-s2-routing.md) → *R7* | ⚠ **Do not read the first gate's clearance as the second's.** *A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears* |
 | **3** | spike | **S5 owes two captures.** The **4-thread** Lane kernel rung is bimodal (~2.5× against ~3.9×) and needs four pinned cores clear at once; the canonical `performance` re-capture is owed beside it. **2 threads is settled at 1.84–1.93×** | [`0019`](0019-s5-lane-kernel.md), [`spike-results`](../docs/spike-results.md) → *S5* | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare.** `adr/0096` exists because a number travelled without its clause |
 | **4** | code | **[`0003`](0003-build-plan.md) hash-moving queue item 8 — filed unfixed.** A waiter whose **own** requirement falls is never re-checked: `adr/0063` made the wake predicate read live state, and the only thing that calls `World.Drain` is a write to the **Bin**. Observed stable on four Bins from Tick 512 to 4096 | [`0003`](0003-build-plan.md) → *The hash-moving queue* | ***A live predicate with an event-driven trigger is only correct if every input to the predicate is an input to the trigger.*** Filed rather than fixed because both repairs are design questions |
