@@ -84,6 +84,31 @@ more per Tile"* is a line item.
 
 ### Throughput is two ceilings and the binding one is the diagnosis
 
+> ⚠ **AMENDED IN PLACE 2026-08-20 by milestone 11 task 1** ([`plans/0035`](../../plans/0035-hinterlands-and-arrival-through-the-gate.md)
+> decision 9). **The two-ceiling rule stands and the whole of this section survives; what moves is
+> *when the second term ships*.** The `min()` and the which-binds readout land at milestone **12**,
+> with freight. The declared ceiling alone ships at **11**.
+>
+> **The reason is a unit, and it is this ADR's own.** The second operand is
+> `RoadSegmentTable.CapacityPerDay`, which is **whole Vehicles per Day**. This ADR was written about
+> **Goods**, where that is the right denominator and the `min()` is arithmetic on one unit. At 11 no
+> Good crosses ([`0131`](0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)):
+> what crosses is **people and the money they hold**, and under
+> [`0098`](0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md)
+> whether an arriving Household is a Vehicle at all is a property of the Ruleset — `minimal.toml`
+> states no `[households]` table, so nobody drives and the Segment term bounds **nothing**.
+>
+> ***A term that is vacuous on the world the milestone runs on is not a diagnosis***, and this
+> section's whole claim is that *which of the two binds is the whole readout*. Shipping a `min()`
+> whose second operand cannot bind would report *the ceiling binds* on every world in the build, for
+> a reason that is not about the gate. That is the shape milestone 9's **F13** refused by name: a
+> hole that throws is safe, one that returns plausible numbers is a working mechanism saying
+> something false.
+>
+> **This is [`0131`](0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)'s
+> rule applied to a term rather than to a field** — *authored in the milestone that reads it* — and
+> it needs no new argument.
+
 `CONTEXT.md` → Outside Connection says throughput is *"infrastructure the player built, not a constant
 someone chose."* Taken literally that is only reachable if the gate has no ceiling of its own, which
 cannot be right — a single-track rail head is not a motorway however well the player connects it. Both
@@ -134,6 +159,18 @@ is short of.
 - **Milestone 8's scope is smaller than the roadmap implies.** It is a `[[building]]` kind, a Bin set,
   an edge constraint on placement, and a `min()`. The subsystem it looked like is `0031`'s Bins and 5a's
   graph, already built.
+
+  > ⚠ **AMENDED IN PLACE 2026-08-20.** Two corrections, and the sentence's claim survives both — the
+  > scope is smaller still.
+  >
+  > **It says *milestone 8* and it means *milestone 11*.** Every milestone number in this ADR was
+  > mapped old-10 → 8, which is the **wrong half** of the split [`plans/0012`](../../plans/0012-corpus-audit.md)
+  > records as paid; milestone 8 is Save/load and closed. [`plans/0035`](../../plans/0035-hinterlands-and-arrival-through-the-gate.md)
+  > **F4** found it against the three §D2 numbers and it is the same error here.
+  >
+  > **And the `min()` is not in milestone 11's half of it** — see the amendment in *Throughput is two
+  > ceilings* above. What ships at 11 is the kind, the edge constraint, the Access Point and the
+  > declared ceiling; the `min()` and its readout ship at **12** with freight.
 - **Freight's contribution to Segment Stress is now load-bearing for the economy**, not only for traffic.
   `plans/0002` design fork 14 — *whether freight vehicles contribute to Segment stress identically to
   commuters* — was a traffic question and is now also the thing that prices the Outside. It should be

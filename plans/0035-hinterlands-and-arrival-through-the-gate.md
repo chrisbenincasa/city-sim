@@ -41,6 +41,16 @@ records: [`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that
 and [`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md),
 every one with the user in the room. **The milestone got smaller four times and more honest each time.** They are §*Open decisions* below.
 
+⚠ **An eleventh was found by task 1 on 2026-08-20, after this section said they were all closed, and it
+is recorded as decision 9.** The throughput ceiling's **unit** was named in no document, and
+[`adr/0088`](../docs/adr/0088-the-price-of-a-far-hinterland-is-paid-in-your-own-traffic.md)'s `min()`
+compares it against a column denominated in **Vehicles per Day** — which nothing at 11 produces. It is
+settled and `adr/0088` is amended in place twice; the milestone got smaller a **fifth** time.
+***A scoping sitting closes the decisions it can see, and a unit is visible from the code rather than
+from the record that states the formula*** — which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+paying out on the first task of the milestone that quoted it.
+
 ---
 
 ## Why this milestone exists, in one paragraph
@@ -327,16 +337,59 @@ design**, because no scope can name its counterparty. `Scope.Pool` is the market
 12**. So either this milestone names a counterparty scope for the gate, or a Rule cannot buy anything
 from the Outside until 12 and the anchor stays unobservable for two milestones.
 
+### 9. What unit is the throughput ceiling in, and does the `min()` ship here? ✅ **SETTLED 2026-08-20 — the ceiling bounds arrivals, and the second term follows freight to 12.** Typed *arguable*
+
+⚠ **This decision was owed and the sitting that closed the other ten did not find it.** It was found by
+task 1, before any code, and it is the reason the task list below changed on its first day.
+
+✅ **The declared ceiling ships at 11 and bounds arrivals. The `min()` and the which-binds readout ship
+at 12**, with freight — [`adr/0088`](../docs/adr/0088-the-price-of-a-far-hinterland-is-paid-in-your-own-traffic.md)
+amended in place, twice.
+
+**The problem is a unit, and it belongs to `adr/0088` rather than to this milestone.** That record makes
+throughput `min(the kind's declared ceiling, the Access Point's Segment capacity)` and calls *which of
+the two binds* **"the whole readout"**. The second operand is `RoadSegmentTable.CapacityPerDay`, and it
+is **whole Vehicles per Day** — a Street is 3,600 an hour, so 86,400. `adr/0088` was written about
+**Goods**, where that is the right denominator and the `min()` is one unit on both sides. **At 11 no
+Good crosses** ([`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)):
+what crosses is people and the money they hold, and under
+[`adr/0098`](../docs/adr/0098-a-citizen-travels-in-their-households-mode-and-mode-choice-is-undesigned-rather-than-unbuilt.md)
+**whether an arriving Household is a Vehicle at all is a property of the Ruleset in force** —
+`minimal.toml` states no `[households]` table, so nobody drives and the Segment term bounds nothing.
+
+🔴 ⚠ **So the readout would have shipped inert on every world in the build, and inert in the direction
+that reports a false cause**: *the ceiling binds*, on every gate, on every Ruleset, for a reason that is
+not about the gate. ***A term that is vacuous on the world the milestone runs on is not a diagnosis.***
+That is milestone 9's **F13** arriving through a different door — *a hole that throws is safe, one that
+returns plausible numbers is a working mechanism that says something false* — and F13 was refused **by
+name** in decision 1 of this same milestone.
+
+✅ **The rule that settles it was already written here**: [`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)'s
+*a Hinterland field is authored in the milestone that reads it*, applied to a **term** rather than to a
+field. It needs no new argument, and it is **the fifth time this milestone got smaller**.
+
+⚠ **What this does not do is weaken decision 6.** The ceiling is still ratifiable at 11, and for the
+reason decision 6 gave — *arrivals are what it bounds*. It is now ratifiable **more** cleanly, because
+arrivals are the only thing it bounds.
+
+⚠ **And it leaves `adr/0088`'s two-ceiling rule standing in full.** Nothing here says the Segment term
+is wrong; it says it is not readable yet. **12 owes it**, and the amendment in place is what will make
+somebody look.
+
 ---
 
 ## Tasks
 
 ⚠ **Every decision is closed, so this list is now a scope rather than a sketch.** Ordered by what the
-next task needs.
+next task needs. ⚠ **Task 1 changed on the day it started** — decision **9**, above, which the scoping
+sitting did not find.
 
 1. **The Outside Connection kind** — a `[[building]]` kind, edge-constrained placement, an Access Point,
-   and `min(declared ceiling, Segment capacity)` **with which of the two binds reported**, because
-   `adr/0088` makes that *"the whole readout"*.
+   and a **declared throughput ceiling bounding arrivals**. ~~and `min(declared ceiling, Segment
+   capacity)` **with which of the two binds reported**, because `adr/0088` makes that *"the whole
+   readout"*.~~ 🔴 **The `min()` and the readout MOVED TO 12 with freight** — decision **9**, and
+   [`adr/0088`](../docs/adr/0088-the-price-of-a-far-hinterland-is-paid-in-your-own-traffic.md) is
+   amended in place twice. ⚠ **Relocated, not discharged**, and it stays `adr/0088`'s.
 2. **`[[hinterland]]`** — one per edge, authoring **the edge and what its emigrants carry, and nothing
    else** ([`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)).
 3. **`SyntheticCity` places gates**, so there is a world with a door in it — ⚠ **milestone 9's F17 is
@@ -357,6 +410,57 @@ next task needs.
 **Struck by the decisions**: the comparison (16), rejected-arrival reasons (16), Settlements (their
 consumer), Shipments (behind 12), any Goods trade (12), any counterparty scope (12), depth and recovery
 (16), the generator's gate count and siting (24).
+
+### Task 1 — the Outside Connection kind — ✅ **DONE 2026-08-20**
+
+**What ships**: `[[building]] arrivals_per_day` (`KindDefinition.ArrivalsPerDay`), one loader refusal,
+`MapEdge`/`MapEdges.Touching` in `Borough.Core.Space`, `World.IsOutsideConnection`,
+`World.TryArrivalsPerDay`, `World.EdgeOf`, and `Invariant.OutsideConnectionStandsOnOneEdge` in **both
+tiers** — `O(1)` in `World.CreateBuilding` and whole-world in
+`WorldInvariants.OutsideConnectionsStandOnAnEdge` (F14). **31 new tests**; the assertion tier is
+**1,827 green**. **No State Hash
+moved**, and for milestone 9 task 4's reason restated: no shipped Ruleset declares a gate, so there is
+no world in which the new column is non-zero. **Task 3 is what makes it observable.**
+
+⚠ **The task's first act was to stop and settle decision 9**, which the scoping sitting did not find.
+It is recorded above in full. Three more findings:
+
+- 🔴 **F11 — a doc-comment that granted a permission outlived its premise, and this task was about to
+  take it.** `RoadSegmentTable.CapacityPerDay`'s remarks said *"Nothing reads it yet, which is why the
+  unit could be chosen freely"* and named the volume-delay function as an unbuilt consumer free to
+  *"pick its own denominator without a migration."* **Milestone 6 shipped that function**: `LoadOf`
+  reads the column and `TrafficDump` reads it again, so the unit has been load-bearing and
+  hash-bearing since 5c task 6. ***A stale sentence about an absence is worse than a stale fact,
+  because it is read as a licence rather than as a claim*** — and `plans/0002` §D1's speeds-and-
+  capacities row records the **same** sentence going stale on the **same** column on 2026-08-19, one
+  day earlier, without anything checking the doc-comment beside it. Corrected in place
+  ([`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)).
+- 🔴 **F12 — `plans/0002` §D2's throughput row stated a *band* that compares two different units**, and
+  a band is the one thing that makes an unratified number feel safe. *A road gate cannot exceed its
+  Segment's 3,600 Vehicles/hour* brackets Households against Vehicles. **Withdrawn in place.** It is
+  `plans/0012` **Cause 5** in its sharpest form: what failed to travel was not a clause but a
+  **unit**, and a unit is invisible in a way a clause is not — you can see that a caveat is missing.
+- ⚠ **F13 — the map had no boundary.** Under `adr/0021` the map is bounded and `CellGrid.WorldTiles`
+  has been the extent since the grid was written, but **no symbol in `Borough.Core` asked whether a
+  position was on it**. The obvious repair is a band in Tiles, which is a hash-bearing world-creation
+  number needing a ratifier; ***the lattice lands on the boundary exactly***, so the constraint is
+  stated with **no number at all**. `MapEdgeTests` holds `LotSubdivider`'s no-set-back premise so that
+  a subdivider which later introduces one fails loudly rather than making every gate unplaceable.
+
+- ⚠ **F14 — the write-site guard could not see the case that actually happens, found by reviewing the
+  diff rather than by a test.** `arrivals_per_day` is what makes a kind a gate and a Ruleset is
+  **hot-reloadable** (`adr/0015`), so adding the key to a kind whose Buildings already stand converts
+  every one of them **without `CreateBuilding` being called once** — and `World.Adopt` already walks
+  the Buildings on reload (`EvictOverflow`) with nothing to say about position. ***A guard at the
+  write site checks the kind a Building was born with, and a hot-reloadable kind is not a property a
+  Building was born with.*** Fixed inside task 1: `WorldInvariants.OutsideConnectionsStandOnAnEdge` is
+  the whole-world half, on `Invariant.LotIsNotAlreadyBuiltOn`/`LotHoldsExactlyOneBuilding`'s pairing.
+  ⚠ **It reports and does not repair**, which is where it parts company from `adr/0068`: lowered
+  occupancy evicts because an Occupant can be moved, and a Building cannot be moved to the edge.
+
+⚠ **One thing was deliberately not built: a `min()` with one operand.** `adr/0088`'s second ceiling is
+at 12, so the readout is not half-shipped here — there is no *which binds* to report when there is one
+bound. ***A formula with a term missing is not a smaller formula.***
 
 ## What this milestone must not do
 

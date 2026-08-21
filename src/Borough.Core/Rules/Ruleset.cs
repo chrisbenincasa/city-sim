@@ -418,6 +418,51 @@ public readonly record struct KindDefinition(
     public int Parking { get; init; }
 
     /// <summary>
+    /// How many Households a Building of this kind admits from the Outside per Day. Zero means this
+    /// kind is not an Outside Connection at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Its presence is what declares the kind a gate</b> (<c>adr/0088</c>, milestone 11 task 1).
+    /// There is no <c>outside_connection = true</c> beside it, and that is a decision rather than a
+    /// saving: a boolean and a ceiling would be two spellings of one fact, and the pair could
+    /// disagree — a gate declaring no throughput, or a throughput on a kind that is not a gate. The
+    /// loader refuses a stated zero, so <b>every kind carrying this number is a gate and every gate
+    /// carries a usable one</b>, exactly as <c>adr/0101</c>'s Shift band is made meaningful by being
+    /// refused in both directions rather than by a third field saying whether it was stated.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The name carries the unit because an unnamed unit is what cost this milestone a
+    /// decision.</b> <c>adr/0088</c> makes an Outside Connection's throughput
+    /// <c>min(declared ceiling, the Access Point's Segment capacity)</c> and calls which of the two
+    /// binds *"the whole readout"* — and that second operand,
+    /// <see cref="Space.RoadSegmentTable.CapacityPerDay"/>, is **whole Vehicles per Day**. That
+    /// record was written about <b>Goods</b>. Milestone 11 moves <b>people</b>, and under
+    /// <c>adr/0098</c> whether an arriving Household is a Vehicle at all is a property of the Ruleset
+    /// in force — <c>minimal.toml</c> declares no <c>[households]</c>, so nobody drives and the
+    /// Segment term bounds nothing. ***The two numbers were never in the same unit and nothing said
+    /// so, because the formula was written down and the denominators were not.***
+    /// <c>plans/0035</c> decision 9 moved the <c>min()</c> to milestone <b>12</b> with freight, and
+    /// this key was named <c>arrivals_per_day</c> so the next reader cannot repeat it —
+    /// <c>CLAUDE.md</c>'s <i>name a number after what it measures</i>.
+    /// </para>
+    /// <para>
+    /// <b>Per Day rather than per Tick.</b> A Day is <c>CONTEXT.md</c>'s only time unit above the
+    /// Tick, it is what <see cref="Space.RoadSegmentTable.CapacityPerDay"/> already uses for the
+    /// quantity this one will one day be <c>min()</c>ed against, and it is the unit a designer means
+    /// — *this port takes a hundred families a day* is a sentence somebody has a reason for, where a
+    /// per-Tick rate is a sentence nobody does.
+    /// </para>
+    /// <para>
+    /// <b>It bounds arrivals and nothing else</b>, which is what makes it ratifiable at 11 at all
+    /// (<c>plans/0035</c> decision 6). Departures leave through a gate too and are not metered by it:
+    /// the ceiling is <c>CONTEXT.md</c> → Outside Connection's *"infrastructure the player built"*,
+    /// and a city does not build capacity to make people leave.
+    /// </para>
+    /// </remarks>
+    public int ArrivalsPerDay { get; init; }
+
+    /// <summary>
     /// The earliest in-world hour a job of this kind starts at. See <see cref="ShiftStartLatestHour"/>.
     /// </summary>
     /// <remarks>

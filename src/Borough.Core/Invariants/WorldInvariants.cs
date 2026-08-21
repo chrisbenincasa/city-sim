@@ -57,6 +57,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, VacantLandHasAStreetToBuildOff);
         invariants.Register(InvariantTier.EndOfRun, TrafficIsConserved);
         invariants.Register(InvariantTier.EndOfRun, ParkingOccupancyIsConserved);
+        invariants.Register(InvariantTier.EndOfRun, OutsideConnectionsStandOnAnEdge);
     }
 
     /// <summary>
@@ -495,6 +496,69 @@ public static class WorldInvariants
                 && back == slot;
 
             report.Require(agrees, Invariant.LotHoldsExactlyOneBuilding, slot, building);
+        }
+    }
+
+    /// <summary>
+    /// Every standing Outside Connection is on exactly one map edge.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The whole-world half of <see cref="Invariant.OutsideConnectionStandsOnOneEdge"/>, whose
+    /// <c>O(1)</c> half is in <see cref="World.CreateBuilding"/></b> — the same pairing
+    /// <see cref="Invariant.LotIsNotAlreadyBuiltOn"/> and
+    /// <see cref="Invariant.LotHoldsExactlyOneBuilding"/> have, and for a sharper reason.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A write-site guard alone would have been unreachable in the case that actually
+    /// happens.</b> Under <c>adr/0015</c> a Ruleset is hot-reloadable, and
+    /// <c>[[building]] arrivals_per_day</c> is what makes a kind a gate — so a designer adding that
+    /// key to a kind whose Buildings already stand turns every one of them into an Outside
+    /// Connection **without any of them being created**. <see cref="World.Adopt"/> already walks the
+    /// Buildings on reload (<c>EvictOverflow</c>, <c>adr/0068</c>) and had nothing to say about
+    /// position. ***A guard at the write site checks the kind a Building was born with, and a
+    /// hot-reloadable kind is not a property a Building was born with.***
+    /// </para>
+    /// <para>
+    /// <b>It reports and does not repair, which is where this parts company from
+    /// <c>adr/0068</c>.</b> Lowered occupancy <em>evicts</em> the overflow because an Occupant can be
+    /// moved; a Building cannot be moved to the edge, and demolishing somebody's city on a reload is
+    /// not a degradation any Ruleset edit should buy. So this is <b>design-time state</b> in
+    /// <c>adr/0057</c>'s sense — reachable only by editing a Ruleset under a running city, never by
+    /// playing — and the right response is to say so loudly at end of run.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Its cost is one pass over the Buildings and it is at end of run rather than staggered</b>,
+    /// on <c>02 §10</c>'s sort by frequency: the state it reads changes only on a Ruleset swap, so
+    /// checking it every Tick would price a per-Tick walk against a per-reload event.
+    /// </para>
+    /// </remarks>
+    internal static void OutsideConnectionsStandOnAnEdge(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        BuildingTable buildings = world.Buildings;
+
+        for (int slot = 0; slot < buildings.Rows.SlotCount; slot++)
+        {
+            if (!buildings.Rows.IsLive(slot) || !world.IsOutsideConnection(buildings.Kind[slot]))
+            {
+                continue;
+            }
+
+            if (!world.Lots.Rows.TryResolve(buildings.Lot[slot], out int lotSlot))
+            {
+                // LotsAndBuildingsAgreeWhoIsWhere is the check that owns a dangling Lot handle, and
+                // it runs before this one. Skipping keeps the two diagnoses apart.
+                continue;
+            }
+
+            report.Require(
+                world.EdgeOf(lotSlot) != MapEdge.None,
+                Invariant.OutsideConnectionStandsOnOneEdge,
+                slot,
+                lotSlot);
         }
     }
 

@@ -1566,6 +1566,12 @@ public sealed class World
         // Invariant.LotHoldsExactlyOneBuilding.
         Invariants.Require(Lots.IsVacant(lotSlot), Invariant.LotIsNotAlreadyBuiltOn, lotSlot);
 
+        // adr/0088's edge constraint, and it costs one comparison on kinds that are not gates.
+        Invariants.Require(
+            !IsOutsideConnection(kind) || EdgeOf(lotSlot) != MapEdge.None,
+            Invariant.OutsideConnectionStandsOnOneEdge,
+            lotSlot);
+
         Handle<Building> building = Buildings.Create(Lots, lot, kind);
 
         BuildingsInCells.Add(Buildings, Lots, Buildings.Rows.Resolve(building));
@@ -2061,6 +2067,64 @@ public sealed class World
 
         occupants = Rules.Kind(kind).Occupants;
         return true;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="kind"/> is an Outside Connection — a gate the city can be entered
+    /// through (<c>adr/0088</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Declaring a throughput is what makes a kind a gate</b>, so this is the whole test. See
+    /// <see cref="Rules.KindDefinition.ArrivalsPerDay"/> for why there is no second key beside it and
+    /// why a stated zero is refused at the door.
+    /// </para>
+    /// <para>
+    /// <b>A kind the Ruleset does not declare is not a gate</b>, which follows
+    /// <see cref="TryDeclaredOccupancy"/>'s rule and matters for the same reason: dereliction is
+    /// <c>Kind == 0</c> (<c>adr/0057</c>), and a derelict Building must not start reading as a door
+    /// into the city because its kind vanished from the Ruleset in force.
+    /// </para>
+    /// </remarks>
+    public bool IsOutsideConnection(byte kind) =>
+        Rules.Declares(kind) && Rules.Kind(kind).ArrivalsPerDay > 0;
+
+    /// <summary>
+    /// How many Households a gate of <paramref name="kind"/> admits per Day, when it is one.
+    /// </summary>
+    /// <remarks>
+    /// <b><see cref="TryDeclaredOccupancy"/>'s shape</b>, and it separates the two cases that matter
+    /// for the same reason that one does: a kind the Ruleset no longer declares is a different thing
+    /// from a kind that is not a gate, and a caller metering arrivals must not read a derelict gate
+    /// as a gate with a ceiling of zero.
+    /// </remarks>
+    internal bool TryArrivalsPerDay(byte kind, out int arrivals)
+    {
+        if (!IsOutsideConnection(kind))
+        {
+            arrivals = 0;
+            return false;
+        }
+
+        arrivals = Rules.Kind(kind).ArrivalsPerDay;
+        return true;
+    }
+
+    /// <summary>
+    /// Which map edge the Lot at <paramref name="lotSlot"/> stands on, or
+    /// <see cref="MapEdge.None"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A corner reads as <see cref="MapEdge.None"/> and that is deliberate</b> — see
+    /// <see cref="Invariant.OutsideConnectionStandsOnOneEdge"/>. Under <c>adr/0088</c> the edge
+    /// selects a market, so a position touching two of them names no market rather than either, and
+    /// the caller that cares refuses it. <see cref="MapEdges.Touching"/> is where the two cases are
+    /// still distinguishable, for a caller that wants to say which failure it hit.
+    /// </remarks>
+    public MapEdge EdgeOf(int lotSlot)
+    {
+        MapEdges.Touching(Lots.East[lotSlot], Lots.North[lotSlot], out MapEdge edge);
+        return edge;
     }
 
     /// <summary>

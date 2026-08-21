@@ -156,10 +156,33 @@ public sealed class RoadSegmentTable
     /// Vehicles/hour is exact, and a count of Vehicles needs no fixed point at all.
     /// </para>
     /// <para>
-    /// <b>Nothing reads it yet, which is why the unit could be chosen freely.</b> The volume-delay
-    /// function is milestone 6 and <c>adr/0035</c>'s Upkeep pricing is Phase 3; under <c>adr/0070</c>
-    /// neither unbuilt consumer may dictate a representation now, and whichever of them arrives first
-    /// may pick its own denominator without a migration, because this column is derived.
+    /// ⚠ <b>It has two readers and the unit is no longer free.</b> <see cref="LoadOf"/> prices every
+    /// congested drive against it and the runner's <c>--traffic</c> picture restates it, so
+    /// <b>Vehicles per Day is now load-bearing</b> and a change here moves the State Hash.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This paragraph used to say <i>nothing reads it yet, which is why the unit could be chosen
+    /// freely</i>, and it named the volume-delay function as an unbuilt consumer free to <i>"pick its
+    /// own denominator without a migration."</i> Milestone 6 shipped that function and nothing
+    /// re-read this.</b> Corrected 2026-08-20 by milestone 11 task 1, which arrived as a third reader
+    /// and was about to take the licence. ***A sentence about what does not exist yet is true when it
+    /// is written and nothing revisits it on the day it stops being***
+    /// (<c>adr/0093</c>) — and this one did not merely go stale, it <b>granted a permission</b> that
+    /// outlived its premise.
+    /// </para>
+    /// <para>
+    /// <b><c>adr/0035</c>'s Upkeep pricing is still Phase 3 and still unbuilt</b>, so under
+    /// <c>adr/0070</c> it may not dictate a representation — but it no longer arrives to a free
+    /// choice. It inherits this denominator or it argues for a migration.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What the expired licence nearly bought.</b> <c>adr/0088</c> makes an Outside Connection's
+    /// throughput <c>min(declared ceiling, this)</c> and calls which of the two binds *the whole
+    /// readout*. That record was written about <b>Goods</b>, where Vehicles per Day is the right
+    /// denominator; milestone 11 moves <b>people</b>, and under <c>adr/0098</c> whether an arriving
+    /// Household is a Vehicle at all is a property of the Ruleset — so the term is vacuous on
+    /// <c>minimal.toml</c>, where nobody drives. The <c>min()</c> moved to milestone 12 with freight
+    /// (<c>plans/0035</c> decision 9, <c>adr/0088</c> amended in place).
     /// </para>
     /// </remarks>
     public Column<int> CapacityPerDay { get; }

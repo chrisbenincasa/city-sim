@@ -1036,6 +1036,36 @@ public static class RulesetLoader
                     }
                 }
 
+                // adr/0088's throughput ceiling, and it is the key that makes the kind an Outside
+                // Connection (milestone 11 task 1). Optional, because almost no kind is a gate.
+                //
+                // A STATED ZERO IS REFUSED, and this is the one of these five keys where that is
+                // right. `parking` takes zero because a tower with no parking is a real building;
+                // `occupants` and `jobs` take it because housing and employing nobody is what almost
+                // every kind does. A gate admitting nobody is none of those -- it is a door that
+                // never opens, which is a Ruleset that loads clean and does nothing, and that is the
+                // refusal class established by task 3 of plans/0014. Refusing it is also what lets
+                // the key double as the declaration: absent means "not a gate" unambiguously,
+                // because no gate can spell itself zero.
+                int arrivalsPerDay = 0;
+
+                if (TryInteger(table, "arrivals_per_day", out long admits, required: false, name))
+                {
+                    if (admits <= 0)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "arrivals_per_day") ?? table), name,
+                            $"arrivals_per_day is {admits}. It counts Households a Building of this "
+                            + "kind admits from the Outside per Day, and stating it is what makes "
+                            + "the kind an Outside Connection -- so a zero or a negative is a gate "
+                            + "that never opens, which loads clean and does nothing. State a "
+                            + "throughput, or omit the key for a kind that is not a gate.");
+                    }
+                    else
+                    {
+                        arrivalsPerDay = admits > int.MaxValue ? int.MaxValue : (int)admits;
+                    }
+                }
+
                 // adr/0101's Shift band. Paired with `jobs` in both directions, because a workplace
                 // with no hours and an hour with no workplace are each half a mechanism -- and
                 // because the defaulted 0,0 would otherwise mean *midnight*, which is a legitimate
@@ -1049,6 +1079,7 @@ public static class RulesetLoader
                     Occupants = occupants,
                     Jobs = jobs,
                     Parking = parking,
+                    ArrivalsPerDay = arrivalsPerDay,
                     ShiftStartEarliestHour = shiftFrom,
                     ShiftStartLatestHour = shiftTo,
                 };

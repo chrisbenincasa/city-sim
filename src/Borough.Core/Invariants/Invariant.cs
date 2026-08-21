@@ -725,4 +725,32 @@ public enum Invariant
     /// </remarks>
     [Unbuilt("nothing — 02 §10 names it and no milestone claims it. plans/0012 check 7's own finding")]
     CitizenIsInExactlyOnePlace = 44,
+
+    /// <summary>
+    /// An Outside Connection stands on exactly one map edge.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>adr/0088</c>'s *"a position constrained to an edge"*, at the write site</b> (milestone 11
+    /// task 1). It is <c>O(1)</c> in <see cref="Entities.World.CreateBuilding"/>, which is where
+    /// <c>02 §10</c> puts a check that costs one comparison per placement, and it sits beside
+    /// <see cref="LotIsNotAlreadyBuiltOn"/> in the same method for the same reason.
+    /// </para>
+    /// <para>
+    /// <b>*Exactly one* rather than *at least one*, and the corner is why.</b> Under <c>adr/0088</c>
+    /// the edge <em>selects a market</em> — <c>CONTEXT.md</c> → Hinterland is per edge — so a gate on
+    /// a corner Lot would sit in two Hinterlands with nothing in the world to say which one its
+    /// emigrants came from. That is not a tie to break; it is a question the design has no answer to,
+    /// and the milestone that reads the answer is this one. ***A position touching two markets is
+    /// refused rather than resolved, because resolving it would invent the rule.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a guard and not a predicate, so nothing samples against it.</b> A gate is placed
+    /// deliberately — by the generator at task 3, by the player later — and never by a Zone Rule
+    /// walking candidate Lots, so there is no *ordinary outcome* here for the guard to spam on. That
+    /// is the opposite of <see cref="BuildingHasRoomForTheHousehold"/>, which needed a predicate
+    /// beside it precisely because placement asks it of every candidate it samples.
+    /// </para>
+    /// </remarks>
+    OutsideConnectionStandsOnOneEdge = 45,
 }
