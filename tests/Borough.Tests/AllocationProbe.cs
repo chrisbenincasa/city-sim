@@ -44,8 +44,26 @@ using System.Threading;
 /// </para>
 /// <para>
 /// <b>Where the rows land</b>: <c>BOROUGH_ALLOC_PROBE</c> if it is set, otherwise
-/// <c>alloc-probe.csv</c> beside the test binaries. It <b>appends</b>, so several runs accumulate in
-/// one file, separated by the process id.
+/// <c>alloc-probe-archive/alloc-probe.csv</c> in the test project. It <b>appends</b>, so several runs
+/// accumulate in one file, separated by the process id.
+/// </para>
+/// <para>
+/// 🔴 ⚠ <b>It used to land beside the test binaries, and that nearly destroyed the evidence for the
+/// open question it serves.</b> <c>AppContext.BaseDirectory</c> is <c>bin/Release/net10.0/</c>, which
+/// <c>dotnet clean</c>, a worktree prune and a fresh clone all discard <em>by design</em> — and on
+/// 2026-08-21 a dead worktree was about to be removed carrying **48 readings from six full runs that
+/// existed nowhere else**, which is the sample <c>plans/0002</c> §B quotes. ***An instrument whose
+/// output lives in a build directory is an instrument whose evidence is deleted by routine
+/// housekeeping***, and the readings are the slowest thing in this project to reproduce: six full
+/// unfiltered runs is about four hours.
+/// </para>
+/// <para>
+/// <b>So the file is durable and committable now.</b> The archive directory sits in the test project
+/// rather than under <c>bin/</c>, nothing gitignores it, and the two datasets rescued that day are in
+/// it under names saying what they are. ⚠ <b>Whether the readings should be *committed* is a separate
+/// question and is deliberately not answered here</b> — it is what would make §B's figures checkable
+/// rather than quotable, which is <c>plans/0012</c> **Cause 5**'s repair on a dataset instead of a
+/// sentence.
 /// </para>
 /// </remarks>
 internal static class AllocationProbe
@@ -83,11 +101,44 @@ internal static class AllocationProbe
     private static int count = -1;
 
     /// <summary>The file the rows are appended to.</summary>
+    /// <remarks>
+    /// ⚠ <b>Outside <c>bin/</c> on purpose</b> — see the class remark. It falls back to the binary
+    /// directory only when the test project cannot be found from the assembly's location, which is a
+    /// packaged or single-file layout rather than a normal run; ***losing the rows is worse than
+    /// writing them somewhere odd.***
+    /// </remarks>
     internal static string Path =>
         Environment.GetEnvironmentVariable("BOROUGH_ALLOC_PROBE")
             is string set && set.Length > 0
             ? set
-            : System.IO.Path.Combine(AppContext.BaseDirectory, "alloc-probe.csv");
+            : System.IO.Path.Combine(Archive, "alloc-probe.csv");
+
+    /// <summary>
+    /// The durable directory the readings accumulate in, created if it is not there.
+    /// </summary>
+    private static string Archive
+    {
+        get
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+            while (directory is not null && directory.Name != "Borough.Tests")
+            {
+                directory = directory.Parent;
+            }
+
+            if (directory is null)
+            {
+                return AppContext.BaseDirectory;
+            }
+
+            string archive = System.IO.Path.Combine(directory.FullName, "alloc-probe-archive");
+
+            Directory.CreateDirectory(archive);
+
+            return archive;
+        }
+    }
 
     /// <summary>
     /// Records one reading. Allocates nothing, so it may be called with other windows open.

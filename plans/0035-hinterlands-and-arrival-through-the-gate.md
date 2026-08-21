@@ -1181,10 +1181,10 @@ each, which is `[placement]`'s cadence meeting a Pool this large for the first t
   milestone's**: `plans/0002` §B has been open on it since 2026-08-20 —
   `GC.GetAllocatedBytesForCurrentThread` is served out of a per-thread allocation context that a
   collection on **another** thread flushes — and `AllocationProbe` was built to gather samples of it.
-  ⚠ **What this task's run contributed is a reading, and it is in `alloc-probe.csv`**: **3,376 bytes
+  ⚠ **What this task's run contributed is a reading, and it is in `tests/Borough.Tests/alloc-probe-archive/2026-08-21-cumulative-105-processes.csv`**: **3,376 bytes
   with 1 gen0 collection** inside the window. **Under 8,192**, like every one before it.
   🔴 ⚠ **And reading that file to find it turned up a second firing nobody had looked at** — row 300
-  of 697, `ZoneRuleTriggerTests`, **5,208 bytes with `0 gen0 / 0 gen1 / 0 gen2`**. ***That is the
+  of that archived file, `ZoneRuleTriggerTests`, **5,208 bytes with `0 gen0 / 0 gen1 / 0 gen2`**. ***That is the
   sample §B says it is waiting for.*** The row's own words: *"the half that was owed is still
   untested — a jump requires a collection is a claim about jumps, **nothing jumped**."* Something had
   jumped, months earlier, with no collection anywhere in the window, and the row went on saying the

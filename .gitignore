@@ -525,3 +525,7 @@ alloc-probe*.*
 # (Borough.Formats, adr/0039) and lands in the working directory, so any run that trips an
 # invariant leaves one behind. It is a diagnostic to read and attach, never a file to commit.
 *.borough-crash
+
+# The allocation probe writes here now, outside bin/. The live file accumulates; the dated
+# ones are rescued datasets plans/0002 §B cites. See tests/Borough.Tests/AllocationProbe.cs.
+tests/Borough.Tests/alloc-probe-archive/alloc-probe.csv
