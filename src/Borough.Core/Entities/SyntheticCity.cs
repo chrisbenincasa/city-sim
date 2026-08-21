@@ -181,21 +181,38 @@ public static class SyntheticCity
                 + "faces that are standing -- so lay the Streets, zone the blocks, then populate.");
         }
 
-        if (lots < buildings)
+        // THE GATES GO UP FIRST, and the order is forced rather than tidy. An Outside Connection is
+        // constrained to a map edge (adr/0088) and an edge Lot is an EARLY Lot -- Subdivide walks
+        // blocks in lattice order from the origin corner -- so by the time the dwelling loop below
+        // has taken the Lots it wants, every Lot on an edge is built on and no gate can be placed.
+        //
+        // It costs the offset in Dwelling: gates occupy Building slots 0..gates-1, so the nth
+        // DWELLING is slot gates + n. On a Ruleset declaring no gate kind this returns 0, no Lot is
+        // taken, the loop below walks exactly the Lots it always did and no State Hash moves.
+        int gates = RaiseGates(world, now, key);
+
+        if (lots - gates < buildings)
         {
-            buildings = lots;
+            buildings = lots - gates;
         }
 
-        for (int i = 0; i < buildings; i++)
+        int raised = 0;
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount && raised < buildings; slot++)
         {
-            // Sound only because the Lot table started empty, exactly as Dwelling's remark argues for
-            // Buildings: allocation appends while the free list is empty, so the nth Lot is slot n.
-            Handle<Lot> lot = world.Lots.Rows.At(i);
+            // Vacancy rather than `slot < buildings`, because a gate may have taken this one. With
+            // no gates the two are the same walk: the Lot table started empty, so the nth Lot is
+            // slot n and none of them is built on.
+            if (!world.Lots.Rows.IsLive(slot) || !world.Lots.IsVacant(slot))
+            {
+                continue;
+            }
 
             // Through World's door rather than the table's, so the Building arrives with its kind's
             // Bins and its chain heads armed. Before this the populator built bare Buildings and the
             // Ruleset described a shape nothing constructed.
-            world.CreateBuilding(lot, DwellingKind, now, key);
+            world.CreateBuilding(world.Lots.Rows.At(slot), DwellingKind, now, key);
+            raised++;
         }
 
         HouseholdRuleset rules = world.Rules.Households;
@@ -203,7 +220,7 @@ public static class SyntheticCity
         for (int i = 0; i < households; i++)
         {
             Handle<Household> household =
-                world.CreateHousehold(Dwelling(world, i % buildings), lifeStage: (byte)(i % 5));
+                world.CreateHousehold(Dwelling(world, i % buildings, gates), lifeStage: (byte)(i % 5));
 
             // THE ONLY PRODUCTION ISSUANCE OF MONEY IN THE BUILD, and it is here rather than
             // anywhere a player can reach. adr/0024 makes the Outside Connection money's only source
@@ -432,6 +449,124 @@ public static class SyntheticCity
     }
 
     /// <summary>
+    /// Raises one Outside Connection on every map edge the lattice actually reaches
+    /// (<c>adr/0088</c>, <c>adr/0131</c>, milestone 11 task 3).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It exists because milestone 9 shipped a producer nothing could observe</b>
+    /// (<c>plans/0034</c> <b>F17</b>): the land value field was correct and read zero in every world,
+    /// for want of Ruleset <em>content</em> rather than for want of code. A gate kind that no world
+    /// stands a Building of is that failure again, so placing one is a task rather than an assumption.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>Two of the four edges are unreachable in every world this build can generate, and it
+    /// is <see cref="PavedTiles"/> that makes them so.</b> The lattice is sized to the Lots the world
+    /// was allocated for, not to the map — so it runs from the origin corner and stops. Its Lots
+    /// therefore touch <see cref="MapEdge.West"/> (<c>east = 0</c>) and <see cref="MapEdge.South"/>
+    /// (<c>north = 0</c>) and never the far two: reaching <see cref="CellGrid.WorldTiles"/> takes
+    /// roughly 2.6 million Lots. Measured on <c>minimal.toml</c> at 1,000 Citizens — 160 paved Tiles
+    /// of 16,384, 124 Lots, <b>6 on the west edge and 15 on the south</b>, none on a corner.
+    /// ***An edge a generator cannot reach is a market nothing can arrive from***, and a Hinterland
+    /// authored behind one is a number no run can refute (<c>adr/0052</c>, <c>adr/0125</c>). The
+    /// generator's real count and siting is <c>plans/0002</c> §D2's gap, owned by milestone <b>24</b>.
+    /// </para>
+    /// <para>
+    /// <b>One per reachable edge, which is derived rather than chosen.</b> A count would be a
+    /// hash-bearing world-creation number needing a ratifier, and <c>adr/0131</c> put that number at
+    /// 24 with the generator. *How many edges does the land touch* is a property of the land, so it
+    /// needs no key — the same move <see cref="PavedTiles"/> makes for the extent and
+    /// <c>adr/0059</c>'s sample makes for a Zone Rule. ⚠ <b>It also gives the milestone two markets
+    /// rather than one</b>, which is the arrangement <c>CONTEXT.md</c> → Hinterland says makes the
+    /// Outside legible at all: *four comparable markets are each other's referent*.
+    /// </para>
+    /// <para>
+    /// <b>A corner is skipped rather than resolved</b>, because <see cref="World.EdgeOf"/> reports
+    /// one there and <see cref="Invariant.OutsideConnectionStandsOnOneEdge"/> refuses it — a gate
+    /// touching two edges sits in two Hinterlands with nothing to say which its emigrants came from.
+    /// On the shipped lattice the corner Lot is at the origin and there is exactly one.
+    /// </para>
+    /// </remarks>
+    /// <returns>How many gates were raised, and therefore how many Building slots precede the dwellings.</returns>
+    private static int RaiseGates(World world, Ticks now, WorldKey key)
+    {
+        if (!TryGateKind(world, out byte kind))
+        {
+            return 0;
+        }
+
+        int raised = 0;
+
+        // Ascending MapEdge order, which is west, east, south, north. It is an order rather than a
+        // preference: nothing here scores one edge above another, and a stable one is what keeps the
+        // State Hash reproducible.
+        for (MapEdge edge = MapEdge.West; edge <= MapEdge.North; edge++)
+        {
+            if (!TryEdgeLot(world, edge, out int lotSlot))
+            {
+                continue;
+            }
+
+            world.CreateBuilding(world.Lots.Rows.At(lotSlot), kind, now, key);
+            raised++;
+        }
+
+        return raised;
+    }
+
+    /// <summary>
+    /// The first Building kind this Ruleset declares as an Outside Connection, if any.
+    /// </summary>
+    /// <remarks>
+    /// <b>Declaration order, on <see cref="DwellingKind"/>'s own convention.</b> That constant is a
+    /// hardcoded <c>1</c> because this class has always assumed the first kind is the housing; a gate
+    /// cannot be assumed into a fixed slot the same way, because most Rulesets declare none — so it
+    /// is looked up, and the lookup is the thing that keeps every gateless Ruleset behaving exactly
+    /// as it did. ⚠ <b>A second gate kind is ignored rather than refused</b>: choosing between two
+    /// would be siting policy, which is milestone 24's.
+    /// </remarks>
+    private static bool TryGateKind(World world, out byte kind)
+    {
+        for (int declared = 1; declared <= world.Rules.KindCount; declared++)
+        {
+            if (world.IsOutsideConnection((byte)declared))
+            {
+                kind = (byte)declared;
+                return true;
+            }
+        }
+
+        kind = 0;
+        return false;
+    }
+
+    /// <summary>
+    /// The lowest-numbered vacant Lot standing on <paramref name="edge"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Lowest slot rather than a draw</b>, because a gate is placed deliberately and nothing about
+    /// where it goes is a sampled outcome. It runs before the dwelling loop, so every Lot is vacant
+    /// and the vacancy test only matters for the second gate — which cannot collide with the first
+    /// anyway, since they are on different edges.
+    /// </remarks>
+    private static bool TryEdgeLot(World world, MapEdge edge, out int lotSlot)
+    {
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount; slot++)
+        {
+            if (world.Lots.Rows.IsLive(slot)
+                && world.Lots.IsVacant(slot)
+                && world.EdgeOf(slot) == edge)
+            {
+                lotSlot = slot;
+                return true;
+            }
+        }
+
+        lotSlot = 0;
+        return false;
+    }
+
+    /// <summary>
     /// The handle of the <paramref name="index"/>th Building.
     /// </summary>
     /// <remarks>
@@ -441,6 +576,6 @@ public static class SyntheticCity
     /// would be 4 MiB of transient garbage at the 1M target to restate what the allocator already
     /// guarantees.
     /// </remarks>
-    private static Handle<Building> Dwelling(World world, int index) =>
-        world.Buildings.Rows.At(index);
+    private static Handle<Building> Dwelling(World world, int index, int gates) =>
+        world.Buildings.Rows.At(gates + index);
 }

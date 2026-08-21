@@ -395,6 +395,7 @@ sitting did not find.
    ✅ **DONE 2026-08-21.**
 3. **`SyntheticCity` places gates**, so there is a world with a door in it — ⚠ **milestone 9's F17 is
    why this is a task and not an assumption.**
+   ✅ **DONE 2026-08-21.**
 4. **The arrival door** — `World.Arrive` creating unhoused **into the Pool at a gate**, and
    `UnplacedTable`'s second column ([`adr/0129`](../docs/adr/0129-the-pool-waits-at-the-gate-and-an-arrivals-trip-is-the-move-in.md)).
    The Command that drives it, since nothing decides to arrive until 16.
@@ -517,6 +518,54 @@ One finding:
   holds the list to them — `RefusalCountTests`' shape one level in: **code against code** where that
   one is a document against code. ⚠ **It checks that each name is assigned, not that it is assigned
   from itself**, which is narrower than it could be and is the whole of the failure observed twice.
+
+### Task 3 — `SyntheticCity` places gates — ✅ **DONE 2026-08-21**
+
+**What ships**: `rulesets/bordered.toml` — the **tenth** shipped Ruleset, `minimal.toml` plus a `port`
+kind carrying `arrivals_per_day = 12` and **four `[[hinterland]]` blocks** — and
+`SyntheticCity.RaiseGates`, which raises **one Outside Connection on every map edge the lattice
+actually reaches**. **7 new tests**; the assertion tier is **1,854 green**. **No State Hash moved**:
+the new pass returns 0 on a Ruleset that declares no gate kind, so the other nine files walk exactly
+the Lots they always did.
+
+**The count and the siting are derived rather than chosen, which is what keeps them out of `0002` §D2.**
+A gate count would be a hash-bearing world-creation number needing a ratifier, and
+[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)
+put that number at **24** with the generator. *How many edges does the land touch* is a property of the
+land, so it needs no key — `PavedTiles`' move for the extent, and `adr/0059`'s for a Zone Rule's sample.
+
+⚠ **Gates go up before the dwellings, and the order is forced.** An edge Lot is an **early** Lot —
+`Subdivide` walks blocks in lattice order from the origin corner — so by the time the dwelling loop has
+taken what it wants, every edge Lot is built on and no gate can be placed at all. It costs an offset in
+`SyntheticCity.Dwelling`, because gates now occupy Building slots `0..gates-1`. ***A Household housed
+IN the gate is not a Household that came THROUGH it***, and without the offset the first ones would
+have been.
+
+**Two `plans/0002` §D2 gaps became §D1 debts**, which is the transition that table exists for: the
+throughput ceiling (`arrivals_per_day = 12`) and the emigrant balance bands. ***A gap becomes a debt on
+the day a file states a number.*** Both name milestone 11 **task 9**'s acceptance run as their machine
+and `bordered.toml` on a world where arrivals outpace housing as their world.
+
+One finding, and it was found by measurement before any code:
+
+- 🔴 **F17 — two of the four map edges cannot be reached by any world this build can generate, and
+  every Hinterland behind them is a number no run can refute.** `SyntheticCity.PavedTiles` sizes the
+  Street lattice to the Lots the world was allocated for rather than to the map, so it runs from the
+  origin corner and **stops**. Measured on `minimal.toml` at 1,000 Citizens: **160 paved Tiles of
+  16,384**, 124 Lots, `maxEast = 160`, `maxNorth = 96` — **6 Lots on the west edge, 15 on the south,
+  none on a corner, 103 inland**. Reaching `CellGrid.WorldTiles` would take on the order of **2.6
+  million Lots**. ⚠ **The good half is that a gate is placeable at all**: the lattice starts at the
+  origin, so `east = 0` and `north = 0` Lots exist and **task 1's exact-boundary constraint holds with
+  no band and no number**, exactly as F13 argued it would. 🔴 **The bad half is `adr/0125`'s
+  unreachable ratifier for the third time** — `plans/0034`'s **F18** was the second, four hours after
+  the ADR was written. ***An edge a generator cannot reach is a market nothing can arrive from.*** ✅
+  **The difference this time is that it was known on the day rather than after the run**, so the north
+  and east bands are filed in `0002` §D1 as **unratifiable until milestone 24** and `bordered.toml`'s
+  header says so in the file. ⚠ **All four are authored anyway, and that is the user's decision taken
+  with the cost stated**: `CONTEXT.md` → Hinterland makes four comparable markets the thing that gives
+  the Outside a referent at all, and a file showing two would not show that shape.
+  `GatePlacementTests.Only_the_edges_the_lattice_reaches_get_a_gate` asserts the **set** rather than a
+  count, so it goes red in either direction and reopens the two rows rather than letting them settle.
 
 ### The doc-comment sweep — ✅ **DONE 2026-08-21**, and it is `plans/0012` **Cause 6**
 

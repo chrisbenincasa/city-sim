@@ -8,8 +8,19 @@ place that orders the three tracks against each other.
 ## What is next
 
 **The next code row is `06` milestone **11** — Hinterlands and arrival through the gate, 🟢 IN FLIGHT:
-🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1 and 2 of
-nine shipped**, seven to go.**
+🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1, 2 and 3 of
+nine shipped**, six to go. **Task 4 is `World.Arrive` — the door itself.**
+
+**Task 3 put a door in a world**: `rulesets/bordered.toml`, the tenth shipped Ruleset, and a generator
+pass that raises one gate on every map edge the lattice reaches — a count **derived** from the land, so
+the generator's real number stays milestone 24's gap. 🔴 ⚠ **And it measured something first: two of
+the four map edges are unreachable in every world this build can generate.** `PavedTiles` sizes the
+lattice to the Lots wanted rather than to the map, so it runs from the origin corner and stops — 160
+paved Tiles of 16,384 at 1,000 Citizens, 6 Lots on the west edge and 15 on the south, and **none ever**
+on east or north. ***An edge a generator cannot reach is a market nothing can arrive from***, so those
+two Hinterlands are filed in `0002` §D1 as **unratifiable until 24** on the day they were written —
+which is [`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-built-is-not-reachable-so-the-weights-get-a-floor-and-a-debt.md)'s
+discipline applied **before** the run for the first time. `0035` **F17**.
 
 **Task 2 authored `[[hinterland]]`** — an edge and an `emigrant_balance` band, and nothing else, on
 [`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)'s
