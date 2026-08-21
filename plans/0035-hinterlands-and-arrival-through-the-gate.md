@@ -404,7 +404,9 @@ sitting did not find.
    writer, and ~~`Invariant.MoneyIsConserved` rewritten as **supply plus flow**~~ 🔴 **STRUCK: the
    invariant needed no rewrite at all** — F20.
    ✅ **DONE 2026-08-21.**
-6. **The move-in Trip** — gate → dwelling, on placement, carrying real congestion.
+6. **The move-in Trip** — gate → dwelling, on placement, carrying real congestion. ⚠ **One Trip
+   per Citizen**, and the arriving count is carried by the Command rather than modelled.
+   ✅ **DONE 2026-08-21.**
 7. **The unhoused Departure** — the duration bound, the derived occasion count, the dwellings-considered
    record, and a Departure that leaves through a gate
    ([`adr/0130`](../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md)).
@@ -737,6 +739,102 @@ One finding, and it is about this plan rather than about the build:
   unnecessary, which a scoping sitting could not have known and a reader of the symbol would have.
   The task list was written before the symbol was read. **Struck in the list rather than deleted**,
   so the correction is legible.
+
+### Task 6 — the move-in Trip — ✅ **DONE 2026-08-21**
+
+**What ships**: `TripPurpose.Immigration`, `PlacementEngine.MoveIn`, `ArrivePayload`'s **Citizens**
+nibble, and `World.TryArrive` creating the people it admits. `Simulation` builds the `PlacementEngine`
+**after** the `TripEngine` so it can be handed one. **3 new tests**; the assertion tier is **1,872
+green in 50 s**. **No State Hash moved** — nine of the ten shipped Rulesets declare no gate, so nothing
+on a baseline reaches a move-in.
+
+**The Trip is started at the placement site rather than armed**, because a move-in happens once per
+journey and has no recurrence — which is what separates it from `Commute`, a daily occasion that is a
+*phase*. And it is **one Trip per Citizen rather than one per Household**, because
+[`adr/0075`](../docs/adr/0075-a-leg-is-a-plan-and-a-traveller-is-a-cursor.md) makes a Traveller a
+cursor over a **Citizen's** journey and there is no such thing as a Household on the road. That is also
+what makes the congestion real: a Household of four arriving is four Vehicles under `adr/0098`'s
+per-Household mode, and collapsing them to one would understate the thing this task exists to produce.
+
+⚠ **Where the arriving Citizens come from is the Command, and that is a decision rather than a
+default.** `TryArrive` produced member-less Households, nothing in the build models Life Stage →
+composition, and inventing a distribution here would have been a hash-bearing number with no ratifier
+([`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)).
+So `ArrivePayload` was repacked into one word — Households **8 bits**, Life Stage **4**, Citizens
+**4** — which needed **no Input Log version bump**, and the verb keeps the posture it already had for
+Life Stage: ***an instrument states what it is standing in for, and does not model it.***
+
+🔴 **The question task 4 routed here is answered *no*, and the answer is a decision this milestone had
+already made.** Task 4 asked whether an arrival placed beyond the Commute Budget from the gate it came
+through is a **placement** question. It is not. `MoveIn` does not inspect the Fate and does not retry:
+a move-in that exceeds the Budget is
+[`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) working — the map
+is sized by how many Budgets fit across it, so a far gate is outside one **by construction**, measured
+on `bordered.toml` at east **62** minutes and north **73** against a ceiling of **49** — and the
+Household is housed either way. ***Placement decides where somebody lives; the Trip records how they
+got there.*** ⚠ **Making placement prefer a dwelling near the gate would be the comparison, arriving
+five milestones early**: that is decision **1** of this milestone, settled as *it does not compare
+anything here; the milestone splits*, and reacting to the Fate is the acceptance model at **16**.
+So the far gate's unusability is not repaired here and is not a defect — ***a far gate is made usable
+by a dwelling beside it, not by a faster road.***
+
+Two findings, and the first is a defect this work introduced.
+
+- 🔴 **F21 — a hand-rolled walk over an encoded column walked off the end of the Household and round
+  the whole Citizen table.** `MoveIn`'s first form read the member list directly:
+
+  ```csharp
+  for (int citizen = _world.Members.PeekFront(household);
+       citizen >= 0;
+       citizen = _world.Citizens.MemberNext[citizen])
+  ```
+
+  `IndexList` stores `next` **1-based** — `_next[tail] = node + 1`, and **0 is the terminator**
+  (`IndexList.cs:124,132`). `PeekFront` decodes it; the loop did not. So it was wrong **twice over**:
+  off by one after the first member, and `0` passes a `>= 0` test, so the walk left the Household at
+  Citizen slot 0 and went through the whole table and round again, starting a Trip per step without
+  bound and recording route hops on each. ***A hand-rolled walk over an encoded column is a decode
+  somebody has to remember.*** This was the **only** place in the repository reading `MemberNext` by
+  hand; every other list walk goes through `IndexList.Walk`, and now this one does too.
+
+  ⚠ **Found by measurement rather than by review, and two plausible readings of the stack were both
+  wrong.** The test was OOM-killing the machine; accumulation across Ticks and a single runaway route
+  were each read into the trace and neither was it. A probe settled it — one route records **2** hops,
+  while the member walk ran to **100,000**, which is a cycle guard rather than a length.
+  ***A number that is round is a limit, not a measurement.***
+
+  | | before | after |
+  |---|---|---|
+  | `ArrivalTests` peak RSS | 10,651 MB | **603 MB** |
+  | `ArrivalTests` duration | 59 s | **3 s** |
+  | `ArrivalTests` result | 19/20 OOM | **20/20** |
+
+  ⚠ **Those durations were taken while other work ran on the same six cores, so they are upper bounds
+  and not figures for a document to quote** ([`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md),
+  and `CLAUDE.md`'s rule that a test-cost capture is a parallelism measurement). The **result** row is
+  not a timing figure and is not subject to that caveat.
+
+  The regression test is `ArrivalTests.Placing_an_arrival_starts_a_move_in_trip_from_its_gate`, and it
+  is a **count** — two Citizens must produce **exactly two** Immigration Trips. An unbounded walk fails
+  it on the number rather than on the clock, which is what keeps the guard from depending on a machine
+  that happens to run out of memory.
+
+- 🔴 **F22 — a filed sweep is a counted list, and it drifted in both directions while it waited.**
+  `plans/0012` holds *A world's seed has two sources*: `World.Key` exists, and every other mutator
+  still takes a `WorldKey` **parameter**, so one world has two sources for one seed with nothing
+  checking they agree. Task 5 added `TryArrive` to that list without noticing — ***a new instance of a
+  filed pattern is not caught by having filed it*** — and task 6 removed the parameter again. In the
+  other direction, the entry names `DestroyBuilding` as a member and `DestroyBuilding` no longer takes
+  one, so the ledger's own example had gone stale. **The entry is corrected on the day** rather than
+  worked around ([`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)),
+  and it now names its members explicitly instead of *"and the rest"*.
+
+  ⚠ **This is `plans/0012` Cause 1 with the drifted copy inside `plans/0012`.** The audit ledger is
+  itself a document that stores a fact — *which symbols carry this defect* — and it has no mechanism
+  keeping that list true. **F19** was the first sighting where the drifted copy was a **test**; this is
+  the first where it is the **audit**. ***A ledger of debts accrues debt.*** No detector is proposed:
+  a check that a named symbol still has a named parameter is a mechanical test the corpus suite could
+  hold, and it is filed rather than built because one instance is not a pattern yet.
 
 ### The doc-comment sweep — ✅ **DONE 2026-08-21**, and it is `plans/0012` **Cause 6**
 

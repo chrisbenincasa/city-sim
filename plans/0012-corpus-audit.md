@@ -2277,9 +2277,8 @@ design change.)*
 
 `World` now holds a `Key` — `Randomness.Draw`'s first coordinate — because `CommuteRoster` is
 `(derived AND rebuilt)` from it and `RebuildDerived()` takes no arguments and must not start taking
-them. **Every other mutator on the class still takes a `WorldKey` as a parameter**: `CreateBuilding`,
-`DestroyBuilding`, `Adopt` and the rest, nine call sites in all. So one world has **two sources for one
-seed**, and nothing checks that they agree — a caller passing a different key would make the arming
+them. **Every other mutator on the class still takes a `WorldKey` as a parameter.** So one world has
+**two sources for one seed**, and nothing checks that they agree — a caller passing a different key would make the arming
 stagger disagree with the commute roster about which world it is in, and both would look correct in
 isolation.
 
@@ -2295,6 +2294,23 @@ comment shipped, the entry did not, and for two commits the codebase asserted in
 somewhere held this. That is `adr/0073` failing at its own first step: *route the finding on the day,
 and before working around it*. **A citation is not a filing, and the document that would have caught it
 is the one being cited.** The only thing that found it was somebody asking what was outstanding.
+
+⚠ **The membership is named rather than counted, because this entry has now drifted in both
+directions** — `plans/0035` **F22**, found 2026-08-21 by milestone 11 task 6. It previously read
+*"`CreateBuilding`, `DestroyBuilding`, `Adopt` and the rest, nine call sites in all"*, and
+`DestroyBuilding` **no longer takes one**, so the ledger's own worked example had gone stale. In the
+other direction, milestone 11 task 5 added `World.TryArrive` to the list without noticing and task 6
+removed it again — ***a new instance of a filed pattern is not caught by having filed it.*** As of
+2026-08-21 the members are, in declaration order:
+
+`Adopt`, `Migrate`, `CreateBuilding`, `Fit`, `ArmingStagger`, `EvictOverflow`, `Loser`, `LosingWorker`
+— **eight**, plus the constructor, which legitimately *receives* the key rather than re-supplying it.
+
+⚠ **A ledger of debts accrues debt, and that is this entry's second lesson.** `plans/0012` stores a
+fact — *which symbols carry this defect* — with no mechanism keeping it true, which is **Cause 1** with
+the drifted copy inside the audit itself. A mechanical check that a named symbol still has a named
+parameter is something `tests/Borough.Tests/Corpus/` could hold; it is **filed rather than built**,
+because one instance is not a pattern yet.
 
 ### The developed density every map decision is priced against is circular, and nothing says so
 
