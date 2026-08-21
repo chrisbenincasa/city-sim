@@ -69,11 +69,19 @@ public sealed class MoneySupplyTable
     /// Money that has entered this world, net of anything that has left it.
     /// </summary>
     /// <remarks>
-    /// <b>Written by <see cref="World.Endow"/> and by nothing else today</b>, which is what makes it
-    /// an anchor rather than a second copy of the balances. Milestone <b>11</b> gives it its second
-    /// writer — the Outside Connection is money's only source and sink (<c>CONTEXT.md</c> → Money), so
-    /// the gate moves this and the invariant is unchanged. Until then it moves at the founding alone,
-    /// and the check is an exact equality rather than a sum with a flow term.
+    /// <b>Written by <see cref="World.Endow"/> and by nothing else</b>, which is what makes it an
+    /// anchor rather than a second copy of the balances. ✅ <b>The second writer landed at milestone
+    /// 11 task 5</b>: <see cref="World.TryArrive"/> endows an arriving Household from the Hinterland
+    /// behind its gate, so the supply is no longer constant over a run — the Outside Connection is
+    /// money's only source and sink (<c>CONTEXT.md</c> → Money).
+    /// </remarks>
+    /// <remarks>
+    /// ⚠ <b>The check stayed an exact equality, and this column is the reason.</b>
+    /// <c>plans/0035</c>'s task list said <see cref="Invariant.MoneyIsConserved"/> would be
+    /// <em>rewritten as supply plus flow</em>, and nothing was rewritten: <c>Issued</c> is declared
+    /// as money that has entered <b>net of anything that has left it</b>, and <see cref="World.Endow"/>
+    /// writes it in the same call that deposits — so both sides move together. ***A flow term is only
+    /// owed where the two sides are arrived at on different schedules.***
     /// </remarks>
     public Column<Money> Issued { get; }
 }

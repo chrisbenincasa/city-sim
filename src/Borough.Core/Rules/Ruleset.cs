@@ -745,6 +745,49 @@ public readonly record struct HinterlandDefinition(
     /// nothing still arrives, still joins the Unplaced Pool and still has to be housed.
     /// </remarks>
     public bool Endows => EmigrantBalanceMax.Raw > 0;
+
+    /// <summary>
+    /// What the Household whose never-reused id is <paramref name="entityId"/> carries across.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="HouseholdRuleset.OpeningBalance"/>'s draw, on a different tag and a different
+    /// band</b>, and every argument that one makes applies here unchanged: uniform over the band with
+    /// no shape parameter, because a skew is a second decision with a number in it and nothing has
+    /// measured which (<c>adr/0052</c>); drawn on the Household's own id at <see cref="Ticks.Zero"/>,
+    /// because it answers <em>what sort of Household is this</em>; and consumed once rather than
+    /// re-derived, because an endowment is issued and then spent.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The two draws use different <see cref="PurposeTag"/>s and the reason is not the obvious
+    /// one.</b> The populations do not overlap — a Household is founded <em>or</em> it arrives — so
+    /// sharing would collide with nothing and would still be wrong: the same id takes the same
+    /// fraction of whichever span it is given, so the family that would have been richest at the
+    /// founding is the richest emigrant from every edge. <c>PurposeTag.EmigrantBalance</c> carries
+    /// the argument in full.
+    /// </para>
+    /// <para>
+    /// <b>The four edges differ deliberately, and the difference is the whole point of the object.</b>
+    /// Four identical Hinterlands would make edge selection inert, which is the one thing
+    /// <c>CONTEXT.md</c> → Hinterland says the Outside needs in order to be legible: *four comparable
+    /// markets are each other's referent.*
+    /// </para>
+    /// </remarks>
+    /// <param name="key">The world seed.</param>
+    /// <param name="entityId">The Household's monotonic id — never its slot, which is recycled.</param>
+    public Money EmigrantBalance(WorldKey key, ulong entityId)
+    {
+        long span = (EmigrantBalanceMax - EmigrantBalanceMin).Raw + 1;
+
+        if (span <= 1)
+        {
+            return EmigrantBalanceMin;
+        }
+
+        ulong draw = Randomness.Draw(key, entityId, Ticks.Zero, PurposeTag.EmigrantBalance);
+
+        return EmigrantBalanceMin + new Money((long)(draw % (ulong)span));
+    }
 }
 
 /// <summary>

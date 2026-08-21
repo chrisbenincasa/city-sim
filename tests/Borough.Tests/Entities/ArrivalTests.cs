@@ -3,6 +3,7 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
 using Borough.Core.Invariants;
+using Borough.Core.Tables;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -43,6 +44,45 @@ public sealed class ArrivalTests
                 $"the shipped Ruleset {file} was refused, so this test cannot run:\n{result.Describe()}");
     }
 
+    /// <summary>
+    /// <c>bordered.toml</c> with every <c>[[hinterland]]</c> struck, which no shipped file is.
+    /// </summary>
+    /// <remarks>
+    /// <b>Built by editing the file's text rather than by hand-assembling a <c>Ruleset</c></b>, so
+    /// what is under test is a Ruleset the loader actually accepts. A file declaring a gate kind and
+    /// no Hinterland is <em>not refusable at load</em> — which edge a gate stands on is a property of
+    /// where it was placed, and the loader cannot see a world — so this is exactly the configuration
+    /// the arrival-site check exists for.
+    /// </remarks>
+    private static Ruleset WithGateButNoHinterland()
+    {
+        string[] lines =
+            File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Rulesets", "bordered.toml"));
+
+        var kept = new List<string>();
+        bool inHinterland = false;
+
+        foreach (string line in lines)
+        {
+            if (line.TrimStart().StartsWith('['))
+            {
+                inHinterland = line.TrimStart().StartsWith("[[hinterland]]", StringComparison.Ordinal);
+            }
+
+            if (!inHinterland)
+            {
+                kept.Add(line);
+            }
+        }
+
+        RulesetLoadResult result = RulesetLoader.Parse(
+            string.Join("\n", kept), "bordered-no-hinterland.toml");
+
+        return result.Ruleset
+            ?? throw new InvalidOperationException(
+                $"a gate with no Hinterland must load cleanly, and did not:\n{result.Describe()}");
+    }
+
     private static World Bordered(int citizens = 1_000)
     {
         var world = new World(citizens, Shipped("bordered.toml"));
@@ -79,7 +119,7 @@ public sealed class ArrivalTests
 
         Assert.True(
             world.TryArrive(
-                world.Buildings.Rows.At(gate), lifeStage: 0, Ticks.Zero, out var household));
+                world.Buildings.Rows.At(gate), lifeStage: 0, Ticks.Zero, Key, out var household));
 
         Assert.Equal(before + 1, world.UnplacedPool.Count);
 
@@ -106,7 +146,7 @@ public sealed class ArrivalTests
 
         Assert.True(
             world.TryArrive(
-                world.Buildings.Rows.At(Gates(world)[0]), lifeStage: 0, Ticks.Zero, out var household));
+                world.Buildings.Rows.At(Gates(world)[0]), lifeStage: 0, Ticks.Zero, Key, out var household));
 
         int slot = world.Households.Rows.Resolve(household);
 
@@ -140,7 +180,7 @@ public sealed class ArrivalTests
 
         for (int i = 0; i < ceiling * 3; i++)
         {
-            if (world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, out _))
+            if (world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out _))
             {
                 admitted++;
             }
@@ -164,14 +204,14 @@ public sealed class ArrivalTests
 
         for (int i = 0; i < ceiling; i++)
         {
-            Assert.True(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, out _));
+            Assert.True(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out _));
         }
 
-        Assert.False(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, out _));
+        Assert.False(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out _));
 
         Assert.True(
             world.TryArrive(
-                world.Buildings.Rows.At(gate), 0, new Ticks(Ticks.PerDay), out _));
+                world.Buildings.Rows.At(gate), 0, new Ticks(Ticks.PerDay), Key, out _));
     }
 
     /// <summary>Each gate meters its own Day, so a full one does not close the others.</summary>
@@ -187,11 +227,11 @@ public sealed class ArrivalTests
 
         for (int i = 0; i < ceiling; i++)
         {
-            Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, Ticks.Zero, out _));
+            Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, Ticks.Zero, Key, out _));
         }
 
-        Assert.False(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, Ticks.Zero, out _));
-        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[1]), 0, Ticks.Zero, out _));
+        Assert.False(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, Ticks.Zero, Key, out _));
+        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[1]), 0, Ticks.Zero, Key, out _));
     }
 
     /// <summary>
@@ -225,7 +265,7 @@ public sealed class ArrivalTests
 
         world.Invariants.Collect = true;
 
-        Assert.False(world.TryArrive(world.Buildings.Rows.At(dwelling), 0, Ticks.Zero, out _));
+        Assert.False(world.TryArrive(world.Buildings.Rows.At(dwelling), 0, Ticks.Zero, Key, out _));
         Assert.Equal(before, world.UnplacedPool.Count);
         Assert.Contains(
             world.Invariants.Collected,
@@ -251,8 +291,8 @@ public sealed class ArrivalTests
 
         Assert.True(gates.Count > 1);
 
-        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, Ticks.Zero, out var first));
-        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[1]), 0, Ticks.Zero, out var second));
+        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[0]), 0, Ticks.Zero, Key, out var first));
+        Assert.True(world.TryArrive(world.Buildings.Rows.At(gates[1]), 0, Ticks.Zero, Key, out var second));
 
         int firstPosition = world.Households.PoolPosition(world.Households.Rows.Resolve(first));
 
@@ -393,6 +433,158 @@ public sealed class ArrivalTests
     }
 
     /// <summary>
+    /// 🔴 <b>Money crosses the gate, and the world's supply is no longer a constant.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b><c>MoneySupplyTable.Issued</c>'s second writer, which that column has been predicting since
+    /// milestone 10</b> — <em>"milestone 11 gives it its second writer … the gate moves this and the
+    /// invariant is unchanged."</em> Until now the supply moved at the founding alone, so
+    /// <see cref="Invariant.MoneyIsConserved"/> was an exact equality against a number that never
+    /// changed. It is still an exact equality, because <c>Issued</c> is declared as money that has
+    /// entered <em>net of anything that has left</em>.
+    /// </remarks>
+    [Fact]
+    public void Money_crosses_the_gate_and_the_supply_moves()
+    {
+        World world = Bordered();
+        long before = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
+        int gate = Gates(world)[0];
+
+        Assert.True(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out var arrival));
+
+        long after = world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw;
+
+        Assert.True(after > before, "the supply did not move when a Household carried money in.");
+        Assert.Equal(after - before, world.BalanceOf(arrival).Raw);
+    }
+
+    /// <summary>
+    /// <b>What crosses is inside the band the gate's own Hinterland authored.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>The pairing is the assertion, not the range.</b> The four edges carry deliberately
+    /// different bands so that edge selection is not inert — <c>CONTEXT.md</c> → Hinterland's *four
+    /// comparable markets are each other's referent* — so an arrival drawing against the wrong
+    /// Hinterland is a Household from a market it never came from, and it would look entirely
+    /// ordinary.
+    /// </remarks>
+    [Fact]
+    public void An_arrival_carries_what_its_own_hinterland_authored()
+    {
+        World world = Bordered();
+        int checkedGates = 0;
+
+        foreach (int gate in Gates(world))
+        {
+            MapEdge edge = world.EdgeOf(world.Lots.Rows.Resolve(world.Buildings.Lot[gate]));
+
+            Assert.True(world.Rules.TryHinterland(edge, out HinterlandDefinition hinterland));
+            Assert.True(
+                world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out var arrival));
+
+            Money carried = world.BalanceOf(arrival);
+
+            Assert.InRange(
+                carried.Raw, hinterland.EmigrantBalanceMin.Raw, hinterland.EmigrantBalanceMax.Raw);
+
+            checkedGates++;
+        }
+
+        Assert.Equal(4, checkedGates);
+    }
+
+    /// <summary>
+    /// <b>Conservation still holds once money has come in from outside.</b>
+    /// </summary>
+    /// <remarks>
+    /// 🔴 ⚠ <b>This milestone's task list said <c>MoneyIsConserved</c> would be *rewritten as supply
+    /// plus flow*, and it was not rewritten at all.</b> <c>MoneySupplyTable.Issued</c> is declared as
+    /// money that has entered <em>net of anything that has left it</em>, and <c>World.Endow</c>
+    /// writes it in the same call that deposits — so an arrival moves both sides together and the
+    /// equality is exact without a flow term. ***A term is only owed where the two sides are arrived
+    /// at on different schedules.*** The column's own doc-comment said so a milestone in advance.
+    /// </remarks>
+    [Fact]
+    public void Conservation_holds_across_an_arrival()
+    {
+        World world = Bordered();
+        int gate = Gates(world)[0];
+
+        for (int i = 0; i < 5; i++)
+        {
+            Assert.True(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out _));
+        }
+
+        world.Invariants.Collect = true;
+        WorldInvariants.MoneyIsConserved(world, world.Invariants);
+
+        Assert.DoesNotContain(
+            world.Invariants.Collected,
+            violation => violation.Invariant == Invariant.MoneyIsConserved);
+
+        MoneyLedger ledger = MoneyLedger.Of(world);
+
+        Assert.Equal(world.MoneySupply.Issued[MoneySupplyTable.Slot].Raw, ledger.Total);
+    }
+
+    /// <summary>
+    /// Two arrivals through one gate do not carry the same amount, which is what a band is for.
+    /// </summary>
+    /// <remarks>
+    /// <b>A single figure has no distribution</b>, so any instrument reading a spread reads 0% or
+    /// 100% and measures nothing — <c>adr/0115</c>'s concern, and the reason
+    /// <c>[[hinterland]]</c> authors a band rather than a number. The draw is on the Household's
+    /// <b>monotonic id</b>, so two arrivals differ even when they share a slot's history.
+    /// </remarks>
+    [Fact]
+    public void Two_arrivals_through_one_gate_do_not_carry_the_same_amount()
+    {
+        World world = Bordered();
+        int gate = Gates(world)[0];
+        var carried = new HashSet<long>();
+
+        for (int i = 0; i < 8; i++)
+        {
+            Assert.True(
+                world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out var arrival));
+
+            carried.Add(world.BalanceOf(arrival).Raw);
+        }
+
+        Assert.True(carried.Count > 1, "every arrival carried the same amount, so the band is inert.");
+    }
+
+    /// <summary>
+    /// 🔴 <b>A gate whose edge has no Hinterland admits nobody, and says which refusal it is.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>Admitting them with nothing was the alternative and it is milestone 9's F13.</b> Zero is a
+    /// legitimate emigrant balance — a Hinterland whose people arrive penniless is a poor economy,
+    /// not an unset field — so a Household admitted through a gate with no economy behind it would be
+    /// indistinguishable from one that came from somewhere poor. ***A zero that is a real answer
+    /// cannot double as the absence of an answer.***
+    /// </remarks>
+    [Fact]
+    public void A_gate_with_no_hinterland_behind_it_admits_nobody()
+    {
+        World world = Bordered();
+        int gate = Gates(world)[0];
+        int before = world.UnplacedPool.Count;
+
+        // minimal.toml declares the same Buildings and no [[hinterland]] at all, so the gate goes on
+        // standing where it stands and the Outside behind it stops existing.
+        world.Adopt(WithGateButNoHinterland(), contentHash: 0, Ticks.Zero, Key);
+
+        world.Invariants.Collect = true;
+
+        Assert.False(world.TryArrive(world.Buildings.Rows.At(gate), 0, Ticks.Zero, Key, out _));
+        Assert.Equal(before, world.UnplacedPool.Count);
+        Assert.Contains(
+            world.Invariants.Collected,
+            violation => violation.Invariant == Invariant.AGateOpensOntoAHinterland);
+    }
+
+    /// <summary>
     /// 🔴 <b>A Ruleset reload that un-declares the gate kind is caught, and the write site cannot
     /// see it.</b>
     /// </summary>
@@ -410,7 +602,7 @@ public sealed class ArrivalTests
 
         Assert.True(
             world.TryArrive(
-                world.Buildings.Rows.At(Gates(world)[0]), 0, Ticks.Zero, out _));
+                world.Buildings.Rows.At(Gates(world)[0]), 0, Ticks.Zero, Key, out _));
 
         world.Invariants.Collect = true;
         WorldInvariants.ThePoolWaitsAtRealGates(world, world.Invariants);

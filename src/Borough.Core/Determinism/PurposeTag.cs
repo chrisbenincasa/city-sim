@@ -356,4 +356,36 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     PolicyScanStart = 20,
+
+    /// <summary>
+    /// What an arriving Household carries across the gate, inside its Hinterland's band
+    /// (<c>plans/0035</c> task 5, <c>adr/0131</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="OpeningBalance"/>'s form and not its tag.</b> A <see cref="Ticks.Zero"/> draw on
+    /// the Household's own id, consumed exactly once, because an endowment is <em>issued</em> — it
+    /// enters a Bin, is spent, and cannot be recovered by redrawing. Retuning a Hinterland's band
+    /// therefore moves the Households that arrive after the reload and leaves every standing one
+    /// holding what it holds. ***Money already issued is money in the world***, and a hot reload that
+    /// redistributed it would be a Ruleset editing history.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>Distinct from <see cref="OpeningBalance"/>, and sharing would have been the subtlest
+    /// correlation in this enum.</b> Both are drawn on a Household's id at <see cref="Ticks.Zero"/>,
+    /// and the two populations do not overlap — a Household is founded <em>or</em> it arrives — so a
+    /// shared tag would produce no visible collision at all. What it would produce is a **rank
+    /// correlation between the founding band and every Hinterland's band**: the same id draws the
+    /// same fraction of whichever span it is given, so the family that would have been richest at the
+    /// founding is the richest emigrant from every edge. ***A correlation between two populations
+    /// that never meet is one nothing in the city can refute.***
+    /// </para>
+    /// <para>
+    /// <b>Not per edge, and the id is what separates the edges.</b> Four Hinterlands drawing on one
+    /// tag is not four correlated draws — each Household is drawn once, at one gate, against one
+    /// band. A tag per edge would be a tag per <em>value of a field</em>, which this enum does not do
+    /// and could not: the edges are Ruleset content and the tags are simulation source.
+    /// </para>
+    /// </remarks>
+    EmigrantBalance = 21,
 }

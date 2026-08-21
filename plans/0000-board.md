@@ -8,9 +8,25 @@ place that orders the three tracks against each other.
 ## What is next
 
 **The next code row is `06` milestone **11** — Hinterlands and arrival through the gate, 🟢 IN FLIGHT:
-🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1 to 4 of
-nine shipped**, five to go. **Task 5 is money crossing — the arriving balance drawn from the
-Hinterland, and `MoneyIsConserved` rewritten as supply plus flow.**
+🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1 to 5 of
+nine shipped**, four to go. **Task 6 is the move-in Trip — gate → dwelling, on placement, carrying
+real congestion.**
+
+**Task 5 put money through the door**, and with it this milestone's Definition of done in one line:
+***a world's money supply is no longer a constant.*** `MoneySupplyTable.Issued` has had exactly one
+writer since milestone 10 and now has two, and `World.Endow` is still the only door — it deposits and
+writes the anchor in one call, so there is no spelling in which the second half can be forgotten. The
+draw is `OpeningBalance`'s form on its own tag; ⚠ **sharing that tag would have collided with nothing
+and still been wrong**, because the same id takes the same fraction of whichever span it is given, so
+***the family that would have been richest at the founding would be the richest emigrant from every
+edge*** — a correlation between two populations that never meet, and nothing in the city could refute
+it. 🔴 ⚠ **A gate whose edge has no `[[hinterland]]` now admits nobody**: admitting them carrying zero
+would make *nowhere* and *somewhere poor* the same observation, and ***a zero that is a real answer
+cannot double as the absence of an answer.*** 🔴 **F20 — the task said `MoneyIsConserved` would be
+rewritten as supply plus flow and nothing needed rewriting**, because `Issued` is declared net and
+`Endow` moves both sides together. The column's own doc-comment had said so a milestone in advance:
+`adr/0093` from the other side, where a **plan** described work the build had already made
+unnecessary.
 
 **Task 4 opened the door**: `World.TryArrive` creates a Household that has never lived here, straight
 into the Pool at a named gate, and `UnplacedTable`'s second column is where the gate waits out the

@@ -614,10 +614,14 @@ public enum Invariant
     /// property of the whole world and no single row is to blame for it.
     /// </para>
     /// <para>
-    /// ⚠ <b>An exact equality is a property of the schedule and it expires.</b> Money's only source and
-    /// sink is the Outside Connection, which is milestone <b>11</b>; the supply is constant for the
-    /// whole of milestone 10, so the reading is taken here. When the gate lands it writes the anchor
-    /// and this check is unchanged.
+    /// ⚠ <b>An exact equality was expected to be a property of the schedule, and it turned out to be
+    /// a property of the anchor.</b> The reasoning here was that the supply is constant for the whole
+    /// of milestone 10, so the reading could be taken while it was. ✅ <b>The gate landed at milestone
+    /// 11 task 5 and the check did not move</b> — <see cref="Entities.MoneySupplyTable.Issued"/> is
+    /// declared as money that has entered <em>net of anything that has left it</em>, and
+    /// <c>World.Endow</c> writes it in the same call that deposits, so an arrival moves both sides
+    /// together. ***A flow term is only owed where the two sides are arrived at on different
+    /// schedules***, and one door that writes both is what makes sure they are not.
     /// </para>
     /// </remarks>
     MoneyIsConserved = 40,
@@ -797,4 +801,36 @@ public enum Invariant
     /// </para>
     /// </remarks>
     ThePoolsGateIsAnOutsideConnection = 47,
+
+    /// <summary>
+    /// The gate a Household arrives through opens onto a declared Hinterland.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The pairing the loader cannot make</b> (<c>plans/0035</c> task 2). Which edge an Outside
+    /// Connection stands on is a property of where it was <em>placed</em>
+    /// (<c>World.EdgeOf</c>), not of the Ruleset — so a file declaring a gate kind and no
+    /// <c>[[hinterland]]</c> is not refusable at load, because the loader cannot see a world. The
+    /// pairing happens at arrival, and this is it.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The arrival is refused rather than admitted with nothing, and that is milestone 9's
+    /// F13.</b> A Household admitted through a gate with no economy behind it would carry zero — and
+    /// zero is a <em>legitimate</em> answer, because <see cref="Rules.HinterlandDefinition.Endows"/>
+    /// says a Hinterland whose emigrants arrive penniless is a real economy. So admitting would make
+    /// *nowhere* and *somewhere poor* the same observation. ***A mechanism returning plausible
+    /// results while saying something false is worse than one that refuses***, and a zero that is a
+    /// real answer cannot double as the absence of an answer.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It fires at the arrival and not at the placement, and the absence of the second half is
+    /// <c>unbuilt</c> rather than refused</b> (<c>adr/0070</c>). A check in
+    /// <c>World.CreateBuilding</c> would say so at once, and a whole-world walk would catch a reload
+    /// removing a <c>[[hinterland]]</c> from under a standing gate — <c>plans/0035</c> <b>F14</b>'s
+    /// shape a third time. Neither is built because no shipped Ruleset can produce either: the one
+    /// file with a gate declares all four edges. ***Naming where the other halves would go is what
+    /// keeps their absence from reading as a decision.***
+    /// </para>
+    /// </remarks>
+    AGateOpensOntoAHinterland = 48,
 }

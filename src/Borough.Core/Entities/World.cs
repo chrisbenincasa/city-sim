@@ -1006,20 +1006,36 @@ public sealed class World
     /// artifact, and would leave the real fault indistinguishable from a busy Day.
     /// </para>
     /// <para>
-    /// ⚠ <b>It opens a balance and puts nothing in it.</b> That is <see cref="CreateHousehold"/>'s
-    /// line for <see cref="CreateHousehold"/>'s reason (<c>adr/0114</c>): a Household never exists
-    /// without a balance in a world whose Ruleset names money. <b>What the emigrant carries is task
-    /// 5's</b> — the draw from the Hinterland's band, and
-    /// <see cref="MoneySupplyTable.Issued"/>'s second writer.
+    /// <b>Money crosses with them, and this is
+    /// <see cref="MoneySupplyTable.Issued"/>'s second writer</b> (<c>adr/0131</c>, milestone 11 task
+    /// 5) — the first thing in the project that moves the supply after the founding, so a world's
+    /// money is no longer a constant. The amount is drawn from the Hinterland behind the gate's
+    /// edge, uniformly over its band, on the Household's own id. <b><see cref="Endow"/> is still the
+    /// only door money enters by</b>: it deposits through the Bin's wait list and writes the anchor
+    /// in one call, so <see cref="Invariant.MoneyIsConserved"/> needs no flow term and is unchanged.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>A gate with no <c>[[hinterland]]</c> behind its edge admits nobody, and the refusal is
+    /// F13 rather than strictness.</b> A Household admitted through such a gate would carry zero —
+    /// and zero is a *legitimate* answer, because <see cref="HinterlandDefinition.Endows"/> says a
+    /// Hinterland whose emigrants arrive penniless is a real economy. Admitting would make *nowhere*
+    /// and *somewhere poor* the same observation. ***A zero that is a real answer cannot double as
+    /// the absence of an answer.*** See <see cref="Invariant.AGateOpensOntoAHinterland"/>, which
+    /// also records where the two checks that are not built would go.
     /// </para>
     /// </remarks>
     /// <param name="gate">The Outside Connection they entered by.</param>
     /// <param name="lifeStage">Which Life Stage arrives. The mix is milestone 16's; here it is stated.</param>
     /// <param name="now">The Tick the arrival happens on, which is what names the Day.</param>
+    /// <param name="key">The world seed, which the emigrant balance is drawn against.</param>
     /// <param name="household">The Household created, or a default handle when the gate refused.</param>
     /// <returns><c>true</c> when the gate admitted them.</returns>
     public bool TryArrive(
-        Handle<Building> gate, byte lifeStage, Ticks now, out Handle<Household> household)
+        Handle<Building> gate,
+        byte lifeStage,
+        Ticks now,
+        WorldKey key,
+        out Handle<Household> household)
     {
         household = default;
 
@@ -1027,6 +1043,16 @@ public sealed class World
             || !TryArrivalsPerDay(Buildings.Kind[gateSlot], out int ceiling))
         {
             Invariants.Report(Invariant.AnArrivalCrossesAnOutsideConnection, gateSlot);
+            return false;
+        }
+
+        // Before the meter, so a door onto nowhere does not burn a Day's quota being refused. The
+        // edge is a property of where the gate was placed and not of the Ruleset, which is why the
+        // loader cannot make this pairing and why it happens here.
+        if (!Lots.Rows.TryResolve(Buildings.Lot[gateSlot], out int gateLot)
+            || !Rules.TryHinterland(EdgeOf(gateLot), out HinterlandDefinition hinterland))
+        {
+            Invariants.Report(Invariant.AGateOpensOntoAHinterland, gateSlot);
             return false;
         }
 
@@ -1062,6 +1088,21 @@ public sealed class World
         if (TryMoneyResource(out ResourceId money))
         {
             Households.Balance[slot] = OpenBalance(BinOwnerKind.Household, money);
+        }
+
+        // Money crosses here, which is MoneySupplyTable.Issued's second writer and the first thing in
+        // this project that moves the supply after the founding. Endow is still the only door: it
+        // deposits through the Bin's wait list and writes the anchor in one call, so there is no
+        // spelling in which the second half can be forgotten (adr/0031).
+        //
+        // Drawn on the Household's monotonic id rather than its slot, because a slot is recycled and
+        // two Households sharing one would draw the same balance -- 02 §8 rule 5, on the coordinate
+        // rather than on the stream.
+        Money carried = hinterland.EmigrantBalance(key, Households.Rows.IdAt(slot));
+
+        if (carried.Raw > 0 && !Households.Balance[slot].IsNone)
+        {
+            Endow(handle, carried);
         }
 
         // The dwelling handle is left default by the allocator -- FreeSlot zeroes every column, so a

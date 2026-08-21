@@ -401,7 +401,9 @@ sitting did not find.
    The Command that drives it, since nothing decides to arrive until 16.
    ✅ **DONE 2026-08-21.**
 5. **Money crosses** — the arriving balance drawn from the Hinterland, `MoneySupply.Issued`'s second
-   writer, and `Invariant.MoneyIsConserved` rewritten as **supply plus flow**.
+   writer, and ~~`Invariant.MoneyIsConserved` rewritten as **supply plus flow**~~ 🔴 **STRUCK: the
+   invariant needed no rewrite at all** — F20.
+   ✅ **DONE 2026-08-21.**
 6. **The move-in Trip** — gate → dwelling, on placement, carrying real congestion.
 7. **The unhoused Departure** — the duration bound, the derived occasion count, the dwellings-considered
    record, and a Departure that leaves through a gate
@@ -685,6 +687,56 @@ One finding, and it was not this milestone's:
   name.*** Repaired by reflecting over the enum, so the next verb is in the test before anybody writes
   a line of it. Filed as [`plans/0012`](0012-corpus-audit.md) **Cause 1, fourth form** — the first
   sighting of that cause in which the copy that drifted was a **test**.
+
+### Task 5 — money crosses — ✅ **DONE 2026-08-21**
+
+**What ships**: `HinterlandDefinition.EmigrantBalance`, `PurposeTag.EmigrantBalance`, the endowment
+inside `World.TryArrive`, and `Invariant.AGateOpensOntoAHinterland`. **5 new tests**; the assertion
+tier is **1,869 green**. **No State Hash moved** — nine of the ten shipped Rulesets declare no gate,
+so `TryArrive` is never reached on any baseline.
+
+**A world's money supply is no longer a constant**, which is this milestone's Definition of done in
+one line. `MoneySupplyTable.Issued` has had exactly one writer since milestone 10 and now has two.
+`World.Endow` is still the only door: it deposits through the Bin's wait list and writes the anchor in
+one call, so there is no spelling in which the second half can be forgotten (`adr/0031`).
+
+**The draw is `OpeningBalance`'s, on a different tag, and the tag is where the argument is.** Uniform
+over the band with no shape parameter — a skew is a second decision with a number in it and nothing
+has measured which (`adr/0052`) — on the Household's **monotonic id** at Tick 0, consumed once
+because an endowment is *issued* and cannot be recovered by redrawing. ⚠ **Sharing
+`PurposeTag.OpeningBalance` would have been the subtlest correlation in that enum and would have
+collided with nothing**: the populations do not overlap, a Household is founded *or* it arrives — but
+the same id takes the same fraction of whichever span it is given, so ***the family that would have
+been richest at the founding is the richest emigrant from every edge***. A correlation between two
+populations that never meet is one nothing in the city can refute.
+
+🔴 ⚠ **A gate whose edge has no `[[hinterland]]` admits nobody, and the refusal is F13 rather than
+strictness.** Task 2 recorded that nothing pairs a gate kind with a Hinterland at load and nothing
+could — which edge a gate stands on is a property of where it was *placed*, and the loader cannot see
+a world — so the pairing happens at arrival. The alternative was admitting them carrying zero, and
+zero is a **legitimate** emigrant balance: task 2's own record says a Hinterland whose emigrants
+arrive penniless is a poor economy rather than an unset field. ***A zero that is a real answer cannot
+double as the absence of an answer.*** ⚠ **The two checks that are not built are named rather than
+omitted** (`adr/0070`): one in `World.CreateBuilding`, which would say so at placement, and a
+whole-world walk, which would catch a reload removing a `[[hinterland]]` from under a standing gate —
+**F14's shape a third time**. Neither is built because no shipped Ruleset can produce either.
+
+One finding, and it is about this plan rather than about the build:
+
+- 🔴 **F20 — this milestone's task 5 said `MoneyIsConserved` would be *rewritten as supply plus
+  flow*, and nothing needed rewriting. The column had said so a milestone in advance.**
+  `MoneySupplyTable.Issued` is declared as money that has entered **net of anything that has left
+  it**, and its own doc-comment reads *"milestone 11 gives it its second writer … the gate moves this
+  and the invariant is unchanged."* `Invariant.MoneyIsConserved` carried the matching sentence.
+  Because `World.Endow` writes the anchor in the same call that deposits, an arrival moves both sides
+  together and the equality stays exact. ***A flow term is only owed where the two sides are arrived
+  at on different schedules***, and one door that writes both is what makes sure they are not.
+  ⚠ **This is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+  from the other side**: that rule says a sentence about a mechanism tells you which symbol to read
+  and never what is in it — and here a **plan** described work the build had already made
+  unnecessary, which a scoping sitting could not have known and a reader of the symbol would have.
+  The task list was written before the symbol was read. **Struck in the list rather than deleted**,
+  so the correction is legible.
 
 ### The doc-comment sweep — ✅ **DONE 2026-08-21**, and it is `plans/0012` **Cause 6**
 

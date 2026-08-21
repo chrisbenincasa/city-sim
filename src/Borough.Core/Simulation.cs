@@ -692,7 +692,7 @@ public sealed class Simulation
             // Stops on the first refusal rather than trying the rest. The only refusal reachable
             // here is the daily ceiling -- the gate resolved a line above -- and a ceiling that has
             // bound once binds for the remainder of the Day.
-            if (!_world.TryArrive(handle, payload.LifeStage, tick, out _))
+            if (!_world.TryArrive(handle, payload.LifeStage, tick, _key, out _))
             {
                 break;
             }
