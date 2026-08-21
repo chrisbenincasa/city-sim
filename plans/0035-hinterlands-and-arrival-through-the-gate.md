@@ -410,6 +410,9 @@ sitting did not find.
 7. **The unhoused Departure** — the duration bound, the derived occasion count, the dwellings-considered
    record, and a Departure that leaves through a gate
    ([`adr/0130`](../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md)).
+   ⚠ **The *"attempts-or-since"* column is `since`**, and ~~a Departure that leaves through a gate~~
+   🔴 **makes no Trip** — an unhoused Household has no dwelling, so there is no origin to travel from.
+   ✅ **DONE 2026-08-21.**
 8. **Something to look at** — a runner mode showing arrivals, the Pool, departures and the money flow.
 9. **The long acceptance run** — ⚠ **on a world where arrivals outpace housing**, because that is the
    only world in which the give-up bound and `adr/0006` can be read at all.
@@ -835,6 +838,109 @@ Two findings, and the first is a defect this work introduced.
   the first where it is the **audit**. ***A ledger of debts accrues debt.*** No detector is proposed:
   a check that a named symbol still has a named parameter is a mechanical test the corpus suite could
   hold, and it is filed rather than built because one instance is not a pattern yet.
+
+### Task 7 — the unhoused Departure — ✅ **DONE 2026-08-21**
+
+**What ships**: `[placement] gives_up_after_days`, the Pool's `Since` and `Considered` columns,
+`PlacementEngine.GivesUp`, `World.Depart`, `Invariant.OnlyAnUnhousedHouseholdGivesUp`, and
+`PlacementActivity`'s third flow. **13 new tests**; the assertion tier is **1,885 green in 46 s**.
+🔴 **The State Hash moved and the two golden traces were re-recorded, with no seed bump** — two new
+saved columns are new *state*, which `World.HashSeed`'s own note calls a design change under
+`05 §4`; signing it would file a real change as a bookkeeping one. `world-hash.txt` did **not** move,
+because the Pool is empty in a `minimal.toml` world and a column over no rows folds nothing.
+
+***`adr/0006` is discharged for the Pool by a mechanism rather than by an absence, for the first
+time.*** Until the gate opened, nothing created a Household after world creation, so the Pool was a
+subset of a fixed population and could not grow with elapsed time whatever it did. The gate removed
+that reason four tasks ago and this is what replaces it.
+
+**The bound is a duration and the Pool stores a *start Tick*, which is `adr/0130`'s consequence
+resolved.** That record says the table *"gains an attempts-or-since column"* and leaves the choice
+open; it is **since**, and the argument is that `PlacementEngine` draws its sample rather than
+sweeping — so under an occasion bound a Household that is never picked accrues no occasions and never
+leaves, in a Pool that is growing. ***A bound whose clock only advances when you are lucky is not a
+bound.***
+
+🔴 **The loader refuses a Ruleset that declares a gate kind and no give-up duration, and that is
+`CONTEXT.md`'s sentence made mechanical.** *"Whoever builds the gate owes the give-up rule in the same
+milestone"* was a thing somebody had to remember; it is now `adr/0048`'s 116th refusal site. ⚠ **What
+it tests is a declared *kind*, not a placed gate** — and that line is exactly the one **task 5** drew
+when it found the gate↔Hinterland pairing *could not* be checked at load, because which edge a gate
+stands on is a property of the world. ***A kind is a fact about the file and a Building is a fact
+about the world***, and a loader may only refuse on the first. The nine files with no door in them
+may omit the key, because `adr/0054`'s reasoning still stands for every one of them.
+
+**The money leaves with them, and the question that was waiting turned out to be already answered.**
+`World.DestroyHousehold` has carried a remark since milestone 10 saying the balance is destroyed, that
+the omission is deliberate, and that *"the first production caller of this method is what has to answer
+it"*. `World.Depart` is that caller. ⚠ **But the answer was not this sitting's to choose**:
+[`adr/0024`](../docs/adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md) says in its
+first paragraph that *"the Outside Connection is its only source and sink"*, so a Household walking out
+of the city carrying its savings is the **only** disposal the corpus permits — there is no escheat, no
+estate and no treasury claim, and each of those is *undesigned* rather than merely absent (`adr/0070`).
+***What was genuinely open was not what happens to the money but which caller writes it down.*** It is
+written in `Depart` rather than in `DestroyHousehold`, because destroying a Household is a table
+operation with several callers and only one of them means somebody emigrated — folding the supply write
+inward would make every future caller silently claim an emigration. Conservation stays an **exact**
+equality with no flow term, which is **F20** arriving from the other direction.
+
+⚠ **No Trip is made, and that is not an omission.** The move-in at task 6 is a Trip because both its
+endpoints exist. An *unhoused* Household has no dwelling by definition, so there is no origin Address
+to travel from and a Trip from the gate to the gate is not a journey. ***The housed Departure is the
+one with a journey in it***, and that channel is milestone 16's with the comparison (`adr/0128`).
+
+Three findings.
+
+- 🔴 **F23 — `rulesets/bordered.toml`'s header contradicted itself, and the false half was the one
+  carrying an argument.** Line 13 lists `[households] car_ownership_percent = 100` as one of the four
+  things the file adds; seventy lines below, the `arrivals_per_day` paragraph read *"this file states
+  no `[households]`, so nobody drives and the Segment term would bound nothing"*. The file declares
+  the table at line 234, so **everybody here drives** and the Segment term **would** bind on
+  something. The conclusion it supports — that `adr/0088`'s `min()` moved to 12 with freight — is a
+  decision and is unaffected; what was wrong was the reason given for it.
+  ⚠ **This is `plans/0012` Cause 1 arriving WITHIN a single file**, which every prior sighting had
+  been between two. And the same header contains the paragraph *"a copied comment is a second copy
+  that drifts"*, written by task 3 after it deleted 581 copied comment lines for that exact reason.
+  ***A file that documents a failure mode is not thereby immune to it***, and the drift here was
+  cheaper to make than the one it warns about: nobody copied anything, the file simply grew a
+  `[households]` table at task 3's second sitting and the paragraph that denied one was never re-read.
+  Repaired in place with the correction recorded, and the *"nothing arrives through it yet"* paragraph
+  — true at task 3 and false since task 4 — rewritten at the same time.
+
+- 🔴 **F24 — a revisit period is a rate and not coverage, so the give-up bound has an expectation and
+  no upper bound.** `PlacementEngine.DrawPool` takes `sample` **independent uniform draws** over the
+  Pool and deduplicates nothing — a draw **with replacement**. So over one revisit period each member
+  is looked at about once and about **1/e of them are not looked at at all**, and a Household waits a
+  *geometric* number of periods past its duration rather than at most one.
+  ⚠ **Found by a test failing, and the first draft of the doc-comment asserted the false thing** — it
+  said the lateness was *"bounded by one revisit period by construction, because that is what a
+  revisit period is"*, which is reasoning from the name. ***A period is what something is called, not
+  a guarantee about what it covered.***
+  **`adr/0006` is satisfied anyway, and by the sample rather than by the bound**: the per-member draw
+  probability is `interval ÷ revisit_ticks`, a constant independent of Pool size, because
+  `SampleFor` scales the sample *with* the Pool. So the drain rate is proportional to the stock and
+  the Pool's **size** is bounded even though one Household's **wait** is not. ⚠ **Those are two
+  claims and only the first is what `adr/0006` asks.** Whether the second should also hold is filed
+  rather than decided here — a rotating cursor would buy it and is a hash-bearing change to placement
+  that this task does not own (`adr/0073`).
+  **Routed**: the wording defect in `PlacementRuleset.RevisitTicks` — *"how long the placement pass
+  takes to look at everybody in the Unplaced Pool once"*, which is not what a draw with replacement
+  does — goes to [`plans/0012`](0012-corpus-audit.md), because it predates this milestone and the
+  same sentence is in the loader's refusal text.
+
+- 🔴 **F25 — no shipped world has a housing shortage in it, and eleven tests failed on their fixture
+  before one failed on its assertion.** The first draft of `DepartureTests` assumed a generated city
+  leaves people waiting — that a non-empty Pool *is* the statement that no dwelling has room.
+  `SyntheticCity` houses **everybody**, so the Pool is empty at world creation and every test that
+  needed a Household to fail to find a home was testing nothing.
+  ***A world with a housing shortage in it has to be built, and this milestone is the first thing that
+  ever needed one.*** What builds it is one call rather than a rig: `World.DestroyBuilding` evicts its
+  Occupants into the Pool with their balances intact (`adr/0054`), so flattening every dwelling puts
+  the whole population into the Pool and leaves the Lots standing empty — after which every candidate
+  draw lands on a vacant Lot and `TryHouse` cannot succeed **by construction rather than by luck**,
+  which is what a fixture for a bound has to be. ⚠ **This is task 9's problem arriving early**: the
+  acceptance run is specified *on a world where arrivals outpace housing*, and the reason that clause
+  is in the plan is the same reason these tests failed.
 
 ### The doc-comment sweep — ✅ **DONE 2026-08-21**, and it is `plans/0012` **Cause 6**
 

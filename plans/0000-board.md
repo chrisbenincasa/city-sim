@@ -8,10 +8,48 @@ place that orders the three tracks against each other.
 ## What is next
 
 **The next code row is `06` milestone **11** — Hinterlands and arrival through the gate, 🟢 IN FLIGHT:
-🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1 to 6 of
-nine shipped**, three to go. **Task 7 is the unhoused Departure** — the duration bound, the derived
-occasion count, the dwellings-considered record, and a Departure that leaves through a gate
-([`adr/0130`](../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md)).
+🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1 to 7 of
+nine shipped**, two to go. **Task 8 is something to look at** — a runner mode showing arrivals, the
+Pool, departures and the money flow.
+
+**Task 7 gave the Unplaced Pool its first sink**, and with it ***`adr/0006` discharged for the Pool by
+a mechanism rather than by an absence, for the first time***. The bound is a **duration** and the Pool
+stores a start Tick, which resolves `adr/0130`'s open *"attempts-or-since"*: under an occasion bound a
+Household the sample never picks would accrue no occasions and never leave, and ***a bound whose clock
+only advances when you are lucky is not a bound.*** 🔴 **The loader now refuses a Ruleset that declares
+a gate kind and no give-up duration** — `CONTEXT.md`'s *"whoever builds the gate owes the give-up rule
+in the same milestone"* stops being a sentence somebody has to remember. ⚠ **It tests a declared
+*kind*, not a placed gate**, which is the line task 5 drew: ***a kind is a fact about the file and a
+Building is a fact about the world.***
+
+**The money leaves with them, and the question that was waiting was already answered.**
+`World.DestroyHousehold` has said since milestone 10 that the balance is destroyed and that *the first
+production caller has to answer it*. `World.Depart` is that caller — but
+[`adr/0024`](../docs/adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md) already
+says *"the Outside Connection is its only source and sink"*, so there was one permitted answer. ***What
+was genuinely open was not what happens to the money but which caller writes it down.*** Conservation
+stays exact with no flow term. 🔴 **The State Hash moved and the two golden traces were re-recorded,
+with no seed bump.**
+
+🔴 ⚠ **And a finding that changes what a period means: a revisit period is a RATE, not coverage.**
+`PlacementEngine.DrawPool` draws **with replacement**, so about **1/e** of the Pool goes unlooked-at in
+any given period and a Household waits a *geometric* number of periods past its duration. The first
+draft of the doc comment asserted the opposite, reasoning from the name — ***a period is what
+something is called, not a guarantee about what it covered.*** `adr/0006` holds by a different
+argument: the sample scales with the Pool, so the drain rate is proportional to the stock. The stale
+sentence is `PlacementRuleset.RevisitTicks`' and the loader's own refusal text, filed to
+[`0012`](0012-corpus-audit.md). `0035` **F24**.
+
+🔴 ⚠ **No shipped world has a housing shortage in it, and eleven tests failed on their fixture before
+one failed on its assertion.** `SyntheticCity` houses everybody, so the Pool is empty at world
+creation — ***a world with a housing shortage has to be built, and this milestone is the first thing
+that ever needed one.*** `0035` **F25**, and it is task 9's problem arriving early.
+
+🔴 ⚠ **`rulesets/bordered.toml`'s header contradicted itself**, and the false half carried an argument:
+it denied stating `[households]` seventy lines below a line listing `[households]` as one of four
+things it adds. **Cause 1 arriving WITHIN one file** — and the same header contains task 3's *"a copied
+comment is a second copy that drifts"*. ***A file that documents a failure mode is not thereby immune
+to it.*** `0035` **F23**.
 
 **Task 6 made the arrival physical**: placement starts the move-in, gate → dwelling, **one Trip per
 Citizen** rather than one per Household, because `adr/0075` makes a Traveller a cursor over a
@@ -705,7 +743,7 @@ argument session runs when something concrete is blocked on it, and never becaus
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **`06` milestone 11 — Hinterlands and arrival through the gate. 🟢 IN FLIGHT — scoped 2026-08-20, [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), ✅ ASSESSED (no document names a gate), and ✅ TASKS 1 TO 6 OF NINE SHIPPED, 2026-08-20 to 2026-08-21.** ⚠ **An ELEVENTH decision was found by task 1 after the scoping sitting recorded all ten closed** — the throughput ceiling's **unit**, which no document named; the `min()` moved to 12 and `adr/0088` is amended in place twice (decision 9).** It is the next unstarted position in `06`'s sequence now that **9** is closed, and the first one off the **end** rather than a gap. ⚠ **It is money's only source and sink and the anchor every price, wage and rent hangs off**, which is why the 2026-08-18 reorder moved it from **14** to **11**. ✅ **ALL TEN DECISIONS ARE CLOSED, 2026-08-20** — [`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md)–[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md), with the user in the room, and **nine tasks are scoped**. What ships is **the people door and the money that walks through it**: the gate kind, `[[hinterland]]`, a world with a door in it, `World.Arrive` into the Pool at a gate, the move-in Trip, and the unhoused Departure. ⚠ **~~conservation as supply plus flow~~ STRUCK — the invariant needed no rewrite at all** (`0035` **F20**): `MoneySupplyTable.Issued` is declared net of what has left, and `World.Endow` writes the anchor in the same call that deposits, so the equality stays exact. ⚠ **Its named risk has two halves of different sizes** — *where Households come from* is a producer, *no price has an anchor* is an authored object whose consumers are 12 and 13, so ***the anchor ships unread, which is milestone 9's land value one milestone later*** | [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), [`06`](../docs/06-roadmap.md) → milestone 11 | It is the ungated row at the head of the sequence, and **13, the trigger on both weights milestone 9 left unratified, is behind it** |
+| **1** | code | **`06` milestone 11 — Hinterlands and arrival through the gate. 🟢 IN FLIGHT — scoped 2026-08-20, [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), ✅ ASSESSED (no document names a gate), and ✅ TASKS 1 TO 7 OF NINE SHIPPED, 2026-08-20 to 2026-08-21.** ⚠ **An ELEVENTH decision was found by task 1 after the scoping sitting recorded all ten closed** — the throughput ceiling's **unit**, which no document named; the `min()` moved to 12 and `adr/0088` is amended in place twice (decision 9).** It is the next unstarted position in `06`'s sequence now that **9** is closed, and the first one off the **end** rather than a gap. ⚠ **It is money's only source and sink and the anchor every price, wage and rent hangs off**, which is why the 2026-08-18 reorder moved it from **14** to **11**. ✅ **ALL TEN DECISIONS ARE CLOSED, 2026-08-20** — [`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md)–[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md), with the user in the room, and **nine tasks are scoped**. What ships is **the people door and the money that walks through it**: the gate kind, `[[hinterland]]`, a world with a door in it, `World.Arrive` into the Pool at a gate, the move-in Trip, and the unhoused Departure. ⚠ **~~conservation as supply plus flow~~ STRUCK — the invariant needed no rewrite at all** (`0035` **F20**): `MoneySupplyTable.Issued` is declared net of what has left, and `World.Endow` writes the anchor in the same call that deposits, so the equality stays exact. ⚠ **Its named risk has two halves of different sizes** — *where Households come from* is a producer, *no price has an anchor* is an authored object whose consumers are 12 and 13, so ***the anchor ships unread, which is milestone 9's land value one milestone later*** | [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), [`06`](../docs/06-roadmap.md) → milestone 11 | It is the ungated row at the head of the sequence, and **13, the trigger on both weights milestone 9 left unratified, is behind it** |
 | **2** | spike | ⚠ **STILL BLOCKED — do not delete `spikes/S2.Routing/`.** The 5a gate is discharged (the port is done; nothing in `src/` or `tests/` compiles against it), but **another session is doing research inside it**, so it is live work and that is the gate now. **51 tracked C# files, 29,719 lines**; `Borough.slnx` still lists the project | [`0010`](0010-s2-routing.md) → *R7* | ⚠ **Do not read the first gate's clearance as the second's.** *A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears* |
 | **3** | spike | **S5 owes two captures.** The **4-thread** Lane kernel rung is bimodal (~2.5× against ~3.9×) and needs four pinned cores clear at once; the canonical `performance` re-capture is owed beside it. **2 threads is settled at 1.84–1.93×** | [`0019`](0019-s5-lane-kernel.md), [`spike-results`](../docs/spike-results.md) → *S5* | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare.** `adr/0096` exists because a number travelled without its clause |
 | **4** | code | **[`0003`](0003-build-plan.md) hash-moving queue item 8 — filed unfixed.** A waiter whose **own** requirement falls is never re-checked: `adr/0063` made the wake predicate read live state, and the only thing that calls `World.Drain` is a write to the **Bin**. Observed stable on four Bins from Tick 512 to 4096 | [`0003`](0003-build-plan.md) → *The hash-moving queue* | ***A live predicate with an event-driven trigger is only correct if every input to the predicate is an input to the trigger.*** Filed rather than fixed because both repairs are design questions |

@@ -92,13 +92,21 @@
 # WHAT `arrivals_per_day` IS NOT. It is not half of adr/0088's `min(declared ceiling, the Access
 # Point's Segment capacity)`. That second term is denominated in whole VEHICLES per Day and this one
 # counts HOUSEHOLDS, and under adr/0098 whether an arriving Household is a Vehicle at all is a
-# property of the Ruleset -- this file states no `[households]`, so nobody drives and the Segment term
-# would bound nothing. The min() moved to milestone 12 with freight (plans/0035 decision 9, adr/0088
-# amended in place twice). ⚠ READ THE NUMBER AS A CEILING ON ARRIVALS AND NOTHING ELSE.
+# property of the Ruleset. The min() moved to milestone 12 with freight (plans/0035 decision 9,
+# adr/0088 amended in place twice). ⚠ READ THE NUMBER AS A CEILING ON ARRIVALS AND NOTHING ELSE.
+# ⚠ This paragraph used to end "this file states no [households], so nobody drives and the Segment
+# term would bound nothing", and IT SAID SO SEVENTY LINES BELOW A HEADER LINE LISTING
+# `[households] car_ownership_percent = 100` AS ONE OF THE FOUR THINGS THIS FILE ADDS. Everybody
+# here drives; the Segment term would bind on something. Corrected 2026-08-21 by milestone 11 task 7
+# -- plans/0035 F23, and the failure this header's own "a copied comment is a second copy that
+# drifts" paragraph warns about, arriving WITHIN one file rather than between two.
 #
-# NOTHING ARRIVES THROUGH IT YET. World.Arrive is task 4 and the Command that drives it is task 4's
-# too; until 16 there is no autonomous caller at all (adr/0128). At task 3 this file's whole
-# observable content is that a Building of a gate kind STANDS, on an edge, in a generated world.
+# WHAT ARRIVES THROUGH IT, AND WHAT LEAVES. World.Arrive landed at task 4 and the `arrive` verb
+# drives it; until 16 there is no AUTONOMOUS caller at all (adr/0128), so every arrival is one a
+# human or a fixture asked for. Money crosses with them at task 5, the move-in Trip runs on
+# placement at task 6, and `gives_up_after_days` below is the Pool's SINK at task 7 -- which is why
+# this is the only shipped file that states it. ⚠ Read `arrivals_per_day` as a ceiling on a Day's
+# admissions and NOT as a rate anything generates.
 
 [[resource]]
 name = "sundries"
@@ -188,6 +196,18 @@ revisit_ticks = 2048
 interval      = 32
 revisit_ticks = 1024
 candidates    = 3
+
+# How long a Household keeps looking before it gives up and leaves (adr/0130). REQUIRED HERE and
+# absent from the other nine shipped files, and the difference is the gate: this is the only one
+# with a door into the Unplaced Pool, and a Pool with an inflow and no sink grows without bound,
+# which adr/0006 forbids. The loader refuses a Ruleset that declares arrivals_per_day without it.
+#
+# 120 Days is four months, which is 00-vision.md's own flagship Evidence line -- "Considered 20
+# dwellings over 4 months" -- read as a Household at exactly this bound on the day it left.
+# ⚠ UNRATIFIED: plans/0002 §D1 names what would settle it. It is a DURATION and not a count of
+# tries: the count falls out of revisit_ticks, so retuning the cadence above changes how many
+# homes a family is shown and NOT how long they wait.
+gives_up_after_days = 120
 
 noise_range_metres            = 300
 noise_intensity_percent       = 400

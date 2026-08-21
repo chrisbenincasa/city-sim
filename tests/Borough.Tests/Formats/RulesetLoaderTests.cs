@@ -1498,4 +1498,53 @@ public sealed class RulesetLoaderTests
     {
         Refused(Bakery + "\n[placement]\ninterval = 32\nrevisit_ticks = 1024\n");
     }
+
+    /// <summary>
+    /// A Ruleset that declares a gate and no give-up duration is refused.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>adr/0130</c>'s argument made mechanical, and this is the check that makes it one.</b>
+    /// <c>CONTEXT.md</c> → Unplaced Pool says *"whoever builds the gate owes the give-up rule in the
+    /// same milestone"*, and until now that was a sentence somebody had to remember. A gate is an
+    /// inflow into the Pool; a Pool with an inflow and no sink is a collection that grows with
+    /// elapsed time, which <c>adr/0006</c> forbids.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What the loader can see is a gate <em>kind</em>, not a gate</b>, and the line matters:
+    /// milestone 11 task 5 established that the loader cannot see a <em>world</em>, which is why the
+    /// gate↔Hinterland pairing had to happen at arrival instead. A declared kind is a fact about the
+    /// file, so this check is on the right side of that line.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_ruleset_with_a_gate_and_no_give_up_duration_is_refused()
+    {
+        RulesetRefusal refusal = Refused(
+            Bakery
+            + "\n[[building]]\nname = \"port\"\narrivals_per_day = 4\n"
+            + "\n[placement]\ninterval = 32\nrevisit_ticks = 1024\ncandidates = 3\n");
+
+        Assert.Contains("gives_up_after_days", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A Ruleset with no gate may omit the give-up duration, and nine shipped files do.
+    /// </summary>
+    /// <remarks>
+    /// <b>The half that keeps the refusal from being a blanket requirement.</b> Without a gate
+    /// nothing creates a Household after world creation, so the Pool is a subset of a population
+    /// fixed at that moment and cannot grow with elapsed time whatever it does — <c>adr/0054</c>'s
+    /// reasoning, still standing for every file with no door in it. Requiring the key there would put
+    /// a hash-bearing number in nine files to no effect, and ***an inert number in a Ruleset is one a
+    /// designer tunes expecting an effect.***
+    /// </remarks>
+    [Fact]
+    public void A_ruleset_with_no_gate_may_omit_the_give_up_duration()
+    {
+        Ruleset ruleset = Accepted(
+            Bakery + "\n[placement]\ninterval = 32\nrevisit_ticks = 1024\ncandidates = 3\n");
+
+        Assert.False(ruleset.Placement.GivesUp);
+    }
 }

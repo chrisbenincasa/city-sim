@@ -51,9 +51,11 @@ public sealed class PlacementEngine
 
     private int _tickConsidered;
     private int _tickPlaced;
+    private int _tickDeparted;
 
     private RuleFlow _consideredFlow;
     private RuleFlow _placedFlow;
+    private RuleFlow _departedFlow;
 
     /// <param name="world">The tables this drains, and the Ruleset it drains under. Not copied.</param>
     /// <param name="key">The world seed, as the draws' first coordinate.</param>
@@ -85,10 +87,11 @@ public sealed class PlacementEngine
     /// </remarks>
     public PlacementActivity Drain()
     {
-        var activity = new PlacementActivity(_consideredFlow, _placedFlow);
+        var activity = new PlacementActivity(_consideredFlow, _placedFlow, _departedFlow);
 
         _consideredFlow = default;
         _placedFlow = default;
+        _departedFlow = default;
 
         return activity;
     }
@@ -139,12 +142,22 @@ public sealed class PlacementEngine
             Handle<Household> seeker = _world.UnplacedPool.At(position);
             int slot = _world.Households.Rows.Resolve(seeker);
 
-            if (!TryHouse(seeker, slot, tick))
+            if (TryHouse(seeker, slot, tick))
             {
+                _tickPlaced++;
                 continue;
             }
 
-            _tickPlaced++;
+            // The bound is tested AFTER the attempt, not before it. A Household past its duration
+            // that would have found a home this occasion is housed rather than sent away -- "failed
+            // repeatedly, gave up" is the channel's own wording, and giving up in front of an empty
+            // dwelling is not that. It also keeps the check off the path of every successful
+            // placement, where it could only ever say no.
+            if (GivesUp(position, tick))
+            {
+                _world.Depart(seeker);
+                _tickDeparted++;
+            }
         }
 
         CloseTick();
@@ -182,6 +195,12 @@ public sealed class PlacementEngine
             return false;
         }
 
+        // Read once, above the loop, and it stays valid for the whole call: the Pool only churns
+        // inside Place, which is the last thing this method does. Re-reading it per candidate would
+        // be free and correct today, and would silently stop being correct the day anything between
+        // here and Place removes a member.
+        int position = _world.Households.PoolPosition(slot);
+
         for (int look = 0; look < candidates; look++)
         {
             // Keyed on the Household's monotonic id rather than its Pool position, so that who a
@@ -204,7 +223,19 @@ public sealed class PlacementEngine
             // looking for somewhere to live and is why the draw is over Lots at all.
             int building = _world.Lots.BuildingOn(lot);
 
-            if (building == Rows.NoSlot || !_world.HasRoom(building))
+            if (building == Rows.NoSlot)
+            {
+                continue;
+            }
+
+            // Counted HERE and not after the room test, because a full dwelling is one this family
+            // looked at and could not have -- which is the whole content of "considered 20 dwellings"
+            // in a city with a housing shortage. Counting only the ones with room would make the
+            // Evidence line read zero in exactly the city it exists to describe, and a look that
+            // found a vacant Lot is still not counted, because nobody was shown a home.
+            _world.UnplacedPool.Considered[position]++;
+
+            if (!_world.HasRoom(building))
             {
                 continue;
             }
@@ -213,7 +244,7 @@ public sealed class PlacementEngine
             // the Pool membership, and UnplacedTable.Leave swaps the last member into the vacated
             // position -- so a gate read afterwards is somebody else's origin, and the Trip it
             // produced would be a legitimate journey between two real Addresses.
-            Handle<Building> gate = _world.UnplacedPool.GateAt(_world.Households.PoolPosition(slot));
+            Handle<Building> gate = _world.UnplacedPool.GateAt(position);
 
             _world.Place(seeker, _world.Buildings.Rows.At(building));
             MoveIn(slot, gate, building, tick);
@@ -222,6 +253,71 @@ public sealed class PlacementEngine
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Whether the member at <paramref name="position"/> has been looking longer than it will look.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A duration against a start Tick, which is the whole mechanism</b>
+    /// (<see href="../../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md">adr/0130</see>).
+    /// The Ruleset states how long a Household keeps looking; how many looks that buys falls out of
+    /// the placement cadence and nothing bounds on it. Authored the other way round, retuning
+    /// <c>[placement]</c> would silently change how long families wait for a home, which is
+    /// <c>adr/0059</c> one level down.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The bound is measured, not counted, but it is <em>tested</em> on an occasion</b> — so a
+    /// Household leaves on its first look after the duration expires rather than on the Tick it
+    /// expires.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>And the lateness has no upper bound, only an expectation, because
+    /// <see cref="DrawPool"/> draws WITH REPLACEMENT.</b> A pass takes <c>sample</c> independent
+    /// uniform draws over the Pool and deduplicates nothing, so a revisit period is a <em>rate</em>
+    /// and not a coverage guarantee: over one period each member is looked at about once, and about
+    /// <c>1/e</c> of them are not looked at at all. An individual Household therefore waits a
+    /// geometric number of periods past its duration. ***A revisit period says how often somebody is
+    /// looked at on average, and never that everybody has been.***
+    /// </para>
+    /// <para>
+    /// <b><c>adr/0006</c> is satisfied anyway, and by the sample rather than by the bound.</b> The
+    /// per-member probability of being drawn is <c>interval ÷ revisit_ticks</c> — a constant,
+    /// independent of the Pool's size, because <see cref="PlacementRuleset.SampleFor"/> scales the
+    /// sample with the Pool. So the drain rate is proportional to the stock and the Pool's *size* is
+    /// bounded even though one Household's *wait* is not. ⚠ <b>Those are two different claims and
+    /// only the first is what <c>adr/0006</c> asks.</b> Whether the second one should also hold is
+    /// filed rather than decided here — a rotating cursor would buy it, and it is a hash-bearing
+    /// change to placement that this task does not own (<c>adr/0073</c>).
+    /// </para>
+    /// <para>
+    /// <b>Sweeping the whole Pool every pass would remove the lag and is refused</b>: it makes the
+    /// sink <c>O(pool)</c> per trigger to buy a Household leaving sooner, which is <c>02 §10</c>'s
+    /// frequency sort answering the question.
+    /// </para>
+    /// <para>
+    /// <b>Absent means nobody gives up</b>, and the loader guarantees that is only reachable in a
+    /// Ruleset with no gate in it — where the Pool has no inflow and <c>adr/0006</c> is satisfied by
+    /// the same absence that satisfied it before the gate existed.
+    /// </para>
+    /// </remarks>
+    private bool GivesUp(int position, Ticks tick)
+    {
+        PlacementRuleset placement = _world.Rules.Placement;
+
+        if (!placement.GivesUp)
+        {
+            return false;
+        }
+
+        // Widened to long before subtracting, because Since is an int column and Tick.Raw is a
+        // ulong. int.MaxValue Ticks is about 2,900 in-world years, so the column is not a bound
+        // anybody reaches; doing the arithmetic narrow would be a defect waiting on a run nobody
+        // makes, which is cheaper to not write than to test for.
+        long waited = (long)tick.Raw - _world.UnplacedPool.Since[position];
+
+        return waited >= placement.GivesUpAfterTicks;
     }
 
     /// <summary>
@@ -314,13 +410,25 @@ public sealed class PlacementEngine
     {
         _consideredFlow = _consideredFlow.Fold(_tickConsidered);
         _placedFlow = _placedFlow.Fold(_tickPlaced);
+        _departedFlow = _departedFlow.Fold(_tickDeparted);
 
         _tickConsidered = 0;
         _tickPlaced = 0;
+        _tickDeparted = 0;
     }
 }
 
 /// <summary>What the placement pass did over a Census interval.</summary>
+/// <remarks>
+/// <b>Three flows, and the third is a different <em>kind</em> of quantity from the first two.</b>
+/// `CONTEXT` → Departure: *"Departure rate is a distinct demand signal from Pool size: Pool size is a
+/// stock of latent demand, departure rate is a flow measuring how badly the city is failing to convert
+/// its own attractiveness into capacity. A city can have a large Pool and be healthy, or a small Pool
+/// and be in crisis; only the flow distinguishes them."* Reporting the Pool without this reports the
+/// stock and calls it the diagnosis.
+/// </remarks>
 /// <param name="Considered">Pool members looked at.</param>
 /// <param name="Placed">Of those, the ones that found a dwelling.</param>
-public readonly record struct PlacementActivity(RuleFlow Considered, RuleFlow Placed);
+/// <param name="Departed">Of those, the ones that gave up and left (<c>adr/0130</c>).</param>
+public readonly record struct PlacementActivity(
+    RuleFlow Considered, RuleFlow Placed, RuleFlow Departed);

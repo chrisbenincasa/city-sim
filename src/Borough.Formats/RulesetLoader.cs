@@ -173,7 +173,7 @@ public static class RulesetLoader
             PolicyDefinition[] policies = ReadPolicies();
             HinterlandDefinition[] hinterlands = ReadHinterlands();
             LayerRuleset layers = ReadLayers();
-            PlacementRuleset placement = ReadPlacement();
+            PlacementRuleset placement = ReadPlacement(kinds);
             RoadRuleset roads = ReadRoads();
             LotRuleset lots = ReadLots(roads);
             TripRuleset trips = ReadTrips();
@@ -2492,8 +2492,19 @@ public static class RulesetLoader
         /// rest of the Ruleset is denominated in rather than picked.
         /// </para>
         /// </remarks>
-        private PlacementRuleset ReadPlacement()
+        private PlacementRuleset ReadPlacement(KindDefinition[] kinds)
         {
+            bool gated = false;
+
+            foreach (KindDefinition kind in kinds)
+            {
+                if (kind.ArrivalsPerDay > 0)
+                {
+                    gated = true;
+                    break;
+                }
+            }
+
             if (_placementTable is null)
             {
                 return PlacementRuleset.None;
@@ -2502,8 +2513,67 @@ public static class RulesetLoader
             uint interval = ReadInterval(_placementTable, null);
             int revisit = ReadPlacementRevisit(interval);
             int candidates = ReadCandidates();
+            int givesUp = ReadGivesUpAfterDays(gated);
 
-            return new PlacementRuleset(interval, revisit, candidates);
+            return new PlacementRuleset(interval, revisit, candidates, givesUp);
+        }
+
+        /// <summary>
+        /// How long a Household keeps looking before it gives up and leaves, in Days.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional in general and required of a Ruleset that declares a gate</b>, which is
+        /// <see href="../../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md">adr/0130</see>'s
+        /// argument made mechanical. A Pool with an inflow and no sink is a collection that grows
+        /// with elapsed time (<c>adr/0006</c>), and a gate is exactly the inflow — so *whoever builds
+        /// the gate owes the give-up rule* stops being a sentence somebody has to remember.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A file with no gate may omit it, and that is not laxity.</b> Without a gate nothing
+        /// creates a Household after world creation, so the Pool is a subset of a population fixed at
+        /// that moment and cannot grow with elapsed time whatever it does — <c>adr/0054</c>'s
+        /// reasoning, still standing for every Ruleset that has no door in it. Requiring the key
+        /// there would put a hash-bearing number in nine files to no effect, and ***an inert number
+        /// in a Ruleset is one a designer tunes expecting an effect.***
+        /// </para>
+        /// <para>
+        /// ⚠ <b>What the loader can see is a gate <em>kind</em>, not a gate.</b> Whether a world ever
+        /// places one is a property of the world, and milestone 11 task 5 established that the loader
+        /// cannot see a world — which is why the gate↔Hinterland pairing happens at arrival instead.
+        /// This check is on the right side of that line: a declared kind is a fact about the file.
+        /// </para>
+        /// </remarks>
+        private int ReadGivesUpAfterDays(bool gated)
+        {
+            if (!TryInteger(_placementTable!, "gives_up_after_days", out long days, required: false))
+            {
+                if (gated)
+                {
+                    Refuse(LineOf(_placementTable!), null,
+                        "this Ruleset declares a kind with arrivals_per_day, so Households can enter "
+                        + "the Unplaced Pool from outside, and [placement] does not state "
+                        + "gives_up_after_days -- so nothing ever leaves the Pool except by being "
+                        + "housed. A Pool with a door into it and no give-up rule grows without "
+                        + "bound, which adr/0006 forbids. State how long a Household keeps looking, "
+                        + "in Days, or remove the gate kind.");
+                }
+
+                return 0;
+            }
+
+            if (days < 1 || days > int.MaxValue / Ticks.PerDay)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(_placementTable!, "gives_up_after_days")
+                        ?? _placementTable!), null,
+                    $"gives_up_after_days is {days}. It is how long a Household keeps looking for a "
+                    + "home before it gives up and leaves, in Days, so it is at least 1 and at most "
+                    + $"{int.MaxValue / Ticks.PerDay} -- the engine holds it in Ticks. To mean that "
+                    + "nobody ever gives up, omit the key; a Ruleset with a gate in it may not.");
+                return 0;
+            }
+
+            return (int)days;
         }
 
         /// <summary>

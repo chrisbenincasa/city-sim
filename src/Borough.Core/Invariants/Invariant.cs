@@ -833,4 +833,28 @@ public enum Invariant
     /// </para>
     /// </remarks>
     AGateOpensOntoAHinterland = 48,
+
+    /// <summary>
+    /// <see cref="Entities.World.Depart"/> was handed a Household that is not unhoused in the Pool.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A door check on the only Departure channel that exists</b>
+    /// (<c>adr/0130</c>, milestone 11 task 7). <c>CONTEXT</c> gives Departure three channels and they
+    /// are not three sizes of the same thing: the <b>unhoused</b> one is a bound and a threshold and
+    /// ships here; the <b>housed</b> one is a *comparison* the Household re-runs (<c>adr/0102</c>) and
+    /// ships at 16 with the choice model; the <b>destitute</b> one needs Unemployment and a floor and
+    /// is later still.
+    /// </para>
+    /// <para>
+    /// <b>So this fires on a wiring mistake rather than on a city state.</b> A housed Household
+    /// arriving at this door would leave the city through the unhoused channel's accounting — and the
+    /// readouts that report Departures *by channel* would then attribute a family that chose to move
+    /// to a family that could not find a home, which is two opposite diagnoses sharing a number.
+    /// ⚠ <b>It reports rather than throwing</b>, on <c>02 §10</c>'s rule: the Household stays where it
+    /// is, which is the conservative outcome, and the run continues so the whole-world checks can say
+    /// what else is wrong.
+    /// </para>
+    /// </remarks>
+    OnlyAnUnhousedHouseholdGivesUp = 49,
 }

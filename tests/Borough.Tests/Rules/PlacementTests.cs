@@ -51,8 +51,9 @@ public sealed class PlacementTests
     };
 
     /// <summary>A pass that looks at everybody waiting every trigger.</summary>
-    private static PlacementRuleset Placing(uint interval = 4, int candidates = 64) =>
-        new(interval, (int)interval, candidates);
+    private static PlacementRuleset Placing(
+        uint interval = 4, int candidates = 64, int givesUpAfterDays = 0) =>
+        new(interval, (int)interval, candidates, givesUpAfterDays);
 
     /// <summary>
     /// <paramref name="buildings"/> standing empty, and <paramref name="seeking"/> Households in the
@@ -219,7 +220,7 @@ public sealed class PlacementTests
     [InlineData(256, 8)]
     public void The_sample_is_a_fraction_of_the_queue(int pool, int expected)
     {
-        var placement = new PlacementRuleset(Interval: 32, RevisitTicks: 1024, Candidates: 3);
+        var placement = new PlacementRuleset(Interval: 32, RevisitTicks: 1024, Candidates: 3, GivesUpAfterDays: 0);
 
         Assert.Equal(expected, placement.SampleFor(pool));
     }
@@ -258,7 +259,7 @@ public sealed class PlacementTests
                 kinds: [new KindDefinition(0, 0, 0, 0) { Occupants = 1 }],
                 inputs: [], outputs: [], emissions: [], bins: [], kindRules: [], zoneRules: [])
             {
-                Placement = new PlacementRuleset(Interval: 4, RevisitTicks: 128, Candidates: 64),
+                Placement = new PlacementRuleset(Interval: 4, RevisitTicks: 128, Candidates: 64, GivesUpAfterDays: 0),
             },
             buildings: 64,
             seeking: 32);

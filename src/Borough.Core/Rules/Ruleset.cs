@@ -813,13 +813,57 @@ public readonly record struct HinterlandDefinition(
 /// <param name="Interval">Ticks between passes. Zero means placement does not run.</param>
 /// <param name="RevisitTicks">How long the pass takes to look at every member of the Pool once.</param>
 /// <param name="Candidates">Dwellings a Household considers per occasion — <c>02 §5.3</c>'s <c>N</c>.</param>
-public readonly record struct PlacementRuleset(uint Interval, int RevisitTicks, int Candidates)
+/// <param name="GivesUpAfterDays">
+/// How long a Household keeps looking before it gives up and leaves. <b>Zero means nobody ever gives
+/// up</b>, which is only a coherent Ruleset in a file with no gate in it.
+/// </param>
+public readonly record struct PlacementRuleset(
+    uint Interval, int RevisitTicks, int Candidates, int GivesUpAfterDays)
 {
     /// <summary>A Ruleset whose city houses nobody.</summary>
     public static PlacementRuleset None => default;
 
     /// <summary>Whether placement runs at all.</summary>
     public bool Runs => Interval != 0;
+
+    /// <summary>Whether a Household in the Pool ever gives up.</summary>
+    public bool GivesUp => GivesUpAfterDays > 0;
+
+    /// <summary>
+    /// How long a Household keeps looking, in Ticks.
+    /// </summary>
+    /// <remarks>
+    /// <b>The file states Days and the engine holds Ticks</b>, which is
+    /// <c>[[building]] arrivals_per_day</c>'s idiom and the same reason: the felt quantity is *how
+    /// long a family waits for a home*, and a Tick is a sampling rate rather than a unit anybody
+    /// thinks in (<c>adr/0094</c>). Authoring it in Ticks would make the felt quantity move whenever
+    /// <c>TICKS_PER_DAY</c> did.
+    /// </remarks>
+    public long GivesUpAfterTicks => (long)GivesUpAfterDays * Ticks.PerDay;
+
+    /// <summary>
+    /// How many occasions a Household gets before it gives up, at the cadence in force.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Derived, and this is the direction <c>adr/0130</c> is about.</b> The Ruleset authors the
+    /// duration and the count falls out of <see cref="RevisitTicks"/> — so retuning the placement
+    /// cadence changes how many looks a family gets and <em>not</em> how long they wait, which is
+    /// what somebody editing <c>[placement]</c> would expect. Authored the other way round, the felt
+    /// quantity would move every time a cadence was tuned (<c>adr/0059</c>, one level down).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nothing bounds on this and it is Evidence.</b> It is the *over 4 months* half of
+    /// <c>00-vision.md</c>'s <i>"Considered 20 dwellings over 4 months"</i> — a description of what a
+    /// Household got, reported beside the count of what it saw. Bounding on it would put the Pool's
+    /// sink behind a random draw: the sample is drawn rather than swept, so a Household that is never
+    /// picked accrues no occasions and would never leave, which is exactly the
+    /// <see href="../../docs/adr/0006-no-collection-grows-with-elapsed-time.md">adr/0006</see> hole
+    /// the bound exists to close.
+    /// </para>
+    /// </remarks>
+    public long OccasionsBeforeGivingUp =>
+        RevisitTicks <= 0 ? 0 : IntegerMath.FloorDiv(GivesUpAfterTicks, RevisitTicks);
 
     /// <summary>
     /// How many Pool members one pass considers, given <paramref name="pool"/> of them.

@@ -2269,6 +2269,40 @@ does not land*. Here `adr/0075` issued a write it did not know it was issuing: *
 a representation defers every decision that reads it**, and a consumer three ADRs away has no reason to
 be re-read. Nothing in the corpus asks *what else was reading the thing I just deleted*.
 
+### A revisit period is described as coverage and delivers a rate, in a doc comment and in a refusal the user reads
+
+*(Found 2026-08-21 by `plans/0035` task 7 — **F24** — when a test failed on it. Owner:
+`src/Borough.Core/Rules/Ruleset.cs` and `src/Borough.Formats/RulesetLoader.cs`; a wording defect with
+a live consequence, not a design change.)*
+
+`PlacementRuleset.RevisitTicks` is documented as *"how long the placement pass takes to look at
+everybody in the Unplaced Pool once"*, and the loader repeats it almost verbatim in the refusal text a
+designer reads when the key is wrong. **`PlacementEngine.DrawPool` takes `sample` independent uniform
+draws over the Pool and deduplicates nothing** — a draw *with replacement* — so over one revisit period
+each member is looked at about **once on average** and about **1/e of them are not looked at at all**.
+***The period is a rate. It has never been coverage.***
+
+**The consequence is live rather than cosmetic**, which is why this is not filed as a typo. Milestone
+11 task 7 hangs the Unplaced Pool's give-up bound on being *tested* when a member is next drawn, so
+the sentence above reads as *a Household leaves at most one revisit period late* — and the first
+draft of that mechanism's doc comment asserted exactly that, reasoning from the name. It is wrong:
+the lateness is geometric with no upper bound. `adr/0006` is satisfied by a different argument
+entirely — the sample scales with the Pool, so the drain rate is proportional to the stock and the
+Pool's *size* is bounded even though one Household's *wait* is not.
+
+⚠ **`adr/0059` is not implicated and must not be swept in with this.** Its argument is that an
+absolute count makes the fraction of the queue cleared per cycle shrink as the queue grows, and that
+argument is about the *rate* and is entirely correct. What drifted is a sentence describing the
+mechanism's coverage, which is `adr/0093` from the usual side: ***a description of the build is where
+to look and never what you found.***
+
+**Two repairs, and the second is the one that matters.** The doc comment can say *how often a member is
+looked at* rather than *how long until everybody has been*. The refusal text is read by a designer who
+has no access to `DrawPool`, so it is the copy that cannot be checked against the code by its reader.
+⚠ **Whether placement should sweep on a rotating cursor instead — which would make the period mean what
+it says — is a hash-bearing change to placement and is a question rather than a correction.** It is
+named here and not decided here.
+
 ### A world's seed has two sources, and the doc comment that says this is filed here is what filed it
 
 *(Found 2026-08-12 by `plans/0023` task 5, which added the second source, and by the user asking on the

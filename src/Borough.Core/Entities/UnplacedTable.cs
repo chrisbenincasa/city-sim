@@ -1,5 +1,6 @@
 namespace Borough.Core.Entities;
 
+using Borough.Core.Quantities;
 using Borough.Core.Tables;
 
 /// <summary>
@@ -7,12 +8,14 @@ using Borough.Core.Tables;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Two columns, and the second one arrived when a mechanism read it.</b> `CONTEXT` → Unplaced Pool
+/// <b>Four columns, and each one arrived when a mechanism read it.</b> `CONTEXT` → Unplaced Pool
 /// describes four entry routes, recorded refusal reasons, a give-up counter and a Departure; this
 /// table held a membership and nothing else until milestone 11 task 4, on <c>adr/0054</c>'s rule that
-/// naming the rest before there is a reader is the trespass. The refusal reasons and the give-up
-/// counter still have no reader — the reasons are milestone <b>16</b>'s with the comparison
-/// (<c>adr/0128</c>) and the counter is <b>task 7</b>'s.
+/// naming the rest before there is a reader is the trespass. <see cref="Gate"/> came with the arrival
+/// door at task 4; <see cref="Since"/> and <see cref="Considered"/> came with the Departure at task 7.
+/// <b>The refusal reasons still have no reader and are milestone 16's</b>, with the comparison
+/// (<c>adr/0128</c>) — <c>PlacementEngine</c> never refuses anything, it fails to find room, so a
+/// refusal count would be identically zero.
 /// </para>
 /// <para>
 /// <b><see cref="Gate"/> is on the membership rather than on the Household, and the placement is
@@ -66,6 +69,8 @@ public sealed class UnplacedTable
 
         Household = _rows.SavedHandle("household", households.Rows);
         Gate = _rows.SavedHandle("gate", buildings.Rows);
+        Since = _rows.Saved<int>("since");
+        Considered = _rows.Saved<int>("considered");
 
         _rows.Seal();
     }
@@ -88,6 +93,54 @@ public sealed class UnplacedTable
     /// <see cref="World.Arrive"/> writes a live handle here.
     /// </remarks>
     public HandleColumn<Building> Gate { get; }
+
+    /// <summary>
+    /// The Tick this spell in the Pool began, which is what the give-up bound is measured from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A Tick rather than a count of occasions, and <c>adr/0130</c>'s title is the reason</b> —
+    /// the Pool's bound is a <em>duration</em>. The engine derives how many looks that buys from
+    /// <see cref="Rules.PlacementRuleset.RevisitTicks"/>; nothing bounds on the derived number.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>Bounding on occasions would have put the sink behind a random draw.</b>
+    /// <c>PlacementEngine</c> draws its sample rather than sweeping the Pool, so a Household that
+    /// happens not to be picked accrues no occasions — and under an occasion bound it would wait for
+    /// ever, in a Pool that is growing, which is precisely the
+    /// <see href="../../docs/adr/0006-no-collection-grows-with-elapsed-time.md">adr/0006</see> hole
+    /// this column exists to close. ***A bound whose clock only advances when you are lucky is not a
+    /// bound.***
+    /// </para>
+    /// <para>
+    /// <b>It is per spell rather than per Household</b>, which follows from the column being on the
+    /// membership: a Household housed, later evicted and back in the Pool starts its clock again.
+    /// That is the right reading — it is looking again, not still looking — and it is the same reason
+    /// <see cref="Gate"/> is here rather than on the Household.
+    /// </para>
+    /// </remarks>
+    public Column<int> Since { get; }
+
+    /// <summary>
+    /// How many real dwellings this member has looked at during this spell. <b>Evidence, and not the
+    /// bound.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>00-vision.md</c>'s flagship Evidence line is two numbers and this is the first of
+    /// them</b> — <i>"Considered 20 dwellings over 4 months"</i>. One bounds and one describes, and
+    /// the describing one is what tells a Household that saw plenty and took none from a Household
+    /// that was offered nothing at all.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>It counts dwellings, not looks.</b> A candidate draw that lands on a vacant Lot
+    /// considered nothing, and counting it would make this read as *the city showed them twenty
+    /// homes* in a city with no homes — which is the exact failure the unhoused channel exists to
+    /// diagnose, reported as its own opposite. ***A counter that cannot read zero in its headline
+    /// case is measuring the mechanism rather than the city.***
+    /// </para>
+    /// </remarks>
+    public Column<int> Considered { get; }
 
     /// <summary>
     /// How many Households are in the Pool, which is also the exclusive bound on a position.
@@ -133,7 +186,8 @@ public sealed class UnplacedTable
     /// one</b> — a defaulted parameter makes the gateless case the one you get by writing nothing,
     /// which is exactly the caller <c>adr/0129</c> needs to be explicit.
     /// </param>
-    public int Join(HouseholdTable households, Handle<Household> household, Handle<Building> gate)
+    public int Join(
+        HouseholdTable households, Handle<Household> household, Handle<Building> gate, Ticks now)
     {
         ArgumentNullException.ThrowIfNull(households);
 
@@ -142,6 +196,12 @@ public sealed class UnplacedTable
 
         Household[position] = household;
         Gate[position] = gate;
+
+        // The spell's clock starts here and not at the Household's founding: a Household evicted
+        // years into a run has not been looking for years.
+        Since[position] = (int)now.Raw;
+        Considered[position] = 0;
+
         households.EnterPool(households.Rows.Resolve(household), position);
 
         return position;
@@ -168,13 +228,17 @@ public sealed class UnplacedTable
         Handle<Household> leaving = Household[position];
         Handle<Household> moved = Household[last];
 
-        // Both columns move together. A swap that carried the membership and left the gate behind
-        // would give the moved Household the leaver's origin, so its move-in Trip would start at a
-        // gate it never came through -- and every such Trip is a legitimate-looking journey between
-        // two real Addresses, which is the failure this table's own slot-is-not-an-identity remark
-        // describes arriving through a second column.
+        // EVERY column moves together, and the count is why this comment names no number: a swap
+        // that carried the membership and left one column behind gives the moved Household somebody
+        // else's history. The gate case is the loudest -- its move-in Trip would start at a gate it
+        // never came through, and every such Trip is a legitimate-looking journey between two real
+        // Addresses -- but Since is the dangerous one, because inheriting an older spell's clock
+        // makes a Household give up for somebody else's waiting, and nothing about the result looks
+        // wrong. That is this table's own slot-is-not-an-identity remark arriving once per column.
         Household[position] = moved;
         Gate[position] = Gate[last];
+        Since[position] = Since[last];
+        Considered[position] = Considered[last];
         _rows.Free(_rows.At(last));
 
         // Clear the leaver first, then re-point the mover. Reversed, a Household leaving from the

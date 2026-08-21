@@ -964,7 +964,7 @@ public sealed class World
         // (adr/0129), so this Household's move-in has no origin to start from and the column says so
         // rather than borrowing one.
         Invariants.Require(
-            UnplacedPool.Join(Households, household, default) == UnplacedPool.Count - 1,
+            UnplacedPool.Join(Households, household, default, Tick) == UnplacedPool.Count - 1,
             Invariant.ThePoolAppendsInOrder,
             slot);
     }
@@ -1130,7 +1130,7 @@ public sealed class World
         // The dwelling handle is left default by the allocator -- FreeSlot zeroes every column, so a
         // recycled slot arrives unhoused rather than carrying its predecessor's address.
         Invariants.Require(
-            UnplacedPool.Join(Households, handle, gate) == UnplacedPool.Count - 1,
+            UnplacedPool.Join(Households, handle, gate, now) == UnplacedPool.Count - 1,
             Invariant.ThePoolAppendsInOrder,
             slot);
 
@@ -1245,6 +1245,87 @@ public sealed class World
         return false;
     }
 
+    /// <summary>
+    /// An unhoused Household gives up looking and leaves the city, taking its money with it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The Unplaced Pool's sink, and the first one it has ever had</b>
+    /// (<see href="../../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md">adr/0130</see>,
+    /// milestone 11 task 7). Until the gate opened, the Pool was a subset of a population fixed at
+    /// world creation and could not grow with elapsed time whatever it did — so <c>adr/0006</c> was
+    /// satisfied for a reason that had nothing to do with Departure. The gate removed that reason,
+    /// and this is what replaces it: ***<c>adr/0006</c> discharged for the Pool by a mechanism rather
+    /// than by an absence.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The money leaves with them, and that answers the question
+    /// <see cref="DestroyHousehold"/> filed against its first production caller.</b> That method's own
+    /// remark says the balance is destroyed, that the omission is deliberate, and that *the first
+    /// production caller of this method is what has to answer it*. This is that caller, and the
+    /// answer is the only one with a recipient: a Household that walks out of the city carries what
+    /// it holds, so <see cref="MoneySupplyTable.Issued"/> goes down by exactly what left. That is the
+    /// mirror of <c>adr/0131</c>'s arriving balance — <see cref="Endow"/>'s counterpart — and it is
+    /// why <see cref="Invariant.MoneyIsConserved"/> still holds as an exact equality rather than
+    /// needing a flow term: <c>Issued</c> is declared *net of anything that has left it*, and both
+    /// sides move in the same call.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The alternative was leaving the money in the city, and it has no recipient.</b> There is
+    /// no escheat, no estate and no treasury claim on a departing Household — every one of those is a
+    /// mechanism nobody has designed (<c>adr/0070</c>), and inventing one here to keep a total tidy
+    /// would be a Policy decided by an invariant. ***A guard at the site where a quantity disappears
+    /// can only ever check that it disappeared tidily.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>No Trip is made, and that is not an omission.</b> The move-in at task 6 is a Trip because
+    /// both its endpoints exist — a gate to leave from and a dwelling to arrive at. An <em>unhoused</em>
+    /// Household has no dwelling by definition, so there is no origin Address to travel from, and a
+    /// Trip from the gate to the gate is not a journey. ***The housed Departure is the one with a
+    /// journey in it***, and that channel is milestone 16's with the comparison (<c>adr/0128</c>).
+    /// </para>
+    /// </remarks>
+    /// <param name="household">The Household leaving. It must be in the Pool.</param>
+    public void Depart(Handle<Household> household)
+    {
+        int slot = Households.Rows.Resolve(household);
+
+        if (Buildings.Rows.TryResolve(Households.Dwelling[slot], out _))
+        {
+            // A housed Household leaving is the other channel, it is a comparison rather than a
+            // threshold (adr/0102), and it ships at 16. Reaching here with a dwelling means somebody
+            // wired the wrong channel to this door.
+            Invariants.Report(Invariant.OnlyAnUnhousedHouseholdGivesUp, slot);
+            return;
+        }
+
+        int position = Households.PoolPosition(slot);
+
+        if (position < 0 || position >= UnplacedPool.Count)
+        {
+            Invariants.Report(Invariant.OnlyAnUnhousedHouseholdGivesUp, slot);
+            return;
+        }
+
+        // Before DestroyHousehold, because that frees the Bin -- and reading the level afterwards
+        // would read a freed row. The supply is written here rather than inside DestroyHousehold on
+        // purpose: destroying a Household is a table operation with several callers, and only THIS
+        // one means "somebody left the city with their savings". A Household bulldozed by a fixture
+        // has not emigrated.
+        if (Bins.Rows.TryResolve(Households.Balance[slot], out int balance))
+        {
+            MoneySupply.Issued[MoneySupplyTable.Slot] -= new Money(Bins.LevelAt(balance));
+        }
+
+        // The Pool membership goes first, because DestroyHousehold frees the Household row and the
+        // membership holds a handle to it -- a Pool left holding a freed row is what
+        // Invariant.ThePoolIsDenseAndAgreesWithTheHouseholds exists to catch, and it would catch it
+        // at the end of the run rather than here.
+        UnplacedPool.Leave(Households, position);
+
+        DestroyHousehold(household);
+    }
+
     /// <summary>Retires a Citizen, unlinking it from its Household first.</summary>
     public void DestroyCitizen(Handle<Citizen> citizen)
     {
@@ -1297,12 +1378,18 @@ public sealed class World
         // a demolition because the Business outlives its premises, and a Household being destroyed
         // outlives nothing.
         //
-        // ⚠ THE MONEY IN IT IS DESTROYED, and that is deliberately not repaired here.
-        // Invariant.MoneyIsConserved reports it, which is the whole point of having the invariant
-        // before the mechanism: what becomes of a departing Household's balance is an undesigned
-        // question (plans/0002 §C) and the first production caller of this method is what has to
-        // answer it. Zeroing the Bin first would satisfy the check and answer nothing -- a guard at
-        // the site where a quantity disappears can only ever check that it disappeared tidily.
+        // ⚠ THE MONEY IN IT IS DESTROYED, and that is STILL deliberately not repaired here -- but
+        // the question it was waiting on has been answered. This method's remark used to say that
+        // what becomes of a departing Household's balance was undesigned and that the first
+        // production caller would have to answer it. World.Depart is that caller (milestone 11 task
+        // 7) and its answer is that the money LEAVES WITH THEM: it decrements
+        // MoneySupplyTable.Issued before calling this, so conservation holds across a Departure.
+        //
+        // What has not changed is that the write does not belong HERE. Destroying a Household is a
+        // table operation with several callers and only one of them means "somebody emigrated" -- a
+        // fixture bulldozing a row has not moved any money out of any economy. Folding the supply
+        // write into this method would make every future caller silently claim an emigration.
+        // Invariant.MoneyIsConserved still reports a caller that forgets, which is what it is for.
         if (Bins.Rows.TryResolve(Households.Balance[slot], out int balance))
         {
             WakeAll(balance, Tick);
