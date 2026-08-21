@@ -47,33 +47,6 @@ namespace Borough.Core.Movement;
 public static class WalkRouting
 {
     /// <summary>
-    /// The cost of walking between two Addresses, or <see cref="TravelTime.Impassable"/> when no
-    /// route exists.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// ⚠ <b><paramref name="crossingCost"/> has no default, and that is deliberate.</b> It is
-    /// <c>[trips]</c> Ruleset data, hash-bearing, and <c>plans/0002</c> §D2 carries it as unset with
-    /// a named ratifier — <b>5b must report a walk-Leg cost distribution and must not choose the
-    /// value</b>. Session F's own finding is the reason it is a required parameter rather than a
-    /// defaulted one: <i>a placeholder whose value sits inside the range of legitimate answers cannot
-    /// announce itself</i>. Zero is a legitimate crossing cost, so a zero default would be
-    /// indistinguishable from a decision, and nothing later would know a number had been skipped.
-    /// </para>
-    /// <para>
-    /// <b>The crossing applies only when the two Addresses share a Segment and differ in side</b>
-    /// (<c>adr/0074</c>). That is exact for the across-the-street case walkability turns on, and
-    /// silent elsewhere — because <i>the same side</i> stops meaning anything once a route turns a
-    /// corner, so charging it on a multi-Segment walk would be inventing precision the model does not
-    /// have.
-    /// </para>
-    /// </remarks>
-    /// <param name="graph">The Road Graph to search.</param>
-    /// <param name="from">Where the walk starts.</param>
-    /// <param name="to">Where it ends.</param>
-    /// <param name="crossingCost">What it costs to reach the other side of a Segment.</param>
-    /// <param name="scratch">Reusable search state; one per caller, never shared across threads.</param>
-    /// <summary>
     /// The cost of travelling between two Addresses in one mode, or
     /// <see cref="TravelTime.Impassable"/> when no route exists.
     /// </summary>
@@ -265,7 +238,6 @@ public static class WalkRouting
         return scratch.Search(graph, mode, toA, toB, inA, inB);
     }
 
-    /// <summary>Whether a Segment admits pedestrians in either direction.</summary>
     /// <summary>Whether a Segment admits this mode in either direction.</summary>
     private static bool Admits(RoadSegmentTable segments, int slot, TravelMode mode) =>
         (segments.Modes[slot] & (byte)mode) != 0;

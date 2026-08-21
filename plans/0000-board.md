@@ -22,6 +22,16 @@ prose beside the code it governs is not a check on that code.*** Fixed, and `Rul
 now holds the list to the class's properties by reflection: `RefusalCountTests`' shape one level in,
 **code against code**. `0035` **F15**.
 
+🔴 ⚠ **And a second, larger one: [`0012`](0012-corpus-audit.md) has a SIXTH Cause.** Task 1's own diff
+had put two new members **between an existing doc-comment and the member it documents**, so both blocks
+bound to one member and the other lost its documentation. A human reading the diff caught it; a check
+written afterwards found **forty** sites in **thirty-one** files, two of them actively misleading —
+`Ruleset.cs` carried the `[jobs]` table's documentation on `TrafficRuleset`. **All forty repaired**, plus
+six blocks whose `</remarks>` was typed where a `</para>` belonged. ***A defect nothing can see is found
+once per reviewer, for ever*** — and no sweep of this corpus could have found it, because it lives in a
+**doc-comment** and every other mechanical check is document-to-document.
+`DocCommentAttachmentTests` is the detector. `0035` **F16**.
+
 ⚠ **Task 1's first act was to find an eleventh decision and stop**, after the scoping sitting had
 recorded all ten as closed. The throughput ceiling's **unit** is named in no document, and
 [`adr/0088`](../docs/adr/0088-the-price-of-a-far-hinterland-is-paid-in-your-own-traffic.md)'s

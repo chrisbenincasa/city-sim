@@ -81,16 +81,6 @@ public sealed class JobAssignmentTests
         return total;
     }
 
-    /// <summary>
-    /// The shipped Ruleset with its <c>[jobs]</c> table deleted, and with it nothing else.
-    /// </summary>
-    /// <remarks>
-    /// <b>A deletion on the shipped file rather than a Ruleset written here</b>, on
-    /// <c>TripCommandTests.RulesWithTripsTable</c>'s reasoning: a test that asks what the shipped city
-    /// does with one table removed is asking about the city this repository has. The assertion is what
-    /// keeps it honest — <c>[jobs]</c> is last in the file, and a table added after it would otherwise
-    /// be silently deleted too.
-    /// </remarks>
     /// <summary>The golden Ruleset with its <c>[jobs]</c> section taken out.</summary>
     /// <remarks>
     /// <b>It excises the section rather than truncating the file at it, and the change was forced by

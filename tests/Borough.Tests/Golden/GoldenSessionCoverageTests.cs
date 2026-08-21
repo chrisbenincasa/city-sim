@@ -239,6 +239,7 @@ public sealed class GoldenSessionCoverageTests
     /// and a walk costs four times fewer Ticks, so a Trip is in flight for a quarter as long. <b>The
     /// session went from catching the tail of a departure wave to finishing an entire Day's commuting
     /// with time to spare</b>, and reading one instant found the quiet after it.
+    /// </para>
     /// <para>
     /// The paragraph this replaces said the session <em>"reaches three quarters of the departure
     /// phases and no Citizen in it departs twice"</em>. It now covers <b>every</b> phase, because the

@@ -261,7 +261,6 @@ public sealed class EmploymentEngine
     /// outcome — which is the difference between an ordered preference and a sort.
     /// </para>
     /// <para>
-    /// <para>
     /// ⚠ <b>The candidate is judged in the seeker's own mode, and that is <c>adr/0008</c> rather than
     /// a refinement.</b> Session F refused a per-mode weight on the Commute Budget so that a walk and
     /// a drive are compared on one clock — which only works if the clock is read in the mode the

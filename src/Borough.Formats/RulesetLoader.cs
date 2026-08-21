@@ -1536,30 +1536,6 @@ public static class RulesetLoader
         }
 
         /// <summary>
-        /// Refusal 2 — every link of a chain relieves the same Bin the head failed on.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// <b>Computed as set arithmetic rather than declared</b>, which is what <c>02 §4.1</c>
-        /// describes: <em>every link in a well-formed chain rescues by relieving the same Bin the head
-        /// failed on.</em> The candidate set starts as the head's own Bins — inputs and outputs both,
-        /// because <c>adr/0045</c>'s <em>blocking</em> generalises over a short input and a full
-        /// output — and each link intersects it with what that link relieves. An empty intersection
-        /// is a chain that cannot rescue anything its head could fail on.
-        /// </para>
-        /// <para>
-        /// <b>A link relieves a Bin by outputting to it, by drawing from it, or by declaring
-        /// <c>fills</c>.</b> The third is what an asynchronous rescue needs: <c>request_shipment</c>
-        /// dispatches a Shipment and outputs nothing this Tick, so without the declaration it is
-        /// indistinguishable from a link that rescues nothing.
-        /// </para>
-        /// <para>
-        /// <b>A reporting terminal is exempt, and that is not a loophole.</b> It rescues nothing by
-        /// design — it records a condition and leaves the chain failed — so requiring it to relieve
-        /// the head's Bin would refuse every chain the corpus's own worked example contains.
-        /// </para>
-        /// </remarks>
-        /// <summary>
         /// Refusal 4 — a Rule's explicit money terms must balance, because money is conserved.
         /// </summary>
         /// <remarks>
@@ -1635,6 +1611,30 @@ public static class RulesetLoader
             return total;
         }
 
+        /// <summary>
+        /// Refusal 2 — every link of a chain relieves the same Bin the head failed on.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Computed as set arithmetic rather than declared</b>, which is what <c>02 §4.1</c>
+        /// describes: <em>every link in a well-formed chain rescues by relieving the same Bin the head
+        /// failed on.</em> The candidate set starts as the head's own Bins — inputs and outputs both,
+        /// because <c>adr/0045</c>'s <em>blocking</em> generalises over a short input and a full
+        /// output — and each link intersects it with what that link relieves. An empty intersection
+        /// is a chain that cannot rescue anything its head could fail on.
+        /// </para>
+        /// <para>
+        /// <b>A link relieves a Bin by outputting to it, by drawing from it, or by declaring
+        /// <c>fills</c>.</b> The third is what an asynchronous rescue needs: <c>request_shipment</c>
+        /// dispatches a Shipment and outputs nothing this Tick, so without the declaration it is
+        /// indistinguishable from a link that rescues nothing.
+        /// </para>
+        /// <para>
+        /// <b>A reporting terminal is exempt, and that is not a loophole.</b> It rescues nothing by
+        /// design — it records a condition and leaves the chain failed — so requiring it to relieve
+        /// the head's Bin would refuse every chain the corpus's own worked example contains.
+        /// </para>
+        /// </remarks>
         private void RefuseUnrelievedChains(RuleDefinition[] rules, Term[] inputs, Term[] outputs)
         {
             var isTarget = new bool[rules.Length];

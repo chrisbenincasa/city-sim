@@ -824,26 +824,6 @@ public static class WorldInvariants
     }
 
     /// <summary>
-    /// Every Rule Instance is in exactly one queue, and it is the queue it says it is in.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>The whole-world half of <see cref="Invariant.RuleInstanceIsArmedOrWaiting"/>.</b> Sharing
-    /// one link column makes <em>on two lists at once</em> unrepresentable, and that is worth having,
-    /// but it makes the opposite failure easy: a row taken off the Wheel and never subscribed, or
-    /// subscribed and never appended, is on <em>no</em> list. Nothing will ever reach it again, which
-    /// is <c>05 §9</c>'s asleep-for-ever with no write site to blame — so it can only be found by
-    /// counting.
-    /// </para>
-    /// <para>
-    /// <b>Counted the way <see cref="EveryoneIsInExactlyOnePlace"/> counts</b>, and for its reason:
-    /// asking of each row <em>which queue am I on</em> is a search per row, and walking every queue
-    /// once answers more. The <em>which</em> half is checked on the way past, while the walk already
-    /// knows what queue it is in — a row queued on the wrong Bin wakes on writes to a Bin it does not
-    /// care about and sleeps through the one it does.
-    /// </para>
-    /// </remarks>
-    /// <summary>
     /// No Building runs a Rule Instance under a kind the Ruleset in force does not declare.
     /// </summary>
     /// <remarks>
@@ -910,6 +890,26 @@ public static class WorldInvariants
         return false;
     }
 
+    /// <summary>
+    /// Every Rule Instance is in exactly one queue, and it is the queue it says it is in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The whole-world half of <see cref="Invariant.RuleInstanceIsArmedOrWaiting"/>.</b> Sharing
+    /// one link column makes <em>on two lists at once</em> unrepresentable, and that is worth having,
+    /// but it makes the opposite failure easy: a row taken off the Wheel and never subscribed, or
+    /// subscribed and never appended, is on <em>no</em> list. Nothing will ever reach it again, which
+    /// is <c>05 §9</c>'s asleep-for-ever with no write site to blame — so it can only be found by
+    /// counting.
+    /// </para>
+    /// <para>
+    /// <b>Counted the way <see cref="EveryoneIsInExactlyOnePlace"/> counts</b>, and for its reason:
+    /// asking of each row <em>which queue am I on</em> is a search per row, and walking every queue
+    /// once answers more. The <em>which</em> half is checked on the way past, while the walk already
+    /// knows what queue it is in — a row queued on the wrong Bin wakes on writes to a Bin it does not
+    /// care about and sleeps through the one it does.
+    /// </para>
+    /// </remarks>
     internal static void RuleInstancesAreQueuedExactlyOnce(World world, InvariantRegistry report)
     {
         RuleInstanceTable instances = world.RuleInstances;

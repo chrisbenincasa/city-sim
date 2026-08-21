@@ -705,7 +705,6 @@ public readonly record struct Metric
         ? (JobCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not carry a job counter.");
 
-    /// <summary>Which of the Policy sweeps' counters.</summary>
     /// <summary>The money aggregate this names.</summary>
     /// <exception cref="InvalidOperationException">This metric is not a money level.</exception>
     public MoneyCounter MoneyCounter => Source is MetricSource.Money
@@ -718,6 +717,7 @@ public readonly record struct Metric
         ? (MoneyFlowCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not name a money movement.");
 
+    /// <summary>Which of the Policy sweeps' counters.</summary>
     public PolicyCounter PolicyCounter => Source is MetricSource.Policies
         ? (PolicyCounter)_counter
         : throw new InvalidOperationException($"a {Source} metric does not carry a policy counter.");

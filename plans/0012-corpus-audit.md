@@ -23,7 +23,7 @@ enumerates lives in the binary*.
 
 ---
 
-## The diagnosis, which is two things and not one — **and a third, a fourth and a fifth were added later**
+## The diagnosis, which is two things and not one — **and a third, a fourth, a fifth and a sixth were added later**
 
 The sweep expected one failure mode and found two. They want different answers, and conflating them
 is why *"tidy the documents"* has never worked as an instruction.
@@ -36,6 +36,11 @@ facts that disagree; Cause 3's documents **all agree**, and all three are wrong 
 its disagreement is not between two documents at all. It is between a document and **the code**, and
 nothing in this corpus checks that — `CitationTests` checks links resolve, `CoverageMapTests` checks rows
 exist, `MarkdownStyleTests` checks markdown renders, and **all three are document-to-document**.
+
+**Cause 6 was added on 2026-08-21 and no sweep of this corpus could ever have found it**, because it
+is not in the corpus: it is in a **doc-comment**, and a doc-comment is the one place a description of
+the build lives that no document-to-document check reads. It took a **code-against-code** test, and on
+the day that test was written it failed on **forty** sites.
 
 **Cause 5 was added on 2026-08-13 and it is the one the sweep was best placed to find and least likely
 to**, because its two copies **agree perfectly**. A figure is quoted correctly and its qualifying clause
@@ -52,6 +57,7 @@ of the order they were found in:
 | **3** | a read never repeated — true when written, and the world moved | an item that names its gate | check the other way: when a gate clears, sweep for who cites it |
 | **4** | **the text was never true** — it describes a mechanism and was wrong on the day | **nothing** | open the mechanism; write names rather than times |
 | **5** | a **number** is quoted away from the sentence that qualifies it | **worse than nothing** — repetition makes a bare figure read as *more* settled | name the number after what it measures; quote the sentence, never the digits |
+| **6** | a **description** is filed under the wrong declaration — two `///` blocks, one member | **nothing**, and no check this corpus had could see it: the defect is in a **doc-comment** and every other check is document-to-document | a code-against-code test — `DocCommentAttachmentTests`. Found **40** sites in 31 files the day it was written |
 
 **Causes 4 and 5 are siblings and the difference is worth holding.** Both are about a decision taken from
 something that looked like established fact. Cause 4's source sentence is **wrong**; Cause 5's source
@@ -696,6 +702,54 @@ See check 6 in *What the mechanical check should be* — **including what was sp
 measured false**.
 
 ---
+
+### Cause 6 — a description is filed under the wrong declaration
+
+**Added 2026-08-21 by `06` milestone 11 task 2**, on a sighting the same milestone's task 1 committed
+one day earlier and a human caught by reading the diff.
+
+**Two `///` blocks with no member between them both bind to the one member that follows.** So the
+member above the pair silently loses its documentation to its neighbour, and the neighbour starts
+carrying a description of something it is not. There is no third outcome — a doc block either
+documents the declaration under it or it documents the wrong one.
+
+⚠ **The tell is nothing, and it is nothing in a stronger sense than Cause 4's.** The compiler does not
+warn: a duplicate `<summary>` is legal C#, and a doc comment is not even parsed unless documentation is
+being generated. Every mechanical check this corpus owns is document-to-document, and this lives in a
+**doc-comment**, so none of them has ever been able to see it — `RefusalCountTests` was the first
+document-to-*code* check and it reads one number.
+
+🔴 **The scale is the finding.** Task 2 wrote the check and it failed on **forty** sites across
+**thirty-one** files: **eight** where a rewritten block had been left stacked on the old one, and
+**thirty-two** where a member had genuinely lost its documentation. Two were actively misleading —
+`Ruleset.cs` had the `[jobs]` table's documentation attached to `TrafficRuleset`, and
+`WorldInvariants.cs` had *"Every Rule Instance is in exactly one queue"* attached to
+`NoBuildingRunsRulesItsKindDoesNotDeclare`. ***A defect nothing can see is found once per reviewer, for
+ever.***
+
+**Where it sits against the other five.** It is Cause 5's shape with a different unit: Cause 5 is a
+**number** quoted away from its qualifying sentence; this is a **whole description** separated from its
+symbol. Both leave two artefacts that are individually correct — the prose is true, the member is
+real — and the defect is in the binding between them. And it is `adr/0093` inverted: that record says
+*a description of the build is where to look*, and here the description points at the wrong place while
+reading as though it points at the right one.
+
+**Repair, both halves.** `DocCommentAttachmentTests` holds the tree: no member carries two doc
+comments, and every doc comment closes the tags it opens. It is **code against code**, reading `src/`
+and `tests/` from disk. ⚠ **The second half was found by the sweep the first half paid for** — six
+blocks had a `</remarks>` typed where a `</para>` belonged, closing the comment early and stranding
+every paragraph after it outside the remarks. ***A malformation nobody's tooling surfaces is a
+malformation nobody fixes***, which is why it wants a test rather than a convention.
+
+⚠ **What the sweep cost, recorded so the next one is cheaper.** Deciding between *this block is
+orphaned* and *this block was superseded* is a judgement per site, and it needs the member read. The
+one thing that made it tractable was asking, per file, **which members have no doc comment at all** —
+the orphan's owner is almost always in that list. **Three deletions dropped a clause worth keeping**
+and were reviewed by hand; one was carried back verbatim (`BinTable.Create`'s *linking it in is
+`World`'s*), and two were confirmed superseded — an `EventWheel` sentence naming a flat overflow list
+`adr/0056` had since **refused**, and a `Readouts` paragraph whose `adr/0006` argument had already
+moved to `IndexList.Length`. ***A block left stacked on its replacement is not evidence that its
+author meant to keep it.***
 
 ### Session K's collection — three, all paid in the sitting, and one is a new Cause
 

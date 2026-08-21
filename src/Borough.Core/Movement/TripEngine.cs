@@ -400,6 +400,15 @@ public sealed class TripEngine
         }
     }
 
+    /// <summary>No space anywhere in the destination's shed. Not a Leg count.</summary>
+    /// <remarks>
+    /// <b>A sentinel rather than an <c>out</c> flag</b>, because every other answer this method gives
+    /// is a Leg count and the caller's next act is to refuse the Trip outright. <c>-1</c> is outside
+    /// the range of legitimate answers, which <c>CitizenTable.ParkedIn</c>'s zero handle is not — so
+    /// unlike that column this one can afford to be a sentinel.
+    /// </remarks>
+    private const int NoParking = -1;
+
     /// <summary>
     /// The waypoints and per-Leg modes of one journey — <b>one Leg on foot, three by car</b>.
     /// </summary>
@@ -430,15 +439,6 @@ public sealed class TripEngine
     /// is that this method is where a reader is sent.
     /// </para>
     /// </remarks>
-    /// <summary>No space anywhere in the destination's shed. Not a Leg count.</summary>
-    /// <remarks>
-    /// <b>A sentinel rather than an <c>out</c> flag</b>, because every other answer this method gives
-    /// is a Leg count and the caller's next act is to refuse the Trip outright. <c>-1</c> is outside
-    /// the range of legitimate answers, which <c>CitizenTable.ParkedIn</c>'s zero handle is not — so
-    /// unlike that column this one can afford to be a sentinel.
-    /// </remarks>
-    private const int NoParking = -1;
-
     private int Itinerary(
         int citizen, int fromBuilding, int toBuilding, Address from, Address to, TravelMode mode,
         Span<Address> waypoints, Span<TravelMode> modes)
@@ -555,16 +555,6 @@ public sealed class TripEngine
     }
 
     /// <summary>
-    /// Puts a Traveller at the start of a Leg and returns the Tick it next needs attention.
-    /// </summary>
-    /// <remarks>
-    /// <b>A walk Leg is priced once and a drive Leg is priced per Segment</b>, and the asymmetry is
-    /// <c>adr/0041</c>'s rather than a shortcut: volume is attributed for vehicular Legs only, because
-    /// <c>CONTEXT.md</c> → Fidelity keeps pedestrians out of Stress entirely, and <c>03 §3.7</c> makes
-    /// that permanent by saying a pedestrian network does not saturate. A walk therefore has nothing to
-    /// price against and nothing to attribute, so it costs what it was planned to cost.
-    /// </remarks>
-    /// <summary>
     /// Moves the parking, if this Leg change is one of the two that move it.
     /// </summary>
     /// <remarks>
@@ -624,6 +614,16 @@ public sealed class TripEngine
         }
     }
 
+    /// <summary>
+    /// Puts a Traveller at the start of a Leg and returns the Tick it next needs attention.
+    /// </summary>
+    /// <remarks>
+    /// <b>A walk Leg is priced once and a drive Leg is priced per Segment</b>, and the asymmetry is
+    /// <c>adr/0041</c>'s rather than a shortcut: volume is attributed for vehicular Legs only, because
+    /// <c>CONTEXT.md</c> → Fidelity keeps pedestrians out of Stress entirely, and <c>03 §3.7</c> makes
+    /// that permanent by saying a pedestrian network does not saturate. A walk therefore has nothing to
+    /// price against and nothing to attribute, so it costs what it was planned to cost.
+    /// </remarks>
     private Ticks BeginLeg(int travellerSlot, int legSlot, Ticks tick)
     {
         TravellerTable travellers = _world.Travellers;

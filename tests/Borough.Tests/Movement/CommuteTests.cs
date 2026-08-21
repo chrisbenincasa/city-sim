@@ -381,7 +381,6 @@ public sealed class CommuteTests
         return total;
     }
 
-    /// <summary>Every bucket's contents in walk order.</summary>
     /// <summary>A bucket snapshot inverted: the phase each Citizen sits at, or −1 for none.</summary>
     private static int[] PhaseOf(int[][] buckets, World world)
     {
@@ -423,6 +422,7 @@ public sealed class CommuteTests
         return employers;
     }
 
+    /// <summary>Every bucket's contents in walk order.</summary>
     private static int[][] Snapshot(World world)
     {
         int[][] buckets = new int[Ticks.PerDay][];

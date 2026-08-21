@@ -768,7 +768,6 @@ public sealed class World
     }
 
     /// <summary>Adds a Household to a Building, linking it into the Building's occupant list.</summary>
-    /// <summary>Adds a Household to a Building, linking it into the Building's occupant list.</summary>
     public Handle<Household> CreateHousehold(Handle<Building> dwelling, byte lifeStage)
     {
         int buildingSlot = Buildings.Rows.Resolve(dwelling);
@@ -1030,7 +1029,6 @@ public sealed class World
         Occupants.InsertOrdered(buildingSlot, slot);
     }
 
-    /// <summary>Adds a Citizen to a Household, linking it into the Household's member list.</summary>
     /// <summary>Adds a Citizen to a Household, linking it into the Household's member list.</summary>
     public Handle<Citizen> CreateCitizen(Handle<Household> household, Ticks nextEventTick)
     {
@@ -1534,7 +1532,6 @@ public sealed class World
             ? Lots.AddressOf(lotSlot)
             : Address.None;
 
-    /// <summary>Gives a Building a Bin, per its kind's declaration in the Ruleset.</summary>
     /// <summary>
     /// Builds a Building and fits it out with its kind's Bins and Rule Instances.
     /// </summary>
@@ -3161,7 +3158,6 @@ public sealed class World
         Wheel.Arm(instanceSlot, tick, 1);
     }
 
-    /// <summary>Takes a Rule Instance off whichever one list it is on, leaving it on neither.</summary>
     /// <summary>
     /// Takes a Rule Instance off whichever of the two structures holds it.
     /// </summary>

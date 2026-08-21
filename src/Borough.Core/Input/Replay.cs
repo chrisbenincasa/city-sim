@@ -32,7 +32,6 @@ namespace Borough.Core.Input;
 /// </remarks>
 public static class Replay
 {
-    /// <summary>Builds the world a log describes, at Tick zero, before any command has been applied.</summary>
     /// <summary>
     /// Builds the world a log describes, with a Ruleset in force.
     /// </summary>

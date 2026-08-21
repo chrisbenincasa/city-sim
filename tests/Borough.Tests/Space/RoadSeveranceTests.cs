@@ -222,27 +222,6 @@ public sealed class RoadSeveranceTests
     }
 
     /// <summary>
-    /// <b>The shipped Ruleset severs nothing, and <c>rulesets/severance.toml</c> exists because of
-    /// it.</b>
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>This is the guard whose absence let <c>--roads</c> announce Severance over a city that has
-    /// none for the whole of slice 5a.</b> Every severance test above runs on
-    /// <see cref="RoadFixtures.Severing"/>, a fixture chosen to sever; nothing asserted anything
-    /// about the file the game actually ships, so the one configuration a reader would run first was
-    /// the one configuration under test by nothing. <b>A mechanism proven on a fixture built to
-    /// exhibit it is not thereby proven on the content.</b>
-    /// </para>
-    /// <para>
-    /// <b>The assertion is <em>not zero</em> but <em>negligible</em>, and the two nodes are real.</b>
-    /// A 240-configuration sweep against an Arterial-free control (<c>plans/0020</c>) puts the shipped
-    /// lattice at 0.0% at every <c>foot_crossing_every</c> in <c>1..16</c> and every Arterial count up
-    /// to 32; the residue here is two intersections an Arterial happens to strip completely. Asserting
-    /// exact zero would make this test a hostage to the Arterial polyline's dice.
-    /// </para>
-    /// </remarks>
-    /// <summary>
     /// <b>The shipped Ruleset severs nothing, <c>rulesets/severance.toml</c> does, and both claims are
     /// swept over seeds because neither is a property of the file alone.</b>
     /// </summary>
@@ -342,9 +321,6 @@ public sealed class RoadSeveranceTests
             "...and the city it fires on is severed after all, which would make the predicate right.");
     }
 
-    /// <summary>
-    /// Loads a shipped Ruleset by file name, from the copy the test project takes at build time.
-    /// </summary>
     /// <summary>
     /// Loads a shipped Ruleset by file name, from the copy the test project takes at build time.
     /// </summary>
@@ -513,17 +489,6 @@ public sealed class RoadSeveranceTests
     }
 
     /// <summary>
-    /// A graph over the <b>whole map</b>, laid directly rather than through
-    /// <see cref="SyntheticCity"/>.
-    /// </summary>
-    /// <remarks>
-    /// <b>These tests want a network, not a city, and since 2026-08-13 those are different sizes.</b>
-    /// The populator now paves the area its own population occupies, which at the 100 Citizens this
-    /// fixture used to declare is a <b>two-block</b> lattice — and 16 Arterials across two blocks is
-    /// not a severed city, it is rubble. <c>rulesets/severance.toml</c>'s own header calls it a
-    /// demonstration rather than a city; laying the map explicitly is that sentence in code.
-    /// </remarks>
-    /// <summary>
     /// <b>The paved extent every Severance measurement in this file is taken at, and it is stated here
     /// rather than inherited from the map.</b>
     /// </summary>
@@ -553,6 +518,17 @@ public sealed class RoadSeveranceTests
     /// </remarks>
     internal const int DemonstrationExtentTiles = 4_096;
 
+    /// <summary>
+    /// A graph over the <b>whole map</b>, laid directly rather than through
+    /// <see cref="SyntheticCity"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>These tests want a network, not a city, and since 2026-08-13 those are different sizes.</b>
+    /// The populator now paves the area its own population occupies, which at the 100 Citizens this
+    /// fixture used to declare is a <b>two-block</b> lattice — and 16 Arterials across two blocks is
+    /// not a severed city, it is rubble. <c>rulesets/severance.toml</c>'s own header calls it a
+    /// demonstration rather than a city; laying the map explicitly is that sentence in code.
+    /// </remarks>
     private static RoadGraph Laid(RoadRuleset roads, ulong seed = 0x5E_5E_5E)
     {
         World world = new(citizens: 100, RoadFixtures.With(roads));

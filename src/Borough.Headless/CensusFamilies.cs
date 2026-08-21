@@ -152,25 +152,6 @@ internal static class CensusFamilies
     ];
 
     /// <summary>
-    /// The four Trip Fates and the two Leg-mode counters, and <b>the Fates were built in 5b and
-    /// printed by nothing until 5b-bis task 6.</b>
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// ⚠ <b>A Census family with no reader is a family nobody can see.</b> Milestone 5b added
-    /// <c>TripCounter</c>, wired all four flows through <c>Census.Observe</c> and tested them — and
-    /// left the report untouched, so the only way to read a Trip Fate was to write a test. That is
-    /// the shape of <c>adr/0064</c>'s finding on a different axis: not a fact with two copies that
-    /// drifted, but a mechanism whose <em>only</em> consumer was the suite, which is a consumer no
-    /// operator has.
-    /// </para>
-    /// <para>
-    /// <b>All four Fates, including the two a walking-only city cannot produce.</b> <c>adr/0076</c>
-    /// closes the Fate set at four, so a row each is the shape that needs no edit when the missing
-    /// conditions arrive — and a zero beside a nonzero is informative in a way a missing row is not.
-    /// </para>
-    /// </remarks>
-    /// <summary>
     /// The money aggregates, ordered so the report reads as a balance sheet.
     /// </summary>
     /// <remarks>
@@ -200,6 +181,25 @@ internal static class CensusFamilies
         (MoneyFlowCounter.FromTreasury, Aggregate.Peak, "from treasury peak"),
     ];
 
+    /// <summary>
+    /// The four Trip Fates and the two Leg-mode counters, and <b>the Fates were built in 5b and
+    /// printed by nothing until 5b-bis task 6.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>A Census family with no reader is a family nobody can see.</b> Milestone 5b added
+    /// <c>TripCounter</c>, wired all four flows through <c>Census.Observe</c> and tested them — and
+    /// left the report untouched, so the only way to read a Trip Fate was to write a test. That is
+    /// the shape of <c>adr/0064</c>'s finding on a different axis: not a fact with two copies that
+    /// drifted, but a mechanism whose <em>only</em> consumer was the suite, which is a consumer no
+    /// operator has.
+    /// </para>
+    /// <para>
+    /// <b>All four Fates, including the two a walking-only city cannot produce.</b> <c>adr/0076</c>
+    /// closes the Fate set at four, so a row each is the shape that needs no edit when the missing
+    /// conditions arrive — and a zero beside a nonzero is informative in a way a missing row is not.
+    /// </para>
+    /// </remarks>
     public static readonly (TripCounter Counter, Aggregate Aggregate, string Name)[] TripCounters =
     [
         (TripCounter.Completed, Aggregate.Sum, "completed"),

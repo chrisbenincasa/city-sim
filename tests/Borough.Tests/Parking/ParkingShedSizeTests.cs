@@ -152,7 +152,6 @@ public sealed class ParkingShedSizeTests
         }
     }
 
-    /// <summary>One reading: the distribution of shed sizes over every Building in a world.</summary>
     /// <summary>
     /// One reading: the shed-size distribution over every Building, and what a production-shaped query
     /// costs on the same world.

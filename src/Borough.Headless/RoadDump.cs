@@ -120,7 +120,6 @@ internal static class RoadDump
     }
 
     /// <summary>The reading, in a sentence, so the numbers above are not left to be interpreted.</summary>
-    /// <summary>The reading, in a sentence, so the numbers above are not left to be interpreted.</summary>
     /// <remarks>
     /// <para>
     /// <b>⚠ This compared component <em>counts</em> until 2026-08-11, and it therefore announced

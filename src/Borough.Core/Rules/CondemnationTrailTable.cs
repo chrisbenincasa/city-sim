@@ -161,7 +161,7 @@ public sealed class CondemnationTrailTable
     /// <b>The one figure that survives the cap</b>, and the reason this is a column on every row rather
     /// than only on the aggregate: a total is a sum over the table with no branch for which rows were
     /// kept in full.
-    /// </remarks>
+    /// </para>
     /// <para>
     /// ⚠ <b><c>long</c> rather than <c>int</c>, because this is the one quantity in the table with no
     /// sink at all.</b> Every other column is overwritten as entries slide down; the aggregate's count

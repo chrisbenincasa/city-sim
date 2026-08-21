@@ -668,7 +668,6 @@ public abstract class Rows
         }
     }
 
-    /// <summary>Grows capacity to hold at least <paramref name="slots"/>, doubling as the allocator does.</summary>
     /// <summary>Widens the table to hold <paramref name="slots"/>. A restore's growth, not the allocator's.</summary>
     /// <remarks>
     /// <para>

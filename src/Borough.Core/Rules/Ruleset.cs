@@ -1063,49 +1063,6 @@ public readonly record struct TripRuleset(
 }
 
 /// <summary>
-/// The <c>[jobs]</c> table — <b>how a Citizen with no Workplace comes to have one</b>
-/// (<c>adr/0081</c>, <c>adr/0017</c>).
-/// </summary>
-/// <remarks>
-/// <para>
-/// <b>Three numbers, and they are <see cref="PlacementRuleset"/>'s three because this is
-/// <see cref="PlacementRuleset"/>'s shape</b>: a sampled sweep over a population, looking for
-/// something with room. <c>adr/0069</c> is the standing warning that such a pass needs exactly these
-/// and that its ADR will predict none of them — so they are named in advance here rather than
-/// discovered, and each carries a <c>plans/0002</c> §D row.
-/// </para>
-/// <para>
-/// <b>They are their own table rather than <c>[placement]</c>'s</b>, because a Household looks for a
-/// home at a different rate than a person looks for work, and one cadence could not be retuned for
-/// either without moving the other. What they share is the <em>derivation</em>: the file states a
-/// <b>duration</b> and the engine derives the sample from it (<c>adr/0059</c>), so the mechanism does
-/// not silently stop existing as the city grows.
-/// </para>
-/// <para>
-/// <b>There is no search radius here, and that absence is the decision.</b> A candidate has to come
-/// from somewhere near home or the commute distribution is S2 R4's uniform draw — the fabricated
-/// number this milestone's named risk is about. The box is <b>derived from the Commute Budget and
-/// the walking speed</b>: it is what a walk within the Budget can reach, so looking outside it is
-/// looking where nothing could be accepted. That is why the loader refuses a <c>[jobs]</c> table in
-/// a Ruleset with no <c>commute_budget_minutes</c> — the pass would have no bound, and the bound
-/// nobody authored is the one that would have to be invented.
-/// </para>
-/// </remarks>
-/// <param name="Interval">Ticks between passes. Zero means nobody is ever assigned work.</param>
-/// <param name="RevisitTicks">How long the pass takes to look at every Citizen once.</param>
-/// <param name="Candidates">Places a Citizen looks at per occasion — <c>02 §5.3</c>'s <c>N</c>.</param>
-/// <param name="ShiftHoursMin">The shortest working day a Citizen may draw, in in-world hours.</param>
-/// <param name="ShiftHoursMax">The longest. <b>Drawn per Citizen, converted to Ticks before the draw
-/// so the result is continuous</b> — the band is authored in hours because a designer has a reason for
-/// <em>six to ten</em> and none for a range of Ticks (<c>adr/0059</c>), and drawing in the authored
-/// unit would quantise every return in the city onto a handful of Ticks.</param>
-/// <param name="ArriveEarlyMaxMinutes">
-/// How long before their Shift starts a Citizen aims to be there, drawn per Citizen and persisting.
-/// <b>What separates a departure from an exact hour mark</b>: departure is
-/// <c>start − commute − margin</c>, and on a generated city the commute alone is about four minutes
-/// against an eighty-five-Tick hour. <c>adr/0101</c>.
-/// </param>
-/// <summary>
 /// The <c>[traffic]</c> table — <b>what a Segment costs to drive when other people are on it</b>.
 /// The volume-delay function, and it is BPR (<c>CONTEXT.md</c> → Volume-Delay Function).
 /// </summary>
@@ -1418,6 +1375,49 @@ public readonly record struct ParkingRuleset(int RadiusMetres, int ShedKeeps)
     public int Keeps => ShedKeeps;
 }
 
+/// <summary>
+/// The <c>[jobs]</c> table — <b>how a Citizen with no Workplace comes to have one</b>
+/// (<c>adr/0081</c>, <c>adr/0017</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Three numbers, and they are <see cref="PlacementRuleset"/>'s three because this is
+/// <see cref="PlacementRuleset"/>'s shape</b>: a sampled sweep over a population, looking for
+/// something with room. <c>adr/0069</c> is the standing warning that such a pass needs exactly these
+/// and that its ADR will predict none of them — so they are named in advance here rather than
+/// discovered, and each carries a <c>plans/0002</c> §D row.
+/// </para>
+/// <para>
+/// <b>They are their own table rather than <c>[placement]</c>'s</b>, because a Household looks for a
+/// home at a different rate than a person looks for work, and one cadence could not be retuned for
+/// either without moving the other. What they share is the <em>derivation</em>: the file states a
+/// <b>duration</b> and the engine derives the sample from it (<c>adr/0059</c>), so the mechanism does
+/// not silently stop existing as the city grows.
+/// </para>
+/// <para>
+/// <b>There is no search radius here, and that absence is the decision.</b> A candidate has to come
+/// from somewhere near home or the commute distribution is S2 R4's uniform draw — the fabricated
+/// number this milestone's named risk is about. The box is <b>derived from the Commute Budget and
+/// the walking speed</b>: it is what a walk within the Budget can reach, so looking outside it is
+/// looking where nothing could be accepted. That is why the loader refuses a <c>[jobs]</c> table in
+/// a Ruleset with no <c>commute_budget_minutes</c> — the pass would have no bound, and the bound
+/// nobody authored is the one that would have to be invented.
+/// </para>
+/// </remarks>
+/// <param name="Interval">Ticks between passes. Zero means nobody is ever assigned work.</param>
+/// <param name="RevisitTicks">How long the pass takes to look at every Citizen once.</param>
+/// <param name="Candidates">Places a Citizen looks at per occasion — <c>02 §5.3</c>'s <c>N</c>.</param>
+/// <param name="ShiftHoursMin">The shortest working day a Citizen may draw, in in-world hours.</param>
+/// <param name="ShiftHoursMax">The longest. <b>Drawn per Citizen, converted to Ticks before the draw
+/// so the result is continuous</b> — the band is authored in hours because a designer has a reason for
+/// <em>six to ten</em> and none for a range of Ticks (<c>adr/0059</c>), and drawing in the authored
+/// unit would quantise every return in the city onto a handful of Ticks.</param>
+/// <param name="ArriveEarlyMaxMinutes">
+/// How long before their Shift starts a Citizen aims to be there, drawn per Citizen and persisting.
+/// <b>What separates a departure from an exact hour mark</b>: departure is
+/// <c>start − commute − margin</c>, and on a generated city the commute alone is about four minutes
+/// against an eighty-five-Tick hour. <c>adr/0101</c>.
+/// </param>
 public readonly record struct JobRuleset(
     uint Interval,
     int RevisitTicks,
@@ -1963,8 +1963,6 @@ public sealed class Ruleset
         return _rules[id.Raw - 1];
     }
 
-    /// <summary>One Building kind, or a throw.</summary>
-    /// <exception cref="ArgumentOutOfRangeException">No kind carries that id.</exception>
     /// <summary>Whether this Ruleset declares a Building kind with that id.</summary>
     /// <remarks>
     /// <b>Asked rather than caught, and it exists so that <see cref="Kind"/> can keep throwing.</b>
@@ -1981,6 +1979,8 @@ public sealed class Ruleset
     /// </remarks>
     public bool Declares(byte kind) => kind != 0 && kind <= _kinds.Length;
 
+    /// <summary>One Building kind, or a throw.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">No kind carries that id.</exception>
     public KindDefinition Kind(byte kind)
     {
         if (kind == 0 || kind > _kinds.Length)

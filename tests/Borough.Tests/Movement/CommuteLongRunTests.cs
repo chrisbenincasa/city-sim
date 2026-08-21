@@ -500,27 +500,6 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The shipped Ruleset with a <b>second employing kind</b> appended, keeping its own Shift band.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Parsed from the committed file rather than built here, for <c>GoldenFixtures.Rules</c>' own
-    /// reason: a Ruleset built in C# agrees with the loader by construction, so a run over one proves
-    /// nothing about the file the city actually ships with.
-    /// </para>
-    /// <para>
-    /// <b>The appended kind is a clone of <c>dwelling</c> with one line changed</b>, and everything
-    /// about that is deliberate. Cloning holds every ratio the shipped file chose — occupancy, jobs
-    /// per resident, the Bin sizes, the condemnation cadence — so the only difference between the two
-    /// cities is <em>when the workplaces open</em>. <c>zone = 0</c> on both Zone Rules because
-    /// <c>SyntheticCity</c> paints every Lot with bit 0 and nothing else: the two Rules compete for
-    /// the same Lots, which is a city with <b>mixed use everywhere</b> rather than districts. That is
-    /// the crudest possible land-use split and it is the right one to measure first, because it
-    /// isolates the question — <em>does a mixture of Shift bands fill the middle of the Day?</em> —
-    /// from the separate question of whether the split has to be <em>spatial</em>.
-    /// </para>
-    /// </remarks>
-    /// <summary>
     /// The shipped file plus a second employing kind, as TOML.
     /// </summary>
     /// <remarks>
@@ -577,6 +556,27 @@ public sealed class CommuteLongRunTests(ITestOutputHelper output)
             revisit_ticks = 2048
             """;
 
+    /// <summary>
+    /// The shipped Ruleset with a <b>second employing kind</b> appended, keeping its own Shift band.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Parsed from the committed file rather than built here, for <c>GoldenFixtures.Rules</c>' own
+    /// reason: a Ruleset built in C# agrees with the loader by construction, so a run over one proves
+    /// nothing about the file the city actually ships with.
+    /// </para>
+    /// <para>
+    /// <b>The appended kind is a clone of <c>dwelling</c> with one line changed</b>, and everything
+    /// about that is deliberate. Cloning holds every ratio the shipped file chose — occupancy, jobs
+    /// per resident, the Bin sizes, the condemnation cadence — so the only difference between the two
+    /// cities is <em>when the workplaces open</em>. <c>zone = 0</c> on both Zone Rules because
+    /// <c>SyntheticCity</c> paints every Lot with bit 0 and nothing else: the two Rules compete for
+    /// the same Lots, which is a city with <b>mixed use everywhere</b> rather than districts. That is
+    /// the crudest possible land-use split and it is the right one to measure first, because it
+    /// isolates the question — <em>does a mixture of Shift bands fill the middle of the Day?</em> —
+    /// from the separate question of whether the split has to be <em>spatial</em>.
+    /// </para>
+    /// </remarks>
     private static Ruleset WithASecondKind(int earliestHour, int latestHour)
     {
         RulesetLoadResult result =

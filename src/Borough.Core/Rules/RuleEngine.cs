@@ -366,32 +366,6 @@ public sealed class RuleEngine
         _tickRungs = 0;
     }
 
-    /// <summary>
-    /// Evaluates one Rule Instance at the largest count its Bins allow, leaving its net Bin deltas in
-    /// the scratch buffers.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>The failure test is against the floor and the raise is against the ceiling, in one walk.</b>
-    /// A Bin affording fewer than <c>min</c> applications is the failure <c>02 §4.1</c> describes, and
-    /// its shortfall is <c>(min × amount) − available</c> — the floor's shortfall, not the ceiling's,
-    /// because what the Rule waits on is the least that would let it fire at all. A Bin affording more
-    /// than <c>min</c> lowers the ceiling and blames nobody.
-    /// </para>
-    /// <para>
-    /// <b><paramref name="ceiling"/> is how Phase 3 refuses to enlarge a Phase 2 decision</b>; see
-    /// <see cref="Apply"/>.
-    /// </para>
-    /// <para>
-    /// <b>The Bin blamed on failure is the first one that cannot carry its net delta</b>, in
-    /// declaration order with inputs before outputs. <c>02 §4.1</c> says a failing Rule subscribes to
-    /// <em>the</em> Bin that was short — singular — so where several are, the first is the minimal
-    /// reading. When it arrives the Rule re-evaluates, fails on the next, and subscribes there; the
-    /// chain of waits is as long as the number of short Bins and no subscription is ever held twice.
-    /// </para>
-    /// </remarks>
-    /// <param name="instance">The Rule Instance slot to evaluate.</param>
-    /// <param name="ceiling">An upper bound on the count, over and above the Rule's own <c>max</c>.</param>
     /// <summary>Evaluates a Rule and, if it fails, its <c>on_fail</c> chain.</summary>
     /// <remarks>
     /// A link does not do the head's work by another route — it <b>relieves the Bin the head failed
@@ -449,6 +423,32 @@ public sealed class RuleEngine
         return head;
     }
 
+    /// <summary>
+    /// Evaluates one Rule Instance at the largest count its Bins allow, leaving its net Bin deltas in
+    /// the scratch buffers.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The failure test is against the floor and the raise is against the ceiling, in one walk.</b>
+    /// A Bin affording fewer than <c>min</c> applications is the failure <c>02 §4.1</c> describes, and
+    /// its shortfall is <c>(min × amount) − available</c> — the floor's shortfall, not the ceiling's,
+    /// because what the Rule waits on is the least that would let it fire at all. A Bin affording more
+    /// than <c>min</c> lowers the ceiling and blames nobody.
+    /// </para>
+    /// <para>
+    /// <b><paramref name="ceiling"/> is how Phase 3 refuses to enlarge a Phase 2 decision</b>; see
+    /// <see cref="Apply"/>.
+    /// </para>
+    /// <para>
+    /// <b>The Bin blamed on failure is the first one that cannot carry its net delta</b>, in
+    /// declaration order with inputs before outputs. <c>02 §4.1</c> says a failing Rule subscribes to
+    /// <em>the</em> Bin that was short — singular — so where several are, the first is the minimal
+    /// reading. When it arrives the Rule re-evaluates, fails on the next, and subscribes there; the
+    /// chain of waits is as long as the number of short Bins and no subscription is ever held twice.
+    /// </para>
+    /// </remarks>
+    /// <param name="instance">The Rule Instance slot to evaluate.</param>
+    /// <param name="ceiling">An upper bound on the count, over and above the Rule's own <c>max</c>.</param>
     private RuleVerdict Check(int instance, RuleId rule, long ceiling)
     {
         // 02 §4's first counter, and this is the only place it can be taken honestly: a head, a link

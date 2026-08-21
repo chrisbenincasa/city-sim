@@ -193,7 +193,6 @@ public static class ParkingShed
     private static Tiles Add(Tiles reached, Tiles along) =>
         reached == ShedScratch.Unreached ? ShedScratch.Unreached : reached + along;
 
-    /// <summary>The ball itself: nodes in ascending distance until the radius is passed.</summary>
     /// <summary>
     /// The ball itself: nodes in ascending distance until the radius is passed, or until nothing
     /// further out could displace what is already kept.

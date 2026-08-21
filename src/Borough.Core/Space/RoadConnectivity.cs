@@ -126,7 +126,6 @@ public sealed class RoadConnectivity
     public int StrandedOnFoot => WalkableNodes - LargestFoot;
 
     /// <summary>Recomputes both labellings from the Segments.</summary>
-    /// <summary>Recomputes both labellings from the Segments.</summary>
     internal void Rebuild(RoadNodeTable nodes, RoadSegmentTable segments)
     {
         CarComponents = Label(

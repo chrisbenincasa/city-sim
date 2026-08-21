@@ -85,7 +85,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// joined <c>World._tables</c> in 5b. A save format tested only against the fixture is tested
     /// against the columns that fixture happens to move, which is slice 10 task 11's lesson pointed at
     /// a file rather than at a baseline.
-    /// </remarks>
+    /// </summary>
     [Theory]
     [InlineData(64, 128)]
     [InlineData(256, 256)]

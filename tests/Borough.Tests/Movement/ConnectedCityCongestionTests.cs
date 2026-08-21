@@ -432,7 +432,6 @@ public sealed class ConnectedCityCongestionTests(ITestOutputHelper output)
     }
 
     /// <summary>What one run of <see cref="Run"/> is worth reading off it.</summary>
-    /// <summary>What one run of <see cref="Run"/> is worth reading off it.</summary>
     /// <remarks>
     /// <para>
     /// <b>The clamp is counted in Segment-Ticks rather than in pricing events, and the difference is

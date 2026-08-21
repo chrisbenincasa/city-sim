@@ -424,14 +424,6 @@ public sealed class RulesetLoaderTests
     }
 
     /// <summary>
-    /// No Readout is declared yet, so no derived apply count can name one.
-    /// </summary>
-    /// <remarks>
-    /// <b>A correct refusal rather than a provisional one.</b> The readable set is declared in the
-    /// simulation (<c>02 §4.1</c>) and slice 7 task 7 is where it is populated; until then the honest
-    /// answer to <c>derived = "anything"</c> is that the set is empty.
-    /// </remarks>
-    /// <summary>
     /// An undeclared Readout is refused **by name**, and the refusal quotes the set that does exist.
     /// </summary>
     /// <remarks>

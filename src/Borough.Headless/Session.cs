@@ -425,25 +425,6 @@ internal static class Session
     }
 
     /// <summary>
-    /// The session to run: a recorded one, or a fresh one that never had a player.
-    /// </summary>
-    /// <remarks>
-    /// <b>A fresh run is an empty log rather than a second code path.</b> <c>Replay.Start</c> builds
-    /// the world a log describes, and <em>every difference between two cities is a difference in
-    /// their logs</em> — a runner that could start a world some other way would be a way for state to
-    /// arrive that the log does not account for, which is state no divergence can be attributed to.
-    /// </remarks>
-    /// <param name="supplied">
-    /// The content hash of the Ruleset given on the command line, or <c>ContentHash.None</c>.
-    /// </param>
-    /// <remarks>
-    /// <b>A fresh session is recorded against the Ruleset it was handed, and getting this wrong makes
-    /// the flag unusable.</b> The builder previously stamped <c>ContentHash.None</c> unconditionally,
-    /// which was right while nothing could be supplied — the moment <c>--ruleset</c> loads content, a
-    /// fresh run would name no Ruleset, be handed one, and <see cref="RulesetCheck"/> would correctly
-    /// refuse the session against its own Rules. A new session is not a mismatch; it is the recording.
-    /// </remarks>
-    /// <summary>
     /// Parses the Ruleset the run was given, or explains to the operator why it could not.
     /// </summary>
     /// <param name="path">The path from <c>--ruleset</c>, or null if none was given.</param>
@@ -582,6 +563,25 @@ internal static class Session
         return true;
     }
 
+    /// <summary>
+    /// The session to run: a recorded one, or a fresh one that never had a player.
+    /// </summary>
+    /// <remarks>
+    /// <b>A fresh run is an empty log rather than a second code path.</b> <c>Replay.Start</c> builds
+    /// the world a log describes, and <em>every difference between two cities is a difference in
+    /// their logs</em> — a runner that could start a world some other way would be a way for state to
+    /// arrive that the log does not account for, which is state no divergence can be attributed to.
+    /// </remarks>
+    /// <param name="supplied">
+    /// The content hash of the Ruleset given on the command line, or <c>ContentHash.None</c>.
+    /// </param>
+    /// <remarks>
+    /// <b>A fresh session is recorded against the Ruleset it was handed, and getting this wrong makes
+    /// the flag unusable.</b> The builder previously stamped <c>ContentHash.None</c> unconditionally,
+    /// which was right while nothing could be supplied — the moment <c>--ruleset</c> loads content, a
+    /// fresh run would name no Ruleset, be handed one, and <see cref="RulesetCheck"/> would correctly
+    /// refuse the session against its own Rules. A new session is not a mismatch; it is the recording.
+    /// </remarks>
     internal static InputLog Load(Options options, IReadOnlyList<Supplied> supplied)
     {
         ArgumentNullException.ThrowIfNull(options);

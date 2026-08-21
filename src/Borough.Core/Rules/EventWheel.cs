@@ -137,17 +137,6 @@ public sealed class EventWheel
     /// Arms a Rule Instance to fire <paramref name="delay"/> Ticks after <paramref name="now"/>.
     /// </summary>
     /// <remarks>
-    /// <b>A delay of zero or of a whole period is refused rather than clamped.</b> Both land the row
-    /// back in the bucket currently being drained, which is an unbounded loop inside one Tick — a
-    /// Rule that fires, re-arms onto the bucket it just came off, and fires again. Refusing is the
-    /// minimal wheel being honest about its period; carrying a longer sleep is slice 9's overflow
-    /// list, and clamping here would decide that question quietly.
-    /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException">The delay is zero, or is a whole period or more.</exception>
-    /// <summary>
-    /// Arms a Rule Instance to fire <paramref name="delay"/> Ticks after <paramref name="now"/>.
-    /// </summary>
-    /// <remarks>
     /// <para>
     /// <b>A delay of zero or of a whole period is refused rather than clamped.</b> Both land the row
     /// back in the bucket currently being drained, which is an unbounded loop inside one Tick — a

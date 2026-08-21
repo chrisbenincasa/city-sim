@@ -158,21 +158,19 @@ public readonly struct LayerSchedule
 public readonly record struct LayerRates(int LandValueTau, int SealingDecayTau, int PollutionTau)
 {
     /// <summary>
-    /// Phase 1's rates. <b>Sealing does not decay, and that is a stated absence rather than a guess.</b>
+    /// <b>Pollution's tau is derived rather than picked, and the derivation is the whole argument for
+    /// it.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// <b>Sealing does not decay, and that is a stated absence rather than a guess.</b>
     /// <c>02 §2.4</c> says Sealing decays at a Ruleset rate <b>keyed by terrain type</b> — rock may
     /// never recover, floodplain may recover over hundreds of Days. There is no terrain in Phase 1, so
     /// there is no key, so there is no rate to look one up with. <b>Zero is the conservative answer
     /// rather than a placeholder</b>: it is the case where Sealing only accumulates, which is the one
     /// <c>adr/0006</c> would object to if the bound were not structural — and it is, because a Cell
     /// cannot have more Tiles built on it than it has Tiles.
-    /// </remarks>
-    /// <summary>
-    /// <b>Pollution's tau is derived rather than picked, and the derivation is the whole argument for
-    /// it.</b>
-    /// </summary>
-    /// <remarks>
+    /// </para>
     /// <para>
     /// It is <b>128</b>, which is <c>TICKS_PER_DAY ÷ the pollution cadence</c> — 8192 ÷ 64 — so it is
     /// <em>one Day, counted in the units the decay actually runs in</em>. That makes the designer-facing

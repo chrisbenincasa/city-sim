@@ -316,23 +316,6 @@ public static class SyntheticCity
     }
 
     /// <summary>
-    /// Carves enough zoned land to hold <paramref name="wanted"/> Buildings, block by block.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>Through the real subdivider, so the fixture and the game agree about what a Lot is.</b>
-    /// Until 5a-bis this laid a 64-Tile strip of painted Lots, and that strip was the second half of
-    /// the disagreement <c>plans/0000</c> records — <i>the synthetic city fixture and <c>World</c>'s
-    /// table sizing disagree and nothing checks that they do</i>. It still does not check, but the
-    /// Lots are now the ones the subdivider would have produced, which is the half that was inventable.
-    /// </para>
-    /// <para>
-    /// <b>Blocks in lattice order, and it stops as soon as it has enough.</b> Adjacent blocks claim
-    /// <em>opposite</em> sides of the Segment they share, so walking in order costs nothing — a block
-    /// never finds its faces already taken by its neighbour.
-    /// </para>
-    /// </remarks>
-    /// <summary>
     /// How far the Street lattice reaches from the origin corner, in Tiles: enough ground to carry
     /// the Lots this world was allocated for.
     /// </summary>
@@ -398,6 +381,23 @@ public static class SyntheticCity
         return tiles < CellGrid.WorldTiles ? tiles : CellGrid.WorldTiles;
     }
 
+    /// <summary>
+    /// Carves enough zoned land to hold <paramref name="wanted"/> Buildings, block by block.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Through the real subdivider, so the fixture and the game agree about what a Lot is.</b>
+    /// Until 5a-bis this laid a 64-Tile strip of painted Lots, and that strip was the second half of
+    /// the disagreement <c>plans/0000</c> records — <i>the synthetic city fixture and <c>World</c>'s
+    /// table sizing disagree and nothing checks that they do</i>. It still does not check, but the
+    /// Lots are now the ones the subdivider would have produced, which is the half that was inventable.
+    /// </para>
+    /// <para>
+    /// <b>Blocks in lattice order, and it stops as soon as it has enough.</b> Adjacent blocks claim
+    /// <em>opposite</em> sides of the Segment they share, so walking in order costs nothing — a block
+    /// never finds its faces already taken by its neighbour.
+    /// </para>
+    /// </remarks>
     private static int Subdivide(World world, int wanted)
     {
         int blocks = world.Roads.Streets.Blocks;

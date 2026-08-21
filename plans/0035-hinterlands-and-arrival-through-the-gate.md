@@ -518,6 +518,41 @@ One finding:
   one is a document against code. ⚠ **It checks that each name is assigned, not that it is assigned
   from itself**, which is narrower than it could be and is the whole of the failure observed twice.
 
+### The doc-comment sweep — ✅ **DONE 2026-08-21**, and it is `plans/0012` **Cause 6**
+
+🔴 **F16 — a description filed under the wrong declaration, forty times, and nothing in the build or
+the corpus could see one of them.** Task 1 inserted two members between an existing doc block and its
+member; the review that caught it was a human reading the diff, which is a detector that runs once per
+reviewer. **Two `///` blocks with no member between them both bind to the member that follows** — so
+the member above loses its documentation and the member below starts carrying a description of
+something it is not. The compiler is silent, because a duplicate `<summary>` is legal C# and a doc
+comment is not parsed unless documentation is being generated.
+
+**The check found forty sites in thirty-one files**: eight where a rewritten block had been left
+stacked on the old one, and **thirty-two where a member had genuinely lost its documentation**. Two
+were actively misleading — `Ruleset.cs` had the `[jobs]` table's documentation on `TrafficRuleset`, and
+`WorldInvariants.cs` had *"Every Rule Instance is in exactly one queue"* on
+`NoBuildingRunsRulesItsKindDoesNotDeclare`. All forty repaired: orphans moved to the member each
+describes, superseded blocks deleted.
+
+⚠ **The sweep found a second half nobody was looking for.** Six blocks had a `</remarks>` typed where a
+`</para>` belonged, closing the comment early and stranding every paragraph after it **outside** the
+remarks — a malformation visible only where the docs are rendered, which in this project is nowhere.
+***A malformation nobody's tooling surfaces is a malformation nobody fixes.***
+`DocCommentAttachmentTests` holds both halves and is **code against code**, on
+`RefusalCountTests`' shape.
+
+⚠ **Three deletions dropped a clause and were reviewed by hand rather than taken on trust.** One was
+carried back verbatim — `BinTable.Create`'s *linking it in is `World`'s*, which its sibling
+`RuleInstanceTable.Create` had kept. Two were confirmed genuinely superseded: an `EventWheel` sentence
+offering a flat overflow list that [`adr/0056`](../docs/adr/0056-the-event-wheel-is-two-levels-ticks-and-days.md)
+had since **refused**, and a `Readouts` paragraph whose `adr/0006` argument had already moved to
+`IndexList.Length`. ***A block left stacked on its replacement is not evidence that its author meant to
+keep it***, and the reverse is not evidence either — each one has to be read.
+
+**Filed as [`plans/0012`](0012-corpus-audit.md) Cause 6**, because it is not this milestone's defect:
+it is a failure mode the corpus had no detector for, and thirty-one files predate this milestone.
+
 ## What this milestone must not do
 
 - **Do not add an immigration rate, an arrival scalar or an attractiveness meter.** `adr/0023`'s first

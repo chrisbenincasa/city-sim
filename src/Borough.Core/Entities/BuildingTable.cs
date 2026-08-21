@@ -160,7 +160,6 @@ public sealed class BuildingTable
     /// </remarks>
     public Column<int> CellNext { get; }
 
-    /// <summary>Allocates a Building on a Lot.</summary>
     /// <summary>Allocates a Building on a Lot, and records it on the Lot.</summary>
     /// <param name="lots">
     /// The Lot table, so that the reverse index is written in the same call as the forward handle.

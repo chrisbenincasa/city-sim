@@ -131,7 +131,6 @@ public sealed class RuleInstanceTable
     /// <summary>True when this row is asleep on a Bin rather than armed on the Wheel.</summary>
     public bool IsWaiting(int slot) => Blocked[slot] != Blocking.Nothing;
 
-    /// <summary>Allocates a Rule Instance. Arming it is <see cref="World"/>'s.</summary>
     /// <summary>Allocates a Rule Instance, healthy and owing nothing. Arming it is <see cref="World"/>'s.</summary>
     /// <remarks>
     /// <b>The failure state is written rather than assumed, for <see cref="BinTable.Create"/>'s

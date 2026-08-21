@@ -315,7 +315,6 @@ public sealed class TripCommandTests
         Assert.Equal(payload, TripPayload.Decode(payload.Encode()));
     }
 
-    /// <summary>Runs the golden world with one Trip in it, to the given Tick.</summary>
     /// <summary>
     /// The commanded Trip, in a city that generates none of its own.
     /// </summary>
@@ -461,15 +460,6 @@ public sealed class TripCommandTests
     }
 
     /// <summary>
-    /// Two blocks the populated world has put an occupied Building in, close enough to walk between.
-    /// </summary>
-    /// <remarks>
-    /// <b>A probe run rather than a literal.</b> Where Buildings land is a property of the seed and of
-    /// <c>[roads]</c>, so asking the world is the only form of this that does not become a stale
-    /// constant. It runs the same log the tests do, up to the same Tick, so what it sees is what the
-    /// command will see.
-    /// </remarks>
-    /// <summary>
     /// The two occupied blocks furthest apart on the Manhattan grid, for a Trip that has to be
     /// <em>long</em> rather than merely to exist.
     /// </summary>
@@ -482,6 +472,15 @@ public sealed class TripCommandTests
     /// </remarks>
     private static Blocks FarthestOccupiedBlocks() => OccupiedBlocks(farthest: true);
 
+    /// <summary>
+    /// Two blocks the populated world has put an occupied Building in, close enough to walk between.
+    /// </summary>
+    /// <remarks>
+    /// <b>A probe run rather than a literal.</b> Where Buildings land is a property of the seed and of
+    /// <c>[roads]</c>, so asking the world is the only form of this that does not become a stale
+    /// constant. It runs the same log the tests do, up to the same Tick, so what it sees is what the
+    /// command will see.
+    /// </remarks>
     private static Blocks TwoOccupiedBlocks() => OccupiedBlocks(farthest: false);
 
     private static Blocks OccupiedBlocks(bool farthest)

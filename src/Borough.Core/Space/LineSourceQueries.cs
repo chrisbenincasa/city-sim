@@ -5,6 +5,27 @@ using Borough.Core.Tables;
 namespace Borough.Core.Space;
 
 /// <summary>
+/// What separates one line-source field from another: how far it carries, and how loud a unit of flow
+/// is. <b>The parameters, and there are only two.</b>
+/// </summary>
+/// <param name="Range">
+/// The cutoff. Beyond it a source contributes nothing. Authored in <b>metres</b> by the Ruleset per
+/// <c>02 §2.5</c> question 2 and converted once; a range nobody can source is a balance hazard.
+/// </param>
+/// <param name="IntensityPerFlow">
+/// Q16.16 intensity radiated by one Vehicle per Tick of flow at one Tile's distance.
+/// <para>
+/// ⚠ <b>It is NOT a pure scale, and the obvious reasoning that it is one is wrong.</b> Under a plain
+/// logarithm it would be — scaling the argument shifts every level by a constant. The level is
+/// <see cref="Transcendental.Log1P"/>, which is linear below unity and logarithmic above it, so this
+/// parameter decides <b>which regime the city sits in</b>. Set too low, every intensity lands in the
+/// linear stretch, two equal sources come out exactly twice as loud, and the field is the
+/// physically-wrong linear sum the logarithm was chosen to prevent — while still looking like a level.
+/// </para>
+/// </param>
+public readonly record struct LineSource(Tiles Range, int IntensityPerFlow);
+
+/// <summary>
 /// The fields that <b>stopped being Map Layers</b>, and where their queries will live.
 /// </summary>
 /// <remarks>
@@ -33,27 +54,6 @@ namespace Borough.Core.Space;
 /// what the implementation was written against rather than a description added after it.
 /// </para>
 /// </remarks>
-/// <summary>
-/// What separates one line-source field from another: how far it carries, and how loud a unit of flow
-/// is. <b>The parameters, and there are only two.</b>
-/// </summary>
-/// <param name="Range">
-/// The cutoff. Beyond it a source contributes nothing. Authored in <b>metres</b> by the Ruleset per
-/// <c>02 §2.5</c> question 2 and converted once; a range nobody can source is a balance hazard.
-/// </param>
-/// <param name="IntensityPerFlow">
-/// Q16.16 intensity radiated by one Vehicle per Tick of flow at one Tile's distance.
-/// <para>
-/// ⚠ <b>It is NOT a pure scale, and the obvious reasoning that it is one is wrong.</b> Under a plain
-/// logarithm it would be — scaling the argument shifts every level by a constant. The level is
-/// <see cref="Transcendental.Log1P"/>, which is linear below unity and logarithmic above it, so this
-/// parameter decides <b>which regime the city sits in</b>. Set too low, every intensity lands in the
-/// linear stretch, two equal sources come out exactly twice as loud, and the field is the
-/// physically-wrong linear sum the logarithm was chosen to prevent — while still looking like a level.
-/// </para>
-/// </param>
-public readonly record struct LineSource(Tiles Range, int IntensityPerFlow);
-
 public static class LineSourceQueries
 {
     /// <summary>
@@ -87,7 +87,6 @@ public static class LineSourceQueries
     /// <b>Swapping the two changes the State Hash</b>, so it is a design change under <c>05 §4</c> and
     /// not an optimisation, however a profile motivates it (<c>02 §2.4</c>).
     /// </para>
-    /// </remarks>
     /// <para>
     /// <b>3. It returns a level, and the sum happens underneath it.</b> <c>02 §2.4</c> says the falloff
     /// is <b>logarithmic</b> and, separately, that the query <b>sums</b> — and it never says in which
@@ -133,7 +132,6 @@ public static class LineSourceQueries
     /// source, 150 m) through one kernel, so <b>one of them was always wrong</b>. <c>02 §2.5</c> guard
     /// rule 1 states it generally — <em>one field, one geometry, one range</em>.
     /// </para>
-    /// </remarks>
     /// <para>
     /// <b>It is the same call with a different <see cref="LineSource"/>, and that is the whole of the
     /// difference.</b> Two fields sharing one implementation is what <c>02 §2.4</c> asks for; two
@@ -155,7 +153,6 @@ public static class LineSourceQueries
     /// the other two: its range is a travel time, so no geometry on the Cell grid can express it and no
     /// straight-line distance query can either. <c>02 §2.5</c>'s representation table gives catchments
     /// their own row.
-    /// </remarks>
     /// <para>
     /// ⚠ <b>Its blocker is not the one this message used to name, and the correction is specific.</b>
     /// The Road Graph shipped in 5a and Businesses shipped in milestone 10 — <c>BusinessTable</c> holds

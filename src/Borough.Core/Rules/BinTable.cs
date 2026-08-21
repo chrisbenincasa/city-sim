@@ -177,8 +177,7 @@ public sealed class BinTable
     /// </remarks>
     public long SpaceAt(int slot) => Capacity[slot] - _level[slot];
 
-    /// <summary>Allocates an empty Bin on a Building. Linking it in is <see cref="World"/>'s.</summary>
-    /// <summary>Allocates a Bin on a Building, empty.</summary>
+    /// <summary>Allocates a Bin on a Building, empty. Linking it in is <see cref="World"/>'s.</summary>
     /// <remarks>
     /// <b>The level is written rather than assumed, because a recycled slot carries its predecessor's
     /// contents.</b> <see cref="Rows{T}.Allocate"/> hands back a free slot without clearing any
