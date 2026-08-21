@@ -685,6 +685,69 @@ public readonly record struct PolicyDefinition(
     int Amount);
 
 /// <summary>
+/// One <c>[[hinterland]]</c> table — <b>the economy behind one map edge</b> (<c>adr/0088</c>,
+/// <c>adr/0131</c>, milestone 11 task 2).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>It is the one authored anchor under every price in the design</b> (<c>adr/0026</c>,
+/// <c>adr/0050</c>) — <c>CONTEXT.md</c> → Hinterland: *"a designer authors four objects and never
+/// writes a price anywhere else."* Four edges means four of these, drifting independently, and that
+/// is what makes the Outside legible: a single hidden anchor has no referent, where four comparable
+/// markets are each other's referent.
+/// </para>
+/// <para>
+/// 🔴 <b>Two fields, and the shortness is the decision rather than a stub.</b>
+/// <c>adr/0131</c>: <b>a Hinterland field is authored in the milestone that reads it.</b> The rest of
+/// what <c>CONTEXT.md</c> lists arrives with its reader — a price per Good at 13, a median wage at
+/// 15, median rent and service levels and the commute figure at 16 with the comparison. ⚠ <b>Depth
+/// and a recovery rate are the ones worth naming as absent</b>, because a stock is the first thing a
+/// reader expects here: they are at <b>16</b> because <c>CONTEXT.md</c>'s drawdown gets both its
+/// properties — *raises its rate* and *skews its mix* — from taking the most willing first, and the
+/// willingness ordering <em>is</em> the comparison. A stock decrementing with nothing to order by can
+/// express only availability, arrivals then none. ***A stock without an ordering is a wall, whatever
+/// the design calls it*** — and the wall is the population ceiling that entry refuses by name.
+/// </para>
+/// <para>
+/// <b>Keyed by <see cref="Edge"/> and not by declaration order</b>, which is where this parts company
+/// from <see cref="PolicyDefinition"/> and <see cref="ZoneRuleDefinition"/>. Those two are iterated
+/// and their index is a coordinate of a draw, so reordering the tables moves the State Hash. A
+/// Hinterland is <em>looked up</em> — by the edge a gate stands on — so its order is not content, and
+/// the loader refuses a second table for one edge rather than letting the later one win.
+/// </para>
+/// <para>
+/// ⚠ <b>Nothing pairs a gate with a Hinterland at load, and it could not.</b> Which edge an Outside
+/// Connection stands on is a property of where it was <em>placed</em>
+/// (<see cref="Entities.World.EdgeOf"/>), not of the Ruleset, so a file declaring a gate kind and no
+/// <c>[[hinterland]]</c> is not refusable here — the loader cannot see a world. The pairing is the
+/// arrival path's, and it is milestone 11 task 4's.
+/// </para>
+/// </remarks>
+/// <param name="Edge">
+/// Which map edge this economy sits behind. <b>The identity</b>, and never
+/// <see cref="MapEdge.None"/> in a loaded Ruleset.
+/// </param>
+/// <param name="EmigrantBalanceMin">
+/// The floor of what a Household crossing into the city brings with it. <b>Hash-bearing</b> once
+/// arrival draws it.
+/// </param>
+/// <param name="EmigrantBalanceMax">The ceiling of the same band. <b>Hash-bearing.</b></param>
+public readonly record struct HinterlandDefinition(
+    MapEdge Edge, Money EmigrantBalanceMin, Money EmigrantBalanceMax)
+{
+    /// <summary>
+    /// Whether an emigrant from here carries anything at all.
+    /// </summary>
+    /// <remarks>
+    /// <b>A Hinterland whose emigrants arrive penniless is a real economy, not an unset field</b> —
+    /// which is why a zero band is accepted where <see cref="KindDefinition.ArrivalsPerDay"/>'s zero
+    /// is refused. A gate admitting nobody is a door that never opens; a Household arriving with
+    /// nothing still arrives, still joins the Unplaced Pool and still has to be housed.
+    /// </remarks>
+    public bool Endows => EmigrantBalanceMax.Raw > 0;
+}
+
+/// <summary>
 /// Everything the placement pass takes from the Ruleset: how often it runs, how long it takes to
 /// look at everybody, and how many dwellings a Household considers per occasion.
 /// </summary>
@@ -1701,6 +1764,61 @@ public sealed class Ruleset
     public PolicyDefinition[] Policies { get; init; } = [];
 
     /// <summary>
+    /// <b>The Hinterlands behind the map's edges</b> — every <c>[[hinterland]]</c> table, at most one
+    /// per edge (<c>adr/0131</c>, milestone 11 task 2).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An <c>init</c> property on <see cref="Policies"/>' argument</b>: a positional parameter is
+    /// for something a Ruleset is not complete without, and a Ruleset with no Outside is every
+    /// Ruleset written before this milestone.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Order is not content here, and that is the difference from <see cref="Policies"/>.</b>
+    /// A Policy's index is a coordinate of its scan-start draw, so reordering <c>[[policy]]</c>
+    /// tables moves the State Hash. Nothing draws on a Hinterland's index: it is reached through
+    /// <see cref="TryHinterland"/> by the edge a gate stands on, and the loader refuses two tables
+    /// for one edge — so the array is a lookup with four slots at most and its order is incidental.
+    /// </para>
+    /// <para>
+    /// <b>Empty means the city has no Outside authored</b>, which is not the same as having no gate.
+    /// A gate is a Building kind and a Hinterland is a market; a world can hold the first with the
+    /// second missing, and what that costs is paid at arrival rather than at load.
+    /// </para>
+    /// </remarks>
+    public HinterlandDefinition[] Hinterlands { get; init; } = [];
+
+    /// <summary>
+    /// The economy behind <paramref name="edge"/>, when one is authored.
+    /// </summary>
+    /// <remarks>
+    /// <b>A walk rather than an index, because there are at most four</b> and
+    /// <see cref="MapEdge"/> is not dense from zero — <see cref="MapEdge.None"/> occupies the first
+    /// slot and is never a Hinterland's edge. A four-element linear scan is cheaper than the
+    /// arithmetic that would avoid it, and it needs no invariant tying an array position to an enum
+    /// value.
+    /// </remarks>
+    /// <param name="edge">The edge a gate stands on. <see cref="MapEdge.None"/> matches nothing.</param>
+    /// <param name="hinterland">The market behind it, when there is one.</param>
+    public bool TryHinterland(MapEdge edge, out HinterlandDefinition hinterland)
+    {
+        if (edge != MapEdge.None)
+        {
+            foreach (HinterlandDefinition candidate in Hinterlands)
+            {
+                if (candidate.Edge == edge)
+                {
+                    hinterland = candidate;
+                    return true;
+                }
+            }
+        }
+
+        hinterland = default;
+        return false;
+    }
+
+    /// <summary>
     /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.
     /// </summary>
     /// <remarks>
@@ -1756,6 +1874,18 @@ public sealed class Ruleset
     /// where the second copy is not a document but an omission. <b>Every property added to this class
     /// belongs in this list.</b>
     /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>It happened again, and the paragraph above was already here when it did.</b>
+    /// <see cref="Parking"/> was added by milestone 7 and never reached this list, so a Ruleset put
+    /// through here came back with no Parking Shed at all — found on milestone 11 task 2 by a twelfth
+    /// property needing to be threaded, which is the same way the first seven were found. ***A rule
+    /// written in prose beside the code it governs is not a check on that code***, and two sightings
+    /// one milestone apart is the evidence. <see cref="RulesetShape"/> is not the guard either:
+    /// it compares <em>structure</em>, so a Ruleset losing its radius compares equal. The guard is
+    /// <c>RulesetWithLayersTests</c>, which enumerates this class's properties and holds this list to
+    /// them — <c>RefusalCountTests</c>' shape, one level in: code against code rather than a document
+    /// against code.
+    /// </para>
     /// </remarks>
     public Ruleset WithLayers(LayerRuleset layers) =>
         new(_resources, _rules, _kinds, _inputs, _outputs, _emissions, _bins, _kindRules, _zoneRules)
@@ -1768,7 +1898,9 @@ public sealed class Ruleset
             Jobs = Jobs,
             Households = Households,
             Traffic = Traffic,
+            Parking = Parking,
             Policies = Policies,
+            Hinterlands = Hinterlands,
             ResourceKeys = ResourceKeys,
             KindKeys = KindKeys,
         };

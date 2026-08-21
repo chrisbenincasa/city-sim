@@ -126,6 +126,7 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _ruleTables = [];
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
         private readonly List<TableSyntaxBase> _policyTables = [];
+        private readonly List<TableSyntaxBase> _hinterlandTables = [];
 
         private TableSyntaxBase? _layersTable;
         private TableSyntaxBase? _placementTable;
@@ -170,6 +171,7 @@ public static class RulesetLoader
                 out RuleId[] kindRules);
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             PolicyDefinition[] policies = ReadPolicies();
+            HinterlandDefinition[] hinterlands = ReadHinterlands();
             LayerRuleset layers = ReadLayers();
             PlacementRuleset placement = ReadPlacement();
             RoadRuleset roads = ReadRoads();
@@ -223,6 +225,7 @@ public static class RulesetLoader
                     Households = households,
                     Traffic = traffic,
                     Policies = policies,
+                    Hinterlands = hinterlands,
                     Parking = parking,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
@@ -395,6 +398,15 @@ public static class RulesetLoader
                         _trafficTable = table;
                         break;
 
+                    case "hinterland":
+                        // Not registered into a name table, for [[policy]]'s reason: nothing in a
+                        // Ruleset refers to a Hinterland. It is reached by the map edge a gate
+                        // stands on, and the duplicate that matters is a duplicate EDGE rather than
+                        // a duplicate name -- which is not visible until the key is read, so it is
+                        // refused in ReadHinterlands and not here.
+                        _hinterlandTables.Add(table);
+                        break;
+
                     case "parking":
                         // Singular and optional, on [traffic]' reasoning exactly.
                         if (_parkingTable is not null)
@@ -412,8 +424,8 @@ public static class RulesetLoader
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [[policy]], "
-                            + "[layers], [placement], [roads], [lots], [trips], [jobs], "
-                            + "[households], [traffic] and [parking].");
+                            + "[[hinterland]], [layers], [placement], [roads], [lots], [trips], "
+                            + "[jobs], [households], [traffic] and [parking].");
                         break;
                 }
             }
@@ -2109,6 +2121,219 @@ public static class RulesetLoader
             Scope.Pool => "pool",
             Scope.Global => "global",
             _ => "map",
+        };
+
+        // ---- hinterlands ------------------------------------------------------------------------
+
+        /// <summary>
+        /// Every <c>[[hinterland]]</c> table — the economy behind one map edge (<c>adr/0131</c>,
+        /// milestone 11 task 2).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Three required keys and no optional ones, which is not <see cref="ReadPolicies"/>'
+        /// shape and not <c>[households]</c>'s either.</b> At milestone 11 a Hinterland <em>is</em>
+        /// an edge and a band (<c>adr/0131</c>: <i>a Hinterland field is authored in the milestone
+        /// that reads it</i>), so there is no field left over to carry meaning if the band is
+        /// omitted. A <c>[[hinterland]]</c> stating only its edge would declare that an economy
+        /// exists and say nothing about it — <c>adr/0048</c>'s <i>loads clean and does nothing</i>
+        /// class, in the shape where the whole object is the thing that does nothing.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A band of zero is accepted, where <c>arrivals_per_day = 0</c> is refused, and the
+        /// two look alike.</b> A gate admitting nobody is a door that never opens. A Hinterland whose
+        /// emigrants carry nothing is a poor economy — its Households still arrive, still enter the
+        /// Unplaced Pool and still have to be housed. ***A zero that is a real answer is not the same
+        /// zero as one that disables the mechanism stating it.***
+        /// </para>
+        /// <para>
+        /// <b>Duplicates are refused on the <em>edge</em>, not on the name</b>, which is why nothing
+        /// is registered in <see cref="Enumerate"/>. <c>CONTEXT.md</c> → Hinterland is *"the economy
+        /// behind one map edge, shared by every Outside Connection on that edge"*, so two tables for
+        /// one edge is ambiguous rather than additive — <c>[layers]</c>'s wording, arriving at an
+        /// array-of-tables where the collision is in a value.
+        /// </para>
+        /// </remarks>
+        private HinterlandDefinition[] ReadHinterlands()
+        {
+            var definitions = new List<HinterlandDefinition>(_hinterlandTables.Count);
+
+            foreach (TableSyntaxBase table in _hinterlandTables)
+            {
+                if (!TryEdge(table, out MapEdge edge))
+                {
+                    continue;
+                }
+
+                bool duplicate = false;
+
+                foreach (HinterlandDefinition declared in definitions)
+                {
+                    if (declared.Edge == edge)
+                    {
+                        Refuse(
+                            LineOf((SyntaxNodeBase?)Find(table, "edge") ?? table), null,
+                            $"a second hinterland is declared for the {Spelling(edge)} edge. A "
+                            + "Hinterland is the economy behind one map edge, shared by every "
+                            + "Outside Connection on it, so two of them for one edge is ambiguous "
+                            + "rather than additive -- there is no rule saying which market an "
+                            + "arriving Household came from.");
+
+                        duplicate = true;
+                        break;
+                    }
+                }
+
+                if (duplicate)
+                {
+                    continue;
+                }
+
+                if (!TryEmigrantBalance(table, out Money min, out Money max))
+                {
+                    continue;
+                }
+
+                definitions.Add(new HinterlandDefinition(edge, min, max));
+            }
+
+            return [.. definitions];
+        }
+
+        /// <summary>The <c>edge</c> key, which is the Hinterland's identity.</summary>
+        /// <remarks>
+        /// <b>Four names and no fifth</b>, on <see cref="ReadSubject"/>'s shape.
+        /// <see cref="MapEdge.None"/> has no spelling and must not acquire one: it is the answer
+        /// <see cref="MapEdges.Touching"/> gives for *not on the boundary* and for *on a corner*, so
+        /// a Ruleset able to write it would be authoring an economy behind no edge.
+        /// </remarks>
+        private bool TryEdge(TableSyntaxBase table, out MapEdge edge)
+        {
+            edge = MapEdge.None;
+
+            if (!TryString(table, "edge", out string? stated, required: true))
+            {
+                return false;
+            }
+
+            switch (stated)
+            {
+                case "north":
+                    edge = MapEdge.North;
+                    return true;
+
+                case "south":
+                    edge = MapEdge.South;
+                    return true;
+
+                case "east":
+                    edge = MapEdge.East;
+                    return true;
+
+                case "west":
+                    edge = MapEdge.West;
+                    return true;
+
+                default:
+                    Refuse(
+                        LineOf((SyntaxNodeBase?)Find(table, "edge") ?? table), null,
+                        $"edge = \"{stated}\" is not a map edge. The map is bounded (adr/0021) and "
+                        + "it has four sides -- \"north\", \"south\", \"east\", \"west\" -- one "
+                        + "Hinterland behind each. The edge is what a Hinterland IS, so there is no "
+                        + "default to fall back to.");
+
+                    return false;
+            }
+        }
+
+        /// <summary>The <c>emigrant_balance_min</c>/<c>max</c> band.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>A band rather than one figure, for
+        /// <see cref="HouseholdRuleset.OpeningBalance"/>'s reason.</b> A single figure has no
+        /// distribution, so every arriving Household is identically rich and any instrument reading
+        /// a spread reads 0% or 100% and says nothing about the city.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Both required, where <c>[households]</c>'s pair is both-or-neither.</b> There the
+        /// band is optional because omitting it means <em>the populator endows nobody</em>, which is
+        /// what every Ruleset written before milestone 10 meant by saying nothing. Here the object
+        /// has no other field, so omission has nothing to mean.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>This is NOT <c>[households] opening_balance_min</c>/<c>max</c> reused, and the
+        /// separation is the decision</b> (<c>adr/0131</c>). That key is <b>world-founding</b> —
+        /// what the city's own first Households were endowed with. Drawing arrivals from it would
+        /// make the four edges interchangeable as money sources while each separately authors an
+        /// economy its own emigrants did not come from. ***An anchor that does not reach the thing
+        /// it anchors is decoration.***
+        /// </para>
+        /// </remarks>
+        private bool TryEmigrantBalance(
+            TableSyntaxBase table, out Money min, out Money max)
+        {
+            min = Money.Zero;
+            max = Money.Zero;
+
+            if (!TryInteger(table, "emigrant_balance_min", out long low, required: true)
+                || !TryInteger(table, "emigrant_balance_max", out long high, required: true))
+            {
+                return false;
+            }
+
+            if (low < 0)
+            {
+                Refuse(
+                    LineOf((SyntaxNodeBase?)Find(table, "emigrant_balance_min") ?? table), null,
+                    $"emigrant_balance_min is {low}. A balance is a stock and a stock is never "
+                    + "negative -- a debt is not negative money (adr/0003), and a Household "
+                    + "arriving in arrears is a mechanism nobody has designed.");
+
+                return false;
+            }
+
+            if (high < low)
+            {
+                Refuse(
+                    LineOf((SyntaxNodeBase?)Find(table, "emigrant_balance_max") ?? table), null,
+                    $"emigrant_balance_max is {high}, below emigrant_balance_min of {low}. A band "
+                    + "is drawn inclusive of both ends, so an inverted one is empty rather than "
+                    + "narrow.");
+
+                return false;
+            }
+
+            if (high > 0 && !_families.Contains(ResourceFamily.Money))
+            {
+                Refuse(
+                    LineOf((SyntaxNodeBase?)Find(table, "emigrant_balance_max") ?? table), null,
+                    "this hinterland's emigrants carry money and this file names none. A balance is "
+                    + "a Bin and a Bin exists only for a declared Resource (adr/0114), so an "
+                    + "arriving Household would have nowhere to put it. Add a [[resource]] block "
+                    + "with family = \"money\".");
+
+                return false;
+            }
+
+            min = new Money(low);
+            max = new Money(high);
+
+            return true;
+        }
+
+        /// <summary>How a <see cref="MapEdge"/> is spelled in a Ruleset, for refusal messages.</summary>
+        /// <remarks>
+        /// <b>It lives here and never in <c>Borough.Core</c></b> — <c>adr/0048</c>: only integers and
+        /// strings cross into the core, and <c>05 §1</c> puts every string a human reads on this side
+        /// of the boundary.
+        /// </remarks>
+        private static string Spelling(MapEdge edge) => edge switch
+        {
+            MapEdge.North => "north",
+            MapEdge.South => "south",
+            MapEdge.East => "east",
+            MapEdge.West => "west",
+            _ => "unplaced",
         };
 
         // ---- layers ---------------------------------------------------------------------------

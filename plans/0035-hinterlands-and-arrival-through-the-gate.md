@@ -392,6 +392,7 @@ sitting did not find.
    amended in place twice. ⚠ **Relocated, not discharged**, and it stays `adr/0088`'s.
 2. **`[[hinterland]]`** — one per edge, authoring **the edge and what its emigrants carry, and nothing
    else** ([`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)).
+   ✅ **DONE 2026-08-21.**
 3. **`SyntheticCity` places gates**, so there is a world with a door in it — ⚠ **milestone 9's F17 is
    why this is a task and not an assumption.**
 4. **The arrival door** — `World.Arrive` creating unhoused **into the Pool at a gate**, and
@@ -461,6 +462,61 @@ It is recorded above in full. Three more findings:
 ⚠ **One thing was deliberately not built: a `min()` with one operand.** `adr/0088`'s second ceiling is
 at 12, so the readout is not half-shipped here — there is no *which binds* to report when there is one
 bound. ***A formula with a term missing is not a smaller formula.***
+
+### Task 2 — `[[hinterland]]` — ✅ **DONE 2026-08-21**
+
+**What ships**: the `[[hinterland]]` section — `edge` and an `emigrant_balance_min`/`max` band —
+`HinterlandDefinition`, `Ruleset.Hinterlands`, `Ruleset.TryHinterland(MapEdge)`, and **five loader
+refusals** ([`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md)
+recounted a fifth time: **81 at load, 114 sites**). **16 new tests**; the assertion tier is **1,843
+green**. **No State Hash moved** — no shipped Ruleset declares a Hinterland, which is task 3, and
+**no number reached a Ruleset, so no `plans/0002` §D1 row is owed yet**. That debt lands with the
+file that states a band.
+
+⚠ **The band has no reader until task 5, and that is a task boundary rather than a hole.** The draw —
+`EmigrantBalance(WorldKey, entityId)` and its `PurposeTag` — ships with `World.Arrive`, on
+[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)'s
+own rule applied one level down: *a Hinterland field is authored in the milestone that reads it*, and
+what authors the field is not what reads it.
+
+**Three things the shape of the object decided, none of them new arguments:**
+
+- **Three required keys, no optional ones.** At 11 a Hinterland **is** an edge and a band, so there is
+  no field left to carry meaning if the band is omitted — a table stating only `edge` declares that an
+  economy exists and says nothing about it. That is `adr/0048`'s *loads clean and does nothing* class
+  in the shape where the whole object is the thing that does nothing.
+- **A zero band is accepted where task 1's `arrivals_per_day = 0` is refused**, and the two zeroes
+  look alike. A gate admitting nobody is a door that never opens; a Hinterland whose emigrants carry
+  nothing is a **poor economy**, and its Households still arrive, still enter the Pool and still have
+  to be housed. ***A zero that is a real answer is not the same zero as one that disables the
+  mechanism stating it.***
+- ⚠ **The duplicate refusal is on a *value* and not on a name.** `[[policy]]` and `[[zone_rule]]` are
+  not registered in a name table because nothing in a Ruleset refers to one, and a Hinterland is not
+  registered for that same reason — but it **is** referred to, by the **edge a gate stands on**. So
+  the collision that matters is two tables spelling `edge = "south"`, which is invisible until the key
+  is read. ***A section can need a uniqueness check without needing a name.***
+
+⚠ **Nothing pairs a gate kind with a Hinterland at load, and nothing could.** Which edge an Outside
+Connection stands on is a property of where it was **placed** (`World.EdgeOf`), not of the Ruleset, so
+a file declaring a gate and no `[[hinterland]]` is not refusable — the loader cannot see a world. **The
+pairing is task 4's**, at arrival.
+
+One finding:
+
+- 🔴 **F15 — `Ruleset.WithLayers` had lost `Parking`, and the paragraph warning about exactly this was
+  already sitting beside it.** `Ruleset` is a class rather than a record, so `with` is spelled by hand;
+  milestone 10 task 5 found **seven** properties missing from that list at once and wrote the rule
+  beside it — *every property added to this class belongs in this list*. Milestone 7 then added
+  `Parking` and did not, so a Ruleset put through `WithLayers` came back at `ParkingRuleset.None` — **no
+  radius, no shed, arrival never parks** — with no refusal and no throw. Found here the same way the
+  first seven were: by a **twelfth** property needing to be threaded. ***A rule written in prose beside
+  the code it governs is not a check on that code***, and two sightings one milestone apart is the
+  evidence. ⚠ **`RulesetShape` is not the guard either** — it compares *structure* under `adr/0015`, so
+  a Ruleset that lost its radius compares **equal**, which is correct for its question and useless for
+  this one. Fixed, and `RulesetWithLayersTests` now enumerates the class's properties by reflection and
+  holds the list to them — `RefusalCountTests`' shape one level in: **code against code** where that
+  one is a document against code. ⚠ **It checks that each name is assigned, not that it is assigned
+  from itself**, which is narrower than it could be and is the whole of the failure observed twice.
 
 ## What this milestone must not do
 

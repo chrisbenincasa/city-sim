@@ -8,8 +8,19 @@ place that orders the three tracks against each other.
 ## What is next
 
 **The next code row is `06` milestone **11** — Hinterlands and arrival through the gate, 🟢 IN FLIGHT:
-🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **task 1 of nine
-shipped the same day**, eight to go.**
+🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1 and 2 of
+nine shipped**, seven to go.**
+
+**Task 2 authored `[[hinterland]]`** — an edge and an `emigrant_balance` band, and nothing else, on
+[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)'s
+*a Hinterland field is authored in the milestone that reads it*. **No number reached a Ruleset**, so
+no `0002` §D1 row is owed yet; that debt lands with task 3, which is the first world with a door in
+it. 🔴 ⚠ **It found `Ruleset.WithLayers` had lost `Parking`** — the second sighting of a failure
+milestone 10 task 5 found seven of at once **and wrote a rule against, in prose, beside the list** —
+so a Ruleset put through it came back with no Parking Shed at all, silently. ***A rule written in
+prose beside the code it governs is not a check on that code.*** Fixed, and `RulesetWithLayersTests`
+now holds the list to the class's properties by reflection: `RefusalCountTests`' shape one level in,
+**code against code**. `0035` **F15**.
 
 ⚠ **Task 1's first act was to find an eleventh decision and stop**, after the scoping sitting had
 recorded all ten as closed. The throughput ceiling's **unit** is named in no document, and
