@@ -399,6 +399,7 @@ sitting did not find.
 4. **The arrival door** — `World.Arrive` creating unhoused **into the Pool at a gate**, and
    `UnplacedTable`'s second column ([`adr/0129`](../docs/adr/0129-the-pool-waits-at-the-gate-and-an-arrivals-trip-is-the-move-in.md)).
    The Command that drives it, since nothing decides to arrive until 16.
+   ✅ **DONE 2026-08-21.**
 5. **Money crosses** — the arriving balance drawn from the Hinterland, `MoneySupply.Issued`'s second
    writer, and `Invariant.MoneyIsConserved` rewritten as **supply plus flow**.
 6. **The move-in Trip** — gate → dwelling, on placement, carrying real congestion.
@@ -623,6 +624,67 @@ One finding, and it was found by measurement before any code:
   every gate has a finite car route, and the far two have **zero** dwellings inside the Budget. It
   goes red on either, which is what keeps *routable* and *reachable* from collapsing into one word
   again.
+
+### Task 4 — the arrival door — ✅ **DONE 2026-08-21**
+
+**What ships**: `World.TryArrive`, `UnplacedTable.Gate`, `BuildingTable.ArrivalsToday` and
+`ArrivalDay`, `CommandKind.Arrive` with `ArrivePayload`, `Simulation.ApplyArrive`, two Invariants —
+`AnArrivalCrossesAnOutsideConnection` at the write site and `ThePoolsGateIsAnOutsideConnection`
+whole-world — and the codec learning two verbs. **13 new tests**; the assertion tier is **1,864
+green**.
+
+🔴 ⚠ **The State Hash moved, deliberately, and the four golden baselines were re-recorded.**
+`BuildingTable` gained two saved columns, so every world with a Building in it folds differently.
+**No seed bump**, and `World.HashSeed`'s own note is why: *new state is a design change under
+`05 §4` — the city genuinely has more in it, the baselines move because the world moved, and signing
+that would file a real change as a bookkeeping one.* Nothing but the four golden tests failed, which
+is the evidence that no behaviour moved with them.
+
+**A Household can now exist here having never lived here, and that took a second door.**
+`World.CreateHousehold` demands a dwelling and `World.Unplace` reports
+`OnlyAHousedHouseholdIsUnplaced`, so between them the build could not hold one — while `CONTEXT.md` →
+Unplaced Pool says the four entry routes *"all enter on equal terms."* ***A door the design describes
+and an invariant refuses is a disagreement, not a defect***, and this is which one moved.
+
+**Nobody makes a Trip, and that is `adr/0129` rather than a gap.** `adr/0023` reads *arrive as Trips,
+enter the Pool, house themselves*; `TripTable.Start` takes an origin **and a destination**, and a
+Household the Pool has not placed has no destination. The move-in is **task 6**'s.
+
+**The ceiling binds, which is what makes `arrivals_per_day` ratifiable rather than merely stated.**
+It is a *rate*, so meeting it takes a count and the Day the count belongs to — hence two columns
+rather than one. ⚠ **A per-call bound was rejected as milestone 9's F13**: two arrival events in one
+Tick would each take the whole quota, and the thing would read as a daily ceiling while being nothing
+of the kind. The reset is **lazy** rather than a per-Day sweep, which costs nothing on the Buildings
+nobody arrives at — all of them, in nine of the ten shipped Rulesets — and is right for a world
+loaded mid-Day.
+
+⚠ **The two refusals are deliberately different in kind.** A full gate returns `false` and reports
+**nothing**: that is the mechanism working, and putting it in the crash artifact would bury the real
+fault under a busy Day. A Building that is not a gate returns `false` **and** reports, because the
+gate becomes the move-in Trip's origin and the mistake would otherwise surface at placement, long
+after the call that was wrong. ***A bound that binds is not a violated invariant.***
+
+⚠ **The verb resolves a Tile to a gate EXACTLY, not to the block it falls in**, which is where it
+parts company from `Simulation.OccupiedBuildingIn`. On the shipped lattice **one block carries two
+edges** — `CarveEdgeBlock` puts the west and south gates in the block at the origin — so *the gate in
+this block* names two Buildings standing in two different Hinterlands, and picking either would
+invent the answer to which market the arrivals came from.
+
+One finding, and it was not this milestone's:
+
+- 🔴 **F19 — the Input Log codec could not write two of the seven declared verbs, and the test that
+  should have caught it was named after the property and written as a list.** `CommandKind.Populate`
+  (milestone 5a) and `CommandKind.Trip` (milestone 5b) were declared, applied by `Simulation`, and
+  absent from `InputLogCodec` in **both** directions — `Write` threw *a command with no verb cannot
+  be written*, and a hand-written `trip` line was refused as *not a verb this format knows*. ***A verb
+  the simulation applies and the codec cannot spell is a session that cannot be reported***, and a log
+  is what a crash artifact is made of. `InputLogCodecTests.Every_declared_verb_survives_the_round_trip`
+  was a `[Theory]` over **four** hardcoded `[InlineData]` verbs, written when the enum had four, and
+  its **name already claimed the whole set** — so the drift sat in the file for two milestones reading
+  as covered. ***A test named after a universal and written as a list is a list wearing a proof's
+  name.*** Repaired by reflecting over the enum, so the next verb is in the test before anybody writes
+  a line of it. Filed as [`plans/0012`](0012-corpus-audit.md) **Cause 1, fourth form** — the first
+  sighting of that cause in which the copy that drifted was a **test**.
 
 ### The doc-comment sweep — ✅ **DONE 2026-08-21**, and it is `plans/0012` **Cause 6**
 

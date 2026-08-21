@@ -47,6 +47,12 @@ public sealed class BuildingTable
 
         CellNext = _rows.Derived<int>("cell_next");
 
+        // The gate's daily throughput meter. Saved rather than derived, because how many crossed
+        // today is not reproducible from anything else -- a reload that reset it would let a gate
+        // admit its whole quota twice in one Day, and the Factorio test is where that would surface.
+        ArrivalsToday = _rows.Saved<int>("arrivals_today");
+        ArrivalDay = _rows.Saved<int>("arrival_day");
+
         _rows.Seal();
     }
 
@@ -159,6 +165,39 @@ public sealed class BuildingTable
     /// What is per-row is the threading, and that is this column.
     /// </remarks>
     public Column<int> CellNext { get; }
+
+    /// <summary>
+    /// How many Households have crossed this gate on the Day <see cref="ArrivalDay"/> names.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is what makes <c>[[building]] arrivals_per_day</c> bind rather than merely be
+    /// declared</b> (<c>adr/0088</c>, <c>plans/0035</c> decision 9). The ceiling is a <em>rate</em>,
+    /// so meeting it needs a count and the period the count belongs to; a bound applied per call
+    /// would let two arrival events in one Tick each take the whole quota, which is a mechanism that
+    /// looks like a daily ceiling and is not one.
+    /// </para>
+    /// <para>
+    /// <b>Zero on every Building that is not a gate, and on every gate in every Ruleset that declares
+    /// none.</b> A kind is an Outside Connection precisely when it states the key
+    /// (<c>World.IsOutsideConnection</c>), so nine of the ten shipped Rulesets never advance either
+    /// column.
+    /// </para>
+    /// </remarks>
+    public Column<int> ArrivalsToday { get; }
+
+    /// <summary>
+    /// Which Day <see cref="ArrivalsToday"/> counts, so the meter resets without a sweep.
+    /// </summary>
+    /// <remarks>
+    /// <b>A stored period rather than a scheduled reset, and the choice is about what it costs to be
+    /// wrong.</b> A per-Day pass clearing every gate is <c>O(Buildings)</c> for a column almost every
+    /// row leaves at zero, and it puts the meter's correctness in a phase that has to run — so a gate
+    /// created between the reset and the arrival, or a load that lands mid-Day, reads a count from a
+    /// Day that has passed. Comparing the stored Day at the read site cannot be skipped, costs
+    /// nothing on a Building nobody arrives at, and is right across a save.
+    /// </remarks>
+    public Column<int> ArrivalDay { get; }
 
     /// <summary>Allocates a Building on a Lot, and records it on the Lot.</summary>
     /// <param name="lots">

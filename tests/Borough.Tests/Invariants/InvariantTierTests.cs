@@ -166,7 +166,7 @@ public sealed class InvariantTierTests
     {
         World world = Built();
 
-        world.UnplacedPool.Join(world.Households, world.Households.Rows.At(0));
+        world.UnplacedPool.Join(world.Households, world.Households.Rows.At(0), default);
 
         Assert.Equal(Invariant.HouseholdIsHousedOrInThePool, Caught(world));
     }

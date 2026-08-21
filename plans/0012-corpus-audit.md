@@ -274,6 +274,28 @@ a reader to open `adr/0015`. Session A closed `adr/0015` and produced `adr/0048`
 > `adr/0042`. The habit it states is the counterpart of `adr/0070`'s: **before working around something
 > you do not own, name the document the finding goes to.**
 
+> ---
+>
+> **A fourth form, found 2026-08-21 by milestone 11 task 4: the copy that drifted was a TEST.** Every
+> sighting above is a document drifting from code, or code from a document. This one is
+> `InputLogCodecTests.Every_declared_verb_survives_the_round_trip`, a `[Theory]` over **four**
+> hardcoded `[InlineData]` verbs, written when `CommandKind` had four. The enum reached **seven**;
+> `Populate` (milestone 5a) and `Trip` (milestone 5b) were declared, applied by `Simulation`, and
+> **unknown to `InputLogCodec` in both directions** — `Write` threw *a command with no verb cannot be
+> written* and a hand-written `trip` line was refused as *not a verb this format knows*. So a session
+> containing the verb the whole of milestone 5b exists to exercise **could not be written to a log**,
+> and a log is what a crash artifact is made of.
+>
+> **A test that enumerates its cases is a second copy of the switch it checks, and it drifts the way
+> any second copy drifts.** The test's *name* already claimed the whole set — *every declared verb* —
+> so the drift was visible in the file for two milestones and read as covered. ***A test named after a
+> universal and written as a list is a list wearing a proof's name.***
+>
+> **Repaired by reflecting over the enum**, so the next verb declared is in the test before anybody
+> writes a line of it. The habit is `adr/0093`'s one level in: **where a test asserts a property of a
+> declared set, enumerate the set rather than the cases** — and where it cannot, its name must say
+> which cases.
+
 ### Cause 2 — ADRs issue writes to other documents and the writes do not all land
 
 This is the one restructuring cannot fix, and it is the more expensive of the two.

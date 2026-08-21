@@ -98,6 +98,43 @@ public enum CommandKind : ushort
     /// </para>
     /// </remarks>
     Trip = 6,
+
+    /// <summary>
+    /// Admit Households through the Outside Connection standing at the named Tile.
+    /// <c>adr/0128</c>'s door, and — like <see cref="Populate"/> — an instrument rather than one of
+    /// <c>01 §2</c>'s five.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The gate ships at milestone 11 and what decides to arrive ships at 16</b>
+    /// (<c>adr/0128</c>), so the door needs a caller and has no autonomous one. That is
+    /// <see cref="Populate"/>'s position exactly, and it is taken for
+    /// <see cref="Populate"/>'s reason: a population that entered any other way is a state change no
+    /// replay reproduces and no State Hash divergence explains. ⚠ <b>The alternative was a
+    /// deliberately crude acceptance rule</b>, refused by name as milestone 9's <b>F13</b> — a hole
+    /// that throws is safe, and one that returns plausible numbers is a working mechanism that says
+    /// something false.
+    /// </para>
+    /// <para>
+    /// <b>Payload: <see cref="ArrivePayload"/> in <see cref="Command.Zone"/>'s sixteen bits</b>, so
+    /// the log format version does not move — <c>InputLogCodec.Version</c>'s rule is that a
+    /// <em>sixth field</em> bumps it, and this adds none. <see cref="Command.East"/> and
+    /// <see cref="Command.North"/> name the gate's Tile, which the world resolves to a Building the
+    /// same way <see cref="Trip"/>'s origin is resolved.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Asking for more than the gate admits is an ordinary outcome and not an error.</b> The
+    /// count is a request; <c>[[building]] arrivals_per_day</c> is the bound, metered per Day per
+    /// gate, and the surplus is simply not admitted. ***A command that asks for a hundred and gets
+    /// twelve is the ceiling being observable***, which is what
+    /// <c>plans/0002</c> §D1 needs of it.
+    /// </para>
+    /// <para>
+    /// <b>It is expected to be deleted</b>, on <see cref="Populate"/>'s terms: when milestone 16
+    /// ships the comparison, this stops being the only thing that decides anybody arrives.
+    /// </para>
+    /// </remarks>
+    Arrive = 7,
 }
 
 /// <summary>
@@ -236,4 +273,38 @@ public readonly record struct TripPayload(sbyte BlocksEast, sbyte BlocksNorth)
     /// <summary>Packs this payload into a <see cref="Command.Zone"/> word.</summary>
     public ushort Encode() =>
         (ushort)((BlocksEast & 0xFF) | ((BlocksNorth & 0xFF) << 8));
+}
+
+/// <summary>
+/// <see cref="CommandKind.Arrive"/>'s payload: how many Households present themselves at the gate,
+/// and which Life Stage they are.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Two bytes in one word, on <see cref="TripPayload"/>'s pattern and for its reason.</b>
+/// <c>InputLogCodec</c>'s rule is that a <em>sixth field on a command</em> bumps the format version,
+/// and a bump <em>"would cost every log ever written — including the committed golden baseline"</em>.
+/// A count and a Life Stage fit the field <see cref="Command.Zone"/> already has.
+/// </para>
+/// <para>
+/// <b>A count, and it is a request rather than an outcome.</b> The gate admits at most
+/// <c>[[building]] arrivals_per_day</c> in a Day, so a command asking for more gets what is left —
+/// see <see cref="Entities.World.TryArrive"/>. That is the ceiling being observable, and it is
+/// exactly what <c>plans/0002</c> §D1 asks of the number.
+/// </para>
+/// <para>
+/// ⚠ <b>The Life Stage is stated by the command because nothing in the build decides one.</b> Who
+/// arrives is a property of the Hinterland's willingness ordering, which is milestone <b>16</b>'s
+/// comparison (<c>adr/0128</c>); a mix invented here would be that model's shape with no argument
+/// behind it. ***An instrument states what it is standing in for, and does not model it.***
+/// </para>
+/// </remarks>
+public readonly record struct ArrivePayload(byte Households, byte LifeStage)
+{
+    /// <summary>Reads a payload out of a <see cref="Command.Zone"/> word.</summary>
+    public static ArrivePayload Decode(ushort word) =>
+        new((byte)(word & 0xFF), (byte)((word >> 8) & 0xFF));
+
+    /// <summary>Packs this payload into a <see cref="Command.Zone"/> word.</summary>
+    public ushort Encode() => (ushort)(Households | (LifeStage << 8));
 }

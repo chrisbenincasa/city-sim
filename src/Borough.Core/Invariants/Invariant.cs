@@ -753,4 +753,48 @@ public enum Invariant
     /// </para>
     /// </remarks>
     OutsideConnectionStandsOnOneEdge = 45,
+
+    /// <summary>
+    /// A Household arriving from outside crosses a live Outside Connection.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The <c>O(1)</c> write-site guard on <see cref="Entities.World.TryArrive"/></b>, milestone
+    /// 11 task 4. Arrival is the one door that creates a Household which has never lived here
+    /// (<c>adr/0129</c>), and the gate it names becomes the origin of that Household's move-in Trip —
+    /// so a gate that is not a gate produces a Trip starting nowhere in particular, at placement,
+    /// long after the call that was wrong.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It does not fire when the gate's daily ceiling is met, and that separation is the
+    /// point.</b> A full gate refusing an arrival is <c>[[building]] arrivals_per_day</c> doing its
+    /// job — an ordinary outcome with a diagnosis of its own — and reporting it here would put the
+    /// mechanism's normal operation in the crash artifact. ***A bound that binds is not a violated
+    /// invariant.*** What this reports is a caller naming a Building that cannot admit anybody at
+    /// all, which is <see cref="BuildingHasRoomForTheHousehold"/>'s distinction one door over.
+    /// </para>
+    /// </remarks>
+    AnArrivalCrossesAnOutsideConnection = 46,
+
+    /// <summary>
+    /// Every Unplaced Pool member either names a live Outside Connection or names no gate at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The whole-world half of <see cref="AnArrivalCrossesAnOutsideConnection"/></b>, and it exists
+    /// because the write-site guard cannot see what a <em>Ruleset reload</em> does. A kind is a gate
+    /// precisely when it declares <c>arrivals_per_day</c> (<c>World.IsOutsideConnection</c>) and a
+    /// Ruleset is hot-reloadable (<c>adr/0015</c>), so removing the key converts every standing gate
+    /// back into an ordinary Building **with no call made** — leaving members of the Pool waiting at
+    /// a door that is no longer one. That is <c>plans/0035</c> <b>F14</b> exactly, one milestone's
+    /// task later and on a different column.
+    /// </para>
+    /// <para>
+    /// <b>A default handle passes, and is the ordinary reading.</b> Three of the Pool's four entry
+    /// routes have no gate — see <see cref="Entities.UnplacedTable.Gate"/> — so *no gate* and *a gate
+    /// that is not one* have to be distinguishable, and they are: <c>default</c> against a handle
+    /// that resolves to a Building whose kind is not an Outside Connection.
+    /// </para>
+    /// </remarks>
+    ThePoolsGateIsAnOutsideConnection = 47,
 }

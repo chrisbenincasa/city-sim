@@ -148,7 +148,7 @@ public sealed class World
 
         // Sized for a city in trouble rather than a healthy one: the Pool is empty when everybody is
         // housed, and the table's job is to absorb a District emptying without reallocating mid-Tick.
-        UnplacedPool = new UnplacedTable(PerThousand(citizens, 36), Households);
+        UnplacedPool = new UnplacedTable(PerThousand(citizens, 36), Households, Buildings);
 
         // ~3 Rules on each of ~150 Buildings per 1,000 Citizens. A capacity hint rather than a bound —
         // the table grows — but it is a number nobody has justified, so plans/0002 carries it as
@@ -960,10 +960,120 @@ public sealed class World
         // frees the last slot — an implementation detail of Rows that nothing in Rows promises. Left
         // to the end-of-run walk, a change there would surface as a city that had been quietly
         // building less than its Ruleset said for the length of a run.
+        // No gate: an eviction is one of the three entry routes that came from nowhere outside
+        // (adr/0129), so this Household's move-in has no origin to start from and the column says so
+        // rather than borrowing one.
         Invariants.Require(
-            UnplacedPool.Join(Households, household) == UnplacedPool.Count - 1,
+            UnplacedPool.Join(Households, household, default) == UnplacedPool.Count - 1,
             Invariant.ThePoolAppendsInOrder,
             slot);
+    }
+
+    /// <summary>
+    /// Creates a Household that has never lived here, straight into the Unplaced Pool at
+    /// <paramref name="gate"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The second door into the Pool, and it exists because the first one refuses this case by
+    /// invariant</b> (<c>adr/0129</c>, milestone 11 task 4). <see cref="CreateHousehold"/> demands a
+    /// dwelling and <see cref="Unplace"/> reports
+    /// <see cref="Invariant.OnlyAHousedHouseholdIsUnplaced"/>, so between them the build could not
+    /// hold a Household that had never been housed — while <c>CONTEXT.md</c> → Unplaced Pool says the
+    /// Pool's four entry routes <em>"all enter on equal terms"</em>. ***A door the design describes
+    /// and an invariant refuses is a disagreement, not a defect***, and this is which one moved.
+    /// </para>
+    /// <para>
+    /// <b>The Household joins the Pool and makes no Trip.</b> <c>adr/0023</c> reads *arrive as Trips,
+    /// enter the Pool, house themselves*, and that order cannot be built as written:
+    /// <c>TripTable.Start</c> takes an origin <em>and a destination</em> Address, and a Household the
+    /// Pool has not placed yet has no destination. ***A journey described in prose can name an
+    /// endpoint the mechanism has to compute.*** The Trip is the move-in, gate → dwelling, and it
+    /// belongs to task 6.
+    /// </para>
+    /// <para>
+    /// <b>The daily ceiling binds here, which is the only place it can</b> (<c>adr/0088</c>,
+    /// <c>plans/0035</c> decision 9). <c>[[building]] arrivals_per_day</c> is a <em>rate</em>, so
+    /// meeting it takes a count and the Day the count belongs to —
+    /// <see cref="BuildingTable.ArrivalsToday"/> and <see cref="BuildingTable.ArrivalDay"/>. A bound
+    /// applied per call would let two arrival events in one Tick each take the whole quota, and would
+    /// read as a daily ceiling while being nothing of the kind.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A refusal on the ceiling is <c>false</c> with no invariant reported, and a refusal on the
+    /// gate is both.</b> The first is the mechanism working; the second is a caller naming a Building
+    /// that admits nobody. Collapsing them would put the ceiling's ordinary operation into the crash
+    /// artifact, and would leave the real fault indistinguishable from a busy Day.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It opens a balance and puts nothing in it.</b> That is <see cref="CreateHousehold"/>'s
+    /// line for <see cref="CreateHousehold"/>'s reason (<c>adr/0114</c>): a Household never exists
+    /// without a balance in a world whose Ruleset names money. <b>What the emigrant carries is task
+    /// 5's</b> — the draw from the Hinterland's band, and
+    /// <see cref="MoneySupplyTable.Issued"/>'s second writer.
+    /// </para>
+    /// </remarks>
+    /// <param name="gate">The Outside Connection they entered by.</param>
+    /// <param name="lifeStage">Which Life Stage arrives. The mix is milestone 16's; here it is stated.</param>
+    /// <param name="now">The Tick the arrival happens on, which is what names the Day.</param>
+    /// <param name="household">The Household created, or a default handle when the gate refused.</param>
+    /// <returns><c>true</c> when the gate admitted them.</returns>
+    public bool TryArrive(
+        Handle<Building> gate, byte lifeStage, Ticks now, out Handle<Household> household)
+    {
+        household = default;
+
+        if (!Buildings.Rows.TryResolve(gate, out int gateSlot)
+            || !TryArrivalsPerDay(Buildings.Kind[gateSlot], out int ceiling))
+        {
+            Invariants.Report(Invariant.AnArrivalCrossesAnOutsideConnection, gateSlot);
+            return false;
+        }
+
+        // FloorDiv rather than raw '/', which BOR0203 is an error for: a Tick count is unsigned and
+        // never crosses zero, so the two agree here -- but stating the rounding is the rule and the
+        // exception is not this method's to grant.
+        int day = (int)IntegerMath.FloorDiv((long)now.Raw, Ticks.PerDay);
+
+        // Lazily, rather than in a per-Day sweep: the reset is O(1) at the read site, costs nothing
+        // on the Buildings nobody arrives at -- which is all of them in nine of the ten shipped
+        // Rulesets -- and is right for a world loaded mid-Day, where a sweep that has already run
+        // would leave the meter counting a Day that has passed.
+        if (Buildings.ArrivalDay[gateSlot] != day)
+        {
+            Buildings.ArrivalDay[gateSlot] = day;
+            Buildings.ArrivalsToday[gateSlot] = 0;
+        }
+
+        if (Buildings.ArrivalsToday[gateSlot] >= ceiling)
+        {
+            return false;
+        }
+
+        Buildings.ArrivalsToday[gateSlot]++;
+
+        Handle<Household> handle = Households.Rows.Allocate();
+        int slot = Households.Rows.Resolve(handle);
+
+        Households.LifeStage[slot] = lifeStage;
+
+        // CreateHousehold's line, for its reason (adr/0114). Empty: what an emigrant carries is drawn
+        // from the Hinterland at task 5, and World.Endow is still the only door money enters by.
+        if (TryMoneyResource(out ResourceId money))
+        {
+            Households.Balance[slot] = OpenBalance(BinOwnerKind.Household, money);
+        }
+
+        // The dwelling handle is left default by the allocator -- FreeSlot zeroes every column, so a
+        // recycled slot arrives unhoused rather than carrying its predecessor's address.
+        Invariants.Require(
+            UnplacedPool.Join(Households, handle, gate) == UnplacedPool.Count - 1,
+            Invariant.ThePoolAppendsInOrder,
+            slot);
+
+        household = handle;
+
+        return true;
     }
 
     /// <summary>

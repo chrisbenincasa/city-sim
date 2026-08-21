@@ -303,6 +303,8 @@ public static class InputLogCodec
             "service" => CommandKind.Service,
             "govern" => CommandKind.Govern,
             "populate" => CommandKind.Populate,
+            "trip" => CommandKind.Trip,
+            "arrive" => CommandKind.Arrive,
             _ => throw lines.Complain($"'{fields[1]}' is not a verb this format knows."),
         };
 
@@ -320,6 +322,8 @@ public static class InputLogCodec
         CommandKind.Service => "service",
         CommandKind.Govern => "govern",
         CommandKind.Populate => "populate",
+        CommandKind.Trip => "trip",
+        CommandKind.Arrive => "arrive",
         _ => throw new ArgumentOutOfRangeException(
             nameof(kind), kind, "a command with no verb cannot be written."),
     };

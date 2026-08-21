@@ -400,6 +400,13 @@ public sealed class Simulation
                 ApplyTrip(command, tick);
                 break;
 
+            case CommandKind.Arrive:
+                // adr/0128's door. The gate ships at 11 and what decides to arrive ships at 16, so
+                // the only thing that admits anybody is a command -- Populate's position, taken for
+                // Populate's reason.
+                ApplyArrive(command, tick);
+                break;
+
             case CommandKind.None:
             case CommandKind.Service:
             case CommandKind.Govern:
@@ -629,6 +636,96 @@ public sealed class Simulation
                 && IntegerMath.FloorDiv(lots.North[slot].Raw, block) == row)
             {
                 return lots.BuildingOn(slot);
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Admits up to the requested number of Households through the gate at the named Tile.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A Tile with no gate on it throws, and a gate that is full does not.</b> The two failures
+    /// are different in kind: naming the wrong place is a command with a wrong payload, and
+    /// <c>ApplyTrip</c>'s refusals are written against exactly that — ***a substituted endpoint makes
+    /// a mistyped command indistinguishable from the one somebody meant***. A gate admitting fewer
+    /// than were asked for is <c>[[building]] arrivals_per_day</c> binding, which is the mechanism
+    /// working and the thing <c>plans/0002</c> §D1 wants to be able to read.
+    /// </para>
+    /// <para>
+    /// <b>The Tile is matched against the Lot exactly rather than against the block it falls in</b>,
+    /// which is where this parts company from <see cref="OccupiedBuildingIn"/>. On the shipped
+    /// lattice <b>one block carries two edges</b> — <c>SyntheticCity.CarveEdgeBlock</c> puts the west
+    /// and south gates in the block at the origin — so *the gate in this block* names two Buildings
+    /// standing in two different Hinterlands, and picking either would be inventing the answer to
+    /// which market the arrivals came from.
+    /// </para>
+    /// <para>
+    /// <b>A zero count is a command that does nothing, and it is not refused.</b> The loop runs no
+    /// iterations. That is deliberate on <c>ApplyConnect</c>'s terms — a log replays what happened,
+    /// and a verb that dies on a degenerate payload makes a replay less faithful than the session it
+    /// describes.
+    /// </para>
+    /// </remarks>
+    private void ApplyArrive(Command command, Ticks tick)
+    {
+        ArrivePayload payload = ArrivePayload.Decode(command.Zone);
+
+        int gate = GateOn(command.East, command.North);
+
+        if (gate < 0)
+        {
+            throw new InvalidOperationException(
+                $"arrive names Tile ({command.East.Raw}, {command.North.Raw}), where no Outside "
+                + "Connection stands. The verb refuses rather than admitting anybody through the "
+                + "nearest gate, because the edge a Household entered by selects its Hinterland "
+                + "(adr/0088) -- so a substituted gate does not misplace an arrival, it changes "
+                + "which market it came from.");
+        }
+
+        Handle<Building> handle = _world.Buildings.Rows.At(gate);
+
+        for (int i = 0; i < payload.Households; i++)
+        {
+            // Stops on the first refusal rather than trying the rest. The only refusal reachable
+            // here is the daily ceiling -- the gate resolved a line above -- and a ceiling that has
+            // bound once binds for the remainder of the Day.
+            if (!_world.TryArrive(handle, payload.LifeStage, tick, out _))
+            {
+                break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The Outside Connection standing on the Lot at exactly this Tile, or <c>-1</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Exact rather than nearest, and gate-kinded rather than merely occupied.</b> Both narrowings
+    /// are load-bearing: the origin block carries two gates on the shipped lattice, and an ordinary
+    /// dwelling standing at the named Tile is a different Building from the one the command meant.
+    /// </remarks>
+    private int GateOn(Tiles east, Tiles north)
+    {
+        LotTable lots = _world.Lots;
+
+        for (int slot = 0; slot < lots.Rows.SlotCount; slot++)
+        {
+            if (!lots.Rows.IsLive(slot)
+                || lots.IsVacant(slot)
+                || lots.East[slot].Raw != east.Raw
+                || lots.North[slot].Raw != north.Raw)
+            {
+                continue;
+            }
+
+            int building = lots.BuildingOn(slot);
+
+            if (building >= 0 && _world.IsOutsideConnection(_world.Buildings.Kind[building]))
+            {
+                return building;
             }
         }
 

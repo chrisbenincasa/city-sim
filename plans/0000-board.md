@@ -8,8 +8,32 @@ place that orders the three tracks against each other.
 ## What is next
 
 **The next code row is `06` milestone **11** — Hinterlands and arrival through the gate, 🟢 IN FLIGHT:
-🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1, 2 and 3 of
-nine shipped**, six to go. **Task 4 is `World.Arrive` — the door itself.**
+🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1 to 4 of
+nine shipped**, five to go. **Task 5 is money crossing — the arriving balance drawn from the
+Hinterland, and `MoneyIsConserved` rewritten as supply plus flow.**
+
+**Task 4 opened the door**: `World.TryArrive` creates a Household that has never lived here, straight
+into the Pool at a named gate, and `UnplacedTable`'s second column is where the gate waits out the
+spell ([`adr/0129`](../docs/adr/0129-the-pool-waits-at-the-gate-and-an-arrivals-trip-is-the-move-in.md)).
+***A door the design describes and an invariant refuses is a disagreement, not a defect*** — and
+`OnlyAHousedHouseholdIsUnplaced` is the one that moved. **`arrivals_per_day` now binds**, per gate per
+Day, which is what turns it from a number in a file into one a run can refute; ⚠ **a per-call bound
+was refused as milestone 9's F13**, because two arrival events in one Tick would each take the whole
+quota and the thing would read as a daily ceiling while being nothing of the kind. 🔴 ⚠ **The State
+Hash moved and the four golden baselines were re-recorded, with no seed bump** — `World.HashSeed`'s
+own note says new state is a design change and signing it would file a real change as a bookkeeping
+one. **Nobody makes a Trip yet**: the move-in is task 6's, for `adr/0129`'s reason — a Household the
+Pool has not placed has no destination Address.
+
+🔴 ⚠ **And a finding that was not this milestone's: [`0012`](0012-corpus-audit.md) **Cause 1** has a
+fourth form, and the copy that drifted was a **test**.** `InputLogCodec` could not write
+`CommandKind.Populate` or `CommandKind.Trip` — declared in milestones 5a and 5b, applied by
+`Simulation`, and unknown to the codec in **both** directions, so a session containing the verb the
+whole of 5b exists to exercise could not be written to a log. ***A verb the simulation applies and the
+codec cannot spell is a session that cannot be reported.*** The guard was a `[Theory]` over four
+hardcoded verbs whose **name already claimed the whole set**, so it read as covered for two
+milestones. ***A test named after a universal and written as a list is a list wearing a proof's
+name.*** Repaired by reflecting over the enum. `0035` **F19**.
 
 **Task 3 put a door in a world**: `rulesets/bordered.toml`, the tenth shipped Ruleset, and a generator
 pass that raises one gate on **every** map edge — a count **derived** from the land, so the generator's

@@ -69,27 +69,61 @@ public sealed class InputLogCodecTests
     }
 
     /// <summary>
-    /// All four verbs survive the round trip, though Service and Govern are still unapplied — so the
-    /// format does not have to change, or its version be bumped, when they arrive.
+    /// 🔴 <b>Every declared verb survives the round trip — and two of them did not.</b>
     /// </summary>
     /// <remarks>
-    /// <b>Connect arrived in 5a-bis and the version did not move, which is the claim this line was
-    /// written to make in advance</b> (<c>adr/0077</c>). It cost nothing because the verb was
-    /// designed to fit the twelve bytes a <c>Command</c> already had rather than the other way round.
+    /// <para>
+    /// <b>This test carried its own refutation in its name for two milestones.</b> It was a
+    /// <c>[Theory]</c> over four hardcoded <c>[InlineData]</c> verbs while the enum grew to seven:
+    /// <see cref="CommandKind.Populate"/> and <see cref="CommandKind.Trip"/> were declared, applied
+    /// by <c>Simulation</c>, and unknown to the codec in both directions — <c>Write</c> threw
+    /// <em>a command with no verb cannot be written</em>, and a hand-written <c>trip</c> line was
+    /// refused as <em>not a verb this format knows</em>. ***A verb the simulation applies and the
+    /// codec cannot spell is a session that cannot be reported***, and a log is what a crash artifact
+    /// is made of. Found in milestone 11 task 4, while adding <see cref="CommandKind.Arrive"/>.
+    /// </para>
+    /// <para>
+    /// <b>It is written over the enum now, and that is the repair rather than the two missing
+    /// lines.</b> A test naming the verbs it knows about is a second copy of the switch it checks,
+    /// and the copy drifts the way the switch did — <c>plans/0012</c> <b>Cause 1</b>, in a test. The
+    /// next verb declared is in this test before anybody writes a line of it.
+    /// </para>
+    /// <para>
+    /// <b>The claim it was written to make still stands</b> (<c>adr/0077</c>): a verb's arrival does
+    /// not bump <c>InputLogCodec.Version</c>, because what bumps it is a <em>sixth field on a
+    /// command</em> and every verb so far was designed to fit the twelve bytes a <c>Command</c>
+    /// already had. <see cref="CommandKind.None"/> is excluded by name — it is the absence of a verb,
+    /// and <c>InputLogBuilder</c> refuses it at the door.
+    /// </para>
     /// </remarks>
-    [Theory]
-    [InlineData(CommandKind.Zone)]
-    [InlineData(CommandKind.Connect)]
-    [InlineData(CommandKind.Service)]
-    [InlineData(CommandKind.Govern)]
-    public void Every_declared_verb_survives_the_round_trip(CommandKind kind)
+    [Fact]
+    public void Every_declared_verb_survives_the_round_trip()
     {
         InputLogBuilder builder = new(1, new WorldConfiguration(8), rulesetHash: 0);
-        builder.Append(new Ticks(3), new Command(kind, new Tiles(5), new Tiles(6), zone: 9));
+
+        var declared = new List<CommandKind>();
+
+        foreach (CommandKind kind in Enum.GetValues<CommandKind>())
+        {
+            if (kind == CommandKind.None)
+            {
+                continue;
+            }
+
+            declared.Add(kind);
+            builder.Append(new Ticks(3), new Command(kind, new Tiles(5), new Tiles(6), zone: 9));
+        }
+
+        Assert.NotEmpty(declared);
 
         InputLog restored = InputLogCodec.FromText(InputLogCodec.ToText(builder.Build()));
 
-        Assert.Equal(kind, restored.Entry(0).Command.Kind);
+        Assert.Equal(declared.Count, restored.Count);
+
+        for (int i = 0; i < declared.Count; i++)
+        {
+            Assert.Equal(declared[i], restored.Entry(i).Command.Kind);
+        }
     }
 
     /// <summary>

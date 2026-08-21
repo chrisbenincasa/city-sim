@@ -7,10 +7,22 @@ using Borough.Core.Tables;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Minimal in <c>adr/0054</c>'s sense — one column and no opinions.</b> `CONTEXT` → Unplaced Pool
+/// <b>Two columns, and the second one arrived when a mechanism read it.</b> `CONTEXT` → Unplaced Pool
 /// describes four entry routes, recorded refusal reasons, a give-up counter and a Departure; this
-/// table has a membership and nothing else. Those belong to milestone 9a, and naming them here would
-/// be the trespass the ADR was written to avoid.
+/// table held a membership and nothing else until milestone 11 task 4, on <c>adr/0054</c>'s rule that
+/// naming the rest before there is a reader is the trespass. The refusal reasons and the give-up
+/// counter still have no reader — the reasons are milestone <b>16</b>'s with the comparison
+/// (<c>adr/0128</c>) and the counter is <b>task 7</b>'s.
+/// </para>
+/// <para>
+/// <b><see cref="Gate"/> is on the membership rather than on the Household, and the placement is
+/// forced rather than chosen</b> (<see href="../../docs/adr/0129-the-pool-waits-at-the-gate-and-an-arrivals-trip-is-the-move-in.md">adr/0129</see>).
+/// It is known at arrival, because that is where throughput binds; it is needed again at placement,
+/// as the move-in Trip's origin; and the interval between the two is exactly one spell in the Pool.
+/// ⚠ <b>A lifetime column on the Household was considered and is wrong</b>: two of the Pool's four
+/// entry routes have no gate at all — a Household the city generated itself when a Mature Family's
+/// children left home, and one evicted when its Building was demolished. ***A column that is
+/// meaningless for half its rows is a column describing something else.***
 /// </para>
 /// <para>
 /// <b>It is a table rather than a list threaded through the Households, and the reason is save and
@@ -43,14 +55,17 @@ public sealed class UnplacedTable
     private readonly Rows<Unplaced> _rows;
 
     /// <param name="capacity">Initial slot count. The Pool is empty in a healthy city.</param>
-    /// <param name="households">The table this one's handles address.</param>
-    public UnplacedTable(int capacity, HouseholdTable households)
+    /// <param name="households">The table this one's <see cref="Household"/> handles address.</param>
+    /// <param name="buildings">The table this one's <see cref="Gate"/> handles address.</param>
+    public UnplacedTable(int capacity, HouseholdTable households, BuildingTable buildings)
     {
         ArgumentNullException.ThrowIfNull(households);
+        ArgumentNullException.ThrowIfNull(buildings);
 
         _rows = new Rows<Unplaced>("unplaced", capacity, Buffering.OneCopy);
 
         Household = _rows.SavedHandle("household", households.Rows);
+        Gate = _rows.SavedHandle("gate", buildings.Rows);
 
         _rows.Seal();
     }
@@ -60,6 +75,19 @@ public sealed class UnplacedTable
 
     /// <summary>The Household seeking housing.</summary>
     public HandleColumn<Household> Household { get; }
+
+    /// <summary>
+    /// The Outside Connection this member arrived at, or a default handle for the three entry routes
+    /// that have no gate.
+    /// </summary>
+    /// <remarks>
+    /// <b>A default handle is the ordinary case and not a hole.</b> A Household evicted by a
+    /// demolition, one the city generated itself, and one that decided to move all enter the Pool
+    /// through <see cref="World.Unplace"/> and came from nowhere outside — so the column reads
+    /// <c>default</c> and <see cref="World.Place"/> gives their move-in no gate to start from. Only
+    /// <see cref="World.Arrive"/> writes a live handle here.
+    /// </remarks>
+    public HandleColumn<Building> Gate { get; }
 
     /// <summary>
     /// How many Households are in the Pool, which is also the exclusive bound on a position.
@@ -73,6 +101,9 @@ public sealed class UnplacedTable
 
     /// <summary>The Household at <paramref name="position"/> in the Pool.</summary>
     public Handle<Household> At(int position) => Household[position];
+
+    /// <summary>The gate the member at <paramref name="position"/> arrived at, if any.</summary>
+    public Handle<Building> GateAt(int position) => Gate[position];
 
     /// <summary>Adds a Household to the Pool, and returns where it landed.</summary>
     /// <remarks>
@@ -94,7 +125,15 @@ public sealed class UnplacedTable
     /// and its reverse index can disagree.
     /// </para>
     /// </remarks>
-    public int Join(HouseholdTable households, Handle<Household> household)
+    /// <param name="households">The Household table, so the membership and its reverse index are written together.</param>
+    /// <param name="household">The Household joining.</param>
+    /// <param name="gate">
+    /// The Outside Connection it arrived at, or a default handle. <b>Required rather than defaulted,
+    /// because three of the four entry routes have no gate and the fourth must not be able to forget
+    /// one</b> — a defaulted parameter makes the gateless case the one you get by writing nothing,
+    /// which is exactly the caller <c>adr/0129</c> needs to be explicit.
+    /// </param>
+    public int Join(HouseholdTable households, Handle<Household> household, Handle<Building> gate)
     {
         ArgumentNullException.ThrowIfNull(households);
 
@@ -102,6 +141,7 @@ public sealed class UnplacedTable
         int position = _rows.Resolve(row);
 
         Household[position] = household;
+        Gate[position] = gate;
         households.EnterPool(households.Rows.Resolve(household), position);
 
         return position;
@@ -128,7 +168,13 @@ public sealed class UnplacedTable
         Handle<Household> leaving = Household[position];
         Handle<Household> moved = Household[last];
 
+        // Both columns move together. A swap that carried the membership and left the gate behind
+        // would give the moved Household the leaver's origin, so its move-in Trip would start at a
+        // gate it never came through -- and every such Trip is a legitimate-looking journey between
+        // two real Addresses, which is the failure this table's own slot-is-not-an-identity remark
+        // describes arriving through a second column.
         Household[position] = moved;
+        Gate[position] = Gate[last];
         _rows.Free(_rows.At(last));
 
         // Clear the leaver first, then re-point the mover. Reversed, a Household leaving from the

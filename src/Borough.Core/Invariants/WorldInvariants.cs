@@ -58,6 +58,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, TrafficIsConserved);
         invariants.Register(InvariantTier.EndOfRun, ParkingOccupancyIsConserved);
         invariants.Register(InvariantTier.EndOfRun, OutsideConnectionsStandOnAnEdge);
+        invariants.Register(InvariantTier.EndOfRun, ThePoolWaitsAtRealGates);
     }
 
     /// <summary>
@@ -423,6 +424,76 @@ public static class WorldInvariants
                 Invariant.ThePoolNamesOnlyUnhousedHouseholds,
                 slot,
                 householdSlot);
+        }
+    }
+
+    /// <summary>
+    /// Every Unplaced Pool member waits at a live Outside Connection, or at no gate at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A second walk of the Pool rather than a clause inside
+    /// <see cref="ThePoolIsDenseAndAgreesWithTheHouseholds"/>, and the cost is nil</b> — the Pool is
+    /// empty in a healthy city, which is that table's own opening claim. What it buys is a name that
+    /// says what failed: *the Pool disagrees with the Households* and *somebody is waiting at a door
+    /// that is not one* are different bugs with different causes, and a shared name would report the
+    /// second as the first.
+    /// </para>
+    /// <para>
+    /// <b>It is here because a Ruleset reload can falsify the write-site guard with no call made.</b>
+    /// A kind is a gate precisely when it declares <c>arrivals_per_day</c> (<c>adr/0015</c> makes that
+    /// hot-reloadable), so removing the key converts every standing gate back into an ordinary
+    /// Building and leaves the Pool's members pointing at it. That is <c>plans/0035</c> <b>F14</b> —
+    /// ***a guard at the write site checks the kind a Building was born with, and a hot-reloadable
+    /// kind is not a property a Building was born with*** — arriving one milestone's task later on a
+    /// different column. It reports and does not repair, on
+    /// <see cref="OutsideConnectionsStandOnAnEdge"/>'s terms: where the Household came from is not a
+    /// fact the world can recompute.
+    /// </para>
+    /// <para>
+    /// <b>A default handle passes.</b> Three of the Pool's four entry routes have no gate at all
+    /// (<c>adr/0129</c>), so a member that came from inside the city reads <c>default</c> here and is
+    /// not a violation — see <see cref="Entities.UnplacedTable.Gate"/>. What is a violation is a
+    /// handle that resolves to a Building whose kind is not an Outside Connection, and a handle that
+    /// resolves to nothing at all: a Household waiting at a demolished gate has an origin its move-in
+    /// Trip cannot start from.
+    /// </para>
+    /// </remarks>
+    internal static void ThePoolWaitsAtRealGates(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        UnplacedTable pool = world.UnplacedPool;
+
+        for (int slot = 0; slot < pool.Rows.SlotCount; slot++)
+        {
+            if (!pool.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            Handle<Building> gate = pool.Gate[slot];
+
+            // Handle<T>.None is what a member with no gate carries, and Rows.TryResolve refuses it
+            // like any other unallocated handle -- so the two have to be told apart before the
+            // resolve rather than after it.
+            if (gate == default)
+            {
+                continue;
+            }
+
+            if (!world.Buildings.Rows.TryResolve(gate, out int gateSlot))
+            {
+                report.Report(Invariant.ThePoolsGateIsAnOutsideConnection, slot);
+                continue;
+            }
+
+            report.Require(
+                world.IsOutsideConnection(world.Buildings.Kind[gateSlot]),
+                Invariant.ThePoolsGateIsAnOutsideConnection,
+                slot,
+                gateSlot);
         }
     }
 
