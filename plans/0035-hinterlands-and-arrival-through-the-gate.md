@@ -1066,7 +1066,7 @@ Two findings, and one is about a test suite rather than about the city.
 `rulesets/crowded.toml` with five assertions over it — plus **two production defects the run found and
 nothing else could have** — **F29** and **F30** — each with its regression test, and **F33**, a known
 intermittent whose evidence file turned out to hold an unread answer to an open question. **12 new tests** — 1,896 to **1,908**; the assertion tier is **green in
-2m47s**, up from 50 s, and ⚠ **the acceptance run is the whole of that increase.** 🔴 **No State Hash moved**: both repairs are to derived structures.
+2m45s**, up from 50 s — ⚠ **a capture on a quiet machine**, which the first four readings of it were not, and ⚠ **the acceptance run is the whole of that increase.** 🔴 **No State Hash moved**: both repairs are to derived structures.
 
 **What the run says.** At 1,000 founding Citizens and 384 arrivals a Day through four gates, the Pool
 fills from empty over four Days, settles at **~1,470**, and stands there. Placement houses ~270 a Day,
