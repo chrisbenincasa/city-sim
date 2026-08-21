@@ -394,13 +394,7 @@ public sealed class ZoneRuleTriggerTests
 
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        AllocationProbe.Record(
-            "ZoneRuleTriggerTests.Sweeping_allocates_nothing_after_the_first_trigger",
-            after - before,
-            GC.CollectionCount(0) - gen0,
-            GC.CollectionCount(1) - gen1,
-            GC.CollectionCount(2) - gen2);
-
-        Assert.Equal(before, after);
+        AllocationProbe.Check(
+            "ZoneRuleTriggerTests.Sweeping_allocates_nothing_after_the_first_trigger", before, after, gen0, gen1, gen2);
     }
 }

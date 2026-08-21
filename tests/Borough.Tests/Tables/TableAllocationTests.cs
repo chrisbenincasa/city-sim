@@ -107,14 +107,8 @@ public class TableAllocationTests
         Churn(world, handles);
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        AllocationProbe.Record(
-            "TableAllocationTests.Allocate_free_and_reuse_allocate_no_managed_memory",
-            after - before,
-            GC.CollectionCount(0) - gen0,
-            GC.CollectionCount(1) - gen1,
-            GC.CollectionCount(2) - gen2);
-
-        Assert.Equal(0, after - before);
+        AllocationProbe.Check(
+            "TableAllocationTests.Allocate_free_and_reuse_allocate_no_managed_memory", before, after, gen0, gen1, gen2);
     }
 
     [Fact]
@@ -136,14 +130,8 @@ public class TableAllocationTests
         world.HashState();
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        AllocationProbe.Record(
-            "TableAllocationTests.Hashing_the_world_allocates_no_managed_memory",
-            after - before,
-            GC.CollectionCount(0) - gen0,
-            GC.CollectionCount(1) - gen1,
-            GC.CollectionCount(2) - gen2);
-
-        Assert.Equal(0, after - before);
+        AllocationProbe.Check(
+            "TableAllocationTests.Hashing_the_world_allocates_no_managed_memory", before, after, gen0, gen1, gen2);
     }
 
     [Fact]
@@ -172,14 +160,8 @@ public class TableAllocationTests
 
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        AllocationProbe.Record(
-            "TableAllocationTests.Walking_an_intrusive_list_allocates_no_managed_memory",
-            after - before,
-            GC.CollectionCount(0) - gen0,
-            GC.CollectionCount(1) - gen1,
-            GC.CollectionCount(2) - gen2);
-
-        Assert.Equal(0, after - before);
+        AllocationProbe.Check(
+            "TableAllocationTests.Walking_an_intrusive_list_allocates_no_managed_memory", before, after, gen0, gen1, gen2);
         Assert.True(seen > 0);
     }
 

@@ -61,15 +61,10 @@ public class QuantityTests
         long result = Accumulate(10_000);
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        AllocationProbe.Record(
-            "QuantityTests.Arithmetic_on_quantities_allocates_nothing",
-            after - before,
-            GC.CollectionCount(0) - gen0,
-            GC.CollectionCount(1) - gen1,
-            GC.CollectionCount(2) - gen2);
-
         Assert.NotEqual(0, result);
-        Assert.Equal(0, after - before);
+
+        AllocationProbe.Check(
+            "QuantityTests.Arithmetic_on_quantities_allocates_nothing", before, after, gen0, gen1, gen2);
 
         static long Accumulate(int iterations)
         {

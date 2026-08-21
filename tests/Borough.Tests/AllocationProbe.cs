@@ -124,6 +124,71 @@ internal static class AllocationProbe
     }
 
     /// <summary>
+    /// Records one reading <b>and asserts it was zero</b>, which is the only way the eight sites
+    /// should be written.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The failure message names the file, and that is the whole reason this method exists.</b>
+    /// Every non-zero row in <see cref="Path"/> is a test that went red in that process —
+    /// <see cref="Record"/> runs before the assertion and writes a firing through immediately — so a
+    /// red allocation assertion means <c>plans/0002</c> §B's open question has just been handed a
+    /// sample. **One was lost that way**: a 5,208-byte firing sat in the file unread while §B went on
+    /// saying the half it answers was untested, because the correct response to an intermittent is to
+    /// re-run it and the re-run was green.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The eight sites wrote the assertion eight times and in two spellings</b> —
+    /// <c>Assert.Equal(before, after)</c> and <c>Assert.Equal(0, after - before)</c> — which is what
+    /// made them uncountable by grep and left §B naming four of them for months. ***A property
+    /// asserted in two spellings is a property nothing can enumerate.***
+    /// </para>
+    /// </remarks>
+    internal static void Check(string test, long before, long after, int gen0, int gen1, int gen2)
+    {
+        int firedGen0 = GC.CollectionCount(0) - gen0;
+        int firedGen1 = GC.CollectionCount(1) - gen1;
+        int firedGen2 = GC.CollectionCount(2) - gen2;
+
+        Record(test, after - before, firedGen0, firedGen1, firedGen2);
+
+        if (after == before)
+        {
+            return;
+        }
+
+        throw new Xunit.Sdk.XunitException(
+            Explain(test, after - before, firedGen0, firedGen1, firedGen2));
+    }
+
+    /// <summary>
+    /// What a firing says to whoever is reading the red suite.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Separate from <see cref="Check"/> so that the message can be tested without recording a
+    /// sample.</b> The first draft of <c>AllocationAssertionTests</c> asserted on the message by
+    /// calling <see cref="Check"/> with a fabricated delta, which appended a **synthetic firing to
+    /// the evidence file on every run** — <c>plans/0002</c> §B counts the rows in that file, and six
+    /// real samples in four years would have been buried under one fake per test run.
+    /// ***A test for an instrument must not write to the instrument's output.***
+    /// </remarks>
+    internal static string Explain(string test, long delta, int gen0, int gen1, int gen2)
+    {
+        return
+            $"{test} moved the allocation counter by {delta} bytes, with "
+            + $"{gen0} gen0, {gen1} gen1 and {gen2} gen2 collections inside the "
+            + "window.\n\n"
+            + "⚠ THIS MAY BE THE INTERMITTENT AND NOT A REGRESSION. plans/0002 §B is open on exactly "
+            + "this: GC.GetAllocatedBytesForCurrentThread is served out of a per-thread allocation "
+            + "context, and six recorded firings are all under 8,192 bytes, which is that context's "
+            + "size. A delta under 8,192 is consistent with the intermittent; one over it is not, and "
+            + "would be the refutation §B is waiting for.\n\n"
+            + $"🔴 THE SAMPLE HAS ALREADY BEEN WRITTEN TO {Path} -- go and read it, and put the row "
+            + "in plans/0002 §B, BEFORE re-running. A green re-run is the correct response to an "
+            + "intermittent and it is also how the last sample was lost.";
+    }
+
+    /// <summary>
     /// Writes every buffered reading out. Called once, after the last test in the assembly has
     /// finished.
     /// </summary>

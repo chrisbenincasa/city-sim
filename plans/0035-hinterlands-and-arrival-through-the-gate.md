@@ -419,6 +419,7 @@ sitting did not find.
    ✅ **DONE 2026-08-21.**
 9. **The long acceptance run** — ⚠ **on a world where arrivals outpace housing**, because that is the
    only world in which the give-up bound and `adr/0006` can be read at all.
+   ✅ **DONE 2026-08-21**, and it found **two production defects** — **F29** and **F30**.
 
 **Struck by the decisions**: the comparison (16), rejected-arrival reasons (16), Settlements (their
 consumer), Shipments (behind 12), any Goods trade (12), any counterparty scope (12), depth and recovery
@@ -1059,6 +1060,159 @@ Two findings, and one is about a test suite rather than about the city.
   about a working loop that no measurement settles (`adr/0121`, and `adr/0043` does not reach it). It
   is named here so the next sitting that adds an expensive fixture knows nothing will stop it.
 
+### Task 9 — the long acceptance run — ✅ **DONE 2026-08-21**
+
+**What ships**: `ArrivalLongRunTests` and its `ArrivalLongRun` fixture — a 65,536-Tick run on
+`rulesets/crowded.toml` with five assertions over it — plus **two production defects the run found and
+nothing else could have** — **F29** and **F30** — each with its regression test, and **F33**, a known
+intermittent whose evidence file turned out to hold an unread answer to an open question. **12 new tests** — 1,896 to **1,908**; the assertion tier is **green in
+2m47s**, up from 50 s, and ⚠ **the acceptance run is the whole of that increase.** 🔴 **No State Hash moved**: both repairs are to derived structures.
+
+**What the run says.** At 1,000 founding Citizens and 384 arrivals a Day through four gates, the Pool
+fills from empty over four Days, settles at **~1,470**, and stands there. Placement houses ~270 a Day,
+the give-up bound retires ~380 a Day, and the money supply moves in both directions and closes exactly.
+⚠ **A standing Pool is the correct answer here and not a failure** — it is the housing shortage this
+world was built to have, and `CONTEXT.md` → Departure is explicit that only the *flow* separates a
+large healthy Pool from a small desperate one. What is asserted is that the level does not climb.
+
+⚠ **The run is 32 Days rather than the 100,000 Ticks `CLAUDE.md`'s Definition of done names, and the
+narrowing is stated rather than quiet.** A gated world pays a paved lattice — **0.51 ms** a Tick — and
+this file's arrival rate pays for the churn on top, so the whole thing costs **2.2 ms** a Tick and
+100,000 Ticks would be **3m45s**: 4.5× the working tier for one test, and fifteen seconds under
+`TierBudgetTests`' four-minute bound, which is close enough that a busy machine turns it red.
+**The 100,000-Tick run was made, by hand, on the day this landed**: the Pool read **1,464** on Day 16
+and **1,458** on Day 48. ***The obligation was discharged by running it; the committed test is what
+keeps it from regressing***, and its tail starts four Days after the Pool settles.
+
+⚠ **Staggered invariants are 4% of the 2.2 ms and the Decide guard is already off**, so the cost is
+the mechanism doing its work. It is a Pool of ~1,470 sampled 64 times a Day against three candidates
+each, which is `[placement]`'s cadence meeting a Pool this large for the first time.
+
+- 🔴 **F29 — retiring a Citizen had two implementations, and the commute roster reached only one.**
+  `World.DestroyCitizen` calls `Commutes.Remove`, then unlinks the member list, then unlists the
+  employer, then frees the row. `World.DestroyHousehold` did the last three **by hand** and never the
+  first — so every Household destroyed with an employed member left two dangling `CommuteRoster`
+  bucket entries, and the next allocation of that Citizen slot was inserted into a list it was already
+  in. It presents as a **throw** in `CommuteRoster.Add` during an unrelated employment, ~48 Days into
+  a run, naming two slot numbers and no cause.
+  ⚠ **`CommuteRoster.Remove`'s own doc comment describes this exact defect** — *"A Citizen removed
+  after its row was freed would leave a dangling entry that the next allocation of that slot would
+  find itself already in"* — written by whoever built the roster, against the caller that then did not
+  call it. ***A warning on the callee does not reach a caller that never arrives.***
+  ⚠ **The repair is the consolidation and not the missing call.** `DestroyHousehold` now retires its
+  members *through* `DestroyCitizen`, so there is one implementation. The two agreed on the day they
+  were written and the roster was added to only one of them — [`adr/0069`](../docs/adr/0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md)'s
+  own finding, which `World.Employ`'s comment already quotes: *a mechanism living inside another
+  mechanism's caller is a mechanism nobody built.*
+  ⚠ **Nothing in the invariant tier could have caught it.** `Invariant.NoFreedRowIsStillLinked` walks
+  the lists the *tables* declare; the roster is `Derived` and lives in its own structure, so a freed
+  row threaded into it is outside what that check can see.
+
+- 🔴 **F30 — `World.ReleaseParking` had one caller, and it was not the one that frees the row.**
+  A Citizen destroyed while holding a parking space left `CarParkTable.Occupied` counting a car nobody
+  was in. The space was then held for the rest of the run and no Vehicle could take it. Found by this
+  task's acceptance run at Tick **65,664**, reading **234** occupied spaces against **233** holders.
+  ⚠ **It is F29's shape on a second structure, and one repair closed both**: consolidating
+  `DestroyHousehold` through `DestroyCitizen` meant the release only had to be added in one place.
+  ***That two independent leaks were fixed by the same edit is the evidence that the duplication was
+  the defect and the missing calls were symptoms.***
+  🔴 ⚠ **The corpus had this written down, as design, for four milestones.**
+  `InvariantTierTests.A_car_park_holding_a_car_nobody_owns_is_caught` produced the leak *by destroying
+  a parked Citizen*, and its doc comment explained that this was the realistic route — *"`World.
+  DestroyCitizen` unlinks a Citizen from its Household, its employer and its Commute and from no Car
+  Park"*. Every word of that was true. ***A test that reaches a violation through a real defect passes
+  for the wrong reason and files the defect as intended behaviour*** — and it reads as diligence,
+  because naming the realistic route is exactly what a careful check comment does. The test now writes
+  the leak directly and its comment records what it used to do.
+  ⚠ **Why eleven milestones of long runs never saw it**: until [`adr/0130`](../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md)'s
+  give-up bound, `DestroyCitizen` had **no production caller at all**. ***A path exercised only by
+  fixtures is a path with no long run behind it***, and the fixtures all asserted the one thing the
+  path did rather than the four things it owed.
+
+- 🔴 **F31 — a duration bound produces a size bound only after a settling time of its own order, and
+  `plans/0002` §D1's stated refutation does not carry that term.** The row for
+  `gives_up_after_days = 120` names its refuting observation as *"a Pool that grows monotonically over
+  the run means the bound is too long to be a sink."* **Measured on `bordered.toml` at 244 Days —
+  500,000 Ticks, the shipped 120-Day value — the Pool grew monotonically for the whole run, reaching
+  11,653 and still climbing ~50 a Day, while the bound was working exactly as designed:** mean wait
+  **30 Days**, longest **122**, and **4** members over the bound out of 11,646. ***The stated
+  refutation fires on a correct build.***
+  ⚠ **What the run establishes instead is what the number MEANS, which nothing had written down.** The
+  Pool is a queue, so its size is its inflow rate times the mean wait, and the give-up duration caps
+  the mean wait and nothing else. So **the Pool's ceiling is `inflow × gives_up_after_days`**, and the
+  time to approach it is of the same order as the duration. Both shipped files agree:
+
+  | File | Bound | Outflow a Day | Predicted | Measured | Settled by |
+  |---|---|---|---|---|---|
+  | `crowded.toml` | **2** Days | ~684 | ~1,370 | **1,458** | Day **4** |
+  | `bordered.toml` | **120** Days | ~330 | ~39,600 | **11,653** at Day 244 | not yet |
+
+  ⚠ **So `adr/0006` is satisfied and the reading is subtler than *the collection stopped growing*.** A
+  120-Day bound on this world bounds the Pool at roughly forty thousand Households and takes years of
+  game time to get there. That is a **coherent design choice and a legible one for the first time** —
+  it is not what anybody would have guessed from the number, and it is the sentence a designer needs
+  in order to argue with 120.
+  ⚠ **Nothing here refutes 120 and nothing ratifies it either.** The row's other stated observation —
+  *a Pool that empties while dwellings stand vacant* — did not fire, and the third it names as owed,
+  whether four months *feels* right, is a judgement about a played city that `adr/0043` does not reach.
+  **What changes is the row's refutation**, which is corrected in place rather than the value moving.
+  ⚠ **And the acceptance test could not have found this**, because it runs on the file whose bound is
+  2 Days. ***A test sized to observe a mechanism inside a working loop cannot also characterise the
+  number the mechanism is tuned by***, which is why this was a hand measurement filed here and not an
+  assertion.
+
+- ✅ **F32 — the four Hinterlands are distinguishable, which is the half of the bands' ratifier that
+  was easy to leave undone.** `plans/0002` §D1 names two quantities for the emigrant balance bands:
+  that `MoneyIsConserved` holds across arrivals and departures, and that the arriving balances are
+  **distinguishable between edges**. The first is satisfied by a build in which every edge draws from
+  one pooled figure, and it was the only one the run originally checked.
+  `ArrivalLongRunTests.The_four_edges_produce_distinguishable_arrivals` closes the second: it walks
+  the standing Pool — `UnplacedTable.Gate` is the only place the door a Household came through
+  survives, because placement takes the record with it — and asserts the four means come out in the
+  **order `crowded.toml` authors**. ⚠ **The order and not the figures**: asserting the numbers would
+  be asserting the Ruleset back to itself, while the order fails if the draw ignores the arriving
+  Household's own Hinterland. ***An anchor that does not reach the thing it anchors is decoration***
+  ([`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)),
+  and until this test there was nothing that would have noticed.
+
+- 🔴 **F33 — the acceptance test made a known intermittent fire, and the sample it produced had a
+  twin in the evidence file that nobody had ever read.** `LayerQueryTests.Answering_the_query_allocates_nothing`
+  went red once in four tier runs and green in the other three. It is **not new and not this
+  milestone's**: `plans/0002` §B has been open on it since 2026-08-20 —
+  `GC.GetAllocatedBytesForCurrentThread` is served out of a per-thread allocation context that a
+  collection on **another** thread flushes — and `AllocationProbe` was built to gather samples of it.
+  ⚠ **What this task's run contributed is a reading, and it is in `alloc-probe.csv`**: **3,376 bytes
+  with 1 gen0 collection** inside the window. **Under 8,192**, like every one before it.
+  🔴 ⚠ **And reading that file to find it turned up a second firing nobody had looked at** — row 300
+  of 697, `ZoneRuleTriggerTests`, **5,208 bytes with `0 gen0 / 0 gen1 / 0 gen2`**. ***That is the
+  sample §B says it is waiting for.*** The row's own words: *"the half that was owed is still
+  untested — a jump requires a collection is a claim about jumps, **nothing jumped**."* Something had
+  jumped, months earlier, with no collection anywhere in the window, and the row went on saying the
+  question was untested. **Both halves of the pair are now refuted** — a collection is neither
+  sufficient nor necessary — while the **bound** survives at six samples, all under one context.
+  ⚠ **The instrument was not at fault and neither was anybody's diligence.** Every non-zero row is a
+  test that *did* go red: `Record` runs before the assertion and writes a firing through immediately.
+  So the sequence was a red suite, a re-run, a green, and a move on — ***which is the correct response
+  to an intermittent, and is exactly how the evidence was lost.*** **What was missing was a pointer**:
+  nothing in the failure told the reader that the run had just written the sample the open question
+  needed.
+  ✅ **Closed by `AllocationProbe.Check`**, which the eight sites now go through: it records and
+  asserts in one call, and its message names the delta, the collection counts, the 8,192 band that
+  separates the intermittent from a regression, and the file — *"go and read it, and put the row in
+  `plans/0002` §B, BEFORE re-running."* ⚠ **The eight also wrote the same property in two spellings**,
+  which is why §B said *four* for months; one call makes them countable and
+  `AllocationAssertionTests` counts them.
+  ⚠ **Two traps in building it, and both were the instrument eating itself.** The message test first
+  called `Check` with a fabricated delta, appending a **synthetic firing to the evidence file on every
+  run**; it now asserts on `Explain`, which does not record. And the happy-path test appended a
+  **ninth zero reading**, which breaks §B's *eight sites × N runs* arithmetic; it was deleted rather
+  than kept, because ~700 real rows cover it. ***A test for an instrument must not appear in the
+  instrument's output.***
+  ⚠ **No claim is made that this task raised the firing rate.** Two events across 697 readings and 102
+  processes is not a rate anybody can compare against, and the tier did get longer and more
+  allocation-heavy. ***An intermittent whose rate you cannot measure is one you may not say you made
+  worse or left alone.***
+
 ### The doc-comment sweep — ✅ **DONE 2026-08-21**, and it is `plans/0012` **Cause 6**
 
 🔴 **F16 — a description filed under the wrong declaration, forty times, and nothing in the build or
@@ -1121,11 +1275,17 @@ it is a failure mode the corpus had no detector for, and thirty-one files predat
   until 16 the door's only caller is a Command, so ***a test asserting the city grew would be asserting
   the Command it just issued.***
 - **Money's supply is not constant over the run**, and `MoneyIsConserved` still holds as supply + flow.
+  ✅ **DONE** — and ⚠ **without a flow term**, which is **F20**: the equality stayed exact.
 - ~~**Rejected arrivals are counted with reasons**, and the reasons are distinguishable.~~ **MOVED TO 16
   with the comparison** (`adr/0128`) — nothing declines an offer nobody makes. ⚠ **Relocated, not
   discharged**, and it stays `adr/0023`'s.
 - **The Pool does not grow without bound** over the acceptance run — decision 3's sink, asserted.
-- **A shipped Ruleset contains an Outside Connection**, and the acceptance run uses it.
+  ✅ **DONE** — `ArrivalLongRunTests.The_pool_does_not_grow_over_the_run`, and the give-up channel is
+  asserted separately because the drift claim alone is satisfied by a city that houses everybody.
+  ⚠ **What the bound MEANS is F31** and it is not what the number looks like: the Pool's ceiling is
+  `inflow × gives_up_after_days`.
+- **A shipped Ruleset contains an Outside Connection**, and the acceptance run uses it. ✅ **DONE** —
+  `rulesets/crowded.toml`, and the run asserts all four gates stand and admit.
 - Every number that reached a Ruleset has a row in `0002` §D1 with a machine, **a world** and **a
   quantity**, and ⚠ **the world is checked for whether it can occur** — `adr/0052` does not ask, and
   milestones 7 and 9 both paid for that.

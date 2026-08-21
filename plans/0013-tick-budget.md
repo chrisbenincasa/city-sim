@@ -307,6 +307,33 @@ instruction.
 multiplicand, and the fold cost belongs to the *hash* rather than to any phase. What a row needs is
 still owed.
 
+**And what a Pool under pressure costs, measured 2026-08-21 at milestone 11 task 9.** Same conditions,
+same caveat — release, reference machine, **not quiet**, upper bounds — 16,384 Ticks, 1,000 founding
+Citizens, `--no-decide-guard` throughout, one knock on each of four gates a Day:
+
+| What ran | Per Tick |
+|---|---|
+| `bordered.toml`, no arrivals asked for | **0.51 ms** |
+| `bordered.toml`, 48 Households a Day admitted | **0.85 ms** |
+| `crowded.toml`, 384 Households a Day admitted | **2.16 ms** |
+
+⚠️ **The map floor is the same 0.51 in all three** — both files pave the lattice to the boundary
+because both declare a gate — so what the two lower rows price is **arrival, placement and departure
+churn**, and it is roughly linear in the admitted rate. ⚠️ **`--citizens` is nearly inert here**: at
+100, 400 and 1,000 founding Citizens `crowded.toml` reads **1.53 / 1.94 / 2.15 ms**, because within
+four Days the Pool is ~1,470 whatever the world started with. ***The multiplicand is the arrival rate
+and not the population***, which is the one thing this file's numbers are for.
+
+⚠️ **Staggered invariants are 4% of it** — 33.83 s against 35.33 s over 16,384 Ticks with
+`InvariantRegistry.RunStaggered` commented out — so they are not where a repair would go.
+
+⚠️ **Still not a row either, and for a sharper reason than the one above.** The dominant term is
+`[placement]`'s cadence meeting a Pool of ~1,470: 64 passes a Day, each drawing a sample that scales
+with the Pool, three candidates each. **The Pool's steady-state size is set by `gives_up_after_days`,
+which `plans/0002` §D1 records as UNRATIFIED** — so the multiplicand here is downstream of a number
+nobody has settled. ***A cost derived from an unratified quantity is a cost that moves when the
+designer answers a different question.***
+
 ### ⚠️ The walk search is not a unit cost, and the row that treated it as one hid the stronger lever
 
 **Measured 2026-08-11 on the shipped 32-Tile lattice — 16,700 nodes, 32,890 Segments, which *is* the

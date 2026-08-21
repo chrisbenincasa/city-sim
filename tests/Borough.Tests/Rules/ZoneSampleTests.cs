@@ -212,13 +212,7 @@ public sealed class ZoneSampleTests
 
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        AllocationProbe.Record(
-            "ZoneSampleTests.Sampling_allocates_nothing",
-            after - before,
-            GC.CollectionCount(0) - gen0,
-            GC.CollectionCount(1) - gen1,
-            GC.CollectionCount(2) - gen2);
-
-        Assert.Equal(before, after);
+        AllocationProbe.Check(
+            "ZoneSampleTests.Sampling_allocates_nothing", before, after, gen0, gen1, gen2);
     }
 }

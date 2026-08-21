@@ -696,16 +696,26 @@ public sealed class InvariantTierTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>adr/0084</c>'s leak, written by hand: an acquire with no matching release. The realistic
-    /// route to it is a Citizen freed while holding a space — <see cref="World.DestroyCitizen"/>
-    /// unlinks a Citizen from its Household, its employer and its Commute and from no Car Park — and
-    /// the freeing is what this test does, so the failure it watches is the one that would happen
-    /// rather than a shape invented for the check.
+    /// <c>adr/0084</c>'s leak, written by hand: an acquire with no matching release. The holder's
+    /// column is cleared and the occupancy is left standing, which is the state the sum is checked
+    /// against however it was arrived at.
     /// </para>
     /// <para>
     /// <b>It presents as a well-provisioned city rather than as a crash</b>, which is why nothing
     /// else would report it: the spaces are gone, every shed query finds less room than the city
     /// built, and the shortage the player feels is one nobody caused.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>This test used to reach the leak by destroying the parked Citizen, and the paragraph
+    /// above used to say why that was the realistic route</b> — <i>"<c>World.DestroyCitizen</c>
+    /// unlinks a Citizen from its Household, its employer and its Commute and from no Car Park"</i>.
+    /// It was <em>true</em>, and it was a defect written down as a property of the design:
+    /// <c>plans/0035</c> <b>F30</b>, which milestone 11 task 9's acceptance run found four
+    /// milestones later by reading 234 occupied spaces against 233 holders. ***A test that reaches a
+    /// violation through a real defect passes for the wrong reason and documents the defect as
+    /// intended behaviour*** — and it reads as diligence, because naming the realistic route is
+    /// exactly what a good check comment does. The route is closed now, so the leak is written
+    /// directly.
     /// </para>
     /// </remarks>
     [Fact]
@@ -714,7 +724,10 @@ public sealed class InvariantTierTests
         World world = Built();
         int carPark = Park(world, citizen: 0);
 
-        world.DestroyCitizen(world.Citizens.Rows.At(0));
+        // The holding dropped without the decrement. Written on the column rather than through
+        // World.ReleaseParking, which is the one door that cannot produce this state -- it moves
+        // both halves or neither, which is what makes it the door.
+        world.Citizens.ParkedIn[0] = default;
 
         Assert.Equal(Invariant.ParkingOccupancyIsConserved, CaughtAtEnd(world));
         Assert.Equal(1, world.CarParks.Occupied[carPark]);

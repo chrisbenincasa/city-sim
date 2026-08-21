@@ -3,6 +3,8 @@ using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
+using Borough.Core.Invariants;
+using Borough.Core.Space;
 using Borough.Core.Tables;
 using Borough.Formats;
 
@@ -107,6 +109,39 @@ public sealed class EmploymentTests
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
         Handle<Building> building = world.CreateBuilding(lot, Workplace, Ticks.Zero, key ?? Key);
+        Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
+
+        for (int i = 0; i < workers; i++)
+        {
+            world.Employ(world.CreateCitizen(household, Ticks.Zero), building, Ticks.Zero);
+        }
+
+        return world;
+    }
+
+    /// <summary>
+    /// A <see cref="City"/> whose employed Citizens are also on the <b>commute roster</b>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>The <c>[jobs]</c> table is the difference and it is not decoration.</b>
+    /// <c>CommuteRoster.TryPhasesOf</c> returns false unless <c>rules.Jobs.Runs</c>, because both
+    /// Shift phases are drawn against <c>shift_hours_min</c>/<c>max</c> — so every fixture in this
+    /// file employs Citizens who are on no roster at all, and a test about the roster written on
+    /// <see cref="City"/> asserts nothing. ***A structure that populates only under a table the
+    /// fixture does not state is a structure a fixture silently opts out of.***
+    /// </remarks>
+    private static World Rostering(int workers, int jobs)
+    {
+        string toml = Employing(jobs)
+            + "\n[trips]\ncrossing_seconds = 30\ncommute_fast_minutes = 20\n"
+            + "commute_moderate_minutes = 40\ncommute_budget_minutes = 50\n"
+            + "\n[jobs]\ninterval = 32\nrevisit_ticks = 1024\ncandidates = 3\n"
+            + "shift_hours_min = 6\nshift_hours_max = 10\narrive_early_max_minutes = 15\n";
+
+        var world = new World(1_000, Load(toml));
+
+        Handle<Lot> lot = world.Lots.Create(new Tiles(0), new Tiles(0), zone: 1);
+        Handle<Building> building = world.CreateBuilding(lot, Workplace, Ticks.Zero, Key);
         Handle<Household> household = world.CreateHousehold(building, lifeStage: 0);
 
         for (int i = 0; i < workers; i++)
@@ -331,6 +366,110 @@ public sealed class EmploymentTests
         world.DestroyCitizen(world.Citizens.Rows.At(1));
 
         Assert.Equal(2, Staff(world, TheBuilding(world)).Length);
+    }
+
+    /// <summary>
+    /// <b>Retiring a Household takes its members off the commute roster, and not only off the worker
+    /// list.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b><c>plans/0035</c> <b>F29</b>, and the asymmetry is one line.</b>
+    /// <see cref="World.DestroyCitizen"/> calls <c>Commutes.Remove</c> and then <c>Unlist</c>;
+    /// <see cref="World.DestroyHousehold"/> called only <c>Unlist</c> on each member before freeing
+    /// its row. The worker list was maintained and the <em>commute roster</em> was not, so every
+    /// Household destroyed with an employed member left two dangling bucket entries behind it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is asserted through the recycled slot, because that is the only place it presents.</b>
+    /// A dangling entry costs nothing until the slot is allocated again — and then
+    /// <c>InsertOrdered</c> finds the row already in the list it is being put into and throws, which
+    /// is <c>CommuteRoster.Remove</c>'s own doc-comment describing the defect it was written to
+    /// prevent. ***A structure whose corruption is silent until an unrelated allocation is one whose
+    /// test has to perform the allocation.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nothing in the invariant tier could have caught it.</b>
+    /// <see cref="Invariant.NoFreedRowIsStillLinked"/> walks the lists the tables declare; the
+    /// commute roster is <see cref="Disposition.Derived"/> and lives in its own structure, so a freed
+    /// row threaded into it is outside what that check can see. It was found by a 100,000-Tick
+    /// acceptance run on <c>rulesets/crowded.toml</c> — milestone 11 task 9 — and by nothing else in
+    /// eleven milestones.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Retiring_a_household_takes_its_members_off_the_commute_roster()
+    {
+        World world = Rostering(workers: 2, jobs: 8);
+        Handle<Building> building = world.Buildings.Rows.At(0);
+        Handle<Household> household = world.Households.Rows.At(0);
+
+        // Vacuity, and it is load-bearing: the roster holds only Citizens whose Workplace yields two
+        // Shift phases, so a fixture whose kind stated no Shift band would satisfy everything below
+        // by never rostering anybody at all.
+        Assert.True(
+            world.Citizens.CommuteBucket[world.Citizens.Rows.Resolve(world.Citizens.Rows.At(0))] != 0,
+            "no Citizen in this fixture is on the commute roster, so the assertion below is about a "
+            + "structure the fixture never populated.");
+
+        world.DestroyHousehold(household);
+
+        // The slots just freed are the ones the next Citizens are allocated into, so employing two
+        // more is what walks them back into the buckets the destroyed pair was left in.
+        Handle<Household> second = world.CreateHousehold(building, lifeStage: 0);
+
+        world.Employ(world.CreateCitizen(second, Ticks.Zero), building, Ticks.Zero);
+        world.Employ(world.CreateCitizen(second, Ticks.Zero), building, Ticks.Zero);
+
+        Assert.Equal(2, Staff(world, TheBuilding(world)).Length);
+    }
+
+    /// <summary>
+    /// <b>And the buckets are empty afterwards, which is the same claim without the recycling.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The pair above and this one fail differently and both are worth keeping.</b> This one names
+    /// the state that is wrong at the moment it becomes wrong; the one above names what a player
+    /// would see, which is a throw on an allocation that has nothing to do with the Household that
+    /// left.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It counts the buckets rather than reading <c>CommuteBucket</c>, and the first draft read
+    /// the column.</b> That draft passed against the defect: <c>Rows.Free</c> clears a derived column
+    /// on the way out, so the column said <em>not rostered</em> while the list still threaded the
+    /// row. ***Asking the row whether it is in a list is asking the wrong end*** — which is the
+    /// warning <c>CommuteRoster.Remove</c> already carries about recomputing a bucket instead of
+    /// reading where the row was put, arriving at a test from the other side.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Retiring_a_household_empties_the_buckets_its_members_were_in()
+    {
+        World world = Rostering(workers: 2, jobs: 8);
+
+        int rostered = 0;
+
+        for (int phase = 0; phase < Ticks.PerDay; phase++)
+        {
+            rostered += world.Commutes.CountAt(world.Citizens, phase)
+                + world.Commutes.ReturningCountAt(world.Citizens, phase);
+        }
+
+        // Two Citizens, each in an outbound bucket and a homeward one.
+        Assert.Equal(4, rostered);
+
+        world.DestroyHousehold(world.Households.Rows.At(0));
+
+        int left = 0;
+
+        for (int phase = 0; phase < Ticks.PerDay; phase++)
+        {
+            left += world.Commutes.CountAt(world.Citizens, phase)
+                + world.Commutes.ReturningCountAt(world.Citizens, phase);
+        }
+
+        Assert.Equal(0, left);
     }
 
     // ---- the declaration -------------------------------------------------------------------------

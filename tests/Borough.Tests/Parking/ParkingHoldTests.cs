@@ -115,6 +115,72 @@ public sealed class ParkingHoldTests
     }
 
     /// <summary>
+    /// 🔴 <b>Retiring a parked Citizen gives its space back.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>plans/0035</c> <b>F30</b>, and it is <b>F29</b>'s shape on a second structure.</b>
+    /// <see cref="World.ReleaseParking"/> had exactly one caller — <c>TripEngine</c>, when a driver
+    /// leaves — so a Citizen whose row was freed while it held a space left
+    /// <c>CarParkTable.Occupied</c> counting a car nobody was in. The space was then occupied for the
+    /// rest of the run and no Vehicle could ever take it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It presents as a slow leak and not as a failure.</b>
+    /// <see cref="Invariant.ParkingOccupancyIsConserved"/> sums both sides and catches it, but only
+    /// at the whole-world tier — so the run has to reach its end before anything says a word. Found
+    /// by milestone 11 task 9's acceptance run at Tick 65,664, reading <b>234</b> occupied spaces
+    /// against <b>233</b> holders.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Nothing destroyed a Citizen mid-run until this milestone</b>, which is why eleven
+    /// milestones of long runs never saw it: the only production caller of
+    /// <see cref="World.DestroyCitizen"/> arrived with <c>adr/0130</c>'s give-up bound.
+    /// ***A path exercised only by fixtures is a path with no long run behind it.***
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Retiring_a_parked_citizen_gives_the_space_back()
+    {
+        Fixture city = Fixture.WithParking(spaces: 4);
+
+        Assert.True(city.Take(out int carPark));
+        Assert.Equal(1, city.World.CarParks.Occupied[carPark]);
+
+        city.World.DestroyCitizen(city.World.Citizens.Rows.At(city.Citizen));
+
+        Assert.Equal(0, city.World.CarParks.Occupied[carPark]);
+    }
+
+    /// <summary>
+    /// 🔴 <b>And retiring the Household its members park under gives every space back.</b>
+    /// </summary>
+    /// <remarks>
+    /// <b>The production path, which is <see cref="World.Depart"/>'s.</b> A Household gives up and
+    /// leaves through the gate; nothing walks its Citizens individually. This is the case the
+    /// acceptance run actually hit, and it passes only because
+    /// <see cref="World.DestroyHousehold"/> now retires its members through
+    /// <see cref="World.DestroyCitizen"/> rather than by hand — <c>plans/0035</c> <b>F29</b>.
+    /// ***One repair closing two leaks is the evidence that consolidating the path was the fix and
+    /// the missing call was not.***
+    /// </remarks>
+    [Fact]
+    public void Retiring_a_household_gives_back_every_space_its_members_held()
+    {
+        Fixture city = Fixture.WithParking(spaces: 4);
+
+        Assert.True(city.Take(out int carPark));
+        Assert.True(city.Take(city.AddCitizen(), out int second));
+
+        Assert.Equal(carPark, second);
+        Assert.Equal(2, city.World.CarParks.Occupied[carPark]);
+
+        city.World.DestroyHousehold(city.TheHousehold);
+
+        Assert.Equal(0, city.World.CarParks.Occupied[carPark]);
+    }
+
+    /// <summary>
     /// <b>Two drivers take two of the same Car Park's spaces, and the count is two.</b>
     /// </summary>
     /// <remarks>
@@ -268,6 +334,9 @@ public sealed class ParkingHoldTests
         public int Citizen { get; }
 
         private Handle<Household> Household { get; init; }
+
+        /// <summary>The Household every Citizen in this fixture belongs to.</summary>
+        public Handle<Household> TheHousehold => Household;
 
         public static Fixture WithParking(int spaces)
         {

@@ -181,14 +181,8 @@ public sealed class BuildingResidencyTests
 
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        AllocationProbe.Record(
-            "BuildingResidencyTests.Answering_the_query_allocates_nothing",
-            after - before,
-            GC.CollectionCount(0) - gen0,
-            GC.CollectionCount(1) - gen1,
-            GC.CollectionCount(2) - gen2);
-
-        Assert.Equal(before, after);
+        AllocationProbe.Check(
+            "BuildingResidencyTests.Answering_the_query_allocates_nothing", before, after, gen0, gen1, gen2);
     }
 
     /// <summary>

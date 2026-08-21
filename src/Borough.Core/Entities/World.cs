@@ -1334,6 +1334,17 @@ public sealed class World
         // Before the row is freed, because both phases are derived from state the row carries.
         Commutes.Remove(Citizens, slot);
 
+        // And the parking space, for the reason the roster goes first and not for a reason of its
+        // own: CarParkTable.Occupied and CitizenTable.ParkedIn are adr/0084's two halves of one sum,
+        // and a freed row takes its half of the sum with it. Until milestone 11 task 9 this method
+        // had no production caller at all, so a space held by a retiring Citizen was occupied for
+        // the rest of the run and nothing could take it -- plans/0035 F30, found by the acceptance
+        // run reading 234 occupied spaces against 233 holders at Tick 65,664.
+        //
+        // ⚠ A demolished Car Park is handled INSIDE ReleaseParking and is not a leak: both sides
+        // lose the row together, so the holding is dropped without a decrement.
+        ReleaseParking(slot);
+
         if (Households.Rows.TryResolve(Citizens.HouseholdOf[slot], out int householdSlot))
         {
             Members.Remove(householdSlot, slot);
@@ -1359,12 +1370,26 @@ public sealed class World
     {
         int slot = Households.Rows.Resolve(household);
 
-        int member = Members.PopFront(slot);
+        // ⚠ THROUGH DestroyCitizen RATHER THAN BY HAND, and this loop retired its members by hand
+        // until milestone 11 task 9 -- plans/0035 F29. It unlinked each member from its employer and
+        // freed the row, and never took it off the COMMUTE ROSTER, which DestroyCitizen has always
+        // done one line earlier than it does the other two. So every Household destroyed with an
+        // employed member left two dangling bucket entries, and the next allocation of that Citizen
+        // slot was inserted into a list it was already in.
+        //
+        // PeekFront rather than PopFront because DestroyCitizen unlinks the member itself: the head
+        // is re-read each turn, and the list shortens from the front either way.
+        //
+        // ***Retiring a Citizen now has ONE implementation***, which is the repair rather than the
+        // missing call being it. The two paths agreed on the day they were written and the roster
+        // arrived at only one of them -- adr/0069's own finding, quoted in World.Employ five hundred
+        // lines below: a mechanism living inside another mechanism's caller is a mechanism nobody
+        // built.
+        int member = Members.PeekFront(slot);
         while (member != Rows.NoSlot)
         {
-            Unlist(member);
-            Citizens.Rows.Free(Citizens.Rows.At(member));
-            member = Members.PopFront(slot);
+            DestroyCitizen(Citizens.Rows.At(member));
+            member = Members.PeekFront(slot);
         }
 
         if (Buildings.Rows.TryResolve(Households.Dwelling[slot], out int buildingSlot))
