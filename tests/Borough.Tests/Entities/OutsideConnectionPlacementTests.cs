@@ -28,6 +28,14 @@ namespace Borough.Tests.Entities;
 public sealed class OutsideConnectionPlacementTests
 {
     /// <summary>Kind 1 is an ordinary dwelling; kind 2 is a gate.</summary>
+    /// <remarks>
+    /// ⚠ <b>The <c>[placement]</c> table is here because the gate kind is</b>, not because anything
+    /// in this class places a Building through it. A Ruleset with a door into the Unplaced Pool and
+    /// no way out of it is refused at load (<c>plans/0035</c> <b>F28</b>): the Pool would have an
+    /// inflow and no sink, which <c>adr/0006</c> forbids. Every fixture in the corpus that declares
+    /// <c>arrivals_per_day</c> now carries a sink, and that is the point of the refusal rather than
+    /// a tax it levies.
+    /// </remarks>
     private const string TwoKinds = """
         [[resource]]
         name = "flour"
@@ -40,6 +48,12 @@ public sealed class OutsideConnectionPlacementTests
         [[building]]
         name = "port"
         arrivals_per_day = 40
+
+        [placement]
+        interval = 32
+        revisit_ticks = 1024
+        candidates = 3
+        gives_up_after_days = 120
         """;
 
     private const byte Dwelling = 1;

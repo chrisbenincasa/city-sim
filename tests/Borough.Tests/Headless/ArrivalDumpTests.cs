@@ -23,9 +23,11 @@ namespace Borough.Tests.Headless;
 /// </para>
 /// <para>
 /// ⚠ <b>The runs here are short and the world is expensive</b>, because a Ruleset declaring a gate
-/// paves the lattice to the map's boundary — half a million Segments at any population. Four Days is
-/// what it takes for the give-up bound to fire at this file's numbers, and it is not a figure any
-/// document may quote.
+/// paves the lattice to the map's boundary — 61 Segments become <b>535,817</b>. Four Days is what it
+/// takes for the give-up bound to fire at this file's numbers, and it is not a figure any document may
+/// quote. ⚠ <b>The dump turns <c>VerifyDecideWritesNothing</c> off</b>, as every dump does; leaving it
+/// on would fold the whole world twice a Tick and make these tests ~75× slower for nothing
+/// (<c>plans/0035</c> <b>F26</b>).
 /// </para>
 /// </remarks>
 public sealed class ArrivalDumpTests

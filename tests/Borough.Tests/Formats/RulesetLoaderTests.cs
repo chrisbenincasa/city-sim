@@ -1547,4 +1547,24 @@ public sealed class RulesetLoaderTests
 
         Assert.False(ruleset.Placement.GivesUp);
     }
+
+    /// <summary>
+    /// A Ruleset that declares a gate and no <c>[placement]</c> table at all is refused.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>The wider door, and milestone 11 task 7 stopped short of it</b> — <c>plans/0035</c>
+    /// <b>F28</b>. That task refused a file stating <c>[placement]</c> <em>without</em>
+    /// <c>gives_up_after_days</c>, and said nothing about a file stating no <c>[placement]</c> at
+    /// all — which has an inflow into the Pool, no housing <em>and</em> no sink. ***A guard written
+    /// against a missing key does not cover a missing table***, and the case it missed is the worse
+    /// of the two.
+    /// </remarks>
+    [Fact]
+    public void A_ruleset_with_a_gate_and_no_placement_table_is_refused()
+    {
+        RulesetRefusal refusal = Refused(
+            Bakery + "\n[[building]]\nname = \"port\"\narrivals_per_day = 4\n");
+
+        Assert.Contains("no [placement] table at all", refusal.Reason, StringComparison.Ordinal);
+    }
 }

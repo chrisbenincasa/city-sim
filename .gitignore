@@ -520,3 +520,8 @@ CLAUDE.local.md
 
 # plans/0002 §B: the allocation probe writes here when BOROUGH_ALLOC_PROBE points into the tree
 alloc-probe*.*
+
+# The headless runner's crash artefact. It wraps the Input Log up to the failing Tick
+# (Borough.Formats, adr/0039) and lands in the working directory, so any run that trips an
+# invariant leaves one behind. It is a diagnostic to read and attach, never a file to commit.
+*.borough-crash

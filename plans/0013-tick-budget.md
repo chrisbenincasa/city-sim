@@ -257,48 +257,55 @@ the ones `adr/0081` already names: `candidates` multiplies the assignment side a
 `commute_peak_factor` moves the peak against the mean without changing the total, and **the Commute
 Budget moves both**, because it is the box's side as well as the acceptance test.
 
-### 🔴 ⚠️ A gated world costs 38.7 ms a Tick at 1,000 Citizens, and the cost does not move with population
+### 🔴 ⚠️ The Decide guard costs 37.9 ms a Tick on a paved world, and it was measured and filed as if it were the city
 
-**Measured 2026-08-21 by wall-clock delta on the headless runner, `rulesets/bordered.toml`, release
-build, on the reference machine but ⚠️ NOT ON A QUIET ONE — treat every figure here as an upper
-bound.** Found by milestone 11 task 8 while sizing a demonstration run; filed the same day
-(`adr/0073`).
+**Measured 2026-08-21, `rulesets/bordered.toml`, release, 256 Ticks against a 1-Tick baseline, on the
+reference machine but ⚠️ NOT ON A QUIET ONE — upper bounds.** ⚠️ **This entry replaces one filed the
+same day that said *a gated world costs 38.7 ms a Tick and the cost does not move with population*.
+Both halves of that sentence were wrong**, and what was actually measured is below.
 
-| Citizens | 128 Ticks | Per Tick |
-|---|---|---|
-| **100** | 8.47 s | — |
-| **1,000** | 7.63 s | — |
-| **4,000** | 7.53 s | — |
+| What ran | Per Tick |
+|---|---|
+| `bordered.toml`, guard **on** (the default) | **38.40 ms** |
+| `bordered.toml`, `--no-decide-guard` | **0.51 ms** |
+| `minimal.toml`, `--no-decide-guard` | **0.16 ms** |
 
-**The three readings are the finding.** A fortyfold change in population moves the wall clock by less
-than the noise between runs. Isolating the fixed cost — a 0-Tick run of the same world is **2.81 s**,
-and a 128-Tick run is **7.76 s** — puts the per-Tick cost at **38.7 ms**, ***at one thousandth of the
-population the budget is stated at.*** The control is `minimal.toml`, which runs 128 Ticks in
-**3.15 s** on the same machine, most of which is process start.
+**`Simulation.VerifyDecideWritesNothing` is the whole of the gap.** It calls `FoldEverything()`
+**twice per Tick** — a complete State Hash fold of the world, before and after phase 2 — to check
+`adr/0037`'s claim that Decide writes nothing, which is what lets every entity table be
+single-buffered. On a world with **535,817** Segments a fold is **~19 ms**, so the guard is ~37.9 ms
+and the simulation under it is **0.51 ms**.
 
-🔴 **What is different about the world is not the city, it is the map.** A Ruleset declaring an
-Outside Connection kind makes `SyntheticCity` pave the Street lattice **to the map's boundary**,
-because a gate stands on a map edge — 36 nodes and 61 Segments become **263,169 and 535,817**. The
-population is unchanged. So whatever is spending the 38.7 ms is denominated in **Segments**, and
-`bordered.toml`'s header already records the paving as costing *"150 ms"* at world creation, which is
-the one-off half somebody measured and the per-Tick half nobody did.
+⚠️ **The guard's own doc comment says this and has since it was written**: *"`O(world)` against a
+phase that is meant to be `O(woken)` — affordable for a correctness run and not for a long one. Turn
+it off for the 100,000-Tick test and leave it on everywhere else."* ***The defect was not in the
+build; it was in reading a stopwatch and not asking what it was over.***
 
-⚠️ **This does not say the simulation is 38.7 ms a Tick.** It says *this world* is, and this world is
-a demonstration with a pathological ratio — a village on a continent-sized paved grid. A real city at
-1,000,000 Citizens fills the same lattice, so the per-Segment work would be amortised over a
-population a thousand times larger. ***A fixed cost measured on an empty map is a fixed cost, not a
-rate***, and reading it as one is `plans/0012` **Cause 5** waiting to happen.
+🔴 **And the population claim inverted once the guard was off.** Under the guard, 100, 1,000 and 4,000
+Citizens all read the same, which is what made *independent of population* look like a finding. Without
+it:
 
-**What is owed is the consumer's name, and this entry does not have it.** The candidates are the
-staggered invariant tier (`SegmentsAreWellFormed` is sliced, so it should not be this), the Map Layer
-diffusion, and the traffic volume pass — but ⚠️ **`bordered.toml` states no `[traffic]` table**, so the
-volume-delay path is not even reachable in the measured world. ***A cost with three plausible owners
-and no measurement has none.*** The next sitting that touches this should profile rather than reason:
-the readings above are a wall clock on a whole process and name nothing inside it.
+| Citizens | Per Tick |
+|---|---|
+| 100 | **0.59 ms** |
+| 1,000 | **0.66 ms** |
+| 4,000 | **1.09 ms** |
 
-⚠️ **It is a row this ledger does not yet have**, because a row needs a consumer and a multiplicand
-and this has neither. It is filed as a **finding** rather than entered as a row, which is the
-distinction §*Notes each row needs* is about.
+A fixed floor of roughly half a millisecond — the map — plus a term that grows with the city, which is
+exactly the shape a Tick is supposed to have. ***A constant that swamps a signal makes every input look
+like it does not matter***, and *does not move with population* is what that reads as from outside.
+
+**Two things this leaves for somebody else.** ⚠️ Every other timing figure in this ledger was taken
+with `--no-decide-guard` — the commute-generation entry above names it in its own method line — so the
+withdrawn entry was **the only one in the file measuring a different thing**, filed beside the rest
+without saying so. And ⚠️ **nothing tells an operator the guard is on**: a long run on a large world is
+~75× slower than it needs to be and the runner says nothing, which is a `HONEST DEGRADATION` gap rather
+than a cost. **Milestone 11 task 9's acceptance run must pass `--no-decide-guard`**, on the guard's own
+instruction.
+
+⚠️ **Still not a row.** The 0.51 ms is a whole-Tick wall clock on one world, not a consumer with a
+multiplicand, and the fold cost belongs to the *hash* rather than to any phase. What a row needs is
+still owed.
 
 ### ⚠️ The walk search is not a unit cost, and the row that treated it as one hid the stronger lever
 

@@ -28,14 +28,28 @@ added the flow to `PlacementActivity` and stopped, so `--census` could not print
 reaches no instrument is a flow nobody can read***, which the milestone whose Definition of done is
 *there is something to look at* is exactly where it surfaces.
 
-🔴 ⚠ **A gated world costs 38.7 ms a Tick at 1,000 Citizens, and the cost does not move with
-population.** 128 Ticks of `bordered.toml` costs 7.53–8.47 s at 4,000, 1,000 and 100 Citizens — a
-fortyfold population change moving the clock by less than the run-to-run noise. What differs is the
-**map**: a Ruleset declaring a gate paves the lattice to the boundary, so 61 Segments become
-**535,817** while the population is unchanged. ⚠ **The consumer is not named and the finding says so**
-— one of the three candidates is not even reachable in the measured world. Filed in
-[`0013`](0013-tick-budget.md) as a **finding rather than a row**, because a row needs a consumer and a
-multiplicand. ***A fixed cost measured on an empty map is a fixed cost, not a rate.*** `0035` **F26**.
+🔴 ⚠ **F26 WAS WRONG IN BOTH ITS CLAIMS AND IS WITHDRAWN THE SAME DAY.** It said *a gated world costs
+38.7 ms a Tick and the cost does not move with population*. The 38.4 ms is
+`Simulation.VerifyDecideWritesNothing` — a **debug guard**, on by default, that folds the whole world
+**twice per Tick**. With `--no-decide-guard` the same world runs at **0.51 ms**, against
+`minimal.toml`'s **0.16 ms**; a full-world fold on 535,817 Segments is **~19 ms** and two of them is
+the whole gap. ⚠ **The guard's own doc comment said so all along** — *"`O(world)` against a phase meant
+to be `O(woken)` … turn it off for the 100,000-Tick test"* — so this is `adr/0093` from the wrong end:
+***the sentence naming the symbol was there, and the measurement was taken without reading it.***
+🔴 **The population claim inverted too**: without the guard, 100 / 1,000 / 4,000 Citizens read
+**0.59 / 0.66 / 1.09 ms** — a fixed map floor plus a term that grows with the city, which is the shape
+a Tick is supposed to have. ***A constant that swamps a signal makes every input look like it does not
+matter.*** ⚠ **And it was the only figure in [`0013`](0013-tick-budget.md) not taken with
+`--no-decide-guard`, filed beside ones that were** — **Cause 5** in its own home. What survives:
+**nothing tells an operator the guard is on**, so a long run on a large world is ~75× slower in
+silence, and **task 9 must pass `--no-decide-guard`**. `0035` **F26**, withdrawn and replaced.
+
+🔴 ⚠ **A guard written against a missing key does not cover a missing table.** Task 7's loader refusal
+fires on a gate plus `[placement]` without `gives_up_after_days`, and said nothing about a gate plus
+**no `[placement]` at all** — an inflow with no housing *and* no sink, which is the same `adr/0006`
+failure in its strongest form. Found while building a variant for the F26 diagnosis, closed the same
+day as `adr/0048`'s 117th refusal. ***A guard is written against the case its author was thinking
+about.*** `0035` **F28**.
 
 🔴 ⚠ **Six tests sharing one fixture built it six times — 1m30s, cached to 18 s — and
 `TierBudgetTests` could not have caught it.** That guard fails a single assertion over four minutes;

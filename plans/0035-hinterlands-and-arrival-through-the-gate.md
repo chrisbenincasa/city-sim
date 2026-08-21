@@ -991,22 +991,61 @@ whichever ran second and get **zero**.
 
 Two findings, and one is about a test suite rather than about the city.
 
-- 🔴 **F26 — a gated world costs 38.7 ms a Tick at 1,000 Citizens, and the cost does not move with
-  population.** Measured while sizing a demonstration run: 128 Ticks of `bordered.toml` costs
-  **7.53–8.47 s** at **4,000**, **1,000** and **100** Citizens — a fortyfold change in population
-  moving the clock by less than the noise between runs. Against a 0-Tick baseline of **2.81 s** that
-  is **38.7 ms a Tick**, ***at one thousandth of the population the budget is stated at***, where the
-  `minimal.toml` control runs the same 128 Ticks in **3.15 s**.
-  **What differs is the map and not the city**: a Ruleset declaring a gate makes `SyntheticCity` pave
-  the lattice to the map's boundary, so 61 Segments become **535,817** while the population is
-  unchanged. ⚠ **This does not say the simulation is 38.7 ms a Tick** — it says *this world* is, and
-  this world is a village on a continent-sized paved grid. ***A fixed cost measured on an empty map is
-  a fixed cost, not a rate.***
-  ⚠ **The consumer is not named and the finding says so.** Three candidates are plausible and one of
-  them — the traffic volume pass — is **not reachable** in the measured world, because `bordered.toml`
-  states no `[traffic]`. ***A cost with three plausible owners and no measurement has none.***
-  **Routed to [`plans/0013`](0013-tick-budget.md) as a finding rather than a row**, because a row needs
-  a consumer and a multiplicand and this has neither.
+- 🔴 ~~**F26 — a gated world costs 38.7 ms a Tick at 1,000 Citizens, and the cost does not move with
+  population.**~~ **WITHDRAWN 2026-08-21, the same day, and replaced by what the measurement was
+  actually of.** The 38.4 ms is `Simulation.VerifyDecideWritesNothing` — a **debug guard**, on by
+  default, that folds the whole world **twice per Tick** to check `adr/0037`'s claim that Decide
+  writes nothing. With `--no-decide-guard` the same world runs at **0.51 ms a Tick**, against
+  `minimal.toml`'s **0.16 ms**. On 535,817 Segments a full-world fold is **~19 ms**, and two of them
+  is the entire gap.
+  ⚠ **The guard's own doc comment had said so all along** — *"`O(world)` against a phase that is meant
+  to be `O(woken)` … turn it off for the 100,000-Tick test and leave it on everywhere else"* — which
+  makes this [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+  from the wrong end: ***the sentence naming the symbol was there, and the measurement was taken
+  without reading it.***
+  🔴 **And the population claim inverted once the guard was off**: 100 / 1,000 / 4,000 Citizens read
+  **0.59 / 0.66 / 1.09 ms**, a fixed map floor plus a term that grows with the city — the shape a Tick
+  is supposed to have. Under the guard all three read the same, which is what made *independent of
+  population* look like a finding. ***A constant that swamps a signal makes every input look like it
+  does not matter.***
+  ⚠ **The withdrawn entry was the only figure in [`plans/0013`](0013-tick-budget.md) not taken with
+  `--no-decide-guard`**, and it was filed beside figures that were, without saying so — which is
+  **Cause 5** in its own home: ***a number quoted away from the conditions that qualify it.*** The
+  ledger entry is replaced rather than deleted, and it now carries both tables.
+  **What survives as real**: nothing tells an operator the guard is on, so a long run on a large world
+  is ~75× slower than it needs to be in silence; and **task 9's acceptance run must pass
+  `--no-decide-guard`**, on the guard's own instruction.
+  ⚠ **The user asked for this.** The entry as filed said *the consumer is not named and this entry
+  does not have it* — which was honest, and honesty about a gap is not a substitute for closing it.
+  ***An unattributed cost is a guess with a number attached***, and the guess was wrong in both of its
+  claims.
+
+- 🔴 **F28 — a guard written against a missing key does not cover a missing table, and the case it
+  missed is the worse of the two.** Task 7's loader refusal fires when a Ruleset declares a gate kind
+  and states `[placement]` **without** `gives_up_after_days`. It says nothing when a Ruleset declares a
+  gate and states **no `[placement]` at all** — which has an inflow into the Unplaced Pool, no housing
+  *and* no sink, so the Pool grows without bound in the strongest form of exactly the `adr/0006`
+  failure the refusal exists to prevent. Found while building a Ruleset variant for the F26 diagnosis,
+  and closed the same day: `adr/0048`'s **117th** refusal site, with the test beside it.
+  ⚠ **It is worth its own entry because of how it was found.** Nothing was looking for it — the
+  variant was built to turn placement off for a *timing* experiment, and the file loaded when it should
+  not have. ***A guard is written against the case its author was thinking about, and the case they
+  were not thinking about is not covered by the argument that justified it.***
+  ⚠ **The refusal turned sixteen existing tests red on the day it landed, and that is the finding
+  rather than the cost.** `OutsideConnectionRulesetLoadTests` and `OutsideConnectionPlacementTests`
+  between them author four gate fixtures, and **not one of them stated a `[placement]` table** —
+  because none of them runs a Pool, so nothing they assert was ever wrong. They are the shape the
+  refusal describes, sitting in the corpus since task 1: ***a fixture that never exercises the
+  mechanism it declares is where an unauthored obligation hides***, and the count is what the hole
+  was worth. Each now carries the four `[placement]` keys and a `gives_up_after_days`, with a remark
+  saying the sink is there because the gate is. ⚠ **The two fixtures spelling `arrivals_per_day = 0`
+  and `-1` deliberately do not carry it** — neither is a gate, and appending a sink to them would
+  hide the refusal they exist to watch fire.
+  ⚠ **And F16's failure mode reappeared while closing this one.** The new test's doc block was
+  inserted between an existing block and its `[Fact]`, so two summaries bound to one member and the
+  method above lost its documentation. `DocCommentAttachmentTests` named it by file and line in 82 ms.
+  ***The check earns its place by catching the hand that wrote it***, which is the only evidence a
+  mechanical detector was worth building rather than a rule worth remembering.
 
 - 🔴 **F27 — six tests sharing one fixture built it six times, and `TierBudgetTests` could not have
   caught it.** The first draft of `ArrivalDumpTests` ran an identical four-Day session per test:

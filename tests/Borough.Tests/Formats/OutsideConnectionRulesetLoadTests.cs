@@ -39,6 +39,26 @@ public sealed class OutsideConnectionRulesetLoadTests
         name = "dwelling"
         """;
 
+    /// <summary>
+    /// The Unplaced Pool's sink, which a Ruleset declaring a gate is refused without.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It is appended to the gate fixtures and to no others.</b> A door into the Pool with no
+    /// way out of it grows a collection without bound, which <c>adr/0006</c> forbids, so the loader
+    /// refuses the pair rather than either half (<c>plans/0035</c> <b>F28</b>). Which is why the two
+    /// fixtures below spelling <c>arrivals_per_day = 0</c> and <c>-1</c> do <i>not</i> carry it:
+    /// neither of those is a gate, and appending a sink to them would hide the refusal they exist to
+    /// watch fire.
+    /// </remarks>
+    private const string Sink = """
+
+        [placement]
+        interval = 32
+        revisit_ticks = 1024
+        candidates = 3
+        gives_up_after_days = 120
+        """;
+
     private static Ruleset Accepted(string toml)
     {
         RulesetLoadResult result = RulesetLoader.Parse(toml, "test.toml");
@@ -61,7 +81,7 @@ public sealed class OutsideConnectionRulesetLoadTests
     [Fact]
     public void A_kind_that_states_a_throughput_is_a_gate()
     {
-        Ruleset ruleset = Accepted($"{OneKind}\narrivals_per_day = 40");
+        Ruleset ruleset = Accepted($"{OneKind}\narrivals_per_day = 40{Sink}");
 
         Assert.Equal(40, ruleset.Kind(1).ArrivalsPerDay);
     }
@@ -137,6 +157,7 @@ public sealed class OutsideConnectionRulesetLoadTests
             parking = 2
             shift_start_earliest_hour = 6
             shift_start_latest_hour = 10
+            {Sink}
             """);
 
         KindDefinition kind = ruleset.Kind(1);

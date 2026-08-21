@@ -2507,6 +2507,24 @@ public static class RulesetLoader
 
             if (_placementTable is null)
             {
+                // 🔴 A gate with NO [placement] at all is refused too, and this branch is where task 7
+                // stopped short. That task refused a file stating [placement] without
+                // gives_up_after_days and said nothing about a file stating no [placement] -- which
+                // has an inflow into the Pool, no housing AND no sink, so it is the same adr/0006
+                // hole reached through the wider door. Found 2026-08-21 while building a variant for
+                // the tick-cost diagnosis; plans/0035 F28.
+                if (gated)
+                {
+                    // Line 1, on LineOf(string)'s precedent: the defect is the ABSENCE of a
+                    // table, and an absence has no line of its own.
+                    Refuse(1, null,
+                        "this Ruleset declares a kind with arrivals_per_day, so Households can enter "
+                        + "the Unplaced Pool from outside, and it states no [placement] table at all "
+                        + "-- so nobody is ever housed AND nobody ever gives up, and the Pool grows "
+                        + "without bound. adr/0006 forbids that. State [placement] with a "
+                        + "gives_up_after_days, or remove the gate kind.");
+                }
+
                 return PlacementRuleset.None;
             }
 
