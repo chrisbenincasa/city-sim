@@ -34,7 +34,12 @@ task starts.**
 What makes this a decision rather than a mechanical application of that rule is that building X here
 **inverts an edge `06` says is forced**.
 
-**Eight decisions were owed. One is settled; seven remain and five come before any task.** They are §*Open decisions* below.
+✅ **ALL DECISIONS ARE CLOSED, 2026-08-20** — eight owed, two of which split, **ten settled**, four
+records: [`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md),
+[`adr/0129`](../docs/adr/0129-the-pool-waits-at-the-gate-and-an-arrivals-trip-is-the-move-in.md),
+[`adr/0130`](../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md)
+and [`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md),
+every one with the user in the room. **The milestone got smaller four times and more honest each time.** They are §*Open decisions* below.
 
 ---
 
@@ -137,7 +142,25 @@ is the record of what happens otherwise: *"This session was run without the user
 been… **two of the five decisions I took unilaterally were wrong**"*, and its finding that `adr/0043`
 lacks a third type — ***a claim that is the user's to make***.
 
-### 2. Is an arriving Household created into the Pool, and what does that do to the Pool's meaning? Typed *arguable*
+### 2. Is an arriving Household created into the Pool, and what does that do to the Pool's meaning? ✅ **SETTLED 2026-08-20 — the Pool sits at the gate, and the Trip is the move-in.** Typed *arguable*
+
+✅ **A Household arrives at a gate as an entry event and joins the Pool *there*; the Trip happens when
+placement gives it a dwelling — gate → home.** ⚠ **The sequence `adr/0023` states cannot be built
+literally, and the build is what says so**: `TripTable.Start` requires an **origin and a destination
+Address**, and *"arrive as Trips … enter the Unplaced Pool, and house themselves"* gives the Trip no
+destination, because the Pool has not assigned one yet. ***A journey stated in prose can name an
+endpoint the mechanism has to compute.*** Reordering it keeps every property the ADR was buying:
+arrival is still physical, still located at a specific gate, still bounded by that gate's throughput,
+and still congestion-bearing when the move-in runs.
+
+✅ **The gate is a column on the Pool membership, and the placement is forced rather than chosen** —
+the gate is known at arrival because throughput bounds arrival *there*, and it is needed again at
+placement as the Trip's origin, so it must survive the wait and the wait is the Pool spell. ⚠ **A
+lifetime column on the Household was considered and is wrong**: two of the Pool's four entry routes have
+no gate at all — a Household the city generated itself, and one evicted by a demolition. ⚠ **And
+`adr/0023`'s *people leave the way they came* needs no amendment**: it says people enter through a gate
+and leave through a gate, not that it is the same gate. ***Reading a symmetry of shape as a symmetry of
+identity invents an obligation the record never stated.***
 
 `World.CreateHousehold` demands a dwelling; `World.Unplace` refuses an unhoused Household by invariant.
 So **the Pool cannot today contain a Household that has never lived here**, and arrival needs a second
@@ -147,7 +170,45 @@ says the opposite: *"immigrants, existing Households that decided to move, House
 itself … and Households evicted. **All four enter on equal terms**."* ***A door the design describes and
 an invariant refuses is a disagreement, not a defect***, and which one moves is the decision.
 
-### 3. Does the give-up rule ship here? Typed *arguable*, and `CONTEXT.md` has already answered it
+### 3. Does the give-up rule ship here? ✅ **SETTLED 2026-08-20 — yes, and only the unhoused channel comes with it.** Typed *arguable*
+
+✅ **The unhoused Departure ships at 11; the housed and destitute channels do not.** `CONTEXT.md` splits
+Departure into three channels and **only the housed one is a comparison** — `adr/0102` — so it is the
+only one [`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md)
+pushes to 16. The unhoused channel is *"entered the Unplaced Pool, failed repeatedly, gave up"*: a bound
+and a threshold, needing nothing that does not exist. ⚠ **The build disagreed with the glossary and the
+glossary wins**: `UnplacedTable`'s doc-comment routes the give-up counter to *"milestone 9a"* — now 19 —
+while `CONTEXT.md` says *"whoever builds the gate owes the give-up rule in the same milestone."* The
+glossary is right for a reason the doc-comment could not have known: **it is `adr/0006` that makes it
+owed**, and `adr/0006` becomes live the moment an inflow exists.
+
+✅ **There is exactly one reason and that is not a stub.** `PlacementEngine` is blind by design —
+*"Acceptance needs rent, a commute and a tolerance; none exists, so any member would take any dwelling"*
+— so the only thing that can go wrong is **no room**, which is precisely the **capacity** diagnosis
+`CONTEXT.md` assigns to this channel and whose remedy is *build more*. ***A single reason is honest when
+the mechanism admits one; it is a stub only when it admits more and records one.***
+
+### 3a. What does a Household give up *on*? ✅ **SETTLED 2026-08-20 — a duration bounds, a count is recorded, and a second bound arrives at 16.** Typed *arguable*
+
+✅ **The Ruleset states how long a Household will keep looking**, and the occasion count derives from
+`[placement] revisit_ticks`. This is [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)
+one level down: ***authoring a count where the felt quantity is time makes the felt quantity move
+whenever somebody retunes a cadence***, and nobody editing `[placement]` would expect to change how long
+families wait for a home. 🔴 ⚠ **And a count of dwellings *considered* cannot fire at all in a city with
+no vacancies** — zero offered, zero considered, the counter never advances — **which is the exact failure
+this channel exists to diagnose.** ***A bound that cannot trip in its own headline case is not a bound.***
+
+✅ **The count is recorded from day one as Evidence, not as a bound.** `00-vision.md`'s flagship example
+reads *"Considered 20 dwellings over 4 months"* — two numbers, one bounding and one describing, and both
+are wanted. ⚠ **A second bound on *refusals* is owed at 16 and must not be authored now**: `PlacementEngine`
+never refuses anything, it only fails to find room, so a refusal count is identically zero until
+acceptance exists. That is milestone 9's `w₃` exactly — *not choosable until the mechanism that gives it
+units ships* — and ***an inert number in a Ruleset is one a designer tunes expecting an effect.*** At 16
+the two bounds run **first-to-trip**, because a Household that saw fifty dwellings and took none has
+learned something one that saw two has not.
+
+⚠ **`CONTEXT.md` → Unplaced Pool said *a limited number of failed attempts* and was corrected in the
+same sitting.**
 
 `CONTEXT.md` → Unplaced Pool: *"the day immigration arrives, that reason evaporates and Departure becomes
 load-bearing. **Whoever builds the gate owes the give-up rule in the same milestone.**"* `06` schedules
@@ -155,7 +216,17 @@ Departure at **19**. ⚠ **This is [`adr/0006`](../docs/adr/0006-no-collection-g
 territory and not a nicety**: a Pool with an inflow and no sink is a collection that grows with elapsed
 time, and this milestone would be the first to open one.
 
-### 4. Do Settlements ship here? Typed *arguable*
+### 4. Do Settlements ship here? ✅ **SETTLED 2026-08-20 — no; they follow their consumer.** Typed *arguable*
+
+✅ **Nothing reads a Settlement, and that is by design.** `adr/0020` and `CONTEXT.md` both say it: *"a
+reporting and diagnosis unit, not a simulation unit. Nothing pools by Settlement, nothing is budgeted by
+Settlement, and **no Rule reads one**."* Building it here would ship a producer whose only output is a
+number nobody can see until there is a shell — **milestone 9's F17 with the lesson already paid for**.
+⚠ **And its algorithm is open**: `adr/0020` is amended on evidence to say union-find computes **weak**
+connectivity where the corpus needs **strong**, `RoadConnectivity.cs:34` records the disagreement in the
+build, and the correction is *"downstream of a decision still open"* — per-Segment against per-direction
+volume. ***A row placed at a milestone by an inventory is not a row that milestone's risk statement
+carries***, and `06`'s milestone 11 row never mentioned Settlements at all.
 
 `06` places *Settlements — commute-shed components, merge and split* at **11**; **11's own risk row never
 mentions them**. And the algorithm is open: `adr/0020` is amended by S2 R1 on evidence — union-find
@@ -163,14 +234,46 @@ computes **weak** connectivity where the corpus needs **strong** — and `RoadCo
 that disagreement in the build. ***A row placed at a milestone by a table is not a row the milestone's
 risk statement carries***, which is `06`'s inventory drifting against `06`'s own table.
 
-### 5. Do Shipments ship here? Typed *arguable*, and the corpus contradicts itself
+### 5. Do Shipments ship here? ✅ **SETTLED 2026-08-20 — no, and the contradiction resolves one way only.** Typed *arguable*
+
+✅ **Shipments are behind 12 and 12 is behind 11, so they are not this milestone's** — freight needs
+something to carry, and nothing crosses the gate as a Good until `Scope.Pool` exists
+([`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)).
+`06`'s inventory cell said *"Placed: 11, behind 12"*, which the milestone table makes impossible.
+***A permutation applied mechanically to a cell naming two milestones can satisfy one of them.***
 
 `06` inventory: *"Shipments … ✅ **Placed: 11**, behind 12"*. **11 runs before 12.** A row cannot be placed
 at 11 and behind 12, and `06` warns two paragraphs above the table that the 2026-08-18 permutation was
 applied mechanically. ***A permutation applied to a cell that names two milestones can satisfy one of
 them.***
 
-### 6. What ratifies the three §D2 numbers, and against what world? Typed *measurable*
+### 6. What ratifies the three §D2 numbers, and against what world? ✅ **SETTLED 2026-08-20 — one becomes ratifiable here, one stays a gap, one moves to 24.** Typed *measurable*
+
+✅ **The throughput ceiling is ratifiable at 11**, because arrivals are what it bounds. ✅ **The price
+offset stays a §D2 gap** — with no Good crossing, it still has no consumer, and its ratifier moves to
+**12** rather than to 11. ✅ **The generator's count and siting moves to 24**, with the generator
+([`adr/0124`](../docs/adr/0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md)):
+`SyntheticCity` places gates at 11 the way it builds every other test world, so no fragment of the
+generator is written here and no world-creation number is pinned before there is a generator to pin it.
+⚠ **All three said *milestone 8* and all three are corrected in place** — F4. ⚠ **And the siting row's
+derivation was already dead**: *derive it from the unlock rule*, against `adr/0090`'s *"the map is open
+— no unlock, no serviceability gate, no boundary"* (F5). ***A number whose derivation was refused is not
+made choosable by the milestone that happens to need a world.***
+
+### 6a. Which Hinterland fields ship at 11? ✅ **SETTLED 2026-08-20 — only those with a consumer, and drawdown is not one.** Typed *arguable*
+
+✅ **A Hinterland field is authored in the milestone that reads it** ([`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)):
+the **edge identity** and **what its emigrants carry** at 11; depth and recovery at **16**; price per
+Good at **13**; median wage at **15**; median rent, service levels and the commute figure at **16**.
+🔴 ⚠ **Drawdown in particular must not ship here, and the reason is the strongest thing this sitting
+found.** `CONTEXT.md` says the city *takes the most willing first*, so drawing a Hinterland down *"raises
+its rate and skews its mix"* — and, in the same entry, *"**there is no population ceiling**; drawdown is
+a gradient, not a wall."* **Both properties come from the willingness ordering, and the ordering is the
+comparison at 16.** A stock decrementing at 11 has nothing to order by, so it can express only
+availability: arrivals, then none. ***A stock without an ordering is a wall, whatever the design calls
+it*** — and the wall is the population ceiling the entry refuses **by name**, arriving as an
+implementation detail of the mechanism that was supposed to replace it. ✅ **This settles F9 too**, and
+not by picking one document's field list: ***the list is never needed all at once.***
 
 The throughput ceiling, the kind's price offset and the generator's count and siting are three §D2 gaps
 from `adr/0088`. Two defects, both found by this scoping:
@@ -187,7 +290,20 @@ from `adr/0088`. Two defects, both found by this scoping:
 against *the first Ruleset with an Outside Connection*; `adr/0090` ratifies the same number against *the
 first play session*, which `06` says belongs to nobody before Phase 3.
 
-### 7. Does money cross the gate in this milestone, and what happens to the exact equality? Typed *arguable*
+### 7. Does money cross the gate in this milestone, and what happens to the exact equality? ✅ **SETTLED 2026-08-20 — yes, carried by people, and the equality gains its flow term.** Typed *arguable*
+
+✅ **An arriving Household draws its balance from its Hinterland; a departing one takes it.**
+`MoneySupply.Issued` gains its second writer through **migration** rather than trade, and
+`Invariant.MoneyIsConserved` becomes a sum with a flow term — the shape [`0033`](0033-conserved-money-and-the-treasury.md)
+wrote in advance: *"let milestone 11 add the term."* ⚠ **Milestone 10's exact-equality acceptance run
+expires here**, exactly as that plan said it would. ✅ **`[households] opening_balance_min`/`max` is NOT
+reused** — it is a world-founding key, and drawing arrivals from it would make the four edges
+interchangeable as money sources while each separately authors an economy its own emigrants did not come
+from. ***An anchor that does not reach the thing it anchors is decoration.*** ⚠ **And it is the only
+thing that makes any Hinterland field readable at 11**, which is F7's answer: one readable field is the
+difference between a number a run can refute and a number nobody can. ✅ **`plans/0002` §C's *where does
+a departing actor's balance go* is answered for Households** — a **gate crossing** — and the Business
+half is untouched, because nothing destroys one yet.
 
 [`0033`](0033-conserved-money-and-the-treasury.md) wrote milestone 10's conservation assertion
 anticipating this: *"Write it that way and let milestone 11 add the term."* So the shape is decided and
@@ -196,7 +312,15 @@ the timing is not. ⚠ **Beside it sits a question that is explicitly blocked on
 and says is either a **gate crossing** (this milestone's machinery used a second time) or an
 **inheritance**.
 
-### 8. What does an import payment pay to? Typed *arguable*
+### 8. What does an import payment pay to? ✅ **SETTLED 2026-08-20 — nothing, because no Good crosses at 11.** Typed *arguable*
+
+✅ **Trade lands at 12 with `Scope.Pool`, where the market is.** `RuleEngine.cs:803`'s own message is the
+argument: *"the Pool is a MARKET, not a wider Bin lookup … Implementing this as a Bin lookup ships an
+unconserved economy, and no refusal can catch that."* Naming a counterparty scope at 11 invents one a
+single milestone before the real market supersedes it. ***Two scopes for one idea, one milestone apart,
+is how a superseded mechanism acquires content.*** ⚠ **The loader's over-refusal therefore stands
+unchanged** — `RulesetLoader.cs:1538` refuses an import payment for want of a nameable counterparty, and
+it is still right to.
 
 `RulesetLoader.cs:1538` records that the money-balance refusal **over-refuses an import payment by
 design**, because no scope can name its counterparty. `Scope.Pool` is the market and it is **milestone
@@ -207,26 +331,32 @@ from the Outside until 12 and the anchor stays unobservable for two milestones.
 
 ## Tasks
 
-⚠ **Provisional, and deliberately unnumbered against a schedule.** Six of the eight decisions above come
-before the first task that composes, and decisions 1, 4 and 5 change *which of these tasks exist*.
+⚠ **Every decision is closed, so this list is now a scope rather than a sketch.** Ordered by what the
+next task needs.
 
-- **The Outside Connection kind** — a `[[building]]` kind, edge-constrained placement, an Access Point,
-  and `min(declared ceiling, Segment capacity)` with **which one binds** reported.
-- **The Hinterland** — one per edge, authored, in the units a District exposes. ⚠ **Its field list differs
-  in three documents** (F9) and the milestone must settle one.
-- **The arrival door** — `World.Arrive` into the Pool, and decision 2's invariant.
-- ~~**The comparison**~~ — **struck by decision 1**; it is milestone 16's. What ships here is the **route**: a Trip originating at an Outside Connection, and a Command that starts one.
-- **Rejected arrivals, with reasons** — `adr/0023` makes this a *required deliverable*, not a readout:
-  *"Without this the anchor is felt rather than observed, and the whole legibility argument collapses."*
-- **Money crosses the gate** — `MoneySupply.Issued`'s second writer, and conservation as supply + flow.
-- **A Ruleset with an Outside Connection in it** — ⚠ **and this is the task milestone 9 proves must be
-  scheduled rather than assumed.** Its F17: the producer shipped *correct and unobservable* because no
-  shipped world exercised it, and the fix was a ninth Ruleset. **Every one of the nine says in its own
-  header that it models no city.**
-- **Something to look at** — a runner mode.
-- **The long acceptance run** — ⚠ with a **sink**, per decision 3, or `adr/0006` fails by construction.
+1. **The Outside Connection kind** — a `[[building]]` kind, edge-constrained placement, an Access Point,
+   and `min(declared ceiling, Segment capacity)` **with which of the two binds reported**, because
+   `adr/0088` makes that *"the whole readout"*.
+2. **`[[hinterland]]`** — one per edge, authoring **the edge and what its emigrants carry, and nothing
+   else** ([`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)).
+3. **`SyntheticCity` places gates**, so there is a world with a door in it — ⚠ **milestone 9's F17 is
+   why this is a task and not an assumption.**
+4. **The arrival door** — `World.Arrive` creating unhoused **into the Pool at a gate**, and
+   `UnplacedTable`'s second column ([`adr/0129`](../docs/adr/0129-the-pool-waits-at-the-gate-and-an-arrivals-trip-is-the-move-in.md)).
+   The Command that drives it, since nothing decides to arrive until 16.
+5. **Money crosses** — the arriving balance drawn from the Hinterland, `MoneySupply.Issued`'s second
+   writer, and `Invariant.MoneyIsConserved` rewritten as **supply plus flow**.
+6. **The move-in Trip** — gate → dwelling, on placement, carrying real congestion.
+7. **The unhoused Departure** — the duration bound, the derived occasion count, the dwellings-considered
+   record, and a Departure that leaves through a gate
+   ([`adr/0130`](../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md)).
+8. **Something to look at** — a runner mode showing arrivals, the Pool, departures and the money flow.
+9. **The long acceptance run** — ⚠ **on a world where arrivals outpace housing**, because that is the
+   only world in which the give-up bound and `adr/0006` can be read at all.
 
----
+**Struck by the decisions**: the comparison (16), rejected-arrival reasons (16), Settlements (their
+consumer), Shipments (behind 12), any Goods trade (12), any counterparty scope (12), depth and recovery
+(16), the generator's gate count and siting (24).
 
 ## What this milestone must not do
 

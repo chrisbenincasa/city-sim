@@ -33,8 +33,43 @@ plausible numbers is a working mechanism that says something false. 🔴 ⚠ **A
 on day one rather than found in a task**: the arrival door has **no autonomous caller** until 16, so
 `06`'s row retires the **anchor** half of its risk and not the *where from* half, and ***a test
 asserting the city grew would be asserting the Command it just issued.*** ⚠ **The give-up rule does not
-travel with the comparison** — an inflow driven by a Command is still an inflow. **Seven decisions
-remain, five before any task.**
+travel with the comparison** — an inflow driven by a Command is still an inflow. **And every remaining decision was then settled in the same sitting** — 2, 3, 3a, 4, 5, 6, 6a, 7 and 8
+— three more records: [`adr/0129`](../docs/adr/0129-the-pool-waits-at-the-gate-and-an-arrivals-trip-is-the-move-in.md),
+[`adr/0130`](../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md),
+[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md).
+**The milestone got smaller four times and more honest each time**, and the nine tasks are scoped.
+
+⚠ **The sitting's sharpest finding is that a mechanism the design describes at length would have shipped
+as the mechanism it exists to replace.** `CONTEXT.md` calls a Hinterland *a stock the city spends*, says
+the city *takes the most willing first*, and says in the same entry that ***there is no population
+ceiling — drawdown is a gradient, not a wall***. **Both gradient properties come from the willingness
+ordering, and the ordering is the comparison at 16** — so a stock decrementing at 11 can express only
+*arrivals, then none*. ***A stock without an ordering is a wall, whatever the design calls it***, and it
+would have arrived as an implementation detail of the thing meant to replace the RCI ceiling. **Depth
+and recovery are authored at 16**, and the general rule the milestone adopts is that ***a Hinterland
+field is authored in the milestone that reads it.***
+
+⚠ **The build contradicted `adr/0023` and the build was right about the shape.** That record says
+arrivals *"arrive as Trips … enter the Unplaced Pool, and house themselves"*, and `TripTable.Start`
+requires **an origin and a destination Address** — which an unplaced Household has not got, because the
+Pool is what will give it one. ***A journey described in prose can name an endpoint the mechanism has to
+compute.*** So the Household **waits at the gate and the Trip is the move-in**, which keeps every
+property that ADR was buying. ⚠ **And `adr/0023` needed no amendment for the *second* thing either** —
+*people leave the way they came* is a symmetry of shape, not of identity, and ***reading it as identity
+was about to buy a saved column for life.***
+
+⚠ **Two more:** the unhoused Departure **ships with the gate**, because `adr/0006` was satisfied only by
+nothing creating a Household after world creation and the gate removes that reason — and its bound is a
+**duration**, because a count of dwellings *considered* ***cannot fire in a city with no vacancies,
+which is the exact failure the channel exists to diagnose.*** And **no Good crosses the gate at 11**:
+trade is `Scope.Pool`, which is 12, so what crosses is **people and the money they carry**, drawn from
+the Hinterland they came from — which is also the only thing that makes any Hinterland field readable at
+11 at all.
+
+**Three corrections landed in the same sitting**: `CONTEXT.md` said the Pool's bound was *a limited
+number of failed attempts*; it said the map flip *has not moved yet* when `CellGrid.WorldCells` has been
+**512** since 2026-08-13; and `06` placed **Settlements** at 11 where nothing reads one and **Shipments**
+at *"11, behind 12"* where 11 runs before 12.
 
 ⚠ **And the assessment found the build's own obstacle, which no document had.** `World.CreateHousehold`
 **requires a dwelling in its signature**, and `World.Unplace` **refuses an unhoused Household** by
@@ -549,7 +584,7 @@ argument session runs when something concrete is blocked on it, and never becaus
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **`06` milestone 11 — Hinterlands and arrival through the gate. 🟡 SCOPED 2026-08-20, [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), unstarted, and ✅ ASSESSED — no document names a gate.** It is the next unstarted position in `06`'s sequence now that **9** is closed, and the first one off the **end** rather than a gap. ⚠ **It is money's only source and sink and the anchor every price, wage and rent hangs off**, which is why the 2026-08-18 reorder moved it from **14** to **11**. 🔴 ⚠ **Six of its eight decisions come before the first task**, and **decision 1 is the user's**: arrival is specified as milestone 16's choice model in three documents, so the milestone as written cannot be built without either building 16 inside it or inverting an edge `06` calls forced. ⚠ **Its named risk has two halves of different sizes** — *where Households come from* is a producer, *no price has an anchor* is an authored object whose consumers are 12 and 13, so ***the anchor ships unread, which is milestone 9's land value one milestone later*** | [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), [`06`](../docs/06-roadmap.md) → milestone 11 | It is the ungated row at the head of the sequence, and **13, the trigger on both weights milestone 9 left unratified, is behind it** |
+| **1** | code | **`06` milestone 11 — Hinterlands and arrival through the gate. 🟡 SCOPED 2026-08-20, [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), unstarted, and ✅ ASSESSED — no document names a gate.** It is the next unstarted position in `06`'s sequence now that **9** is closed, and the first one off the **end** rather than a gap. ⚠ **It is money's only source and sink and the anchor every price, wage and rent hangs off**, which is why the 2026-08-18 reorder moved it from **14** to **11**. ✅ **ALL TEN DECISIONS ARE CLOSED, 2026-08-20** — [`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md)–[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md), with the user in the room, and **nine tasks are scoped**. What ships is **the people door and the money that walks through it**: the gate kind, `[[hinterland]]`, a world with a door in it, `World.Arrive` into the Pool at a gate, the move-in Trip, the unhoused Departure, and conservation as **supply plus flow**. ⚠ **Its named risk has two halves of different sizes** — *where Households come from* is a producer, *no price has an anchor* is an authored object whose consumers are 12 and 13, so ***the anchor ships unread, which is milestone 9's land value one milestone later*** | [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), [`06`](../docs/06-roadmap.md) → milestone 11 | It is the ungated row at the head of the sequence, and **13, the trigger on both weights milestone 9 left unratified, is behind it** |
 | **2** | spike | ⚠ **STILL BLOCKED — do not delete `spikes/S2.Routing/`.** The 5a gate is discharged (the port is done; nothing in `src/` or `tests/` compiles against it), but **another session is doing research inside it**, so it is live work and that is the gate now. **51 tracked C# files, 29,719 lines**; `Borough.slnx` still lists the project | [`0010`](0010-s2-routing.md) → *R7* | ⚠ **Do not read the first gate's clearance as the second's.** *A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears* |
 | **3** | spike | **S5 owes two captures.** The **4-thread** Lane kernel rung is bimodal (~2.5× against ~3.9×) and needs four pinned cores clear at once; the canonical `performance` re-capture is owed beside it. **2 threads is settled at 1.84–1.93×** | [`0019`](0019-s5-lane-kernel.md), [`spike-results`](../docs/spike-results.md) → *S5* | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare.** `adr/0096` exists because a number travelled without its clause |
 | **4** | code | **[`0003`](0003-build-plan.md) hash-moving queue item 8 — filed unfixed.** A waiter whose **own** requirement falls is never re-checked: `adr/0063` made the wake predicate read live state, and the only thing that calls `World.Drain` is a write to the **Bin**. Observed stable on four Bins from Tick 512 to 4096 | [`0003`](0003-build-plan.md) → *The hash-moving queue* | ***A live predicate with an event-driven trigger is only correct if every input to the predicate is an input to the trigger.*** Filed rather than fixed because both repairs are design questions |
