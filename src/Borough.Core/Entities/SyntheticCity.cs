@@ -284,7 +284,11 @@ public static class SyntheticCity
         //
         // The extent is derived from what is about to be built, which is why the Building count is a
         // shared expression rather than a local: it used to be the whole map unconditionally.
-        RoadGenerator.LayInto(world.Roads, key, PavedTiles(world));
+        // A world with a door paves to the map's boundary, because that is where a door has to be.
+        RoadGenerator.LayInto(
+            world.Roads,
+            key,
+            ReachesTheBoundary(world) ? CellGrid.WorldTiles : PavedTiles(world));
 
         Subdivide(world, WantedBuildings(world));
     }
@@ -399,6 +403,44 @@ public static class SyntheticCity
     }
 
     /// <summary>
+    /// Whether this world's land must reach the map's boundary, rather than only its population.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A gate stands on a map edge (<c>adr/0088</c>), so a world with gates needs land at its
+    /// edges — and that is the whole rule.</b> It states no number: *does this Ruleset declare a
+    /// door* is a property of the Ruleset, exactly as <see cref="PavedTiles"/>' extent is a property
+    /// of the population. ⚠ <b>Without it two of the four edges are unreachable in every world this
+    /// build can generate</b>, because the ordinary extent is sized to the Lots wanted and runs from
+    /// the origin corner: at 1,000 Citizens that is <b>640 m of a 65,536 m map</b>, so the lattice
+    /// touches <see cref="MapEdge.West"/> and <see cref="MapEdge.South"/> and never the far two.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It costs a much larger graph and no allocation at all.</b>
+    /// <c>RoadGraph.ExpectedNodes</c> already sizes both tables for the whole map — it is
+    /// <c>(WorldTiles ÷ block_tiles + 1)²</c> and has never read the extent — so the capacity was
+    /// always reserved and only the live rows change. Measured at <c>block_tiles = 32</c>: <b>36
+    /// nodes and 61 Segments</b> at the ordinary extent against <b>263,169 and 535,817</b> at the
+    /// map's, laid in <b>150 ms</b>.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>Paving to the edge is necessary and nowhere near sufficient, which is the finding
+    /// worth carrying.</b> A gate at the far edge is <b>64,896 m</b> from a city in the origin
+    /// corner. Measured on <c>bordered.toml</c> at 1,000 Citizens, gate to nearest dwelling by car:
+    /// west and south <b>0 minutes</b>, east <b>62</b>, north <b>73</b> — against a Commute Budget
+    /// ceiling of <b>49</b>. With <c>arterial_count = 0</c> the far two read <b>78</b> and <b>80</b>,
+    /// so sixteen Arterials buy 16 minutes on one edge and 7 on the other and neither reaches the
+    /// ceiling. <b>A pure-Arterial run of that distance is 43 minutes and no route is pure</b>, which
+    /// is why the ceiling is not reachable by tuning the roads. So a world that paves to the edge has
+    /// a far gate that <em>stands</em>, that is <em>routable</em>, and that no Trip <em>to the
+    /// existing city</em> can complete — <c>TripEngine</c> judges the Budget on every Trip and not
+    /// only on a commute. ***What makes a far gate usable is a dwelling beside it***, and the carved
+    /// block leaves vacant Lots for exactly that. See <see cref="RaiseGates"/>.
+    /// </para>
+    /// </remarks>
+    private static bool ReachesTheBoundary(World world) => TryGateKind(world, out _);
+
+    /// <summary>
     /// Carves enough zoned land to hold <paramref name="wanted"/> Buildings, block by block.
     /// </summary>
     /// <remarks>
@@ -460,16 +502,25 @@ public static class SyntheticCity
     /// stands a Building of is that failure again, so placing one is a task rather than an assumption.
     /// </para>
     /// <para>
-    /// 🔴 ⚠ <b>Two of the four edges are unreachable in every world this build can generate, and it
-    /// is <see cref="PavedTiles"/> that makes them so.</b> The lattice is sized to the Lots the world
-    /// was allocated for, not to the map — so it runs from the origin corner and stops. Its Lots
-    /// therefore touch <see cref="MapEdge.West"/> (<c>east = 0</c>) and <see cref="MapEdge.South"/>
-    /// (<c>north = 0</c>) and never the far two: reaching <see cref="CellGrid.WorldTiles"/> takes
-    /// roughly 2.6 million Lots. Measured on <c>minimal.toml</c> at 1,000 Citizens — 160 paved Tiles
-    /// of 16,384, 124 Lots, <b>6 on the west edge and 15 on the south</b>, none on a corner.
-    /// ***An edge a generator cannot reach is a market nothing can arrive from***, and a Hinterland
-    /// authored behind one is a number no run can refute (<c>adr/0052</c>, <c>adr/0125</c>). The
-    /// generator's real count and siting is <c>plans/0002</c> §D2's gap, owned by milestone <b>24</b>.
+    /// <b>All four edges get one, and it takes two passes rather than one.</b>
+    /// <see cref="ReachesTheBoundary"/> pushes the lattice out to <see cref="CellGrid.WorldTiles"/>
+    /// so there is a Street on every edge; <see cref="CarveEdgeBlock"/> then subdivides the one block
+    /// carrying each edge, because <c>Subdivide</c> walks blocks from the origin and stops as soon as
+    /// it has Lots for the population — so ***paving to the boundary puts a Street on the edge and no
+    /// Lot beside it***. Before both, the lattice ran 160 Tiles of 16,384 at 1,000 Citizens and
+    /// touched <see cref="MapEdge.West"/> and <see cref="MapEdge.South"/> only.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>A far gate stands and is routable, and it is still further than the Commute Budget
+    /// from the city in the corner</b> — east <b>62</b> minutes by car and north <b>73</b>, against a
+    /// ceiling of <b>49</b>. <c>TripEngine</c> judges that Budget on <em>every</em> Trip, so a move-in
+    /// from a far gate to a corner dwelling fails with
+    /// <c>TripFate.ExceededCommuteBudget</c>. <b>That is the map working as designed rather than a
+    /// defect</b>: <c>adr/0089</c> sizes the map by how many Commute Budgets fit across it, so a map
+    /// several budgets wide puts its far edge outside one by construction. ***What a far gate needs
+    /// is a dwelling beside it, not a faster road***, and the carved block leaves vacant Lots for one.
+    /// Whether an arrival is placed in reach of the gate it came through is milestone 11 <b>task
+    /// 6</b>'s; the generator's real gate count and siting stays milestone <b>24</b>'s.
     /// </para>
     /// <para>
     /// <b>One per reachable edge, which is derived rather than chosen.</b> A count would be a
@@ -504,7 +555,16 @@ public static class SyntheticCity
         {
             if (!TryEdgeLot(world, edge, out int lotSlot))
             {
-                continue;
+                // Nothing stands on this edge yet, so carve the land it would stand on. Subdivide
+                // walks blocks from the origin and stops as soon as it has enough Lots for the
+                // population, so a paved map is still a city in one corner -- ***paving to the
+                // boundary puts a Street on the edge and no Lot beside it.***
+                CarveEdgeBlock(world, edge);
+
+                if (!TryEdgeLot(world, edge, out lotSlot))
+                {
+                    continue;
+                }
             }
 
             world.CreateBuilding(world.Lots.Rows.At(lotSlot), kind, now, key);
@@ -512,6 +572,56 @@ public static class SyntheticCity
         }
 
         return raised;
+    }
+
+    /// <summary>
+    /// Subdivides the one lattice block that carries <paramref name="edge"/>, so a gate has ground.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The block index is derived from the lattice and states no number.</b>
+    /// <see cref="StreetGrid.Blocks"/> is <c>Span - 1</c> — blocks, not lattice lines — so the last
+    /// block is <c>Blocks - 1</c> and its far face is the last line, which sits on the map's
+    /// boundary exactly. A block at column 0 carries the west edge, at row 0 the south, and the two
+    /// far ones carry east and north.
+    /// </para>
+    /// <para>
+    /// <b>The far edges are carved at the near end of the other axis</b> — <c>(Blocks - 1, 0)</c> and
+    /// <c>(0, Blocks - 1)</c> rather than the far corner — so that neither gate lands on a Lot
+    /// touching two edges. <see cref="World.EdgeOf"/> reports <see cref="MapEdge.None"/> there and
+    /// <see cref="Invariant.OutsideConnectionStandsOnOneEdge"/> refuses it, because a gate on a corner
+    /// sits in two Hinterlands with nothing to say which its emigrants came from.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is zoned like any other land</b> (<c>zone: 1</c>, <see cref="Subdivide"/>'s own), so a
+    /// Zone Rule may later raise a dwelling on whatever the gate does not take. That is deliberate:
+    /// land at the edge is land, and reserving it would be siting policy — milestone 24's.
+    /// </para>
+    /// </remarks>
+    private static void CarveEdgeBlock(World world, MapEdge edge)
+    {
+        int blocks = world.Roads.Streets.Blocks;
+
+        if (blocks < 1)
+        {
+            return;
+        }
+
+        int far = blocks - 1;
+
+        (int column, int row) = edge switch
+        {
+            MapEdge.West => (0, 0),
+            MapEdge.South => (0, 0),
+            MapEdge.East => (far, 0),
+            MapEdge.North => (0, far),
+            _ => (-1, -1),
+        };
+
+        if (column >= 0)
+        {
+            LotSubdivider.SubdivideBlock(world, column, row, zone: 1);
+        }
     }
 
     /// <summary>

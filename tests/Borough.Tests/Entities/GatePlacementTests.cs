@@ -1,4 +1,5 @@
 using Borough.Core.Determinism;
+using Borough.Core.Movement;
 using Borough.Core.Entities;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
@@ -19,13 +20,11 @@ namespace Borough.Tests.Entities;
 /// tests hold is that a gate <em>stands</em>.
 /// </para>
 /// <para>
-/// 🔴 ⚠ <b>Two of the four edges are unreachable by construction, and
-/// <see cref="Only_the_edges_the_lattice_reaches_get_a_gate"/> is what keeps that from being
-/// rediscovered.</b> <c>SyntheticCity.PavedTiles</c> sizes the lattice to the Lots the world was
-/// allocated for rather than to the map, so it runs from the origin corner and stops — touching
-/// <see cref="MapEdge.West"/> and <see cref="MapEdge.South"/> and never the far two, which would take
-/// on the order of 2.6 million Lots. ***An edge a generator cannot reach is a market nothing can
-/// arrive from.***
+/// <b>All four edges get one, and <see cref="A_far_gate_is_routable_and_still_beyond_the_budget"/> is
+/// what keeps the second half of that from being forgotten.</b> A gate <em>standing</em> on the north
+/// edge and a gate a Trip can <em>complete to</em> are different claims, and only the first is the
+/// generator's. ***An edge a generator cannot reach is a market nothing can arrive from***, and an
+/// edge it reaches but no Trip can cross is the same market one measurement later.
 /// </para>
 /// </remarks>
 public sealed class GatePlacementTests
@@ -104,18 +103,112 @@ public sealed class GatePlacementTests
     }
 
     /// <summary>
-    /// 🔴 <b>Only the west and south edges get one, because they are the only ones the land reaches.</b>
+    /// <b>Every map edge gets a gate</b>, which takes paving to the boundary and carving a block there.
     /// </summary>
     /// <remarks>
-    /// <b>This is the test that would fail if the generator ever reached the far edges</b>, at which
-    /// point <c>bordered.toml</c>'s north and east bands stop being unratifiable and
-    /// <c>plans/0002</c> §D1's two rows can be closed. It asserts the <em>set</em> rather than a
-    /// count, so a change in either direction says which edge moved.
+    /// <b>It asserts the <em>set</em> rather than a count</b>, so a change in either direction says
+    /// which edge moved. Both halves of the generator are load-bearing: without
+    /// <c>SyntheticCity.ReachesTheBoundary</c> the lattice stops 160 Tiles from the origin, and
+    /// without <c>CarveEdgeBlock</c> it reaches the boundary with no Lot beside the Street.
     /// </remarks>
     [Fact]
-    public void Only_the_edges_the_lattice_reaches_get_a_gate()
+    public void All_four_edges_get_a_gate()
     {
-        Assert.Equal([MapEdge.West, MapEdge.South], [.. Gates(Populated("bordered.toml")).Order()]);
+        Assert.Equal(
+            [MapEdge.West, MapEdge.East, MapEdge.South, MapEdge.North],
+            [.. Gates(Populated("bordered.toml")).Order()]);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Every gate is routable by car, and the far two are beyond the Commute Budget anyway.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two claims, because separating them is the whole point.</b> Every gate has a finite car
+    /// route to the city — that is the paving and the carved block having genuinely joined the
+    /// lattice, and it is what would have been <see cref="TravelTime.Impassable"/> before. And the
+    /// far two are further from that city than any Trip may travel: measured at 1,000 Citizens,
+    /// <b>east 62 minutes and north 73</b> against a ceiling of <b>49</b>, where west and south are
+    /// <b>0</b>.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>TripEngine</c> judges the Commute Budget on every Trip and not only on a commute</b>,
+    /// so a move-in from a far gate to a corner dwelling fails with
+    /// <c>TripFate.ExceededCommuteBudget</c>. <b>That is <c>adr/0089</c> rather than a defect</b> —
+    /// the map is sized by how many Commute Budgets fit across it, so a map several budgets wide puts
+    /// its far edge outside one by construction. ***A far gate is made usable by a dwelling beside it,
+    /// not by a faster road***: sixteen Arterials buy 16 minutes on one edge and 7 on the other, and a
+    /// pure-Arterial run of that distance is 43 minutes with no route pure. The carved block leaves
+    /// vacant Lots beside every gate, and placing an arrival in reach of the gate it came through is
+    /// <b>task 6</b>'s.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_far_gate_is_routable_and_still_beyond_the_budget()
+    {
+        World world = Populated("bordered.toml");
+        TripRuleset trips = world.Rules.Trips;
+        var scratch = new WalkScratch();
+
+        var homes = new List<int>();
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (world.Buildings.Rows.IsLive(slot)
+                && !world.IsOutsideConnection(world.Buildings.Kind[slot]))
+            {
+                homes.Add(slot);
+            }
+        }
+
+        Assert.NotEmpty(homes);
+
+        var withinBudget = new Dictionary<MapEdge, int>();
+
+        for (int slot = 0; slot < world.Buildings.Rows.SlotCount; slot++)
+        {
+            if (!world.Buildings.Rows.IsLive(slot)
+                || !world.IsOutsideConnection(world.Buildings.Kind[slot]))
+            {
+                continue;
+            }
+
+            MapEdge edge = world.EdgeOf(world.Lots.Rows.Resolve(world.Buildings.Lot[slot]));
+            int reached = 0;
+            bool routable = false;
+
+            foreach (int home in homes)
+            {
+                TravelTime cost = WalkRouting.Cost(
+                    world.Roads,
+                    TravelMode.Car,
+                    world.AccessPoint(slot, TravelMode.Car),
+                    world.AccessPoint(home, TravelMode.Car),
+                    trips.CrossingCost,
+                    scratch);
+
+                if (cost.IsImpassable)
+                {
+                    continue;
+                }
+
+                routable = true;
+
+                if (trips.WithinBudget(cost))
+                {
+                    reached++;
+                }
+            }
+
+            Assert.True(routable, $"the {edge} gate has no car route to any dwelling at all.");
+            withinBudget[edge] = reached;
+        }
+
+        Assert.True(withinBudget[MapEdge.West] > 0, "the west gate should be in the city.");
+        Assert.True(withinBudget[MapEdge.South] > 0, "the south gate should be in the city.");
+
+        Assert.Equal(0, withinBudget[MapEdge.East]);
+        Assert.Equal(0, withinBudget[MapEdge.North]);
     }
 
     /// <summary>No gate stands on a corner, which would name two markets and therefore neither.</summary>

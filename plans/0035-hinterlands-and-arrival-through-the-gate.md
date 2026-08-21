@@ -522,11 +522,18 @@ One finding:
 ### Task 3 — `SyntheticCity` places gates — ✅ **DONE 2026-08-21**
 
 **What ships**: `rulesets/bordered.toml` — the **tenth** shipped Ruleset, `minimal.toml` plus a `port`
-kind carrying `arrivals_per_day = 12` and **four `[[hinterland]]` blocks** — and
-`SyntheticCity.RaiseGates`, which raises **one Outside Connection on every map edge the lattice
-actually reaches**. **7 new tests**; the assertion tier is **1,854 green**. **No State Hash moved**:
-the new pass returns 0 on a Ruleset that declares no gate kind, so the other nine files walk exactly
-the Lots they always did.
+kind carrying `arrivals_per_day = 12`, **four `[[hinterland]]` blocks**, `arterial_count = 16` and
+`[households] car_ownership_percent = 100` — and `SyntheticCity.RaiseGates`, which raises **one
+Outside Connection on every map edge**. **8 new tests**; the assertion tier is **1,855 green**. **No State Hash
+moved**: the new pass returns 0 on a Ruleset that declares no gate kind, so the other nine files walk
+exactly the Lots they always did.
+
+⚠ **It took a second sitting and a second pair of changes, because the task shipped believing two of
+the four edges were unreachable.** They were, and the cause filed on the day was wrong twice over —
+see **F17** and **F18** below. What reaches an edge is `SyntheticCity.ReachesTheBoundary`, which paves
+to `CellGrid.WorldTiles` whenever the Ruleset declares a gate kind, plus `CarveEdgeBlock`, which
+subdivides the one lattice block carrying each edge. Neither alone is enough: ***paving to the
+boundary puts a Street on the edge and no Lot beside it.***
 
 **The count and the siting are derived rather than chosen, which is what keeps them out of `0002` §D2.**
 A gate count would be a hash-bearing world-creation number needing a ratifier, and
@@ -564,8 +571,58 @@ One finding, and it was found by measurement before any code:
   header says so in the file. ⚠ **All four are authored anyway, and that is the user's decision taken
   with the cost stated**: `CONTEXT.md` → Hinterland makes four comparable markets the thing that gives
   the Outside a referent at all, and a file showing two would not show that shape.
-  `GatePlacementTests.Only_the_edges_the_lattice_reaches_get_a_gate` asserts the **set** rather than a
-  count, so it goes red in either direction and reopens the two rows rather than letting them settle.
+  ~~`GatePlacementTests.Only_the_edges_the_lattice_reaches_get_a_gate` asserts the **set** rather than
+  a count, so it goes red in either direction and reopens the two rows rather than letting them
+  settle.~~ ✅ **STRUCK THE SAME DAY. The test asserts all four and the two §D1 rows are closed** —
+  and what struck it is **F18**, immediately below, which is also the record of what this finding got
+  wrong. ⚠ **The generator was one of three named blockers and the only real one.** Milestone 24 was
+  named as the trigger and it was not owed the work: paving is a property of the Ruleset's door, not
+  of the generator's siting policy, and the siting policy is what 24 owns.
+
+- 🔴 **F18 — the far edges were unreachable for one afternoon, the deferral to milestone 24 was
+  wrong, and the second blocker named in its place was wrong too.** Repairing F17 took **two**
+  changes rather than the one it names. `SyntheticCity.ReachesTheBoundary` paves to
+  `CellGrid.WorldTiles` whenever the Ruleset declares a gate kind — it states no number, because
+  *does this Ruleset declare a door* is a property of the Ruleset exactly as `PavedTiles`' extent is
+  a property of the population, and it costs **no allocation at all**: `RoadGraph.ExpectedNodes` is
+  `(WorldTiles ÷ block_tiles + 1)²` and has never read the extent, so the capacity was always
+  reserved. Measured at `block_tiles = 32`: **36 nodes and 61 Segments** at the ordinary extent
+  against **263,169 and 535,817** at the map's, laid in **150 ms**. And that is *necessary and not
+  sufficient* — `Subdivide` walks blocks from the origin and stops as soon as it has Lots for the
+  population, so ***paving to the boundary puts a Street on the edge and no Lot beside it.***
+  `CarveEdgeBlock` subdivides the one block carrying each edge, at `(Blocks - 1, 0)` and
+  `(0, Blocks - 1)` rather than the far corner, so neither far gate lands on a Lot touching two edges.
+  ⚠ **It cost an off-by-one worth recording**: `StreetGrid.Blocks` is `Span - 1` — **blocks, not
+  lattice lines** — so the last block is `Blocks - 1`, and reading it as lines produced two gates
+  instead of four with nothing saying why.
+
+  🔴 ⚠ **The blocker named in the generator's place was the Commute Budget, and it is not a blocker
+  either — it is `adr/0089`.** The claim was that a gate 64,896 m from a corner city is 779 walking
+  minutes and 78 driving against a 50-minute ceiling, so paving buys a gate that stands and nobody can
+  reach. **Measured** on `bordered.toml` at 1,000 Citizens, gate to nearest dwelling by car: west and
+  south **0** minutes, east **62**, north **73**, against a ceiling of **49**. With
+  `arterial_count = 0`: **78** and **80**. So sixteen Arterials buy **16 minutes on one edge and 7 on
+  the other**, neither reaches the ceiling, and a pure-Arterial run of that distance is **43** minutes
+  with no route pure. ***A far gate is made usable by a dwelling beside it, not by a faster road.***
+  And the distance is [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md)
+  **working rather than failing**: the map is sized by how many Commute Budgets fit across it, so a map
+  several budgets wide puts its far edge outside one **by construction**. ⚠ **A budget that binds
+  where the design says it should is not a defect, and reading it as one is how a milestone acquires
+  work that belongs to nobody.**
+
+  🔴 **What this leaves for task 6, routed there rather than worked around**
+  ([`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)):
+  `TripEngine` judges the Commute Budget on **every** Trip and not only on a commute, so a move-in
+  from a far gate to a corner dwelling resolves `TripFate.ExceededCommuteBudget`. The carved block
+  leaves vacant Lots beside every gate — measured, at 1,000 and at 4,000 Citizens, the far blocks hold
+  Lots and the dwelling loop runs out of Households before reaching them — so **an arrival placed in
+  reach of the gate it came through makes a Trip that completes, and one placed in the corner city
+  does not.** That is a placement question, and task 6 is where it is answered.
+
+  ⚠ **`GatePlacementTests.A_far_gate_is_routable_and_still_beyond_the_budget` holds both halves** —
+  every gate has a finite car route, and the far two have **zero** dwellings inside the Budget. It
+  goes red on either, which is what keeps *routable* and *reachable* from collapsing into one word
+  again.
 
 ### The doc-comment sweep — ✅ **DONE 2026-08-21**, and it is `plans/0012` **Cause 6**
 

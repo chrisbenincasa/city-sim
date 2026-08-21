@@ -12,15 +12,23 @@ place that orders the three tracks against each other.
 nine shipped**, six to go. **Task 4 is `World.Arrive` — the door itself.**
 
 **Task 3 put a door in a world**: `rulesets/bordered.toml`, the tenth shipped Ruleset, and a generator
-pass that raises one gate on every map edge the lattice reaches — a count **derived** from the land, so
-the generator's real number stays milestone 24's gap. 🔴 ⚠ **And it measured something first: two of
-the four map edges are unreachable in every world this build can generate.** `PavedTiles` sizes the
-lattice to the Lots wanted rather than to the map, so it runs from the origin corner and stops — 160
-paved Tiles of 16,384 at 1,000 Citizens, 6 Lots on the west edge and 15 on the south, and **none ever**
-on east or north. ***An edge a generator cannot reach is a market nothing can arrive from***, so those
-two Hinterlands are filed in `0002` §D1 as **unratifiable until 24** on the day they were written —
-which is [`adr/0125`](../docs/adr/0125-a-ratifier-that-needs-a-consumer-nobody-built-is-not-reachable-so-the-weights-get-a-floor-and-a-debt.md)'s
-discipline applied **before** the run for the first time. `0035` **F17**.
+pass that raises one gate on **every** map edge — a count **derived** from the land, so the generator's
+real number stays milestone 24's gap. 🔴 ⚠ **It shipped believing two of the four edges were
+unreachable, filed them in `0002` §D1 as unratifiable until milestone 24, and both halves of that were
+wrong by the end of the day.** The cause was the generator and not the map: `ReachesTheBoundary` paves
+to `CellGrid.WorldTiles` whenever the Ruleset declares a door — **no allocation**, since
+`RoadGraph.ExpectedNodes` always sized both tables for the whole map — and `CarveEdgeBlock` subdivides
+the one block carrying each edge, because ***paving to the boundary puts a Street on the edge and no
+Lot beside it.*** Both §D1 rows are **closed**. 🔴 ⚠ **And the blocker named in the generator's place
+was wrong too.** Gate to nearest dwelling by car, measured: west and south **0** minutes, east **62**,
+north **73**, against a Commute Budget ceiling of **49**. Sixteen Arterials buy 16 minutes on one edge
+and 7 on the other and neither reaches it — ***a far gate is made usable by a dwelling beside it, not
+by a faster road.*** That distance is
+[`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) **working**: a map
+sized by how many Commute Budgets fit across it puts its far edge outside one by construction.
+⚠ **`TripEngine` judges that Budget on every Trip and not only on a commute**, so which dwelling an
+arrival is placed in decides whether its move-in completes — **routed to task 6**. `0035` **F17**
+struck, **F18** written.
 
 **Task 2 authored `[[hinterland]]`** — an edge and an `emigrant_balance` band, and nothing else, on
 [`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)'s
