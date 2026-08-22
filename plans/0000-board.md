@@ -19,6 +19,53 @@ also inherits [`adr/0088`](../docs/adr/0088-the-price-of-a-far-hinterland-is-pai
 `min(declared ceiling, Segment capacity)` and the which-of-the-two-binds readout, relocated from 11 by
 [`0035`](0035-hinterlands-and-arrival-through-the-gate.md) decision 9.
 
+🟢 **SCOPING IS UNDER WAY** — [`0037`](0037-goods-between-buildings-the-district-pool.md), started
+2026-08-21, **nine open decisions and its survey found three preconditions no document had listed as
+blockers**. The largest: ***there is no District in the build at all*** — no `DistrictTable`, no
+`DistrictId`, every occurrence of the word under `Borough.Core` a comment — and `Scope.Pool` resolves
+through it. ⚠ **A milestone whose named risk is a single `throw` reads as a milestone with a single
+obstacle**, and the `throw` is the symptom.
+
+🔴 **THE DECISION 1 SITTING RAN 2026-08-22, with the user in the room, and produced two ADRs by
+disagreeing with the question.** It opened to ask *what is a District, in the build* and found (a) the
+player-versus-derived fork was **already closed twice over**, and (b) the object was **welded**, which
+nobody had noticed because the fork was where everyone was looking.
+
+- [`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md) —
+  **the District is derived and the player cannot move it; a Ward is what the player draws.** The fourth
+  instance of `05 §5`'s welding pattern and the **second on this noun**, after `adr/0047` cut matrix
+  granularity off the same `CONTEXT.md` sentence. ***Pooling extent is physics and a Policy scope is
+  nothing but a choice***, and `02 §2.1` stated both four lines apart without reconciling them — so a
+  player could redraw the logistics abstraction believing they were drawing an administrative line.
+  ⚠ **The exploit was already in `adr/0013`'s trigger list**, filed as a playtest observation and
+  available as an argument the whole time: *"a boundary the player draws to switch off a subsystem is a
+  boundary that is not a gameplay concept."* ***A trigger is a prediction, and a prediction you can
+  argue from does not need to be observed.***
+- [`adr/0133`](../docs/adr/0133-a-pool-draw-pays-for-its-haulage-so-the-boundary-is-a-gradient-and-not-a-cliff.md) —
+  **a Pool draw pays for its haulage.** The user asked why trade inside a District is free; **it is not**
+  — `adr/0050` charges every draw — **but the carriage was**, and `adr/0013` never argued for that.
+  Its case is *"expensive simulation is reserved for decisions the player actually makes"*, which is
+  about query volume. ***A decision not to model something is not a finding that it is worth nothing.***
+  🟡 **The decision is taken and the number is not**; the leading form scales with the District's own
+  extent, which would make the extent bound **self-enforcing** and turns `0037` decision 3 from a
+  ceiling with a ratifier into a curve with one. 🔴 ⚠ **A payee blocks shipping it** — a cost with no
+  counterparty destroys money — which is **`adr/0117`'s charge-with-no-actor on a second mechanism, so
+  it is a pattern rather than an incident.**
+
+⚠ **Neither ADR moves milestone 12's scope.** `Scope.Pool` still resolves through the District, which
+keeps the pooling role and the name. What they change is what decision 1 is asking: **the fork is
+closed, so what is open is the algorithm** behind `02 §2.1`'s *"derived from road topology and land
+use"* — and those two named inputs eliminate two of the three candidates on their own.
+
+🔴 **Three stale copies of the closed fork were found and struck the same day**, all filed to
+[`0012`](0012-corpus-audit.md): `02 §11` item 3, which is the copy that says *"leaning player-drawn"*
+and sits in a list headed *Open questions*; `02 §2.1`'s surviving *"granularity of the travel-time
+matrix"*, the role `adr/0047` exists to remove; and a `plans/0002` bullet **closed three times over** —
+its recommended resolution shipped as `adr/0041`, `adr/0047` removed its premise, and the milestone it
+claims to block closed on 2026-08-16. ⚠ **`plans/0002` had already filed the same staleness against
+`06:42` and `plans/0010`, and both were corrected** — nobody checked the settling document's own list.
+***A sweep that corrects every document that repeated a claim can leave the document that made it.***
+
 🔴 ⚠ **THE BLOCKER RE-CHECK RAN, AND `06`'s MILESTONE 12 ROW WAS WRONG IN TWO WAYS — both struck in
 place 2026-08-21 and filed to [`0012`](0012-corpus-audit.md).** The row said *"three of its four
 blockers arrive here and one does not"*; `adr/0117`'s own consequences say *"only ground 1 is

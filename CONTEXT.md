@@ -38,7 +38,10 @@ The Cell is a **design constant and is never available for tuning.** Its size *i
 *Avoid*: Chunk (a purely technical partition, defined in `docs/05-technical-architecture.md` §5), grid square, layer cell.
 
 **District**
-A contiguous named region, either player-drawn or automatically derived. A District is the boundary within which Goods pool without physical transport, and the scope a Policy may be overridden per. Typically hundreds of Cells.
+A contiguous **derived** region: the boundary within which Goods pool without physical transport. Typically hundreds of Cells. **The player cannot move it** (`docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md`).
+*Avoid*: Ward (the player's boundary, below), Chunk, zone.
+
+⚠ **This entry said *"either player-drawn or automatically derived"* and *"and the scope a Policy may be overridden per"*, and `adr/0132` removed both.** The second role went to the **Ward**; the first went with it, because the pen only ever existed to serve it. ***A boundary the player draws to switch off a subsystem is a boundary that is not a gameplay concept*** — `adr/0013`'s own words, filed there as a playtest trigger and available as an argument all along. This is the **second** role cut off this entry, and the paragraph below is the first — ***an entity already split once is the likeliest place to find another weld.***
 
 **It is not the granularity of the travel-time matrix, and it is not where routing happens** (`adr/0047`). That role was welded on, sized by a Goods playtest, and is now the routing partition's — so redrawing a boundary changes what pools, never what a Traveller drives.
 
@@ -47,6 +50,16 @@ A contiguous named region, either player-drawn or automatically derived. A Distr
 **Its maximum extent is bounded by the pooling abstraction's own validity** (`02 §2.1`): a District can only be as large as the area within which *ignoring transport* is a defensible simplification, because a District large enough to span a genuine delivery has deleted the Shipment that delivery should have been — the collapse `adr/0022` warns of. **Working anchor: 128 Cells — 2.10 km², ~1.45 km across.** A starting point rather than a derivation: *what actually pools convincingly is a playtesting question*, and the number should be expected to move once there is a city to feel it in.
 
 The count is therefore **physics rather than a design choice**: the early city has one District because the city *is* one neighbourhood, and more appear as it outgrows the pooling radius.
+
+**Ward**
+A named set of Cells the **player** draws, renames and redraws freely: the scope a `Policy` may be overridden per, and nothing else. It has **no logistics consequence whatever** — a Ward does not pool Goods, does not bound a price, and moving one never changes what a Building can reach (`docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md`).
+*Avoid*: District (the derived pooling region, above), Region (see *Terms we deliberately do not use*), borough, area.
+
+**It exists because the two boundaries want opposite things.** A District's extent is *physics* — it can only be as large as the area within which ignoring transport is defensible. A Policy scope is *nothing but a choice*, because **you cannot aim a policy at a boundary you did not choose**. One object cannot be both, and welding them let a player redraw the logistics abstraction while believing they were drawing an administrative line.
+
+⚠ **A Ward is hash-bearing and that is correct.** Redrawing one changes which Households a transfer reaches, so it changes the city — a deliberate act with a visible consequence, which is `PLAYER GOVERNS` working. What `adr/0132` removes is not *a player act changing the city* but *a player act changing the validity of a simplification they cannot see.* `adr/0041`'s line is the test: ***the player governs the city, not the physics.***
+
+**It is *undesigned* rather than unbuilt** (`docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md`). What a Ward is *for* is settled; its shape rules, its overlay, and how a Policy override resolves where Wards overlap or leave gaps are all open, and none of it blocks anything today because the Policy override it carries is itself unbuilt.
 
 **Zone**
 A **permission set over land**: it lists the uses allowed there and forbids every other. A Zone never places a Building and never causes one — zoning Residential does not build houses, it forbids everything that is not housing. Density is the intensity cap *within* a permission, not a separate concept. Mixed use needs no machinery: it is a permission set with more than one entry.
