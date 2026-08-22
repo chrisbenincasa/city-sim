@@ -178,13 +178,41 @@ A Layer is a **convolution of a source field with a bounded kernel, never an ite
 
 What it depends on is **bimodally distributed traffic volume** — a uniform background plus a bounded set that stands out, with nothing in between — which is a property of `adr/0014`'s grid-plus-sparse-Arterials layout rather than of its labels. A transit line on a **Reserved** right-of-way is the design's one manufacturer of the middle case, putting Arterial-scale volume onto a grid Street; enumerating by loudness catches it where enumerating Arterials would not. Near-road air pollution is the same query with different weights.
 
+**Terrain**
+The ground the generator makes from the world seed: **height**, **water**, **Woodland**, and a **terrain
+type** per Cell. Terrain is generated once and, apart from terraforming, never changes; water is
+immutable outright. ⚠ **It enters at construction time and is never read inside a Tick phase** — the
+checkable rule in `docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md`, whose
+boundary is *temporal, not categorical*: a Tick may read a **stored terrain type column** and look a
+value up in the Ruleset, because that is a column and a table rather than a terrain query.
+
+**Terrain type is the only part of terrain the simulation stores per Cell**, and **two** Ruleset values
+are keyed by it — **Base Fertility**, and the **Sealing** decay rate. Height decides what can be built
+and what it costs; water decides shoreline and drainage; neither is one of those two.
+
+**Base Fertility**
+The agricultural capacity of ground nobody has touched — **Fertility's ceiling**, and the first term of
+its composition. **Ruleset data keyed by terrain type, never stored per Cell and never baked into a
+save** (`docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md`),
+which is the disposition `adr/0022` already required of the Sealing decay rate beside it.
+
+⚠ **It was called *terrain suitability* until 2026-08-22, and the old name invented an artefact.** Read
+the word *terrain* and a terrain-derived per-Cell field is the natural inference; `adr/0124` drew it and
+specified a baked per-Cell column, which `02 §2.3` contradicts in one sentence — *the generator places
+Woodland and nothing else*. ***A term named after a category is read as covering the category***, and this
+one covers one formula and has exactly one consumer.
+
+⚠ **In the shipped Rulesets it is uniform**, so a default world deals no farm-siting answer and `adr/0022`
+holds. Varying it by terrain type costs one Ruleset key and no storage — and **amends** `adr/0022` rather
+than tuning within it, because a generated fertility gradient is what that ADR refuses by name.
+
 **Sealing**
 The record of development on the ground: the count of Tiles in a Cell ever built on. One house seals 1/1024 of its Cell. Sealing decays at a rate drawn from the Ruleset **keyed by terrain type** — rock may never recover, floodplain may recover over hundreds of Days. The rate is never stored per Tile; storing it would freeze it into every save.
 
 **Roads Seal, and so does every other built Tile.** The road network is therefore visible to Fertility, so a paved city genuinely has less farmland — which is correct and was previously missing, since Sealing had only ever been discussed through Buildings. The **verge beside an Arterial is never built on**, so it stays unsealed and Woodland regrows on it; a highway sterilises land for *development* without sealing it against *recovery*.
 
 **Fertility**
-Agricultural capacity. **Composed at the point of use, never stored:** `terrain suitability − Sealing − pollution`. All land begins fertile and development degrades it, so fertility is a fact the player *makes* rather than one the generator deals. Farms in turn emit into pollution, so agriculture and housing repel each other without any rule saying so. See `docs/adr/0022-land-is-a-stock-the-city-spends.md`.
+Agricultural capacity. **Composed at the point of use, never stored:** `base fertility − Sealing − pollution`, where **Base Fertility** is the ceiling and the other two are what the player has spent off it. ⚠ **The three terms are in three units** — a Ruleset value, a Tile count and a Q16.16 stock — so the bare subtraction written here is a **shape and not an implementation**; how they are reconciled is an open decision in `plans/0038-terrain-and-the-land-rows.md`, and `MapLayers.Desirability` is the precedent that solved it with weights. All land begins fertile and development degrades it, so fertility is a fact the player *makes* rather than one the generator deals. Farms in turn emit into pollution, so agriculture and housing repel each other without any rule saying so. See `docs/adr/0022-land-is-a-stock-the-city-spends.md`.
 
 **Woodland**
 The one generated resource. Forest Tiles are not farmable while wooded; clearing yields Timber as a one-time harvest and leaves fertile ground behind. Woodland regrows slowly on unsealed, unoccupied land, so land use is cyclical and the extraction frontier migrates outward on its own through ordinary Building decline. **It is not a clearing verb and not an obstacle** — see Zone, *the ground carries resources*: building over forest clears it and forfeits the harvest, which is a cost and never a refusal.

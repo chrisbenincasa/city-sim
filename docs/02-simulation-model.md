@@ -227,10 +227,12 @@ Terrain is generated procedurally from the world seed, which the Input Log alrea
 **The generator places Woodland and nothing else.** Fertility is not on the map — all land begins fertile and the player's own development degrades it:
 
 ```
-fertility(chunk) = terrain suitability − Sealing − pollution
+fertility(cell) = base fertility − Sealing − pollution
 ```
 
-**Sealing** is the count of Tiles in a **Cell** ever built on, decaying at a Ruleset rate keyed by terrain type. **Pollution** is the existing layer, already diffusing. Fertility itself is *composed at the point of use and never stored*, per the rule in §2.4 — so this needs no new layer, and a farm reading its yield is an ordinary Rule reading Map Layer Cells under its footprint.
+**Base Fertility** is the ceiling — the yield of untouched ground — and it is **Ruleset data keyed by terrain type, never stored** ([`adr/0140`](adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)). ⚠ **It was called *terrain suitability*, and the old name invented a per-Cell field this section's own opening sentence forbids.** **Sealing** is the count of Tiles in a **Cell** ever built on, decaying at a Ruleset rate keyed by the same terrain type. **Pollution** is the existing layer, already diffusing. Fertility itself is *composed at the point of use and never stored*, per the rule in §2.4 — so this needs no new layer, and a farm reading its yield is an ordinary Rule reading Map Layer Cells under its footprint.
+
+⚠ **Terrain type is the one part of terrain stored per Cell**, and it is what makes both lookups possible without a Tick reading terrain: `adr/0021`'s boundary is *temporal, not categorical*, so a stored column plus a Ruleset table is not a terrain query. ***What the ground decides in a shipped world is not where you may farm, but whether your damage is reversible*** — rock never recovers, floodplain does.
 
 Two consequences the rest of the design depends on. Farms emit into pollution, so agriculture and housing repel each other with no rule saying so — and farms therefore retreat outward as the city grows until their workers fall out of the city's commute shed, at which point the farm village **becomes its own Settlement**. And Woodland regrows slowly on unsealed, unoccupied land, so the logging frontier migrates outward through ordinary Building decline rather than through a system written for it. See [`adr/0022`](adr/0022-land-is-a-stock-the-city-spends.md).
 

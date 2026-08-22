@@ -565,11 +565,17 @@ public sealed class MapLayers
     public void RebuildDerived() => _residency.Rebuild(_cells);
 
     /// <summary>
-    /// <c>fertility(cell) = terrain suitability − Sealing − pollution</c>. <b>A named hole.</b>
+    /// <c>fertility(cell) = base fertility − Sealing − pollution</c>. <b>A named hole.</b>
     /// </summary>
     /// <remarks>
-    /// <b>It throws rather than returning zero, and the throw is the deliverable.</b> Terrain
-    /// suitability needs the world generator, which does not exist; Sealing arrives in task 6. A
+    /// <b>It throws rather than returning zero, and the throw is the deliverable.</b> Base Fertility
+    /// is <b>Ruleset data keyed by terrain type</b> (<c>adr/0140</c>), and the terrain type column
+    /// needs the world generator, which does not exist; Sealing arrives in task 6. ⚠ <b>The first term
+    /// was called <em>terrain suitability</em> until 2026-08-22, and the old name invented a per-Cell
+    /// field</b> that <c>02 §2.3</c> forbids in one sentence — <em>the generator places Woodland and
+    /// nothing else</em>. ⚠ <b>The three terms are in three units</b> — a Ruleset value, a Tile count
+    /// and a Q16.16 stock — so this signature's subtraction is a <b>shape and not an implementation</b>;
+    /// <see cref="Desirability"/> is the precedent that reconciled the same problem with weights. A
     /// placeholder returning zero is a value that will be read, believed, and tuned around — and by the
     /// time the generator lands, something will depend on farms yielding nothing. A hole that fails
     /// loudly is a hole. <c>02 §2.3</c>, <c>plans/0009</c> task 7.
@@ -577,8 +583,9 @@ public sealed class MapLayers
     /// <exception cref="NotSupportedException">Always, until the generator and Sealing exist.</exception>
     public int Fertility(Cells east, Cells north) =>
         throw new NotSupportedException(
-            $"fertility at Cell ({east.Raw}, {north.Raw}) composes from terrain suitability, which "
-            + "needs the world generator (02 §2.3). Composed at the point of use and never stored.");
+            $"fertility at Cell ({east.Raw}, {north.Raw}) composes from base fertility, which is "
+            + "Ruleset data keyed by a terrain type the world generator does not yet place "
+            + "(02 §2.3, adr/0140). Composed at the point of use and never stored.");
 
     /// <summary>
     /// <c>− w₂·pollution − w₃·noise</c>. <b>Two of four terms, and the two that are missing are not

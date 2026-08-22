@@ -158,6 +158,13 @@ range, no sign convention.
 and it is not paperwork: Fertility is a subtraction, so a suitability without a stated range makes
 `terrain suitability − Sealing − pollution` an expression whose sign nobody can predict.
 
+✅ **RESOLVED 2026-08-22 by decision 1 and [`adr/0140`](../docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md).**
+The term is renamed **Base Fertility**, `CONTEXT.md` gains it and **Terrain**, and the undefined
+quantity turned out to be **Ruleset data rather than a field**. 🔴 ***The missing definition was not a
+documentation gap — it was load-bearing***: `adr/0124` specified a per-Cell column by reasoning from a
+name that no entry constrained, and the column it specified is the one thing this decision removes.
+⚠ **The half that remains open is the arithmetic**, now decision **1b**.
+
 ### 🔴 Precondition 2 — **Sealing has THREE blockers and `adr/0124` enumerated two**
 
 `adr/0124` records that Sealing's decay is *"blocked twice"*: `sealing_decay_tau = 0` in every shipped
@@ -223,22 +230,63 @@ stated so that it stays checkable.
 
 ---
 
-## Open decisions this half owes — **ALL SIX OPEN**
+## Open decisions this half owes — **1 SETTLED; OPEN: 1b, 2, 3, 4, 5, 6**
 
 ⚠ **None is settled and none should be settled by argument if a measurement would settle it**
 ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
 Each carries its type.
 
-### 1. What *is* terrain suitability — its unit, its range and its sign? — *arguable*
+### 1. ✅ SETTLED 2026-08-22 — what *is* terrain suitability? **It is Base Fertility, and it is not a field**
 
-Fertility is `terrain suitability − Sealing − pollution`. Sealing is a **count of Tiles** (0–1024 per
-Cell). Pollution is a Q16.16 stock in kernel units. **Three terms in three units, subtracted.** Nothing
-in the corpus reconciles them.
+✅ **[`adr/0140`](../docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md),
+with the user in the room.** `terrain suitability` is renamed **Base Fertility** and is **Ruleset data
+keyed by terrain type**. The stored per-Cell column is **terrain type**, `(saved AND hashed)`, and
+**two** Ruleset values are keyed by it — Base Fertility and the Sealing decay rate.
 
-Sub-questions the task cannot start without: is suitability a per-Cell **scalar** or a **terrain type**
-with a lookup? `CONTEXT.md` → Sealing says the decay rate is *"keyed by terrain type"*, which implies a
-**type**; `adr/0124` says a *"stored per-Cell column"*, which implies a scalar. **Both may be needed and
-that is two columns, not one.**
+**Suitable for what, which is the question that cracked it:** for **farming**, and nothing else. Every
+one of the term's six occurrences in the corpus is inside the Fertility formula, and `CONTEXT.md` →
+Fertility defines fertility as *"Agricultural capacity"*. So the quantity is **Fertility's ceiling** —
+what untouched, unpolluted ground would yield — and not terrain's contribution to buildability, land
+value or desirability, which are height and water and have their own consumers.
+
+🔴 **`adr/0124`'s baked column is superseded, and the name is what produced it.** Read *terrain* in
+*terrain suitability* and a terrain-derived per-Cell field is the natural inference; `02 §2.3` refuses it
+in one sentence — *"the generator places Woodland and nothing else. Fertility is not on the map"* — and
+`adr/0022`, which `adr/0124` cites throughout, argues against that field at length. ***A badly named term
+is a design defect waiting for somebody to reason from the name***, and `CONTEXT.md` had no entry to
+reason from instead.
+
+⚠ **`adr/0124` found a real hole and named the wrong occupant.** A per-Cell terrain column *is* owed —
+`CONTEXT.md` → Sealing has required one since it was written, because the decay rate is *"keyed by terrain
+type"* and nothing stores the type. **One column, two consumers.**
+
+⚠ **And baking it is what `adr/0022` forbids for the value beside it**: *"decay rates are Ruleset data
+keyed by terrain type, **never stored per Tile** … storing a rate as state would freeze it into every
+save"*. Base Fertility had the same disposition available and nobody had asked for it.
+
+⚠ **Whether Base Fertility varies is a Ruleset stance and the mechanism is free.** Keyed by type, varying
+it is one key and no storage. **The shipped demonstration states it uniform**, so `adr/0022` holds in a
+default world; ***varying it amends `adr/0022` rather than tuning within it***, and both ADRs say so.
+***What the ground decides in the shipped world is not where you may farm, but whether your damage is
+reversible.***
+
+### 1b. 🔴 STILL OPEN — the arithmetic, split out of decision 1 — *arguable*
+
+`base fertility − Sealing − pollution` subtracts **three quantities in three units**: a Ruleset value, a
+**Tile count** (0–1024 per Cell), and a **Q16.16 stock** in kernel units. Nothing in the corpus
+reconciles them, and the bare subtraction every document states is a **shape rather than an
+implementation**.
+
+✅ **The build has solved this exact problem once.** `MapLayers.Desirability` (`Space/MapLayers.cs:637`)
+does not subtract raw quantities — it applies **weights**, and the comment at `:648` says why: *"pollution
+is a count and the weight is a ratio, so the product is already Q16.16."* Fertility has no weights
+written anywhere.
+
+**Open sub-questions:** weights or a common normalisation; may Fertility go **negative**, or clamp at
+zero; and does it **saturate rather than throw**, which is the choice `Desirability` made on
+`LineSourceQueries.Saturate`'s reasoning that *a read-only query must not throw on a world somebody is
+allowed to build*. ⚠ **Split from decision 1 rather than bundled** — a status coarser than the claims it
+covers is [`0012`](0012-corpus-audit.md)'s granularity defect.
 
 ### 2. Does terrain carry **height**, or only **suitability**? — *arguable*
 
@@ -292,8 +340,8 @@ decision is recorded so the absence is not later read as an omission.**
 
 | # | Task | Depends on |
 |---|---|---|
-| **1** | **`CONTEXT.md` gains Terrain and terrain suitability**, and `06`'s row 24 is rewritten for the split. Decisions 1 and 2 settled here | decisions 1, 2 |
-| **2** | **The terrain generator and the baked per-Cell column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table for its parameters, plus **a shipped Ruleset with varied terrain**. ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
+| **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0139`](../docs/adr/0139-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0140`](../docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
+| **2** | **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0140`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
 | **3** | **The Sealing write path** — construction Seals. Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2, decision 4 |
 | **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. Two §D1 rows with named ratifiers | 3, decision 5 |
 | **5** | **Fertility** — the `throw` at `MapLayers.cs:578` becomes a composition at the point of use | 2, 3 |
@@ -364,12 +412,26 @@ without it would choose **two hash-bearing numbers to drive a pass over a field 
 ⚠ **`adr/0124` needs an amendment**, and `deferred.md`:52's *"exactly as `Sealing`'s terrain-keyed
 recovery already does"* is filed in [`0012`](0012-corpus-audit.md).
 
-### F4 — the milestone's central term is named in six documents and defined in none
+### F4 — the milestone's central term was named in six documents and defined in none, and the missing definition was load-bearing
 
-`terrain suitability` has no `CONTEXT.md` entry and no unit, range or sign anywhere, and there is no
-`CONTEXT.md` entry for **Terrain** at all. It is the term `adr/0124` says this milestone owes as its
-named artefact. ⚠ **Fertility is a subtraction over three terms in three units** — a Tile count, a
-Q16.16 stock, and an undefined third — so the formula's sign is not predictable until decision 1 lands.
+`terrain suitability` had no `CONTEXT.md` entry, no unit, no range and no sign, and there was no entry for
+**Terrain** either. ✅ **Settled the same day by decision 1 and
+[`adr/0140`](../docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)**:
+the term is renamed **Base Fertility**, it means *the yield of untouched ground* — **Fertility's ceiling**
+— it is **suitable for farming and nothing else**, and it is **Ruleset data keyed by terrain type** rather
+than a field.
+
+🔴 **The finding is not that a term was undefined but that the gap produced a design decision.**
+`adr/0124` specified *"terrain suitability baked at world creation into a stored per-Cell column"* by
+reasoning from the word **terrain** in a name no `CONTEXT.md` entry constrained — while `02 §2.3` says
+*"the generator places Woodland and nothing else"* and `adr/0022`, which that ADR cites throughout,
+argues against the field at length. ***A badly named term is a design defect waiting for somebody to
+reason from the name.***
+
+⚠ **The corollary is the one to carry**: `adr/0124` **sensed a real hole and named the wrong occupant**.
+A per-Cell terrain column is genuinely owed — `CONTEXT.md` → Sealing keys the decay rate by terrain type
+and nothing stores the type. **One column, two consumers**, and the milestone's size is unchanged.
+⚠ **Fertility's three-unit subtraction survives as decision 1b**, which is split out rather than bundled.
 
 ### F5 — the generator version's absence is a decision, not a hole, and reading it as a hole would invert a guard
 

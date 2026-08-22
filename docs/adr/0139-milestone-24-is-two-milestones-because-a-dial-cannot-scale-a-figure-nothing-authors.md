@@ -1,5 +1,12 @@
 # Milestone 24 is two milestones, because a dial cannot scale a figure nothing authors
 
+> ⚠ **Corrected the same day by [`0140`](0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md).**
+> *"the baked terrain-suitability column"* below was this document quoting
+> [`0124`](0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md)'s
+> artefact, which is now superseded: the column holds **terrain type**, and **Base Fertility** is Ruleset
+> data keyed off it. **This ADR's own decision — the split, and its grounds — is untouched**, because the
+> split turns on the Hinterland figures and not on what the terrain half stores.
+
 **Milestone 24 splits.** Its **terrain half** — the generator, the baked terrain-suitability column, and
 the five land rows [`0124`](0124-terrain-suitability-is-baked-at-world-creation-and-the-layer-holes-that-need-it-move-to-milestone-24.md)
 moved onto it — has **no upstream at all** and is buildable now, scoped in

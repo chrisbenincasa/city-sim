@@ -107,6 +107,31 @@ re-opened and missed this one, which is the largest of them — the others are m
 late game. ***A claim stated in retreat and reachability is a claim about distance however it is worded***,
 and grepping for the word would not have found it.
 
+## Amended 2026-08-22: the first term is renamed, and this ADR's refusal now has a key that can defeat it
+
+**`terrain suitability` is renamed **Base Fertility**** and is **Ruleset data keyed by terrain type**
+([`0140`](0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)).
+The formula reads `base fertility − Sealing − pollution`. **Nothing in this ADR's argument changes** — the
+rename was made *because* of this ADR, whose *Why fertility is not on the map* section is the strongest
+statement in the corpus that the first term must not be a generated field, and whose own consequence list
+already required Ruleset-keyed-by-type disposition for the Sealing decay rate beside it.
+
+⚠ **What is new, and what a later reader must not do by accident.** Because Base Fertility is keyed by
+terrain type, **varying it costs one Ruleset key and no storage** — and a Ruleset that varies it
+reintroduces exactly the generated fertility gradient this document refuses, where *"the map has a
+correct answer to where farms go before the player has done anything."*
+
+**The shipped demonstration Rulesets therefore state a uniform Base Fertility**, so a default world shows
+this ADR's stance. ***Varying it amends this document rather than tuning within it***, and comes back
+here and to `0140` rather than to a Ruleset review. The key exists so the question can be looked at, not
+so it can be answered by tuning.
+
+**What the ground decides in the shipped world is unchanged and is worth stating positively**: not where
+you may farm, but **whether your damage is reversible** — this document's own *rock and clay may never
+recover, alluvial floodplain may recover over hundreds of Days*. That is the map's character arriving
+through recovery rather than through a lottery, which is what *Woodland gives it back without a lottery*
+was reaching for.
+
 ## What would trigger revisiting
 
 - **Playtesting showing the ratchet is unfun rather than dramatic** — specifically, players describing the late game as bookkeeping. The first response is more reboot levers, not faster regrowth; regrowth speed is the load-bearing constant and loosening it deletes the arc.
