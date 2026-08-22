@@ -109,6 +109,27 @@ more per Tile"* is a line item.
 > rule applied to a term rather than to a field** — *authored in the milestone that reads it* — and
 > it needs no new argument.
 
+> 🔴 ⚠ **AMENDED AGAIN 2026-08-22 by [`0138`](0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md)
+> — `plans/0037` decision 6. The two-ceiling rule stands for the third time; ~~milestone **12**~~ is
+> struck and the `min()` is pinned to a MECHANISM instead of to a number: *it ships in the milestone
+> that ships Shipments*, and that milestone does not exist.**
+>
+> **The amendment above says *the second term follows freight to 12*, and that was an assumption about
+> where freight was rather than a check on it.** `Shipment` appears **once** in `Borough.Core` — a
+> doc-comment on `ResourceFamily.Good` at `Ruleset.cs:225` — with no table, no engine and no Vehicle.
+> `06` placed freight at 12; [`plans/0037`](../../plans/0037-goods-between-buildings-the-district-pool.md)
+> scoped the milestone across nine decisions and three preconditions and **never mentions it**.
+>
+> ***So this section's own test gives the same verdict at 12 that it gave at 11***, unchanged and for
+> the same reason: nothing crosses a Segment carrying cargo, so `CapacityPerDay` bounds nothing.
+> **A date was moved twice; the vacuity did not move at all.**
+>
+> 🔴 ⚠ **And the consequence this ADR must own: 12 makes import real as a PRICE and not as traffic.**
+> This ADR withdrew `CONTEXT.md`'s *"at the cost of longer hauls"* and put **your own traffic** in its
+> place, so between 12 and freight a distant gate costs **nothing at all** — no Vehicle, no
+> congestion, no line item. ***The thesis is inert at the milestone that first makes imports real.***
+> Stated here so a reading of a 12-era city does not conclude gate placement is free.
+
 `CONTEXT.md` → Outside Connection says throughput is *"infrastructure the player built, not a constant
 someone chose."* Taken literally that is only reachable if the gate has no ceiling of its own, which
 cannot be right — a single-track rail head is not a motorway however well the player connects it. Both
@@ -170,7 +191,9 @@ is short of.
   >
   > **And the `min()` is not in milestone 11's half of it** — see the amendment in *Throughput is two
   > ceilings* above. What ships at 11 is the kind, the edge constraint, the Access Point and the
-  > declared ceiling; the `min()` and its readout ship at **12** with freight.
+  > declared ceiling; the `min()` and its readout ship at ~~**12**~~ **whenever freight does** —
+  > struck 2026-08-22, and freight is **unplaced**
+  > ([`0138`](0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md)).
 - **Freight's contribution to Segment Stress is now load-bearing for the economy**, not only for traffic.
   `plans/0002` design fork 14 — *whether freight vehicles contribute to Segment stress identically to
   commuters* — was a traffic question and is now also the thing that prices the Outside. It should be
