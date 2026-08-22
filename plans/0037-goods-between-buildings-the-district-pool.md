@@ -7,8 +7,13 @@ Goods chain that crosses an ownership boundary.
 
 ## Status
 
-🟢 **SCOPING STARTED 2026-08-21. The scoping sitting ran 2026-08-22 and settled SEVEN of the nine
-decisions — 1, 2, 4, 5, 6, 8 and 9. Two remain: 3 and 7. No task has begun.**
+🟢 **SCOPING STARTED 2026-08-21. The scoping sitting ran 2026-08-22, settled decisions 1, 2, 4, 5, 6, 8
+and 9, and the milestone was DECOMPOSED INTO TEN TASKS the same day. No task has begun.**
+
+⚠ **Open: 3, 7 and 10** — and **10 did not exist until decomposition wrote it**, which is the argument
+for decomposing rather than sitting again. ***Ordering the work asked what each task needed and found a
+question seven decisions had not***: the Pool is the counterparty on both sides of a trade, the two
+sides happen at different Ticks, and nothing says where the money is in between.
 
 ⚠ **This block is rewritten rather than appended to, because the version it replaces said "one sitting
 has run and it settled less of decision 1 than it changed about it" and then six more decisions closed
@@ -205,15 +210,19 @@ is this milestone.
 
 ---
 
-## Open decisions this milestone owes — **SEVEN OF NINE SETTLED, 3 AND 7 REMAIN**
+## Open decisions this milestone owes — **OPEN: 3, 7 AND 10**
 
 Typed under `adr/0043`. **Settled: 1, 2, 4, 5, 6, 8, 9** — each closed in place, with the question as
 first written kept beneath it as `Na`, because ***the original wording is how a later reader checks
-whether the answer addressed the question asked.***
+whether the answer addressed the question asked.*** ⚠ **10 is new**, found by decomposition on
+2026-08-22 rather than by a sitting.
 
-⚠ **This heading has now been wrong twice — *NONE SETTLED*, then *ALL NINE STILL OPEN*** — and both times
-because a count sits at the top of a list that changes underneath it. ***A count is a fact that drifts***,
-which is why `CLAUDE.md` tells you to count the ADRs rather than quote a total. **Read each entry.**
+⚠ **This heading has now been wrong three times — *NONE SETTLED*, *ALL NINE STILL OPEN*, and *SEVEN OF
+NINE*, the last of which went stale within the hour when decomposition added a tenth decision.** Each
+time because a count sits at the top of a list that changes underneath it. ***A count is a fact that
+drifts***, which is why `CLAUDE.md` tells you to count the ADRs rather than quote a total. **The heading
+now names the open ones instead**, which is the thing a reader actually wants and does not go stale
+silently — a settled decision leaving it is a visible edit. **Read each entry.**
 
 **What the two survivors actually need is not another sitting:**
 
@@ -226,8 +235,12 @@ which is why `CLAUDE.md` tells you to count the ADRs rather than quote a total. 
   Building not on the component is not in the District, and *"subject to connectivity"* mostly falls out.
   What survives is the disconnected Building's own fate, which is a small question.
 
-***So the next step after this document is task decomposition and not another argument***, and the first
-task is `DistrictTable` and the watershed, which everything else in 12 resolves through.
+***So the next step after this document is task decomposition and not another argument.*** ✅ **DONE
+2026-08-22 — see *Tasks* below, ten of them.** ⚠ **It changed the first task**: this paragraph said
+`DistrictTable` and the watershed, and the world with two settlements in it has to come **first**,
+because on every world this build can currently generate the derivation produces one District and is
+untestable. ***That is milestone 11 task 3's lesson arriving before the milestone rather than during
+it.***
 
 ### 1. ✅ SETTLED — a District is a **centre and its basin**, watershed over Building density
 
@@ -573,6 +586,157 @@ targets. ⚠ **That is a claim about the build and it should be read off `Eviden
 believed**, which is `adr/0093`. It is the cheapest decision here and the one most likely to be
 assumed.
 
+### 10. 🔴 NEW, found in decomposition 2026-08-22 — **what holds the Pool's money, and may it go negative?** — *arguable*
+
+**Found by reading `BinTable` and `BinOwnerKind` while ordering the tasks, and it blocks task 7.** It is
+not a ninth decision rediscovered; **nothing in this document or in `adr/0050`, `adr/0135` or `adr/0114`
+asks it.**
+
+🔴 **The Pool is the counterparty on both sides, and the two sides happen at different Ticks.**
+`adr/0135`: a Provider *"draws inputs from the District Pool and **sells its output into it**."*
+`adr/0050`: *"the counterparty is already implied by the scope"*, and *"every case reachable today —
+local, Pool, import — has exactly **one** counterparty."* So a Provider is paid **by the Pool** on
+deposit and a consumer pays **the Pool** on draw — and a deposit at Tick 100 against a draw at Tick 500
+means ***the Pool holds money in between.*** Under
+[`adr/0024`](../docs/adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md) that money
+cannot be nowhere.
+
+⚠ **And there is no matching alternative available.** Paying the Provider directly at the moment of the
+draw would need to know *whose* units were drawn, and a Bin is fungible by construction — `04 §4`'s
+*"the Pool is just a Bin per Good per District"* is exactly the statement that units carry no
+provenance.
+
+**The sub-questions, and they are small:**
+
+1. **Does the District get a money Bin?** It is the obvious answer and it costs a **fifth
+   `BinOwnerKind`** doing double duty — Goods *and* money — plus a case in `MoneyLedger`'s switch
+   (`MoneyLedger.cs:122`), which today resolves `Treasury / Household / Business`.
+2. **May it go negative, and what happens when it cannot pay a Provider?** A Pool that buys before it
+   sells is a market-maker carrying inventory risk. ⚠ **A negative money Bin is a new thing in this
+   build** — and *the Pool cannot pay* is a **third** failure to tell apart from starvation and
+   bankruptcy, which lands directly on
+   [`adr/0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md).
+3. **Or is settlement deferred — the Provider paid on draw out of the draw's own payment**, with unsold
+   stock simply unpaid? That keeps money conserved with no Pool balance at all, and it makes a
+   Provider's revenue depend on somebody buying, which is arguably the more honest economics.
+
+⚠ **Front-runner: (3), and it is not obviously right.** It needs no fifth owner kind, no negative
+balance and no `MoneyLedger` case, and *a Provider is paid when its output sells* is a sentence a player
+can be told. What it costs is that the Pool must remember **how much it owes per Good**, which is a
+column, and that a Provider's deposit becomes a **consignment** rather than a sale — a word `CONTEXT.md`
+does not have.
+
+⚠ **This is typed *arguable* and therefore wants the user in the room**, but it is one question with
+three named candidates and it blocks exactly one task. ***It should be taken at the head of task 7 and
+not in a sitting of its own***, which is what `adr/0043` permits: no measurement settles it, and the
+corpus has no prior answer to look up.
+
+---
+
+---
+
+## Tasks
+
+**Decomposed 2026-08-22, after seven of nine decisions closed.** Ordered by what the next task needs.
+⚠ **Three entries are blocked on something other than code.** Task 5 on **decision 7** and on
+🔴 **[`plans/0003`](0003-build-plan.md) queue item 14** — a committed contradiction between `World.Drain`
+and `Invariant.WaiterIsBlockedByTheBinItNames` that ***`Scope.Pool` is what makes reachable***, and whose
+own entry says it must be settled **before** the Pool ships. Task 7 on **decision 10**, which
+decomposition itself found. ⚠ **Decisions 7 and 10 are small and neither wants a sitting; item 14 is a
+real design question and is already owned elsewhere** — do not settle it inside a task's commit.
+
+⚠ **Read the ordering claim before trusting the order.** Tasks 1 to 4 build **a boundary**, and tasks 5
+to 8 build **a market inside it**. ***The market half is the milestone's named risk and the boundary half
+is its precondition***, so an eye on schedule should be on tasks 1–4 finishing rather than on 5–8
+starting.
+
+1. **A world with two settlements in it** — the generator places two separated lattices, and a Ruleset
+   authors them. ⚠ **This is FIRST and not last, and milestone 11 task 3 is why**: *"`SyntheticCity`
+   places gates, so there is a world with a door in it — milestone 9's **F17** is why this is a task and
+   not an assumption."* ***The derivation is unobservable and untestable on every world this build can
+   currently generate***, because the count follows centres and there is one. **Make the gap
+   unambiguous** — the prominence threshold is not chosen until task 3, so the world must be one that any
+   sane threshold splits, not one that calibrates it.
+2. **The Building-density field on the Cell grid** — what the watershed reads
+   ([`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)).
+   ⚠ **It is flat on all nine existing Rulesets and has texture on task 1's world**, which is the whole
+   reason for the order. **`CellGrid.WorldCellCount` is 262,144**, so whatever holds it is sized against
+   that and not against the Buildings.
+3. **`DistrictTable`, `DistrictId`, and the first derivation** — the watershed, prominence-seeded,
+   clipped to a road component. `(saved AND hashed)` and **not** `Derived`, per decision 2 — so
+   `DerivedRebuildAuditTests` does not apply and nothing is owed a rebuild. **Run once, at world
+   creation**: no re-evaluation yet, therefore no persistence, hysteresis or damping, which is task 4.
+   🔴 **The four hash-bearing numbers are chosen here and `plans/0002` §D1 rows are owed ON THE DAY** —
+   `adr/0052`, and decision 3. ⚠ **The ratifier is milestone 15 and naming it is the whole obligation**:
+   the numbers are unratifiable against a flat field, and that is **not** a reason to withhold them.
+   ⚠ **`RoutingPartition` is not this and reusing it is a regression** ([`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)).
+4. **Re-evaluation — persistence, hysteresis, damping, and the per-evaluation Cell bound.** ***This is
+   the task that earns decision 2's answer***: all three consult the previous extent, which is precisely
+   why a District is saved rather than rebuilt. ⚠ **The Cell bound is the fourth §D number** and it is a
+   work bound, so it is the one most likely to be mistaken for a profiler's choice — *"must not size a
+   District from a profiler"* is below, and extent decides pooling.
+5. **Pool Bins — a Bin per Good per District.** 🔴 **`BinOwnerKind` has four members and none is a
+   District**, and `BinTable.Owner` is a `HandleColumn<Building>` bound to `buildings.Rows` at
+   construction (`BinTable.cs:60`), so ***a District-owned Bin cannot address its owner through
+   `Owner` and must not try.*** **Use the Household/Business shape instead** — the owner row holds the
+   Bin handles and the Bin leaves `Owner` unset, which is what `BinTable.Create(BinOwnerKind, …)` already
+   exists for and what its doc-comment already explains. A fifth `BinOwnerKind` is needed; widening
+   `Owner` is not. ⚠ **`Scope.Pool` STILL THROWS after this task.** A Bin without a settled purchase is
+   the wider Bin lookup the milestone must not ship, and the `throw` is the thing preventing it.
+   **Blocked on decision 7** — what a disconnected Building does — which `adr/0134` largely pre-answers
+   by making the road component constitutive.
+   🔴 ⚠ **AND BLOCKED ON [`plans/0003`](0003-build-plan.md) QUEUE ITEM 14, which says so itself and which
+   this document did not list.** `World.Drain` and `Invariant.WaiterIsBlockedByTheBinItNames` contradict
+   each other today, and a committed test asserts the state the invariant calls a violation. It is
+   **latent only because no shipped Ruleset puts two Rules on one Bin** — `BinWaitListTests`' own header:
+   *"under `local` scope no two Rules share a Bin they do not both own."* ***`Scope.Pool` is precisely the
+   mechanism that ends that***, so this task is what makes a committed contradiction reachable.
+   **Its own entry says it must be settled before the Pool ships, not after**, and that the repair is a
+   design question that must not be taken inside another item's commit: either the invariant narrows to
+   the drain's guarantee, or the drain stops starving small waiters, and ***those are different cities.***
+   ⚠ **A fourth precondition, and it was sitting in a ledger that names this milestone by number** —
+   which is decision 6's finding pointing the other way: *a mechanism placed by a different document is
+   not a suspicion*, and neither is a blocker filed in one.
+6. **The price — `[[hinterland]] price` per Good, and the tâtonnement**
+   ([`adr/0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md)).
+   Per Good per District, damped, from Pool level against recent consumption, on a `Ticks.PerDay`
+   boundary, **bounded above by the Hinterland's price**. ⚠ **No milestone-18 dependency and no wheel** —
+   `World.cs:1073` already floor-divides by `Ticks.PerDay`. ⚠ **Before the purchase, because a purchase
+   settles at a price**; and authoring the import price **repairs `adr/0045`'s running ladder**, which is
+   unordered without it, rather than filling a gap.
+7. **The purchase — and `Scope.Pool` stops throwing.** Good one way, money the other, settled atomically
+   with the Rule. 🔴 **Blocked on decision 10**, above: *who holds the Pool's money between a Provider's
+   deposit and a consumer's draw.* ⚠ **The engine's term resolution is 1:1 and a purchase is 1:2** —
+   `RuleEngine.Bin` returns **one** slot (`RuleEngine.cs:801`) and a Rule waits on **the one Bin it was
+   short of**, so the money leg needs a Bin to subscribe to that no term names. **Both halves of decision
+   9 land here** ([`adr/0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md)):
+   `RuleEvidence` gains the blocking Bin, **and** the money check produces a verdict **naming the money
+   Bin** rather than failing without subscribing. ***The second half is the one that gets skipped***,
+   because nothing about the money leg is authored and so nothing about it is prompted.
+8. **The Provider kind and the market Ruleset** — a second `[[building]]` kind that draws inputs from the
+   Pool and sells its output into it. 🔴 **It costs three CONTENT decisions and `rulesets/minimal.toml`'s
+   own header enumerated them before anyone asked**: a **second `[[zone_rule]]`** to raise it, a **second
+   decline Rule** so the city does not fill with offices, and a **land-use split**. ⚠ **Not in
+   `minimal.toml`** — that file's first header line is that it makes no content decisions.
+   ✅ **`02 §4.3`'s bakery loads and runs here**, which is the named risk stated as an artefact.
+9. **Something to look at** — a runner mode showing a Pool with stock, a price that moves, and **a
+   Building that could not afford it**. ⚠ **The third clause is the one that would be dropped**, and it
+   is the only one that shows the market having a consequence.
+10. **The long acceptance run** — conservation across trades with `adr/0024`'s equality **exact**, no
+    collection or magnitude trending at steady state (`adr/0006`), and **bankruptcy distinguishable from
+    starvation in `Evidence` on a world that produces both**. ⚠ **That last clause needs a world where a
+    Building genuinely runs out of money**, and no existing Ruleset produces one — ***milestone 11's F25
+    was exactly this***: task 9 was specified against a world that did not exist and task 8 had to ship
+    it. **Check for it at task 8 rather than at task 10.**
+
+**Struck by the decisions, and listed so nobody re-adds them**: Shipments and `adr/0088`'s `min()`
+(unplaced — `adr/0138`), Upkeep (unplaced — `adr/0136`), a haulage term on a Pool draw (`adr/0135`, a
+deliberate *no* at 12), any player-drawn District boundary (`adr/0132` — the pen went to a **Ward**, which
+has no milestone), and a District extent ceiling (`adr/0134` — nothing forces a split).
+
+⚠ **What this list does not contain, stated because its absence is a decision**: freight. So **import is
+priced and not embodied**, and a distant gate costs nothing at 12 — see decision 6.
+
 ---
 
 ## What this milestone must not do
@@ -586,8 +750,12 @@ assumed.
 - **Must not add a demand scalar.** The Unplaced Pool is the demand signal.
 - **Must not size a District from a profiler.** Extent decides pooling, which is a change to the city
   and not an optimisation.
-- **Must not let Upkeep in by the back door** because the counterparty arrived. Three of its four
-  grounds are open.
+- **Must not let Upkeep in by the back door** because the counterparty arrived. ⚠ ~~Three of its four
+  grounds are open.~~ **Upkeep is UNPLACED**
+  ([`adr/0136`](../docs/adr/0136-upkeep-has-three-blockers-landing-at-three-times-so-it-has-a-queue-and-not-a-milestone.md))
+  — read its blocker list there rather than a count here, because ***a count in prose is a fact that
+  drifts*** and this one already has: the counterparty ground and ground 3 both closed on 2026-08-22
+  while the sentence still said three were open.
 
 ---
 
@@ -599,13 +767,17 @@ assumed.
   unloadable, which is the named risk stated as an artefact.
 - A Ruleset in `rulesets/` demonstrating a chain that **crosses the ownership boundary**, with its
   header saying what it exists to show.
-- 🔴 **A Ruleset authoring TWO SEPARATED SETTLEMENTS, so a second District exists and one real
-  inter-District Shipment happens** — added 2026-08-22 by
+- 🔴 **A Ruleset authoring TWO SEPARATED SETTLEMENTS, so a SECOND DISTRICT EXISTS** — added 2026-08-22 by
   [`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md).
-  ⚠ **Without it this milestone ships one District on every world and `06`'s Shipments row has nothing to
-  show**, which is milestone 9's land value repeating. ***The count follows centres, so a world with one
-  centre is not a world that can demonstrate the mechanism*** — and no amount of running the existing
-  Rulesets longer produces a second one.
+  ⚠ ~~*and one real inter-District Shipment happens*~~ **STRUCK the same day by
+  [`adr/0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md)**:
+  Shipments are **unplaced**, so this bullet asked for a demonstration of a mechanism the milestone no
+  longer ships. ***A Definition of done written against another document's placement inherits that
+  placement's mistakes***, and this one was written and invalidated within the same sitting.
+  **What survives is the whole reason the bullet exists**: without two settlements this milestone ships
+  **one District on every world**, and a boundary is the thing a District *is*. ***The count follows
+  centres, so a world with one centre cannot demonstrate the mechanism*** — and no amount of running the
+  existing Rulesets longer produces a second one.
 - **Conservation holds across a trade**, asserted rather than argued: Goods and money both, over a long
   run, with `adr/0024`'s equality exact.
 - **Bankruptcy and starvation are distinguishable** in `Evidence` on a world that produces both.
