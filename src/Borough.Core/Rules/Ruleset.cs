@@ -119,7 +119,26 @@ public readonly record struct Term(BinRef Bin, int Amount);
 /// subscribed to, and cannot appear as an input. Spelling it as a Bin term with <c>Scope.Map</c>
 /// would have made all three of those runtime checks instead of unrepresentable states.
 /// </remarks>
-public readonly record struct MapEmission(Layer Layer, int Amount);
+public readonly record struct MapEmission(Layer Layer, int Amount)
+{
+    /// <summary>
+    /// Whether a Rule may emit into <paramref name="layer"/> at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Only pollution accumulates from a source.</b> Land value is chased towards a target and
+    /// Sealing is a property of a footprint, so neither is a quantity a Rule adds per application —
+    /// which makes <c>layer = "land-value"</c> in a Rule's outputs a sentence with no meaning rather
+    /// than a value out of range.
+    /// </para>
+    /// <para>
+    /// <b>It lives here so that the loader and the engine cannot disagree.</b> The refusal belongs at
+    /// the parse site under <c>adr/0048</c>, and the engine keeps its own throw as a backstop; a
+    /// predicate stated twice is two predicates, and the one that drifts is the one nobody runs.
+    /// </para>
+    /// </remarks>
+    public static bool IsEmittable(Layer layer) => layer == Layer.IndustrialPollution;
+}
 
 /// <summary>
 /// How many times one Rule evaluation applies: a band, or a count derived from a Readout.

@@ -1,5 +1,6 @@
 using Borough.Core.Determinism;
 using Borough.Core.Input;
+using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Formats;
@@ -914,5 +915,86 @@ public sealed class RunnerTests
         Assert.Contains("--save PATH", Options.Usage, StringComparison.Ordinal);
         Assert.Contains("--load PATH", Options.Usage, StringComparison.Ordinal);
         Assert.Contains("RELOAD", Options.Usage, StringComparison.Ordinal);
+    }
+
+    // ---- queue item 10: a refusal is a message, not a fault ---------------------------------------
+
+    /// <summary>
+    /// A save the reader refuses reaches the operator as a message and a non-zero exit, never as a
+    /// stack trace.
+    /// </summary>
+    /// <remarks>
+    /// <b>The cause was right and the heading said the program broke.</b> <c>SaveHeader.Read</c>
+    /// orders its checks so the first to fail names the real cause — its own remark says
+    /// <em>"the order of the checks is the point"</em> — and <c>Session.Resume</c> then let the
+    /// exception out, so <c>adr/0086</c>'s carefully ordered refusal arrived buried in line one of a
+    /// .NET crash dump. ***A refusal a user meets as a stack trace is a refusal that reads as a
+    /// crash.***
+    /// </remarks>
+    [Fact]
+    public void A_save_that_cannot_be_read_is_refused_rather_than_thrown()
+    {
+        string path = Path.Combine(
+            Path.GetTempPath(), "borough-runner-tests-not-a-save.borough");
+
+        File.WriteAllText(path, "this is not a borough save.");
+
+        try
+        {
+            Assert.True(Options.TryParse(
+                [
+                    "--load", path,
+                    "--ruleset", Path.Combine(RepoRoot(), "rulesets", "minimal.toml"),
+                    "--ticks", "1",
+                ],
+                out Options options,
+                out _));
+
+            // 3 is Session.Refused. A throw fails this test by escaping, which is the regression.
+            Assert.Equal(3, Borough.Headless.Session.Run(options));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// The guard in <c>Session.Resume</c> is narrow, and this is the property that lets it be.
+    /// </summary>
+    /// <remarks>
+    /// <b>Catching every refusal must not catch a defect.</b> Every load refusal is an
+    /// <see cref="InvalidOperationException"/>; an invariant firing during a load is a bug in this
+    /// build rather than a verdict on the file, and must still unwind loudly. That holds only while
+    /// <c>InvariantViolationException</c> derives from <see cref="Exception"/> and not from
+    /// <see cref="InvalidOperationException"/> — a hierarchy change would silently turn every
+    /// invariant failure on the load path into <em>this file cannot be resumed</em>, which is a worse
+    /// defect than the one this pair of tests closes.
+    /// </remarks>
+    [Fact]
+    public void An_invariant_violation_is_not_catchable_as_a_load_refusal()
+    {
+        Assert.False(
+            typeof(InvalidOperationException).IsAssignableFrom(typeof(InvariantViolationException)),
+            "Session.Resume catches InvalidOperationException and would now swallow invariant failures.");
+    }
+
+    private static string RepoRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null)
+        {
+            if (Directory.Exists(Path.Combine(directory.FullName, "rulesets")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new InvalidOperationException(
+            "no directory above the test assembly contains rulesets/. This test loads a shipped "
+            + "Ruleset from disk, so it cannot run from a detached output directory.");
     }
 }

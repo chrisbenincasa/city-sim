@@ -846,6 +846,77 @@ public sealed class RulesetLoaderTests
         Assert.Contains("write-only", refusal.Reason, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A Layer that exists and cannot be emitted into is refused at the parse site, not on the first
+    /// application.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Queue item 12.</b> <c>TryLayer</c> resolves all three Layer names and nothing downstream
+    /// asked whether the one named could be emitted into, so a Ruleset naming <c>land-value</c> loaded
+    /// clean and <c>RuleEngine.Emit</c> threw the first time the Rule fired. ***A refusal in the engine
+    /// is a refusal the designer meets as a crash***, and <c>adr/0048</c> puts validation where the
+    /// Ruleset is parsed.
+    /// </para>
+    /// <para>
+    /// <b>It is a different sentence from the unknown-name refusal, because it is a different
+    /// mistake.</b> <c>land-value</c> is not a typo for a Layer — it is a Layer, and the reason it
+    /// cannot appear here is that it is chased towards a target rather than accumulated from a source.
+    /// Telling the author it "is not a Map Layer" would be false.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData("land-value")]
+    [InlineData("sealing")]
+    public void A_layer_that_cannot_be_emitted_into_is_refused_at_load(string layer)
+    {
+        RulesetRefusal refusal = Refused("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "bakery"
+            bins = [ { resource = "flour", capacity = 60 } ]
+
+            [[rule]]
+            name    = "bake"
+            kind    = "bakery"
+            rate    = 10
+            apply   = { min = 1, max = 1 }
+            outputs = [ { scope = "map", layer = "LAYER_NAME", amount = 1 } ]
+            """.Replace("LAYER_NAME", layer, StringComparison.Ordinal));
+
+        Assert.Contains("cannot emit into", refusal.Reason, StringComparison.Ordinal);
+
+        // The distinction the two messages carry: this one is a Layer, and an unknown name is not.
+        Assert.DoesNotContain("is not a Map Layer", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>Pollution is the one a Rule may emit into, and it still loads.</summary>
+    [Fact]
+    public void The_one_emittable_layer_is_still_accepted()
+    {
+        Ruleset ruleset = Accepted("""
+            [[resource]]
+            name = "flour"
+            family = "good"
+
+            [[building]]
+            name = "bakery"
+            bins = [ { resource = "flour", capacity = 60 } ]
+
+            [[rule]]
+            name    = "bake"
+            kind    = "bakery"
+            rate    = 10
+            apply   = { min = 1, max = 1 }
+            outputs = [ { scope = "map", layer = "pollution", amount = 1 } ]
+            """);
+
+        Assert.Equal(Layer.IndustrialPollution, ruleset.Emissions(new RuleId(1))[0].Layer);
+    }
+
     /// <summary>There is deliberately no proximity scope: movers choose, Rules transform.</summary>
     [Fact]
     public void A_scope_that_is_not_one_of_the_four_is_refused()
