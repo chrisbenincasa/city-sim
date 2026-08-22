@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Entities;
 using Borough.Core.Input;
+using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
@@ -135,6 +136,10 @@ public sealed class WaitListWakeTests
     {
         int bad = 0;
 
+        long[] claims = new long[world.Bins.Rows.SlotCount];
+
+        RuleEngine.AccumulateClaims(world, blocking, claims);
+
         for (int bin = 0; bin < world.Bins.Rows.SlotCount; bin++)
         {
             if (!world.Bins.Rows.IsLive(bin))
@@ -142,22 +147,14 @@ public sealed class WaitListWakeTests
                 continue;
             }
 
-            foreach (int instance in waiters.Walk(bin))
+            // The invariant's own predicate rather than a second copy of it. This method restated the
+            // walk -- every waiter or only the head, and against which level -- and queue item 14
+            // changed both halves of that answer. RuleEngine.BinStillBlocks, which it used to call,
+            // no longer exists.
+            if (WorldInvariants.HeadThatShouldHaveWoken(world, waiters, blocking, claims, bin)
+                != Rows.NoSlot)
             {
-                // A row on the wrong list, or naming another Bin, is a different invariant's violation.
-                // WorldInvariants.CheckQueueStillBlocks skips the same three for the same reason.
-                if (!world.RuleInstances.Rows.IsLive(instance)
-                    || world.RuleInstances.Blocked[instance] != blocking
-                    || !world.Bins.Rows.TryResolve(world.RuleInstances.WaitingOn[instance], out int named)
-                    || named != bin)
-                {
-                    continue;
-                }
-
-                if (!RuleEngine.BinStillBlocks(world, instance, bin, blocking))
-                {
-                    bad++;
-                }
+                bad++;
             }
         }
 
