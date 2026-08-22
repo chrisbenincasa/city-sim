@@ -3377,8 +3377,14 @@ public sealed class World
     /// <em>over time</em>, never within an arrival. Accumulating toward a threshold is a thing a
     /// Ruleset may author, as an acquisition Rule feeding the consumer's own Bin.
     /// </para>
+    /// <para>
+    /// <b>It is <c>internal</c> so that a waiter joining a queue can re-run it</b>, which is the one
+    /// caller that is not a Bin write. See <see cref="Rules.RuleEngine.Stop"/>: Phase 3 applies intents
+    /// in shuffle order, so the deposit that covers a waiter may already have run this Tick, against a
+    /// queue the waiter had not yet joined.
+    /// </para>
     /// </remarks>
-    private void Drain(int binSlot, Blocking blocking, Ticks tick)
+    internal void Drain(int binSlot, Blocking blocking, Ticks tick)
     {
         IndexList waiters = Waiters(blocking);
 

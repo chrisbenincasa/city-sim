@@ -99,10 +99,10 @@ public sealed class BinWaitListTests
 
     /// <summary>A world with one Building, its declared Bins, and its Rule armed for Tick 1.</summary>
     private static (World World, Simulation Simulation, Handle<Building> Building) Built(
-        Ruleset ruleset)
+        Ruleset ruleset, ulong seed = 1)
     {
         var world = new World(1_000, ruleset);
-        var simulation = new Simulation(world, WorldKey.FromSeed(1));
+        var simulation = new Simulation(world, WorldKey.FromSeed(seed));
 
         Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
         Handle<Building> building = world.Buildings.Create(world.Lots, lot, Kind);
@@ -312,5 +312,83 @@ public sealed class BinWaitListTests
         int bread = BinOf(world, building, Bread);
 
         Assert.False(RuleEngine.BinStillBlocks(world, instance, bread, Blocking.Supply));
+    }
+
+    // ---- the early drain, which is the same invariant reached through Phase 3's order --------------
+
+    /// <summary>
+    /// A producer and a consumer of one Bin, both due every Tick, so Phase 3 settles them in an order
+    /// that varies with the draw.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is <c>minimal.toml</c>'s shape with one number raised.</b> The shipped <c>restock</c>
+    /// deposits one, which can never cover a <c>consume</c> needing three; depositing three is what
+    /// makes the two Rules meet inside a single Tick, and nothing else here is new.
+    /// </remarks>
+    private static Ruleset RestockedAndConsumed() => new(
+        resources: [ResourceFamily.Good, ResourceFamily.Good],
+        rules:
+        [
+            new RuleDefinition(
+                Kind, 1, ApplyCount.Band(3, 3), RuleId.None, false, default, ConditionId.None,
+                0, 0, 0, 1, 0, 0),
+            new RuleDefinition(
+                Kind, 1, ApplyCount.Band(3, 3), RuleId.None, false, default, ConditionId.None,
+                0, 1, 0, 0, 0, 0),
+        ],
+        kinds: [new KindDefinition(0, 1, 0, 2)],
+        inputs: [new Term(new BinRef(Scope.Local, Flour), 1)],
+        outputs: [new Term(new BinRef(Scope.Local, Flour), 1)],
+        emissions: [],
+        bins: [new BinDeclaration(Flour, BinCapacity.Of(12))],
+        kindRules: [new RuleId(1), new RuleId(2)],
+        zoneRules: []);
+
+    /// <summary>
+    /// A Rule that fails Phase 2 is not left asleep on a Bin that Phase 3 refilled before it parked.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The wake was spent before it was owed.</b> <c>02 §4.1</c>'s Phase 2 evaluates against the
+    /// Past, so a consumer reads an empty Bin and comes back short; Phase 3 then settles the intents in
+    /// shuffle order, and when the producer's deposit lands first its drain walks a wait list the
+    /// consumer has not joined yet. <c>RuleEngine.Stop</c> subscribes it a moment later, onto a Bin
+    /// that already holds what it asked for, and nothing writes that Bin again to notice.
+    /// </para>
+    /// <para>
+    /// <b>Six seeds because the order is a draw, and on this fixture only <c>seed: 4</c> reproduces.</b>
+    /// The defect needs the producer to settle before the consumer, and the consumer can only come up
+    /// short on Tick 1 — after that the Bin is never empty at Phase 2 — so there is exactly one draw per
+    /// seed that could expose it. A single seed would have been a test that passes for the wrong reason;
+    /// the sweep is what stops a future change to <c>PurposeTag.RuleSettleOrder</c> from silently
+    /// retiring the coverage. ⚠ <b>If this ever goes green with the fix reverted, add seeds rather than
+    /// believing it.</b>
+    /// </para>
+    /// <para>
+    /// <b>The invariant is asked after every Tick, not once at the end, and that is the whole
+    /// reproduction.</b> A spurious park is rescued by the next write to the same Bin — all 36 in the
+    /// original 2,048-Tick measurement healed — so an end-of-run check only ever catches one if the run
+    /// happens to stop while a waiter is mis-parked. That is why the panic presented as
+    /// <em>every Ruleset, for any run shorter than 64 Ticks</em>: the shortness was not the cause, it
+    /// was the sampling.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    public void A_waiter_does_not_park_on_a_bin_the_same_tick_already_refilled(ulong seed)
+    {
+        (World world, Simulation simulation, _) = Built(RestockedAndConsumed(), seed);
+
+        for (int tick = 0; tick < 16; tick++)
+        {
+            simulation.Step(TickInput.Empty);
+
+            simulation.CheckEndOfRun();
+        }
     }
 }
