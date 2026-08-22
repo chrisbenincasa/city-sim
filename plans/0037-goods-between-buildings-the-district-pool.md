@@ -179,17 +179,45 @@ is this milestone.
 
 Typed under `adr/0043`. **These want a sitting, and several are entangled** — 1 governs 2 and 3.
 
-### 1. What is a District, in the build? — *arguable*
+### 1. What derives a District from road topology and land use? — *arguable*
 
-`CONTEXT.md` allows *"either player-drawn or automatically derived"* and says the **count** is
-*"physics rather than a design choice: the early city has one District because the city *is* one
-neighbourhood, and more appear as it outgrows the pooling radius."*
+🔴 ⚠ **REWRITTEN 2026-08-22. The first draft of this decision asked the wrong question, and the corpus
+had answered the one it asked.** It read *"What is a District, in the build?"* and offered player-drawn
+against derived as though the fork were live. **It is closed, and closed twice over.** `02 §2.1`:
+*"**Settled: both.** Automatic by default, player-adjustable as an advanced action."* `plans/0002`
+item 6: *"**Closed by thread B — both.**"* `plans/0026` calls it discharged twice over. ***A decision
+list is where an unsettled question goes, so putting a settled one in it re-opens it by filing***, and
+this milestone would have spent a sitting re-deciding a design question two documents had closed.
+⚠ **How it survived is itself filed** — [`0012`](0012-corpus-audit.md), 2026-08-22: `02`'s **own**
+§11 open-questions list still carried the fork, unstruck, ending *"leaning player-drawn"*, while §2.1 of
+the same document closed it. Both are struck now.
 
-That sentence is a strong hint at *derived*, and it does not settle **derived from what**. Candidates
-the build could support: a connected component of the Road Graph under a distance bound; a partition
-over Cells; a growth process seeded at Buildings. ⚠ **`adr/0047` removed the District from travel-time
-matrix granularity**, so `RoutingPartition` is *not* automatically the answer and reusing it would be
-re-attaching a role that was deliberately detached.
+**What is therefore settled and is not this decision's to revisit:**
+
+- **Automatic by default.** The derivation is the mechanism; the player arm is an override on top of it.
+- **Derived from road topology and land use** — `02 §2.1`'s own words, and the tightest specification
+  the corpus gives. It names **two** inputs, and a candidate satisfying one is not a candidate.
+- **Contiguous sets of Cells, never Chunks** (`CONTEXT.md`, `02 §2.1`), so a profiler cannot move what a
+  District *is*.
+- **The count is physics**: the early city has one District because the city *is* one neighbourhood.
+- **The player arm is a LATE-GAME ADVANCED ACTION** that *"arrives exactly when one end of the map
+  genuinely differs from the other"*, and is *"what makes District-scoped Policy targetable."* ⚠ **It is
+  therefore almost certainly not 12's**, and this decision owes saying so deliberately rather than by
+  omission — `adr/0117`'s Upkeep lesson, one decision over.
+
+**What is open is the algorithm, and the two named inputs already cut the field:**
+
+| Candidate | Against it |
+|---|---|
+| Connected component of the Road Graph under a distance bound | Uses **topology only** and never land use. `RoadConnectivity` is a union-find with no diameter bound, so on `rulesets/bordered.toml`'s 535,817 Segments the whole lattice is **one** component and the bound is the entire mechanism. A component is a set of *nodes* and a District is a set of *Cells* |
+| A fixed partition over Cells | Uses **neither** input. Boundaries are arbitrary and invisible, so two Buildings either side of a line do not pool and nothing can show the player why. It also cannot express *"more appear as it outgrows the pooling radius"* by growing — only by lighting up more tiles |
+| Growth seeded at Buildings, bounded by the pooling radius, merging on contact | **Uses both**, and is the only candidate that reproduces *the count is physics* rather than approximating it. The costs are real and belong in the sitting: placing one Building can **merge two Districts and change what pools city-wide in one Tick**, and it needs a rebuild-on-load story that `DerivedRebuildAuditTests` is the only thing that would ask for — decision 2 |
+
+⚠ **`RoutingPartition` is not the answer and reusing it is a regression**, not a shortcut:
+[`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) detached the District from
+travel-time matrix granularity on purpose. ⚠ **`02 §2.1` still said otherwise until 2026-08-22** — the
+strike is recorded there and in [`0012`](0012-corpus-audit.md) — so ***the document a scoping reader
+would open for the space hierarchy was, until this sitting, telling them to re-attach it.***
 
 ### 2. Does a District ship as a saved entity, or as derived state? — *arguable*
 

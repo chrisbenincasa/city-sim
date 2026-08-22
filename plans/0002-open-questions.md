@@ -2724,9 +2724,24 @@ the planning rather than to the running, which is where it caught four of these.
   resolved it in prose.** `adr/0007` says only *"incremented on departure, decremented on arrival"*,
   which reads equally well as Segment entry and exit; the District-pair indexing exists nowhere in an
   ADR. That is a decision living in prose, against `CLAUDE.md`'s own rule.
-- **If Districts are player-drawn, `03 §3.3` makes a cosmetic act change the State Hash.**
-  `CONTEXT.md` → District is *"either player-drawn or automatically derived"* and `06` leaves the
-  choice open, blocking milestone 5c. But under §3.3 the District pair is the key of both the volume
+- ~~**If Districts are player-drawn, `03 §3.3` makes a cosmetic act change the State Hash.**~~
+  🔴 **CLOSED THREE TIMES OVER AND STRUCK 2026-08-22**, in the sitting on
+  [`0037`](0037-goods-between-buildings-the-district-pool.md) decision 1. **Its resolution (c) was
+  chosen, recorded and shipped**: [`adr/0041`](../docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md)
+  is (c) as its own title, and `06` records it live at `TripEngine.cs:572`. **Its premise was
+  independently removed**: [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) means
+  routing never keys on the District at all, so there is no District-pair key left to be cosmetic about.
+  **And its opening conditional is not open either** — `02 §2.1` settles Districts as *both*, automatic
+  by default. ⚠ **The blocking claim is stale twice**: milestone **5c is DONE** (2026-08-16), and the
+  fork it names was never what blocked it. ***A bullet whose stated resolutions have shipped reads as
+  live work for as long as nobody strikes it***, and this one is three deep — the answer was picked, the
+  question was dissolved, and the milestone it blocked closed, none of which reached the bullet. Item
+  818 above struck the one-line version of this on 2026-08-13 and left the long version standing.
+  ***The short copy of a finding is the one that gets maintained, because it is the one people read.***
+  Filed to [`0012`](0012-corpus-audit.md). Retained below for the argument, which is still the right
+  argument:
+
+  Under §3.3 the District pair is the key of both the volume
   counter and the cached route, so **redrawing a boundary changes volume attribution → Stress →
   Fidelity → travel times → the city.** This is the same defect class as a host-tunable Microscopic
   Cap, which `03 §3.9` rejects in words that transfer unchanged: *"anything the host could vary must not

@@ -1437,6 +1437,58 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ `02` disagreed with itself about whether Districts are player-drawn, and §11 held the copy that says
+*leaning player-drawn*.** Found and fixed **2026-08-22**, in the sitting on `plans/0037` decision 1 —
+found because the *reader* remembered the question as settled *player-drawn* and the corpus was checked
+rather than argued with. `02 §2.1` carries the close in a blockquote: *"**Settled: both.** Automatic by
+default, player-adjustable as an advanced action"*, with the derivation named in its own body text —
+*"derived automatically from **road topology and land use**"*. `02 §11` item 3 listed the same question
+as an open fork, unstruck, ending *"Leaning player-drawn with an automatic default."* ***A settled
+question struck in one section and listed as open in another is a document disagreeing with itself, and
+the reader believes whichever section they opened*** — and a list headed *Open questions* is the section
+somebody opens **on purpose** when they want to know what is unsettled, which is the worst place for a
+stale entry to survive. 🔴 ⚠ **It is also the wrong half left standing**: *leaning player-drawn* names the
+arm that is **not** the default, so the stale copy does not merely fail to close the question, it points
+at the losing answer. **This is Cause 1 reached from a new direction, and the direction is the finding.**
+`plans/0002` had already filed this exact staleness **twice** — against `06:42` and against `plans/0010`'s
+gate section — and both were corrected. Nobody checked the settling document's *own* open-questions list.
+***A sweep that corrects every document that repeated a claim can leave the document that made it***, and
+the settling document is the one the corrections all cite. Struck in place in `02 §11`; the entry now
+carries the close, the derivation and the scope of the player arm.
+
+**⚠ And a third copy, in `plans/0002` itself: a bullet whose three stated resolutions had all been
+overtaken, unstruck.** Found the same day, by grepping the corpus for the phrase rather than trusting
+that two fixes were all of them. The bullet — *"If Districts are player-drawn, `03 §3.3` makes a
+cosmetic act change the State Hash"* — offers resolutions (a), (b) and (c) and recommends pricing (c)
+first. 🔴 **(c) was chosen, recorded and shipped**:
+[`adr/0041`](../docs/adr/0041-volume-is-attributed-by-the-traveller-not-the-district-pair.md) is (c)
+stated as its own title, and `06` records it live at `TripEngine.cs:572`. **The premise was separately
+removed** by [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) — no District-pair
+key survives to be cosmetic about. **And the opening conditional is closed** by `02 §2.1`. Its
+*"blocking milestone 5c"* is stale twice over: **5c is DONE** (2026-08-16), and this fork was never
+what blocked it. ***A bullet whose stated resolutions have all shipped reads as live work until
+somebody strikes it***, and nothing in this corpus walks backwards from a shipped ADR to the question
+that proposed it. ⚠ **The aggravating detail is that item 818 of the same document struck the one-line
+version on 2026-08-13 and left this one standing.** ***The short copy of a finding is the copy that
+gets maintained, because it is the copy people read*** — so the long version, which is the one carrying
+the reasoning somebody would act on, is the one that rots. Struck in place with the argument retained.
+
+**⚠ And `02 §2.1` still called a District *"the granularity of the travel-time matrix"* — the role
+[`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) exists to remove.** Found the same
+day and in the same passage. `CONTEXT.md` → District has carried the corrected wording — *"**It is not**
+the granularity of the travel-time matrix, and it is not where routing happens (`adr/0047`)"*, with the
+consequence spelled out: *"redrawing a boundary changes what pools, never what a Traveller drives."*
+`02 §2.1` was never given the same edit, and it is the longer passage of the two. 🔴 ⚠ **The error
+propagated one paragraph down under cover of a correction note**: the blockquote repairing the
+Chunks-versus-Cells mistake argues from *"District extent decides Goods pooling **and matrix
+granularity**"*, and `CONTEXT.md` had already been amended to say the argument *"stands on pooling
+alone"*. ***A correction note is trusted more than the text it corrects, so a stale premise inside one
+travels further than the error it was written to fix.*** ⚠ **The live cost is at milestone 12**:
+[`plans/0037`](0037-goods-between-buildings-the-district-pool.md) decision 1 warns in as many words
+against re-attaching the routing role to the District, and a scoping reader who opened `02 §2.1` — the
+document that owns the space hierarchy — would re-attach it **on that document's authority**. Struck in
+place, with the ADR named at the strike.
+
 **⚠ `06` milestone 12's row inverted `adr/0117`'s blocker count, and lost a whole ground by re-partitioning it.**
 Found and fixed **2026-08-21**, on the re-check that row's own last sentence demands before starting the
 milestone. The row read *"**three** of its four blockers arrive here and **one** does not"*; `adr/0117`'s
