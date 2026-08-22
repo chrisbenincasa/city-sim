@@ -2,6 +2,8 @@
 
 **A Bin Rule *transforms* Bins belonging to one owner. A term whose scope crosses an **ownership boundary** is a *trade*: the Good moves one way and money the other, at the prevailing price, and there is no Ruleset syntax for the payment at all.** A term's `amount` therefore stays a fixed integer for ever, and no price is ever authored in a Rule. **Prices anchor to the Hinterland**, which gains a **price per Good** alongside the rent and wage it already carries — one authored object per map edge, bounding three markets. `EMERGENCE` `LEGIBLE CAUSE`
 
+> ⚠ **CORRECTED 2026-08-22 by [`0137`](0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md): this ADR's claim that bankruptcy and starvation are distinguishable *"rather than needing a mechanism"* is true of the WAIT LIST and false of the BUILD.** `RuleInstanceTable.WaitingOn` records the Bin that stopped a Rule and **`RuleEvidence` does not carry it**, while `Blocking` is only `Nothing / Supply / Space` — so a Business short of flour and one short of money both surface as `Blocked = Supply`. ***The wait list is not a reader; `Evidence` is.*** 🔴 **And a second half this ADR's own design creates**: a purchase has **no money term**, and the wait list keys on a Bin named by a term — so the money leg has nothing to subscribe to unless the purchase **synthesises the check and fails it as a verdict naming the money Bin**. The distinction is corrected rather than reversed: it does fall out of two Bins, and it needed a mechanism after all — the mechanism being *telling somebody*.
+
 ## Why
 
 ### An apply count scales both sides of a Rule, so it can never express a rate

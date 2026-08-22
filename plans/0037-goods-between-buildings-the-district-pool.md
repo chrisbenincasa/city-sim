@@ -451,7 +451,40 @@ whose mechanism cannot run on a single-kind Ruleset** — *a shopping occasion n
 records why: industrial demand is **unbuilt**, so the only demand signal that exists is demand for
 homes. A market with one kind of participant is a market in name.
 
-### 9. How is bankruptcy told from starvation, and does anything need building for it? — *arguable*
+### 9. ✅ SETTLED — **yes, something needs building**: one field, and one requirement on the purchase
+
+**Settled 2026-08-22 with the user in the room** — [`adr/0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md).
+**This entry's suspicion was right and the reason was worse than expected.** `adr/0050`'s *"falls out of
+the wait list rather than needing a mechanism"* is **true of the wait list and false of the build**.
+
+🔴 **Read off the symbols.** `RuleInstanceTable` carries **`WaitingOn`** — the Bin that stopped the Rule
+— and `RuleEngine.Stop` writes it. **`RuleEvidence` does not carry it**: it is `RuleId`, `LastRan`,
+`Succeeded`, `Blocking Blocked`, `ConditionId Reported`, `StarvedSince`, `Rate`, `MissedFirings`. And
+`Blocking` is only `Nothing / Supply / Space`, so **both cases are `Supply`**. A Business short of flour
+and a Business short of money are **indistinguishable to every reader**. ***The wait list is not a reader;
+`Evidence` is.***
+
+⚠ **It is milestone 11 task 8's defect one subsystem over** — *"a flow that reaches no instrument is a
+flow nobody can read"* — and **two instances make it a shape rather than an incident.**
+
+**What ships, both with the purchase rather than as separate tasks:**
+
+1. **`RuleEvidence` gains the blocking Bin** (or its `ResourceId`). Cold path, so the record struct may
+   grow. The **shell** classifies by the Resource's **family** through the Ruleset, keeping `Core`
+   returning ids and never strings.
+2. 🔴 **The purchase's money check must produce a verdict NAMING the money Bin.** Under `adr/0050` a
+   purchase has **no money term**, and the wait list keys on a Bin named by a term — so by default the
+   money leg has nothing to subscribe to, and the cheapest implementation returns *insufficient funds* and
+   subscribes to nothing. ***A distinction `Evidence` cannot recover is one no `Evidence` change fixes.***
+   It costs nothing extra; it has to be **written down**, because nothing about the money leg is authored
+   and so nothing about it is prompted.
+
+⚠ **Still the cheapest decision in this milestone.** The correction does not make it expensive — it makes
+it *exist*. Filed to [`0012`](0012-corpus-audit.md), and `adr/0050` carries a banner.
+
+**The original entry:**
+
+### 9a. How is bankruptcy told from starvation? — *the question as first written*
 
 `adr/0050` claims the distinction *"falls out of the wait list rather than needing a mechanism"* —
 Pool Bin short is **input starvation**, money Bin short is **bankruptcy**, two Bins and two blame

@@ -9,9 +9,9 @@ place that orders the three tracks against each other.
 
 **The next code row is [`06`](../docs/06-roadmap.md) milestone **12** — Goods between Buildings, the
 District Pool.** Ungated, scoping under way in
-[`0037`](0037-goods-between-buildings-the-district-pool.md), **no task begun**. Decisions **1, 4 and 8
-are settled** ([`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md)–[`adr/0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md));
-the rest are open and **`0037` owns every one of them**.
+[`0037`](0037-goods-between-buildings-the-district-pool.md), **no task begun**. Decisions **1, 2, 4, 5, 8
+and 9 are settled** ([`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md)–[`adr/0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md));
+**3, 6 and 7** are open and **`0037` owns every one of them**.
 
 ⚠ **Two things a reader of this row needs and will not guess.** The survey found **three preconditions
 no document had listed as blockers** — the largest being that ***there is no District in the build at

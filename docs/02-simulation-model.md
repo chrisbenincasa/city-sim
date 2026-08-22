@@ -963,6 +963,10 @@ Stated here rather than in the UI doc because it is a **constraint on the simula
 
 This is cheap if designed in and expensive if retrofitted — it means accumulators keep entity references (or a bounded sample of them) rather than only totals. A bounded sample is usually sufficient and is preferred: five example Households out of 380 is what the UI shows anyway, and it keeps the accumulator fixed-size, which `adr/0006` requires.
 
+> 🔴 ⚠ **A failure mode this section's rule does not cover, and it has now been sighted twice — added 2026-08-22 by [`adr/0137`](adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md).** The rule above says an aggregate must **name its constituents**. Both sightings pass that and fail anyway, because ***the world recorded the fact and no `Evidence` surface carried it to a reader***. `RuleInstanceTable.WaitingOn` holds the Bin that stopped a Rule and `RuleEvidence` does not carry it, so a Business short of flour and one short of money both surface as `Blocked = Supply` — which made [`adr/0050`](adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md)'s *"the distinction falls out of the wait list rather than needing a mechanism"* true of the wait list and false of the build. Milestone 11 task 8 found the same shape in `PlacementCounter.Departed`: *"a flow that reaches no instrument is a flow nobody can read."*
+>
+> **So the rule generalises: a fact the world records must reach a reader, and *writing the column is not the work.*** ⚠ **No mechanical check reaches this** — the corpus's checks are document-to-document, and `DerivedRebuildAuditTests`' sibling (name every column no `Evidence` reader touches) is available and unbuilt, because **a column nobody reads *yet* is not a defect** and saying *deliberately* is the hard half.
+
 Specific requirements:
 
 For a **Building**: its occupants, its Bins with current levels, which Rule it last ran and whether it succeeded, if it failed then which fallback chain it walked and where it terminated, its accumulated failure pressure and the specific conditions contributing to it.
