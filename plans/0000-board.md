@@ -21,11 +21,13 @@ deposit and a consumer's draw* is unanswered by `adr/0050`, `adr/0135` and `adr/
 the work asked what each task needed and found a question seven decisions had not.***
 
 ⚠ **Two more things decomposition turned up, and both are the reason to do it before starting.**
-🔴 **Task 5 is blocked on [`0003`](0003-build-plan.md) queue item 14** — a committed contradiction
-between `World.Drain` and `Invariant.WaiterIsBlockedByTheBinItNames` that is latent only because no
-Ruleset puts two Rules on one Bin, and ***`Scope.Pool` is what ends that***; its own row says settle it
-**before** the Pool ships. And a **fourth precondition**: `BinOwnerKind` has four members, none is a
-District, and `BinTable.Owner` is a `HandleColumn<Building>`.
+✅ **Task 5's blocker — [`0003`](0003-build-plan.md) queue item 14 — was settled 2026-08-22 and the row
+has left the board**: the invariant narrowed to the head of the wait list, on `adr/0063`'s own argument
+rather than on the cheaper repair, and the narrowing turned up a second half nobody had reasoned to — a
+woken waiter records no claim, so the drain's guarantee is true of an *instant*. **Moves no hash.**
+⚠ ***Decomposition found it and decomposition is what unblocked it***, a week before `Scope.Pool` would
+have. And a **fourth precondition** still stands: `BinOwnerKind` has four members, none is a District,
+and `BinTable.Owner` is a `HandleColumn<Building>`.
 
 ✅ **Task 1 was a WORLD and not code, and it shipped 2026-08-22** — `rulesets/twinned.toml` and the
 `[[lattice]]` key, two lattices **joined by a Street corridor** so that only the density field can split
@@ -150,12 +152,11 @@ parallelism names *nothing else running in this repository* as its first control
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **Milestone 12 — the District Pool.** Decomposed into ten tasks; **1 through 4 shipped 2026-08-22** — the two-centre world, the density field, the watershed, and re-evaluation with persistence, hysteresis and damping. **Task 5 is next: Pool Bins.** 🔴 ⚠ **And it is BLOCKED on row 5 below**, which must be settled before the Pool ships and not inside its commit | [`0037`](0037-goods-between-buildings-the-district-pool.md) | The ungated row at the head of the sequence, and **the only root with a consumer already in the build** |
+| **1** | code | **Milestone 12 — the District Pool.** Decomposed into ten tasks; **1 through 4 shipped 2026-08-22** — the two-centre world, the density field, the watershed, and re-evaluation with persistence, hysteresis and damping. **Task 5 is next: Pool Bins**, and **its blocker has cleared** — queue item 14 settled 2026-08-22, in a commit of its own as its own row required | [`0037`](0037-goods-between-buildings-the-district-pool.md) | The ungated row at the head of the sequence, and **the only root with a consumer already in the build** |
 | **2** | spike | ⚠ **Do NOT delete `spikes/S2.Routing/`.** The 5a gate is discharged, but another session is doing research inside it, so it is live work. 51 tracked C# files, 29,719 lines | [`0010`](0010-s2-routing.md) → *R7* | ⚠ ***A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears*** |
 | **3** | spike | **S5 owes two captures** — the 4-thread Lane kernel rung, which is bimodal, and the canonical `performance` re-capture. 2 threads is settled at 1.84–1.93× | [`0019`](0019-s5-lane-kernel.md) | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare** |
 | **4** | code | **Hash-moving queue item 8** — a waiter whose own requirement falls is never re-checked. Filed unfixed | [`0003`](0003-build-plan.md) → *queue* | ***A live predicate with an event-driven trigger is only correct if every input to the predicate is an input to the trigger.*** Both repairs are design questions |
-| **5** | code | 🔴 **Hash-moving queue item 14** — `World.Drain` and `Invariant.WaiterIsBlockedByTheBinItNames` contradict each other, measured rather than reasoned. Latent only because no shipped Ruleset puts two Rules on one Bin | [`0003`](0003-build-plan.md) → *queue* item 14 | ⚠ ***`Scope.Pool` is what ends that***, so row 1 makes it reachable and it wants settling **before** the Pool ships |
-| **6** | tidy | **Delete `spikes/S4.Kernels/`** — S4 task 11, open since the spike closed, gated on nothing | [`0004`](0004-s4-kernel-benchmark.md) | A deletion that size is taken deliberately, not as a consequence of a green suite |
+| **5** | tidy | **Delete `spikes/S4.Kernels/`** — S4 task 11, open since the spike closed, gated on nothing | [`0004`](0004-s4-kernel-benchmark.md) | A deletion that size is taken deliberately, not as a consequence of a green suite |
 
 **Closed rows are in [`0000a`](0000a-board-archive.md)**, one line each with the document that owns the
 record. **The argument track has no promoted row.**

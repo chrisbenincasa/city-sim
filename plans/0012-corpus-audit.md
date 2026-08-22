@@ -1437,6 +1437,29 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ A doc-comment cited `WaitListWakeTests`, a class that does not exist, and every mechanical check in
+the corpus is blind to it.** Found and fixed **2026-08-22**, settling
+[`0003`](0003-build-plan.md) hash-moving queue item 14.
+`WorldInvariants.HeadThatShouldHaveWoken`'s remarks claimed the predicate was *"shared with
+`WaitListWakeTests` rather than restated there, which walked its own copy of this predicate and would have
+drifted from it"* — a paragraph whose whole subject is drift, naming a test file that was never written.
+
+🔴 **The reason it is worth a row: `tests/Borough.Tests/Corpus/` is document-to-document by construction.**
+Citations resolve, links open, tables render, registry figures carry their clause — and **not one of them
+reads a `<see cref=>` or a `<c>` in a doc-comment against the symbols that exist**. The compiler would
+have caught `<see cref="WaitListWakeTests"/>`; this was `<c>WaitListWakeTests</c>`, which is prose in
+angle brackets. ***A citation the compiler cannot see and the corpus checks do not read is a citation
+nothing checks at all***, and this file's own header says the mechanical checks are all
+document-to-document — so the surface was known and the sighting is the first one in it.
+
+⚠ **It is Cause 4's surface rather than Cause 5's**: nothing was quoted away from its caveat; a
+*description of the build* named a symbol that is not there, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+writing half — **name a symbol, never a time** — failing on the *symbol* half. **Not filed as a new
+check**, because a `<c>`-tag audit would have to distinguish a symbol from ordinary code voice and would
+be mostly false positives; what it argues for is preferring `<see cref=>`, which the compiler already
+checks.
+
 **⚠ Two documents say *two separated settlements* where they mean two Lattices, and under `CONTEXT.md`'s
 own definition the world they describe is ONE Settlement.** Found and fixed **2026-08-22**, building
 [`0037`](0037-goods-between-buildings-the-district-pool.md) task 1.

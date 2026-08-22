@@ -359,6 +359,25 @@ public enum Invariant
     /// the plain missed wake, and costs one term walk instead of a whole evaluation.
     /// </para>
     /// <para>
+    /// ⚠ <b>And narrower again in <em>which waiter</em> since <c>plans/0003</c> hash-moving queue item
+    /// 14: the head of the list, and only the head.</b> The drain stops at the first waiter it cannot
+    /// cover rather than skipping to a smaller one behind it — <c>adr/0063</c>'s queue order, and the
+    /// alternative starves every large waiter for the life of the city — so a covered waiter queued
+    /// <em>behind</em> an uncovered one is parked correctly. This member was stated more strongly than
+    /// the drain can deliver, and <see cref="Rules.RuleEngine"/>'s own starvation test asserted the
+    /// state it called a violation. ***The drain was right and the sentence describing it was too
+    /// strong.***
+    /// </para>
+    /// <para>
+    /// <b>And it is asked against the level less what is already spoken for.</b> A woken waiter records
+    /// no claim anywhere: <c>World.Wake</c> clears <c>Blocked</c> and arms for <c>tick + 1</c>, and
+    /// nothing is drawn until that row runs — so between the drain and the end of the Tick the level
+    /// reads as though none of it were owed. <b>The drain's guarantee is true of an instant</b>, and
+    /// three waiters needing three each against a deposit of six leave the third one as the head with
+    /// the whole level still covering it. <see cref="Rules.RuleEngine.AccumulateClaims"/> derives the
+    /// difference. ⚠ <b>Neither half is reached by the other's repair.</b>
+    /// </para>
+    /// <para>
     /// <b>It was expected to be unfirable on today's content, and it fired on the committed golden
     /// session within minutes of being registered.</b> The reasoning for the expectation was that a
     /// violation needs a Bin written in instalments smaller than a waiter's requirement, which is what

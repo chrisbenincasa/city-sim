@@ -707,37 +707,90 @@ public sealed class RuleEngine
     }
 
     /// <summary>
-    /// Whether the Bin a waiter named still blocks it, derived from the Bin's current state.
+    /// The Bin one of a Rule's terms names, by position across its inputs and then its outputs.
+    /// </summary>
+    private static int BinAt(
+        World world,
+        int building,
+        RuleId rule,
+        ReadOnlySpan<Term> inputs,
+        ReadOnlySpan<Term> outputs,
+        int position)
+        => position < inputs.Length
+            ? Bin(world, building, inputs[position].Bin, rule)
+            : Bin(world, building, outputs[position - inputs.Length].Bin, rule);
+
+    /// <summary>
+    /// Adds to <paramref name="claims"/>, per Bin slot, what every armed Rule Instance will draw when
+    /// it runs — the part of a Bin's level that is already spoken for.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The same predicate <see cref="World"/>'s drain applies, asked after the fact</b>
-    /// (<c>adr/0063</c>). The drain wakes a waiter the moment the Bin can complete it; this asks
-    /// whether any waiter was left behind, and the two agree by sharing
-    /// <see cref="Requirement"/> rather than by two implementations being kept in step.
+    /// <b>A woken waiter records no claim anywhere, and this derives the claim it would have made.</b>
+    /// <c>World.Drain</c> spends a budget down — it wakes from the front while the arriving quantity
+    /// covers the requirement, subtracting as it goes — but <c>World.Wake</c> only clears
+    /// <see cref="RuleInstanceTable.Blocked"/> and arms the row for <c>tick + 1</c>. Nothing is drawn
+    /// until that row runs, so between the drain and the end of the Tick the level reads as though
+    /// none of it were owed. <b>The drain's guarantee is true of an instant</b>, and a check that
+    /// compares a parked waiter against the whole level is asking after the budget has gone.
     /// </para>
     /// <para>
-    /// <b>One Bin, not the whole Rule, and that is the stronger check.</b> Asking <em>would this Rule
-    /// fire</em> misses a waiter asleep on a Bin that has stopped blocking it while a different Bin
-    /// blocks it now: the drain should have woken it, it would have re-checked, failed elsewhere and
-    /// <em>resubscribed to the Bin that actually blocks it</em>. Left where it is, a deposit to that
-    /// other Bin never reaches it, which is a livelock rather than a slow city.
+    /// <b>Derived rather than stored, so no State Hash moves</b> (<c>plans/0003</c> hash-moving queue
+    /// item 14). The alternative was a reserved column on the Bin, incremented by the drain and
+    /// released on apply — exact and cheap to read, and a new saved field that drifts silently the
+    /// first time a release is missed. This costs one pass over the Rule Instances, at end of run,
+    /// where <c>02 §10</c> already puts a whole-world walk.
+    /// </para>
+    /// <para>
+    /// <b>Armed is <see cref="EventWheel.IsArmed"/>'s sense rather than <c>Blocked == Nothing</c>.</b>
+    /// The latter reads the same for a row Phase 1 has already popped, which is in flight rather than
+    /// owed — <c>adr/0056</c>'s third state, and the reason that predicate exists.
     /// </para>
     /// </remarks>
-    internal static bool BinStillBlocks(World world, int instance, int binSlot, Blocking blocking)
+    internal static void AccumulateClaims(World world, Blocking blocking, Span<long> claims)
     {
         ArgumentNullException.ThrowIfNull(world);
 
-        long requirement = Requirement(world, instance, binSlot, blocking);
+        RuleInstanceTable instances = world.RuleInstances;
 
-        if (requirement == 0)
+        for (int instance = 0; instance < instances.Rows.SlotCount; instance++)
         {
-            return false;
-        }
+            if (!instances.Rows.IsLive(instance) || !world.Wheel.IsArmed(instance, world.Tick))
+            {
+                continue;
+            }
 
-        return blocking == Blocking.Supply
-            ? world.Bins.LevelAt(binSlot) < requirement
-            : world.Bins.SpaceAt(binSlot) < requirement;
+            RuleId rule = instances.Rule[instance];
+            int building = world.Buildings.Rows.Resolve(instances.Building[instance]);
+
+            ReadOnlySpan<Term> inputs = world.Rules.Inputs(rule);
+            ReadOnlySpan<Term> outputs = world.Rules.Outputs(rule);
+
+            int terms = inputs.Length + outputs.Length;
+
+            for (int position = 0; position < terms; position++)
+            {
+                int bin = BinAt(world, building, rule, inputs, outputs, position);
+
+                // Requirement nets every term naming this Bin, so a Bin that two terms name must be
+                // counted once. The rescan is over a Rule's own term list, which is a handful.
+                bool counted = false;
+
+                for (int earlier = 0; earlier < position; earlier++)
+                {
+                    if (BinAt(world, building, rule, inputs, outputs, earlier) == bin)
+                    {
+                        counted = true;
+                        break;
+                    }
+                }
+
+                if (!counted)
+                {
+                    claims[bin] += Requirement(world, instance, bin, blocking);
+                }
+            }
+        }
     }
 
     /// <summary>

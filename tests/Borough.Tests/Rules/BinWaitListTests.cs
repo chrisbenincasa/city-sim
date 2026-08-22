@@ -276,12 +276,20 @@ public sealed class BinWaitListTests
     /// half of <c>adr/0063</c>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>A stored shortfall is a deficit at an instant, and nothing re-derives it.</b> Here the
     /// requirement is met exactly and the recorded number is irrelevant to the answer:
-    /// <see cref="RuleEngine.BinStillBlocks"/> reads <c>floor × |net|</c> off the Ruleset in force and
-    /// compares it against the Bin now. That is what makes the same check catch a tuning reload that
-    /// halved a Rule's input and never woke the Building starving for the old amount — <c>plans/0015</c>
-    /// finding 3, which needs no separate mechanism.
+    /// <see cref="RuleEngine.Requirement"/> reads <c>floor × |net|</c> off the Ruleset in force, and
+    /// the assertion is against the Bin now. That is what makes the same derivation catch a tuning
+    /// reload that halved a Rule's input and never woke the Building starving for the old amount —
+    /// <c>plans/0015</c> finding 3, which needs no separate mechanism.
+    /// </para>
+    /// <para>
+    /// <b>Against <see cref="RuleEngine.Requirement"/> itself, where this read through a
+    /// <c>BinStillBlocks</c> wrapper until <c>plans/0003</c> hash-moving queue item 14 removed it.</b>
+    /// That wrapper's last production caller was the invariant item 14 narrowed, and a predicate only a
+    /// test runs is the one that drifts. What these two tests were ever about is the derivation.
+    /// </para>
     /// </remarks>
     [Fact]
     public void The_requirement_is_derived_from_the_ruleset_rather_than_from_the_subscription()
@@ -293,11 +301,13 @@ public sealed class BinWaitListTests
         int instance = world.BuildingRules.PeekFront(world.Buildings.Rows.Resolve(building));
         int flour = BinOf(world, building, Flour);
 
-        Assert.True(RuleEngine.BinStillBlocks(world, instance, flour, Blocking.Supply));
+        long requirement = RuleEngine.Requirement(world, instance, flour, Blocking.Supply);
+
+        Assert.True(requirement > world.Bins.LevelAt(flour));
 
         world.Bins.Move(flour, 3);
 
-        Assert.False(RuleEngine.BinStillBlocks(world, instance, flour, Blocking.Supply));
+        Assert.Equal(requirement, world.Bins.LevelAt(flour));
     }
 
     /// <summary>A Bin the Rule only fills cannot be short of level for it, at any apply count.</summary>
@@ -311,7 +321,7 @@ public sealed class BinWaitListTests
         int instance = world.BuildingRules.PeekFront(world.Buildings.Rows.Resolve(building));
         int bread = BinOf(world, building, Bread);
 
-        Assert.False(RuleEngine.BinStillBlocks(world, instance, bread, Blocking.Supply));
+        Assert.Equal(0L, RuleEngine.Requirement(world, instance, bread, Blocking.Supply));
     }
 
     // ---- the early drain, which is the same invariant reached through Phase 3's order --------------

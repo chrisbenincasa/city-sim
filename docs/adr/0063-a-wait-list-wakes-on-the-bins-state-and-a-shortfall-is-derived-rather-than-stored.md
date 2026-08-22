@@ -219,6 +219,46 @@ takes above its floor and the atomic one re-checks, fails and resubscribes. This
 decides how much it wants, Phase 3 may refuse it or serve it short — and the per-Tick shuffle makes it
 fair in expectation. Not introduced here and not made worse here.
 
+> ### Amended 2026-08-22: the invariant asks the head of the list, because the head is the whole of what the drain promises
+>
+> **The check this ADR owes was built stronger than the drain it checks, and the two contradicted each
+> other in a committed test.** `WorldInvariants.CheckQueueStillBlocks` walked **every** waiter on a Bin's
+> list and asked whether the Bin's level covered it. But the drain **stops rather than skips** — that is
+> this ADR's *in queue order*, and the paragraph above defends it: skipping an uncovered waiter to reach a
+> smaller one behind it starves every large waiter for the life of the city. **So a covered waiter queued
+> behind an uncovered one is parked correctly**, and the walk called it a violation.
+> [`plans/0003`](../../plans/0003-build-plan.md) hash-moving queue item 14.
+>
+> **It is settled by narrowing the check and not by changing the drain**, and the argument is this ADR's
+> own rather than a preference for the cheaper repair. The two candidates are different cities: making the
+> drain skip is a change to *who gets served*, and it is the behaviour the *Atomic servings* section
+> refuses by name. ***The drain was right and the sentence describing it was too strong***, which is
+> [`adr/0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s rule
+> arriving inside an invariant: a check is a description of the build, and a description can overstate.
+> `WorldInvariants.HeadThatShouldHaveWoken` is the narrowed predicate. **It moves no State Hash** — the
+> answer the city computes is untouched and only the question asked afterwards changed.
+>
+> ⚠ **The narrowing exposed a second half that no reasoning about queue order reaches, and it is the
+> half worth reading.** Three waiters needing three each against a deposit of six: two wake, the third
+> parks, and the third **is the head**. The Bin's whole level still reads six, because `World.Wake` only
+> clears `Blocked` and arms for `tick + 1` — **nothing is drawn until those rows run**. So the drain's
+> guarantee is true *of an instant*, and a check that compares the head against the whole level is asking
+> after the budget has gone. `RuleEngine.AccumulateClaims` derives what every armed Rule Instance will
+> draw and subtracts it. ***A woken waiter records no claim anywhere***, and the alternative — a reserved
+> column on the Bin, incremented by the drain and released on apply — is the reservation this ADR already
+> refused, arriving as bookkeeping. Deriving it costs one pass over the Rule Instances at end of run,
+> where `02 §10` already puts a whole-world walk, and adds no saved field to drift.
+>
+> ⚠ **Neither half is reached by the other's repair.** Nobody was skipped in the spent-down run, and the
+> parked waiter is the head; nobody was over-claimed in the starvation run, and the head is genuinely
+> uncovered. **Two tests, one for each, and both are the probe that found the defect kept rather than
+> reverted.**
+>
+> **`RuleEngine.BinStillBlocks` is gone rather than left standing.** Its only production caller was the
+> walk, and keeping it for the two tests that reached through it would leave a second spelling of *does
+> this Bin block this waiter* that nothing runs — and the one nothing runs is the one that drifts. Both
+> tests now assert against `RuleEngine.Requirement`, which is what they were ever about.
+
 ---
 
 ## What would trigger revisiting

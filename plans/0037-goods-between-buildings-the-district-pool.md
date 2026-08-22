@@ -647,11 +647,11 @@ corpus has no prior answer to look up.
 
 **Decomposed 2026-08-22, after seven of nine decisions closed.** Ordered by what the next task needs.
 ⚠ **Three entries are blocked on something other than code.** Task 5 on **decision 7** and on
-🔴 **[`plans/0003`](0003-build-plan.md) queue item 14** — a committed contradiction between `World.Drain`
-and `Invariant.WaiterIsBlockedByTheBinItNames` that ***`Scope.Pool` is what makes reachable***, and whose
-own entry says it must be settled **before** the Pool ships. Task 7 on **decision 10**, which
-decomposition itself found. ⚠ **Decisions 7 and 10 are small and neither wants a sitting; item 14 is a
-real design question and is already owned elsewhere** — do not settle it inside a task's commit.
+~~🔴 **[`plans/0003`](0003-build-plan.md) queue item 14**~~ — ✅ **settled 2026-08-22 in a commit of its
+own, as its own entry required.** The invariant narrowed to the head of the wait list on
+[`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)'s
+own argument, and it moves no hash. Task 7 on **decision 10**, which decomposition itself found.
+⚠ **Decisions 7 and 10 are small and neither wants a sitting.**
 
 ⚠ **Read the ordering claim before trusting the order.** Tasks 1 to 4 build **a boundary**, and tasks 5
 to 8 build **a market inside it**. ***The market half is the milestone's named risk and the boundary half
@@ -729,8 +729,15 @@ starting.
    the wider Bin lookup the milestone must not ship, and the `throw` is the thing preventing it.
    **Blocked on decision 7** — what a disconnected Building does — which `adr/0134` largely pre-answers
    by making the road component constitutive.
-   🔴 ⚠ **AND BLOCKED ON [`plans/0003`](0003-build-plan.md) QUEUE ITEM 14, which says so itself and which
-   this document did not list.** `World.Drain` and `Invariant.WaiterIsBlockedByTheBinItNames` contradict
+   ~~🔴 ⚠ **AND BLOCKED ON [`plans/0003`](0003-build-plan.md) QUEUE ITEM 14, which says so itself and which
+   this document did not list.**~~ ✅ **SETTLED 2026-08-22, ahead of this task and in its own commit.**
+   ⚠ **The fork read as symmetric here and was not**: making the drain skip is the behaviour `adr/0063`'s
+   *Atomic servings* section refuses **by name**, so ***different cities* overstated the choice** — one
+   candidate was already refused by the ADR that owns the mechanism, and the sitting's work was finding
+   that out rather than choosing. **The invariant narrowed to the head of the list and moves no hash**,
+   and the narrowing turned up a second half nobody had reasoned to: a woken waiter records no claim
+   anywhere, so the drain's guarantee is true of an *instant* and `RuleEngine.AccumulateClaims` derives
+   the difference. *The original entry, kept because the blocker was real:* `World.Drain` and `Invariant.WaiterIsBlockedByTheBinItNames` contradict
    each other today, and a committed test asserts the state the invariant calls a violation. It is
    **latent only because no shipped Ruleset puts two Rules on one Bin** — `BinWaitListTests`' own header:
    *"under `local` scope no two Rules share a Bin they do not both own."* ***`Scope.Pool` is precisely the
