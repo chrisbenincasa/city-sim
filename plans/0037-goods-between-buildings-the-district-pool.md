@@ -367,7 +367,42 @@ exist. Sub-questions, and they are separable:
   this is `adr/0117`'s *charge with no actor* arriving on a second mechanism. **Whether the charge ships
   at 12 is this decision's to answer**, and the deliberate *no* is worth more than the omission.
 
-### 5. Does Upkeep ship at 12? — *arguable*
+### 5. ✅ SETTLED — **no**, and Upkeep is UNPLACED rather than moved
+
+**Settled 2026-08-22 with the user in the room** — [`adr/0136`](../docs/adr/0136-upkeep-has-three-blockers-landing-at-three-times-so-it-has-a-queue-and-not-a-milestone.md).
+This entry said *"the default answer is no, and what this milestone owes is to say so deliberately rather
+than by omission, and to move it."* **The first half stands and the second is refused**: moving it is what
+put it here.
+
+🔴 **`adr/0117`'s revisit trigger fired PREDICTIVELY.** It names *"milestone 12 shipping without
+`Scope.Pool` resolvable from a Segment"*, and decisions 1, 2, 4 and 8 are settled with **no Rule attached
+to a Segment** — so the placement is known wrong **before the milestone starts**. ***A trigger evaluable
+against a scope rather than against a shipped build should be evaluated there.***
+
+🔴 **Twice placed, twice moved, and both placements were made against ONE blocker while others were
+open** — 10 against the balance sheet, 12 against the counterparty. ***Pinning it to 21 against the Lane
+is the same move a third time***, and 21's position is itself marked provisional. **Three blockers land at
+three times**: the construction-cost *quantity* needs the Lane (**21**); *design life* needs a **mature
+city**; and **the actor** — a Rule whose subject is not its payer — has **no milestone at all**, which
+is why this is an unplacing and not a re-placing.
+
+✅ **Two grounds moved on the day, and both moved because of THIS milestone's other decisions.** Ground 1
+is fully discharged — `Scope.Pool` is a market with a Provider and a moving price. **Ground 2's *money*
+half is discharged**: it read *"no Ruleset key anywhere authors a cost of anything"*, and after
+[`adr/0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md)
+none needs to, because `adr/0035` makes infrastructure money *"a transfer, not a sink"* and construction
+buys Materials **at the market price**. ***The blocker was an authoring gap and the answer was a market,
+not a key.***
+
+✅ **And ground 3 is SETTLED here, because it depends on nothing unbuilt.** `adr/0117` left *"money or
+Materials"* to whoever builds Upkeep. It is **neither** — `adr/0035` §3: *"the formulation exists to keep
+the only authored number a **duration**."* A designer authors the **design life**; the Materials fall out
+of the Segment; the money falls out of the price. Upkeep is a **purchase**. ***A ground answerable from a
+document already cited had been carried three ADRs on the strength of the company it kept.***
+
+**The original entry:**
+
+### 5a. Does Upkeep ship at 12? — *the question as first written*
 
 `adr/0117` says **12 is the earliest and not necessarily the right one**, and its own trigger list
 includes *"milestone 12 shipping without `Scope.Pool` resolvable from a Segment — then the placement is
