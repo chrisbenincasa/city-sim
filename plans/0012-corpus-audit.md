@@ -1738,7 +1738,14 @@ pointer to one.***
       terms above, so the next reader meets it at the symbol rather than in a plan.
 
 
-### `CLAUDE.md`'s assertion tier is **42s at 1,690 tests** and two readings today say **3m02s at 1,974**
+### `CLAUDE.md`'s assertion tier is **42s at 1,690 tests** and three readings since say **3m02s–3m42s at 1,974–2,002**
+
+⚠ **A third reading, 2026-08-22, by milestone 24's scoping: 3 m 42 s over 2,002 tests, on `main`.**
+🔴 ***It is an upper bound and not a figure, because its first control was not held*** — two other
+worktrees were live on the same six cores, and this document's own rule is that a test-cost capture is a
+parallelism measurement. **It is recorded because a spoiled reading still bounds**, and it bounds in the
+same direction as the two below: the count is still climbing and the duration with it. **What it adds is
+that the drift is not a one-day artefact.** The edit still waits on a reading taken on a quiet machine.
 
 **NEW 2026-08-22, found while gating milestone 12 task 3, and filed rather than fixed because a
 replacement figure is a *capture* and this sitting was not set up to take one.**
@@ -3183,3 +3190,50 @@ should be quoted until then.** ⚠ ***A milestone number is neither a symbol nor
 `adr/0093`'s *name a symbol, never a time* does not reach it — it is the one citation form that rule
 leaves uncovered, and it is exactly the form a renumber invalidates. Related to the retired-numbering
 table's two-column defect recorded above, and not the same finding.
+
+---
+
+## Filed 2026-08-22, by milestone 24's scoping — one defect, and one recurrence of the naming hazard
+
+### `deferred.md` says Sealing's terrain-keyed recovery **already does** something it structurally cannot
+
+[`docs/deferred.md`](../docs/deferred.md):52, arguing for *absorption varies by ground*:
+
+> *"a tree-planting programme raises what the ground absorbs and shows up slowly, over the whole area,
+> **exactly as `Sealing`'s terrain-keyed recovery already does**."*
+
+**It does nothing, and it cannot.** `MapLayers.DecaySealing` (`Space/MapLayers.cs:416`) has no caller in
+`src/`; `LayerSchedule.For` answers `Never` for `Layer.Sealing`; and — the part no document had —
+🔴 **`MapLayers.Seal` (`Space/MapLayers.cs:393`) has no `src` caller either**, so
+`LayerCellTable.Sealing` is a **saved, hashed column that is identically zero on every world this build
+can generate**. A recovery over a field nothing writes is not slow; it is absent.
+
+⚠ **This is Cause 4 with the polarity reversed and it is worth separating.** Cause 4 is *a decision taken
+from a description of the code, where the description is wrong about the **trigger***. Here the
+description is wrong about **whether the mechanism runs at all** — and it is load-bearing, because the
+sentence's job is to establish that a **precedent exists** for the mechanism being argued for. ***A
+citation offered as precedent is the one kind of description that is never checked, because the reader
+is checking the argument and not the example.***
+
+⚠ **And `adr/0124` enumerated the blockers and counted two of three** — `sealing_decay_tau = 0` and
+`Step` never calling `DecaySealing` — **both of which are downstream of the missing write path.** Fourth
+sighting of the enumeration defect, after `adr/0062`'s Cap admission ranks, `03 §4`'s demotion fields and
+`adr/0117`'s four grounds. Owned by [`0038`](0038-terrain-and-the-land-rows.md) **F3**, which is where
+the repair order is corrected; `adr/0124` needs the amendment.
+
+### The naming hazard recurred a **third** time, and this time it was detected before the collision
+
+Recorded above: two sessions collided on `plans/0030`; the `0112`/`0113` ADR collision; and a recurrence
+on 2026-08-22 *"detected by file mtimes rather than by anything the corpus does."*
+
+⚠ **2026-08-22, milestone 24's scoping: three worktrees were live at once** — `city-sim` on milestone 12,
+`city-sim-m18` on milestone 18, `city-sim-q8` on `main` — and the scoping session read `git worktree
+list` and the branch diffs **before** claiming `plans/0038`. The plan number was free; **the next ADR
+number was not safely claimable**, because the milestone-12 branch holds unmerged work with open
+decisions 3, 7 and 10 still to settle, any of which lands an ADR.
+
+***So the entry above is right that a rule cannot make the scheme safe, and wrong by implication that
+nothing shows the collision*** — `git worktree list` plus a branch diff shows it, and it is what a
+session should read before claiming any number. **That is a habit and not machinery**, it is not
+mechanically checkable, and it does not close this item. What it does establish is that **the tree
+already carries the fact**; what is missing is anything that makes a session look.
