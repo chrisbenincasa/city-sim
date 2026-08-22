@@ -591,6 +591,20 @@ public sealed class RuleEngine
     /// shortfall comes back through here without having fired, and must not have its clock reset by
     /// the visit.
     /// </para>
+    /// <para>
+    /// <b>It drains the Bin it has just joined, and that is not a second wake path.</b>
+    /// <see cref="Apply"/> settles intents in shuffle order, so a deposit large enough to cover this
+    /// waiter may already have run this Tick — and <see cref="World.Drain"/> walked the queue before
+    /// the waiter was on it, spending the wake it was owed on nobody. The rescue is the same drain,
+    /// re-run against the queue it should have seen: one predicate, not two, and no timer, so
+    /// <c>02 §4.1</c>'s <em>does not re-arm</em> still holds.
+    /// </para>
+    /// <para>
+    /// <b>It cannot rescue a Rule into firing on the Tick it failed.</b>
+    /// <see cref="World.Wake"/> arms for <c>tick + 1</c>, so a Phase 2 failure covered by a Phase 3
+    /// deposit still waits a Tick. Re-checking it here instead would let a Rule spend a quantity that
+    /// did not exist when it decided, which is the <em>may never raise</em> half of <c>adr/0049</c>.
+    /// </para>
     /// </remarks>
     private void Stop(RuleVerdict verdict, Ticks tick)
     {
@@ -609,6 +623,8 @@ public sealed class RuleEngine
             _world.RuleInstances.Rows.At(verdict.Instance),
             _world.Bins.Rows.At(verdict.Bin),
             verdict.Blocking);
+
+        _world.Drain(verdict.Bin, verdict.Blocking, tick);
     }
 
     /// <summary>
