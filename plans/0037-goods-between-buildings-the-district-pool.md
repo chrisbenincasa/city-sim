@@ -227,13 +227,38 @@ the same document closed it. Both are struck now.
   stakes rather than lowering them: there is no player arm left to fall back on if the derived shape is
   unsatisfying. ***A fallback to the player is how the first weld was justified.***
 
-**What is open is the algorithm, and the two named inputs already cut the field:**
+✅ **THE ALGORITHM IS SETTLED, 2026-08-22 —
+[`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md).
+A District is a concentration of activity and the ground that drains to it**: a watershed over a
+Building-density field on the Cell grid, clipped to a road component, seeded only where a concentration's
+**prominence** clears a threshold. Stability comes from **persistence** on seeds, **hysteresis** on
+membership and **damping** on the cadence — the last borrowing `04 §4`'s own argument for prices, that
+*"an undamped price signal produces the same oscillation pathology as undamped congestion feedback."*
 
-| Candidate | Against it |
+🔴 **The extent ceiling is GONE and that is the substantive half.** Nothing forces a split; a District
+appears when a **second centre** does. ***No algorithm can find a meaningful boundary in a featureless
+city, because there is not one to find*** — a monocentric city, which is every world this build can
+generate, has no natural internal line, so a hard radius does not discover a boundary, it manufactures
+one somewhere on a featureless ring. `adr/0013` requires the player be able to see a boundary and
+understand what it means, and ***a straight line through a neighbourhood is a boundary no explanation
+can be attached to.*** The bound moves to `adr/0133`'s haulage charge, which is **promoted from candidate
+to structural** by that move — see decision 4.
+
+⚠ **Consequence for this milestone, stated plainly: 12 ships ONE District on every current world**, and
+`Scope.Pool` resolves through it. **Inter-District Shipments are not demonstrable** without a Ruleset
+authoring two separated settlements, and `06` places Shipments at 12. ***That is milestone 9's land value
+repeating*** — a producer built, correct and with nothing to look at. **A two-settlement Ruleset is the
+cheapest fix and belongs in this milestone's task list.**
+
+**The field the decision was taken against, kept because the rejections are the argument:**
+
+| Candidate | Why it lost |
 |---|---|
-| Connected component of the Road Graph under a distance bound | Uses **topology only** and never land use. `RoadConnectivity` is a union-find with no diameter bound, so on `rulesets/bordered.toml`'s 535,817 Segments the whole lattice is **one** component and the bound is the entire mechanism. A component is a set of *nodes* and a District is a set of *Cells* |
-| A fixed partition over Cells | Uses **neither** input. Boundaries are arbitrary and invisible, so two Buildings either side of a line do not pool and nothing can show the player why. It also cannot express *"more appear as it outgrows the pooling radius"* by growing — only by lighting up more tiles |
-| Growth seeded at Buildings, bounded by the pooling radius, merging on contact | **Uses both**, and is the only candidate that reproduces *the count is physics* rather than approximating it. The costs are real and belong in the sitting: placing one Building can **merge two Districts and change what pools city-wide in one Tick**, and it needs a rebuild-on-load story that `DerivedRebuildAuditTests` is the only thing that would ask for — decision 2 |
+| **Split only where the road graph disconnects** | Effectively never splits — `RoadConnectivity` labels a connected city one component, and `DerivedRebuildAuditTests` says so: *"a city in one piece labels every live node `0`."* So a connected city is **one District for ever**, which is `adr/0013`'s explicitly rejected *pool everything, city-wide* wearing a derivation: *"it deletes geography with it… industrial siting stops mattering."* ⚠ **Proposed in this sitting and withdrawn in it**, after the user asked why we would want to lose inter-District shipping |
+| **An anchored tiling of Cells, clipped to road components** | Stable by construction, cheap, and it would have given plural Districts at 12. **Its boundaries are straight lines that cut through neighbourhoods** — precisely the boundary `adr/0013` requires a player be able to understand. ***Shipping a mechanism known to be wrong, to buy an earlier demonstration of a different mechanism, is paying in the pillar to buy a milestone*** |
+| **Growth seeded at Buildings, bounded by the radius, merging on contact** | Uses both inputs, and **the bound is what kills it**: forcing a large monocentric city to split puts the line somewhere on a featureless ring, and the merge makes membership flicker as the city grows |
+| **Overlapping per-Building pooling balls** | Removes boundaries entirely, and with them every problem here. Refused on the corpus's own terms: **there is no Bin**, so *"the Pool is just a Bin per Good per District"* fails, `04 §4`'s per-District price has nothing to attach to, and `Scope.Pool` has nothing to resolve to |
+| **⭐ A centre and its basin — watershed, prominence-seeded, unbounded** | **Chosen.** Boundaries fall where two concentrations meet, which is where a human would draw one. The count follows the city's structure. ⚠ **It buys that by giving up early Districts** — see the consequence above |
 
 ⚠ **`RoutingPartition` is not the answer and reusing it is a regression**, not a shortcut:
 [`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md) detached the District from
@@ -241,12 +266,21 @@ travel-time matrix granularity on purpose. ⚠ **`02 §2.1` still said otherwise
 strike is recorded there and in [`0012`](0012-corpus-audit.md) — so ***the document a scoping reader
 would open for the space hierarchy was, until this sitting, telling them to re-attach it.***
 
-### 2. Does a District ship as a saved entity, or as derived state? — *arguable*
+### 2. ✅ SETTLED — a District is a **saved entity**, `(saved AND hashed)`
 
-Consequential for `05 §4` and for saves. ⚠ **If derived, it must be rebuilt on load**, and
-`DerivedRebuildAuditTests` is the only thing that would ask — the milestone-7 `car_park.segment_next`
-lesson. ⚠ **District extent decides Goods pooling, which is a change to the city**, so whatever this
-is, it is **hash-bearing**.
+**Settled 2026-08-22 as a consequence of decision 1, not on its own**
+([`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)),
+and it lands the **opposite** way round from this entry's expectation. The three mechanisms that keep the
+boundary from flickering — **persistence** on seeds, **hysteresis** on membership, **damping** on the
+cadence — all consult the previous extent, so extent is **not a pure function of a world snapshot** and
+cannot be rebuilt on load. `DistrictTable` and `DistrictId` become real rows; a District is created and
+destroyed like any entity; `DerivedRebuildAuditTests` does not apply to it.
+
+⚠ **Determinism is unaffected** — extent is still a function of the Input Log, so replay and save/reload
+equivalence both hold. ***What history-dependence costs is recomputability from a snapshot, which is
+exactly what "saved" buys.*** ⚠ **The original entry's warning still bites, just elsewhere**: the
+milestone-7 `car_park.segment_next` lesson is about a column declared `Derived` that nothing rebuilds, and
+the defence here is that nothing is declared `Derived` at all.
 
 ### 3. What ratifies the District's extent? — *measurable*, and it needs a `plans/0002` §D row
 
@@ -259,6 +293,22 @@ Under [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named
 a hash-bearing number is **chosen with a named ratifier or not at all**, and a ratifier must name a
 machine, **a world** and **a quantity**. ⚠ **This number has none today and is about to become
 hash-bearing.** It cannot arrive without a §D row.
+
+🔴 **RESHAPED 2026-08-22 by [`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md),
+and the obligation grew from one number to four.** The 128 Cells is **no longer a maximum**: nothing
+forces a split, and a large District is bounded by `adr/0133`'s haulage charge rather than by geometry.
+So the anchor becomes **the scale at which carriage starts to bite** — ***a curve's parameter rather
+than a ceiling, which is a different obligation and not a softer one.*** Beside it arrive three more,
+all hash-bearing, all unset, all owed §D2 rows: the **prominence threshold** that decides when a
+concentration is a centre, the **hysteresis band** that decides when a Cell changes District, and the
+**re-evaluation cadence with its per-evaluation Cell bound**.
+
+⚠ **None of the four is tunable on a world that exists**, and that is the finding rather than an excuse:
+the Building-density field the watershed reads is **flat on every shipped Ruleset**, so a threshold over
+it has nothing to discriminate. They wait on a city with texture, which is milestone **15**'s
+agglomeration. ***A number chosen against a flat field would be ratified by a world that cannot tell it
+from any other value***, which is `adr/0052`'s requirement that a ratifier name **a world** doing exactly
+the work it was written for.
 
 ### 4. Where does a price come from at 12? — *arguable*
 
@@ -347,6 +397,13 @@ assumed.
   unloadable, which is the named risk stated as an artefact.
 - A Ruleset in `rulesets/` demonstrating a chain that **crosses the ownership boundary**, with its
   header saying what it exists to show.
+- 🔴 **A Ruleset authoring TWO SEPARATED SETTLEMENTS, so a second District exists and one real
+  inter-District Shipment happens** — added 2026-08-22 by
+  [`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md).
+  ⚠ **Without it this milestone ships one District on every world and `06`'s Shipments row has nothing to
+  show**, which is milestone 9's land value repeating. ***The count follows centres, so a world with one
+  centre is not a world that can demonstrate the mechanism*** — and no amount of running the existing
+  Rulesets longer produces a second one.
 - **Conservation holds across a trade**, asserted rather than argued: Goods and money both, over a long
   run, with `adr/0024`'s equality exact.
 - **Bankruptcy and starvation are distinguishable** in `Evidence` on a world that produces both.

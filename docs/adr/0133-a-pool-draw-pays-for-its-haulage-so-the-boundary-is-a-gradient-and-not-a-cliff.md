@@ -13,6 +13,15 @@ owes a [`plans/0002`](../../plans/0002-open-questions.md) §D row on the day it 
 ([`adr/0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)). 🔴 **And it
 owes a payee before it ships** — see *Consequences*, where the hard part is.
 
+🔴 ⚠ **PROMOTED THE SAME DAY: this charge is STRUCTURAL, not the optional refinement written below.**
+[`adr/0134`](0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)
+removed the District's geometric extent ceiling — nothing forces a split, and the count follows centres
+— **so this charge is the only thing left bounding a District's extent**, and
+[`adr/0022`](0022-land-is-a-stock-the-city-spends.md)'s *"silently collapses"* now rests on it. Two
+consequences for the text below: the *"leading candidate"* framing understates it, and 🔴 **the unsolved
+payee blocks more than it did when this was written.** ***A mechanism written as a refinement became
+load-bearing four hours later, because the thing it was refining was removed.***
+
 `SOLVE THE ACTUAL PROBLEM` `LEGIBLE CAUSE` `EMERGENCE`
 
 ## Why

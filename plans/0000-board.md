@@ -52,10 +52,47 @@ nobody had noticed because the fork was where everyone was looking.
   counterparty destroys money — which is **`adr/0117`'s charge-with-no-actor on a second mechanism, so
   it is a pattern rather than an incident.**
 
-⚠ **Neither ADR moves milestone 12's scope.** `Scope.Pool` still resolves through the District, which
-keeps the pooling role and the name. What they change is what decision 1 is asking: **the fork is
-closed, so what is open is the algorithm** behind `02 §2.1`'s *"derived from road topology and land
-use"* — and those two named inputs eliminate two of the three candidates on their own.
+⚠ **Neither of those two ADRs moves milestone 12's scope.** `Scope.Pool` still resolves through the
+District, which keeps the pooling role and the name.
+
+✅ **AND THE SITTING THEN ANSWERED THE QUESTION IT OPENED WITH —
+[`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md),
+decision 1 SETTLED.** **A District is a concentration of activity and the ground that drains to it**: a
+watershed over a Building-density field on the Cell grid, clipped to a road component, seeded only where
+a concentration's **prominence** clears a threshold. The flicker a watershed is known for is handled by
+**persistence** on seeds, **hysteresis** on membership and **damping** on the cadence — the last
+borrowing `04 §4`'s own argument for prices, that *"an undamped price signal produces the same
+oscillation pathology as undamped congestion feedback."*
+
+🔴 **The extent ceiling is GONE, and that is the substantive half.** Nothing forces a split; a District
+appears when a **second centre** does, which is milestone **15**'s agglomeration. ***No algorithm can
+find a meaningful boundary in a featureless city, because there is not one to find*** — a monocentric
+city has no natural internal line, so a hard radius does not discover a boundary, it **manufactures** one
+somewhere on a featureless ring. `adr/0013` requires a player be able to see a boundary and understand
+it, and ***a straight line through a neighbourhood is a boundary no explanation can be attached to.***
+
+⚠ **Two candidates were proposed and withdrawn INSIDE the sitting, and both withdrawals are the
+argument.** Splitting only where the road graph disconnects — which `RoadConnectivity` makes effectively
+never, so a connected city is one District for ever, which is `adr/0013`'s **explicitly rejected** *pool
+everything, city-wide* wearing a derivation. And an anchored tiling clipped to components — stable,
+cheap, and it would have given plural Districts at 12, refused because ***shipping a mechanism known to
+be wrong, to buy an earlier demonstration of a different mechanism, is paying in the pillar to buy a
+milestone.***
+
+🔴 **Three consequences, and each lands somewhere that was expecting the opposite.** **A District is
+`(saved AND hashed)`** — `0037` decision 2 assumed derived, and the three stability mechanisms all
+consult the previous extent, so it cannot be rebuilt on load and `DerivedRebuildAuditTests` does not
+reach it. **`adr/0133`'s haulage charge is promoted from candidate to structural**, because with no
+geometric ceiling it is the only thing standing between a sprawling city and `adr/0022`'s collapse — so
+***its unsolved payee blocks more than it did yesterday.*** And **four hash-bearing numbers arrive unset
+in `0002` §D2**, ⚠ **none of them tunable on a world that exists**, because the density field is flat on
+every shipped Ruleset.
+
+⚠ **What 12 actually gets: ONE District on every current world.** `Scope.Pool` resolves and works, and
+**inter-District Shipments are not demonstrable** — `06` places Shipments at 12 and its *between
+Districts* half now has nothing to show. ***Milestone 9's land value repeating: a producer built, correct
+and unobservable.*** **A Ruleset authoring two separated settlements is the cheap fix and belongs in 12's
+task list**, which is the one new obligation this sitting created.
 
 🔴 **Three stale copies of the closed fork were found and struck the same day**, all filed to
 [`0012`](0012-corpus-audit.md): `02 §11` item 3, which is the copy that says *"leaning player-drawn"*
