@@ -84,9 +84,21 @@ re-labels a whole basin.
   count meaningful is the same thing that makes it stable***, which is the sign the cut is in the right
   place.
 - **Hysteresis on membership.** A Cell changes District only when the field difference clears a band,
-  never on a tie.
+  never on a tie. ✅ ⚠ **SHIPPED 2026-08-22, milestone 12 task 4, and *the field difference* turned out
+  to be exact rather than a figure of speech.** Reachability along Cells of at least a given density is
+  symmetric, so ***once two basins have met at level h, everything either of them gains below h is
+  reached by both at exactly the same level*** — the margin is a Cell's own flood level minus the level
+  its basin first touched a rival at, and a tie is the common case on a boundary rather than a rare
+  coincidence. It cost one scalar per basin and one array (`plans/0037` **F19**). `[districts]
+  hysteresis_percent`.
 - **Damping the cadence.** Re-evaluation is slow and a boundary migrates by at most a bounded number of
-  Cells per evaluation, so it never jumps. [`04 §4`](../04-economy-and-goods.md) already makes this
+  Cells per evaluation, so it never jumps. ✅ **SHIPPED 2026-08-22, milestone 12 task 4** —
+  `[districts] revisit_ticks` and `migrate_cells`. 🔴 ⚠ **This sentence is also what corrected
+  `plans/0037`**, which had called the bound a *work* bound: a work bound makes the flood incremental
+  and its answer depends on where it stopped, and ***that would be sizing a District from a profiler***,
+  which the same plan forbids by name (`plans/0037` **F20**, `plans/0012`). ⚠ **Only a Cell moving from
+  one living District to another is counted** — new ground is growth, and a Cell whose District is being
+  destroyed has nowhere to stay. [`04 §4`](../04-economy-and-goods.md) already makes this
   argument for prices — *"an undamped price signal produces the same oscillation pathology as undamped
   congestion feedback"* — and it transfers to a boundary unchanged.
 
@@ -110,7 +122,13 @@ resolve to.
 
 - 🔴 **A District is `(saved AND hashed)`, which reverses [`plans/0037`](../../plans/0037-goods-between-buildings-the-district-pool.md)
   decision 2's expectation.** Persistence, hysteresis and damping all consult the previous state, so
-  extent is **not** a pure function of a world snapshot and cannot be rebuilt on load. `DistrictTable`
+  extent is **not** a pure function of a world snapshot and cannot be rebuilt on load. ✅ ⚠ **THIS BULLET
+  STOPPED BEING A PREDICTION ON 2026-08-22, milestone 12 task 4.** `DistrictWatershed.Evaluate`
+  reconciles rather than replaces, and a District keeps its row across a re-evaluation — identity
+  travelling through the **centre Cell**, first claimant in Cell-index order, a basin whose centre is
+  unowned or already claimed opening a new District. 🔴 **A District no basin claims is DESTROYED**,
+  which is what makes *the count is physics* true of a running city and not only of a new one — and
+  which becomes `adr/0024`'s problem at task 5, when the row being destroyed is holding Pool Bins. `DistrictTable`
   and ~~`DistrictId`~~ become real, a District is created and destroyed like any entity, and
   `DerivedRebuildAuditTests` does not apply to it. ⚠ **Determinism is unaffected** — it is still a
   function of the Input Log, so replay and save/reload equivalence both hold.
@@ -127,6 +145,14 @@ resolve to.
   Cell bound**, and the **extent scale in `adr/0133`'s charge**. ⚠ **None is tunable on a world that
   exists** — the density field is flat on every shipped Ruleset — so all four wait on a city with
   texture, which is milestone **15**.
+  ⚠ **AMENDED AGAIN 2026-08-22 by milestone 12 task 4: THREE of the four are now set and in §D1, and
+  the fourth belongs to task 7.** `revisit_ticks = 2048` (one Day), `hysteresis_percent = 50`,
+  `migrate_cells = 16`, all in `rulesets/twinned.toml` only. ⚠ **The cadence and the bound arrive as
+  TWO §D1 rows rather than the one this bullet paired them into**: the pairing was a statement about
+  when they could be ratified, not about what they are — one is a period and the other is a distance.
+  **Every one of them is unratified and unratifiable on any world that exists**, and the hysteresis band
+  is the sharpest case: no shipped Ruleset has a contested boundary at all, so it is held by a
+  hand-built fixture, and ***a fixture built to exercise a number cannot ratify it.***
   ⚠ **AMENDED 2026-08-22 by milestone 12 task 3: the FIRST of the four is now set, and it moved to §D1
   rather than closing.** `[districts] prominence_percent = **50**`, in `rulesets/twinned.toml` only, and
   it is **relative — a percentage of the dying peak's own height** rather than a Building count, because

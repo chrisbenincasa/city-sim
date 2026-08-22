@@ -59,6 +59,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, ParkingOccupancyIsConserved);
         invariants.Register(InvariantTier.EndOfRun, OutsideConnectionsStandOnAnEdge);
         invariants.Register(InvariantTier.EndOfRun, ThePoolWaitsAtRealGates);
+        invariants.Register(InvariantTier.EndOfRun, DistrictMembershipNamesLiveDistrictsAndBuiltGround);
     }
 
     /// <summary>
@@ -1258,5 +1259,60 @@ public static class WorldInvariants
 
         report.Require(
             expected == arcs.Count, Invariant.ArcsAreDirectionsOfTheirSegments, expected, arcs.Count);
+    }
+
+    /// <summary>
+    /// Every membership row names a live District and a Cell that holds at least one Building.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Whole-world, because both halves are statements about the whole table</b> (<c>02 §10</c>) —
+    /// and end-of-run rather than staggered because the structure it checks changes on a cadence
+    /// measured in Days, so an <c>O(n)</c> sweep spread across Ticks would be re-asking a question
+    /// whose answer had not moved.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The State Hash cannot report either half.</b> A handle column folds the target row's
+    /// monotonic id, and a handle whose target has been freed folds as <b>zero</b> — so a membership
+    /// row pointing at a destroyed District is a dangling reference that replay, thread-count and
+    /// save/reload equivalence all agree about. ***Two runs reproduce the same wrong answer***, which
+    /// is the class of defect <c>adr/0004</c> calls a divergence rather than a crash.
+    /// </para>
+    /// <para>
+    /// <b>It became reachable at milestone 12 task 4</b>, when re-evaluation started destroying
+    /// Districts a basin no longer claims. What it is really asserting is an <em>order</em> —
+    /// membership released before the row it names — and an order is the kind of thing that is right
+    /// when written and wrong three mechanisms later.
+    /// </para>
+    /// </remarks>
+    internal static void DistrictMembershipNamesLiveDistrictsAndBuiltGround(
+        World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        Space.DistrictCellTable cells = world.DistrictCells;
+
+        for (int slot = 0; slot < cells.Rows.SlotCount; slot++)
+        {
+            if (!cells.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            Cells east = cells.East[slot];
+            Cells north = cells.North[slot];
+
+            report.Require(
+                world.Districts.Rows.IsValid(cells.District[slot]),
+                Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround,
+                slot);
+
+            report.Require(
+                world.BuildingsInCells.Density(east, north) > 0,
+                Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround,
+                slot,
+                CellGrid.Index(east, north));
+        }
     }
 }

@@ -40,6 +40,15 @@ public sealed class DistrictWatershedTests
     /// <summary>The threshold <c>twinned.toml</c> ships. Restated so a test can say what it read.</summary>
     private const int ShippedPercent = 50;
 
+    /// <summary>The cadence <c>twinned.toml</c> ships — one Day.</summary>
+    private const int ShippedRevisit = 2_048;
+
+    /// <summary>The hysteresis band <c>twinned.toml</c> ships.</summary>
+    private const int ShippedBand = 50;
+
+    /// <summary>The damping bound <c>twinned.toml</c> ships.</summary>
+    private const int ShippedMigrate = 16;
+
     private static string Body(string file) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", file));
 
@@ -63,8 +72,17 @@ public sealed class DistrictWatershedTests
     /// first — and it comes out by finding the section rather than by knowing its line, because a file
     /// this test cannot re-read is a file whose header nobody may edit.
     /// </remarks>
-    private static Ruleset WithDistricts(string file, int percent) =>
-        Parsed($"{Without(Body(file), "[districts]")}\n[districts]\nprominence_percent = {percent}\n", file);
+    private static Ruleset WithDistricts(
+        string file,
+        int percent,
+        int revisit = ShippedRevisit,
+        int band = ShippedBand,
+        int migrate = ShippedMigrate) =>
+        Parsed(
+            $"{Without(Body(file), "[districts]")}\n[districts]\n"
+            + $"prominence_percent = {percent}\nrevisit_ticks = {revisit}\n"
+            + $"hysteresis_percent = {band}\nmigrate_cells = {migrate}\n",
+            file);
 
     /// <summary>A TOML body with one table section removed, header comments and all.</summary>
     private static string Without(string body, string section)

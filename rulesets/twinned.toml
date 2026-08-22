@@ -237,7 +237,34 @@ origin_north_tiles = 0
 origin_east_tiles  = 2048
 origin_north_tiles = 0
 
-# The threshold, and it is the only key a District has. See the header: unratified, never consulted on
-# this world, and 50 is a midpoint rather than a finding.
+# adr/0134's four keys, and NOT ONE OF THEM IS CONSULTED ON THIS WORLD. See the header: the field is
+# flat, so no peak ever dies at a saddle and no boundary is ever contested. Every value the loader
+# admits gives the same two Districts here. plans/0002 §D1 carries all three unratified rows and names
+# milestone 15 -- the first world with a density GRADIENT in it -- as what would ratify or refute them.
 [districts]
+
+# How far a concentration must stand above the saddle joining it to a taller one, as a percentage OF
+# ITS OWN HEIGHT, before it is a centre of its own. Relative and not a Building count, because an
+# absolute threshold would be tied without saying so to `[lots] lots_per_segment`. A midpoint of the
+# range the loader admits and nothing more.
 prominence_percent = 50
+
+# How often the extent is re-derived. ⚠ NOT A MAP LAYER CADENCE and must not be moved to `[layers]` by
+# resemblance -- adr/0044 owns that one, it is read in a different phase and it is about a different
+# field. 2,048 Ticks is ONE DAY, and it is chosen for the reason a Day is chosen anywhere here: it is
+# the shortest period over which a city's shape could plausibly have changed, and a boundary that
+# redrew faster than a person could notice would be a boundary nobody could be told about.
+revisit_ticks = 2048
+
+# How decisively the field must favour a new District before a Cell changes, as a percentage of the
+# level its own basin reaches it at. adr/0134: "a Cell changes District only when the field difference
+# clears a band, NEVER ON A TIE." 50 is the midpoint again.
+hysteresis_percent = 50
+
+# The most Cells that may change District in one re-evaluation. ⚠ IT BOUNDS HOW FAR THE BOUNDARY MOVES
+# AND NOT HOW MUCH WORK THE EVALUATION DOES -- a work bound would be a profiler's number, and sizing a
+# District from a profiler is what plans/0037 forbids by name. ⚠ 16 IS A GUESS WITH A RATIFIER AND NOT
+# A DERIVATION. At the cadence above it means a boundary may redraw at most sixteen Cells of ground a
+# Day -- each Cell being 32x32 Tiles, about 128 m a side -- which is slow enough that a player watching
+# one move could say what moved and why. Nothing measured it; milestone 15 is what would.
+migrate_cells = 16

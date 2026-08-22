@@ -3591,7 +3591,71 @@ public static class RulesetLoader
                 return DistrictRuleset.None;
             }
 
-            return new DistrictRuleset((int)percent);
+            if (!TryInteger(_districtsTable, "revisit_ticks", out long revisit, required: true)
+                || !TryInteger(_districtsTable, "hysteresis_percent", out long band, required: true)
+                || !TryInteger(_districtsTable, "migrate_cells", out long migrate, required: true))
+            {
+                return DistrictRuleset.None;
+            }
+
+            // All three are REQUIRED of a file that states the table, on [parking]'s rule: a stated
+            // table states its keys. None of them has a defensible default -- a defaulted cadence is a
+            // hash-bearing number nobody chose, and a defaulted band or bound would be adr/0134's
+            // stability mechanisms arriving switched to a setting no designer picked.
+            if (revisit < 1)
+            {
+                Refuse(LineOfDistricts("revisit_ticks"), null,
+                    $"revisit_ticks is {revisit}. It is how often the Districts are re-derived, so a "
+                    + "period of zero or less is not 'never' -- it is a period, and there is no "
+                    + "spelling here for a city whose Districts are found once and frozen. Delete the "
+                    + "[districts] table for a city with no Districts at all.");
+
+                return DistrictRuleset.None;
+            }
+
+            // Refused at zero because zero is 'a Cell moves on a tie', which adr/0134 forbids in the
+            // sentence this key exists to implement -- and a tie is the one case where the watershed's
+            // answer is a scan order rather than a finding. Above 100 no margin can ever clear the band
+            // and the boundary is frozen for ever, which is [districts] prominence_percent's ceiling
+            // arriving on the second key: a knob whose top end silently disables the mechanism.
+            if (band < 1 || band > 100)
+            {
+                Refuse(LineOfDistricts("hysteresis_percent"), null,
+                    $"hysteresis_percent is {band}. It is how decisively the field must favour a new "
+                    + "District before a Cell changes, as a percentage of the level its own basin "
+                    + "reaches it at. Zero moves a Cell on a tie, which is the case the band exists "
+                    + "for; above 100 no Cell can ever move and the boundaries are frozen while the "
+                    + "file appears to be tuning them.");
+
+                return DistrictRuleset.None;
+            }
+
+            // Refused at zero for the band's first reason: a bound of none is a re-evaluation that
+            // computes an answer and applies nothing, which is the mechanism switched off by a value
+            // that reads as a setting. THERE IS NO CEILING, deliberately -- a large bound is an
+            // undamped boundary, which is a legitimate thing to author and announces itself.
+            if (migrate < 1)
+            {
+                Refuse(LineOfDistricts("migrate_cells"), null,
+                    $"migrate_cells is {migrate}. It is the most Cells that may change District in "
+                    + "one re-evaluation, so a bound of none computes the new boundary and then "
+                    + "refuses to move to it. A large value is how you say 'undamped'.");
+
+                return DistrictRuleset.None;
+            }
+
+            if (revisit > int.MaxValue)
+            {
+                revisit = int.MaxValue;
+            }
+
+            if (migrate > int.MaxValue)
+            {
+                migrate = int.MaxValue;
+            }
+
+            return new DistrictRuleset(
+                (int)percent, (int)revisit, (int)band, (int)migrate);
         }
 
         /// <summary>The line a <c>[districts]</c> key is on, or the table's.</summary>

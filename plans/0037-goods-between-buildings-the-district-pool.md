@@ -700,11 +700,25 @@ starting.
    ([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).
    ⚠ **`RoutingPartition` is not this and reusing it is a regression** ([`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)).
    Findings **F11**–**F17** below.
-4. **Re-evaluation — persistence, hysteresis, damping, and the per-evaluation Cell bound.** ***This is
-   the task that earns decision 2's answer***: all three consult the previous extent, which is precisely
-   why a District is saved rather than rebuilt. ⚠ **The Cell bound is the fourth §D number** and it is a
-   work bound, so it is the one most likely to be mistaken for a profiler's choice — *"must not size a
-   District from a profiler"* is below, and extent decides pooling.
+4. ✅ **SHIPPED 2026-08-22 — re-evaluation: persistence, hysteresis, damping and the cadence.**
+   ***This is the task that earned decision 2's answer***: all three consult the previous extent, which
+   is precisely why a District is saved rather than rebuilt. `[districts]` goes from one key to four —
+   `revisit_ticks`, `hysteresis_percent`, `migrate_cells` — and `DistrictWatershed.Evaluate`
+   **reconciles rather than replaces**, on one path with the first evaluation as its degenerate case.
+   ⚠ **Identity travels through the CENTRE Cell**, first claimant in Cell-index order; a District no
+   basin claims is **destroyed**, which at task 5 becomes `adr/0024`'s problem and is deliberately left
+   to it. The cadence runs **last in phase 6**, after the Zone Rules, because that is the line after
+   which the Building count is settled for the Tick. Findings **F19**–**F23** below.
+   🔴 ⚠ **THIS ENTRY WAS WRONG ABOUT THE CELL BOUND AND THE STRUCK WORDS ARE THE CORRECTION.**
+   ~~*it is a work bound*~~ — it is not.
+   [`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)
+   and [`0002`](0002-open-questions.md) §D2 both say it bounds **how far a boundary may move per
+   evaluation**, and they say it in the same words: *"a boundary migrates by at most a bounded number
+   of Cells per evaluation, so it never jumps."* ***A work bound and a change bound are different
+   numbers and would have been different code***, and this entry's own next clause — *"must not size a
+   District from a profiler"* — is the argument against the reading it had just given. Filed in
+   [`0012`](0012-corpus-audit.md). ⚠ **Only a Cell moving from one LIVING District to another counts
+   against it**: new ground is growth, and a Cell whose District is being destroyed has nowhere to stay.
 5. **Pool Bins — a Bin per Good per District.** 🔴 **`BinOwnerKind` has four members and none is a
    District**, and `BinTable.Owner` is a `HandleColumn<Building>` bound to `buildings.Rows` at
    construction (`BinTable.cs:60`), so ***a District-owned Bin cannot address its owner through
@@ -999,3 +1013,68 @@ assertion tier ran **3 m 02 s over 1,974 tests** against `CLAUDE.md`'s recorded 
 ⚠ **It is filed and not fixed, because the replacement is a capture**: today's readings were taken with
 edits happening alongside them, so they are **upper bounds**, and ***an upper bound is exactly what must
 not be pasted into a table a reader will treat as the working loop's cost.***
+
+### Task 4, 2026-08-22 — **F19** to **F23**
+
+✅ **F19 — hysteresis needed no new quantity, because the flood already computes one.** The band wants
+*how decisively the field favours the new District*, and the obvious implementations all invent
+something: a dwell counter, a distance to each centre, a re-run of the flood per District. **None was
+needed.** Reachability along Cells of at least a given density is symmetric, so ***once two basins have
+met at level h, everything either of them gains below h is reached by both at exactly the same level***
+— which makes *contested* mean precisely *acquired at or below the touch level*, and makes the margin
+`winLevel − min(winLevel, touchLevel)`. It costs **one scalar per basin** and **one array**, and the
+behaviour falls out rather than being tuned in: a Cell deep in a basin has a large margin and follows
+the field, a Cell on the boundary has a margin of zero and never moves. ⚠ **`adr/0134`'s *never on a
+tie* is therefore exact rather than a figure of speech**, and the ties are the majority of a boundary
+rather than a rare coincidence.
+
+🔴 **F20 — this plan's own task 4 entry called the Cell bound a WORK bound, and `adr/0134` and
+[`0002`](0002-open-questions.md) §D2 both say it bounds how far the boundary MOVES.** Those are
+different numbers and would have been different code — a work bound makes the flood incremental and its
+answer depends on where it stopped; a change bound runs the whole flood and applies at most *N* of its
+conclusions. ***One is a profiler's number and the other is a designer's***, which is exactly the
+distinction the entry's **next clause** was drawing: *"must not size a District from a profiler."* **The
+entry contained its own refutation one clause later.** ⚠ **What made it visible was reading the ADR
+before the plan** — a task entry is a pointer to a specification and not one, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+reaching a document rather than a symbol. Struck in place above and filed in
+[`0012`](0012-corpus-audit.md).
+
+✅ **F21 — reconciliation is one path and the first evaluation is its degenerate case, and the
+regression suite is the evidence.** A world with no Districts reconciles against nothing: every Cell is
+joining its first District, so nothing is migrating, so neither the band nor the bound has anything to
+hold. ***A separate first-run path would have been a second implementation of the same reconciliation,
+differing only in what it had not been told about*** — and the day it drifted, nothing would have said
+so. **All twenty-two of task 3's tests passed against the new path with no edit**, which is what that
+claim looks like when it is true.
+
+**F22 — a snapshot taken before a mutation must be iterated at its own length, not the table's.**
+`dying[]` is sized from `SlotCount` before any District is created, because `Create` may recycle a slot
+a previous evaluation freed — and the destruction loop then walked the table's *current* `SlotCount`,
+which had grown. It threw on the first fixture that opened a District. ⚠ **The bug is not the array
+length; it is that the loop's bound and the array's came from the same expression evaluated at two
+different times.** The fix names `standing` in both places.
+
+**F23 — new ground must not spend the migration bound, and the fixture proves it by setting the bound
+to one.** A Cell joining its *first* District is growth, not migration; counting it would freeze a
+growing city's boundaries against a budget its own construction was spending, which is the opposite of
+what damping is for. **A Cell whose District is being destroyed moves for free too**, because the
+alternative is membership of a row that will not exist — and that one is a correctness requirement
+rather than a preference. ⚠ **THE GOLDEN HASHES DID NOT MOVE**, unlike task 3's: the cadence adds a
+branch to phase 6 that reads a Ruleset key **no golden session states**. ***A mechanism gated on a key
+is a mechanism no baseline covers***, which is the same sentence `FactorioTests` needed a fifth world
+for at task 3 (**F16**), arriving here as a reason nothing broke.
+
+🔴 **F24 — destroying a District opened a hole the State Hash structurally cannot see, so it needed an
+invariant rather than a test.** A handle column folds the target row's **monotonic id**, and
+`Rows.TryIdAt` returns *false* for a handle whose target has been freed — which folds as **zero**. So a
+membership row left naming a destroyed District is a dangling reference that **replay equivalence,
+thread-count equivalence and save/reload equivalence all agree about**: ***two runs reproduce the same
+wrong answer***, which is `adr/0004`'s divergence-not-a-crash arriving from the direction where nothing
+even diverges. `Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround` is registered end-of-run, and
+what it really asserts is an **order** — membership released before the row it names — which is the kind
+of thing that is right when written and wrong three mechanisms later. ⚠ **Its second half is not
+redundant with the first**: a Cell that stopped holding Buildings and kept its row names a live District
+perfectly well, and puts **empty ground inside a Pool**, which is the abstraction `adr/0013` is a lie
+without rather than a simplification. **Three tests write both violations and watch them fire**, and a
+third runs the reconciliation and watches one clear.

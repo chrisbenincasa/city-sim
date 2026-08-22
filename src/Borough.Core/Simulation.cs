@@ -913,6 +913,21 @@ public sealed class Simulation
         _employment.Assign(tick);
 
         _zoning.Sweep(tick);
+
+        // adr/0134's re-evaluation, LAST in the phase and after the Zone Rules, because the field it
+        // reads is a count of Buildings and this is the line after which that count is settled for the
+        // Tick. Placing it earlier would derive the Districts of the city as it was before this Tick's
+        // growth, which is phase 5 -> phase 6's own argument arriving one phase further on.
+        //
+        // IN PHASE 6 AND NOT PHASE 5, though phase 5 is where the other cadenced field update lives.
+        // A Map Layer diffuses a field that phase 6 then READS; this derives a structure FROM what
+        // phase 6 writes. Same shape, opposite direction, and putting it beside the Layers would make
+        // every District lag its own city by a Tick on the Ticks that matter. adr/0134 is explicit that
+        // this cadence is not [layers]'.
+        if (_world.Rules.Districts.RevisitsOn(tick))
+        {
+            _world.EvaluateDistricts();
+        }
     }
 
     /// <summary>Phase 7 — schedule next events, re-evaluate Stress, emit the State Hash if due.</summary>

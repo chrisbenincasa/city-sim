@@ -1680,6 +1680,41 @@ Unambiguous factual errors, no judgement required.
 
 ## Filed — needs judgement, or a task that has not run
 
+### ~~`plans/0037` task 4 called the migration bound a *work bound*~~ — **PAID in the sitting that found it**
+
+**NEW 2026-08-22, found by reading `adr/0134` before the plan while implementing milestone 12 task 4, and
+corrected the same hour.** It is *Cause 4* — a decision taken from a description rather than from the
+thing described — with the unusual feature that **the description and the thing described were both in
+this corpus and forty lines apart**.
+
+The task entry read *"⚠ **The Cell bound is the fourth §D number** and it is a work bound, so it is the
+one most likely to be mistaken for a profiler's choice."* Both
+[`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)
+and [`0002`](0002-open-questions.md) §D2 say the opposite, in the same words: *"a boundary migrates by at
+most a bounded number of Cells per evaluation, so it never jumps"*, and §D2 glosses it *"how far a
+boundary may move per update."*
+
+🔴 **A work bound and a change bound are different numbers and would have been different code.** A work
+bound makes the flood incremental — it looks at *N* Cells and resumes next time — and the answer it
+produces depends on where it stopped. A change bound runs the whole flood and applies at most *N* of its
+conclusions. ***One of them is a profiler's number and the other is a designer's***, which is the
+distinction the entry's very next clause was drawing: *"must not size a District from a profiler."*
+**The entry contained its own refutation one clause later** and neither half had been read against the
+other.
+
+⚠ **What made it visible was reading the ADR first rather than the plan.** The plan is the working
+document and the ADR is the record;
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+rule is that a description tells you **where to look** — and a plan describing an ADR is a description
+in exactly that sense, however operational it reads. ***A task entry is not a specification; it is a
+pointer to one.***
+
+- [x] `plans/0037` task 4 corrected, with the wrong words struck rather than deleted so the correction is
+      legible.
+- [x] The key ships as `[districts] migrate_cells` and its doc comment states the distinction in the
+      terms above, so the next reader meets it at the symbol rather than in a plan.
+
+
 ### `CLAUDE.md`'s assertion tier is **42s at 1,690 tests** and two readings today say **3m02s at 1,974**
 
 **NEW 2026-08-22, found while gating milestone 12 task 3, and filed rather than fixed because a

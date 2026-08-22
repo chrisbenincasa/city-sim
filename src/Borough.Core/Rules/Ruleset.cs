@@ -1095,7 +1095,58 @@ public readonly record struct LatticeDefinition(int OriginEastTiles, int OriginN
 /// number (<c>adr/0052</c>, and <c>plans/0037</c> decision 3).
 /// </para>
 /// </param>
-public readonly record struct DistrictRuleset(int ProminencePercent)
+/// <param name="RevisitTicks">
+/// How often the extent is re-derived, in Ticks. <b>The cadence, and it is hash-bearing</b>
+/// (<c>adr/0134</c>).
+/// <para>
+/// ⚠ <b>It is NOT a Map Layer cadence and must not be added to <c>[layers]</c> by resemblance.</b>
+/// <c>adr/0044</c> owns that one and it is a different number about a different field: a Layer's
+/// cadence decides when a source becomes visible to a Rule, and this decides how often a boundary is
+/// allowed to have moved. They are also read in different phases.
+/// </para>
+/// <para>
+/// <b>Slow on purpose.</b> Re-evaluation is one of <c>adr/0134</c>'s three stability mechanisms, and
+/// the argument is borrowed rather than new — <c>04 §4</c> damps prices because <em>"an undamped price
+/// signal produces the same oscillation pathology as undamped congestion feedback"</em>, and it
+/// transfers to a boundary unchanged.
+/// </para>
+/// </param>
+/// <param name="HysteresisPercent">
+/// How decisively the field must favour a new District before a Cell changes, as a percentage of the
+/// level at which its own basin reaches it.
+/// <para>
+/// <b><c>adr/0134</c>'s second mechanism, and its words are <em>"a Cell changes District only when the
+/// field difference clears a band, never on a tie"</em>.</b> The field difference here is exact rather
+/// than analogous: a Cell's basin reaches it at some flood level, and a rival basin reaches it at the
+/// level the two basins first touched. ⚠ <b>Everything a basin gains BELOW that touch level is reached
+/// by both at the same level and is therefore a genuine tie</b> — the watershed's answer there is a
+/// scan order, not a finding, and this is the key that stops a scan order being felt.
+/// </para>
+/// <para>
+/// ⚠ <b>Hash-bearing and UNRATIFIED</b>, on <see cref="ProminencePercent"/>'s footing exactly and for
+/// its reason: the field is flat on every shipped Ruleset, so no boundary on any world that exists is
+/// ever contested. <c>plans/0002</c> §D1, ratifier milestone 15.
+/// </para>
+/// </param>
+/// <param name="MigrateCells">
+/// The most Cells that may change District in one re-evaluation. <b>The damping bound.</b>
+/// <para>
+/// 🔴 <b>It bounds how far a boundary MOVES and not how much work the evaluation does.</b>
+/// <c>adr/0134</c>: <em>"a boundary migrates by at most a bounded number of Cells per evaluation, so it
+/// never jumps."</em> ***A work bound would be a profiler's number, and sizing a District from a
+/// profiler is what <c>plans/0037</c> forbids by name*** — extent decides pooling, which is a change to
+/// the city and not an optimisation.
+/// </para>
+/// <para>
+/// ⚠ <b>Only a Cell moving from one District to ANOTHER counts against it.</b> A Cell joining its first
+/// District — new ground, newly built on — is growth rather than migration, and counting it would
+/// freeze a growing city's boundaries against a budget its own construction was spending. A Cell whose
+/// District is being destroyed moves for free too, because the alternative is membership of a row that
+/// no longer exists.
+/// </para>
+/// </param>
+public readonly record struct DistrictRuleset(
+    int ProminencePercent, int RevisitTicks, int HysteresisPercent, int MigrateCells)
 {
     /// <summary>A Ruleset whose city has no Districts.</summary>
     /// <remarks>
@@ -1107,6 +1158,15 @@ public readonly record struct DistrictRuleset(int ProminencePercent)
 
     /// <summary>Whether this city has Districts at all.</summary>
     public bool Runs => ProminencePercent > 0;
+
+    /// <summary>Whether a re-evaluation falls on this Tick.</summary>
+    /// <remarks>
+    /// <b>Tick 0 is excluded because world creation has already evaluated</b> — re-running the
+    /// watershed on the first Step would be the same answer computed twice, and at task 5 it would be
+    /// a District destroyed and recreated before anything had a chance to use it.
+    /// </remarks>
+    public bool RevisitsOn(Ticks tick) =>
+        Runs && tick.Raw > 0 && tick.Raw % (ulong)RevisitTicks == 0;
 }
 
 /// <summary>

@@ -857,4 +857,30 @@ public enum Invariant
     /// </para>
     /// </remarks>
     OnlyAnUnhousedHouseholdGivesUp = 49,
+
+    /// <summary>
+    /// A <c>DistrictCell</c> names a District that is not live, or a Cell that holds no Building.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The State Hash cannot report either half, which is the whole argument for the check</b>
+    /// (<c>adr/0134</c>, milestone 12 task 4). A handle column folds the target row's monotonic id
+    /// through <c>Rows.TryIdAt</c>, and a handle whose target has been freed folds as <b>zero</b> — so
+    /// a membership row left pointing at a destroyed District is a dangling reference that every
+    /// determinism test in the project agrees about. ***Two runs reproduce the same wrong answer.***
+    /// </para>
+    /// <para>
+    /// <b>It is reachable because re-evaluation destroys Districts</b>, which is what makes
+    /// <c>adr/0134</c>'s <em>the count is physics</em> true of a running city and not only of a new
+    /// one. The order the reconciliation frees things in — Cells released, then Districts — is the
+    /// thing this asserts, and it is the kind of ordering that is right when written and wrong three
+    /// mechanisms later.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The second half is not redundant with the first.</b> A Cell that stopped holding Buildings
+    /// and kept its membership row is not dangling — it names a live District perfectly well — and it
+    /// would put empty ground inside a Pool, which is the abstraction <c>adr/0013</c> is a lie without.
+    /// </para>
+    /// </remarks>
+    ADistrictCellNamesALiveDistrictAndBuiltGround = 50,
 }

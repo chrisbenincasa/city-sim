@@ -64,13 +64,29 @@ public static class DistrictWatershed
     private const int NoOrdinal = -1;
 
     /// <summary>
-    /// Replaces the world's Districts with the ones the field currently supports.
+    /// Brings the world's Districts to what the Building-density field currently supports.
     /// </summary>
     /// <remarks>
-    /// <b>It clears first and unconditionally</b>, including when <c>[districts]</c> is absent. A
+    /// <para>
+    /// <b>It reconciles rather than replaces, and milestone 12 task 4 is where that started
+    /// mattering.</b> A District keeps its row across a re-evaluation — task 5 hangs Pool Bins off it —
+    /// so the answer is applied as a set of changes to what is there, damped and with hysteresis,
+    /// rather than as a fresh table. Task 3 cleared and rebuilt because nothing yet depended on the
+    /// row surviving.
+    /// </para>
+    /// <para>
+    /// <b>It clears outright in exactly two cases, and both mean <em>this city has no Districts</em></b>:
+    /// a Ruleset that does not state <c>[districts]</c>, and a world with nothing built on it. A
     /// Ruleset that stops stating the table is a city that stops having Districts, and a stale row
-    /// surviving that reload would be a District with no rule behind it — which is worse than none,
-    /// because <c>Scope.Pool</c> would resolve against it.
+    /// surviving that reload would be a District with no rule behind it — worse than none, because
+    /// <c>Scope.Pool</c> would resolve against it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It does not consult the Tick and has no cadence of its own.</b> <see cref="Rules"/>'s
+    /// <c>revisit_ticks</c> decides when this is called, and the caller is phase 6 — which is where the
+    /// Buildings this reads are created and destroyed. Calling it out of cadence is legitimate and is
+    /// what world creation does.
+    /// </para>
     /// </remarks>
     public static void Evaluate(
         DistrictTable districts,
@@ -90,10 +106,9 @@ public static class DistrictWatershed
         ArgumentNullException.ThrowIfNull(lots);
         ArgumentNullException.ThrowIfNull(roads);
 
-        Clear(districts, cells, residency);
-
         if (!rules.Runs)
         {
+            Clear(districts, cells, residency);
             return;
         }
 
@@ -101,15 +116,16 @@ public static class DistrictWatershed
 
         if (basins.Count == 0)
         {
+            Clear(districts, cells, residency);
             return;
         }
 
         int[] order = ByDescendingDensity(basins);
 
         bool[] seeds = Seed(basins, order, rules.ProminencePercent);
-        int[] owner = Assign(basins, order, seeds);
+        Proposal proposal = Assign(basins, order, seeds);
 
-        Emit(districts, cells, residency, basins, owner);
+        Reconcile(districts, cells, residency, basins, proposal, rules);
     }
 
     /// <summary>Frees every District row and empties the index.</summary>
@@ -390,13 +406,37 @@ public static class DistrictWatershed
     }
 
     /// <summary>
-    /// Which centre each Cell drains to: the second flood, which refuses seed-to-seed merges.
+    /// Which centre each Cell drains to, at what level, and how contested that answer is.
     /// </summary>
-    private static int[] Assign(Basins basins, int[] order, bool[] seeds)
+    /// <remarks>
+    /// <para>
+    /// <b>The second flood, which refuses seed-to-seed merges</b> — that refusal is the watershed line
+    /// and the only line there is.
+    /// </para>
+    /// <para>
+    /// <b>It also produces the two numbers hysteresis needs, and they cost one array and one scalar.</b>
+    /// A Cell's <em>win level</em> is the flood level at which its basin reached it. Its <em>rival
+    /// level</em> is the level at which that basin first touched another owned basin, clamped to the win
+    /// level — because reachability along Cells of at least a given density is symmetric, so once two
+    /// basins have met at level <em>h</em>, <b>everything either of them gains BELOW <em>h</em> is
+    /// reached by both at the same level.</b> ⚠ ***The watershed's answer for such a Cell is a scan
+    /// order and not a finding***, which is precisely the tie <c>adr/0134</c> says a Cell must never
+    /// change District on.
+    /// </para>
+    /// <para>
+    /// <b>The consequence is the behaviour you would want and did not have to ask for</b>: a Cell deep
+    /// inside a basin has a large margin and follows the field, and a Cell out at the boundary has a
+    /// margin of zero and is held wherever it already was.
+    /// </para>
+    /// </remarks>
+    private static Proposal Assign(Basins basins, int[] order, bool[] seeds)
     {
         UnionFind sets = new(basins.Count);
+        Members members = new(basins.Count);
 
         int[] owner = new int[basins.Count];
+        int[] touch = new int[basins.Count];
+        int[] winLevel = new int[basins.Count];
         bool[] active = new bool[basins.Count];
 
         Array.Fill(owner, NoOrdinal);
@@ -414,6 +454,8 @@ public static class DistrictWatershed
                 if (seeds[here])
                 {
                     owner[here] = here;
+                    winLevel[here] = level.Height;
+                    members.Clear(here);
                 }
             }
 
@@ -437,64 +479,180 @@ public static class DistrictWatershed
                         continue;
                     }
 
-                    // The watershed line, and the only line there is: two basins that each already
-                    // drain to a centre stay two basins for ever.
+                    // The watershed line: two basins that each already drain to a centre stay two
+                    // basins for ever. The level it happens at is what hysteresis reads.
                     if (owner[a] != NoOrdinal && owner[b] != NoOrdinal)
                     {
+                        Touch(touch, a, level.Height);
+                        Touch(touch, b, level.Height);
                         continue;
                     }
 
-                    int carried = owner[a] != NoOrdinal ? owner[a] : owner[b];
+                    // The OWNED side is kept as the root, unlike the first flood where the taller peak
+                    // is. Two things ride on it: `touch` is per basin and would be lost if an owned
+                    // root were reparented onto an unowned one, and the walk below has to know which
+                    // list is the one that has just become owned.
+                    bool ownedA = owner[a] != NoOrdinal;
+                    int winner = ownedA ? a : b;
+                    int loser = ownedA ? b : a;
 
-                    sets.Union(a, b);
-                    owner[sets.Find(a)] = carried;
+                    members.Splice(winner, loser);
+                    sets.Union(loser, winner);
+
+                    if (owner[winner] != NoOrdinal)
+                    {
+                        // The loser's Cells become owned at this level, and only now. Walking them is
+                        // O(1) amortised over the whole flood -- a Cell becomes owned exactly once,
+                        // and the list is emptied behind the walk.
+                        members.Stamp(winner, winLevel, level.Height);
+                    }
+
+                    owner[winner] = owner[winner] != NoOrdinal ? owner[winner] : owner[loser];
+                    if (touch[loser] > touch[winner])
+                    {
+                        touch[winner] = touch[loser];
+                    }
                 }
             }
         }
 
         int[] centre = new int[basins.Count];
+        int[] margin = new int[basins.Count];
 
         for (int ordinal = 0; ordinal < basins.Count; ordinal++)
         {
-            centre[ordinal] = owner[sets.Find(ordinal)];
+            int root = sets.Find(ordinal);
+
+            centre[ordinal] = owner[root];
+
+            int reached = touch[root];
+            int rival = reached == 0 || reached > winLevel[ordinal] ? winLevel[ordinal] : reached;
+
+            rival = reached == 0 ? 0 : rival;
+
+            margin[ordinal] = winLevel[ordinal] - rival;
         }
 
-        return centre;
+        return new Proposal(centre, winLevel, margin);
     }
 
-    /// <summary>Opens a District per surviving centre and files every Cell under one.</summary>
+    /// <summary>Records the highest level at which a basin has met a rival.</summary>
     /// <remarks>
-    /// <b>In ordinal order, which is Cell-index order</b>, so the row a District lands in is a
-    /// property of the map rather than of the flood. The State Hash folds a handle as the target row's
-    /// monotonic id, so this ordering is the difference between a reproducible hash and a hash that
-    /// depends on which basin happened to finish first.
+    /// <b>Highest, which is the first</b> — the descent visits levels in order, so an already-set value
+    /// was set higher up and is the one that counts.
     /// </remarks>
-    private static void Emit(
+    private static void Touch(int[] touch, int root, int height)
+    {
+        if (touch[root] == 0)
+        {
+            touch[root] = height;
+        }
+    }
+
+    /// <summary>What one flood proposes: a centre per Cell, and how firmly it means it.</summary>
+    private sealed record Proposal(int[] Centre, int[] WinLevel, int[] Margin);
+
+    /// <summary>
+    /// Brings the world's Districts to what the flood proposes, damped and with hysteresis.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is one path and not two, and the first evaluation is the degenerate case of it.</b> A
+    /// world with no Districts reconciles against nothing: every Cell is joining its first District, so
+    /// no Cell is migrating, so neither the band nor the bound has anything to hold. ***A separate
+    /// first-run path would be a second implementation of the same reconciliation, differing only in
+    /// what it had not been told about***, and the day it drifted from this one nothing would say so.
+    /// </para>
+    /// <para>
+    /// <b>Identity travels through the centre Cell.</b> A basin inherits whichever District currently
+    /// owns the Cell its centre falls in, first claimant in Cell-index order; a basin whose centre is
+    /// unowned or already claimed opens a new District. ⚠ **It reads one Cell rather than the whole
+    /// extent**, so it is stable exactly while a centre moves inside its own old ground and no further
+    /// — which is the property a Pool Bin needs, since task 5 hangs Bins off this row.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A District no basin claims is destroyed, and at task 5 that becomes a real question.</b>
+    /// Today it holds nothing, so nothing is lost. The moment it holds Pool Bins, destroying it
+    /// destroys Goods and money, which <c>adr/0024</c> forbids outright — so the merge path is built
+    /// here and the transfer is owed there, deliberately and in that order.
+    /// </para>
+    /// </remarks>
+    private static void Reconcile(
         DistrictTable districts,
         DistrictCellTable cells,
         DistrictResidency residency,
         Basins basins,
-        int[] centre)
+        Proposal proposal,
+        DistrictRuleset rules)
     {
         Handle<District>[] opened = new Handle<District>[basins.Count];
         bool[] isOpen = new bool[basins.Count];
 
+        // Snapshotted BEFORE anything is created, because Create may hand back a slot a previous
+        // evaluation freed -- and a recycled slot indexed against a list taken afterwards would read as
+        // a District nobody claimed and be destroyed the moment it was opened.
+        int standing = districts.Rows.SlotCount;
+        bool[] wasLive = new bool[standing];
+        bool[] claimed = new bool[standing];
+
+        for (int slot = 0; slot < standing; slot++)
+        {
+            wasLive[slot] = districts.Rows.IsLive(slot);
+        }
+
+        // Pass 1: identity. Ascending, which is Cell-index order, so which of two basins claims a
+        // contested incumbent is a property of the map rather than of the flood.
         for (int ordinal = 0; ordinal < basins.Count; ordinal++)
         {
-            int seat = centre[ordinal];
+            int seat = proposal.Centre[ordinal];
 
-            if (seat == NoOrdinal || isOpen[seat])
+            if (seat != ordinal || isOpen[seat])
             {
                 continue;
             }
 
-            opened[seat] = districts.Create(basins.East(seat), basins.North(seat));
+            Handle<District> incumbent =
+                residency.Of(cells, basins.East(seat), basins.North(seat));
+
+            bool inherits = districts.Rows.TryResolve(incumbent, out int held)
+                && held < standing
+                && !claimed[held];
+
+            if (inherits)
+            {
+                int held2 = districts.Rows.Resolve(incumbent);
+
+                claimed[held2] = true;
+
+                districts.CentreEast[held2] = basins.East(seat);
+                districts.CentreNorth[held2] = basins.North(seat);
+
+                opened[seat] = incumbent;
+            }
+            else
+            {
+                opened[seat] = districts.Create(basins.East(seat), basins.North(seat));
+            }
+
             isOpen[seat] = true;
         }
 
+        // Pass 2: which Districts are dying. A Cell in one of them moves for free, because the
+        // alternative is membership of a row that will not exist.
+        bool[] dying = new bool[standing];
+
+        for (int slot = 0; slot < standing; slot++)
+        {
+            dying[slot] = wasLive[slot] && !claimed[slot];
+        }
+
+        // Pass 3: the Cells. Three of the four outcomes are unconditional; only a Cell moving from one
+        // living District to another consults the band and the bound.
+        List<int> migrants = [];
+
         for (int ordinal = 0; ordinal < basins.Count; ordinal++)
         {
-            int seat = centre[ordinal];
+            int seat = proposal.Centre[ordinal];
 
             if (seat == NoOrdinal)
             {
@@ -504,9 +662,194 @@ public static class DistrictWatershed
             Cells east = basins.East(ordinal);
             Cells north = basins.North(ordinal);
 
-            Handle<DistrictCell> row = cells.Create(east, north, opened[seat]);
+            int slot = residency.Slot(east, north);
+            Handle<District> want = opened[seat];
 
-            residency.Add(east, north, cells.Rows.Resolve(row));
+            if (slot == DistrictResidency.NotResident)
+            {
+                File(cells, residency, east, north, want);
+                continue;
+            }
+
+            Handle<District> have = cells.District[slot];
+
+            if (have == want)
+            {
+                continue;
+            }
+
+            if (!districts.Rows.TryResolve(have, out int incumbentSlot)
+                || incumbentSlot >= standing
+                || dying[incumbentSlot])
+            {
+                cells.District[slot] = want;
+                continue;
+            }
+
+            migrants.Add(ordinal);
+        }
+
+        Migrate(cells, residency, basins, proposal, opened, migrants, rules);
+
+        // Pass 4: Cells that are no longer built leave every District, and then a District nothing
+        // claims goes. In that order, because a Cell row holds a handle to the row it names.
+        Evict(cells, residency, basins);
+
+        // Over `standing` rather than over SlotCount, which has grown: a District opened above is by
+        // construction one somebody claimed, and indexing `dying` past its own length is what walking
+        // the table would do.
+        for (int slot = standing - 1; slot >= 0; slot--)
+        {
+            if (dying[slot] && districts.Rows.IsLive(slot))
+            {
+                districts.Rows.Free(districts.Rows.At(slot));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Moves as many contested Cells as the band admits and the bound allows, most decisive first.
+    /// </summary>
+    /// <remarks>
+    /// <b>Most decisive first, ties in Cell-index order, and the order is the decision.</b> Taking them
+    /// in Cell-index order would make a boundary migrate from the south-west corner outwards, which is
+    /// a fact about the array and not about the city; taking them by margin makes it move where the
+    /// field is most sure, which is what <em>migrates rather than jumps</em> is supposed to look like.
+    /// The comparison is a total order, so no sort's stability is being relied on.
+    /// </remarks>
+    private static void Migrate(
+        DistrictCellTable cells,
+        DistrictResidency residency,
+        Basins basins,
+        Proposal proposal,
+        Handle<District>[] opened,
+        List<int> migrants,
+        DistrictRuleset rules)
+    {
+        migrants.Sort((a, b) =>
+        {
+            int byMargin = proposal.Margin[b].CompareTo(proposal.Margin[a]);
+
+            return byMargin != 0 ? byMargin : a.CompareTo(b);
+        });
+
+        int moved = 0;
+
+        foreach (int ordinal in migrants)
+        {
+            if (moved >= rules.MigrateCells)
+            {
+                break;
+            }
+
+            // adr/0134's band, and the comparison is done without a division so nothing rounds. The
+            // scale is the Cell's own win level rather than the peak's, because what is being asked is
+            // how decisive the field is HERE.
+            if (proposal.Margin[ordinal] * 100 < proposal.WinLevel[ordinal] * rules.HysteresisPercent)
+            {
+                continue;
+            }
+
+            int slot = residency.Slot(basins.East(ordinal), basins.North(ordinal));
+
+            cells.District[slot] = opened[proposal.Centre[ordinal]];
+            moved++;
+        }
+    }
+
+    /// <summary>Frees the membership row of every Cell that no longer holds a Building.</summary>
+    private static void Evict(
+        DistrictCellTable cells, DistrictResidency residency, Basins basins)
+    {
+        for (int slot = cells.Rows.SlotCount - 1; slot >= 0; slot--)
+        {
+            if (!cells.Rows.IsLive(slot) || basins.Holds(cells.East[slot], cells.North[slot]))
+            {
+                continue;
+            }
+
+            cells.Rows.Free(cells.Rows.At(slot));
+        }
+
+        residency.Rebuild(cells);
+    }
+
+    /// <summary>Files a Cell under a District for the first time.</summary>
+    private static void File(
+        DistrictCellTable cells,
+        DistrictResidency residency,
+        Cells east,
+        Cells north,
+        Handle<District> district)
+    {
+        Handle<DistrictCell> row = cells.Create(east, north, district);
+
+        residency.Add(east, north, cells.Rows.Resolve(row));
+    }
+
+    /// <summary>
+    /// The Cells of each set, as an intrusive list, so that a set becoming owned can stamp them.
+    /// </summary>
+    /// <remarks>
+    /// <b>An intrusive index list over flat arrays</b>, which is what <c>05 §4</c> requires of every
+    /// variable-length collection in this project — and here it also happens to be the only shape that
+    /// makes the stamp affordable, since a Cell becomes owned exactly once and the list is emptied
+    /// behind the walk.
+    /// </remarks>
+    private sealed class Members
+    {
+        private readonly int[] _head;
+        private readonly int[] _tail;
+        private readonly int[] _next;
+
+        public Members(int count)
+        {
+            _head = new int[count];
+            _tail = new int[count];
+            _next = new int[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                _head[i] = i;
+                _tail[i] = i;
+                _next[i] = NoOrdinal;
+            }
+        }
+
+        /// <summary>Empties a set's list, because its Cells are already stamped.</summary>
+        public void Clear(int root) => _head[root] = NoOrdinal;
+
+        /// <summary>Hangs one set's list off another's, in <c>O(1)</c>.</summary>
+        public void Splice(int winner, int loser)
+        {
+            if (_head[loser] == NoOrdinal)
+            {
+                return;
+            }
+
+            if (_head[winner] == NoOrdinal)
+            {
+                _head[winner] = _head[loser];
+                _tail[winner] = _tail[loser];
+            }
+            else
+            {
+                _next[_tail[winner]] = _head[loser];
+                _tail[winner] = _tail[loser];
+            }
+
+            _head[loser] = NoOrdinal;
+        }
+
+        /// <summary>Stamps every Cell in a set with the level it became owned at, then empties it.</summary>
+        public void Stamp(int root, int[] winLevel, int height)
+        {
+            for (int ordinal = _head[root]; ordinal != NoOrdinal; ordinal = _next[ordinal])
+            {
+                winLevel[ordinal] = height;
+            }
+
+            _head[root] = NoOrdinal;
         }
     }
 
@@ -596,6 +939,10 @@ public static class DistrictWatershed
         /// ordinal, so every array in the flood would be indexed at minus one.
         /// </summary>
         private bool Built(int index) => ordinalOf[index] != 0;
+
+        /// <summary>Whether a Cell holds a Building, by coordinate. What eviction asks.</summary>
+        public bool Holds(Cells east, Cells north) =>
+            CellGrid.Contains(east, north) && ordinalOf[CellGrid.Index(east, north)] != 0;
 
         private int Ordinal(int index) => ordinalOf[index] - 1;
     }
