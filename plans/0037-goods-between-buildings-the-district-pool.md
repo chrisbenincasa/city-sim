@@ -310,7 +310,40 @@ agglomeration. ***A number chosen against a flat field would be ratified by a wo
 from any other value***, which is `adr/0052`'s requirement that a ratifier name **a world** doing exactly
 the work it was written for.
 
-### 4. Where does a price come from at 12? — *arguable*
+### 4. ✅ SETTLED — the price is a damped tâtonnement against an authored anchor
+
+**Settled 2026-08-22 with the user in the room** — [`adr/0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md),
+taken jointly with decision 8 because **8 exists so that 4 has something to price**. 12 authors
+`[[hinterland]]`'s **price per Good**; the Pool price is **per Good per District, damped tâtonnement**
+from Pool level against recent consumption, recomputed on a `Ticks.PerDay` boundary, **bounded above by
+the Hinterland's price**. **No haulage term at 12** — a deliberate *no*, `adr/0133`'s payee being
+unsolved and the collapse it guards being a scale risk one small District does not reach.
+
+🔴 **Two of this entry's three sub-questions were answered by reading rather than by arguing.**
+
+- **The anchor is EXOGENOUS, and the tempting inversion is refused.** *"Do Hinterland prices emerge from
+  the city's?"* was raised in the sitting. **No** — `CONTEXT.md` calls the Hinterland *"the one authored
+  anchor under every price in the design"*, and `adr/0050` gives the reason rather than the rule: *"an
+  emergent price needs an anchor or it can run away."* ***A ceiling derived from what it bounds bounds
+  nothing.*** ⚠ **But Hinterland prices DO move** — `04 §4` open question 7 is closed, drift's
+  *"mechanism is settled; the tuning is not"*, and `01 §5` makes a shock *"a movement in a Hinterland's
+  authored figures, and nothing else."* **Authored and dynamic, but exogenous.** The one real
+  city→Hinterland feedback is the **population stock**, which is labour and not prices.
+- 🔴 **THE MILESTONE-18 DEPENDENCY DOES NOT EXIST**, and this entry raised it as a live worry. A Day
+  boundary is already computed without a wheel: `World.cs:1073` floor-divides by `Ticks.PerDay`,
+  `CommuteEngine.cs:103` takes `tick.Raw % Ticks.PerDay`. 18's wheel is so that *many* Day countdowns
+  share a structure; one recompute per Good needs none of it. ***A scheduling dependency was inferred
+  from a cadence's units rather than read off a symbol***, which is `adr/0093` from the wrong end.
+- **Authoring the price repairs a built mechanism rather than filling a gap.** `adr/0045`'s ladder is
+  **running**, and `adr/0050` calls it *"a price ladder, monotone increasing"* whose ordering *"'the
+  Outside Connection price is a ceiling' is exactly what guarantees"*. With no import price the shipped
+  ladder is **unordered** — a live defect, not an absence. ⚠ **And the ceiling is `Hinterland price +
+  haul`**, so ***haulage priced into a ceiling was already this corpus's principle and `adr/0133`
+  extended it inward rather than introducing it.***
+
+**The original entry, kept because its sub-questions are what the answers answer:**
+
+### 4a. Where does a price come from at 12? — *the question as first written*
 
 `04 §4` wants prices **per-District**, recomputed **each Day**, *"not set by the player and not
 authored in the Ruleset."* `adr/0050` anchors them to the Hinterland's price per Good, which does not
@@ -355,7 +388,27 @@ instantly, **subject to connectivity**."* `Scope.Pool`'s doc says the scope *"re
 connectivity"*. `RoadConnectivity.cs` exists. **What has never been said is what a disconnected
 Building does** — fail on the Pool Bin, be outside the Pool entirely, or be in a District of one.
 
-### 8. Does a second `[[building]]` kind ship — a Provider that is not a dwelling? — *arguable*
+### 8. ✅ SETTLED — **yes**, a Provider ships at 12
+
+**Settled 2026-08-22 with the user in the room** ([`adr/0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md)):
+*we need to build a two-sided market.* A Provider draws inputs from the Pool and sells its output into
+it. 🔴 **The decisive argument is that one side is not a weak market but an UNDEFINED one** — with no
+seller the Pool holds no stock and consumes nothing, so a price from *"Pool level against recent
+consumption"* is computed from **two zeroes**. ***That is a stronger failure than the unobservability
+this milestone has already accepted twice***: land value and inter-District Shipments are built, correct
+and with nothing to look at; a one-sided market cannot produce a number that means anything.
+
+🔴 ⚠ **It costs three CONTENT decisions, and `rulesets/minimal.toml`'s own header enumerated them before
+anyone asked**: *"A second kind needs **a second `[[zone_rule]]`** to raise it, **a second decline Rule**
+so that it churns rather than accumulating until the city is all offices, and **a land-use split**."*
+⚠ **That header's first line is that the file does not make content decisions**, so the Provider does not
+go in `minimal.toml` — it needs a Ruleset of its own, **which is the same file this milestone's
+Definition of done already owes for the two-settlement demonstration.** ***The cheapest reading of this
+milestone was one that never counted the Ruleset.***
+
+**The original entry:**
+
+### 8a. Does a second `[[building]]` kind ship? — *the question as first written*
 
 `06`'s obligations table places *"a Ruleset that models a city"* here and says **12 is the first row
 whose mechanism cannot run on a single-kind Ruleset** — *a shopping occasion needs somewhere to shop*.

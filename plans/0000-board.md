@@ -88,6 +88,42 @@ geometric ceiling it is the only thing standing between a sprawling city and `ad
 in `0002` §D2**, ⚠ **none of them tunable on a world that exists**, because the density field is flat on
 every shipped Ruleset.
 
+✅ **DECISIONS 4 AND 8 SETTLED TOGETHER, same day —
+[`adr/0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md)**,
+taken jointly because **8 exists so that 4 has something to price**. 12 authors `[[hinterland]]`'s
+**price per Good**, ships a **Provider** kind, and prices a Pool draw by **damped tâtonnement** per Good
+per District on a `Ticks.PerDay` boundary, bounded by the import ceiling. **No haulage term at 12** — a
+deliberate *no*, `adr/0133`'s payee being unsolved.
+
+🔴 **A one-sided market is not a weak market, it is an UNDEFINED one.** With no seller the Pool holds no
+stock and consumes nothing, so a price from *"Pool level against recent consumption"* is computed from
+**two zeroes**. ***That is a stronger failure than the unobservability this milestone has already
+accepted twice*** — land value and Shipments are built, correct and with nothing to look at; this one
+cannot produce a number that means anything.
+
+⚠ **The user asked whether Hinterland prices emerge from the city's. They do not, and the inversion is
+the runaway with an extra step** — `CONTEXT.md` calls the Hinterland *"the one authored anchor under
+every price in the design"*, and ***a ceiling derived from what it bounds bounds nothing.*** **But they
+do move**: drift is settled (`04 §4` question 7) and a shock is *"a movement in a Hinterland's authored
+figures, and nothing else."* **Authored and dynamic, but exogenous.** The one real city→Hinterland
+feedback is the population stock, which is labour.
+
+🔴 **Two of `0037` decision 4's worries were discharged by reading rather than by deciding.** **There is
+no milestone-18 dependency** — `World.cs:1073` and `CommuteEngine.cs:103` already compute a Day boundary
+without a wheel, so a cadence's *units* had been mistaken for a scheduling dependency. And **the absent
+Hinterland price is a live defect rather than a gap**: `adr/0045`'s ladder is *running*, `adr/0050` calls
+it *"a price ladder, monotone increasing"*, and the ceiling is what guarantees the ordering — so the
+shipped ladder is **unordered** today. ⚠ **The ceiling is `Hinterland price + haul`**, so ***haulage
+priced into a ceiling was already the corpus's principle and `adr/0133` extended it inward rather than
+inventing it.***
+
+🔴 ⚠ **And the Provider costs three CONTENT decisions that `rulesets/minimal.toml`'s own header had
+enumerated before anybody asked** — a second `[[zone_rule]]`, **a second decline Rule so the city does
+not fill with offices**, and a land-use split. That header's first line is that the file makes no content
+decisions, **so the Provider cannot land in `minimal.toml`.** It needs the same new Ruleset the
+two-settlement demonstration needs. ***The cheapest reading of this milestone was one that never counted
+the Ruleset***, and it has now been counted three times for three different reasons.
+
 ⚠ **What 12 actually gets: ONE District on every current world.** `Scope.Pool` resolves and works, and
 **inter-District Shipments are not demonstrable** — `06` places Shipments at 12 and its *between
 Districts* half now has nothing to show. ***Milestone 9's land value repeating: a producer built, correct
@@ -568,15 +604,21 @@ and all ten decisions** — its gate discharged by the unfiltered suite on the r
 passed, 0 failed**. ⚠ **9 shipped before 11 and sits in the middle** — 10 was built ahead of it on its
 own branch — so the next code row is **12**, and it is the first one off the **end** rather than a gap.
 Phase 1 is closed and **its code column is empty**; slices 0–10 all shipped, and
-[`0003`](0003-build-plan.md)'s hash-moving queue has **four** open items (**item 8**, a live
-wake-predicate defect, filed unfixed because its two repairs are a design question; **item 10**, every
-load refusal reaching the user as a stack trace, filed unfixed because the finding came out of a `Core`
-commit and the cause is in the runner; and **item 11**, a satisfiability invariant that panics on every
-Ruleset for a headless run shorter than 64 Ticks, filed 2026-08-20 ⚠ **as *item 6*, a number that was
-already taken, and renumbered while closing milestone 9**; and **item 12**, a Rule naming `land-value`
-or `sealing` as a map output loading clean and panicking when it fires, filed the same day because
-***a refusal in the engine is a refusal the designer meets as a crash***); **item 9** was filed and built on
-2026-08-15, so a player-shaped network can be given a population through the build's own door. Phase 2
+[`0003`](0003-build-plan.md)'s hash-moving queue is open on **items 8, 10, 12, 13 and 14** — ⚠ **counted
+there rather than totalled here.** This sentence read *four* while five stood: it was never updated when
+**13** was filed on 2026-08-20, and it still named **11** after that closed and **14** opened on
+2026-08-22. ***A total in prose is a fact that drifts and an enumeration is the same fact that cannot***,
+which is `CLAUDE.md`'s *count them rather than quoting a total* arriving one document down. **Item 8** is a
+live wake-predicate defect, filed unfixed because its two repairs are a design question; **item 10** is
+every load refusal reaching the user as a stack trace, filed unfixed because the finding came out of a
+`Core` commit and the cause is in the runner; **item 12** is a Rule naming `land-value` or `sealing` as a
+map output loading clean and panicking when it fires, ***because a refusal in the engine is a refusal the
+designer meets as a crash***; **item 13** is the assertion tier's intermittent failures, measured rather
+than suspected, with one of the two already carrying its own named repair; and **item 14** is
+`World.Drain`'s stop-rather-than-skip contradicting the invariant that walks every waiter, which
+**`Scope.Pool` at milestone 12 is what makes reachable**. ✅ **Item 11 closed 2026-08-22**, and **item 9**
+was filed and built on 2026-08-15, so a player-shaped network can be given a population through the
+build's own door. Phase 2
 has shipped **5a** (the Road Graph), **5a-bis** (Lots and the road editor), **5b** (Trips and Legs),
 **5b-bis** (jobs and the commute), **5c** (the matrix, the route cache, the vehicular Leg and the
 volume-delay function), **6** (Evidence), **7** (Parking), **8** (Save/load), **9** (land value and the
