@@ -18,10 +18,11 @@ public readonly struct Bin;
 /// <para>
 /// <b>The four are enumerated because <c>adr/0114</c> enumerated them, not because four are built.</b>
 /// Money an actor holds lives in a Bin, and the actors that hold money are a Building, a Household, a
-/// Business and the treasury. <see cref="Household"/> and <see cref="Business"/> are declared and
-/// throw by name where they would be resolved — <c>plans/0033</c> tasks 4b and 5 bring them — on
-/// <see cref="Scope.Pool"/>'s precedent, that a named hole is better than a case that silently falls
-/// through.
+/// Business and the treasury. <b>All four are owned</b>: <c>World.OpenBalance</c> opens the
+/// <see cref="Household"/> and <see cref="Business"/> balances and <c>MoneyLedger</c> resolves both.
+/// The named hole this paragraph once cited as the precedent for its own membership is
+/// <see cref="Scope.Pool"/>'s, and that one still throws — a named hole is better than a case that
+/// silently falls through.
 /// </para>
 /// <para>
 /// <b>It is <c>(saved AND hashed)</c>, and that is <c>adr/0114</c>'s own consequence rather than a
@@ -50,10 +51,14 @@ public enum BinOwnerKind : byte
     /// <summary>A Building. Every Bin in the build before <c>plans/0033</c> task 1.</summary>
     Building = 1,
 
-    /// <summary>A Household. <b>Declared and not yet owned</b> — <c>plans/0033</c> task 5.</summary>
+    /// <summary>
+    /// A Household. <b>Owned</b> — <c>World.OpenBalance</c> opens one per Household.
+    /// </summary>
     Household = 2,
 
-    /// <summary>A Business. <b>Declared and not yet owned</b> — <c>plans/0033</c> task 4b.</summary>
+    /// <summary>
+    /// A Business. <b>Owned</b> — <c>World.OpenBalance</c> opens one per Business.
+    /// </summary>
     Business = 3,
 
     /// <summary>

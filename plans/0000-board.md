@@ -7,281 +7,99 @@ place that orders the three tracks against each other.
 
 ## What is next
 
-**The next code row is `06` milestone **11** — Hinterlands and arrival through the gate, 🟢 IN FLIGHT:
-🟡 SCOPED 2026-08-20 ([`0035`](0035-hinterlands-and-arrival-through-the-gate.md)), **tasks 1 to 8 of
-nine shipped**, one to go. **Task 9 is the long acceptance run** — ⚠ **on a world where arrivals
-outpace housing**, because that is the only world in which the give-up bound and `adr/0006` can be
-read at all. **That world now exists**: task 8 shipped it.
+**The next code row is `06` milestone **12** — Goods between Buildings, the District Pool. 🔵 **NOT YET
+SCOPED**, ungated, and its blocker re-check ran 2026-08-21 (below). Its named risk is that **the Rule
+engine ships a scope it refuses**: `RuleEngine.cs:803` throws on `Scope.Pool` **by name**, so
+[`02 §4.3`](../docs/02-simulation-model.md)'s own worked example — a bakery drawing from the District
+Pool — is unloadable, and no chain in [`04`](../docs/04-economy-and-goods.md) can cross the ownership
+boundary it names. ⚠ **It is the only root with a consumer already in the build**, and it carries
+**Upkeep** as of [`adr/0117`](../docs/adr/0117-upkeep-leaves-milestone-10-and-its-blocker-is-a-rule-with-no-actor.md),
+because `Scope.Pool` is the only market spelling the enum has and Upkeep's payment is a purchase. It
+also inherits [`adr/0088`](../docs/adr/0088-the-price-of-a-far-hinterland-is-paid-in-your-own-traffic.md)'s
+`min(declared ceiling, Segment capacity)` and the which-of-the-two-binds readout, relocated from 11 by
+[`0035`](0035-hinterlands-and-arrival-through-the-gate.md) decision 9.
 
-**Task 8 gave the milestone something to look at** — `--arrivals`, the eleventh runner mode, and
-`rulesets/crowded.toml`, the twelfth shipped Ruleset. Four quantities rather than one, because the
-mechanism is a pipe with two ends: arrivals in, the Pool between, Departures out, and the money supply
-that all three move. 🔴 **It is the first dump that issues Commands**, and that is forced — `adr/0128`
-puts the comparison at 16, so **nothing in the build decides to arrive** and a dump stepping empty
-Ticks would watch a door nobody knocked on. ⚠ **So the rate is the Ruleset's, not the runner's**: it
-asks each gate for **more than it can take** and prints *asked* beside *admitted*, so the ceiling
-doing the work is visible rather than implied. ***A demonstration that chose its own rate would be
-showing the demonstration.***
+🔴 ⚠ **THE BLOCKER RE-CHECK RAN, AND `06`'s MILESTONE 12 ROW WAS WRONG IN TWO WAYS — both struck in
+place 2026-08-21 and filed to [`0012`](0012-corpus-audit.md).** The row said *"three of its four
+blockers arrive here and one does not"*; `adr/0117`'s own consequences say *"only ground 1 is
+discharged by arriving at 12"* and *"re-checks grounds **2, 3 and 4**"*. **One arrives and three do
+not**, and the row said the reverse. ***A summary that inverts its source's count fails in the
+reassuring direction, because a row saying three of four are cleared is a row nobody re-opens*** — and
+it is read at exactly the moment somebody decides what to scope. 🔴 **The second half is a new surface
+for Cause 1**: `adr/0117` has four *grounds* and `06` had four *blockers*, the counts matched and the
+sets did not. Splitting `adr/0117`'s ground 2 (cost **and** life as one) into two freed a slot, and
+**ground 3 — the transfer-versus-purchase shape — fell out of it silently**. That is the ground
+deciding whether Upkeep's authored quantity is **money or Materials**. ***A re-partition that preserves
+the count reads as a restatement and is a deletion***, and the preserved count is what makes it
+invisible. ⚠ **No mechanical check reaches it**: the row cites `adr/0117` correctly while disagreeing
+with it.
 
-⚠ **And a task-7 defect this task found**: `PlacementCounter.Departed` reached no instrument. Task 7
-added the flow to `PlacementActivity` and stopped, so `--census` could not print it — ***a flow that
-reaches no instrument is a flow nobody can read***, which the milestone whose Definition of done is
-*there is something to look at* is exactly where it surfaces.
+**What the re-check found, against the build rather than against prose.** **Ground 1 — the
+counterparty — is discharged by arriving at 12**: `RuleEngine.cs:803`'s message names
+[`adr/0050`](../docs/adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md),
+the Pool is a **market** and not a wider Bin lookup, so the Good moves one way and money the other at
+the prevailing price; `0035` decision 8 already routed trade here. **Ground 2 — cost and life — both
+open**: no Ruleset key authors a cost of anything, and `adr/0091`'s compulsory-purchase price, the
+trigger `adr/0117` names as the likeliest first authored cost, has not landed. **Ground 3 — the shape —
+untouched**, and it was the one the row had lost. **Ground 4 — the actor — open, and confirmed in
+code**: `BinOwnerKind` (`Rules.cs:42`) is `None / Building / Household / Business / Treasury` with **no
+Segment**, nothing under `Rules/` attaches a Rule to a Segment, and `RuleEngine.Bin` still takes
+`int building`. Upkeep's **subject is a Segment, its payer is the treasury and its counterparty is a
+market**, and the engine has no Rule whose subject is not its payer.
 
-🔴 ⚠ **F26 WAS WRONG IN BOTH ITS CLAIMS AND IS WITHDRAWN THE SAME DAY.** It said *a gated world costs
-38.7 ms a Tick and the cost does not move with population*. The 38.4 ms is
-`Simulation.VerifyDecideWritesNothing` — a **debug guard**, on by default, that folds the whole world
-**twice per Tick**. With `--no-decide-guard` the same world runs at **0.51 ms**, against
-`minimal.toml`'s **0.16 ms**; a full-world fold on 535,817 Segments is **~19 ms** and two of them is
-the whole gap. ⚠ **The guard's own doc comment said so all along** — *"`O(world)` against a phase meant
-to be `O(woken)` … turn it off for the 100,000-Tick test"* — so this is `adr/0093` from the wrong end:
-***the sentence naming the symbol was there, and the measurement was taken without reading it.***
-🔴 **The population claim inverted too**: without the guard, 100 / 1,000 / 4,000 Citizens read
-**0.59 / 0.66 / 1.09 ms** — a fixed map floor plus a term that grows with the city, which is the shape
-a Tick is supposed to have. ***A constant that swamps a signal makes every input look like it does not
-matter.*** ⚠ **And it was the only figure in [`0013`](0013-tick-budget.md) not taken with
-`--no-decide-guard`, filed beside ones that were** — **Cause 5** in its own home. What survives:
-**nothing tells an operator the guard is on**, so a long run on a large world is ~75× slower in
-silence, and **task 9 must pass `--no-decide-guard`**. `0035` **F26**, withdrawn and replaced.
+⚠ **And one thing that looks like an omission and is a decision.** `adr/0117` recorded that an import
+payment *"has no spelling in any milestone until somebody adds one, which is **11**'s business"*. The
+`Scope` enum today is still `Local / Pool / Global / Map`. **That is not 11 forgetting** — `0035`
+decision 8 settled it as a deliberate **no**, because naming a counterparty scope at 11 invents one a
+single milestone before the real market supersedes it, and ***two scopes for one idea, one milestone
+apart, is how a superseded mechanism acquires content.*** The live consequence for 12: `adr/0035` sends
+Upkeep's money to local wages **or** out through the gate, so **12 buys Upkeep the local-Processing
+counterparty and not the imported one**.
 
-🔴 ⚠ **A guard written against a missing key does not cover a missing table.** Task 7's loader refusal
-fires on a gate plus `[placement]` without `gives_up_after_days`, and said nothing about a gate plus
-**no `[placement]` at all** — an inflow with no housing *and* no sink, which is the same `adr/0006`
-failure in its strongest form. Found while building a variant for the F26 diagnosis, closed the same
-day as `adr/0048`'s 117th refusal. ***A guard is written against the case its author was thinking
-about.*** `0035` **F28**.
+✅ **Milestone 11 — Hinterlands and arrival through the gate is CLOSED, 2026-08-21**, all nine tasks
+and all ten decisions, scoped 2026-08-20 and shipped 2026-08-20 to 2026-08-21.
+[`0035`](0035-hinterlands-and-arrival-through-the-gate.md) owns the record and
+[`0000a`](0000a-board-archive.md) indexes it; **its findings F15–F33 live there and are not summarised
+here**. ⚠ **An ELEVENTH decision was found by task 1 after the scoping sitting recorded all ten
+closed** — the throughput ceiling's **unit**, which no document named; the `min()` moved to **12** and
+`adr/0088` is amended in place twice. What ships is **the people door and the money that walks through
+it**: the gate kind, `[[hinterland]]`, `rulesets/bordered.toml` and `rulesets/crowded.toml`,
+`World.Arrive` into the Pool at a gate, the move-in Trip, the unhoused Departure, and `--arrivals`, the
+eleventh runner mode. Four records,
+[`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md)–[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md).
+***A world's money supply is no longer a constant.*** ⚠ **Its named risk had two halves of different
+sizes and only one is retired** — *where Households come from* is a producer and shipped; *no price has
+an anchor* is an authored object whose consumers are **12** and **13**, so ***the anchor ships unread,
+which is milestone 9's land value one milestone later.***
 
-🔴 ⚠ **Six tests sharing one fixture built it six times — 1m30s, cached to 18 s — and
-`TierBudgetTests` could not have caught it.** That guard fails a single assertion over four minutes;
-no test here was near it, and what grew was the **tier**. ***A budget per test does not bound a
-suite.*** Not filed as a defect in the guard: a whole-suite ceiling is a second number with its own
-ratifier, and `CLAUDE.md`'s *past five minutes stifles iteration* is a preference no measurement
-settles. `0035` **F27**.
+✅ **Its gate is discharged on the reference machine, 2026-08-21**: `dotnet test -c Release`, the whole
+suite unfiltered, **1,927 passed, 0 failed, 0 skipped** — `CLAUDE.md`'s *Definition of done* in the one
+form that is a milestone's gate rather than a commit's. Both CI lanes on `bc1a263` are green
+(`commit` 32528925692, `post-submit` 32528925729). ⚠ **The run's DURATION IS NOT A CAPTURE AND MUST NOT
+BE QUOTED** — it ran detached alongside this session's work, which
+[`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)
+expressly permits, and ***a quiet machine is a control on a capture and not on a run.*** **Only the
+verdict counts.** ⚠ **And a runner is not the reference machine**, so neither CI lane supplies a figure
+any document may quote either.
 
-**Task 7 gave the Unplaced Pool its first sink**, and with it ***`adr/0006` discharged for the Pool by
-a mechanism rather than by an absence, for the first time***. The bound is a **duration** and the Pool
-stores a start Tick, which resolves `adr/0130`'s open *"attempts-or-since"*: under an occasion bound a
-Household the sample never picks would accrue no occasions and never leave, and ***a bound whose clock
-only advances when you are lucky is not a bound.*** 🔴 **The loader now refuses a Ruleset that declares
-a gate kind and no give-up duration** — `CONTEXT.md`'s *"whoever builds the gate owes the give-up rule
-in the same milestone"* stops being a sentence somebody has to remember. ⚠ **It tests a declared
-*kind*, not a placed gate**, which is the line task 5 drew: ***a kind is a fact about the file and a
-Building is a fact about the world.***
+🔴 ⚠ **The one operational fact from 11 that outlives its row: nothing tells an operator the Decide
+guard is on.** `Simulation.VerifyDecideWritesNothing` is **on by default** and folds the whole world
+**twice per Tick**, which on `rulesets/bordered.toml` — the only shipped file that paves the lattice to
+the map's boundary, 535,817 Segments — is a **~19 ms** fold each time and makes a run **~75× slower in
+silence**. **Pass `--no-decide-guard` for anything long.** `0035` **F26** claimed the resulting 38.7 ms
+was the city's and was **withdrawn the same day**: without the guard the same world runs at **0.51 ms**
+against `minimal.toml`'s **0.16**, and the population claim inverted too — 100 / 1,000 / 4,000 Citizens
+read **0.59 / 0.66 / 1.09 ms**, a fixed map floor plus a term that grows with the city, which is the
+shape a Tick is supposed to have. ***A constant that swamps a signal makes every input look like it
+does not matter.*** [`0013`](0013-tick-budget.md) carries both tables.
 
-**The money leaves with them, and the question that was waiting was already answered.**
-`World.DestroyHousehold` has said since milestone 10 that the balance is destroyed and that *the first
-production caller has to answer it*. `World.Depart` is that caller — but
-[`adr/0024`](../docs/adr/0024-money-is-conserved-and-the-city-has-a-balance-of-payments.md) already
-says *"the Outside Connection is its only source and sink"*, so there was one permitted answer. ***What
-was genuinely open was not what happens to the money but which caller writes it down.*** Conservation
-stays exact with no flow term. 🔴 **The State Hash moved and the two golden traces were re-recorded,
-with no seed bump.**
-
-🔴 ⚠ **And a finding that changes what a period means: a revisit period is a RATE, not coverage.**
-`PlacementEngine.DrawPool` draws **with replacement**, so about **1/e** of the Pool goes unlooked-at in
-any given period and a Household waits a *geometric* number of periods past its duration. The first
-draft of the doc comment asserted the opposite, reasoning from the name — ***a period is what
-something is called, not a guarantee about what it covered.*** `adr/0006` holds by a different
-argument: the sample scales with the Pool, so the drain rate is proportional to the stock. The stale
-sentence is `PlacementRuleset.RevisitTicks`' and the loader's own refusal text, filed to
-[`0012`](0012-corpus-audit.md). `0035` **F24**.
-
-🔴 ⚠ **No shipped world has a housing shortage in it, and eleven tests failed on their fixture before
-one failed on its assertion.** `SyntheticCity` houses everybody, so the Pool is empty at world
-creation — ***a world with a housing shortage has to be built, and this milestone is the first thing
-that ever needed one.*** `0035` **F25**, and it is task 9's problem arriving early.
-
-🔴 ⚠ **`rulesets/bordered.toml`'s header contradicted itself**, and the false half carried an argument:
-it denied stating `[households]` seventy lines below a line listing `[households]` as one of four
-things it adds. **Cause 1 arriving WITHIN one file** — and the same header contains task 3's *"a copied
-comment is a second copy that drifts"*. ***A file that documents a failure mode is not thereby immune
-to it.*** `0035` **F23**.
-
-**Task 6 made the arrival physical**: placement starts the move-in, gate → dwelling, **one Trip per
-Citizen** rather than one per Household, because `adr/0075` makes a Traveller a cursor over a
-*Citizen's* journey and there is no such thing as a Household on the road — which is also what makes
-the congestion real. ⚠ **The question task 4 routed here is answered *no***: whether an arrival placed
-beyond the Commute Budget from its gate is a *placement* question. It is not — the Fate is not
-inspected and the Trip is not retried, because ***placement decides where somebody lives; the Trip
-records how they got there***, and making placement prefer a dwelling near the gate would be **the
-comparison arriving five milestones early**, which is this milestone's decision **1**.
-
-🔴 ⚠ **And a defect this work introduced, found by measurement rather than by review.** `MoveIn`
-walked the Household's member list by hand, and `IndexList` stores `next` **1-based** with **0 as the
-terminator** — so the walk was off by one after the first member *and* unbounded, because `0` passes a
-`>= 0` test. It left the Household at Citizen slot 0 and went round the whole table, starting a Trip
-per step. ***A hand-rolled walk over an encoded column is a decode somebody has to remember.*** It was
-the only such walk in the repository; it goes through `IndexList.Walk` now. `ArrivalTests` went 19/20
-OOM → **20/20**. The regression guard is a **count** — two Citizens, exactly two Trips — so it fails on
-the number rather than on the clock. `0035` **F21**.
-
-🔴 ⚠ **A filed sweep is a counted list, and it drifted in both directions while it waited.**
-[`0012`](0012-corpus-audit.md)'s *a world's seed has two sources* entry names `DestroyBuilding`, which
-**no longer takes a `WorldKey`**; and task 5 added `TryArrive` to the list without noticing, which task
-6 removed again. ***A new instance of a filed pattern is not caught by having filed it***, and ***a
-ledger of debts accrues debt*** — **Cause 1 with the drifted copy inside the audit itself.** The entry
-now names its eight members explicitly. `0035` **F22**.
-
-**Task 5 put money through the door**, and with it this milestone's Definition of done in one line:
-***a world's money supply is no longer a constant.*** `MoneySupplyTable.Issued` has had exactly one
-writer since milestone 10 and now has two, and `World.Endow` is still the only door — it deposits and
-writes the anchor in one call, so there is no spelling in which the second half can be forgotten. The
-draw is `OpeningBalance`'s form on its own tag; ⚠ **sharing that tag would have collided with nothing
-and still been wrong**, because the same id takes the same fraction of whichever span it is given, so
-***the family that would have been richest at the founding would be the richest emigrant from every
-edge*** — a correlation between two populations that never meet, and nothing in the city could refute
-it. 🔴 ⚠ **A gate whose edge has no `[[hinterland]]` now admits nobody**: admitting them carrying zero
-would make *nowhere* and *somewhere poor* the same observation, and ***a zero that is a real answer
-cannot double as the absence of an answer.*** 🔴 **F20 — the task said `MoneyIsConserved` would be
-rewritten as supply plus flow and nothing needed rewriting**, because `Issued` is declared net and
-`Endow` moves both sides together. The column's own doc-comment had said so a milestone in advance:
-`adr/0093` from the other side, where a **plan** described work the build had already made
-unnecessary.
-
-**Task 4 opened the door**: `World.TryArrive` creates a Household that has never lived here, straight
-into the Pool at a named gate, and `UnplacedTable`'s second column is where the gate waits out the
-spell ([`adr/0129`](../docs/adr/0129-the-pool-waits-at-the-gate-and-an-arrivals-trip-is-the-move-in.md)).
-***A door the design describes and an invariant refuses is a disagreement, not a defect*** — and
-`OnlyAHousedHouseholdIsUnplaced` is the one that moved. **`arrivals_per_day` now binds**, per gate per
-Day, which is what turns it from a number in a file into one a run can refute; ⚠ **a per-call bound
-was refused as milestone 9's F13**, because two arrival events in one Tick would each take the whole
-quota and the thing would read as a daily ceiling while being nothing of the kind. 🔴 ⚠ **The State
-Hash moved and the four golden baselines were re-recorded, with no seed bump** — `World.HashSeed`'s
-own note says new state is a design change and signing it would file a real change as a bookkeeping
-one. **Nobody made a Trip at task 4**, for `adr/0129`'s reason — a Household the
-Pool has not placed has no destination Address. ✅ **Task 6 closed that**, above.
-
-🔴 ⚠ **And a finding that was not this milestone's: [`0012`](0012-corpus-audit.md) **Cause 1** has a
-fourth form, and the copy that drifted was a **test**.** `InputLogCodec` could not write
-`CommandKind.Populate` or `CommandKind.Trip` — declared in milestones 5a and 5b, applied by
-`Simulation`, and unknown to the codec in **both** directions, so a session containing the verb the
-whole of 5b exists to exercise could not be written to a log. ***A verb the simulation applies and the
-codec cannot spell is a session that cannot be reported.*** The guard was a `[Theory]` over four
-hardcoded verbs whose **name already claimed the whole set**, so it read as covered for two
-milestones. ***A test named after a universal and written as a list is a list wearing a proof's
-name.*** Repaired by reflecting over the enum. `0035` **F19**.
-
-**Task 3 put a door in a world**: `rulesets/bordered.toml`, the tenth shipped Ruleset, and a generator
-pass that raises one gate on **every** map edge — a count **derived** from the land, so the generator's
-real number stays milestone 24's gap. 🔴 ⚠ **It shipped believing two of the four edges were
-unreachable, filed them in `0002` §D1 as unratifiable until milestone 24, and both halves of that were
-wrong by the end of the day.** The cause was the generator and not the map: `ReachesTheBoundary` paves
-to `CellGrid.WorldTiles` whenever the Ruleset declares a door — **no allocation**, since
-`RoadGraph.ExpectedNodes` always sized both tables for the whole map — and `CarveEdgeBlock` subdivides
-the one block carrying each edge, because ***paving to the boundary puts a Street on the edge and no
-Lot beside it.*** Both §D1 rows are **closed**. 🔴 ⚠ **And the blocker named in the generator's place
-was wrong too.** Gate to nearest dwelling by car, measured: west and south **0** minutes, east **62**,
-north **73**, against a Commute Budget ceiling of **49**. Sixteen Arterials buy 16 minutes on one edge
-and 7 on the other and neither reaches it — ***a far gate is made usable by a dwelling beside it, not
-by a faster road.*** That distance is
-[`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) **working**: a map
-sized by how many Commute Budgets fit across it puts its far edge outside one by construction.
-⚠ **`TripEngine` judges that Budget on every Trip and not only on a commute**, so which dwelling an
-arrival is placed in decides whether its move-in completes — **routed to task 6**. `0035` **F17**
-struck, **F18** written.
-
-**Task 2 authored `[[hinterland]]`** — an edge and an `emigrant_balance` band, and nothing else, on
-[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)'s
-*a Hinterland field is authored in the milestone that reads it*. **No number reached a Ruleset**, so
-no `0002` §D1 row is owed yet; that debt lands with task 3, which is the first world with a door in
-it. 🔴 ⚠ **It found `Ruleset.WithLayers` had lost `Parking`** — the second sighting of a failure
-milestone 10 task 5 found seven of at once **and wrote a rule against, in prose, beside the list** —
-so a Ruleset put through it came back with no Parking Shed at all, silently. ***A rule written in
-prose beside the code it governs is not a check on that code.*** Fixed, and `RulesetWithLayersTests`
-now holds the list to the class's properties by reflection: `RefusalCountTests`' shape one level in,
-**code against code**. `0035` **F15**.
-
-🔴 ⚠ **And a second, larger one: [`0012`](0012-corpus-audit.md) has a SIXTH Cause.** Task 1's own diff
-had put two new members **between an existing doc-comment and the member it documents**, so both blocks
-bound to one member and the other lost its documentation. A human reading the diff caught it; a check
-written afterwards found **forty** sites in **thirty-one** files, two of them actively misleading —
-`Ruleset.cs` carried the `[jobs]` table's documentation on `TrafficRuleset`. **All forty repaired**, plus
-six blocks whose `</remarks>` was typed where a `</para>` belonged. ***A defect nothing can see is found
-once per reviewer, for ever*** — and no sweep of this corpus could have found it, because it lives in a
-**doc-comment** and every other mechanical check is document-to-document.
-`DocCommentAttachmentTests` is the detector. `0035` **F16**.
-
-⚠ **Task 1's first act was to find an eleventh decision and stop**, after the scoping sitting had
-recorded all ten as closed. The throughput ceiling's **unit** is named in no document, and
-[`adr/0088`](../docs/adr/0088-the-price-of-a-far-hinterland-is-paid-in-your-own-traffic.md)'s
-`min(declared ceiling, Segment capacity)` compares it against `RoadSegmentTable.CapacityPerDay`, which
-is **whole Vehicles per Day** — a denominator nothing at 11 produces, since what crosses the gate is
-**people** and under `adr/0098` whether they drive is a property of the Ruleset. **The `min()` and the
-*which binds* readout moved to 12 with freight**; `adr/0088` is amended in place twice and the
-milestone got smaller a **fifth** time. ***A formula written down without its denominators reads as
-settled and is not*** — and a **unit** is the one caveat that cannot be seen to be missing, which is
-`plans/0012` **Cause 5** below the level Cause 5 was written at. What ships at task 1 is
-`[[building]] arrivals_per_day`, the map's first **boundary** (nothing in `Borough.Core` could ask
-whether a position was on the map edge), and the guard that keeps a gate on one. **No State Hash
-moved** — no shipped Ruleset declares a gate yet, which is task 3. ✅ **It was
-ASSESSED first and no document names a gate on it** — `plans/0000`'s own table gives it `—`, `0003`'s
-gate board holds no Phase 2 row, and `0002` §A has been empty since 2026-08-14. ⚠ **The one text that
-appears to gate it does not**: `05 §6`'s threading policy is recorded in three documents as *"gates
-milestones 10 and 11"*, written when **there was no milestone 11**, and `06` says in writing that what
-§6 still owns *"gates nothing in 6–24."* ***A citation is not falsified by a renumber; it is promoted by
-one from self-evidently stale to truth-shaped.***
-
-🔴 ⚠ **Scoping found something worse than a gate: the milestone's central mechanism is specified in
-terms of a milestone five positions downstream.** [`adr/0023`](../docs/adr/0023-immigration-arrives-through-the-gate.md)
-opens *"There is no immigration rate, no arrival scalar, and no attractiveness meter. **A prospective
-Household evaluates the city using the same choice model residents use**"*; `CONTEXT.md` → Hinterland
-and `02 §5.4` say it twice more. **That choice model is milestone 16**, and `06`'s dependency graph runs
-*Hinterland → the residential choice model* — so **11 precedes the only mechanism its own ADRs say
-arrival is made of**. ***A dependency stated inside an ADR is invisible to a graph assembled from
-milestone rows***, and `06`'s note that slots 9 and 11 to 14 *"admit exactly one arrangement"* was
-derived from four edges without this one. ✅ **DECISION 1 IS SETTLED, 2026-08-20 — the milestone splits**
-([`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md)). The gate,
-the Hinterland, the arrival route and the money door ship at **11**; the comparison, the
-rejected-arrival reasons and the crossover stay at **16**, and `06`'s graph is unchanged. ⚠ **The crude
-rule was refused by name** as milestone 9's **F13** — a hole that throws is safe, one that returns
-plausible numbers is a working mechanism that says something false. 🔴 ⚠ **And the cost is written down
-on day one rather than found in a task**: the arrival door has **no autonomous caller** until 16, so
-`06`'s row retires the **anchor** half of its risk and not the *where from* half, and ***a test
-asserting the city grew would be asserting the Command it just issued.*** ⚠ **The give-up rule does not
-travel with the comparison** — an inflow driven by a Command is still an inflow. **And every remaining decision was then settled in the same sitting** — 2, 3, 3a, 4, 5, 6, 6a, 7 and 8
-— three more records: [`adr/0129`](../docs/adr/0129-the-pool-waits-at-the-gate-and-an-arrivals-trip-is-the-move-in.md),
-[`adr/0130`](../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md),
-[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md).
-**The milestone got smaller four times and more honest each time**, and the nine tasks are scoped.
-
-⚠ **The sitting's sharpest finding is that a mechanism the design describes at length would have shipped
-as the mechanism it exists to replace.** `CONTEXT.md` calls a Hinterland *a stock the city spends*, says
-the city *takes the most willing first*, and says in the same entry that ***there is no population
-ceiling — drawdown is a gradient, not a wall***. **Both gradient properties come from the willingness
-ordering, and the ordering is the comparison at 16** — so a stock decrementing at 11 can express only
-*arrivals, then none*. ***A stock without an ordering is a wall, whatever the design calls it***, and it
-would have arrived as an implementation detail of the thing meant to replace the RCI ceiling. **Depth
-and recovery are authored at 16**, and the general rule the milestone adopts is that ***a Hinterland
-field is authored in the milestone that reads it.***
-
-⚠ **The build contradicted `adr/0023` and the build was right about the shape.** That record says
-arrivals *"arrive as Trips … enter the Unplaced Pool, and house themselves"*, and `TripTable.Start`
-requires **an origin and a destination Address** — which an unplaced Household has not got, because the
-Pool is what will give it one. ***A journey described in prose can name an endpoint the mechanism has to
-compute.*** So the Household **waits at the gate and the Trip is the move-in**, which keeps every
-property that ADR was buying. ⚠ **And `adr/0023` needed no amendment for the *second* thing either** —
-*people leave the way they came* is a symmetry of shape, not of identity, and ***reading it as identity
-was about to buy a saved column for life.***
-
-⚠ **Two more:** the unhoused Departure **ships with the gate**, because `adr/0006` was satisfied only by
-nothing creating a Household after world creation and the gate removes that reason — and its bound is a
-**duration**, because a count of dwellings *considered* ***cannot fire in a city with no vacancies,
-which is the exact failure the channel exists to diagnose.*** And **no Good crosses the gate at 11**:
-trade is `Scope.Pool`, which is 12, so what crosses is **people and the money they carry**, drawn from
-the Hinterland they came from — which is also the only thing that makes any Hinterland field readable at
-11 at all.
-
-**Three corrections landed in the same sitting**: `CONTEXT.md` said the Pool's bound was *a limited
-number of failed attempts*; it said the map flip *has not moved yet* when `CellGrid.WorldCells` has been
-**512** since 2026-08-13; and `06` placed **Settlements** at 11 where nothing reads one and **Shipments**
-at *"11, behind 12"* where 11 runs before 12.
-
-⚠ **And the assessment found the build's own obstacle, which no document had.** `World.CreateHousehold`
-**requires a dwelling in its signature**, and `World.Unplace` **refuses an unhoused Household** by
-invariant — so the Unplaced Pool can hold only a Household the city has already housed, and there is no
-door a Household can arrive through. `CONTEXT.md` → Unplaced Pool describes four entry routes entering
-*"on equal terms"*, of which immigrants are the first. ***A door the design describes and an invariant
-refuses is a disagreement rather than a defect***, and which one moves is decision 2.
+✅ **Hash-moving queue item 11's hold is RELEASED, 2026-08-21.** Its fix was **held rather than owed**,
+and held for exactly one reason: it re-records the golden baselines while milestone 11 was re-recording
+the same files — a collision on a shared artefact, and expressly ***not*** a hash concern, since
+[`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+forbids citing hash movement as a reason to defer. **Milestone 11 is closed, so the collision is over
+and the item can be picked up.** [`0003`](0003-build-plan.md) → *The hash-moving queue* item 11 holds
+the full diagnosis.
 
 ✅ **Milestone 9 — the land value target and the composed Layers is CLOSED, 2026-08-20**, all eight
 tasks and all six decisions, scoped and shipped inside one day, which is the shortest a milestone has
@@ -661,9 +479,11 @@ time in a month.** 5c — statistical resolution and the travel-time matrix — 
 eight tasks, **6, Evidence, closed 2026-08-17 on all seven**, **8, Save/load, closed 2026-08-18 on all
 ten**, **7, Parking, closed 2026-08-19 on all eight**, **10, Conserved Money, closed 2026-08-19**, and
 **9, the land value target and the composed Layers, closed 2026-08-20 on all eight tasks and all six
-decisions**. ⚠ **9 shipped last and sits in the middle** — 10 was built ahead of it on its own branch —
-so the next code row is **11**, and it is the first one off the **end** rather than a gap. Phase 1 is
-closed and **its code column is empty**; slices 0–10 all shipped, and
+decisions**, and **11, Hinterlands and arrival through the gate, closed 2026-08-21 on all nine tasks
+and all ten decisions** — its gate discharged by the unfiltered suite on the reference machine, **1,927
+passed, 0 failed**. ⚠ **9 shipped before 11 and sits in the middle** — 10 was built ahead of it on its
+own branch — so the next code row is **12**, and it is the first one off the **end** rather than a gap.
+Phase 1 is closed and **its code column is empty**; slices 0–10 all shipped, and
 [`0003`](0003-build-plan.md)'s hash-moving queue has **four** open items (**item 8**, a live
 wake-predicate defect, filed unfixed because its two repairs are a design question; **item 10**, every
 load refusal reaching the user as a stack trace, filed unfixed because the finding came out of a `Core`
@@ -676,7 +496,7 @@ or `sealing` as a map output loading clean and panicking when it fires, filed th
 has shipped **5a** (the Road Graph), **5a-bis** (Lots and the road editor), **5b** (Trips and Legs),
 **5b-bis** (jobs and the commute), **5c** (the matrix, the route cache, the vehicular Leg and the
 volume-delay function), **6** (Evidence), **7** (Parking), **8** (Save/load), **9** (land value and the
-composed Layers) and **10** (Conserved Money).
+composed Layers), **10** (Conserved Money) and **11** (Hinterlands and arrival through the gate).
 
 **No gate is red anywhere in the corpus, and no session gates a slice** — F was the last one that did.
 S4, S0a, S0b, S2 R0–R8 and S5 have all run. Sessions A, B, C, D, E, F, H, J, K, M, P, Q, T, eight and
@@ -789,7 +609,7 @@ argument session runs when something concrete is blocked on it, and never becaus
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **`06` milestone 11 — Hinterlands and arrival through the gate. 🟢 IN FLIGHT — scoped 2026-08-20, [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), ✅ ASSESSED (no document names a gate), and ✅ **ALL NINE TASKS SHIPPED, 2026-08-20 to 2026-08-21.** 🔴 ⚠ **The acceptance run at task 9 found TWO production defects and both are the same shape** — `0035` **F29** and **F30**: retiring a Citizen had two implementations and the commute roster reached only one, and `World.ReleaseParking`'s only caller was not the one that frees the row. ***A path exercised only by fixtures is a path with no long run behind it***, and `DestroyCitizen` had no production caller at all until `adr/0130`'s give-up bound. ⚠ **One of them had been written down as design for four milestones**, in the doc comment of the very invariant test that reached the violation *through* it.** ⚠ **An ELEVENTH decision was found by task 1 after the scoping sitting recorded all ten closed** — the throughput ceiling's **unit**, which no document named; the `min()` moved to 12 and `adr/0088` is amended in place twice (decision 9).** It is the next unstarted position in `06`'s sequence now that **9** is closed, and the first one off the **end** rather than a gap. ⚠ **It is money's only source and sink and the anchor every price, wage and rent hangs off**, which is why the 2026-08-18 reorder moved it from **14** to **11**. ✅ **ALL TEN DECISIONS ARE CLOSED, 2026-08-20** — [`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md)–[`adr/0131`](../docs/adr/0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md), with the user in the room, and **nine tasks are scoped**. What ships is **the people door and the money that walks through it**: the gate kind, `[[hinterland]]`, a world with a door in it, `World.Arrive` into the Pool at a gate, the move-in Trip, and the unhoused Departure. ⚠ **~~conservation as supply plus flow~~ STRUCK — the invariant needed no rewrite at all** (`0035` **F20**): `MoneySupplyTable.Issued` is declared net of what has left, and `World.Endow` writes the anchor in the same call that deposits, so the equality stays exact. ⚠ **Its named risk has two halves of different sizes** — *where Households come from* is a producer, *no price has an anchor* is an authored object whose consumers are 12 and 13, so ***the anchor ships unread, which is milestone 9's land value one milestone later*** | [`0035`](0035-hinterlands-and-arrival-through-the-gate.md), [`06`](../docs/06-roadmap.md) → milestone 11 | It is the ungated row at the head of the sequence, and **13, the trigger on both weights milestone 9 left unratified, is behind it** |
+| **1** | code | **`06` milestone 12 — Goods between Buildings, the District Pool. 🔵 SCOPING STARTED 2026-08-21 ([`0037`](0037-goods-between-buildings-the-district-pool.md)), ungated, NO DECISION SETTLED.** 🔴 ⚠ **The survey found THREE preconditions no document listed as blockers, and two are structural: `DistrictTable` and `DistrictId` DO NOT EXIST** — every occurrence of *District* in `Borough.Core` is a comment — **and `[[hinterland]]` carries NO PRICE PER GOOD**, which `adr/0050` calls the one authored anchor under every price in the design and `0035` decision 6a deliberately withheld at 11 for want of a consumer. **12 is the consumer.** ***A milestone whose named risk is a single `throw` reads as a milestone with a single obstacle***, and the `throw` is the symptom. The third is a repair: `BinOwnerKind.Household` and `.Business` both read *"declared and not yet owned"* and both have been owned since milestone 10 — ***a stale comment saying a thing is MISSING costs more than one saying it is present, because the first is a reason to stop.*** ✅ **BLOCKER RE-CHECK RAN 2026-08-21**, which is what this row's own predecessor in [`06`](../docs/06-roadmap.md) instructed — and 🔴 **it found that row inverted: ONE of its four blockers arrives here and THREE do not**, against `adr/0117`'s *"only ground 1 is discharged by arriving at 12"*. **Struck in place and filed to [`0012`](0012-corpus-audit.md).** 🔴 ⚠ **The row had also DROPPED `adr/0117`'s ground 3** — the **transfer-versus-purchase shape**, which decides whether Upkeep's authored quantity is **money or Materials** — lost by re-partitioning four grounds into four blockers, ***a re-partition that preserves the count reading as a restatement and being a deletion***. **What arrives**: the counterparty, because `Scope.Pool` is the only market spelling the enum has. **What does not**: a construction cost (`adr/0035` denominates it in **Lane-Tiles**, which is **21**; `adr/0091`'s compulsory-purchase price has not landed), a design life (derived from a mature city's budget, so plausibly **15**), the shape question, and an **actor** — `BinOwnerKind` is `Building / Household / Business / Treasury` with **no Segment**, and `RuleEngine.Bin` still takes `int building`, so ***Upkeep's subject, payer and counterparty are three different things and the engine has no Rule whose subject is not its payer.*** Its named risk is that **the engine ships a scope it refuses**: `RuleEngine.cs:803` throws on `Scope.Pool` by name, so `02 §4.3`'s own bakery example is unloadable. ⚠ **The Pool is a MARKET, not a wider Bin lookup** ([`adr/0050`](../docs/adr/0050-crossing-an-ownership-boundary-is-a-trade-and-payment-is-implicit-in-the-scope.md)) — *"implementing this as a Bin lookup ships an unconserved economy, and no refusal can catch that."* It inherits `adr/0088`'s `min(declared ceiling, Segment capacity)` and the which-of-the-two-binds readout, relocated from 11 by [`0035`](0035-hinterlands-and-arrival-through-the-gate.md) decision 9 | [`06`](../docs/06-roadmap.md) → milestone 12, [`adr/0117`](../docs/adr/0117-upkeep-leaves-milestone-10-and-its-blocker-is-a-rule-with-no-actor.md) | It is the ungated row at the head of the sequence now that **11** is closed, and **it is the only root with a consumer already in the build** |
 | **2** | spike | ⚠ **STILL BLOCKED — do not delete `spikes/S2.Routing/`.** The 5a gate is discharged (the port is done; nothing in `src/` or `tests/` compiles against it), but **another session is doing research inside it**, so it is live work and that is the gate now. **51 tracked C# files, 29,719 lines**; `Borough.slnx` still lists the project | [`0010`](0010-s2-routing.md) → *R7* | ⚠ **Do not read the first gate's clearance as the second's.** *A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears* |
 | **3** | spike | **S5 owes two captures.** The **4-thread** Lane kernel rung is bimodal (~2.5× against ~3.9×) and needs four pinned cores clear at once; the canonical `performance` re-capture is owed beside it. **2 threads is settled at 1.84–1.93×** | [`0019`](0019-s5-lane-kernel.md), [`spike-results`](../docs/spike-results.md) → *S5* | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare.** `adr/0096` exists because a number travelled without its clause |
 | **4** | code | **[`0003`](0003-build-plan.md) hash-moving queue item 8 — filed unfixed.** A waiter whose **own** requirement falls is never re-checked: `adr/0063` made the wake predicate read live state, and the only thing that calls `World.Drain` is a write to the **Bin**. Observed stable on four Bins from Tick 512 to 4096 | [`0003`](0003-build-plan.md) → *The hash-moving queue* | ***A live predicate with an event-driven trigger is only correct if every input to the predicate is an input to the trigger.*** Filed rather than fixed because both repairs are design questions |

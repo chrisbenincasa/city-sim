@@ -1437,6 +1437,26 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ `06` milestone 12's row inverted `adr/0117`'s blocker count, and lost a whole ground by re-partitioning it.**
+Found and fixed **2026-08-21**, on the re-check that row's own last sentence demands before starting the
+milestone. The row read *"**three** of its four blockers arrive here and **one** does not"*; `adr/0117`'s
+consequences read *"only ground 1 is discharged by arriving at 12"* and *"whoever picks Upkeep up re-checks
+grounds **2, 3 and 4**"*. **One arrives and three do not**, and the row said the reverse. ***A summary that
+inverts its source's count fails in the reassuring direction, because a row saying three of four are cleared
+is a row nobody re-opens*** — and this one is read at exactly the moment somebody is deciding what to scope.
+🔴 **The second half is worse and is a new surface for Cause 1.** `adr/0117` has four *grounds*: the loader
+refusal, **both missing terms as one ground**, the transfer-versus-purchase **shape**, and the missing actor.
+`06` had four *blockers*: counterparty, cost, life, actor. The counts match and the sets do not — splitting
+ground 2 into two freed a slot, and **ground 3 fell out of it silently**. That is the ground deciding whether
+Upkeep's authored quantity is **money or Materials**, which `adr/0117` assigns to *"whoever builds Upkeep"*.
+***A re-partition that preserves the count reads as a restatement and is a deletion***, and the preserved
+count is what makes it invisible: a reader checking four against four finds nothing wrong. ⚠ **No mechanical
+check reaches this either** — every citation resolves and every link opens, because the row cites `adr/0117`
+correctly while disagreeing with it. **Both halves are struck in place in `06` and the row now says re-check
+all four.** The re-check itself is recorded there: ground 1 discharged at 12 (`Scope.Pool` is the market),
+grounds 2, 3 and 4 open, with `BinOwnerKind` carrying no Segment and `RuleEngine.Bin` still taking
+`int building` as the evidence for 4.
+
 **⚠ The board's headline paragraph and the board's own table disagreed about what was in flight.**
 Found and struck 2026-08-19 while closing milestone 10. [`0000`](0000-board.md) → *What is next* opened
 *"One milestone is scoped and in flight, and it is 7"* while *Do these next* row **1b** read
