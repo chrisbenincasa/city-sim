@@ -2,6 +2,28 @@
 
 **Upkeep is struck from milestone 10 and placed at 12, the District Pool.** Four things block it and each is independently sufficient, but the one nobody had written down is the fourth: [`0035`](0035-infrastructure-is-priced-by-what-it-consumes.md) names Upkeep's **Rule family** and never names **what the Rule is attached to**, and a Segment is not an actor in any sense the engine has. `SOLVE THE ACTUAL PROBLEM` `LEGIBLE CAUSE` `HONEST DEGRADATION`
 
+> 🔴 ⚠ **SUPERSEDED IN TWO PLACES 2026-08-22 by [`0136`](0136-upkeep-has-three-blockers-landing-at-three-times-so-it-has-a-queue-and-not-a-milestone.md).
+> Upkeep is not at 12 either; it is UNPLACED.** This ADR's own revisit trigger — *"milestone 12 shipping
+> without `Scope.Pool` resolvable from a Segment"* — **fired predictively**, because 12's scope is now
+> settled and attaches no Rule to a Segment. ***Twice placed and twice moved, and both placements were
+> made against one blocker while the others were open***; a third pin, to 21 against the Lane, would be
+> the same move again.
+>
+> **And ground 3 below is SETTLED rather than deferred.** This ADR left *"whether the authored quantity is
+> money or Materials"* to *"whoever builds Upkeep"*. It is **neither**:
+> [`0035`](0035-infrastructure-is-priced-by-what-it-consumes.md) §3 says *"the formulation exists to keep
+> the only authored number a **duration**"*, so a designer authors the **design life**, the Materials fall
+> out of the Segment and the money falls out of the market price. Upkeep is a **purchase**, which is what
+> `adr/0035`'s title claimed and its formula obscured. ***A ground answerable from a document already
+> cited was deferred for being adjacent to hard ones.***
+>
+> ✅ **Two of the four grounds below have moved and the text is left as written.** Ground 1 is fully
+> discharged. **Ground 2's *money* half is discharged too** — it reads *"no Ruleset key anywhere authors
+> a cost of anything"*, and after [`0135`](0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md)
+> none needs to, because construction money buys Materials at a market price. What survives of ground 2 is
+> the **quantity**, denominated in Lane-Tiles and therefore waiting on the Lane. **Ground 4 stands
+> unchanged and is now the blocker with no milestone at all.**
+
 ## Why
 
 [`06`](../06-roadmap.md)'s milestone 10 row says it *"carries the Household balance sheet, Upkeep (`adr/0035`) and Policy's spend (`adr/0033`)."* The Household balance sheet and Policy's spend stay. Upkeep does not, and it is not close.

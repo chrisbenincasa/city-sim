@@ -8,8 +8,14 @@
 > Phase 1 only.** The roadmap's phases, risk fields and the argument for each remain authoritative;
 > what is re-derived here is the *order*, because the readiness review of session eight moved tables
 > ahead of the hash and pulled three items out of Phase 1's milestones that were never milestones —
-> the scaffolding, the arithmetic substrate, and the analysers. Phase 2 and Phase 3 in the roadmap
-> are untouched and are not planned here.
+> the scaffolding, the arithmetic substrate, and the analysers. ~~Phase 2 and Phase 3 in the roadmap
+> are untouched and are not planned here.~~
+>
+> **⚠ AMENDED 2026-08-22 — this document now holds Phase 2's *status*, and still not its order.**
+> `06` keeps Phase 2's sequence and the risk each milestone retires; what arrives here is the
+> per-milestone **gate, plan pointer and state**, which `06`'s own header forbids it to hold and
+> [`0000`](0000-board.md)'s own rules forbid it to be a source of. It had been living on the board
+> for want of anywhere else. Phase 3 is untouched and is still not planned here.
 
 ---
 
@@ -24,6 +30,12 @@ actual tasks.
 
 The unit here is deliberately smaller than a milestone and deliberately larger than a task. A slice
 is *the smallest amount of work that leaves the build green and retires something*.
+
+**Two ledgers, two axes.** Phase 0 and Phase 1 are keyed by **slice**, which is this document's own
+re-derived order. Phase 2 is keyed by **milestone**, because it has run one plan document per
+milestone throughout and never used the slice axis at all. Both tables answer the same question —
+***what is done, what gates it, and which document holds the record*** — and neither restates `06`'s
+sequence or its risk fields.
 
 ### The rules this plan inherits
 
@@ -163,13 +175,31 @@ become three.
 | **9** | **Event Wheel — all four tasks done.** Session C settled the design and **narrowed the scope**: the **fine wheel only**, because the coarse Day wheel has no consumer until Life Stages arrive in Phase 2, and building it now would be writing past the slice. Finish what slice 7 half-built, keep `Arm`'s refusal above `WHEEL_SIZE` with its message re-pointed at `adr/0056`, and state the invariant the session extracted — *every live scheduled row is in exactly one of {armed, waiting}, and is unlinked when its owner row is freed* | **4** | ✅ **cleared** by session C → `adr/0056` | — | **done** → [`0016`](0016-the-event-wheel.md). **776 tests, no baseline moved** — hash-neutral, which was the slice's own acceptance test. **Two findings outrank the four tasks.** The end-of-run tier had been stamping every violation **Tick 0** in both 100,000-Tick runs, because each called `CheckEndOfRun()` on a *fresh* `Simulation` over an already-run world — invisible for as long as no end-of-run invariant read the stamp, and caught by the first one that did. And `Simulation._tick` is the **next** Tick to run rather than the last one run, which is why the period window is half-open at the bottom. Three `BinTests` fixtures also turned out to run time **backwards** — popping a row for Tick 1 and then depositing on Tick 0 — the fourth instance of a green suite agreeing with the code rather than the claim, and the first in a fixture's clock. The slice's shape is that **all three checks are relative to a *now* the wheel does not have**, which is the wall slice 8's `Adopt` hit too. **The plan found the fine wheel is not half-built but built**, and both halves of the invariant session C extracted have been in the tree, registered and tested, since slice 7 — so the four tasks are four *corrections* rather than the construction the row anticipated: a refusal message naming a design `adr/0056` refuted, a missing write-site refusal against a double-arm, a whole-world check **blind to a whole period** because it is written modulo the period, and an `Unlink` that discards the one signal saying whether it unlinked anything. Two of the three holes are reachable only through a **Ruleset reload** and a **save/reload** — the first in flight in slice 8 this week, the second guarded by the invariant session C found has never run |
 | **10** | **Zone Rules — the second Rule family — all ten tasks done.** The Lot's permission set, the derived Lot→Building index, the `[[zone_rule]]` table and its three refusals, the sample and its third `purpose_tag`, the trigger in **Tick phase 6**, create, demolish, eviction, the tripwire, **both halves** of the long-run trend assertion, and `--zones`. **Planning inverted the slice's name** and the build inverted it back: the create predicate had to exist because a slice that only demolishes leaves `slots` flat against a *falling* `live`. Produced `adr/0053`–`0055`, **deleted one of its four unratified numbers by deriving it away**, and **amended `adr/0053` twice from the code** — the signal is a Rule asleep short of an *input*, and the clock lives on the Rule Instance. Three findings outlive it: the growth cycle **cannot be entered from a standing start**; the tripwire reads **1.56×**, so `02 §5.7` is *false in the letter and true in the substance* and the variable is the **working set**, not the Zone; and the city settles **five-sixths homeless** because **a Building has no declared occupancy** — filed, not tuned | **3c** (Sweep half) | ✅ **cleared** — *slice 7 was a dependency and not a gate, and it has since closed* | 3 | [`0014`](0014-zone-rules-and-the-sweep-family.md) |
 
-> **PHASE 2 HAS STARTED, AND THIS DOCUMENT DOES NOT OWN IT.** `06` milestone **5a, the Road Graph**,
-> shipped **2026-08-11** — the first Phase 2 slice, briefed and recorded in
-> [`0020`](0020-the-road-graph.md), which is where its tasks, its findings and its gate live. The
-> ledger above stops at slice 10 on purpose: this file's scope is *"the ordered slice ledger for Phase 0
-> and Phase 1"*, and extending it would make it a second home for a slice order it does not own —
-> `0012` *Cause 1* on the axis this corpus has been bitten by most.
+> ~~**PHASE 2 HAS STARTED, AND THIS DOCUMENT DOES NOT OWN IT.**~~ **STRUCK 2026-08-22. The refusal
+> below was right about the *order* and wrong about the *status*, and the difference is what the board
+> has been carrying ever since.** `06` milestone **5a, the Road Graph**, shipped **2026-08-11** — the
+> first Phase 2 slice, briefed and recorded in [`0020`](0020-the-road-graph.md), which is where its
+> tasks, its findings and its gate live. ~~The ledger above stops at slice 10 on purpose: this file's
+> scope is *"the ordered slice ledger for Phase 0 and Phase 1"*, and extending it would make it a second
+> home for a slice order it does not own — `0012` *Cause 1* on the axis this corpus has been bitten by
+> most.~~
 >
+> **Why it is struck.** The *order* does live in [`06`](../docs/06-roadmap.md), and restating it here
+> would indeed be `0012` *Cause 1*. But **per-milestone status lives in neither**: `06`'s own header
+> assigns live status to [`0000`](0000-board.md), and `0000`'s own rules forbid it to be a source. So
+> the refusal left a layer with no owner, and the board filled it — 551 lines of *What is next* doing a
+> ledger's job for milestone 12, which is the **third** time the board has inflated and been
+> hand-cleared. ***A document that declines a layer does not thereby abolish it.*** The table below
+> therefore restates **no order and no risk** — both stay `06`'s, cited by number — and holds only what
+> `06` may not and `0000` may not: **gate, plan pointer, and state.**
+>
+> ⚠ **The slice axis stops at 10 and does not continue into Phase 2.** [`PROCESS.md`](../PROCESS.md) →
+> *Numbering* keeps a slice and a milestone on different axes, and Phase 2 has run **one plan document
+> per milestone** throughout — the milestone *was* the sitting-sized unit. Minting slice numbers 11–22
+> now would invent a citation axis for work already recorded under another, which the same section
+> forbids for shipped work: *a shipped milestone keeps its number for ever.*
+>
+
 > **What 5a changes for the rows above is one thing: the S2 harness deletion is unblocked.** The hold
 > was that `spikes/S2.Routing/Graph/` is the reference implementation of 5a. The port is done, nothing
 > in `src/` or `tests/` compiles against the harness, and the deletion — **51 tracked C# files and
@@ -191,6 +221,37 @@ become three.
 > market**, so 10b's gate is untouched and `pool` still throws. *A milestone that moves near a blocked
 > row without clearing it is exactly the shape `0012` Cause 3 is about — a gate cited once and never
 > re-read — so the non-clearance is recorded rather than left to be inferred.*
+
+### The Phase 2 ledger
+
+**Keyed by [`06`](../docs/06-roadmap.md)'s milestone number, in the order built.** *Gate* is what had
+to clear before the row could start; *Plan* is the document that owns the tasks, the findings and the
+record. **The risk each row retires is `06`'s and is not repeated here** ([`adr/0042`](../docs/adr/0042-a-planning-document-cites-and-a-design-document-owns.md)).
+
+⚠ **A cell in this table is at most three sentences.** It says what the row *was for* and where the
+record is. Anything longer belongs in the plan document, and a cell that outgrows the rule is the
+failure mode that produced this table.
+
+| # | Milestone | Gate | Plan | State |
+|---|---|---|---|---|
+| **5a** | Road Graph and Streets | none | [`0020`](0020-the-road-graph.md) | ✅ **2026-08-11**, all seven tasks. Its definition of done is met but for the `spikes/S2.Routing/` deletion, held below |
+| **5a-bis** | The Lot subdivider and the road editor | none | [`0022`](0022-the-lot-subdivider-and-build-road.md) | ✅ **2026-08-11**, all seven tasks, `adr/0077`–`0079`. ⚠ **It has no milestone row in `06` at all** — filed in [`0012`](0012-corpus-audit.md) |
+| **5b** | Trips, Legs and the pedestrian layer | none | [`0021`](0021-trips-legs-and-the-pedestrian-layer.md) | ✅ **2026-08-12**, tasks 1, 2, 3, 5 and 7 — the whole of the re-scoped slice |
+| **5b-bis** | Jobs, the commute, and the first Trip generator | none | [`0023`](0023-jobs-and-the-commute.md) | ✅ **2026-08-13**, all eight tasks |
+| **5c** | Statistical resolution and the travel-time matrix | none | [`0026`](0026-statistical-resolution-and-the-travel-time-matrix.md) | ✅ **2026-08-16**, all eight tasks. ⚠ Task 8 was the named ratifier for four hash-bearing numbers and **could not fire** |
+| **6** | Evidence — the accumulators | none | [`0028`](0028-evidence-the-accumulators.md) | ✅ **2026-08-17**, all seven tasks, every owed decision closed |
+| **7** | Parking | ✅ cleared by session **H**, 2026-08-12 | [`0031`](0031-parking.md) | ✅ **2026-08-19**, all eight tasks, all four decisions settled. `adr/0119`, `adr/0120` |
+| **8** | Save/load | ✅ ungated by session **K**; `adr/0086`, `adr/0087` | [`0030`](0030-save-load.md) | ✅ **2026-08-18**, all ten tasks, all five open decisions closed. Lint 6 goes live |
+| **9** | The land value target and the composed Layers | none | [`0034`](0034-the-land-value-target-and-the-composed-layers.md) | ✅ **2026-08-20**, all eight tasks, all six decisions settled, `adr/0122`–`adr/0127`. Scoped and closed inside one day |
+| **10** | Conserved Money and the treasury | none | [`0033`](0033-conserved-money-and-the-treasury.md) | ✅ **2026-08-19**, all six decisions settled, `adr/0113`–`adr/0118`. Built ahead of 9 on its own branch |
+| **11** | Hinterlands and arrival through the gate | ✅ assessed 2026-08-20 — nothing names one | [`0035`](0035-hinterlands-and-arrival-through-the-gate.md) | ✅ **2026-08-21**, all nine tasks, all ten decisions. Gate discharged by the unfiltered suite: **1,927 passed, 0 failed** |
+| **12** | Goods between Buildings — the District Pool | none | [`0037`](0037-goods-between-buildings-the-district-pool.md) | 🟢 **LIVE.** Scoping started 2026-08-21, no task begun. Decisions **1, 4 and 8 settled** (`adr/0132`–`adr/0135`); **nine open**, and the survey found three preconditions no document had listed |
+| **18** | Needs and the coarse Day wheel — *wheel half only* | ✅ assessed 2026-08-21 — nothing names one | [`0036`](0036-the-coarse-day-wheel.md) | 🟡 **SCOPED 2026-08-21, out of sequence.** It is the repair for milestone **20**'s `adr/0011` gate, which is why it was scoped early |
+| **13**–**17**, **19**–**24** | — | — | [`06`](../docs/06-roadmap.md) | Not started. **`06` holds them and no plan document is owed until a row is next.** 20–23 are sequenced provisionally, pending sessions **E** and **G** |
+
+**Where the Phase 2 rows came from.** 5a–11 and the gate column were carried out of
+[`0000`](0000-board.md) on 2026-08-22, which had been holding them because this document declined
+them. The board keeps a **pointer** to this table and no copy of it.
 
 **Running in parallel, on their own track:**
 
@@ -747,6 +808,11 @@ them is what lets the Layers half land inside the Phase 1 gate instead of behind
 What blocks slices 7 through 10, stated so that the grilling sessions have a target and so that
 nobody starts one of these by accident.
 
+⚠ **This board is Phase 1's. Phase 2's gates are the *Gate* column of the Phase 2 ledger above** —
+one board per axis, because the two are keyed differently and a single table would have to carry both
+numberings. [`0036`](0036-the-coarse-day-wheel.md) recorded the absence on 2026-08-21 (*"`plans/0003`'s
+gate board holds no Phase 2 row"*) and it is filled rather than explained. **No Phase 2 gate is red.**
+
 | Slice | Blocked by | What specifically is missing |
 |---|---|---|
 | **7** — Bin Rules | ~~`adr/0015`'s Ruleset validator~~ **CLEARED** — [`adr/0048`](../docs/adr/0048-the-ruleset-is-validated-where-it-is-parsed-and-only-integers-and-strings-cross-into-the-core.md) names the parser (**Tomlyn**, in `Borough.Formats`), puts the validator with it, and enumerates **three** refusals in one load-time walk: the `on_fail` cycle check, the `fills` check, and an unquoted decimal. **The build has five** — a chain not ending in a terminal, and money that does not balance, both arrived while writing it. The core receives ids and integers and never a string. ~~Slice 7 still owes **Rule evaluations per Tick** and **walked chain depth** (`02 §9`)~~ **DISCHARGED by task 9**, and the first of the two had to be rebuilt rather than wired up: it counted *due Rule Instances*, which a chain walk does not move | **`02 §4` residue is closed** ([`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md)) and closing it **moved this gate rather than clearing it**. Depth needed no cap — the source ladder bounds it and the number is measurable, routed to this slice's counters. What remains is load-time: the `on_fail` **cycle check** and the **`fills` check**, both refusals on `adr/0015`'s error surface, and both needing the TOML parser below. ~~Slice 7 also owes **Rule evaluations per Tick** and **walked chain depth** (`02 §9`)~~ **DISCHARGED by task 9**, which also measured what this gate's *number is measurable, routed to this slice's counters* was routing: a chain rung costs **53.6 ns** against a head evaluation's **82.84**, so **depth is the cheap axis** and session B's withdrawn cap of 5 would have bought the least available saving |
@@ -846,7 +912,16 @@ regardless of what else it delivered.
 
 ## What is deliberately not in this plan
 
-**Phase 2 and Phase 3.** Not from lack of interest but because the readiness review is unambiguous:
+> **⚠ THE PHASE 2 HALF OF THIS SECTION IS STRUCK, 2026-08-22.** Every premise below was discharged
+> and the corrections were written in place rather than acted on. **S0a and S0b have both run**; `06`'s
+> Phase 2 was **re-derived by session K on 2026-08-16**, so it is no longer *"task lists against
+> decisions a grilling session will move"*; and eleven Phase 2 milestones have since **shipped**, which
+> settles the question empirically. ***A refusal whose stated reason has gone false is not thereby
+> struck, and nobody struck this one*** — the same shape [`0000`](0000-board.md) recorded for S0b's
+> gate, third data point. The **Phase 2 ledger** above is what replaces it. **Phase 3 stands: it is
+> undesigned rather than unplanned**, and the rest of this section is unaffected.
+
+~~**Phase 2 and Phase 3.**~~ **Phase 3.** Not from lack of interest but because the readiness review is unambiguous:
 Phase 2's wall is `03 §5`, the traffic model — still the most detailed unargued design in the
 project, now carrying transit vehicles under a Microscopic Cap whose value is unset — plus six
 🔴 ADRs and S2. Planning it now would be writing task lists against decisions that a grilling

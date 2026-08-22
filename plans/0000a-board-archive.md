@@ -12,6 +12,15 @@ scannable. It has now been cleared twice: the 999-line long-form board went on *
 close-outs cut in 2026-08-15 were each verified against their owning plan before removal, and each owner
 held the fuller version.
 
+**The third clearing, 2026-08-22, had a different cause and a different repair.** The first two were
+hand-clearings of narrative that had a home elsewhere. This one found that ~~the board was undisciplined~~
+**a layer had no owner**: [`0003`](0003-build-plan.md) covered Phase 0 and Phase 1 and expressly declined
+Phase 2, `06` is forbidden by its own header to hold live status, and so per-milestone status for eleven
+shipped milestones had nowhere to live but here. It grew a 551-line *What is next* doing a ledger's job.
+***A document that declines a layer does not thereby abolish it*** — so the repair was to give `0003` a
+**Phase 2 ledger** first, and only then to cut. Cutting without it is what made the first two grow back
+in four days and three.
+
 ⚠ **Do not quote this file.** A one-line summary is a caveat-free compression of somebody else's
 sentence, which is `plans/0012` **Cause 5** by construction. Follow the link.
 
@@ -81,3 +90,17 @@ had **dropped 7b, 9a and 9b entirely**.
 Two rules came out of it and both are live on the board: ***a blanket row is a status whose granularity
 is coarser than the claims it covers***, and ***a per-milestone table that omits the cleared ones is how
 the missing ones stay missing***.
+
+## Closed rows of *The argument track*
+
+| Was | What it was | Closed | Owner |
+|---|---|---|---|
+| **E** | `adr/0005` + `adr/0007` — fidelity; all four questions answered | 2026-08-16 | [`0029`](0029-session-e-fidelity.md) |
+| **K** | `06`'s Phase 2 ordering, re-derived — 5a–5c frozen, then 6–24 | 2026-08-16 | [`06`](../docs/06-roadmap.md), [`PROCESS.md`](../PROCESS.md) → *Numbering* |
+| **T** | The target speed — opened and closed the same day | 2026-08-16 | [`0027`](0027-session-t-the-target-speed.md), [`adr/0105`](../docs/adr/0105-the-target-speed-is-4x-at-a-million-and-a-rung-dilates-rather-than-being-withdrawn.md) |
+
+## Closed rows of *Two audits the corpus assigned itself*
+
+| Was | What it was | Closed | Owner |
+|---|---|---|---|
+| 2 | Re-check every 🔴-blocked debt for a gate whose stated reason covers only part of what it blocks — three clean positives, one partial, and a second failure mode found: stale gates whose stated reason had gone false | 2026-08-14 | [`0012`](0012-corpus-audit.md), [`0003`](0003-build-plan.md) |
