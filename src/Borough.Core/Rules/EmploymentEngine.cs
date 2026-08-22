@@ -96,6 +96,17 @@ public sealed class EmploymentEngine
     private int _tickBeyond;
 
     /// <summary>
+    /// Times the pass walked a search box this Tick: once to size it, then once per candidate drawn.
+    /// </summary>
+    /// <remarks>
+    /// <b>Walks rather than Cells, and the difference is what keeps it affordable.</b> A Cell counter
+    /// would cost an increment inside <see cref="Space.BuildingResidency.CountIn"/>'s inner loop, which
+    /// is the loop being measured; this costs one increment per call. The Cell figure is the product
+    /// of this and the box's own area, and a reader who wants it has both.
+    /// </remarks>
+    private int _tickBoxWalks;
+
+    /// <summary>
     /// Assignments made this Tick, by <see cref="CommuteRung"/>. Indexed by the enum's value, which
     /// is why <see cref="CommuteRung.Fast"/> being zero is stated as load-bearing where it is
     /// declared.
@@ -109,6 +120,7 @@ public sealed class EmploymentEngine
     private RuleFlow _fastFlow;
     private RuleFlow _moderateFlow;
     private RuleFlow _unsavouryFlow;
+    private RuleFlow _boxWalksFlow;
 
     /// <summary>The members of <see cref="CommuteRung"/>.</summary>
     private const int RungCount = 3;
@@ -128,7 +140,7 @@ public sealed class EmploymentEngine
     {
         var activity = new EmploymentActivity(
             _consideredFlow, _seekingFlow, _employedFlow, _beyondFlow,
-            _fastFlow, _moderateFlow, _unsavouryFlow);
+            _fastFlow, _moderateFlow, _unsavouryFlow, _boxWalksFlow);
 
         _consideredFlow = default;
         _seekingFlow = default;
@@ -137,6 +149,7 @@ public sealed class EmploymentEngine
         _fastFlow = default;
         _moderateFlow = default;
         _unsavouryFlow = default;
+        _boxWalksFlow = default;
 
         return activity;
     }
@@ -297,6 +310,8 @@ public sealed class EmploymentEngine
             return false;
         }
 
+        _tickBoxWalks++;
+
         int here = _world.BuildingsInCells.CountIn(box);
 
         if (here == 0)
@@ -328,6 +343,8 @@ public sealed class EmploymentEngine
             // candidates within one occasion; the shift count is constant, which keeps BOR0204 quiet.
             ulong entity = Randomness.Mix(id ^ ((ulong)(uint)look << 32));
             ulong value = Randomness.Draw(_key, entity, tick, PurposeTag.JobCandidate);
+
+            _tickBoxWalks++;
 
             int building = _world.BuildingsInCells.NthIn(
                 box, _world.Buildings, (int)(value % (ulong)(uint)here));
@@ -503,11 +520,13 @@ public sealed class EmploymentEngine
         _fastFlow = _fastFlow.Fold(_tickRungs[(int)CommuteRung.Fast]);
         _moderateFlow = _moderateFlow.Fold(_tickRungs[(int)CommuteRung.Moderate]);
         _unsavouryFlow = _unsavouryFlow.Fold(_tickRungs[(int)CommuteRung.Unsavoury]);
+        _boxWalksFlow = _boxWalksFlow.Fold(_tickBoxWalks);
 
         _tickConsidered = 0;
         _tickSeeking = 0;
         _tickEmployed = 0;
         _tickBeyond = 0;
+        _tickBoxWalks = 0;
         Array.Clear(_tickRungs);
     }
 }
@@ -527,6 +546,10 @@ public sealed class EmploymentEngine
 /// <param name="Fast">Of those employed, the ones whose commute is <see cref="CommuteRung.Fast"/>.</param>
 /// <param name="Moderate">Of those employed, <see cref="CommuteRung.Moderate"/>.</param>
 /// <param name="Unsavoury">Of those employed, <see cref="CommuteRung.Unsavoury"/>.</param>
+/// <param name="BoxWalks">
+/// Times the pass walked a search box: once per seeker to size it, then once per candidate drawn.
+/// Multiply by the box's own area for the Cells visited, which is the quantity a cost argument wants.
+/// </param>
 public readonly record struct EmploymentActivity(
     RuleFlow Considered, RuleFlow Seeking, RuleFlow Employed, RuleFlow Beyond,
-    RuleFlow Fast, RuleFlow Moderate, RuleFlow Unsavoury);
+    RuleFlow Fast, RuleFlow Moderate, RuleFlow Unsavoury, RuleFlow BoxWalks);

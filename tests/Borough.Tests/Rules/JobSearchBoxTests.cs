@@ -180,46 +180,66 @@ public sealed class JobSearchBoxTests
     }
 
     /// <summary>
-    /// <b>The box is not where the pass spends its time</b>, so its width is a behavioural question
-    /// rather than a cost one.
+    /// <b>The box is walked a fixed number of times per seeker, however wide it is</b> — so its width
+    /// is a question about which Buildings are reachable rather than about what the pass costs.
     /// </summary>
     /// <remarks>
     /// <para>
+    /// ⚠ <b>This asserted a <c>Stopwatch</c> ratio until 2026-08-22, and it was
+    /// <c>plans/0003</c> hash-moving queue item 13.</b> It timed two runs and required the wider box to
+    /// cost under <b>2.2×</b>, and ***its own comment predicted the failure rate it then had***: <i>"a
+    /// band transplanted from a quieter quantity fails one run in ten with nothing wrong under it."</i>
+    /// It failed about one run in ten. Under [`plans/0032`](../../../plans/0032-test-tiers.md)'s axis —
+    /// <em>on the day it fails, do you find out what broke or paste in the new number?</em> — a
+    /// wall-clock ratio is an <b>instrument</b>, and this one sat in the assertion tier wearing an
+    /// assertion's clothes. <c>adr/0121</c>: <em>a quiet machine is a control on a capture</em>, so a
+    /// test that takes a capture inside the gate has put a capture's controls on the gate.
+    /// </para>
+    /// <para>
+    /// <b>What replaces it is a count, and the count is exact rather than banded.</b>
+    /// <c>EmploymentActivity.BoxWalks</c> counts the walks: one per seeker to size the box, then one
+    /// per candidate drawn. Measured at both ceilings on 2026-08-22, 40,000 Citizens: <b>33,277
+    /// seekers, 133,108 walks, 4.00 per seeker</b> — <em>identical in both arms</em>, against boxes of
+    /// <b>841</b> and <b>4,489</b> Cells. So growing the box <b>5.34×</b> adds no walks at all; what it
+    /// scales is Cells-per-walk, which is geometry and derivable — <b>112M</b> against <b>598M</b>
+    /// Cells visited, printed above for whoever wants the cost figure.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is a narrower claim than the one it replaces, and deliberately.</b> The old assertion
+    /// was about a <em>share of run time</em> — box walking at ~18% of the pass, failing if it reached
+    /// ~28% — and no operation count can reproduce that, because a route search is a variable-cost
+    /// search rather than one operation. What is asserted instead is the structural fact underneath it:
+    /// <b>the pass walks the box a constant number of times per seeker, and box width does not move
+    /// that constant.</b> ***A guard that fires on a real change every time beats one that fires on a
+    /// bigger change nine times in ten.*** The time share remains measurable, by whoever wants it, on a
+    /// quiet machine, as an instrument.
+    /// </para>
+    /// <para>
     /// Isolated with <c>[[building]] jobs = 0</c>: no candidate ever has a vacancy, so <c>TryEmploy</c>
-    /// walks the box and never routes, and nobody is employed at either ceiling, which holds the seeker
-    /// count equal. ⚠ <b>Re-measured 2026-08-19 and the published figure was an artefact: a
-    /// <b>5.34×</b> box costs <b>1.79×</b>, not 1.06×.</b> Five runs give 1.73–1.84 and the spread is
-    /// tight; solving <c>(1 − f) + 5.34f</c> puts box walking at ~<b>18%</b> of the pass, where 1.06×
-    /// implied 1.4%.
+    /// walks the box and never routes, and nobody is employed at either ceiling — which is what holds
+    /// the seeker count equal across the two arms and makes them comparable at all.
     /// </para>
     /// <para>
-    /// ⚠ <b>What was wrong is the denominator, and it was 94% of it.</b> This test ran with
+    /// ⚠ <b>Two confounds were found in the timing version and are kept here because they are about
+    /// measurement rather than about this test.</b> First, it once ran with
     /// <c>Simulation.VerifyDecideWritesNothing</c> left on — an <c>O(world)</c> fold twice a Tick,
-    /// identical in both arms — so each arm read ~31 s of which ~29 s was the guard, and the ratio was
-    /// compressed toward 1 by a term that has nothing to do with the box. Measured both ways on one
-    /// machine within the minute: guard on <b>30,938 / 34,320 ms → 1.11×</b>, guard off
-    /// <b>2,248 / 4,129 ms → 1.84×</b>. ***A common term that does not move still moves a ratio, by
-    /// diluting it*** — which is the sibling of the confound recorded below, and the harder one to see,
-    /// because the paragraph below was written by somebody watching for a term that <em>moves</em>.
-    /// </para>
-    /// <para>
-    /// ⚠ <b>The comparison this replaces was confounded, and the confound cancelled rather than
-    /// added.</b> Running the shipped Ruleset at two ceilings changes the box <em>and</em> the number of
-    /// failed walk searches — <c>beyond</c> is 26,131 against 935 at 40,000 — so the cheaper box bought
-    /// more routing and the two nearly agreed. <b>A cost measured while a second term moves is not a
-    /// cost of the first term</b>: <c>adr/0073</c>'s corollary, on a measurement rather than on a
-    /// primitive.
+    /// identical in both arms — so each arm read ~31 s of which ~29 s was the guard: guard on
+    /// <b>1.11×</b>, guard off <b>1.84×</b>. ***A common term that does not move still moves a ratio, by
+    /// diluting it.*** Second, an earlier comparison ran the shipped Ruleset at two ceilings, which
+    /// changes the box <em>and</em> the number of failed walk searches, so the cheaper box bought more
+    /// routing and the two nearly agreed. <b>A cost measured while a second term moves is not a cost of
+    /// the first term.</b> Neither confound can reach a count.
     /// </para>
     /// </remarks>
     [Fact]
-    public void The_box_is_not_where_the_pass_spends_its_time()
+    public void The_box_is_walked_a_fixed_number_of_times_however_wide_it_is()
     {
-        _out.WriteLine("population   ceiling  radius  box(Cells)  run(ms)");
+        _out.WriteLine("population   ceiling  radius  box(Cells)  seekers  walks  walks/seeker  cells");
 
-        double narrow = 0;
-        double wide = 0;
-        long narrowBox = 0;
-        long wideBox = 0;
+        int walksAt20 = 0;
+        int walksAt50 = 0;
+        int boxAt20 = 0;
+        int boxAt50 = 0;
 
         foreach (int ceiling in new[] { 20, 50 })
         {
@@ -229,46 +249,43 @@ public sealed class JobSearchBoxTests
             CellRect box = CellRect.At(new Cells(CellGrid.WorldCells / 2),
                 new Cells(CellGrid.WorldCells / 2)).Dilate(radius).Clamp();
 
-            // Once to warm, once to read. Same process, same machine, same seeker count -- so the
-            // ratio survives a slow CI box where an absolute would not.
-            Run(40_000, rules);
-
-            var clock = Stopwatch.StartNew();
-            Run(40_000, rules);
-            clock.Stop();
+            EmploymentActivity pass = Run(40_000, rules).Employment.Drain();
 
             _out.WriteLine(
-                $"{40_000,-12} {ceiling,-8} {radius.Raw,-7} {box.Count,-11} "
-                + $"{clock.Elapsed.TotalMilliseconds:F0}");
+                $"{40_000,-12} {ceiling,-8} {radius.Raw,-7} {box.Count,-11} {pass.Seeking.Sum,-8} "
+                + $"{pass.BoxWalks.Sum,-6} "
+                + $"{(double)pass.BoxWalks.Sum / pass.Seeking.Sum:F2}          "
+                + $"{pass.BoxWalks.Sum * (long)box.Count}");
+
+            Assert.True(pass.Seeking.Sum > 0, "nobody sought work, so nothing was walked.");
+
+            // One walk to size the box, then one per candidate drawn. This is the whole claim: box
+            // width is a question about which Buildings are reachable, not about how much the pass
+            // does. A walk added anywhere -- a second CountIn, a retry, a candidate loop that sizes
+            // the box each time round -- moves this off the nose and says exactly what it cost.
+            Assert.Equal(
+                pass.Seeking.Sum * (1 + rules.Jobs.Candidates),
+                pass.BoxWalks.Sum);
 
             if (ceiling == 20)
             {
-                narrow = clock.Elapsed.TotalMilliseconds;
-                narrowBox = box.Count;
+                walksAt20 = (int)pass.BoxWalks.Sum;
+                boxAt20 = box.Count;
             }
             else
             {
-                wide = clock.Elapsed.TotalMilliseconds;
-                wideBox = box.Count;
+                walksAt50 = (int)pass.BoxWalks.Sum;
+                boxAt50 = box.Count;
             }
         }
 
-        double boxRatio = (double)wideBox / narrowBox;
-        double costRatio = wide / narrow;
-
-        _out.WriteLine($"box x{boxRatio:F2}, cost x{costRatio:F2}");
-
-        // 2.2 rather than 1.5, and the bound is set from the spread rather than from taste: five runs
-        // on 2026-08-19 gave 1.73-1.84 with the decide guard off, so a 1.5 written against a diluted
-        // 1.06 now fails on a correct city. The headroom is deliberately wider than the observed band
-        // -- 5c task 8's finding is that a band transplanted from a quieter quantity fails one run in
-        // ten with nothing wrong under it -- and 2.2 still catches the failure this guards: box walking
-        // going from ~18% of the pass to ~28%, which is where a 5.34x box starts to dominate it.
+        // The arms must actually differ, or everything above passes for the wrong reason.
         Assert.True(
-            costRatio < 2.2,
-            $"growing the box {boxRatio:F2}x cost {costRatio:F2}x, so walking the box has become a "
-            + "material share of the pass. It was 1.79x when this bound was set, which is what keeps "
-            + "the box's width a question about behaviour rather than about the Tick budget.");
+            boxAt50 > boxAt20 * 4,
+            $"the two ceilings gave boxes of {boxAt20} and {boxAt50} Cells, which is not the 5.34x "
+            + "spread this test compares across. The radius derivation moved.");
+
+        Assert.Equal(walksAt20, walksAt50);
     }
 
     /// <summary>
