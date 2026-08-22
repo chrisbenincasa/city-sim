@@ -1010,6 +1010,51 @@ public readonly record struct RoadRuleset(
 }
 
 /// <summary>
+/// One <c>[[lattice]]</c> table — <b>where the generator lays a Street lattice</b>, and the only
+/// thing a Ruleset can say about <em>where development is</em>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A Lattice is authored and a Settlement, a District and a centre are all derived, which is the
+/// whole reason this is not called any of them.</b> <c>CONTEXT.md</c> → Settlement is a commute shed:
+/// <i>"connectivity is transitive, so a contiguously-developed lattice is one Settlement however large
+/// the graph"</i>. Two Lattices joined by a road within the Commute Budget are therefore <b>one</b>
+/// Settlement, and a file authoring two <c>[[settlement]]</c> tables that produced one Settlement
+/// would be contradicting the term it borrowed. <c>adr/0134</c>'s <b>centre</b> is the same hazard one
+/// level down — a centre is a prominence peak the watershed <em>finds</em>, and a key that authored
+/// one would be authoring the answer.
+/// </para>
+/// <para>
+/// <b>Two numbers and no third, because the extent and the population share are derived.</b> A
+/// Lattice paves what its share of the world's Lots needs — <c>SyntheticCity.PavedTiles</c>, which is
+/// the expression that already sized the single lattice — and the shares are equal. Authoring either
+/// would put two more unratified hash-bearing numbers per table into a file whose whole content is a
+/// gap (<c>adr/0052</c>), and neither is what the gap is made of. <b>The origins are the gap.</b>
+/// </para>
+/// <para>
+/// <b>The absence of the table is one Lattice at the origin corner</b>, which is what every world this
+/// build could generate before 2026-08-22 — so no shipped Ruleset's State Hash moves by this key
+/// arriving. It is <c>[layers]</c>'s polarity rather than <c>[roads]</c>'s, and legitimately: there
+/// <em>is</em> an earlier behaviour to preserve here, and it is exactly one Lattice at (0, 0).
+/// </para>
+/// <para>
+/// ⚠ <b>World-creation data, not tuning.</b> Where the land is cannot be reloaded — a standing city
+/// does not move — so a second Lattice appearing on a hot reload would describe ground that has no
+/// roads on it. It is not yet in <c>RulesetLoader.Reload</c>'s frozen set for the reason that set is
+/// small: <c>LayerConstants</c> is what a world records, and a world records no Lattice. <b>What it
+/// records is the graph the Lattices produced</b>, and <c>RoadGenerator.LayInto</c> refuses a world
+/// that already has Segments.
+/// </para>
+/// </remarks>
+/// <param name="OriginEastTiles">
+/// The Tile the lattice's west edge stands on. A multiple of <c>[roads] block_tiles</c>, so that every
+/// Node in the world sits on one block grid and the link between two Lattices is a whole number of
+/// blocks.
+/// </param>
+/// <param name="OriginNorthTiles">The Tile the lattice's south edge stands on. Same constraint.</param>
+public readonly record struct LatticeDefinition(int OriginEastTiles, int OriginNorthTiles);
+
+/// <summary>
 /// The <c>[lots]</c> table — <b>how zoned land is carved into parcels</b> (<c>adr/0078</c>).
 /// </summary>
 /// <remarks>
@@ -1782,6 +1827,19 @@ public sealed class Ruleset
     public RoadRuleset Roads { get; init; } = RoadRuleset.None;
 
     /// <summary>
+    /// <b>Where the generator lays Street lattices</b> — every <c>[[lattice]]</c> table, in
+    /// declaration order.
+    /// </summary>
+    /// <remarks>
+    /// <b>Empty means one Lattice at the origin corner</b>, which is the only world this build could
+    /// generate until milestone 12 task 1, so no shipped Ruleset moves by this arriving. Order is
+    /// content here, unlike <see cref="Hinterlands"/>: a Lattice is never looked up, it is
+    /// <em>laid</em>, and consecutive ones are linked by a Street corridor — so swapping two tables
+    /// swaps which pair the corridor joins and moves the State Hash.
+    /// </remarks>
+    public LatticeDefinition[] Lattices { get; init; } = [];
+
+    /// <summary>
     /// The <c>[lots]</c> table in force — how zoned land is carved into parcels (<c>adr/0078</c>).
     /// </summary>
     public LotRuleset Lots { get; init; } = LotRuleset.None;
@@ -1999,6 +2057,7 @@ public sealed class Ruleset
             Layers = layers,
             Placement = Placement,
             Roads = Roads,
+            Lattices = Lattices,
             Lots = Lots,
             Trips = Trips,
             Jobs = Jobs,

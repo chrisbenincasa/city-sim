@@ -76,9 +76,57 @@ public static class RoadGenerator
     /// How far the lattice reaches from the origin corner, in Tiles. Clamped to the map.
     /// </param>
     /// <exception cref="InvalidOperationException">The graph already has Segments.</exception>
-    public static void LayInto(RoadGraph graph, WorldKey key, int extentTiles)
+    public static void LayInto(RoadGraph graph, WorldKey key, int extentTiles) =>
+        LayInto(graph, key, OneAtTheOrigin, extentTiles);
+
+    /// <summary>
+    /// Lays one lattice per <paramref name="lattices"/> entry, each reaching
+    /// <paramref name="extentTiles"/> Tiles from its own origin, joins consecutive ones with a Street
+    /// corridor, then rebuilds everything derived.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One extent for every lattice, because the shares are equal</b> — a Lattice paves what its
+    /// share of the world's Lots needs and every Lattice gets the same share
+    /// (<see cref="Entities.SyntheticCity"/>). A per-lattice extent would be a second authored number
+    /// per table with nothing to ratify it; equal shares make it one derivation for all of them.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The corridor is what makes this a world the District derivation can be tested on, and it
+    /// is the whole reason the lattices are joined rather than left apart.</b>
+    /// <c>adr/0134</c> clips the watershed to a road component and explicitly <em>rejected</em>
+    /// splitting on components alone — <i>"a connected city is one District for ever, which is
+    /// <c>adr/0013</c>'s explicitly rejected pool everything, city-wide wearing a derivation"</i>. Two
+    /// lattices in two components would let component labelling pass for a watershed, which is the
+    /// rejected mechanism wearing the chosen one's name. <b>Joined, the only thing that can find the
+    /// boundary is the density field</b>, and that is the thing under test.
+    /// </para>
+    /// <para>
+    /// <b>Street rather than Arterial, and <see cref="TravelMode.Any"/> both ways.</b> An Arterial
+    /// link would carry cars and not feet (<c>ConnectToGrid</c>'s remark says why the ramps do that),
+    /// so the world would be one component for driving and two for walking — and which of those the
+    /// clip reads would become a fork landing on whoever writes the watershed. One component in every
+    /// mode is one fewer question.
+    /// </para>
+    /// <para>
+    /// <b>It carries no Lots and that is not an accident of the geometry.</b>
+    /// <c>SyntheticCity.Subdivide</c> walks each Lattice's own block box and never the ground between
+    /// them, so the corridor is road with nothing on it — which is what keeps the density field's
+    /// saddle at zero and the two centres unambiguous.
+    /// </para>
+    /// </remarks>
+    /// <param name="graph">The graph to fill. Expected empty; this is a world-creation pass.</param>
+    /// <param name="key">The world seed, as <see cref="Randomness.Draw"/>'s first coordinate.</param>
+    /// <param name="lattices">Where the lattices stand, in declaration order. At least one.</param>
+    /// <param name="extentTiles">How far each lattice reaches from its origin, in Tiles.</param>
+    /// <exception cref="InvalidOperationException">
+    /// The graph already has Segments, or two lattices overlap.
+    /// </exception>
+    public static void LayInto(
+        RoadGraph graph, WorldKey key, LatticeDefinition[] lattices, int extentTiles)
     {
         ArgumentNullException.ThrowIfNull(graph);
+        ArgumentNullException.ThrowIfNull(lattices);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(extentTiles);
 
         if (graph.Segments.Rows.LiveCount != 0)
@@ -96,21 +144,196 @@ public static class RoadGenerator
             return;
         }
 
-        // A ternary rather than Math.Min: BOR0202 refuses Math.* everywhere, including here.
-        int extent = extentTiles < CellGrid.WorldTiles ? extentTiles : CellGrid.WorldTiles;
+        LatticeDefinition[] standing = lattices.Length == 0 ? OneAtTheOrigin : lattices;
 
-        new Layout(graph, roads, key, extent).Run();
+        var layouts = new Layout[standing.Length];
+
+        for (int lattice = 0; lattice < standing.Length; lattice++)
+        {
+            LatticeDefinition origin = standing[lattice];
+
+            // Clamped to what is left of the map east and north of this origin, which is the
+            // single-lattice clamp with an origin in it. A ternary rather than Math.Min: BOR0202
+            // refuses Math.* everywhere, including here.
+            int room = CellGrid.WorldTiles - (origin.OriginEastTiles > origin.OriginNorthTiles
+                ? origin.OriginEastTiles
+                : origin.OriginNorthTiles);
+
+            int extent = extentTiles < room ? extentTiles : room;
+
+            layouts[lattice] = new Layout(graph, roads, key, extent, origin, lattice);
+        }
+
+        RefuseOverlap(layouts);
+
+        foreach (Layout layout in layouts)
+        {
+            layout.Run();
+        }
+
+        for (int lattice = 1; lattice < layouts.Length; lattice++)
+        {
+            Link(graph, roads, layouts[lattice - 1], layouts[lattice]);
+        }
+
         graph.RebuildDerived();
+    }
+
+    /// <summary>The world every Ruleset described before <c>[[lattice]]</c> existed.</summary>
+    private static readonly LatticeDefinition[] OneAtTheOrigin = [new LatticeDefinition(0, 0)];
+
+    /// <summary>
+    /// Refuses two lattices standing on the same ground.
+    /// </summary>
+    /// <remarks>
+    /// <b>Thrown rather than refused at load, because the extent is not knowable there.</b> A
+    /// Lattice's extent is derived from the population the world was allocated for, which the loader
+    /// does not have — so whether two authored origins overlap is a property of the Ruleset
+    /// <em>and</em> the world, exactly like <c>RulesetLoader.Reload</c>'s frozen constants. What
+    /// overlap would produce is two Nodes on one Tile and a lattice laid twice, which is silent.
+    /// </remarks>
+    private static void RefuseOverlap(Layout[] layouts)
+    {
+        for (int first = 0; first < layouts.Length; first++)
+        {
+            for (int second = first + 1; second < layouts.Length; second++)
+            {
+                if (layouts[first].Overlaps(layouts[second]))
+                {
+                    throw new InvalidOperationException(
+                        $"lattice {first} and lattice {second} stand on the same ground. Each one "
+                        + "paves what its share of the population needs, so two origins far enough "
+                        + "apart for a small city can overlap in a large one -- the gap a "
+                        + "[[lattice]] table authors is a distance and the extent it has to clear "
+                        + "is not authored at all. Move the origins apart.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Joins two lattices with a corridor of Street Segments, east leg then north leg.
+    /// </summary>
+    /// <remarks>
+    /// <b>An L rather than a straight line, so the two origins need not share an axis.</b> It runs
+    /// between the two Nodes nearest each other — each lattice's own corner clamped towards the other
+    /// — in whole blocks, which is why an origin off the block grid is refused at load. The corner
+    /// Node is the only one the corridor invents that is not on either lattice.
+    /// </remarks>
+    private static void Link(RoadGraph graph, RoadRuleset roads, Layout from, Layout to)
+    {
+        int block = roads.BlockTiles;
+
+        (Handle<RoadNode> start, int east, int north) = from.NearestTo(to.OriginEast, to.OriginNorth);
+        (Handle<RoadNode> end, int endEast, int endNorth) = to.NearestTo(east, north);
+
+        var length = new Tiles(block);
+        Handle<RoadNode> current = start;
+
+        int stepEast = endEast > east ? block : -block;
+
+        while (east != endEast)
+        {
+            east += stepEast;
+
+            Handle<RoadNode> next = east == endEast && north == endNorth
+                ? end
+                : graph.Nodes.Create(new Tiles(east), new Tiles(north));
+
+            graph.Segments.Create(
+                current, next, length, RoadKind.Street, TravelMode.Any, TravelMode.Any);
+
+            current = next;
+        }
+
+        int stepNorth = endNorth > north ? block : -block;
+
+        while (north != endNorth)
+        {
+            north += stepNorth;
+
+            Handle<RoadNode> next = north == endNorth
+                ? end
+                : graph.Nodes.Create(new Tiles(east), new Tiles(north));
+
+            graph.Segments.Create(
+                current, next, length, RoadKind.Street, TravelMode.Any, TravelMode.Any);
+
+            current = next;
+        }
     }
 
     /// <summary>
     /// The generation-time scaffolding. <b>A class rather than a struct because nothing here survives
     /// into the graph</b>, which is tables.
     /// </summary>
-    private sealed class Layout(RoadGraph graph, RoadRuleset roads, WorldKey key, int extentTiles)
+    private sealed class Layout(
+        RoadGraph graph,
+        RoadRuleset roads,
+        WorldKey key,
+        int extentTiles,
+        LatticeDefinition origin,
+        int index)
     {
         /// <summary>Node columns and rows in the Street grid.</summary>
         private readonly int _grid = IntegerMath.FloorDiv(extentTiles, roads.BlockTiles) + 1;
+
+        /// <summary>The Tile this lattice's west edge stands on.</summary>
+        public int OriginEast => origin.OriginEastTiles;
+
+        /// <summary>The Tile this lattice's south edge stands on.</summary>
+        public int OriginNorth => origin.OriginNorthTiles;
+
+        /// <summary>How far the laid Nodes reach from the origin, which is not the authored extent.</summary>
+        /// <remarks>
+        /// <b>The grid is floored, so the far Node stops at or before the extent.</b> An overlap test
+        /// against the authored extent would refuse worlds whose Nodes never touch.
+        /// </remarks>
+        private int Span => (_grid - 1) * roads.BlockTiles;
+
+        /// <summary>
+        /// How far this lattice's ground reaches — <b>the Nodes plus one block</b>.
+        /// </summary>
+        /// <remarks>
+        /// ⚠ <b>The extra block is the Lots and not the roads, and leaving it out made the world go
+        /// quietly lopsided rather than loudly wrong.</b> The block beyond a lattice's east edge has
+        /// that edge's Segments as its west face, so it carries Lots
+        /// (<c>SyntheticCity.Subdivide</c>). Two lattices whose Nodes clear each other by less than a
+        /// block therefore contend for Lots without overlapping, and the first one to walk them takes
+        /// what the second needed: measured at 344,000 Citizens on <c>twinned.toml</c>, the split went
+        /// <b>20,545 / 20,736</b> where it is 20,641 / 20,640 by construction. ***A refusal drawn at
+        /// the roads is drawn at the wrong thing, because it is the LAND that is contended.***
+        /// </remarks>
+        private int Reach => Span + roads.BlockTiles;
+
+        /// <summary>Whether this lattice stands on any of <paramref name="other"/>'s ground.</summary>
+        public bool Overlaps(Layout other) =>
+            OriginEast <= other.OriginEast + other.Reach
+            && other.OriginEast <= OriginEast + Reach
+            && OriginNorth <= other.OriginNorth + other.Reach
+            && other.OriginNorth <= OriginNorth + Reach;
+
+        /// <summary>
+        /// This lattice's Node nearest a Tile, with the Tile it stands on — the corridor's endpoint.
+        /// </summary>
+        /// <remarks>
+        /// <b>Clamped rather than searched.</b> The Nodes are a regular grid, so the nearest one is
+        /// arithmetic; a search would be the same answer at the cost of a walk over every Node in the
+        /// lattice, on a path that runs once per pair at world creation.
+        /// </remarks>
+        public (Handle<RoadNode> Node, int East, int North) NearestTo(int east, int north)
+        {
+            int column = Clamp(
+                IntegerMath.FloorDiv(east - OriginEast, roads.BlockTiles), 0, _grid - 1);
+
+            int row = Clamp(
+                IntegerMath.FloorDiv(north - OriginNorth, roads.BlockTiles), 0, _grid - 1);
+
+            return (
+                Intersection(column, row),
+                OriginEast + (column * roads.BlockTiles),
+                OriginNorth + (row * roads.BlockTiles));
+        }
 
         /// <summary>
         /// Grid intersections, by <c>(row × grid) + column</c>. Held so severance can address a
@@ -150,8 +373,8 @@ public static class RoadGenerator
                 for (int east = 0; east < _grid; east++)
                 {
                     _intersections[(north * _grid) + east] = graph.Nodes.Create(
-                        new Tiles(east * roads.BlockTiles),
-                        new Tiles(north * roads.BlockTiles));
+                        new Tiles(OriginEast + (east * roads.BlockTiles)),
+                        new Tiles(OriginNorth + (north * roads.BlockTiles)));
                 }
             }
 
@@ -241,8 +464,8 @@ public static class RoadGenerator
                 // limited-access road is.
                 if (!anchored || sinceJunction >= roads.ArterialJunctionTiles)
                 {
-                    Handle<RoadNode> junction =
-                        graph.Nodes.Create(new Tiles(tileEast), new Tiles(tileNorth));
+                    Handle<RoadNode> junction = graph.Nodes.Create(
+                        new Tiles(OriginEast + tileEast), new Tiles(OriginNorth + tileNorth));
 
                     ConnectToGrid(junction, tileEast, tileNorth);
 
@@ -472,7 +695,10 @@ public static class RoadGenerator
             {
                 for (int east = 0; east < _grid - 1; east++)
                 {
-                    ulong block = (ulong)((north * _grid) + east);
+                    // The lattice index rides in the high half, so two lattices of one size do not
+                    // get the same cut-throughs in the same blocks. At index 0 it is the expression
+                    // it always was, which is what keeps every existing world's State Hash still.
+                    ulong block = (ulong)(((long)index << 32) + (north * _grid) + east);
 
                     if (Draw(block, 0, PurposeTag.RoadFootPath) % 1000ul
                         >= (ulong)roads.FootPathsPerThousandBlocks)

@@ -1437,6 +1437,32 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ Two documents say *two separated settlements* where they mean two Lattices, and under `CONTEXT.md`'s
+own definition the world they describe is ONE Settlement.** Found and fixed **2026-08-22**, building
+[`0037`](0037-goods-between-buildings-the-district-pool.md) task 1.
+[`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)'s
+Consequences and `0037` task 1 both ask for *"a Ruleset authoring two separated settlements"*.
+`CONTEXT.md` → Settlement is a **derived** commute shed: *"connectivity is transitive, so a
+contiguously-developed lattice is one Settlement however large the graph — what fragments it is unbuilt
+ground with no road across it … or a gap wider than the Commute Budget."* The world task 1 actually
+needs is **joined by road**, because `adr/0134` rejected splitting on road components — so under the
+term's own definition it is one Settlement wherever anybody drives across the gap.
+
+🔴 **The sharpest half: whether it is one Settlement or two is decided by a key in a DIFFERENT table.**
+Over `rulesets/twinned.toml`'s corridor, 7,680 m is ~9 clock minutes by car and ~92 on foot against a
+50-minute ceiling, and that file states no `[households]`, so nobody drives. ***A term that names a
+derived thing cannot be borrowed for an authored one, because the derivation may depend on something the
+author did not write.*** The key shipped as **`[[lattice]]`** for that reason, and `CONTEXT.md` gains a
+**Lattice** entry saying what the three neighbouring terms — Settlement, District, centre — each are and
+that all three are derived.
+
+⚠ **This is a near miss rather than a caught defect, and the difference is worth stating.** The wrong
+name was in a tool call before `CONTEXT.md` was opened; what caught it was the rule that a concept
+needing a name gets a `CONTEXT.md` entry **first**. ***The vocabulary check works by being upstream of
+the code, and it only works if it runs before the key is written and not after.*** **The two documents'
+prose is loose rather than wrong and is left as it stands** — they were describing an outcome, not
+choosing a term — with `CONTEXT.md` → Lattice carrying the correction and pointing at both.
+
 **⚠ `06` placed a mechanism at milestone 12 that milestone 12's own scoping document never scoped, and
 neither document contradicted itself.** Found and fixed **2026-08-22**, settling
 [`0037`](0037-goods-between-buildings-the-district-pool.md) decision 6 —

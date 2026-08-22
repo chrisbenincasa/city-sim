@@ -8,7 +8,9 @@ Goods chain that crosses an ownership boundary.
 ## Status
 
 🟢 **SCOPING STARTED 2026-08-21. The scoping sitting ran 2026-08-22, settled decisions 1, 2, 4, 5, 6, 8
-and 9, and the milestone was DECOMPOSED INTO TEN TASKS the same day. No task has begun.**
+and 9, and the milestone was DECOMPOSED INTO TEN TASKS the same day. TASK 1 SHIPPED 2026-08-22** —
+`rulesets/twinned.toml` and `[[lattice]]`, the first world this build can generate with **two centres**
+in it. **Findings F1–F6** are below, under *What building it found*.
 
 ⚠ **Open: 3, 7 and 10** — and **10 did not exist until decomposition wrote it**, which is the argument
 for decomposing rather than sitting again. ***Ordering the work asked what each task needed and found a
@@ -650,8 +652,12 @@ to 8 build **a market inside it**. ***The market half is the milestone's named r
 is its precondition***, so an eye on schedule should be on tasks 1–4 finishing rather than on 5–8
 starting.
 
-1. **A world with two settlements in it** — the generator places two separated lattices, and a Ruleset
-   authors them. ⚠ **This is FIRST and not last, and milestone 11 task 3 is why**: *"`SyntheticCity`
+1. ✅ **SHIPPED 2026-08-22 — a world with two settlements in it** — the generator places two separated
+   lattices, and a Ruleset authors them. **`rulesets/twinned.toml`**, `[[lattice]]`, and the two are
+   **joined by a Street corridor**: `adr/0134` rejected splitting on road components, so a world in two
+   components would let component labelling pass for a watershed. ⚠ **The key is `[[lattice]]` and not
+   `[[settlement]]`** — see **F2**. Findings **F1**–**F6** below.
+   ⚠ **This is FIRST and not last, and milestone 11 task 3 is why**: *"`SyntheticCity`
    places gates, so there is a world with a door in it — milestone 9's **F17** is why this is a task and
    not an assumption."* ***The derivation is unobservable and untestable on every world this build can
    currently generate***, because the count follows centres and there is one. **Make the gap
@@ -790,3 +796,60 @@ priced and not embodied**, and a distant gate costs nothing at 12 — see decisi
 
 *(Filled as the sitting runs. The three preconditions above were found before it started, which is why
 they are in the survey rather than here.)*
+
+---
+
+## What building it found
+
+### Task 1, 2026-08-22 — **F1** to **F6**
+
+**F1 — the two lattices had to be JOINED, and the alternative would have shipped the rejected
+mechanism under the chosen one's name.** A world in two road components splits under
+`RoadConnectivity` alone, so task 3 could implement component labelling, pass every test this task
+writes, and be `adr/0134`'s explicitly refused *split only where the road graph disconnects*. The
+generator therefore lays a **corridor of Street Segments** between consecutive Lattices — Street and
+not Arterial, because an Arterial ramp carries cars and not feet, which would make the world one
+component for driving and two for walking and hand task 3 a fork about which one the clip reads.
+**Measured on `twinned.toml` at 1,000 Citizens: one component in each mode, 109 of 109 nodes.**
+***The only thing that can find this world's boundary is the density field, which is the thing under
+test.***
+
+**F2 — the key is `[[lattice]]`, and `[[settlement]]` would have authored a contradiction.**
+`CONTEXT.md` → Settlement is a **derived** commute shed, and *"connectivity is transitive, so a
+contiguously-developed lattice is one Settlement however large the graph"*. 🔴 **Whether these two
+Lattices are one Settlement or two is decided by a key in a different table**: over the corridor's
+7,680 m, ~9 clock minutes by car and ~92 on foot against a 50-minute ceiling, and `twinned.toml` states
+no `[households]`, so nobody drives. ***A term naming a derived thing cannot be borrowed for an authored
+one, because the derivation may depend on something the author did not write.*** `CONTEXT.md` gains a
+**Lattice** entry; the loose prose in this document and in `adr/0134` is filed in
+[`0012`](0012-corpus-audit.md). ⚠ **It was caught by opening `CONTEXT.md` before writing the key and
+would not have been caught after** — the vocabulary rule works by being upstream of the code.
+
+**F3 — a Lattice's Lots do not stop at its extent, because a Segment has two sides.** ⚠ **MEASURED, not
+reasoned.** Restricting subdivision to each Lattice's own block box is necessary — a map-wide walk would
+carve Lots along the corridor and fill the saddle — and a box of exactly *n* blocks **moved every golden
+trace**. The block sitting beyond a Lattice's east edge still has that edge's Node column of vertical
+Segments as its **west face**, and a face is all `SubdivideBlock` needs. `GoldenSessionCoverageTests`
+named it exactly: *"carved 118 Lots where 117 were expected"*. The box is **n + 1** blocks.
+***A generator's output does not end where its input does.***
+
+**F4 — the overlap refusal has to be drawn where the LAND contends, not where the roads do.** A Lattice
+paves what its share needs, so a large enough city makes two of them collide, and the generator refuses
+rather than laying one over the other. Drawn at the Nodes, the refusal left a band in which the two
+Lattices' **Lots** contended while their roads did not: measured at **344,000** Citizens on
+`twinned.toml` the split came out **20,545 / 20,736** where the construction says 20,641 / 20,640 — the
+first Lattice walked the shared blocks and took what the second needed. ***A world going quietly
+lopsided is worse than one that throws***, so the test widened by one block, which is F3's block.
+
+**F5 — `twinned.toml` has a measured population ceiling and it is loud.** **341,000 Citizens lays;
+342,000 throws.** Above it the answer is to move the origins apart — the map is 16,384 Tiles a side and
+this file uses 2,048 of it. ⚠ **Stated in the file's header** rather than left for somebody to discover
+at 400,000.
+
+**F6 — Arterials are laid per Lattice, so the combination is refused at load.** A file saying
+*`arterial_count = 4`* with two Lattices would mean *four in each*, and which of the two readings the
+designer meant is not recoverable from the file. Refused rather than divided or doubled. ⚠ **A second
+combination is refused at generation for the same shape of reason**: a Ruleset declaring a gate kind
+paves the lattice to the map's **boundary**, which leaves no ground for a second Lattice and no gap
+between them. ***A world with two centres AND a door needs the extent to stop being all-or-nothing***,
+and nothing needs it yet.

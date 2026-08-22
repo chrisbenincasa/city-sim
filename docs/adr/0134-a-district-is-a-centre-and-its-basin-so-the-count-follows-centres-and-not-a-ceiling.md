@@ -124,7 +124,7 @@ resolve to.
   becomes the scale at which the haulage charge bites — ***a curve's parameter rather than a ceiling***,
   which is a different ratification obligation and not a softer one.
 - **Milestone 12 ships one District on every current world**, and `Scope.Pool` resolves through it. ⚠ **A
-  Ruleset with two separated settlements is what demonstrates a second District and a real inter-District
+  Ruleset with two separated settlements is what demonstrates a second District — ✅ **shipped 2026-08-22 as `rulesets/twinned.toml`, and the key is `[[lattice]]` rather than `[[settlement]]` because a Settlement is derived and these two are one wherever anybody drives across the gap (`CONTEXT.md` → Lattice)** — and a real inter-District
   Shipment**, and `06`'s Shipments row at 12 is unobservable without one. ***That is milestone 9's land
   value repeating*** — a producer built, correct and with nothing to look at — and naming it here is the
   cheapest place to stop it.

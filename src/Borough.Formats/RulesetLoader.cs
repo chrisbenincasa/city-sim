@@ -127,6 +127,7 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
         private readonly List<TableSyntaxBase> _policyTables = [];
         private readonly List<TableSyntaxBase> _hinterlandTables = [];
+        private readonly List<TableSyntaxBase> _latticeTables = [];
 
         private TableSyntaxBase? _layersTable;
         private TableSyntaxBase? _placementTable;
@@ -175,6 +176,10 @@ public static class RulesetLoader
             LayerRuleset layers = ReadLayers();
             PlacementRuleset placement = ReadPlacement(kinds);
             RoadRuleset roads = ReadRoads();
+
+            // After ReadRoads and not before: every refusal here is a property of an origin against
+            // `block_tiles`, so the lattice tables cannot be read until the block is known.
+            LatticeDefinition[] lattices = ReadLattices(roads);
             LotRuleset lots = ReadLots(roads);
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
@@ -219,6 +224,7 @@ public static class RulesetLoader
                     Layers = layers,
                     Placement = placement,
                     Roads = roads,
+                    Lattices = lattices,
                     Lots = lots,
                     Trips = trips,
                     Jobs = jobs,
@@ -405,6 +411,14 @@ public static class RulesetLoader
                         // a duplicate name -- which is not visible until the key is read, so it is
                         // refused in ReadHinterlands and not here.
                         _hinterlandTables.Add(table);
+                        break;
+
+                    case "lattice":
+                        // Not registered into a name table, on [[hinterland]]'s reasoning, and a
+                        // Lattice does not even carry a name to register. What it carries is an
+                        // origin, and a duplicate origin is not visible until block_tiles is known --
+                        // so it is refused in ReadLattices and not here.
+                        _latticeTables.Add(table);
                         break;
 
                     case "parking":
@@ -2211,6 +2225,140 @@ public static class RulesetLoader
             }
 
             return [.. definitions];
+        }
+
+        // ---- lattices -------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[[lattice]]</c> tables — <b>where the generator lays Street lattices</b>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and its absence is one Lattice at the origin corner</b> — which is the world
+        /// every Ruleset in <c>rulesets/</c> described before this key existed, so no State Hash moves
+        /// by the key arriving. That is <c>[layers]</c>'s polarity rather than <c>[roads]</c>'s, and
+        /// legitimately: there is an earlier behaviour here and it is exactly one lattice at (0, 0).
+        /// </para>
+        /// <para>
+        /// <b>Two numbers per table, because the extent and the population share are derived</b>
+        /// (<see cref="LatticeDefinition"/>). What a file authors is <em>where</em>, and the gap
+        /// between two origins is the entire content of a two-Lattice world.
+        /// </para>
+        /// </remarks>
+        private LatticeDefinition[] ReadLattices(RoadRuleset roads)
+        {
+            if (_latticeTables.Count == 0)
+            {
+                return [];
+            }
+
+            if (!roads.Runs)
+            {
+                Refuse(LineOf(_latticeTables[0]), null,
+                    "a [[lattice]] is declared and there is no [roads] table. A Lattice IS a Street "
+                    + "lattice -- an origin the generator lays a grid-snapped network from -- so a "
+                    + "world with no roads has nothing for one to be, and the origin would name "
+                    + "ground nothing is ever built on.");
+
+                return [];
+            }
+
+            // Arterials are laid per lattice and severance is addressed by position within one, so
+            // two lattices would each get `arterial_count` of them and the file would read as a
+            // count of Arterials crossing the map while behaving as a count per settlement. Refused
+            // rather than divided or silently doubled: which of the two a designer meant is not
+            // recoverable from the file, and adr/0090 has Arterials as a player tool that does not
+            // belong in a generator at all -- every city-modelling Ruleset states 0.
+            if (_latticeTables.Count > 1 && roads.ArterialCount > 0)
+            {
+                Refuse(LineOf(_latticeTables[1]), null,
+                    $"{_latticeTables.Count} [[lattice]] tables are declared and arterial_count is "
+                    + $"{roads.ArterialCount}. An Arterial is laid per lattice, so the file says "
+                    + $"\"{roads.ArterialCount} Arterials cross the map\" and would mean "
+                    + $"\"{roads.ArterialCount} in each of {_latticeTables.Count} lattices\". Set "
+                    + "arterial_count = 0, which is what every city-modelling Ruleset states.");
+
+                return [];
+            }
+
+            var definitions = new List<LatticeDefinition>(_latticeTables.Count);
+
+            foreach (TableSyntaxBase table in _latticeTables)
+            {
+                if (!TryOrigin(table, roads, "origin_east_tiles", out int east)
+                    || !TryOrigin(table, roads, "origin_north_tiles", out int north))
+                {
+                    continue;
+                }
+
+                bool duplicate = false;
+
+                foreach (LatticeDefinition declared in definitions)
+                {
+                    if (declared.OriginEastTiles == east && declared.OriginNorthTiles == north)
+                    {
+                        Refuse(LineOf(table), null,
+                            $"a second lattice is declared at ({east}, {north}). Two lattices on one "
+                            + "origin are one lattice laid twice, and the second one throws -- the "
+                            + "generator is a world-creation pass and refuses ground that already "
+                            + "has Segments on it.");
+
+                        duplicate = true;
+                        break;
+                    }
+                }
+
+                if (!duplicate)
+                {
+                    definitions.Add(new LatticeDefinition(east, north));
+                }
+            }
+
+            return [.. definitions];
+        }
+
+        /// <summary>
+        /// One of a <c>[[lattice]]</c>'s two origin keys, in Tiles and on the block grid.
+        /// </summary>
+        /// <remarks>
+        /// <b>The multiple-of-<c>block_tiles</c> refusal is what keeps the whole world on one grid.</b>
+        /// The corridor joining two Lattices is laid in whole blocks from a Node of the first to a
+        /// Node of the second, so an origin off the grid would leave the last step of that run short
+        /// and put a Node a fraction of a block from another one. Refused rather than snapped: a
+        /// snapped origin is a file whose number is not the number the world was built from.
+        /// </remarks>
+        private bool TryOrigin(TableSyntaxBase table, RoadRuleset roads, string key, out int origin)
+        {
+            origin = 0;
+
+            if (!TryInteger(table, key, out long value, required: true))
+            {
+                return false;
+            }
+
+            if (value < 0 || value >= CellGrid.WorldTiles)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"{key} = {value} is off the map. The map is bounded (adr/0021) and is "
+                    + $"{CellGrid.WorldTiles} Tiles a side, so an origin is between 0 and "
+                    + $"{CellGrid.WorldTiles - 1}.");
+
+                return false;
+            }
+
+            if (value % roads.BlockTiles != 0)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"{key} = {value} is not a multiple of block_tiles = {roads.BlockTiles}. Every "
+                    + "Node in a generated world sits on one block grid, and the corridor joining "
+                    + "two lattices is laid in whole blocks -- an origin off the grid would end that "
+                    + "run a fraction of a block short of the lattice it is joining.");
+
+                return false;
+            }
+
+            origin = (int)value;
+            return true;
         }
 
         /// <summary>The <c>edge</c> key, which is the Hinterland's identity.</summary>

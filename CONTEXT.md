@@ -153,6 +153,15 @@ Settlements appear where development is **discontinuous** — unbuilt ground wit
 
 A Settlement is a **reporting and diagnosis unit, not a simulation unit**. Nothing pools by Settlement, nothing is budgeted by Settlement, and no Rule reads one — Districts remain the granularity of Goods pooling. They are **not** the granularity of the travel-time matrix; `adr/0047` removed that role from the District entirely. See `docs/adr/0020-one-live-world-and-settlements-are-derived.md`.
 
+**Lattice**
+The grid-snapped Street network the **generator** lays from one authored origin, and the only thing a Ruleset can say about **where development is** — one `[[lattice]]` table, an origin in Tiles, nothing else. **Authored, and it is the only member of this neighbourhood of terms that is.**
+
+**Its extent and its share of the population are derived, not authored.** A Lattice paves what its equal share of the world's Lots needs, and consecutive ones are joined by a corridor of Street Segments, so the ground between two Lattices carries road and no Buildings. The absence of the table is one Lattice at the origin corner, which is the only world this build could generate before milestone 12.
+
+🔴 **A Lattice is not a Settlement, not a District and not a centre, and it is named separately because all three of those are *derived from what it produces*.** Two Lattices joined by a road are one Settlement or two depending on **who owns a car** — a key in a different table — so a term that authored a Settlement would be authoring an answer that another table decides. `adr/0134`'s **centre** is the same hazard one level down: a centre is a prominence peak the watershed *finds*. ***What a Ruleset places is ground; what the simulation derives from it is everything else.***
+
+⚠ **The corpus says *two separated settlements* in prose where it means two Lattices** — `plans/0037` task 1 and `adr/0134`'s Consequences, both filed in [`plans/0012`](plans/0012-corpus-audit.md). The prose is loose rather than wrong; **this entry is what it should have said**.
+
 **Map Layer**
 A coarse scalar field covering the world, stored **one value per Cell** as integers, double-buffered, and updated on a staggered low-frequency schedule. Layers are *composed* at the point of use rather than baked into derived layers.
 
