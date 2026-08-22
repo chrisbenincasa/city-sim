@@ -3030,6 +3030,31 @@ this file's own sitting was cutting the board — detected by file mtimes rather
 corpus does. ***A scheme that allocates names by reading the tree cannot be made safe by a rule***, and
 nothing here yet proposes the machinery that would be.
 
+### `06`'s Milestone column had become a status column, under a header forbidding exactly that
+
+**Found while cutting the board, because the same question — *who owns per-milestone status* — has two
+wrong answers and they were both live.** [`06`](../docs/06-roadmap.md)'s header states it is
+authoritative over *"the phase model, the four rules below, and the risk each milestone retires.
+**Nothing else**"*, and assigned live status to `plans/0000`. Beneath that sentence, the *Milestone*
+column carried ✅ marks, completion dates, plan links, task counts, decision counts and **11,138
+characters** of findings across eight rows. **Milestone 8's cell ran to 7,496 characters against 22 for
+its name.**
+
+***A column that names a thing had become a column that reports on it***, and the rule it broke was
+stated four lines above it. This is **Cause 1** on its third document — `plans/0000` and `plans/0003`
+being the other two — and the sharper form of it: *a header is not a mechanism, and a document that
+declares its own scope does not thereby keep to it.*
+
+⚠ **It is also `adr/0042` — *a planning document cites and a design document owns* — on the surface
+that ADR was written for.** `06` had accumulated eleven false claims once before by copying originals
+that later moved, which is why the header exists; the repair then did not reach the table.
+
+**Struck 2026-08-22.** The Milestone column is now the milestone's name and nothing else, for all
+twenty-four rows, so shipped and unshipped are indistinguishable there — which is correct, because
+`06` sequences and [`0003`](0003-build-plan.md)'s Phase 2 ledger says what is done. ⚠ **Every finding
+was verified present in its own plan document before removal**, twice and independently, after a
+similar check on the board had returned one false *covered*.
+
 ### The two scopings' renumbering counts disagree, and neither may be quoted
 
 One says six and six; the other disagrees. **The reconciliation is owed at merge and neither number
