@@ -2869,6 +2869,29 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
    it is also a 255-line artefact nobody reads, rotting in the repository — which is the failure this
    whole cause is about, committed by the instrument built to catch it.
 
+7. ~~**The board keeps its own three rules.**~~ **BUILT 2026-08-22** —
+   `tests/Borough.Tests/Corpus/BoardShapeTests.cs`, assertion tier, four checks: no question posed, no
+   table cell over three sentences, no closed row still standing, and a ceiling on the whole file in
+   **both** lines and bytes.
+
+   **The argument for a test rather than a fourth clearing is the first three.** `plans/0000` was
+   founded at 132 lines, reached 1,234 in four days, was cleared by hand, reached 1,504, was cleared by
+   hand again, and reached 925. ***Two hand-clearings, both grown back within days***, and nothing in
+   this directory looked at the board through any of it.
+
+   ⚠ **Its polarity was checked against the real inflation and not only against a fixture.** Run over
+   `ca91e86^`'s 925-line board, all four file-reading checks fire, and check 2 reproduces — line for
+   line — the ten over-ceiling cells an independent measurement had found, worst at **15 sentences and
+   3,987 characters**. *A check that has only ever passed is a check whose polarity nobody knows.*
+
+   ⚠ **Two limits are stated in the test rather than left to be discovered.** Rule 1 catches the
+   **literal** form only: a question mark is detectable and *"the payee is unsolved"* is not, so a green
+   result is evidence about punctuation and not a certificate. And **all four catch the symptom, never
+   the cause** — the 2026-08-22 inflation happened because `plans/0003` covered Phase 0 and Phase 1
+   only, so Phase 2 status had no owner. ***A document that declines a layer does not thereby abolish
+   it***, and the ceilings are tripwires rather than budgets: when one fires the question is *which
+   document should have held this?*
+
 Neither is a substitute for the restructure. A check over three tables that disagree only tells you
 they disagree; the point of thinning is that there is one place to be right. **Checks 4 and 6 are the
 exceptions to that sentence**, for opposite reasons — thinning cannot help check 4, because its
