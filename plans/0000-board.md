@@ -21,6 +21,12 @@ deposit and a consumer's draw* is unanswered by `adr/0050`, `adr/0135` and `adr/
 the work asked what each task needed and found a question seven decisions had not.***
 
 ⚠ **Two more things decomposition turned up, and both are the reason to do it before starting.**
+🔴 **Task 5 found a defect it does not own and routed it rather than fixing it:
+[`0003`](0003-build-plan.md) queue item 15** — a Ruleset edit that **inserts** a `[[resource]]` crashes
+the swap, on the **treasury**, on `rulesets/minimal.toml`, with no District anywhere. `RulesetMigration`
+maps Resources by name and `World.Migrate` applies that map to **Building Bins only**. ***The migration
+is right and its reach is short.***
+
 ✅ **Task 5's blocker — [`0003`](0003-build-plan.md) queue item 14 — was settled 2026-08-22 and the row
 has left the board**: the invariant narrowed to the head of the wait list, on `adr/0063`'s own argument
 rather than on the cheaper repair, and the narrowing turned up a second half nobody had reasoned to — a
@@ -152,7 +158,7 @@ parallelism names *nothing else running in this repository* as its first control
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **Milestone 12 — the District Pool.** Decomposed into ten tasks; **1 through 4 shipped 2026-08-22** — the two-centre world, the density field, the watershed, and re-evaluation with persistence, hysteresis and damping. **Task 5 is next: Pool Bins**, and **its blocker has cleared** — queue item 14 settled 2026-08-22, in a commit of its own as its own row required | [`0037`](0037-goods-between-buildings-the-district-pool.md) | The ungated row at the head of the sequence, and **the only root with a consumer already in the build** |
+| **1** | code | **Milestone 12 — the District Pool.** Decomposed into ten tasks; **1 through 5 shipped 2026-08-22** — the two-centre world, the density field, the watershed, re-evaluation, and the Pool Bins. **Task 6 is next: the price.** Decision 7 closed on the way, as largely void as posed | [`0037`](0037-goods-between-buildings-the-district-pool.md) | The ungated row at the head of the sequence, and **the only root with a consumer already in the build** |
 | **2** | spike | ⚠ **Do NOT delete `spikes/S2.Routing/`.** The 5a gate is discharged, but another session is doing research inside it, so it is live work. 51 tracked C# files, 29,719 lines | [`0010`](0010-s2-routing.md) → *R7* | ⚠ ***A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears*** |
 | **3** | spike | **S5 owes two captures** — the 4-thread Lane kernel rung, which is bimodal, and the canonical `performance` re-capture. 2 threads is settled at 1.84–1.93× | [`0019`](0019-s5-lane-kernel.md) | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare** |
 | **4** | code | **Hash-moving queue item 8** — a waiter whose own requirement falls is never re-checked. Filed unfixed | [`0003`](0003-build-plan.md) → *queue* | ***A live predicate with an event-driven trigger is only correct if every input to the predicate is an input to the trigger.*** Both repairs are design questions |

@@ -175,6 +175,11 @@ public sealed class World
         Districts = new Space.DistrictTable(8);
         DistrictCells = new Space.DistrictCellTable(PerThousand(citizens, 150), Districts);
 
+        // One row per Good per District, and both are few -- so this is the one table in the
+        // constructor whose hint is a literal because the product of two small numbers is small,
+        // rather than because nobody worked it out.
+        DistrictPools = new Space.DistrictPoolTable(64, Districts, Bins);
+
         // The three Movement tables, and their capacity is deliberately NOT a function of population.
         //
         // plans/0021 -> "Decisions this slice must close" 3 is explicit about why: adr/0008 says the
@@ -243,6 +248,12 @@ public sealed class World
             // the previous extent -- so it is state a snapshot cannot re-derive, and a Pool Bin
             // hanging off a District that a reload numbered differently would be a Pool that moved.
             Districts.Rows, DistrictCells.Rows,
+
+            // Appended for the same reason, milestone 12 task 5. The Pool's Bins are in Bins.Rows
+            // already; what is here is which District each belongs to, and BinTable.Owner cannot say
+            // -- so this join is the only saved statement of the relation and a hash without it would
+            // agree about two worlds whose Pools belonged to different Districts.
+            DistrictPools.Rows,
 
             // TreasuryTable is deliberately NOT here, milestone 10 task 1. Both its columns are
             // Derived, and 5a's finding is that a wholly-derived table cannot join this list: Rows.Fold
@@ -405,6 +416,9 @@ public sealed class World
 
     /// <summary>The Cell-to-District index. Derived, and rebuilt from the saved coordinates.</summary>
     public Space.DistrictResidency DistrictsInCells { get; } = new();
+
+    /// <summary>Which Bins are in which District's Pool. Saved, and the only thing that knows.</summary>
+    public Space.DistrictPoolTable DistrictPools { get; }
 
     /// <summary>Which Car Parks sit on which Segment — the Parking Shed query's supply index.</summary>
     /// <remarks>
@@ -601,6 +615,15 @@ public sealed class World
         // that was fitted only at world creation would never acquire the Bin. It adds and never
         // removes -- see FitTreasury.
         FitTreasury();
+
+        // The Pools, for the same reason one rung down: a Ruleset that adds a Good must reach the
+        // Districts that already exist, and the watershed is the only other thing that fits them --
+        // which runs on a cadence measured in Days, so waiting for it would leave a hot reload's new
+        // Good unpoolable for the rest of the Day. ⚠ NOT in the constructor beside FitTreasury: a
+        // world under construction has no Districts, so a call there would be one that cannot do
+        // anything, and NOT in RebuildDerived either -- fitting CREATES saved rows, and a rebuild that
+        // creates saved state is a load that moves the State Hash it just checked.
+        FitDistrictPools();
 
         // And the actors, for the same reason on the same trigger: a file that adds money has to reach
         // every Household standing, not only the ones built after the swap. O(actors) rather than
@@ -1473,16 +1496,16 @@ public sealed class World
     /// quietly re-evaluated would be a save/reload that moved every boundary.
     /// </para>
     /// </remarks>
-    public void EvaluateDistricts() =>
-        Space.DistrictWatershed.Evaluate(
-            Districts,
-            DistrictCells,
-            DistrictsInCells,
-            BuildingsInCells,
-            Buildings,
-            Lots,
-            Roads,
-            Rules.Districts);
+    public void EvaluateDistricts()
+    {
+        Space.DistrictWatershed.Evaluate(this);
+
+        // After, and never before. A District opened by the evaluation has no Pool until this runs,
+        // and a District the evaluation destroyed has already handed its Pool to its heir -- so
+        // fitting first would open Bins for rows that are about to die and then leave the heir short.
+        // FitTreasury's own rule, meeting a table that changes shape underneath it.
+        FitDistrictPools();
+    }
 
     /// <summary>
     /// Rebuilds every <see cref="Disposition.Derived"/> structure from saved state.
@@ -1662,6 +1685,14 @@ public sealed class World
 
                 case BinOwnerKind.Treasury:
                     treasuryBins.InsertOrdered(TreasuryTable.Slot, slot);
+                    break;
+
+                case BinOwnerKind.District:
+                    // Nothing to rebuild HERE, and for the actors' reason arriving at a different
+                    // cardinality: a District's Pool Bins are named by DistrictPoolTable, which is
+                    // saved, so the link came out of the file already made. ⚠ What separates it from
+                    // the Building case is not care but RECOVERABILITY -- a derived list can only be
+                    // derived when the element names its owner, and a Pool Bin's row does not.
                     break;
 
                 case BinOwnerKind.Household:
@@ -2160,6 +2191,201 @@ public sealed class World
     }
 
     /// <summary>
+    /// A District's Pool Bin for <paramref name="resource"/>, or <see cref="Rows.NoSlot"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>A walk, and it is a walk over the whole join rather than over one District's list.</b>
+    /// <see cref="FindTreasuryBin"/> and <see cref="FindBin"/> each walk an intrusive list because
+    /// their owner rows carry a head; a Pool's owner row does not, because the relation is saved in
+    /// <see cref="Space.DistrictPoolTable"/> rather than threaded. ⚠ <b>Every caller today is cold</b>
+    /// — opening a Pool, and retiring one — and the table is one row per Good per District, so the
+    /// product is small twice over. <c>Scope.Pool</c> is what puts a lookup on the hot path, and the
+    /// index that wants building is <c>plans/0037</c> task 7's rather than a thing to add before
+    /// anything measures it.
+    /// </remarks>
+    public int FindDistrictPoolBin(int districtSlot, ResourceId resource)
+    {
+        Handle<District> district = Districts.Rows.At(districtSlot);
+
+        if (district.IsNone)
+        {
+            return Rows.NoSlot;
+        }
+
+        for (int row = 0; row < DistrictPools.Rows.SlotCount; row++)
+        {
+            if (!DistrictPools.Rows.IsLive(row) || DistrictPools.District[row] != district)
+            {
+                continue;
+            }
+
+            if (Bins.Rows.TryResolve(DistrictPools.Bin[row], out int bin)
+                && Bins.Resource[bin] == resource)
+            {
+                return bin;
+            }
+        }
+
+        return Rows.NoSlot;
+    }
+
+    /// <summary>
+    /// Gives a District a Pool Bin for <paramref name="resource"/>, empty and unbounded.
+    /// </summary>
+    /// <remarks>
+    /// <b>Unbounded, and <see cref="RebuildCapacities"/> derives the same number rather than skipping
+    /// the row</b> — <see cref="CreateTreasuryBin"/>'s reason exactly, because a ceiling is
+    /// <see cref="Disposition.Derived"/> and a load never comes through here. The argument for the
+    /// value is at the rebuild site and is not money's.
+    /// </remarks>
+    public Handle<Bin> CreateDistrictPoolBin(Handle<District> district, ResourceId resource)
+    {
+        Invariants.Require(
+            FindDistrictPoolBin(Districts.Rows.Resolve(district), resource) == Rows.NoSlot,
+            Invariant.BuildingHasOneBinPerResource,
+            Districts.Rows.Resolve(district),
+            resource.Raw);
+
+        Handle<Bin> handle = Bins.Create(BinOwnerKind.District, resource, long.MaxValue);
+
+        DistrictPools.Create(district, handle);
+
+        return handle;
+    }
+
+    /// <summary>
+    /// Gives every live District one Pool Bin per <see cref="ResourceFamily.Good"/> the Ruleset in
+    /// force declares.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Goods and not every Resource</b>, which is the narrowest thing <c>04 §2</c> supports. Money
+    /// is refused because <c>plans/0037</c> decision 10 is open — <em>who holds the Pool's money
+    /// between a Provider's deposit and a consumer's draw</em> — and a Bin opened before that is
+    /// answered would be the answer, written by whoever needed a column. A Utility is refused because
+    /// <c>ResourceFamily.Utility</c> <em>"flows along the District adjacency graph"</em>, which is a
+    /// different mechanism with no milestone.
+    /// </para>
+    /// <para>
+    /// <b>It adds and never removes</b>, which is <see cref="FitTreasury"/>'s rule and here it is
+    /// load-bearing rather than tidy: a Good leaving the Ruleset must not destroy the stock standing
+    /// in its Pool, and <c>04 §2</c>'s audit — <em>"if a hundred units of Food entered the District, a
+    /// hundred units must be accounted for"</em> — is what a removal would break. A District's Pool
+    /// closes when the <em>District</em> does, in <see cref="RetirePool"/>, and never because a file
+    /// was edited.
+    /// </para>
+    /// <para>
+    /// <b>Asked rather than assumed, on <see cref="FitTreasury"/>'s reasoning</b>: it runs at world
+    /// load, at every Ruleset swap, and after every evaluation of the watershed, and each of those
+    /// meets Districts that already hold some of what it would open.
+    /// </para>
+    /// </remarks>
+    internal void FitDistrictPools()
+    {
+        for (int slot = 0; slot < Districts.Rows.SlotCount; slot++)
+        {
+            if (!Districts.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            Handle<District> district = Districts.Rows.At(slot);
+
+            for (int raw = 1; raw <= Rules.ResourceCount; raw++)
+            {
+                var resource = new ResourceId((ushort)raw);
+
+                if (Rules.Family(resource) == ResourceFamily.Good
+                    && FindDistrictPoolBin(slot, resource) == Rows.NoSlot)
+                {
+                    CreateDistrictPoolBin(district, resource);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Closes a dying District's Pool, moving what it holds into <paramref name="heir"/>'s.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The heir is whoever now owns the dying District's CENTRE Cell</b>, decided by the caller —
+    /// the same one Cell that decides identity in <c>DistrictWatershed</c>'s first pass, used for
+    /// succession. ⚠ <b>That symmetry is the argument</b>: a District <em>is</em> its centre
+    /// (<c>adr/0134</c>), so the row that inherits the centre is the row that inherited the District,
+    /// and any other rule would make identity and succession disagree about the same Cell.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>A District can die with NO heir, and this destroys Goods when it does.</b> Demolish
+    /// everything in a District and its centre Cell stops being built, so nothing owns it and there is
+    /// no row to move stock into. <c>04 §2</c> forbids that outright. It is not a live defect
+    /// <em>today</em> and the reason is exact rather than lucky: <c>Scope.Pool</c> throws, so nothing
+    /// in the build can put a unit into a Pool, and every Pool is empty at every moment.
+    /// <see cref="Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool"/> is what makes that a check instead
+    /// of a hope, and what will fail on the day task 7 opens the scope.
+    /// </para>
+    /// <para>
+    /// <b>It opens the heir's Bin on demand rather than trusting <see cref="FitDistrictPools"/> to
+    /// have run.</b> The heir may have been created by the very evaluation that is retiring this Pool,
+    /// and fitting runs after — so the alternative is an ordering that has to be got right rather than
+    /// a call that cannot be got wrong.
+    /// </para>
+    /// </remarks>
+    internal void RetirePool(int districtSlot, Handle<District> heir)
+    {
+        Handle<District> dying = Districts.Rows.At(districtSlot);
+
+        if (dying.IsNone)
+        {
+            return;
+        }
+
+        bool inherited = Districts.Rows.TryResolve(heir, out int heirSlot) && heirSlot != districtSlot;
+
+        for (int row = DistrictPools.Rows.SlotCount - 1; row >= 0; row--)
+        {
+            if (!DistrictPools.Rows.IsLive(row) || DistrictPools.District[row] != dying)
+            {
+                continue;
+            }
+
+            if (Bins.Rows.TryResolve(DistrictPools.Bin[row], out int bin))
+            {
+                long held = Bins.LevelAt(bin);
+
+                Invariants.Require(
+                    inherited || held == 0,
+                    Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool,
+                    districtSlot,
+                    bin);
+
+                if (inherited && held != 0)
+                {
+                    ResourceId resource = Bins.Resource[bin];
+                    int into = FindDistrictPoolBin(heirSlot, resource);
+
+                    if (into == Rows.NoSlot)
+                    {
+                        into = Bins.Rows.Resolve(CreateDistrictPoolBin(heir, resource));
+                    }
+
+                    Bins.Move(bin, -held);
+                    Bins.Move(into, held);
+                }
+
+                // Before the Free, and it is DestroyBuilding's order rather than a precaution: a
+                // waiter left on a freed Bin is a Rule Instance pointing at a recycled row, and the
+                // only thing that would notice is a whole-world walk long afterwards.
+                WakeAll(bin, Tick);
+
+                Bins.Rows.Free(Bins.Rows.At(bin));
+            }
+
+            DistrictPools.Rows.Free(DistrictPools.Rows.At(row));
+        }
+    }
+
+    /// <summary>
     /// The one conserved Resource the Ruleset in force declares, if it declares one.
     /// </summary>
     /// <remarks>
@@ -2339,11 +2565,25 @@ public sealed class World
                 continue;
             }
 
+            // A District's Pool is unbounded, and the ARGUMENT is not money's even though the number
+            // is. Money's ceiling is refused because a ceiling on a balance models nothing; a Pool's
+            // is absent because there is no shed -- CONTEXT.md -> District Pool has Goods passing
+            // through it INSTANTLY, so the Pool is a clearing point rather than a store, and the
+            // thing that discourages selling into a full one is adr/0135's falling price rather than
+            // a wall. ⚠ It is also the only ceiling available: a capacity is a function of (Building
+            // kind, Resource) and a District has no kind, so an authored ceiling here would be the
+            // const-where-a-Ruleset-value-belongs that adr/0015 calls a defect.
+            if (Bins.OwnerKind[slot] == BinOwnerKind.District)
+            {
+                Bins.SetCapacity(slot, long.MaxValue);
+                continue;
+            }
+
             // Anything else owned by something that is not a Building has no ceiling to derive: a
             // ceiling is a function of (Building kind, Resource), and there is no second source. It
-            // cannot happen today -- the only non-Building Bins anything creates are money -- so it
-            // throws rather than defaulting, because the alternative is a zero ceiling that reads as
-            // a Bin nothing can ever put anything into.
+            // cannot happen today -- the only non-Building Bins anything creates are money and the
+            // Pool -- so it throws rather than defaulting, because the alternative is a zero ceiling
+            // that reads as a Bin nothing can ever put anything into.
             if (Bins.OwnerKind[slot] != BinOwnerKind.Building)
             {
                 throw new NotSupportedException(

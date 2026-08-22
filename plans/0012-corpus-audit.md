@@ -1437,6 +1437,21 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ Cause 2, in the table whose whole job is to be the enumeration.** Milestone 12 task 4 registered
+`Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround` in the end-of-run tier and **did not add it to
+[`02 §10`](../docs/02-simulation-model.md)'s end-of-run row**, which lists the whole-world walks one by
+one and had been kept current through nine milestones. Found and fixed **2026-08-22** by task 5, which
+went to add its own and noticed the gap. Both are in it now.
+
+🔴 **The sharper half is that nothing could have noticed.** The corpus checks are document-to-document,
+so a member of a C# enum missing from a Markdown table is invisible to every one of them; and the row is
+prose rather than a count, so no `RefusalCountTests`-shaped check applies either. ***What caught it was
+the next person doing the same job one task later***, which is the mechanism this ledger exists because
+it cannot be relied on.
+
+⚠ **It is a genuine Cause 2 and not a near miss**: the write was owed — a whole-world invariant is
+exactly what that cell enumerates — and a whole sitting closed with it not made.
+
 **⚠ A doc-comment cited `WaitListWakeTests`, a class that does not exist, and every mechanical check in
 the corpus is blind to it.** Found and fixed **2026-08-22**, settling
 [`0003`](0003-build-plan.md) hash-moving queue item 14.

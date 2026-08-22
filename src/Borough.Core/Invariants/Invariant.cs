@@ -900,6 +900,75 @@ public enum Invariant
     /// and kept its membership row is not dangling — it names a live District perfectly well — and it
     /// would put empty ground inside a Pool, which is the abstraction <c>adr/0013</c> is a lie without.
     /// </para>
+    /// <para>
+    /// ⚠ <b>The <em>dangling</em> half overlaps <see cref="CrossTableHandleResolves"/> and is kept
+    /// anyway.</b> That walk is column-driven — it asks every saved handle column in the world whether
+    /// it dangles, so it covered this one the day it was declared and it is registered first. What is
+    /// left here is the <b>unset</b> handle, which is not dangling and which the generic walk is right
+    /// not to report. ***Stating the whole sentence and noting the overlap beats writing down the half
+    /// nobody else covers***, which would read as a check with an arbitrary gap in it. A test that
+    /// wants to see this member fire calls it directly rather than through the registry.
+    /// </para>
     /// </remarks>
     ADistrictCellNamesALiveDistrictAndBuiltGround = 50,
+
+    /// <summary>
+    /// A District that is destroyed either hands its Pool to an heir or hands over nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A write-site check, because the state it forbids does not survive the write that creates
+    /// it</b> (<c>02 §10</c>). The moment <c>World.RetirePool</c> frees a Bin holding stock with
+    /// nowhere to send it, the units are gone and every later walk finds a world that adds up — the
+    /// missing quantity is missing from the only place that could have reported it.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It is <c>04 §2</c>'s audit standing where a District dies</b> — <em>"if a hundred units
+    /// of Food entered the District, a hundred units must be accounted for."</em> A District dies when
+    /// no basin claims it, and its heir is whoever now owns its centre Cell; demolish everything in it
+    /// and its centre stops being built, so there is no heir and the stock has nowhere to go.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It cannot fire today, and the reason is exact rather than lucky.</b> <c>Scope.Pool</c>
+    /// throws, so nothing in the build can put a unit into a Pool: every Pool is empty at every
+    /// moment, so <em>no heir</em> and <em>nothing to hand over</em> coincide for now. ***That is a
+    /// property of the build and not of the design***, and this member is what turns the day it stops
+    /// being true into a failure rather than a leak. <c>plans/0037</c> task 7 is the day.
+    /// </para>
+    /// </remarks>
+    ADistrictDiesWithAnHeirOrAnEmptyPool = 51,
+
+    /// <summary>
+    /// Every District's Pool is one live Bin per Good, and every Pool row names rows that exist.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two halves and one id, on <see cref="ADistrictCellNamesALiveDistrictAndBuiltGround"/>'s
+    /// reasoning</b>: they are the same sentence read from either end, and a violation of one is
+    /// diagnosed by looking at the other.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The State Hash cannot report either half.</b> <c>Space.DistrictPoolTable</c> is the only
+    /// saved statement of which District owns a Pool Bin, and a handle column folds the target row's
+    /// monotonic id — which is <b>zero</b> for a freed target. So a Pool row naming a destroyed
+    /// District, or a destroyed Bin, is a dangling reference that replay, thread-count and save/reload
+    /// equivalence all agree about. ***Two runs reproduce the same wrong answer.***
+    /// </para>
+    /// <para>
+    /// <b>The completeness half is the one that catches a missed <c>World.FitDistrictPools</c>.</b> A
+    /// District opened by the watershed and never fitted has no Pool at all, which reads as a District
+    /// whose every Good is permanently out of stock — a city that looks starved rather than broken,
+    /// and the failure mode <c>02 §5.9</c> is least able to tell from the real thing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The <em>dangling</em> half overlaps <see cref="CrossTableHandleResolves"/> and is kept
+    /// anyway.</b> That walk is column-driven — it asks every saved handle column in the world whether
+    /// it dangles, so it covered this one the day it was declared and it is registered first. What is
+    /// left here is the <b>unset</b> handle, which is not dangling and which the generic walk is right
+    /// not to report. ***Stating the whole sentence and noting the overlap beats writing down the half
+    /// nobody else covers***, which would read as a check with an arbitrary gap in it. A test that
+    /// wants to see this member fire calls it directly rather than through the registry.
+    /// </para>
+    /// </remarks>
+    ADistrictPoolIsOneLiveBinPerGood = 52,
 }

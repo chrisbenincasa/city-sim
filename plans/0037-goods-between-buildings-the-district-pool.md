@@ -218,7 +218,7 @@ is this milestone.
 
 ---
 
-## Open decisions this milestone owes — **OPEN: 3, 7 AND 10**
+## Open decisions this milestone owes — **OPEN: 3 AND 10**
 
 Typed under `adr/0043`. **Settled: 1, 2, 4, 5, 6, 8, 9** — each closed in place, with the question as
 first written kept beneath it as `Na`, because ***the original wording is how a later reader checks
@@ -518,7 +518,26 @@ one District per current world, so *between Districts* has nowhere to go.
 second term follows freight to 12."* ⚠ **Whether freight itself is in this milestone is decision 8**,
 so this one is downstream of it.
 
-### 7. What does *"subject to connectivity"* mean for a Pool draw? — *arguable*
+### 7. ✅ SETTLED — a Building's District is its **Cell's** District, and the clip is the whole answer
+
+**Settled 2026-08-22 with the user in the room**, before task 5. *"Subject to connectivity"* is
+**already spent**: `adr/0134`'s watershed clips the flood to the **Foot** road component, so every Cell
+in a District is foot-reachable from its centre and ***a District is connected by construction.*** There
+is nothing left for a Pool draw to check, and `DistrictResidency.Of` — a Building's Cell, then the index
+— is the whole lookup.
+
+⚠ **The question survives as one about GRANULARITY, and the answer is the Cell.** A Cell's component is
+read off the first Building in it that has an Address, so a Building with **no** Address rides on its
+neighbours' reachability. 🔴 **That is a real state and a designed one**: `adr/0079` keeps a Building
+standing when its last Street is bulldozed, so its Lot has no frontage and nobody can reach it — and it
+keeps trading with the Pool. **Accepted**, because the alternative costs a per-Building check on the
+hot path to correct a 128 m discrepancy inside one Cell, and because the two candidates that would act
+on it are both worse: *fail on the Pool Bin* livelocks against the wait list, and *a District of one*
+does not fit a membership table keyed by Cell.
+
+**The original entry:**
+
+### 7a. What does *"subject to connectivity"* mean for a Pool draw? — *the question as first written*
 
 `CONTEXT.md` → District Pool: *"Goods moving between Buildings within a District pass through the Pool
 instantly, **subject to connectivity**."* `Scope.Pool`'s doc says the scope *"requires road
@@ -719,7 +738,22 @@ starting.
    District from a profiler"* — is the argument against the reading it had just given. Filed in
    [`0012`](0012-corpus-audit.md). ⚠ **Only a Cell moving from one LIVING District to another counts
    against it**: new ground is growth, and a Cell whose District is being destroyed has nowhere to stay.
-5. **Pool Bins — a Bin per Good per District.** 🔴 **`BinOwnerKind` has four members and none is a
+5. ✅ **SHIPPED 2026-08-22 — Pool Bins, a Bin per Good per District.** `BinOwnerKind.District` is the
+   **fifth** member; `Space.DistrictPoolTable` is a saved join naming which Bin belongs to whose Pool,
+   because `BinTable.Owner` cannot hold a District and the alternative — a derived list — is only
+   derivable when the element names its owner (**F25**). Every Pool Bin is **unbounded**, on an argument
+   that is not money's: there is no shed, and `adr/0135`'s falling price is what discourages selling
+   into a full Pool. `World.FitDistrictPools` adds and never removes, after the watershed and at every
+   Ruleset swap. A dying District's stock goes to whoever took its **centre Cell**, which is identity's
+   own rule used for succession (**F29**). ⚠ **No money Bin**, because decision 10 is open and a Bin
+   opened before it is answered would *be* the answer. ⚠ **No lookup index, and that is deliberate**
+   (**F26**) — every read is cold while `Scope.Pool` throws. 🔴 **The State Hash moved and all three
+   golden baselines were re-recorded**: `DistrictPools.Rows` is appended to `World._tables`, and an
+   empty table still folds its allocator ([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).
+   🔴 **Task 5 also found a defect it does not own** — a Ruleset that inserts a `[[resource]]` crashes
+   the swap on the treasury — routed to [`0003`](0003-build-plan.md) queue item **15** (**F27**).
+   ⚠ **`Scope.Pool` STILL THROWS**, exactly as this entry said it would. *The original entry:*
+   🔴 **`BinOwnerKind` has four members and none is a
    District**, and `BinTable.Owner` is a `HandleColumn<Building>` bound to `buildings.Rows` at
    construction (`BinTable.cs:60`), so ***a District-owned Bin cannot address its owner through
    `Owner` and must not try.*** **Use the Household/Business shape instead** — the owner row holds the
@@ -1085,3 +1119,65 @@ redundant with the first**: a Cell that stopped holding Buildings and kept its r
 perfectly well, and puts **empty ground inside a Pool**, which is the abstraction `adr/0013` is a lie
 without rather than a simplification. **Three tests write both violations and watch them fire**, and a
 third runs the reconciliation and watches one clear.
+
+### Task 5, 2026-08-22 — **F25** to **F29**
+
+✅ **F25 — the Pool hangs off the OWNER row, and which shape that is was decided by what a load can
+recover rather than by taste.** `BinTable.Owner` is a `HandleColumn<Building>` bound to `buildings.Rows`
+at construction, so a District cannot go in it, and this plan already said not to widen it. What it did
+not say is which of the two remaining shapes to use, and they are not equivalent. **A Building's Bins
+hang off a `Derived` list that `World.RebuildDerived` re-threads from the Bins' own owner column** — it
+can, because the element names its owner. **A Pool Bin's row names nothing**, so there is no column to
+re-thread from and a derived list would come back empty. `Space.DistrictPoolTable` is therefore
+**saved**, and it is the only statement anywhere of which District owns which Bin. ⚠ ***The difference
+between the two shapes is what is RECOVERABLE and not how much care was taken***, and a derived list is
+only derivable when the element names its owner.
+
+✅ **F26 — no lookup index shipped, and `Scope.Pool` still throwing is the argument.** The obvious
+companion to the join is a dense `(District, Resource) → Bin` index, on `DistrictResidency`'s model. It
+is not here. **Every read of the table today is cold** — opening a Pool, and retiring one — because
+nothing can resolve a `pool` term at all, so an index would be sized against a table nothing walks and
+measured by nothing. ***An index built before the hot path exists is an index whose shape is a guess
+about a caller nobody has written.*** Task 7 owes it, on the Tick a pool term resolves for the first
+time.
+
+🔴 **F27 — a Ruleset edit that INSERTS a resource crashes the swap, and it crashes on the treasury.**
+Found by a test of this task and it is **milestone 10's defect, reproduced on `rulesets/minimal.toml`
+with no `[districts]` in it at all**. `RulesetMigration` maps Resources **by name** and says why in its
+own words — *"the map exists because an id is not an identity"* — and `World.Migrate` applies that map
+by walking `Buildings.Rows`. **That is the whole of where it is applied.** A `ResourceId` is the
+declaration's *position*, so an insert renumbers everything after it, and a Treasury, Household,
+Business or Pool Bin keeps the outgoing file's id. `World.RebuildCapacities` throws
+***"bin 0 holds a non-conserved Resource and is owned by Treasury"*** — bin 0 being the treasury's
+money, whose id was `money` and is now `repairs`. ⚠ **The migration is right and its REACH is short**,
+which is the opposite of the defect it looks like. Routed to [`0003`](0003-build-plan.md) queue item
+**15** under [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+and expressly not fixed here; the test appends its new Good instead, which is a legitimate fixture and
+not a workaround, because the test is about fitting a Pool. ⚠ **Task 5 widens the blind spot without
+widening the defect**, and the wider half is the worse one: a Pool Bin's ceiling derives from its
+**owner** rather than its Resource, so it does not throw — ***it comes back holding a stock of whatever
+the id now names, silently.***
+
+🔴 **F28 — `Invariant.CrossTableHandleResolves` already covers every dangling saved handle, and task
+4's invariant did not know it.** That walk is **column-driven** — *"every column is asked whether it
+dangles, so a handle column added in a later slice is covered the day it is declared"* — and it is
+registered **first**. So a test that frees a District and asks the registry gets `CrossTableHandleResolves`
+and not the District member, which is how this was found: task 5's version of that test failed, and task
+4's identical-looking one passes because ***it calls the check directly rather than through the
+registry.*** ⚠ **What is left to the per-table member is the UNSET handle**, which is not dangling and
+which the generic walk is right not to report. Both members now say so at the declaration. ***A test
+that trips two checks tests whichever is registered earlier***, and the isolation is the point rather
+than the tidiness.
+
+✅ **F29 — succession reuses identity's rule, and the symmetry is the argument rather than a
+coincidence.** A dying District's stock goes to whoever now owns its **centre Cell** — the same one Cell
+pass 1 reads to decide which District inherits a basin. `adr/0134` makes a District *be* its centre, so
+the row that inherited the centre is the row that inherited the District, and any other rule would make
+identity and succession disagree about the same Cell. ⚠ **A District can still die with NO heir** —
+demolish its ground and the centre stops being built — and that destroys Goods, which `04 §2` forbids.
+`Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool` is what makes it a failure instead of a leak. **It
+cannot fire today and the reason is exact rather than lucky**: `Scope.Pool` throws, so every Pool is
+empty at every moment and *no heir* and *nothing to hand over* coincide. ***It is the day task 7 opens
+the scope that it becomes a real constraint***, and the test that watches it fire has to deposit by
+hand to get there.
+

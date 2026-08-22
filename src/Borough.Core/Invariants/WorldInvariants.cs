@@ -60,6 +60,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, OutsideConnectionsStandOnAnEdge);
         invariants.Register(InvariantTier.EndOfRun, ThePoolWaitsAtRealGates);
         invariants.Register(InvariantTier.EndOfRun, DistrictMembershipNamesLiveDistrictsAndBuiltGround);
+        invariants.Register(InvariantTier.EndOfRun, DistrictPoolsAreOneLiveBinPerGood);
     }
 
     /// <summary>
@@ -1369,6 +1370,80 @@ public static class WorldInvariants
                 Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround,
                 slot,
                 CellGrid.Index(east, north));
+        }
+    }
+
+    /// <summary>
+    /// Every Pool row names rows that exist, and every live District holds one Bin per Good.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Both directions, because the relation has two ends and neither end can report the other's
+    /// failure.</b> A dangling Pool row is a District that has stock in a Bin nobody can find; a
+    /// missing Pool row is a District whose Good is permanently out of stock. ***The second reads as a
+    /// starving city rather than a broken one***, which is the harder of the two to notice from
+    /// outside.
+    /// </para>
+    /// <para>
+    /// <b>End of run, on <see cref="DistrictMembershipNamesLiveDistrictsAndBuiltGround"/>'s
+    /// reasoning</b> — the structure changes on a cadence measured in Days, so a staggered sweep would
+    /// re-ask a question whose answer had not moved.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The completeness half asks the Ruleset in force rather than the Bins</b>, which is what
+    /// makes it a check on <see cref="World.FitDistrictPools"/>'s <em>placement</em> and not on its
+    /// arithmetic — the same shape as <see cref="BinCapacitiesMatchTheirDeclarations"/>, re-deriving
+    /// from the source the write site read.
+    /// </para>
+    /// </remarks>
+    internal static void DistrictPoolsAreOneLiveBinPerGood(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        Space.DistrictPoolTable pools = world.DistrictPools;
+
+        for (int slot = 0; slot < pools.Rows.SlotCount; slot++)
+        {
+            if (!pools.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            report.Require(
+                world.Districts.Rows.IsValid(pools.District[slot]),
+                Invariant.ADistrictPoolIsOneLiveBinPerGood,
+                slot);
+
+            report.Require(
+                world.Bins.Rows.IsValid(pools.Bin[slot]),
+                Invariant.ADistrictPoolIsOneLiveBinPerGood,
+                slot,
+                -1);
+        }
+
+        for (int slot = 0; slot < world.Districts.Rows.SlotCount; slot++)
+        {
+            if (!world.Districts.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            for (int raw = 1; raw <= world.Rules.ResourceCount; raw++)
+            {
+                var resource = new ResourceId((ushort)raw);
+
+                if (world.Rules.Family(resource) != ResourceFamily.Good)
+                {
+                    continue;
+                }
+
+                report.Require(
+                    world.FindDistrictPoolBin(slot, resource) != Rows.NoSlot,
+                    Invariant.ADistrictPoolIsOneLiveBinPerGood,
+                    slot,
+                    raw);
+            }
         }
     }
 }

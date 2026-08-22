@@ -88,35 +88,37 @@ public static class DistrictWatershed
     /// what world creation does.
     /// </para>
     /// </remarks>
-    public static void Evaluate(
-        DistrictTable districts,
-        DistrictCellTable cells,
-        DistrictResidency residency,
-        BuildingResidency density,
-        BuildingTable buildings,
-        LotTable lots,
-        RoadGraph roads,
-        DistrictRuleset rules)
+    /// <remarks>
+    /// <para>
+    /// ⚠ <b>It takes the <see cref="World"/> and it used to take eight tables, and task 5 is what
+    /// changed it.</b> The old list was defensible while this only <em>read</em>: a signature that
+    /// enumerates what an operator touches is a real property, and it is worth several parameters.
+    /// Retiring a Pool ends that — the operator now moves Goods between Bins and wakes whoever was
+    /// waiting on the one it frees, which is the world's write path and not a table.
+    /// ***A ninth, tenth and eleventh parameter naming the World's own tables is a copy of the World
+    /// that drifts***, and the enumeration had already stopped being the point.
+    /// </para>
+    /// </remarks>
+    public static void Evaluate(World world)
     {
-        ArgumentNullException.ThrowIfNull(districts);
-        ArgumentNullException.ThrowIfNull(cells);
-        ArgumentNullException.ThrowIfNull(residency);
-        ArgumentNullException.ThrowIfNull(density);
-        ArgumentNullException.ThrowIfNull(buildings);
-        ArgumentNullException.ThrowIfNull(lots);
-        ArgumentNullException.ThrowIfNull(roads);
+        ArgumentNullException.ThrowIfNull(world);
+
+        DistrictTable districts = world.Districts;
+        DistrictCellTable cells = world.DistrictCells;
+        DistrictResidency residency = world.DistrictsInCells;
+        DistrictRuleset rules = world.Rules.Districts;
 
         if (!rules.Runs)
         {
-            Clear(districts, cells, residency);
+            Clear(world, districts, cells, residency);
             return;
         }
 
-        Basins basins = Collect(density, buildings, lots, roads);
+        Basins basins = Collect(world.BuildingsInCells, world.Buildings, world.Lots, world.Roads);
 
         if (basins.Count == 0)
         {
-            Clear(districts, cells, residency);
+            Clear(world, districts, cells, residency);
             return;
         }
 
@@ -125,12 +127,19 @@ public static class DistrictWatershed
         bool[] seeds = Seed(basins, order, rules.ProminencePercent);
         Proposal proposal = Assign(basins, order, seeds);
 
-        Reconcile(districts, cells, residency, basins, proposal, rules);
+        Reconcile(world, districts, cells, residency, basins, proposal, rules);
     }
 
     /// <summary>Frees every District row and empties the index.</summary>
+    /// <remarks>
+    /// <b>Every District here dies with no heir, and that is the truth rather than a shortcut.</b>
+    /// This runs when the city has no Districts at all — no <c>[districts]</c> table, or nothing built
+    /// — so there is no row for a Pool to be handed to. <c>World.RetirePool</c> is asked with the unset
+    /// handle and <see cref="Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool"/> decides whether that was
+    /// allowed, which is the same question asked in the same place as on the reconciliation path.
+    /// </remarks>
     private static void Clear(
-        DistrictTable districts, DistrictCellTable cells, DistrictResidency residency)
+        World world, DistrictTable districts, DistrictCellTable cells, DistrictResidency residency)
     {
         for (int slot = cells.Rows.SlotCount - 1; slot >= 0; slot--)
         {
@@ -144,6 +153,8 @@ public static class DistrictWatershed
         {
             if (districts.Rows.IsLive(slot))
             {
+                world.RetirePool(slot, default);
+
                 districts.Rows.Free(districts.Rows.At(slot));
             }
         }
@@ -578,6 +589,7 @@ public static class DistrictWatershed
     /// </para>
     /// </remarks>
     private static void Reconcile(
+        World world,
         DistrictTable districts,
         DistrictCellTable cells,
         DistrictResidency residency,
@@ -700,10 +712,22 @@ public static class DistrictWatershed
         // the table would do.
         for (int slot = standing - 1; slot >= 0; slot--)
         {
-            if (dying[slot] && districts.Rows.IsLive(slot))
+            if (!dying[slot] || !districts.Rows.IsLive(slot))
             {
-                districts.Rows.Free(districts.Rows.At(slot));
+                continue;
             }
+
+            // Succession, and it is the same Cell that decided identity in pass 1 -- a District IS its
+            // centre (adr/0134), so the row that inherited the centre is the row that inherited the
+            // District. Read AFTER the Cell passes, because the whole question is who owns that ground
+            // now. It answers the unset handle when the centre is no longer in any District, which is
+            // an heirless death and is RetirePool's to judge rather than this loop's to prevent.
+            Handle<District> heir = residency.Of(
+                cells, districts.CentreEast[slot], districts.CentreNorth[slot]);
+
+            world.RetirePool(slot, heir);
+
+            districts.Rows.Free(districts.Rows.At(slot));
         }
     }
 
