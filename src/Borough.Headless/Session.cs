@@ -263,9 +263,26 @@ internal static class Session
         World world;
         SaveHeader header;
 
-        using (var stream = File.OpenRead(options.LoadPath!))
+        // 05 §7's refusals are messages, not faults. SaveHeader.Read orders its checks so that the
+        // first one to fail names the real cause -- "the order of the checks is the point" -- and
+        // printing that under a .NET banner throws the ordering away: the right cause arrives under a
+        // heading that says the program broke. adr/0086's refusals were written to be read.
+        //
+        // InvalidOperationException is every refusal on this path and nothing else; the guard is
+        // narrow on purpose. InvariantViolationException derives from Exception rather than from it,
+        // so a Core invariant firing during the load still unwinds loudly, which is correct -- that
+        // is a defect in this build, not a verdict on the file.
+        try
         {
+            using var stream = File.OpenRead(options.LoadPath!);
+
             world = SaveFile.Read(new SaveSource(stream), rulesets.Opening, out header);
+        }
+        catch (Exception refusal) when (refusal is InvalidOperationException or IOException)
+        {
+            Console.Error.WriteLine(F($"{options.LoadPath} cannot be resumed: {refusal.Message}"));
+
+            return Refused;
         }
 
         bool hashBroken = header.RulesetInForce != rulesets.OpeningHash;

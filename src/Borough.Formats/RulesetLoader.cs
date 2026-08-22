@@ -908,6 +908,19 @@ public static class RulesetLoader
                 return;
             }
 
+            // Naming a Layer that exists and cannot be emitted into is a different mistake from
+            // naming one that does not exist, and it gets its own sentence. adr/0048 puts the
+            // refusal here; RuleEngine.Emit threw on the first application, which is a refusal the
+            // designer met as a crash on a file that had already loaded clean.
+            if (!MapEmission.IsEmittable(layer))
+            {
+                Refuse(LineOf(inline), rule,
+                    $"'{name}' is a Map Layer a Rule cannot emit into. Only pollution accumulates from "
+                    + "a source; land value is chased towards a target and Sealing is a property of a "
+                    + "footprint, so neither is a quantity a Rule adds per application.");
+                return;
+            }
+
             emissions.Add(new MapEmission(layer, amount));
         }
 

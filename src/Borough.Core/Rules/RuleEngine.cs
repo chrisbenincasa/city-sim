@@ -872,7 +872,10 @@ public sealed class RuleEngine
         Cells east = CellGrid.ToCells(_world.Lots.East[lotSlot]);
         Cells north = CellGrid.ToCells(_world.Lots.North[lotSlot]);
 
-        if (emission.Layer != Layer.IndustrialPollution)
+        // A backstop, not the refusal. RulesetLoader.ReadEmission rejects this at the parse site
+        // (adr/0048), so reaching here means a Ruleset got in by some other door. Both sides ask
+        // MapEmission.IsEmittable so they cannot drift apart.
+        if (!MapEmission.IsEmittable(emission.Layer))
         {
             throw new NotSupportedException(
                 $"layer {(int)emission.Layer} is not an emittable Map Layer. Only pollution accumulates "
