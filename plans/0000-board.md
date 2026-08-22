@@ -9,11 +9,11 @@ place that orders the three tracks against each other.
 
 **The next code row is [`06`](../docs/06-roadmap.md) milestone **12** — Goods between Buildings, the
 District Pool.** Ungated, scoping under way in
-[`0037`](0037-goods-between-buildings-the-district-pool.md), **task 1 shipped 2026-08-22**. Decisions **1, 2, 4, 5, 6,
+[`0037`](0037-goods-between-buildings-the-district-pool.md), **tasks 1 and 2 shipped 2026-08-22**. Decisions **1, 2, 4, 5, 6,
 8 and 9 are settled** ([`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md)–[`adr/0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md));
 **open: 3, 7 and 10**, and **`0037` owns all three**.
 
-✅ **DECOMPOSED 2026-08-22 — ten tasks, task 1 shipped.** **3 is an obligation, not a fork** — `adr/0052`
+✅ **DECOMPOSED 2026-08-22 — ten tasks, tasks 1 and 2 shipped.** **3 is an obligation, not a fork** — `adr/0052`
 requires a ratifier be *named*, not that the number be settled. **7 is largely pre-answered** by
 `adr/0134`. 🔴 **10 is new and decomposition found it**: the Pool is the counterparty on **both** sides
 of a trade and the two sides happen at different Ticks, so *where the money sits between a Provider's
@@ -30,7 +30,7 @@ District, and `BinTable.Owner` is a `HandleColumn<Building>`.
 ✅ **Task 1 was a WORLD and not code, and it shipped 2026-08-22** — `rulesets/twinned.toml` and the
 `[[lattice]]` key, two lattices **joined by a Street corridor** so that only the density field can split
 them. ***That is milestone 11 task 3's lesson arriving before the milestone instead of during it.***
-⚠ **The key is not spelled `settlement`** and `CONTEXT.md` → Lattice says why.
+⚠ **The key is not spelled `settlement`** and `CONTEXT.md` → Lattice says why. ✅ **Task 2 found its field already built** — `BuildingResidency`, 5b-bis — so it shipped a name and a measurement.
 
 ⚠ **Two things a reader of this row needs and will not guess.** The survey found **three preconditions
 no document had listed as blockers** — the largest being that ***there is no District in the build at

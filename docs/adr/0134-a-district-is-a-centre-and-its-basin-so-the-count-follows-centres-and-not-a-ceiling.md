@@ -132,7 +132,17 @@ resolve to.
   at 12"* sub-question is narrowed: with no geometric bound, something must bound extent, and this is it.
   Its **payee blocker therefore blocks more than it did** — see that ADR's Consequences.
 - **The watershed reads a Building-density field over Cells**, which is machinery the build already has:
-  `LayerCellTable`, `LayerDiffusion` and `SeparableKernel`. **It is not a Map Layer** and must not acquire
+  ~~`LayerCellTable`, `LayerDiffusion` and `SeparableKernel`~~ 🔴 ⚠ **AMENDED 2026-08-22 by milestone 12
+  task 2: it is `BuildingResidency`, and none of those three.** The field is a **count** and was already
+  built — 5b-bis cached a per-Cell list length for `adr/0081`'s job search, sized against
+  `CellGrid.WorldCellCount`, maintained at the write site and rebuilt with its index — so it is exact at
+  every Tick, free to read and carries no schedule. **The three names above are the machinery a
+  *smoothed* field would use, and no smoothing shipped**: a kernel means a radius, which would be a fifth
+  hash-bearing number where the bullet below enumerates four, and measured on the worlds that exist the
+  field is **flat rather than noisy** — a Cell inside a lattice holds exactly ten Buildings — so there is
+  nothing for a kernel to do (`plans/0037` **F7**, **F8**). ***This ADR was right about the mechanism and
+  wrong about where to look***, which is [`adr/0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+  working as written. **It is not a Map Layer** and must not acquire
   a cadence in `[layers]` by resemblance — its cadence is this ADR's, and a Map Layer's is `adr/0044`'s.
 
 ## What would trigger revisiting

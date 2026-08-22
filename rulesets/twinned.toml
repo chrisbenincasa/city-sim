@@ -57,6 +57,22 @@
 #     the gap           the western lattice's built ground reaches Tile 156; the eastern starts at
 #                       2,048 -- so the gap is TWELVE TIMES the width of either concentration
 #
+# ⚠ IT HAS A LOWER SIZE BOUND TOO, AND IT IS SMALL BUT REAL: RUN IT AT 2,000 CITIZENS OR MORE.
+# MEASURED, milestone 12 task 2. At 1,000 Citizens each lattice holds ~61 Buildings over ~11 Cells and
+# does not fill its own ground, so its edge is ragged and the ragged edge carries density maxima of its
+# own -- FOUR plateaus rather than two. From 2,000 up it is exactly two at every size measured. The
+# watershed would still find two at 1,000, because prominence is what discards a plateau whose saddle to
+# a higher one is barely below it -- but the FIELD does not say two, so a reading taken at 1,000 is not
+# the reading this file exists to give. `BuildingDensityFieldTests` holds both halves.
+#
+# WHAT THE FIELD LOOKS LIKE, AND IT IS THE MEASUREMENT THAT MATTERS MOST HERE. MEASURED at 16,000
+# Citizens: a Cell inside either lattice holds EXACTLY TEN Buildings, its west edge 7 and its east edge
+# 5, and every Cell between the two lattices holds ZERO. ⚠ THE FIELD IS FLAT AND NOT A HILL. There is no
+# gradient inside a lattice at all, so a concentration here is a plateau with a cliff at its edge --
+# which means ALL of this world's boundary information is in the gap, and none of it is in either
+# concentration's shape. adr/0134's prominence has a saddle of zero to work with, which is the strongest
+# case it will ever be handed. ⚠ DO NOT READ THIS WORLD AS ONE THAT EXERCISES PROMINENCE FILTERING.
+#
 # ⚠ THE GAP IS DELIBERATELY NOT MARGINAL, AND THAT IS THIS FILE'S ONE DESIGN CLAIM. The prominence
 # threshold is not chosen until task 3, so this world must be one that ANY SANE THRESHOLD SPLITS
 # rather than one that calibrates it -- and the shares are equal for the same reason: two

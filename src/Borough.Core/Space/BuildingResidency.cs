@@ -82,6 +82,51 @@ public sealed class BuildingResidency
     /// </remarks>
     private readonly int[] _count = new int[CellGrid.WorldCellCount];
 
+    /// <summary>
+    /// <b>How many Buildings stand in one Cell — <c>adr/0134</c>'s Building-density field</b>, which
+    /// is what the District watershed reads.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>The field was already here, built by 5b-bis for a different consumer, and milestone 12
+    /// task 2 is the name arriving rather than the storage.</b> <c>adr/0134</c> specifies <i>a
+    /// watershed over a Building-density field on the Cell grid</i> and names
+    /// <c>LayerCellTable</c>, <c>LayerDiffusion</c> and <c>SeparableKernel</c> as the machinery that
+    /// exists — and the thing it describes is <see cref="_count"/>, which
+    /// <see cref="CountIn"/> has summed over a box since the day the job search needed a fair draw.
+    /// ***A field is a value per Cell, and an index that caches its own list lengths already is
+    /// one.*** This accessor exists so the watershed reads a <em>field</em> rather than a 1×1 box
+    /// query, because the two are the same read and only one of them says what it is.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is NOT a Map Layer and must not acquire a cadence in <c>[layers]</c> by
+    /// resemblance</b> (<c>adr/0134</c>, in terms). A Map Layer is a diffused quantity on
+    /// <c>adr/0044</c>'s designer-owned schedule; this is a count, maintained at the write site, exact
+    /// at every Tick and free to read. **Nothing about it is scheduled**, and there is no number here
+    /// to author.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is UNSMOOTHED, and that is a decision taken against a measurement rather than an
+    /// omission</b> (<c>plans/0037</c> <b>F8</b>). A kernel would introduce a radius, which is a fifth
+    /// hash-bearing number where <c>adr/0134</c> enumerates four — and measured on the two worlds that
+    /// exist there is nothing for it to do: the generator lays Lots uniformly, so the field's interior
+    /// is <b>exactly 10 everywhere</b> and its maxima form one plateau component per lattice with no
+    /// noise maxima to filter. ***Smoothing is what you reach for when a field is noisy, and this one
+    /// is not noisy, it is flat.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It counts every Building, including an Outside Connection.</b> Whether a gate is a
+    /// <em>concentration of activity</em> is a question no document has asked; it is inert today
+    /// because no shipped Ruleset has both a gate kind and a second lattice, and the generator refuses
+    /// that combination. <c>plans/0037</c> <b>F10</b>.
+    /// </para>
+    /// </remarks>
+    /// <param name="east">The Cell's east coordinate.</param>
+    /// <param name="north">The Cell's north coordinate.</param>
+    /// <returns>The count, which is zero for an empty Cell and for one off the map.</returns>
+    public int Density(Cells east, Cells north) =>
+        CellGrid.Contains(east, north) ? _count[CellGrid.Index(east, north)] : 0;
+
     /// <summary>The list threaded through this index. Composed at the call site, never stored.</summary>
     private IndexList List(BuildingTable buildings) =>
         new(_head.AsSpan(), _tail.AsSpan(), buildings.CellNext);

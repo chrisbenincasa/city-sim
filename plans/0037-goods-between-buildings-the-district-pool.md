@@ -8,9 +8,11 @@ Goods chain that crosses an ownership boundary.
 ## Status
 
 🟢 **SCOPING STARTED 2026-08-21. The scoping sitting ran 2026-08-22, settled decisions 1, 2, 4, 5, 6, 8
-and 9, and the milestone was DECOMPOSED INTO TEN TASKS the same day. TASK 1 SHIPPED 2026-08-22** —
-`rulesets/twinned.toml` and `[[lattice]]`, the first world this build can generate with **two centres**
-in it. **Findings F1–F6** are below, under *What building it found*.
+and 9, and the milestone was DECOMPOSED INTO TEN TASKS the same day. TASKS 1 AND 2 SHIPPED
+2026-08-22** — `rulesets/twinned.toml` and `[[lattice]]`, the first world this build can generate with
+**two centres** in it; and the Building-density field, which 🔴 **turned out to be already built**
+(`BuildingResidency`, 5b-bis) so that task 2 was a name and a measurement rather than storage.
+**Findings F1–F10** are below, under *What building it found*.
 
 ⚠ **Open: 3, 7 and 10** — and **10 did not exist until decomposition wrote it**, which is the argument
 for decomposing rather than sitting again. ***Ordering the work asked what each task needed and found a
@@ -663,11 +665,15 @@ starting.
    currently generate***, because the count follows centres and there is one. **Make the gap
    unambiguous** — the prominence threshold is not chosen until task 3, so the world must be one that any
    sane threshold splits, not one that calibrates it.
-2. **The Building-density field on the Cell grid** — what the watershed reads
+2. ✅ **SHIPPED 2026-08-22 — the Building-density field on the Cell grid** — what the watershed reads
    ([`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)).
+   🔴 **IT WAS ALREADY BUILT.** `BuildingResidency` has cached its own per-Cell list lengths since
+   **5b-bis**, sized against `CellGrid.WorldCellCount` exactly as this entry predicted whatever held it
+   would be, because the job search needed a fair draw over a box. **What task 2 added is a name** —
+   `BuildingResidency.Density` — **and the evidence that the field has the shape the watershed needs.**
    ⚠ **It is flat on all nine existing Rulesets and has texture on task 1's world**, which is the whole
-   reason for the order. **`CellGrid.WorldCellCount` is 262,144**, so whatever holds it is sized against
-   that and not against the Buildings.
+   reason for the order — and *flat* turned out to be **literal**. Findings **F7**–**F10** below.
+   ⚠ **No smoothing**, and that is a decision against a measurement rather than an omission (**F8**).
 3. **`DistrictTable`, `DistrictId`, and the first derivation** — the watershed, prominence-seeded,
    clipped to a road component. `(saved AND hashed)` and **not** `Derived`, per decision 2 — so
    `DerivedRebuildAuditTests` does not apply and nothing is owed a rebuild. **Run once, at world
@@ -853,3 +859,45 @@ combination is refused at generation for the same shape of reason**: a Ruleset d
 paves the lattice to the map's **boundary**, which leaves no ground for a second Lattice and no gap
 between them. ***A world with two centres AND a door needs the extent to stop being all-or-nothing***,
 and nothing needs it yet.
+
+### Task 2, 2026-08-22 — **F7** to **F10**
+
+**F7 — the field already existed, and the task was a name and a measurement rather than storage.**
+`adr/0134` specifies *a watershed over a Building-density field on the Cell grid* and names
+`LayerCellTable`, `LayerDiffusion` and `SeparableKernel` as the machinery that exists. **None of those
+is where the field was.** `BuildingResidency` — milestone 5b-bis, built for `adr/0081`'s job search
+because a fair draw over a box needs a count per Cell rather than a walk per Cell — holds
+`int[CellGrid.WorldCellCount]` of exactly this, maintained at the write site and rebuilt with the
+index. ***A value per Cell is a field whatever the consumer that first wanted it was called.*** Task 2
+adds `BuildingResidency.Density`, so the watershed reads a field rather than a 1×1 box query — the same
+array read, and only one of them says what it is. ⚠ **The ADR pointed at the wrong three files and was
+right about the mechanism**, which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+working exactly as written: *a description of the build is where to look, and never what you found.*
+
+**F8 — the field is not smoothed, and the measurement is what decided it.** A kernel would introduce a
+**radius**, which is a fifth hash-bearing number where `adr/0134` enumerates four and owes `plans/0002`
+§D rows for those. ⚠ **MEASURED before deciding** ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)):
+the generator lays Lots uniformly, so a Cell inside a lattice holds **exactly 10** Buildings, its west
+edge 7 and its east edge 5. ***The field is not noisy, it is flat*** — and smoothing is what you reach
+for against noise. The maxima form **one plateau component per lattice** with nothing spurious to
+filter. **Revisit trigger is named and it is a test**:
+`BuildingDensityFieldTests.The_field_is_flat_inside_the_built_area` goes red the day the generator stops
+laying Lots uniformly, which is milestone **15**'s agglomeration and is the day the argument above
+stops holding.
+
+**F9 — `twinned.toml` has a LOWER size bound as well as an upper one: 2,000 Citizens.** ⚠ **MEASURED.**
+At 1,000 each lattice holds ~61 Buildings over ~11 Cells, does not fill its own ground, and its ragged
+edge carries maxima of its own — **four** plateaus rather than two. From 2,000 up it is exactly two at
+every size measured to 64,000. ⚠ **The watershed would still find two at 1,000**, because prominence
+discards a plateau whose saddle to a higher one is barely below it — ***the field counts candidate
+centres and the watershed counts accepted ones***, and the distance between those two numbers is what
+the prominence threshold is for. **Both halves are committed as tests** and the floor is in the file's
+header, because a reading taken at 1,000 would look like a defect in task 1.
+
+**F10 — density counts every Building, including an Outside Connection, and nobody has decided whether
+it should.** Whether a gate is a *concentration of activity* is a question no document asks. ⚠ **It is
+inert rather than open**: no shipped Ruleset has both a gate kind and a second lattice, and the
+generator **refuses** that combination (**F6**), so there is no world in which the answer is
+observable. ***Filed here and not in [`0002`](0002-open-questions.md), because nothing is blocked on
+it*** ([`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) — the world
+that would pose the question is **unbuilt**). It becomes a question on the day a Ruleset wants both.
