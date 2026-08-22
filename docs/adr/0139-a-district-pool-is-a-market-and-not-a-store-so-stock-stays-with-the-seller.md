@@ -7,6 +7,14 @@ buyer's `pool` input resolves to **one seller's Bin**, chosen at term-resolution
 output deposits into **its own** Bin and rings the market.**
 `SOLVE THE ACTUAL PROBLEM` `EMERGENCE` `LEGIBLE CAUSE`
 
+> 🔴 ⚠ **CORRECTED 2026-08-22, the same day, and the correction is to the word BUILDING above.** This record says the stock stays in the selling **Building’s** own Bin and then says, sixty lines down, that *“a seller’s money Bin is a Business balance that already exists.”* ***That is one seller with two custodians, and it is wrong.*** **The seller is the BUSINESS**: it holds the inventory, it holds the balance, and it runs the Rule. A Building is **premises** — a Lot, an address, a footprint and a capacity for tenants — and `CONTEXT.md` → Business has said so since it was written: *“the commercial or industrial economic actor **occupying** a Building.”*
+>
+> ⚠ **Nothing else in this record moves.** *Market and not a store* is untouched, and so is every argument for it — a `pool` term still names a counterparty, resolution still chooses one seller, the market row is still the price and the wake target, and `adr/0013` is still amended on **reach versus custody**. ***What changes is only which row the seller’s Bin hangs off***, and that is a fact about the build rather than about the market.
+>
+> 🔴 **The build cannot express the corrected sentence yet, and two ADRs said so before this one was written.** [`0113`](0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)’s revisit trigger: *“`BinTable.Owner` is a `HandleColumn&lt;Building&gt;`, so **no Household, Business or treasury can own a Bin today**.”* And [`0114`](0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md) already recorded the target shape: ***“`World.FindBin` takes an owner rather than a Building slot.”*** ⚠ ***So this record wrote the Building because the code did***, which is [`0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) inverted — **a description taking its noun from the implementation instead of from the design.**
+>
+> **Routed to session V**, [`plans/0039`](../../plans/0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md), under [`0073`](0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md). ⚠ **Milestone 12 task 7 is blocked on it**: a purchase needs a payer, and money lives on a Business while the Rule that spends it names a Building.
+
 **This amends [`0013`](0013-goods-are-pooled-within-a-district-and-shipped-between.md) rather than
 superseding it.** Everything `0013` decided survives: Goods move freely within a District and are
 physically shipped between them, no Vehicle is simulated inside one, and no routing query is issued per

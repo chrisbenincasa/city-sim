@@ -37,6 +37,13 @@ its disagreement is not between two documents at all. It is between a document a
 nothing in this corpus checks that — `CitationTests` checks links resolve, `CoverageMapTests` checks rows
 exist, `MarkdownStyleTests` checks markdown renders, and **all three are document-to-document**.
 
+**Cause 7 was added on 2026-08-22 and it is Cause 4 running BACKWARDS.** Cause 4 is *a decision taken
+from a description of the code, where the description is wrong*. Cause 7 is ***a description taking its
+NOUN from the code, where the code is behind the design*** — so the sentence is an accurate report of
+an implementation the corpus has already decided to replace. **It was found the same day it was
+written**, in an ADR written that morning, and the tell is that the record contradicts *itself* two
+paragraphs apart rather than contradicting anything else.
+
 **Cause 6 was added on 2026-08-21 and no sweep of this corpus could ever have found it**, because it
 is not in the corpus: it is in a **doc-comment**, and a doc-comment is the one place a description of
 the build lives that no document-to-document check reads. It took a **code-against-code** test, and on
@@ -3198,3 +3205,43 @@ should be quoted until then.** ⚠ ***A milestone number is neither a symbol nor
 `adr/0093`'s *name a symbol, never a time* does not reach it — it is the one citation form that rule
 leaves uncovered, and it is exactly the form a renumber invalidates. Related to the retired-numbering
 table's two-column defect recorded above, and not the same finding.
+
+
+---
+
+### Cause 7 — a description takes its noun from the build, and the build is behind the design
+
+**Sighted once, on the day it was written.**
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
+says a seller's Goods stay in *"the selling **Building's** own Bin"* and, sixty lines later, that *"a
+seller's money Bin is a **Business** balance that already exists."* ***One seller, two custodians, in
+one record.***
+
+**Why it happened, and it is not carelessness.** The author checked the build — which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+working — and the build says `BinTable.Owner` is a `HandleColumn<Building>`. **So the noun was correct
+about the code and wrong about the design**, because
+[`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)
+and [`adr/0114`](../docs/adr/0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md)
+had already decided the owner should be the actor and the build had not caught up.
+
+⚠ **This is the inverse of Cause 4 and the two must not be merged.** Cause 4: *the description was
+wrong, so the decision was wrong.* Cause 7: ***the description was RIGHT about the code, and the code
+was the thing lagging.*** **The corrective is opposite too** — Cause 4 says *go and read the symbol*,
+and here reading the symbol is what produced the error.
+
+**The corrective.** ***Before naming an entity in a design record, check whether an ADR has already
+moved it.*** A revisit trigger that has already fired is the signal: `adr/0113`'s reads *"`BinTable.Owner`
+is a `HandleColumn<Building>`, so no Household, Business or treasury can own a Bin today"* — **a
+sentence describing the exact state the new record then wrote down as though it were the design.**
+
+**The tell, and it is cheap.** ***A record that contradicts itself two paragraphs apart is reporting
+two different layers*** — one sentence from the design and one from the build. Neither is a typo, and
+proofreading does not catch it because both halves are locally true.
+
+🔴 **No mechanical check reaches this**, and it is not obvious one could: every check here is
+document-to-document, and both halves of the sentence resolve. **A candidate exists and is not
+proposed** — *an entity named in an ADR must not contradict the same entity named in an ADR that
+supersedes or amends the one that introduced it* — but it needs an entity vocabulary the corpus does
+not have. **Routed to session V** ([`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md))
+as evidence rather than as a task.

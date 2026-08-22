@@ -35,6 +35,17 @@ by `BinRef` with **no resolution**; and a seller's price opens at the **import c
 **no new number and no new ratifier**. ⚠ **Most of tasks 5 and 6 stands** — 20 of 20 loader tests and
 22 of 26 price tests untouched, and `MarketRuleset` survives with its signature unchanged.
 ⚠ **The seller-lookup cost is *measurable* and UNMEASURED**, and `adr/0139` says so itself.
+🔴 **TASK 7 IS BLOCKED AGAIN, and by the correction to `adr/0139` rather than by anything it decided.**
+That record put a seller's Goods in *the selling **Building's** own Bin* and a seller's money in *a
+**Business** balance* — **one seller, two custodians** — and it wrote *Building* because the code does,
+which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+**inverted**. ⚠ **A purchase needs a payer**: money lives on a Business, a Rule Instance names a
+Building, and a Building holds a **list** of Businesses. **Now session V**,
+[`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md), and it is
+**milestone-sized**. ⚠ **On its main axis it is a CORRECTION** — `adr/0113` decided it and `adr/0114`
+wrote *"`World.FindBin` takes an owner rather than a Building slot"* — ***so a revisit trigger that had
+already fired has been sitting finished-in-design and unbuilt since milestone 10.***
+
 🔴 **Session U also found [`0003`](0003-build-plan.md) queue item 17** — `World.RetirePool` raises the
 heir Bin's level with a raw `Bins.Move` and never drains it — ***found while reading for a design
 question and not while looking for a defect.***
@@ -221,6 +232,8 @@ board-tracked axis and nothing else lists them in one place.
 [`0024`](0024-session-j-the-save-the-map-and-the-outside.md), [`0025`](0025-the-player-model.md),
 [`0027`](0027-session-t-the-target-speed.md), [`0029`](0029-session-e-fidelity.md) and the ADRs each
 produced. **Open:** N, and what is open is task 5's residue. **Never opened:** G, R, L.
+🔴 **V open** — the Business is the actor,
+[`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md), **opened 2026-08-22**.
 ✅ **U closed 2026-08-22** — the Pool or the seller,
 [`0038`](0038-session-u-the-pool-or-the-seller.md), into
 [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md).
@@ -231,13 +244,14 @@ produced. **Open:** N, and what is open is task 5's residue. **Never opened:** G
 
 ### The argument track — a menu, not a queue
 
-**Nothing in it gates a slice.** ⚠ **U did, for one afternoon on 2026-08-22, and closed the same day**
+~~**Nothing in it gates a slice.**~~ 🔴 **V DOES** — it blocks milestone 12 task 7 and it is milestone-sized. ⚠ **U also did, for one afternoon on 2026-08-22, and closed the same day**
 into [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
 — the standing rule working rather than failing: *an argument session runs when something concrete is
 blocked on it.* Take from the three below when something is waiting and leave them alone otherwise. **Closed sessions are in [`0000a`](0000a-board-archive.md).**
 
 | | Session | What is missing | Unblocks |
 |---|---|---|---|
+| 🔴 **V** | **The Business is the actor and the Building is premises**, [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md) | ⚠ **On its main axis a CORRECTION and not a design change** — `adr/0113` decided it, `adr/0114` wrote the target shape, and the build never arrived. 🔴 **Two places the corpus contradicts itself are the real work**: which Bins belong to a tenant, and whether jobs are premises or employer. | milestone **12** task 7 |
 | **G** | `adr/0016` — the lane is the entity | Carries the order-of-magnitude claim the whole microscopic tier rests on. ⚠ **Partly discharged by S5** | milestone **21** |
 | **R** | `05 §6`'s threading policy | The obligation `06` could not give a milestone | lint 4 |
 | **L** | **A presentation design** | **It does not exist.** Every other phase is backed by a design document; rendering has none | **Phase 3** |

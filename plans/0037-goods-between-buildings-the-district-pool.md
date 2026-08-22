@@ -844,7 +844,7 @@ starting.
    on a `Ticks.PerDay` boundary, **bounded above by the Hinterland's price**. ⚠ **Before the purchase,
    because a purchase settles at a price**; and authoring the import price **repairs `adr/0045`'s running
    ladder**, which is unordered without it, rather than filling a gap.
-7. **The purchase — and `Scope.Pool` stops throwing.** Good one way, money the other, settled atomically
+7. 🔴 **BLOCKED ON SESSION V as of 2026-08-22** ([`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md)) — ***a purchase needs a payer and there is not one***. Money lives on a **Business**; a Rule Instance names a **Building**; a Building holds a **list** of Businesses. ⚠ **Milestone 10 predicted this in `BusinessTable`'s doc comment** — *"it blocks the first money term a Rule fires on a workplace, because `local` money must resolve to **an** actor and a list does not name one"* — **and task 7 is that first money term.** ⚠ **Decision 10 is still closed and this is not it returning**: that asked who holds the *Pool's* money and dissolved with the Pool; this asks who holds the *seller's*, and the seller is a Business the build cannot give a Bin to. **The purchase — and `Scope.Pool` stops throwing.** Good one way, money the other, settled atomically
    with the Rule. 🔴 **Blocked on decision 10**, above: *who holds the Pool's money between a Provider's
    deposit and a consumer's draw.* ⚠ **The engine's term resolution is 1:1 and a purchase is 1:2** —
    `RuleEngine.Bin` returns **one** slot ~~(`RuleEngine.cs:801`)~~ — ⚠ **the symbol is at line 854 and the claim is still true**, which is `adr/0093`'s writing half: ***name a symbol, never a time*** and a Rule waits on **the one Bin it was
