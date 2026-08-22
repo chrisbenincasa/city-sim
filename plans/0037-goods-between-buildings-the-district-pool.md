@@ -613,8 +613,19 @@ targets. ⚠ **That is a claim about the build and it should be read off `Eviden
 believed**, which is `adr/0093`. It is the cheapest decision here and the one most likely to be
 assumed.
 
-### 10. 🔴 ESCALATED 2026-08-22 to **session U** — **what holds the Pool's money, and may it go negative?** — *arguable*
+### 10. ~~ESCALATED to **session U**~~ ✅ **CLOSED 2026-08-22 — VOID AS POSED** — ~~what holds the Pool's money, and may it go negative?~~
 
+> ✅ **CLOSED THE SAME DAY, and it closed by being VOID AS POSED** —
+> [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md).
+> ***It was never a question about money.*** A District owns nothing and `MoneyLedger` resolves
+> `Treasury / Household / Business`, so *where does the Pool's money sit* has no answer for the reason
+> that **the Pool was never a party to the trade** — the seller is, and a seller's money Bin is a
+> Business balance that already exists. **The question was the shape of a missing counterparty.**
+> ⚠ **Task 7 is unblocked**, and what it must build changed: `Scope.Pool` resolves to a **seller's**
+> Bin, the market row is the **wake target**, and the money leg is `adr/0050`'s implicit one between
+> two Businesses. **The body below is kept as posed**, because a question that dissolves is a better
+> record than a question deleted.
+>
 > ⚠ **THIS DECISION OUTGREW THIS DOCUMENT ON THE DAY IT WAS WRITTEN, and the body below is kept as
 > posed.** Answering it required naming the two parties to a Pool trade, and **the Pool is one of
 > them** — which prompts *why doesn't the bakery buy directly from the mill?*, a question about

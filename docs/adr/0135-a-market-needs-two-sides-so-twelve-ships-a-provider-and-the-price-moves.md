@@ -1,5 +1,7 @@
 # A market needs two sides, so 12 ships a Provider and the price moves
 
+> ⚠ **AMENDED 2026-08-22 by [`0139`](0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md).** ***A market needs two sides is exactly right and this record understated its own claim.*** Read every *sells its output **into** the Pool* below as *offers its output **on** the market*: a `pool` output deposits into the **selling Building's own Bin** and marks the stock as for sale, and a buyer's `pool` input resolves to **one seller's Bin**. **The Pool holds no stock.** The price this record moves now sits on the **seller**, opening at the import ceiling; `[market]`'s two keys and the damping argument are untouched.
+
 **Milestone 12 ships a second `[[building]]` kind — a Provider, which draws inputs from the District
 Pool and sells its output into it — and the Pool price is a damped tâtonnement, per Good per District,
 recomputed on a `Ticks.PerDay` boundary from Pool level against recent consumption, bounded above by

@@ -21,18 +21,23 @@ of a trade and the two sides happen at different Ticks, so *where the money sits
 deposit and a consumer's draw* is unanswered by `adr/0050`, `adr/0135` and `adr/0114` alike. ***Ordering
 the work asked what each task needed and found a question seven decisions had not.***
 
-🔴 **AND 10 OUTGREW THE DOCUMENT THAT FOUND IT, on the same day.** Answering it meant naming the two
-parties to a Pool trade, and **the Pool is one of them** — which puts *whether the bakery should buy
-directly from the mill* in play, and that is a question about
-[`adr/0013`](../docs/adr/0013-goods-are-pooled-within-a-district-and-shipped-between.md) that a slice
-plan may not hold. **Now session U**, [`0038`](0038-session-u-the-pool-or-the-seller.md), opened and
-**not concluded**. ⚠ **Three things it must not be read as having settled**: `adr/0013` stands until an
-ADR replaces it, **tasks 5 and 6 stand as shipped**, and the per-firing seller-lookup cost is
-***measurable and unmeasured*** — the analogy to [`0013`](0013-tick-budget.md)'s job search does not
-reach, because that bill is the **spatial box** and a seller lookup needs none.
-⚠ **Task 7 is blocked either way**, and under two of session U's three candidates decision 10 is **void
-as posed** rather than answered. ***The sentence in `0037` sizing it as a task-head question was
-written by the same reading that made it look small.***
+✅ **AND 10 OUTGREW THE DOCUMENT THAT FOUND IT AND CLOSED THE SAME DAY, VOID AS POSED** —
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md),
+***a District Pool is a market and not a store, so stock stays with the seller.***
+[`adr/0013`](../docs/adr/0013-goods-are-pooled-within-a-district-and-shipped-between.md) is **amended,
+not superseded**: it decided **reach**, and custody was a reading it never argued for. Decision 10 was
+never a question about money — **a District owns nothing, so the Pool was never a party to the trade**,
+and the seller's money Bin is a Business balance that already exists.
+
+⚠ **What task 7 must build changed, and it did not grow.** `Scope.Pool` resolves to a **seller's** Bin
+beside the two searches `RuleEngine.Bin` already runs; the market row is the **wake target**, compared
+by `BinRef` with **no resolution**; and a seller's price opens at the **import ceiling**, which costs
+**no new number and no new ratifier**. ⚠ **Most of tasks 5 and 6 stands** — 20 of 20 loader tests and
+22 of 26 price tests untouched, and `MarketRuleset` survives with its signature unchanged.
+⚠ **The seller-lookup cost is *measurable* and UNMEASURED**, and `adr/0139` says so itself.
+🔴 **Session U also found [`0003`](0003-build-plan.md) queue item 17** — `World.RetirePool` raises the
+heir Bin's level with a raw `Bins.Move` and never drains it — ***found while reading for a design
+question and not while looking for a defect.***
 
 ⚠ **Two more things decomposition turned up, and both are the reason to do it before starting.**
 🔴 **Task 5 found a defect it does not own and routed it rather than fixing it:
@@ -215,9 +220,10 @@ board-tracked axis and nothing else lists them in one place.
 [`0017`](0017-session-d-the-traffic-model.md), [`0018`](0018-session-n-the-bin-the-pool-and-the-economy.md),
 [`0024`](0024-session-j-the-save-the-map-and-the-outside.md), [`0025`](0025-the-player-model.md),
 [`0027`](0027-session-t-the-target-speed.md), [`0029`](0029-session-e-fidelity.md) and the ADRs each
-produced. **Open:** N, and what is open is task 5's residue; and 🔴 **U — the Pool or the seller**,
-[`0038`](0038-session-u-the-pool-or-the-seller.md), **opened 2026-08-22 and not concluded**.
-**Never opened:** G, R, L.
+produced. **Open:** N, and what is open is task 5's residue. **Never opened:** G, R, L.
+✅ **U closed 2026-08-22** — the Pool or the seller,
+[`0038`](0038-session-u-the-pool-or-the-seller.md), into
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md).
 
 ---
 
@@ -225,14 +231,13 @@ produced. **Open:** N, and what is open is task 5's residue; and 🔴 **U — th
 
 ### The argument track — a menu, not a queue
 
-~~**Nothing in it gates a slice.**~~ 🔴 **U DOES, as of 2026-08-22** — it blocks milestone 12 task 7,
-and it is the standing rule working rather than failing: *an argument session runs when something
-concrete is blocked on it.* **The other three still gate nothing**; take from those when something is
-waiting and leave them alone otherwise. **Closed sessions are in [`0000a`](0000a-board-archive.md).**
+**Nothing in it gates a slice.** ⚠ **U did, for one afternoon on 2026-08-22, and closed the same day**
+into [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
+— the standing rule working rather than failing: *an argument session runs when something concrete is
+blocked on it.* Take from the three below when something is waiting and leave them alone otherwise. **Closed sessions are in [`0000a`](0000a-board-archive.md).**
 
 | | Session | What is missing | Unblocks |
 |---|---|---|---|
-| 🔴 **U** | **[`adr/0013`](../docs/adr/0013-goods-are-pooled-within-a-district-and-shipped-between.md) — the Pool or the seller**, [`0038`](0038-session-u-the-pool-or-the-seller.md) | **Nothing — it is open and waiting on a sitting.** The Pool is the counterparty on **both** sides of a trade, and `adr/0013` never asks who the bakery buys from — its two rejected alternatives are both about **movement**. ⚠ **Grew out of [`0037`](0037-goods-between-buildings-the-district-pool.md) decision 10 rather than being scheduled.** | milestone **12** task 7 |
 | **G** | `adr/0016` — the lane is the entity | Carries the order-of-magnitude claim the whole microscopic tier rests on. ⚠ **Partly discharged by S5** | milestone **21** |
 | **R** | `05 §6`'s threading policy | The obligation `06` could not give a milestone | lint 4 |
 | **L** | **A presentation design** | **It does not exist.** Every other phase is backed by a design document; rendering has none | **Phase 3** |

@@ -1,6 +1,8 @@
 # 0038 — Session U: the Pool or the seller
 
-**⚠ OPENED 2026-08-22. NOTHING BELOW IS SETTLED.** This document is the brief, not the record. It
+✅ **CLOSED 2026-08-22 into [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)** — ***a District Pool is a market and not a store, so stock stays with the seller.*** [`adr/0013`](../docs/adr/0013-goods-are-pooled-within-a-district-and-shipped-between.md) is **amended, not superseded**. ⚠ **Read the ADR for the decision and this document for how it was reached** — the two open mechanisms named in *Where it stands* below were both answered after it was written, and *The close* at the foot records how.
+
+~~**⚠ OPENED 2026-08-22. NOTHING BELOW IS SETTLED.**~~ This document is the brief, not the record. It
 states what is being grilled, what has already been conceded on each side, and what would have to be
 true for the sitting to close. **No ADR has been written and no code has moved.**
 
@@ -191,3 +193,192 @@ number for `RuleEngine.Bin`. ⚠ **The claim is still true** — it returns one 
 has drifted**, which is exactly what
 [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
 writing half forbids: ***name a symbol, never a time***. Corrected in `0037` on the day.
+
+---
+
+---
+
+# The sitting — ran 2026-08-22
+
+**⚠ IT DID NOT CLOSE, and the reason is in *What is left* below.** No ADR is written. `adr/0013`
+stands. Tasks 5 and 6 stand as shipped. **What the sitting produced is evidence, one surviving
+objection, one cost nobody had named, and a defect it was not looking for.**
+
+**Three mechanical reads, none of them argument**: the wait-list machinery, the term-resolution
+machinery, and an inventory of what tasks 5 and 6 built. ***Every finding below is read off a symbol
+rather than off a sentence about one*** — which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+used as a method instead of quoted as a rule, and **four of the eight objections in the brief above did
+not survive contact with the code.**
+
+---
+
+## What did not survive
+
+**U2 — the *1:1 versus 1:2* problem is not a problem, and *1:3* was never on the table.**
+🔴 ***A term does not name a Bin.*** `BinRef` is `(Scope Scope, ResourceId Resource)` — two fields,
+`Ruleset.cs:108` — and which Bin that becomes is decided at **evaluation time** by
+`RuleEngine.Bin(world, building, reference, rule)`. `Scope.Local` walks the Building's own Bin list;
+`Scope.Global` walks the treasury's; `Scope.Pool` throws. **So the counterparty is already a resolution
+decision and not a term decision**, and a seller lookup would sit exactly where the other two searches
+already sit. The money leg was never a term under either candidate — `Scope`'s own remark: ***"No
+payment is ever authored in a Rule."*** ⚠ **This was the brief's second objection for the Pool and it
+is withdrawn entirely.**
+
+**U3 — atomicity binds on ONE APPLICATION, not on the buyer's appetite, and the brief overstated it by
+reading the word rather than the Rules.** Shipped production Rules declare `{ min = 1, max = 4 }` —
+greedy. `02 §4.1`: a Rule *"applies as many times as its inputs allow within that band, and **fails if
+it cannot reach `min`**"*, against `min × delta`. **The fixed form `{ min = max }` occurs once in the
+whole corpus**, on `taxed.toml`'s tax circuit, which is the *"actor owes a quantum"* case the engine's
+own doc names. ⚠ **And because the seller is chosen in resolution, resolution can choose one that holds
+a batch** — so a Rule fails only when **no seller in the District** has one, which is a genuine
+district-wide shortage and the correct failure. ***The small-seller consequence is real and it is much
+smaller than the brief said.***
+
+**U4 — *or it grows* is UNDESIGNED and the argument does not need it.** No Building-upgrade mechanism
+exists anywhere in [`06`](../docs/06-roadmap.md), placed or unplaced. Under
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) it may not carry
+weight — **and after U3 it carries none**, because *a seller holds at least one batch* is a complete
+market behaviour on its own. ⚠ **Recorded because the brief accepted it and should not have.**
+
+**U5 — the rework is bounded, and most of tasks 5 and 6 is price rather than custody.** `MarketRuleset`
+survives **verbatim, signature included**: `Reprice(Money price, Money ceiling, long level, long rate)`
+takes the level as a **plain `long`**, so distributing stock changes *who computes argument three* and
+nothing else. The whole `[market]` and `[[hinterland]]` loader path survives; `Price`, `Rate`,
+`Consumed` and `District` survive; **20 of 20 `MarketRulesetLoadTests` cases and 22 of 26
+`PoolPriceTests` cases survive.** What goes is the `Bin` column and what reaches through it — one
+arithmetic line (`Bins.LevelAt`), one identity line (`Bins.Resource`, which wants a real `Resource`
+column on the row instead), `CreateDistrictPoolBin`'s return type, `RetirePool`'s stock transfer,
+`Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool`, `BinOwnerKind.District` and its **three** uses, and
+**one test that genuinely needs a new fixture** — `A_glut_walks_the_price_to_nothing`, which deposits
+10,000,000 units into a single Bin. ⚠ **`DistrictPoolTable` has no `Resource` column on purpose** — it
+reads the Good off the Bin — so a stockless row needs one added back.
+
+**U6 — the code's own named hole says the Pool is a market.** `RuleEngine.cs:872`, the `Scope.Pool`
+throw, written when slice 6 shipped: ***"the Pool is a MARKET, not a wider Bin lookup. A pool term
+crosses an ownership boundary, so the Good moves one way and money the other at the prevailing price,
+settled atomically with the Rule. Implementing this as a Bin lookup ships an unconserved economy, and
+no refusal can catch that."*** ⚠ **Read it for what it is**: a warning about the **money leg**, and it
+binds task 7 under *every* candidate. **It is not evidence between them.** What it is evidence of is
+that *the Pool is a market rather than a container* is the corpus's fourth independent statement of the
+same thing, in a fourth place, by a fourth author.
+
+---
+
+## What survived, and it is one thing
+
+**U7 — 🔴 THE WAIT LIST IS A REAL COST AND IT DID NOT DISSOLVE.** It is structural rather than
+incidental, and three facts fix it:
+
+1. **`World.Subscribe(Handle<RuleInstance>, Handle<Bin>, Blocking)`** is the only overload, and
+   `RuleInstanceTable.WaitingOn` is a `HandleColumn<Bin>`. **A waiter names exactly one Bin row.**
+2. **`RuleInstanceTable.QueueNext` is a single link column shared with the Event Wheel**, so a Rule
+   Instance is on **exactly one** list — armed or waiting, never both, never two. ***Subscribing to all
+   N sellers is not expressible.***
+3. **`World.Drain(binSlot, blocking, tick)` reads `remaining` from `Bins.LevelAt(binSlot)`** — the
+   Bin's *own* level — head-only, spend-down, stop-at-first-uncovered. And
+   `RuleEngine.Requirement(world, instance, binSlot, blocking)` nets only those terms **whose resolved
+   Bin equals `binSlot`**.
+
+**So under stock-with-sellers a blocked buyer must pick one seller to sleep on, and a deposit by any
+other seller will not wake it.** ⚠ **Making the `(District, Good)` row the wake target is possible and
+is not free**: `Drain` would have to take its `remaining` from somewhere other than the venue Bin's own
+level, and `Requirement` would have to match a term that resolved to a **different** Bin. ***Both are
+changes to the wait list, which is the single piece of machinery this project has already narrowed
+twice this month*** — [`0003`](0003-build-plan.md) queue items **14** and **16**. **Bounded, named, and
+not to be waved through.**
+
+**U8 — 🔴 A COST NOBODY HAD NAMED: per-seller price formation is new design.** `04 §4` says the price
+is **emergent** and neither the player's nor the Ruleset's. Task 6 makes it emerge from **Pool level
+against recent consumption**, one row per `(District, Good)`. **Move stock to sellers and every seller
+needs its own price**, which multiplies the price rows from `District × Good` to `Seller × Good` and
+makes `Rate`/`Consumed` per-seller and **noisier at exactly the smoothing this corpus has already been
+bitten by** (`0037` **F32**, the flooring dead zone). ⚠ **The arithmetic ports unchanged** — `Reprice`
+does not care whose level it is given — **so this is a design cost and not an engineering one.**
+⚠ **And it lands one milestone early**: [`06`](../docs/06-roadmap.md) milestone **13 is the price
+surface**, whose named risk is *"that growth is paced by a sample rather than cleared by a market."*
+***Whether 12 should be deciding how a price forms at all is a scoping question this sitting opened and
+did not answer.***
+
+---
+
+## The finding it was not looking for
+
+**U9 — 🔴 `World.RetirePool` bypasses the drain, and the encapsulation that prevents it only covers the
+outside.** `Deposit` and `Withdraw` are the only doors that move a level, and each calls `Drain`
+immediately after; `BinTable._level` is private and `BinTable.Move` is `internal` **precisely so this
+cannot be bypassed**. `RetirePool` is inside `World`: it does `Bins.Move(bin, -held); Bins.Move(into,
+held);`, calls `WakeAll` on the **dying** Bin, and does **nothing on the heir** — so a waiter on the
+heir sleeps through the stock it just inherited. ***The guard was built against outside callers and the
+violation came from inside the house.***
+**Filed as [`0003`](0003-build-plan.md) queue item 17 under
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md),
+on the day, unfixed.** ⚠ **It is unreachable today** — `Scope.Pool` throws, so no Rule can name a Pool
+Bin and a Pool Bin's wait lists can never hold a waiter — **and it becomes reachable on the day task 7
+lands**, which is the same task that would make it fire. ⚠ **It is not yet writable as a test**, which
+is what makes it the kind that ships.
+
+---
+
+## Where it stands
+
+**The scoreboard, stated plainly.** Of the brief's four objections for the Pool: **U2 withdrawn, U3
+substantially weakened, U5 measured and small, U7 SURVIVES.** Of its eight against: none was refuted,
+and **U6 removes one from the ledger by showing it argues for neither side.**
+
+**What the sitting believes, and it is a belief rather than a decision.** `adr/0013` decided a
+**transport** question — Goods move freely inside a District, and are shipped between. ***That is a
+claim about REACH, not about STORAGE.*** A bakery reaching any mill in its District at no carriage cost
+is the whole of what bounds the freight budget, and it does not require one shared inventory to deliver
+it. **On that reading the pooling survives and the Pool-as-container does not**, `adr/0013` is
+**amended rather than superseded**, and candidates 2 and 3 collapse into one shape: **stock with
+sellers, and the `(District, Good)` row as the market.**
+
+**⚠ WHAT STOPS IT CLOSING IS NOT DOUBT ABOUT THAT READING.** It is that **U7 and U8 are two open
+mechanisms and the sitting may not choose them by argument**: one is a change to the wait list, and one
+is a price model that milestone 13 may own. ***A sitting that settles the reading and then designs the
+replacement in the same breath is how the wait list got narrowed twice.***
+
+**What closing needs, and each item is small:**
+
+1. **The wake target designed** — the `(District, Good)` row as the venue, with `Drain`'s `remaining`
+   and `Requirement`'s Bin match both stated. **U7 is the whole of it.**
+2. **The price's owner decided** — per-seller at 12, or the `(District, Good)` row keeps a reference
+   price and per-seller dispersion waits for 13. **U8, and it is a scoping call.**
+3. **Then the ADR**, against `adr/0013`, carrying U2–U9 as its record.
+
+⚠ **The cost claim stays *measurable and unmeasured* through all of it**
+([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
+**Nothing above measured a seller lookup.** What U2 established is that the lookup lives in resolution
+beside two searches that already run there — ***which says where it goes and not what it costs.***
+
+
+---
+
+## The close
+
+**The two open mechanisms were answered the same day, and neither needed new design.**
+
+**U7 — the wait list. ✅ A market row is an event bus, and the buyer parks on the bus.** A seller's
+deposit rings it; `World.Drain` walks the list with **the depositing seller's level** as the budget, and
+the first waiter that fits wakes. ⚠ **One thing gets SIMPLER rather than harder, which is not what the
+brief expected.** `RuleEngine.Requirement` today resolves every term to a slot and compares slots; a
+waiter parked on the market compares **`BinRef`** — `(Scope, ResourceId)`, two fields, **no resolution
+at all**. ***That is the set arithmetic `RulesetLoader.RefuseUnrelievedChains` already performs at
+load***, so the pattern is in the build rather than invented here. ⚠ **A woken waiter still reserves
+nothing**, so several may wake against one seller's stock and re-fail — **inherited from `adr/0063`,
+not created here**, and the drain's guarantee was always about an instant.
+
+**U8 — the price. ✅ The stand-in already exists and costs nothing.** `Ruleset.ImportCeiling(resource)`
+is authored per-Good, is already the value a Pool opens at, and is already the price every trade clears
+at on the ten shipped files stating no `[market]`. **A seller opens there.** ⚠ **So `plans/0002` §D
+gains NO row** — no new number, no new ratifier, `adr/0052` untouched. ⚠ **A Ruleset-authored per-kind
+price was considered and refused**: `04 §4` says the price is emergent and *"neither the player's nor
+the Ruleset's"*, and ***a ceiling is a bound rather than a price***, so clearing at it contradicts
+nothing. **Per-kind matters only where two kinds sell one Good, and no shipped file does.**
+***The `Price` field moves to the seller now so that dispersion is expressible from the first day***,
+which is the whole reason to decide it at 12 rather than at 13.
+
+⚠ **What did NOT close, and it is deliberate.** The per-firing seller-lookup cost is **measurable and
+unmeasured**, and `adr/0139` says so in its own *Consequences* rather than leaving it to a reader.
+***The sitting established where the lookup goes and never what it costs.***

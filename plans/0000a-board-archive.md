@@ -80,6 +80,7 @@ Each of these was several paragraphs on the board narrating something already sh
 | M | The route cache's invalidation contract — the shed half | 2026-08-12 | [`adr/0012`](../docs/adr/0012-routing-intent-lives-in-the-agent.md), [`adr/0083`](../docs/adr/0083-a-sheds-use-is-the-arrival-query-and-a-stale-shed-is-wrong-by-a-bounded-walk.md) |
 | P | The player model — `01 §1`, `§3`, `§4`. Twenty-four decisions, seven ADRs | 2026-08-13 | [`0025`](0025-the-player-model.md) |
 | Q | The reach-failure memory, and the gate audit that ran first | 2026-08-13 | [`adr/0097`](../docs/adr/0097-a-reach-failure-is-counted-on-the-citizen-and-a-stock-failure-is-not-remembered-at-all.md) |
+| U | The Pool or the seller — `adr/0013` reopened on custody, and stock left the Pool | 2026-08-22 | [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md) |
 
 ## The *Blocked* blanket row, and why it is worth remembering
 
