@@ -6,9 +6,10 @@ can find where it went. **Every finding, number and argument belongs to the docu
 column**, which holds the full version — this file deliberately holds none of them.
 
 **Why it exists at all.** The board is a *view*, and a view that carries its own history stops being
-scannable. It has now been cleared twice: the 999-line long-form board went on **2026-08-12**
-(`git show db6f19f:plans/0000-board.md`), and ~400 lines of closed-row narrative went on **2026-08-15**
-(`git show 26eeaf8:plans/0000-board.md`). Both times the deleted text was a **second copy** — the eight
+scannable. It has now been cleared **three** times: the 999-line long-form board went on **2026-08-12**
+(`git show db6f19f:plans/0000-board.md`), ~400 lines of closed-row narrative went on **2026-08-15**
+(`git show 26eeaf8:plans/0000-board.md`), and the 925-line third inflation went on **2026-08-22**
+(`git show ca91e86:plans/0000-board.md`). Both times the deleted text was a **second copy** — the eight
 close-outs cut in 2026-08-15 were each verified against their owning plan before removal, and each owner
 held the fuller version.
 

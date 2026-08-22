@@ -1269,6 +1269,14 @@ it is a failure mode the corpus had no detector for, and thirty-one files predat
 [`CLAUDE.md`](../CLAUDE.md)'s list, refined per [`0003`](0003-build-plan.md) → *Definition of done*:
 
 - `dotnet build` green with no GPU and no Godot; **the whole unfiltered `dotnet test` green**.
+  ✅ **DISCHARGED — 1,927 passed, 0 failed**, on the reference machine. Both CI lanes on **`bc1a263`**
+  are also green (`commit` **32528925692**, `post-submit` **32528925729**), and they are corroboration
+  rather than the gate. ⚠ **THE RUN'S DURATION IS NOT A CAPTURE AND MUST NOT BE QUOTED** — it ran
+  detached alongside a working session, which
+  [`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md)
+  expressly permits, because ***a quiet machine is a control on a capture and not on a run.*** **Only
+  the verdict counts.** ⚠ **And a runner is not the reference machine**, so neither CI lane supplies a
+  figure any document may quote. *(Recorded here 2026-08-22; it had lived only on the board.)*
 - **A Household exists in the world that the world did not start with**, arriving through the gate as a
   Trip, and a test that fails if the only door closes. 🔴 ⚠ **The criterion is the door and never the
   population** ([`adr/0128`](../docs/adr/0128-the-gate-ships-before-the-comparison-that-walks-through-it.md)):

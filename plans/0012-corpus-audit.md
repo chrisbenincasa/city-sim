@@ -1437,6 +1437,12 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ `adr/0050` stated as settled a property of the build that the build does not have, and no mechanical check in this repository could reach it.** Found and corrected **2026-08-22**, settling [`0037`](0037-goods-between-buildings-the-district-pool.md) decision 9. The ADR says bankruptcy and starvation are distinguishable because *"the distinction falls out of the wait list rather than needing a mechanism"* — a Pool Bin short is starvation, a money Bin short is bankruptcy. **It is true of the wait list and false of the build.** `RuleInstanceTable.WaitingOn` records the Bin that stopped a Rule and `RuleEngine.Stop` writes it, but **`RuleEvidence` does not carry it** — `RuleId`, `LastRan`, `Succeeded`, `Blocking Blocked`, `ConditionId Reported`, `StarvedSince`, `Rate`, `MissedFirings` — and `Blocking` is only `Nothing / Supply / Space`, so **both cases surface as `Supply`**. ***The wait list is not a reader; `Evidence` is.***
+
+🔴 **This is a new surface, and the reason is that the claim is about CODE.** Every mechanical check here is **document-to-document** — citations resolve, links open, tables render, no registry figure appears bare — so a sentence that agrees with every document it cites and disagrees with a **struct** passes all of them. ***A corpus that checks itself against itself cannot notice the build.*** `plans/0037` caught it only because [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) made it a habit to read the symbol, and it flagged the entry in advance as **the one most likely to be assumed** — which is the mitigation working, by hand.
+
+⚠ **And it is the second sighting of one shape.** Milestone 11 task 8 found `PlacementCounter.Departed` reaching no instrument — *"a flow that reaches no instrument is a flow nobody can read."* Here a column is written and no `Evidence` surface reads it. ***Writing the column feels like finishing the work***, which is why the consumer gets assumed. **A check is available and not built**: `DerivedRebuildAuditTests` exists because a column can be declared and never rebuilt, and its sibling would name columns no `Evidence` reader touches. **The hard half is saying *deliberately*** — a column nobody reads *yet* is not a defect. Corrected by [`adr/0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md); `adr/0050` carries a banner.
+
 **⚠ `02` disagreed with itself about whether Districts are player-drawn, and §11 held the copy that says
 *leaning player-drawn*.** Found and fixed **2026-08-22**, in the sitting on `plans/0037` decision 1 —
 found because the *reader* remembered the question as settled *player-drawn* and the corpus was checked
@@ -2897,3 +2903,63 @@ loses the commit-time guard entirely), or replace the timing with a **counter** 
 pass — which is what the test is really asserting and is machine-independent by construction. **The
 third is the only one that does not trade the guard away**, and it is more work than the sitting that
 found this had. Recorded rather than built.
+
+---
+
+## Filed 2026-08-22, by the board's third clearing — four findings that lived only on the board
+
+All four were written into [`0000`](0000-board.md) as narrative and exist **nowhere else in the
+corpus**, which is how a view accumulates the only copy of something. Routed here on the day under
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md),
+before the board was cut, because a clearing that deletes the last copy of a finding is not a clearing.
+
+### A repair driven by a diagnosis instead of by a diff added rows the diff would have shown
+
+Restoring what the `0d8b114` merge was believed to have dropped, a sitting read it as having *also*
+removed milestone 7's cleared row from the board's per-milestone gate table, and restored one. But
+`0d8b114` had **replaced** that row with a longer version of itself, so the table came out carrying
+**two** milestone 7 rows where it had carried one. The restoration's other half — milestone 8's own
+gate row, three lines further down — went untouched.
+
+***A repair that reasons about what a merge must have done adds rows a diff would have shown were
+already there.*** The check that costs nothing is `git diff <pre-merge tip> <merge>` on the one file.
+Both struck 2026-08-19. ⚠ **This is the same failure mode as Cause 5 one level up**: the sitting
+worked from a *description* of the merge rather than from the merge, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+reaching version control.
+
+### Check 8 fired on citations that were correct and merely early
+
+`plans/0030` and `adr/0110` existed only on an unmerged branch, so **check 8** — every relative link
+resolves — failed on references that were perfectly correct and simply ahead of their targets. Both
+resolve as of `0d8b114`, and **a merge discharged the finding rather than an argument**.
+
+***A cross-reference is a claim about the tree and not about the document***, so a link check run
+against one branch reads a multi-branch corpus as broken. Recorded rather than repaired: the check is
+right and its failure was informative, but a reader meeting the red without this note would go and
+"fix" a correct citation.
+
+### Two sessions collided on a plan number and nothing in the scheme could have stopped them
+
+Both scoped into `plans/0030` on 2026-08-17, **two and a half hours apart**; parking moved to `0031`,
+because Save/load was first and [`PROCESS.md`](../PROCESS.md) → *Numbering* never re-uses a number.
+
+***The next free plan number is a fact about the tree that two sessions read at the same time and
+neither can hold.*** ⚠ **This is a fourth axis of the board's own *the three tracks contend*** — not
+files, not conclusions, not cores, but **names**. It is a distinct instance from the `0112`/`0113`
+**ADR**-number collision recorded above: same class, different axis, and the filenames-per-number check
+derived there does not reach plan numbers. **The board is what would have shown it, and neither
+session's board edit was visible to the other.**
+
+⚠ **Recurred 2026-08-22.** A second session was found writing `adr/0136`, `adr/0117` and `06` while
+this file's own sitting was cutting the board — detected by file mtimes rather than by anything the
+corpus does. ***A scheme that allocates names by reading the tree cannot be made safe by a rule***, and
+nothing here yet proposes the machinery that would be.
+
+### The two scopings' renumbering counts disagree, and neither may be quoted
+
+One says six and six; the other disagrees. **The reconciliation is owed at merge and neither number
+should be quoted until then.** ⚠ ***A milestone number is neither a symbol nor a time***, so
+`adr/0093`'s *name a symbol, never a time* does not reach it — it is the one citation form that rule
+leaves uncovered, and it is exactly the form a renumber invalidates. Related to the retired-numbering
+table's two-column defect recorded above, and not the same finding.
