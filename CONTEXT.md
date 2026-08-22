@@ -187,8 +187,16 @@ boundary is *temporal, not categorical*: a Tick may read a **stored terrain type
 value up in the Ruleset, because that is a column and a table rather than a terrain query.
 
 **Terrain type is the only part of terrain the simulation stores per Cell**, and **two** Ruleset values
-are keyed by it — **Base Fertility**, and the **Sealing** decay rate. Height decides what can be built
-and what it costs; water decides shoreline and drainage; neither is one of those two.
+are keyed by it — **Base Fertility**, and the **Sealing** decay rate.
+
+🔴 **Height is generated and stored nowhere**
+(`docs/adr/0142-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md`).
+The generator computes and reads it while laying water, floodplain and terrain type, and keeps only those
+**outputs**; there is no height column at any resolution, so nothing can read one and no save carries one.
+⚠ **The reason is not memory.** Every job `adr/0021` gives height is either excluded by that ADR, absent
+from the formula that would use it, or blocked behind an unbuilt construction cost — **except maximum
+buildable grade, which is a refusal**. ***Without terraforming, terrain is a wall; with it, terrain is a
+price***, and terraforming is neither a verb in `01 §2` nor placed in `06`. Height ships with it.
 
 **Base Fertility**
 The agricultural capacity of ground nobody has touched — **Fertility's ceiling**, and the first term of

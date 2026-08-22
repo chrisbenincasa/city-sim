@@ -230,7 +230,7 @@ stated so that it stays checkable.
 
 ---
 
-## Open decisions this half owes — **1 and 1b SETTLED; OPEN: 2, 3, 4, 5, 6**
+## Open decisions this half owes — **1, 1b and 2 SETTLED; OPEN: 3, 4, 5, 6**
 
 ⚠ **None is settled and none should be settled by argument if a measurement would settle it**
 ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
@@ -319,7 +319,46 @@ zero; and does it **saturate rather than throw**, which is the choice `Desirabil
 allowed to build*. ⚠ **Split from decision 1 rather than bundled** — a status coarser than the claims it
 covers is [`0012`](0012-corpus-audit.md)'s granularity defect.
 
-### 2. Does terrain carry **height**, or only **suitability**? — *arguable*
+### 2. ✅ SETTLED 2026-08-22 — **height is generated and stored nowhere**
+
+✅ **[`adr/0142`](../docs/adr/0142-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
+with the user in the room.** The generator **computes and reads** height while it works; it stores only
+the **outputs** — terrain type, the water graph with its downstream edges, and floodplain depth **where
+the floodplain is**. **No height column, at Tile or Cell resolution.** `adr/0021`'s *the world is not
+flat* is untouched.
+
+🔴 **The reason is not cost, and the trace is the finding.** `adr/0021`'s table gives height four jobs; a
+consumer-by-consumer check leaves **one** live:
+
+| Job | Status |
+|---|---|
+| vehicle speed, routing, junction geometry | **excluded by `adr/0021` by name** |
+| feed land value and desirability | **no height term exists** — `02 §2.4` is pollution, noise, amenity, shoreline, and shoreline is *water* |
+| construction cost via earthwork volume | **construction cost does not exist**; `adr/0035` denominates it in Lane-Tiles, milestone **21** |
+| force bridges and water crossings | `adr/0021`: *"a buildability exception plus a rendering variant, **not a system**"* — Phase 3 |
+| **maximum buildable grade** | 🔴 **the one live consumer, and it is a REFUSAL** |
+
+***So height's entire net effect on a milestone-24 city is that some Lots decline to build*** — and
+`adr/0021` refuses exactly that: *"Without terraforming, terrain is a **wall**. With it, terrain is a
+**price**."* ***A mechanism whose only built half is the refusal is not a partial delivery of the design;
+it is the alternative the design refused.***
+
+⚠ **Terraforming is not available to fix it.** `adr/0021` calls it *"a player verb"*; **`01 §2` has six
+verbs and terraforming is not one, and `01` never mentions it at all**. Filed as an open question in
+[`0002`](0002-open-questions.md) — a seventh verb is a change to a section whose shortness is stated as
+deliberate.
+
+⚠ **The memory figures corroborate and are NOT the reason.** A per-Tile height is ~**512 MiB** against
+**86 MiB** for every table in a 1M world, and at 1M the generator paves **8.6%** of the map — so nine
+tenths of the field would describe ground nobody builds on. Cell resolution is ~512 KiB and **useless**,
+because a grade on a Lot is Tile-scale. ***Deferring for a cost you have not been asked to pay is
+deferring for the wrong reason*** (`adr/0100`'s discipline generalised), so the wall/price argument is
+what decides and this paragraph is a check that the answer costs nothing.
+
+✅ **Decision 6's recommendation survives because of this.** Height computed once, consumed once and
+discarded **regenerates nothing on load**, so `adr/0111` holds and no generator version returns.
+
+*The question as first written:*
 
 `adr/0021` says *"height is real and the world is not flat"* and that height enters *"only at
 construction time"*. **Nothing in this half reads a height.** Buildability by grade needs it; terraforming
@@ -376,10 +415,10 @@ decision is recorded so the absence is not later read as an omission.**
 | **3** | **The Sealing write path** — construction Seals. Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2, decision 4 |
 | **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. Two §D1 rows with named ratifiers | 3, decision 5 |
 | **5** | **Fertility** — the `throw` at `MapLayers.cs:578` becomes a composition at the point of use | 2, 3 |
-| **6** | **Water Bodies** — the water graph, and a fifth `BinOwnerKind` | 2 |
+| **6** | **Water Bodies** — the water graph, and a fifth `BinOwnerKind`. ⚠ **The downstream ordering is generator OUTPUT, not a height computation** (`adr/0142`): `CONTEXT.md` → Water Body states *an outflow rate to the next body downstream*, which is an **edge** | 2 |
 | **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires | 6 |
 | **8** | **Woodland and replanting** — regrowth on unsealed, unoccupied land | 2, 3 |
-| **9** | **Hazard Regions** — derived at generation, never read in a Tick | 2 |
+| **9** | **Hazard Regions** — derived at generation, never read in a Tick. ⚠ **Floodplain depth is stored SPARSELY, where the floodplain is** (`adr/0142`), because `01 §5.2` spreads Flood *by depth* and a whole-map height field is what this milestone does not build | 2 |
 | **10** | **The long run** — 100k+ Ticks, no collection and no magnitude trending at steady state | all |
 
 ---

@@ -3221,6 +3221,30 @@ sighting of the enumeration defect, after `adr/0062`'s Cap admission ranks, `03 
 `adr/0117`'s four grounds. Owned by [`0038`](0038-terrain-and-the-land-rows.md) **F3**, which is where
 the repair order is corrected; `adr/0124` needs the amendment.
 
+### `06`'s inventory row said both that terraforming was placed and that it was not
+
+[`06`](../docs/06-roadmap.md):330, in one cell: *"✅ **Placed: 24.** a milestone. **The version numbers
+are paid** … **Terraforming still owes a milestone**"*.
+
+**The row carried three mechanisms** — terraforming, procedural generation guarantees, and the three save
+header version numbers — and **one status column**. The version numbers were struck as paid; *Placed: 24*
+was presumably about the generation guarantees; and terraforming's real status is the last clause, four
+sentences after a green tick.
+
+⚠ ***A row that carries three mechanisms carries one status***, which is this document's **granularity**
+defect — a status coarser than the claims it covers — arriving in an inventory table rather than in a
+`plans/0002` §D row. It is the same shape as the three free-flow speeds sharing one ratifier because they
+shared a row.
+
+🔴 **It was load-bearing rather than untidy.** Milestone 24's decision 2 turns on whether terraforming is
+available, because
+[`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) makes it
+the difference between terrain as a **price** and terrain as a **wall** — and a scoping session reading
+this row would have taken terraforming as placed at 24 and shipped the height field on that basis.
+✅ **PAID 2026-08-22 by `plans/0038` decision 2**: the row is split in two, terraforming's is **UNPLACED**,
+and it now says it owes a **verb** before it owes a milestone
+([`adr/0142`](../docs/adr/0142-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)).
+
 ### The naming hazard recurred a **third** time, and this time it was detected before the collision
 
 Recorded above: two sessions collided on `plans/0030`; the `0112`/`0113` ADR collision; and a recurrence
