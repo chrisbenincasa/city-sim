@@ -53,6 +53,28 @@ public sealed class DistrictPoolTests
     private const int Short = 3;
     private const int Cells = (PeakCells * 2) + Valleys;
 
+    /// <summary>
+    /// A priced <c>[[hinterland]]</c>, appended to every Ruleset these tests assemble.
+    /// </summary>
+    /// <remarks>
+    /// <b>Milestone 12 task 6 made this mandatory rather than decorative.</b> A file that states
+    /// <c>[districts]</c> and leaves a <c>good</c> unpriced at every Hinterland is refused at load —
+    /// a District opens a Pool per Good and the Hinterland's price is the only ceiling on it, so an
+    /// unpriced Good is free everywhere for ever (<c>adr/0050</c>, <c>adr/0135</c>). Nothing here is
+    /// about prices; this is the fragment that lets the file load at all.
+    /// </remarks>
+    /// <remarks>
+    /// ⚠ <b>The edge is <c>south</c> and the prices are HIGH on purpose.</b> These helpers are handed
+    /// <c>twinned.toml</c> as well as <c>minimal.toml</c>, and that file already declares north and
+    /// east — a second table for either edge is refused, and a cheaper one would move the ceiling it
+    /// authors. ***A test fixture that has to be added to a shipped file must not change what the
+    /// shipped file says.***
+    /// </remarks>
+    private const string PricedHinterland =
+        "\n[[hinterland]]\nedge = \"south\"\nemigrant_balance_min = 0\n"
+        + "emigrant_balance_max = 0\nprices = [ { resource = \"sundries\", price = 500 }, "
+        + "{ resource = \"repairs\", price = 500 } ]\n";
+
     private static string Body(string file) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Rulesets", file));
 
@@ -88,7 +110,8 @@ public sealed class DistrictPoolTests
 
     private static Ruleset Rules(string file, int percent = Percent) =>
         Parsed(
-            $"{Strip(Body(file))}\n[districts]\nprominence_percent = {percent}\n"
+            $"{Strip(Body(file))}{PricedHinterland}\n[districts]\n"
+            + $"prominence_percent = {percent}\n"
             + $"revisit_ticks = {Revisit}\nhysteresis_percent = {Band}\nmigrate_cells = {Migrate}\n",
             file);
 
@@ -339,12 +362,21 @@ public sealed class DistrictPoolTests
         // declaration's POSITION, so a resource added in the middle renumbers every one after it and
         // every standing Bin keeps an id that now names something else. This test is about fitting a
         // Pool; the renumbering is filed in plans/0012 rather than demonstrated here.
+        // The new Good is PRICED as well as declared, and that is task 6's rule biting rather than
+        // boilerplate: a file that states [districts] and leaves a good unpriced is refused, so a hot
+        // reload introducing a Good has to introduce its anchor with it. A designer who forgot would
+        // be told at load rather than shipped a Good that is free for ever.
         string added = $"{Strip(Body("minimal.toml"))}\n"
-            + "[[resource]]\nname = \"clinker\"\nfamily = \"good\"\n";
+            + "[[resource]]\nname = \"clinker\"\nfamily = \"good\"\n"
+            + "\n[[hinterland]]\nedge = \"south\"\nemigrant_balance_min = 0\n"
+            + "emigrant_balance_max = 0\nprices = [ { resource = \"sundries\", price = 500 }, "
+            + "{ resource = \"repairs\", price = 500 }, "
+            + "{ resource = \"clinker\", price = 500 } ]\n";
 
         world.Adopt(
             Parsed(
-                $"{added}\n[districts]\nprominence_percent = {Percent}\nrevisit_ticks = {Revisit}\n"
+                $"{added}\n[districts]\n"
+                + $"prominence_percent = {Percent}\nrevisit_ticks = {Revisit}\n"
                 + $"hysteresis_percent = {Band}\nmigrate_cells = {Migrate}\n",
                 "minimal.toml"),
             0xD15C_0000_0000_0005UL,
@@ -522,7 +554,9 @@ public sealed class DistrictPoolTests
         Assert.Empty(world.Invariants.Collected);
 
         world.DistrictPools.Create(
-            default, world.Bins.Rows.At(world.FindDistrictPoolBin(Standing(world)[0], Sundries)));
+            default,
+            world.Bins.Rows.At(world.FindDistrictPoolBin(Standing(world)[0], Sundries)),
+            price: default);
 
         WorldInvariants.DistrictPoolsAreOneLiveBinPerGood(world, world.Invariants);
 

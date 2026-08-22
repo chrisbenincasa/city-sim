@@ -782,13 +782,34 @@ starting.
    ⚠ **A fourth precondition, and it was sitting in a ledger that names this milestone by number** —
    which is decision 6's finding pointing the other way: *a mechanism placed by a different document is
    not a suspicion*, and neither is a blocker filed in one.
-6. **The price — `[[hinterland]] price` per Good, and the tâtonnement**
+6. ✅ **SHIPPED 2026-08-22 — the price: `[[hinterland]] prices` per Good, `[market]`, and the
+   tâtonnement**
    ([`adr/0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md)).
-   Per Good per District, damped, from Pool level against recent consumption, on a `Ticks.PerDay`
-   boundary, **bounded above by the Hinterland's price**. ⚠ **No milestone-18 dependency and no wheel** —
-   `World.cs:1073` already floor-divides by `Ticks.PerDay`. ⚠ **Before the purchase, because a purchase
-   settles at a price**; and authoring the import price **repairs `adr/0045`'s running ladder**, which is
-   unordered without it, rather than filling a gap.
+   `[[hinterland]]` gains **`prices`**, an inline array of tables on `[[building]] bins`' idiom;
+   `Ruleset.HinterlandPrices` holds them flat and **`Ruleset.ImportCeiling` is the MINIMUM across every
+   declared Hinterland**, which is derived rather than chosen because there is no haulage term at 12
+   (**F30**). A new **`[market]`** table holds the damping — `decay_percent`, `move_cap_percent`, and
+   **neither of them is a price**. `DistrictPoolTable` gains `Price`, `Rate` and `Consumed`, all keyed by
+   the row's own `(District, Good)` (**F34**); `World.RepriceDistrictPools` runs **last in phase 6**,
+   after the watershed, so it prices the Pools the Tick actually ends with. A Pool **opens at the
+   ceiling**, which is what discharged `adr/0135`'s possible third §D row before it was written (**F33**).
+   ⚠ **No milestone-18 dependency and no wheel**, exactly as this entry said.
+   🔴 **A file that states `[districts]` and leaves a Good unpriced is now REFUSED AT LOAD** (**F31**) —
+   so `rulesets/twinned.toml` gained **two** `[[hinterland]]` blocks and a `[market]`, and the two Goods
+   take their ceiling from **different edges** on purpose. `adr/0048`'s count of record moved **129 → 138**.
+   🔴 **A defect was found in this task's own arithmetic by a test**: the smoothing floored, which made a
+   Pool drawn at one unit a Day indistinguishable from a dead one, with the threshold moving whenever the
+   damping was retuned (**F32**). Repaired by rounding; the resolution question is filed as *measurable*.
+   ✅ **NO GOLDEN BASELINE MOVED, and that is not the same answer as task 5's** (**F36**) — three saved
+   columns were added to a table that is **empty on every golden world**, and an empty column folds
+   nothing, where task 5's appended *table* folded its allocator's scalars and moved all three.
+   ⚠ **`Scope.Pool` STILL THROWS**, so nothing writes the consumption bucket and **the whole market is
+   inert on every shipped world** (**F35**) — the third time this corpus has shipped a producer with no
+   consumer, and accepted for the reason it was the first two: task 7 is the writer. Findings **F30**–**F35**
+   below. *The original entry:* Per Good per District, damped, from Pool level against recent consumption,
+   on a `Ticks.PerDay` boundary, **bounded above by the Hinterland's price**. ⚠ **Before the purchase,
+   because a purchase settles at a price**; and authoring the import price **repairs `adr/0045`'s running
+   ladder**, which is unordered without it, rather than filling a gap.
 7. **The purchase — and `Scope.Pool` stops throwing.** Good one way, money the other, settled atomically
    with the Rule. 🔴 **Blocked on decision 10**, above: *who holds the Pool's money between a Provider's
    deposit and a consumer's draw.* ⚠ **The engine's term resolution is 1:1 and a purchase is 1:2** —
@@ -1181,3 +1202,122 @@ empty at every moment and *no heir* and *nothing to hand over* coincide. ***It i
 the scope that it becomes a real constraint***, and the test that watches it fire has to deposit by
 hand to get there.
 
+
+### Task 6, 2026-08-22 — **F30** to **F35**
+
+✅ **F30 — the ceiling is a `min` across Hinterlands, and it is DERIVED rather than chosen.** Decision 4
+left *which* Hinterland's price bounds a Pool unstated, and it reads like a choice with four candidates.
+It is not one. [`adr/0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md)
+ships **no haulage term at 12** — a deliberate *no* — so importing from the far edge costs exactly what
+importing from the near one does, and a rational city buys at the cheapest. ***With carriage free there
+is nothing to choose between four gates***, so `min` is the only answer that is not an invention.
+⚠ **It names its own revisit trigger and the trigger is a signature change rather than a value change**:
+when [`adr/0133`](../docs/adr/0133-a-pool-draw-pays-for-its-haulage-so-the-boundary-is-a-gradient-and-not-a-cliff.md)'s
+charge ships, the ceiling becomes a per-District `min(price + haul)` and stops being a property of the
+Ruleset at all. ⚠ **The per-edge prices are kept rather than collapsed to their minimum at load**,
+because they are the content that makes the Outside legible — `CONTEXT.md` → Hinterland's *four
+comparable markets are each other's referent* — and they are what the future `min` will be a minimum
+*over*.
+
+🔴 **F31 — a file with `[districts]` must price every Good, and the refusal is not a range check.** Nine
+refusals were added and eight of them are shape and range. The ninth is the one worth reading: a Ruleset
+that states `[districts]` and leaves a `good` unpriced at every `[[hinterland]]` is refused outright.
+A District opens a Pool per Good, the Hinterland's price is the **only** ceiling on it, and the
+tâtonnement clamps the price to `[0, ceiling]` — so an unpriced Good is not merely unanchored, ***it is
+free everywhere, for ever***, which reads as a balance problem rather than as a missing key. That is
+`adr/0048`'s own *loads clean and misbehaves in silence*. ⚠ **It is gated on `[districts]` and NOT on a
+gate kind, and the asymmetry is the finding.** `HinterlandDefinition`'s doc already records why a gate
+kind with no Hinterland behind it is unrefusable — *which edge a gate stands on is a property of where
+it was placed, and the loader cannot see a world*. A Pool is different: whether a city has Districts is
+**stated in the file**. ***The same class of defect is reachable at parse time on one side of that line
+and never on the other***, and the boundary is what the loader can see rather than how bad the defect is.
+
+🔴 **F32 — the smoothing FLOORED, and it made a real market indistinguishable from a dead one.** The
+consumption rate is an exponential moving average in units per Day. Written with `IntegerMath.FloorDiv`,
+any draw below `100 / (100 - decay_percent)` units a Day folds to a standing rate of **zero**, which
+`Reprice` reads as *no trades* and answers by keeping the price. So a Pool genuinely being drawn from at
+one unit a Day would have had a **frozen price** and looked exactly like a Pool nobody had touched.
+⚠ **The threshold moves with the DAMPING**, so retuning `decay_percent` would silently change which
+markets have prices at all — which is the *knob that switches the mechanism off while reading as a
+setting* pattern this loader refuses three times over, arriving **inside the arithmetic where no refusal
+can reach it**. Repaired by rounding. ⚠ **What rounding costs is that a rate of 1 never decays back to
+0**, so *no trades* is only reachable before a Pool's first ever draw — a **bounded** magnitude and not
+`adr/0006`'s growth, and arguably the better city, since a Pool that has stopped selling should price
+from its cover rather than freeze at whatever it last charged. 🔴 **Whether one unit a Day is fine enough
+resolution is *measurable* and nothing yet built can measure it** — it needs a world with real
+consumption, which is task 8's. Filed on the `decay_percent` §D1 row rather than guessed at
+([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
+⚠ ***It was found by a test asserting a number and not by reading the expression***, which is the whole
+of why the assertion was written with digits in it.
+
+✅ **F33 — the third §D row `adr/0135` predicted does not exist, and saying so is the finding.** That ADR
+allowed for *"two or three more hash-bearing numbers"* and named the possible third: **an initial price,
+if the tâtonnement needs a seed.** It does not. A Pool opens at `Ruleset.ImportCeiling` and moves from
+there, and a Pool nobody has traded in stays there — which keeps
+[`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md)'s
+ladder monotone from Tick 0 without anybody choosing anything. ***A Pool with no local supply in it
+should cost what importing costs, and a Pool nobody has traded in has no local supply by construction***
+— so the seed is not a choice, it is the answer the mechanism gives when asked before anything has
+happened. ⚠ **`plans/0002` §D1 carries a struck row for it anyway**, because the alternative is the next
+reader adding a `[market] initial_price` and a §D row for a key nothing needed.
+
+✅ **F34 — the market's three columns went on `DistrictPools` and that was not a second decision.**
+`Price`, `Rate` and `Consumed` are all keyed by `(District, Good)`, which is a `DistrictPoolTable` row's
+identity exactly — so the alternative was a second table with the same key, joined to this one.
+***A fact keyed by a row that already exists belongs on that row***, and the join it would have needed is
+the join this table already is. ⚠ **`Rate` and `Consumed` are two columns and not one**, deliberately: a
+single accumulator that decayed in place would hold a rate multiplied by a constant nobody could name the
+units of, which is `plans/0012` **Cause 5** built rather than quoted. Two columns cost one `long` a row
+and the units stay sayable — *units per Day*, and *what this Day drew*.
+
+⚠ **F35 — the price is built, correct and INERT on every world that exists, for the third time.**
+Nothing writes `Consumed` while `Scope.Pool` throws, so every rate is zero, every recompute reads *no
+trades*, and every price sits at its ceiling from Tick 0 to the end of the run. Milestone 9's land-value
+producer and task 5's Pool Bins are the same shape, and this is accepted for the reason it was accepted
+twice: **task 7 supplies the writer**, and a purchase settling at a price needs the price to already
+exist. ⚠ **The consequence is that `PoolPriceTests` is the only evidence the mechanism works**, which is
+why its assertions carry digits rather than shapes — and it is what turned up **F32**.
+
+✅ **F36 — a new COLUMN moved no hash, where task 5's new TABLE moved all three, and the difference is
+exact.** Task 5 appended `DistrictPools.Rows` to `World._tables` and every golden baseline had to be
+re-recorded, because **an appended table folds its allocator's scalars even when it holds no rows**
+([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).
+Task 6 added **three saved columns to that same table** and every golden baseline is byte-identical,
+because a column folds **per-row values** and the table has no rows on any golden world —
+`minimal.toml`, `minimal-tuned.toml` and `congested.toml` state no `[districts]`, so no District exists
+and no Pool row is ever allocated. ⚠ ***Appending a table and appending a column to it are not the same
+edit***, and the entry above said they were until the suite disagreed. ⚠ **`rulesets/twinned.toml`'s
+own Ruleset content hash DID move** — it gained two `[[hinterland]]` blocks and a `[market]` — but
+nothing records it, because no golden trace or fixture runs that file. ***A file fingerprint is not a
+State Hash***, which is the sentence `CLAUDE.md` already carries about `congested.toml` arriving on a
+second file.
+
+⚠ **F37 — milestone 12 added two cadenced whole-table passes and `plans/0013` had a row for neither**,
+which is [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)'s
+*a cost goes to `plans/0013`* owed since **task 4** rather than since this one. `DistrictWatershed.Evaluate`
+runs on `[districts] revisit_ticks` and is a watershed over **every built Cell of the world**;
+`World.RepriceDistrictPools` runs on a Day boundary over one row per Good per District. ⚠ **They are not
+the same size and the row says so**: the reprice is small by construction and the watershed scales with
+the built city, so ***one row covering both is a placeholder and not an estimate***. Both are entered
+**UNMEASURED**, which is the column that is the point of that document. ⚠ **Neither is a Map Layer and
+neither belongs in `[layers]`** — `adr/0044` owns that cadence, and the resemblance is what would put it
+there.
+
+🔴 **F38 — a District's extent keeps Cells that stop being built, and no test in this repository would
+have found it.** Running `rulesets/twinned.toml` headless for three Days panics on
+`Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround` — a `DistrictCellTable` row naming ground whose
+Building density has fallen to zero. **Clean at 2,048 Ticks, panicking by 4,096**, so it appears at the
+**second** re-evaluation and not the first. ⚠ **It is task 3 or task 4's defect and task 6 merely ran the
+file for longer than anything had**: reproduced at task 5's commit, in a detached worktree, against the
+**unmodified** Ruleset. `DistrictWatershed.Reconcile` migrates a boundary between two *living* Districts
+under `[districts] migrate_cells`, and ***ground that stops being built is not a migration*** — there is
+no unconditional path that drops it. Routed to [`0003`](0003-build-plan.md) queue item **16** under
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+and expressly not fixed here, because the two candidate fixes spend `migrate_cells` differently and
+***those are different cities.***
+🔴 ⚠ **The finding behind the finding is that NOTHING IN THE SUITE RUNS THIS FILE.** The District tests
+build their worlds in code and evaluate once or twice by hand; no golden trace and no long run uses a
+Ruleset that states `[districts]`. ***The only shipped world with Districts in it had never been run for
+two Days***, and one headless invocation found what four tasks of tests did not — which is `06`'s own
+*the runs that surface these bugs are the million-Tick headless balance runs* arriving four milestones
+early and at three Days.

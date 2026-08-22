@@ -268,3 +268,86 @@ hysteresis_percent = 50
 # Day -- each Cell being 32x32 Tiles, about 128 m a side -- which is slow enough that a player watching
 # one move could say what moved and why. Nothing measured it; milestone 15 is what would.
 migrate_cells = 16
+
+# ---------------------------------------------------------------------------------------------------
+# TWO HINTERLANDS, AND THEY EXIST TO PUT A CEILING UNDER THE POOL PRICE RATHER THAN A DOOR IN THE MAP.
+# Milestone 12 task 6, adr/0135. THIS FILE DECLARES NO GATE KIND, so nothing ever arrives through
+# either of these and no emigrant balance is ever drawn -- which is why both bands are ZERO. A
+# Hinterland whose emigrants arrive penniless is a real economy and not an unset field
+# (HinterlandDefinition.Endows); a Hinterland with nobody to send is a MARKET WITHOUT A DOOR, which is
+# what these two are and all they are.
+#
+# WHY A FILE WITH DISTRICTS MUST HAVE THEM AT ALL. A District opens a Pool per good, and the
+# Hinterland's price is the ONLY ceiling on what that Pool can charge -- CONTEXT.md makes the
+# Hinterland "the one authored anchor under every price in the design", and adr/0050 gives the reason:
+# "an emergent price needs an anchor or it can run away." An unpriced good is not merely unanchored,
+# it is FREE EVERYWHERE FOR EVER. The loader refuses that combination outright rather than letting it
+# load clean and misbehave in silence, which is adr/0048's own rule.
+#
+# TWO AND NOT FOUR, DELIBERATELY. The ceiling for a good is the MINIMUM price across every declared
+# Hinterland -- adr/0135 ships no haulage term at 12, so with carriage free every gate is equidistant
+# and a city buys at the cheapest. ONE Hinterland would make that minimum inert and the mechanism
+# undemonstrated, which is this file's own founding complaint about a watershed over one peak. Four
+# would be three-quarters decoration in a file with no gates. ⚠ THE TWO GOODS TAKE THEIR CEILING FROM
+# DIFFERENT EDGES, and that is chosen: sundries is cheapest north and repairs is cheapest east, so a
+# min() that silently returned the first table would be wrong on exactly one of them.
+#
+# 🔴 ALL FOUR PRICES ARE UNRATIFIED GUESSES AND NOTHING IN THIS CORPUS HAS EVER PRICED ANYTHING. They
+# are the first prices in the project. What they are chosen for is ORDER and SPREAD -- repairs costs
+# more than sundries, and the two edges differ by enough that the min is visibly selecting -- and not
+# for any claim about what a thing is worth. plans/0002 §D1 carries a row apiece.
+
+[[hinterland]]
+edge = "north"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 100 },
+  { resource = "repairs",  price = 250 },
+]
+
+[[hinterland]]
+edge = "east"
+emigrant_balance_min = 0
+emigrant_balance_max = 0
+prices = [
+  { resource = "sundries", price = 120 },
+  { resource = "repairs",  price = 200 },
+]
+
+# ---------------------------------------------------------------------------------------------------
+# THE MARKET'S DAMPING, AND NEITHER KEY IS A PRICE. Milestone 12 task 6, adr/0135. A Pool price is
+# never authored: it opens at the import ceiling above and moves from there by a damped tâtonnement,
+# recomputed on a Ticks.PerDay boundary from the Pool's level against how much the District has
+# recently been drawing. 04 §4 asks for three properties -- damped, local, bounded. LOCAL is the Pool
+# being per-District and is not a number; BOUNDED is the ceiling above and is not a number either;
+# DAMPED is this table, and it is the only one of the three that needed keys.
+#
+# ⚠ OMITTING THIS TABLE IS A REAL CHOICE AND NOT AN OVERSIGHT: it means every trade clears at the
+# ceiling for ever, which is the city every other shipped Ruleset has. That is why adding this key
+# moves no other file's State Hash.
+#
+# 🔴 BOTH NUMBERS ARE UNRATIFIED AND THIS FILE CANNOT RATIFY EITHER. Nothing writes the consumption
+# bucket while Scope.Pool throws, so every rate here is zero, the recompute reads that as NO TRADES,
+# and every price sits at its ceiling from Tick 0 to the end of the run. THE MARKET IS BUILT, CORRECT
+# AND INERT ON THIS FILE -- milestone 9's land-value producer and task 5's Pool Bins in the same shape,
+# for the same reason. What would ratify them is task 8's Provider Ruleset, where a second `[[building]]`
+# kind sells into the Pool and a consumer draws out of it. plans/0002 §D1 carries a row each and names
+# milestone 12's own acceptance run.
+[market]
+
+# How much of the standing consumption rate survives one Day, as a percentage; the rest of the weight
+# goes to the Day just ended. ZERO IS ALLOWED and means no smoothing at all -- the rate is the Day's
+# own draw, which is a real and rather twitchy market. 100 is refused, because a rate that never takes
+# on a new Day stays at the zero it was created with for ever and the price is frozen while the file
+# appears to be damping it. 50 is the midpoint of the admitted range and nothing more, which is this
+# file's habit for a number with no measurement behind it.
+decay_percent = 50
+
+# The furthest a price may travel in one recompute, as a percentage of the import ceiling. At 10 a
+# price needs ten Days to cross its whole range, which is the property this number is chosen for: slow
+# enough that a player watching a price move could say what moved it. ⚠ IT IS WHAT STOPS 04 §4's
+# PREDICTED OSCILLATION FROM BEING A SQUARE WAVE -- "everyone piles into the profitable Good, it
+# crashes, everyone piles out" -- and whether 10 is enough damping for that is exactly what no world
+# yet built can say.
+move_cap_percent = 10

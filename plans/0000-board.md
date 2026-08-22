@@ -9,11 +9,11 @@ place that orders the three tracks against each other.
 
 **The next code row is [`06`](../docs/06-roadmap.md) milestone **12** — Goods between Buildings, the
 District Pool.** Ungated, scoping under way in
-[`0037`](0037-goods-between-buildings-the-district-pool.md), **tasks 1 and 2 shipped 2026-08-22**. Decisions **1, 2, 4, 5, 6,
+[`0037`](0037-goods-between-buildings-the-district-pool.md), **tasks 1 through 6 shipped 2026-08-22**. Decisions **1, 2, 4, 5, 6,
 8 and 9 are settled** ([`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md)–[`adr/0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md));
-**open: 3, 7 and 10**, and **`0037` owns all three**.
+**open: 3 and 10**, and **`0037` owns both**.
 
-✅ **DECOMPOSED 2026-08-22 — ten tasks, tasks 1 and 2 shipped.** **3 is an obligation, not a fork** — `adr/0052`
+✅ **DECOMPOSED 2026-08-22 — ten tasks, tasks 1 through 6 shipped.** **3 is an obligation, not a fork** — `adr/0052`
 requires a ratifier be *named*, not that the number be settled. **7 is largely pre-answered** by
 `adr/0134`. 🔴 **10 is new and decomposition found it**: the Pool is the counterparty on **both** sides
 of a trade and the two sides happen at different Ticks, so *where the money sits between a Provider's
@@ -158,7 +158,7 @@ parallelism names *nothing else running in this repository* as its first control
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **Milestone 12 — the District Pool.** Decomposed into ten tasks; **1 through 5 shipped 2026-08-22** — the two-centre world, the density field, the watershed, re-evaluation, and the Pool Bins. **Task 6 is next: the price.** Decision 7 closed on the way, as largely void as posed | [`0037`](0037-goods-between-buildings-the-district-pool.md) | The ungated row at the head of the sequence, and **the only root with a consumer already in the build** |
+| **1** | code | **Milestone 12 — the District Pool.** Decomposed into ten tasks; **1 through 6 shipped 2026-08-22** — the two-centre world, the density field, the watershed, re-evaluation, the Pool Bins, and the price. **Task 7 is next: the purchase, and `Scope.Pool` stops throwing**, 🔴 **blocked on decision 10 and on [`0003`](0003-build-plan.md) queue item 16** | [`0037`](0037-goods-between-buildings-the-district-pool.md) | The ungated row at the head of the sequence, and **the only root with a consumer already in the build** |
 | **2** | spike | ⚠ **Do NOT delete `spikes/S2.Routing/`.** The 5a gate is discharged, but another session is doing research inside it, so it is live work. 51 tracked C# files, 29,719 lines | [`0010`](0010-s2-routing.md) → *R7* | ⚠ ***A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears*** |
 | **3** | spike | **S5 owes two captures** — the 4-thread Lane kernel rung, which is bimodal, and the canonical `performance` re-capture. 2 threads is settled at 1.84–1.93× | [`0019`](0019-s5-lane-kernel.md) | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare** |
 | **4** | code | **Hash-moving queue item 8** — a waiter whose own requirement falls is never re-checked. Filed unfixed | [`0003`](0003-build-plan.md) → *queue* | ***A live predicate with an event-driven trigger is only correct if every input to the predicate is an input to the trigger.*** Both repairs are design questions |

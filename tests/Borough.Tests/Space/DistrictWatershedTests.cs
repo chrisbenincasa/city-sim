@@ -64,6 +64,28 @@ public sealed class DistrictWatershedTests
     private static Ruleset Shipped(string file) => Parsed(Body(file), file);
 
     /// <summary>
+    /// A priced <c>[[hinterland]]</c>, appended to every Ruleset these tests assemble.
+    /// </summary>
+    /// <remarks>
+    /// <b>Milestone 12 task 6 made this mandatory rather than decorative.</b> A file that states
+    /// <c>[districts]</c> and leaves a <c>good</c> unpriced at every Hinterland is refused at load —
+    /// a District opens a Pool per Good and the Hinterland's price is the only ceiling on it, so an
+    /// unpriced Good is free everywhere for ever (<c>adr/0050</c>, <c>adr/0135</c>). Nothing here is
+    /// about prices; this is the fragment that lets the file load at all.
+    /// </remarks>
+    /// <remarks>
+    /// ⚠ <b>The edge is <c>south</c> and the prices are HIGH on purpose.</b> These helpers are handed
+    /// <c>twinned.toml</c> as well as <c>minimal.toml</c>, and that file already declares north and
+    /// east — a second table for either edge is refused, and a cheaper one would move the ceiling it
+    /// authors. ***A test fixture that has to be added to a shipped file must not change what the
+    /// shipped file says.***
+    /// </remarks>
+    private const string PricedHinterland =
+        "\n[[hinterland]]\nedge = \"south\"\nemigrant_balance_min = 0\n"
+        + "emigrant_balance_max = 0\nprices = [ { resource = \"sundries\", price = 500 }, "
+        + "{ resource = \"repairs\", price = 500 } ]\n";
+
+    /// <summary>
     /// A shipped Ruleset with a <c>[districts]</c> table bolted on, replacing any it already states.
     /// </summary>
     /// <remarks>
@@ -79,7 +101,7 @@ public sealed class DistrictWatershedTests
         int band = ShippedBand,
         int migrate = ShippedMigrate) =>
         Parsed(
-            $"{Without(Body(file), "[districts]")}\n[districts]\n"
+            $"{Without(Body(file), "[districts]")}{PricedHinterland}\n[districts]\n"
             + $"prominence_percent = {percent}\nrevisit_ticks = {revisit}\n"
             + $"hysteresis_percent = {band}\nmigrate_cells = {migrate}\n",
             file);

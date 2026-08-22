@@ -2233,10 +2233,26 @@ public sealed class World
     /// Gives a District a Pool Bin for <paramref name="resource"/>, empty and unbounded.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>Unbounded, and <see cref="RebuildCapacities"/> derives the same number rather than skipping
     /// the row</b> — <see cref="CreateTreasuryBin"/>'s reason exactly, because a ceiling is
     /// <see cref="Disposition.Derived"/> and a load never comes through here. The argument for the
     /// value is at the rebuild site and is not money's.
+    /// </para>
+    /// <para>
+    /// <b>It opens AT THE CEILING</b> — <c>Rules.ImportCeiling</c>, which is the lowest price any
+    /// declared Hinterland charges for the Good (<c>adr/0135</c>, milestone 12 task 6). ⚠ <b>That is
+    /// why the tâtonnement needed no seed number and <c>plans/0002</c> §D carries two rows here rather
+    /// than three</b>: a Pool with no local supply in it should cost what importing costs, and a Pool
+    /// nobody has traded in yet has no local supply by construction. ***The seed is not a choice, it
+    /// is the answer the mechanism gives when asked before anything has happened.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero when no <c>[[hinterland]]</c> prices the Good</b>, and that is a Ruleset the loader
+    /// refuses whenever the file states <c>[districts]</c> — see <c>RulesetLoader</c>. A world reaching
+    /// here with a zero ceiling has a Pool that is free for ever, which is <c>adr/0050</c>'s runaway
+    /// arriving from below.
+    /// </para>
     /// </remarks>
     public Handle<Bin> CreateDistrictPoolBin(Handle<District> district, ResourceId resource)
     {
@@ -2248,7 +2264,7 @@ public sealed class World
 
         Handle<Bin> handle = Bins.Create(BinOwnerKind.District, resource, long.MaxValue);
 
-        DistrictPools.Create(district, handle);
+        DistrictPools.Create(district, handle, Rules.ImportCeiling(resource));
 
         return handle;
     }
@@ -2382,6 +2398,64 @@ public sealed class World
             }
 
             DistrictPools.Rows.Free(DistrictPools.Rows.At(row));
+        }
+    }
+
+    /// <summary>
+    /// <b>Moves every Pool price one Day's step</b> — <c>adr/0135</c>'s damped tâtonnement, milestone
+    /// 12 task 6.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One pass over <c>DistrictPools</c>, and the whole market is one column read and one written.</b>
+    /// For each row: fold the Day's <see cref="Space.DistrictPoolTable.Consumed"/> into the standing
+    /// <see cref="Space.DistrictPoolTable.Rate"/>, zero the bucket, and reprice from the Bin's level
+    /// against that rate — <see cref="MarketRuleset.Reprice"/> holds the arithmetic and the argument
+    /// for it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The bucket is zeroed even when <c>[market]</c> is absent.</b> A file with no damping still
+    /// accumulates draws, and carrying a Day's worth into the next Day would make the rate depend on
+    /// how long the Ruleset had gone unstated — so the zeroing is unconditional and only the price is
+    /// gated. ***A cadence that skips its own reset is a cadence whose absence is not the same city
+    /// twice.***
+    /// </para>
+    /// <para>
+    /// <b>Whole-table, and there is no index.</b> Once in 2048 Ticks over a table with one row per Good
+    /// per District — two Districts and a handful of Goods on the only world that has any — so the walk
+    /// is cheaper than what indexing it would cost to maintain. <c>DistrictPoolTable</c> records what
+    /// changes that, and it is task 7's purchase rather than this.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It is correct and it is inert, on every Ruleset that exists.</b> Nothing writes
+    /// <see cref="Space.DistrictPoolTable.Consumed"/> while <c>Scope.Pool</c> throws, so every rate is
+    /// zero, <see cref="MarketRuleset.Reprice"/> reads that as *no trades*, and every price stays at
+    /// the ceiling it opened at. <b>Task 7 is the writer</b>, and the price has to exist before a
+    /// purchase can settle at one.
+    /// </para>
+    /// </remarks>
+    internal void RepriceDistrictPools()
+    {
+        MarketRuleset market = Rules.Market;
+
+        for (int row = 0; row < DistrictPools.Rows.SlotCount; row++)
+        {
+            if (!DistrictPools.Rows.IsLive(row)
+                || !Bins.Rows.TryResolve(DistrictPools.Bin[row], out int bin))
+            {
+                continue;
+            }
+
+            long rate = market.Smooth(DistrictPools.Rate[row], DistrictPools.Consumed[row]);
+
+            DistrictPools.Rate[row] = rate;
+            DistrictPools.Consumed[row] = 0;
+
+            DistrictPools.Price[row] = market.Reprice(
+                DistrictPools.Price[row],
+                Rules.ImportCeiling(Bins.Resource[bin]),
+                Bins.LevelAt(bin),
+                rate);
         }
     }
 

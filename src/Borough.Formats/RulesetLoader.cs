@@ -141,6 +141,8 @@ public static class RulesetLoader
         private TableSyntaxBase? _parkingTable;
         private TableSyntaxBase? _districtsTable;
 
+        private TableSyntaxBase? _marketTable;
+
         public RulesetLoadResult Read()
         {
             DocumentSyntax document = SyntaxParser.Parse(text, fileName, validate: true);
@@ -173,7 +175,7 @@ public static class RulesetLoader
                 out RuleId[] kindRules);
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             PolicyDefinition[] policies = ReadPolicies();
-            HinterlandDefinition[] hinterlands = ReadHinterlands();
+            HinterlandDefinition[] hinterlands = ReadHinterlands(out Money[] hinterlandPrices);
             LayerRuleset layers = ReadLayers();
             PlacementRuleset placement = ReadPlacement(kinds);
             RoadRuleset roads = ReadRoads();
@@ -188,6 +190,12 @@ public static class RulesetLoader
             TrafficRuleset traffic = ReadTraffic();
             ParkingRuleset parking = ReadParking();
             DistrictRuleset districts = ReadDistricts();
+            MarketRuleset market = ReadMarket();
+
+            // After both, because it is a property of the pair: a file with Districts in it has a
+            // Pool to price, and adr/0050's anchor is the only thing bounding what that price
+            // reaches. Neither table can see the defect alone.
+            RefuseUnpricedGoods(districts, hinterlands, hinterlandPrices);
 
             if (_refusals.Count == 0)
             {
@@ -234,8 +242,10 @@ public static class RulesetLoader
                     Traffic = traffic,
                     Policies = policies,
                     Hinterlands = hinterlands,
+                    HinterlandPrices = hinterlandPrices,
                     Parking = parking,
                     Districts = districts,
+                    Market = market,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 },
@@ -453,13 +463,29 @@ public static class RulesetLoader
                         _districtsTable = table;
                         break;
 
+                    case "market":
+                        // Singular and optional, on [districts]' reasoning exactly. There is one
+                        // damping, shared by every District and every Good: adr/0135 makes the price
+                        // per (District, Good) and the SPEED of it a property of the city, so a
+                        // second table would be a second tempo for one market.
+                        if (_marketTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [market] is declared. There is one damping, so two tables "
+                                + "of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _marketTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [[policy]], "
                             + "[[hinterland]], [[lattice]], [layers], [placement], [roads], [lots], "
-                            + "[trips], [jobs], [households], [traffic], [parking] and "
-                            + "[districts].");
+                            + "[trips], [jobs], [households], [traffic], [parking], "
+                            + "[districts] and [market].");
                         break;
                 }
             }
@@ -2201,9 +2227,10 @@ public static class RulesetLoader
         /// array-of-tables where the collision is in a value.
         /// </para>
         /// </remarks>
-        private HinterlandDefinition[] ReadHinterlands()
+        private HinterlandDefinition[] ReadHinterlands(out Money[] prices)
         {
             var definitions = new List<HinterlandDefinition>(_hinterlandTables.Count);
+            var authored = new List<Money>(_hinterlandTables.Count * _families.Count);
 
             foreach (TableSyntaxBase table in _hinterlandTables)
             {
@@ -2242,9 +2269,123 @@ public static class RulesetLoader
                 }
 
                 definitions.Add(new HinterlandDefinition(edge, min, max));
+
+                // AFTER the Add and never before, because the two lists are parallel by position and
+                // ReadPrices appends exactly one stride whatever it finds. Every `continue` above
+                // skips both, which is what keeps the stride honest.
+                ReadPrices(table, authored);
             }
 
+            prices = [.. authored];
             return [.. definitions];
+        }
+
+        /// <summary>
+        /// One <c>[[hinterland]]</c> table's <c>prices</c> array, appended as one stride of
+        /// <see cref="Ruleset.HinterlandPrices"/>.
+        /// </summary>
+        /// <remarks>
+        /// <b>It appends <c>_families.Count</c> entries on every path, including the refusing ones</b>
+        /// — the array is indexed rather than searched, so a short stride would silently re-point
+        /// every later Hinterland's prices at the wrong Resource. ***A parallel array's invariant is
+        /// that the failure path writes too***, which is the opposite of every other reader here.
+        /// </remarks>
+        private void ReadPrices(TableSyntaxBase table, List<Money> into)
+        {
+            int first = into.Count;
+
+            for (int resource = 0; resource < _families.Count; resource++)
+            {
+                into.Add(Money.Zero);
+            }
+
+            KeyValueSyntax? entry = Find(table, "prices");
+
+            if (entry is null)
+            {
+                return;
+            }
+
+            if (entry.Value is not ArraySyntax array)
+            {
+                Refuse(LineOf(entry), null, "prices must be an array of inline tables.");
+                return;
+            }
+
+            foreach (ArrayItemSyntax item in array.Items)
+            {
+                if (item.Value is not InlineTableSyntax inline)
+                {
+                    Refuse(LineOf(item), null, "every entry of prices must be an inline table.");
+                    continue;
+                }
+
+                if (!TryResource(inline, null, LineOf(inline), out ResourceId resource))
+                {
+                    continue;
+                }
+
+                // Only a Good. A utility is not stocked and a money Resource is the DENOMINATION of
+                // a price rather than a thing with one, so both would be a number the market never
+                // reads -- and a key the loader silently drops is a key a designer tunes and then
+                // wonders about, which is `bins`' capacity refusal one table over.
+                if (_families[resource.Raw - 1] != ResourceFamily.Good)
+                {
+                    Refuse(LineOf(inline), null,
+                        $"'{NameOfResource(resource)}' is not a good, so it has no import price. A "
+                        + "Hinterland prices what crosses the map's edge as cargo: a utility is not "
+                        + "stocked and money is what a price is denominated IN rather than a thing "
+                        + "that has one.");
+
+                    continue;
+                }
+
+                if (!TryInteger(inline, "price", out long price, required: true))
+                {
+                    continue;
+                }
+
+                // Refused at zero rather than defaulted, on [districts] prominence_percent's reason.
+                // A zero import price is not 'unpriced': it is a ceiling of nothing, and adr/0135's
+                // tâtonnement clamps every Pool price to [0, ceiling] -- so the whole market would be
+                // free while the file appeared to be pricing it.
+                if (price < 1)
+                {
+                    Refuse(LineOf(inline), null,
+                        $"price {price} for '{NameOfResource(resource)}' is not a positive amount. It "
+                        + "is the ceiling on what this Good can cost inside the city, so zero makes "
+                        + "it free everywhere for ever rather than leaving it unpriced. Delete the "
+                        + "entry to leave a Good unpriced.");
+
+                    continue;
+                }
+
+                if (into[first + resource.Raw - 1] != Money.Zero)
+                {
+                    Refuse(LineOf(inline), null,
+                        $"this hinterland prices '{NameOfResource(resource)}' twice. One market, one "
+                        + "price per Good: two would make the ceiling depend on which entry the "
+                        + "reader reached first.");
+
+                    continue;
+                }
+
+                into[first + resource.Raw - 1] = new Money(price);
+            }
+        }
+
+        /// <summary>How a Resource is spelled in this file, for a refusal message.</summary>
+        private string NameOfResource(ResourceId resource)
+        {
+            foreach (KeyValuePair<string, ushort> declared in _resources)
+            {
+                if (declared.Value == resource.Raw)
+                {
+                    return declared.Key;
+                }
+            }
+
+            return resource.Raw.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         // ---- lattices -------------------------------------------------------------------------
@@ -3661,6 +3802,148 @@ public static class RulesetLoader
         /// <summary>The line a <c>[districts]</c> key is on, or the table's.</summary>
         private int LineOfDistricts(string key) =>
             LineOf((SyntaxNodeBase?)Find(_districtsTable!, key) ?? _districtsTable!);
+
+        // ---- market -----------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[market]</c> table: how fast a Pool price is allowed to move (<c>adr/0135</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and its absence is every trade clearing at the ceiling for ever</b> — which
+        /// is the city every Ruleset in <c>rulesets/</c> described before this key existed, so no
+        /// State Hash moves by the key arriving. <c>[layers]</c>'s polarity rather than
+        /// <c>[roads]</c>'s, and legitimately: there is an earlier behaviour here and it is exactly
+        /// a constant price.
+        /// </para>
+        /// <para>
+        /// <b>No price is authored here and that is the shape of the decision.</b> A Pool opens at
+        /// <c>Ruleset.ImportCeiling</c> and moves from there, so the seed <c>adr/0135</c> allowed for
+        /// — *"an initial price if the tâtonnement needs a seed"* — is not needed and does not exist.
+        /// ***A key that was predicted and then was not required is worth an absence note***, because
+        /// otherwise the next reader adds it back.
+        /// </para>
+        /// </remarks>
+        private MarketRuleset ReadMarket()
+        {
+            if (_marketTable is null)
+            {
+                return MarketRuleset.None;
+            }
+
+            // Both REQUIRED of a file that states the table, on [districts]' rule: a stated table
+            // states its keys. Neither has a defensible default -- a defaulted damping is a
+            // hash-bearing number nobody chose, arriving at a setting no designer picked.
+            if (!TryInteger(_marketTable, "decay_percent", out long decay, required: true)
+                || !TryInteger(_marketTable, "move_cap_percent", out long cap, required: true))
+            {
+                return MarketRuleset.None;
+            }
+
+            // Zero is ACCEPTED and it means no smoothing: the rate is the Day's own consumption,
+            // which is a twitchy market and a real one. A hundred is different in kind -- the
+            // standing rate would never take on a new Day at all, so it stays at the zero it was
+            // created with for ever and the price never moves. That is the mechanism switched off by
+            // a value that reads as a setting, which is [districts]' ceiling arriving on a third key.
+            if (decay < 0 || decay > 99)
+            {
+                Refuse(LineOfMarket("decay_percent"), null,
+                    $"decay_percent is {decay}. It is how much of the standing consumption rate "
+                    + "survives one Day, so it is a percentage: below zero is not a weighting, and "
+                    + "100 means the rate never takes on a new Day and stays at zero for ever, which "
+                    + "is the price frozen while the file appears to be damping it. Zero is allowed "
+                    + "and means no smoothing at all.");
+
+                return MarketRuleset.None;
+            }
+
+            // Refused at zero because zero is the omitted table: a price that may not move. Refused
+            // above 100 because the price is clamped to [0, ceiling], so a cap wider than the ceiling
+            // can never bind -- a knob with no effect at the top of its range, which is the same
+            // refusal [districts] hysteresis_percent makes.
+            if (cap < 1 || cap > 100)
+            {
+                Refuse(LineOfMarket("move_cap_percent"), null,
+                    $"move_cap_percent is {cap}. It is the furthest a price may travel in one Day, as "
+                    + "a percentage of the import ceiling, so zero means it never moves -- delete the "
+                    + "[market] table to say that -- and above 100 it can never bind, because a price "
+                    + "never leaves the range between nothing and the ceiling anyway.");
+
+                return MarketRuleset.None;
+            }
+
+            return new MarketRuleset((int)decay, (int)cap);
+        }
+
+        /// <summary>The line a <c>[market]</c> key is on, or the table's.</summary>
+        private int LineOfMarket(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_marketTable!, key) ?? _marketTable!);
+
+        /// <summary>
+        /// <b>A file with Districts in it prices every Good at some Hinterland</b> (<c>adr/0050</c>,
+        /// <c>adr/0135</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The anchor is the refusal's whole subject.</b> <c>CONTEXT.md</c> → Hinterland makes a
+        /// Hinterland *"the one authored anchor under every price in the design"*, and
+        /// <c>adr/0050</c> gives the reason rather than the rule: *"an emergent price needs an anchor
+        /// or it can run away."* A District opens a Pool per Good; an unpriced Good's Pool has a
+        /// ceiling of zero, so its price is pinned to nothing and every purchase of it is free.
+        /// ***An absent anchor does not fail loudly on its own*** — it produces a market in which one
+        /// Good costs nothing, which reads as a balance problem rather than as a missing key.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>Gated on <c>[districts]</c> and not on <c>[[hinterland]]</c>, and the asymmetry is
+        /// deliberate.</b> A gate kind with no Hinterland behind it is <em>not</em> refusable here —
+        /// <see cref="HinterlandDefinition"/> records why: which edge a gate stands on is a property
+        /// of where it was placed, and the loader cannot see a world. A Pool is different. Whether a
+        /// city has Districts is stated in the file, so this defect is visible at parse time and
+        /// belongs to <c>adr/0048</c>.
+        /// </para>
+        /// </remarks>
+        private void RefuseUnpricedGoods(
+            DistrictRuleset districts, HinterlandDefinition[] hinterlands, Money[] prices)
+        {
+            if (!districts.Runs)
+            {
+                return;
+            }
+
+            int stride = _families.Count;
+
+            for (int resource = 0; resource < stride; resource++)
+            {
+                if (_families[resource] != ResourceFamily.Good)
+                {
+                    continue;
+                }
+
+                bool priced = false;
+
+                for (int hinterland = 0; hinterland < hinterlands.Length; hinterland++)
+                {
+                    if (prices[(hinterland * stride) + resource].Raw > 0)
+                    {
+                        priced = true;
+                        break;
+                    }
+                }
+
+                if (priced)
+                {
+                    continue;
+                }
+
+                Refuse(LineOf(_districtsTable!), null,
+                    $"'{NameOfResource(new ResourceId((ushort)(resource + 1)))}' is a good and no "
+                    + "[[hinterland]] gives it a price, in a file that states [districts]. A District "
+                    + "opens a Pool for every good and the Hinterland's price is the only ceiling on "
+                    + "what that Pool can charge, so an unpriced good is not merely unanchored -- it "
+                    + "is free everywhere, for ever. Add a prices entry for it to some [[hinterland]], "
+                    + "or delete the [districts] table.");
+            }
+        }
 
         // ---- traffic ----------------------------------------------------------------------------
 

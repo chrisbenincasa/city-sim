@@ -14,11 +14,14 @@ namespace Borough.Tests.Formats;
 /// <see cref="OutsideConnectionRulesetLoadTests"/>' discipline.
 /// </para>
 /// <para>
-/// <b>Two fields is the whole object at this milestone, and that is the thing under test.</b>
-/// <c>adr/0131</c>: <i>a Hinterland field is authored in the milestone that reads it</i> — so a
-/// price per Good, a wage, a rent and a depth are all absent, and a table stating only its edge is
-/// refused rather than accepted as a partial one. ***An object whose only content-bearing field is
-/// optional can be declared and say nothing.***
+/// <b>Two fields was the whole object at THIS milestone, and that is the thing under test.</b>
+/// <c>adr/0131</c>: <i>a Hinterland field is authored in the milestone that reads it</i> — so a wage,
+/// a rent and a depth are all absent, and a table stating only its edge is refused rather than
+/// accepted as a partial one. ***An object whose only content-bearing field is optional can be
+/// declared and say nothing.*** ⚠ <b>The price per Good arrived at milestone 12 task 6</b>, one
+/// milestone earlier than this class predicted, by that same rule working rather than failing —
+/// <c>adr/0135</c> gave the Pool price a ceiling, which made 12 the milestone that reads it. It has
+/// its own tests in <see cref="MarketRulesetLoadTests"/> and none here.
 /// </para>
 /// <para>
 /// ⚠ <b><see cref="A_hinterland_whose_emigrants_carry_nothing_is_accepted"/> is the pair to
