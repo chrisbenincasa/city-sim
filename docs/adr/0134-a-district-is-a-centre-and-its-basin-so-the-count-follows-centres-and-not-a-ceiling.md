@@ -111,19 +111,40 @@ resolve to.
 - 🔴 **A District is `(saved AND hashed)`, which reverses [`plans/0037`](../../plans/0037-goods-between-buildings-the-district-pool.md)
   decision 2's expectation.** Persistence, hysteresis and damping all consult the previous state, so
   extent is **not** a pure function of a world snapshot and cannot be rebuilt on load. `DistrictTable`
-  and `DistrictId` become real, a District is created and destroyed like any entity, and
+  and ~~`DistrictId`~~ become real, a District is created and destroyed like any entity, and
   `DerivedRebuildAuditTests` does not apply to it. ⚠ **Determinism is unaffected** — it is still a
   function of the Input Log, so replay and save/reload equivalence both hold.
+  ✅ ⚠ **SHIPPED 2026-08-22, milestone 12 task 3, and the struck word is what shipping corrected.** There
+  is no `DistrictId` type: the identity is `Handle<District>`, which is the project's only identity for a
+  table row and the one `Rows.SavedHandle` folds into the State Hash. ***A second spelling of* which
+  District *would have been a second thing to keep in step across a save, a reload and a task-4
+  re-evaluation, for no capability*** (`plans/0037` **F11**). **Also shipped**: `DistrictCellTable`, one
+  saved row per built Cell, which is where the extent actually lives — this bullet's *created and
+  destroyed like any entity* is true of the centre and the extent is a second table.
 - 🔴 **Four hash-bearing numbers arrive unset and owe `plans/0002` §D2 rows**
   ([`adr/0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)): the
   **prominence threshold**, the **hysteresis band**, the **re-evaluation cadence with its per-evaluation
   Cell bound**, and the **extent scale in `adr/0133`'s charge**. ⚠ **None is tunable on a world that
   exists** — the density field is flat on every shipped Ruleset — so all four wait on a city with
   texture, which is milestone **15**.
+  ⚠ **AMENDED 2026-08-22 by milestone 12 task 3: the FIRST of the four is now set, and it moved to §D1
+  rather than closing.** `[districts] prominence_percent = **50**`, in `rulesets/twinned.toml` only, and
+  it is **relative — a percentage of the dying peak's own height** rather than a Building count, because
+  an absolute threshold would be tied without saying so to `[lots] lots_per_segment`. **The wait did not
+  end**: milestone 15 is still the ratifier, and what changed is that the debt is now a number the code
+  reads instead of a gap. 🔴 ***The tests cannot tell 1 from 100 and are written as a theory that says
+  so*** (`plans/0037` **F17**). **The other three stay in §D2**, and the ADR's *none is tunable* stands
+  for all four.
 - **`CONTEXT.md` → District's extent paragraph is amended.** The 128-Cell anchor stops being a maximum and
   becomes the scale at which the haulage charge bites — ***a curve's parameter rather than a ceiling***,
   which is a different ratification obligation and not a softer one.
-- **Milestone 12 ships one District on every current world**, and `Scope.Pool` resolves through it. ⚠ **A
+- ~~**Milestone 12 ships one District on every current world**~~, and `Scope.Pool` resolves through it.
+  ⚠ **AMENDED 2026-08-22 by milestone 12 task 3, and the struck words were a prediction the polarity
+  decision overturned.** A world derives Districts only where the Ruleset states `[districts]`, and **one
+  shipped file does** — so eight of the ten shipped Rulesets produce **no** District at all rather than
+  one. The reason is `adr/0052` rather than caution: the threshold is hash-bearing and unratified, and a
+  default in the binary would be a hash-bearing number nobody chose, in a file nobody can see, ratified
+  by nothing. ⚠ **`Scope.Pool` still throws** and resolves through nothing; the Pool Bins are task 5. ⚠ **A
   Ruleset with two separated settlements is what demonstrates a second District — ✅ **shipped 2026-08-22 as `rulesets/twinned.toml`, and the key is `[[lattice]]` rather than `[[settlement]]` because a Settlement is derived and these two are one wherever anybody drives across the gap (`CONTEXT.md` → Lattice)** — and a real inter-District
   Shipment**, and `06`'s Shipments row at 12 is unobservable without one. ***That is milestone 9's land
   value repeating*** — a producer built, correct and with nothing to look at — and naming it here is the
@@ -144,6 +165,17 @@ resolve to.
   wrong about where to look***, which is [`adr/0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
   working as written. **It is not a Map Layer** and must not acquire
   a cadence in `[layers]` by resemblance — its cadence is this ADR's, and a Map Layer's is `adr/0044`'s.
+- ✅ **The clip reads the FOOT subgraph, and the choice was open until task 3 made it.** A world reachable
+  on foot is reachable by car and not conversely, so the foot component is the one that can separate a
+  city whose Households own no car — and a Pool is a thing Buildings *share*, so what matters is whether
+  anybody could get between them at all. ⚠ **No shipped Ruleset exercises the clip**, because
+  `rulesets/twinned.toml` is joined by a corridor precisely so that component labelling cannot pass for a
+  watershed (this ADR's own rejected candidate); it is held by an in-code fixture that cuts the corridor,
+  plus a control that joins it and a third that joins it **for cars only**. 🔴 ⚠ **An unlabelled Cell —
+  one where nothing stands on a Street the connectivity pass reached — merges with NOTHING, including
+  another unlabelled Cell.** Comparing the two labels for equality made *unknown* behave as the largest
+  component in the world and silently bridged two genuine ones (`plans/0037` **F13**). ***A sentinel that
+  compares equal to itself is a sentinel that has quietly become a value.***
 
 ## What would trigger revisiting
 

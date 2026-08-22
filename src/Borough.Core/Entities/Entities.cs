@@ -113,3 +113,30 @@ public readonly struct MoneySupply;
 /// milestones that already own them. See <see cref="BusinessTable"/>.
 /// </remarks>
 public readonly struct Business;
+
+/// <summary>
+/// A centre of Building density and the basin that drains to it. <b>Empty for <see cref="Citizen"/>'s
+/// reason.</b>
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Derived from the city and then saved</b> — <c>adr/0134</c>. A District is not authored, not
+/// drawn by the player and not a partition of the map: it is what a watershed over
+/// <see cref="Space.BuildingResidency.Density"/> finds, and the count follows the number of centres
+/// rather than a ceiling on extent. The row holds the centre; the membership is one row per Cell in
+/// <see cref="Space.DistrictCellTable"/>, which is where the extent actually lives.
+/// </para>
+/// <para>
+/// ⚠ <b><c>(saved AND hashed)</c> and deliberately not <c>Derived</c></b>, so
+/// <c>DerivedRebuildAuditTests</c> does not reach it and nothing here is owed a rebuild. The reason
+/// arrives at milestone 12 task 4 rather than here: hysteresis, damping and persistence all consult
+/// the <em>previous</em> extent, so a District that a load recomputed from scratch would be a
+/// different District from the one that was saved — and the Pool Bins hanging off it would move
+/// between Districts on a reload. A thing whose next value depends on its last one is state.
+/// </para>
+/// <para>
+/// ⚠ <b>It is not <c>RoutingPartition</c> and must never be reused as one</b>
+/// (<c>adr/0047</c>): routing never keys on the District.
+/// </para>
+/// </remarks>
+public readonly struct District;

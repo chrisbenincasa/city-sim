@@ -86,11 +86,20 @@
 # was silently splitting 20,545 / 20,736 where the construction says 20,641 / 20,640. Above the
 # ceiling, MOVE THE ORIGINS APART -- the map is 16,384 Tiles a side and this file uses 2,048 of it.
 #
-# WHAT THIS FILE IS NOT, AND IT IS THE READING TO GUARD AGAINST. ⚠ THERE IS NO DISTRICT IN THE BUILD
-# AT ALL YET. This file does not produce two Districts, because nothing produces one -- DistrictTable
-# is task 3. What it produces is a WORLD in which the derivation, once written, has something to
-# find. ⚠ AND IT PRODUCES NO GOODS MOVEMENT EITHER: `Scope.Pool` still throws, and the market is
-# tasks 5 through 8.
+# WHAT THIS FILE IS NOT, AND IT IS THE READING TO GUARD AGAINST. ⚠ IT PRODUCES NO GOODS MOVEMENT:
+# `Scope.Pool` still throws, and the market is tasks 5 through 8. As of task 3 it DOES produce two
+# Districts -- rows in DistrictTable, a centre apiece, and one DistrictCell row per built Cell -- and
+# nothing in the build reads them. ⚠ THAT IS THE STATE THE DERIVATION IS MEANT TO BE TESTED IN. A
+# watershed whose first consumer arrives in the same task is a watershed nobody checked separately,
+# which is milestone 9's land-value producer -- built, correct and unobservable -- from the other end.
+#
+# ⚠ `[districts] prominence_percent = 50` BELOW IS UNRATIFIED AND THIS FILE CANNOT RATIFY IT. The
+# field measured above is FLAT, so the two concentrations never touch at any positive density and
+# neither one's peak ever dies at a saddle -- which means the threshold is never consulted on this
+# world and EVERY VALUE FROM 1 TO 100 GIVES TWO DISTRICTS HERE. 50 is the midpoint of the range the
+# loader admits and nothing more. plans/0002 §D1 carries the row and names milestone 15 -- the first
+# world with a density GRADIENT in it -- as what would ratify or refute it. ***A number this file
+# demonstrates is not a number this file settles.***
 #
 # ⚠ ARTERIALS ARE REFUSED IN A FILE WITH TWO LATTICES, AND `arterial_count = 0` BELOW IS NOT A
 # COINCIDENCE. An Arterial is laid PER LATTICE, so a file saying "four Arterials cross the map" would
@@ -227,3 +236,8 @@ origin_north_tiles = 0
 [[lattice]]
 origin_east_tiles  = 2048
 origin_north_tiles = 0
+
+# The threshold, and it is the only key a District has. See the header: unratified, never consulted on
+# this world, and 50 is a midpoint rather than a finding.
+[districts]
+prominence_percent = 50

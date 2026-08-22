@@ -110,7 +110,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// and — worse — makes it look as though the rebuild is being checked when it is not.
     /// </para>
     /// <para>
-    /// ⚠ <b>Four worlds, because a corruption test can only speak about a table that has rows in it,
+    /// ⚠ <b>Five worlds, because a corruption test can only speak about a table that has rows in it,
     /// and one fixture covered 170 of 187 columns.</b> The golden fixture leaves <c>route_hop</c> empty
     /// — 5c made the path source opt-in, so a world with nobody driving produces none — and <b>no
     /// shipped Ruleset fills <c>layer_cell</c> at all</b>, since none of the four emits pollution and
@@ -119,7 +119,7 @@ public sealed class FactorioTests(ITestOutputHelper output)
     /// ***A structural test over one fixture measures the fixture's content as much as the
     /// structure***, and the corollary this keeps re-proving is that <b>a table with no production
     /// writer needs a fixture named for it or its columns are carried by the format and checked by
-    /// nothing</b>. The union of the four is 202 of 202, and <see cref="UnreachableColumns"/> pins that
+    /// nothing</b>. The union of the FIVE is 229 of 229, and <see cref="UnreachableColumns"/> pins that
     /// there is no residue.
     /// </para>
     /// </remarks>
@@ -139,6 +139,11 @@ public sealed class FactorioTests(ITestOutputHelper output)
         // table empty and all five of its saved columns unreachable. This fixture is the only world
         // that holds a Business.
         Scan(GoldenFixtures.Build(), reached, []);
+
+        // Milestone 12 task 3, and the fourth fixture's reason a second time: the watershed writes
+        // `district` and `district_cell` only where the Ruleset states [districts], which one shipped
+        // file does. See WithDistricts.
+        Scan(WithDistricts(512), reached, []);
 
         List<string> unreachable = [.. every.Where(name => !reached.Contains(name))];
 
@@ -382,13 +387,27 @@ public sealed class FactorioTests(ITestOutputHelper output)
         return (world, simulation);
     }
 
-    private static Ruleset Congested()
+    private static Ruleset Congested() => Shipped("congested.toml");
+
+    /// <summary>
+    /// A world with Districts in it — the only Ruleset that states <c>[districts]</c>, stepped.
+    /// </summary>
+    /// <remarks>
+    /// <b>A fifth fixture, for the fourth's reason exactly</b>, and the paragraph above predicted it:
+    /// <c>district</c> and <c>district_cell</c> have a production writer, but it reads a Ruleset key
+    /// only <c>twinned.toml</c> states, so every other world in this test leaves both tables empty and
+    /// all eleven of their saved columns unreachable. ⚠ <b>A table whose writer is gated on a Ruleset
+    /// key is a table with no production writer, as far as a fixture is concerned.</b>
+    /// </remarks>
+    private static World WithDistricts(int ticks) =>
+        Stepped(Shipped("twinned.toml"), GoldenFixtures.Population, ticks).World;
+
+    private static Ruleset Shipped(string file)
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "Rulesets", "congested.toml");
+        string path = Path.Combine(AppContext.BaseDirectory, "Rulesets", file);
         RulesetLoadResult result = RulesetLoader.Load(path);
 
         return result.Ruleset
-            ?? throw new InvalidOperationException(
-                $"congested.toml was refused:\n{result.Describe()}");
+            ?? throw new InvalidOperationException($"{file} was refused:\n{result.Describe()}");
     }
 }

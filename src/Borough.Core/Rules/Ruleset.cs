@@ -1055,6 +1055,61 @@ public readonly record struct RoadRuleset(
 public readonly record struct LatticeDefinition(int OriginEastTiles, int OriginNorthTiles);
 
 /// <summary>
+/// The <c>[districts]</c> table — <b>when a concentration of Buildings is a centre</b>
+/// (<c>adr/0134</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>One key, because a watershed only needs to be told what counts as a peak.</b> Everything else a
+/// District has — where it starts, where it stops, how many there are — falls out of the
+/// Building-density field and the road components. <c>adr/0134</c>'s claim is exactly that: the count
+/// follows the centres, so there is no count to author, no extent to author and no ceiling to author.
+/// </para>
+/// <para>
+/// <b>Absence means no Districts are derived at all</b>, on <see cref="RoadRuleset.None"/>'s polarity
+/// and for a sharper reason than convenience. The threshold is hash-bearing and unratified
+/// (<c>adr/0052</c>), and a default in the binary is a hash-bearing number nobody chose, in a file
+/// nobody can see, ratified by nothing. A file that wants Districts states the table.
+/// </para>
+/// <para>
+/// ⚠ <b>Nothing in this project reads a District yet.</b> <c>Scope.Pool</c> still throws; the Pool
+/// Bins are milestone 12 task 5. So a Ruleset that states this table gets rows in
+/// <see cref="Space.DistrictTable"/> and no behaviour, which is what makes the derivation testable
+/// before anything depends on it being right.
+/// </para>
+/// </remarks>
+/// <param name="ProminencePercent">
+/// How far a peak must stand above the saddle that joins it to a taller peak, as a percentage
+/// <b>of its own height</b>, before it is a centre of its own.
+/// <para>
+/// <b>Relative rather than absolute, and that is the decision this key encodes.</b> An absolute
+/// Building count would be tied without saying so to <c>[lots] lots_per_segment</c>, which is what
+/// makes a built Cell on the shipped lattice hold the number of Buildings it holds: the same authored
+/// number would mean <em>a large fraction of a peak</em> on one lattice and a rounding error on
+/// another.
+/// </para>
+/// <para>
+/// ⚠ <b>Hash-bearing and UNRATIFIED</b> — <c>plans/0002</c> §D1, whose ratifier is milestone 15. The
+/// Building-density field is flat on every shipped Ruleset, so no world that exists today can tell one
+/// value of this from another; that is a reason to name the ratifier and not a reason to withhold the
+/// number (<c>adr/0052</c>, and <c>plans/0037</c> decision 3).
+/// </para>
+/// </param>
+public readonly record struct DistrictRuleset(int ProminencePercent)
+{
+    /// <summary>A Ruleset whose city has no Districts.</summary>
+    /// <remarks>
+    /// <b>Absence is the unset spelling, on <see cref="ParkingRuleset.None"/>'s rule.</b> Every
+    /// percentage in range means something — a low one splits a city at every dip, a high one keeps it
+    /// whole — so no value inside the range can do duty as <em>unset</em>.
+    /// </remarks>
+    public static DistrictRuleset None => default;
+
+    /// <summary>Whether this city has Districts at all.</summary>
+    public bool Runs => ProminencePercent > 0;
+}
+
+/// <summary>
 /// The <c>[lots]</c> table — <b>how zoned land is carved into parcels</b> (<c>adr/0078</c>).
 /// </summary>
 /// <remarks>
@@ -1840,6 +1895,11 @@ public sealed class Ruleset
     public LatticeDefinition[] Lattices { get; init; } = [];
 
     /// <summary>
+    /// When a concentration of Buildings is a centre of its own. <b>Absent means no Districts.</b>
+    /// </summary>
+    public DistrictRuleset Districts { get; init; } = DistrictRuleset.None;
+
+    /// <summary>
     /// The <c>[lots]</c> table in force — how zoned land is carved into parcels (<c>adr/0078</c>).
     /// </summary>
     public LotRuleset Lots { get; init; } = LotRuleset.None;
@@ -2058,6 +2118,7 @@ public sealed class Ruleset
             Placement = Placement,
             Roads = Roads,
             Lattices = Lattices,
+            Districts = Districts,
             Lots = Lots,
             Trips = Trips,
             Jobs = Jobs,

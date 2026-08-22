@@ -139,6 +139,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _householdsTable;
         private TableSyntaxBase? _trafficTable;
         private TableSyntaxBase? _parkingTable;
+        private TableSyntaxBase? _districtsTable;
 
         public RulesetLoadResult Read()
         {
@@ -186,6 +187,7 @@ public static class RulesetLoader
             HouseholdRuleset households = ReadHouseholds();
             TrafficRuleset traffic = ReadTraffic();
             ParkingRuleset parking = ReadParking();
+            DistrictRuleset districts = ReadDistricts();
 
             if (_refusals.Count == 0)
             {
@@ -233,6 +235,7 @@ public static class RulesetLoader
                     Policies = policies,
                     Hinterlands = hinterlands,
                     Parking = parking,
+                    Districts = districts,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 },
@@ -434,12 +437,29 @@ public static class RulesetLoader
                         _parkingTable = table;
                         break;
 
+                    case "districts":
+                        // Singular and optional, on [parking]'s reasoning exactly. Plural in the key
+                        // because the table describes the whole set of them and authors none: there
+                        // is no [[district]] and there must not be one, since adr/0134 makes a
+                        // District a thing the city is found to have rather than a thing it is told.
+                        if (_districtsTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [districts] is declared. There is one prominence threshold, "
+                                + "so two tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _districtsTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [[policy]], "
-                            + "[[hinterland]], [layers], [placement], [roads], [lots], [trips], "
-                            + "[jobs], [households], [traffic] and [parking].");
+                            + "[[hinterland]], [[lattice]], [layers], [placement], [roads], [lots], "
+                            + "[trips], [jobs], [households], [traffic], [parking] and "
+                            + "[districts].");
                         break;
                 }
             }
@@ -3528,6 +3548,55 @@ public static class RulesetLoader
         /// <summary>The line a <c>[parking]</c> key is on, or the table's.</summary>
         private int LineOfParking(string key) =>
             LineOf((SyntaxNodeBase?)Find(_parkingTable!, key) ?? _parkingTable!);
+
+        private DistrictRuleset ReadDistricts()
+        {
+            if (_districtsTable is null)
+            {
+                return DistrictRuleset.None;
+            }
+
+            if (!TryInteger(_districtsTable, "prominence_percent", out long percent, required: true))
+            {
+                return DistrictRuleset.None;
+            }
+
+            // Refused at zero rather than defaulted, on [parking] radius_metres' reason. Zero is not
+            // "one District": it is a threshold every dip in the field clears, so every local bump
+            // becomes a centre and the city fragments into as many Districts as it has Cells. A file
+            // that wants no Districts deletes the table, which is a sentence somebody meant to write.
+            if (percent < 1)
+            {
+                Refuse(LineOfDistricts("prominence_percent"), null,
+                    $"prominence_percent is {percent}. It is how far a peak must stand above its "
+                    + "saddle before it is a centre of its own, as a percentage of its own height, so "
+                    + "zero makes every bump a District and the city has as many as it has Cells. "
+                    + "Delete the [districts] table for a city with no Districts at all.");
+
+                return DistrictRuleset.None;
+            }
+
+            // A hundred is the whole of a peak's height, which is the prominence of a hill nothing
+            // touches. Above it the test is unsatisfiable: no saddle is below zero, so the only
+            // Districts left are the connected components, and the watershed is doing nothing while
+            // appearing to be configured. A knob whose top end silently disables it is refused.
+            if (percent > 100)
+            {
+                Refuse(LineOfDistricts("prominence_percent"), null,
+                    $"prominence_percent is {percent}. It is a percentage of the peak's own height, "
+                    + "so 100 already means a peak that rises from nothing; above that no peak can "
+                    + "ever qualify and the Districts collapse to the road components, which is the "
+                    + "clip working alone rather than a threshold doing anything.");
+
+                return DistrictRuleset.None;
+            }
+
+            return new DistrictRuleset((int)percent);
+        }
+
+        /// <summary>The line a <c>[districts]</c> key is on, or the table's.</summary>
+        private int LineOfDistricts(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_districtsTable!, key) ?? _districtsTable!);
 
         // ---- traffic ----------------------------------------------------------------------------
 

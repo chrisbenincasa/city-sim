@@ -1680,6 +1680,43 @@ Unambiguous factual errors, no judgement required.
 
 ## Filed — needs judgement, or a task that has not run
 
+### `CLAUDE.md`'s assertion tier is **42s at 1,690 tests** and two readings today say **3m02s at 1,974**
+
+**NEW 2026-08-22, found while gating milestone 12 task 3, and filed rather than fixed because a
+replacement figure is a *capture* and this sitting was not set up to take one.**
+
+The table under *Running the tests* states the default lane at **42s, 1,690 tests**, and it names
+*nothing else running in this repository* as its first control. Two runs today, back to back, each on
+the whole assertion tier, reported **3 m 02 s / 3 m 03 s over 1,974 tests**. ⚠ **The test count grew
+17% and the duration grew about fourfold**, so growth alone does not account for it.
+
+🔴 **What this entry is NOT is a claim that task 3 caused it.** That was checked rather than assumed
+(`adr/0093`): the first of the two readings was taken while the watershed ran from
+`CommandKind.Populate`, so most of the suite never called it at all, and the second was taken after it
+moved to `SyntheticCity.PopulateInto`, where every fixture does — **the two readings are within a
+second of each other**. World creation was then timed directly at **2.13–2.23 s** on `minimal.toml`
+(no `[districts]`, so the derivation returns immediately) and **2.14–3.06 s** on `twinned.toml` (two
+Districts derived), three runs each: ***the watershed's cost is below this instrument's noise floor.***
+
+⚠ **What is owed is a reading, not an edit.** ***A test-cost capture is a parallelism measurement, so
+it takes a parallelism measurement's controls*** — the rule this document already carries from the
+2026-08-14 threading capture and the 1m52s/50s pair before it. Today's two readings were taken with
+file edits happening alongside them, which makes them **upper bounds** and nothing better, and an
+upper bound is exactly what must not be pasted into a table that a reader will treat as the working
+loop's cost. **The number to replace it with comes from a deliberate act on the reference machine
+with the room quiet** ([`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md),
+[`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)).
+
+⚠ **It matters beyond tidiness because the figure is load-bearing.** `adr/0121` bands the working loop
+at *past five minutes a test stifles iteration and ten is the ceiling*, and 42s reads as a lane with
+four times the headroom it may actually have. ***A stale duration does not merely misinform; it hides
+how close a gate is to the band that would reopen the ADR.***
+
+- [ ] Re-capture the assertion tier on the reference machine, quiet, Release, and correct
+      `CLAUDE.md`'s table. If it lands past five minutes, `adr/0121`'s band is the next question and
+      not a footnote.
+
+
 ### ~~`docs/02-simulation-model.md`~~ — **PAID**
 
 The Rule engine's owning document had moved twelve places behind the code. All are corrected inline,

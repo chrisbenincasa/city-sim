@@ -107,6 +107,19 @@ public static class SyntheticCity
         RefuseIfPopulated(world);
         LayLand(world, key);
         PeopleInto(world, key, now);
+
+        // The Districts, once the ground has Buildings on it -- there is nothing for a watershed to
+        // find over an empty field. adr/0134, milestone 12 task 3.
+        //
+        // HERE AND NOT AT THE COMMAND THAT CALLS THIS. The first version hung it off
+        // CommandKind.Populate in Simulation, which is one CALLER of this method rather than the
+        // thing that builds the city -- and every fixture that populates a world directly, which is
+        // most of the suite, got a city with no Districts in it while the Ruleset said it should have
+        // two. FactorioTests found it as eleven saved columns no corruption could reach.
+        //
+        // It does NOT run on a load, and must not: RebuildDerived restores the Districts the world
+        // HAD, and milestone 12 task 4 is what makes those two answers differ.
+        world.EvaluateDistricts();
     }
 
     /// <summary>
