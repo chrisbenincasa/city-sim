@@ -134,6 +134,22 @@ So the baseline reaches three quarters of the departure phases and **no Citizen 
 Covering that means lengthening the session past a Day — a change to the baseline rather than a line in a
 test — and the note is here so that whoever lengthens it knows what they are buying.
 
+**Milestone 12 task 3 re-recorded all three, and it is the 5a note's first half with nothing new in
+it.** `district` and `district_cell` joined `World._tables`, appended, so the composition order gained
+two tables at the end and every sample here moved. ⚠ **Neither Ruleset content hash moved**, because
+neither file was edited — the new `[districts]` table is stated by `rulesets/twinned.toml` alone, which
+no session opens on. So this was a two-file re-record and not the four-literals-in-two-files dance the
+5a note describes; ***the two halves of that note are separable and this re-record is the proof.***
+
+⚠ **What the fresh numbers do not cover is a District**, and they never will on these sessions. Both
+open on Rulesets that state no `[districts]`, so both tables are **empty in every sample here** and
+their contribution to the fold is the allocator's four scalars at their initial values. **That is a
+real hole and it is covered elsewhere on purpose**: `FactorioTests` needed a **fifth** world —
+`twinned.toml`, stepped — before a single one of the eleven new saved columns could be reached by
+corruption, and `DistrictWatershedTests` is what asserts the derivation itself. ***A baseline records
+what a run did, so a table no session fills is a table it is structurally blind to*** — slice 10 task
+11's finding arriving from yet another direction.
+
 **`World.HashSeed`'s version byte did not move, and that is deliberate.** It is for a change to the
 *fold* — the composition order's rules, `Randomness.Mix`, what a column contributes — and not for a
 world that has more tables in it. Bumping it for an appended table would make the byte a change

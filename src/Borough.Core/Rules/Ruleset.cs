@@ -1010,6 +1010,166 @@ public readonly record struct RoadRuleset(
 }
 
 /// <summary>
+/// One <c>[[lattice]]</c> table — <b>where the generator lays a Street lattice</b>, and the only
+/// thing a Ruleset can say about <em>where development is</em>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>A Lattice is authored and a Settlement, a District and a centre are all derived, which is the
+/// whole reason this is not called any of them.</b> <c>CONTEXT.md</c> → Settlement is a commute shed:
+/// <i>"connectivity is transitive, so a contiguously-developed lattice is one Settlement however large
+/// the graph"</i>. Two Lattices joined by a road within the Commute Budget are therefore <b>one</b>
+/// Settlement, and a file authoring two <c>[[settlement]]</c> tables that produced one Settlement
+/// would be contradicting the term it borrowed. <c>adr/0134</c>'s <b>centre</b> is the same hazard one
+/// level down — a centre is a prominence peak the watershed <em>finds</em>, and a key that authored
+/// one would be authoring the answer.
+/// </para>
+/// <para>
+/// <b>Two numbers and no third, because the extent and the population share are derived.</b> A
+/// Lattice paves what its share of the world's Lots needs — <c>SyntheticCity.PavedTiles</c>, which is
+/// the expression that already sized the single lattice — and the shares are equal. Authoring either
+/// would put two more unratified hash-bearing numbers per table into a file whose whole content is a
+/// gap (<c>adr/0052</c>), and neither is what the gap is made of. <b>The origins are the gap.</b>
+/// </para>
+/// <para>
+/// <b>The absence of the table is one Lattice at the origin corner</b>, which is what every world this
+/// build could generate before 2026-08-22 — so no shipped Ruleset's State Hash moves by this key
+/// arriving. It is <c>[layers]</c>'s polarity rather than <c>[roads]</c>'s, and legitimately: there
+/// <em>is</em> an earlier behaviour to preserve here, and it is exactly one Lattice at (0, 0).
+/// </para>
+/// <para>
+/// ⚠ <b>World-creation data, not tuning.</b> Where the land is cannot be reloaded — a standing city
+/// does not move — so a second Lattice appearing on a hot reload would describe ground that has no
+/// roads on it. It is not yet in <c>RulesetLoader.Reload</c>'s frozen set for the reason that set is
+/// small: <c>LayerConstants</c> is what a world records, and a world records no Lattice. <b>What it
+/// records is the graph the Lattices produced</b>, and <c>RoadGenerator.LayInto</c> refuses a world
+/// that already has Segments.
+/// </para>
+/// </remarks>
+/// <param name="OriginEastTiles">
+/// The Tile the lattice's west edge stands on. A multiple of <c>[roads] block_tiles</c>, so that every
+/// Node in the world sits on one block grid and the link between two Lattices is a whole number of
+/// blocks.
+/// </param>
+/// <param name="OriginNorthTiles">The Tile the lattice's south edge stands on. Same constraint.</param>
+public readonly record struct LatticeDefinition(int OriginEastTiles, int OriginNorthTiles);
+
+/// <summary>
+/// The <c>[districts]</c> table — <b>when a concentration of Buildings is a centre</b>
+/// (<c>adr/0134</c>).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>One key, because a watershed only needs to be told what counts as a peak.</b> Everything else a
+/// District has — where it starts, where it stops, how many there are — falls out of the
+/// Building-density field and the road components. <c>adr/0134</c>'s claim is exactly that: the count
+/// follows the centres, so there is no count to author, no extent to author and no ceiling to author.
+/// </para>
+/// <para>
+/// <b>Absence means no Districts are derived at all</b>, on <see cref="RoadRuleset.None"/>'s polarity
+/// and for a sharper reason than convenience. The threshold is hash-bearing and unratified
+/// (<c>adr/0052</c>), and a default in the binary is a hash-bearing number nobody chose, in a file
+/// nobody can see, ratified by nothing. A file that wants Districts states the table.
+/// </para>
+/// <para>
+/// ⚠ <b>Nothing in this project reads a District yet.</b> <c>Scope.Pool</c> still throws; the Pool
+/// Bins are milestone 12 task 5. So a Ruleset that states this table gets rows in
+/// <see cref="Space.DistrictTable"/> and no behaviour, which is what makes the derivation testable
+/// before anything depends on it being right.
+/// </para>
+/// </remarks>
+/// <param name="ProminencePercent">
+/// How far a peak must stand above the saddle that joins it to a taller peak, as a percentage
+/// <b>of its own height</b>, before it is a centre of its own.
+/// <para>
+/// <b>Relative rather than absolute, and that is the decision this key encodes.</b> An absolute
+/// Building count would be tied without saying so to <c>[lots] lots_per_segment</c>, which is what
+/// makes a built Cell on the shipped lattice hold the number of Buildings it holds: the same authored
+/// number would mean <em>a large fraction of a peak</em> on one lattice and a rounding error on
+/// another.
+/// </para>
+/// <para>
+/// ⚠ <b>Hash-bearing and UNRATIFIED</b> — <c>plans/0002</c> §D1, whose ratifier is milestone 15. The
+/// Building-density field is flat on every shipped Ruleset, so no world that exists today can tell one
+/// value of this from another; that is a reason to name the ratifier and not a reason to withhold the
+/// number (<c>adr/0052</c>, and <c>plans/0037</c> decision 3).
+/// </para>
+/// </param>
+/// <param name="RevisitTicks">
+/// How often the extent is re-derived, in Ticks. <b>The cadence, and it is hash-bearing</b>
+/// (<c>adr/0134</c>).
+/// <para>
+/// ⚠ <b>It is NOT a Map Layer cadence and must not be added to <c>[layers]</c> by resemblance.</b>
+/// <c>adr/0044</c> owns that one and it is a different number about a different field: a Layer's
+/// cadence decides when a source becomes visible to a Rule, and this decides how often a boundary is
+/// allowed to have moved. They are also read in different phases.
+/// </para>
+/// <para>
+/// <b>Slow on purpose.</b> Re-evaluation is one of <c>adr/0134</c>'s three stability mechanisms, and
+/// the argument is borrowed rather than new — <c>04 §4</c> damps prices because <em>"an undamped price
+/// signal produces the same oscillation pathology as undamped congestion feedback"</em>, and it
+/// transfers to a boundary unchanged.
+/// </para>
+/// </param>
+/// <param name="HysteresisPercent">
+/// How decisively the field must favour a new District before a Cell changes, as a percentage of the
+/// level at which its own basin reaches it.
+/// <para>
+/// <b><c>adr/0134</c>'s second mechanism, and its words are <em>"a Cell changes District only when the
+/// field difference clears a band, never on a tie"</em>.</b> The field difference here is exact rather
+/// than analogous: a Cell's basin reaches it at some flood level, and a rival basin reaches it at the
+/// level the two basins first touched. ⚠ <b>Everything a basin gains BELOW that touch level is reached
+/// by both at the same level and is therefore a genuine tie</b> — the watershed's answer there is a
+/// scan order, not a finding, and this is the key that stops a scan order being felt.
+/// </para>
+/// <para>
+/// ⚠ <b>Hash-bearing and UNRATIFIED</b>, on <see cref="ProminencePercent"/>'s footing exactly and for
+/// its reason: the field is flat on every shipped Ruleset, so no boundary on any world that exists is
+/// ever contested. <c>plans/0002</c> §D1, ratifier milestone 15.
+/// </para>
+/// </param>
+/// <param name="MigrateCells">
+/// The most Cells that may change District in one re-evaluation. <b>The damping bound.</b>
+/// <para>
+/// 🔴 <b>It bounds how far a boundary MOVES and not how much work the evaluation does.</b>
+/// <c>adr/0134</c>: <em>"a boundary migrates by at most a bounded number of Cells per evaluation, so it
+/// never jumps."</em> ***A work bound would be a profiler's number, and sizing a District from a
+/// profiler is what <c>plans/0037</c> forbids by name*** — extent decides pooling, which is a change to
+/// the city and not an optimisation.
+/// </para>
+/// <para>
+/// ⚠ <b>Only a Cell moving from one District to ANOTHER counts against it.</b> A Cell joining its first
+/// District — new ground, newly built on — is growth rather than migration, and counting it would
+/// freeze a growing city's boundaries against a budget its own construction was spending. A Cell whose
+/// District is being destroyed moves for free too, because the alternative is membership of a row that
+/// no longer exists.
+/// </para>
+/// </param>
+public readonly record struct DistrictRuleset(
+    int ProminencePercent, int RevisitTicks, int HysteresisPercent, int MigrateCells)
+{
+    /// <summary>A Ruleset whose city has no Districts.</summary>
+    /// <remarks>
+    /// <b>Absence is the unset spelling, on <see cref="ParkingRuleset.None"/>'s rule.</b> Every
+    /// percentage in range means something — a low one splits a city at every dip, a high one keeps it
+    /// whole — so no value inside the range can do duty as <em>unset</em>.
+    /// </remarks>
+    public static DistrictRuleset None => default;
+
+    /// <summary>Whether this city has Districts at all.</summary>
+    public bool Runs => ProminencePercent > 0;
+
+    /// <summary>Whether a re-evaluation falls on this Tick.</summary>
+    /// <remarks>
+    /// <b>Tick 0 is excluded because world creation has already evaluated</b> — re-running the
+    /// watershed on the first Step would be the same answer computed twice, and at task 5 it would be
+    /// a District destroyed and recreated before anything had a chance to use it.
+    /// </remarks>
+    public bool RevisitsOn(Ticks tick) =>
+        Runs && tick.Raw > 0 && tick.Raw % (ulong)RevisitTicks == 0;
+}
+
+/// <summary>
 /// The <c>[lots]</c> table — <b>how zoned land is carved into parcels</b> (<c>adr/0078</c>).
 /// </summary>
 /// <remarks>
@@ -1782,6 +1942,24 @@ public sealed class Ruleset
     public RoadRuleset Roads { get; init; } = RoadRuleset.None;
 
     /// <summary>
+    /// <b>Where the generator lays Street lattices</b> — every <c>[[lattice]]</c> table, in
+    /// declaration order.
+    /// </summary>
+    /// <remarks>
+    /// <b>Empty means one Lattice at the origin corner</b>, which is the only world this build could
+    /// generate until milestone 12 task 1, so no shipped Ruleset moves by this arriving. Order is
+    /// content here, unlike <see cref="Hinterlands"/>: a Lattice is never looked up, it is
+    /// <em>laid</em>, and consecutive ones are linked by a Street corridor — so swapping two tables
+    /// swaps which pair the corridor joins and moves the State Hash.
+    /// </remarks>
+    public LatticeDefinition[] Lattices { get; init; } = [];
+
+    /// <summary>
+    /// When a concentration of Buildings is a centre of its own. <b>Absent means no Districts.</b>
+    /// </summary>
+    public DistrictRuleset Districts { get; init; } = DistrictRuleset.None;
+
+    /// <summary>
     /// The <c>[lots]</c> table in force — how zoned land is carved into parcels (<c>adr/0078</c>).
     /// </summary>
     public LotRuleset Lots { get; init; } = LotRuleset.None;
@@ -1999,6 +2177,8 @@ public sealed class Ruleset
             Layers = layers,
             Placement = Placement,
             Roads = Roads,
+            Lattices = Lattices,
+            Districts = Districts,
             Lots = Lots,
             Trips = Trips,
             Jobs = Jobs,

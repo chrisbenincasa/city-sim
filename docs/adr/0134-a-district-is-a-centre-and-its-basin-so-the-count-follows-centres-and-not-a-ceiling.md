@@ -84,9 +84,21 @@ re-labels a whole basin.
   count meaningful is the same thing that makes it stable***, which is the sign the cut is in the right
   place.
 - **Hysteresis on membership.** A Cell changes District only when the field difference clears a band,
-  never on a tie.
+  never on a tie. ✅ ⚠ **SHIPPED 2026-08-22, milestone 12 task 4, and *the field difference* turned out
+  to be exact rather than a figure of speech.** Reachability along Cells of at least a given density is
+  symmetric, so ***once two basins have met at level h, everything either of them gains below h is
+  reached by both at exactly the same level*** — the margin is a Cell's own flood level minus the level
+  its basin first touched a rival at, and a tie is the common case on a boundary rather than a rare
+  coincidence. It cost one scalar per basin and one array (`plans/0037` **F19**). `[districts]
+  hysteresis_percent`.
 - **Damping the cadence.** Re-evaluation is slow and a boundary migrates by at most a bounded number of
-  Cells per evaluation, so it never jumps. [`04 §4`](../04-economy-and-goods.md) already makes this
+  Cells per evaluation, so it never jumps. ✅ **SHIPPED 2026-08-22, milestone 12 task 4** —
+  `[districts] revisit_ticks` and `migrate_cells`. 🔴 ⚠ **This sentence is also what corrected
+  `plans/0037`**, which had called the bound a *work* bound: a work bound makes the flood incremental
+  and its answer depends on where it stopped, and ***that would be sizing a District from a profiler***,
+  which the same plan forbids by name (`plans/0037` **F20**, `plans/0012`). ⚠ **Only a Cell moving from
+  one living District to another is counted** — new ground is growth, and a Cell whose District is being
+  destroyed has nowhere to stay. [`04 §4`](../04-economy-and-goods.md) already makes this
   argument for prices — *"an undamped price signal produces the same oscillation pathology as undamped
   congestion feedback"* — and it transfers to a boundary unchanged.
 
@@ -110,21 +122,56 @@ resolve to.
 
 - 🔴 **A District is `(saved AND hashed)`, which reverses [`plans/0037`](../../plans/0037-goods-between-buildings-the-district-pool.md)
   decision 2's expectation.** Persistence, hysteresis and damping all consult the previous state, so
-  extent is **not** a pure function of a world snapshot and cannot be rebuilt on load. `DistrictTable`
-  and `DistrictId` become real, a District is created and destroyed like any entity, and
+  extent is **not** a pure function of a world snapshot and cannot be rebuilt on load. ✅ ⚠ **THIS BULLET
+  STOPPED BEING A PREDICTION ON 2026-08-22, milestone 12 task 4.** `DistrictWatershed.Evaluate`
+  reconciles rather than replaces, and a District keeps its row across a re-evaluation — identity
+  travelling through the **centre Cell**, first claimant in Cell-index order, a basin whose centre is
+  unowned or already claimed opening a new District. 🔴 **A District no basin claims is DESTROYED**,
+  which is what makes *the count is physics* true of a running city and not only of a new one — and
+  which becomes `adr/0024`'s problem at task 5, when the row being destroyed is holding Pool Bins. `DistrictTable`
+  and ~~`DistrictId`~~ become real, a District is created and destroyed like any entity, and
   `DerivedRebuildAuditTests` does not apply to it. ⚠ **Determinism is unaffected** — it is still a
   function of the Input Log, so replay and save/reload equivalence both hold.
+  ✅ ⚠ **SHIPPED 2026-08-22, milestone 12 task 3, and the struck word is what shipping corrected.** There
+  is no `DistrictId` type: the identity is `Handle<District>`, which is the project's only identity for a
+  table row and the one `Rows.SavedHandle` folds into the State Hash. ***A second spelling of* which
+  District *would have been a second thing to keep in step across a save, a reload and a task-4
+  re-evaluation, for no capability*** (`plans/0037` **F11**). **Also shipped**: `DistrictCellTable`, one
+  saved row per built Cell, which is where the extent actually lives — this bullet's *created and
+  destroyed like any entity* is true of the centre and the extent is a second table.
 - 🔴 **Four hash-bearing numbers arrive unset and owe `plans/0002` §D2 rows**
   ([`adr/0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)): the
   **prominence threshold**, the **hysteresis band**, the **re-evaluation cadence with its per-evaluation
   Cell bound**, and the **extent scale in `adr/0133`'s charge**. ⚠ **None is tunable on a world that
   exists** — the density field is flat on every shipped Ruleset — so all four wait on a city with
   texture, which is milestone **15**.
+  ⚠ **AMENDED AGAIN 2026-08-22 by milestone 12 task 4: THREE of the four are now set and in §D1, and
+  the fourth belongs to task 7.** `revisit_ticks = 2048` (one Day), `hysteresis_percent = 50`,
+  `migrate_cells = 16`, all in `rulesets/twinned.toml` only. ⚠ **The cadence and the bound arrive as
+  TWO §D1 rows rather than the one this bullet paired them into**: the pairing was a statement about
+  when they could be ratified, not about what they are — one is a period and the other is a distance.
+  **Every one of them is unratified and unratifiable on any world that exists**, and the hysteresis band
+  is the sharpest case: no shipped Ruleset has a contested boundary at all, so it is held by a
+  hand-built fixture, and ***a fixture built to exercise a number cannot ratify it.***
+  ⚠ **AMENDED 2026-08-22 by milestone 12 task 3: the FIRST of the four is now set, and it moved to §D1
+  rather than closing.** `[districts] prominence_percent = **50**`, in `rulesets/twinned.toml` only, and
+  it is **relative — a percentage of the dying peak's own height** rather than a Building count, because
+  an absolute threshold would be tied without saying so to `[lots] lots_per_segment`. **The wait did not
+  end**: milestone 15 is still the ratifier, and what changed is that the debt is now a number the code
+  reads instead of a gap. 🔴 ***The tests cannot tell 1 from 100 and are written as a theory that says
+  so*** (`plans/0037` **F17**). **The other three stay in §D2**, and the ADR's *none is tunable* stands
+  for all four.
 - **`CONTEXT.md` → District's extent paragraph is amended.** The 128-Cell anchor stops being a maximum and
   becomes the scale at which the haulage charge bites — ***a curve's parameter rather than a ceiling***,
   which is a different ratification obligation and not a softer one.
-- **Milestone 12 ships one District on every current world**, and `Scope.Pool` resolves through it. ⚠ **A
-  Ruleset with two separated settlements is what demonstrates a second District and a real inter-District
+- ~~**Milestone 12 ships one District on every current world**~~, and `Scope.Pool` resolves through it.
+  ⚠ **AMENDED 2026-08-22 by milestone 12 task 3, and the struck words were a prediction the polarity
+  decision overturned.** A world derives Districts only where the Ruleset states `[districts]`, and **one
+  shipped file does** — so eight of the ten shipped Rulesets produce **no** District at all rather than
+  one. The reason is `adr/0052` rather than caution: the threshold is hash-bearing and unratified, and a
+  default in the binary would be a hash-bearing number nobody chose, in a file nobody can see, ratified
+  by nothing. ⚠ **`Scope.Pool` still throws** and resolves through nothing; the Pool Bins are task 5. ⚠ **A
+  Ruleset with two separated settlements is what demonstrates a second District — ✅ **shipped 2026-08-22 as `rulesets/twinned.toml`, and the key is `[[lattice]]` rather than `[[settlement]]` because a Settlement is derived and these two are one wherever anybody drives across the gap (`CONTEXT.md` → Lattice)** — and a real inter-District
   Shipment**, and `06`'s Shipments row at 12 is unobservable without one. ***That is milestone 9's land
   value repeating*** — a producer built, correct and with nothing to look at — and naming it here is the
   cheapest place to stop it.
@@ -132,8 +179,29 @@ resolve to.
   at 12"* sub-question is narrowed: with no geometric bound, something must bound extent, and this is it.
   Its **payee blocker therefore blocks more than it did** — see that ADR's Consequences.
 - **The watershed reads a Building-density field over Cells**, which is machinery the build already has:
-  `LayerCellTable`, `LayerDiffusion` and `SeparableKernel`. **It is not a Map Layer** and must not acquire
+  ~~`LayerCellTable`, `LayerDiffusion` and `SeparableKernel`~~ 🔴 ⚠ **AMENDED 2026-08-22 by milestone 12
+  task 2: it is `BuildingResidency`, and none of those three.** The field is a **count** and was already
+  built — 5b-bis cached a per-Cell list length for `adr/0081`'s job search, sized against
+  `CellGrid.WorldCellCount`, maintained at the write site and rebuilt with its index — so it is exact at
+  every Tick, free to read and carries no schedule. **The three names above are the machinery a
+  *smoothed* field would use, and no smoothing shipped**: a kernel means a radius, which would be a fifth
+  hash-bearing number where the bullet below enumerates four, and measured on the worlds that exist the
+  field is **flat rather than noisy** — a Cell inside a lattice holds exactly ten Buildings — so there is
+  nothing for a kernel to do (`plans/0037` **F7**, **F8**). ***This ADR was right about the mechanism and
+  wrong about where to look***, which is [`adr/0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+  working as written. **It is not a Map Layer** and must not acquire
   a cadence in `[layers]` by resemblance — its cadence is this ADR's, and a Map Layer's is `adr/0044`'s.
+- ✅ **The clip reads the FOOT subgraph, and the choice was open until task 3 made it.** A world reachable
+  on foot is reachable by car and not conversely, so the foot component is the one that can separate a
+  city whose Households own no car — and a Pool is a thing Buildings *share*, so what matters is whether
+  anybody could get between them at all. ⚠ **No shipped Ruleset exercises the clip**, because
+  `rulesets/twinned.toml` is joined by a corridor precisely so that component labelling cannot pass for a
+  watershed (this ADR's own rejected candidate); it is held by an in-code fixture that cuts the corridor,
+  plus a control that joins it and a third that joins it **for cars only**. 🔴 ⚠ **An unlabelled Cell —
+  one where nothing stands on a Street the connectivity pass reached — merges with NOTHING, including
+  another unlabelled Cell.** Comparing the two labels for equality made *unknown* behave as the largest
+  component in the world and silently bridged two genuine ones (`plans/0037` **F13**). ***A sentinel that
+  compares equal to itself is a sentinel that has quietly become a value.***
 
 ## What would trigger revisiting
 

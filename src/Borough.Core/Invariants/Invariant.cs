@@ -359,6 +359,25 @@ public enum Invariant
     /// the plain missed wake, and costs one term walk instead of a whole evaluation.
     /// </para>
     /// <para>
+    /// ⚠ <b>And narrower again in <em>which waiter</em> since <c>plans/0003</c> hash-moving queue item
+    /// 14: the head of the list, and only the head.</b> The drain stops at the first waiter it cannot
+    /// cover rather than skipping to a smaller one behind it — <c>adr/0063</c>'s queue order, and the
+    /// alternative starves every large waiter for the life of the city — so a covered waiter queued
+    /// <em>behind</em> an uncovered one is parked correctly. This member was stated more strongly than
+    /// the drain can deliver, and <see cref="Rules.RuleEngine"/>'s own starvation test asserted the
+    /// state it called a violation. ***The drain was right and the sentence describing it was too
+    /// strong.***
+    /// </para>
+    /// <para>
+    /// <b>And it is asked against the level less what is already spoken for.</b> A woken waiter records
+    /// no claim anywhere: <c>World.Wake</c> clears <c>Blocked</c> and arms for <c>tick + 1</c>, and
+    /// nothing is drawn until that row runs — so between the drain and the end of the Tick the level
+    /// reads as though none of it were owed. <b>The drain's guarantee is true of an instant</b>, and
+    /// three waiters needing three each against a deposit of six leave the third one as the head with
+    /// the whole level still covering it. <see cref="Rules.RuleEngine.AccumulateClaims"/> derives the
+    /// difference. ⚠ <b>Neither half is reached by the other's repair.</b>
+    /// </para>
+    /// <para>
     /// <b>It was expected to be unfirable on today's content, and it fired on the committed golden
     /// session within minutes of being registered.</b> The reasoning for the expectation was that a
     /// violation needs a Bin written in instalments smaller than a waiter's requirement, which is what
@@ -857,4 +876,30 @@ public enum Invariant
     /// </para>
     /// </remarks>
     OnlyAnUnhousedHouseholdGivesUp = 49,
+
+    /// <summary>
+    /// A <c>DistrictCell</c> names a District that is not live, or a Cell that holds no Building.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The State Hash cannot report either half, which is the whole argument for the check</b>
+    /// (<c>adr/0134</c>, milestone 12 task 4). A handle column folds the target row's monotonic id
+    /// through <c>Rows.TryIdAt</c>, and a handle whose target has been freed folds as <b>zero</b> — so
+    /// a membership row left pointing at a destroyed District is a dangling reference that every
+    /// determinism test in the project agrees about. ***Two runs reproduce the same wrong answer.***
+    /// </para>
+    /// <para>
+    /// <b>It is reachable because re-evaluation destroys Districts</b>, which is what makes
+    /// <c>adr/0134</c>'s <em>the count is physics</em> true of a running city and not only of a new
+    /// one. The order the reconciliation frees things in — Cells released, then Districts — is the
+    /// thing this asserts, and it is the kind of ordering that is right when written and wrong three
+    /// mechanisms later.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The second half is not redundant with the first.</b> A Cell that stopped holding Buildings
+    /// and kept its membership row is not dangling — it names a live District perfectly well — and it
+    /// would put empty ground inside a Pool, which is the abstraction <c>adr/0013</c> is a lie without.
+    /// </para>
+    /// </remarks>
+    ADistrictCellNamesALiveDistrictAndBuiltGround = 50,
 }

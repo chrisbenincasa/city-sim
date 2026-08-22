@@ -59,6 +59,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, ParkingOccupancyIsConserved);
         invariants.Register(InvariantTier.EndOfRun, OutsideConnectionsStandOnAnEdge);
         invariants.Register(InvariantTier.EndOfRun, ThePoolWaitsAtRealGates);
+        invariants.Register(InvariantTier.EndOfRun, DistrictMembershipNamesLiveDistrictsAndBuiltGround);
     }
 
     /// <summary>
@@ -275,6 +276,10 @@ public static class WorldInvariants
     {
         BinTable bins = world.Bins;
 
+        long[] claims = new long[bins.Rows.SlotCount];
+
+        RuleEngine.AccumulateClaims(world, blocking, claims);
+
         for (int bin = 0; bin < bins.Rows.SlotCount; bin++)
         {
             if (!bins.Rows.IsLive(bin))
@@ -282,27 +287,79 @@ public static class WorldInvariants
                 continue;
             }
 
-            foreach (int instance in waiters.Walk(bin))
-            {
-                // A row that is on the wrong list, or names a Bin other than this one, is
-                // WaiterIsQueuedOnTheBinItNames' violation and not this one. Deriving against a Bin the
-                // waiter never named would report a second violation for one defect, and the artifact
-                // would carry two ids for one cause.
-                if (!world.RuleInstances.Rows.IsLive(instance)
-                    || world.RuleInstances.Blocked[instance] != blocking
-                    || !bins.Rows.TryResolve(world.RuleInstances.WaitingOn[instance], out int named)
-                    || named != bin)
-                {
-                    continue;
-                }
+            int owed = HeadThatShouldHaveWoken(world, waiters, blocking, claims, bin);
 
-                report.Require(
-                    RuleEngine.BinStillBlocks(world, instance, bin, blocking),
-                    Invariant.WaiterIsBlockedByTheBinItNames,
-                    instance,
-                    bin);
-            }
+            report.Require(owed == Rows.NoSlot, Invariant.WaiterIsBlockedByTheBinItNames, owed, bin);
         }
+    }
+
+    /// <summary>
+    /// The head of this Bin's wait list when the drain owed it a wake and did not, or
+    /// <see cref="Rows.NoSlot"/> when the list is empty, headed by a row this check defers on, or
+    /// legitimately parked.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The head alone, because that is the whole of what the drain promises.</b>
+    /// <c>World.Drain</c> stops at the first waiter it cannot cover rather than skipping to a smaller
+    /// one behind it, deliberately — skipping would starve every large waiter for ever
+    /// (<c>adr/0063</c>) — so a covered waiter queued <em>behind</em> an uncovered one is parked
+    /// correctly and is not this invariant's business. The walk that asked every waiter was stated
+    /// more strongly than the drain can deliver, and a committed test asserted the state it called a
+    /// violation (<c>plans/0003</c> hash-moving queue item 14).
+    /// </para>
+    /// <para>
+    /// <b>Against the level less what is already spoken for</b>, which is
+    /// <see cref="RuleEngine.AccumulateClaims"/> and the second half of the same defect. A waiter
+    /// parked because the arriving quantity ran out — three needing three each against a deposit of
+    /// six — is the head once the two ahead of it wake, and the Bin's whole level still covers it
+    /// until they run. ⚠ <b>Neither half is reached by the other's repair</b>: nobody was skipped in
+    /// that run, and the parked waiter is the head.
+    /// </para>
+    /// <para>
+    /// <b>It replaced <c>RuleEngine.BinStillBlocks</c>, which is gone rather than left standing.</b>
+    /// That predicate's only production caller was the walk above; keeping it for the two tests that
+    /// reached through it would have left a second spelling of <em>does this Bin block this waiter</em>
+    /// that nothing runs, and the one nothing runs is the one that drifts. Both tests now assert
+    /// against <see cref="RuleEngine.Requirement"/>, which is what they were ever about.
+    /// </para>
+    /// </remarks>
+    internal static int HeadThatShouldHaveWoken(
+        World world, IndexList waiters, Blocking blocking, ReadOnlySpan<long> claims, int bin)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        RuleInstanceTable instances = world.RuleInstances;
+
+        int head = waiters.PeekFront(bin);
+
+        if (head == Rows.NoSlot)
+        {
+            return Rows.NoSlot;
+        }
+
+        // A row that is on the wrong list, or names a Bin other than this one, is
+        // WaiterIsQueuedOnTheBinItNames' violation and not this one. Deriving against a Bin the
+        // waiter never named would report a second violation for one defect, and the artifact would
+        // carry two ids for one cause.
+        if (!instances.Rows.IsLive(head)
+            || instances.Blocked[head] != blocking
+            || !world.Bins.Rows.TryResolve(instances.WaitingOn[head], out int named)
+            || named != bin)
+        {
+            return Rows.NoSlot;
+        }
+
+        long requirement = RuleEngine.Requirement(world, head, bin, blocking);
+
+        if (requirement == 0)
+        {
+            return head;
+        }
+
+        long level = blocking == Blocking.Supply ? world.Bins.LevelAt(bin) : world.Bins.SpaceAt(bin);
+
+        return level - claims[bin] < requirement ? Rows.NoSlot : head;
     }
 
     /// <summary>
@@ -1258,5 +1315,60 @@ public static class WorldInvariants
 
         report.Require(
             expected == arcs.Count, Invariant.ArcsAreDirectionsOfTheirSegments, expected, arcs.Count);
+    }
+
+    /// <summary>
+    /// Every membership row names a live District and a Cell that holds at least one Building.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Whole-world, because both halves are statements about the whole table</b> (<c>02 §10</c>) —
+    /// and end-of-run rather than staggered because the structure it checks changes on a cadence
+    /// measured in Days, so an <c>O(n)</c> sweep spread across Ticks would be re-asking a question
+    /// whose answer had not moved.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The State Hash cannot report either half.</b> A handle column folds the target row's
+    /// monotonic id, and a handle whose target has been freed folds as <b>zero</b> — so a membership
+    /// row pointing at a destroyed District is a dangling reference that replay, thread-count and
+    /// save/reload equivalence all agree about. ***Two runs reproduce the same wrong answer***, which
+    /// is the class of defect <c>adr/0004</c> calls a divergence rather than a crash.
+    /// </para>
+    /// <para>
+    /// <b>It became reachable at milestone 12 task 4</b>, when re-evaluation started destroying
+    /// Districts a basin no longer claims. What it is really asserting is an <em>order</em> —
+    /// membership released before the row it names — and an order is the kind of thing that is right
+    /// when written and wrong three mechanisms later.
+    /// </para>
+    /// </remarks>
+    internal static void DistrictMembershipNamesLiveDistrictsAndBuiltGround(
+        World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        Space.DistrictCellTable cells = world.DistrictCells;
+
+        for (int slot = 0; slot < cells.Rows.SlotCount; slot++)
+        {
+            if (!cells.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            Cells east = cells.East[slot];
+            Cells north = cells.North[slot];
+
+            report.Require(
+                world.Districts.Rows.IsValid(cells.District[slot]),
+                Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround,
+                slot);
+
+            report.Require(
+                world.BuildingsInCells.Density(east, north) > 0,
+                Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround,
+                slot,
+                CellGrid.Index(east, north));
+        }
     }
 }

@@ -127,6 +127,7 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _zoneRuleTables = [];
         private readonly List<TableSyntaxBase> _policyTables = [];
         private readonly List<TableSyntaxBase> _hinterlandTables = [];
+        private readonly List<TableSyntaxBase> _latticeTables = [];
 
         private TableSyntaxBase? _layersTable;
         private TableSyntaxBase? _placementTable;
@@ -138,6 +139,7 @@ public static class RulesetLoader
         private TableSyntaxBase? _householdsTable;
         private TableSyntaxBase? _trafficTable;
         private TableSyntaxBase? _parkingTable;
+        private TableSyntaxBase? _districtsTable;
 
         public RulesetLoadResult Read()
         {
@@ -175,12 +177,17 @@ public static class RulesetLoader
             LayerRuleset layers = ReadLayers();
             PlacementRuleset placement = ReadPlacement(kinds);
             RoadRuleset roads = ReadRoads();
+
+            // After ReadRoads and not before: every refusal here is a property of an origin against
+            // `block_tiles`, so the lattice tables cannot be read until the block is known.
+            LatticeDefinition[] lattices = ReadLattices(roads);
             LotRuleset lots = ReadLots(roads);
             TripRuleset trips = ReadTrips();
             JobRuleset jobs = ReadJobs(trips);
             HouseholdRuleset households = ReadHouseholds();
             TrafficRuleset traffic = ReadTraffic();
             ParkingRuleset parking = ReadParking();
+            DistrictRuleset districts = ReadDistricts();
 
             if (_refusals.Count == 0)
             {
@@ -219,6 +226,7 @@ public static class RulesetLoader
                     Layers = layers,
                     Placement = placement,
                     Roads = roads,
+                    Lattices = lattices,
                     Lots = lots,
                     Trips = trips,
                     Jobs = jobs,
@@ -227,6 +235,7 @@ public static class RulesetLoader
                     Policies = policies,
                     Hinterlands = hinterlands,
                     Parking = parking,
+                    Districts = districts,
                     ResourceKeys = Keys(_resources),
                     KindKeys = Keys(_kinds),
                 },
@@ -407,6 +416,14 @@ public static class RulesetLoader
                         _hinterlandTables.Add(table);
                         break;
 
+                    case "lattice":
+                        // Not registered into a name table, on [[hinterland]]'s reasoning, and a
+                        // Lattice does not even carry a name to register. What it carries is an
+                        // origin, and a duplicate origin is not visible until block_tiles is known --
+                        // so it is refused in ReadLattices and not here.
+                        _latticeTables.Add(table);
+                        break;
+
                     case "parking":
                         // Singular and optional, on [traffic]' reasoning exactly.
                         if (_parkingTable is not null)
@@ -420,12 +437,29 @@ public static class RulesetLoader
                         _parkingTable = table;
                         break;
 
+                    case "districts":
+                        // Singular and optional, on [parking]'s reasoning exactly. Plural in the key
+                        // because the table describes the whole set of them and authors none: there
+                        // is no [[district]] and there must not be one, since adr/0134 makes a
+                        // District a thing the city is found to have rather than a thing it is told.
+                        if (_districtsTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [districts] is declared. There is one prominence threshold, "
+                                + "so two tables of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _districtsTable = table;
+                        break;
+
                     default:
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [[policy]], "
-                            + "[[hinterland]], [layers], [placement], [roads], [lots], [trips], "
-                            + "[jobs], [households], [traffic] and [parking].");
+                            + "[[hinterland]], [[lattice]], [layers], [placement], [roads], [lots], "
+                            + "[trips], [jobs], [households], [traffic], [parking] and "
+                            + "[districts].");
                         break;
                 }
             }
@@ -2213,6 +2247,140 @@ public static class RulesetLoader
             return [.. definitions];
         }
 
+        // ---- lattices -------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[[lattice]]</c> tables — <b>where the generator lays Street lattices</b>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Optional, and its absence is one Lattice at the origin corner</b> — which is the world
+        /// every Ruleset in <c>rulesets/</c> described before this key existed, so no State Hash moves
+        /// by the key arriving. That is <c>[layers]</c>'s polarity rather than <c>[roads]</c>'s, and
+        /// legitimately: there is an earlier behaviour here and it is exactly one lattice at (0, 0).
+        /// </para>
+        /// <para>
+        /// <b>Two numbers per table, because the extent and the population share are derived</b>
+        /// (<see cref="LatticeDefinition"/>). What a file authors is <em>where</em>, and the gap
+        /// between two origins is the entire content of a two-Lattice world.
+        /// </para>
+        /// </remarks>
+        private LatticeDefinition[] ReadLattices(RoadRuleset roads)
+        {
+            if (_latticeTables.Count == 0)
+            {
+                return [];
+            }
+
+            if (!roads.Runs)
+            {
+                Refuse(LineOf(_latticeTables[0]), null,
+                    "a [[lattice]] is declared and there is no [roads] table. A Lattice IS a Street "
+                    + "lattice -- an origin the generator lays a grid-snapped network from -- so a "
+                    + "world with no roads has nothing for one to be, and the origin would name "
+                    + "ground nothing is ever built on.");
+
+                return [];
+            }
+
+            // Arterials are laid per lattice and severance is addressed by position within one, so
+            // two lattices would each get `arterial_count` of them and the file would read as a
+            // count of Arterials crossing the map while behaving as a count per settlement. Refused
+            // rather than divided or silently doubled: which of the two a designer meant is not
+            // recoverable from the file, and adr/0090 has Arterials as a player tool that does not
+            // belong in a generator at all -- every city-modelling Ruleset states 0.
+            if (_latticeTables.Count > 1 && roads.ArterialCount > 0)
+            {
+                Refuse(LineOf(_latticeTables[1]), null,
+                    $"{_latticeTables.Count} [[lattice]] tables are declared and arterial_count is "
+                    + $"{roads.ArterialCount}. An Arterial is laid per lattice, so the file says "
+                    + $"\"{roads.ArterialCount} Arterials cross the map\" and would mean "
+                    + $"\"{roads.ArterialCount} in each of {_latticeTables.Count} lattices\". Set "
+                    + "arterial_count = 0, which is what every city-modelling Ruleset states.");
+
+                return [];
+            }
+
+            var definitions = new List<LatticeDefinition>(_latticeTables.Count);
+
+            foreach (TableSyntaxBase table in _latticeTables)
+            {
+                if (!TryOrigin(table, roads, "origin_east_tiles", out int east)
+                    || !TryOrigin(table, roads, "origin_north_tiles", out int north))
+                {
+                    continue;
+                }
+
+                bool duplicate = false;
+
+                foreach (LatticeDefinition declared in definitions)
+                {
+                    if (declared.OriginEastTiles == east && declared.OriginNorthTiles == north)
+                    {
+                        Refuse(LineOf(table), null,
+                            $"a second lattice is declared at ({east}, {north}). Two lattices on one "
+                            + "origin are one lattice laid twice, and the second one throws -- the "
+                            + "generator is a world-creation pass and refuses ground that already "
+                            + "has Segments on it.");
+
+                        duplicate = true;
+                        break;
+                    }
+                }
+
+                if (!duplicate)
+                {
+                    definitions.Add(new LatticeDefinition(east, north));
+                }
+            }
+
+            return [.. definitions];
+        }
+
+        /// <summary>
+        /// One of a <c>[[lattice]]</c>'s two origin keys, in Tiles and on the block grid.
+        /// </summary>
+        /// <remarks>
+        /// <b>The multiple-of-<c>block_tiles</c> refusal is what keeps the whole world on one grid.</b>
+        /// The corridor joining two Lattices is laid in whole blocks from a Node of the first to a
+        /// Node of the second, so an origin off the grid would leave the last step of that run short
+        /// and put a Node a fraction of a block from another one. Refused rather than snapped: a
+        /// snapped origin is a file whose number is not the number the world was built from.
+        /// </remarks>
+        private bool TryOrigin(TableSyntaxBase table, RoadRuleset roads, string key, out int origin)
+        {
+            origin = 0;
+
+            if (!TryInteger(table, key, out long value, required: true))
+            {
+                return false;
+            }
+
+            if (value < 0 || value >= CellGrid.WorldTiles)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"{key} = {value} is off the map. The map is bounded (adr/0021) and is "
+                    + $"{CellGrid.WorldTiles} Tiles a side, so an origin is between 0 and "
+                    + $"{CellGrid.WorldTiles - 1}.");
+
+                return false;
+            }
+
+            if (value % roads.BlockTiles != 0)
+            {
+                Refuse(LineOf((SyntaxNodeBase?)Find(table, key) ?? table), null,
+                    $"{key} = {value} is not a multiple of block_tiles = {roads.BlockTiles}. Every "
+                    + "Node in a generated world sits on one block grid, and the corridor joining "
+                    + "two lattices is laid in whole blocks -- an origin off the grid would end that "
+                    + "run a fraction of a block short of the lattice it is joining.");
+
+                return false;
+            }
+
+            origin = (int)value;
+            return true;
+        }
+
         /// <summary>The <c>edge</c> key, which is the Hinterland's identity.</summary>
         /// <remarks>
         /// <b>Four names and no fifth</b>, on <see cref="ReadSubject"/>'s shape.
@@ -3380,6 +3548,119 @@ public static class RulesetLoader
         /// <summary>The line a <c>[parking]</c> key is on, or the table's.</summary>
         private int LineOfParking(string key) =>
             LineOf((SyntaxNodeBase?)Find(_parkingTable!, key) ?? _parkingTable!);
+
+        private DistrictRuleset ReadDistricts()
+        {
+            if (_districtsTable is null)
+            {
+                return DistrictRuleset.None;
+            }
+
+            if (!TryInteger(_districtsTable, "prominence_percent", out long percent, required: true))
+            {
+                return DistrictRuleset.None;
+            }
+
+            // Refused at zero rather than defaulted, on [parking] radius_metres' reason. Zero is not
+            // "one District": it is a threshold every dip in the field clears, so every local bump
+            // becomes a centre and the city fragments into as many Districts as it has Cells. A file
+            // that wants no Districts deletes the table, which is a sentence somebody meant to write.
+            if (percent < 1)
+            {
+                Refuse(LineOfDistricts("prominence_percent"), null,
+                    $"prominence_percent is {percent}. It is how far a peak must stand above its "
+                    + "saddle before it is a centre of its own, as a percentage of its own height, so "
+                    + "zero makes every bump a District and the city has as many as it has Cells. "
+                    + "Delete the [districts] table for a city with no Districts at all.");
+
+                return DistrictRuleset.None;
+            }
+
+            // A hundred is the whole of a peak's height, which is the prominence of a hill nothing
+            // touches. Above it the test is unsatisfiable: no saddle is below zero, so the only
+            // Districts left are the connected components, and the watershed is doing nothing while
+            // appearing to be configured. A knob whose top end silently disables it is refused.
+            if (percent > 100)
+            {
+                Refuse(LineOfDistricts("prominence_percent"), null,
+                    $"prominence_percent is {percent}. It is a percentage of the peak's own height, "
+                    + "so 100 already means a peak that rises from nothing; above that no peak can "
+                    + "ever qualify and the Districts collapse to the road components, which is the "
+                    + "clip working alone rather than a threshold doing anything.");
+
+                return DistrictRuleset.None;
+            }
+
+            if (!TryInteger(_districtsTable, "revisit_ticks", out long revisit, required: true)
+                || !TryInteger(_districtsTable, "hysteresis_percent", out long band, required: true)
+                || !TryInteger(_districtsTable, "migrate_cells", out long migrate, required: true))
+            {
+                return DistrictRuleset.None;
+            }
+
+            // All three are REQUIRED of a file that states the table, on [parking]'s rule: a stated
+            // table states its keys. None of them has a defensible default -- a defaulted cadence is a
+            // hash-bearing number nobody chose, and a defaulted band or bound would be adr/0134's
+            // stability mechanisms arriving switched to a setting no designer picked.
+            if (revisit < 1)
+            {
+                Refuse(LineOfDistricts("revisit_ticks"), null,
+                    $"revisit_ticks is {revisit}. It is how often the Districts are re-derived, so a "
+                    + "period of zero or less is not 'never' -- it is a period, and there is no "
+                    + "spelling here for a city whose Districts are found once and frozen. Delete the "
+                    + "[districts] table for a city with no Districts at all.");
+
+                return DistrictRuleset.None;
+            }
+
+            // Refused at zero because zero is 'a Cell moves on a tie', which adr/0134 forbids in the
+            // sentence this key exists to implement -- and a tie is the one case where the watershed's
+            // answer is a scan order rather than a finding. Above 100 no margin can ever clear the band
+            // and the boundary is frozen for ever, which is [districts] prominence_percent's ceiling
+            // arriving on the second key: a knob whose top end silently disables the mechanism.
+            if (band < 1 || band > 100)
+            {
+                Refuse(LineOfDistricts("hysteresis_percent"), null,
+                    $"hysteresis_percent is {band}. It is how decisively the field must favour a new "
+                    + "District before a Cell changes, as a percentage of the level its own basin "
+                    + "reaches it at. Zero moves a Cell on a tie, which is the case the band exists "
+                    + "for; above 100 no Cell can ever move and the boundaries are frozen while the "
+                    + "file appears to be tuning them.");
+
+                return DistrictRuleset.None;
+            }
+
+            // Refused at zero for the band's first reason: a bound of none is a re-evaluation that
+            // computes an answer and applies nothing, which is the mechanism switched off by a value
+            // that reads as a setting. THERE IS NO CEILING, deliberately -- a large bound is an
+            // undamped boundary, which is a legitimate thing to author and announces itself.
+            if (migrate < 1)
+            {
+                Refuse(LineOfDistricts("migrate_cells"), null,
+                    $"migrate_cells is {migrate}. It is the most Cells that may change District in "
+                    + "one re-evaluation, so a bound of none computes the new boundary and then "
+                    + "refuses to move to it. A large value is how you say 'undamped'.");
+
+                return DistrictRuleset.None;
+            }
+
+            if (revisit > int.MaxValue)
+            {
+                revisit = int.MaxValue;
+            }
+
+            if (migrate > int.MaxValue)
+            {
+                migrate = int.MaxValue;
+            }
+
+            return new DistrictRuleset(
+                (int)percent, (int)revisit, (int)band, (int)migrate);
+        }
+
+        /// <summary>The line a <c>[districts]</c> key is on, or the table's.</summary>
+        private int LineOfDistricts(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_districtsTable!, key) ?? _districtsTable!);
 
         // ---- traffic ----------------------------------------------------------------------------
 

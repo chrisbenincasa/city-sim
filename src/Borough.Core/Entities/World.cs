@@ -167,6 +167,14 @@ public sealed class World
         RulesetTrail = new RulesetTrailTable();
         CondemnationTrail = new CondemnationTrailTable(Lots.Rows);
 
+        // Districts are few and their Cells are many, and neither is a function of population in the
+        // way a Building is: what bounds the Cell count is how much GROUND is built on, and a
+        // Building's Cell already holds several of its neighbours. Both are capacity hints on a
+        // growing table, so the number that matters is that neither is zero -- a District table sized
+        // from the population would be a number that looks derived and is not.
+        Districts = new Space.DistrictTable(8);
+        DistrictCells = new Space.DistrictCellTable(PerThousand(citizens, 150), Districts);
+
         // The three Movement tables, and their capacity is deliberately NOT a function of population.
         //
         // plans/0021 -> "Decisions this slice must close" 3 is explicit about why: adr/0008 says the
@@ -229,6 +237,12 @@ public sealed class World
             // Occupant kind, its balance is a saved column on the actor, and conserved money sitting
             // outside the composition would be money the State Hash cannot see.
             Businesses.Rows,
+
+            // Appended for the same reason, milestone 12 task 3. adr/0134: a District is derived from
+            // the city and then SAVED, because task 4's hysteresis, damping and persistence all read
+            // the previous extent -- so it is state a snapshot cannot re-derive, and a Pool Bin
+            // hanging off a District that a reload numbered differently would be a Pool that moved.
+            Districts.Rows, DistrictCells.Rows,
 
             // TreasuryTable is deliberately NOT here, milestone 10 task 1. Both its columns are
             // Derived, and 5a's finding is that a wholly-derived table cannot join this list: Rows.Fold
@@ -373,6 +387,24 @@ public sealed class World
     /// <see cref="Tables"/>.
     /// </remarks>
     public BuildingResidency BuildingsInCells { get; } = new();
+
+    /// <summary>
+    /// The city's Districts — a centre and the basin that drains to it, <c>adr/0134</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b><c>(saved AND hashed)</c>, and the reason lands at milestone 12 task 4</b> rather than here:
+    /// hysteresis, damping and persistence all consult the previous extent, so a District recomputed
+    /// from scratch on load would be a different District from the one that was saved. Today the
+    /// derivation runs once, at world creation, and reproduces itself — which is exactly the state a
+    /// task-4 re-evaluation will stop being in.
+    /// </remarks>
+    public Space.DistrictTable Districts { get; }
+
+    /// <summary>Which District each built Cell drains to. The District's extent, as rows.</summary>
+    public Space.DistrictCellTable DistrictCells { get; }
+
+    /// <summary>The Cell-to-District index. Derived, and rebuilt from the saved coordinates.</summary>
+    public Space.DistrictResidency DistrictsInCells { get; } = new();
 
     /// <summary>Which Car Parks sit on which Segment — the Parking Shed query's supply index.</summary>
     /// <remarks>
@@ -1425,6 +1457,34 @@ public sealed class World
     }
 
     /// <summary>
+    /// Finds the Districts the Building-density field currently supports and replaces the old ones.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Called once, at world creation, and by nothing on a Tick.</b> <c>adr/0134</c> settles what a
+    /// District is; milestone 12 task 4 settles when it is re-asked, and until it does there is no
+    /// cadence, no hysteresis and no per-evaluation Cell bound — which is why this is a method
+    /// somebody calls rather than a phase that runs.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is NOT part of <see cref="RebuildDerived"/> and must never be folded into it.</b> A
+    /// load restores the Districts the world <em>had</em>; this computes the ones its field would
+    /// support <em>now</em>. Task 4 makes those two answers differ on purpose, and a rebuild that
+    /// quietly re-evaluated would be a save/reload that moved every boundary.
+    /// </para>
+    /// </remarks>
+    public void EvaluateDistricts() =>
+        Space.DistrictWatershed.Evaluate(
+            Districts,
+            DistrictCells,
+            DistrictsInCells,
+            BuildingsInCells,
+            Buildings,
+            Lots,
+            Roads,
+            Rules.Districts);
+
+    /// <summary>
     /// Rebuilds every <see cref="Disposition.Derived"/> structure from saved state.
     /// </summary>
     /// <remarks>
@@ -1634,6 +1694,12 @@ public sealed class World
         // clears its own arrays and CellNext rather than being cleared with the block at the top,
         // because its head and tail are not columns and the block above is a list of columns.
         BuildingsInCells.Rebuild(Buildings, Lots);
+
+        // The Cell-to-District index, from the membership rows' own saved coordinates. NOT a
+        // re-evaluation: the watershed does not run here and must not, because a load restores the
+        // Districts the world had rather than the ones its field would support today. That
+        // distinction is the whole of why DistrictCellTable is Saved and this is not.
+        DistrictsInCells.Rebuild(DistrictCells);
 
         IndexList buildingRules = BuildingRules;
         for (int slot = 0; slot < RuleInstances.Rows.SlotCount; slot++)

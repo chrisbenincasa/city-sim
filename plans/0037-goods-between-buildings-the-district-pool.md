@@ -8,7 +8,15 @@ Goods chain that crosses an ownership boundary.
 ## Status
 
 🟢 **SCOPING STARTED 2026-08-21. The scoping sitting ran 2026-08-22, settled decisions 1, 2, 4, 5, 6, 8
-and 9, and the milestone was DECOMPOSED INTO TEN TASKS the same day. No task has begun.**
+and 9, and the milestone was DECOMPOSED INTO TEN TASKS the same day. TASKS 1 AND 2 SHIPPED
+2026-08-22** — `rulesets/twinned.toml` and `[[lattice]]`, the first world this build can generate with
+**two centres** in it; and the Building-density field, which 🔴 **turned out to be already built**
+(`BuildingResidency`, 5b-bis) so that task 2 was a name and a measurement rather than storage.
+**TASK 3 SHIPPED 2026-08-22** — `DistrictTable`, `DistrictCellTable`, `DistrictResidency` and
+`Space.DistrictWatershed`: a two-descent persistence watershed over the density field, clipped to the
+**Foot** road component, run once from `SyntheticCity.PopulateInto`. ⚠ **Nothing reads a District yet** —
+`Scope.Pool` still throws, and the Pool Bins are task 5. **Findings F1–F17** are below, under *What
+building it found*.
 
 ⚠ **Open: 3, 7 and 10** — and **10 did not exist until decomposition wrote it**, which is the argument
 for decomposing rather than sitting again. ***Ordering the work asked what each task needed and found a
@@ -639,42 +647,78 @@ corpus has no prior answer to look up.
 
 **Decomposed 2026-08-22, after seven of nine decisions closed.** Ordered by what the next task needs.
 ⚠ **Three entries are blocked on something other than code.** Task 5 on **decision 7** and on
-🔴 **[`plans/0003`](0003-build-plan.md) queue item 14** — a committed contradiction between `World.Drain`
-and `Invariant.WaiterIsBlockedByTheBinItNames` that ***`Scope.Pool` is what makes reachable***, and whose
-own entry says it must be settled **before** the Pool ships. Task 7 on **decision 10**, which
-decomposition itself found. ⚠ **Decisions 7 and 10 are small and neither wants a sitting; item 14 is a
-real design question and is already owned elsewhere** — do not settle it inside a task's commit.
+~~🔴 **[`plans/0003`](0003-build-plan.md) queue item 14**~~ — ✅ **settled 2026-08-22 in a commit of its
+own, as its own entry required.** The invariant narrowed to the head of the wait list on
+[`adr/0063`](../docs/adr/0063-a-wait-list-wakes-on-the-bins-state-and-a-shortfall-is-derived-rather-than-stored.md)'s
+own argument, and it moves no hash. Task 7 on **decision 10**, which decomposition itself found.
+⚠ **Decisions 7 and 10 are small and neither wants a sitting.**
 
 ⚠ **Read the ordering claim before trusting the order.** Tasks 1 to 4 build **a boundary**, and tasks 5
 to 8 build **a market inside it**. ***The market half is the milestone's named risk and the boundary half
 is its precondition***, so an eye on schedule should be on tasks 1–4 finishing rather than on 5–8
 starting.
 
-1. **A world with two settlements in it** — the generator places two separated lattices, and a Ruleset
-   authors them. ⚠ **This is FIRST and not last, and milestone 11 task 3 is why**: *"`SyntheticCity`
+1. ✅ **SHIPPED 2026-08-22 — a world with two settlements in it** — the generator places two separated
+   lattices, and a Ruleset authors them. **`rulesets/twinned.toml`**, `[[lattice]]`, and the two are
+   **joined by a Street corridor**: `adr/0134` rejected splitting on road components, so a world in two
+   components would let component labelling pass for a watershed. ⚠ **The key is `[[lattice]]` and not
+   `[[settlement]]`** — see **F2**. Findings **F1**–**F6** below.
+   ⚠ **This is FIRST and not last, and milestone 11 task 3 is why**: *"`SyntheticCity`
    places gates, so there is a world with a door in it — milestone 9's **F17** is why this is a task and
    not an assumption."* ***The derivation is unobservable and untestable on every world this build can
    currently generate***, because the count follows centres and there is one. **Make the gap
    unambiguous** — the prominence threshold is not chosen until task 3, so the world must be one that any
    sane threshold splits, not one that calibrates it.
-2. **The Building-density field on the Cell grid** — what the watershed reads
+2. ✅ **SHIPPED 2026-08-22 — the Building-density field on the Cell grid** — what the watershed reads
    ([`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)).
+   🔴 **IT WAS ALREADY BUILT.** `BuildingResidency` has cached its own per-Cell list lengths since
+   **5b-bis**, sized against `CellGrid.WorldCellCount` exactly as this entry predicted whatever held it
+   would be, because the job search needed a fair draw over a box. **What task 2 added is a name** —
+   `BuildingResidency.Density` — **and the evidence that the field has the shape the watershed needs.**
    ⚠ **It is flat on all nine existing Rulesets and has texture on task 1's world**, which is the whole
-   reason for the order. **`CellGrid.WorldCellCount` is 262,144**, so whatever holds it is sized against
-   that and not against the Buildings.
-3. **`DistrictTable`, `DistrictId`, and the first derivation** — the watershed, prominence-seeded,
-   clipped to a road component. `(saved AND hashed)` and **not** `Derived`, per decision 2 — so
-   `DerivedRebuildAuditTests` does not apply and nothing is owed a rebuild. **Run once, at world
-   creation**: no re-evaluation yet, therefore no persistence, hysteresis or damping, which is task 4.
-   🔴 **The four hash-bearing numbers are chosen here and `plans/0002` §D1 rows are owed ON THE DAY** —
-   `adr/0052`, and decision 3. ⚠ **The ratifier is milestone 15 and naming it is the whole obligation**:
-   the numbers are unratifiable against a flat field, and that is **not** a reason to withhold them.
+   reason for the order — and *flat* turned out to be **literal**. Findings **F7**–**F10** below.
+   ⚠ **No smoothing**, and that is a decision against a measurement rather than an omission (**F8**).
+3. ✅ **SHIPPED 2026-08-22 — `DistrictTable` and the first derivation** — the watershed,
+   prominence-seeded, clipped to a road component. `Space.DistrictWatershed` is the operator;
+   `DistrictTable` holds a centre apiece and `DistrictCellTable` the extent, one row per built Cell;
+   `DistrictResidency` is the dense Cell→slot index. `(saved AND hashed)` and **not** `Derived`, per
+   decision 2 — so `DerivedRebuildAuditTests` does not apply and nothing is owed a rebuild. **Runs once,
+   from `SyntheticCity.PopulateInto`** (**F15** — not from the command that calls it): no re-evaluation
+   yet, therefore no persistence, hysteresis or damping, which is task 4.
+   ⚠ **`DistrictId` did not ship and nothing is missing** — the identity is `Handle<District>`, which is
+   the project's only one (**F11**).
+   ⚠ **ONE of the four numbers was chosen here and one §D1 row was owed**, not four: the prominence
+   threshold, `[districts] prominence_percent = 50` in `rulesets/twinned.toml`. The hysteresis band and
+   the cadence-with-its-Cell-bound belong to task 4 and stay §D2 gaps; the haulage curve's extent scale
+   belongs to task 7. **The row is written and names milestone 15** — `adr/0052`, and decision 3.
+   🔴 **The threshold is not consulted on any world that exists and the tests say so out loud** (**F17**).
+   ⚠ **The extent is BUILT CELLS ONLY** — empty ground is in no District, because it holds no Building,
+   no Bin and nothing to pool. ⚠ **The clip reads the FOOT subgraph**, which is the weaker of the two,
+   and **no shipped Ruleset exercises it** — `twinned.toml` is deliberately one component (**F1**), so
+   it is held by an in-code fixture with a cut corridor.
+   🔴 **The State Hash moved**, and every golden trace and the world baseline were regenerated with it
+   ([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).
    ⚠ **`RoutingPartition` is not this and reusing it is a regression** ([`adr/0047`](../docs/adr/0047-routing-never-keys-on-the-district.md)).
-4. **Re-evaluation — persistence, hysteresis, damping, and the per-evaluation Cell bound.** ***This is
-   the task that earns decision 2's answer***: all three consult the previous extent, which is precisely
-   why a District is saved rather than rebuilt. ⚠ **The Cell bound is the fourth §D number** and it is a
-   work bound, so it is the one most likely to be mistaken for a profiler's choice — *"must not size a
-   District from a profiler"* is below, and extent decides pooling.
+   Findings **F11**–**F17** below.
+4. ✅ **SHIPPED 2026-08-22 — re-evaluation: persistence, hysteresis, damping and the cadence.**
+   ***This is the task that earned decision 2's answer***: all three consult the previous extent, which
+   is precisely why a District is saved rather than rebuilt. `[districts]` goes from one key to four —
+   `revisit_ticks`, `hysteresis_percent`, `migrate_cells` — and `DistrictWatershed.Evaluate`
+   **reconciles rather than replaces**, on one path with the first evaluation as its degenerate case.
+   ⚠ **Identity travels through the CENTRE Cell**, first claimant in Cell-index order; a District no
+   basin claims is **destroyed**, which at task 5 becomes `adr/0024`'s problem and is deliberately left
+   to it. The cadence runs **last in phase 6**, after the Zone Rules, because that is the line after
+   which the Building count is settled for the Tick. Findings **F19**–**F23** below.
+   🔴 ⚠ **THIS ENTRY WAS WRONG ABOUT THE CELL BOUND AND THE STRUCK WORDS ARE THE CORRECTION.**
+   ~~*it is a work bound*~~ — it is not.
+   [`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)
+   and [`0002`](0002-open-questions.md) §D2 both say it bounds **how far a boundary may move per
+   evaluation**, and they say it in the same words: *"a boundary migrates by at most a bounded number
+   of Cells per evaluation, so it never jumps."* ***A work bound and a change bound are different
+   numbers and would have been different code***, and this entry's own next clause — *"must not size a
+   District from a profiler"* — is the argument against the reading it had just given. Filed in
+   [`0012`](0012-corpus-audit.md). ⚠ **Only a Cell moving from one LIVING District to another counts
+   against it**: new ground is growth, and a Cell whose District is being destroyed has nowhere to stay.
 5. **Pool Bins — a Bin per Good per District.** 🔴 **`BinOwnerKind` has four members and none is a
    District**, and `BinTable.Owner` is a `HandleColumn<Building>` bound to `buildings.Rows` at
    construction (`BinTable.cs:60`), so ***a District-owned Bin cannot address its owner through
@@ -685,8 +729,15 @@ starting.
    the wider Bin lookup the milestone must not ship, and the `throw` is the thing preventing it.
    **Blocked on decision 7** — what a disconnected Building does — which `adr/0134` largely pre-answers
    by making the road component constitutive.
-   🔴 ⚠ **AND BLOCKED ON [`plans/0003`](0003-build-plan.md) QUEUE ITEM 14, which says so itself and which
-   this document did not list.** `World.Drain` and `Invariant.WaiterIsBlockedByTheBinItNames` contradict
+   ~~🔴 ⚠ **AND BLOCKED ON [`plans/0003`](0003-build-plan.md) QUEUE ITEM 14, which says so itself and which
+   this document did not list.**~~ ✅ **SETTLED 2026-08-22, ahead of this task and in its own commit.**
+   ⚠ **The fork read as symmetric here and was not**: making the drain skip is the behaviour `adr/0063`'s
+   *Atomic servings* section refuses **by name**, so ***different cities* overstated the choice** — one
+   candidate was already refused by the ADR that owns the mechanism, and the sitting's work was finding
+   that out rather than choosing. **The invariant narrowed to the head of the list and moves no hash**,
+   and the narrowing turned up a second half nobody had reasoned to: a woken waiter records no claim
+   anywhere, so the drain's guarantee is true of an *instant* and `RuleEngine.AccumulateClaims` derives
+   the difference. *The original entry, kept because the blocker was real:* `World.Drain` and `Invariant.WaiterIsBlockedByTheBinItNames` contradict
    each other today, and a committed test asserts the state the invariant calls a violation. It is
    **latent only because no shipped Ruleset puts two Rules on one Bin** — `BinWaitListTests`' own header:
    *"under `local` scope no two Rules share a Bin they do not both own."* ***`Scope.Pool` is precisely the
@@ -790,3 +841,247 @@ priced and not embodied**, and a distant gate costs nothing at 12 — see decisi
 
 *(Filled as the sitting runs. The three preconditions above were found before it started, which is why
 they are in the survey rather than here.)*
+
+---
+
+## What building it found
+
+### Task 1, 2026-08-22 — **F1** to **F6**
+
+**F1 — the two lattices had to be JOINED, and the alternative would have shipped the rejected
+mechanism under the chosen one's name.** A world in two road components splits under
+`RoadConnectivity` alone, so task 3 could implement component labelling, pass every test this task
+writes, and be `adr/0134`'s explicitly refused *split only where the road graph disconnects*. The
+generator therefore lays a **corridor of Street Segments** between consecutive Lattices — Street and
+not Arterial, because an Arterial ramp carries cars and not feet, which would make the world one
+component for driving and two for walking and hand task 3 a fork about which one the clip reads.
+**Measured on `twinned.toml` at 1,000 Citizens: one component in each mode, 109 of 109 nodes.**
+***The only thing that can find this world's boundary is the density field, which is the thing under
+test.***
+
+**F2 — the key is `[[lattice]]`, and `[[settlement]]` would have authored a contradiction.**
+`CONTEXT.md` → Settlement is a **derived** commute shed, and *"connectivity is transitive, so a
+contiguously-developed lattice is one Settlement however large the graph"*. 🔴 **Whether these two
+Lattices are one Settlement or two is decided by a key in a different table**: over the corridor's
+7,680 m, ~9 clock minutes by car and ~92 on foot against a 50-minute ceiling, and `twinned.toml` states
+no `[households]`, so nobody drives. ***A term naming a derived thing cannot be borrowed for an authored
+one, because the derivation may depend on something the author did not write.*** `CONTEXT.md` gains a
+**Lattice** entry; the loose prose in this document and in `adr/0134` is filed in
+[`0012`](0012-corpus-audit.md). ⚠ **It was caught by opening `CONTEXT.md` before writing the key and
+would not have been caught after** — the vocabulary rule works by being upstream of the code.
+
+**F3 — a Lattice's Lots do not stop at its extent, because a Segment has two sides.** ⚠ **MEASURED, not
+reasoned.** Restricting subdivision to each Lattice's own block box is necessary — a map-wide walk would
+carve Lots along the corridor and fill the saddle — and a box of exactly *n* blocks **moved every golden
+trace**. The block sitting beyond a Lattice's east edge still has that edge's Node column of vertical
+Segments as its **west face**, and a face is all `SubdivideBlock` needs. `GoldenSessionCoverageTests`
+named it exactly: *"carved 118 Lots where 117 were expected"*. The box is **n + 1** blocks.
+***A generator's output does not end where its input does.***
+
+**F4 — the overlap refusal has to be drawn where the LAND contends, not where the roads do.** A Lattice
+paves what its share needs, so a large enough city makes two of them collide, and the generator refuses
+rather than laying one over the other. Drawn at the Nodes, the refusal left a band in which the two
+Lattices' **Lots** contended while their roads did not: measured at **344,000** Citizens on
+`twinned.toml` the split came out **20,545 / 20,736** where the construction says 20,641 / 20,640 — the
+first Lattice walked the shared blocks and took what the second needed. ***A world going quietly
+lopsided is worse than one that throws***, so the test widened by one block, which is F3's block.
+
+**F5 — `twinned.toml` has a measured population ceiling and it is loud.** **341,000 Citizens lays;
+342,000 throws.** Above it the answer is to move the origins apart — the map is 16,384 Tiles a side and
+this file uses 2,048 of it. ⚠ **Stated in the file's header** rather than left for somebody to discover
+at 400,000.
+
+**F6 — Arterials are laid per Lattice, so the combination is refused at load.** A file saying
+*`arterial_count = 4`* with two Lattices would mean *four in each*, and which of the two readings the
+designer meant is not recoverable from the file. Refused rather than divided or doubled. ⚠ **A second
+combination is refused at generation for the same shape of reason**: a Ruleset declaring a gate kind
+paves the lattice to the map's **boundary**, which leaves no ground for a second Lattice and no gap
+between them. ***A world with two centres AND a door needs the extent to stop being all-or-nothing***,
+and nothing needs it yet.
+
+### Task 2, 2026-08-22 — **F7** to **F10**
+
+**F7 — the field already existed, and the task was a name and a measurement rather than storage.**
+`adr/0134` specifies *a watershed over a Building-density field on the Cell grid* and names
+`LayerCellTable`, `LayerDiffusion` and `SeparableKernel` as the machinery that exists. **None of those
+is where the field was.** `BuildingResidency` — milestone 5b-bis, built for `adr/0081`'s job search
+because a fair draw over a box needs a count per Cell rather than a walk per Cell — holds
+`int[CellGrid.WorldCellCount]` of exactly this, maintained at the write site and rebuilt with the
+index. ***A value per Cell is a field whatever the consumer that first wanted it was called.*** Task 2
+adds `BuildingResidency.Density`, so the watershed reads a field rather than a 1×1 box query — the same
+array read, and only one of them says what it is. ⚠ **The ADR pointed at the wrong three files and was
+right about the mechanism**, which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+working exactly as written: *a description of the build is where to look, and never what you found.*
+
+**F8 — the field is not smoothed, and the measurement is what decided it.** A kernel would introduce a
+**radius**, which is a fifth hash-bearing number where `adr/0134` enumerates four and owes `plans/0002`
+§D rows for those. ⚠ **MEASURED before deciding** ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)):
+the generator lays Lots uniformly, so a Cell inside a lattice holds **exactly 10** Buildings, its west
+edge 7 and its east edge 5. ***The field is not noisy, it is flat*** — and smoothing is what you reach
+for against noise. The maxima form **one plateau component per lattice** with nothing spurious to
+filter. **Revisit trigger is named and it is a test**:
+`BuildingDensityFieldTests.The_field_is_flat_inside_the_built_area` goes red the day the generator stops
+laying Lots uniformly, which is milestone **15**'s agglomeration and is the day the argument above
+stops holding.
+
+**F9 — `twinned.toml` has a LOWER size bound as well as an upper one: 2,000 Citizens.** ⚠ **MEASURED.**
+At 1,000 each lattice holds ~61 Buildings over ~11 Cells, does not fill its own ground, and its ragged
+edge carries maxima of its own — **four** plateaus rather than two. From 2,000 up it is exactly two at
+every size measured to 64,000. ⚠ **The watershed would still find two at 1,000**, because prominence
+discards a plateau whose saddle to a higher one is barely below it — ***the field counts candidate
+centres and the watershed counts accepted ones***, and the distance between those two numbers is what
+the prominence threshold is for. **Both halves are committed as tests** and the floor is in the file's
+header, because a reading taken at 1,000 would look like a defect in task 1.
+
+**F10 — density counts every Building, including an Outside Connection, and nobody has decided whether
+it should.** Whether a gate is a *concentration of activity* is a question no document asks. ⚠ **It is
+inert rather than open**: no shipped Ruleset has both a gate kind and a second lattice, and the
+generator **refuses** that combination (**F6**), so there is no world in which the answer is
+observable. ***Filed here and not in [`0002`](0002-open-questions.md), because nothing is blocked on
+it*** ([`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) — the world
+that would pose the question is **unbuilt**). It becomes a question on the day a Ruleset wants both.
+
+### Task 3, 2026-08-22 — **F11** to **F17**
+
+**F11 — there is no `DistrictId`, and the plan naming one was the plan naming a shape the project does
+not have.** This task's line asks for *"`DistrictTable`, `DistrictId`, and the first derivation"*. What
+shipped is `DistrictTable` and `Handle<District>`. ⚠ **The project has exactly one identity for a table
+row** — a handle over a monotonic never-reused id, which is what `Rows.SavedHandle` folds into the State
+Hash — and a second spelling of *which District* would be a second thing to keep in step across a save,
+a reload and a task-4 re-evaluation, for no capability. ***A name in a plan is a request for a
+capability, not for a type***, and the capability was already there.
+
+**F12 — a persistence watershed needs TWO descents and one cannot be made to do.** The first asks which
+maxima are real: when two basins meet at level *h*, the lower peak dies and its **prominence** is its own
+height minus *h*. The second repeats the descent and refuses exactly one merge — the one joining two sets
+that each already hold a surviving peak — and that refusal *is* the boundary. ⚠ **The second flood cannot
+be folded into the first**, because whether a merge should be refused depends on a prominence that is not
+known until the whole descent has run. The cost is one extra pass over the built Cells, which is nothing;
+the alternative was a boundary drawn from a prominence computed so far.
+
+🔴 **F13 — *unlabelled* is not an equivalence class, and comparing two road-component labels for equality
+made the clip silently bridge the thing it exists to separate.** `RoadConnectivity.Unlabelled` is `-1` and
+means **unknown**: a Cell answers it when nothing in it stands on a Street the connectivity pass reached.
+The first version merged two Cells when `component[a] == component[b]`, so every unlabelled Cell in the
+world was mutually connected to every other one — ***unknown behaving as the largest component there
+is***. A hand-built fixture with two islands in it came out as **one** District with every assertion about
+the density field passing. The rule that shipped is `Reaches(a, b) => a != Unlabelled && a == b`, so an
+unlabelled Cell becomes a District of its own. ⚠ **That answer is strange and somebody will notice it,
+which is the point** — the alternative was a merge nobody would. **The general form is worth keeping**:
+*a sentinel that compares equal to itself is a sentinel that has quietly become a value.*
+
+**F14 — a Cell must report its own road component, not its lowest-slot Building's.** `Frontage.Locate`
+gives no Segment to a Lot sitting exactly on an intersection, because `CONTEXT.md` → Address is emphatic
+that an Address is **never a Node**. The first version read the component off the first Building in the
+Cell's list, and in the fixture above that Building was the one on the corner in **all eight** Cells — so
+every Cell reported *unknown* while every Cell was squarely on a Street. It now walks the Cell's Buildings
+until one has an Address. ⚠ **This is `adr/0093` from the writing end**: the defect was not in what the
+component means, it was in **which symbol was asked**.
+
+🔴 **F15 — the derivation belongs to `SyntheticCity.PopulateInto`, and hanging it off `CommandKind.Populate`
+attached it to one CALLER of the thing that builds the city.** The first version called
+`World.EvaluateDistricts()` from `Simulation` immediately after the command applied. It was defensible —
+a District is world state and state changes belong in the log — and it was wrong: **most of the suite
+populates a world by calling `PopulateInto` directly**, so most of the suite got a city whose Ruleset
+said *two Districts* and whose tables were empty. ***The rule is that a derivation hangs off the
+mechanism, never off one of its callers***, and the test for it is to ask what the second caller gets.
+
+**F16 — a table whose writer is gated on a Ruleset key is, to a fixture, a table with no production
+writer.** `FactorioTests.Every_saved_column_reaches_the_file_and_no_other_one_does` names **eleven**
+unreachable saved columns and needed a **fifth** world to reach them. ⚠ **This is the fourth time that
+test has needed a new fixture for the same reason** — its own remarks already say *a table with no
+production writer needs a fixture named for it or its columns are carried by the format and checked by
+nothing* — and the new half is that *gated on a key one shipped file states* counts as **no** writer.
+🔴 **It found F15 as well**, which a format test has no business finding: the eleven columns were
+unreachable because the derivation never ran, not because the writer was wrong. ***A coverage assertion
+caught a wiring defect, and it caught it because it pins its residue by name rather than tolerating a
+count.***
+
+⚠ **F17 — the threshold is unratifiable on every world that exists, and the SUITE says so rather than
+only [`0002`](0002-open-questions.md).** `Two_lattices_are_two_districts_at_any_threshold` is a `[Theory]`
+at **1, 50 and 100** and gets **two** every time; `One_lattice_is_one_district_at_any_threshold` is the
+same shape and gets **one**. The reason is measured and is `twinned.toml`'s header: the density field is
+**flat**, so the two concentrations never touch at a saddle and the threshold is never consulted. ***A
+test that cannot tell 1 from 100 has not ratified 50***, and writing it as a theory is what makes that
+visible where somebody is looking. §D1 carries the row and names **milestone 15**.
+
+**F18 — the watershed's cost is below the instrument's noise floor, and the suite-duration finding
+beside it belongs to somebody else.** ⚠ **MEASURED.** World creation, three runs each, Release:
+`minimal.toml` (no `[districts]`, so `Evaluate` returns before it collects anything) **2.13–2.23 s**;
+`twinned.toml` (two Districts derived over a full 262,144-Cell scan) **2.14–3.06 s**. ***The two bands
+overlap, so what this says is that the derivation is too cheap for this instrument to see and NOT that
+it is free.*** No `plans/0013` row is owed either way: [`0013`](0013-tick-budget.md) prices a **Tick**,
+and this runs once at world creation. 🔴 **What the gate DID find is not this milestone's**: the
+assertion tier ran **3 m 02 s over 1,974 tests** against `CLAUDE.md`'s recorded **42 s over 1,690**.
+**It was checked against task 3 rather than blamed on it** — the reading is unchanged either side of
+**F15**, which moved the derivation from a call site most fixtures miss to one they all take — and then
+**routed to [`0012`](0012-corpus-audit.md) on the day**, which is
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md).
+⚠ **It is filed and not fixed, because the replacement is a capture**: today's readings were taken with
+edits happening alongside them, so they are **upper bounds**, and ***an upper bound is exactly what must
+not be pasted into a table a reader will treat as the working loop's cost.***
+
+### Task 4, 2026-08-22 — **F19** to **F23**
+
+✅ **F19 — hysteresis needed no new quantity, because the flood already computes one.** The band wants
+*how decisively the field favours the new District*, and the obvious implementations all invent
+something: a dwell counter, a distance to each centre, a re-run of the flood per District. **None was
+needed.** Reachability along Cells of at least a given density is symmetric, so ***once two basins have
+met at level h, everything either of them gains below h is reached by both at exactly the same level***
+— which makes *contested* mean precisely *acquired at or below the touch level*, and makes the margin
+`winLevel − min(winLevel, touchLevel)`. It costs **one scalar per basin** and **one array**, and the
+behaviour falls out rather than being tuned in: a Cell deep in a basin has a large margin and follows
+the field, a Cell on the boundary has a margin of zero and never moves. ⚠ **`adr/0134`'s *never on a
+tie* is therefore exact rather than a figure of speech**, and the ties are the majority of a boundary
+rather than a rare coincidence.
+
+🔴 **F20 — this plan's own task 4 entry called the Cell bound a WORK bound, and `adr/0134` and
+[`0002`](0002-open-questions.md) §D2 both say it bounds how far the boundary MOVES.** Those are
+different numbers and would have been different code — a work bound makes the flood incremental and its
+answer depends on where it stopped; a change bound runs the whole flood and applies at most *N* of its
+conclusions. ***One is a profiler's number and the other is a designer's***, which is exactly the
+distinction the entry's **next clause** was drawing: *"must not size a District from a profiler."* **The
+entry contained its own refutation one clause later.** ⚠ **What made it visible was reading the ADR
+before the plan** — a task entry is a pointer to a specification and not one, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+reaching a document rather than a symbol. Struck in place above and filed in
+[`0012`](0012-corpus-audit.md).
+
+✅ **F21 — reconciliation is one path and the first evaluation is its degenerate case, and the
+regression suite is the evidence.** A world with no Districts reconciles against nothing: every Cell is
+joining its first District, so nothing is migrating, so neither the band nor the bound has anything to
+hold. ***A separate first-run path would have been a second implementation of the same reconciliation,
+differing only in what it had not been told about*** — and the day it drifted, nothing would have said
+so. **All twenty-two of task 3's tests passed against the new path with no edit**, which is what that
+claim looks like when it is true.
+
+**F22 — a snapshot taken before a mutation must be iterated at its own length, not the table's.**
+`dying[]` is sized from `SlotCount` before any District is created, because `Create` may recycle a slot
+a previous evaluation freed — and the destruction loop then walked the table's *current* `SlotCount`,
+which had grown. It threw on the first fixture that opened a District. ⚠ **The bug is not the array
+length; it is that the loop's bound and the array's came from the same expression evaluated at two
+different times.** The fix names `standing` in both places.
+
+**F23 — new ground must not spend the migration bound, and the fixture proves it by setting the bound
+to one.** A Cell joining its *first* District is growth, not migration; counting it would freeze a
+growing city's boundaries against a budget its own construction was spending, which is the opposite of
+what damping is for. **A Cell whose District is being destroyed moves for free too**, because the
+alternative is membership of a row that will not exist — and that one is a correctness requirement
+rather than a preference. ⚠ **THE GOLDEN HASHES DID NOT MOVE**, unlike task 3's: the cadence adds a
+branch to phase 6 that reads a Ruleset key **no golden session states**. ***A mechanism gated on a key
+is a mechanism no baseline covers***, which is the same sentence `FactorioTests` needed a fifth world
+for at task 3 (**F16**), arriving here as a reason nothing broke.
+
+🔴 **F24 — destroying a District opened a hole the State Hash structurally cannot see, so it needed an
+invariant rather than a test.** A handle column folds the target row's **monotonic id**, and
+`Rows.TryIdAt` returns *false* for a handle whose target has been freed — which folds as **zero**. So a
+membership row left naming a destroyed District is a dangling reference that **replay equivalence,
+thread-count equivalence and save/reload equivalence all agree about**: ***two runs reproduce the same
+wrong answer***, which is `adr/0004`'s divergence-not-a-crash arriving from the direction where nothing
+even diverges. `Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround` is registered end-of-run, and
+what it really asserts is an **order** — membership released before the row it names — which is the kind
+of thing that is right when written and wrong three mechanisms later. ⚠ **Its second half is not
+redundant with the first**: a Cell that stopped holding Buildings and kept its row names a live District
+perfectly well, and puts **empty ground inside a Pool**, which is the abstraction `adr/0013` is a lie
+without rather than a simplification. **Three tests write both violations and watch them fire**, and a
+third runs the reconciliation and watches one clear.

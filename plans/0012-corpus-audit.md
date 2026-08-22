@@ -1437,6 +1437,55 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ A doc-comment cited `WaitListWakeTests`, a class that does not exist, and every mechanical check in
+the corpus is blind to it.** Found and fixed **2026-08-22**, settling
+[`0003`](0003-build-plan.md) hash-moving queue item 14.
+`WorldInvariants.HeadThatShouldHaveWoken`'s remarks claimed the predicate was *"shared with
+`WaitListWakeTests` rather than restated there, which walked its own copy of this predicate and would have
+drifted from it"* — a paragraph whose whole subject is drift, naming a test file that was never written.
+
+🔴 **The reason it is worth a row: `tests/Borough.Tests/Corpus/` is document-to-document by construction.**
+Citations resolve, links open, tables render, registry figures carry their clause — and **not one of them
+reads a `<see cref=>` or a `<c>` in a doc-comment against the symbols that exist**. The compiler would
+have caught `<see cref="WaitListWakeTests"/>`; this was `<c>WaitListWakeTests</c>`, which is prose in
+angle brackets. ***A citation the compiler cannot see and the corpus checks do not read is a citation
+nothing checks at all***, and this file's own header says the mechanical checks are all
+document-to-document — so the surface was known and the sighting is the first one in it.
+
+⚠ **It is Cause 4's surface rather than Cause 5's**: nothing was quoted away from its caveat; a
+*description of the build* named a symbol that is not there, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+writing half — **name a symbol, never a time** — failing on the *symbol* half. **Not filed as a new
+check**, because a `<c>`-tag audit would have to distinguish a symbol from ordinary code voice and would
+be mostly false positives; what it argues for is preferring `<see cref=>`, which the compiler already
+checks.
+
+**⚠ Two documents say *two separated settlements* where they mean two Lattices, and under `CONTEXT.md`'s
+own definition the world they describe is ONE Settlement.** Found and fixed **2026-08-22**, building
+[`0037`](0037-goods-between-buildings-the-district-pool.md) task 1.
+[`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)'s
+Consequences and `0037` task 1 both ask for *"a Ruleset authoring two separated settlements"*.
+`CONTEXT.md` → Settlement is a **derived** commute shed: *"connectivity is transitive, so a
+contiguously-developed lattice is one Settlement however large the graph — what fragments it is unbuilt
+ground with no road across it … or a gap wider than the Commute Budget."* The world task 1 actually
+needs is **joined by road**, because `adr/0134` rejected splitting on road components — so under the
+term's own definition it is one Settlement wherever anybody drives across the gap.
+
+🔴 **The sharpest half: whether it is one Settlement or two is decided by a key in a DIFFERENT table.**
+Over `rulesets/twinned.toml`'s corridor, 7,680 m is ~9 clock minutes by car and ~92 on foot against a
+50-minute ceiling, and that file states no `[households]`, so nobody drives. ***A term that names a
+derived thing cannot be borrowed for an authored one, because the derivation may depend on something the
+author did not write.*** The key shipped as **`[[lattice]]`** for that reason, and `CONTEXT.md` gains a
+**Lattice** entry saying what the three neighbouring terms — Settlement, District, centre — each are and
+that all three are derived.
+
+⚠ **This is a near miss rather than a caught defect, and the difference is worth stating.** The wrong
+name was in a tool call before `CONTEXT.md` was opened; what caught it was the rule that a concept
+needing a name gets a `CONTEXT.md` entry **first**. ***The vocabulary check works by being upstream of
+the code, and it only works if it runs before the key is written and not after.*** **The two documents'
+prose is loose rather than wrong and is left as it stands** — they were describing an outcome, not
+choosing a term — with `CONTEXT.md` → Lattice carrying the correction and pointing at both.
+
 **⚠ `06` placed a mechanism at milestone 12 that milestone 12's own scoping document never scoped, and
 neither document contradicted itself.** Found and fixed **2026-08-22**, settling
 [`0037`](0037-goods-between-buildings-the-district-pool.md) decision 6 —
@@ -1653,6 +1702,78 @@ Unambiguous factual errors, no judgement required.
 ---
 
 ## Filed — needs judgement, or a task that has not run
+
+### ~~`plans/0037` task 4 called the migration bound a *work bound*~~ — **PAID in the sitting that found it**
+
+**NEW 2026-08-22, found by reading `adr/0134` before the plan while implementing milestone 12 task 4, and
+corrected the same hour.** It is *Cause 4* — a decision taken from a description rather than from the
+thing described — with the unusual feature that **the description and the thing described were both in
+this corpus and forty lines apart**.
+
+The task entry read *"⚠ **The Cell bound is the fourth §D number** and it is a work bound, so it is the
+one most likely to be mistaken for a profiler's choice."* Both
+[`adr/0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)
+and [`0002`](0002-open-questions.md) §D2 say the opposite, in the same words: *"a boundary migrates by at
+most a bounded number of Cells per evaluation, so it never jumps"*, and §D2 glosses it *"how far a
+boundary may move per update."*
+
+🔴 **A work bound and a change bound are different numbers and would have been different code.** A work
+bound makes the flood incremental — it looks at *N* Cells and resumes next time — and the answer it
+produces depends on where it stopped. A change bound runs the whole flood and applies at most *N* of its
+conclusions. ***One of them is a profiler's number and the other is a designer's***, which is the
+distinction the entry's very next clause was drawing: *"must not size a District from a profiler."*
+**The entry contained its own refutation one clause later** and neither half had been read against the
+other.
+
+⚠ **What made it visible was reading the ADR first rather than the plan.** The plan is the working
+document and the ADR is the record;
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+rule is that a description tells you **where to look** — and a plan describing an ADR is a description
+in exactly that sense, however operational it reads. ***A task entry is not a specification; it is a
+pointer to one.***
+
+- [x] `plans/0037` task 4 corrected, with the wrong words struck rather than deleted so the correction is
+      legible.
+- [x] The key ships as `[districts] migrate_cells` and its doc comment states the distinction in the
+      terms above, so the next reader meets it at the symbol rather than in a plan.
+
+
+### `CLAUDE.md`'s assertion tier is **42s at 1,690 tests** and two readings today say **3m02s at 1,974**
+
+**NEW 2026-08-22, found while gating milestone 12 task 3, and filed rather than fixed because a
+replacement figure is a *capture* and this sitting was not set up to take one.**
+
+The table under *Running the tests* states the default lane at **42s, 1,690 tests**, and it names
+*nothing else running in this repository* as its first control. Two runs today, back to back, each on
+the whole assertion tier, reported **3 m 02 s / 3 m 03 s over 1,974 tests**. ⚠ **The test count grew
+17% and the duration grew about fourfold**, so growth alone does not account for it.
+
+🔴 **What this entry is NOT is a claim that task 3 caused it.** That was checked rather than assumed
+(`adr/0093`): the first of the two readings was taken while the watershed ran from
+`CommandKind.Populate`, so most of the suite never called it at all, and the second was taken after it
+moved to `SyntheticCity.PopulateInto`, where every fixture does — **the two readings are within a
+second of each other**. World creation was then timed directly at **2.13–2.23 s** on `minimal.toml`
+(no `[districts]`, so the derivation returns immediately) and **2.14–3.06 s** on `twinned.toml` (two
+Districts derived), three runs each: ***the watershed's cost is below this instrument's noise floor.***
+
+⚠ **What is owed is a reading, not an edit.** ***A test-cost capture is a parallelism measurement, so
+it takes a parallelism measurement's controls*** — the rule this document already carries from the
+2026-08-14 threading capture and the 1m52s/50s pair before it. Today's two readings were taken with
+file edits happening alongside them, which makes them **upper bounds** and nothing better, and an
+upper bound is exactly what must not be pasted into a table that a reader will treat as the working
+loop's cost. **The number to replace it with comes from a deliberate act on the reference machine
+with the room quiet** ([`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md),
+[`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)).
+
+⚠ **It matters beyond tidiness because the figure is load-bearing.** `adr/0121` bands the working loop
+at *past five minutes a test stifles iteration and ten is the ceiling*, and 42s reads as a lane with
+four times the headroom it may actually have. ***A stale duration does not merely misinform; it hides
+how close a gate is to the band that would reopen the ADR.***
+
+- [ ] Re-capture the assertion tier on the reference machine, quiet, Release, and correct
+      `CLAUDE.md`'s table. If it lands past five minutes, `adr/0121`'s band is the next question and
+      not a footnote.
+
 
 ### ~~`docs/02-simulation-model.md`~~ — **PAID**
 

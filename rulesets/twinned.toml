@@ -1,0 +1,270 @@
+# The twinned Ruleset. It is `minimal.toml` with TWO LATTICES in it, and it is the first shipped file
+# in which the city has more than one CENTRE.
+#
+# Milestone 12 task 1 of plans/0037-goods-between-buildings-the-district-pool.md. Its whole job is to
+# be a world the District derivation can be tested on. adr/0134 makes a District a CENTRE AND ITS
+# BASIN -- a watershed over a Building-density field, clipped to a road component, seeded where a
+# concentration's prominence clears a threshold -- so THE COUNT FOLLOWS CENTRES. Every world this
+# build could generate before this file has exactly one, which makes the derivation not merely
+# undemonstrated but UNTESTABLE: a watershed over a field with one peak in it returns one basin
+# however it is written. That is milestone 9's land value failure arriving BEFORE the milestone
+# instead of during it (plans/0034 F17), which is why this is task 1 and not task 9.
+#
+# WHAT IT ADDS TO minimal.toml, AND IT IS ONE THING. Two `[[lattice]]` tables. Everything else below
+# is minimal.toml unchanged, and its reasoning lives there rather than being copied here -- a copied
+# comment is a second copy that drifts, which is plans/0012 Cause 1 by construction.
+#
+# WHAT A `[[lattice]]` AUTHORS IS AN ORIGIN AND NOTHING ELSE. The extent and the population share are
+# DERIVED: each lattice paves what its equal share of the world's Lots needs, which is the expression
+# that already sized the single lattice (SyntheticCity.PavedTiles). Authoring either would put two
+# more unratified hash-bearing numbers per table into a file whose entire content is a gap (adr/0052),
+# and neither is what the gap is made of. THE TWO ORIGINS ARE THE GAP.
+#
+# 🔴 THE TWO LATTICES ARE JOINED BY A ROAD, AND THAT IS THE POINT RATHER THAN A CONVENIENCE. The
+# generator lays a corridor of Street Segments between them. adr/0134 CONSIDERED AND REJECTED
+# splitting only where the road graph disconnects -- it is adr/0013's "pool everything, city-wide"
+# reached through a derivation, and RoadConnectivity labels a connected city one component for ever.
+# A demonstration world in two road components would let component labelling PASS FOR A WATERSHED,
+# which is the rejected mechanism wearing the chosen one's name. JOINED, THE ONLY THING THAT CAN FIND
+# THE BOUNDARY IS THE DENSITY FIELD, and that is the thing under test.
+#
+# WHY THE LINK IS STREET AND NOT ARTERIAL. An Arterial ramp carries cars and not feet (RoadGenerator
+# says why), so an Arterial link would make this world ONE component for driving and TWO for walking
+# -- and which of those the watershed's clip reads would become a fork landing on whoever writes it.
+# One component in every mode is one fewer question. MEASURED at 1,000 Citizens: car subgraph 1
+# component, foot subgraph 1 component, 109 of 109 nodes in each.
+#
+# ⚠ IT IS `[[lattice]]` AND NOT `[[settlement]]`, AND THE DIFFERENCE IS NOT COSMETIC. CONTEXT.md ->
+# Settlement is a DERIVED commute shed: "connectivity is transitive, so a contiguously-developed
+# lattice is one Settlement however large the graph -- what fragments it is unbuilt ground with no
+# road across it ... or a gap wider than the Commute Budget." ⚠ WHETHER THESE TWO LATTICES ARE ONE
+# SETTLEMENT OR TWO IS DECIDED BY A KEY IN A DIFFERENT TABLE. Over the corridor's 1,920 Tiles at the
+# `[roads]` speeds below: 7,680 m at 50 km/h is ~9 clock minutes and at 5 km/h is ~92, against a
+# ceiling of 50. This file states no `[households]`, so NOBODY DRIVES and they are two Settlements;
+# add `car_ownership_percent = 100` and they are one. ***A key that authored a Settlement would be
+# authoring an answer that depends on another table.*** The same hazard one level down is adr/0134's
+# CENTRE -- a prominence peak the watershed FINDS, which a key must not name.
+# ⚠ THOSE TWO FIGURES ARE ARITHMETIC FROM THE AUTHORED SPEEDS AND NOT A MEASURED TRIP. Nothing in
+# this world has been routed; adr/0106's rule about quoting a machine with a duration is the same
+# rule arriving at a distance. Read them as the ORDER OF MAGNITUDE that makes the point, and measure
+# before quoting either as what a journey costs.
+#
+# WHAT THE WORLD LOOKS LIKE. MEASURED at 1,000 Citizens, seed 1:
+#
+#     each lattice      5 x 5 Nodes, 40 Street Segments, paved 128 Tiles (512 m) from its origin
+#     the corridor      59 Nodes, 60 Street Segments, 1,920 Tiles (7,680 m)
+#     Buildings         61 in the western lattice, 60 in the eastern
+#     the gap           the western lattice's built ground reaches Tile 156; the eastern starts at
+#                       2,048 -- so the gap is TWELVE TIMES the width of either concentration
+#
+# ⚠ IT HAS A LOWER SIZE BOUND TOO, AND IT IS SMALL BUT REAL: RUN IT AT 2,000 CITIZENS OR MORE.
+# MEASURED, milestone 12 task 2. At 1,000 Citizens each lattice holds ~61 Buildings over ~11 Cells and
+# does not fill its own ground, so its edge is ragged and the ragged edge carries density maxima of its
+# own -- FOUR plateaus rather than two. From 2,000 up it is exactly two at every size measured. The
+# watershed would still find two at 1,000, because prominence is what discards a plateau whose saddle to
+# a higher one is barely below it -- but the FIELD does not say two, so a reading taken at 1,000 is not
+# the reading this file exists to give. `BuildingDensityFieldTests` holds both halves.
+#
+# WHAT THE FIELD LOOKS LIKE, AND IT IS THE MEASUREMENT THAT MATTERS MOST HERE. MEASURED at 16,000
+# Citizens: a Cell inside either lattice holds EXACTLY TEN Buildings, its west edge 7 and its east edge
+# 5, and every Cell between the two lattices holds ZERO. ⚠ THE FIELD IS FLAT AND NOT A HILL. There is no
+# gradient inside a lattice at all, so a concentration here is a plateau with a cliff at its edge --
+# which means ALL of this world's boundary information is in the gap, and none of it is in either
+# concentration's shape. adr/0134's prominence has a saddle of zero to work with, which is the strongest
+# case it will ever be handed. ⚠ DO NOT READ THIS WORLD AS ONE THAT EXERCISES PROMINENCE FILTERING.
+#
+# ⚠ THE GAP IS DELIBERATELY NOT MARGINAL, AND THAT IS THIS FILE'S ONE DESIGN CLAIM. The prominence
+# threshold is not chosen until task 3, so this world must be one that ANY SANE THRESHOLD SPLITS
+# rather than one that calibrates it -- and the shares are equal for the same reason: two
+# concentrations of the same height both clear any threshold a sane person would pick. ***A
+# demonstration world that decides the number it is meant to demonstrate is worthless twice over.***
+#
+# ⚠ IT HAS A POPULATION CEILING AND THE CEILING IS LOUD. A lattice paves what its share needs, so a
+# large enough city makes the two of them collide -- and the generator REFUSES rather than laying one
+# over the other. MEASURED: 341,000 Citizens lays, 342,000 throws. The refusal is drawn where the
+# LOTS contend rather than where the Nodes do, one block wider than the paving, because at 344,000 it
+# was silently splitting 20,545 / 20,736 where the construction says 20,641 / 20,640. Above the
+# ceiling, MOVE THE ORIGINS APART -- the map is 16,384 Tiles a side and this file uses 2,048 of it.
+#
+# WHAT THIS FILE IS NOT, AND IT IS THE READING TO GUARD AGAINST. ⚠ IT PRODUCES NO GOODS MOVEMENT:
+# `Scope.Pool` still throws, and the market is tasks 5 through 8. As of task 3 it DOES produce two
+# Districts -- rows in DistrictTable, a centre apiece, and one DistrictCell row per built Cell -- and
+# nothing in the build reads them. ⚠ THAT IS THE STATE THE DERIVATION IS MEANT TO BE TESTED IN. A
+# watershed whose first consumer arrives in the same task is a watershed nobody checked separately,
+# which is milestone 9's land-value producer -- built, correct and unobservable -- from the other end.
+#
+# ⚠ `[districts] prominence_percent = 50` BELOW IS UNRATIFIED AND THIS FILE CANNOT RATIFY IT. The
+# field measured above is FLAT, so the two concentrations never touch at any positive density and
+# neither one's peak ever dies at a saddle -- which means the threshold is never consulted on this
+# world and EVERY VALUE FROM 1 TO 100 GIVES TWO DISTRICTS HERE. 50 is the midpoint of the range the
+# loader admits and nothing more. plans/0002 §D1 carries the row and names milestone 15 -- the first
+# world with a density GRADIENT in it -- as what would ratify or refute it. ***A number this file
+# demonstrates is not a number this file settles.***
+#
+# ⚠ ARTERIALS ARE REFUSED IN A FILE WITH TWO LATTICES, AND `arterial_count = 0` BELOW IS NOT A
+# COINCIDENCE. An Arterial is laid PER LATTICE, so a file saying "four Arterials cross the map" would
+# mean "four in each" -- which of the two readings a designer meant is not recoverable from the file,
+# so the loader refuses the combination rather than dividing or doubling. adr/0090 has Arterials as a
+# player tool a generator should not build anyway.
+#
+# WHY IT IS NOT `bordered.toml` WITH LATTICES ADDED. A world with a door paves the lattice to the
+# map's BOUNDARY, because that is where a door has to be -- which leaves nowhere for a second lattice
+# and no gap between them. The generator refuses that combination too. A world with two centres AND a
+# door needs the extent to stop being all-or-nothing, and nothing needs it yet.
+
+[[resource]]
+name = "sundries"
+family = "good"
+
+[[resource]]
+name = "repairs"
+family = "good"
+
+[[resource]]
+name = "money"
+family = "money"
+
+[[building]]
+name = "dwelling"
+bins = [
+    { resource = "sundries", capacity = 48 },
+    { resource = "repairs",  capacity = 4 },
+]
+condemn_after = 4
+
+occupants = 3
+
+jobs = 8
+
+parking = 8
+
+shift_start_earliest_hour = 6
+shift_start_latest_hour   = 10
+
+[[rule]]
+name    = "restock"
+kind    = "dwelling"
+rate    = 8
+apply   = { min = 1, max = 4 }
+inputs  = []
+outputs = [ { scope = "local", resource = "sundries", amount = 4 } ]
+
+[[rule]]
+name    = "consume"
+kind    = "dwelling"
+rate    = 32
+apply   = { derived = "occupancy" }
+inputs  = [ { scope = "local", resource = "sundries", amount = 4 } ]
+outputs = []
+
+[[rule]]
+name    = "upkeep"
+kind    = "dwelling"
+rate    = 16
+apply   = { min = 1, max = 1 }
+inputs  = [ { scope = "local", resource = "repairs", amount = 4 } ]
+outputs = []
+
+[[zone_rule]]
+name          = "housing"
+kind          = "dwelling"
+zone          = 0
+interval      = 32
+revisit_ticks = 2048
+
+[placement]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+noise_range_metres            = 300
+noise_intensity_percent       = 400
+desirability_pollution_percent = 100
+desirability_noise_percent     = 100
+[layers]
+pollution_period      = 64
+pollution_offset      = 0
+land_value_period     = 256
+land_value_offset     = 16
+kernel_metres         = 1024
+pollution_decay_ticks = 2048
+land_value_tau        = 8
+sealing_decay_tau     = 0
+
+[roads]
+block_tiles                    = 32
+arterial_count                 = 0
+arterial_junction_tiles        = 512
+foot_crossing_every            = 4
+foot_paths_per_thousand_blocks = 40
+street_speed_kph               = 50
+arterial_speed_kph             = 90
+walk_speed_kph                 = 5
+street_capacity_per_hour       = 3600
+arterial_capacity_per_hour     = 12000
+foot_path_capacity_per_hour    = 1000
+
+[lots]
+lots_per_segment = 5
+
+[parking]
+radius_metres = 400
+
+shed_keeps = 24
+
+[trips]
+crossing_seconds = 30
+commute_fast_minutes = 20
+commute_moderate_minutes = 40
+
+commute_budget_minutes = 50
+
+[jobs]
+interval      = 32
+revisit_ticks = 1024
+candidates    = 3
+
+shift_hours_min = 6
+shift_hours_max = 10
+
+arrive_early_max_minutes = 15
+
+[[lattice]]
+origin_east_tiles  = 0
+origin_north_tiles = 0
+
+[[lattice]]
+origin_east_tiles  = 2048
+origin_north_tiles = 0
+
+# adr/0134's four keys, and NOT ONE OF THEM IS CONSULTED ON THIS WORLD. See the header: the field is
+# flat, so no peak ever dies at a saddle and no boundary is ever contested. Every value the loader
+# admits gives the same two Districts here. plans/0002 §D1 carries all three unratified rows and names
+# milestone 15 -- the first world with a density GRADIENT in it -- as what would ratify or refute them.
+[districts]
+
+# How far a concentration must stand above the saddle joining it to a taller one, as a percentage OF
+# ITS OWN HEIGHT, before it is a centre of its own. Relative and not a Building count, because an
+# absolute threshold would be tied without saying so to `[lots] lots_per_segment`. A midpoint of the
+# range the loader admits and nothing more.
+prominence_percent = 50
+
+# How often the extent is re-derived. ⚠ NOT A MAP LAYER CADENCE and must not be moved to `[layers]` by
+# resemblance -- adr/0044 owns that one, it is read in a different phase and it is about a different
+# field. 2,048 Ticks is ONE DAY, and it is chosen for the reason a Day is chosen anywhere here: it is
+# the shortest period over which a city's shape could plausibly have changed, and a boundary that
+# redrew faster than a person could notice would be a boundary nobody could be told about.
+revisit_ticks = 2048
+
+# How decisively the field must favour a new District before a Cell changes, as a percentage of the
+# level its own basin reaches it at. adr/0134: "a Cell changes District only when the field difference
+# clears a band, NEVER ON A TIE." 50 is the midpoint again.
+hysteresis_percent = 50
+
+# The most Cells that may change District in one re-evaluation. ⚠ IT BOUNDS HOW FAR THE BOUNDARY MOVES
+# AND NOT HOW MUCH WORK THE EVALUATION DOES -- a work bound would be a profiler's number, and sizing a
+# District from a profiler is what plans/0037 forbids by name. ⚠ 16 IS A GUESS WITH A RATIFIER AND NOT
+# A DERIVATION. At the cadence above it means a boundary may redraw at most sixteen Cells of ground a
+# Day -- each Cell being 32x32 Tiles, about 128 m a side -- which is slow enough that a player watching
+# one move could say what moved and why. Nothing measured it; milestone 15 is what would.
+migrate_cells = 16

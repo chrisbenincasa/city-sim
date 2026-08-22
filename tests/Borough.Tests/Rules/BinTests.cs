@@ -264,6 +264,11 @@ public sealed class BinTests
 
         Assert.True(world.RuleInstances.IsWaiting(SlotOf(world, big)));
         Assert.True(world.RuleInstances.IsWaiting(SlotOf(world, small)));
+
+        // plans/0003 hash-moving queue item 14: this exact state fired
+        // WaiterIsBlockedByTheBinItNames until the invariant was narrowed to the head. The probe that
+        // found it is this line, kept.
+        world.Invariants.RunEndOfRun(world);
     }
 
     /// <summary>The budget is spent down, so six covers two waiters needing three each and no more.</summary>
@@ -287,6 +292,42 @@ public sealed class BinTests
         Assert.False(world.RuleInstances.IsWaiting(SlotOf(world, first)));
         Assert.False(world.RuleInstances.IsWaiting(SlotOf(world, second)));
         Assert.True(world.RuleInstances.IsWaiting(SlotOf(world, third)));
+
+        // The other half of queue item 14, and the one no reasoning about the drain reaches: the
+        // third waiter IS the head, and the Bin's whole level still covers it, because the two woken
+        // rows have not run yet. RuleEngine.AccumulateClaims is what makes this line pass.
+        world.Invariants.RunEndOfRun(world);
+    }
+
+    /// <summary>
+    /// A head the Bin covers, that nothing woke, is still reported — the narrowing kept the check.
+    /// </summary>
+    /// <remarks>
+    /// <b>The diagnostic ships with a test that writes the violation and watches it fire</b>
+    /// (<c>05 §4</c>), and after <c>plans/0003</c> hash-moving queue item 14 narrowed
+    /// <see cref="Invariant.WaiterIsBlockedByTheBinItNames"/> to the head of the list, that obligation
+    /// is owed again: a narrowed check that reports nothing at all would pass every test above it.
+    /// <para>
+    /// <b>It deposits through <c>BinTable.Move</c> rather than <c>World.Deposit</c>, which is the whole
+    /// fixture.</b> A deposit drains, and a drain is what this is asserting did not happen — so the
+    /// only way to write a missed wake is to move the level without telling anybody.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void A_covered_head_that_nothing_woke_is_reported()
+    {
+        (World world, Handle<Building> building) = Built();
+
+        Handle<Bin> flour = world.CreateBin(building, Flour);
+
+        world.Subscribe(Sleeper(world, building, Needing(2)), flour, Blocking.Supply);
+
+        world.Bins.Move(world.Bins.Rows.Resolve(flour), 6);
+
+        Assert.Equal(
+            Invariant.WaiterIsBlockedByTheBinItNames,
+            Assert.Throws<InvariantViolationException>(
+                () => world.Invariants.RunEndOfRun(world)).Violation.Invariant);
     }
 
     /// <summary>

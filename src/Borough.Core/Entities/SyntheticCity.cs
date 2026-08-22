@@ -72,6 +72,9 @@ public static class SyntheticCity
     /// <summary>Lots per row, before the strip wraps northward.</summary>
     private const int LotsPerRow = 64;
 
+    /// <summary>The world every Ruleset described before <c>[[lattice]]</c> existed.</summary>
+    private static readonly LatticeDefinition[] OneAtTheOrigin = [new LatticeDefinition(0, 0)];
+
     /// <summary>
     /// Fills <paramref name="world"/> to the Citizen count it was configured with, laying the land
     /// first.
@@ -104,6 +107,19 @@ public static class SyntheticCity
         RefuseIfPopulated(world);
         LayLand(world, key);
         PeopleInto(world, key, now);
+
+        // The Districts, once the ground has Buildings on it -- there is nothing for a watershed to
+        // find over an empty field. adr/0134, milestone 12 task 3.
+        //
+        // HERE AND NOT AT THE COMMAND THAT CALLS THIS. The first version hung it off
+        // CommandKind.Populate in Simulation, which is one CALLER of this method rather than the
+        // thing that builds the city -- and every fixture that populates a world directly, which is
+        // most of the suite, got a city with no Districts in it while the Ruleset said it should have
+        // two. FactorioTests found it as eleven saved columns no corruption could reach.
+        //
+        // It does NOT run on a load, and must not: RebuildDerived restores the Districts the world
+        // HAD, and milestone 12 task 4 is what makes those two answers differ.
+        world.EvaluateDistricts();
     }
 
     /// <summary>
@@ -196,24 +212,41 @@ public static class SyntheticCity
             buildings = lots - gates;
         }
 
+        // ONE LATTICE AT A TIME, and the box is what makes the second one a CENTRE rather than an
+        // overflow. The Lots are carved lattice by lattice and a block overshoots the share it was
+        // asked for, so a single slot-ordered walk would fill the first lattice's spare Lots before
+        // reaching the second's -- a city with one concentration and a hamlet, which is the world
+        // this one exists not to be. At one lattice the box is the whole map and this is the walk it
+        // always was.
+        LatticeDefinition[] lattices = Lattices(world);
+        int extentTiles = lattices.Length == 1 ? CellGrid.WorldTiles : PavedTiles(world);
         int raised = 0;
 
-        for (int slot = 0; slot < world.Lots.Rows.SlotCount && raised < buildings; slot++)
+        for (int lattice = 0; lattice < lattices.Length; lattice++)
         {
-            // Vacancy rather than `slot < buildings`, because a gate may have taken this one. With
-            // no gates the two are the same walk: the Lot table started empty, so the nth Lot is
-            // slot n and none of them is built on.
-            if (!world.Lots.Rows.IsLive(slot) || !world.Lots.IsVacant(slot))
-            {
-                continue;
-            }
-
-            // Through World's door rather than the table's, so the Building arrives with its kind's
-            // Bins and its chain heads armed. Before this the populator built bare Buildings and the
-            // Ruleset described a shape nothing constructed.
-            world.CreateBuilding(world.Lots.Rows.At(slot), DwellingKind, now, key);
-            raised++;
+            raised += RaiseDwellings(
+                world,
+                now,
+                key,
+                Share(buildings, lattices.Length, lattice),
+                lattices[lattice],
+                extentTiles);
         }
+
+        // A lattice can come up short of its share where its own blocks carved fewer Lots than it was
+        // asked for, and the Household loop below indexes Building slots directly -- so the count it
+        // divides by is what was RAISED and not what was wanted. The refusal is the `lots <= 0` one
+        // arriving a step later: a city with no Buildings houses nobody, and saying so beats a
+        // DivideByZeroException from `i % buildings`.
+        if (raised <= 0)
+        {
+            throw new InvalidOperationException(
+                "no Building was raised, so there is nowhere to put anybody. Every Lot this world "
+                + "holds is outside every [[lattice]] box or already built on -- check that the "
+                + "origins are the ones the Streets were laid from.");
+        }
+
+        buildings = raised;
 
         HouseholdRuleset rules = world.Rules.Households;
 
@@ -273,6 +306,57 @@ public static class SyntheticCity
     }
 
     /// <summary>
+    /// Raises up to <paramref name="wanted"/> dwellings on the vacant Lots inside one lattice's box.
+    /// </summary>
+    /// <remarks>
+    /// <b>A box test rather than a slot range, because <see cref="PeopleInto"/> is reached without
+    /// <c>LayLand</c> having run.</b> A Connect-laid world's Lots were carved by the <c>zone</c> verb
+    /// and this class never saw them, so there are no per-lattice slot boundaries to have recorded.
+    /// Geometry is the one thing both paths have.
+    /// </remarks>
+    private static int RaiseDwellings(
+        World world, Ticks now, WorldKey key, int wanted, LatticeDefinition lattice, int extentTiles)
+    {
+        // One block wider than the lattice, for Subdivide's reason: the block beyond the east edge
+        // has that edge's Segments as its west face, so it carries Lots and they are this lattice's.
+        int reach = extentTiles + world.Rules.Roads.BlockTiles;
+        int fromEast = lattice.OriginEastTiles;
+        int fromNorth = lattice.OriginNorthTiles;
+        int toEast = fromEast + reach;
+        int toNorth = fromNorth + reach;
+
+        int raised = 0;
+
+        for (int slot = 0; slot < world.Lots.Rows.SlotCount && raised < wanted; slot++)
+        {
+            // Vacancy rather than `slot < buildings`, because a gate may have taken this one -- and
+            // now because a lattice laid before this one may have. With no gates and one lattice the
+            // two are the same walk: the Lot table started empty, so the nth Lot is slot n and none
+            // of them is built on.
+            if (!world.Lots.Rows.IsLive(slot) || !world.Lots.IsVacant(slot))
+            {
+                continue;
+            }
+
+            int east = world.Lots.East[slot].Raw;
+            int north = world.Lots.North[slot].Raw;
+
+            if (east < fromEast || east > toEast || north < fromNorth || north > toNorth)
+            {
+                continue;
+            }
+
+            // Through World's door rather than the table's, so the Building arrives with its kind's
+            // Bins and its chain heads armed. Before this the populator built bare Buildings and the
+            // Ruleset described a shape nothing constructed.
+            world.CreateBuilding(world.Lots.Rows.At(slot), DwellingKind, now, key);
+            raised++;
+        }
+
+        return raised;
+    }
+
+    /// <summary>
     /// Lays the road lattice and carves the Lots — <see cref="PopulateInto"/>'s land half.
     /// </summary>
     private static void LayLand(World world, WorldKey key)
@@ -285,13 +369,73 @@ public static class SyntheticCity
         // The extent is derived from what is about to be built, which is why the Building count is a
         // shared expression rather than a local: it used to be the whole map unconditionally.
         // A world with a door paves to the map's boundary, because that is where a door has to be.
-        RoadGenerator.LayInto(
-            world.Roads,
-            key,
-            ReachesTheBoundary(world) ? CellGrid.WorldTiles : PavedTiles(world));
+        LatticeDefinition[] lattices = Lattices(world);
+        bool boundary = ReachesTheBoundary(world);
 
-        Subdivide(world, WantedBuildings(world));
+        // The two are incompatible TODAY and the refusal says which half gives way. A world with a
+        // door paves the whole map, and a whole-map lattice leaves no ground for a second one to
+        // stand on -- so the gap that is a [[lattice]] file's entire content would not exist. It is
+        // thrown here rather than refused at load because neither fact is a property of the file
+        // alone: whether the lattices collide depends on the population the world was allocated for.
+        if (boundary && lattices.Length > 1)
+        {
+            throw new InvalidOperationException(
+                $"this Ruleset declares {lattices.Length} lattices and a Building kind carrying "
+                + "arrivals_per_day. A gate stands on a map edge, so a world with a door paves the "
+                + "lattice to the boundary -- which leaves nowhere for a second lattice and no gap "
+                + "between them, and the gap is what a [[lattice]] file exists to author. A world "
+                + "with two centres AND a door needs the extent to stop being all-or-nothing.");
+        }
+
+        int extentTiles = boundary ? CellGrid.WorldTiles : PavedTiles(world);
+
+        RoadGenerator.LayInto(world.Roads, key, lattices, extentTiles);
+
+        int wanted = WantedBuildings(world);
+
+        // Carved lattice by lattice rather than in one map-wide walk, and the two are the same walk
+        // wherever there is one lattice -- blocks outside it hold no Segments, so SubdivideBlock
+        // makes nothing there and the Lot sequence is identical. What the box buys is the world with
+        // two of them: the ground BETWEEN two lattices carries the corridor joining them, and a
+        // map-wide walk would carve Lots along it. The saddle in the density field would then have
+        // Buildings in it, which is the one thing this world exists not to have.
+        for (int lattice = 0; lattice < lattices.Length; lattice++)
+        {
+            Subdivide(world, lattices[lattice], extentTiles, Share(wanted, lattices.Length, lattice));
+        }
     }
+
+    /// <summary>
+    /// Where this world's Street lattices stand — the <c>[[lattice]]</c> tables, or the origin corner
+    /// where a Ruleset states none.
+    /// </summary>
+    /// <remarks>
+    /// <b>The absence is one lattice at (0, 0)</b>, which is the only world this build could generate
+    /// before milestone 12 task 1 — so every Ruleset in <c>rulesets/</c> but the one authoring a gap
+    /// takes exactly the path it always took, and no committed State Hash moves.
+    /// </remarks>
+    private static LatticeDefinition[] Lattices(World world) =>
+        world.Rules.Lattices.Length == 0 ? OneAtTheOrigin : world.Rules.Lattices;
+
+    /// <summary>
+    /// One lattice's share of a whole-city quantity — <b>an equal split, remainder to the first</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Derived rather than authored, and the derivation is the argument for it.</b> A
+    /// <c>share_percent</c> key would be a hash-bearing number per table with nothing to ratify it
+    /// (<c>adr/0052</c>), in a file whose whole content is a distance. An equal split is the same kind
+    /// of answer <see cref="UndeclaredOccupancy"/> is: the one that needs nothing chosen.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Equal is what makes the world unambiguous, which is what task 1 was asked for.</b> Two
+    /// concentrations of the same height both clear any prominence threshold a sane person would pick,
+    /// so the world <em>demonstrates</em> the derivation rather than calibrating it — and the
+    /// threshold is not chosen until task 3.
+    /// </para>
+    /// </remarks>
+    private static int Share(int total, int lattices, int index) =>
+        IntegerMath.FloorDiv(total, lattices) + (index < total % lattices ? 1 : 0);
 
     /// <summary>
     /// Refuses a world that already holds people.
@@ -380,7 +524,11 @@ public static class SyntheticCity
     {
         int block = world.Rules.Roads.BlockTiles;
         int perSegment = world.Rules.Lots.LotsPerSegment;
-        int wanted = world.Lots.Rows.Capacity;
+
+        // ONE LATTICE'S share and not the world's, and index 0 because it carries the remainder --
+        // every lattice is laid to one extent, so the extent has to hold the largest share. At one
+        // lattice this is the whole capacity and the expression this always was.
+        int wanted = Share(world.Lots.Rows.Capacity, Lattices(world).Length, 0);
 
         if (block <= 0 || perSegment <= 0 || wanted <= 0)
         {
@@ -457,7 +605,8 @@ public static class SyntheticCity
     /// never finds its faces already taken by its neighbour.
     /// </para>
     /// </remarks>
-    private static int Subdivide(World world, int wanted)
+    private static int Subdivide(
+        World world, LatticeDefinition lattice, int extentTiles, int wanted)
     {
         int blocks = world.Roads.Streets.Blocks;
 
@@ -479,12 +628,31 @@ public static class SyntheticCity
             return wanted;
         }
 
+        int block = world.Rules.Roads.BlockTiles;
+        int firstColumn = IntegerMath.FloorDiv(lattice.OriginEastTiles, block);
+        int firstRow = IntegerMath.FloorDiv(lattice.OriginNorthTiles, block);
+        // ⚠ ONE BLOCK WIDER THAN THE LATTICE, and it is measured rather than reasoned. A lattice of
+        // n blocks has n+1 Node columns, so the block SITTING BEYOND its east edge still has that
+        // last column of vertical Segments as its west face -- and a face is all SubdivideBlock
+        // needs. The map-wide walk this replaced carved those Lots, and a box of exactly n dropped
+        // them: every golden trace moved, and GoldenSessionCoverageTests named it exactly ("carved
+        // 118 Lots where 117 were expected"). ***A lattice's Lots do not stop at its extent, because
+        // a Segment has two sides.***
+        int span = IntegerMath.FloorDiv(extentTiles, block) + 1;
+
         int made = 0;
 
-        for (int block = 0; block < blocks * blocks && made < wanted; block++)
+        for (int b = 0; b < span * span && made < wanted; b++)
         {
-            made += LotSubdivider.SubdivideBlock(
-                world, block % blocks, IntegerMath.FloorDiv(block, blocks), zone: 1);
+            int column = firstColumn + (b % span);
+            int row = firstRow + IntegerMath.FloorDiv(b, span);
+
+            if (column >= blocks || row >= blocks)
+            {
+                continue;
+            }
+
+            made += LotSubdivider.SubdivideBlock(world, column, row, zone: 1);
         }
 
         return made;
