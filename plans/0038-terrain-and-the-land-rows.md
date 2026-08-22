@@ -230,7 +230,7 @@ stated so that it stays checkable.
 
 ---
 
-## Open decisions this half owes — **1 SETTLED; OPEN: 1b, 2, 3, 4, 5, 6**
+## Open decisions this half owes — **1 and 1b SETTLED; OPEN: 2, 3, 4, 5, 6**
 
 ⚠ **None is settled and none should be settled by argument if a measurement would settle it**
 ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
@@ -270,7 +270,38 @@ default world; ***varying it amends `adr/0022` rather than tuning within it***, 
 ***What the ground decides in the shipped world is not where you may farm, but whether your damage is
 reversible.***
 
-### 1b. 🔴 STILL OPEN — the arithmetic, split out of decision 1 — *arguable*
+### 1b. ✅ SETTLED 2026-08-22 — **weights, following Desirability — and one of the two is derived**
+
+✅ **[`adr/0141`](../docs/adr/0141-fertility-composes-with-weights-and-only-one-of-them-is-a-number-anybody-chooses.md),
+with the user in the room.** `fertility = base fertility − w_s·Sealing − w_p·pollution`, Q16.16, weighted
+the way `MapLayers.Desirability` already is. **Base Fertility is a fraction with `1.0` meaning fully
+fertile**, so Fertility is a proportion by construction.
+
+🔴 **`w_s` is DERIVED and gets no Ruleset key.** `CONTEXT.md` → Sealing makes a Cell at Sealing = 1024 one
+whose every Tile is built on, so it has **no farmland** — an endpoint, not a preference. That pins the
+term at `base × Sealing / 1024`, with `1024` already `CellGrid.TilesInCell`. ***A coefficient with an
+endpoint is not a tuning knob, and offering it as one invites a Ruleset to state that a fully paved Cell
+still farms.*** [`adr/0059`](../docs/adr/0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md)'s
+shape, and it takes this decision from **two** unratified numbers to **one**.
+
+⚠ **The measured magnitudes are why the bare subtraction could never stand**: pollution is *"about 12 in
+kernel units under a strong source"* (`DesirabilityWeights.Default`) against a Sealing count of 0–1024, so
+unweighted, **Sealing outweighs pollution about 85:1 — an artefact of the units and not a claim about
+cities.**
+
+✅ **The scale was decided by the readout.** With `1.0` fully fertile,
+[`adr/0022`](../docs/adr/0022-land-is-a-stock-the-city-spends.md)'s own Evidence specimen — *"41% — ground
+sealed 12%, pollution from Eastfield Industrial 47%"* — falls out of the arithmetic with no conversion and
+no denominator anybody has to name.
+
+✅ **Negative is kept and it does not clamp**, because **Sealing decays**: two exhausted Cells are at
+different distances from farming again, and a clamp makes them the same number. ⚠ **The decomposition is
+not the reason** — Evidence reads the terms — **the recovery ordering is**, and that ordering is what
+`adr/0022`'s cyclical land-use arc runs on. ✅ **It saturates rather than throwing**, on
+`LineSourceQueries.Saturate`'s stated reasoning that a read-only query must not throw on a world somebody
+is allowed to build.
+
+*The question as first written:*
 
 `base fertility − Sealing − pollution` subtracts **three quantities in three units**: a Ruleset value, a
 **Tile count** (0–1024 per Cell), and a **Q16.16 stock** in kernel units. Nothing in the corpus

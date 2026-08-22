@@ -565,7 +565,7 @@ public sealed class MapLayers
     public void RebuildDerived() => _residency.Rebuild(_cells);
 
     /// <summary>
-    /// <c>fertility(cell) = base fertility − Sealing − pollution</c>. <b>A named hole.</b>
+    /// <c>fertility(cell) = base fertility − w_s·Sealing − w_p·pollution</c>. <b>A named hole.</b>
     /// </summary>
     /// <remarks>
     /// <b>It throws rather than returning zero, and the throw is the deliverable.</b> Base Fertility
@@ -573,9 +573,16 @@ public sealed class MapLayers
     /// needs the world generator, which does not exist; Sealing arrives in task 6. ⚠ <b>The first term
     /// was called <em>terrain suitability</em> until 2026-08-22, and the old name invented a per-Cell
     /// field</b> that <c>02 §2.3</c> forbids in one sentence — <em>the generator places Woodland and
-    /// nothing else</em>. ⚠ <b>The three terms are in three units</b> — a Ruleset value, a Tile count
-    /// and a Q16.16 stock — so this signature's subtraction is a <b>shape and not an implementation</b>;
-    /// <see cref="Desirability"/> is the precedent that reconciled the same problem with weights. A
+    /// nothing else</em>. ⚠ <b>The three terms are in three units</b> — a fraction, a Tile count of
+    /// 0–1024, and a stock measuring about 12 — so unweighted the Sealing term outweighs pollution by
+    /// roughly <b>85:1 by representation</b>. <b>It is weighted the way <see cref="Desirability"/> is</b>
+    /// (<c>adr/0141</c>), so <b>this method gains a weights parameter when it is built</b>. Base
+    /// Fertility is a fraction with <c>1.0</c> fully fertile, so the result is a <b>proportion</b>.
+    /// 🔴 <b><c>w_s</c> is DERIVED and has no Ruleset key</b>: a Cell at Sealing
+    /// <see cref="CellGrid.TilesInCell"/> has every Tile built on and therefore no farmland, so the term
+    /// is <c>base × Sealing / 1024</c>. <b>It may go negative and must not clamp</b> — Sealing decays, so
+    /// the ordering between exhausted Cells is what a recovery reads — and it <b>saturates rather than
+    /// throwing</b> once built, on <c>LineSourceQueries.Saturate</c>'s reasoning. A
     /// placeholder returning zero is a value that will be read, believed, and tuned around — and by the
     /// time the generator lands, something will depend on farms yielding nothing. A hole that fails
     /// loudly is a hole. <c>02 §2.3</c>, <c>plans/0009</c> task 7.
