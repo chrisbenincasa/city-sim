@@ -229,7 +229,7 @@ There are six, and the list is short on purpose. `PLAYER GOVERNS`
 | **Connect** | Lay Streets on the grid, draw Arterials, place authored Junction pieces | Micromanage lanes, signals, or turn restrictions |
 | | ⚠ *As built (5a-bis): **Streets only**, one **Segment** per act — an origin intersection and an axis, lay or bulldoze ([`adr/0077`](../docs/adr/0077-a-road-edit-is-one-segment-and-the-player-lays-streets-only.md)). Arterials and Junction pieces are **refused by name** with their successor written beside the refusal, because a spline is many control points and is not one command, and a Junction piece needs the authored library `adr/0014` calls content.* | |
 | **Service** | Place schools, utilities, health, fire, waste — buildings with a catchment | Guarantee that they are reached, or decide how many staff them |
-| **Govern** | Set taxes, service funding, transfers, and constraints; borrow. Globally by default, overridden per District | Directly set outcomes. Every Policy is a Rule with a named payer and named beneficiaries |
+| **Govern** | Set taxes, service funding, transfers, and constraints; borrow. Globally by default, overridden per **Ward** *(was: per District — [`adr/0132`](adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md), 2026-08-22)* | Directly set outcomes. Every Policy is a Rule with a named payer and named beneficiaries |
 | **Demolish** | Remove a Street or a Building, at a price ([`adr/0091`](adr/0091-clearing-land-is-bought-rather-than-taken-and-demolish-is-the-sixth-verb.md)) | Yield anything for free, or decide what replaces it |
 | **Inspect** | Overlays, Evidence, Pin | Change anything |
 

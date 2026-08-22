@@ -7,7 +7,14 @@ Goods chain that crosses an ownership boundary.
 
 ## Status
 
-🔵 **SCOPING STARTED 2026-08-21. No decision is settled and no task has begun.**
+🟢 **SCOPING STARTED 2026-08-21. The decision 1 sitting ran 2026-08-22 and no task has begun.**
+
+⚠ **One sitting has run and it settled less of decision 1 than it changed about it.** It produced
+[`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md) and
+[`adr/0133`](../docs/adr/0133-a-pool-draw-pays-for-its-haulage-so-the-boundary-is-a-gradient-and-not-a-cliff.md),
+which between them **close decision 1's player-arm sub-question by removing the player arm**, add a
+sub-question to decision 4, and change what decision 3 owes. **Decision 1's substance — the derivation
+itself — is still open**, and decisions 2 and 5 to 9 are untouched.
 
 What has run is the **blocker re-check** `06`'s milestone 12 row demands in its own last sentence, and
 a **survey of what the build holds**. Both are below. ⚠ **The decisions in this document are open and
@@ -175,9 +182,15 @@ is this milestone.
 
 ---
 
-## Open decisions this milestone owes — **NONE SETTLED**
+## Open decisions this milestone owes — **ALL NINE STILL OPEN**
 
 Typed under `adr/0043`. **These want a sitting, and several are entangled** — 1 governs 2 and 3.
+
+⚠ **The heading said *NONE SETTLED* and that is no longer the useful statement.** The 2026-08-22 sitting
+settled **parts** of 1, 3 and 4 without closing any of the nine: `adr/0132` removed decision 1's player
+arm, and `adr/0133` added decision 4's haulage sub-question and changed decision 3's obligation from a
+ceiling to possibly a curve. ***A decision list tracks decisions and a sitting moves clauses***, so read
+each entry rather than this heading.
 
 ### 1. What derives a District from road topology and land use? — *arguable*
 
@@ -200,10 +213,19 @@ the same document closed it. Both are struck now.
 - **Contiguous sets of Cells, never Chunks** (`CONTEXT.md`, `02 §2.1`), so a profiler cannot move what a
   District *is*.
 - **The count is physics**: the early city has one District because the city *is* one neighbourhood.
-- **The player arm is a LATE-GAME ADVANCED ACTION** that *"arrives exactly when one end of the map
-  genuinely differs from the other"*, and is *"what makes District-scoped Policy targetable."* ⚠ **It is
-  therefore almost certainly not 12's**, and this decision owes saying so deliberately rather than by
-  omission — `adr/0117`'s Upkeep lesson, one decision over.
+- 🔴 ~~**The player arm is a LATE-GAME ADVANCED ACTION**~~ **THERE IS NO PLAYER ARM — settled
+  2026-08-22 by [`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md),
+  in the sitting this decision was written for.** The District is derived and the player cannot move its
+  boundary at any milestone. The pen went to a **Ward**: a named set of Cells the player draws, which
+  `Policy` is scoped to and which has **no logistics consequence**. ⚠ **This decision asked whether the
+  arm shipped at 12 and the answer is that the arm does not exist**, which is a better outcome than the
+  deliberate *no* `adr/0117` would have settled for. ***The pooling boundary's extent is physics and a
+  Policy scope is nothing but a choice, and `02 §2.1` stated both four lines apart without reconciling
+  them.*** The exploit it permitted — redraw one enormous District, switch off freight — was already in
+  `adr/0013`'s trigger list.
+- ⚠ **And the derivation is now the only way a District comes into being**, which raises this decision's
+  stakes rather than lowering them: there is no player arm left to fall back on if the derived shape is
+  unsatisfying. ***A fallback to the player is how the first weld was justified.***
 
 **What is open is the algorithm, and the two named inputs already cut the field:**
 
@@ -249,6 +271,18 @@ exist. Sub-questions, and they are separable:
   ceiling until there is a market worth clearing?
 - ⚠ A Day is **2048 Ticks** and the Day wheel is **milestone 18**, which a parallel session is
   building. *"Recomputed each Day"* may have a scheduling dependency on work in flight elsewhere.
+- 🔴 **NEW 2026-08-22 — does the price carry a HAULAGE TERM?**
+  [`adr/0133`](../docs/adr/0133-a-pool-draw-pays-for-its-haulage-so-the-boundary-is-a-gradient-and-not-a-cliff.md)
+  settles that a Pool draw stops being free: intra-District movement stays unsimulated — no Vehicle, no
+  routing query — and **gains a charge**, because `adr/0013`'s case was a *simulation-budget* argument
+  about query volume and never a claim that carriage is worth nothing. **What is left is a discontinuity
+  with no physical referent**: 100 m across a boundary is a Shipment, 1.45 km inside is nothing. ⚠ **The
+  form and value are UNSET and the leading candidate scales the charge with the District's own extent**,
+  which would make the extent bound self-enforcing and ***materially changes decision 3*** — a curve with
+  a ratifier rather than a ceiling with one, which is a different §D obligation. 🔴 ⚠ **A payee is a
+  blocker on shipping it**: a cost with no counterparty destroys money and `adr/0024` forbids that, so
+  this is `adr/0117`'s *charge with no actor* arriving on a second mechanism. **Whether the charge ships
+  at 12 is this decision's to answer**, and the deliberate *no* is worth more than the omission.
 
 ### 5. Does Upkeep ship at 12? — *arguable*
 
