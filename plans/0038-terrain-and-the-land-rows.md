@@ -225,12 +225,13 @@ creation" in this build is *an event in the log*, not a moment before the clock 
 **This is a question rather than a defect.** `adr/0021`'s checkable rule is *"if a terrain value is
 **read** inside a Tick phase, something has gone wrong"*, and the bake **writes** one. But the rule's
 value is that it can be checked mechanically, and a check phrased as *no terrain read in any phase*
-would go red on the generator itself. **Decision 3** settles where the bake runs and how the rule is
-stated so that it stays checkable.
+would go red on the generator itself. ✅ **Decision 3 restated it against STATE** — *terrain height is
+not state* — and `adr/0142` is what makes that checkable, by storing no height at all. ⚠ **There is no
+bake left to place**, and the mechanical check is **owed with terraforming** rather than now.
 
 ---
 
-## Open decisions this half owes — **1, 1b and 2 SETTLED; OPEN: 3, 4, 5, 6**
+## Open decisions this half owes — **1, 1b, 2 and 3 SETTLED; OPEN: 4, 5, 6**
 
 ⚠ **None is settled and none should be settled by argument if a measurement would settle it**
 ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
@@ -368,7 +369,46 @@ not a design constraint, and *given height does not exist, should suitability co
 void question. **Recommendation: name the absence, ship suitability, and let the first consumer of a
 grade bring the height field with it.**
 
-### 3. Where does the bake run, and how does `adr/0021`'s checkable rule stay checkable? — *arguable*
+### 3. ✅ SETTLED 2026-08-22 — **its own pass, before `LayLand`, and the rule is restated against state**
+
+⚠ **Decision 2 dissolved half of this question before it was opened: there is no bake.**
+
+✅ **Placement — a pass of its own, called from `SyntheticCity.PopulateInto` BEFORE `LayLand`**, with
+`RoadGenerator.LayInto`'s already-populated refusal shape (`Space/RoadGenerator.cs:133` — *"the generator
+is a world-creation pass"*). The order becomes `RefuseIfPopulated` → **terrain** → `LayLand` →
+`PeopleInto` → `EvaluateDistricts`.
+
+✅ **Nothing in `LayLand` needs to consult it, which is why the placement is nearly free.** Roads do not
+avoid water — `adr/0021`: *"A Street or Arterial may span unbuildable water; the Road Graph does not know
+the difference"* — Woodland is *"not a clearing verb and not an obstacle"* (`CONTEXT.md`), and **buildable
+grade does not ship** (`adr/0142`). Terrain goes first because it is the ground, not because anything
+downstream reads it.
+
+✅ **The rule is restated against STATE rather than against time**, and
+[`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) is amended
+in place rather than a fourth ADR being written — the design content is `adr/0142`'s, and **a second home
+for one decision is [`0012`](0012-corpus-audit.md)'s Cause 1**:
+
+> **Terrain height is not state.** It lives as a local inside the generator's call and dies with it. The
+> only terrain the world stores is the **terrain type** column, and a Tick reading a stored column and
+> looking a value up in the Ruleset is not a terrain read.
+
+🔴 **The original phrasing was not checkable and was nearly read as violated by the thing that satisfies
+it.** `SyntheticCity.PopulateInto` runs from `CommandKind.Populate` **inside Phase 0**, so the generator
+reads height *inside a Tick phase* on the Tick that makes the world. ⚠ **And nothing enforces phase
+discipline anyway** — `TickPhase` is referenced only by its own file and `Simulation.cs`, so a phase-aware
+analyser is machinery that does not exist, the same standing as `05 §4`'s **lint 4**.
+***A rule about what may be read every Tick is enforced by what exists, not by where the reader stands.***
+
+⚠ **The mechanical check is OWED rather than written, and the trigger is named**: it arrives with
+terraforming, because `adr/0021`'s *seed + edits* stores heights on edited Chunks and makes the forbidden
+read reachable again.
+
+⚠ **Minor, and not repaired here: `SyntheticCity.LayLand` lays roads and Lots, not land.** With terrain
+arriving beside it the name gets actively misleading. Filed as an observation rather than a rename,
+because the churn is not this decision's.
+
+*The question as first written:*
 
 See precondition 4. Candidates: inside `SyntheticCity.LayLand` beside `RoadGenerator.LayInto` (where
 the world's other ground is made), or in a pass of its own with `RoadGenerator`'s
@@ -433,8 +473,8 @@ decision is recorded so the absence is not later read as an omission.**
 - **It must not author a height field with no consumer** — decision 2, and `adr/0070`.
 - **It must not write a placeholder generator version** — precondition 3, and `adr/0111` says why.
 - **It must not cite hash movement as a reason to defer, narrow or split any task** — `adr/0100`.
-- **It must not read a terrain value inside a Tick phase** — `adr/0021`'s checkable rule, and decision 3
-  is what keeps it checkable rather than what relaxes it.
+- **It must not store a height column** — `adr/0021` as amended, and decision 3 is what keeps its rule
+  checkable rather than what relaxes it. ***Terrain height is not state.***
 
 ---
 
@@ -514,8 +554,10 @@ through the format version.** Recorded here because the absence looks exactly li
 
 `SyntheticCity.PopulateInto` runs from `CommandKind.Populate` at `Simulation.cs:391`. `adr/0021`'s rule
 survives — it governs **reads** and the bake is a **write** — but a mechanical check phrased against
-phases would go red on the generator. Decision 3 owes the restatement, and it must name a symbol rather
-than a phase.
+phases would go red on the generator. ✅ **Discharged by decision 3**, which restated the rule against
+**state** and amended `adr/0021` in place: *terrain height is not state.* ⚠ **Nothing enforces phase
+discipline in this build anyway** — `TickPhase` is referenced by its own file and `Simulation.cs` and by
+nothing else, so a phase-shaped rule had no enforcer to be checkable by.
 
 ---
 

@@ -74,6 +74,40 @@ The haul model runs at construction time and never inside a Tick, so its cost is
 - **Bridges are a buildability exception plus a rendering variant**, not a system. A Street or Arterial may span unbuildable water; the Road Graph does not know the difference.
 - **Map size is not yet fixed.** See `plans/0002-open-questions.md`.
 
+## Amended 2026-08-22: the checkable rule is restated against state rather than against time
+
+**The rule above — *"if a terrain value is read inside a Tick phase, something has gone wrong"* — is not
+checkable as written, and it was very nearly read as violated by the thing that satisfies it.**
+
+**World creation in this build is an event in the Input Log.** `SyntheticCity.PopulateInto` is dispatched
+from `Simulation.cs:391` on `CommandKind.Populate`, **inside Phase 0**, because a replayable world has to
+be created by something replay can re-run. So the generator reads height *inside a Tick phase* on the
+Tick that makes the world, and a check phrased against phases would go red on the generator itself.
+⚠ **Nothing in the build enforces phase discipline today** — `TickPhase` is referenced only by its own
+file and `Simulation.cs`, and a phase-aware analyser is machinery that does not exist, the same standing
+as `05 §4`'s lint 4.
+
+**The restatement, and it says the same thing where a reader can check it:**
+
+> **Terrain height is not state.** It exists as a local inside the generator's call and dies with it.
+> The only terrain the world stores is the **terrain type** column, and a Tick reading a stored column
+> and looking a value up in the Ruleset is not a terrain read — which is what *"the boundary is
+> temporal, not categorical"* above already meant, and what `CONTEXT.md` → Sealing's Ruleset rate keyed
+> by terrain type has always required.
+
+⚠ **This is the original rule's intent rather than a relaxation of it.** The coupling this ADR confines —
+grade-dependent vehicle performance, elevation in the Road Graph, junction geometry over sloped ground —
+is *recurring* cost, and a one-time generation is not that. ***A rule about what may be read every Tick
+is enforced by what exists, not by where the reader stands***, and phrased against state it needs no
+phase-aware analyser: **there is no height column to read.**
+
+**It is checkable because [`0142`](0142-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)
+made it so**, by settling that milestone 24 stores no height at all. ⚠ **The check becomes owed the day
+terraforming lands**, because *seed + edits* stores heights on edited Chunks and the forbidden read
+becomes reachable again — recorded here so that milestone finds the obligation rather than rediscovering
+it, which is [`0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+discipline applied forwards.
+
 ## What would trigger revisiting
 
 - **The haul model proving unreadable in play** — players unable to predict a terraforming cost before committing to it. The fallback is a flat rate per m³ with a hard cap on deviation from original height, which is a tenth of the work and loses the explanation.

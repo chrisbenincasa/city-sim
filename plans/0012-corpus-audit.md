@@ -3193,7 +3193,7 @@ table's two-column defect recorded above, and not the same finding.
 
 ---
 
-## Filed 2026-08-22, by milestone 24's scoping — one defect, and one recurrence of the naming hazard
+## Filed 2026-08-22, by milestone 24's scoping — two defects, an unenforceable rule, and one recurrence of the naming hazard
 
 ### `deferred.md` says Sealing's terrain-keyed recovery **already does** something it structurally cannot
 
@@ -3244,6 +3244,37 @@ this row would have taken terraforming as placed at 24 and shipped the height fi
 ✅ **PAID 2026-08-22 by `plans/0038` decision 2**: the row is split in two, terraforming's is **UNPLACED**,
 and it now says it owes a **verb** before it owes a milestone
 ([`adr/0142`](../docs/adr/0142-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)).
+
+### `adr/0021` called a rule **checkable** for four years, and nothing could have checked it
+
+[`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md):31:
+
+> *"**The checkable rule: if a terrain value is read inside a Tick phase, something has gone wrong.**"*
+
+**Two things are wrong with it, and the second is the interesting one.**
+
+🔴 **It would have gone red on the thing that satisfies it.** World creation in this build is an event in
+the Input Log — `SyntheticCity.PopulateInto` is dispatched from `Simulation.cs:391` on
+`CommandKind.Populate`, **inside Phase 0** — so the generator reads height *inside a Tick phase* on the
+Tick that makes the world (`0038` **F6**).
+
+🔴 **And nothing enforces phase discipline at all.** `TickPhase` is referenced by its own file and by
+`Simulation.cs`, and by nothing else in the repository. There is no analyser, no test and no fixture that
+knows which phase a call sits in — the same standing as `05 §4`'s **lint 4**.
+
+⚠ **So the word *checkable* was doing the work of a mechanism that was never built**, which is
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) arriving from an
+unfamiliar direction: not *an absence read as a constraint*, but ***a constraint asserted as though its
+enforcer existed.*** A reader auditing terrain reads would have gone looking for the check and found
+nothing to run.
+
+✅ **PAID 2026-08-22 by `plans/0038` decision 3**, as an **amendment in place** rather than a new ADR —
+the design content belongs to
+[`adr/0142`](../docs/adr/0142-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
+and a second home for one decision is **Cause 1** by construction. The rule is restated against **state**:
+***terrain height is not state***, which is checkable by inspection because no height column exists.
+⚠ **The mechanical check becomes owed the day terraforming lands**, since *seed + edits* stores heights on
+edited Chunks — recorded in the amendment so that milestone finds the obligation.
 
 ### The naming hazard recurred a **third** time, and this time it was detected before the collision
 
