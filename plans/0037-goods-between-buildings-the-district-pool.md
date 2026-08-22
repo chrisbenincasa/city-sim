@@ -613,7 +613,26 @@ targets. ⚠ **That is a claim about the build and it should be read off `Eviden
 believed**, which is `adr/0093`. It is the cheapest decision here and the one most likely to be
 assumed.
 
-### 10. 🔴 NEW, found in decomposition 2026-08-22 — **what holds the Pool's money, and may it go negative?** — *arguable*
+### 10. 🔴 ESCALATED 2026-08-22 to **session U** — **what holds the Pool's money, and may it go negative?** — *arguable*
+
+> ⚠ **THIS DECISION OUTGREW THIS DOCUMENT ON THE DAY IT WAS WRITTEN, and the body below is kept as
+> posed.** Answering it required naming the two parties to a Pool trade, and **the Pool is one of
+> them** — which prompts *why doesn't the bakery buy directly from the mill?*, a question about
+> [`adr/0013`](../docs/adr/0013-goods-are-pooled-within-a-district-and-shipped-between.md) that a
+> slice plan may not hold. **Routed to [`0002`](0002-open-questions.md) §A and
+> [`0038`](0038-session-u-the-pool-or-the-seller.md) — session U, opened 2026-08-22 and not
+> concluded** — under
+> [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md).
+> ⚠ **Under two of session U's three candidates this decision is VOID AS POSED rather than answered**,
+> because it exists only where the Pool has no owner. **Task 7 stays blocked either way.**
+>
+> ⚠ **Two things in the body below are now known wrong.** Its front-runner (3) is not a preference —
+> **consignment is FORCED** under
+> [`adr/0003`](../docs/adr/0003-deterministic-integer-simulation.md), which never holds negative money,
+> so paying at deposit deadlocks at Tick 0 and ***the first unit must enter unpaid.*** And its stated
+> cost — *"the Pool must remember how much it owes per Good"* — **is the wrong structure**: a debt
+> needs a creditor, and what is needed is **units consigned per `(Business, Good)`**, which is a share
+> and is larger than the column it priced.
 
 **Found by reading `BinTable` and `BinOwnerKind` while ordering the tasks, and it blocks task 7.** It is
 not a ninth decision rediscovered; **nothing in this document or in `adr/0050`, `adr/0135` or `adr/0114`
@@ -653,10 +672,14 @@ can be told. What it costs is that the Pool must remember **how much it owes per
 column, and that a Provider's deposit becomes a **consignment** rather than a sale — a word `CONTEXT.md`
 does not have.
 
-⚠ **This is typed *arguable* and therefore wants the user in the room**, but it is one question with
+~~⚠ **This is typed *arguable* and therefore wants the user in the room**, but it is one question with
 three named candidates and it blocks exactly one task. ***It should be taken at the head of task 7 and
-not in a sitting of its own***, which is what `adr/0043` permits: no measurement settles it, and the
-corpus has no prior answer to look up.
+not in a sitting of its own***~~ — 🔴 **MEASURED FALSE BY TRYING IT, the same day.** It is a sitting of
+its own, and the reason is the second clause rather than the first: **it does not block exactly one
+task**, it reopens the ADR the milestone is built on. ⚠ ***The sentence that sized it was written by
+the same reading that made it look small*** — treating the Pool as a given and asking only where its
+money sits. **What survives is the typing**, which is what `adr/0043` permits: no measurement settles
+it, and the corpus has no prior answer to look up.
 
 ---
 
@@ -813,7 +836,7 @@ starting.
 7. **The purchase — and `Scope.Pool` stops throwing.** Good one way, money the other, settled atomically
    with the Rule. 🔴 **Blocked on decision 10**, above: *who holds the Pool's money between a Provider's
    deposit and a consumer's draw.* ⚠ **The engine's term resolution is 1:1 and a purchase is 1:2** —
-   `RuleEngine.Bin` returns **one** slot (`RuleEngine.cs:801`) and a Rule waits on **the one Bin it was
+   `RuleEngine.Bin` returns **one** slot ~~(`RuleEngine.cs:801`)~~ — ⚠ **the symbol is at line 854 and the claim is still true**, which is `adr/0093`'s writing half: ***name a symbol, never a time*** and a Rule waits on **the one Bin it was
    short of**, so the money leg needs a Bin to subscribe to that no term names. **Both halves of decision
    9 land here** ([`adr/0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md)):
    `RuleEvidence` gains the blocking Bin, **and** the money check produces a verdict **naming the money
