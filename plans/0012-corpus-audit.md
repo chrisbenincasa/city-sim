@@ -1437,6 +1437,57 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ `06` placed a mechanism at milestone 12 that milestone 12's own scoping document never scoped, and
+neither document contradicted itself.** Found and fixed **2026-08-22**, settling
+[`0037`](0037-goods-between-buildings-the-district-pool.md) decision 6 —
+[`adr/0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md).
+`06`'s row read *"Shipments — freight Vehicles between Districts and to the gate — **Placed: 12**"*.
+`plans/0037` surveyed the milestone, found three preconditions no document had listed as blockers,
+enumerated **nine decisions**, and freight appears in **none** of them.
+
+🔴 **This is a new shape and it is the reason it survived a survey built to catch exactly this.** ***A
+survey looks for what its author suspects is missing, and a mechanism placed by a DIFFERENT document is
+not a suspicion.*** The scoping author was reading the build and the decisions; the placement lived in a
+table three hundred lines away in another file, in a column about what *that* document owes. **Neither
+document is internally wrong** — which is why every document-to-document check passes, since nothing
+here is a citation that fails to resolve.
+
+⚠ **A candidate check, named and not built**: for each milestone with a scoping plan, the set of `06`
+rows saying **Placed: N** against the set of mechanisms that plan's decisions and preconditions mention.
+A divergence is not automatically a defect — a mechanism can be genuinely trivial to scope — **so the
+check needs a way to say *deliberately***, which is the same hard half `adr/0137`'s proposed
+write-without-reader check has. **Two proposals now blocked on the same missing affordance**, which is
+worth noticing before either is attempted.
+
+**⚠ Third mechanism found parked at milestone 12 on an assumption its author did not check, in one day.**
+Upkeep ([`adr/0136`](../docs/adr/0136-upkeep-has-three-blockers-landing-at-three-times-so-it-has-a-queue-and-not-a-milestone.md)),
+freight and `adr/0088`'s `min()` (`adr/0138`). ***Each placement was correct about the blocker its author
+happened to be holding and silent about the others***, and each was made by somebody working on a
+different problem. 🔴 **The generalisation is about WHEN a placement is made, not about who makes it**: a
+mechanism is placed at the moment somebody notices it is blocked, which is the moment they know **least**
+about what else blocks it. **The scoping session is the first occasion anybody asks what a milestone
+actually ships**, so it should be read as the first real audit of every row pointing at that milestone —
+not only of the row that names it.
+
+**⚠ A decision's stated dependency pointed at the wrong upstream, and would have read as answered when
+that upstream closed.** `plans/0037` decision 6 said *"whether freight itself is in this milestone is
+decision 8, so this one is downstream of it."* Decision 8 asked whether a **Provider** ships — an
+intra-District seller — and `adr/0013` defines pooled intra-District movement **in opposition to** a
+Shipment, so decision 8 answers nothing about freight. It was settled **yes** on 2026-08-22. ***A
+decision routed to the wrong upstream reads as answered the moment the wrong upstream closes***, and a
+later reader checking only whether 8 was done would have marked 6 settled without ever asking whether a
+Vehicle exists. **Corrected in place**, with the misrouting kept rather than deleted, because the entry
+is now the worked example.
+
+**⚠ `plans/0037`'s Status block described the sitting's first hour while six more decisions closed
+underneath it.** It read *"one sitting has run and it settled less of decision 1 than it changed about
+it"* and *"decisions 2 and 5 to 9 are untouched"*; by the end of the day **seven of nine** were settled.
+Its decisions heading had been wrong twice — *NONE SETTLED*, then *ALL NINE STILL OPEN*. This is
+**Cause 1** arriving **inside one document over one day**, which is faster than the cause is usually
+stated, and the mechanism is the ordinary one: ***a count sits at the top of a list that changes
+underneath it.*** **Both rewritten**, and the heading now says to read each entry.
+
+
 **⚠ `adr/0050` stated as settled a property of the build that the build does not have, and no mechanical check in this repository could reach it.** Found and corrected **2026-08-22**, settling [`0037`](0037-goods-between-buildings-the-district-pool.md) decision 9. The ADR says bankruptcy and starvation are distinguishable because *"the distinction falls out of the wait list rather than needing a mechanism"* — a Pool Bin short is starvation, a money Bin short is bankruptcy. **It is true of the wait list and false of the build.** `RuleInstanceTable.WaitingOn` records the Bin that stopped a Rule and `RuleEngine.Stop` writes it, but **`RuleEvidence` does not carry it** — `RuleId`, `LastRan`, `Succeeded`, `Blocking Blocked`, `ConditionId Reported`, `StarvedSince`, `Rate`, `MissedFirings` — and `Blocking` is only `Nothing / Supply / Space`, so **both cases surface as `Supply`**. ***The wait list is not a reader; `Evidence` is.***
 
 🔴 **This is a new surface, and the reason is that the claim is about CODE.** Every mechanical check here is **document-to-document** — citations resolve, links open, tables render, no registry figure appears bare — so a sentence that agrees with every document it cites and disagrees with a **struct** passes all of them. ***A corpus that checks itself against itself cannot notice the build.*** `plans/0037` caught it only because [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) made it a habit to read the symbol, and it flagged the entry in advance as **the one most likely to be assumed** — which is the mitigation working, by hand.

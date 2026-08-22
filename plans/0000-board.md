@@ -9,15 +9,27 @@ place that orders the three tracks against each other.
 
 **The next code row is [`06`](../docs/06-roadmap.md) milestone **12** — Goods between Buildings, the
 District Pool.** Ungated, scoping under way in
-[`0037`](0037-goods-between-buildings-the-district-pool.md), **no task begun**. Decisions **1, 2, 4, 5, 8
-and 9 are settled** ([`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md)–[`adr/0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md));
-**3, 6 and 7** are open and **`0037` owns every one of them**.
+[`0037`](0037-goods-between-buildings-the-district-pool.md), **no task begun**. Decisions **1, 2, 4, 5, 6,
+8 and 9 are settled** ([`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md)–[`adr/0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md));
+**3 and 7** are open and **`0037` owns both**.
+
+🟢 ⚠ **Neither survivor wants a sitting, and this row is where that has to be said or the milestone waits
+for one that is not owed.** **3 is an obligation, not a fork** — `adr/0052` requires a ratifier be
+*named*, not that the number be settled, so the four District numbers get chosen into `plans/0002` §D1
+with milestone 15 named. **7 is largely pre-answered** — `adr/0134` makes the road component
+constitutive, so a Building off the component is not in the District. ***The next step is task
+decomposition, and the first task is `DistrictTable` and the watershed.***
 
 ⚠ **Two things a reader of this row needs and will not guess.** The survey found **three preconditions
 no document had listed as blockers** — the largest being that ***there is no District in the build at
 all***. And **Upkeep is no longer part of it**
 ([`adr/0136`](../docs/adr/0136-upkeep-has-three-blockers-landing-at-three-times-so-it-has-a-queue-and-not-a-milestone.md),
-2026-08-22). ***A milestone whose named risk is a single `throw` reads as a milestone with a single
+2026-08-22), and **neither is freight nor `adr/0088`'s `min()`**
+([`adr/0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md),
+same day) — 🔴 ***three mechanisms found parked at 12 on an assumption their authors did not check***,
+each placed by a document that was not scoping the milestone. **`06`'s rows for all three are now
+UNPLACED.** ⚠ **The consequence to carry forward: 12 makes import real as a PRICE and not as traffic**,
+so a distant gate costs nothing until freight lands and `adr/0088`'s thesis is deliberately inert. ***A milestone whose named risk is a single `throw` reads as a milestone with a single
 obstacle***, and the `throw` is the symptom.
 
 **Status for every other milestone is [`0003`](0003-build-plan.md)'s Phase 2 ledger.** This section

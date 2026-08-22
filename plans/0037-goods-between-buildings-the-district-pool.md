@@ -7,14 +7,37 @@ Goods chain that crosses an ownership boundary.
 
 ## Status
 
-🟢 **SCOPING STARTED 2026-08-21. The decision 1 sitting ran 2026-08-22 and no task has begun.**
+🟢 **SCOPING STARTED 2026-08-21. The scoping sitting ran 2026-08-22 and settled SEVEN of the nine
+decisions — 1, 2, 4, 5, 6, 8 and 9. Two remain: 3 and 7. No task has begun.**
 
-⚠ **One sitting has run and it settled less of decision 1 than it changed about it.** It produced
-[`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md) and
-[`adr/0133`](../docs/adr/0133-a-pool-draw-pays-for-its-haulage-so-the-boundary-is-a-gradient-and-not-a-cliff.md),
-which between them **close decision 1's player-arm sub-question by removing the player arm**, add a
-sub-question to decision 4, and change what decision 3 owes. **Decision 1's substance — the derivation
-itself — is still open**, and decisions 2 and 5 to 9 are untouched.
+⚠ **This block is rewritten rather than appended to, because the version it replaces said "one sitting
+has run and it settled less of decision 1 than it changed about it" and then six more decisions closed
+under it.** ***A status paragraph written mid-sitting describes the sitting's first hour***, which is
+[`0012`](0012-corpus-audit.md) **Cause 1** arriving inside a single document over a single day.
+
+**Seven ADRs came out of it** —
+[`0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md) (the District is
+derived; the player's object is a **Ward**),
+[`0133`](../docs/adr/0133-a-pool-draw-pays-for-its-haulage-so-the-boundary-is-a-gradient-and-not-a-cliff.md)
+(a Pool draw pays haulage — **structural**, and superseded in part),
+[`0134`](../docs/adr/0134-a-district-is-a-centre-and-its-basin-so-the-count-follows-centres-and-not-a-ceiling.md)
+(centre and basin),
+[`0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md) (a
+Provider and a moving price),
+[`0136`](../docs/adr/0136-upkeep-has-three-blockers-landing-at-three-times-so-it-has-a-queue-and-not-a-milestone.md)
+(Upkeep unplaced),
+[`0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md)
+(bankruptcy needs one field) and
+[`0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md) (freight
+and the `min()` unplaced).
+
+🔴 ⚠ **The sitting made 12 BIGGER and unplaced three things, and those are not in tension.** It added the
+District — *the largest unscoped piece in the milestone, listed in no inventory anywhere* — a Provider
+kind with three content decisions, the tâtonnement, the Hinterland price per Good, one `Evidence` field
+and a new Ruleset. What it removed — **Upkeep, freight, the `min()`** — was never scoped here by anybody;
+each had been **parked at 12 by a different document, against one blocker its author happened to be
+holding**. ***Three mechanisms found parked on an unchecked assumption, in one day, by asking what 12
+actually ships.***
 
 What has run is the **blocker re-check** `06`'s milestone 12 row demands in its own last sentence, and
 a **survey of what the build holds**. Both are below. ⚠ **The decisions in this document are open and
@@ -182,17 +205,31 @@ is this milestone.
 
 ---
 
-## Open decisions this milestone owes — **ALL NINE STILL OPEN**
+## Open decisions this milestone owes — **SEVEN OF NINE SETTLED, 3 AND 7 REMAIN**
 
-Typed under `adr/0043`. **These want a sitting, and several are entangled** — 1 governs 2 and 3.
+Typed under `adr/0043`. **Settled: 1, 2, 4, 5, 6, 8, 9** — each closed in place, with the question as
+first written kept beneath it as `Na`, because ***the original wording is how a later reader checks
+whether the answer addressed the question asked.***
 
-⚠ **The heading said *NONE SETTLED* and that is no longer the useful statement.** The 2026-08-22 sitting
-settled **parts** of 1, 3 and 4 without closing any of the nine: `adr/0132` removed decision 1's player
-arm, and `adr/0133` added decision 4's haulage sub-question and changed decision 3's obligation from a
-ceiling to possibly a curve. ***A decision list tracks decisions and a sitting moves clauses***, so read
-each entry rather than this heading.
+⚠ **This heading has now been wrong twice — *NONE SETTLED*, then *ALL NINE STILL OPEN*** — and both times
+because a count sits at the top of a list that changes underneath it. ***A count is a fact that drifts***,
+which is why `CLAUDE.md` tells you to count the ADRs rather than quote a total. **Read each entry.**
 
-### 1. What derives a District from road topology and land use? — *arguable*
+**What the two survivors actually need is not another sitting:**
+
+- **3 is an obligation, not a fork.** `adr/0052` does not forbid choosing a hash-bearing number; it
+  requires **naming what would ratify it**. The four District numbers get chosen, go to `plans/0002`
+  **§D1** — *in use and unratified, which is the debt* — with the ratifier named. ⚠ `adr/0134` puts that
+  ratifier at **milestone 15**, so the numbers are unratifiable now and that is **not** a reason to
+  withhold them.
+- **7 is largely pre-answered.** `adr/0134` makes the **road component constitutive** of a District, so a
+  Building not on the component is not in the District, and *"subject to connectivity"* mostly falls out.
+  What survives is the disconnected Building's own fate, which is a small question.
+
+***So the next step after this document is task decomposition and not another argument***, and the first
+task is `DistrictTable` and the watershed, which everything else in 12 resolves through.
+
+### 1. ✅ SETTLED — a District is a **centre and its basin**, watershed over Building density
 
 🔴 ⚠ **REWRITTEN 2026-08-22. The first draft of this decision asked the wrong question, and the corpus
 had answered the one it asked.** It read *"What is a District, in the build?"* and offered player-drawn
@@ -409,7 +446,51 @@ includes *"milestone 12 shipping without `Scope.Pool` resolvable from a Segment 
 wrong and Upkeep moves again."* Grounds 2, 3 and 4 are all open. ⚠ **The default answer is no**, and
 what this milestone owes is to say so deliberately rather than by omission, and to move it.
 
-### 6. Does the `adr/0088` `min()` ship here? — *arguable*
+### 6. ✅ SETTLED — **no**, and freight goes with it
+
+**Settled 2026-08-22 with the user in the room** — [`adr/0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md).
+The `min()` does not ship at 12, **Shipments do not ship at 12**, and the two are **pinned to each other
+rather than to a number**: *the `min()` ships in the milestone that ships Shipments*, and that milestone
+does not exist.
+
+🔴 **`adr/0088`'s own test gives the same verdict at 12 that it gave at 11.** Its 2026-08-20 amendment
+moved the term because the second operand is `RoadSegmentTable.CapacityPerDay` — **whole Vehicles per
+Day** — and nothing crossed at 11: ***"a term that is vacuous on the world the milestone runs on is not a
+diagnosis."*** **`Shipment` appears once in `Borough.Core`**, a doc-comment on `ResourceFamily.Good` at
+`Ruleset.cs:225`, with no table, no engine and no Vehicle. So nothing crosses a Segment carrying cargo at
+12 either. ***The date moved twice and the vacuity did not move at all***, because the amendment reasoned
+*the second term follows freight to 12* — **an assumption about where freight was rather than a check on
+it**, which is `adr/0136`'s finding about Upkeep arriving a second time in one day.
+
+🔴 **This entry's stated dependency was MISROUTED, and that is the part worth keeping.** It said *"whether
+freight itself is in this milestone is decision 8, so this one is downstream of it."* Decision 8 asked
+whether a **Provider** ships and was answered **yes** — but a Provider is an intra-District seller and
+intra-District movement is **pooled**, which `adr/0013` defines *in opposition to* a Shipment. ⚠ **So
+decision 8 answers nothing about freight**, and ***a decision routed to the wrong upstream reads as
+answered the moment the wrong upstream closes***: a later reader checking only whether 8 was done would
+have marked this settled without ever asking about a Vehicle.
+
+🔴 **`06` placed Shipments at 12 and this document never scoped them** — nine decisions, three
+preconditions, no freight anywhere. Neither document contradicts itself; ***a survey looks for what its
+author suspects is missing, and a mechanism placed by a different document is not a suspicion.*** `06`'s
+row is now **unplaced**.
+
+⚠ **What 12 must say out loud, and this is the cost of the answer rather than a footnote to it: import is
+priced but NOT EMBODIED.** 12 makes import real as `adr/0045`'s rung 4 with `adr/0135`'s ceiling — and
+with no freight it arrives with **no Vehicle and no congestion**. `adr/0088` withdrew `CONTEXT.md`'s *"at
+the cost of longer hauls"* and put **your own traffic** in its place, so between 12 and freight **a
+distant gate costs nothing at all**. ***The thesis is inert at the milestone that first makes imports
+real***, accepted deliberately and for one milestone's reasons. **Do not read a 12-era city as evidence
+that gate placement is free.**
+
+**The alternative was taken seriously and refused on size**: 12 could ship gate-freight, but that is
+Vehicles, Stress under `adr/0007` and Trip Fates, landing on a milestone already carrying the District,
+the Provider, the tâtonnement and a new Ruleset — and it would be **gate-only**, because `adr/0134` gives
+one District per current world, so *between Districts* has nowhere to go.
+
+**The original entry:**
+
+### 6a. Does the `adr/0088` `min()` ship here? — *the question as first written*
 
 `min(declared ceiling, Segment capacity)` plus the **which-of-the-two-binds** readout, relocated from
 11 by [`0035`](0035-hinterlands-and-arrival-through-the-gate.md) decision 9 on the ground that *"the
