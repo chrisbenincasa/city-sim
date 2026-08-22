@@ -1357,17 +1357,67 @@ public static class WorldInvariants
                 continue;
             }
 
+            // The BUILT GROUND half is deliberately not asked here, and it used to be. The extent is
+            // derived on [districts] revisit_ticks, so between evaluations it describes the city as of
+            // the last one -- a Cell demolished mid-period keeps its membership until the next
+            // evaluation evicts it, which is measured rather than argued (plans/0003 queue item 16).
+            // Asking it of the world asserts the cadence never ran. It is asked where it is true, as a
+            // post-condition of the evaluation: Invariant.ADistrictCellNamesBuiltGroundWhenEvaluated.
+            report.Require(
+                world.Districts.Rows.IsValid(cells.District[slot]),
+                Invariant.ADistrictCellNamesALiveDistrict,
+                slot);
+        }
+    }
+
+    /// <summary>
+    /// Every <c>DistrictCell</c> the evaluation left standing names ground that holds a Building.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A POST-CONDITION and not a world invariant, and the difference is the whole of
+    /// <c>plans/0003</c> queue item 16.</b> <c>adr/0134</c> makes a District's extent *built Cells
+    /// only*, which is true of what an evaluation produces and false a Tick later — the extent is
+    /// derived on <c>[districts] revisit_ticks</c>, so a Building demolished mid-period leaves a
+    /// membership row standing until the next evaluation evicts it. ***Asking this of the world asserts
+    /// that the cadence never ran.***
+    /// </para>
+    /// <para>
+    /// <b>It is called from <c>DistrictWatershed.Evict</c>, immediately after the eviction it guards</b>
+    /// — which is the only thing standing between a demolished Cell and a membership row that outlives
+    /// every Building on it for ever. ⚠ <b>It lives here rather than in that file so a test can write
+    /// the violation and watch it fire</b>, which the eviction pass makes impossible from outside:
+    /// anything a test files over unbuilt ground is freed by that loop before this runs.
+    /// <see cref="DistrictPoolsAreOneLiveBinPerGood"/>'s shape and its reason.
+    /// </para>
+    /// <para>
+    /// ⚠ <b><c>O(extent)</c> on a path that is already <c>O(extent)</c></b>, so it adds no order to
+    /// anything — <c>02 §10</c>'s question about where a check may live, answered by frequency rather
+    /// than by build configuration.
+    /// </para>
+    /// </remarks>
+    /// <param name="world">The world whose extent has just been reconciled.</param>
+    /// <param name="report">Where a violation goes.</param>
+    internal static void DistrictExtentIsBuiltGround(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        Space.DistrictCellTable cells = world.DistrictCells;
+
+        for (int slot = 0; slot < cells.Rows.SlotCount; slot++)
+        {
+            if (!cells.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
             Cells east = cells.East[slot];
             Cells north = cells.North[slot];
 
             report.Require(
-                world.Districts.Rows.IsValid(cells.District[slot]),
-                Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround,
-                slot);
-
-            report.Require(
                 world.BuildingsInCells.Density(east, north) > 0,
-                Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround,
+                Invariant.ADistrictCellNamesBuiltGroundWhenEvaluated,
                 slot,
                 CellGrid.Index(east, north));
         }

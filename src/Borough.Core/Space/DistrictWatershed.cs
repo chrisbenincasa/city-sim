@@ -1,4 +1,5 @@
 using Borough.Core.Arithmetic;
+using Borough.Core.Invariants;
 using Borough.Core.Entities;
 using Borough.Core.Rules;
 using Borough.Core.Tables;
@@ -705,7 +706,7 @@ public static class DistrictWatershed
 
         // Pass 4: Cells that are no longer built leave every District, and then a District nothing
         // claims goes. In that order, because a Cell row holds a handle to the row it names.
-        Evict(cells, residency, basins);
+        Evict(world, cells, residency, basins);
 
         // Over `standing` rather than over SlotCount, which has grown: a District opened above is by
         // construction one somebody claimed, and indexing `dying` past its own length is what walking
@@ -783,7 +784,7 @@ public static class DistrictWatershed
 
     /// <summary>Frees the membership row of every Cell that no longer holds a Building.</summary>
     private static void Evict(
-        DistrictCellTable cells, DistrictResidency residency, Basins basins)
+        World world, DistrictCellTable cells, DistrictResidency residency, Basins basins)
     {
         for (int slot = cells.Rows.SlotCount - 1; slot >= 0; slot--)
         {
@@ -796,6 +797,14 @@ public static class DistrictWatershed
         }
 
         residency.Rebuild(cells);
+
+        // The post-condition, asked HERE because here is where it is true. adr/0134 makes the extent
+        // built Cells only, and that is a statement about what an evaluation PRODUCES rather than about
+        // the world -- a Building comes down between evaluations and the row it leaves behind is the
+        // cadence working, not a defect. What it guards is the loop above: it is the only thing between
+        // a demolished Cell and a membership row that outlives every Building on it for ever, and a
+        // reconciliation reordered three mechanisms later would drop it in silence.
+        WorldInvariants.DistrictExtentIsBuiltGround(world, world.Invariants);
     }
 
     /// <summary>Files a Cell under a District for the first time.</summary>

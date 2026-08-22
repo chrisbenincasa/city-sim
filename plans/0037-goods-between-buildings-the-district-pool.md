@@ -1313,8 +1313,22 @@ file for longer than anything had**: reproduced at task 5's commit, in a detache
 under `[districts] migrate_cells`, and ***ground that stops being built is not a migration*** — there is
 no unconditional path that drops it. Routed to [`0003`](0003-build-plan.md) queue item **16** under
 [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
-and expressly not fixed here, because the two candidate fixes spend `migrate_cells` differently and
-***those are different cities.***
+and expressly not fixed inside task 6.
+✅ **SETTLED AND FIXED 2026-08-22 in a commit of its own, and NEITHER of the two candidate fixes was
+taken — because the code was right.** ⚠ **The filing above is wrong about the cause and the struck
+words are the correction.** ~~*there is no unconditional path that drops it*~~ — there is:
+`DistrictWatershed.Evict` frees every Cell the flood no longer covers, and it was working the whole
+time. **The extent is derived on `[districts] revisit_ticks`, so between two evaluations it describes
+the city as of the last one** — measured, a Cell demolished at Tick **1,152** keeps its membership until
+Tick **2,048**. ***The end-of-run check was asserting that the cadence had never run.*** It narrowed to
+the half that is true at all times and the built-ground half moved to a **post-condition of the
+evaluation**; the fix **moves no State Hash**, and a four-Day headless run reprints the panicking run's
+own Tick-6,144 hash to prove it. ⚠ **This is queue item 14's finding arriving on a second mechanism** —
+*a check is a description of the build, and a description can overstate*
+([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)) —
+and it arrived the same way: a committed test asserted the state the narrowed check now permits.
+🔴 ***Two mechanisms in three days had an invariant stated more strongly than the thing it watched***,
+and both were found by running something for longer than anything had.
 🔴 ⚠ **The finding behind the finding is that NOTHING IN THE SUITE RUNS THIS FILE.** The District tests
 build their worlds in code and evaluate once or twice by hand; no golden trace and no long run uses a
 Ruleset that states `[districts]`. ***The only shipped world with Districts in it had never been run for

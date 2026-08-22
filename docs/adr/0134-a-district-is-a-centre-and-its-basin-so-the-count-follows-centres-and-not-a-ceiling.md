@@ -139,6 +139,18 @@ resolve to.
   re-evaluation, for no capability*** (`plans/0037` **F11**). **Also shipped**: `DistrictCellTable`, one
   saved row per built Cell, which is where the extent actually lives — this bullet's *created and
   destroyed like any entity* is true of the centre and the extent is a second table.
+  ⚠ **AMENDED 2026-08-22 by `plans/0003` queue item 16: it is one saved row per built Cell AS OF THE
+  LAST EVALUATION**, and the four words are the whole correction. The extent is derived on
+  `revisit_ticks`, so a Building demolished mid-period leaves a membership row standing until the next
+  evaluation evicts it — measured at Tick 1,152 against a cadence of 2,048. ***A structure derived on a
+  cadence is stale between evaluations, and that is what a cadence is***; a Map Layer is stale between
+  diffusions and nobody calls that a defect. 🔴 **The reading without those four words was written into
+  an invariant and it panicked a three-Day run**, which is
+  [`adr/0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) arriving
+  inside a check. ⚠ **Evicting at the demolition site was considered and refused**: a Cell that *gains*
+  its first Building also waits for the cadence, so instant removal against cadenced addition is an
+  asymmetry with nothing behind it — and it would leave `revisit_ticks` doing something other than what
+  this ADR says it does.
 - 🔴 **Four hash-bearing numbers arrive unset and owe `plans/0002` §D2 rows**
   ([`adr/0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)): the
   **prominence threshold**, the **hysteresis band**, the **re-evaluation cadence with its per-evaluation

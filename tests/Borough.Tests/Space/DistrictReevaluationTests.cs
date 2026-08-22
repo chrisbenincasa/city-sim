@@ -668,7 +668,7 @@ public sealed class DistrictReevaluationTests
         Assert.DoesNotContain(
             world.Invariants.Collected,
             violation =>
-                violation.Invariant == Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround);
+                violation.Invariant == Invariant.ADistrictCellNamesALiveDistrict);
 
         // Freed behind the membership's back, which is exactly what a reconciliation that released
         // things in the wrong order would leave.
@@ -679,28 +679,44 @@ public sealed class DistrictReevaluationTests
         Assert.Contains(
             world.Invariants.Collected,
             violation =>
-                violation.Invariant == Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround);
+                violation.Invariant == Invariant.ADistrictCellNamesALiveDistrict);
     }
 
-    /// <summary>A membership row over ground that no longer holds a Building is reported.</summary>
+    /// <summary>
+    /// A demolition leaves the extent naming unbuilt ground, and that is the cadence rather than a
+    /// violation.
+    /// </summary>
     /// <remarks>
-    /// <b>Not redundant with the half above.</b> Such a row names a live District perfectly well; what
-    /// is wrong with it is that it puts <em>empty ground</em> inside a Pool, and a Pool over ground
-    /// nothing stands on is the abstraction <c>adr/0013</c> is a lie without rather than a
-    /// simplification.
+    /// <para>
+    /// 🔴 <b>THIS TEST USED TO ASSERT THE OPPOSITE, and it was wrong.</b> <c>plans/0003</c> queue item
+    /// 16: a three-Day headless run of <c>rulesets/twinned.toml</c> panicked on the end-of-run walk,
+    /// because the extent is derived on <c>[districts] revisit_ticks</c> and ***between two evaluations
+    /// it describes the city as of the last one.*** Measured: a Cell demolished at Tick 1,152 keeps its
+    /// membership until Tick 2,048, and the eviction then clears it. **The mechanism was right and the
+    /// sentence describing it was too strong.**
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The tempting repair — evict at the demolition site — was refused, and the reason is
+    /// symmetry.</b> A Cell that <em>gains</em> its first Building also waits for the cadence to join a
+    /// District, so making removal instant while addition stays cadenced is an asymmetry with nothing
+    /// behind it. ***A structure derived on a cadence is stale between evaluations, and that is what a
+    /// cadence IS.***
+    /// </para>
+    /// <para>
+    /// <b>The property that was removed still holds where it is true</b> — see
+    /// <see cref="Re_evaluating_clears_the_membership_a_demolition_stranded"/>, which is the same
+    /// fixture run one evaluation further on.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void A_membership_row_over_unbuilt_ground_is_reported()
+    public void A_demolition_leaves_the_extent_stale_and_that_is_not_a_violation()
     {
         World world = Ridge();
 
         world.Invariants.Collect = true;
         WorldInvariants.DistrictMembershipNamesLiveDistrictsAndBuiltGround(world, world.Invariants);
 
-        Assert.DoesNotContain(
-            world.Invariants.Collected,
-            violation =>
-                violation.Invariant == Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround);
+        Assert.Empty(world.Invariants.Collected);
 
         int block = world.Rules.Roads.BlockTiles;
 
@@ -708,16 +724,49 @@ public sealed class DistrictReevaluationTests
 
         WorldInvariants.DistrictMembershipNamesLiveDistrictsAndBuiltGround(world, world.Invariants);
 
+        Assert.DoesNotContain(
+            world.Invariants.Collected,
+            violation =>
+                violation.Invariant == Invariant.ADistrictCellNamesALiveDistrict);
+    }
+
+    /// <summary>The evaluation's post-condition fires when the extent names unbuilt ground.</summary>
+    /// <remarks>
+    /// <b>Every diagnostic ships with a test that writes the violation and watches it fire</b>, and
+    /// this one has to be written by hand: the eviction pass frees anything filed over unbuilt ground
+    /// before the check runs, so the violation cannot be reached through
+    /// <c>World.EvaluateDistricts</c>. ***A post-condition that is unreachable from outside its own
+    /// pass is a post-condition that has to be called directly***, which is why it lives on
+    /// <c>WorldInvariants</c> rather than inside <c>DistrictWatershed</c>.
+    /// </remarks>
+    [Fact]
+    public void The_evaluations_post_condition_reports_a_membership_row_over_unbuilt_ground()
+    {
+        World world = Ridge();
+
+        world.Invariants.Collect = true;
+        WorldInvariants.DistrictExtentIsBuiltGround(world, world.Invariants);
+
+        Assert.Empty(world.Invariants.Collected);
+
+        int block = world.Rules.Roads.BlockTiles;
+
+        Demolish(world, east => east.Raw >= (LastCell * block));
+
+        WorldInvariants.DistrictExtentIsBuiltGround(world, world.Invariants);
+
         Assert.Contains(
             world.Invariants.Collected,
             violation =>
-                violation.Invariant == Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround);
+                violation.Invariant == Invariant.ADistrictCellNamesBuiltGroundWhenEvaluated);
     }
 
-    /// <summary>A re-evaluation clears the violation demolition created.</summary>
+    /// <summary>A re-evaluation clears the stale membership a demolition left.</summary>
     /// <remarks>
-    /// <b>The invariant is a claim about the reconciliation, so it has to be run on both sides of
-    /// one.</b> Reporting a violation a mechanism never repairs would be a check nobody could act on.
+    /// <b>The claim is about the reconciliation, so it has to be run on both sides of one.</b> A
+    /// staleness no mechanism ever repairs would be a leak rather than a cadence, and this is what
+    /// tells the two apart. ⚠ <b><c>EvaluateDistricts</c> asserts the post-condition internally</b>, so
+    /// this test would throw before reaching its assertion if the eviction were ever dropped.
     /// </remarks>
     [Fact]
     public void Re_evaluating_clears_the_membership_a_demolition_stranded()
@@ -736,6 +785,51 @@ public sealed class DistrictReevaluationTests
         Assert.DoesNotContain(
             world.Invariants.Collected,
             violation =>
-                violation.Invariant == Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround);
+                violation.Invariant == Invariant.ADistrictCellNamesALiveDistrict);
+
+        WorldInvariants.DistrictExtentIsBuiltGround(world, world.Invariants);
+
+        Assert.Empty(world.Invariants.Collected);
+    }
+
+    /// <summary>
+    /// The only shipped world with Districts in it survives three Days of its own cadence.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>THE REGRESSION TEST FOR <c>plans/0003</c> QUEUE ITEM 16, and the finding behind that item
+    /// is that nothing in this repository did this.</b> Every other test in this file builds its world
+    /// in code and evaluates once or twice by hand; no golden trace and no long run uses a Ruleset that
+    /// states <c>[districts]</c>. ***The only shipped world with Districts in it had never been run for
+    /// two Days***, and one headless invocation found what four tasks of tests did not.
+    /// </para>
+    /// <para>
+    /// <b>Three Days rather than two, because two only reaches the first re-evaluation.</b> The defect
+    /// appeared between the first and the second — a Building demolished at Tick 1,152 against a
+    /// cadence of 2,048 — so a run that stopped at 2,048 was clean and said nothing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It asserts no number and that is deliberate.</b> What it is for is that the Tick loop
+    /// completes: <c>Simulation.Step</c> runs the end-of-run invariants through
+    /// <c>CheckEndOfRun</c> and the evaluation runs its post-condition internally, so both throw rather
+    /// than return a value this test would have to compare. ***A test whose assertion is that nothing
+    /// threw is the right shape when the thing under test is a panic.***
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_shipped_district_world_survives_three_days_of_its_own_cadence()
+    {
+        World world = Populated(Rules("twinned.toml"), 2_000);
+
+        var simulation = new Simulation(world, Key);
+
+        for (int tick = 0; tick < 3 * Ticks.PerDay; tick++)
+        {
+            simulation.Step(default);
+        }
+
+        world.Invariants.RunEndOfRun(world);
+
+        Assert.Equal((ulong)(3 * Ticks.PerDay), world.Tick.Raw);
     }
 }

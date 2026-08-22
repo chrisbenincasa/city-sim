@@ -878,7 +878,7 @@ public enum Invariant
     OnlyAnUnhousedHouseholdGivesUp = 49,
 
     /// <summary>
-    /// A <c>DistrictCell</c> names a District that is not live, or a Cell that holds no Building.
+    /// A <c>DistrictCell</c> names a District that is not live.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -896,9 +896,28 @@ public enum Invariant
     /// mechanisms later.
     /// </para>
     /// <para>
-    /// ⚠ <b>The second half is not redundant with the first.</b> A Cell that stopped holding Buildings
-    /// and kept its membership row is not dangling — it names a live District perfectly well — and it
-    /// would put empty ground inside a Pool, which is the abstraction <c>adr/0013</c> is a lie without.
+    /// 🔴 <b>IT HAD A SECOND HALF — <em>and a Cell that holds a Building</em> — AND THAT HALF WAS
+    /// WRONG HERE.</b> Narrowed 2026-08-22 by <c>plans/0003</c> queue item 16, which was filed when a
+    /// three-Day headless run of <c>rulesets/twinned.toml</c> panicked on it. The extent is derived on
+    /// <c>[districts] revisit_ticks</c>, so ***between two evaluations it describes the city as of the
+    /// last one*** — a Cell demolished at Tick 1,152 keeps its membership until Tick 2,048, measured,
+    /// and the eviction then clears it. **The mechanism was right and the sentence describing it was
+    /// too strong**, which is <see cref="WaiterIsBlockedByTheBinItNames"/>'s finding arriving on a
+    /// second mechanism: a check is a description of the build, and a description can overstate.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The tempting repair — evict at the demolition site — was refused, and the reason is
+    /// symmetry.</b> A Cell that <em>gains</em> its first Building also waits for the cadence to join a
+    /// District. Making removal instant while addition stays cadenced is an asymmetry with no argument
+    /// behind it, and it would leave <c>[districts] revisit_ticks</c> doing something other than what
+    /// <c>adr/0134</c> says it does. ***A structure derived on a cadence is stale between evaluations,
+    /// and that is what a cadence IS*** — a Map Layer is stale between diffusions and nobody calls that
+    /// a defect.
+    /// </para>
+    /// <para>
+    /// <b>The half that was removed still holds where it is true</b>, and is asserted there instead:
+    /// <see cref="ADistrictCellNamesBuiltGroundWhenEvaluated"/>, a post-condition of the evaluation
+    /// rather than a property of the world.
     /// </para>
     /// <para>
     /// ⚠ <b>The <em>dangling</em> half overlaps <see cref="CrossTableHandleResolves"/> and is kept
@@ -910,7 +929,36 @@ public enum Invariant
     /// wants to see this member fire calls it directly rather than through the registry.
     /// </para>
     /// </remarks>
-    ADistrictCellNamesALiveDistrictAndBuiltGround = 50,
+    ADistrictCellNamesALiveDistrict = 50,
+
+    /// <summary>
+    /// The evaluation left a <c>DistrictCell</c> naming ground that holds no Building.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A post-condition of <c>DistrictWatershed.Evaluate</c>, and it is deliberately not a property
+    /// of the world</b> (<c>adr/0134</c>, <c>plans/0003</c> queue item 16). <c>adr/0134</c> makes a
+    /// District's extent **built Cells only**, and that is true of what an evaluation produces — it is
+    /// not true a Tick later, because Buildings come down between evaluations and the extent is derived
+    /// on a cadence. ***So the honest place to ask is immediately after the answer is computed***, which
+    /// is where this is asked.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What it guards is the eviction pass, and that pass is easy to lose.</b>
+    /// <c>DistrictWatershed.Evict</c> frees every Cell row the flood no longer covers, and it is the
+    /// only thing standing between a demolished Cell and a membership row that outlives every Building
+    /// on it for ever. A reconciliation reordered three mechanisms later would drop it silently —
+    /// <see cref="ADistrictCellNamesALiveDistrict"/>'s own *right when written and wrong three
+    /// mechanisms later*, which is why that member exists and why this one does.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It is <c>O(extent)</c> on a path that is already <c>O(extent)</c></b>, so it is free in the
+    /// sense <c>02 §10</c> cares about — it does not add an order to anything. It is not an end-of-run
+    /// check and must not be moved to one, because ***the thing that would make it fail there is the
+    /// cadence working.***
+    /// </para>
+    /// </remarks>
+    ADistrictCellNamesBuiltGroundWhenEvaluated = 53,
 
     /// <summary>
     /// A District that is destroyed either hands its Pool to an heir or hands over nothing.
@@ -943,7 +991,7 @@ public enum Invariant
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Two halves and one id, on <see cref="ADistrictCellNamesALiveDistrictAndBuiltGround"/>'s
+    /// <b>Two halves and one id, on <see cref="ADistrictCellNamesALiveDistrict"/>'s
     /// reasoning</b>: they are the same sentence read from either end, and a violation of one is
     /// diagnosed by looking at the other.
     /// </para>
