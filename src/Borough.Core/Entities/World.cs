@@ -270,6 +270,16 @@ public sealed class World
             // moves no row relative to another, and the version byte above is deliberately NOT
             // bumped -- this is new state, so the baselines move because the world moved.
             CarParks.Rows,
+
+            // Appended for the same reason, milestone 24 task 2. adr/0157: the terrain type column is
+            // (saved AND hashed), and it is the ONE table here whose rows are all allocated in its
+            // constructor and never freed -- so its contribution to Rows.Fold's allocator scalars is
+            // a constant, and what moves the hash is the column. The TreasuryTable note above says a
+            // constant is not a reason to ADD a table; this one is here because its column is state
+            // no snapshot can re-derive without the WorldKey, which a save does not carry back into
+            // the generator. Appending stays the one edit to this list that moves no row relative to
+            // another.
+            Layers.Terrain.Rows,
         ];
 
         WorldInvariants.RegisterAll(Invariants);

@@ -98,6 +98,7 @@ public sealed class MapLayers
     private const int InitialCapacity = 1_024;
 
     private readonly LayerCellTable _cells;
+    private readonly TerrainCellTable _terrain;
     private readonly CellResidency _residency = new();
 
     /// <summary>Scratch for the land value pass. Rebuilt each pass; never saved, never hashed.</summary>
@@ -110,6 +111,7 @@ public sealed class MapLayers
     public MapLayers(LayerRuleset ruleset)
     {
         _cells = new LayerCellTable(InitialCapacity);
+        _terrain = new TerrainCellTable();
         _ruleset = ruleset;
         PollutionKernel = LayerKernels.IndustrialPollution(ruleset.Constants);
     }
@@ -119,6 +121,17 @@ public sealed class MapLayers
 
     /// <summary>Which slot holds which Cell.</summary>
     public CellResidency Residency => _residency;
+
+    /// <summary>
+    /// What sort of ground every Cell is. <b>Dense, and it has no residency index.</b>
+    /// </summary>
+    /// <remarks>
+    /// Here rather than on the <c>World</c> because <see cref="Fertility"/> is the term that reads it
+    /// and Fertility composes here. ⚠ <b>It is not a Map Layer</b> — nothing diffuses it, nothing
+    /// schedules it and <see cref="Step"/> never touches it. It shares this class for the reason
+    /// <see cref="LayerCellTable.Sealing"/> does: this is where per-Cell ground lives.
+    /// </remarks>
+    public TerrainCellTable Terrain => _terrain;
 
     /// <summary>The cadence and rates this world reads its Layers with.</summary>
     public LayerRuleset Ruleset => _ruleset;

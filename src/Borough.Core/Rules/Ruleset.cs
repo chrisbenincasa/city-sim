@@ -2201,6 +2201,20 @@ public sealed class Ruleset
     public ParkingRuleset Parking { get; init; } = ParkingRuleset.None;
 
     /// <summary>
+    /// <b>What each sort of ground is worth before anything is built on it</b> — the
+    /// <c>[[terrain]]</c> tables (milestone 24 task 2).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="TerrainRuleset.None"/> when the file states no <c>[[terrain]]</c>. ⚠ <b>That is a
+    /// Ruleset declining to price its ground and never a world without terrain in it</b> — the
+    /// polarity is unlike <see cref="Parking"/>'s, and deliberately: every world has ground
+    /// (<c>adr/0021</c>), so the per-Cell type column is written from the <c>WorldKey</c> whatever
+    /// this says. What absence removes is the <em>lookup</em>, and
+    /// <see cref="TerrainRuleset.BaseFertility"/> throws rather than returning zero for it.
+    /// </remarks>
+    public TerrainRuleset Terrain { get; init; } = TerrainRuleset.None;
+
+    /// <summary>
     /// <b>What a Segment costs to drive when other people are on it</b> — the <c>[traffic]</c> table
     /// (5c task 6).
     /// </summary>
@@ -2474,6 +2488,7 @@ public sealed class Ruleset
             Households = Households,
             Traffic = Traffic,
             Parking = Parking,
+            Terrain = Terrain,
             Policies = Policies,
             Hinterlands = Hinterlands,
             HinterlandPrices = HinterlandPrices,

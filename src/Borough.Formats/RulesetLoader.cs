@@ -128,6 +128,7 @@ public static class RulesetLoader
         private readonly List<TableSyntaxBase> _policyTables = [];
         private readonly List<TableSyntaxBase> _hinterlandTables = [];
         private readonly List<TableSyntaxBase> _latticeTables = [];
+        private readonly List<TableSyntaxBase> _terrainTables = [];
 
         private TableSyntaxBase? _layersTable;
         private TableSyntaxBase? _placementTable;
@@ -189,6 +190,7 @@ public static class RulesetLoader
             HouseholdRuleset households = ReadHouseholds();
             TrafficRuleset traffic = ReadTraffic();
             ParkingRuleset parking = ReadParking();
+            TerrainRuleset terrain = ReadTerrain();
             DistrictRuleset districts = ReadDistricts();
             MarketRuleset market = ReadMarket();
 
@@ -244,6 +246,7 @@ public static class RulesetLoader
                     Hinterlands = hinterlands,
                     HinterlandPrices = hinterlandPrices,
                     Parking = parking,
+                    Terrain = terrain,
                     Districts = districts,
                     Market = market,
                     ResourceKeys = Keys(_resources),
@@ -434,6 +437,15 @@ public static class RulesetLoader
                         _latticeTables.Add(table);
                         break;
 
+                    case "terrain":
+                        // Not registered into a name table, on [[lattice]]'s reasoning: nothing in a
+                        // Ruleset refers to a terrain type by name. The name here selects a member of
+                        // a CLOSED enum rather than declaring one -- TerrainKind ships five and a
+                        // file cannot add a sixth -- so an unknown name and a duplicate name are both
+                        // refused in ReadTerrain, where the set to check against is in scope.
+                        _terrainTables.Add(table);
+                        break;
+
                     case "parking":
                         // Singular and optional, on [traffic]' reasoning exactly.
                         if (_parkingTable is not null)
@@ -483,9 +495,9 @@ public static class RulesetLoader
                         Refuse(LineOf(table), null,
                             $"'{section}' is not a Ruleset section. The sections are "
                             + "[[resource]], [[building]], [[rule]], [[zone_rule]], [[policy]], "
-                            + "[[hinterland]], [[lattice]], [layers], [placement], [roads], [lots], "
-                            + "[trips], [jobs], [households], [traffic], [parking], "
-                            + "[districts] and [market].");
+                            + "[[hinterland]], [[lattice]], [[terrain]], [layers], [placement], "
+                            + "[roads], [lots], [trips], [jobs], [households], [traffic], "
+                            + "[parking], [districts] and [market].");
                         break;
                 }
             }
@@ -3725,6 +3737,163 @@ public static class RulesetLoader
         /// <summary>The line a <c>[parking]</c> key is on, or the table's.</summary>
         private int LineOfParking(string key) =>
             LineOf((SyntaxNodeBase?)Find(_parkingTable!, key) ?? _parkingTable!);
+
+        // ---- terrain ----------------------------------------------------------------------------
+
+        /// <summary>
+        /// The <c>[[terrain]]</c> tables: what each sort of ground is worth before anything is built.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>adr/0157</c>, milestone 24 task 2. <b>Optional as a set and all-or-nothing within it</b>
+        /// — a file states five <c>[[terrain]]</c> tables or none. Absence is
+        /// <see cref="TerrainRuleset.None"/>, a Ruleset declining to price its ground, and never a
+        /// world without terrain in it: <b>the type column is written from the <c>WorldKey</c>
+        /// either way</b> (<c>adr/0021</c>).
+        /// </para>
+        /// <para>
+        /// <b>Plural and array-of-tables rather than one <c>[terrain]</c> with five keys</b>, on
+        /// <c>[[hinterland]]</c>'s shape: the row is per member of a set, so the file names the member
+        /// it is pricing. It also makes the all-five check a count rather than five key lookups, and
+        /// gives a missing type a line number of its own to be reported against.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A missing type is refused rather than defaulted, and <see cref="TerrainRuleset.Kinds"/>
+        /// carries the argument</b>: the generator places all five whatever the file says, so an
+        /// unstated type would be ground the world contains and the file prices at zero — a silent
+        /// sterile band rather than an error.
+        /// </para>
+        /// </remarks>
+        private TerrainRuleset ReadTerrain()
+        {
+            if (_terrainTables.Count == 0)
+            {
+                return TerrainRuleset.None;
+            }
+
+            // Sentinel rather than zero, because zero is a Base Fertility a file may legitimately
+            // state: adr/0022's scale runs from barren to fully fertile and the bottom of it means
+            // something. A stated-ness flag per type would be the same fact in a second array.
+            const int Unstated = -1;
+
+            var fertilities = new int[TerrainRuleset.Kinds];
+            Array.Fill(fertilities, Unstated);
+
+            foreach (TableSyntaxBase table in _terrainTables)
+            {
+                if (!TryString(table, "name", out string? name, required: true)
+                    || !TryTerrainKind(table, name!, out TerrainKind kind))
+                {
+                    continue;
+                }
+
+                if (fertilities[(int)kind] != Unstated)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "name") ?? table), null,
+                        $"a second [[terrain]] is declared for '{name}'. A terrain type has one Base "
+                        + "Fertility, shared by every Cell of that ground, so two tables for one type "
+                        + "is ambiguous rather than additive -- there is no rule saying which of them "
+                        + "a Cell reads.");
+
+                    continue;
+                }
+
+                if (!TryInteger(table, "base_fertility_percent", out long percent, required: true))
+                {
+                    continue;
+                }
+
+                // Refused above 100 and not clamped. adr/0155 makes 1.0 mean FULLY fertile, so the
+                // top of the scale is the scale's own rather than a chosen bound -- and Fertility
+                // composes as a proportion against it. A file above the top is not a very good field;
+                // it is a file whose author believes the units are something else.
+                if (percent is < 0 or > 100)
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "base_fertility_percent") ?? table),
+                        null,
+                        $"base_fertility_percent is {percent} for '{name}'. It is the ceiling this "
+                        + "ground's Fertility starts at, as a percentage of fully fertile, so the "
+                        + "scale runs 0 to 100 and 100 is its top rather than a tuning choice "
+                        + "(adr/0155).");
+
+                    continue;
+                }
+
+                fertilities[(int)kind] = IntegerMath.RoundDiv(Fixed.FromInt((int)percent), 100);
+            }
+
+            // Reported per missing type rather than as one "some are missing", because the file's
+            // author has to find each one anyway and a count names none of them. Against the table
+            // the file DID state, since a set with a hole in it has no line of its own.
+            bool complete = true;
+
+            for (int kind = 0; kind < fertilities.Length; kind++)
+            {
+                if (fertilities[kind] != Unstated)
+                {
+                    continue;
+                }
+
+                complete = false;
+
+                Refuse(LineOf(_terrainTables[0]), null,
+                    $"no [[terrain]] states '{SpellingOfTerrain((TerrainKind)kind)}'. A file that "
+                    + "prices its ground prices all of it: the generator places every terrain type "
+                    + "from the WorldKey whatever this file says, so an unstated one is ground the "
+                    + "world contains and this file values at nothing (adr/0157).");
+            }
+
+            if (!complete || _refusals.Count > 0)
+            {
+                return TerrainRuleset.None;
+            }
+
+            return TerrainRuleset.From(
+                fertilities[(int)TerrainKind.Ordinary],
+                fertilities[(int)TerrainKind.Rock],
+                fertilities[(int)TerrainKind.Floodplain],
+                fertilities[(int)TerrainKind.Marsh],
+                fertilities[(int)TerrainKind.ThinSoil]);
+        }
+
+        /// <summary>Resolves a <c>[[terrain]]</c> <c>name</c> to its <see cref="TerrainKind"/>.</summary>
+        /// <remarks>
+        /// <b>The set is closed and a file cannot extend it</b>, which is what separates this from
+        /// every other <c>name</c> the loader reads: a <c>[[resource]]</c> name declares a Resource,
+        /// and this one selects ground the generator already places. <c>adr/0157</c>.
+        /// </remarks>
+        private bool TryTerrainKind(TableSyntaxBase table, string name, out TerrainKind kind)
+        {
+            switch (name)
+            {
+                case "ordinary": kind = TerrainKind.Ordinary; return true;
+                case "rock": kind = TerrainKind.Rock; return true;
+                case "floodplain": kind = TerrainKind.Floodplain; return true;
+                case "marsh": kind = TerrainKind.Marsh; return true;
+                case "thin_soil": kind = TerrainKind.ThinSoil; return true;
+
+                default:
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "name") ?? table), null,
+                        $"'{name}' is not a terrain type. The types are 'ordinary', 'rock', "
+                        + "'floodplain', 'marsh' and 'thin_soil', and a Ruleset selects among them "
+                        + "rather than declaring one -- the generator places the five it knows "
+                        + "(adr/0157).");
+
+                    kind = default;
+                    return false;
+            }
+        }
+
+        /// <summary>How a <see cref="TerrainKind"/> is spelled in a Ruleset.</summary>
+        private static string SpellingOfTerrain(TerrainKind kind) => kind switch
+        {
+            TerrainKind.Ordinary => "ordinary",
+            TerrainKind.Rock => "rock",
+            TerrainKind.Floodplain => "floodplain",
+            TerrainKind.Marsh => "marsh",
+            TerrainKind.ThinSoil => "thin_soil",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
 
         private DistrictRuleset ReadDistricts()
         {
