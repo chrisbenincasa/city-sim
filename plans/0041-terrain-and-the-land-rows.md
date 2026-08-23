@@ -738,14 +738,47 @@ naming because neither was predicted:
   table starting to draw fails it — which the hash comparison could no longer do at all.
   ***A test whose claim a decision falsifies is narrowed to what still holds, never deleted.***
 
-⚠ **One cost is OWED rather than measured, and it is named here so it is not lost.** The assertion tier
-read **4m12s** after this task against a handoff's *~3m* before it — but every reading in this session
-was taken while a second session ran the full suite on the same machine, so **the comparison is
-between two contended numbers and settles nothing**. Two candidate causes exist and neither has been
-separated: `TerrainCellTable` allocates 262,144 rows in **every** `new World`, populated or not, and
-`TerrainGenerator.LayInto` costs **13–22 ms** per `PopulateInto`. ***A quiet machine would settle it in
-one reading***; until somebody takes one, the tier's cost is unknown rather than raised, and it is
-`plans/0013`'s row to open when it is.
+🔴 **MEASURED 2026-08-23 ON A QUIET MACHINE, and the tier really did move: 3m11s → 4m19s.** Same box,
+same command, `b0d0905` against `978e682`, with nothing else running in this repository —
+**+68 seconds** for **+35 tests**. ⚠ **The contended pair that preceded it (4m12s) was within noise of
+the quiet reading**, so ***contention was never the cause and the earlier hedge was hedging the wrong
+variable.***
+
+🔴 **AND BOTH PREDICTED CAUSES WERE WRONG, which is why this is a finding and not a line in a table.**
+`TerrainCellTable`'s constructor allocates its 262,144 rows in **1.9 ms**, and
+`TerrainGenerator.LayInto` costs **9.9 ms** — per *world*, and the suite does not make six thousand
+worlds. ***Two plausible stories were priced and neither could pay the bill***, which is `adr/0043`
+arriving at a performance claim: the likelier story is not the measurement.
+
+🔴 **THE COST IS THE FOLD, AND IT IS PAID PER TICK.** `Simulation.VerifyDecideWritesNothing` is **on
+by default** and folds the whole world **twice a Tick**. Measured on `minimal.toml` at 1,000 Citizens
+(`TerrainFoldCostTests`):
+
+| | |
+|---|---|
+| the terrain table's fold alone | **1.89 ms** |
+| a whole-world fold, terrain included | **2.08 ms** |
+| **one Tick, decide-guard ON** (the default) | **4.14 ms** |
+| **one Tick, decide-guard OFF** | **0.03 ms** |
+
+***Terrain is now ninety per cent of what a fold walks***, and the guard walks it twice a Tick, so a
+Tick under the guard is **138×** a Tick without it.
+
+⚠ **This is the hazard `CLAUDE.md` already records, arriving from a third direction.** That file warns
+that a full-world fold on `bordered.toml` is ~19 ms and that the guard makes a run on it *~75× slower
+and says nothing* — **because that file paves the lattice to the boundary and makes the LAYER table
+dense**. F7 hit the same wire by giving Sealing a write path. **This makes a *terrain* table dense in
+every world, so the warning that was a property of one shipped file is now a property of all of them.**
+***A caveat attached to one Ruleset did not travel, because the thing it was about was never the
+Ruleset.***
+
+⚠ **It is a GUARD's cost and not the city's, and the distinction is the whole of what to do next.**
+Nothing in a Tick writes the terrain column — there is no terraforming — so ***the guard folds, twice
+a Tick, a table that cannot have changed***. The real State Hash must keep folding it, because that is
+the coverage guarantee `05 §4` rests on; what is arguable is whether the *guard* must. **That is a
+decision about `Simulation` and not about terrain**, so it is routed rather than worked around here
+(`adr/0073`): the cost rows are in [`0013`](0013-tick-budget.md) and the question is
+[`0002`](0002-open-questions.md) §C's neighbour rather than this task's to settle.
 
 ### F4 — the milestone's central term was named in six documents and defined in none, and the missing definition was load-bearing
 

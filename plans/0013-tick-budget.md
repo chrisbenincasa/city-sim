@@ -98,6 +98,9 @@ the durable half of the document.
 | **Pollution diffusion**, one Cell dirty | **31.6 µs** | — | `MapLayerBenchmarks` |
 | **Pollution diffusion**, whole map | **1.01 ms** | — | as above |
 | One **State Hash** at 1M | **32.47 ms** | — | [S0a](../docs/spike-results.md) |
+| **The terrain table's fold**, whole map | **1.89 ms** | — | `TerrainFoldCostTests`, milestone 24 task 2 |
+| **A whole-world fold** on `minimal.toml` at 1,000 Citizens, **with terrain** | **2.08 ms** | — | as above |
+| 🔴 ⚠️ **One Tick with `VerifyDecideWritesNothing` ON** — the default — on `minimal.toml` at 1,000 Citizens | 🔴 **4.14 ms against 0.03 ms with it off: 138×** | — | as above. ⚠️ **This is a GUARD's cost and not the city's**, and it must never be quoted as a Tick cost |
 | **One routing worst Tick** at 16 Trip starts | **~9.4–10.5 ms** (published as 10.37) | — | [S2 R5](../docs/spike-results.md), five pinned captures |
 | ⚠️ **One Parking Shed query** at the shipped 400 m radius | ⚠️ **6.40 µs — PROVISIONAL, do not quote** | — | `ParkingArrivalStreamTests`, milestone 7 task 4. **Taken on a machine running a second `Borough.Tests` host**, so it is an upper bound of unknown tightness rather than a reading. Re-take when the repository is quiet |
 | ⚠️ **Parking Shed, the worst Tick** at **64,000** Citizens | ⚠️ **1.58–1.63 ms — PROVISIONAL, do not quote** | ⚠️ **unknown, and the population is the point** — this is 64k against a budget denominated at 1M, so it may not be quoted as a share of a Tick until the same capture runs at the budget's own population | `ParkingArrivalStreamTests`, milestone 7 task 4. **Same contamination as the row above**, and it is derived from that row's µs figure, so the two are one reading and not two |
