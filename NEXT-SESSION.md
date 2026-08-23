@@ -21,7 +21,18 @@ You are picking up **milestone 24 task 2** in the `city-sim-q8` worktree, on bra
    onto `main` without checking for number collisions first. This branch owns **`adr/0150`–`0157`**
    and **`plans/0041`**; `0144`–`0149` were deliberately freed for that session. Read `plans/0012`'s
    final section — *the naming hazard recurred a fourth time* — before claiming any new number. The
-   next free ADR number for this branch is **`0158`**.
+   next free ADR number for this branch is **`0158`**. ✅ **Numbering is CONFIRMED clear from both
+   sides** as of 2026-08-23: that session checked, holds nothing at `0150`+, and says its next ADR
+   will be `0144`.
+
+   ⚠ **The MERGE SURFACE is not clear, and it is the thing to plan for.** `main` has moved on
+   (`4a05a92`, milestone 25 task 4) and it edits **`CONTEXT.md`, `docs/02-simulation-model.md`,
+   `plans/0000-board.md`, `plans/0003-build-plan.md`** and its own `plans/0040`. This branch edited
+   **`CONTEXT.md`, `plans/0000` and `plans/0003`** in `472a6dd`. ***Three files are edited on both
+   sides, so the next merge conflicts for real*** — which is the good case, because a conflict stops
+   somebody, and it is exactly what the number collision did not do. **Do not merge `main`
+   mid-task**: finish task 2, then merge deliberately with both branches' intent in hand.
+   `d84440e`'s commit message is the precedent for how that was done last time.
 
 ## Where the task stands
 

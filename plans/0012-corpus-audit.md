@@ -3582,10 +3582,29 @@ read the tree on 2026-08-22, found `plans/0040` free, claimed it, and took `adr/
 milestone-25 session then committed **a different `plans/0040`** and **a different `adr/0143`** directly
 to `main`. Both names existed, on different branches, naming different documents.
 
-🔴 **Git cannot see it and will not say so.** The two documents have *different filenames* — the number
-is a prefix and the claim is the rest — so a merge takes both, cleanly, and every `adr/0143` citation in
-the corpus silently acquires two referents. ***A collision that resolves as a clean merge is worse than
-a conflict, because a conflict stops somebody.***
+🔴 **Git cannot see it and will not say so, and the reason is sharper than *the filenames differ*.**
+***`git merge` treats the number as part of a FILENAME; a citation treats it as an IDENTITY.*** The two
+documents differ as names — the number is a prefix and the claim is the rest — so a merge takes both,
+cleanly, and every `adr/0143` citation in the corpus silently acquires two referents. **The tool that
+would catch the collision is looking at a different object from the one the corpus is.** That is why it
+merges clean, and it is why no amount of care with `git` finds it: ***the check is not weak, it is
+pointed elsewhere.***
+
+⚠ **This is the diagnosis rather than the symptom, and it says where a mechanical check would have to
+stand**: on the corpus's object, not on git's — something that reads the *set of numbers in use across
+every live branch* and asks whether one names two claims. **Nothing in `tests/Borough.Tests/Corpus/`
+can do it**, because all of those are document-to-document *within one checkout* and a collision only
+exists *between* them. ***The one failure this ledger keeps recording is the one its own machinery is
+structurally unable to see.***
+
+***A collision that resolves as a clean merge is worse than a conflict, because a conflict stops
+somebody.***
+
+⚠ **The paragraph above is not this session's and is credited rather than absorbed** — the
+milestone-25 session offered it on 2026-08-23 in reply to the note telling it which numbers had been
+freed. **The correction arrived because the two sessions talked**, which is the only channel that
+carried it: no document either of them could read would have produced it, since the fact lives in the
+*difference* between two branches.
 
 ✅ **Resolved by renumbering the milestone-24 branch**, 2026-08-23: `adr/0143`–`0149` → **`0150`–`0156`**,
 `plans/0040` → **`plans/0041`**, `0144`–`0149` left free. **One side moves, not both** — the branches
