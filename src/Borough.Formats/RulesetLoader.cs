@@ -171,7 +171,7 @@ public static class RulesetLoader
 
             RuleDefinition[] rules = ReadRules(out Term[] inputs, out Term[] outputs,
                 out MapEmission[] emissions);
-            KindDefinition[] kinds = ReadKinds(rules, out BinDeclaration[] bins,
+            KindDefinition[] kinds = ReadKinds(rules, inputs, outputs, out BinDeclaration[] bins,
                 out RuleId[] kindRules);
             ZoneRuleDefinition[] zoneRules = ReadZoneRules();
             PolicyDefinition[] policies = ReadPolicies();
@@ -987,7 +987,8 @@ public static class RulesetLoader
         // ---- building kinds -------------------------------------------------------------------
 
         private KindDefinition[] ReadKinds(
-            RuleDefinition[] rules, out BinDeclaration[] bins, out RuleId[] kindRules)
+            RuleDefinition[] rules, Term[] inputs, Term[] outputs,
+            out BinDeclaration[] bins, out RuleId[] kindRules)
         {
             var definitions = new KindDefinition[_kindTables.Count];
             List<BinDeclaration> allBins = [];
@@ -1012,6 +1013,12 @@ public static class RulesetLoader
 
                 int binFirst = allBins.Count;
                 ReadBins(table, name, allBins);
+
+                // Whose Rule each of this kind's Rules is, derived from the Bins just read. It runs
+                // here rather than in ReadRules because that pass has no kind to ask -- a Rule names
+                // its kind, and the kind names the Bins, so the answer only exists once both have
+                // been read.
+                ApplyTenancies(rules, inputs, outputs, allBins, binFirst, i);
 
                 // The kind's Rules are not declared on the kind: a Rule already names the kind it
                 // runs on, and a second list would be the same fact twice with nothing keeping the
@@ -1457,6 +1464,103 @@ public static class RulesetLoader
             return (int)revisit;
         }
 
+        /// <summary>
+        /// Stamps every Rule of one kind with whose Rule it is, and refuses one that cannot answer.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Derived from the Rule's own <c>local</c> terms and never authored</b> (<c>adr/0141</c>,
+        /// which declined to split a Rule from its Bins: <em>a Rule whose Bins all belong to a tenant
+        /// is a tenant's Rule wearing the premises' name</em>). An <c>owner</c> key on a
+        /// <c>[[rule]]</c> would state a second time what the terms already state, and two statements
+        /// of one fact drift.
+        /// </para>
+        /// <para>
+        /// <b><c>fills</c> counts as a term here, which is what makes a fallback chain answerable.</b>
+        /// <c>adr/0045</c> makes a chain a source ladder over <em>one</em> Bin, so a link that relieves
+        /// a tenant's Bin from a premises Bin is the mixed case arriving one link along — and it is
+        /// caught by the same comparison rather than needing a walk over the chain.
+        /// </para>
+        /// <para>
+        /// ⚠ <b>A <c>local</c> term naming a Resource the kind declares no Bin for reads as the
+        /// premises'</b>, because that is what it has always been. It is <em>also</em> a Rule that can
+        /// never fire, and nothing refuses it — filed as a finding rather than fixed here, since
+        /// refusing it is a change to what loads and not to what a tenancy is.
+        /// </para>
+        /// </remarks>
+        private void ApplyTenancies(
+            RuleDefinition[] rules,
+            Term[] inputs,
+            Term[] outputs,
+            List<BinDeclaration> bins,
+            int binFirst,
+            int kindIndex)
+        {
+            for (int r = 0; r < rules.Length; r++)
+            {
+                RuleDefinition rule = rules[r];
+
+                if (rule.Kind != kindIndex + 1)
+                {
+                    continue;
+                }
+
+                string? name = TryString(_ruleTables[r], "name", out string? found, required: false)
+                    ? found
+                    : null;
+
+                bool decided = false;
+                BinTenancy tenancy = BinTenancy.Premises;
+                int terms = rule.InputCount + rule.OutputCount + (rule.HasFills ? 1 : 0);
+
+                for (int t = 0; t < terms; t++)
+                {
+                    BinRef addressed =
+                        t < rule.InputCount
+                            ? inputs[rule.InputFirst + t].Bin
+                            : t < rule.InputCount + rule.OutputCount
+                                ? outputs[rule.OutputFirst + t - rule.InputCount].Bin
+                                : rule.Fills;
+
+                    if (addressed.Scope != Scope.Local)
+                    {
+                        continue;
+                    }
+
+                    BinTenancy holds = BinTenancy.Premises;
+
+                    for (int b = binFirst; b < bins.Count; b++)
+                    {
+                        if (bins[b].Resource == addressed.Resource)
+                        {
+                            holds = bins[b].Tenancy;
+                            break;
+                        }
+                    }
+
+                    if (!decided)
+                    {
+                        tenancy = holds;
+                        decided = true;
+                        continue;
+                    }
+
+                    if (holds != tenancy)
+                    {
+                        Refuse(LineOf(_ruleTables[r]), name,
+                            "this Rule's local terms address both the premises' Bins and the "
+                            + "Occupant's. A local term is free because the Bin already belongs to "
+                            + "whoever runs the Rule, so a Rule with two owners has no subject to "
+                            + "run on; a term crossing an ownership boundary is a trade, which is "
+                            + "scope = \"pool\".");
+                        break;
+                    }
+                }
+
+                rules[r] = rule with { Tenancy = tenancy };
+            }
+        }
+
         private void ReadBins(TableSyntaxBase table, string? kind, List<BinDeclaration> into)
         {
             KeyValueSyntax? entry = Find(table, "bins");
@@ -1538,7 +1642,12 @@ public static class RulesetLoader
                     continue;
                 }
 
-                into.Add(new BinDeclaration(resource, declared));
+                if (!TryTenancy(inline, kind, out BinTenancy tenancy))
+                {
+                    continue;
+                }
+
+                into.Add(new BinDeclaration(resource, declared, tenancy));
             }
         }
 
@@ -1837,6 +1946,46 @@ public static class RulesetLoader
                     Refuse(LineOf(inline), rule,
                         $"'{name}' is not a scope. The scopes are local, pool, global and map, and "
                         + "there is deliberately no proximity scope: movers choose, Rules transform.");
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Whose level a declared Bin holds. Absent means the premises', which is what every Ruleset
+        /// written before <c>adr/0141</c> already meant.
+        /// </summary>
+        /// <remarks>
+        /// <b>The key is <c>owner</c> and the values are <c>CONTEXT.md</c>'s two words for the two
+        /// sides of a tenancy</b>, so that a Ruleset says the thing the vocabulary says. A third
+        /// value is refused by name rather than defaulted: a Bin whose owner a designer meant to
+        /// state and mis-spelled would otherwise stay on the premises silently, and the symptom —
+        /// stock that does not follow a tenant out — is several milestones away from the typo.
+        /// </remarks>
+        private bool TryTenancy(InlineTableSyntax inline, string? kind, out BinTenancy tenancy)
+        {
+            tenancy = BinTenancy.Premises;
+
+            if (Find(inline, "owner") is null)
+            {
+                return true;
+            }
+
+            if (!TryString(inline, "owner", out string? name, required: true, kind))
+            {
+                return false;
+            }
+
+            switch (name)
+            {
+                case "premises": tenancy = BinTenancy.Premises; return true;
+                case "occupant": tenancy = BinTenancy.Occupant; return true;
+
+                default:
+                    Refuse(LineOf(inline), kind,
+                        $"'{name}' is not a Bin owner. The owners are premises and occupant, and the "
+                        + "test is whether the Bin empties when the tenant leaves: flour goes with "
+                        + "the baker, the roof does not. The premises declare the capacity either "
+                        + "way.");
                     return false;
             }
         }
