@@ -15,7 +15,7 @@ wrote down the target shape, and **the build never arrived.**
 
 ## Why it opened
 
-**Milestone 12 task 7 is the purchase, and a purchase needs a payer.** Money lives on a Business;
+**Milestone 12 task 7 — now milestone 26 — is the purchase, and a purchase needs a payer.** Money lives on a Business;
 `MoneyLedger` resolves `Treasury / Household / Business` and nothing else. A Rule Instance names a
 **Building**. A Building holds a **list** of Businesses. ***So the first money term a Rule fires has no
 actor to resolve to.***

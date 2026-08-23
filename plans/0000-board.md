@@ -200,7 +200,7 @@ parallelism names *nothing else running in this repository* as its first control
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **Milestone 12 — the District Pool.** Decomposed into ten tasks; **1 through 6 shipped 2026-08-22** — the two-centre world, the density field, the watershed, re-evaluation, the Pool Bins, and the price. **Task 7 is next: the purchase, and `Scope.Pool` stops throwing**, 🔴 **blocked on decision 10** | [`0037`](0037-goods-between-buildings-the-district-pool.md) | The ungated row at the head of the sequence, and **the only root with a consumer already in the build** |
+| **1** | code | 🔴 **Milestone 25 — the Business is the actor and the Building is premises.** Not started; **session V owns the scoping and it is OPEN**, so this row is *decide, then build*. ⚠ **Two contradictions inside the corpus have to be settled first**: which Bins belong to a tenant, and whether jobs are premises or employer. **Milestone 12 closed at task 6 on 2026-08-22** and its tasks 7–10 are milestone **26**, blocked on this | [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md) | **It blocks 26, which is milestone 12's own remainder** — a purchase needs a payer and the payer is what this builds |
 | **2** | spike | ⚠ **Do NOT delete `spikes/S2.Routing/`.** The 5a gate is discharged, but another session is doing research inside it, so it is live work. 51 tracked C# files, 29,719 lines | [`0010`](0010-s2-routing.md) → *R7* | ⚠ ***A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears*** |
 | **3** | spike | **S5 owes two captures** — the 4-thread Lane kernel rung, which is bimodal, and the canonical `performance` re-capture. 2 threads is settled at 1.84–1.93× | [`0019`](0019-s5-lane-kernel.md) | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare** |
 | **4** | code | **Hash-moving queue item 8** — a waiter whose own requirement falls is never re-checked. Filed unfixed | [`0003`](0003-build-plan.md) → *queue* | ***A live predicate with an event-driven trigger is only correct if every input to the predicate is an input to the trigger.*** Both repairs are design questions |
@@ -256,14 +256,14 @@ produced. **Open:** N, and what is open is task 5's residue. **Never opened:** G
 
 ### The argument track — a menu, not a queue
 
-~~**Nothing in it gates a slice.**~~ 🔴 **V DOES** — it blocks milestone 12 task 7 and it is milestone-sized. ⚠ **U also did, for one afternoon on 2026-08-22, and closed the same day**
+~~**Nothing in it gates a slice.**~~ 🔴 **V DOES** — it blocks milestone **26**, which is milestone 12's capped-off remainder, and it is milestone-sized. ⚠ **U also did, for one afternoon on 2026-08-22, and closed the same day**
 into [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
 — the standing rule working rather than failing: *an argument session runs when something concrete is
 blocked on it.* Take from the three below when something is waiting and leave them alone otherwise. **Closed sessions are in [`0000a`](0000a-board-archive.md).**
 
 | | Session | What is missing | Unblocks |
 |---|---|---|---|
-| 🔴 **V** | **The Business is the actor and the Building is premises**, [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md) | ⚠ **On its main axis a CORRECTION and not a design change** — `adr/0113` decided it, `adr/0114` wrote the target shape, and the build never arrived. 🔴 **Two places the corpus contradicts itself are the real work**: which Bins belong to a tenant, and whether jobs are premises or employer. | milestone **12** task 7 |
+| 🔴 **V** | **The Business is the actor and the Building is premises**, [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md) | ⚠ **On its main axis a CORRECTION and not a design change** — `adr/0113` decided it, `adr/0114` wrote the target shape, and the build never arrived. 🔴 **Two places the corpus contradicts itself are the real work**: which Bins belong to a tenant, and whether jobs are premises or employer. | milestone **25**, and **26** behind it |
 | **G** | `adr/0016` — the lane is the entity | Carries the order-of-magnitude claim the whole microscopic tier rests on. ⚠ **Partly discharged by S5** | milestone **21** |
 | **R** | `05 §6`'s threading policy | The obligation `06` could not give a milestone | lint 4 |
 | **L** | **A presentation design** | **It does not exist.** Every other phase is backed by a design document; rendering has none | **Phase 3** |
