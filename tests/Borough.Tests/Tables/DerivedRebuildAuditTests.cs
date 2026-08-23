@@ -188,7 +188,15 @@ public sealed class DerivedRebuildAuditTests
         // about its own tree, which is the sentence above happening to the assertion rather than to a
         // column: ***a count of a whole is a fact no single branch holds***, and only the merge can
         // take it.
-        Assert.Equal(38, all.Length);
+        //
+        // 40 as of milestone 25 task 1, 2026-08-23: adr/0143 makes household.balance and
+        // business.balance DERIVED, where both were saved. An Occupant now owns a LIST of Bins --
+        // adr/0141, a Bin belongs to the Occupant whose leaving would empty it -- and the balance is
+        // one entry in it, so a second saved handle to the same Bin would be two saved facts that can
+        // disagree. ⚠ The list itself is SAVED and adds nothing here: a tenant-owned Bin names no
+        // owner, so its membership is recoverable from nothing and it fails this audit's premise
+        // rather than passing it.
+        Assert.Equal(40, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 

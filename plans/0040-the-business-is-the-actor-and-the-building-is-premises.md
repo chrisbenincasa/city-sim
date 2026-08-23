@@ -114,7 +114,7 @@ See **F1**. It is the one place the census made the milestone smaller.
 
 ---
 
-## Open decisions — **OPEN: 1, 2 and 3 for milestone 25; 4 TRAVELLED to 27; 5 SETTLED**
+## Open decisions — **OPEN: 1 and 3 for milestone 25; 2 and 5 SETTLED; 4 TRAVELLED to 27**
 
 ### 1. 🔴 What is an unpremised Business's Bin capacity? — **found by decomposition, answered by neither ADR**
 
@@ -134,13 +134,22 @@ argued yet: stock is **sold or lost on eviction** so an unpremised Business hold
 becomes **unbounded** while unpremised, as the treasury and Pool Bins already are; or the Bin's capacity
 is **saved rather than derived** for tenant-owned Bins, which contradicts `adr/0064`.
 
-### 2. How does a Bin name a non-Building owner? — **the cycle, and three exits**
+### 2. ✅ SETTLED 2026-08-23 — **a Bin hangs off its OWNER**, [`adr/0143`](../docs/adr/0143-a-bin-hangs-off-its-owner-and-the-polymorphic-column-stays-unbuilt.md)
 
-⚠ **One has precedent shipped six days ago.** `Space.DistrictPoolTable` (milestone 12 task 5) is a
-**saved join** naming which Bin belongs to whose Pool, chosen *"because `BinTable.Owner` cannot hold a
-District and the alternative — a derived list — is only derivable when the element names its owner."*
-***The same sentence is true of a Business.*** The other two: a **two-phase `Rows` binding**, and a
-**polymorphic handle column**, which `BinTable.cs:91–99` argues against **by name**.
+**A Household and a Business each gain a saved `BinHead`/`BinTail`; `BinTable` gains a saved
+`OwnerNext` whose links are `Handle<Bin>`. `BinTable.Owner` stays a `HandleColumn<Building>`.**
+🔴 **The shape was found in the build rather than argued** — `DistrictPoolTable`'s own remarks say the
+existing answer is *"a Household and a Business each hold their Bin's handle on the **owner** row"*, and
+that it became a join only because a District holds one Bin *per Good*. ***Owner-side ownership is the
+pattern; the join is what it becomes at one cardinality; many-per-owner is a list.***
+⚠ **Both alternatives were refused on where their cost lands.** The **polymorphic column** would edit
+`Column.Fold`, `TargetIds` and `SaveHash.TargetsOf` — `adr/0112`'s machinery, and what lints 5 and 6
+prove determinism with — and reopen the construction cycle; the **join** would have to ship the index
+`DistrictPoolTable` was allowed to defer, because a tenant's `local` term is resolved **per term per
+evaluation** and a Pool draw is cold. 🔴 **What it gives up is one direction**: a Bin cannot name its
+owner, and `MoneyLedger.Of`'s *"whoever owns it — and this does not ask"* becomes load-bearing.
+⚠ **No construction cycle and no two-phase bind** — both tables already take `bins` in their
+constructors, which is how `Balance` works today.
 
 ### 3. Does a Business share `[placement] gives_up_after_days`, or state its own?
 
@@ -180,13 +189,19 @@ builds the Business as a thing the city contains. **The cleavage between task 5 
 
 ### Group A — the Occupant repair. **Nothing here needs anything that does not exist.**
 
-1. **A Bin names a non-Building owner.** The type-level move: `BinTable.Owner` off
-   `HandleColumn<Building>`, both `BinTable.Create` overloads, and `RebuildDerived`'s owner switch
-   (`World.cs:1676–1719`). **Blocked on decision 2** — the construction cycle has to be broken first.
-   ⚠ **`RebuildDerived`'s `Household` and `Business` cases are a shared no-op today and the comment says
-   why**: the actor's balance is a *single* saved handle, so the link comes out of the file already made.
-   ***That premise dies at task 2*** (**F5**), so this task's real content is turning the no-op into a
-   rebuild. ⚠ **The city does not change here** — every Bin is still owned by a Building when this lands.
+1. ✅ **SHIPPED 2026-08-23 — a Bin hangs off its owner.** `HouseholdTable` and `BusinessTable` each gain
+   a saved `BinHead`/`BinTail`; `BinTable` gains a saved `OwnerNext` whose links are `Handle<Bin>`;
+   `BinTable.Owner` stays a `HandleColumn<Building>` and `OwnerKind` stays the discriminator.
+   **Decision 2 settled first, into
+   [`adr/0143`](../docs/adr/0143-a-bin-hangs-off-its-owner-and-the-polymorphic-column-stays-unbuilt.md).**
+   🔴 **`Balance` became DERIVED on both tables and that was not in the plan** (**F12**) — a saved list
+   plus a saved handle to one of its entries is two saved facts that can disagree, so `RebuildDerived`
+   gained a balance rebuild and the handle is now maintained at its write site like any other derived
+   column. ⚠ **There was no construction cycle to break** (**F11**): precondition 2 above was answering
+   a question the chosen shape does not ask. 🔴 **The State Hash moved and four golden artefacts were
+   re-recorded** — the world hash and both session traces — ⚠ **and `World.HashSeed`'s version byte was
+   NOT bumped**, because that byte is for a change to the **fold** and this is a world with more columns
+   in it. Findings **F11**–**F18** below. **2,064 assertion-tier tests green.**
 2. **A Household owns Bins — `sundries` moves to the tenant.** `adr/0141`'s line, applied to the one
    Occupant that already exists. 🔴 **This changes what the city does**: `consume` becomes one Rule per
    Household instead of one Rule applied `occupancy` times, and `derived = "occupancy"` — **the one
@@ -377,3 +392,68 @@ in a string literal.
 no Business overload. `Readouts.ScopeOf` is a **binary** and `DeclaredSet` is exactly two, with a class
 remark saying two entry points is deliberate. And `World.BalanceOf(Handle<Business>)` **exists with zero
 `src/` callers**. ***The Business is half-present in three subsystems and load-bearing in none.***
+
+---
+
+## What building it found
+
+### Task 1, 2026-08-23 — **F11** to **F18**
+
+**F11 — the construction cycle never existed for the shape that was chosen, and precondition 2 was
+answering a different question.** `BinTable` is built before `BusinessTable` because a Business's
+balance is a handle **into** `Bins` — which only bites if the *Bin* has to name the Business. Under
+`adr/0143` it does not: both tenant tables already take `bins` in their constructors, exactly as
+`Balance` has since milestone 10. ⚠ **`0039` **V12** costed a cycle that is real for the polymorphic
+column and absent for the list**, and this document repeated it as a precondition without noticing the
+dependency ran the other way.
+
+**F12 — 🔴 `Balance` HAD to become derived, and nothing had said so.** `adr/0143` says the balance is
+*"one entry in"* the list; what it does not say is that leaving `Balance` **saved** alongside would put
+**two saved facts about one Bin** in the file, free to disagree after any edit to either. ***A saved
+list makes every saved handle into it redundant***, so both columns moved to `Disposition.Derived` and
+`RebuildDerived` re-finds them by walking each actor's own list for the money Resource.
+⚠ **`DerivedRebuildAuditTests` noticed immediately** — 38 derived columns became 40 — which is the audit
+doing its job on the first world that changed a disposition rather than added a column.
+
+**F13 — 🔴 a latent ordering hazard in `FitBalances`, created by F12 and caught by reading rather than
+by a test.** It opens a balance for any actor lacking one, and its emptiness test was
+`Balance[slot].IsNone`. With `Balance` derived, that column is **empty until `RebuildDerived` runs** —
+so any call ordered before the rebuild would have opened a **second** money Bin for every actor that
+already had one, and `Invariant.MoneyIsConserved` would not have complained because both Bins are live
+and empty. ***The test moved to the list, which is the saved truth and is populated the moment the
+save is read.*** ⚠ **No test covers that ordering**, which is why this is a finding and not a fix.
+
+**F14 — `DestroyHousehold` freed one Bin and now frees the list, and the walk has an order it must
+keep.** `Bins.OwnerNext[binSlot]` is read **before** `Bins.Rows.Free`, because `Rows.Free` zeroes the
+row — reading the link afterwards would return the unset handle and ***silently truncate the walk at
+the first entry***, leaking every Bin after it. ⚠ **It is unreachable today** and becomes live at task
+2, when a Household owns a second Bin: the failure would have been a leak nothing asserts against,
+arriving one task after the code that caused it.
+
+**F15 — 🔴 `plans/` IS NOT A CITING SOURCE, and an ADR cited only from a plan is still orphaned.**
+`CitationTests.CitingFiles` enumerates `docs/` minus `docs/adr`, plus `CONTEXT.md`, `CLAUDE.md` and
+`PROCESS.md` — and nothing else. `adr/0143` was cited twice from `plans/` and failed anyway. ⚠ **The
+rule behind it is `adr/0042`'s** — *a decision must reach the design document that owns the mechanism* —
+***and being forced to obey it is what found where the ADR belonged***: `05`'s list-classification rule
+says a list is derived only if its **order** is recoverable, and assumes membership is. A tenant-owned
+Bin names nobody, so ***the prior condition is the one that binds***, and `05` now states it.
+**A mechanical check produced a design sentence.**
+
+**F16 — `plans/0002` §F2's ADR count was stale for the FOURTH time**, and `CoverageMapTests` says so in
+its own message: the rows have been present through every drift and it is the **count above them** that
+rots. ⚠ **Second sighting of that defect in this file on this day** — §A's header was the first.
+***A count is a fact stored in prose.***
+
+**F17 — a test that is not about a column broke because a column changed disposition.**
+`SaveHashTests.A_flipped_byte_in_the_body_is_refused_by_the_load` names `household.balance` **by
+string** to find a byte to corrupt; `balance` stopped being saved, so the test failed on *no saved
+column of that name* rather than on anything it asserts. Re-pointed at `household.bin_head`, which is
+the saved handle a Household now holds into `BinTable`. ⚠ **The test is unchanged in what it proves**;
+what it needed was any saved column, and it named one.
+
+**F18 — the hash moved, four artefacts re-recorded, and the version byte deliberately left alone.**
+`world-hash.txt` and both session traces. ⚠ **`World.HashSeed`'s version byte is for a change to the
+FOLD** — the composition order's rules, `Randomness.Mix`, what a column contributes — and this is a
+world with more columns in it, so bumping it would make the byte a change counter and stop it
+distinguishing *a hash that means something different* from *a hash of something different*. The
+README beside the baselines states that rule and it was followed rather than reasoned out.

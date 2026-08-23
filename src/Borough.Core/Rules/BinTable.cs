@@ -66,6 +66,7 @@ public sealed class BinTable
         SpaceHead = _rows.Saved<int>("space_wait_head", Touch.PerTick);
         SpaceTail = _rows.Saved<int>("space_wait_tail", Touch.PerTick);
         BinNext = _rows.Derived<int>("bin_next");
+        OwnerNext = _rows.SavedHandle("owner_next", _rows);
 
         _rows.Seal();
     }
@@ -146,6 +147,37 @@ public sealed class BinTable
 
     /// <summary>Link through the owning Building's list of its Bins.</summary>
     public Column<int> BinNext { get; }
+
+    /// <summary>
+    /// Link through an <em>Occupant's</em> list of its Bins — a Household's or a Business's.
+    /// <b>Unset unless <see cref="OwnerKind"/> is <see cref="BinOwnerKind.Household"/> or
+    /// <see cref="BinOwnerKind.Business"/></b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A second link column rather than a second use of <see cref="BinNext"/></b>, because the two
+    /// lists differ in disposition and a column is declared once as one or the other. The Building's
+    /// list is <see cref="Disposition.Derived"/> and re-threaded by <c>World.RebuildDerived</c> from
+    /// <see cref="Owner"/>; this one is <see cref="Disposition.Saved"/> and comes out of the file
+    /// already made. ⚠ <b>A Bin is on exactly one of them</b>, which <see cref="OwnerKind"/> decides.
+    /// </para>
+    /// <para>
+    /// <b>Saved because a tenant-owned Bin names nothing</b> (<c>adr/0143</c>). <c>DistrictPoolTable</c>
+    /// states the rule this follows: <em>a derived list is only derivable when the element names its
+    /// owner</em>. A Building-owned Bin names its Building through <see cref="Owner"/>, so that list
+    /// rebuilds; an Occupant-owned Bin names no owner at all, so this relation is in the save or it does
+    /// not come back.
+    /// </para>
+    /// <para>
+    /// <b>It is a handle and not a slot index, and that is deliberate.</b>
+    /// <see cref="SupplyHead"/> and <see cref="SupplyTail"/> are saved <c>int</c>s holding slot
+    /// indices, which fold <em>identity</em> where <c>05 §4</c> asks for values — a
+    /// <see cref="HandleColumn{TTarget}"/> folds the target row's monotonic never-reused id instead and
+    /// costs nothing extra to declare. ⚠ <b>That precedent is not extended here</b>; whether the wait-list
+    /// heads should follow is filed in <c>plans/0012</c> and is not decided by this column.
+    /// </para>
+    /// </remarks>
+    public HandleColumn<Bin> OwnerNext { get; }
 
     /// <summary>How much is in the Bin. Read freely; a read cannot forget to wake anybody.</summary>
     public long LevelAt(int slot) => _level[slot];

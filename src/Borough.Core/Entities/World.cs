@@ -837,7 +837,13 @@ public sealed class World
         // world whose Ruleset names money. Empty -- World.Endow is the only door money enters by.
         if (TryMoneyResource(out ResourceId money))
         {
-            Households.Balance[slot] = OpenBalance(BinOwnerKind.Household, money);
+            // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
+            // the write that matters and the assignment is a derived column maintained at its write
+            // site -- the same shape as BuildingBins.InsertOrdered in CreateBin.
+            Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
+
+            AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
+            Households.Balance[slot] = balance;
         }
 
         Invariants.Require(
@@ -883,7 +889,10 @@ public sealed class World
         // CreateHousehold's line, for its reason (adr/0114).
         if (TryMoneyResource(out ResourceId money))
         {
-            Businesses.Balance[slot] = OpenBalance(BinOwnerKind.Business, money);
+            Handle<Bin> balance = OpenBalance(BinOwnerKind.Business, money);
+
+            AppendOwnerBin(Businesses.BinHead, Businesses.BinTail, slot, balance);
+            Businesses.Balance[slot] = balance;
         }
 
         BuildingBusinesses.InsertOrdered(buildingSlot, slot);
@@ -1153,7 +1162,13 @@ public sealed class World
         // from the Hinterland at task 5, and World.Endow is still the only door money enters by.
         if (TryMoneyResource(out ResourceId money))
         {
-            Households.Balance[slot] = OpenBalance(BinOwnerKind.Household, money);
+            // adr/0143: the LIST is the saved truth and Balance is derived from it, so the append is
+            // the write that matters and the assignment is a derived column maintained at its write
+            // site -- the same shape as BuildingBins.InsertOrdered in CreateBin.
+            Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
+
+            AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
+            Households.Balance[slot] = balance;
         }
 
         // Money crosses here, which is MoneySupplyTable.Issued's second writer and the first thing in
@@ -1470,10 +1485,26 @@ public sealed class World
         // fixture bulldozing a row has not moved any money out of any economy. Folding the supply
         // write into this method would make every future caller silently claim an emigration.
         // Invariant.MoneyIsConserved still reports a caller that forgets, which is what it is for.
-        if (Bins.Rows.TryResolve(Households.Balance[slot], out int balance))
+        // adr/0143: EVERY Bin the Household owned, and not only its balance. As of adr/0141 a Bin
+        // belongs to the Occupant whose leaving would empty it, so a tenant's stock leaves with it for
+        // the same reason its money does -- and walking the saved list is the only way to reach those
+        // Bins, because a tenant-owned Bin names no owner. ⚠ The list is read forward and each link is
+        // taken BEFORE the row is freed; reading OwnerNext out of a freed row would be reading a
+        // zeroed slot and would silently truncate the walk at the first entry.
+        //
+        // The heads are not cleared here because Rows.Free zeroes the row, which is the same property
+        // IndexList's slot-plus-one encoding exists to rely on.
+        Handle<Bin> owned = Households.BinHead[slot];
+
+        while (!owned.IsNone)
         {
-            WakeAll(balance, Tick);
-            Bins.Rows.Free(Bins.Rows.At(balance));
+            int binSlot = Bins.Rows.Resolve(owned);
+            Handle<Bin> next = Bins.OwnerNext[binSlot];
+
+            WakeAll(binSlot, Tick);
+            Bins.Rows.Free(owned);
+
+            owned = next;
         }
 
         Households.Rows.Free(household);
@@ -1697,13 +1728,20 @@ public sealed class World
 
                 case BinOwnerKind.Household:
                 case BinOwnerKind.Business:
-                    // Nothing to rebuild, and that is task 4c's shape rather than an omission. A
-                    // Building's Bins hang off a DERIVED list, so this walk is the only thing that can
-                    // put them back; an actor's balance is a single SAVED handle on the actor
-                    // (HouseholdTable.Balance), so the link came out of the file already made. What is
-                    // asymmetric is the cardinality and not the care: a Building holds many Bins
-                    // because its kind declares many Resources, and an actor holds one because money
-                    // is one Resource.
+                    // Nothing to rebuild HERE, and the reason is the District case's, not the one
+                    // this comment used to give. An Occupant's Bins hang off a SAVED list --
+                    // HouseholdTable.BinHead / BusinessTable.BinHead, threaded through
+                    // BinTable.OwnerNext -- so the link came out of the file already made. A
+                    // Building's Bins hang off a DERIVED list and this walk is the only thing that
+                    // can put them back. ⚠ What separates them is RECOVERABILITY and not care: a
+                    // derived list can only be derived when the element names its owner, and a
+                    // tenant-owned Bin names nobody (adr/0143).
+                    //
+                    // ⚠ THIS COMMENT SAID `an actor's balance is a single SAVED handle ... an actor
+                    // holds one because money is one Resource` UNTIL adr/0141. An Occupant now holds
+                    // a list, because a Bin belongs to the Occupant whose leaving would empty it and
+                    // flour leaves with the baker. The balance is one entry in that list and is
+                    // re-derived below rather than saved.
                     //
                     // The case is spelled out rather than folded into the default, because falling
                     // through to a throw that says `names no owner kind` would be a true statement
@@ -1716,6 +1754,30 @@ public sealed class World
                         $"bin {slot} is live and names no owner kind. Every Bin is created through "
                         + "BinTable.Create, which writes one; a zero here is a row that was allocated "
                         + "and never initialised, or a save whose owner_kind column did not load.");
+            }
+        }
+
+        // The actors' balances, which are DERIVED as of adr/0143 and were saved before it. An Occupant
+        // owns a list of Bins now, and a second saved handle to one of its entries would be two saved
+        // facts that can disagree -- so the handle is re-found here, exactly as a Building's Bin list
+        // is re-threaded above. ⚠ It is a walk of each actor's OWN list rather than a scan of the Bin
+        // table, and that list is short by construction: one Bin per Resource the owner keeps.
+        if (TryMoneyResource(out ResourceId balanceResource))
+        {
+            for (int slot = 0; slot < Households.Rows.SlotCount; slot++)
+            {
+                if (Households.Rows.IsLive(slot))
+                {
+                    Households.Balance[slot] = FindOwnerBin(Households.BinHead, slot, balanceResource);
+                }
+            }
+
+            for (int slot = 0; slot < Businesses.Rows.SlotCount; slot++)
+            {
+                if (Businesses.Rows.IsLive(slot))
+                {
+                    Businesses.Balance[slot] = FindOwnerBin(Businesses.BinHead, slot, balanceResource);
+                }
             }
         }
 
@@ -2537,19 +2599,31 @@ public sealed class World
             return;
         }
 
+        // adr/0143: the test is the LIST rather than the derived Balance handle. A reload rebuilds
+        // Balance from the list, so an actor that already holds a money Bin is one whose list contains
+        // one -- and asking the derived column instead would open a second Bin for an actor that has
+        // one whenever this ran before RebuildDerived did.
         for (int slot = 0; slot < Households.Rows.SlotCount; slot++)
         {
-            if (Households.Rows.IsLive(slot) && Households.Balance[slot].IsNone)
+            if (Households.Rows.IsLive(slot)
+                && FindOwnerBin(Households.BinHead, slot, money).IsNone)
             {
-                Households.Balance[slot] = OpenBalance(BinOwnerKind.Household, money);
+                Handle<Bin> balance = OpenBalance(BinOwnerKind.Household, money);
+
+                AppendOwnerBin(Households.BinHead, Households.BinTail, slot, balance);
+                Households.Balance[slot] = balance;
             }
         }
 
         for (int slot = 0; slot < Businesses.Rows.SlotCount; slot++)
         {
-            if (Businesses.Rows.IsLive(slot) && Businesses.Balance[slot].IsNone)
+            if (Businesses.Rows.IsLive(slot)
+                && FindOwnerBin(Businesses.BinHead, slot, money).IsNone)
             {
-                Businesses.Balance[slot] = OpenBalance(BinOwnerKind.Business, money);
+                Handle<Bin> balance = OpenBalance(BinOwnerKind.Business, money);
+
+                AppendOwnerBin(Businesses.BinHead, Businesses.BinTail, slot, balance);
+                Businesses.Balance[slot] = balance;
             }
         }
     }
@@ -2575,6 +2649,68 @@ public sealed class World
     /// </remarks>
     private Handle<Bin> OpenBalance(BinOwnerKind kind, ResourceId money) =>
         Bins.Create(kind, money, long.MaxValue);
+
+    /// <summary>
+    /// Appends a Bin to an Occupant's list of its own Bins (<c>adr/0143</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>At the tail, for <c>adr/0033</c>'s reason</b>: the order Bins were opened in is the order a
+    /// walk hands them back, and a push-front list would hand back the reverse — a different city
+    /// rather than a different implementation.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The links are handles, so the empty list is the unset handle rather than a sentinel.</b>
+    /// <see cref="Tables.IndexList"/> encodes slot-plus-one precisely because a zeroed <c>int</c> would
+    /// read as slot 0; a zeroed <c>Handle</c> already reads as <em>nothing</em>, which is the property
+    /// that makes the saved form safe to fold.
+    /// </para>
+    /// </remarks>
+    private void AppendOwnerBin(
+        HandleColumn<Bin> head, HandleColumn<Bin> tail, int ownerSlot, Handle<Bin> bin)
+    {
+        Handle<Bin> last = tail[ownerSlot];
+
+        if (last.IsNone)
+        {
+            head[ownerSlot] = bin;
+        }
+        else
+        {
+            Bins.OwnerNext[Bins.Rows.Resolve(last)] = bin;
+        }
+
+        tail[ownerSlot] = bin;
+    }
+
+    /// <summary>
+    /// The Bin an Occupant holds for one Resource, or the unset handle if it holds none.
+    /// </summary>
+    /// <remarks>
+    /// <b>A walk of one owner's list and not a scan of the Bin table.</b> The list is short by
+    /// construction — one Bin per Resource that Occupant keeps — which is the property that let
+    /// <c>adr/0143</c> refuse a join table: a join would have needed the dense index
+    /// <c>DistrictPoolTable</c> was allowed to defer, because <em>that</em> path is cold and this one
+    /// is a Rule term resolved per evaluation.
+    /// </remarks>
+    private Handle<Bin> FindOwnerBin(HandleColumn<Bin> head, int ownerSlot, ResourceId resource)
+    {
+        Handle<Bin> at = head[ownerSlot];
+
+        while (!at.IsNone)
+        {
+            int slot = Bins.Rows.Resolve(at);
+
+            if (Bins.Resource[slot].Raw == resource.Raw)
+            {
+                return at;
+            }
+
+            at = Bins.OwnerNext[slot];
+        }
+
+        return default;
+    }
 
     /// <summary>
     /// Writes every live Bin's ceiling from the Ruleset in force (<c>adr/0064</c>).

@@ -169,7 +169,11 @@ public sealed class SaveHashTests(ITestOutputHelper output)
         SaveFile.Write(world, InForce, new WorldSnapshot(), file);
 
         byte[] bytes = file.Bytes;
-        bytes[ByteIn(world, "household", "balance", slot: 0)] ^= 0xFF;
+        // `bin_head` rather than `balance`, as of adr/0143: a Household's balance became DERIVED when
+        // an Occupant started owning a list of Bins, and this test needs a column the save actually
+        // carries. ⚠ The point of the test is unchanged and so is the column's shape -- both are the
+        // saved handle a Household holds into BinTable, and bin_head is now the one that is saved.
+        bytes[ByteIn(world, "household", "bin_head", slot: 0)] ^= 0xFF;
 
         var corrupt = new MemorySave();
         corrupt.Write(bytes);

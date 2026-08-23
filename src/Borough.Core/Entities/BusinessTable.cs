@@ -65,7 +65,9 @@ public sealed class BusinessTable
         // clearing it in DestroyBuilding -- is a write to a saved column, so a demolition would move
         // the State Hash for a reason that has nothing to do with the demolition.
         Building = _rows.SavedHandle("building", buildings.Rows, reference: Reference.Severable);
-        Balance = _rows.SavedHandle("balance", bins.Rows, reference: Reference.Required);
+        BinHead = _rows.SavedHandle("bin_head", bins.Rows);
+        BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
+        Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
         BuildingNext = _rows.Derived<int>("building_next");
 
         _rows.Seal();
@@ -94,11 +96,46 @@ public sealed class BusinessTable
     /// the Household moved too. ***An argument for symmetry does not name which side to move.***
     /// </para>
     /// <para>
-    /// <b>Nothing funds one.</b> A Business opens with an empty Bin and there is no door that pays it,
-    /// because the counterparty that would is milestone <b>13</b>'s price surface.
+    /// <b>Nothing funds one.</b> A Business opens with an empty Bin and there is no door that pays it.
+    /// ⚠ <b>This sentence used to blame milestone 13's price surface and that was the wrong address.</b>
+    /// A Household's opening balance is an authored band on its <em>Hinterland</em> and
+    /// <c>World.Endow</c> has no Business overload at all, so what is missing is a <em>capitalisation
+    /// band</em> rather than a counterparty — a hash-bearing number owed a named ratifier under
+    /// <c>adr/0052</c>. It is <c>plans/0002</c> §D2 and it belongs to milestone <b>27</b>.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It is <see cref="Disposition.Derived"/> as of <c>adr/0143</c>, and it used to be saved.</b>
+    /// A Business now owns a <em>list</em> of Bins — <see cref="BinHead"/> — and the balance is one entry
+    /// in it, so a second saved handle to the same Bin would be two saved facts that can disagree. It is
+    /// maintained at the write site and re-derived by <c>World.RebuildDerived</c>.
     /// </para>
     /// </remarks>
     public HandleColumn<Bin> Balance { get; }
+
+    /// <summary>
+    /// Head of this Business's own Bins — its stock, and its till. <b>The Business is the owner</b>
+    /// (<c>adr/0141</c>, <c>adr/0143</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A bakery holds its own flour, its own bread and its own till; the building holds a street
+    /// address and some floors.</b> That is <c>adr/0141</c>, and this list is the half of it that
+    /// leaves when the tenant leaves. Threaded through <see cref="BinTable.OwnerNext"/>.
+    /// </para>
+    /// <para>
+    /// <b>Saved rather than derived</b>, because an Occupant-owned Bin names no owner and
+    /// <em>a derived list is only derivable when the element names its owner</em>. ⚠ <b>The capacity of
+    /// what is in it is still the premises'</b> — <c>adr/0141</c> keys a Bin's ceiling on the
+    /// <em>building</em> kind — which is why 🔴 <b>an unpremised Business is an open question rather
+    /// than a solved case</b>: <see cref="Building"/> is <see cref="Reference.Severable"/> and
+    /// <c>adr/0142</c> makes losing the premises a legitimate state, so what bounds these Bins then is
+    /// <c>plans/0040</c> open decision <b>1</b>.
+    /// </para>
+    /// </remarks>
+    public HandleColumn<Bin> BinHead { get; }
+
+    /// <summary>Tail of this Business's Bins, so a new one appends rather than push-fronts.</summary>
+    public HandleColumn<Bin> BinTail { get; }
 
     /// <summary>Link in the premises' Business list.</summary>
     public Column<int> BuildingNext { get; }
