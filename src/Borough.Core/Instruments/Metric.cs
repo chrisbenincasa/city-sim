@@ -206,6 +206,19 @@ public enum PlacementCounter : byte
     /// ***Reporting the Pool without this reports the stock and calls it the diagnosis.***
     /// </remarks>
     Departed,
+
+    /// <summary>
+    /// Unpremised <b>Businesses</b> that gave up looking for premises and emigrated
+    /// (<c>adr/0142</c>, milestone 25 task 5).
+    /// </summary>
+    /// <remarks>
+    /// 🔴 ⚠ <b>IT COUNTS A DIFFERENT POOL FROM THE THREE ABOVE AND IS NOT SUMMABLE WITH THEM.</b>
+    /// <see cref="Considered"/>, <see cref="Placed"/> and <see cref="Departed"/> are the Unplaced
+    /// Pool's — <em>Households</em> — and this one is the unpremised pool's. ***A reader adding
+    /// Departed to Retired would be adding families to shops.*** It is in this enum because it is
+    /// produced by the same pass on the same trigger, not because it measures the same thing.
+    /// </remarks>
+    Retired,
 }
 
 /// <summary>

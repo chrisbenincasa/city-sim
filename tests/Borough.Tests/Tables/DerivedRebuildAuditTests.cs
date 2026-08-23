@@ -133,6 +133,7 @@ public sealed class DerivedRebuildAuditTests
             Run(Stepped(2048)),
             Run(Severed()),
             Run(Stocked()),
+            Run(Orphaned()),
             Run(GoldenFixtures.Build()),
         ];
 
@@ -197,7 +198,10 @@ public sealed class DerivedRebuildAuditTests
         // disagree. ⚠ The list itself is SAVED and adds nothing here: a tenant-owned Bin names no
         // owner, so its membership is recoverable from nothing and it fails this audit's premise
         // rather than passing it.
-        Assert.Equal(40, all.Length);
+        // 40 -> 41: business.pool_slot, milestone 25 task 5. The reverse index into the unpremised
+        // pool, derived for HouseholdTable.PoolSlot's reason -- the pool table is the saved truth and
+        // a saved reverse index would be a second fact free to disagree with it.
+        Assert.Equal(41, all.Length);
         Assert.Single(ScratchColumns(Stepped(0)));
     }
 
@@ -347,6 +351,39 @@ public sealed class DerivedRebuildAuditTests
 
             world.CreateBuilding(lot, kind: 1, new Ticks(0), key);
         }
+
+        return world;
+    }
+
+    /// <summary>
+    /// A world holding one Business in the unpremised pool, its premises demolished under it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It exists because milestone 25 task 5 gave <c>BusinessTable</c> a <c>pool_slot</c>, and
+    /// nothing the simulation builds on its own can populate it.</b> The column is the reverse index
+    /// into the unpremised pool, rebuilt from that pool's saved rows — so exercising it needs a
+    /// Business that has actually lost its premises, and ***nothing creates a Business at all***
+    /// (<c>World.CreateBusiness</c> has no <c>src/</c> caller until milestone 27 task 8). ⚠ <b>This
+    /// test caught it on the first run</b>, which is the third time in two milestones: <c>bin.bin_next</c>
+    /// in task 2, <c>car_park.segment_next</c> at milestone 7, and now this.
+    /// </para>
+    /// <para>
+    /// <b>Demolition rather than a hand-written pool row, because the pool is not public state a test
+    /// should be able to forge.</b> Going through <c>DestroyBuilding</c> exercises the path the
+    /// simulation would take and asserts nothing about it — ***a fixture that writes the answer it is
+    /// checking for is a fixture that cannot fail.***
+    /// </para>
+    /// </remarks>
+    private static World Orphaned()
+    {
+        var world = new World(1_000, GoldenFixtures.Rules());
+
+        Handle<Lot> lot = world.Lots.Create(new Tiles(1), new Tiles(2), zone: 1);
+        Handle<Building> premises = world.Buildings.Create(world.Lots, lot, kind: 1);
+
+        world.CreateBusiness(premises);
+        world.DestroyBuilding(premises, Ticks.Zero);
 
         return world;
     }

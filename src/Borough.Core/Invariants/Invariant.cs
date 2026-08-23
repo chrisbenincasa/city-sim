@@ -961,6 +961,33 @@ public enum Invariant
     ADistrictCellNamesBuiltGroundWhenEvaluated = 53,
 
     /// <summary>
+    /// A Business is neither premised nor in the unpremised pool, or is somehow both.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The collection's own bound, checked rather than asserted in prose</b>
+    /// (<see href="../../docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md">adr/0142</see>,
+    /// milestone 25 task 5). Every live Business is in exactly one of two states, and the pool is the
+    /// <em>only</em> place an unpremised one can wait — so a Business in neither is a row nothing will
+    /// ever reach, which is <c>adr/0006</c> through the back door: it cannot be tenanted, it cannot
+    /// give up, and it holds money the supply still counts as issued.
+    /// </para>
+    /// <para>
+    /// 🔴 ⚠ <b>The State Hash cannot report it and that is the whole argument for the check.</b> Both
+    /// halves fold — the severable premises handle and the pool table — and they fold to a perfectly
+    /// stable pair of values whichever way they disagree. ***A leak is a row that is CONSISTENTLY
+    /// wrong, and consistency is the one thing a hash cannot object to.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It reports rather than throwing</b>, on <c>02 §10</c>'s rule and
+    /// <see cref="OnlyAnUnhousedHouseholdGivesUp"/>'s precedent: at the write sites the Business
+    /// stays where it is, which is the conservative outcome, and the run continues so the whole-world
+    /// checks can say what else is wrong.
+    /// </para>
+    /// </remarks>
+    ABusinessIsPremisedOrItIsInThePool = 54,
+
+    /// <summary>
     /// A District that is destroyed either hands its Pool to an heir or hands over nothing.
     /// </summary>
     /// <remarks>

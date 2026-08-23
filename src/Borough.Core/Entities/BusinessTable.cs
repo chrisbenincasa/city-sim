@@ -69,6 +69,7 @@ public sealed class BusinessTable
         BinTail = _rows.SavedHandle("bin_tail", bins.Rows);
         Balance = _rows.DerivedHandle("balance", bins.Rows, reference: Reference.Required);
         BuildingNext = _rows.Derived<int>("building_next");
+        PoolSlot = _rows.Derived<int>("pool_slot");
 
         _rows.Seal();
     }
@@ -139,4 +140,28 @@ public sealed class BusinessTable
 
     /// <summary>Link in the premises' Business list.</summary>
     public Column<int> BuildingNext { get; }
+
+    /// <summary>
+    /// Where this Business is in the unpremised pool, plus one, or <c>0</c> if it has premises.
+    /// </summary>
+    /// <remarks>
+    /// <b>Derived, and rebuilt from <see cref="UnpremisedTable"/> on load</b>, which is
+    /// <c>HouseholdTable.PoolSlot</c>'s disposition for its reason: the pool table is the saved truth
+    /// and a reverse index that was also saved is a second fact free to disagree with it
+    /// (<c>plans/0040</c> <b>F12</b>, one relation later). ⚠ <b>Plus-one encoded</b> so that a
+    /// zero-filled column reads as <em>premised</em> rather than as <em>at position 0</em>.
+    /// </remarks>
+    public Column<int> PoolSlot { get; }
+
+    /// <summary>Whether this Business is in the unpremised pool.</summary>
+    public bool IsUnpremised(int slot) => PoolSlot[slot] != 0;
+
+    /// <summary>Where in the pool it is, or <see cref="Rows.NoSlot"/> if it has premises.</summary>
+    public int PoolPosition(int slot) => PoolSlot[slot] - 1;
+
+    /// <summary>Records that this Business is now at <paramref name="position"/> in the pool.</summary>
+    public void EnterPool(int slot, int position) => PoolSlot[slot] = position + 1;
+
+    /// <summary>Records that this Business is no longer in the pool.</summary>
+    public void LeavePool(int slot) => PoolSlot[slot] = 0;
 }

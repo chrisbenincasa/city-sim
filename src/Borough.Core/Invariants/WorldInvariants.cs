@@ -51,6 +51,7 @@ public static class WorldInvariants
         invariants.Register(InvariantTier.EndOfRun, NoBuildingRunsRulesItsKindDoesNotDeclare);
         invariants.Register(InvariantTier.EndOfRun, LotsAndBuildingsAgreeWhoIsWhere);
         invariants.Register(InvariantTier.EndOfRun, ThePoolIsDenseAndAgreesWithTheHouseholds);
+        invariants.Register(InvariantTier.EndOfRun, EveryBusinessIsPremisedOrPooled);
         invariants.Register(InvariantTier.EndOfRun, NoWaiterSleepsOnANonBlockingBin);
         invariants.Register(InvariantTier.EndOfRun, BinCapacitiesMatchTheirDeclarations);
         invariants.Register(InvariantTier.EndOfRun, TheAdjacencyDescribesTheSegments);
@@ -535,6 +536,88 @@ public static class WorldInvariants
                 Invariant.ThePoolNamesOnlyUnhousedHouseholds,
                 slot,
                 householdSlot);
+        }
+    }
+
+    /// <summary>
+    /// Every live Business either has premises or is waiting in the unpremised pool, and the pool is
+    /// dense.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The bound <c>adr/0142</c> requires, checked from the Business side rather than the pool's.</b>
+    /// <see cref="ThePoolIsDenseAndAgreesWithTheHouseholds"/> walks the membership and asks whether
+    /// each member is really unhoused; this walks <em>every Business</em> and asks whether it is
+    /// reachable at all. ⚠ <b>The direction is the point</b>: a leaked Business is in no pool, so a
+    /// walk of the pool cannot see it — ***the row that has fallen out of the mechanism is exactly the
+    /// row the mechanism's own traversal does not visit.***
+    /// </para>
+    /// <para>
+    /// 🔴 <b>This is the check that would have caught the state <c>DestroyBuilding</c> shipped for
+    /// eleven milestones.</b> Before milestone 25 task 5 that method unlisted its Businesses and freed
+    /// nothing, leaving live rows holding a severed premises handle and a balance the money supply
+    /// still counted — the leak its own comment named and declined to close. ***It was unreachable
+    /// only because nothing creates a Business***, which is a property of the calendar rather than of
+    /// the code.
+    /// </para>
+    /// <para>
+    /// <b>Density is asserted here as well as agreement</b>, for <see cref="UnpremisedTable.Leave"/>'s
+    /// swap-with-last to be worth relying on: a hole inside the live range makes a draw over
+    /// <c>Count</c> name a dead slot, and the give-up sweep would then skip a Business for ever at a
+    /// rate set by how much the pool had churned.
+    /// </para>
+    /// </remarks>
+    internal static void EveryBusinessIsPremisedOrPooled(World world, InvariantRegistry report)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(report);
+
+        UnpremisedTable pool = world.UnpremisedPool;
+        BusinessTable businesses = world.Businesses;
+
+        for (int slot = 0; slot < pool.Rows.SlotCount; slot++)
+        {
+            // Live below the count, dead at or above it. The sibling check's phrasing and its reason:
+            // two compensating holes sum correctly, so a live-count comparison would pass.
+            if (pool.Rows.IsLive(slot) != (slot < pool.Count))
+            {
+                report.Report(Invariant.ABusinessIsPremisedOrItIsInThePool, slot);
+                continue;
+            }
+
+            if (!pool.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            if (!businesses.Rows.TryResolve(pool.Business[slot], out int pooled))
+            {
+                report.Report(Invariant.ABusinessIsPremisedOrItIsInThePool, slot);
+                continue;
+            }
+
+            report.Require(
+                businesses.PoolPosition(pooled) == slot,
+                Invariant.ABusinessIsPremisedOrItIsInThePool,
+                slot,
+                pooled);
+        }
+
+        for (int slot = 0; slot < businesses.Rows.SlotCount; slot++)
+        {
+            if (!businesses.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            bool premised = world.Buildings.Rows.TryResolve(businesses.Building[slot], out _);
+
+            // Exactly one, which is the whole claim. Premised AND pooled would give a tenanted shop a
+            // give-up clock; neither is the leak.
+            report.Require(
+                premised != businesses.IsUnpremised(slot),
+                Invariant.ABusinessIsPremisedOrItIsInThePool,
+                slot);
         }
     }
 

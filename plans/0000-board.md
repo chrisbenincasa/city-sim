@@ -17,7 +17,7 @@ scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-b
 **then 27, then 26, the purchase**. ✅ **DECOMPOSED 2026-08-23 — ten tasks in two groups,
 [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md).**
 
-> 🟢 **GROUP A TASKS 1, 2 AND 4 SHIPPED 2026-08-23.** ① a Bin hangs off its **owner**
+> 🟢 **GROUP A TASKS 1, 2, 4 AND 5 SHIPPED 2026-08-23 — ONLY THE CLOSING TASK IS LEFT.** ① a Bin hangs off its **owner**
 > ([`adr/0143`](../docs/adr/0143-a-bin-hangs-off-its-owner-and-the-polymorphic-column-stays-unbuilt.md)),
 > and the polymorphic column `adr/0114` gestured at is **not built**. ② a Household owns Bins, its Rules
 > follow them, and the arming stagger mixes the **tenant** — ⚠ **which is ONE task and `adr/0141` had
@@ -39,7 +39,19 @@ scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-b
 > Rules drawing from Bins it did not display. 🔴 **Nothing records *why* a tenancy ended** (**F35**) —
 > the condemnation trail is a **Lot's**, so an entry there would be a demolition record for a Building
 > still standing; that channel is `adr/0130`'s and ships with task 5.
-> **Open: task 5 — blocked on open decisions 1 and 3 — and the closing task.**
+> ⑤ **the unpremised pool and the emigration sink** — a Business that loses its premises waits under a
+> give-up bound and then leaves the city with its money. **Open decisions 1 and 3 were settled first,
+> into [`adr/0144`](../docs/adr/0144-a-tenant-that-loses-its-premises-keeps-only-its-money-and-waits-a-households-wait.md)**:
+> a tenant carries across the gap precisely what does not depend on premises for its bounds, and a
+> shop's patience is a family's as a declared stand-in. ⚠ **The pool ships with ONE exit and it is the
+> sink** — nothing tenants a Business, so the placement half is milestone 27's. 🔴 **The State Hash
+> moved; three golden baselines re-recorded.** 🔴 **TWO LATENT DEFECTS FOUND, ONE ALREADY ON `main`**
+> (`0040` **F36**, **F38**): a **saved table outside `World._tables` is not hashed** — 2,074 tests
+> passed with one — and the census's **hand-maintained per-family slot count** was wrong for
+> `ZoneCounters` since task 4, so *tenancies ended* and *placement considered* printed the identical
+> four numbers. ⚠ **Same shape both times**: a declaration and a hand-kept count with nothing checking
+> they agree (**F39**). Both closed by tests; ***the class is not closed.***
+> **Open: the closing task only.**
 🔴 **CAPPED AT GROUP A THE SAME DAY, with the user in the room — 25 is tasks 1–5 plus the closing
 task, and ITS RISK IS REWRITTEN** to ***that a Rule Instance names premises rather than an actor, so no
 money term can resolve to a payer.*** ⚠ **Group A makes the actor NAMEABLE; it does not make one

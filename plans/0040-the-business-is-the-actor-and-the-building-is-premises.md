@@ -282,7 +282,25 @@ builds the Business as a thing the city contains. **The cleavage between task 5 
    🔴 **Nothing records *why* a tenancy ended and the trail that exists is the wrong shape** (**F35**);
    that channel is `adr/0130`'s and ships with task 5. Findings **F30**–**F35** below.
    **2,075 assertion-tier tests green.**
-5. **The unpremised pool and the emigration sink** —
+5. ✅ **SHIPPED 2026-08-23 — the unpremised pool and the emigration sink.** `UnpremisedTable` (a
+   **separate** table, not a discriminated column on the Unplaced Pool — `adr/0143`'s refusal reaching a
+   second relation), two columns: the membership and the give-up clock. ⚠ **`Gate` and `Considered` are
+   absent and each absence is argued** — a Business has no arrival door, and a counter of premises
+   looked at would read identically zero for ever. `DestroyBuilding` stops unlisting-and-freeing-nothing
+   and calls `World.Unpremise`; `PlacementEngine.Retire` samples the pool on the **same trigger, sample
+   derivation and bound** as the Household half (**F41**); `World.Depart(Handle<Business>)` subtracts the
+   balance from `MoneySupply.Issued` and frees the row. `Invariant.ABusinessIsPremisedOrItIsInThePool`
+   is the collection's bound checked **from the Business side**, because a leaked row is exactly the row
+   the pool's own traversal cannot visit. 🔴 **The State Hash moved and all three golden baselines were
+   re-recorded**; the version byte was **not** bumped, because the fold did not change.
+   🔴 **TWO LATENT DEFECTS FOUND, and one of them was already on `main`** (**F36**, **F38**): a saved
+   table outside `World._tables` is not hashed and 2,074 tests passed without noticing, and the census
+   reserves room per family with a hand-maintained constant that was wrong for **`ZoneCounters` since
+   task 4** — so *tenancies ended* and *placement considered* printed the identical four numbers.
+   ***Both are a declaration and a hand-kept count with nothing checking they agree*** (**F39**), and
+   both are now closed by tests. ⚠ **The pool ships with ONE exit and it is the sink**: nothing tenants
+   a Business, so the placement half is unbuilt and is milestone 27's. Findings **F36**–**F42** below.
+   **2,091 assertion-tier tests green.** *The specification:* —
    [`adr/0142`](../docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md).
    `DestroyBuilding` (`World.cs:3644`) stops unlisting-and-freeing-nothing; an orphaned Business joins a
    pool, waits, and if nothing tenants it **departs and takes its money out of the city**. ⚠ **The
@@ -698,3 +716,73 @@ Household is in the Pool there is nothing to ask. ⚠ **The channel that carries
 unhoused* is [`adr/0130`](../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md)'s
 and ships with the Pool's give-up bound**, which is task 5. Filed rather than improvised
 (`adr/0073`) — a second trail keyed on the Household would be the wrong thing to have to delete.
+
+### Task 5, 2026-08-23 — **F36** to **F42**
+
+🔴 **F36 — A SAVED TABLE OUTSIDE `World._tables` IS NOT HASHED, AND 2,074 TESTS PASSED WITHOUT IT.**
+`UnpremisedTable` shipped with two `Rows.Saved` columns and was not in the array the State Hash walks.
+Nothing failed. ⚠ **What surfaced it was a hash that did NOT move**: `0037` task 5 recorded that an
+appended table folds its allocator *even while empty*, so a new table with no golden movement was a
+contradiction — and checking it rather than assuming is the only reason it was found. 🔴 **The
+corpus's own guarantee does not reach this.** `CLAUDE.md`: *declaring a field through `Rows.Saved` is
+what allocates it — so the State Hash cannot have a coverage hole.* ***That is true per COLUMN and only
+per column***: it guarantees a saved column is folded **if its table is walked**, and says nothing about
+whether it is. **It is the `Derived`-declared-but-never-rebuilt hole one level up** — the one
+`CLAUDE.md` already carries a warning about — and `DerivedRebuildAuditTests` is its sibling on the
+rebuild side. **Closed by `TableRegistrationTests`**, which asserts every `[Table]` with a saved column
+is registered, plus a second test that the one **excused** table really declares none — ***an
+unchecked allow-list is a way to silence the check it is attached to.***
+
+**F37 — the excuse-checking half was wrong on its first run, and the way it was wrong is the reason it
+is worth having.** It read every column's disposition and failed for `TreasuryTable`, which is correct.
+`Rows.Columns` includes the **allocator's own** `id`, `generation` and `free_next` — `Saved` on every
+table in the project. ⚠ **Those are precisely the scalars `Rows.Fold` folds *before* consulting any
+column's disposition**, which is the mechanism `TreasuryTable`'s exclusion argument turns on. ***The
+names the test has to exclude are not an inconvenience being worked around; they are the thing that
+argument is about.***
+
+🔴 **F38 — THE CENSUS RESERVES ROOM PER FAMILY WITH A HAND-MAINTAINED CONSTANT, AND IT WAS WRONG
+TWICE.** Families are laid out end to end in one array, each base the previous base plus that family's
+metric count, so a counter written past its family's region **lands in the next family and is read back
+as that family's data**. 🔴 **`PlacementCounters` was 3 against four members** — caught here, before
+commit, by `--census` printing **`shops emigrated 111`** on a world where nothing creates a shop; the
+111 was a trip counter. 🔴 **`ZoneCounters` was 5 against six members — AND THAT ONE IS TASK 4'S,
+COMMITTED AND PUSHED.** `ZoneCounter.Ended` wrote into `placement considered`, which is why the same
+run printed *tenancies ended* and *placement considered* as **the identical four numbers** and nobody
+read them side by side. ⚠ **Silent in both directions**: too small overwrites a neighbour, too large
+leaves a hole that reads as a counter stuck at zero — ***and a counter stuck at zero is
+indistinguishable from a mechanism that never fires***, which is the reading a census invites.
+**Closed by `CensusFamilySizeTests`.** ⚠ **Instrument output only** — no State Hash moved, and the
+defect was in what the run *said* rather than in what the city did.
+
+**F39 — the same failure shape twice in one afternoon, and naming it is worth more than either fix.**
+**F36** and **F38** are both *a declaration and a hand-maintained number that must agree, with nothing
+checking that they do* — `[Table]` against `_tables`, and a counter enum against its slot count. ⚠ **In
+both, the enum or the declaration is the source of truth and the number is a copy**, which is
+`plans/0012` **Cause 5**'s mechanism arriving in code rather than in prose: ***a copy of a fact is the
+copy that drifts.*** **Two tests now close the two instances**, and the *class* is not closed — nothing
+enumerates the remaining hand-kept counts in this codebase.
+
+**F40 — three fixtures had to be named for one table, and every one of them was predicted in writing.**
+`DerivedRebuildAuditTests` needed a world holding a pooled Business (`business.pool_slot`);
+`FactorioTests` needed a **sixth** (`unpremised`'s five saved columns); `UnpremisedPoolTests` is the
+behaviour. ⚠ **`FactorioTests`' own remarks already said it**: *a table with no production writer needs
+a fixture named for it, or its columns are carried by the format and checked by nothing.* 🔴 **The new
+half is that the writer here is REAL AND REACHABLE** — `World.DestroyBuilding` — ***and it can only
+fire on a Building that has a Business in it.*** **A writer gated on a row nothing creates is a writer
+no fixture reaches**, which is that test's *gated on a Ruleset key* one step along.
+
+**F41 — the sink introduces no number, and that is `adr/0144` arriving as code.** The retirement pass
+shares the trigger, the sample derivation and the bound with the Household half. ⚠ **Each of the three
+would have been hash-bearing and owed a ratifier** (`adr/0052`), and no world contains a Business to
+ratify one against — so the alternative to sharing was not *a second number*, it was ***an unratifiable
+number***. **A distinct `PurposeTag.UnpremisedDraw` is the one thing deliberately NOT shared**: the two
+draws run in the same pass, and one tag would correlate which shops are examined with which families are
+housed.
+
+**F42 — `Place` returned early on an empty Unplaced Pool, which would have made the second sink
+conditional on the first pool.** Two independent collections happen to share a trigger, so a city that
+housed everybody would have stopped retiring shops and `adr/0006`'s bound would have held only while
+the *other* pool was non-empty. ⚠ **Caught by reading the control flow rather than by a test**, and
+the test that would fail is a world with an empty Pool and a full one — which no fixture has, because
+one of the two is always empty today.

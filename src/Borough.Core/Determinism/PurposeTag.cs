@@ -388,4 +388,24 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     EmigrantBalance = 21,
+
+    /// <summary>
+    /// Which Business in the unpremised pool is looked at this pass.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="PoolDraw"/>'s sibling, and distinct from it for that tag's own stated reason one
+    /// collection across.</b> The two draws run on the same trigger in the same pass, so sharing a tag
+    /// would tie them together — ***the Businesses looked at would correlate with the Households
+    /// housed***, and a run in which many families were placed would be a run in which many shops
+    /// happened to be examined. Two decisions, two tags.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What it decides today is only WHEN a Business is asked whether it has given up</b>, since
+    /// nothing tenants one (<c>adr/0142</c>, milestone 25 task 5). It becomes a draw over a real
+    /// choice the day a Business placement pass ships, and it is separate now so that the day it does,
+    /// no correlation has to be untangled.
+    /// </para>
+    /// </remarks>
+    UnpremisedDraw = 22,
 }

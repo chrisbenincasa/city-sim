@@ -165,6 +165,11 @@ public sealed class World
         // (adr/0070), so one apiece is the capacity hint that assumes least -- and it is a hint, since
         // the table grows.
         Businesses = new BusinessTable(PerThousand(citizens, 150), Buildings, Bins);
+
+        // adr/0142's collection, and its capacity hint assumes even less than the Business table's:
+        // nothing creates a Business, so this pool is EMPTY in every world the simulation builds on
+        // its own and every row in it today was put there by a fixture. A hint, since it grows.
+        UnpremisedPool = new UnpremisedTable(8, Businesses);
         RulesetTrail = new RulesetTrailTable();
         CondemnationTrail = new CondemnationTrailTable(Lots.Rows);
 
@@ -255,6 +260,20 @@ public sealed class World
             // -- so this join is the only saved statement of the relation and a hash without it would
             // agree about two worlds whose Pools belonged to different Districts.
             DistrictPools.Rows,
+
+            // Appended, milestone 25 task 5. 🔴 IT WAS MISSING FOR THE LENGTH OF ONE BUILD AND EVERY
+            // TEST PASSED -- 2,074 of them -- because a table absent from this list is not hashed, and
+            // a fact nothing folds cannot disagree with anything. ⚠ The allocation-by-declaration
+            // rule closes the COLUMN-level coverage hole and leaves this one wide open: declaring
+            // `Since` as Rows.Saved guarantees it is folded IF this table is walked, and guarantees
+            // nothing at all about whether it is. ***A saved table outside this array is state the
+            // State Hash has agreed not to look at.***
+            //
+            // It carries the membership and the give-up clock, and both are load-bearing: a member is
+            // drawn by POSITION, so a reload that produced a different order would retire a different
+            // Business from the same save, and a Since that did not travel would restart every clock
+            // at the load.
+            UnpremisedPool.Rows,
 
             // TreasuryTable is deliberately NOT here, milestone 10 task 1. Both its columns are
             // Derived, and 5a's finding is that a wholly-derived table cannot join this list: Rows.Fold
@@ -506,6 +525,17 @@ public sealed class World
     /// somebody reading one call site.
     /// </remarks>
     public UnplacedTable UnplacedPool { get; }
+
+    /// <summary>
+    /// The unpremised pool: the Businesses seeking premises.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It ships with one exit and that exit is the SINK</b> — see <see cref="UnpremisedTable"/>.
+    /// Nothing tenants a Business because nothing creates one, so a member leaves only by giving up
+    /// and emigrating. ***That is <c>adr/0006</c>'s bound arriving with the collection***, which is
+    /// <c>adr/0142</c>'s own rule applied to itself.
+    /// </remarks>
+    public UnpremisedTable UnpremisedPool { get; }
 
     /// <summary>
     /// What every Ruleset transition this world survived destroyed, capped and aggregated.
@@ -1426,6 +1456,146 @@ public sealed class World
         DestroyHousehold(household);
     }
 
+    /// <summary>
+    /// Puts a Business that has lost its premises into the unpremised pool.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Unplace(Handle{Household})"/>'s opposite number</b>, and deliberately the same
+    /// shape: it severs the premises handle, puts the actor in a pool with a clock on it, and touches
+    /// <b>nothing it owns</b>. ***A pooled tenant keeps what it owns and that needs no code***
+    /// (<c>adr/0142</c>) — the balance handle, the Bin list and the row itself are all untouched here.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The caller takes the Business off <c>BuildingBusinesses</c>, not this method.</b>
+    /// <see cref="DestroyBuilding"/> is draining that list as it goes and re-entering it here would
+    /// be a mutation of the list being walked — <c>plans/0040</c> <b>F32</b>'s shape, avoided by not
+    /// creating it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Its stock is NOT carried into the pool</b>
+    /// (<see href="../../docs/adr/0144-a-tenant-that-loses-its-premises-keeps-only-its-money-and-waits-a-households-wait.md">adr/0144</see>).
+    /// A Business owns exactly one Bin today — its balance — so there is nothing here to free and the
+    /// loop that would do it is not written: a Business's stock Bins are <b>unbuilt</b>, and writing
+    /// the sweep for them now would be a mechanism with no rows to walk. ***The rule is decided and
+    /// the code for it is milestone 27's***, which is the honest split rather than an omission.
+    /// </para>
+    /// </remarks>
+    public void Unpremise(Handle<Business> business, Ticks now)
+    {
+        int slot = Businesses.Rows.Resolve(business);
+
+        if (Businesses.IsUnpremised(slot))
+        {
+            // Already pooled. Reaching here twice would put one Business in the pool at two
+            // positions, and the second Leave would swap a live member into a freed slot.
+            Invariants.Report(Invariant.ABusinessIsPremisedOrItIsInThePool, slot);
+            return;
+        }
+
+        Businesses.Building[slot] = default;
+        UnpremisedPool.Join(Businesses, business, now);
+    }
+
+    /// <summary>
+    /// Sends an unpremised Business out of the city, taking its money with it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Depart(Handle{Household})"/>'s mirror, and the mechanism is that method's
+    /// unchanged</b> (<c>adr/0142</c>): the balance is subtracted from <c>MoneySupply.Issued</c>
+    /// before the row is freed, so <c>Invariant.MoneyIsConserved</c> holds across the departure.
+    /// ***The money is neither destroyed nor confiscated; it is exported*** — through the same door
+    /// <see cref="Endow"/> brings an arriving Household's balance in by.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The supply write is here and not in <see cref="DestroyBusiness"/></b>, which is the split
+    /// <see cref="Depart(Handle{Household})"/> makes and states its reason for: destroying a row is a
+    /// table operation with several callers and ***only THIS one means somebody left the city.*** A
+    /// fixture bulldozing a Business has not moved money out of any economy.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It refuses a PREMISED Business</b>, which is
+    /// <c>Invariant.OnlyAnUnhousedHouseholdGivesUp</c>'s rule with a different subject. A premised
+    /// Business choosing to leave is the housed-departure channel — <b>unbuilt</b>, a comparison
+    /// rather than a threshold (<c>adr/0102</c>) — so reaching here with premises means somebody
+    /// wired the wrong channel to this door.
+    /// </para>
+    /// </remarks>
+    public void Depart(Handle<Business> business)
+    {
+        int slot = Businesses.Rows.Resolve(business);
+
+        if (Buildings.Rows.TryResolve(Businesses.Building[slot], out _))
+        {
+            Invariants.Report(Invariant.ABusinessIsPremisedOrItIsInThePool, slot);
+            return;
+        }
+
+        int position = Businesses.PoolPosition(slot);
+
+        if (position < 0 || position >= UnpremisedPool.Count)
+        {
+            Invariants.Report(Invariant.ABusinessIsPremisedOrItIsInThePool, slot);
+            return;
+        }
+
+        // Before DestroyBusiness, because that frees the Bin -- reading the level afterwards would
+        // read a freed row. Depart(Household)'s line and its reason.
+        if (Bins.Rows.TryResolve(Businesses.Balance[slot], out int balance))
+        {
+            MoneySupply.Issued[MoneySupplyTable.Slot] -= new Money(Bins.LevelAt(balance));
+        }
+
+        // The membership goes first, because DestroyBusiness frees the row the membership holds a
+        // handle to.
+        UnpremisedPool.Leave(Businesses, position);
+
+        DestroyBusiness(business);
+    }
+
+    /// <summary>
+    /// Frees a Business and every Bin it owned.
+    /// </summary>
+    /// <remarks>
+    /// <b>The table operation, with no economics in it</b> — see <see cref="Depart(Handle{Business})"/>
+    /// for why the money supply is written by the caller rather than here.
+    /// ⚠ <b>Every Bin it owned and not only its balance</b>, which is <c>adr/0143</c>'s saved owner
+    /// list being the only way to reach a tenant's Bins at all, and <c>DestroyHousehold</c>'s own
+    /// walk one actor across. The link is taken <b>before</b> the row is freed, because reading
+    /// <c>OwnerNext</c> out of a freed row reads a zeroed slot and truncates the walk at the first
+    /// entry.
+    /// </remarks>
+    public void DestroyBusiness(Handle<Business> business)
+    {
+        int slot = Businesses.Rows.Resolve(business);
+
+        if (Businesses.IsUnpremised(slot))
+        {
+            UnpremisedPool.Leave(Businesses, Businesses.PoolPosition(slot));
+        }
+
+        if (Buildings.Rows.TryResolve(Businesses.Building[slot], out int buildingSlot))
+        {
+            BuildingBusinesses.Remove(buildingSlot, slot);
+        }
+
+        Handle<Bin> owned = Businesses.BinHead[slot];
+
+        while (!owned.IsNone)
+        {
+            int binSlot = Bins.Rows.Resolve(owned);
+            Handle<Bin> next = Bins.OwnerNext[binSlot];
+
+            WakeAll(binSlot, Tick);
+            Bins.Rows.Free(owned);
+
+            owned = next;
+        }
+
+        Businesses.Rows.Free(business);
+    }
+
     /// <summary>Retires a Citizen, unlinking it from its Household first.</summary>
     public void DestroyCitizen(Handle<Citizen> citizen)
     {
@@ -1608,6 +1778,7 @@ public sealed class World
         Buildings.RuleTail.Span.Clear();
         Households.DwellingNext.Span.Clear();
         Households.PoolSlot.Span.Clear();
+        Businesses.PoolSlot.Span.Clear();
         Households.MemberHead.Span.Clear();
         Households.MemberTail.Span.Clear();
         Citizens.MemberNext.Span.Clear();
@@ -1668,6 +1839,16 @@ public sealed class World
                 && Households.Rows.TryResolve(UnplacedPool.Household[slot], out int householdSlot))
             {
                 Households.EnterPool(householdSlot, slot);
+            }
+        }
+
+        // The unpremised pool's reverse index, on the Unplaced Pool's own reasoning eight lines up.
+        for (int slot = 0; slot < UnpremisedPool.Rows.SlotCount; slot++)
+        {
+            if (UnpremisedPool.Rows.IsLive(slot)
+                && Businesses.Rows.TryResolve(UnpremisedPool.Business[slot], out int businessSlot))
+            {
+                Businesses.EnterPool(businessSlot, slot);
             }
         }
 
@@ -4098,20 +4279,23 @@ public sealed class World
         // here. So the row survives with its money, holding a severed premises handle that says `the
         // premises stopped existing`.
         //
-        // ⚠ WHAT BECOMES OF A BUSINESS WITH NO PREMISES IS UNDESIGNED (adr/0070), and it is the
-        // departing Household's question with a different subject -- both are filed in plans/0002 §C.
-        // Nothing reaches it today: no pass creates a Business, so this loop is empty in every world
-        // the simulation builds on its own. Left as a leak that cannot be reached rather than closed
-        // by inventing a destination for money.
+        // adr/0142, milestone 25 task 5: the orphaned Businesses go into the unpremised pool, where a
+        // give-up bound sends them out of the city with their money. ⚠ THIS BLOCK SAID THE
+        // DESTINATION WAS UNDESIGNED until 2026-08-23, and it was right on its own terms -- it
+        // declined to invent one rather than leaking money to close the loop, and named the leak it
+        // was leaving. What changed is that adr/0142 supplied a destination that already existed.
         //
-        // Drained rather than Clear()ed, for the reason the worker branch above states: the rows stay
-        // live and are not re-linked, and IndexList.Clear drops the two heads without touching any
-        // element's next link. A Business left holding a stale BuildingNext is in no list and points
-        // at its old sibling, which RebuildDerived would never produce -- so Clear here would break
-        // the (derived AND rebuilt) agreement in exactly the direction no hash can see.
+        // Still drained rather than Clear()ed, for the reason the worker branch above states, and now
+        // for a second: Unpremise reads Businesses.Building before severing it, so the rows must come
+        // off this list one at a time rather than the two heads being dropped underneath them.
+        // IndexList.Clear leaves every element's next link intact, and a Business in no list pointing
+        // at its old sibling is a (derived AND rebuilt) disagreement no hash can see.
         IndexList premises = BuildingBusinesses;
-        while (premises.PopFront(slot) != Rows.NoSlot)
+        int tenant = premises.PopFront(slot);
+        while (tenant != Rows.NoSlot)
         {
+            Unpremise(Businesses.Rows.At(tenant), tick);
+            tenant = premises.PopFront(slot);
         }
 
         // The Rules next, so that any of them asleep on this Building's own Bins are off those wait
