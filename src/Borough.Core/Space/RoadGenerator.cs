@@ -76,8 +76,9 @@ public static class RoadGenerator
     /// How far the lattice reaches from the origin corner, in Tiles. Clamped to the map.
     /// </param>
     /// <exception cref="InvalidOperationException">The graph already has Segments.</exception>
-    public static void LayInto(RoadGraph graph, WorldKey key, int extentTiles) =>
-        LayInto(graph, key, OneAtTheOrigin, extentTiles);
+    public static void LayInto(
+        RoadGraph graph, WorldKey key, int extentTiles, MapLayers? layers = null) =>
+        LayInto(graph, key, OneAtTheOrigin, extentTiles, layers);
 
     /// <summary>
     /// Lays one lattice per <paramref name="lattices"/> entry, each reaching
@@ -123,7 +124,11 @@ public static class RoadGenerator
     /// The graph already has Segments, or two lattices overlap.
     /// </exception>
     public static void LayInto(
-        RoadGraph graph, WorldKey key, LatticeDefinition[] lattices, int extentTiles)
+        RoadGraph graph,
+        WorldKey key,
+        LatticeDefinition[] lattices,
+        int extentTiles,
+        MapLayers? layers = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(lattices);
@@ -161,7 +166,7 @@ public static class RoadGenerator
 
             int extent = extentTiles < room ? extentTiles : room;
 
-            layouts[lattice] = new Layout(graph, roads, key, extent, origin, lattice);
+            layouts[lattice] = new Layout(graph, roads, key, extent, origin, lattice, layers);
         }
 
         RefuseOverlap(layouts);
@@ -273,7 +278,8 @@ public static class RoadGenerator
         WorldKey key,
         int extentTiles,
         LatticeDefinition origin,
-        int index)
+        int index,
+        MapLayers? layers)
     {
         /// <summary>Node columns and rows in the Street grid.</summary>
         private readonly int _grid = IntegerMath.FloorDiv(extentTiles, roads.BlockTiles) + 1;
@@ -394,6 +400,13 @@ public static class RoadGenerator
                         RoadKind.Street,
                         TravelMode.Any,
                         TravelMode.Any);
+
+                    SealRun(
+                        OriginEast + (east * roads.BlockTiles),
+                        OriginNorth + (north * roads.BlockTiles),
+                        OriginEast + ((east + 1) * roads.BlockTiles),
+                        OriginNorth + (north * roads.BlockTiles),
+                        roads.BlockTiles);
                 }
             }
 
@@ -408,6 +421,13 @@ public static class RoadGenerator
                         RoadKind.Street,
                         TravelMode.Any,
                         TravelMode.Any);
+
+                    SealRun(
+                        OriginEast + (east * roads.BlockTiles),
+                        OriginNorth + (north * roads.BlockTiles),
+                        OriginEast + (east * roads.BlockTiles),
+                        OriginNorth + ((north + 1) * roads.BlockTiles),
+                        roads.BlockTiles);
                 }
             }
         }
@@ -458,6 +478,8 @@ public static class RoadGenerator
 
             while (InBounds(tileEast, tileNorth))
             {
+                SealTile(OriginEast + tileEast, OriginNorth + tileNorth);
+
                 // A Junction piece every so many Tiles of arc length. The first anchors the
                 // Arterial's first Segment; before it there is road with no graph edge, which is
                 // correct — an Arterial with no Junction on it is unreachable, and that is what a
@@ -619,10 +641,103 @@ public static class RoadGenerator
                 RoadKind.Arterial,
                 TravelMode.Car,
                 TravelMode.Car);
+
+            // A straight ramp between two Tile positions this method computed, so it seals
+            // exactly despite not being axis-aligned.
+            SealRun(
+                OriginEast + tileEast,
+                OriginNorth + tileNorth,
+                OriginEast + (column * roads.BlockTiles),
+                OriginNorth + (row * roads.BlockTiles),
+                length <= 0 ? StepTiles : length);
         }
 
         private static int Clamp(int value, int low, int high) =>
             value < low ? low : value > high ? high : value;
+
+        /// <summary>The Cell a road Tile Seals into, clamped to the map.</summary>
+        /// <remarks>
+        /// <b>The clamp is a fencepost and not a safety net.</b> A lattice paved to the boundary has
+        /// its far Node at Tile <c>CellGrid.WorldTiles</c> — one past the last Tile, because N Tiles
+        /// need N+1 grid lines — so the east and north edge Streets start on a coordinate that has no
+        /// Cell. The road is real and the ground it covers is the last Cell's, which is what this
+        /// returns. Without it a world with a door threw out of <c>LayStreets</c>.
+        /// </remarks>
+        private static Cells SealCell(int tiles) =>
+            CellGrid.ToCellsClamped(new Tiles(tiles));
+
+        /// <summary>
+        /// Seals a straight run of road, attributing its Tiles to the Cells it actually crosses.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Called as the road is laid, because that is the only moment its geometry exists.</b>
+        /// Nothing stores a Segment's covered Tiles and there is no Segment to Cell helper; both are
+        /// deliberate, and neither matters here because the writer is holding the two endpoints when
+        /// it calls this.
+        /// </para>
+        /// <para>
+        /// <b>The attribution is per Cell crossed and NOT split between the endpoints' two
+        /// Cells.</b> <see cref="MapLayers.Seal"/> writes one Cell and a Segment is never in one
+        /// Cell -- a Street runs Cell boundary to Cell boundary at the shipped
+        /// <c>block_tiles</c>, and <c>rulesets/severance.toml</c>'s 256 spans eight. Splitting
+        /// between the endpoints would put half a Segment's Tiles into each end and <em>nothing</em>
+        /// into the Cells the road runs through, which is a different quantity rather than an
+        /// approximation of this one.
+        /// </para>
+        /// <para>
+        /// The walk accumulates and flushes on a Cell change, so a run costs one
+        /// <see cref="MapLayers.Seal"/> per Cell crossed rather than one per Tile.
+        /// </para>
+        /// </remarks>
+        private void SealRun(
+            int fromEastTiles, int fromNorthTiles, int toEastTiles, int toNorthTiles, int lengthTiles)
+        {
+            if (layers is null || lengthTiles <= 0)
+            {
+                return;
+            }
+
+            int deltaEast = toEastTiles - fromEastTiles;
+            int deltaNorth = toNorthTiles - fromNorthTiles;
+
+            Cells runEast = SealCell(fromEastTiles);
+            Cells runNorth = SealCell(fromNorthTiles);
+            int run = 0;
+
+            for (int step = 0; step < lengthTiles; step++)
+            {
+                Cells cellEast = SealCell(
+                    fromEastTiles + IntegerMath.FloorDiv(deltaEast * step, lengthTiles));
+                Cells cellNorth = SealCell(
+                    fromNorthTiles + IntegerMath.FloorDiv(deltaNorth * step, lengthTiles));
+
+                if (cellEast != runEast || cellNorth != runNorth)
+                {
+                    layers.Seal(runEast, runNorth, run);
+
+                    runEast = cellEast;
+                    runNorth = cellNorth;
+                    run = 0;
+                }
+
+                run++;
+            }
+
+            layers.Seal(runEast, runNorth, run);
+        }
+
+        /// <summary>Seals the single Tile an Arterial's polyline walk is standing on.</summary>
+        /// <remarks>
+        /// <b>The curved Arterial is the one Segment whose path cannot be recovered from its
+        /// endpoints</b> -- its <c>LengthTiles</c> is arc length rather than the straight line, which
+        /// <see cref="RoadSegmentTable"/> states and explains. It is also the one the generator walks
+        /// a Tile at a time, so it is sealed here exactly and never reconstructed. <b>This also
+        /// catches the run before the first Junction anchors a Segment</b>, which is pavement with no
+        /// graph edge and which a per-Segment rule would miss.
+        /// </remarks>
+        private void SealTile(int eastTiles, int northTiles) =>
+            layers?.Seal(SealCell(eastTiles), SealCell(northTiles), StepTiles);
 
         /// <summary>Straight-line Tile distance, floored — which underestimates, the safe direction.</summary>
         private static int Distance(int fromEast, int fromNorth, int toEast, int toNorth)
@@ -713,6 +828,17 @@ public static class RoadGenerator
                         RoadKind.FootPath,
                         TravelMode.Foot,
                         TravelMode.Foot);
+
+                    // Fully determined despite being a diagonal: it runs corner to corner
+                    // across one block, and `diagonal` is that run's floored Euclidean length.
+                    // It seals MORE Tiles than a Street of the same block because it is longer,
+                    // which is the geometry and not a weighting.
+                    SealRun(
+                        OriginEast + (east * roads.BlockTiles),
+                        OriginNorth + (north * roads.BlockTiles),
+                        OriginEast + ((east + 1) * roads.BlockTiles),
+                        OriginNorth + ((north + 1) * roads.BlockTiles),
+                        diagonal.Raw);
                 }
             }
         }

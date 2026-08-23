@@ -100,6 +100,9 @@ public sealed class MapLayers
     private readonly LayerCellTable _cells;
     private readonly CellResidency _residency = new();
 
+    /// <summary>Scratch for the land value pass. Rebuilt each pass; never saved, never hashed.</summary>
+    private readonly TrafficPresence _traffic = new();
+
     private LayerRuleset _ruleset;
     private CellRect _pollutionDirty = CellRect.Empty;
 
@@ -648,7 +651,16 @@ public sealed class MapLayers
     /// belongs where the value is stored rather than where it is computed.
     /// </para>
     /// </remarks>
-    public int Desirability(RoadGraph graph, DesirabilityWeights weights, Tiles east, Tiles north)
+    /// <param name="near">
+    /// An optional presence map letting the noise query skip a Tile no traffic reaches.
+    /// <b>Null means do the full scan</b>, so nothing that omits it changes its answer.
+    /// </param>
+    public int Desirability(
+        RoadGraph graph,
+        DesirabilityWeights weights,
+        Tiles east,
+        Tiles north,
+        TrafficPresence? near = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -664,7 +676,8 @@ public sealed class MapLayers
         // and not a wider type, and it is right, because the defect here was the conversion.
         long pollution = (long)weights.Pollution * Pollution(cellEast, cellNorth);
         long noise = ((long)weights.Noise
-            * LineSourceQueries.Noise(graph, weights.NoiseSource, east, north)) >> Fixed.FractionalBits;
+            * LineSourceQueries.Noise(graph, weights.NoiseSource, east, north, near))
+            >> Fixed.FractionalBits;
 
         // Both terms subtract, and there is no term that adds. See the remark above: this is a
         // disamenity field until milestone 15, and its maximum is clean, quiet, empty ground.
@@ -720,7 +733,11 @@ public sealed class MapLayers
     /// already answered <em>superposes</em> for both terms.
     /// </remarks>
     public int CellDesirability(
-        RoadGraph graph, DesirabilityWeights weights, Cells east, Cells north)
+        RoadGraph graph,
+        DesirabilityWeights weights,
+        Cells east,
+        Cells north,
+        TrafficPresence? near = null)
     {
         int stride = IntegerMath.FloorDiv(CellGrid.TilesPerCell, DesirabilitySamplesPerAxis);
         Tiles originEast = CellGrid.ToTiles(east) + new Tiles(IntegerMath.FloorDiv(stride, 2));
@@ -736,7 +753,8 @@ public sealed class MapLayers
                     graph,
                     weights,
                     originEast + new Tiles(across * stride),
-                    originNorth + new Tiles(up * stride));
+                    originNorth + new Tiles(up * stride),
+                    near);
             }
         }
 
@@ -770,6 +788,11 @@ public sealed class MapLayers
 
         DesirabilityWeights weights = _ruleset.Desirability;
 
+        // ONE LINEAR SCAN OF THE SEGMENT TABLE, against a pass that queries it four times per Cell.
+        // Rebuilt here rather than cached across Ticks: it is scratch, so no load has to rebuild it
+        // and no derived column can go quietly unpopulated. See TrafficPresence.
+        _traffic.Rebuild(graph, weights.NoiseSource.Range);
+
         for (int slot = 0; slot < _cells.Rows.SlotCount; slot++)
         {
             if (!_cells.Rows.IsLive(slot))
@@ -778,7 +801,7 @@ public sealed class MapLayers
             }
 
             _cells.LandValueTarget[slot] =
-                CellDesirability(graph, weights, _cells.East[slot], _cells.North[slot]);
+                CellDesirability(graph, weights, _cells.East[slot], _cells.North[slot], _traffic);
         }
     }
 

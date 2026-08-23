@@ -1051,6 +1051,41 @@ public static class RulesetLoader
                     }
                 }
 
+                // CONTEXT.md -> Building's footprint, which the vocabulary has always specified and
+                // nothing in the build carried: "a Building has a footprint (the set of Tiles it
+                // covers)" and "interacts with Map Layers through that footprint". Sealing is such a
+                // Layer. A Lot stores a position and no extent and adr/0078 refused it a depth, so
+                // this cannot be derived and is declared on the kind like occupancy and employment.
+                //
+                // ONE WHEN ABSENT rather than zero, and that is the opposite default to the three
+                // keys around it. Absent `occupants` means a kind that houses nobody, which is a
+                // real building; absent `footprint_tiles` would mean a building covering no ground,
+                // which is not a thing. One is CONTEXT.md -> Sealing's own illustration of the unit
+                // -- "one house seals 1/1024 of its Cell" -- so a file that does not state this gets
+                // the figure the corpus already carried and no world moves that did not have to.
+                //
+                // Zero is refused for that reason and not merely negatives: a kind seals its ground
+                // or it is not a Building. The read site clamps to one as a backstop, because a
+                // KindDefinition built in a test does not come through this door.
+                int footprintTiles = 1;
+
+                if (TryInteger(table, "footprint_tiles", out long covers, required: false, name))
+                {
+                    if (covers < 1)
+                    {
+                        Refuse(LineOf((SyntaxNodeBase?)Find(table, "footprint_tiles") ?? table), name,
+                            $"footprint_tiles is {covers}. It counts the Tiles a Building of this "
+                            + "kind covers and therefore Seals, so it is at least one; omit it for "
+                            + "the single Tile CONTEXT.md gives a house.");
+                    }
+                    else
+                    {
+                        footprintTiles = covers > CellGrid.TilesInCell
+                            ? CellGrid.TilesInCell
+                            : (int)covers;
+                    }
+                }
+
                 // adr/0068's rule applied to employment (milestone 5b-bis task 2). Optional on
                 // occupants' reasoning and refused negative on the same: it reads as "sack
                 // everybody", which is a sentence somebody meant to write.
@@ -1136,6 +1171,7 @@ public static class RulesetLoader
                 {
                     CondemnAfter = condemnAfter,
                     Occupants = occupants,
+                    FootprintTiles = footprintTiles,
                     Jobs = jobs,
                     Parking = parking,
                     ArrivalsPerDay = arrivalsPerDay,

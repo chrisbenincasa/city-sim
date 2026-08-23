@@ -114,8 +114,13 @@ public static class LineSourceQueries
     /// unratified.
     /// </para>
     /// </remarks>
-    public static int Noise(RoadGraph graph, LineSource source, Tiles east, Tiles north) =>
-        Level(graph, source, east, north);
+    /// <param name="near">
+    /// An optional presence map that lets the query skip a Tile no traffic reaches. <b>Null means do
+    /// the full scan</b>, so nothing that omits it changes its answer.
+    /// </param>
+    public static int Noise(
+        RoadGraph graph, LineSource source, Tiles east, Tiles north, TrafficPresence? near = null) =>
+        Level(graph, source, east, north, near);
 
     /// <summary>
     /// Near-road pollution at a Tile. <b>The same query as <see cref="Noise"/> with different weights.</b>
@@ -140,8 +145,9 @@ public static class LineSourceQueries
     /// other's.
     /// </para>
     /// </remarks>
-    public static int NearRoadPollution(RoadGraph graph, LineSource source, Tiles east, Tiles north) =>
-        Level(graph, source, east, north);
+    public static int NearRoadPollution(
+        RoadGraph graph, LineSource source, Tiles east, Tiles north, TrafficPresence? near = null) =>
+        Level(graph, source, east, north, near);
 
     /// <summary>
     /// Amenity at a Tile. <b>Not a Layer and not a distance query either — a <em>time</em>.</b>
@@ -194,7 +200,8 @@ public static class LineSourceQueries
     /// query is standing on.
     /// </para>
     /// </remarks>
-    private static int Level(RoadGraph graph, LineSource source, Tiles east, Tiles north)
+    private static int Level(
+        RoadGraph graph, LineSource source, Tiles east, Tiles north, TrafficPresence? near)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -213,6 +220,21 @@ public static class LineSourceQueries
         int column = block > 0 ? IntegerMath.FloorDiv(east.Raw, block) : 0;
         int row = block > 0 ? IntegerMath.FloorDiv(north.Raw, block) : 0;
 
+        // PROVABLY ZERO RATHER THAN APPROXIMATELY, and the proof is three lines of this file.
+        // Contribution returns zero for a Segment carrying no Vehicles, so where nothing within range
+        // carries any: `background` is zero, every `Above` compares its own zero against that zero and
+        // adds nothing, and Log1P(0) is zero. The answer cannot depend on WHICH silent Segment was
+        // nearest, so pass one need not run at all.
+        //
+        // It earns a guard because PASS ONE IS VOLUME-INDEPENDENT: it resolves two node handles and
+        // projects a point for every Segment in the window before Contribution ever looks at a volume.
+        // Measured at 7.2 s per land value pass on rulesets/bordered.toml -- flat across all nine
+        // firings of a day, rush hour included -- for a field that was zero at every one of them.
+        if (near is not null && near.Covers(source.Range) && !near.Near(column, row))
+        {
+            return 0;
+        }
+
         // Pass one: the nearest local Street, which is what sets the ambient background.
         int local = Rows.NoSlot;
         int nearest = int.MaxValue;
@@ -228,15 +250,29 @@ public static class LineSourceQueries
 
         // An off-lattice STREET is still a local Street and still sets the background; an Arterial is a
         // thing that stands out FROM the background and must never be it. A world whose Streets do not
-        // align to the declared lattice has no lattice entries at all, and skipping this loop would give
-        // it no background -- which disables the crossover silently, exactly as Frontage.Locate did.
-        for (int index = 0; index < streets.OffLatticeCount; index++)
-        {
-            int slot = streets.OffLatticeAt(index);
+        // align to the declared lattice has no lattice entries at all, and skipping this would give it
+        // no background -- which disables the crossover silently, exactly as Frontage.Locate did.
+        //
+        // WINDOWED RATHER THAN GLOBAL, and it changes no answer. A Segment outside the window is
+        // further than `range`, so Contribution returns zero for it: as the background it gives zero,
+        // and as a pass-two term Above compares zero against a zero background and adds nothing. The
+        // identity of `local` therefore only matters while it is IN range, and in range it is in the
+        // window. See StreetGrid.OffLatticeReachBlocks for why the window is widened.
+        int reach = streets.OffLatticeReachBlocks;
 
-            if (slot != Rows.NoSlot && (RoadKind)graph.Segments.Kind[slot] == RoadKind.Street)
+        for (int c = column - window - reach; block > 0 && c <= column + window + reach; c++)
+        {
+            for (int r = row - window - reach; r <= row + window + reach; r++)
             {
-                Nearer(graph, slot, east, north, ref local, ref nearest);
+                for (int slot = streets.OffLatticeHead(c, r);
+                    slot != Rows.NoSlot;
+                    slot = streets.OffLatticeNext(slot))
+                {
+                    if ((RoadKind)graph.Segments.Kind[slot] == RoadKind.Street)
+                    {
+                        Nearer(graph, slot, east, north, ref local, ref nearest);
+                    }
+                }
             }
         }
 
@@ -254,9 +290,17 @@ public static class LineSourceQueries
             }
         }
 
-        for (int index = 0; index < streets.OffLatticeCount; index++)
+        for (int c = column - window - reach; block > 0 && c <= column + window + reach; c++)
         {
-            total += Above(graph, source, streets.OffLatticeAt(index), local, background, east, north);
+            for (int r = row - window - reach; r <= row + window + reach; r++)
+            {
+                for (int slot = streets.OffLatticeHead(c, r);
+                    slot != Rows.NoSlot;
+                    slot = streets.OffLatticeNext(slot))
+                {
+                    total += Above(graph, source, slot, local, background, east, north);
+                }
+            }
         }
 
         // Saturate rather than overflow. A level is a logarithm, so the clamp costs a fraction of a

@@ -248,13 +248,23 @@ Coarse scalar fields, stored at **one value per Cell**, not per Tile. This is a 
 |---|---|---|---|---|
 | **Industrial pollution** | stored Layer, diffused | industry (point sources) | every 64 ticks | real plumes run 1–10 km. **A stock the environment absorbs** ([`adr/0051`](adr/0051-industrial-pollution-is-a-stock-the-environment-absorbs.md)); wind advection is a later addition |
 | **Land value** | stored Layer, slow-moving | composite + accessibility | every 256 ticks | has momentum; see below |
-| **Sealing** | stored per Cell, **not diffused** | construction | on build | a count, not a field |
+| **Sealing** | stored per Cell, **not diffused** | construction — **roads and Buildings alike** | on build, **at the point of laying** | a count, not a field. **One Tile per built Tile, and roads are ~86% of it** ([`adr/0143`](adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)) |
 | Noise | **point-of-use query** | frontage Street volume + Arterials within ~300 m | on read | line source, 50–300 m, log falloff. Never stored |
 | Near-road pollution | **point-of-use query** | as Noise, different weights | on read | line source, 150–300 m |
 | Amenity | **walkable catchment** on the Road Graph | destinations within ~400 m on foot | cached, Epoch-invalidated | a *time*, not a distance |
 | Water pollution | **Bin per Water Body**, plus a shoreline line source | dumping, runoff | on transaction | network transport, not spread. `CONTEXT` → Water Body |
 | Service coverage | **overlay only** | reachability the Trips actually use | on demand | demoted by [`adr/0032`](adr/0032-services-are-delivered-by-trips-not-by-coverage.md) — nothing reads it |
 | Desirability, Fertility | **derived, never stored** | composed at point of use | — | see below |
+
+⚠ **Sealing's row says *at the point of laying*, and that is a rule about where the write lives rather
+than about when it happens** ([`adr/0143`](adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)).
+`MapLayers.Seal` writes **one Cell**, and a road Segment is never in one Cell — a Street runs Cell
+boundary to Cell boundary at the shipped `block_tiles`, and `rulesets/severance.toml`'s **256** spans
+eight. So the writer attributes Tiles to Cells from the geometry it is holding as it lays them; **nothing
+reconstructs a Segment's Cells from its endpoint Nodes afterwards**, because the one Segment kind that
+would get wrong — the curved Arterial trunk, whose `LengthTiles` is arc length — is the one the generator
+walks a Tile at a time. 🔴 **A road seals a width of one Tile and there is no width key**, so the whole
+mechanism authors no hash-bearing number.
 
 **A Layer is a convolution of a source field with a bounded kernel — never an iterative relaxation.** This is the property everything else rests on. Convolution is linear, so twenty factories superpose exactly with no interaction to model and no ordering to get wrong; and the incremental scheme below is then *exact* rather than an approximation. Under relaxation-to-steady-state neither holds, one changed source perturbs the whole field, and saves would diverge for reasons nobody could find.
 

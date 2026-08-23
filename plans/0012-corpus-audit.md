@@ -1738,6 +1738,45 @@ pointer to one.***
       terms above, so the next reader meets it at the symbol rather than in a plan.
 
 
+### `CLAUDE.md` says `[households]` and `[traffic]` are `congested.toml`'s alone, and six files state one
+
+**Found 2026-08-23, while measuring the land value pass for milestone 24 task 3.** Two cells say it.
+The Constants table's *Household car ownership* row reads **100% — `rulesets/congested.toml` only**,
+and the repository map's `rulesets/` cell calls `congested.toml` *"the only file that states
+`[traffic]` and `[households]`, because a generated city cannot congest itself"*.
+
+**Counted rather than quoted** (`CLAUDE.md`'s own rule for this cell):
+
+| Table | Files that state it |
+|---|---|
+| `[households]` | **six** — `bordered`, `congested`, `crowded`, `fouled`, `scarce`, `taxed` |
+| `[traffic]` | **two** — `congested`, `fouled` |
+
+⚠ **The volume-delay row is wrong the same way and separately**: it carries
+*`rulesets/congested.toml` only* against a `[traffic]` that `fouled.toml` also states.
+
+**What it cost, which is why this is filed rather than fixed in passing.** The sentence is not merely
+out of date — it is *load-bearing for a reading of a measurement*. `CLAUDE.md` states, correctly and
+in the same row, that **absent means nobody drives**. So a reader who finds no Vehicle in motion on
+`bordered.toml` and remembers *cars are congested.toml only* has a ready-made explanation that is
+false, and it terminates the enquiry. That happened on the day this was filed, and what it nearly
+buried is [`0002`](0002-open-questions.md) §B's **five Vehicles against 937** — a live question about
+whether the commute generator or the Commute Budget is the cause.
+
+***A staleness claim of the form "X only" decays every time somebody adds a file, and nothing warns
+them.*** That is the shape rather than the instance: the count is maintained in one document and the
+exclusivity is asserted in another, so the second goes wrong silently the moment the first grows.
+`CLAUDE.md` already carries the antidote for exactly this in the same cell — ⚠ ***count them rather
+than quoting a total*** — and the antidote is stated about the *number of Rulesets* while the
+*membership of a table* two lines away is asserted flat.
+
+**The repair is two halves and only the first is an edit.** Correct both cells; and note that a
+mechanical check is available here in a way it is not for most of this ledger, because both sides of
+the claim are in the repository — the assertion is in `CLAUDE.md` and the ground truth is a `grep`
+over `rulesets/*.toml`. `tests/Borough.Tests/Corpus/` is document-to-document by construction and so
+cannot see it today. **Not written here, because whether the corpus tests may read the Rulesets is a
+decision and not a chore.**
+
 ### `CLAUDE.md`'s assertion tier is **42s at 1,690 tests** and three readings since say **3m02s–3m42s at 1,974–2,002**
 
 ⚠ **A third reading, 2026-08-22, by milestone 24's scoping: 3 m 42 s over 2,002 tests, on `main`.**

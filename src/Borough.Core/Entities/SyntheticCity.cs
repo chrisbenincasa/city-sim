@@ -389,7 +389,7 @@ public static class SyntheticCity
 
         int extentTiles = boundary ? CellGrid.WorldTiles : PavedTiles(world);
 
-        RoadGenerator.LayInto(world.Roads, key, lattices, extentTiles);
+        RoadGenerator.LayInto(world.Roads, key, lattices, extentTiles, world.Layers);
 
         int wanted = WantedBuildings(world);
 

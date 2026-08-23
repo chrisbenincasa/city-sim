@@ -377,6 +377,37 @@ public readonly record struct KindDefinition(
     public int Occupants { get; init; }
 
     /// <summary>
+    /// How many Tiles a Building of this kind covers, and therefore how many it Seals. One when the
+    /// Ruleset does not say.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="Occupants"/>'s rule a fourth time</b> — an authored number keyed on the kind,
+    /// read at a write site, pointed at by no live state — so it is a property of the Ruleset in
+    /// force and not of the Building. ⚠ <b>Unlike the other three, it is not retroactive:</b> Sealing
+    /// is <c>CONTEXT.md</c> → Sealing's <em>"count of Tiles in a Cell <b>ever</b> built on"</em>, so
+    /// lowering this reaches only what is built afterwards. A Building that has already covered
+    /// ground has already covered it.
+    /// </para>
+    /// <para>
+    /// <b>It exists because <c>CONTEXT.md</c> → Building says a Building <em>"has a footprint (the
+    /// set of Tiles it covers)"</em> and <em>"interacts with Map Layers through that footprint"</em>,
+    /// and nothing in the build carried one.</b> A Lot stores a position and no extent, and
+    /// <c>adr/0078</c> refused it a depth on purpose — so the footprint cannot be derived from
+    /// geometry and has to be declared, exactly as occupancy and employment are.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The value is UNRATIFIED and one Tile is 16 m², which is smaller than any real
+    /// building.</b> It is the figure <c>CONTEXT.md</c> → Sealing illustrates the unit with — <em>"one
+    /// house seals 1/1024 of its Cell"</em> — carried forward so that this key changes no world that
+    /// did not state it. ⚠ <b>Read it against <c>[[building]] occupants</c> before quoting it</b>: a
+    /// kind holding three Households in one Tile is the absence of a considered number rather than a
+    /// considered number, and <c>plans/0002</c> §D1 holds what would settle it.
+    /// </para>
+    /// </remarks>
+    public int FootprintTiles { get; init; }
+
+    /// <summary>
     /// How many Citizens a Building of this kind employs. Zero means it employs nobody.
     /// </summary>
     /// <remarks>

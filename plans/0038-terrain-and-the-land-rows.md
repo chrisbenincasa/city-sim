@@ -8,8 +8,12 @@
 
 ## Status
 
-🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** No task has started and no
-decision is settled.
+🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Task 1 is done. Task 3 is
+CODE-COMPLETE and BLOCKED — see F7**; it was built ahead of task 2 because the Sealing write path needs
+no terrain, and running it turned up a whole-map cost that
+[`0002`](0002-open-questions.md) §C now owns. **Task 2 has not started.** **Decisions 1, 1b, 2, 3 and 4 are settled**
+([`adr/0139`](../docs/adr/0139-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md)–[`adr/0143`](../docs/adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md));
+**5 and 6 are open**.
 
 ⚠ **It is scoped out of sequence deliberately, and the reason is stated rather than assumed.**
 Milestone **12** is the live row and is being built in another worktree; milestone **18** was scoped
@@ -231,7 +235,7 @@ bake left to place**, and the mechanical check is **owed with terraforming** rat
 
 ---
 
-## Open decisions this half owes — **1, 1b, 2 and 3 SETTLED; OPEN: 4, 5, 6**
+## Open decisions this half owes — **1, 1b, 2, 3 and 4 SETTLED; OPEN: 5, 6**
 
 ⚠ **None is settled and none should be settled by argument if a measurement would settle it**
 ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
@@ -416,7 +420,44 @@ already-populated refusal. **The rule's restatement is the deliverable, not the 
 name a symbol rather than a phase, per
 [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md).
 
-### 4. Does the **Sealing write path** ship here, and what seals? — *arguable*, and precondition 2 forces it
+### 4. ✅ SETTLED 2026-08-22 — **it ships here, it authors no number, and a road seals where it is laid**
+
+✅ **[`adr/0143`](../docs/adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md),
+with the user in the room.** A Building seals **1** Tile, which is `CONTEXT.md` → Sealing's own sentence
+rather than a new figure; a road seals **one Tile per Tile of its run**, width 1, which is 4 m
+(`Tiles.Metres`). 🔴 **No `[roads]` width key, no per-kind width, and therefore ZERO
+[`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)
+rows for the whole decision** — decision 1b opened one; this opens none.
+
+🔴 **The attribution rule is where the work was, and the rule that suggests itself is wrong on a shipped
+world.** `MapLayers.Seal` (`Space/MapLayers.cs:392`) writes to **one Cell**, and a Segment is never in
+one Cell: at `block_tiles = 32` a Street runs Cell boundary to Cell boundary, and `severance.toml`'s
+**256** spans **8**. Splitting a Segment's Tiles between its two endpoint Cells puts **128 Tiles into
+each** — 12.5% of a Cell from one road — and **nothing into the six Cells the road runs through**.
+***That is not an approximation of the right quantity; it is a different quantity.***
+
+✅ **So Sealing is written at the point of laying, from the geometry the writer holds**, never
+reconstructed from a Segment's stored endpoints. `Layout.WalkArterial` (`:444`) already walks every Tile
+of an Arterial — it calls `MarkSevered` per step — and `LayStreets` (`:366`), `LayFootPaths` (`:684`) and
+`ConnectToGrid` (`:606`) each lay a straight run between two Tile positions they compute.
+**Every case is exact, nothing needs a stored path column, and there is no fallback branch.**
+
+⚠ **The Segment whose geometry cannot be recovered is the one that never needs recovering.** The Arterial
+trunk is the only Segment whose `LengthTiles` is arc length rather than endpoint distance
+(`Space/RoadSegmentTable.cs:26` says so and says why) — and it is the case the generator holds a true
+per-Tile walk for.
+
+⚠ **Two facts the earlier brief had wrong, corrected here so nobody reasons from them again.**
+`arterial_count` is **16** in `bordered.toml`, `crowded.toml` and `severance.toml`, not 0 everywhere —
+`CLAUDE.md`'s constants table quotes `minimal.toml`'s value. And the foot-path diagonal is **fully
+determined** (`Intersection(e, n)` → `Intersection(e+1, n+1)`), not a path nothing records.
+
+⚠ **The consequence is a stance and it is recorded rather than assumed**: a built-out Cell at
+`block_tiles = 32` reaches **~7%** — ~64 road Tiles against ~10 Building Tiles of 1024 — so **Sealing is
+roughly 86% a road statistic**. `adr/0022`'s specimen *"ground sealed 12%"* is a **farm panel mockup**,
+is not this quantity, and is **left alone**.
+
+*The question as first written:*
 
 `CONTEXT.md`:181 is unambiguous that **roads Seal and so does every other built Tile**, and that the
 **verge beside an Arterial is never built on**. So the write path touches `RoadGenerator`,
@@ -452,7 +493,7 @@ decision is recorded so the absence is not later read as an omission.**
 |---|---|---|
 | **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0139`](../docs/adr/0139-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0140`](../docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
 | **2** | **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0140`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
-| **3** | **The Sealing write path** — construction Seals. Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2, decision 4 |
+| **3** | 🟡 **BUILT 2026-08-22, BLOCKED ON A COST** — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0143`](../docs/adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
 | **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. Two §D1 rows with named ratifiers | 3, decision 5 |
 | **5** | **Fertility** — the `throw` at `MapLayers.cs:578` becomes a composition at the point of use | 2, 3 |
 | **6** | **Water Bodies** — the water graph, and a fifth `BinOwnerKind`. ⚠ **The downstream ordering is generator OUTPUT, not a height computation** (`adr/0142`): `CONTEXT.md` → Water Body states *an outflow rate to the next body downstream*, which is an **edge** | 2 |
@@ -521,6 +562,53 @@ identically zero on every world this build can generate. Setting the rate and sc
 without it would choose **two hash-bearing numbers to drive a pass over a field that is always zero**.
 ⚠ **`adr/0124` needs an amendment**, and `deferred.md`:52's *"exactly as `Sealing`'s terrain-keyed
 recovery already does"* is filed in [`0012`](0012-corpus-audit.md).
+
+### F7 — Sealing was built, and what it found was a whole-map sweep that had never run over a full map
+
+🟡 **Task 3 is CODE-COMPLETE and must not be committed as done.** Sealing is written, measured, and
+correct; the assertion tier is not usable with it in until `plans/0002` §C's *does the land value target
+pass stagger?* is answered.
+
+**What shipped:** `[[building]] footprint_tiles` (default **1**, refused below one); the Seal at
+`World.CreateBuilding`, which is the single door every Building comes through; `SealRun`/`SealTile` in
+`RoadGenerator.Layout`, called as each road is laid; and `CellGrid.ToCellsClamped` for the fencepost —
+a lattice paved to the boundary has its far grid line at Tile `WorldTiles`, one past the last Tile and
+in a Cell that does not exist, which threw on `bordered.toml` and `crowded.toml`.
+
+**What it measured** — `tests/.../SealingMeasurementTests.cs`, 4,000 Citizens:
+
+| | `minimal.toml` |
+|---|---|
+| mean over sealed Cells | **6.3%** |
+| **peak Cell** | **117 Tiles = 11.4%** |
+| roads' share | **93%** (99% on `severance.toml`) |
+
+🔴 **Two claims in [`adr/0143`](../docs/adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)
+were refuted by running it, and the ADR now carries a correction banner.** `adr/0022`'s *"ground sealed
+12%"* — dismissed there as a mockup — **is right within rounding**. And *"roads are ~86%"* was 93%.
+⚠ **The stance that Sealing is a road statistic is an artefact of `footprint_tiles = 1`**, which came
+from `CONTEXT.md` → Sealing's *illustration of the unit* while `CONTEXT.md` → **Building** twenty-five
+lines away specifies a footprint outright and `RuleEngine.cs:936` says *"Sealing is a property of a
+footprint"* in an error message. ***The entry that specified the mechanism was never opened, and two
+sentences of equal standing were held to different standards.***
+
+🔴 **And the cost.** Making the Cell table dense for the first time took `MapLayers.SetLandValueTargets`
+from free to **88 seconds on one Tick in 256**. ⚠ **It is not the Decide guard** — `--no-decide-guard`
+changes it by 1.0×. The cause was `LineSourceQueries.Level` scanning **every off-lattice Segment**, whose
+doc comment called the linear scan deliberate on `adr/0014`'s *sparse Arterials* premise — ⚠ **true of
+Arterials, and falsified silently by foot paths**, which are off-lattice and authored **per block**, so
+the set grew with the map: **12,581**, about **10,500** of them foot paths.
+
+✅ **Fixed to 6,578 ms — 13.4× — and hash-preserving**, by bucketing the off-lattice set by block
+midpoint in `StreetGrid` and widening the query window by the recorded reach.
+🔴 **Still 421× the budget**, and no query-level work closes it: the pass is 1,048,576 queries against a
+15.6 ms budget. ***The remaining defect is the pass and not the query***, it is a design change because
+a stagger moves the hash, and it is filed in [`0002`](0002-open-questions.md) §C and
+[`0013`](0013-tick-budget.md) rather than done.
+
+⚠ **This was latent and Sealing did not cause it.** The pass is `O(live Cell rows)`, and a row existed
+only where pollution had been emitted — one shipped Ruleset in ten. ***The Cell table's sparsity was
+load-bearing and stated nowhere.*** Map-wide pollution would have tripped the same wire.
 
 ### F4 — the milestone's central term was named in six documents and defined in none, and the missing definition was load-bearing
 

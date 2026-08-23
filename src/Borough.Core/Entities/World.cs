@@ -1924,6 +1924,28 @@ public sealed class World
 
         BuildingsInCells.Add(Buildings, Lots, Buildings.Rows.Resolve(building));
 
+        // CONTEXT.md -> Building: "a Building has a footprint (the set of Tiles it covers)" and
+        // "interacts with Map Layers through that footprint". Sealing is such a Layer, and this is
+        // the single door every Building comes through -- the populator's and the Zone Rule's alike
+        // -- so it is where the footprint meets the ground rather than at either caller.
+        //
+        // The clamp is a backstop and not the refusal. RulesetLoader refuses footprint_tiles below
+        // one at the parse site (adr/0048); reaching here with zero means a KindDefinition was built
+        // in a test rather than loaded, and a Building covering no ground is not a thing this method
+        // should invent a second meaning for.
+        // Declares() rather than Kind(), because a fixture may raise a Building of a kind its Ruleset
+        // never declared -- BuildingResidencyTests builds a world with no [[building]] at all and
+        // asks the Cell index to hold one. That is a legal thing for a test to do and it is not this
+        // method's business to start refusing it, so an undeclared kind takes CONTEXT.md's one Tile.
+        int footprintTiles = Rules.Declares(kind) ? Rules.Kind(kind).FootprintTiles : 1;
+
+        // Clamped, because a gate Lot stands ON a map edge (adr/0088) and the edge is a
+        // fencepost: Tile WorldTiles is one past the last Tile and has no Cell of its own.
+        Layers.Seal(
+            CellGrid.ToCellsClamped(Lots.East[lotSlot]),
+            CellGrid.ToCellsClamped(Lots.North[lotSlot]),
+            footprintTiles < 1 ? 1 : footprintTiles);
+
         Fit(building, kind, now, key);
 
         return building;
