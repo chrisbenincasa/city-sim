@@ -1738,6 +1738,45 @@ pointer to one.***
       terms above, so the next reader meets it at the symbol rather than in a plan.
 
 
+### `adr/0123` says Amenity needs a `kind` column on `BusinessTable`, and a park is not a Business
+
+**Found 2026-08-23, in the sitting that produced
+[`adr/0144`](../docs/adr/0144-amenity-counts-building-kinds-and-the-count-belongs-to-the-place-while-the-set-belongs-to-the-household.md).**
+Three places say it, and one of them is an exception message a future reader will trust absolutely:
+
+| Where | What it says |
+|---|---|
+| [`adr/0123`](../docs/adr/0123-desirability-ships-without-its-only-positive-term-and-a-caveat-that-must-travel-gets-a-test.md) | "`BusinessTable` holds exactly three columns … and **no kind**" |
+| `LineSourceQueries.cs` — doc comment | "what is missing is that a Business has no type to be distinct in. **One column and a catchment query**, both milestone 15's" |
+| `LineSourceQueries.cs` — the `NotSupportedException` | "what does not is **a kind on a Business**, so there are no distinct types to count" |
+
+**It is wrong in the expensive direction: it makes milestone 15 look bigger than it is.** A `kind`
+column on `BusinessTable` cannot enumerate a **park**, and
+[`adr/0032`](../docs/adr/0032-services-are-delivered-by-trips-not-by-coverage.md) had already made a
+park an Amenity entry — *"widen Business to destination and a park is an Amenity entry"* — before
+`0123` was written. Nor could it enumerate a school, a clinic or a beach. Under `adr/0144` the key is
+the **`[[building]] kind`**, which every Building already carries, so ***no column is owed at all***
+and what milestone 15 owes is the catchment query and nothing else.
+
+⚠ **This is Cause 4 with a new surface, and the surface is the interesting part.**
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+rule is that a description of the build tells you *which symbol to read* and never *what is in it*,
+and that where such a sentence is wrong it is wrong about the **trigger**. Here the sentence is wrong
+about **what would discharge it** — it names the work a hole needs, and it names too much. ***A
+description of a blocker is a description of the build, and it decays the same way***: `0123` was
+right about `BusinessTable` on the day it was written and was already stale against `adr/0032`, which
+predates it.
+
+🔴 **And the third row is the one that matters, because an exception message is not a document.** None
+of `tests/Borough.Tests/Corpus/` can see it — the checks are document-to-document by construction — so
+the sentence most likely to be believed by somebody picking up milestone 15 cold is the one sentence
+nothing in this repository is watching. It is the same blind spot this ledger already records against
+doc-comments, arriving in a string literal.
+
+**The repair is three edits and a widening**: correct `adr/0123` with a correction block rather than a
+rewrite, correct both sentences in `LineSourceQueries.cs`, and note that `CONTEXT.md` → Amenity has
+now been amended to carry `adr/0032`'s widening, which is the root the other three grew from.
+
 ### `CLAUDE.md` says `[households]` and `[traffic]` are `congested.toml`'s alone, and six files state one
 
 **Found 2026-08-23, while measuring the land value pass for milestone 24 task 3.** Two cells say it.

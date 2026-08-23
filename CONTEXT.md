@@ -89,7 +89,11 @@ Agriculture is not a special case needing its own verb; it is Extraction, and it
 **Nobody paints nuisance.** Dirty industry is not a band the player selects; it is where Materials come from, and Materials gate all construction — so **pollution is the price of growth and importing is the price of clean air**, with no configuration avoiding both. The player's levers are where the inputs are, what they regulate, and what bill they accept.
 
 **Amenity**
-The count of distinct Business types reachable **on foot**, entering the residential choice utility with diminishing returns. One of the three agglomeration forces, and the one that rewards mixed use.
+The count of distinct **`[[building]]` kinds** reachable **on foot** from a place, under `log(1 + x)` diminishing returns. One of the three agglomeration forces, and the one that rewards mixed use.
+
+⚠ **It said *Business types* until 2026-08-23 and that was stale by an ADR** (`adr/0032`, `adr/0144`). `adr/0032` widened it from *Business* to **destination** so that a park could be an entry, and this entry was never amended to carry it — which is why three documents disagreed about whether a park counted and why `adr/0123` recorded the blocker as *a `kind` column on `BusinessTable`*, a column that could never have enumerated one. **The key is the kind's name in the Ruleset**, so a shop, a school, a clinic and a park all count, one each; ***which* destinations exist is Ruleset content and not architecture.** Nothing is weighted by size, stock or quality.
+
+⚠ **The count is the PLACE's and the set is the HOUSEHOLD's, and the word names both** (`adr/0144`). *How much variety stands within a walk of this address* is a standing property of the address with no mover in it, and is what land value reads. *Which bakery this Household actually uses* is the **Provider List** — sticky, chosen by something that moves, and the thing *Terms we deliberately do not use* → **no proximity scope** governs. ***That rule forbids a Building's Rule from selecting among nearby options; it does not forbid a place from having a property***, and reading it as though it did is what made Amenity look like it needed a mover before land value could read it.
 
 **Walkable** is the load-bearing word. It is what `adr/0008` promised and had not yet collected — *"a corner shop is viable because people can physically reach it on foot"* — and it is what makes a centre of offices, shops, and homes outperform a centre of offices alone without any rule saying so.
 

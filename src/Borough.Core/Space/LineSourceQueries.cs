@@ -160,20 +160,31 @@ public static class LineSourceQueries
     /// straight-line distance query can either. <c>02 §2.5</c>'s representation table gives catchments
     /// their own row.
     /// <para>
-    /// ⚠ <b>Its blocker is not the one this message used to name, and the correction is specific.</b>
-    /// The Road Graph shipped in 5a and Businesses shipped in milestone 10 — <c>BusinessTable</c> holds
-    /// <c>building</c>, <c>balance</c> and <c>building_next</c>, and <b>no kind</b>. Amenity is the count
-    /// of <em>distinct Business types</em> reachable on foot, so what is missing is that a Business has
-    /// no type to be distinct in. One column and a catchment query, both milestone 15's
-    /// (<c>adr/0123</c>).
+    /// ⚠ <b>ITS BLOCKER HAS BEEN NAMED WRONGLY TWICE, AND THE SECOND CORRECTION MAKES IT SMALLER</b>
+    /// (<c>adr/0144</c>, 2026-08-23). This comment and the message below both said what was missing was
+    /// a <b>kind on a Business</b> — one column plus a catchment query. <b>A column on
+    /// <c>BusinessTable</c> could never have enumerated a park</b>, and <c>adr/0032</c> had already made
+    /// a park an Amenity entry before that sentence was written. The key is the
+    /// <c>[[building]] kind</c>, which every Building already carries, so <em>no column is owed at
+    /// all</em>. <b>What remains is the catchment query, and that is the whole of it.</b>
+    /// </para>
+    /// <para>
+    /// <b>And the count is the PLACE's, not a mover's.</b> <c>CONTEXT.md</c>'s <em>no proximity
+    /// scope</em> rule names "an Amenity set" as belonging to something that moves — that is the
+    /// <b>Provider List</b>, a different object sharing the word. The count this method returns is a
+    /// standing property of a Tile, which is why it may be asked for without a Citizen in sight
+    /// (<c>adr/0144</c>).
     /// </para>
     /// </remarks>
-    /// <exception cref="NotSupportedException">Always, until a Business has a kind.</exception>
+    /// <exception cref="NotSupportedException">Always, until the catchment query exists.</exception>
     public static int Amenity(Tiles east, Tiles north) =>
         throw new NotSupportedException(
             $"amenity at Tile ({east.Raw}, {north.Raw}) is a walkable catchment on the Road Graph — a "
-            + "time rather than a distance. The Road Graph exists; what does not is a kind on a "
-            + "Business, so there are no distinct types to count (milestone 15, adr/0123).");
+            + "time rather than a distance, so it is neither a Layer nor a distance query. It is the "
+            + "count of distinct [[building]] kinds reachable on foot, and every Building already "
+            + "carries its kind: what is missing is ONLY the catchment query itself (milestone 15, "
+            + "adr/0144). This message previously said a kind column on BusinessTable was owed; it is "
+            + "not, and it could never have counted a park.");
 
     /// <summary>
     /// The shared implementation. <b>Sums intensities, then takes one logarithm.</b>
