@@ -388,4 +388,25 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     EmigrantBalance = 21,
+
+    /// <summary>
+    /// Which of the five terrain types a Cell is, drawn once at world creation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0157</c>. Keyed on <see cref="Space.CellGrid.Index"/> at
+    /// <see cref="Ticks.Zero"/> — a <em>what sort of ground is this</em> draw rather than a
+    /// <em>what happens now</em> one, the shape <see cref="CarOwnership"/> and
+    /// <see cref="OpeningBalance"/> already use. Terrain is generated once and never changes
+    /// (<c>adr/0021</c>), so the Tick coordinate carries nothing and says so.
+    /// </para>
+    /// <para>
+    /// <b>Woodland will need its own tag and must not borrow this one</b> (task 8, and it is
+    /// <em>unbuilt</em> rather than undesigned). Woodland sits <em>on</em> terrain, so a shared tag
+    /// would make every wooded Cell the same terrain type as every other wooded Cell — the forest
+    /// and the rock as one draw wearing two names, which is a correlation nothing in the city could
+    /// refute. The tag is added when the mechanism that draws it is built, per this file's own rule.
+    /// </para>
+    /// </remarks>
+    TerrainType = 22,
 }
