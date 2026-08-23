@@ -1792,6 +1792,13 @@ at *past five minutes a test stifles iteration and ten is the ceiling*, and 42s 
 four times the headroom it may actually have. ***A stale duration does not merely misinform; it hides
 how close a gate is to the band that would reopen the ADR.***
 
+⚠ **A third reading, later the same day: 3 m 02 s over 1,974 tests**, taken detached while this
+session did nothing but wait on it — so the tightest controls of the three, and it lands on the first
+reading to the second. **Three readings now agree and the row still may not be closed by them**, because
+agreement is not a control: all three were taken on a machine nobody had quieted deliberately, and
+`adr/0106` asks for the machine and the thread count, not for a consensus. ***What repetition buys is
+confidence that 42s is wrong; it does not buy the number that replaces it.***
+
 - [ ] Re-capture the assertion tier on the reference machine, quiet, Release, and correct
       `CLAUDE.md`'s table. If it lands past five minutes, `adr/0121`'s band is the next question and
       not a footnote.
@@ -2980,6 +2987,61 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
     it is the same shape as check 8's own note that the cheaper check was found by committing the defect.
     ***An instrument's blind spot is discovered by the first task that walks into it***, which is an
     argument for building the founding case rather than admiring the check that declared it.
+
+13. ~~🔴~~ ✅ **CHEAP HALF BUILT 2026-08-22, the same sitting it was specified** —
+    `tests/Borough.Tests/Corpus/LedgerAgreementTests.cs`, asserting the **row sets** agree. ⚠ **The
+    status half is still owed** and still needs check 2's machine-readable line. ***Building the half
+    that works is the whole point of the entry below.***
+
+    🔴 **It failed on its own founding case before it passed, and then failed a SECOND way that
+    mattered more.** `06` carries the **identical** table header for Phase 1 and Phase 2, so anchoring
+    on the header alone silently compared **Phase 1's table against Phase 2's ledger** — a green-looking
+    comparison of two unrelated things. ***A check keyed on a string that is not unique is a check on
+    the wrong rows***, and nothing about its output said so; it took reading the names it printed.
+    Anchored on the section heading instead. **The violation was then written and watched to fire**:
+    deleting milestone 26's ledger row reports *in 06 and not in 0003's Phase 2 ledger: 26*.
+
+    **Milestone status agrees between [`0003`](0003-build-plan.md)'s Phase 2 ledger and
+    [`06`](../docs/06-roadmap.md)'s milestone table — NEW 2026-08-22, and it is CHECK 2 on the axis
+    check 2 does not cover.** Check 2 is *slice* task status between `0003` and the slice plan, and it
+    says what it needs: *"one machine-readable line per slice."* ⚠ **It was specified and never
+    built** — and the same defect has now recurred on the **milestone** axis, which is the finding
+    rather than the sighting. ***A check specified and left unbuilt does not hold the ground it
+    describes; it records that somebody once knew.***
+
+    **The sighting.** Milestone 12 was capped at task 6 in `06`, with its risk rewritten and its tasks
+    7–10 moved to milestone 26. `0003`'s Phase 2 ledger — ***the document that answers what is
+    done*** — went on reading **`🟢 LIVE. Scoped and decomposed 2026-08-22 — ten tasks`** for a whole
+    commit, and `plans/0000` went on promoting milestone 12 as the code row to do next.
+
+    🔴 **All thirty-one corpus checks passed while the two disagreed**, and that is the point. Every
+    check this corpus owns compares **links and shapes** — does the target resolve, does the table
+    render, has a closed row left, does each ADR have a coverage row. **None compares a CLAIM in one
+    document against a claim in another.** ⚠ *Milestone 12 is live* and *milestone 12 is capped* are
+    both well-formed, both link correctly, and are flatly contradictory.
+
+    ⚠ **It was found by a person asking whether the boards were updated**, not by an instrument —
+    which is the same way `plans/0012` **Cause 1** was found in the first place. ***This is Cause 1
+    on the milestone axis***, and Cause 1's own headline is *every document that stores per-slice
+    status drifted, and the only large one that did not stores none*. **`0003` is now a large document
+    that stores milestone status**, which is exactly the category the Cause names.
+
+    **The mechanical form, and the blocker is the same one check 2 named.** Both tables are keyed by
+    the milestone number, so the row **sets** can be compared today and cheaply — *every milestone in
+    `06`'s table has a Phase 2 ledger row and the reverse* — and that alone would have caught 25 and
+    26 existing in one file and not the other. **What cannot be compared is the STATUS**, because it
+    is prose in both. ⚠ **So the cheap half should be built now and the expensive half needs the
+    machine-readable line check 2 has been waiting for since the sweep began.** ***Build the half that
+    works rather than deferring the whole again***, which is what left check 2 unbuilt.
+
+    🔴 **And the sighting turned up a second, narrower defect the same check would not catch.**
+    `06`'s placement rows say **`Placed: 12`** and name a *milestone* rather than a *task* — so when
+    12 split, *"the nine-Resource abstraction; Utility families; Waste"* could not be mapped to
+    either half and had to be flagged rather than moved. ***A placement row that names a milestone and
+    not a task cannot survive that milestone being split***, and until 2026-08-22 no milestone had
+    ever been split, so nothing had tested it. **A check that every `Placed: N` names a milestone that
+    exists is trivial and would not have helped**; the real repair is that a placement names what it
+    is placed *against*.
 
 6. ~~**A distinctive figure appearing in more than one document carries the same qualifying clause in
    each.**~~ **BUILT the same day it was specified, in a different shape, because the specified shape was
