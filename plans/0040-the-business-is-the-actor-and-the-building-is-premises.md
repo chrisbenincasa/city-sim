@@ -114,9 +114,36 @@ See **F1**. It is the one place the census made the milestone smaller.
 
 ---
 
-## Open decisions — **OPEN: 1 and 3 for milestone 25; 2 and 5 SETTLED; 4 TRAVELLED to 27**
+## Open decisions — **NONE OPEN FOR MILESTONE 25; 1, 2, 3 and 5 SETTLED; 4 TRAVELLED to 27**
 
-### 1. 🔴 What is an unpremised Business's Bin capacity? — **found by decomposition, answered by neither ADR**
+### 1. ✅ SETTLED 2026-08-23 — **a tenant that loses its premises loses its stock, and searches holding only its till**
+
+**Decided with the user in the room, and it is the answer the build already gave the Household.**
+`World.UnfitOccupant` frees every non-conserved Bin on eviction and keeps the money Bin; a Business is
+now held to the same rule. ⚠ **It is FORCED for the Household and CHOSEN for the Business**, and the
+difference matters: a Household's ceiling is the premises' kind's and an unhoused Household has no kind
+to read one from, so there was nothing to decide; a Business could have been given an unbounded ceiling
+while unpremised, and was not. ***One rule for both tenants, and the tenant carries across the gap
+exactly what names no premises*** — which is money, and only money.
+
+⚠ **The failure mode this decision was written about is NOT REACHABLE TODAY and that is not why it was
+settled.** A Business owns exactly one Bin, its balance: `FitOccupant` and `CreateOccupantBin`
+(`World.cs:2181`, `2892`) are Household-only, so a Business's stock Bins are **unbuilt** (`adr/0070`)
+and `RebuildCapacities` has nothing of a Business's to zero. ***The decision was taken on the merits
+rather than voided***, so milestone 27 inherits an answer instead of a question.
+
+🔴 **What it costs is recorded rather than discovered later: a city with this build's churn makes a
+Business's inventory nearly worthless.** Measured on `rulesets/minimal.toml`, 4,000 Citizens, 20,480
+Ticks — ten in-world Days — **2,610 Buildings condemned against 2,375 raised**, with 852 Households in
+the Unplaced Pool at the end. ⚠ **That rate is the DEMONSTRATION FILE'S and not the design's**:
+`condemn_after = 4` is a deliberately short fuse so that decline is visible in a run somebody sits
+through, and `minimal.toml`'s own header says it is a demonstration rather than a city. ***So the
+number bounds what this decision costs today and settles nothing about how often a city should
+demolish***, which is milestone 27's problem and not this one's. ⚠ **0 tenancies ended in that run** —
+the premises' `upkeep` starves while the tenants' `restock` is fed — which is why task 4 moved no
+golden artefact.
+
+### 1a. *The original entry, kept for what it found.* 🔴 What is an unpremised Business's Bin capacity? — **found by decomposition, answered by neither ADR**
 
 **`adr/0141`**: capacity is the premises' and stays keyed on the **building kind**, read at the creation
 site from `Buildings.Kind[buildingSlot]` (`World.cs:2093`) and again on every rebuild
@@ -151,12 +178,25 @@ owner, and `MoneyLedger.Of`'s *"whoever owns it — and this does not ask"* beco
 ⚠ **No construction cycle and no two-phase bind** — both tables already take `bins` in their
 constructors, which is how `Balance` works today.
 
-### 3. Does a Business share `[placement] gives_up_after_days`, or state its own?
+### 3. ✅ SETTLED 2026-08-23 — **a Business shares `[placement] gives_up_after_days`, as a stand-in**
 
-**`adr/0142` leaves this open in as many words**, and gives the argument against sharing: ***a shop
-looking for premises and a family looking for a home are not obviously the same patience.*** ⚠ **If it
-is a second number it is a second [`0002`](0002-open-questions.md) §D row on the day it is written**
-([`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)).
+**Decided with the user in the room: a shop's search takes as long as a family's, to start.** No second
+key, no second number, no second ratifier — task 5's pool uses the Household's bound.
+
+⚠ **`adr/0142`'s argument against sharing is NOT overruled, it is deferred**: *a shop looking for
+premises and a family looking for a home are not obviously the same patience* stays on the record, and
+milestone **27** is where a Business exists in enough numbers for anyone to have an opinion. ***A
+stand-in is the honest shape while the second actor cannot be observed at all***, and it is the
+treatment per-seller price formation already has at milestone 12.
+
+🔴 **SHARING IS NOT FREE AND THE COST LANDS IN [`0002`](0002-open-questions.md) §D, NOT HERE.** That
+row's ratifier — machine: milestone 11's acceptance run; world: arrivals outpacing housing; quantity:
+the Pool's size at steady state — was named for, and measured on, a **Household** pool. The number now
+bounds **two** pools and nothing has measured the second. ⚠ **So the row's scope widened without its
+evidence widening**, which is the shape of `plans/0012` **Cause 5** arriving through a decision rather
+than through a quotation: ***the caveat says which pool it was measured on, and the number is now being
+asked about a different one.*** **§D says so on the day**, and §D2's *possibly a second give-up bound*
+resolves to **no second bound, for now**.
 
 ### 4. 🔴 What capitalises a Business? — **a number, not a shape**
 
@@ -244,7 +284,7 @@ builds the Business as a thing the city contains. **The cleavage between task 5 
    pool, waits, and if nothing tenants it **departs and takes its money out of the city**. ⚠ **The
    mechanism exists** — `Depart` subtracts from `MoneySupply.Issued` and `Endow` is its mirror — and it
    lands on the **built** channel, since `Depart` refuses a *housed* Household and an orphaned Business
-   is unpremised by construction. **Blocked on decisions 1 and 3.** 🔴 **The bound goes in on the day
+   is unpremised by construction. ✅ **UNBLOCKED 2026-08-23 — decisions 1 and 3 both settled.** 🔴 **The bound goes in on the day
    the collection does** (`adr/0006`), and the collection is task 1's. ⚠ **Exercised by fixture**
    (**F7**), because nothing creates a Business until **milestone 27's task 8** — ***so this task ships a
    sink for a collection that cannot yet fill***, which is `adr/0142` applied to itself: **the bound goes
