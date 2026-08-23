@@ -23,7 +23,7 @@ Fertility as an unweighted subtraction of three quantities:
 
 | Term | What it is | Range |
 |---|---|---|
-| Base Fertility | Ruleset data keyed by terrain type ([`0147`](0147-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | undefined until this ADR |
+| Base Fertility | Ruleset data keyed by terrain type ([`0154`](0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | undefined until this ADR |
 | Sealing | a **count of Tiles** | 0–1024 per Cell |
 | pollution | a **stock in kernel units** | *"about 12 … under a strong source"*, measured, `DesirabilityWeights.Default` |
 
@@ -107,7 +107,7 @@ takes the same answer.
   directions — a farm beside heavy industry that yields unchanged means it is too low, and a farm that
   dies from a neighbour's plume alone means it is too high.
 - ⚠ **Base Fertility's own value stays keyed by terrain type and uniform in the shipped Ruleset**
-  ([`0147`](0147-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)).
+  ([`0154`](0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)).
   Expressing it as a percentage does not make varying it free of
   [`0022`](0022-land-is-a-stock-the-city-spends.md)'s amendment.
 - **`CONTEXT.md` → Fertility and `02 §2.3` keep the three-term shape and gain the weights**, so the

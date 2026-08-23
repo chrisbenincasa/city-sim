@@ -43,7 +43,7 @@ plain `ToCells` stays strict.
 | **peak Cell** | **117 Tiles = 11.4%** |
 | roads' share | **93%** (99% on `severance.toml`) |
 
-🔴 **Two claims I wrote into `adr/0143` yesterday were wrong, and the ADR now carries a correction
+🔴 **Two claims I wrote into `adr/0150` yesterday were wrong, and the ADR now carries a correction
 banner.**
 
 1. I argued `adr/0022`'s *"ground sealed 12%"* was a throwaway mockup that should be corrected. **A peak
@@ -137,8 +137,8 @@ nowhere.*** Map-wide pollution would have tripped the same wire.
 |---|---|
 | `plans/0013` | The cost, with every multiplicand **measured**, and the before/after |
 | `plans/0002` §C | 🔴 **Does the land value target pass stagger?** — open, *arguable*, blocks task 3 |
-| `plans/0040` | **F7**, and task 3 marked 🟡 built-but-blocked |
-| `docs/adr/0143` | Correction banner — the 12%, the 86%, and the footprint stance |
+| `plans/0041` | **F7**, and task 3 marked 🟡 built-but-blocked |
+| `docs/adr/0150` | Correction banner — the 12%, the 86%, and the footprint stance |
 | `docs/adr/0048` | Refusal count 129 → **130** |
 | `StreetGrid` doc comment | Corrected — it described a scan that no longer exists |
 
@@ -214,7 +214,7 @@ Copy everything in the block below.
 
 ```
 Read plans/0000-board.md, then SESSION-REPORT-2026-08-22.md at the repo root, then
-plans/0040-terrain-and-the-land-rows.md section F7.
+plans/0041-terrain-and-the-land-rows.md section F7.
 
 Context: we are on branch milestone-24-terrain-scoping. Milestone 24 task 3 (the Sealing
 write path) is CODE-COMPLETE and UNCOMMITTED in the working tree. Building it exposed a

@@ -101,7 +101,7 @@ is *recurring* cost, and a one-time generation is not that. ***A rule about what
 is enforced by what exists, not by where the reader stands***, and phrased against state it needs no
 phase-aware analyser: **there is no height column to read.**
 
-**It is checkable because [`0149`](0149-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)
+**It is checkable because [`0156`](0156-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)
 made it so**, by settling that milestone 24 stores no height at all. ⚠ **The check becomes owed the day
 terraforming lands**, because *seed + edits* stores heights on edited Chunks and the forbidden read
 becomes reachable again — recorded here so that milestone finds the obligation rather than rediscovering

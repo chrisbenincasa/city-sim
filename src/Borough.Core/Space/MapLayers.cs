@@ -572,14 +572,14 @@ public sealed class MapLayers
     /// </summary>
     /// <remarks>
     /// <b>It throws rather than returning zero, and the throw is the deliverable.</b> Base Fertility
-    /// is <b>Ruleset data keyed by terrain type</b> (<c>adr/0147</c>), and the terrain type column
+    /// is <b>Ruleset data keyed by terrain type</b> (<c>adr/0154</c>), and the terrain type column
     /// needs the world generator, which does not exist; Sealing arrives in task 6. ⚠ <b>The first term
     /// was called <em>terrain suitability</em> until 2026-08-22, and the old name invented a per-Cell
     /// field</b> that <c>02 §2.3</c> forbids in one sentence — <em>the generator places Woodland and
     /// nothing else</em>. ⚠ <b>The three terms are in three units</b> — a fraction, a Tile count of
     /// 0–1024, and a stock measuring about 12 — so unweighted the Sealing term outweighs pollution by
     /// roughly <b>85:1 by representation</b>. <b>It is weighted the way <see cref="Desirability"/> is</b>
-    /// (<c>adr/0148</c>), so <b>this method gains a weights parameter when it is built</b>. Base
+    /// (<c>adr/0155</c>), so <b>this method gains a weights parameter when it is built</b>. Base
     /// Fertility is a fraction with <c>1.0</c> fully fertile, so the result is a <b>proportion</b>.
     /// 🔴 <b><c>w_s</c> is DERIVED and has no Ruleset key</b>: a Cell at Sealing
     /// <see cref="CellGrid.TilesInCell"/> has every Tile built on and therefore no farmland, so the term
@@ -595,7 +595,7 @@ public sealed class MapLayers
         throw new NotSupportedException(
             $"fertility at Cell ({east.Raw}, {north.Raw}) composes from base fertility, which is "
             + "Ruleset data keyed by a terrain type the world generator does not yet place "
-            + "(02 §2.3, adr/0147). Composed at the point of use and never stored.");
+            + "(02 §2.3, adr/0154). Composed at the point of use and never stored.");
 
     /// <summary>
     /// <c>− w₂·pollution − w₃·noise</c>. <b>Two of four terms, and the two that are missing are not

@@ -1788,7 +1788,7 @@ in [`06`](../docs/06-roadmap.md) → *Retired numbering*, third block, which is 
 ### `adr/0123` says Amenity needs a `kind` column on `BusinessTable`, and a park is not a Business
 
 **Found 2026-08-23, in the sitting that produced
-[`adr/0144`](../docs/adr/0144-amenity-counts-building-kinds-and-the-count-belongs-to-the-place-while-the-set-belongs-to-the-household.md).**
+[`adr/0151`](../docs/adr/0151-amenity-counts-building-kinds-and-the-count-belongs-to-the-place-while-the-set-belongs-to-the-household.md).**
 Three places say it, and one of them is an exception message a future reader will trust absolutely:
 
 | Where | What it says |
@@ -1801,7 +1801,7 @@ Three places say it, and one of them is an exception message a future reader wil
 column on `BusinessTable` cannot enumerate a **park**, and
 [`adr/0032`](../docs/adr/0032-services-are-delivered-by-trips-not-by-coverage.md) had already made a
 park an Amenity entry — *"widen Business to destination and a park is an Amenity entry"* — before
-`0123` was written. Nor could it enumerate a school, a clinic or a beach. Under `adr/0144` the key is
+`0123` was written. Nor could it enumerate a school, a clinic or a beach. Under `adr/0151` the key is
 the **`[[building]] kind`**, which every Building already carries, so ***no column is owed at all***
 and what milestone 15 owes is the catchment query and nothing else.
 
@@ -3498,7 +3498,7 @@ is checking the argument and not the example.***
 ⚠ **And `adr/0124` enumerated the blockers and counted two of three** — `sealing_decay_tau = 0` and
 `Step` never calling `DecaySealing` — **both of which are downstream of the missing write path.** Fourth
 sighting of the enumeration defect, after `adr/0062`'s Cap admission ranks, `03 §4`'s demotion fields and
-`adr/0117`'s four grounds. Owned by [`0040`](0040-terrain-and-the-land-rows.md) **F3**, which is where
+`adr/0117`'s four grounds. Owned by [`0041`](0041-terrain-and-the-land-rows.md) **F3**, which is where
 the repair order is corrected; `adr/0124` needs the amendment.
 
 ### `06`'s inventory row said both that terraforming was placed and that it was not
@@ -3521,9 +3521,9 @@ available, because
 [`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) makes it
 the difference between terrain as a **price** and terrain as a **wall** — and a scoping session reading
 this row would have taken terraforming as placed at 24 and shipped the height field on that basis.
-✅ **PAID 2026-08-22 by `plans/0040` decision 2**: the row is split in two, terraforming's is **UNPLACED**,
+✅ **PAID 2026-08-22 by `plans/0041` decision 2**: the row is split in two, terraforming's is **UNPLACED**,
 and it now says it owes a **verb** before it owes a milestone
-([`adr/0149`](../docs/adr/0149-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)).
+([`adr/0156`](../docs/adr/0156-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)).
 
 ### `adr/0021` called a rule **checkable** for four years, and nothing could have checked it
 
@@ -3536,7 +3536,7 @@ and it now says it owes a **verb** before it owes a milestone
 🔴 **It would have gone red on the thing that satisfies it.** World creation in this build is an event in
 the Input Log — `SyntheticCity.PopulateInto` is dispatched from `Simulation.cs:391` on
 `CommandKind.Populate`, **inside Phase 0** — so the generator reads height *inside a Tick phase* on the
-Tick that makes the world (`0040` **F6**).
+Tick that makes the world (`0041` **F6**).
 
 🔴 **And nothing enforces phase discipline at all.** `TickPhase` is referenced by its own file and by
 `Simulation.cs`, and by nothing else in the repository. There is no analyser, no test and no fixture that
@@ -3548,9 +3548,9 @@ unfamiliar direction: not *an absence read as a constraint*, but ***a constraint
 enforcer existed.*** A reader auditing terrain reads would have gone looking for the check and found
 nothing to run.
 
-✅ **PAID 2026-08-22 by `plans/0040` decision 3**, as an **amendment in place** rather than a new ADR —
+✅ **PAID 2026-08-22 by `plans/0041` decision 3**, as an **amendment in place** rather than a new ADR —
 the design content belongs to
-[`adr/0149`](../docs/adr/0149-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
+[`adr/0156`](../docs/adr/0156-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
 and a second home for one decision is **Cause 1** by construction. The rule is restated against **state**:
 ***terrain height is not state***, which is checkable by inspection because no height column exists.
 ⚠ **The mechanical check becomes owed the day terraforming lands**, since *seed + edits* stores heights on
@@ -3563,7 +3563,7 @@ on 2026-08-22 *"detected by file mtimes rather than by anything the corpus does.
 
 ⚠ **2026-08-22, milestone 24's scoping: three worktrees were live at once** — `city-sim` on milestone 12,
 `city-sim-m18` on milestone 18, `city-sim-q8` on `main` — and the scoping session read `git worktree
-list` and the branch diffs **before** claiming `plans/0040`. The plan number was free; **the next ADR
+list` and the branch diffs **before** claiming `plans/0041`. The plan number was free; **the next ADR
 number was not safely claimable**, because the milestone-12 branch holds unmerged work with open
 decisions 3, 7 and 10 still to settle, any of which lands an ADR.
 
@@ -3572,3 +3572,31 @@ nothing shows the collision*** — `git worktree list` plus a branch diff shows 
 session should read before claiming any number. **That is a habit and not machinery**, it is not
 mechanically checkable, and it does not close this item. What it does establish is that **the tree
 already carries the fact**; what is missing is anything that makes a session look.
+
+### The naming hazard recurred a **fourth** time, and this time it collided
+
+⚠ **2026-08-23.** The entry above records the third recurrence as *"detected before the collision"* and
+credits `git worktree list` plus a branch diff with showing it. 🔴 **That reading was right about the
+mechanism and wrong about the outcome: the collision happened anyway.** The milestone-24 scoping session
+read the tree on 2026-08-22, found `plans/0040` free, claimed it, and took `adr/0143`–`0149`. The
+milestone-25 session then committed **a different `plans/0040`** and **a different `adr/0143`** directly
+to `main`. Both names existed, on different branches, naming different documents.
+
+🔴 **Git cannot see it and will not say so.** The two documents have *different filenames* — the number
+is a prefix and the claim is the rest — so a merge takes both, cleanly, and every `adr/0143` citation in
+the corpus silently acquires two referents. ***A collision that resolves as a clean merge is worse than
+a conflict, because a conflict stops somebody.***
+
+✅ **Resolved by renumbering the milestone-24 branch**, 2026-08-23: `adr/0143`–`0149` → **`0150`–`0156`**,
+`plans/0040` → **`plans/0041`**, `0144`–`0149` left free. **One side moves, not both** — the branches
+agreed which before either edited. The 32 corpus tests pass, which is what says the citations resolve.
+
+⚠ **What the third entry got right stands and is now load-bearing**: the tree carries the fact and
+nothing makes a session look. ⚠ **What this recurrence adds is that reading the tree ONCE is not enough**
+— milestone 24 read it correctly on the day and was overtaken afterwards. ***A number claimed against a
+set that is still growing stays unsafe for as long as the branch is unmerged***, which is the original
+entry's own sentence arriving with a second half. **This does not close the item.**
+
+⚠ **The reservation in [`0036`](0036-the-coarse-day-wheel.md) did not prevent it and was not consulted**
+— that document reserves **0140–0149** for the coarse-day-wheel track, and both milestone 24 and
+milestone 25 took numbers from inside it. ***A reservation nobody reads is a comment.***

@@ -110,7 +110,7 @@ and grepping for the word would not have found it.
 ## Amended 2026-08-22: the first term is renamed, and this ADR's refusal now has a key that can defeat it
 
 **`terrain suitability` is renamed **Base Fertility**** and is **Ruleset data keyed by terrain type**
-([`0147`](0147-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)).
+([`0154`](0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)).
 The formula reads `base fertility − Sealing − pollution`. **Nothing in this ADR's argument changes** — the
 rename was made *because* of this ADR, whose *Why fertility is not on the map* section is the strongest
 statement in the corpus that the first term must not be a generated field, and whose own consequence list
@@ -123,7 +123,7 @@ correct answer to where farms go before the player has done anything."*
 
 **The shipped demonstration Rulesets therefore state a uniform Base Fertility**, so a default world shows
 this ADR's stance. ***Varying it amends this document rather than tuning within it***, and comes back
-here and to `0147` rather than to a Ruleset review. The key exists so the question can be looked at, not
+here and to `0154` rather than to a Ruleset review. The key exists so the question can be looked at, not
 so it can be answered by tuning.
 
 **What the ground decides in the shipped world is unchanged and is worth stating positively**: not where
