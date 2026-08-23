@@ -1,4 +1,5 @@
 using Borough.Core;
+using Borough.Formats;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Input;
@@ -212,5 +213,64 @@ public sealed class TenancyEndsTests
 
         Assert.Equal(6, activity.Ended.Sum);
         Assert.Equal(0, activity.Demolished.Sum);
+    }
+
+    /// <summary>
+    /// <c>rulesets/evicted.toml</c> ends tenancies and condemns nothing, which is what it is for.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Milestone 25's closing task: the shipped file that makes this mechanism watchable.</b> The
+    /// three tests above build the shape by hand; this one asserts that a file a person can actually
+    /// run still shows it. ⚠ <b>Without this the Ruleset is a demonstration nothing defends</b> — its
+    /// two deleted Rules could come back in a merge, or a change to pressure could make the premises
+    /// fail too, and the file would go on being cited as the thing to look at while showing something
+    /// else.
+    /// </para>
+    /// <para>
+    /// <b>Both halves are asserted because either alone is half the claim.</b> Tenancies ending proves
+    /// the tenant fails; nothing condemned proves the premises do not — ***and it is the pair that is
+    /// the milestone***, since a file where everything fails would satisfy the first and show nothing.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The counts are asserted as shapes rather than as values.</b> How many tenancies end in
+    /// 2,048 Ticks is a property of the sample cadence and the pressure threshold, and pinning it here
+    /// would make a retune of either look like a broken city. ***The file's header says its numbers
+    /// ratify nothing, and a test that pinned one would contradict it.***
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_shipped_eviction_ruleset_ends_tenancies_and_condemns_nothing()
+    {
+        RulesetLoadResult loaded = RulesetLoader.Load(
+            Path.Combine(AppContext.BaseDirectory, "Rulesets", "evicted.toml"));
+
+        Assert.True(loaded.Ok, loaded.Describe());
+
+        var key = WorldKey.FromSeed(0xB0A0_0C6E_A7E0_0026UL);
+        var world = new World(1_000, loaded.Ruleset!);
+
+        // Populated the way the headless runner populates, because an unpopulated world has no
+        // Buildings and no Households and would satisfy `condemned nothing` by having nothing.
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+
+        var simulation = new Simulation(world, key);
+
+        Run(simulation, 2_048);
+
+        ZoneActivity zoning = simulation.Zoning.Drain();
+
+        Assert.True(
+            zoning.Ended.Sum > 0,
+            "evicted.toml ended no tenancies. Its whole content is minimal.toml with `restock` "
+            + "deleted so the tenant starves; if nothing is ending, either the Rule came back or a "
+            + "tenant's Bin is being filled by something else.");
+
+        Assert.True(
+            zoning.Demolished.Sum == 0,
+            $"evicted.toml condemned {zoning.Demolished.Sum} Buildings and must condemn none. Its "
+            + "`upkeep` Rule is deleted so the premises have nothing that can fail -- a demolition "
+            + "here means the premises are accumulating pressure from a tenant's Rules again, which "
+            + "is the exact defect milestone 25 task 4 removed.");
     }
 }

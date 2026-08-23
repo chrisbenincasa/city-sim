@@ -17,7 +17,7 @@ scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-b
 **then 27, then 26, the purchase**. ✅ **DECOMPOSED 2026-08-23 — ten tasks in two groups,
 [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md).**
 
-> 🟢 **GROUP A TASKS 1, 2, 4 AND 5 SHIPPED 2026-08-23 — ONLY THE CLOSING TASK IS LEFT.** ① a Bin hangs off its **owner**
+> ✅ **MILESTONE 25 CLOSED 2026-08-23 — GROUP A TASKS 1, 2, 4, 5 AND THE CLOSING TASK, IN ONE DAY.** ① a Bin hangs off its **owner**
 > ([`adr/0143`](../docs/adr/0143-a-bin-hangs-off-its-owner-and-the-polymorphic-column-stays-unbuilt.md)),
 > and the polymorphic column `adr/0114` gestured at is **not built**. ② a Household owns Bins, its Rules
 > follow them, and the arming stagger mixes the **tenant** — ⚠ **which is ONE task and `adr/0141` had
@@ -51,7 +51,17 @@ scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-b
 > `ZoneCounters` since task 4, so *tenancies ended* and *placement considered* printed the identical
 > four numbers. ⚠ **Same shape both times**: a declaration and a hand-kept count with nothing checking
 > they agree (**F39**). Both closed by tests; ***the class is not closed.***
-> **Open: the closing task only.**
+> ⑩ **something to look at, and the long run** — 🔴 **and the thing to look at DID NOT EXIST**
+> (`0040` **F43**): on all twelve shipped files the premises fail and the tenants never do, so
+> `minimal.toml` reads **2,610 condemned against 0 tenancies ended** and task 4's mechanism was
+> invisible in every world the build could generate. ⚠ **Every test of it built its Ruleset by hand**,
+> which is why nothing noticed. **`rulesets/evicted.toml`** is the thirteenth file — two Rules deleted,
+> because the failure only had to move from the premises to the tenant — and reads **929 tenancies
+> ended against 0 condemned**. 🔴 **The long run's stated obligation was the wrong collection**
+> (**F44**): the unpremised pool is empty in every world, and the one milestone 25 introduced is the
+> **tenant's Rule Instances and Bins**. **131,072 Ticks: both allocators' slot counts FLAT** under
+> ~1,900 tenancies ending per window (**F45**).
+> **Milestone 25 is closed. Next is 27 — the Business is a thing the city contains.**
 🔴 **CAPPED AT GROUP A THE SAME DAY, with the user in the room — 25 is tasks 1–5 plus the closing
 task, and ITS RISK IS REWRITTEN** to ***that a Rule Instance names premises rather than an actor, so no
 money term can resolve to a payer.*** ⚠ **Group A makes the actor NAMEABLE; it does not make one

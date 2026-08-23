@@ -362,11 +362,21 @@ own logic applied one level down: renumbering to close a gap buys tidiness and c
 
 ### Closing
 
-10. **Something to look at, and the long acceptance run.** The definition of done requires both. ⚠ **The
-    thing to look at is a tenancy** — a shop failing and the premises surviving it is the whole milestone
-    in one frame, and it is `LEGIBLE CAUSE` becoming visible. ⚠ **The long run's new obligation is the
-    unpremised pool**: `adr/0006` asks whether a collection trends, and task 5 creates the project's
-    newest one.
+10. ✅ **SHIPPED 2026-08-23 — `rulesets/evicted.toml`, and the long run on it.** 🔴 **The thing to look
+    at DID NOT EXIST and could not be produced by any shipped file** (**F43**): on all twelve, the
+    premises' `upkeep` starves while the tenants are fed, so `minimal.toml` measures **2,610 condemned
+    against 0 tenancies ended** over ten Days. ***The mechanism task 4 built was invisible in every
+    world this build could generate.*** The thirteenth file is `minimal.toml` with **two Rules deleted**
+    — `restock`, so the tenant starves, and `upkeep`, so the premises cannot fail — and it measures
+    **929 tenancies ended against 0 condemned**. `--evidence` on it names which tenant is failing;
+    `--zones` prints the pair. ⚠ **The long run's obligation was NOT the unpremised pool** (**F44**):
+    that pool is empty in every world, so `adr/0006` cannot be asked of it at all. ***The collection
+    milestone 25 actually introduced is the tenant's Rule Instances and Bins***, created and destroyed
+    on every tenancy — and `evicted.toml` cycles by construction, so it is the world that exercises
+    them. **131,072 Ticks at 4,000 Citizens, ~1,900 tenancies ending per window**: `bin` live
+    2,849→2,862 (low 2,835, high 2,886), `rule_instance` live 921→933 (low 906, high 957), and **both
+    allocators' slot counts flat** at 3,362 and 1,440 — rows recycled rather than accumulated. No
+    invariant reported. Findings **F43**–**F45** below. **2,092 assertion-tier tests green.**
 
 ---
 
@@ -786,3 +796,40 @@ housed everybody would have stopped retiring shops and `adr/0006`'s bound would 
 the *other* pool was non-empty. ⚠ **Caught by reading the control flow rather than by a test**, and
 the test that would fail is a world with an empty Pool and a full one — which no fixture has, because
 one of the two is always empty today.
+
+### Task 10, 2026-08-23 — **F43** to **F45**
+
+🔴 **F43 — THE MILESTONE'S OWN MECHANISM WAS INVISIBLE IN EVERY WORLD THE BUILD COULD GENERATE, AND
+THE CLOSING TASK IS WHAT FOUND IT.** Task 4 made a failing tenant end its tenancy and leave the
+premises standing; task 10 went to show it and there was nothing to point at. On all twelve shipped
+files the premises' `upkeep` draws `repairs` from a Bin nothing fills while the tenants' `restock`
+keeps their larders full — so the **premises** fail and the **tenants** never do. Measured on
+`minimal.toml`: **2,610 condemned, 0 tenancies ended**. ⚠ **Every test of the mechanism built its
+Ruleset by hand**, which is why nothing noticed: `TenancyEndsTests` constructs the failing shape
+directly, and it passes on a build where no shipped world can reach it. ***A mechanism exercised only
+by hand-built fixtures is a mechanism with no world in it***, and the difference is invisible from
+inside the suite. **`rulesets/evicted.toml` is the repair** — a two-Rule deletion, because the
+failure only had to move from the premises to the tenant — and
+`TenancyEndsTests.The_shipped_eviction_ruleset_ends_tenancies_and_condemns_nothing` is what stops it
+rotting back.
+
+**F44 — the long run's stated obligation was the wrong collection, and the right one was not named
+anywhere.** This task's own entry said *the long run's new obligation is the unpremised pool*. 🔴 **It
+cannot be**: nothing creates a Business, so that pool is empty in every world and `adr/0006` has
+nothing to ask of it — the census confirms `unpremised live 0` flat across 131,072 Ticks. ***The
+collection milestone 25 actually introduced is the tenant's Rule Instances and Bins***, which task 2
+gave a lifetime equal to the tenancy — so a churning city creates and destroys them continuously, and
+that is a per-tenancy allocation cycle this project did not previously have. ⚠ **The plan named the
+visible new table and missed the one that was a change in LIFETIME rather than a new type**, which is
+the same reading error `adr/0093` describes: a description of the build telling you where to look, and
+being wrong about the trigger.
+
+**F45 — `adr/0006` holds, and the evidence is the SLOT counts rather than the live ones.** Live counts
+oscillate and prove little on their own; what settles it is that `bin` slots and `rule_instance` slots
+are **flat at 3,362 and 1,440** across the whole run while ~1,900 tenancies end per sample window.
+***A flat high-water mark under continuous churn is rows being recycled***, which is the claim
+`adr/0006` actually makes — a collection that does not grow with elapsed time — and a live count could
+be stable while the allocator crept. ⚠ **`unplaced` is bounded too and for a reason worth stating**:
+`evicted.toml` states no `gives_up_after_days`, so nobody leaves the Pool by giving up, and it stays
+bounded anyway because the cycle is closed — evicted, pooled, rehoused. **The population is conserved
+and `household live` is flat at 1,440.**
