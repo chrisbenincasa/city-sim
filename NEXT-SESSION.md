@@ -44,9 +44,16 @@ You are picking up **milestone 24 task 2** in the `city-sim-q8` worktree, on bra
    🔴 **The one line where taking both sides is WRONG: `plans/0002`'s ADR count.** Ours reads
    ***"149 written, numbered to `0157`"***. Theirs will say something else, and **after the merge
    neither is true** — the count rises by however many ADRs they landed, while the high-water mark
-   stays `0157`. ***Recount from `ls docs/adr/` and write the answer; do not pick a side.*** This is
-   `CLAUDE.md`'s own *count them rather than quoting a total* and `plans/0012` **Cause 1** arriving on
-   a single line.
+   stays `0157`. ***Recount from `ls docs/adr/*.md | wc -l`, confirm the highest filename, and write
+   the answer; do not pick a side.***
+
+   ✅ **You cannot forget this one — a test enforces it.** `tests/Borough.Tests/Corpus/CoverageMapTests.cs:170`
+   parses that header with a regex and asserts **both** captures against `docs/adr` on disk, printing
+   the claimed and the real figures when they disagree. Its own message says *"This is the fourth
+   time; update the sentence."* **The check exists because the line kept rotting.** ⚠ **An earlier
+   version of this handoff said nothing downstream would complain. That was wrong** — asserted about
+   the build without reading it, which is [`adr/0093`](docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+   exactly, and the milestone-25 session caught it.
 
    ⚠ **If a conflict cannot be resolved cleanly, message the `city-sim-d7` session rather than
    guessing** — it asked to be asked, and it would rather answer than have its intent reconstructed.

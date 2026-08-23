@@ -3593,16 +3593,38 @@ pointed elsewhere.***
 ⚠ **This is the diagnosis rather than the symptom, and it says where a mechanical check would have to
 stand**: on the corpus's object, not on git's — something that reads the *set of numbers in use across
 every live branch* and asks whether one names two claims. **Nothing in `tests/Borough.Tests/Corpus/`
-can do it**, because all of those are document-to-document *within one checkout* and a collision only
-exists *between* them. ***The one failure this ledger keeps recording is the one its own machinery is
-structurally unable to see.***
+can do it.**
+
+🔴 **And the reason is sharper than *the tests are aimed elsewhere*, which is how this entry first put
+it and is too broad.** ***The tests' object is a CHECKOUT.*** They are aimed correctly at every fact
+that fits inside one working tree, and blind to exactly the class that does not:
+
+| | Where the fact lives | Can a corpus test see it? |
+|---|---|---|
+| **§F2's ADR count** — *"149 written, numbered to `0157`"* | document-to-**filesystem**, inside **one** checkout | ✅ **Yes, and one does** — `CoverageMapTests.cs:170` asserts both the count and the high-water mark against `docs/adr` on disk, and its message says *"this is the fourth time"* |
+| **Two branches naming one `adr/0143`** | only in the **difference between two** checkouts | 🔴 **No, and not by oversight** — ***in each tree separately, nothing is wrong*** |
+
+***Same ledger, opposite outcomes, and the whole of the difference is whether the fact fits inside a
+single working tree.*** ⚠ **So the count line is the useful contrast rather than a second example**:
+it drifted four times, somebody built a check for it, and the check works — which is what the
+collision cannot have, standing in either tree.
+
+⚠ **The count line also shows the honest way to keep a quoted total.** It is in tension with
+`CLAUDE.md`'s *count them rather than quoting a total*, and the tension is **deliberate**: somebody
+decided a reader skimming §F2 needs to know how far the map reaches, then **paid for the convenience
+with a test**. ***A guarded total is a different thing from a total nobody guards***, and only the
+second is this document's Cause 1.
 
 ***A collision that resolves as a clean merge is worse than a conflict, because a conflict stops
 somebody.***
 
-⚠ **The paragraph above is not this session's and is credited rather than absorbed** — the
-milestone-25 session offered it on 2026-08-23 in reply to the note telling it which numbers had been
-freed. **The correction arrived because the two sessions talked**, which is the only channel that
+⚠ **None of the above is this session's and it is credited rather than absorbed** — the milestone-25
+session offered the filename-versus-identity mechanism on 2026-08-23 in reply to the note telling it
+which numbers had been freed, then **corrected this entry twice more**: it found `CoverageMapTests`
+after this document had asserted *nothing downstream complains* — ***a claim about the build made
+without reading it***, which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+committed inside the ledger that exists to catch it — and it narrowed its own *aimed elsewhere* to the
+one-tree/two-tree line above. **The correction arrived because the two sessions talked**, which is the only channel that
 carried it: no document either of them could read would have produced it, since the fact lives in the
 *difference* between two branches.
 
