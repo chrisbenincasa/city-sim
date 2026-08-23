@@ -80,7 +80,7 @@ grandfathered.
 | Unit | Form | Rule |
 |---|---|---|
 | **Phase** | `0`–`3` | Fixed. There are four and there will not be a fifth |
-| **Milestone** | an integer | **The integer is the position in the sequence.** Unique across the project |
+| **Milestone** | an integer | ~~**The integer is the position in the sequence.**~~ ⚠ **An IDENTITY, not a position, as of 2026-08-22** ([`adr/0140`](docs/adr/0140-a-milestone-number-is-an-identity-and-the-roadmaps-order-is-the-sequence.md)) — allocated **next-free**, never re-used, and **`06`'s table row order is the sequence**. Unique across the project |
 | **Sub-milestone** | integer + lowercase letter | A milestone shipped in independently-runnable parts. Letters run in order: `7a` before `7b` |
 | **Slice** | an integer | `plans/0003`'s, from 0, in the order built. A *different axis* from the milestone — slice 6 and milestone 6 are unrelated |
 | **Task** | an integer | Inside one slice, spike or milestone plan. *"5c task 8"* |
@@ -89,16 +89,29 @@ grandfathered.
 | **Round** | `R` + integer, optionally `.integer` | Inside one spike. `S2 R5.4` |
 | **Plan document** | `plans/NNNN` | Its own axis. One per slice, spike or session |
 
-**The insertion rule, which is the whole reason the scheme drifted.** A milestone that has **shipped**
-keeps its number for ever: the number has become history, and every citation pointing at it is a
-record of work that happened under that name. A milestone that has **not started** holds a position
-rather than a name, so inserting one **renumbers the unshipped tail and nothing else**. That is
-affordable precisely because it only ever touches rows nobody has built, which are the least cited
-rows in the corpus — session K's renumber moved 126 references where renumbering the shipped head
-would have moved 282.
+**The insertion rule, which is the whole reason the scheme drifted.** ⚠ **SUPERSEDED 2026-08-22 by**
+[`adr/0140`](docs/adr/0140-a-milestone-number-is-an-identity-and-the-roadmaps-order-is-the-sequence.md)
+— ***a milestone number is an identity and `06`'s table order is the sequence***, so **inserting work
+appends a number and moves a row, and renumbers nothing.** 🔴 **The rule below rested on a premise
+that was measured on the day it was next needed and had expired**: the unshipped tail carries **276
+citations across 73 files**, within 2% of what the shipped head cost when the rule was written to
+avoid touching it. ***The tail became expensive because the corpus kept describing work it had not
+started***, which is the behaviour the rest of this document rewards. **The shipped-milestone clause
+below survives whole; `0140` generalises it to every row.** *The superseded rule follows.*
 
-**Whenever a renumber happens, the retired numbers are kept in a table in `06` for ever**, so a
-citation written before the move still resolves. A number is never re-used for different work.
+> A milestone that has **shipped**
+> keeps its number for ever: the number has become history, and every citation pointing at it is a
+> record of work that happened under that name. A milestone that has **not started** holds a position
+> rather than a name, so inserting one **renumbers the unshipped tail and nothing else**. That is
+> affordable precisely because it only ever touches rows nobody has built, which are the least cited
+> rows in the corpus — session K's renumber moved 126 references where renumbering the shipped head
+> would have moved 282.
+
+~~**Whenever a renumber happens, the retired numbers are kept in a table in `06` for ever**~~ — ⚠ **the
+table is FROZEN and a third block will never be added** (`adr/0140`), because there will be no third
+renumber. **It stays for ever**, so a citation written before 2026-08-22 still resolves, and `06`'s
+*read the subject, never the digits* instruction still governs those. **A number is never re-used for
+different work**, and next-free allocation is what now guarantees it.
 
 ### Retired forms
 

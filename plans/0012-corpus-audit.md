@@ -37,6 +37,13 @@ its disagreement is not between two documents at all. It is between a document a
 nothing in this corpus checks that — `CitationTests` checks links resolve, `CoverageMapTests` checks rows
 exist, `MarkdownStyleTests` checks markdown renders, and **all three are document-to-document**.
 
+**Cause 7 was added on 2026-08-22 and it is Cause 4 running BACKWARDS.** Cause 4 is *a decision taken
+from a description of the code, where the description is wrong*. Cause 7 is ***a description taking its
+NOUN from the code, where the code is behind the design*** — so the sentence is an accurate report of
+an implementation the corpus has already decided to replace. **It was found the same day it was
+written**, in an ADR written that morning, and the tell is that the record contradicts *itself* two
+paragraphs apart rather than contradicting anything else.
+
 **Cause 6 was added on 2026-08-21 and no sweep of this corpus could ever have found it**, because it
 is not in the corpus: it is in a **doc-comment**, and a doc-comment is the one place a description of
 the build lives that no document-to-document check reads. It took a **code-against-code** test, and on
@@ -1437,6 +1444,21 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ Cause 2, in the table whose whole job is to be the enumeration.** Milestone 12 task 4 registered
+`Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround` in the end-of-run tier and **did not add it to
+[`02 §10`](../docs/02-simulation-model.md)'s end-of-run row**, which lists the whole-world walks one by
+one and had been kept current through nine milestones. Found and fixed **2026-08-22** by task 5, which
+went to add its own and noticed the gap. Both are in it now.
+
+🔴 **The sharper half is that nothing could have noticed.** The corpus checks are document-to-document,
+so a member of a C# enum missing from a Markdown table is invisible to every one of them; and the row is
+prose rather than a count, so no `RefusalCountTests`-shaped check applies either. ***What caught it was
+the next person doing the same job one task later***, which is the mechanism this ledger exists because
+it cannot be relied on.
+
+⚠ **It is a genuine Cause 2 and not a near miss**: the write was owed — a whole-world invariant is
+exactly what that cell enumerates — and a whole sitting closed with it not made.
+
 **⚠ A doc-comment cited `WaitListWakeTests`, a class that does not exist, and every mechanical check in
 the corpus is blind to it.** Found and fixed **2026-08-22**, settling
 [`0003`](0003-build-plan.md) hash-moving queue item 14.
@@ -1879,6 +1901,13 @@ with the room quiet** ([`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-asse
 at *past five minutes a test stifles iteration and ten is the ceiling*, and 42s reads as a lane with
 four times the headroom it may actually have. ***A stale duration does not merely misinform; it hides
 how close a gate is to the band that would reopen the ADR.***
+
+⚠ **A third reading, later the same day: 3 m 02 s over 1,974 tests**, taken detached while this
+session did nothing but wait on it — so the tightest controls of the three, and it lands on the first
+reading to the second. **Three readings now agree and the row still may not be closed by them**, because
+agreement is not a control: all three were taken on a machine nobody had quieted deliberately, and
+`adr/0106` asks for the machine and the thread count, not for a consensus. ***What repetition buys is
+confidence that 42s is wrong; it does not buy the number that replaces it.***
 
 - [ ] Re-capture the assertion tier on the reference machine, quiet, Release, and correct
       `CLAUDE.md`'s table. If it lands past five minutes, `adr/0121`'s band is the next question and
@@ -3069,6 +3098,61 @@ Deferred to the third step of this work, recorded here so the sweep's evidence i
     ***An instrument's blind spot is discovered by the first task that walks into it***, which is an
     argument for building the founding case rather than admiring the check that declared it.
 
+13. ~~🔴~~ ✅ **CHEAP HALF BUILT 2026-08-22, the same sitting it was specified** —
+    `tests/Borough.Tests/Corpus/LedgerAgreementTests.cs`, asserting the **row sets** agree. ⚠ **The
+    status half is still owed** and still needs check 2's machine-readable line. ***Building the half
+    that works is the whole point of the entry below.***
+
+    🔴 **It failed on its own founding case before it passed, and then failed a SECOND way that
+    mattered more.** `06` carries the **identical** table header for Phase 1 and Phase 2, so anchoring
+    on the header alone silently compared **Phase 1's table against Phase 2's ledger** — a green-looking
+    comparison of two unrelated things. ***A check keyed on a string that is not unique is a check on
+    the wrong rows***, and nothing about its output said so; it took reading the names it printed.
+    Anchored on the section heading instead. **The violation was then written and watched to fire**:
+    deleting milestone 26's ledger row reports *in 06 and not in 0003's Phase 2 ledger: 26*.
+
+    **Milestone status agrees between [`0003`](0003-build-plan.md)'s Phase 2 ledger and
+    [`06`](../docs/06-roadmap.md)'s milestone table — NEW 2026-08-22, and it is CHECK 2 on the axis
+    check 2 does not cover.** Check 2 is *slice* task status between `0003` and the slice plan, and it
+    says what it needs: *"one machine-readable line per slice."* ⚠ **It was specified and never
+    built** — and the same defect has now recurred on the **milestone** axis, which is the finding
+    rather than the sighting. ***A check specified and left unbuilt does not hold the ground it
+    describes; it records that somebody once knew.***
+
+    **The sighting.** Milestone 12 was capped at task 6 in `06`, with its risk rewritten and its tasks
+    7–10 moved to milestone 26. `0003`'s Phase 2 ledger — ***the document that answers what is
+    done*** — went on reading **`🟢 LIVE. Scoped and decomposed 2026-08-22 — ten tasks`** for a whole
+    commit, and `plans/0000` went on promoting milestone 12 as the code row to do next.
+
+    🔴 **All thirty-one corpus checks passed while the two disagreed**, and that is the point. Every
+    check this corpus owns compares **links and shapes** — does the target resolve, does the table
+    render, has a closed row left, does each ADR have a coverage row. **None compares a CLAIM in one
+    document against a claim in another.** ⚠ *Milestone 12 is live* and *milestone 12 is capped* are
+    both well-formed, both link correctly, and are flatly contradictory.
+
+    ⚠ **It was found by a person asking whether the boards were updated**, not by an instrument —
+    which is the same way `plans/0012` **Cause 1** was found in the first place. ***This is Cause 1
+    on the milestone axis***, and Cause 1's own headline is *every document that stores per-slice
+    status drifted, and the only large one that did not stores none*. **`0003` is now a large document
+    that stores milestone status**, which is exactly the category the Cause names.
+
+    **The mechanical form, and the blocker is the same one check 2 named.** Both tables are keyed by
+    the milestone number, so the row **sets** can be compared today and cheaply — *every milestone in
+    `06`'s table has a Phase 2 ledger row and the reverse* — and that alone would have caught 25 and
+    26 existing in one file and not the other. **What cannot be compared is the STATUS**, because it
+    is prose in both. ⚠ **So the cheap half should be built now and the expensive half needs the
+    machine-readable line check 2 has been waiting for since the sweep began.** ***Build the half that
+    works rather than deferring the whole again***, which is what left check 2 unbuilt.
+
+    🔴 **And the sighting turned up a second, narrower defect the same check would not catch.**
+    `06`'s placement rows say **`Placed: 12`** and name a *milestone* rather than a *task* — so when
+    12 split, *"the nine-Resource abstraction; Utility families; Waste"* could not be mapped to
+    either half and had to be flagged rather than moved. ***A placement row that names a milestone and
+    not a task cannot survive that milestone being split***, and until 2026-08-22 no milestone had
+    ever been split, so nothing had tested it. **A check that every `Placed: N` names a milestone that
+    exists is trivial and would not have helped**; the real repair is that a placement names what it
+    is placed *against*.
+
 6. ~~**A distinctive figure appearing in more than one document carries the same qualifying clause in
    each.**~~ **BUILT the same day it was specified, in a different shape, because the specified shape was
    measured and refuted** — `tests/Borough.Tests/Corpus/DisqualifierTests.cs`, reading the registry in
@@ -3293,6 +3377,99 @@ should be quoted until then.** ⚠ ***A milestone number is neither a symbol nor
 `adr/0093`'s *name a symbol, never a time* does not reach it — it is the one citation form that rule
 leaves uncovered, and it is exactly the form a renumber invalidates. Related to the retired-numbering
 table's two-column defect recorded above, and not the same finding.
+
+
+---
+
+### 🔴 A GATE RUN IN A SHARED WORKING TREE IS A GATE ON A TREE THAT NO LONGER EXISTS
+
+**NEW 2026-08-22, found by running milestone 12's own gate and watching it come back green on a
+world that had changed underneath it.** ⚠ ***This is the finding, and the thing it corrects is a
+sentence this corpus added deliberately eight days ago.***
+
+`CLAUDE.md` → *Running the tests* carries an amended reading of
+[`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md):
+***a quiet machine is a control on a capture and not on a run***, and therefore *"the 36-minute suite
+may be run detached alongside other work, including other tests — the only thing lost is a figure
+nobody was going to take."* **That paragraph is correct and it is correct about the wrong hazard.**
+It reasons entirely about **noise**, because the misreading it was written to repair was somebody
+declining to run a suite in case CPU contention spoiled it.
+
+**What happened.** The unfiltered suite was started at ~21:13 and reported **2,082 passed, 0 failed,
+38 m 03 s, exit 0**. A second session was editing `src/` in the same working tree at **21:13–21:16** —
+**207 insertions across five files**. Re-running the corpus filter on the settled tree afterwards gave
+**two failures**: `RefusalCountTests` (`RulesetLoader.cs` at **139** `Refuse(` sites against
+`adr/0048`'s recorded **138**) and `DocCommentAttachmentTests` (two stacked `<summary>` blocks on
+`RoadGenerator.cs:658`). ⚠ **Both are document-to-code checks, both read the file from disk at run
+time, and both take under a second** — so they executed in the suite's first minute, read the
+**pre-edit** files, and passed. ***The green was true of a tree that stopped existing three minutes
+into a thirty-eight minute run.***
+
+🔴 **The consequence is not a spoiled figure, it is a spoiled VERDICT.** A capture that runs in a noisy
+room returns a number that is too large, and its own caveat says so. **A gate that runs in a moving
+tree returns `Failed: 0`, which is the same sentence a real pass returns and carries no caveat at
+all.** ***Noise degrades a measurement; a concurrent editor falsifies an assertion.*** Milestone 12's
+Definition of done was recorded as met on this run and **was not met**.
+
+⚠ **It is not `bin/` contention, and that was the first diagnosis, stated to the user and wrong.** Two
+`dotnet test` invocations sharing an output path is a real hazard and is **not** this one: the failures
+reproduced on a settled tree with nothing else building. ***A wrong cause that predicts the symptom is
+the most expensive kind*** — `plans/0012` **Cause 4** on a process rather than on a mechanism.
+
+⚠ **What is NOT owed is a retraction of the amendment.** It answers its own question correctly and the
+question it answers is real. What is owed is the second half it never had: **a control on the tree, to
+sit beside the control on the room.**
+
+- [ ] Amend `CLAUDE.md` → *Running the tests*: a **milestone gate** names an unchanging tree the way a
+      **capture** names a quiet machine. ***The room is a control on the number; the tree is a control
+      on the verdict.*** A worktree is the mechanism that already exists — three are checked out.
+- [ ] 🔴 **Re-run milestone 12's gate on a settled tree.** Its row in
+      [`0003`](0003-build-plan.md) reads **CLOSED** and the Definition of done behind that word has
+      **not** been satisfied — the only unfiltered run against it is the void one above. ***A closure
+      resting on a void gate is Cause 1 with no second copy to disagree with it.***
+- [ ] Consider whether a gate should record the tree it ran against, so a green that outlived its
+      world can be recognised as one. ⚠ **A commit hash is not sufficient** and that is the whole
+      point: every one of the 207 insertions was **uncommitted**, so the `HEAD` at the start and the
+      `HEAD` at the end were identical and told nobody anything.
+
+---
+
+### Cause 7 — a description takes its noun from the build, and the build is behind the design
+
+**Sighted once, on the day it was written.**
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
+says a seller's Goods stay in *"the selling **Building's** own Bin"* and, sixty lines later, that *"a
+seller's money Bin is a **Business** balance that already exists."* ***One seller, two custodians, in
+one record.***
+
+**Why it happened, and it is not carelessness.** The author checked the build — which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+working — and the build says `BinTable.Owner` is a `HandleColumn<Building>`. **So the noun was correct
+about the code and wrong about the design**, because
+[`adr/0113`](../docs/adr/0113-a-business-is-an-occupant-with-its-own-balance-and-a-building-never-holds-money.md)
+and [`adr/0114`](../docs/adr/0114-a-balance-a-rule-can-fail-on-is-a-bin-and-a-bins-owner-is-discriminated.md)
+had already decided the owner should be the actor and the build had not caught up.
+
+⚠ **This is the inverse of Cause 4 and the two must not be merged.** Cause 4: *the description was
+wrong, so the decision was wrong.* Cause 7: ***the description was RIGHT about the code, and the code
+was the thing lagging.*** **The corrective is opposite too** — Cause 4 says *go and read the symbol*,
+and here reading the symbol is what produced the error.
+
+**The corrective.** ***Before naming an entity in a design record, check whether an ADR has already
+moved it.*** A revisit trigger that has already fired is the signal: `adr/0113`'s reads *"`BinTable.Owner`
+is a `HandleColumn<Building>`, so no Household, Business or treasury can own a Bin today"* — **a
+sentence describing the exact state the new record then wrote down as though it were the design.**
+
+**The tell, and it is cheap.** ***A record that contradicts itself two paragraphs apart is reporting
+two different layers*** — one sentence from the design and one from the build. Neither is a typo, and
+proofreading does not catch it because both halves are locally true.
+
+🔴 **No mechanical check reaches this**, and it is not obvious one could: every check here is
+document-to-document, and both halves of the sentence resolve. **A candidate exists and is not
+proposed** — *an entity named in an ADR must not contradict the same entity named in an ADR that
+supersedes or amends the one that introduced it* — but it needs an entity vocabulary the corpus does
+not have. **Routed to session V** ([`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md))
+as evidence rather than as a task.
 
 ---
 

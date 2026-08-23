@@ -749,8 +749,13 @@ public readonly record struct PolicyDefinition(
 /// <para>
 /// 🔴 <b>Two fields, and the shortness is the decision rather than a stub.</b>
 /// <c>adr/0131</c>: <b>a Hinterland field is authored in the milestone that reads it.</b> The rest of
-/// what <c>CONTEXT.md</c> lists arrives with its reader — a price per Good at 13, a median wage at
-/// 15, median rent and service levels and the commute figure at 16 with the comparison. ⚠ <b>Depth
+/// what <c>CONTEXT.md</c> lists arrives with its reader — a median wage at 15, median rent and
+/// service levels and the commute figure at 16 with the comparison. ⚠ <b>The price per Good arrived
+/// EARLY, at 12 rather than at 13</b>, and it arrived by <c>adr/0131</c>'s own rule working rather
+/// than failing: <c>adr/0135</c> gave the Pool price a ceiling, which made 12 the milestone that
+/// reads it. <b>It is not a third field</b> — it lives in
+/// <see cref="Ruleset.HinterlandPrices"/> beside this collection rather than inside this struct, for
+/// the reason recorded there. ⚠ <b>Depth
 /// and a recovery rate are the ones worth naming as absent</b>, because a stock is the first thing a
 /// reader expects here: they are at <b>16</b> because <c>CONTEXT.md</c>'s drawdown gets both its
 /// properties — *raises its rate* and *skews its mix* — from taking the most willing first, and the
@@ -1198,6 +1203,161 @@ public readonly record struct DistrictRuleset(
     /// </remarks>
     public bool RevisitsOn(Ticks tick) =>
         Runs && tick.Raw > 0 && tick.Raw % (ulong)RevisitTicks == 0;
+}
+
+/// <summary>
+/// The <c>[market]</c> table — <b>how fast a Pool price is allowed to move</b>
+/// (<c>adr/0135</c>, milestone 12 task 6).
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Two keys, and neither of them is a price.</b> The price itself is never authored — it is
+/// <see cref="Ruleset.ImportCeiling"/> on the day a Pool is opened and a damped tâtonnement
+/// afterwards. What a designer authors here is the <em>damping</em>: how much of the smoothed
+/// consumption rate survives a Day, and how far the price may travel in one recompute.
+/// <c>04 §4</c> asks for three properties — damped, local, bounded. <b>Local</b> is the Pool being
+/// per-District and is not a number; <b>bounded</b> is <see cref="Ruleset.ImportCeiling"/> and is
+/// not a number either; <b>damped</b> is this table, and it is the only one of the three that
+/// needed keys.
+/// </para>
+/// <para>
+/// <b>Absence means every trade clears at the ceiling for ever</b>, on
+/// <see cref="TrafficRuleset.None"/>'s polarity — a real Ruleset choice rather than a defaulted
+/// one, and the city that every file without this table has. <c>adr/0135</c> rejected *"clear every
+/// trade at the ceiling"* as this milestone's **shipped** answer, on the ground that a constant
+/// price is a price mechanism nobody can tell from an absent one. ⚠ <b>That refusal is about what
+/// the milestone ships, not about what a Ruleset may say</b> — the eleven files that state no
+/// <c>[market]</c> keep exactly the city they had, which is the thing that makes this key addable
+/// at all.
+/// </para>
+/// <para>
+/// ⚠ <b><see cref="Runs"/> keys on the cap and not on the decay, and the reason is that zero decay
+/// means something.</b> <see cref="DecayPercent"/> at 0 is *no smoothing* — the rate is the Day's
+/// own consumption, which is a legitimate and rather twitchy market. A zero
+/// <see cref="MoveCapPercent"/> is different in kind: it says the price may not move, which is
+/// exactly the city an omitted table describes. ***A value inside a key's range that duplicates
+/// absence is the one that may spell it***, which is <see cref="DistrictRuleset.None"/>'s rule
+/// applied to a table where only one of the two keys qualifies.
+/// </para>
+/// <para>
+/// 🔴 <b>Both numbers are UNRATIFIED and <c>plans/0002</c> §D1 holds a row apiece.</b>
+/// <c>adr/0135</c> predicted *"two or three"* and it is two: the third — an initial price — does not
+/// exist, because a new Pool opens at the ceiling and a Pool nobody trades in stays there, which
+/// keeps <c>adr/0045</c>'s ladder ordered from Tick 0 without anybody choosing a seed.
+/// ***A number that was going to be needed and then was not is worth saying out loud***, because
+/// the alternative is a §D row for a key that never shipped.
+/// </para>
+/// </remarks>
+/// <param name="DecayPercent">
+/// How much of the standing consumption rate survives one Day, as a percentage. The rest of the
+/// weight goes to the Day just ended. <b>Hash-bearing.</b>
+/// </param>
+/// <param name="MoveCapPercent">
+/// The furthest a price may travel in one recompute, as a percentage of the ceiling.
+/// <b>Hash-bearing</b>, and it is what stops <c>04 §4</c>'s predicted oscillation from being a
+/// square wave.
+/// </param>
+public readonly record struct MarketRuleset(int DecayPercent, int MoveCapPercent)
+{
+    /// <summary>A Ruleset whose Pool prices never leave the ceiling.</summary>
+    public static MarketRuleset None => default;
+
+    /// <summary>Whether a Pool price moves at all in this city.</summary>
+    public bool Runs => MoveCapPercent > 0;
+
+    /// <summary>Whether the Day-boundary recompute falls on this Tick.</summary>
+    /// <remarks>
+    /// <b>Tick 0 is excluded because no Day has elapsed to consume anything in.</b> The first
+    /// recompute would read a rate of zero and keep the seeded price, so it is the same answer
+    /// arrived at more expensively — <see cref="DistrictRuleset.RevisitsOn"/>'s exclusion for the
+    /// same reason in different words.
+    /// </remarks>
+    public bool RepricesOn(Ticks tick) =>
+        Runs && tick.Raw > 0 && tick.Raw % Ticks.PerDay == 0UL;
+
+    /// <summary>
+    /// The consumption rate carried into the next Day.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>An exponential moving average, and the Day is its unit.</b> <paramref name="standing"/>
+    /// and the return are both <em>units of the Good per Day</em>; <paramref name="consumed"/> is
+    /// what the Day just ended actually drew. ***Naming the units is the point of keeping this
+    /// separate from the Day's own bucket*** — an accumulator that decayed in place would be a rate
+    /// multiplied by a constant nobody could name, which is <c>plans/0012</c> <b>Cause 5</b> built
+    /// rather than quoted.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It ROUNDS rather than flooring, and that was found by a test rather than reasoned to.</b>
+    /// Flooring makes any draw below <c>100 / (100 - DecayPercent)</c> units a Day fold to a standing
+    /// rate of <b>zero</b>, which <see cref="Reprice"/> reads as *no trades* — so a Pool genuinely
+    /// being drawn from at one unit a Day would have had a frozen price and looked exactly like a Pool
+    /// nobody had touched. ⚠ <b>The threshold moves with the DAMPING</b>, so a designer retuning
+    /// <see cref="DecayPercent"/> would silently change which markets have prices at all: that is the
+    /// *knob that switches the mechanism off while reading as a setting* pattern the loader refuses
+    /// three times over, arriving inside the arithmetic where no refusal can reach it.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>What rounding costs is that a rate of 1 never decays back to 0</b>, so *no trades* is only
+    /// reachable before a Pool's first ever draw. <b>That is a bounded magnitude and not
+    /// <c>adr/0006</c>'s growth</b>, and it is arguably the better city: a Pool that has stopped
+    /// selling prices from its cover — which for a stocked one collapses toward nothing — rather than
+    /// freezing at whatever it last charged. ***A market that stops clearing is worth less, not the
+    /// same.*** 🔴 <b>Whether one unit a Day is fine enough resolution is MEASURABLE and nothing can
+    /// measure it yet</b> — it needs a world with real consumption in it, which is task 8's Provider
+    /// Ruleset. Filed rather than guessed at (<c>adr/0043</c>).
+    /// </para>
+    /// </remarks>
+    /// <param name="standing">The rate at the end of the previous Day, in units per Day.</param>
+    /// <param name="consumed">What was drawn from the Pool during the Day just ended.</param>
+    public long Smooth(long standing, long consumed) =>
+        IntegerMath.RoundDiv((standing * DecayPercent) + (consumed * (100 - DecayPercent)), 100);
+
+    /// <summary>
+    /// Where a Pool price stands after one Day's recompute.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The tâtonnement, and it is a cover ratio rather than an excess-demand term.</b> The target
+    /// is <c>ceiling / cover</c>, where <c>cover</c> is how many Days the standing level would last
+    /// at the standing rate. One Day of cover prices at the ceiling; ten Days of cover price at a
+    /// tenth of it; an empty Pool prices at the ceiling because there is nothing to undercut it
+    /// with. ⚠ <b>Cover below one Day does not price ABOVE the ceiling</b> — the ratio is clamped by
+    /// taking <c>max(level, rate)</c> as the denominator, and the ceiling is a ceiling.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>A rate of zero keeps the standing price rather than raising it.</b> No trades is an
+    /// absence of information and not evidence of scarcity, and the two are easy to conflate because
+    /// both leave <paramref name="consumed"/> at zero. ***A market with no trades in it has nothing
+    /// to say about what things are worth.***
+    /// </para>
+    /// <para>
+    /// <b>The floor is zero and a glut really can take a price to nothing</b>, which is decision 4's
+    /// answer and task 10's material: a Provider selling into a saturated Pool earns less than it
+    /// spent, and bankruptcy is the observable that distinguishes this market from a decorative one.
+    /// </para>
+    /// </remarks>
+    /// <param name="price">Where the price stands now.</param>
+    /// <param name="ceiling">The import ceiling for this Good — <see cref="Ruleset.ImportCeiling"/>.</param>
+    /// <param name="level">What the Pool holds.</param>
+    /// <param name="rate">The smoothed consumption rate, in units per Day.</param>
+    public Money Reprice(Money price, Money ceiling, long level, long rate)
+    {
+        if (!Runs || rate <= 0) return price;
+
+        long cover = level > rate ? level : rate;
+        long target = IntegerMath.FloorDiv(ceiling.Raw * rate, cover);
+        long cap = IntegerMath.FloorDiv(ceiling.Raw * MoveCapPercent, 100);
+
+        long step = target - price.Raw;
+        if (step > cap) step = cap;
+        else if (step < -cap) step = -cap;
+
+        long moved = price.Raw + step;
+        if (moved < 0) moved = 0;
+        else if (moved > ceiling.Raw) moved = ceiling.Raw;
+        return new Money(moved);
+    }
 }
 
 /// <summary>
@@ -2134,6 +2294,104 @@ public sealed class Ruleset
     }
 
     /// <summary>
+    /// <b>What each Hinterland charges for each Good</b> — every <c>[[hinterland]]</c> table's
+    /// <c>prices</c> array, flattened (<c>adr/0135</c>, milestone 12 task 6).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Hinterland-major, one <see cref="Ruleset.ResourceCount"/> stride apiece</b>, so the price
+    /// the Hinterland at index <c>h</c> charges for <c>resource</c> is at
+    /// <c>h * ResourceCount + resource.Raw - 1</c>. Empty when no <c>[[hinterland]]</c> is declared,
+    /// and otherwise exactly <c>Hinterlands.Length * ResourceCount</c> long — the loader fills a
+    /// non-Good's slot with zero rather than leaving the array ragged.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>This is where the price lives and <see cref="HinterlandDefinition"/> is not</b>, which is
+    /// the one structural decision in the key. A <c>Money[]</c> inside that record struct would give
+    /// it reference equality and an array's default hash code, and the struct is the type this file
+    /// hands out by value everywhere. ***A per-item array belongs beside the collection and not
+    /// inside the item*** when the item is a struct.
+    /// </para>
+    /// <para>
+    /// <b>Nothing reads a per-edge price yet and the array still holds them.</b> What the market
+    /// consumes is <see cref="ImportCeiling"/>, the minimum across every declared Hinterland, because
+    /// <c>adr/0135</c> ships <b>no haulage term at 12</b> — with carriage free every gate is
+    /// equidistant and a city buys at the cheapest, so there is nothing to choose between edges. ⚠
+    /// <b>The per-edge figures are authored content and are kept for the milestone that stops
+    /// carriage being free</b>: when <c>adr/0133</c>'s charge ships, the ceiling becomes a
+    /// per-District <c>min(price + haul)</c> and this array is what it is a minimum <em>over</em>.
+    /// ***Collapsing the four to their minimum at load would have thrown away the content that makes
+    /// the Outside legible*** — <c>CONTEXT.md</c> → Hinterland's *four comparable markets are each
+    /// other's referent.*
+    /// </para>
+    /// </remarks>
+    public Money[] HinterlandPrices { get; init; } = [];
+
+    /// <summary>
+    /// The <c>[market]</c> table — <b>how a Pool price moves</b>. <see cref="MarketRuleset.None"/>
+    /// when the file states none, which is a city whose prices never leave the ceiling.
+    /// </summary>
+    public MarketRuleset Market { get; init; } = MarketRuleset.None;
+
+    /// <summary>
+    /// What the Hinterland at <paramref name="hinterland"/> charges for <paramref name="resource"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>An index into <see cref="Hinterlands"/>, not a <see cref="MapEdge"/></b>, because this is
+    /// the raw authored figure and the edge lookup is <see cref="TryHinterland"/>'s job. Zero for a
+    /// Resource no <c>prices</c> entry names, which the loader permits only outside the
+    /// <c>good</c> family.
+    /// </remarks>
+    /// <param name="hinterland">A position in <see cref="Hinterlands"/>.</param>
+    /// <param name="resource">The Resource being priced.</param>
+    public Money ImportPrice(int hinterland, ResourceId resource)
+    {
+        int index = (hinterland * ResourceCount) + resource.Raw - 1;
+        return (uint)index < (uint)HinterlandPrices.Length ? HinterlandPrices[index] : default;
+    }
+
+    /// <summary>
+    /// <b>The ceiling on what <paramref name="resource"/> can cost inside the city</b> — the lowest
+    /// price any declared Hinterland charges for it (<c>adr/0050</c>, <c>adr/0135</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The minimum, and it is derived rather than chosen.</b> <c>adr/0135</c> ships no haulage
+    /// term at 12, so importing from the far edge costs exactly what importing from the near one
+    /// does and a rational city buys at the cheapest. ***With carriage free there is nothing to
+    /// choose between four gates***, so <c>min</c> is the only answer that is not an invention.
+    /// ⚠ <b>Its own revisit trigger is <c>adr/0133</c>'s charge shipping</b>, at which point the
+    /// ceiling stops being a property of the Ruleset and becomes a property of a District — the
+    /// signature moves, not just the body.
+    /// </para>
+    /// <para>
+    /// <b>Zero when no Hinterland is declared</b>, and that is the honest answer rather than a
+    /// missing one: a world with no door in it can import nothing, so no import bounds its prices.
+    /// ⚠ <b>A zero ceiling pins every Pool price to zero</b>, which is why the loader refuses a file
+    /// that states <c>[districts]</c> and leaves a Good unpriced — see <c>RulesetLoader</c>. ***An
+    /// anchor that is absent does not fail loudly on its own***; it produces a market in which
+    /// everything is free, and <c>adr/0050</c>'s runaway arrives from the other direction.
+    /// </para>
+    /// </remarks>
+    /// <param name="resource">The Resource being priced.</param>
+    public Money ImportCeiling(ResourceId resource)
+    {
+        Money lowest = default;
+        bool found = false;
+        for (int hinterland = 0; hinterland < Hinterlands.Length; hinterland++)
+        {
+            Money price = ImportPrice(hinterland, resource);
+            if (!found || price < lowest)
+            {
+                lowest = price;
+                found = true;
+            }
+        }
+
+        return lowest;
+    }
+
+    /// <summary>
     /// What each Resource <em>is</em>, independent of the id this Ruleset filed it under.
     /// </summary>
     /// <remarks>
@@ -2218,6 +2476,8 @@ public sealed class Ruleset
             Parking = Parking,
             Policies = Policies,
             Hinterlands = Hinterlands,
+            HinterlandPrices = HinterlandPrices,
+            Market = Market,
             ResourceKeys = ResourceKeys,
             KindKeys = KindKeys,
         };

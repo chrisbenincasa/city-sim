@@ -139,6 +139,18 @@ resolve to.
   re-evaluation, for no capability*** (`plans/0037` **F11**). **Also shipped**: `DistrictCellTable`, one
   saved row per built Cell, which is where the extent actually lives — this bullet's *created and
   destroyed like any entity* is true of the centre and the extent is a second table.
+  ⚠ **AMENDED 2026-08-22 by `plans/0003` queue item 16: it is one saved row per built Cell AS OF THE
+  LAST EVALUATION**, and the four words are the whole correction. The extent is derived on
+  `revisit_ticks`, so a Building demolished mid-period leaves a membership row standing until the next
+  evaluation evicts it — measured at Tick 1,152 against a cadence of 2,048. ***A structure derived on a
+  cadence is stale between evaluations, and that is what a cadence is***; a Map Layer is stale between
+  diffusions and nobody calls that a defect. 🔴 **The reading without those four words was written into
+  an invariant and it panicked a three-Day run**, which is
+  [`adr/0093`](0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md) arriving
+  inside a check. ⚠ **Evicting at the demolition site was considered and refused**: a Cell that *gains*
+  its first Building also waits for the cadence, so instant removal against cadenced addition is an
+  asymmetry with nothing behind it — and it would leave `revisit_ticks` doing something other than what
+  this ADR says it does.
 - 🔴 **Four hash-bearing numbers arrive unset and owe `plans/0002` §D2 rows**
   ([`adr/0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md)): the
   **prominence threshold**, the **hysteresis band**, the **re-evaluation cadence with its per-evaluation
@@ -202,6 +214,37 @@ resolve to.
   another unlabelled Cell.** Comparing the two labels for equality made *unknown* behave as the largest
   component in the world and silently bridged two genuine ones (`plans/0037` **F13**). ***A sentinel that
   compares equal to itself is a sentinel that has quietly become a value.***
+
+> ### What building the Pool on it found, 2026-08-22 — milestone 12 task 5
+>
+> ✅ **The centre Cell decides SUCCESSION as well as identity, and the symmetry is this ADR's rather
+> than an implementation's.** A District that no basin claims is destroyed, and at task 5 it is holding
+> Pool Bins — so its stock has to go somewhere. It goes to whoever now owns its **centre Cell**, which
+> is the same one Cell the reconciliation reads to decide which District inherits a basin. ***A District
+> IS its centre***, so the row that inherited the centre is the row that inherited the District, and any
+> other rule would make identity and succession disagree about the same Cell. `plans/0037` decision on
+> District death, settled with the user in the room.
+>
+> 🔴 ⚠ **A District can die with NO heir, and `04 §2` forbids what that does.** Demolish everything in a
+> District and its centre Cell stops being built, so nothing owns it and the stock has nowhere to go —
+> *"if a hundred units of Food entered the District, a hundred units must be accounted for."*
+> `Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool` makes it a failure rather than a leak. **It cannot
+> fire today and the reason is exact rather than lucky**: `Scope.Pool` throws, so every Pool is empty at
+> every moment and *no heir* and *nothing to hand over* coincide. It becomes a real constraint on the
+> day the purchase ships, which is what a named hole is for.
+>
+> ✅ **The Pool hangs off the District row and NOT off the Bin**, and which shape was forced by what a
+> load can recover. `BinTable.Owner` is a handle bound to the Building table; a Building's Bins hang off
+> a *derived* list only because the element names its owner, and a Pool Bin's row names nothing. So
+> `Space.DistrictPoolTable` is **saved**, and it is the only statement anywhere of the relation.
+> ⚠ ***The difference between the two shapes is what is recoverable and not how much care was taken.***
+>
+> ⚠ **The extent bound this ADR reasons about is still not enforced by anything, and the Pool did not
+> change that.** A Pool Bin is **unbounded** — there is no shed, `CONTEXT.md` has Goods passing through
+> the Pool *instantly*, and a capacity is a function of (Building kind, Resource) which a District does
+> not have. What discourages selling into a full Pool is [`adr/0135`](0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md)'s
+> falling price, and [`adr/0133`](0133-a-pool-draw-pays-for-its-haulage-so-the-boundary-is-a-gradient-and-not-a-cliff.md)'s
+> haulage charge is the candidate that would make the extent bound self-enforcing. **Both are task 6's.**
 
 ## What would trigger revisiting
 

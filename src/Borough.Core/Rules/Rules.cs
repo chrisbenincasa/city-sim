@@ -66,6 +66,19 @@ public enum BinOwnerKind : byte
     /// treasury, and its Bins hang off <see cref="Entities.TreasuryTable"/>'s single row.
     /// </summary>
     Treasury = 4,
+
+    /// <summary>
+    /// A District's Pool. <b>Owned</b>, and the owner is named by
+    /// <see cref="Space.DistrictPoolTable"/> rather than by <see cref="BinTable.Owner"/>.
+    /// </summary>
+    /// <remarks>
+    /// <b>It carries no owner id in the Bin row, and unlike <see cref="Treasury"/> that is not because
+    /// there is one of them.</b> <see cref="BinTable.Owner"/> is a handle bound to the Building table,
+    /// so it cannot hold a District; widening it would put a discriminated union in a column every Bin
+    /// in the city pays for, to name an owner two kinds already name elsewhere. <c>plans/0037</c> task
+    /// 5.
+    /// </remarks>
+    District = 5,
 }
 
 /// <summary>

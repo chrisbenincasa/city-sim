@@ -1,5 +1,7 @@
 # Goods are pooled within a District and physically shipped between them
 
+> ⚠ **AMENDED 2026-08-22 by [`0139`](0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md), and the amendment is about CUSTODY rather than REACH.** Everything argued below survives: Goods move freely within a District, no Vehicle is simulated inside one, no routing query is issued per unit moved, and a Shipment between Districts is real. **What does not survive is a reading this record never argued for** — that the Pool is where the Goods *are*. It is not: stock stays in the selling Building’s own Bin and the `(District, Good)` row is the **market**. ***This record decided which movements deserve a simulated Vehicle; it never asked who the bakery buys from***, and its own *Rejected* section is the proof — both alternatives it weighs are about movement. *“The Pool is just a Bin per Good per District”* below is an **implementation note in Consequences**, and it was read for four milestones as a decision about ownership. Read every *through the Pool* below as *through the market* — instant, free, and subject to connectivity exactly as stated.
+
 **Within a District, Goods move through an abstract Pool: instant, subject to connectivity, with no Vehicle simulated and no pathfinding query issued. Between Districts, and to and from Outside Connections, a Shipment is a real Vehicle carrying real cargo on the Road Graph, contributing real congestion.** The boundary between the two regimes is per-Good and must stay swappable.
 
 ## Why

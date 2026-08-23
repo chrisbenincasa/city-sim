@@ -1,5 +1,7 @@
 # A market needs two sides, so 12 ships a Provider and the price moves
 
+> ⚠ **AMENDED 2026-08-22 by [`0139`](0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md).** ***A market needs two sides is exactly right and this record understated its own claim.*** Read every *sells its output **into** the Pool* below as *offers its output **on** the market*: a `pool` output deposits into the **selling Building's own Bin** and marks the stock as for sale, and a buyer's `pool` input resolves to **one seller's Bin**. **The Pool holds no stock.** The price this record moves now sits on the **seller**, opening at the import ceiling; `[market]`'s two keys and the damping argument are untouched.
+
 **Milestone 12 ships a second `[[building]]` kind — a Provider, which draws inputs from the District
 Pool and sells its output into it — and the Pool price is a damped tâtonnement, per Good per District,
 recomputed on a `Ticks.PerDay` boundary from Pool level against recent consumption, bounded above by
@@ -106,14 +108,55 @@ milestone exists to cross.
   this milestone was one that never counted the Ruleset.***
 - **`[[hinterland]]` gains `price` per Good**, under [`adr/0131`](0131-the-gate-carries-people-and-the-money-they-hold-and-a-hinterland-field-lands-in-the-milestone-that-reads-it.md)'s
   rule that a Hinterland field is authored in the milestone that reads it. 12 is the reader.
+  ✅ **SHIPPED 2026-08-22, milestone 12 task 6, spelled `prices`** — an inline array of tables on
+  `[[building]] bins`' idiom, one entry per Good. ⚠ **THE CEILING IS THE MINIMUM ACROSS THE HINTERLANDS
+  AND THAT IS DERIVED RATHER THAN CHOSEN**, which this ADR left open by not asking: *no haulage term at
+  12* means importing from the far edge costs what importing from the near one does, so ***with carriage
+  free there is nothing to choose between four gates***. `Ruleset.ImportCeiling` is the `min`;
+  `Ruleset.HinterlandPrices` keeps the per-edge figures, because they are what the future
+  per-District `min(price + haul)` will be a minimum **over** and because four comparable markets being
+  each other's referent is `CONTEXT.md`'s reason for the object existing.
+  ⚠ **And a file that states `[districts]` and leaves a `good` unpriced is now REFUSED AT LOAD**, which
+  this ADR's argument implies and does not state: a Pool with no ceiling is not unanchored, ***it is free
+  everywhere for ever***.
 - 🔴 **Two or three more hash-bearing numbers, unset, owed `plans/0002` §D2 rows**: the **damping factor**,
   the **per-Day move cap**, and an **initial price** if the tâtonnement needs a seed. They join
   `adr/0134`'s four. ⚠ **Unlike those four, these are tunable as soon as the Provider exists** — a
   two-sided market on one District produces a moving price, so the world that ratifies them is 12's own
   demonstration Ruleset rather than milestone 15's.
+  ✅ **IT IS TWO, AND THE THIRD IS NOT DEFERRED — IT DOES NOT EXIST.** `[market] decay_percent` and
+  `move_cap_percent` shipped as **§D1** rows, in use and unratified, on `rulesets/twinned.toml`. There is
+  **no seed**: a Pool opens at `Ruleset.ImportCeiling` and moves from there, and a Pool nobody has traded
+  in stays there — which keeps [`adr/0045`](0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md)'s
+  ladder monotone from Tick 0 without anybody choosing anything. ***A Pool with no local supply in it
+  should cost what importing costs, and a Pool nobody has traded in has no local supply by
+  construction***, so the seed is not a choice — it is the answer the mechanism gives when asked before
+  anything has happened. §D1 carries a **struck** row saying so, because otherwise the next reader adds a
+  `[market] initial_price` and a §D row for a key nothing needed.
+  🔴 **A THIRD number was found in the arithmetic rather than in the design, and it is a RESOLUTION and
+  not a value.** The consumption rate is an integer in units per Day, and **flooring** the moving average
+  made any draw below `100 / (100 - decay_percent)` units a Day fold to a rate of **zero** — which the
+  recompute reads as *no trades* and answers by freezing the price. ⚠ **The threshold moves with the
+  damping**, so retuning `decay_percent` would silently change which markets have prices at all: this
+  ADR's own *knob that switches the mechanism off* pattern arriving **inside an expression, where no
+  load-time refusal can reach it**. Repaired by rounding, at the cost that a rate of 1 never decays back
+  to 0. Whether one unit a Day is fine enough is *measurable* and is filed on the `decay_percent` row.
 - **A new per-`(District, Good)` accumulator** for recent consumption. With one District that is one row
   per Good, so the cost is not the storage — it is that **a rate needs a window**, and the window length
   is one of the numbers above.
+  ✅ **SHIPPED as TWO columns on `DistrictPoolTable` rather than one**, plus the price itself: `Price`,
+  `Rate` — the smoothed figure, in units per Day — and `Consumed`, the current Day's bucket. ⚠ **The
+  split is deliberate**: one accumulator that decayed in place would hold a rate multiplied by a constant
+  nobody could name the units of, and ***a number nobody can name the units of is a caveat that has
+  already come off its digits***. All three went on `DistrictPools` because they are keyed by
+  `(District, Good)`, which is that table's row identity exactly — ***a fact keyed by a row that already
+  exists belongs on that row.***
+  🔴 **NOTHING WRITES `Consumed` AND THE WHOLE MARKET IS THEREFORE INERT.** `Scope.Pool` still throws
+  after task 6, so every rate is zero, every recompute reads *no trades*, and every price sits at its
+  ceiling for the length of any run. **Task 7 is the writer.** ⚠ **That makes this the third producer
+  this corpus has shipped without a consumer** — milestone 9's land value and task 5's Pool Bins — and it
+  is accepted for the reason it was the first two: a purchase settling at a price needs the price to
+  already exist.
 - **The ladder's Shipment rung never fires at 12**, because `adr/0134` gives one District per world and
   there is nowhere to ship from. Not a defect; it is what the world contains.
 - **`04 §4`'s *"two Districts of the same city can have different Food prices, and the gap is what makes

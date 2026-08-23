@@ -1,5 +1,17 @@
 # 0037 — Goods between Buildings: the District Pool
 
+> ✅ **MILESTONE 12 IS CAPPED AT TASK 6 AND CLOSES THERE, 2026-08-22, with the user in the room.**
+> **Tasks 1–6 shipped.** Its risk is rewritten in [`06`](../docs/06-roadmap.md) to what they actually
+> retire — ***that a District is an administrative label rather than a derived thing with a market in
+> it*** — because `Scope.Pool` still throws and **a milestone must name a risk it actually retires**
+> (`CLAUDE.md` → *Definition of done*). ⚠ ***Capping a milestone re-opens the question of what it was
+> for***, and this is the first time that has been asked of a partially-shipped row.
+>
+> 🔴 **Tasks 7–10 and the original risk move to milestone 26, the purchase**, which is **blocked on
+> milestone 25** — the Business is the actor, session V,
+> [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md). **This document
+> keeps tasks 7–10 as written**, because they are the specification 26 inherits.
+
 **`06` milestone 12.** Ungated. The milestone that makes `Scope.Pool` resolve, and with it the first
 Goods chain that crosses an ownership boundary.
 
@@ -218,7 +230,7 @@ is this milestone.
 
 ---
 
-## Open decisions this milestone owes — **OPEN: 3, 7 AND 10**
+## Open decisions this milestone owes — **OPEN: 3 AND 10**
 
 Typed under `adr/0043`. **Settled: 1, 2, 4, 5, 6, 8, 9** — each closed in place, with the question as
 first written kept beneath it as `Na`, because ***the original wording is how a later reader checks
@@ -518,7 +530,26 @@ one District per current world, so *between Districts* has nowhere to go.
 second term follows freight to 12."* ⚠ **Whether freight itself is in this milestone is decision 8**,
 so this one is downstream of it.
 
-### 7. What does *"subject to connectivity"* mean for a Pool draw? — *arguable*
+### 7. ✅ SETTLED — a Building's District is its **Cell's** District, and the clip is the whole answer
+
+**Settled 2026-08-22 with the user in the room**, before task 5. *"Subject to connectivity"* is
+**already spent**: `adr/0134`'s watershed clips the flood to the **Foot** road component, so every Cell
+in a District is foot-reachable from its centre and ***a District is connected by construction.*** There
+is nothing left for a Pool draw to check, and `DistrictResidency.Of` — a Building's Cell, then the index
+— is the whole lookup.
+
+⚠ **The question survives as one about GRANULARITY, and the answer is the Cell.** A Cell's component is
+read off the first Building in it that has an Address, so a Building with **no** Address rides on its
+neighbours' reachability. 🔴 **That is a real state and a designed one**: `adr/0079` keeps a Building
+standing when its last Street is bulldozed, so its Lot has no frontage and nobody can reach it — and it
+keeps trading with the Pool. **Accepted**, because the alternative costs a per-Building check on the
+hot path to correct a 128 m discrepancy inside one Cell, and because the two candidates that would act
+on it are both worse: *fail on the Pool Bin* livelocks against the wait list, and *a District of one*
+does not fit a membership table keyed by Cell.
+
+**The original entry:**
+
+### 7a. What does *"subject to connectivity"* mean for a Pool draw? — *the question as first written*
 
 `CONTEXT.md` → District Pool: *"Goods moving between Buildings within a District pass through the Pool
 instantly, **subject to connectivity**."* `Scope.Pool`'s doc says the scope *"requires road
@@ -594,7 +625,37 @@ targets. ⚠ **That is a claim about the build and it should be read off `Eviden
 believed**, which is `adr/0093`. It is the cheapest decision here and the one most likely to be
 assumed.
 
-### 10. 🔴 NEW, found in decomposition 2026-08-22 — **what holds the Pool's money, and may it go negative?** — *arguable*
+### 10. ~~ESCALATED to **session U**~~ ✅ **CLOSED 2026-08-22 — VOID AS POSED** — ~~what holds the Pool's money, and may it go negative?~~
+
+> ✅ **CLOSED THE SAME DAY, and it closed by being VOID AS POSED** —
+> [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md).
+> ***It was never a question about money.*** A District owns nothing and `MoneyLedger` resolves
+> `Treasury / Household / Business`, so *where does the Pool's money sit* has no answer for the reason
+> that **the Pool was never a party to the trade** — the seller is, and a seller's money Bin is a
+> Business balance that already exists. **The question was the shape of a missing counterparty.**
+> ⚠ **Task 7 is unblocked**, and what it must build changed: `Scope.Pool` resolves to a **seller's**
+> Bin, the market row is the **wake target**, and the money leg is `adr/0050`'s implicit one between
+> two Businesses. **The body below is kept as posed**, because a question that dissolves is a better
+> record than a question deleted.
+>
+> ⚠ **THIS DECISION OUTGREW THIS DOCUMENT ON THE DAY IT WAS WRITTEN, and the body below is kept as
+> posed.** Answering it required naming the two parties to a Pool trade, and **the Pool is one of
+> them** — which prompts *why doesn't the bakery buy directly from the mill?*, a question about
+> [`adr/0013`](../docs/adr/0013-goods-are-pooled-within-a-district-and-shipped-between.md) that a
+> slice plan may not hold. **Routed to [`0002`](0002-open-questions.md) §A and
+> [`0038`](0038-session-u-the-pool-or-the-seller.md) — session U, opened 2026-08-22 and not
+> concluded** — under
+> [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md).
+> ⚠ **Under two of session U's three candidates this decision is VOID AS POSED rather than answered**,
+> because it exists only where the Pool has no owner. **Task 7 stays blocked either way.**
+>
+> ⚠ **Two things in the body below are now known wrong.** Its front-runner (3) is not a preference —
+> **consignment is FORCED** under
+> [`adr/0003`](../docs/adr/0003-deterministic-integer-simulation.md), which never holds negative money,
+> so paying at deposit deadlocks at Tick 0 and ***the first unit must enter unpaid.*** And its stated
+> cost — *"the Pool must remember how much it owes per Good"* — **is the wrong structure**: a debt
+> needs a creditor, and what is needed is **units consigned per `(Business, Good)`**, which is a share
+> and is larger than the column it priced.
 
 **Found by reading `BinTable` and `BinOwnerKind` while ordering the tasks, and it blocks task 7.** It is
 not a ninth decision rediscovered; **nothing in this document or in `adr/0050`, `adr/0135` or `adr/0114`
@@ -634,10 +695,14 @@ can be told. What it costs is that the Pool must remember **how much it owes per
 column, and that a Provider's deposit becomes a **consignment** rather than a sale — a word `CONTEXT.md`
 does not have.
 
-⚠ **This is typed *arguable* and therefore wants the user in the room**, but it is one question with
+~~⚠ **This is typed *arguable* and therefore wants the user in the room**, but it is one question with
 three named candidates and it blocks exactly one task. ***It should be taken at the head of task 7 and
-not in a sitting of its own***, which is what `adr/0043` permits: no measurement settles it, and the
-corpus has no prior answer to look up.
+not in a sitting of its own***~~ — 🔴 **MEASURED FALSE BY TRYING IT, the same day.** It is a sitting of
+its own, and the reason is the second clause rather than the first: **it does not block exactly one
+task**, it reopens the ADR the milestone is built on. ⚠ ***The sentence that sized it was written by
+the same reading that made it look small*** — treating the Pool as a given and asking only where its
+money sits. **What survives is the typing**, which is what `adr/0043` permits: no measurement settles
+it, and the corpus has no prior answer to look up.
 
 ---
 
@@ -719,7 +784,22 @@ starting.
    District from a profiler"* — is the argument against the reading it had just given. Filed in
    [`0012`](0012-corpus-audit.md). ⚠ **Only a Cell moving from one LIVING District to another counts
    against it**: new ground is growth, and a Cell whose District is being destroyed has nowhere to stay.
-5. **Pool Bins — a Bin per Good per District.** 🔴 **`BinOwnerKind` has four members and none is a
+5. ✅ **SHIPPED 2026-08-22 — Pool Bins, a Bin per Good per District.** `BinOwnerKind.District` is the
+   **fifth** member; `Space.DistrictPoolTable` is a saved join naming which Bin belongs to whose Pool,
+   because `BinTable.Owner` cannot hold a District and the alternative — a derived list — is only
+   derivable when the element names its owner (**F25**). Every Pool Bin is **unbounded**, on an argument
+   that is not money's: there is no shed, and `adr/0135`'s falling price is what discourages selling
+   into a full Pool. `World.FitDistrictPools` adds and never removes, after the watershed and at every
+   Ruleset swap. A dying District's stock goes to whoever took its **centre Cell**, which is identity's
+   own rule used for succession (**F29**). ⚠ **No money Bin**, because decision 10 is open and a Bin
+   opened before it is answered would *be* the answer. ⚠ **No lookup index, and that is deliberate**
+   (**F26**) — every read is cold while `Scope.Pool` throws. 🔴 **The State Hash moved and all three
+   golden baselines were re-recorded**: `DistrictPools.Rows` is appended to `World._tables`, and an
+   empty table still folds its allocator ([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).
+   🔴 **Task 5 also found a defect it does not own** — a Ruleset that inserts a `[[resource]]` crashes
+   the swap on the treasury — routed to [`0003`](0003-build-plan.md) queue item **15** (**F27**).
+   ⚠ **`Scope.Pool` STILL THROWS**, exactly as this entry said it would. *The original entry:*
+   🔴 **`BinOwnerKind` has four members and none is a
    District**, and `BinTable.Owner` is a `HandleColumn<Building>` bound to `buildings.Rows` at
    construction (`BinTable.cs:60`), so ***a District-owned Bin cannot address its owner through
    `Owner` and must not try.*** **Use the Household/Business shape instead** — the owner row holds the
@@ -748,17 +828,38 @@ starting.
    ⚠ **A fourth precondition, and it was sitting in a ledger that names this milestone by number** —
    which is decision 6's finding pointing the other way: *a mechanism placed by a different document is
    not a suspicion*, and neither is a blocker filed in one.
-6. **The price — `[[hinterland]] price` per Good, and the tâtonnement**
+6. ✅ **SHIPPED 2026-08-22 — the price: `[[hinterland]] prices` per Good, `[market]`, and the
+   tâtonnement**
    ([`adr/0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md)).
-   Per Good per District, damped, from Pool level against recent consumption, on a `Ticks.PerDay`
-   boundary, **bounded above by the Hinterland's price**. ⚠ **No milestone-18 dependency and no wheel** —
-   `World.cs:1073` already floor-divides by `Ticks.PerDay`. ⚠ **Before the purchase, because a purchase
-   settles at a price**; and authoring the import price **repairs `adr/0045`'s running ladder**, which is
-   unordered without it, rather than filling a gap.
-7. **The purchase — and `Scope.Pool` stops throwing.** Good one way, money the other, settled atomically
+   `[[hinterland]]` gains **`prices`**, an inline array of tables on `[[building]] bins`' idiom;
+   `Ruleset.HinterlandPrices` holds them flat and **`Ruleset.ImportCeiling` is the MINIMUM across every
+   declared Hinterland**, which is derived rather than chosen because there is no haulage term at 12
+   (**F30**). A new **`[market]`** table holds the damping — `decay_percent`, `move_cap_percent`, and
+   **neither of them is a price**. `DistrictPoolTable` gains `Price`, `Rate` and `Consumed`, all keyed by
+   the row's own `(District, Good)` (**F34**); `World.RepriceDistrictPools` runs **last in phase 6**,
+   after the watershed, so it prices the Pools the Tick actually ends with. A Pool **opens at the
+   ceiling**, which is what discharged `adr/0135`'s possible third §D row before it was written (**F33**).
+   ⚠ **No milestone-18 dependency and no wheel**, exactly as this entry said.
+   🔴 **A file that states `[districts]` and leaves a Good unpriced is now REFUSED AT LOAD** (**F31**) —
+   so `rulesets/twinned.toml` gained **two** `[[hinterland]]` blocks and a `[market]`, and the two Goods
+   take their ceiling from **different edges** on purpose. `adr/0048`'s count of record moved **129 → 138**.
+   🔴 **A defect was found in this task's own arithmetic by a test**: the smoothing floored, which made a
+   Pool drawn at one unit a Day indistinguishable from a dead one, with the threshold moving whenever the
+   damping was retuned (**F32**). Repaired by rounding; the resolution question is filed as *measurable*.
+   ✅ **NO GOLDEN BASELINE MOVED, and that is not the same answer as task 5's** (**F36**) — three saved
+   columns were added to a table that is **empty on every golden world**, and an empty column folds
+   nothing, where task 5's appended *table* folded its allocator's scalars and moved all three.
+   ⚠ **`Scope.Pool` STILL THROWS**, so nothing writes the consumption bucket and **the whole market is
+   inert on every shipped world** (**F35**) — the third time this corpus has shipped a producer with no
+   consumer, and accepted for the reason it was the first two: task 7 is the writer. Findings **F30**–**F35**
+   below. *The original entry:* Per Good per District, damped, from Pool level against recent consumption,
+   on a `Ticks.PerDay` boundary, **bounded above by the Hinterland's price**. ⚠ **Before the purchase,
+   because a purchase settles at a price**; and authoring the import price **repairs `adr/0045`'s running
+   ladder**, which is unordered without it, rather than filling a gap.
+7. 🔴 **BLOCKED ON SESSION V as of 2026-08-22** ([`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md)) — ***a purchase needs a payer and there is not one***. Money lives on a **Business**; a Rule Instance names a **Building**; a Building holds a **list** of Businesses. ⚠ **Milestone 10 predicted this in `BusinessTable`'s doc comment** — *"it blocks the first money term a Rule fires on a workplace, because `local` money must resolve to **an** actor and a list does not name one"* — **and task 7 is that first money term.** ⚠ **Decision 10 is still closed and this is not it returning**: that asked who holds the *Pool's* money and dissolved with the Pool; this asks who holds the *seller's*, and the seller is a Business the build cannot give a Bin to. **The purchase — and `Scope.Pool` stops throwing.** Good one way, money the other, settled atomically
    with the Rule. 🔴 **Blocked on decision 10**, above: *who holds the Pool's money between a Provider's
    deposit and a consumer's draw.* ⚠ **The engine's term resolution is 1:1 and a purchase is 1:2** —
-   `RuleEngine.Bin` returns **one** slot (`RuleEngine.cs:801`) and a Rule waits on **the one Bin it was
+   `RuleEngine.Bin` returns **one** slot ~~(`RuleEngine.cs:801`)~~ — ⚠ **the symbol is at line 854 and the claim is still true**, which is `adr/0093`'s writing half: ***name a symbol, never a time*** and a Rule waits on **the one Bin it was
    short of**, so the money leg needs a Bin to subscribe to that no term names. **Both halves of decision
    9 land here** ([`adr/0137`](../docs/adr/0137-the-wait-list-knows-which-bin-and-evidence-does-not-so-bankruptcy-needs-one-field.md)):
    `RuleEvidence` gains the blocking Bin, **and** the money check produces a verdict **naming the money
@@ -1085,3 +1186,198 @@ redundant with the first**: a Cell that stopped holding Buildings and kept its r
 perfectly well, and puts **empty ground inside a Pool**, which is the abstraction `adr/0013` is a lie
 without rather than a simplification. **Three tests write both violations and watch them fire**, and a
 third runs the reconciliation and watches one clear.
+
+### Task 5, 2026-08-22 — **F25** to **F29**
+
+✅ **F25 — the Pool hangs off the OWNER row, and which shape that is was decided by what a load can
+recover rather than by taste.** `BinTable.Owner` is a `HandleColumn<Building>` bound to `buildings.Rows`
+at construction, so a District cannot go in it, and this plan already said not to widen it. What it did
+not say is which of the two remaining shapes to use, and they are not equivalent. **A Building's Bins
+hang off a `Derived` list that `World.RebuildDerived` re-threads from the Bins' own owner column** — it
+can, because the element names its owner. **A Pool Bin's row names nothing**, so there is no column to
+re-thread from and a derived list would come back empty. `Space.DistrictPoolTable` is therefore
+**saved**, and it is the only statement anywhere of which District owns which Bin. ⚠ ***The difference
+between the two shapes is what is RECOVERABLE and not how much care was taken***, and a derived list is
+only derivable when the element names its owner.
+
+✅ **F26 — no lookup index shipped, and `Scope.Pool` still throwing is the argument.** The obvious
+companion to the join is a dense `(District, Resource) → Bin` index, on `DistrictResidency`'s model. It
+is not here. **Every read of the table today is cold** — opening a Pool, and retiring one — because
+nothing can resolve a `pool` term at all, so an index would be sized against a table nothing walks and
+measured by nothing. ***An index built before the hot path exists is an index whose shape is a guess
+about a caller nobody has written.*** Task 7 owes it, on the Tick a pool term resolves for the first
+time.
+
+🔴 **F27 — a Ruleset edit that INSERTS a resource crashes the swap, and it crashes on the treasury.**
+Found by a test of this task and it is **milestone 10's defect, reproduced on `rulesets/minimal.toml`
+with no `[districts]` in it at all**. `RulesetMigration` maps Resources **by name** and says why in its
+own words — *"the map exists because an id is not an identity"* — and `World.Migrate` applies that map
+by walking `Buildings.Rows`. **That is the whole of where it is applied.** A `ResourceId` is the
+declaration's *position*, so an insert renumbers everything after it, and a Treasury, Household,
+Business or Pool Bin keeps the outgoing file's id. `World.RebuildCapacities` throws
+***"bin 0 holds a non-conserved Resource and is owned by Treasury"*** — bin 0 being the treasury's
+money, whose id was `money` and is now `repairs`. ⚠ **The migration is right and its REACH is short**,
+which is the opposite of the defect it looks like. Routed to [`0003`](0003-build-plan.md) queue item
+**15** under [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+and expressly not fixed here; the test appends its new Good instead, which is a legitimate fixture and
+not a workaround, because the test is about fitting a Pool. ⚠ **Task 5 widens the blind spot without
+widening the defect**, and the wider half is the worse one: a Pool Bin's ceiling derives from its
+**owner** rather than its Resource, so it does not throw — ***it comes back holding a stock of whatever
+the id now names, silently.***
+
+🔴 **F28 — `Invariant.CrossTableHandleResolves` already covers every dangling saved handle, and task
+4's invariant did not know it.** That walk is **column-driven** — *"every column is asked whether it
+dangles, so a handle column added in a later slice is covered the day it is declared"* — and it is
+registered **first**. So a test that frees a District and asks the registry gets `CrossTableHandleResolves`
+and not the District member, which is how this was found: task 5's version of that test failed, and task
+4's identical-looking one passes because ***it calls the check directly rather than through the
+registry.*** ⚠ **What is left to the per-table member is the UNSET handle**, which is not dangling and
+which the generic walk is right not to report. Both members now say so at the declaration. ***A test
+that trips two checks tests whichever is registered earlier***, and the isolation is the point rather
+than the tidiness.
+
+✅ **F29 — succession reuses identity's rule, and the symmetry is the argument rather than a
+coincidence.** A dying District's stock goes to whoever now owns its **centre Cell** — the same one Cell
+pass 1 reads to decide which District inherits a basin. `adr/0134` makes a District *be* its centre, so
+the row that inherited the centre is the row that inherited the District, and any other rule would make
+identity and succession disagree about the same Cell. ⚠ **A District can still die with NO heir** —
+demolish its ground and the centre stops being built — and that destroys Goods, which `04 §2` forbids.
+`Invariant.ADistrictDiesWithAnHeirOrAnEmptyPool` is what makes it a failure instead of a leak. **It
+cannot fire today and the reason is exact rather than lucky**: `Scope.Pool` throws, so every Pool is
+empty at every moment and *no heir* and *nothing to hand over* coincide. ***It is the day task 7 opens
+the scope that it becomes a real constraint***, and the test that watches it fire has to deposit by
+hand to get there.
+
+
+### Task 6, 2026-08-22 — **F30** to **F35**
+
+✅ **F30 — the ceiling is a `min` across Hinterlands, and it is DERIVED rather than chosen.** Decision 4
+left *which* Hinterland's price bounds a Pool unstated, and it reads like a choice with four candidates.
+It is not one. [`adr/0135`](../docs/adr/0135-a-market-needs-two-sides-so-twelve-ships-a-provider-and-the-price-moves.md)
+ships **no haulage term at 12** — a deliberate *no* — so importing from the far edge costs exactly what
+importing from the near one does, and a rational city buys at the cheapest. ***With carriage free there
+is nothing to choose between four gates***, so `min` is the only answer that is not an invention.
+⚠ **It names its own revisit trigger and the trigger is a signature change rather than a value change**:
+when [`adr/0133`](../docs/adr/0133-a-pool-draw-pays-for-its-haulage-so-the-boundary-is-a-gradient-and-not-a-cliff.md)'s
+charge ships, the ceiling becomes a per-District `min(price + haul)` and stops being a property of the
+Ruleset at all. ⚠ **The per-edge prices are kept rather than collapsed to their minimum at load**,
+because they are the content that makes the Outside legible — `CONTEXT.md` → Hinterland's *four
+comparable markets are each other's referent* — and they are what the future `min` will be a minimum
+*over*.
+
+🔴 **F31 — a file with `[districts]` must price every Good, and the refusal is not a range check.** Nine
+refusals were added and eight of them are shape and range. The ninth is the one worth reading: a Ruleset
+that states `[districts]` and leaves a `good` unpriced at every `[[hinterland]]` is refused outright.
+A District opens a Pool per Good, the Hinterland's price is the **only** ceiling on it, and the
+tâtonnement clamps the price to `[0, ceiling]` — so an unpriced Good is not merely unanchored, ***it is
+free everywhere, for ever***, which reads as a balance problem rather than as a missing key. That is
+`adr/0048`'s own *loads clean and misbehaves in silence*. ⚠ **It is gated on `[districts]` and NOT on a
+gate kind, and the asymmetry is the finding.** `HinterlandDefinition`'s doc already records why a gate
+kind with no Hinterland behind it is unrefusable — *which edge a gate stands on is a property of where
+it was placed, and the loader cannot see a world*. A Pool is different: whether a city has Districts is
+**stated in the file**. ***The same class of defect is reachable at parse time on one side of that line
+and never on the other***, and the boundary is what the loader can see rather than how bad the defect is.
+
+🔴 **F32 — the smoothing FLOORED, and it made a real market indistinguishable from a dead one.** The
+consumption rate is an exponential moving average in units per Day. Written with `IntegerMath.FloorDiv`,
+any draw below `100 / (100 - decay_percent)` units a Day folds to a standing rate of **zero**, which
+`Reprice` reads as *no trades* and answers by keeping the price. So a Pool genuinely being drawn from at
+one unit a Day would have had a **frozen price** and looked exactly like a Pool nobody had touched.
+⚠ **The threshold moves with the DAMPING**, so retuning `decay_percent` would silently change which
+markets have prices at all — which is the *knob that switches the mechanism off while reading as a
+setting* pattern this loader refuses three times over, arriving **inside the arithmetic where no refusal
+can reach it**. Repaired by rounding. ⚠ **What rounding costs is that a rate of 1 never decays back to
+0**, so *no trades* is only reachable before a Pool's first ever draw — a **bounded** magnitude and not
+`adr/0006`'s growth, and arguably the better city, since a Pool that has stopped selling should price
+from its cover rather than freeze at whatever it last charged. 🔴 **Whether one unit a Day is fine enough
+resolution is *measurable* and nothing yet built can measure it** — it needs a world with real
+consumption, which is task 8's. Filed on the `decay_percent` §D1 row rather than guessed at
+([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
+⚠ ***It was found by a test asserting a number and not by reading the expression***, which is the whole
+of why the assertion was written with digits in it.
+
+✅ **F33 — the third §D row `adr/0135` predicted does not exist, and saying so is the finding.** That ADR
+allowed for *"two or three more hash-bearing numbers"* and named the possible third: **an initial price,
+if the tâtonnement needs a seed.** It does not. A Pool opens at `Ruleset.ImportCeiling` and moves from
+there, and a Pool nobody has traded in stays there — which keeps
+[`adr/0045`](../docs/adr/0045-a-fallback-chain-is-a-source-ladder-over-one-bin.md)'s
+ladder monotone from Tick 0 without anybody choosing anything. ***A Pool with no local supply in it
+should cost what importing costs, and a Pool nobody has traded in has no local supply by construction***
+— so the seed is not a choice, it is the answer the mechanism gives when asked before anything has
+happened. ⚠ **`plans/0002` §D1 carries a struck row for it anyway**, because the alternative is the next
+reader adding a `[market] initial_price` and a §D row for a key nothing needed.
+
+✅ **F34 — the market's three columns went on `DistrictPools` and that was not a second decision.**
+`Price`, `Rate` and `Consumed` are all keyed by `(District, Good)`, which is a `DistrictPoolTable` row's
+identity exactly — so the alternative was a second table with the same key, joined to this one.
+***A fact keyed by a row that already exists belongs on that row***, and the join it would have needed is
+the join this table already is. ⚠ **`Rate` and `Consumed` are two columns and not one**, deliberately: a
+single accumulator that decayed in place would hold a rate multiplied by a constant nobody could name the
+units of, which is `plans/0012` **Cause 5** built rather than quoted. Two columns cost one `long` a row
+and the units stay sayable — *units per Day*, and *what this Day drew*.
+
+⚠ **F35 — the price is built, correct and INERT on every world that exists, for the third time.**
+Nothing writes `Consumed` while `Scope.Pool` throws, so every rate is zero, every recompute reads *no
+trades*, and every price sits at its ceiling from Tick 0 to the end of the run. Milestone 9's land-value
+producer and task 5's Pool Bins are the same shape, and this is accepted for the reason it was accepted
+twice: **task 7 supplies the writer**, and a purchase settling at a price needs the price to already
+exist. ⚠ **The consequence is that `PoolPriceTests` is the only evidence the mechanism works**, which is
+why its assertions carry digits rather than shapes — and it is what turned up **F32**.
+
+✅ **F36 — a new COLUMN moved no hash, where task 5's new TABLE moved all three, and the difference is
+exact.** Task 5 appended `DistrictPools.Rows` to `World._tables` and every golden baseline had to be
+re-recorded, because **an appended table folds its allocator's scalars even when it holds no rows**
+([`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)).
+Task 6 added **three saved columns to that same table** and every golden baseline is byte-identical,
+because a column folds **per-row values** and the table has no rows on any golden world —
+`minimal.toml`, `minimal-tuned.toml` and `congested.toml` state no `[districts]`, so no District exists
+and no Pool row is ever allocated. ⚠ ***Appending a table and appending a column to it are not the same
+edit***, and the entry above said they were until the suite disagreed. ⚠ **`rulesets/twinned.toml`'s
+own Ruleset content hash DID move** — it gained two `[[hinterland]]` blocks and a `[market]` — but
+nothing records it, because no golden trace or fixture runs that file. ***A file fingerprint is not a
+State Hash***, which is the sentence `CLAUDE.md` already carries about `congested.toml` arriving on a
+second file.
+
+⚠ **F37 — milestone 12 added two cadenced whole-table passes and `plans/0013` had a row for neither**,
+which is [`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)'s
+*a cost goes to `plans/0013`* owed since **task 4** rather than since this one. `DistrictWatershed.Evaluate`
+runs on `[districts] revisit_ticks` and is a watershed over **every built Cell of the world**;
+`World.RepriceDistrictPools` runs on a Day boundary over one row per Good per District. ⚠ **They are not
+the same size and the row says so**: the reprice is small by construction and the watershed scales with
+the built city, so ***one row covering both is a placeholder and not an estimate***. Both are entered
+**UNMEASURED**, which is the column that is the point of that document. ⚠ **Neither is a Map Layer and
+neither belongs in `[layers]`** — `adr/0044` owns that cadence, and the resemblance is what would put it
+there.
+
+🔴 **F38 — a District's extent keeps Cells that stop being built, and no test in this repository would
+have found it.** Running `rulesets/twinned.toml` headless for three Days panics on
+`Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround` — a `DistrictCellTable` row naming ground whose
+Building density has fallen to zero. **Clean at 2,048 Ticks, panicking by 4,096**, so it appears at the
+**second** re-evaluation and not the first. ⚠ **It is task 3 or task 4's defect and task 6 merely ran the
+file for longer than anything had**: reproduced at task 5's commit, in a detached worktree, against the
+**unmodified** Ruleset. `DistrictWatershed.Reconcile` migrates a boundary between two *living* Districts
+under `[districts] migrate_cells`, and ***ground that stops being built is not a migration*** — there is
+no unconditional path that drops it. Routed to [`0003`](0003-build-plan.md) queue item **16** under
+[`adr/0073`](../docs/adr/0073-a-local-workaround-is-not-a-discharge-and-a-finding-about-shared-code-must-reach-it.md)
+and expressly not fixed inside task 6.
+✅ **SETTLED AND FIXED 2026-08-22 in a commit of its own, and NEITHER of the two candidate fixes was
+taken — because the code was right.** ⚠ **The filing above is wrong about the cause and the struck
+words are the correction.** ~~*there is no unconditional path that drops it*~~ — there is:
+`DistrictWatershed.Evict` frees every Cell the flood no longer covers, and it was working the whole
+time. **The extent is derived on `[districts] revisit_ticks`, so between two evaluations it describes
+the city as of the last one** — measured, a Cell demolished at Tick **1,152** keeps its membership until
+Tick **2,048**. ***The end-of-run check was asserting that the cadence had never run.*** It narrowed to
+the half that is true at all times and the built-ground half moved to a **post-condition of the
+evaluation**; the fix **moves no State Hash**, and a four-Day headless run reprints the panicking run's
+own Tick-6,144 hash to prove it. ⚠ **This is queue item 14's finding arriving on a second mechanism** —
+*a check is a description of the build, and a description can overstate*
+([`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)) —
+and it arrived the same way: a committed test asserted the state the narrowed check now permits.
+🔴 ***Two mechanisms in three days had an invariant stated more strongly than the thing it watched***,
+and both were found by running something for longer than anything had.
+🔴 ⚠ **The finding behind the finding is that NOTHING IN THE SUITE RUNS THIS FILE.** The District tests
+build their worlds in code and evaluate once or twice by hand; no golden trace and no long run uses a
+Ruleset that states `[districts]`. ***The only shipped world with Districts in it had never been run for
+two Days***, and one headless invocation found what four tasks of tests did not — which is `06`'s own
+*the runs that surface these bugs are the million-Tick headless balance runs* arriving four milestones
+early and at three Days.

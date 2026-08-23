@@ -7,20 +7,68 @@ place that orders the three tracks against each other.
 
 ## What is next
 
-**The next code row is [`06`](../docs/06-roadmap.md) milestone **12** — Goods between Buildings, the
-District Pool.** Ungated, scoping under way in
-[`0037`](0037-goods-between-buildings-the-district-pool.md), **tasks 1 and 2 shipped 2026-08-22**. Decisions **1, 2, 4, 5, 6,
-8 and 9 are settled** ([`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md)–[`adr/0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md));
-**open: 3, 7 and 10**, and **`0037` owns all three**.
+✅ **MILESTONE 12 IS CAPPED AT TASK 6 AND CLOSES THERE, 2026-08-22.** Its risk is rewritten to what
+tasks 1–6 actually retire — ***that a District is an administrative label rather than a derived thing
+with a market in it*** — because `Scope.Pool` still throws and **a milestone must name a risk it
+actually retires**. **Its original risk and its tasks 7–10 moved to milestone 26.**
 
-✅ **DECOMPOSED 2026-08-22 — ten tasks, tasks 1 and 2 shipped.** **3 is an obligation, not a fork** — `adr/0052`
+🔴 **The next code row is milestone 25 — the Business is the actor and the Building is premises**,
+scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md)),
+**then 26, the purchase**. ⚠ **25 and 26 sit BETWEEN 12 and 13 in `06`'s table and that is correct**:
+[`adr/0140`](../docs/adr/0140-a-milestone-number-is-an-identity-and-the-roadmaps-order-is-the-sequence.md)
+makes a milestone number an **identity** and the table's **row order** the sequence. ***Read that table
+top to bottom; its first column no longer sorts.***
+
+~~**The next code row is [`06`](../docs/06-roadmap.md) milestone **12** — Goods between Buildings, the
+District Pool.**~~ Ungated, scoping under way in
+[`0037`](0037-goods-between-buildings-the-district-pool.md), **tasks 1 through 6 shipped 2026-08-22**. Decisions **1, 2, 4, 5, 6,
+8 and 9 are settled** ([`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md)–[`adr/0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md));
+**open: 3 and 10**. ⚠ **`0037` no longer owns 10** — it was escalated 2026-08-22 to **session U**,
+[`0038`](0038-session-u-the-pool-or-the-seller.md), and to [`0002`](0002-open-questions.md) §A.
+
+✅ **DECOMPOSED 2026-08-22 — ten tasks, tasks 1 through 6 shipped.** **3 is an obligation, not a fork** — `adr/0052`
 requires a ratifier be *named*, not that the number be settled. **7 is largely pre-answered** by
 `adr/0134`. 🔴 **10 is new and decomposition found it**: the Pool is the counterparty on **both** sides
 of a trade and the two sides happen at different Ticks, so *where the money sits between a Provider's
 deposit and a consumer's draw* is unanswered by `adr/0050`, `adr/0135` and `adr/0114` alike. ***Ordering
 the work asked what each task needed and found a question seven decisions had not.***
 
+✅ **AND 10 OUTGREW THE DOCUMENT THAT FOUND IT AND CLOSED THE SAME DAY, VOID AS POSED** —
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md),
+***a District Pool is a market and not a store, so stock stays with the seller.***
+[`adr/0013`](../docs/adr/0013-goods-are-pooled-within-a-district-and-shipped-between.md) is **amended,
+not superseded**: it decided **reach**, and custody was a reading it never argued for. Decision 10 was
+never a question about money — **a District owns nothing, so the Pool was never a party to the trade**,
+and the seller's money Bin is a Business balance that already exists.
+
+⚠ **What task 7 must build changed, and it did not grow.** `Scope.Pool` resolves to a **seller's** Bin
+beside the two searches `RuleEngine.Bin` already runs; the market row is the **wake target**, compared
+by `BinRef` with **no resolution**; and a seller's price opens at the **import ceiling**, which costs
+**no new number and no new ratifier**. ⚠ **Most of tasks 5 and 6 stands** — 20 of 20 loader tests and
+22 of 26 price tests untouched, and `MarketRuleset` survives with its signature unchanged.
+⚠ **The seller-lookup cost is *measurable* and UNMEASURED**, and `adr/0139` says so itself.
+🔴 **TASK 7 IS BLOCKED AGAIN, and by the correction to `adr/0139` rather than by anything it decided.**
+That record put a seller's Goods in *the selling **Building's** own Bin* and a seller's money in *a
+**Business** balance* — **one seller, two custodians** — and it wrote *Building* because the code does,
+which is [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+**inverted**. ⚠ **A purchase needs a payer**: money lives on a Business, a Rule Instance names a
+Building, and a Building holds a **list** of Businesses. **Now session V**,
+[`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md), and it is
+**milestone-sized**. ⚠ **On its main axis it is a CORRECTION** — `adr/0113` decided it and `adr/0114`
+wrote *"`World.FindBin` takes an owner rather than a Building slot"* — ***so a revisit trigger that had
+already fired has been sitting finished-in-design and unbuilt since milestone 10.***
+
+🔴 **Session U also found [`0003`](0003-build-plan.md) queue item 17** — `World.RetirePool` raises the
+heir Bin's level with a raw `Bins.Move` and never drains it — ***found while reading for a design
+question and not while looking for a defect.***
+
 ⚠ **Two more things decomposition turned up, and both are the reason to do it before starting.**
+🔴 **Task 5 found a defect it does not own and routed it rather than fixing it:
+[`0003`](0003-build-plan.md) queue item 15** — a Ruleset edit that **inserts** a `[[resource]]` crashes
+the swap, on the **treasury**, on `rulesets/minimal.toml`, with no District anywhere. `RulesetMigration`
+maps Resources by name and `World.Migrate` applies that map to **Building Bins only**. ***The migration
+is right and its reach is short.***
+
 ✅ **Task 5's blocker — [`0003`](0003-build-plan.md) queue item 14 — was settled 2026-08-22 and the row
 has left the board**: the invariant narrowed to the head of the wait list, on `adr/0063`'s own argument
 rather than on the cheaper repair, and the narrowing turned up a second half nobody had reasoned to — a
@@ -152,7 +200,7 @@ parallelism names *nothing else running in this repository* as its first control
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
-| **1** | code | **Milestone 12 — the District Pool.** Decomposed into ten tasks; **1 through 4 shipped 2026-08-22** — the two-centre world, the density field, the watershed, and re-evaluation with persistence, hysteresis and damping. **Task 5 is next: Pool Bins**, and **its blocker has cleared** — queue item 14 settled 2026-08-22, in a commit of its own as its own row required | [`0037`](0037-goods-between-buildings-the-district-pool.md) | The ungated row at the head of the sequence, and **the only root with a consumer already in the build** |
+| **1** | code | 🔴 **Milestone 25 — the Business is the actor and the Building is premises.** Not started; **session V owns the scoping and it is OPEN**, so this row is *decide, then build*. ⚠ **Two contradictions inside the corpus have to be settled first**: which Bins belong to a tenant, and whether jobs are premises or employer. **Milestone 12 closed at task 6 on 2026-08-22** and its tasks 7–10 are milestone **26**, blocked on this | [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md) | **It blocks 26, which is milestone 12's own remainder** — a purchase needs a payer and the payer is what this builds |
 | **2** | code | **Milestone 24 — terrain and the land rows.** Scoped out of sequence 2026-08-22 and **split in the scoping**: the terrain half has no upstream at all, so it builds beside 12, while **Shocks, Disasters and the Intensity Dial are UNPLACED** pending 13, 15 and 16. **Ten tasks; decisions 1, 1b, 2 and 3 settled the same day, 4, 5 and 6 open** | [`0040`](0040-terrain-and-the-land-rows.md) | The only other ungated code row with **nothing upstream of it**, and the split is settled by [`adr/0146`](../docs/adr/0146-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md) |
 | **3** | spike | ⚠ **Do NOT delete `spikes/S2.Routing/`.** The 5a gate is discharged, but another session is doing research inside it, so it is live work. 51 tracked C# files, 29,719 lines | [`0010`](0010-s2-routing.md) → *R7* | ⚠ ***A deletion held twice for unrelated reasons is the row that gets struck when the wrong one clears*** |
 | **4** | spike | **S5 owes two captures** — the 4-thread Lane kernel rung, which is bimodal, and the canonical `performance` re-capture. 2 threads is settled at 1.84–1.93× | [`0019`](0019-s5-lane-kernel.md) | ⚠ **Quote the supply-side multiple as *at least 1.84× and plausibly near 4×*, never as 4× bare** |
@@ -196,6 +244,11 @@ board-tracked axis and nothing else lists them in one place.
 [`0024`](0024-session-j-the-save-the-map-and-the-outside.md), [`0025`](0025-the-player-model.md),
 [`0027`](0027-session-t-the-target-speed.md), [`0029`](0029-session-e-fidelity.md) and the ADRs each
 produced. **Open:** N, and what is open is task 5's residue. **Never opened:** G, R, L.
+🔴 **V open** — the Business is the actor,
+[`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md), **opened 2026-08-22**.
+✅ **U closed 2026-08-22** — the Pool or the seller,
+[`0038`](0038-session-u-the-pool-or-the-seller.md), into
+[`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md).
 
 ---
 
@@ -203,11 +256,14 @@ produced. **Open:** N, and what is open is task 5's residue. **Never opened:** G
 
 ### The argument track — a menu, not a queue
 
-**Nothing in it gates a slice.** Take from it when something concrete is waiting, and leave it alone
-otherwise. **Closed sessions are in [`0000a`](0000a-board-archive.md).**
+~~**Nothing in it gates a slice.**~~ 🔴 **V DOES** — it blocks milestone **26**, which is milestone 12's capped-off remainder, and it is milestone-sized. ⚠ **U also did, for one afternoon on 2026-08-22, and closed the same day**
+into [`adr/0139`](../docs/adr/0139-a-district-pool-is-a-market-and-not-a-store-so-stock-stays-with-the-seller.md)
+— the standing rule working rather than failing: *an argument session runs when something concrete is
+blocked on it.* Take from the three below when something is waiting and leave them alone otherwise. **Closed sessions are in [`0000a`](0000a-board-archive.md).**
 
 | | Session | What is missing | Unblocks |
 |---|---|---|---|
+| 🔴 **V** | **The Business is the actor and the Building is premises**, [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md) | ⚠ **On its main axis a CORRECTION and not a design change** — `adr/0113` decided it, `adr/0114` wrote the target shape, and the build never arrived. 🔴 **Two places the corpus contradicts itself are the real work**: which Bins belong to a tenant, and whether jobs are premises or employer. | milestone **25**, and **26** behind it |
 | **G** | `adr/0016` — the lane is the entity | Carries the order-of-magnitude claim the whole microscopic tier rests on. ⚠ **Partly discharged by S5** | milestone **21** |
 | **R** | `05 §6`'s threading policy | The obligation `06` could not give a milestone | lint 4 |
 | **L** | **A presentation design** | **It does not exist.** Every other phase is backed by a design document; rendering has none | **Phase 3** |

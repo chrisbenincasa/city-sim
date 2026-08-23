@@ -928,6 +928,21 @@ public sealed class Simulation
         {
             _world.EvaluateDistricts();
         }
+
+        // adr/0135's Day-boundary reprice, and LAST because it must price the Pools the Tick actually
+        // ends with. The line above can open a Pool, destroy one, or hand a dying District's stock to
+        // its heir -- and a price computed before that would be a price for a level that changed
+        // afterwards. FitDistrictPools' own argument, one line further on.
+        //
+        // NO WHEEL, and no dependency on milestone 18. "Recomputed each Day" is a modulo over
+        // Ticks.PerDay, which this build already takes in two other places; 18's wheel exists so that
+        // MANY Day countdowns can share a structure, and one recompute per Good needs none of it.
+        // adr/0135 records that the dependency was inferred from a cadence's units rather than read
+        // off a symbol.
+        if (_world.Rules.Market.RepricesOn(tick))
+        {
+            _world.RepriceDistrictPools();
+        }
     }
 
     /// <summary>Phase 7 — schedule next events, re-evaluate Stress, emit the State Hash if due.</summary>
