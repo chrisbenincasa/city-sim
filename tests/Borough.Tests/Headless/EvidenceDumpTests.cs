@@ -106,12 +106,23 @@ public sealed class EvidenceDumpTests
     /// <b>The assembled Building panel recomputes a maximum nothing stores.</b>
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The panel is worth a test because it is the only place a reader meets
     /// <c>BuildingEvidence.Pressure</c>, and because the two Rules it shows fail in the two different
     /// ways the engine distinguishes: <c>upkeep</c> is short of an <em>input</em> and accumulates
     /// pressure, <c>restock</c> is out of <em>space</em> and does not. ***A full Bin is what a
     /// well-supplied Building looks like***, so a panel showing both at once is the distinction on
     /// screen.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>THERE ARE NOW THREE <c>restock</c> ROWS AND THE PANEL CANNOT SAY WHOSE.</b>
+    /// <c>adr/0141</c> made <c>sundries</c> the tenant's, so a dwelling holding three Households runs
+    /// three <c>restock</c>s and three <c>consume</c>s — and <c>RuleEvidence</c> names no subject, which
+    /// that ADR already recorded as *"a field, not a redesign"*. Until that field lands
+    /// (<c>plans/0040</c> task 3) this test takes the first row it can find in each state rather than
+    /// the first row with each name. ***The claim is unchanged and it is the panel that got harder to
+    /// read***, which is the honest shape for an assertion over an instrument that is mid-repair.
+    /// </para>
     /// </remarks>
     [Fact]
     public void The_building_panel_shows_pressure_and_which_failure_starts_the_clock()
@@ -122,12 +133,15 @@ public sealed class EvidenceDumpTests
         Assert.Contains("Failure pressure", report, Ordinal);
 
         string starved = Line(report, "  upkeep");
-        string full = Line(report, "  restock");
+        string full = Rows(report, "  restock").FirstOrDefault(row => row.Contains("space", Ordinal))
+            ?? throw new InvalidOperationException(
+                "no restock row is out of space, so the panel is no longer showing the distinction "
+                + "this test exists for. Every restock row:\n"
+                + string.Join('\n', Rows(report, "  restock")));
 
         Assert.Contains("supply", starved, Ordinal);
         Assert.Contains("disrepair", starved, Ordinal);
 
-        Assert.Contains("space", full, Ordinal);
         Assert.EndsWith("0", full.TrimEnd(), Ordinal);
     }
 
@@ -322,6 +336,13 @@ public sealed class EvidenceDumpTests
         report.Split('\n').FirstOrDefault(line => line.StartsWith(starting, Ordinal))
         ?? throw new InvalidOperationException(
             $"the report has no line starting '{starting}'. Its shape has moved.");
+
+    /// <summary>
+    /// Every line starting <paramref name="starting"/>, because one Rule name can now name several
+    /// rows — one per tenant running it (<c>adr/0141</c>).
+    /// </summary>
+    private static string[] Rows(string report, string starting) =>
+        [.. report.Split('\n').Where(line => line.StartsWith(starting, Ordinal))];
 
     private static string Ruleset(string name) =>
         Path.Combine(AppContext.BaseDirectory, "Rulesets", name);

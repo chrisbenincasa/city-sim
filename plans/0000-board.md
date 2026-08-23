@@ -12,10 +12,23 @@ tasks 1–6 actually retire — ***that a District is an administrative label ra
 with a market in it*** — because `Scope.Pool` still throws and **a milestone must name a risk it
 actually retires**. **Its original risk and its tasks 7–10 moved to milestone 26.**
 
-🔴 **The next code row is milestone 25 — the Business is the actor and the Building is premises**,
+🟢 **The live code row is milestone 25 — the Business is the actor and the Building is premises**,
 scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md)),
-**then 26, the purchase**. ✅ **DECOMPOSED 2026-08-23 — ten tasks in two groups,
-[`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md), and not started.**
+**then 27, then 26, the purchase**. ✅ **DECOMPOSED 2026-08-23 — ten tasks in two groups,
+[`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md).**
+
+> 🟢 **GROUP A TASKS 1 AND 2 SHIPPED 2026-08-23.** ① a Bin hangs off its **owner**
+> ([`adr/0143`](../docs/adr/0143-a-bin-hangs-off-its-owner-and-the-polymorphic-column-stays-unbuilt.md)),
+> and the polymorphic column `adr/0114` gestured at is **not built**. ② a Household owns Bins, its Rules
+> follow them, and the arming stagger mixes the **tenant** — ⚠ **which is ONE task and `adr/0141` had
+> already said so in its *Rejected* section** (`0040` **F19**): the decomposition split what the record
+> governing it had declined to split. **A Ruleset says `owner = "occupant"`; a Rule's side is DERIVED
+> from its own `local` terms and a mixed one is refused at load.** 🔴 **The shipped city now holds three
+> times the stock** — the draw is unchanged, the supply is not — and every one of the **twelve** edited
+> Rulesets says so in its own header. 🔴 **The State Hash moved; four golden artefacts re-recorded; the
+> version byte NOT bumped**, because the fold did not change. ⚠ **`derived = "occupancy"`, the one
+> declared Readout in the project, has lost its only caller.** **Open: task 4's condemnation half, task 5
+> — blocked on open decisions 1 and 3 — and the closing task.**
 🔴 **CAPPED AT GROUP A THE SAME DAY, with the user in the room — 25 is tasks 1–5 plus the closing
 task, and ITS RISK IS REWRITTEN** to ***that a Rule Instance names premises rather than an actor, so no
 money term can resolve to a payer.*** ⚠ **Group A makes the actor NAMEABLE; it does not make one

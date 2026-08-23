@@ -202,26 +202,32 @@ builds the Business as a thing the city contains. **The cleavage between task 5 
    re-recorded** — the world hash and both session traces — ⚠ **and `World.HashSeed`'s version byte was
    NOT bumped**, because that byte is for a change to the **fold** and this is a world with more columns
    in it. Findings **F11**–**F18** below. **2,064 assertion-tier tests green.**
-2. **A Household owns Bins — `sundries` moves to the tenant.** `adr/0141`'s line, applied to the one
-   Occupant that already exists. 🔴 **This changes what the city does**: `consume` becomes one Rule per
-   Household instead of one Rule applied `occupancy` times, and `derived = "occupancy"` — **the one
-   declared Readout in the project** — loses its only caller. ⚠ **Twelve Ruleset files**, not one
-   (**F6**). ⚠ **Capacity stays keyed on the building kind** (`adr/0141`), so the creation site needs
-   **both** the owner and the premises — a Household reaches its through `Households.Dwelling`. ⚠ **Do
-   not read `minimal.toml`'s shared larder as evidence for anything**: three Households in one dwelling
-   do not share a kitchen, the file's first line says it models no city, and under `adr/0070` a shortcut
-   is not evidence.
-3. **Rules follow their Bins.** ⚠ **Cheaper and differently shaped than `0039` V10 costed it** (**F1**):
-   the six sites it named all reach the Rule Instance through the **derived `BuildingRules` list**, not
-   through the saved `Building` handle, whose only consumers are `RuleEngine` (4) and the rebuild (1),
-   with **zero test readers**. ***So the blast radius is the list, not the column.***
-4. **The tenant-aware stagger and the tenant-aware condemnation.** Both hash-bearing, both
-   `LEGIBLE CAUSE`. `World.ArmingStagger` (`World.cs:2056`, **one** call site) mixes the **tenant's**
-   monotonic id — *two Businesses running one Rule* reopen on the other axis the collision the Building
-   mix was there to prevent. ⚠ **`Condemn`'s pressure mechanism does not change**: the verdict is already
-   an OR and the walk continues only for attribution (`ZoneRuleEngine.cs:346`). ***What changes is what
-   dies*** — a failing tenant's Rules end the **tenancy** and leave the premises standing. `RuleEvidence`
-   (`BuildingEvidence.cs:61`) **names no subject at all**, so this is ***a field, not a redesign***.
+2. ✅ **SHIPPED 2026-08-23 — a Household owns Bins, its Rules follow them, and the stagger mixes the
+   tenant.** ⚠ **Entries 2, 3 and the stagger half of 4 are ONE task and `adr/0141` said so in its
+   *Rejected* section** — **F19**, found before a line was written. A Ruleset says `owner = "occupant"`
+   on a `[[building]] bins` entry; a **Rule's** side is **derived** from its own `local` terms and a
+   mixed one is refused at load (138 → **140** refusal sites). `RuleInstanceTable` gains a saved
+   `Household`, unset for a premises Rule; `World.FitOccupant`/`UnfitOccupant` open and close a
+   tenant's Bins and Rules at the two ends of a tenancy; `RuleEngine`'s `local` resolve goes through
+   `World.FindLocalBin`; `ArmingStagger` mixes the **subject's** monotonic id. 🔴 **Twelve Ruleset
+   files edited**, `consume` is now `{ min = 1, max = 1 }`, and **`derived = "occupancy"` — the one
+   declared Readout in the project — has lost its only caller.** 🔴 **The State Hash moved and four
+   golden artefacts were re-recorded**; ⚠ **`World.HashSeed`'s version byte was NOT bumped**, because
+   the fold did not change. **The shipped city now holds three times the stock** (**F25**), which is
+   `adr/0141` being right rather than the file being tuned, and every edited Ruleset says so in its own
+   header. Findings **F20**–**F29** below. **2,072 assertion-tier tests green.**
+3. ✅ **FOLDED INTO 2 — see F19.** *Rules follow their Bins*, and a Rule's inputs and outputs are
+   `BinRef`s, so there was never a moment at which the Bins had moved and the Rules had not. ⚠ **The
+   numbering is left alone rather than closed up**, on `adr/0140`'s logic one level down: renumbering
+   buys tidiness and costs every citation.
+4. **The tenant-aware condemnation. ⚠ THE STAGGER HALF SHIPPED WITH 2 AND THIS IS WHAT IS LEFT.**
+   Hash-bearing, `LEGIBLE CAUSE`. ⚠ **`Condemn`'s pressure mechanism does not change**: the verdict is
+   already an OR and the walk continues only for attribution (`ZoneRuleEngine.cs:346`). ***What changes
+   is what dies*** — a failing tenant's Rules end the **tenancy** and leave the premises standing.
+   🔴 **`RuleEvidence` (`BuildingEvidence.cs:61`) names no subject at all, and as of task 2 that is
+   VISIBLE**: the assembled Building panel prints three identical `restock` rows and cannot say whose
+   (**F28**). ***A field, not a redesign***, and it belongs here rather than in 2 because F19's cut put
+   the *stagger* half there and left the *condemnation* half its own entry.
 5. **The unpremised pool and the emigration sink** —
    [`adr/0142`](../docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md).
    `DestroyBuilding` (`World.cs:3644`) stops unlisting-and-freeing-nothing; an orphaned Business joins a
@@ -496,3 +502,84 @@ tenant's Rules and the tenant-mixed stagger, together**, ③ condemnation ends a
 unpremised pool and the emigration sink, ⑤ the closing task. ⚠ **The numbering below is left alone**
 under `adr/0140`'s logic one level down — renumbering to close a gap buys tidiness and costs every
 citation.
+
+### Task 2, 2026-08-23 — **F20** to **F27**, the merged task built
+
+🔴 **F20 — THE TENANCY NEEDED A RULESET WORD AND `adr/0141` DOES NOT HAVE ONE FOR A HOUSEHOLD.** That
+ADR's *What changes* table puts the tenant's Bins on `[[business]]` — *"those the tenant keeps —
+stock, the till"* — and **a Household has no kind table and never will**. ⚠ **So the marker had to go
+on the `[[building]]` bin entry**: `{ resource = "sundries", capacity = 48, owner = "occupant" }`.
+***That is not a workaround, and the ADR's own *Why* is why***: `DeclaredCapacity` stays keyed on the
+**building** kind and *"needs no business kind at all"*, so the Bin must be declared where its ceiling
+is declared whoever holds the level. 🔴 **The two halves of `adr/0141` cannot both be whole**, and
+milestone 27 has to say which table names a Business's Bins — filed as a correction owed rather than
+settled here, because nothing in group A can test the answer.
+
+**F21 — a Rule's tenancy is DERIVED and `fills` is what makes a chain answerable in one comparison.**
+`adr/0141` declined to split a Rule from its Bins, so an `owner` key on a `[[rule]]` would state a
+second time what the terms already state. The loader computes it from the Rule's own `local` terms and
+refuses a Rule addressing both sides — `adr/0050` at the parse site, since a term crossing an
+ownership boundary is a **trade**. ⚠ **Counting `fills` as a local term is what removes the chain
+walk**: `adr/0045` makes a fallback chain a ladder over *one* Bin, so a link relieving a tenant's Bin
+from a premises Bin is the same mixed case arriving one link along.
+
+🔴 **F22 — A TENANT'S BINS AND RULES LIVE EXACTLY AS LONG AS THE TENANCY, AND THAT IS FORCED RATHER
+THAN CHOSEN.** A ceiling is a function of `(building kind, Resource)` and an unhoused Household has no
+kind, so a Bin outliving its tenancy is a Bin `RebuildCapacities` cannot give a ceiling to. ⚠ **What
+it costs is the tenant's stock, destroyed on eviction.** The **money** is not: it is unbounded, its
+ceiling names no premises, and it stays with the Household under `adr/0054`. ⚠ **This is NOT the
+answer for a Business** — `adr/0142` has one go on existing unpremised holding what it had — so it is
+a data point for **open decision 1** and does not settle it. ***The Household case is answerable
+because a Household has somewhere to go; that is the same asymmetry `DestroyBuilding` already
+records.***
+
+**F23 — a Ruleset reload frees every Rule Instance in the world, tenants' included, so `Migrate`
+needed a second loop.** A Building-only refit leaves every Household holding Bins and running nothing
+— a world that loads clean, has stock and never touches it. ⚠ **It is keyed on the Household and not
+on the Building** because an unhoused one has no premises to refit through.
+
+**F24 — `RebuildCapacities` became owner-walking exactly where
+[`adr/0143`](../docs/adr/0143-a-bin-hangs-off-its-owner-and-the-polymorphic-column-stays-unbuilt.md)
+said it would.** That record gave up *a Bin cannot name its owner*, and this is the first caller to
+pay for it: the cases a Bin can answer alone stay in the Bin loop, and a tenant's Bin is reached from
+the Household, whose `Dwelling` is the only route to a kind. ***A prediction in a Consequences section
+came true within a day, which is the argument for writing them.***
+
+🔴 **F25 — THE SHIPPED CITY NOW HOLDS THREE TIMES THE STOCK AND THE DRAW IS UNCHANGED.** `consume`
+went from one Rule applied `occupancy` times to one Rule per Household, which is the same total draw;
+`restock` went from **one greedy Rule filling one Bin of 48** to **three filling three**. ⚠ **The
+Rule Instance count per dwelling went 3 → 7**, which is a `plans/0013` row and is filed there. ***The
+supply change is `adr/0141` being right rather than the file being tuned*** — three Households do not
+share a kitchen — and it is stated in every edited Ruleset's own header rather than left to be found.
+
+**F26 — `MigrateBins` does not reach a tenant's Bins.** It rotates one *Building's* list, and a
+tenant-owned Bin is not in one, so a Resource leaving the Ruleset leaves a Household holding a Bin
+naming an id the incoming file does not declare. ⚠ **`RebuildCapacities` guards the read** — a
+Resource past `ResourceCount` keeps the ceiling it has, which is `FitTreasury`'s answer to the same
+situation — so nothing crashes and the Bin is simply inert. **Unbuilt, not refused** (`adr/0070`), and
+filed rather than worked around (`adr/0073`).
+
+**F27 — the refusal count went 138 → 140 and `RefusalCountTests` found it before I did.** ⚠ **It is
+the corpus's only document-to-*code* check**, and this is the second milestone running in which it
+was the thing that noticed. `adr/0048`'s enumeration gained its thirteenth recount alongside the
+number, which is what that ADR asks for and what a bare number would not have bought.
+
+🔴 **F28 — THE EVIDENCE PANEL NOW PRINTS THREE IDENTICAL `restock` ROWS AND CANNOT SAY WHOSE.** A
+dwelling holding three Households runs three `restock`s and three `consume`s, and `RuleEvidence`
+(`BuildingEvidence.cs:61`) **names no subject at all** — which `adr/0141` had already written down as
+*"a field, not a redesign"*. ⚠ **It is left open deliberately and it is task 3's**, because **F19**'s
+own cut put the *stagger* half of task 4 in this task and left the *condemnation* half — which the
+subject field belongs to — its own entry. ***Taking it here would be reopening a cut I had just
+argued for.*** `EvidenceDumpTests` was changed to take the first row **in each state** rather than the
+first row with each name, and says in its own remarks that the claim is unchanged and the panel got
+harder to read.
+
+🔴 **F29 — A SHIPPED BUILDING NOW HOLDS ONE BIN, SO `bin.bin_next` STOPPED BEING WRITTEN ANYWHERE.**
+Every shipped dwelling declares `sundries` and `repairs`; with `sundries` gone to the tenant, the
+Building's own Bin list is one element long in every world the simulation builds on its own, and the
+link in it is never non-zero. ⚠ **`DerivedRebuildAuditTests` caught it on the first run**, which is
+exactly what that test is for: ***the column stayed derived, stayed rebuilt and stayed correct, and
+stopped being provable*** — a coverage loss arriving as a side effect of a change three files away.
+**Repaired with a fixture** (`TestRulesets.Stocked`, one kind with two premises Bins) **and not with a
+second Bin on a shipped kind**, because what a shipped Ruleset declares is *content* and adding to one
+so a test has something to walk is tuning the city to suit the instrument.

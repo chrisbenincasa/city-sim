@@ -132,6 +132,7 @@ public sealed class DerivedRebuildAuditTests
             Run(Stepped(512)),
             Run(Stepped(2048)),
             Run(Severed()),
+            Run(Stocked()),
             Run(GoldenFixtures.Build()),
         ];
 
@@ -318,6 +319,34 @@ public sealed class DerivedRebuildAuditTests
         Assert.True(
             world.Roads.Connectivity.FootComponents > 1,
             "severance.toml no longer severs, so the connectivity labels are all zero again.");
+
+        return world;
+    }
+
+    /// <summary>
+    /// A city whose Buildings hold <b>two Bins each</b>, which no shipped Ruleset produces any more.
+    /// </summary>
+    /// <remarks>
+    /// <b>⚠ It exists because <c>adr/0141</c> emptied the only fixture that walked
+    /// <c>bin.bin_next</c>.</b> Every shipped dwelling declares <c>sundries</c> and <c>repairs</c>;
+    /// milestone 25 moved <c>sundries</c> to the tenant, so a Building holds <b>one</b> Bin in every
+    /// world the simulation builds on its own and the link in its Bin list is never written. ***The
+    /// column stayed derived, stayed rebuilt and stayed correct, and stopped being provable*** — which
+    /// is the failure this test exists to name, arriving as a side effect of a change three files
+    /// away. <c>TestRulesets.Stocked</c> says why the repair is a fixture rather than a second Bin on
+    /// a shipped kind.
+    /// </remarks>
+    private static World Stocked()
+    {
+        var key = WorldKey.FromSeed(GoldenFixtures.Seed);
+        var world = new World(GoldenFixtures.Population, TestRulesets.Stocked);
+
+        for (int i = 0; i < 4; i++)
+        {
+            Handle<Lot> lot = world.Lots.Create(new Tiles(i * 3), new Tiles(i * 5), zone: 1);
+
+            world.CreateBuilding(lot, kind: 1, new Ticks(0), key);
+        }
 
         return world;
     }

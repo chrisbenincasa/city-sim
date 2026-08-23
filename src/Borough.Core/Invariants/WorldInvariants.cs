@@ -395,6 +395,19 @@ public static class WorldInvariants
                 continue;
             }
 
+            // A tenant's Bin is checked from its OWNER, below. Its ceiling is the premises' kind's
+            // (adr/0141) and a Bin cannot name its owner (adr/0143), so there is no route from this
+            // row to the Building that declared it -- which is why RebuildCapacities grew the same
+            // second traversal. ⚠ A tenant's MONEY Bin is not one of these: its ceiling is 04 §2's
+            // and needs no owner at all, so it falls through to the check below on the treasury's
+            // reasoning rather than on the premises'.
+            if (bins.OwnerKind[bin] == BinOwnerKind.Household
+                && bins.Resource[bin].Raw <= world.Rules.ResourceCount
+                && !world.Rules.IsConserved(bins.Resource[bin]))
+            {
+                continue;
+            }
+
             // The treasury's ceiling comes from 04 §2 -- "Money is a Resource too, and its Bin is
             // unbounded" -- and not from a Building kind it does not have. Asserting it against
             // DeclaredCapacity would be asserting it against the zero returned for a kind nobody
@@ -419,6 +432,46 @@ public static class WorldInvariants
                 Invariant.BinCapacityMatchesItsDeclaration,
                 bin,
                 bins.Capacity[bin]);
+        }
+
+        // The tenants' Bins, walked from the owner -- which is RebuildCapacities' own second
+        // traversal and is deliberately the same one. Reaching these rows a different way would stop
+        // this being a check on the rebuild's PLACEMENT, which is the whole of what it checks.
+        HouseholdTable households = world.Households;
+
+        for (int slot = 0; slot < households.Rows.SlotCount; slot++)
+        {
+            if (!households.Rows.IsLive(slot))
+            {
+                continue;
+            }
+
+            // An unhoused Household is checked at kind zero, like a Bin whose owner has gone: both
+            // reduce to `declares no store of this Resource`. ⚠ It should hold no such Bin at all --
+            // UnfitOccupant closes them when the tenancy ends -- so this branch is what would fail if
+            // that stopped being true, rather than an exemption for it.
+            byte kind = world.Buildings.Rows.TryResolve(households.Dwelling[slot], out int building)
+                ? world.Buildings.Kind[building]
+                : (byte)0;
+
+            Handle<Bin> at = households.BinHead[slot];
+
+            while (!at.IsNone)
+            {
+                int owned = bins.Rows.Resolve(at);
+                ResourceId held = bins.Resource[owned];
+
+                if (held.Raw <= world.Rules.ResourceCount && !world.Rules.IsConserved(held))
+                {
+                    report.Require(
+                        bins.Capacity[owned] == world.DeclaredCapacity(kind, held),
+                        Invariant.BinCapacityMatchesItsDeclaration,
+                        owned,
+                        bins.Capacity[owned]);
+                }
+
+                at = bins.OwnerNext[owned];
+            }
         }
     }
 

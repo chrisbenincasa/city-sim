@@ -38,14 +38,18 @@ public sealed class RuleInstanceTable
     /// <param name="capacity">Initial slot count.</param>
     /// <param name="buildings">The table this one's <see cref="Building"/> handles address.</param>
     /// <param name="bins">The table this one's <see cref="WaitingOn"/> handles address.</param>
-    public RuleInstanceTable(int capacity, BuildingTable buildings, BinTable bins)
+    /// <param name="households">The table this one's <see cref="Household"/> handles address.</param>
+    public RuleInstanceTable(
+        int capacity, BuildingTable buildings, BinTable bins, HouseholdTable households)
     {
         ArgumentNullException.ThrowIfNull(buildings);
         ArgumentNullException.ThrowIfNull(bins);
+        ArgumentNullException.ThrowIfNull(households);
 
         _rows = new Rows<RuleInstance>("rule_instance", capacity, Buffering.OneCopy);
 
         Building = _rows.SavedHandle("building", buildings.Rows);
+        Household = _rows.SavedHandle("household", households.Rows);
         Rule = _rows.Saved<RuleId>("rule");
         NextTick = _rows.Saved<Ticks>("next_tick", Touch.PerTick);
         WaitingOn = _rows.SavedHandle("waiting_on", bins.Rows, Touch.PerTick);
@@ -61,8 +65,42 @@ public sealed class RuleInstanceTable
     /// <summary>The slot allocator, the generation counters and the column list.</summary>
     public Rows<RuleInstance> Rows => _rows;
 
-    /// <summary>The Building running this Rule.</summary>
+    /// <summary>The premises this Rule runs on. <b>Set for every row, tenant's Rules included.</b></summary>
+    /// <remarks>
+    /// <b>It stopped being the subject and stayed the place</b> (<c>adr/0141</c>). A tenant's Rule
+    /// still emits under a footprint and still reads a Readout scoped to a Building, so a Rule
+    /// Instance needs the premises whoever runs it — which is why this column is unconditional and
+    /// <see cref="Household"/> is the one that may be unset.
+    /// </remarks>
     public HandleColumn<Building> Building { get; }
+
+    /// <summary>
+    /// The Occupant running this Rule, or the unset handle when the premises run it themselves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The subject, and unset <em>is</em> the answer rather than a missing one</b>
+    /// (<c>adr/0141</c>): a Rule whose Bins all belong to the premises is the premises' Rule, and
+    /// there is no tenant to name. <c>Ruleset.RuleDefinition.Tenancy</c> decides which, at load,
+    /// from the Rule's own <c>local</c> terms.
+    /// </para>
+    /// <para>
+    /// <b>Typed to <see cref="Entities.Household"/> rather than to an Occupant, which is
+    /// <c>CONTEXT.md</c> → Occupant's own shape.</b> An Occupant is *"a concept spanning two lists
+    /// rather than a type"*, and the Building already carries two homogeneous lists rather than one
+    /// polymorphic one so that every handle stays typed and lint 7 is satisfied without a
+    /// discriminated union. ⚠ <b>A Business gets its own column when a Business runs a Rule</b>,
+    /// which is milestone 27 — spelling the second one now would be a column no fixture can
+    /// populate, which <c>DerivedRebuildAuditTests</c> exists to catch on the other disposition.
+    /// </para>
+    /// <para>
+    /// <b>A tenant's Rule Instance lives exactly as long as the tenancy.</b> It is created when the
+    /// Household moves in and freed when it moves out, which is what keeps this handle from ever
+    /// dangling and is the same rule the tenant's Bins follow — their ceiling is the premises'
+    /// (<c>adr/0141</c>), so neither can outlive the tenancy that gave it one.
+    /// </para>
+    /// </remarks>
+    public HandleColumn<Household> Household { get; }
 
     /// <summary>Which Bin Rule of the Ruleset. Resolved by the loader, never a string here.</summary>
     public Column<RuleId> Rule { get; }
@@ -142,12 +180,22 @@ public sealed class RuleInstanceTable
     /// anyway, because a door that leaves half the row to somebody else's tidiness is the arrangement
     /// this class was already bitten by.
     /// </remarks>
-    internal Handle<RuleInstance> Create(Handle<Building> building, RuleId rule)
+    /// <param name="building">The premises. Set whoever runs the Rule.</param>
+    /// <param name="rule">Which Bin Rule of the Ruleset.</param>
+    /// <param name="tenant">
+    /// The Occupant running it, or the unset handle for a Rule the premises run themselves.
+    /// <b>Written here rather than left to the caller</b>, for the reason the remarks give: a
+    /// recycled slot carries its predecessor's tenant, and inheriting one is a Rule that draws from
+    /// a family who moved out.
+    /// </param>
+    internal Handle<RuleInstance> Create(
+        Handle<Building> building, RuleId rule, Handle<Household> tenant = default)
     {
         Handle<RuleInstance> handle = _rows.Allocate();
         int slot = _rows.Resolve(handle);
 
         Building[slot] = building;
+        Household[slot] = tenant;
         Rule[slot] = rule;
         Blocked[slot] = Blocking.Nothing;
         WaitingOn[slot] = default;
