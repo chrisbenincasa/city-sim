@@ -1738,6 +1738,31 @@ pointer to one.***
       terms above, so the next reader meets it at the symbol rather than in a plan.
 
 
+### `PROCESS.md` → *Numbering* has no row for an ADR, and two branches proved it needs one
+
+**Found 2026-08-23, renumbering `0139`–`0142` and `plans/0038` after they collided with `main`.** The
+numbering table covers Phase, Milestone, Sub-milestone, Slice, Task, Session, Spike, Round and Plan
+document. **It does not cover an ADR at all**, which is the most-cited unit in this corpus.
+
+**The omission is not the missing row — it is that nothing says who owns the next number.** Two
+branches each took `0139` while neither could see the other, and the same happened at `plans/0038`
+even though the plan-document axis *is* in the table. So the row would not have prevented it.
+***Assigning from next-free is a shared mutable counter, and nothing in the corpus serialises writes
+to it.***
+
+⚠ **The mechanical checks cannot find this, and that is not a defect in them.** `CitationTests` and
+`LinkResolutionTests` resolve links **inside one working tree**, where each branch's numbering is
+internally perfect and every link opens. The collision exists only in the *union of two branches*,
+which no test ever sees — the *space across working trees* surface milestone 10's collection already
+recorded, arriving on the **document** axis rather than the code one.
+
+**What is owed is a decision and not an edit**, which is why this is filed rather than paid. Adding
+the ADR row is trivial; *how a number is claimed* — reserved on the branch, renumbered on merge, or
+keyed on something that cannot collide — is a real choice with real costs, and it should be taken
+once rather than improvised at the next merge. **The mapping for this instance is already recorded**
+in [`06`](../docs/06-roadmap.md) → *Retired numbering*, third block, which is what
+[`PROCESS.md`](../PROCESS.md) requires of any renumber.
+
 ### `adr/0123` says Amenity needs a `kind` column on `BusinessTable`, and a park is not a Business
 
 **Found 2026-08-23, in the sitting that produced
@@ -3296,7 +3321,7 @@ is checking the argument and not the example.***
 ⚠ **And `adr/0124` enumerated the blockers and counted two of three** — `sealing_decay_tau = 0` and
 `Step` never calling `DecaySealing` — **both of which are downstream of the missing write path.** Fourth
 sighting of the enumeration defect, after `adr/0062`'s Cap admission ranks, `03 §4`'s demotion fields and
-`adr/0117`'s four grounds. Owned by [`0038`](0038-terrain-and-the-land-rows.md) **F3**, which is where
+`adr/0117`'s four grounds. Owned by [`0040`](0040-terrain-and-the-land-rows.md) **F3**, which is where
 the repair order is corrected; `adr/0124` needs the amendment.
 
 ### `06`'s inventory row said both that terraforming was placed and that it was not
@@ -3319,9 +3344,9 @@ available, because
 [`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) makes it
 the difference between terrain as a **price** and terrain as a **wall** — and a scoping session reading
 this row would have taken terraforming as placed at 24 and shipped the height field on that basis.
-✅ **PAID 2026-08-22 by `plans/0038` decision 2**: the row is split in two, terraforming's is **UNPLACED**,
+✅ **PAID 2026-08-22 by `plans/0040` decision 2**: the row is split in two, terraforming's is **UNPLACED**,
 and it now says it owes a **verb** before it owes a milestone
-([`adr/0142`](../docs/adr/0142-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)).
+([`adr/0149`](../docs/adr/0149-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md)).
 
 ### `adr/0021` called a rule **checkable** for four years, and nothing could have checked it
 
@@ -3334,7 +3359,7 @@ and it now says it owes a **verb** before it owes a milestone
 🔴 **It would have gone red on the thing that satisfies it.** World creation in this build is an event in
 the Input Log — `SyntheticCity.PopulateInto` is dispatched from `Simulation.cs:391` on
 `CommandKind.Populate`, **inside Phase 0** — so the generator reads height *inside a Tick phase* on the
-Tick that makes the world (`0038` **F6**).
+Tick that makes the world (`0040` **F6**).
 
 🔴 **And nothing enforces phase discipline at all.** `TickPhase` is referenced by its own file and by
 `Simulation.cs`, and by nothing else in the repository. There is no analyser, no test and no fixture that
@@ -3346,9 +3371,9 @@ unfamiliar direction: not *an absence read as a constraint*, but ***a constraint
 enforcer existed.*** A reader auditing terrain reads would have gone looking for the check and found
 nothing to run.
 
-✅ **PAID 2026-08-22 by `plans/0038` decision 3**, as an **amendment in place** rather than a new ADR —
+✅ **PAID 2026-08-22 by `plans/0040` decision 3**, as an **amendment in place** rather than a new ADR —
 the design content belongs to
-[`adr/0142`](../docs/adr/0142-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
+[`adr/0149`](../docs/adr/0149-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
 and a second home for one decision is **Cause 1** by construction. The rule is restated against **state**:
 ***terrain height is not state***, which is checkable by inspection because no height column exists.
 ⚠ **The mechanical check becomes owed the day terraforming lands**, since *seed + edits* stores heights on
@@ -3361,7 +3386,7 @@ on 2026-08-22 *"detected by file mtimes rather than by anything the corpus does.
 
 ⚠ **2026-08-22, milestone 24's scoping: three worktrees were live at once** — `city-sim` on milestone 12,
 `city-sim-m18` on milestone 18, `city-sim-q8` on `main` — and the scoping session read `git worktree
-list` and the branch diffs **before** claiming `plans/0038`. The plan number was free; **the next ADR
+list` and the branch diffs **before** claiming `plans/0040`. The plan number was free; **the next ADR
 number was not safely claimable**, because the milestone-12 branch holds unmerged work with open
 decisions 3, 7 and 10 still to settle, any of which lands an ADR.
 

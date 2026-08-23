@@ -1,4 +1,4 @@
-# 0038 — Terrain and the land rows: `06` milestone 24's first half
+# 0040 — Terrain and the land rows: `06` milestone 24's first half
 
 > Vocabulary in [`CONTEXT.md`](../CONTEXT.md). The milestone and its named risk are
 > [`06`](../docs/06-roadmap.md)'s. What is done is [`0003`](0003-build-plan.md)'s. This document owns
@@ -12,7 +12,7 @@
 CODE-COMPLETE and BLOCKED — see F7**; it was built ahead of task 2 because the Sealing write path needs
 no terrain, and running it turned up a whole-map cost that
 [`0002`](0002-open-questions.md) §C now owns. **Task 2 has not started.** **Decisions 1, 1b, 2, 3 and 4 are settled**
-([`adr/0139`](../docs/adr/0139-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md)–[`adr/0143`](../docs/adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md));
+([`adr/0146`](../docs/adr/0146-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md)–[`adr/0143`](../docs/adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md));
 **5 and 6 are open**.
 
 ⚠ **It is scoped out of sequence deliberately, and the reason is stated rather than assumed.**
@@ -31,7 +31,7 @@ where the split was first available."* **It is two milestones.** This document i
 second half is recorded in **F2** below and is **blocked on 13, 15 and 16**.
 
 ✅ **The split is settled and recorded in
-[`adr/0139`](../docs/adr/0139-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md),
+[`adr/0146`](../docs/adr/0146-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md),
 2026-08-22.** `06`'s row 24 and both inventory rows are rewritten; the Shocks-and-Dial half is
 **UNPLACED**. ⚠ **The trigger fired on the half `adr/0124` did not expect** — that ADR offered a *land
 systems on terrain* seam, and the seam turned out to be the **dial**.
@@ -162,7 +162,7 @@ range, no sign convention.
 and it is not paperwork: Fertility is a subtraction, so a suitability without a stated range makes
 `terrain suitability − Sealing − pollution` an expression whose sign nobody can predict.
 
-✅ **RESOLVED 2026-08-22 by decision 1 and [`adr/0140`](../docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md).**
+✅ **RESOLVED 2026-08-22 by decision 1 and [`adr/0147`](../docs/adr/0147-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md).**
 The term is renamed **Base Fertility**, `CONTEXT.md` gains it and **Terrain**, and the undefined
 quantity turned out to be **Ruleset data rather than a field**. 🔴 ***The missing definition was not a
 documentation gap — it was load-bearing***: `adr/0124` specified a per-Cell column by reasoning from a
@@ -230,7 +230,7 @@ creation" in this build is *an event in the log*, not a moment before the clock 
 **read** inside a Tick phase, something has gone wrong"*, and the bake **writes** one. But the rule's
 value is that it can be checked mechanically, and a check phrased as *no terrain read in any phase*
 would go red on the generator itself. ✅ **Decision 3 restated it against STATE** — *terrain height is
-not state* — and `adr/0142` is what makes that checkable, by storing no height at all. ⚠ **There is no
+not state* — and `adr/0149` is what makes that checkable, by storing no height at all. ⚠ **There is no
 bake left to place**, and the mechanical check is **owed with terraforming** rather than now.
 
 ---
@@ -243,7 +243,7 @@ Each carries its type.
 
 ### 1. ✅ SETTLED 2026-08-22 — what *is* terrain suitability? **It is Base Fertility, and it is not a field**
 
-✅ **[`adr/0140`](../docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md),
+✅ **[`adr/0147`](../docs/adr/0147-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md),
 with the user in the room.** `terrain suitability` is renamed **Base Fertility** and is **Ruleset data
 keyed by terrain type**. The stored per-Cell column is **terrain type**, `(saved AND hashed)`, and
 **two** Ruleset values are keyed by it — Base Fertility and the Sealing decay rate.
@@ -277,7 +277,7 @@ reversible.***
 
 ### 1b. ✅ SETTLED 2026-08-22 — **weights, following Desirability — and one of the two is derived**
 
-✅ **[`adr/0141`](../docs/adr/0141-fertility-composes-with-weights-and-only-one-of-them-is-a-number-anybody-chooses.md),
+✅ **[`adr/0148`](../docs/adr/0148-fertility-composes-with-weights-and-only-one-of-them-is-a-number-anybody-chooses.md),
 with the user in the room.** `fertility = base fertility − w_s·Sealing − w_p·pollution`, Q16.16, weighted
 the way `MapLayers.Desirability` already is. **Base Fertility is a fraction with `1.0` meaning fully
 fertile**, so Fertility is a proportion by construction.
@@ -326,7 +326,7 @@ covers is [`0012`](0012-corpus-audit.md)'s granularity defect.
 
 ### 2. ✅ SETTLED 2026-08-22 — **height is generated and stored nowhere**
 
-✅ **[`adr/0142`](../docs/adr/0142-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
+✅ **[`adr/0149`](../docs/adr/0149-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md),
 with the user in the room.** The generator **computes and reads** height while it works; it stores only
 the **outputs** — terrain type, the water graph with its downstream edges, and floodplain depth **where
 the floodplain is**. **No height column, at Tile or Cell resolution.** `adr/0021`'s *the world is not
@@ -385,12 +385,12 @@ is a world-creation pass"*). The order becomes `RefuseIfPopulated` → **terrain
 ✅ **Nothing in `LayLand` needs to consult it, which is why the placement is nearly free.** Roads do not
 avoid water — `adr/0021`: *"A Street or Arterial may span unbuildable water; the Road Graph does not know
 the difference"* — Woodland is *"not a clearing verb and not an obstacle"* (`CONTEXT.md`), and **buildable
-grade does not ship** (`adr/0142`). Terrain goes first because it is the ground, not because anything
+grade does not ship** (`adr/0149`). Terrain goes first because it is the ground, not because anything
 downstream reads it.
 
 ✅ **The rule is restated against STATE rather than against time**, and
 [`adr/0021`](../docs/adr/0021-the-map-is-bounded-procedural-and-terrain-never-enters-a-tick.md) is amended
-in place rather than a fourth ADR being written — the design content is `adr/0142`'s, and **a second home
+in place rather than a fourth ADR being written — the design content is `adr/0149`'s, and **a second home
 for one decision is [`0012`](0012-corpus-audit.md)'s Cause 1**:
 
 > **Terrain height is not state.** It lives as a local inside the generator's call and dies with it. The
@@ -491,15 +491,15 @@ decision is recorded so the absence is not later read as an omission.**
 
 | # | Task | Depends on |
 |---|---|---|
-| **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0139`](../docs/adr/0139-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0140`](../docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
-| **2** | **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0140`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
+| **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0146`](../docs/adr/0146-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0147`](../docs/adr/0147-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
+| **2** | **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0147`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
 | **3** | ✅ **DONE 2026-08-23** (`1c9ebec`), built 2026-08-22 and blocked on a cost for one day — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0143`](../docs/adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
 | **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. Two §D1 rows with named ratifiers | 3, decision 5 |
 | **5** | **Fertility** — the `throw` at `MapLayers.cs:578` becomes a composition at the point of use | 2, 3 |
-| **6** | **Water Bodies** — the water graph, and a fifth `BinOwnerKind`. ⚠ **The downstream ordering is generator OUTPUT, not a height computation** (`adr/0142`): `CONTEXT.md` → Water Body states *an outflow rate to the next body downstream*, which is an **edge** | 2 |
+| **6** | **Water Bodies** — the water graph, and a fifth `BinOwnerKind`. ⚠ **The downstream ordering is generator OUTPUT, not a height computation** (`adr/0149`): `CONTEXT.md` → Water Body states *an outflow rate to the next body downstream*, which is an **edge** | 2 |
 | **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires | 6 |
 | **8** | **Woodland and replanting** — regrowth on unsealed, unoccupied land | 2, 3 |
-| **9** | **Hazard Regions** — derived at generation, never read in a Tick. ⚠ **Floodplain depth is stored SPARSELY, where the floodplain is** (`adr/0142`), because `01 §5.2` spreads Flood *by depth* and a whole-map height field is what this milestone does not build | 2 |
+| **9** | **Hazard Regions** — derived at generation, never read in a Tick. ⚠ **Floodplain depth is stored SPARSELY, where the floodplain is** (`adr/0149`), because `01 §5.2` spreads Flood *by depth* and a whole-map height field is what this milestone does not build | 2 |
 | **10** | **The long run** — 100k+ Ticks, no collection and no magnitude trending at steady state | all |
 
 ---
@@ -641,7 +641,7 @@ load-bearing and stated nowhere.*** Map-wide pollution would have tripped the sa
 
 `terrain suitability` had no `CONTEXT.md` entry, no unit, no range and no sign, and there was no entry for
 **Terrain** either. ✅ **Settled the same day by decision 1 and
-[`adr/0140`](../docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)**:
+[`adr/0147`](../docs/adr/0147-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)**:
 the term is renamed **Base Fertility**, it means *the yield of untouched ground* — **Fertility's ceiling**
 — it is **suitable for farming and nothing else**, and it is **Ruleset data keyed by terrain type** rather
 than a field.

@@ -115,7 +115,7 @@ than a lottery, and it is the same shape `01 §5.2` wants from hazard.
   `0124`'s filename keeps the old term because a filename is its claim.
 - **Milestone 24's named artefact changes and its size does not.** It still owes one world-creation
   per-Cell column; the column holds terrain **type**.
-  [`plans/0038`](../../plans/0038-terrain-and-the-land-rows.md) task 2 is restated.
+  [`plans/0040`](../../plans/0040-terrain-and-the-land-rows.md) task 2 is restated.
 - **Two Ruleset values are keyed by terrain type**, and both are **tuning, hot-reloadable, hash-bearing**
   — Base Fertility and the Sealing decay rate. Each owes a ratifier under
   [`0052`](0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md), and the world

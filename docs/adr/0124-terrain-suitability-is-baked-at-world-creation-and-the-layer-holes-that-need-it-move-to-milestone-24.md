@@ -1,6 +1,6 @@
 # Terrain suitability is baked at world creation, and the Layer holes that need it move to milestone 24
 
-> 🔴 **Half superseded by [`0140`](0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md), 2026-08-22 — the placement stands and the artefact does not.**
+> 🔴 **Half superseded by [`0147`](0147-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md), 2026-08-22 — the placement stands and the artefact does not.**
 >
 > **What stands, entirely:** Fertility, Sealing's decay, Woodland, replanting and Water Bodies belong at
 > milestone **24**; they are *placed rather than deferred*; 15 was never available for Water Bodies; and
@@ -25,7 +25,7 @@
 >
 > **The filename keeps the old term**, because a filename is its claim and this one was made in good
 > faith. **This document's third revisit trigger — *a Tick-time consumer of terrain that a stored column
-> cannot serve* — is answered in the negative** by `0140`: a stored type plus a Ruleset lookup serves
+> cannot serve* — is answered in the negative** by `0147`: a stored type plus a Ruleset lookup serves
 > every consumer that exists.
 
 **Fertility, Sealing's decay, Woodland, replanting and Water Bodies leave milestone 9 for milestone

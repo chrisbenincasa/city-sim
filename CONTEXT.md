@@ -194,7 +194,7 @@ value up in the Ruleset, because that is a column and a table rather than a terr
 are keyed by it — **Base Fertility**, and the **Sealing** decay rate.
 
 🔴 **Height is generated and stored nowhere**
-(`docs/adr/0142-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md`).
+(`docs/adr/0149-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md`).
 The generator computes and reads it while laying water, floodplain and terrain type, and keeps only those
 **outputs**; there is no height column at any resolution, so nothing can read one and no save carries one.
 ⚠ **The reason is not memory.** Every job `adr/0021` gives height is either excluded by that ADR, absent
@@ -205,7 +205,7 @@ price***, and terraforming is neither a verb in `01 §2` nor placed in `06`. Hei
 **Base Fertility**
 The agricultural capacity of ground nobody has touched — **Fertility's ceiling**, and the first term of
 its composition. **Ruleset data keyed by terrain type, never stored per Cell and never baked into a
-save** (`docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md`),
+save** (`docs/adr/0147-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md`),
 which is the disposition `adr/0022` already required of the Sealing decay rate beside it.
 
 ⚠ **It was called *terrain suitability* until 2026-08-22, and the old name invented an artefact.** Read
@@ -224,7 +224,7 @@ The record of development on the ground: the count of Tiles in a Cell ever built
 **Roads Seal, and so does every other built Tile.** The road network is therefore visible to Fertility, so a paved city genuinely has less farmland — which is correct and was previously missing, since Sealing had only ever been discussed through Buildings. The **verge beside an Arterial is never built on**, so it stays unsealed and Woodland regrows on it; a highway sterilises land for *development* without sealing it against *recovery*.
 
 **Fertility**
-Agricultural capacity. **Composed at the point of use, never stored:** `base fertility − w_s·Sealing − w_p·pollution`, weighted the way desirability is (`docs/adr/0141-fertility-composes-with-weights-and-only-one-of-them-is-a-number-anybody-chooses.md`). **Base Fertility is a fraction with `1.0` fully fertile**, so Fertility is a **proportion**, which is what makes a farm panel's *"41% — ground sealed 12%, pollution 47%"* fall out of the arithmetic. 🔴 **`w_s` is derived and has no Ruleset key**: a Cell at Sealing 1024 has every Tile built on and therefore no farmland, so the term is `base × Sealing / 1024`. **Only the pollution weight is chosen.** ⚠ **The weights are not decoration** — unweighted, a Tile count of 0–1024 outweighs a pollution stock of about 12 by roughly 85:1, which is an artefact of the units and not a claim about cities. **Fertility may go negative and does not clamp**, because Sealing decays and two exhausted Cells are at different distances from farming again. All land begins fertile and development degrades it, so fertility is a fact the player *makes* rather than one the generator deals. Farms in turn emit into pollution, so agriculture and housing repel each other without any rule saying so. See `docs/adr/0022-land-is-a-stock-the-city-spends.md`.
+Agricultural capacity. **Composed at the point of use, never stored:** `base fertility − w_s·Sealing − w_p·pollution`, weighted the way desirability is (`docs/adr/0148-fertility-composes-with-weights-and-only-one-of-them-is-a-number-anybody-chooses.md`). **Base Fertility is a fraction with `1.0` fully fertile**, so Fertility is a **proportion**, which is what makes a farm panel's *"41% — ground sealed 12%, pollution 47%"* fall out of the arithmetic. 🔴 **`w_s` is derived and has no Ruleset key**: a Cell at Sealing 1024 has every Tile built on and therefore no farmland, so the term is `base × Sealing / 1024`. **Only the pollution weight is chosen.** ⚠ **The weights are not decoration** — unweighted, a Tile count of 0–1024 outweighs a pollution stock of about 12 by roughly 85:1, which is an artefact of the units and not a claim about cities. **Fertility may go negative and does not clamp**, because Sealing decays and two exhausted Cells are at different distances from farming again. All land begins fertile and development degrades it, so fertility is a fact the player *makes* rather than one the generator deals. Farms in turn emit into pollution, so agriculture and housing repel each other without any rule saying so. See `docs/adr/0022-land-is-a-stock-the-city-spends.md`.
 
 **Woodland**
 The one generated resource. Forest Tiles are not farmable while wooded; clearing yields Timber as a one-time harvest and leaves fertile ground behind. Woodland regrows slowly on unsealed, unoccupied land, so land use is cyclical and the extraction frontier migrates outward on its own through ordinary Building decline. **It is not a clearing verb and not an obstacle** — see Zone, *the ground carries resources*: building over forest clears it and forfeits the harvest, which is a cost and never a refusal.
