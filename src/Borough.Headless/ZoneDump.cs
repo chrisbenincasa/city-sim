@@ -102,7 +102,7 @@ internal static class ZoneDump
         output.WriteLine(
             $"{activity.Triggers.Sum} triggers, {activity.Vacant.Sum} vacant Lots evaluated, "
             + $"{activity.Occupied.Sum} occupied. {activity.Created.Sum} Buildings raised, "
-            + $"{activity.Demolished.Sum} condemned.");
+            + $"{activity.Demolished.Sum} condemned, {activity.Ended.Sum} tenancies ended.");
         output.WriteLine(
             $"{world.UnplacedPool.Count} Households are in the Unplaced Pool, waiting for somewhere "
             + "to live. A demolition evicts a Building's whole occupancy; a Zone Rule rehouses one "

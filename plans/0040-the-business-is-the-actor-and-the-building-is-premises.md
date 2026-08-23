@@ -220,14 +220,24 @@ builds the Business as a thing the city contains. **The cleavage between task 5 
    `BinRef`s, so there was never a moment at which the Bins had moved and the Rules had not. ⚠ **The
    numbering is left alone rather than closed up**, on `adr/0140`'s logic one level down: renumbering
    buys tidiness and costs every citation.
-4. **The tenant-aware condemnation. ⚠ THE STAGGER HALF SHIPPED WITH 2 AND THIS IS WHAT IS LEFT.**
-   Hash-bearing, `LEGIBLE CAUSE`. ⚠ **`Condemn`'s pressure mechanism does not change**: the verdict is
-   already an OR and the walk continues only for attribution (`ZoneRuleEngine.cs:346`). ***What changes
-   is what dies*** — a failing tenant's Rules end the **tenancy** and leave the premises standing.
-   🔴 **`RuleEvidence` (`BuildingEvidence.cs:61`) names no subject at all, and as of task 2 that is
-   VISIBLE**: the assembled Building panel prints three identical `restock` rows and cannot say whose
-   (**F28**). ***A field, not a redesign***, and it belongs here rather than in 2 because F19's cut put
-   the *stagger* half there and left the *condemnation* half its own entry.
+4. ✅ **SHIPPED 2026-08-23 — condemnation ends a tenancy and leaves the premises standing.**
+   `ZoneRuleEngine.Worst(building, tenant, threshold, tick)` walks the Building's Rule Instances **once**
+   and filters on the subject asked for — `default` is the premises, a handle is that tenant (**F31**) —
+   so the premises are judged first and a demolition returns before any tenancy is looked at. A tenant
+   past the threshold is evicted through `World.Unplace`, and the loop **restarts** because `Unplace`
+   mutates the occupant list it is walking (**F32**). 🔴 **This removes a defect TASK 2 SHIPPED**
+   (**F30**): pressure was taken across the Building's whole Rule list, so once a tenant had Rules of
+   its own, ***one starving Household condemned the Building its two neighbours were living in*** — and
+   no test failed, because nothing in the suite had two tenants failing differently.
+   `ZoneCounter.Ended` counts it, separately from `Demolished`, through the census and `--zones`.
+   **F28 is discharged and uncovered a second hole in the same panel** (**F33**): `RuleEvidence` and
+   `BinEvidence` both gained `Tenant`, and the bin table now shows the **tenants' Bins too**, because a
+   panel naming a subject while hiding that subject's state is worse than one naming neither.
+   ⚠ **No golden artefact moved** — a tenancy ending is reachable only past `condemn_after`, which no
+   golden session reaches — so this task is hash-bearing in principle and moved nothing in practice.
+   🔴 **Nothing records *why* a tenancy ended and the trail that exists is the wrong shape** (**F35**);
+   that channel is `adr/0130`'s and ships with task 5. Findings **F30**–**F35** below.
+   **2,075 assertion-tier tests green.**
 5. **The unpremised pool and the emigration sink** —
    [`adr/0142`](../docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md).
    `DestroyBuilding` (`World.cs:3644`) stops unlisting-and-freeing-nothing; an orphaned Business joins a
@@ -583,3 +593,64 @@ stopped being provable*** — a coverage loss arriving as a side effect of a cha
 **Repaired with a fixture** (`TestRulesets.Stocked`, one kind with two premises Bins) **and not with a
 second Bin on a shipped kind**, because what a shipped Ruleset declares is *content* and adding to one
 so a test has something to walk is tuning the city to suit the instrument.
+
+### Task 4, 2026-08-23 — **F30** to **F35**
+
+🔴 **F30 — TASK 2 SHIPPED A DEFECT AND TASK 4 IS WHAT REMOVES IT, WHICH IS THE CUT WORKING RATHER
+THAN FAILING.** `ZoneRuleEngine.Condemn` took the **longest pressure across the Building's whole Rule
+list** and demolished on it. That was correct while every Rule in that list belonged to the premises.
+The moment task 2 gave a tenant Rules of its own, the list was full of **other people's**, and ***one
+starving Household condemned the Building its two neighbours were living in*** — three Households into
+the Pool because one of them ran out of food. ⚠ **It was live for the length of one commit and no test
+failed**, because nothing in the suite had a Building with two tenants failing differently;
+`TenancyEndsTests.A_fed_tenant_keeps_its_tenancy_while_its_neighbour_loses_one` is that test and it
+did not exist until today. ***A cut that lands a defect and the fix in adjacent tasks is not the same
+as one that lands a defect***, but the gap is real and the test is what closes it.
+
+**F31 — one walk answers both verdicts, and the filter is the whole difference.**
+`Worst(building, tenant, threshold, tick)` walks the Building's Rule Instances once and skips every
+instance whose `Household` is not the subject asked for — `default` selects the premises, a handle
+selects that tenant. ⚠ **The alternative was two walks over the same list with two accumulators**, and
+it was rejected for a reason that is not performance: the verdicts must be **mutually exclusive**, and
+a single function returning *the worst instance belonging to X* makes that structural rather than
+something the caller has to remember. **The premises are asked first and a demolition returns**, so a
+condemned Building never also ends a tenancy.
+
+**F32 — the condemnation loop restarts after every eviction, and this is the SECOND restart-scan this
+milestone.** `World.Unplace` removes the Household from `Occupants`, which is the list `Condemn` is
+walking — so continuing the walk past the removal reads a link that has just been rewritten. The loop
+breaks out and starts again while anything ended. ⚠ **`UnfitOccupant` needed the same shape in task 2
+for the same reason**, and there it was caught by *reading* rather than by a test, because `IndexList`
+stores `next` slot-plus-one encoded and the naive version walked one row past every element. ***A walk
+that mutates its own list is now a recognisable shape in this codebase and it has bitten twice in one
+milestone.*** Filed here rather than fixed generically: a `WalkRemovable` helper is **unbuilt, not
+refused** (`adr/0070`).
+
+**F33 — F28 is discharged, and closing it uncovered a SECOND hole in the same panel.** `RuleEvidence`
+gained `Tenant` and the rows now read `premises` / `tenant 1` / `tenant 2` — which is what F28 asked
+for. ⚠ **But the panel was then showing Rules drawing from Bins it did not display at all**: the bin
+table was assembled from `BuildingBins` alone, so every `restock` row named a `sundries` Bin that
+appeared nowhere above it. `BinEvidence` gained the same field and the tenants' Bins now follow the
+premises' in occupant order. ***A panel that names a subject and hides that subject's state is worse
+than one that names neither***, because the reader now knows there is something to look for.
+⚠ **The balance is deliberately excluded** — it is money, it is unbounded, and `Household finances` is
+where a reader meets it.
+
+**F34 — 🔴 THE TEST THAT CHECKS THE PANEL AGAINST THE SIMULATION'S OWN LISTS KNEW ABOUT ONE LIST.**
+`EvidenceTests.A_buildings_answer_matches_the_lists_the_simulation_itself_walks` walked
+`world.BuildingBins` and asserted the count matched `evidence.Bins.Length`. It failed the moment
+tenant Bins were added — correctly, and **as an equality rather than as a subset**, which is the only
+reason it caught anything. ⚠ **Had it asserted *every Building Bin appears* instead, it would have
+stayed green while the panel grew a whole second source nothing checked.** ***The agreement test's
+value is in the length assertion, not in the field comparisons***, and it survived a change to what it
+agrees with only because somebody wrote the strong form.
+
+**F35 — nothing records WHY a tenancy ended, and the trail that exists is the wrong shape for it.**
+`CondemnationTrail.Record` names a **Lot**, a kind and the condition behind a demolition; a tenancy
+that ends leaves the Lot, the kind and the Building exactly as they were, so an entry there would be
+**a demolition record for a Building still standing**. The census counts the event
+(`ZoneCounter.Ended`) and the evidence panel shows the pressure while the tenancy lasts, but once the
+Household is in the Pool there is nothing to ask. ⚠ **The channel that carries *why is this Household
+unhoused* is [`adr/0130`](../docs/adr/0130-the-pools-bound-is-a-duration-and-the-unhoused-channel-ships-with-the-gate.md)'s
+and ships with the Pool's give-up bound**, which is task 5. Filed rather than improvised
+(`adr/0073`) — a second trail keyed on the Household would be the wrong thing to have to delete.

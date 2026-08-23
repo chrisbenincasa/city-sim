@@ -317,6 +317,7 @@ public sealed class Census
         Write(_values, at + _zoneBase, (int)ZoneCounter.Occupied, zoning.Occupied);
         Write(_values, at + _zoneBase, (int)ZoneCounter.Created, zoning.Created);
         Write(_values, at + _zoneBase, (int)ZoneCounter.Demolished, zoning.Demolished);
+        Write(_values, at + _zoneBase, (int)ZoneCounter.Ended, zoning.Ended);
 
         Write(_values, at + _placementBase, (int)PlacementCounter.Considered, placement.Considered);
         Write(_values, at + _placementBase, (int)PlacementCounter.Placed, placement.Placed);
@@ -581,7 +582,8 @@ public sealed class Census
         if (metric.Source is MetricSource.Zones)
         {
             if (metric.ZoneCounter is not (ZoneCounter.Triggers or ZoneCounter.Vacant
-                or ZoneCounter.Occupied or ZoneCounter.Created or ZoneCounter.Demolished))
+                or ZoneCounter.Occupied or ZoneCounter.Created or ZoneCounter.Demolished
+                or ZoneCounter.Ended))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(metric), metric.ZoneCounter, "not a Zone counter this census reads.");

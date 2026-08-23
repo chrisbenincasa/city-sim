@@ -17,7 +17,7 @@ scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-b
 **then 27, then 26, the purchase**. ✅ **DECOMPOSED 2026-08-23 — ten tasks in two groups,
 [`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md).**
 
-> 🟢 **GROUP A TASKS 1 AND 2 SHIPPED 2026-08-23.** ① a Bin hangs off its **owner**
+> 🟢 **GROUP A TASKS 1, 2 AND 4 SHIPPED 2026-08-23.** ① a Bin hangs off its **owner**
 > ([`adr/0143`](../docs/adr/0143-a-bin-hangs-off-its-owner-and-the-polymorphic-column-stays-unbuilt.md)),
 > and the polymorphic column `adr/0114` gestured at is **not built**. ② a Household owns Bins, its Rules
 > follow them, and the arming stagger mixes the **tenant** — ⚠ **which is ONE task and `adr/0141` had
@@ -27,8 +27,19 @@ scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-b
 > times the stock** — the draw is unchanged, the supply is not — and every one of the **twelve** edited
 > Rulesets says so in its own header. 🔴 **The State Hash moved; four golden artefacts re-recorded; the
 > version byte NOT bumped**, because the fold did not change. ⚠ **`derived = "occupancy"`, the one
-> declared Readout in the project, has lost its only caller.** **Open: task 4's condemnation half, task 5
-> — blocked on open decisions 1 and 3 — and the closing task.**
+> declared Readout in the project, has lost its only caller.** ④ **condemnation ends a TENANCY and
+> leaves the premises standing** — one walk, filtered on the subject, premises judged first, and a
+> failing tenant evicted through `World.Unplace` while the Building stands. 🔴 **It removes a defect
+> TASK 2 SHIPPED** (`0040` **F30**): pressure was taken across the Building's whole Rule list, so once a
+> tenant had Rules of its own, ***one starving Household condemned the Building its two neighbours were
+> living in*** — live for the length of one commit, and no test failed because nothing in the suite had
+> two tenants failing differently. ⚠ **No golden artefact moved**, since a tenancy ending is reachable
+> only past `condemn_after` and no golden session gets there. **`RuleEvidence` and `BinEvidence` gained
+> `Tenant`**, which closes **F28** and uncovered a second hole in the same panel: the bin table showed
+> Rules drawing from Bins it did not display. 🔴 **Nothing records *why* a tenancy ended** (**F35**) —
+> the condemnation trail is a **Lot's**, so an entry there would be a demolition record for a Building
+> still standing; that channel is `adr/0130`'s and ships with task 5.
+> **Open: task 5 — blocked on open decisions 1 and 3 — and the closing task.**
 🔴 **CAPPED AT GROUP A THE SAME DAY, with the user in the room — 25 is tasks 1–5 plus the closing
 task, and ITS RISK IS REWRITTEN** to ***that a Rule Instance names premises rather than an actor, so no
 money term can resolve to a payer.*** ⚠ **Group A makes the actor NAMEABLE; it does not make one

@@ -72,27 +72,67 @@ public static class Evidence
             workers[at++] = world.Citizens.Rows.At(citizen);
         }
 
-        BinEvidence[] bins = new BinEvidence[world.BuildingBins.Length(slot)];
-        at = 0;
+        // The premises' Bins and then every tenant's, in occupant order. ⚠ THE SECOND HALF IS WHY
+        // THIS IS TWO WALKS: a tenant's Bin hangs off the Household (adr/0143) and is in no
+        // Building's list, so the panel showed Rules drawing from Bins it did not print until
+        // milestone 25 task 4. The tenant's balance is skipped -- it is money, it is unbounded, and
+        // the Household finances panel is where a reader meets it.
+        var bins = new List<BinEvidence>(world.BuildingBins.Length(slot));
 
         foreach (int bin in world.BuildingBins.Walk(slot))
         {
-            bins[at++] = new BinEvidence(
-                world.Bins.Resource[bin], world.Bins.LevelAt(bin), world.Bins.Capacity[bin]);
+            bins.Add(new BinEvidence(
+                world.Bins.Resource[bin],
+                world.Bins.LevelAt(bin),
+                world.Bins.Capacity[bin],
+                default));
+        }
+
+        foreach (Handle<Household> tenant in occupants)
+        {
+            Handle<Bin> owned = world.Households.BinHead[world.Households.Rows.Resolve(tenant)];
+
+            while (!owned.IsNone)
+            {
+                int bin = world.Bins.Rows.Resolve(owned);
+
+                if (!world.Rules.IsConserved(world.Bins.Resource[bin]))
+                {
+                    bins.Add(new BinEvidence(
+                        world.Bins.Resource[bin],
+                        world.Bins.LevelAt(bin),
+                        world.Bins.Capacity[bin],
+                        tenant));
+                }
+
+                owned = world.Bins.OwnerNext[bin];
+            }
         }
 
         RuleEvidence[] rules = new RuleEvidence[world.BuildingRules.Length(slot)];
         Ticks now = world.Tick;
+
+        // Two maxima and not one, because milestone 25 task 4 made them two verdicts: the premises'
+        // pressure condemns the BUILDING and a tenant's ends a TENANCY (adr/0141). Folding them
+        // together would print one number against a condemn_after that governs only half of it.
         long pressure = 0;
+        long tenantPressure = 0;
         at = 0;
 
         foreach (int instance in world.BuildingRules.Walk(slot))
         {
             RuleEvidence evidence = ReadRule(world, instance, now);
 
-            if (evidence.MissedFirings > pressure)
+            if (evidence.Tenant.IsNone)
             {
-                pressure = evidence.MissedFirings;
+                if (evidence.MissedFirings > pressure)
+                {
+                    pressure = evidence.MissedFirings;
+                }
+            }
+            else if (evidence.MissedFirings > tenantPressure)
+            {
+                tenantPressure = evidence.MissedFirings;
             }
 
             rules[at++] = evidence;
@@ -100,7 +140,7 @@ public static class Evidence
 
         return new BuildingEvidence(
             building, kind, world.Buildings.Lot[slot], declared, occupancy, jobs,
-            occupants, workers, bins, rules, pressure);
+            occupants, workers, [.. bins], rules, pressure, tenantPressure);
     }
 
     /// <summary>
@@ -243,6 +283,7 @@ public static class Evidence
 
         return new RuleEvidence(
             id,
+            world.RuleInstances.Household[instance],
             lastRan,
             succeeded,
             blocked,

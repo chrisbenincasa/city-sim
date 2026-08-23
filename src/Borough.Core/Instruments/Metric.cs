@@ -147,8 +147,23 @@ public enum ZoneCounter : byte
     /// <summary>Buildings built — the subset of <see cref="Vacant"/> that qualified.</summary>
     Created,
 
-    /// <summary>Buildings condemned — the subset of <see cref="Occupied"/> past its kind's threshold.</summary>
+    /// <summary>
+    /// Buildings condemned — the subset of <see cref="Occupied"/> whose <b>premises'</b> pressure is
+    /// past its kind's threshold.
+    /// </summary>
     Demolished,
+
+    /// <summary>
+    /// <b>Tenancies ended</b> — Households evicted because <em>their own</em> Rules crossed the same
+    /// threshold, leaving the premises standing (<c>adr/0141</c>).
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>It never overlaps <see cref="Demolished"/>.</b> A demolition ends every tenancy in the
+    /// Building and is counted once, as one Building. ***The gap between the two is the split made
+    /// visible***: before <c>adr/0141</c> the second outcome did not exist, and one starving tenant
+    /// was reported here as a demolished Building.
+    /// </remarks>
+    Ended,
 }
 
 /// <summary>

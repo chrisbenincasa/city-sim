@@ -115,6 +115,8 @@ public sealed class EvidenceTests
 
             at = 0;
 
+            // The premises' Bins come first, in the Building's own list order, and each carries the
+            // unset tenant handle.
             foreach (int bin in world.BuildingBins.Walk(slot))
             {
                 BinEvidence found = evidence.Bins.Span[at++];
@@ -122,6 +124,33 @@ public sealed class EvidenceTests
                 Assert.Equal(world.Bins.Resource[bin], found.Resource);
                 Assert.Equal(world.Bins.LevelAt(bin), found.Level);
                 Assert.Equal(world.Bins.Capacity[bin], found.Capacity);
+                Assert.True(found.Tenant.IsNone, "a premises Bin named a tenant.");
+            }
+
+            // ⚠ THEN EVERY TENANT'S, in occupant order (adr/0141, milestone 25 task 4). A tenant's Bin
+            // is in no Building's list, so a panel assembled from BuildingBins alone printed Rules
+            // drawing from Bins it did not show. The BALANCE is skipped -- it is money, it is
+            // unbounded, and the Household finances panel is where a reader meets it.
+            foreach (int household in world.Occupants.Walk(slot))
+            {
+                Handle<Bin> owned = world.Households.BinHead[household];
+
+                while (!owned.IsNone)
+                {
+                    int bin = world.Bins.Rows.Resolve(owned);
+
+                    if (!world.Rules.IsConserved(world.Bins.Resource[bin]))
+                    {
+                        BinEvidence found = evidence.Bins.Span[at++];
+
+                        Assert.Equal(world.Bins.Resource[bin], found.Resource);
+                        Assert.Equal(world.Bins.LevelAt(bin), found.Level);
+                        Assert.Equal(world.Bins.Capacity[bin], found.Capacity);
+                        Assert.Equal(world.Households.Rows.At(household), found.Tenant);
+                    }
+
+                    owned = world.Bins.OwnerNext[bin];
+                }
             }
 
             Assert.Equal(at, evidence.Bins.Length);
@@ -133,6 +162,7 @@ public sealed class EvidenceTests
                 RuleEvidence found = evidence.Rules.Span[at++];
 
                 Assert.Equal(world.RuleInstances.Rule[instance], found.Rule);
+                Assert.Equal(world.RuleInstances.Household[instance], found.Tenant);
                 Assert.Equal(world.RuleInstances.StarvedSince[instance], found.StarvedSince);
                 Assert.Equal(world.RuleInstances.Reported[instance], found.Reported);
             }

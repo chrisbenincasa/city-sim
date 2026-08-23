@@ -12,7 +12,19 @@ using Borough.Core.Tables;
 /// What it holds under the Ruleset in force. <b>Derived rather than frozen at construction</b>
 /// (<c>adr/0064</c>), so a reload can move it under a standing Building.
 /// </param>
-public readonly record struct BinEvidence(ResourceId Resource, long Level, long Capacity);
+/// <param name="Resource">Which Resource the Bin holds.</param>
+/// <param name="Level">What is in it.</param>
+/// <param name="Capacity">Its ceiling — <b>always the premises' kind's</b>, whoever holds the level.</param>
+/// <param name="Tenant">
+/// <b>Whose Bin it is</b> — the Occupant holding the level, or the unset handle when the premises
+/// hold it (<c>adr/0141</c>). ⚠ <b>A tenant's Bin appears in this panel at all only because of this
+/// field</b>: the list behind it is the Building's own, and milestone 25 task 2 moved `sundries` off
+/// it — so the panel printed three Rules drawing from a Bin it did not show. ***An instrument that
+/// hides half a transaction is worse than one that shows nothing***, and the capacity column is the
+/// reason the two kinds sit in one table rather than two: it comes from the same place for both.
+/// </param>
+public readonly record struct BinEvidence(
+    ResourceId Resource, long Level, long Capacity, Handle<Household> Tenant);
 
 /// <summary>
 /// One of a Building's Rule Instances: when it last ran, whether that worked, and what it is waiting
@@ -41,6 +53,14 @@ public readonly record struct BinEvidence(ResourceId Resource, long Level, long 
 /// </para>
 /// </remarks>
 /// <param name="Rule">Which Rule.</param>
+/// <param name="Tenant">
+/// <b>Whose Rule it is</b> — the Occupant running it, or the unset handle when the premises run it
+/// themselves (<c>adr/0141</c>). ⚠ <b>This type named no subject at all until milestone 25 task 4</b>,
+/// and it did not need to: a Rule Instance belonged to its Building, and the subject was the enclosing
+/// <see cref="BuildingEvidence"/>. ***Task 2 made that false and visible in one step*** — a dwelling
+/// holding three Households prints three identical <c>restock</c> rows — which is why <c>adr/0141</c>
+/// called this <em>a field, not a redesign</em>.
+/// </param>
 /// <param name="LastRan">When it last fired, subject to the caveat above.</param>
 /// <param name="Succeeded">Whether that firing worked. Equivalently, whether it is armed rather than asleep.</param>
 /// <param name="Blocked">What it is asleep on — <c>Supply</c> is an empty input, <c>Space</c> a full output.</param>
@@ -61,6 +81,7 @@ public readonly record struct BinEvidence(ResourceId Resource, long Level, long 
 /// </param>
 public readonly record struct RuleEvidence(
     RuleId Rule,
+    Handle<Household> Tenant,
     Ticks LastRan,
     bool Succeeded,
     Blocking Blocked,
@@ -100,7 +121,8 @@ public readonly struct BuildingEvidence
         Handle<Citizen>[] workers,
         BinEvidence[] bins,
         RuleEvidence[] rules,
-        long pressure)
+        long pressure,
+        long tenantPressure)
     {
         Building = building;
         Kind = kind;
@@ -113,6 +135,7 @@ public readonly struct BuildingEvidence
         Bins = bins;
         Rules = rules;
         Pressure = pressure;
+        TenantPressure = tenantPressure;
     }
 
     /// <summary>Which Building this is about.</summary>
@@ -153,14 +176,38 @@ public readonly struct BuildingEvidence
     public ReadOnlyMemory<RuleEvidence> Rules { get; }
 
     /// <summary>
-    /// The Building's accumulated failure pressure, in missed firings.
+    /// The <b>premises'</b> accumulated failure pressure, in missed firings — what condemns this
+    /// Building.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <b>The largest of its Rules', not the sum</b> — <c>adr/0053</c> as amended, and the sentence
     /// milestone 6 task 2 found had never had a consumer: <em>the Building's pressure is the longest
     /// of its Rules', measured in missed firings</em>, followed by <em>the maximum is never stored
     /// anywhere</em>. It is stored nowhere still; this recomputes it, which is what an assembler is
     /// for.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>AMENDED at milestone 25 task 4: <em>its Rules'</em> now means the ones the premises run
+    /// themselves</b> (<c>adr/0141</c>). A tenant's pressure ends the <b>tenancy</b> and leaves the
+    /// premises standing, so folding it in here would print a number against a <c>condemn_after</c>
+    /// that no longer governs it — ***a panel reporting the Building as about to fall down because
+    /// somebody living in it went hungry***, which is the defect this milestone exists to remove,
+    /// arriving in the instrument instead of in the engine. See <see cref="TenantPressure"/>.
+    /// </para>
     /// </remarks>
     public long Pressure { get; }
+
+    /// <summary>
+    /// The worst <b>tenant's</b> failure pressure, in missed firings — what ends a tenancy.
+    /// </summary>
+    /// <remarks>
+    /// <b>The largest across every tenant and every Rule of theirs, which is the same shape one level
+    /// out.</b> ⚠ <b>It is a maximum over the whole Building and NOT per tenant</b>, and that is a
+    /// limitation rather than a design: the verdict is made per tenant in
+    /// <c>ZoneRuleEngine.Condemn</c>, so a Building whose worst tenant is past the threshold prints
+    /// one number that does not say which family. <see cref="RuleEvidence.Tenant"/> is where a reader
+    /// gets that, per row.
+    /// </remarks>
+    public long TenantPressure { get; }
 }

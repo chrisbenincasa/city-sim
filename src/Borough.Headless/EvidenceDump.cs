@@ -481,25 +481,57 @@ internal static class EvidenceDump
         }
 
         output.WriteLine();
-        output.WriteLine("  bin             level  capacity");
-        output.WriteLine("  --------------  -----  --------");
+        // The occupant list resolved once and shared by both tables, so that `tenant 2` means
+        // the same family in the Bins and in the Rules.
+        Handle<Household>[] tenants = evidence.Occupants.ToArray();
+
+        output.WriteLine("  bin             holder     level  capacity");
+        output.WriteLine("  --------------  ---------  -----  --------");
 
         foreach (BinEvidence bin in evidence.Bins.ToArray())
         {
+            string holder = bin.Tenant.IsNone
+                ? "premises"
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"tenant {Array.IndexOf(tenants, bin.Tenant) + 1}");
+
             output.WriteLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  {Name(names.Resource(bin.Resource)),-14}  {bin.Level,5}  {bin.Capacity,8}"));
+                $"  {Name(names.Resource(bin.Resource)),-14}  {holder,-9}  {bin.Level,5}  "
+                + $"{bin.Capacity,8}"));
         }
 
+        output.WriteLine(
+            "⚠ The capacity column is the PREMISES' either way (adr/0141): the Building's kind "
+            + "declares every ceiling on the Lot and the tenant holds the level in the ones that "
+            + "would empty if it left. A tenant's balance is not here — it is money, it is "
+            + "unbounded, and the Household finances panel is where a reader meets it.");
+
         output.WriteLine();
-        output.WriteLine("  rule            rate  last ran  state    reports         missed");
-        output.WriteLine("  --------------  ----  --------  -------  --------------  ------");
+        // `tenant N` is A POSITION IN THIS BUILDING'S OCCUPANT LIST rather than a slot, and that is
+        // 05 §1's boundary rather than a presentation choice: Handle<T>.Index is internal precisely
+        // so that identity does not escape the core, and `tenant 2` is what a reader of one
+        // Building's panel actually wants -- a slot number is a fact about the allocator.
+        output.WriteLine("  rule            whose      rate  last ran  state    reports         missed");
+        output.WriteLine("  --------------  ---------  ----  --------  -------  --------------  ------");
 
         foreach (RuleEvidence rule in evidence.Rules.ToArray())
         {
+            // adr/0141: the subject, which this panel could not say until milestone 25 task 4. A
+            // dwelling holding three Households prints three `restock` rows, and `premises` against
+            // `household 12` is the difference between a Rule that can condemn the Building and one
+            // that can only end a tenancy.
+            string whose = rule.Tenant.IsNone
+                ? "premises"
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"tenant {Array.IndexOf(tenants, rule.Tenant) + 1}");
+
             output.WriteLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  {Name(names.Rule(rule.Rule)),-14}  {rule.Rate,4}  {rule.LastRan.Raw,8}  "
+                $"  {Name(names.Rule(rule.Rule)),-14}  {whose,-9}  {rule.Rate,4}  "
+                + $"{rule.LastRan.Raw,8}  "
                 + $"{(rule.Succeeded ? "ok" : rule.Blocked.ToString().ToLowerInvariant()),-7}  "
                 + $"{Name(names.Condition(rule.Reported)),-14}  {rule.MissedFirings,6}"));
         }
@@ -511,6 +543,13 @@ internal static class EvidenceDump
             $"Failure pressure {evidence.Pressure} missed firings — the LONGEST of its Rules' and "
             + $"not their sum (adr/0053) — against a condemn_after of {threshold}. Nothing stores "
             + "that maximum; it is recomputed here, which is what an assembler is for.");
+
+        output.WriteLine(
+            $"Its worst TENANT is at {evidence.TenantPressure} missed firings against the same "
+            + $"{threshold}, and that is a different verdict (adr/0141): the premises' pressure "
+            + "condemns the BUILDING, a tenant's ends the TENANCY and leaves the premises standing. "
+            + "⚠ This line is a maximum over the whole Building and does not say WHICH tenant — the "
+            + "`whose` column above does, per Rule.");
 
         output.WriteLine(
             "⚠ `last ran` is DERIVED and not a column. A Rule Instance is armed on the Event Wheel "
