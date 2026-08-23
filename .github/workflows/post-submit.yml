@@ -109,3 +109,34 @@ jobs:
             --ruleset rulesets/fouled.toml \
             --citizens 4000 \
             --ticks 100000
+
+      # ⚠ A THIRD BALANCE RUN, AND ON THE ONLY WORLD WHERE A TENANCY ENDS. The two runs above condemn
+      # Buildings and end no tenancies at all: on both, the PREMISES' `upkeep` starves while the
+      # tenants' `restock` keeps their larders full, so milestone 25's mechanism -- a failing tenant
+      # losing its lease while the premises stand -- is not reached by either. minimal.toml measures
+      # 2,610 condemned against 0 tenancies ended over ten Days. rulesets/evicted.toml is minimal.toml
+      # with `restock` and `upkeep` deleted, which moves the failure from the premises to the tenant,
+      # and measures 929 tenancies ended against 0 condemned.
+      #
+      # WHAT IT IS HERE FOR IS A COLLECTION RATHER THAN A CRASH, which makes it different in kind from
+      # the two above. A tenant's Rule Instances and Bins live exactly as long as the tenancy
+      # (adr/0141, milestone 25 task 2), and this file CYCLES by construction -- a tenancy ends, the
+      # Household pools, placement rehouses it, it starves again -- so every turn of that loop creates
+      # and destroys them. That is the per-tenancy allocation cycle this project did not previously
+      # have, and adr/0006 is the question it has to answer.
+      #
+      # ⚠ THE RUNNER CANNOT ANSWER IT AND IS NOT ASKED TO. Nothing here reads the census, so this run
+      # catches a crash or a thrown invariant like the two above and nothing more. The trend was
+      # measured on the reference machine at 131,072 Ticks -- both allocators' slot counts flat at
+      # 3,362 and 1,440 under ~1,900 tenancies ending per window -- and a runner is not that machine
+      # (adr/0121). ***What this lane buys is that the world stays reachable***, so the next person to
+      # take that measurement finds a file that still runs.
+      #
+      # A tenth of minimal.toml's Ticks, on fouled.toml's reasoning: the loop above turns over in
+      # hundreds of Ticks, not hundreds of thousands.
+      - name: Headless balance run, on the world where a tenancy ends
+        run: |
+          dotnet run -c Release --no-build --project src/Borough.Headless -- \
+            --ruleset rulesets/evicted.toml \
+            --citizens 4000 \
+            --ticks 100000
