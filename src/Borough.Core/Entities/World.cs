@@ -58,6 +58,7 @@ public sealed class World
     internal const ulong HashSeed = 0x426F_726F_7567_6802UL;
 
     private readonly Rows[] _tables;
+    private readonly Rows[] _writableTables;
 
     /// <param name="citizens">Initial Citizen capacity. Every other table is sized from it.</param>
     /// <remarks>
@@ -281,6 +282,10 @@ public sealed class World
             // another.
             Layers.Terrain.Rows,
         ];
+
+        // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
+        // TablesAPhaseCanWrite -- it is a subset of the COMPOSITION and never a second composition.
+        _writableTables = [.. _tables.Where(table => !ReferenceEquals(table, Layers.Terrain.Rows))];
 
         WorldInvariants.RegisterAll(Invariants);
 
@@ -800,6 +805,44 @@ public sealed class World
 
     /// <summary>Every table, in the declaration order the hash folds them in.</summary>
     public ReadOnlySpan<Rows> Tables => _tables;
+
+    /// <summary>
+    /// <see cref="Tables"/> minus the tables <b>no Tick phase can write</b>. For the Decide guard.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A subset of the composition and never a second composition.</b> The State Hash folds
+    /// <see cref="Tables"/> and must keep folding all of it — that is <c>05 §4</c>'s coverage
+    /// guarantee, and a column outside it is a column the hash cannot see. What this narrows is
+    /// <see cref="Simulation.VerifyDecideWritesNothing"/>, which asks a different question:
+    /// ***did Phase 2 write anything?*** — and a table nothing writes <em>at all</em> is not evidence
+    /// either way.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>It exists because the guard's cost is <c>O(world)</c> and terrain made the world big.</b>
+    /// Milestone 24 task 2's <see cref="Space.TerrainCellTable"/> is dense — one row per Cell, 262,144
+    /// of them — and the guard folds everything <b>twice a Tick</b>, so terrain became about
+    /// <b>ninety per cent</b> of what a fold walks. MEASURED on a quiet machine: a Tick went
+    /// <b>0.03 ms → 4.14 ms</b> with the guard on, and the assertion tier <b>3m11s → 4m19s</b>
+    /// (`plans/0041` F8, `plans/0013`).
+    /// </para>
+    /// <para>
+    /// ⚠ <b>The guard is narrowed and NOT weakened, and the second half is what makes that true.</b>
+    /// Skipping a table on trust would be exactly the silent hole this project keeps finding — so
+    /// terrain is checked instead by <c>WorldInvariants.TerrainIsWhatItsWorldKeyGenerates</c> at the
+    /// <see cref="Invariants.InvariantTier.EndOfRun"/> tier, which re-runs the generator and compares
+    /// every Cell. ***That is a stronger statement than the guard was making***: the guard could only
+    /// say Decide did not move it, and this says nothing anywhere did. It is `02 §10`'s own rule that
+    /// invariants are sorted by frequency — this one moved from twice a Tick to once a run, because
+    /// once a run is where a check on a thing that never changes belongs.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Adding a table here is a decision and not a tidy-up.</b> The test is not *is it expensive*
+    /// but *can any phase write it* — and the day terraforming ships, terrain stops qualifying and
+    /// comes out.
+    /// </para>
+    /// </remarks>
+    public ReadOnlySpan<Rows> TablesAPhaseCanWrite => _writableTables;
 
     /// <summary>
     /// The three tiers of <c>02 §10</c>, and the channel the write sites below report through.

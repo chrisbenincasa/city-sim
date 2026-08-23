@@ -1069,7 +1069,11 @@ public sealed class Simulation
     {
         ulong hash = 0;
 
-        foreach (Rows table in _world.Tables)
+        // TablesAPhaseCanWrite and not Tables, and the difference is the guard's whole cost. A table
+        // nothing writes at all cannot be evidence about what Decide wrote, and folding terrain's
+        // 262,144 rows twice a Tick made a Tick 138x itself. What stops that being a silent hole is
+        // WorldInvariants.TerrainIsWhatItsWorldKeyGenerates, at the end-of-run tier. See World.
+        foreach (Rows table in _world.TablesAPhaseCanWrite)
         {
             table.FoldAll(ref hash);
         }

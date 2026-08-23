@@ -99,6 +99,31 @@ public sealed class TerrainCellTable
     /// <exception cref="ArgumentOutOfRangeException">The Cell is off the map.</exception>
     public void Set(Cells east, Cells north, TerrainKind kind) => Kind[Slot(east, north)] = kind;
 
+    /// <summary>
+    /// A fingerprint of everything this table holds. <b>For the unchanged-since-laid check.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The fingerprint lives on <see cref="MapLayers"/> and not here, and <c>BOR0901</c> is why.</b>
+    /// Every field of a <c>[Table]</c> type is a declared column — <c>adr/0003</c>, so that the save
+    /// serialiser and the State Hash are both generated from one declaration and neither can have a
+    /// coverage hole. A remembered fold is **not** per-row state and would be exactly the undeclared
+    /// field that rule exists to refuse. ***The analyser caught this on the day it was written***, so
+    /// the table computes the fingerprint and its owner remembers it.
+    /// </para>
+    /// <para>
+    /// <c>FoldAll</c> rather than <c>Fold</c>: the question is whether <em>anything</em> moved, which
+    /// includes a column a disposition would have excluded from the State Hash.
+    /// </para>
+    /// </remarks>
+    public ulong Fingerprint()
+    {
+        ulong hash = 0;
+        _rows.FoldAll(ref hash);
+
+        return hash;
+    }
+
     /// <summary>The row for a Cell, which is its index and never a lookup.</summary>
     private static int Slot(Cells east, Cells north)
     {

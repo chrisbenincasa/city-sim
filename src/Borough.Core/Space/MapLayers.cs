@@ -1,4 +1,5 @@
 using Borough.Core.Arithmetic;
+using Borough.Core.Determinism;
 using Borough.Core.Quantities;
 using Borough.Core.Tables;
 
@@ -99,6 +100,9 @@ public sealed class MapLayers
 
     private readonly LayerCellTable _cells;
     private readonly TerrainCellTable _terrain;
+
+    /// <summary>What the terrain table folded to when the ground was laid. See <see cref="LayTerrain"/>.</summary>
+    private ulong _terrainLaidFold;
     private readonly CellResidency _residency = new();
 
     /// <summary>Scratch for the land value pass. Rebuilt each pass; never saved, never hashed.</summary>
@@ -112,6 +116,11 @@ public sealed class MapLayers
     {
         _cells = new LayerCellTable(InitialCapacity);
         _terrain = new TerrainCellTable();
+
+        // An unpopulated world's ground is all Ordinary, and that is what its ground IS rather than a
+        // placeholder -- so the baseline is taken here and a world that is never populated still has
+        // a fingerprint to be checked against.
+        _terrainLaidFold = _terrain.Fingerprint();
         _ruleset = ruleset;
         PollutionKernel = LayerKernels.IndustrialPollution(ruleset.Constants);
     }
@@ -132,6 +141,41 @@ public sealed class MapLayers
     /// <see cref="LayerCellTable.Sealing"/> does: this is where per-Cell ground lives.
     /// </remarks>
     public TerrainCellTable Terrain => _terrain;
+
+    /// <summary>
+    /// Lays the ground from the world key, and records it as the state nothing may change.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>One call rather than two, and that is the point.</b> Generating the terrain and recording
+    /// its fingerprint must happen together — a caller that did the first and forgot the second would
+    /// leave a world that reports as corrupt at the end of its run, which is a failure with no
+    /// relation to its cause. ***Two steps that must not come apart belong behind one door.***
+    /// </para>
+    /// <para>
+    /// <c>plans/0041</c> decision 3 places the call in
+    /// <see cref="Entities.SyntheticCity.PopulateInto"/>, between the already-populated refusal and
+    /// <c>LayLand</c>.
+    /// </para>
+    /// </remarks>
+    public void LayTerrain(WorldKey key)
+    {
+        TerrainGenerator.LayInto(_terrain, key);
+
+        _terrainLaidFold = _terrain.Fingerprint();
+    }
+
+    /// <summary>
+    /// Whether anything has written the terrain table since the ground was laid.
+    /// </summary>
+    /// <remarks>
+    /// 🔴 <b>This is what pays for the Decide guard skipping that table</b> — see
+    /// <see cref="Entities.World.TablesAPhaseCanWrite"/>. ⚠ <b>It asks *has it changed*, not *does it
+    /// match the world key*</b>: an unpopulated world has never been laid, and a loaded world was
+    /// restored rather than generated, so a key comparison reports both as corrupt. A load restoring
+    /// the wrong terrain is <c>adr/0112</c>'s job and is already done.
+    /// </remarks>
+    public bool TerrainIsUnchangedSinceLaid() => _terrain.Fingerprint() == _terrainLaidFold;
 
     /// <summary>The cadence and rates this world reads its Layers with.</summary>
     public LayerRuleset Ruleset => _ruleset;
@@ -578,7 +622,15 @@ public sealed class MapLayers
     };
 
     /// <summary>Rebuilds the residency index from the Cell rows. What a load calls.</summary>
-    public void RebuildDerived() => _residency.Rebuild(_cells);
+    public void RebuildDerived()
+    {
+        _residency.Rebuild(_cells);
+
+        // The load path, and the easiest of the three to forget: a load RESTORES the terrain rows and
+        // never runs the generator, so without this a loaded world reports as having been written to
+        // on the Tick it was loaded. adr/0157, milestone 24 task 2.
+        _terrainLaidFold = _terrain.Fingerprint();
+    }
 
     /// <summary>
     /// <c>fertility(cell) = base fertility − w_s·Sealing − w_p·pollution</c>. <b>A named hole.</b>

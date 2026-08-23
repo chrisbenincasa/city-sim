@@ -772,13 +772,44 @@ every world, so the warning that was a property of one shipped file is now a pro
 ***A caveat attached to one Ruleset did not travel, because the thing it was about was never the
 Ruleset.***
 
-⚠ **It is a GUARD's cost and not the city's, and the distinction is the whole of what to do next.**
-Nothing in a Tick writes the terrain column — there is no terraforming — so ***the guard folds, twice
-a Tick, a table that cannot have changed***. The real State Hash must keep folding it, because that is
-the coverage guarantee `05 §4` rests on; what is arguable is whether the *guard* must. **That is a
-decision about `Simulation` and not about terrain**, so it is routed rather than worked around here
-(`adr/0073`): the cost rows are in [`0013`](0013-tick-budget.md) and the question is
-[`0002`](0002-open-questions.md) §C's neighbour rather than this task's to settle.
+⚠ **It was a GUARD's cost and not the city's, and that distinction is what made it fixable.** Nothing
+in a Tick writes the terrain column — there is no terraforming — so ***the guard was folding, twice a
+Tick, a table that cannot have changed.***
+
+✅ **FIXED, with the user in the room, and the fix is a narrowing rather than a removal.** The guard
+now folds **`World.TablesAPhaseCanWrite`** — the composition minus the tables no phase writes — while
+**the real State Hash still folds everything**, because that is `05 §4`'s coverage guarantee and a
+column outside it is a column the hash cannot see.
+
+🔴 **What pays for the exclusion is the second half, and skipping it would have been the silent hole
+this project keeps finding.** `WorldInvariants.TerrainIsUnchangedSinceItWasLaid` runs at the
+**end-of-run** tier and compares the table against its fingerprint at the moment the ground was laid.
+It is **broader** than what the guard was saying — the guard could only report that *Decide* had not
+moved terrain between two folds, and this reports that **no phase at all** did. `02 §10`'s own rule is
+that invariants are sorted by frequency; ***a check on a thing that cannot change belongs at the
+lowest frequency there is***, and running it twice a Tick was the defect rather than the diligence.
+
+| after the fix | |
+|---|---|
+| one Tick, decide-guard ON | **0.37 ms** — was 4.14 |
+| one Tick, decide-guard OFF | 0.06 ms |
+| **the assertion tier** | **3m10s at 2,101 tests** — against **3m11s at 2,064** before the milestone |
+
+🔴 ⚠ **The first version of the invariant asked the WRONG QUESTION and 63 tests said so.** It asked
+*does the terrain match the world key*, which is the strongest statement available and is unrunnable:
+**a world built through the cold API is never populated**, so its ground has never been laid, and **a
+loaded world is restored rather than generated**. ***A check derived from the seed cannot be run
+against worlds that never met the seed.*** It asks *has it changed* instead — and a load restoring the
+wrong terrain is already [`adr/0112`](../docs/adr/0112-the-saved-set-is-the-hashed-set-so-a-save-can-compute-its-own-state-hash.md)'s
+job, done, so the narrower question leaves no gap.
+
+⚠ **Two smaller things the build refused, both correctly.** `BOR0901` rejected the remembered
+fingerprint as a field of a `[Table]` type — every field there is a declared column (`adr/0003`), and
+a fingerprint is not per-row state — so it lives on `MapLayers` and the table only computes it. And
+generating the terrain and recording the fingerprint are now **one call**, `MapLayers.LayTerrain`:
+***two steps that must not come apart belong behind one door***, since a caller doing the first and
+forgetting the second leaves a world that reports as corrupt at the end of a run for no reason
+connected to the cause.
 
 ### F4 — the milestone's central term was named in six documents and defined in none, and the missing definition was load-bearing
 

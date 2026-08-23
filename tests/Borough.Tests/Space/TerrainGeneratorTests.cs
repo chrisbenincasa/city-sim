@@ -1,6 +1,7 @@
 using Borough.Core;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
+using Borough.Core.Invariants;
 using Borough.Core.Quantities;
 using Borough.Core.Rules;
 using Borough.Core.Space;
@@ -253,5 +254,69 @@ public sealed class TerrainGeneratorTests
 
         Assert.Throws<ArgumentOutOfRangeException>(
             () => terrain.At(new Cells(CellGrid.WorldCells), new Cells(0)));
+    }
+
+    // ---- the guard that replaced a guard -----------------------------------------------------------
+
+    /// <summary>
+    /// Terrain written to after the ground was laid is reported by the end-of-run tier.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 🔴 <b>This check is what pays for <c>Simulation.VerifyDecideWritesNothing</c> skipping the
+    /// terrain table</b> (<see cref="World.TablesAPhaseCanWrite"/>), so it is the one test in this file
+    /// that a performance change is allowed to depend on. **Writing the violation and watching it fire
+    /// is the whole point** — a guard traded away for a check nobody proved fires is not a trade, it is
+    /// a hole with a comment on it.
+    /// </para>
+    /// <para>
+    /// <b>The column is written directly, past the generator that is the only legitimate writer</b>, on
+    /// <c>An_over_sealed_Cell_is_reported_by_the_end_of_run_tier</c>'s reasoning: a check must not
+    /// depend on the setter it is checking.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Terrain_written_to_after_it_was_laid_is_reported_by_the_end_of_run_tier()
+    {
+        WorldKey key = WorldKey.FromSeed(0x5EA1U);
+        World world = new(1_000, Load("varied.toml"), key);
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+        world.Invariants.Collect = true;
+
+        Cells east = new(7);
+        Cells north = new(11);
+
+        // Whatever the generator laid here, this is not it.
+        TerrainKind laid = world.Layers.Terrain.At(east, north);
+        world.Layers.Terrain.Set(
+            east, north, laid == TerrainKind.Rock ? TerrainKind.Marsh : TerrainKind.Rock);
+
+        new Simulation(world, key).CheckEndOfRun();
+
+        Assert.Contains(
+            world.Invariants.Collected,
+            violation => violation.Invariant == Invariant.TerrainIsUnchangedSinceItWasLaid);
+    }
+
+    /// <summary>An untouched world passes the same check.</summary>
+    /// <remarks>
+    /// The other half, and not a formality: a check that fires on everything is as useless as one that
+    /// fires on nothing, and this one re-runs a generator whose determinism is the thing under test.
+    /// </remarks>
+    [Fact]
+    public void A_generated_world_passes_the_end_of_run_terrain_check()
+    {
+        WorldKey key = WorldKey.FromSeed(0x5EA1U);
+        World world = new(1_000, Load("varied.toml"), key);
+
+        SyntheticCity.PopulateInto(world, key, Ticks.Zero);
+        world.Invariants.Collect = true;
+
+        new Simulation(world, key).CheckEndOfRun();
+
+        Assert.DoesNotContain(
+            world.Invariants.Collected,
+            violation => violation.Invariant == Invariant.TerrainIsUnchangedSinceItWasLaid);
     }
 }
