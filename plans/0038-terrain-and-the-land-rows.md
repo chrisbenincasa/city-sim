@@ -493,7 +493,7 @@ decision is recorded so the absence is not later read as an omission.**
 |---|---|---|
 | **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0139`](../docs/adr/0139-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0140`](../docs/adr/0140-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
 | **2** | **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0140`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
-| **3** | 🟡 **BUILT 2026-08-22, BLOCKED ON A COST** — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0143`](../docs/adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
+| **3** | ✅ **DONE 2026-08-23** (`1c9ebec`), built 2026-08-22 and blocked on a cost for one day — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0143`](../docs/adr/0143-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
 | **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. Two §D1 rows with named ratifiers | 3, decision 5 |
 | **5** | **Fertility** — the `throw` at `MapLayers.cs:578` becomes a composition at the point of use | 2, 3 |
 | **6** | **Water Bodies** — the water graph, and a fifth `BinOwnerKind`. ⚠ **The downstream ordering is generator OUTPUT, not a height computation** (`adr/0142`): `CONTEXT.md` → Water Body states *an outflow rate to the next body downstream*, which is an **edge** | 2 |
@@ -565,9 +565,36 @@ recovery already does"* is filed in [`0012`](0012-corpus-audit.md).
 
 ### F7 — Sealing was built, and what it found was a whole-map sweep that had never run over a full map
 
-🟡 **Task 3 is CODE-COMPLETE and must not be committed as done.** Sealing is written, measured, and
+✅ **UNBLOCKED AND LANDED 2026-08-23 (`1c9ebec`), and the blocker was dissolved rather than answered.**
+The sentence below stood for one day and is kept because the reasoning that produced it was wrong in a
+way worth reading.
+
+🟡 ~~**Task 3 is CODE-COMPLETE and must not be committed as done.** Sealing is written, measured, and
 correct; the assertion tier is not usable with it in until `plans/0002` §C's *does the land value target
-pass stagger?* is answered.
+pass stagger?* is answered.~~
+
+⚠ **§C did not need answering, because *the remaining defect is the pass and not the query* was a
+conclusion drawn from one division.** 6,578 ms over 1,048,576 queries gives 15 ns each, which looked
+like a floor and was not: it assumed every query had to do the work it was doing.
+`LineSourceQueries.Level`'s **first pass resolves two node handles and projects a point for every
+Segment in the window before `Contribution` ever looks at a volume** — ***so the expensive half of a
+traffic query is the half that never looks at traffic.*** Where nothing within range carries Vehicles
+the whole query is **provably** zero, and `TrafficPresence` skips pass one: **7,353 ms → 80 ms, 85×,
+and hash-preserving.** The assertion tier went **31m38s → 3m17s**, and then **2,002 passed / 0 failed**
+once the golden traces were re-baselined (`af3f5fd`).
+
+🔴 ⚠ **The 85× is measured on a world with five Vehicles in it, and that is a fact about the world
+rather than a caveat on the fix.** `bordered.toml` at 4,000 Citizens peaks at **5** Vehicles in motion
+across a whole Day where `congested.toml` at 16,000 peaks at **937**. **Why is open and filed at
+[`0002`](0002-open-questions.md) §B** — the two candidates are the far-gate Commute Budget refusing
+nearly every job, which is `adr/0095` working, and `[jobs]` assignment not reaching Citizens, which is
+a defect. ***Until that is answered, every figure in [`0013`](0013-tick-budget.md) taken on
+`bordered.toml` is taken on a world where almost nobody drives.***
+
+⚠ **The stagger question stays OPEN in §C and stops blocking anything.** A whole-world sweep is still
+the shape `02 §10` names as wrong and *when* a Cell retargets is still the designer's number; what has
+gone is the performance gun. And [`adr/0044`](../docs/adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md)
+**contradicts itself** about who owns a stagger's *phase* — noticed there, not settled.
 
 **What shipped:** `[[building]] footprint_tiles` (default **1**, refused below one); the Seal at
 `World.CreateBuilding`, which is the single door every Building comes through; `SealRun`/`SealTile` in
