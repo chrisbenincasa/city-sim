@@ -1,5 +1,17 @@
 # 0037 — Goods between Buildings: the District Pool
 
+> ✅ **MILESTONE 12 IS CAPPED AT TASK 6 AND CLOSES THERE, 2026-08-22, with the user in the room.**
+> **Tasks 1–6 shipped.** Its risk is rewritten in [`06`](../docs/06-roadmap.md) to what they actually
+> retire — ***that a District is an administrative label rather than a derived thing with a market in
+> it*** — because `Scope.Pool` still throws and **a milestone must name a risk it actually retires**
+> (`CLAUDE.md` → *Definition of done*). ⚠ ***Capping a milestone re-opens the question of what it was
+> for***, and this is the first time that has been asked of a partially-shipped row.
+>
+> 🔴 **Tasks 7–10 and the original risk move to milestone 26, the purchase**, which is **blocked on
+> milestone 25** — the Business is the actor, session V,
+> [`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md). **This document
+> keeps tasks 7–10 as written**, because they are the specification 26 inherits.
+
 **`06` milestone 12.** Ungated. The milestone that makes `Scope.Pool` resolve, and with it the first
 Goods chain that crosses an ownership boundary.
 

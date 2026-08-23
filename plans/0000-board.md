@@ -7,8 +7,20 @@ place that orders the three tracks against each other.
 
 ## What is next
 
-**The next code row is [`06`](../docs/06-roadmap.md) milestone **12** — Goods between Buildings, the
-District Pool.** Ungated, scoping under way in
+✅ **MILESTONE 12 IS CAPPED AT TASK 6 AND CLOSES THERE, 2026-08-22.** Its risk is rewritten to what
+tasks 1–6 actually retire — ***that a District is an administrative label rather than a derived thing
+with a market in it*** — because `Scope.Pool` still throws and **a milestone must name a risk it
+actually retires**. **Its original risk and its tasks 7–10 moved to milestone 26.**
+
+🔴 **The next code row is milestone 25 — the Business is the actor and the Building is premises**,
+scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md)),
+**then 26, the purchase**. ⚠ **25 and 26 sit BETWEEN 12 and 13 in `06`'s table and that is correct**:
+[`adr/0140`](../docs/adr/0140-a-milestone-number-is-an-identity-and-the-roadmaps-order-is-the-sequence.md)
+makes a milestone number an **identity** and the table's **row order** the sequence. ***Read that table
+top to bottom; its first column no longer sorts.***
+
+~~**The next code row is [`06`](../docs/06-roadmap.md) milestone **12** — Goods between Buildings, the
+District Pool.**~~ Ungated, scoping under way in
 [`0037`](0037-goods-between-buildings-the-district-pool.md), **tasks 1 through 6 shipped 2026-08-22**. Decisions **1, 2, 4, 5, 6,
 8 and 9 are settled** ([`adr/0132`](../docs/adr/0132-the-district-is-derived-and-a-ward-is-what-the-player-draws.md)–[`adr/0138`](../docs/adr/0138-freight-is-unbuilt-so-the-min-follows-it-and-neither-is-at-twelve.md));
 **open: 3 and 10**. ⚠ **`0037` no longer owns 10** — it was escalated 2026-08-22 to **session U**,

@@ -152,8 +152,14 @@ what is owed is **attribution in the commit subject**.
 4. **The business kind's shape** — V11, and whether `[[building]]` splits or gains a tenant table.
 5. **The tenant-aware stagger and the tenant-aware condemnation** — V13, both hash-bearing, both
    `LEGIBLE CAUSE`.
-6. **Where it lands.** ⚠ **This is milestone-sized and it BLOCKS milestone 12 task 7**, so the scoping
-   question is real: a milestone of its own, a split of 12, or 12 stops at task 6 and this goes first.
+6. ~~**Where it lands.**~~ ✅ **SETTLED 2026-08-22, with the user in the room: its own milestone.**
+   **This is [`06`](../docs/06-roadmap.md) milestone 25**, and milestone **12 is capped at task 6** with
+   its risk rewritten to what tasks 1–6 retire. **12's tasks 7–10 and its original risk become milestone
+   26, the purchase**, blocked on 25. ⚠ **Scoping it produced a decision about the numbering scheme
+   rather than about the city** — [`adr/0140`](../docs/adr/0140-a-milestone-number-is-an-identity-and-the-roadmaps-order-is-the-sequence.md),
+   because inserting two rows would have renumbered **276 citations across 73 files** under a rule whose
+   own stated premise was that the tail is *the least cited part of the corpus*. ***The premise was
+   measured for the first time on the day it was next needed, and it had expired.***
 
 ⚠ **Nothing here may be closed by pricing it.** Every cost above is a *count of call sites*, and
 ***a count of call sites is not an argument about what the city is.***
