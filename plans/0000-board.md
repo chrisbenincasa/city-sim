@@ -14,7 +14,25 @@ actually retires**. **Its original risk and its tasks 7–10 moved to milestone 
 
 🔴 **The next code row is milestone 25 — the Business is the actor and the Building is premises**,
 scoped by session V ([`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md)),
-**then 26, the purchase**. ⚠ **25 and 26 sit BETWEEN 12 and 13 in `06`'s table and that is correct**:
+**then 26, the purchase**. ✅ **DECOMPOSED 2026-08-23 — ten tasks in two groups,
+[`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md), and not started.**
+🔴 **CAPPED AT GROUP A THE SAME DAY, with the user in the room — 25 is tasks 1–5 plus the closing
+task, and ITS RISK IS REWRITTEN** to ***that a Rule Instance names premises rather than an actor, so no
+money term can resolve to a payer.*** ⚠ **Group A makes the actor NAMEABLE; it does not make one
+EXIST.** 🔴 **Tasks 6–9 became MILESTONE 27 — *the Business is a thing the city contains*** — which is
+25's **original** risk, unretired, and it sits **between 25 and 26** by row order
+([`adr/0140`](../docs/adr/0140-a-milestone-number-is-an-identity-and-the-roadmaps-order-is-the-sequence.md):
+next-free, never renumbered). ⚠ **Second cap in two days, and the difference is the whole point** —
+***12 was capped by running out of road; 25 was capped by decomposition before a line of code was
+written.*** **Group A is a repair driven end to end by the Household that needs nothing which does not
+exist; every entry in group B needs something that does.** 🔴 **Decomposition found what two ADRs and a whole sitting did not** — `0040`
+open decision **1**: `adr/0141` keeps a Bin's capacity keyed on the **building kind**, `adr/0142` makes
+**unpremised** a legitimate steady state, and `Businesses.Building` is `Reference.Severable`, ***so an
+unpremised Business owns Bins whose capacity is declared by premises it does not have.*** ⚠ **It also
+made the milestone SMALLER in one place** — the Rule half's blast radius is the derived `BuildingRules`
+list and **not** the saved handle, which no test reads at all. **Session V's fifth question left §A by
+changing type** and is now [`0002`](0002-open-questions.md) **§D2** — ***what capitalises a Business***,
+which blocks 26 exactly as the payer did. ⚠ **25 and 26 sit BETWEEN 12 and 13 in `06`'s table and that is correct**:
 [`adr/0140`](../docs/adr/0140-a-milestone-number-is-an-identity-and-the-roadmaps-order-is-the-sequence.md)
 makes a milestone number an **identity** and the table's **row order** the sequence. ***Read that table
 top to bottom; its first column no longer sorts.***

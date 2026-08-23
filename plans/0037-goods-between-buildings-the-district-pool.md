@@ -871,6 +871,15 @@ starting.
    decline Rule** so the city does not fill with offices, and a **land-use split**. ⚠ **Not in
    `minimal.toml`** — that file's first header line is that it makes no content decisions.
    ✅ **`02 §4.3`'s bakery loads and runs here**, which is the named risk stated as an artefact.
+   🔴 ⚠ **ROUTED 2026-08-23 to [`0002`](0002-open-questions.md) §A, and it took until then.** The three
+   decisions were named here and in `minimal.toml`'s header and **in no ledger**, so
+   [`06`](../docs/06-roadmap.md) and [`0003`](0003-build-plan.md) both read *"Blocked on 25"* and stopped
+   — ***a blocker named inside a task entry is invisible to the ledger that owns what is next.*** ⚠ **It
+   was found by decomposing milestone 25, not 26** ([`0040`](0040-the-business-is-the-actor-and-the-building-is-premises.md)),
+   and it is **the payer's own failure mode a second time** — the payer sat in `BusinessTable`'s doc
+   comment for eight milestones because every mechanical check is document-to-document.
+   ⚠ **Task 10's world obligation lands here too**, as this list already says: check for *a Building that
+   genuinely runs out of money* at **this** task rather than at task 10.
 9. **Something to look at** — a runner mode showing a Pool with stock, a price that moves, and **a
    Building that could not afford it**. ⚠ **The third clause is the one that would be dropped**, and it
    is the only one that shows the market having a consequence.
