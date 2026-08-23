@@ -15,10 +15,11 @@ fourth recurrence and the first that actually collided.
 
 ## Status
 
-🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Task 1 is done. Task 3 is
-CODE-COMPLETE and BLOCKED — see F7**; it was built ahead of task 2 because the Sealing write path needs
+🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2 and 3 are DONE.**
+**Task 5 is now available and task 4 still waits on decision 5.** Task 3 was
+CODE-COMPLETE and BLOCKED for one day — see F7; it was built ahead of task 2 because the Sealing write path needs
 no terrain, and running it turned up a whole-map cost that
-[`0002`](0002-open-questions.md) §C now owns. **Task 2 has not started.** **Decisions 1, 1b, 2, 3, 4 and 7 are settled**
+[`0002`](0002-open-questions.md) §C now owns. **Task 2 landed 2026-08-23** (`a23b46f`, re-baselined in `79efc64`) — **see F8**, whose finding is that the column's home was a third option neither candidate named. **Decisions 1, 1b, 2, 3, 4 and 7 are settled**
 ([`adr/0153`](../docs/adr/0153-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md)–[`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md));
 **5 and 6 are open**.
 
@@ -535,10 +536,10 @@ failure case.
 | # | Task | Depends on |
 |---|---|---|
 | **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0153`](../docs/adr/0153-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0154`](../docs/adr/0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
-| **2** | **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0154`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
+| **2** | ✅ **DONE 2026-08-23** (`a23b46f`, re-baselined `79efc64`) — see **F8**. **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0154`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
 | **3** | ✅ **DONE 2026-08-23** (`1c9ebec`), built 2026-08-22 and blocked on a cost for one day — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
 | **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. Two §D1 rows with named ratifiers | 3, decision 5 |
-| **5** | **Fertility** — the `throw` at `MapLayers.cs:578` becomes a composition at the point of use | 2, 3 |
+| **5** | 🟢 **AVAILABLE** since task 2 landed. **Fertility** — the `throw` in `MapLayers.Fertility` becomes a composition at the point of use | 2, 3 |
 | **6** | **Water Bodies** — the water graph, and a fifth `BinOwnerKind`. ⚠ **The downstream ordering is generator OUTPUT, not a height computation** (`adr/0156`): `CONTEXT.md` → Water Body states *an outflow rate to the next body downstream*, which is an **edge** | 2 |
 | **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires | 6 |
 | **8** | **Woodland and replanting** — regrowth on unsealed, unoccupied land | 2, 3 |
@@ -679,6 +680,72 @@ a stagger moves the hash, and it is filed in [`0002`](0002-open-questions.md) §
 ⚠ **This was latent and Sealing did not cause it.** The pass is `O(live Cell rows)`, and a row existed
 only where pollution had been emitted — one shipped Ruleset in ten. ***The Cell table's sparsity was
 load-bearing and stated nowhere.*** Map-wide pollution would have tripped the same wire.
+
+### F8 — the column's home was a third option, and the two candidates on offer were both wrong
+
+**Task 2 owed one decision — where the per-Cell terrain type column lives — and the two candidates
+carried into the session were *a column on `LayerCellTable`, written sparsely* and *the same column,
+made dense*. Neither survived contact.**
+
+🔴 **The sparse candidate cannot work at decision 3's settled position, and that is arithmetic rather
+than a preference.** The pass runs between `RefuseIfPopulated` and `LayLand`, and **at that moment the
+Cell table has zero rows** — `LayLand`'s Seal calls are what create them. *Write the type only where a
+row already exists* therefore writes **nothing at all**, and collapses to *there is no column*, which
+`adr/0157` decided against. ***A placement and a storage shape were settled on different days and only
+one of them could hold.***
+
+⚠ **And the dense candidate costs four Layer passes the whole map in every world.** MEASURED:
+whole-map Cell residency took the land value target pass on `minimal.toml` from about **2.5 ms** to
+about **114 ms**, on the one Tick in 256 it fires. 🔴 **Neither figure is quotable and the reason is
+recorded rather than assumed**: another session was running `Borough.Tests` on the same six cores
+throughout, so `CLAUDE.md`'s *a capture names nothing else running in this repository as its first
+control* was violated knowingly. **They are upper bounds, which is the one thing a spoiled reading is
+still good for** — and what the decision needed was the **ratio and the sign**, not the number.
+⚠ **F7's 88 seconds is not this cost and must not be quoted as one.**
+
+✅ **What shipped is a table of its own.** `TerrainCellTable` — dense, one row per Cell, **the slot IS
+`CellGrid.Index`**, every row allocated in the constructor and none ever freed, so there is no
+residency index, no `Ensure` and no coordinate columns. `LayerCellTable` stays sparse and the four
+Layer passes are untouched.
+
+***The general shape is worth keeping: the two tables are per-Cell alike and their LIFETIMES are
+opposite.*** A Layer row means *something happened here*, so that table is sparse by design and every
+pass over it is `O(live rows)`. Terrain is dense by nature — every Cell is made of something on the
+Tick the world is made. **Putting a dense fact in a sparse table is not a storage change; it is a cost
+change to four passes that never asked about terrain**, which is F7's wire approached from the other
+side and tripped deliberately rather than by surprise.
+
+⚠ **The generator authors NO number, and that was a constraint rather than a flourish.** A shape
+constant in `TerrainGenerator` would be both a tuning number outside the Ruleset (`adr/0015`) and a
+hash-bearing number with no ratifier (`adr/0052`), and the `[[terrain]]` schema deliberately carries
+no share, threshold or feature size. So every quantity is **derived**: the octave ladder from the map
+being a power of two Cells across, the amplitudes from the octave doubling, the five bands from there
+being five types. **The bands are equal in WIDTH against the range that key actually produced**, which
+buys two properties at once — a bell-shaped field puts most Cells in the middle band, so `ordinary` is
+the plurality and rock and marsh are uncommon **by construction rather than by a share anybody chose**;
+and the lowest and highest Cells fall in the outer bands **whatever the seed**, so *all five types
+exist* is a property of the construction and not of the fixture's luck.
+
+⚠ **Two things the suite caught that this task owed elsewhere** (`adr/0073`), and both are worth
+naming because neither was predicted:
+
+- **`Ruleset.WithLayers` is a hand-spelled `with`** and silently drops a new property.
+  `RulesetWithLayersTests` exists for exactly this and fired.
+- 🔴 **`PopulateCommandTests` asserted *the city is a function of its size and not of the seed*, and
+  `adr/0157` makes that false ON PURPOSE.** The assertion moved from the State Hash down to the tables
+  under it, and is **stronger** for it: the old form said *nothing differs* and could only ever be
+  relaxed to *something differs*, where the new one **names the single table that may**, so a second
+  table starting to draw fails it — which the hash comparison could no longer do at all.
+  ***A test whose claim a decision falsifies is narrowed to what still holds, never deleted.***
+
+⚠ **One cost is OWED rather than measured, and it is named here so it is not lost.** The assertion tier
+read **4m12s** after this task against a handoff's *~3m* before it — but every reading in this session
+was taken while a second session ran the full suite on the same machine, so **the comparison is
+between two contended numbers and settles nothing**. Two candidate causes exist and neither has been
+separated: `TerrainCellTable` allocates 262,144 rows in **every** `new World`, populated or not, and
+`TerrainGenerator.LayInto` costs **13–22 ms** per `PopulateInto`. ***A quiet machine would settle it in
+one reading***; until somebody takes one, the tier's cost is unknown rather than raised, and it is
+`plans/0013`'s row to open when it is.
 
 ### F4 — the milestone's central term was named in six documents and defined in none, and the missing definition was load-bearing
 
