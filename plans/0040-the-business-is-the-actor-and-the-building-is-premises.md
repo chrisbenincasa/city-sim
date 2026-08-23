@@ -457,3 +457,42 @@ FOLD** — the composition order's rules, `Randomness.Mix`, what a column contri
 world with more columns in it, so bumping it would make the byte a change counter and stop it
 distinguishing *a hash that means something different* from *a hash of something different*. The
 README beside the baselines states that rule and it was followed rather than reasoned out.
+
+### Task 2, 2026-08-23 — **F19**, found before a line was written
+
+🔴 **F19 — TASKS 2, 3 AND HALF OF 4 ARE ONE TASK, AND `adr/0141` SAYS SO IN ITS *REJECTED* SECTION.**
+This document ordered them as three and the ordering is wrong. ***Reading `rulesets/minimal.toml`
+against `World.Fit` is what showed it, and it took one reading.***
+
+**The dwelling declares three Rules and all three are `kind = "dwelling"`**, so `Fit(building, kind,
+…)` creates one Rule Instance per Rule **per Building**. Two of them touch `sundries` — `restock`
+(`outputs = [{ scope = "local", resource = "sundries" }]`) and `consume` (the same as an input) — and
+only `upkeep`, on `repairs`, touches a Bin that stays with the premises.
+
+***So the moment `sundries` belongs to a Household, a `local` term on a Building's Rule Instance has
+no actor to resolve to*** — and a dwelling holds `occupants = 3` of them, so it is the payer problem
+in miniature: **a list does not name one.** ⚠ **`adr/0141` refused this exact split in advance**:
+*"Leave Rules on the premises and move only Bins. **Rejected** because a Rule's inputs and outputs are
+`BinRef`s, so a Rule whose Bins all belong to a tenant is a tenant's Rule wearing the premises'
+name."* ***The decomposition split what the ADR had already declined to split***, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)'s
+failure mode with the direction reversed: a plan describing work rather than reading the record that
+governs it.
+
+🔴 **And the arming stagger comes with them rather than after them.** `World.ArmingStagger` mixes the
+**Building's** monotonic id with the `RuleId` *"so that two Rules on one Building do not share an
+offset."* Three Households in one dwelling each running `consume` would mix **the same Building id and
+the same `RuleId`** — identical offsets, identical `NextTick`, the same Wheel bucket. ⚠ **That is not a
+quality problem to tidy up in task 4; it is a correctness bug the moment task 2 lands**, and `0039`
+**V13①** named it without noticing it was on this task's critical path.
+
+⚠ **What does NOT merge is condemnation.** Task 4's other half is about *what dies* when pressure is
+reached, and it is separable: a Building whose tenant starves can go on being demolished, wrongly, for
+one more task without anything else breaking. ***It is a design defect rather than a blocker***, which
+is the property that lets it keep its own entry.
+
+**So group A is five entries and not six:** ① the owner column *(shipped)*, ② **the tenant's Bins, the
+tenant's Rules and the tenant-mixed stagger, together**, ③ condemnation ends a tenancy, ④ the
+unpremised pool and the emigration sink, ⑤ the closing task. ⚠ **The numbering below is left alone**
+under `adr/0140`'s logic one level down — renumbering to close a gap buys tidiness and costs every
+citation.

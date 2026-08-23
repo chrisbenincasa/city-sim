@@ -1799,9 +1799,24 @@ agreement is not a control: all three were taken on a machine nobody had quieted
 `adr/0106` asks for the machine and the thread count, not for a consensus. ***What repetition buys is
 confidence that 42s is wrong; it does not buy the number that replaces it.***
 
+⚠ **A fourth reading, 2026-08-23, milestone 25 task 1: 3 m 08 s over 2,064 tests** — taken with a
+second test host running against the same tree, so **the loosest controls of the four** and an upper
+bound like the rest. 🔴 **What it adds is not confirmation, it is an ATTRIBUTION**: between the third
+reading and this one the test count grew **1,974 → 2,064**, about 4.6%, and the duration grew
+**3 m 02 s → 3 m 08 s**, about 3.3%. ***Growth and duration moved together at this end of the range and
+did not between 1,690 and 1,974*** — where the count grew 17% and the duration roughly fourfold. **So
+whatever produced the fourfold jump is not the suite getting bigger**, and it is still unidentified.
+⚠ **This does not close the row and moves it no nearer closing**, for the reason above: four
+uncontrolled readings agreeing is four uncontrolled readings. ***It narrows what the missing capture
+has to explain.*** ⚠ **The COUNT is a different fact from the duration and it has now drifted twice**
+— `CLAUDE.md` says 1,690 — but it is deliberately **not** corrected here, because this row's own rule
+is *what is owed is a reading, not an edit*, and editing half a figure would leave a table whose count
+was taken on one day and whose duration was taken on another. ***A figure is replaced whole or not at
+all.***
+
 - [ ] Re-capture the assertion tier on the reference machine, quiet, Release, and correct
-      `CLAUDE.md`'s table. If it lands past five minutes, `adr/0121`'s band is the next question and
-      not a footnote.
+      `CLAUDE.md`'s table **as a pair — count and duration from the same run**. If it lands past five
+      minutes, `adr/0121`'s band is the next question and not a footnote.
 
 
 ### ~~`docs/02-simulation-model.md`~~ — **PAID**
