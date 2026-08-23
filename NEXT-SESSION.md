@@ -26,13 +26,30 @@ You are picking up **milestone 24 task 2** in the `city-sim-q8` worktree, on bra
    will be `0144`.
 
    ⚠ **The MERGE SURFACE is not clear, and it is the thing to plan for.** `main` has moved on
-   (`4a05a92`, milestone 25 task 4) and it edits **`CONTEXT.md`, `docs/02-simulation-model.md`,
-   `plans/0000-board.md`, `plans/0003-build-plan.md`** and its own `plans/0040`. This branch edited
-   **`CONTEXT.md`, `plans/0000` and `plans/0003`** in `472a6dd`. ***Three files are edited on both
-   sides, so the next merge conflicts for real*** — which is the good case, because a conflict stops
-   somebody, and it is exactly what the number collision did not do. **Do not merge `main`
-   mid-task**: finish task 2, then merge deliberately with both branches' intent in hand.
-   `d84440e`'s commit message is the precedent for how that was done last time.
+   (`4a05a92` and `316805b`, milestone 25 task 4). **Four files are edited on both sides**, so the
+   next merge conflicts for real — the good case, because a conflict stops somebody, and exactly what
+   the number collision did not do. **Do not merge `main` mid-task**: finish task 2, then merge
+   deliberately. `d84440e`'s commit message is the precedent.
+
+   **The other session supplied its side of the map, so neither of us has to read intent out of a
+   diff.** Take both sides whole in every row below **except the one marked 🔴**:
+
+   | File | Theirs (milestone 25) | Ours (milestone 24) |
+   |---|---|---|
+   | `CONTEXT.md` | a new *Premises / Unpremised* entry and a banner in *Failure Pressure*, both in **Economy** and **Buildings** | the **Terrain** type enumeration and the **Base Fertility** rewrite, both in **World and space** — *different regions, so any conflict is hunk context rather than content* |
+   | `plans/0000`, `plans/0003` | the **milestone 25** row | the **milestone 24** row — same table, different rows |
+   | `plans/0002` | widens an existing §D row (`gives_up_after_days` now bounds a second pool) | a **new** §D1 row (Base Fertility per type), a new `0157` registry row, and the `0150`–`0156` renumber |
+   | `docs/02-simulation-model.md` | two amendment banners, §4.1 and §5.9 | **untouched by us** — take theirs |
+
+   🔴 **The one line where taking both sides is WRONG: `plans/0002`'s ADR count.** Ours reads
+   ***"149 written, numbered to `0157`"***. Theirs will say something else, and **after the merge
+   neither is true** — the count rises by however many ADRs they landed, while the high-water mark
+   stays `0157`. ***Recount from `ls docs/adr/` and write the answer; do not pick a side.*** This is
+   `CLAUDE.md`'s own *count them rather than quoting a total* and `plans/0012` **Cause 1** arriving on
+   a single line.
+
+   ⚠ **If a conflict cannot be resolved cleanly, message the `city-sim-d7` session rather than
+   guessing** — it asked to be asked, and it would rather answer than have its intent reconstructed.
 
 ## Where the task stands
 
