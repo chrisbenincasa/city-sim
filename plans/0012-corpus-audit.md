@@ -3271,6 +3271,59 @@ table's two-column defect recorded above, and not the same finding.
 
 ---
 
+### 🔴 A GATE RUN IN A SHARED WORKING TREE IS A GATE ON A TREE THAT NO LONGER EXISTS
+
+**NEW 2026-08-22, found by running milestone 12's own gate and watching it come back green on a
+world that had changed underneath it.** ⚠ ***This is the finding, and the thing it corrects is a
+sentence this corpus added deliberately eight days ago.***
+
+`CLAUDE.md` → *Running the tests* carries an amended reading of
+[`adr/0121`](../docs/adr/0121-the-commit-gate-is-the-assertion-tier-and-a-long-test-runs-post-submit-on-a-machine-that-is-not-yours.md):
+***a quiet machine is a control on a capture and not on a run***, and therefore *"the 36-minute suite
+may be run detached alongside other work, including other tests — the only thing lost is a figure
+nobody was going to take."* **That paragraph is correct and it is correct about the wrong hazard.**
+It reasons entirely about **noise**, because the misreading it was written to repair was somebody
+declining to run a suite in case CPU contention spoiled it.
+
+**What happened.** The unfiltered suite was started at ~21:13 and reported **2,082 passed, 0 failed,
+38 m 03 s, exit 0**. A second session was editing `src/` in the same working tree at **21:13–21:16** —
+**207 insertions across five files**. Re-running the corpus filter on the settled tree afterwards gave
+**two failures**: `RefusalCountTests` (`RulesetLoader.cs` at **139** `Refuse(` sites against
+`adr/0048`'s recorded **138**) and `DocCommentAttachmentTests` (two stacked `<summary>` blocks on
+`RoadGenerator.cs:658`). ⚠ **Both are document-to-code checks, both read the file from disk at run
+time, and both take under a second** — so they executed in the suite's first minute, read the
+**pre-edit** files, and passed. ***The green was true of a tree that stopped existing three minutes
+into a thirty-eight minute run.***
+
+🔴 **The consequence is not a spoiled figure, it is a spoiled VERDICT.** A capture that runs in a noisy
+room returns a number that is too large, and its own caveat says so. **A gate that runs in a moving
+tree returns `Failed: 0`, which is the same sentence a real pass returns and carries no caveat at
+all.** ***Noise degrades a measurement; a concurrent editor falsifies an assertion.*** Milestone 12's
+Definition of done was recorded as met on this run and **was not met**.
+
+⚠ **It is not `bin/` contention, and that was the first diagnosis, stated to the user and wrong.** Two
+`dotnet test` invocations sharing an output path is a real hazard and is **not** this one: the failures
+reproduced on a settled tree with nothing else building. ***A wrong cause that predicts the symptom is
+the most expensive kind*** — `plans/0012` **Cause 4** on a process rather than on a mechanism.
+
+⚠ **What is NOT owed is a retraction of the amendment.** It answers its own question correctly and the
+question it answers is real. What is owed is the second half it never had: **a control on the tree, to
+sit beside the control on the room.**
+
+- [ ] Amend `CLAUDE.md` → *Running the tests*: a **milestone gate** names an unchanging tree the way a
+      **capture** names a quiet machine. ***The room is a control on the number; the tree is a control
+      on the verdict.*** A worktree is the mechanism that already exists — three are checked out.
+- [ ] 🔴 **Re-run milestone 12's gate on a settled tree.** Its row in
+      [`0003`](0003-build-plan.md) reads **CLOSED** and the Definition of done behind that word has
+      **not** been satisfied — the only unfiltered run against it is the void one above. ***A closure
+      resting on a void gate is Cause 1 with no second copy to disagree with it.***
+- [ ] Consider whether a gate should record the tree it ran against, so a green that outlived its
+      world can be recognised as one. ⚠ **A commit hash is not sufficient** and that is the whole
+      point: every one of the 207 insertions was **uncommitted**, so the `HEAD` at the start and the
+      `HEAD` at the end were identical and told nobody anything.
+
+---
+
 ### Cause 7 — a description takes its noun from the build, and the build is behind the design
 
 **Sighted once, on the day it was written.**

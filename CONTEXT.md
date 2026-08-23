@@ -211,6 +211,8 @@ A Building holds **zero or more Occupants**, up to a capacity **declared by its 
 
 > **A Building aggregates logistics. It never aggregates decisions.**
 
+⚠ **AMENDED 2026-08-22 by [`adr/0141`](docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md): the line is *premises against actor*, and *logistics against decisions* was the closest the vocabulary could get before a Business could own anything.** ***A Bin belongs to the Occupant whose leaving would empty it, and to the premises otherwise*** — flour goes with the baker, the roof does not — and **the premises declare every Bin's capacity while the tenant holds its level**. So a Building runs the Rules that fire once regardless of occupancy and holds the Bins those Rules draw from; a Rule whose work scales with the tenants is the tenants' Rule. ⚠ **The invariant above is untouched and is the reason this reading survives**: what moves to the Occupant is inventory and the Rules over it, which were never aggregates.
+
 It may hold Bins its Occupants draw from, one Access Point they all share, and one Parking Shed they all query. It may **never** hold a Need, money, a Provider List, a Trip, or anything a Household decides. If a field would differ between two Occupants, it lives on the Occupant. The checkable rule: *a Building field that would have to be averaged across its Occupants is a Cohort forming* — which `adr/0005` deleted, and which would re-enter here if anywhere.
 
 **How many it may hold is a property of the Ruleset in force, not of the Building** (`adr/0068`): the capacity is declared per kind, derived and rebuilt when a Ruleset is adopted, and never saved — the same disposition a Bin's ceiling has and for the same reason. A density band expresses itself as **which kinds a Lot permits**, so `adr/0025`'s *"density says how many Occupants a Lot may carry"* runs through the permission set rather than through a second mechanism. A Building standing over a lowered ceiling **evicts the overflow into the Unplaced Pool** — occupancy has no consumer, so unlike an over-full Bin it would never drain on its own.
@@ -467,6 +469,10 @@ See `docs/adr/0010-one-clock-and-demographics-by-sorting.md` and `docs/adr/0011-
 
 **Business**
 The commercial or industrial economic actor occupying a Building. Consumes inputs, produces outputs, employs Citizens, and offers Goods or services to the market.
+
+⚠ **A Business is a TENANT and the Building is premises** ([`adr/0141`](docs/adr/0141-a-tenant-owns-what-leaves-with-it-and-the-premises-own-the-capacity.md)). It holds its own inventory, its own balance and its own Rules; **its trade is declared by a `[[business]]` kind, separate from the `[[building]]` kind of the premises**, because the same shopfront hosts a bakery and then a barber. ⚠ **The Workplace is the Business and not the Building**, so a Shift's hours belong to the employer (`adr/0101`).
+
+⚠ **A Business that loses its premises is *unpremised* exactly as a Household is *unhoused*** ([`adr/0142`](docs/adr/0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md)): it joins a pool, waits under a give-up bound, and if nothing tenants it **it leaves the city and takes its money with it**. ***The money is neither destroyed nor confiscated; it is exported***, through the same door an arriving Household's balance comes in by. 🔴 **What CAPITALISES a Business is unsettled** — nothing funds one, and the number that would is owed a ratifier.
 
 **Policy**
 The player's non-spatial lever: tax rates, service funding, regulations, and transfers. Lineage: SimCity 4's ordinances, which had the right shape and too little depth.
