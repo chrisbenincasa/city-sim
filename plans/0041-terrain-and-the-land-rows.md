@@ -18,7 +18,7 @@ fourth recurrence and the first that actually collided.
 🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Task 1 is done. Task 3 is
 CODE-COMPLETE and BLOCKED — see F7**; it was built ahead of task 2 because the Sealing write path needs
 no terrain, and running it turned up a whole-map cost that
-[`0002`](0002-open-questions.md) §C now owns. **Task 2 has not started.** **Decisions 1, 1b, 2, 3 and 4 are settled**
+[`0002`](0002-open-questions.md) §C now owns. **Task 2 has not started.** **Decisions 1, 1b, 2, 3, 4 and 7 are settled**
 ([`adr/0153`](../docs/adr/0153-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md)–[`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md));
 **5 and 6 are open**.
 
@@ -242,7 +242,7 @@ bake left to place**, and the mechanical check is **owed with terraforming** rat
 
 ---
 
-## Open decisions this half owes — **1, 1b, 2, 3 and 4 SETTLED; OPEN: 5, 6**
+## Open decisions this half owes — **1, 1b, 2, 3, 4 and 7 SETTLED; OPEN: 5, 6**
 
 ⚠ **None is settled and none should be settled by argument if a measurement would settle it**
 ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
@@ -489,6 +489,42 @@ instead of during it.
 See precondition 3. Shipping it brings the generator version back and inverts a guard that currently
 works. **Recommendation: the baked column is `Saved`, the save carries it, `adr/0111` stands, and this
 decision is recorded so the absence is not later read as an omission.**
+
+### 7. ✅ SETTLED 2026-08-23 — **what terrain types ship, and does Base Fertility vary across them?**
+
+🔴 **NEW, and decomposition found it: the milestone's central column had no members.**
+✅ [`adr/0157`](../docs/adr/0157-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md),
+with the user in the room. **Five types — `ordinary`, `rock`, `floodplain`, `marsh`, `thin_soil`** — and
+**Base Fertility varies**: `1.0`, `0.2`, `1.0`, `0.5`, `0.6`.
+
+🔴 **Nothing in the corpus enumerated terrain.** `adr/0154` made Base Fertility *"Ruleset data keyed by
+terrain type"* and presumed *"a small enumeration"* without naming a member; `CONTEXT.md` and `adr/0022`
+name `rock` and `floodplain` only as examples inside sentences about **recovery**. ***A key was specified
+before the thing it keys on***, and task 2 found it on the day it tried to write the column — **the same
+shape as milestone 12 decision 10 and this milestone's own precondition 1**, where the artefact named in
+six documents was defined in none.
+
+🔴 **It amends [`adr/0022`](../docs/adr/0022-land-is-a-stock-the-city-spends.md) and the amendment was
+predicted by name.** That ADR's 2026-08-22 amendment said *"varying it amends this document rather than
+tuning within it, and comes back here and to `0154` rather than to a Ruleset review"*. **It came back
+here.** ⚠ **The refusal is narrowed, not overturned**: `0022` argues against a generated fertility
+**field** — *"fertile valleys here, poor ground there"*, read off an overlay — and **there is still no
+field**, no column and nothing baked. What exists is a Ruleset number looked up by the stored type.
+
+⚠ **The half that is not free, recorded rather than dodged**: five ranked values **are** a lookup, and
+calling them realism does not change that. **It is taken because the lookup is not the interesting fact**
+— Sealing runs 0–1024 against a ceiling of `1.0`, so play moves a Cell across the whole range the five
+values sit inside. ***The generator sets where you start; play sets where you end.*** ⚠ **`rock` is 0.2
+and not 0**, on `0022`'s own *scarcity is a gradient, never a wall*.
+
+🔴 **All five were chosen against NO CONSUMER**, and that is the row's largest caveat. `MapLayers.Fertility`
+throws, task 5 builds it, and **no milestone in `06` builds a farm at all**. Under
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) they cannot be argued
+from what farming needs, because farming is **unbuilt**. **One `plans/0002` §D1 row covers the five** —
+they share one ratifier and are meaningless apart, since what a farm reads is the **ratio between two
+Cells** — naming the first farm Rule's yield readout, `rulesets/varied.toml`, and the rock-to-ordinary
+yield ratio at equal Sealing and pollution. ⚠ **The trigger is expected to fire**, and that is not a
+failure case.
 
 ---
 

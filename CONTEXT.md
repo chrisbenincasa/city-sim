@@ -193,6 +193,14 @@ value up in the Ruleset, because that is a column and a table rather than a terr
 **Terrain type is the only part of terrain the simulation stores per Cell**, and **two** Ruleset values
 are keyed by it — **Base Fertility**, and the **Sealing** decay rate.
 
+**The types are five**: `ordinary`, `rock`, `floodplain`, `marsh`, `thin_soil`
+(`docs/adr/0157-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md`).
+⚠ **The set was named nowhere until 2026-08-23** — `adr/0154` keyed two Ruleset values off a terrain type
+while presuming only *"a small enumeration"*, and `rock` and `floodplain` appeared as examples inside
+sentences about recovery rather than as members. ***A key was specified before the thing it keys on.***
+⚠ **The ordinals are hash-bearing**: appending a sixth type is free, renumbering the five is a
+re-baseline.
+
 🔴 **Height is generated and stored nowhere**
 (`docs/adr/0156-height-does-not-ship-until-terraforming-does-because-terrain-without-a-price-is-a-wall.md`).
 The generator computes and reads it while laying water, floodplain and terrain type, and keeps only those
@@ -214,9 +222,22 @@ specified a baked per-Cell column, which `02 §2.3` contradicts in one sentence 
 Woodland and nothing else*. ***A term named after a category is read as covering the category***, and this
 one covers one formula and has exactly one consumer.
 
-⚠ **In the shipped Rulesets it is uniform**, so a default world deals no farm-siting answer and `adr/0022`
-holds. Varying it by terrain type costs one Ruleset key and no storage — and **amends** `adr/0022` rather
-than tuning within it, because a generated fertility gradient is what that ADR refuses by name.
+⚠ **It VARIES by terrain type, and doing so amended `adr/0022` deliberately**
+(`docs/adr/0157-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md`,
+2026-08-23) — `ordinary` 1.0, `rock` 0.2, `floodplain` 1.0, `marsh` 0.5, `thin_soil` 0.6. **It was uniform
+in every shipped Ruleset until that day**, which is the sentence this one replaces.
+
+⚠ **What `adr/0022` refuses is a generated fertility FIELD** — *fertile valleys here, poor ground there*,
+read off an overlay — and **there is still no such field**: no column, no layer, nothing baked. What
+exists is a Ruleset number looked up by the stored type. ⚠ **The narrowing is not free and the ADR says
+so**: five ranked values are a lookup. It is taken because ***the lookup is not the interesting fact*** —
+Sealing runs 0–1024 against a ceiling of 1.0, so play moves a Cell across the whole range the five values
+sit inside. **The generator sets where you start; play sets where you end.** ⚠ **`rock` is 0.2 and not
+0**, on `adr/0022`'s own *scarcity is a gradient, never a wall*.
+
+🔴 **All five numbers were chosen against NO consumer** — `MapLayers.Fertility` throws and no milestone
+builds a farm — so they are a stated starting point with a named ratifier and not a settled balance.
+`plans/0002` §D1 holds five rows and **the first farm reopens every one of them**.
 
 **Sealing**
 The record of development on the ground: the count of Tiles in a Cell ever built on. One house seals 1/1024 of its Cell. Sealing decays at a rate drawn from the Ruleset **keyed by terrain type** — rock may never recover, floodplain may recover over hundreds of Days. The rate is never stored per Tile; storing it would freeze it into every save.

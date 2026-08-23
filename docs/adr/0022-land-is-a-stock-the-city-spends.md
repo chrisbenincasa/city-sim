@@ -137,3 +137,31 @@ was reaching for.
 - **Playtesting showing the ratchet is unfun rather than dramatic** — specifically, players describing the late game as bookkeeping. The first response is more reboot levers, not faster regrowth; regrowth speed is the load-bearing constant and loosening it deletes the arc.
 - **Fertility degradation proving illegible** despite Evidence — players surprised by yield collapse they could not have anticipated. That is a UI failure first and a model failure second, and should be diagnosed in that order.
 - **Resource depletion wanted as an active shock layer** rather than a slow background, per `01-player-experience.md` §5. That is additive to this decision, not in tension with it.
+
+## Amended 2026-08-23: the refusal is narrowed to a generated FIELD, and a Ruleset value keyed by a stored type is allowed
+
+🔴 **The shipped Rulesets no longer state a uniform Base Fertility, and the amendment above predicted
+exactly this and called it an amendment to this document.** It is
+([`0157`](0157-terrain-is-five-types-and-base-fertility-varies-across-them-because-a-category-exclusion-is-not-an-overlay.md),
+with the user in the room): terrain ships as **five types** and Base Fertility varies across them —
+`ordinary` 1.0, `rock` 0.2, `floodplain` 1.0, `marsh` 0.5, `thin_soil` 0.6.
+
+⚠ **What this document refuses is unchanged in kind and narrowed in reach.** *Why fertility is not on the
+map* argues against **a generated fertility field** — *"fertile valleys here, poor ground there"*, read
+off an overlay. **There is still no such field**: no fertility column, no fertility layer, nothing baked
+(`0154`). What exists is a Ruleset number looked up by a stored terrain type.
+
+⚠ **This document already varied ground by type and the amendment makes that explicit.** *"Rock and clay
+may never recover, alluvial floodplain may recover over hundreds of Days"* is in the section above. The
+choice this ADR made was to route ground character through the **decay rate**; ***that route was never
+argued against the alternative***, and `0157` takes the other one as well.
+
+⚠ **The half `0157` does not get for free, recorded here so it is not read as settled:** five ranked
+values **are** a lookup, and calling them realism does not change that. The reason it is taken is that
+***the lookup is not the interesting fact*** — Sealing runs 0–1024 against a ceiling of 1.0, so play
+moves a Cell's Fertility across the whole range the five values sit inside. **The generator sets where
+you start; play sets where you end.** ⚠ **`rock` is 0.2 rather than 0** on *scarcity is a gradient, never
+a wall*, which is this document's own section.
+
+✅ **The endgame argument, the Woodland arc and the Settlement loop are untouched** — all three rest on
+Sealing's ratchet and regrowth, and neither moved.
