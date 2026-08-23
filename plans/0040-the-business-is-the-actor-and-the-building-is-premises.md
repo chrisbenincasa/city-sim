@@ -118,6 +118,8 @@ See **F1**. It is the one place the census made the milestone smaller.
 
 ### 1. ✅ SETTLED 2026-08-23 — **a tenant that loses its premises loses its stock, and searches holding only its till**
 
+**Written up as [`adr/0144`](../docs/adr/0144-a-tenant-that-loses-its-premises-keeps-only-its-money-and-waits-a-households-wait.md).**
+
 **Decided with the user in the room, and it is the answer the build already gave the Household.**
 `World.UnfitOccupant` frees every non-conserved Bin on eviction and keeps the money Bin; a Business is
 now held to the same rule. ⚠ **It is FORCED for the Household and CHOSEN for the Business**, and the
@@ -179,6 +181,8 @@ owner, and `MoneyLedger.Of`'s *"whoever owns it — and this does not ask"* beco
 constructors, which is how `Balance` works today.
 
 ### 3. ✅ SETTLED 2026-08-23 — **a Business shares `[placement] gives_up_after_days`, as a stand-in**
+
+**Written up as [`adr/0144`](../docs/adr/0144-a-tenant-that-loses-its-premises-keeps-only-its-money-and-waits-a-households-wait.md)**, whose second half is `adr/0052` rather than `adr/0142`: the choice was never *one bound or two*, it was ***one bound or an unratifiable number.***
 
 **Decided with the user in the room: a shop's search takes as long as a family's, to start.** No second
 key, no second number, no second ratifier — task 5's pool uses the Household's bound.
