@@ -281,6 +281,17 @@ public sealed class World
             // the generator. Appending stays the one edit to this list that moves no row relative to
             // another.
             Layers.Terrain.Rows,
+
+            // Appended for the same reason, milestone 24 task 8a. adr/0158: the Woodland Tile count is
+            // (saved AND hashed), dense like terrain, and state no snapshot can re-derive -- the
+            // generator gives the world its forest and the running city spends it, so neither the
+            // WorldKey alone nor the Tick history alone reproduces the column.
+            //
+            // ⚠ UNLIKE TERRAIN IT STAYS IN _writableTables, and the difference is the whole test
+            // TablesAPhaseCanWrite states: not *is it expensive* but *can any phase write it*.
+            // MapLayers.Seal writes this one every time a Building is created, so excluding it would
+            // be the silent hole that document warns about rather than the narrowing it describes.
+            Layers.Woodland.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See

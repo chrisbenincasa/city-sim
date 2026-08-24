@@ -158,6 +158,7 @@ public sealed class MapLayers
 
     private readonly LayerCellTable _cells;
     private readonly TerrainCellTable _terrain;
+    private readonly WoodlandCellTable _woodland;
 
     /// <summary>What the terrain table folded to when the ground was laid. See <see cref="LayTerrain"/>.</summary>
     private ulong _terrainLaidFold;
@@ -174,6 +175,7 @@ public sealed class MapLayers
     {
         _cells = new LayerCellTable(InitialCapacity);
         _terrain = new TerrainCellTable();
+        _woodland = new WoodlandCellTable();
 
         // An unpopulated world's ground is all Ordinary, and that is what its ground IS rather than a
         // placeholder -- so the baseline is taken here and a world that is never populated still has
@@ -234,6 +236,42 @@ public sealed class MapLayers
     /// the wrong terrain is <c>adr/0112</c>'s job and is already done.
     /// </remarks>
     public bool TerrainIsUnchangedSinceLaid() => _terrain.Fingerprint() == _terrainLaidFold;
+
+    /// <summary>
+    /// How many of every Cell's Tiles are wooded. <b>Dense, and it has no residency index.</b>
+    /// </summary>
+    /// <remarks>
+    /// Here for <see cref="Terrain"/>'s reason — this is where per-Cell ground lives — and in a table
+    /// of its own for <see cref="WoodlandCellTable"/>'s. ⚠ <b>It is not a Map Layer</b>: nothing
+    /// diffuses it, nothing schedules it, and <see cref="Step"/> never touches it.
+    /// </remarks>
+    public WoodlandCellTable Woodland => _woodland;
+
+    /// <summary>Plants the world's forest from the world key.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A second door beside <see cref="LayTerrain"/> rather than the same one, and the reason is
+    /// that the two tables have opposite mutability contracts.</b> Terrain is laid once and a
+    /// fingerprint is taken so that <see cref="TerrainIsUnchangedSinceLaid"/> can pay for the Decide
+    /// guard skipping it. <b>Woodland is written by the running city</b> — every
+    /// <see cref="Seal"/> may take some — so a fingerprint over it would be a check that fails as
+    /// soon as anybody builds. ***Putting them behind one door would mean one of the two contracts
+    /// had to be weakened to fit.***
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It must run before <c>LayLand</c> and it authors no number.</b> Every Cell is unsealed
+    /// when this writes, so the Sealing ceiling is trivially satisfied and the pass does not consult
+    /// it; run after the roads, it would plant forest on top of them.
+    /// </para>
+    /// </remarks>
+    public void LayWoodland(WorldKey key) => WoodlandGenerator.LayInto(_woodland, key);
+
+    /// <summary>How many of one Cell's Tiles are wooded. <b>0 to <see cref="CellGrid.TilesInCell"/>.</b></summary>
+    /// <remarks>
+    /// Named for the count rather than for the thing, because <see cref="Woodland"/> is the table and
+    /// one of the two had to say which it was.
+    /// </remarks>
+    public int WoodedTiles(Cells east, Cells north) => _woodland.At(east, north);
 
     /// <summary>The cadence and rates this world reads its Layers with.</summary>
     public LayerRuleset Ruleset => _ruleset;
@@ -514,8 +552,24 @@ public sealed class MapLayers
 
         int slot = _residency.Ensure(_cells, east, north);
         long sealed_ = (long)_cells.Sealing[slot] + tiles;
+        int now = sealed_ > CellGrid.TilesInCell ? CellGrid.TilesInCell : (int)sealed_;
 
-        _cells.Sealing[slot] = sealed_ > CellGrid.TilesInCell ? CellGrid.TilesInCell : (int)sealed_;
+        _cells.Sealing[slot] = now;
+
+        // Building over forest clears it (CONTEXT.md -> Zone), and this is where that happens: not a
+        // verb, not an event, and nothing announces it. adr/0158 -- a Cell's Tiles are ONE budget, so
+        // Sealing rising IS Woodland falling once the two would overlap. The Timber is forfeited
+        // rather than harvested, which is the cost the design chose over a refusal.
+        //
+        // Clamped rather than decremented by `tiles`. Sealing saturates at the Cell, so a Seal that
+        // overran would otherwise take more Woodland than there were Tiles to take -- and the two
+        // counts are only comparable at all because they share a denominator.
+        int room = CellGrid.TilesInCell - now;
+
+        if (_woodland.At(east, north) > room)
+        {
+            _woodland.Set(east, north, room);
+        }
     }
 
     /// <summary>How many Tiles in a Cell have been built on. Zero where nothing is resident.</summary>

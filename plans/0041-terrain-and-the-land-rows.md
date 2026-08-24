@@ -15,12 +15,17 @@ fourth recurrence and the first that actually collided.
 
 ## Status
 
-🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3 and 5 are DONE.** **Task 4 still waits on decision 5.** Task 3 was
+🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3, 5 and 8a are DONE.** **Task 4 still waits on decision 5**, and **task 8b on decision 10**. Task 3 was
 CODE-COMPLETE and BLOCKED for one day — see F7; it was built ahead of task 2 because the Sealing write path needs
 no terrain, and running it turned up a whole-map cost that
 [`0002`](0002-open-questions.md) §C now owns. **Task 2 landed 2026-08-23** (`a23b46f`, re-baselined in `79efc64`) — **see F8**, whose finding is that the column's home was a third option neither candidate named. **Decisions 1, 1b, 2, 3, 4 and 7 are settled**
 ([`adr/0153`](../docs/adr/0153-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md)–[`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md));
-**5 and 6 are open**.
+**5, 6 and 10 are open**. ⚠ **Task 8 was SPLIT 2026-08-24 into 8a and 8b** on the line task 3 and task 4
+are already split on — the write path without the rate — after the survey found the task's own subject
+had **no disposition anywhere in the corpus** and its rate had **no owner**
+([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md),
+decisions 8, 9 and 10). ***It was written as a one-line task with no decision behind it and no
+Definition-of-done clause; it owed three decisions and a §D1 row.***
 
 ⚠ **It is scoped out of sequence deliberately, and the reason is stated rather than assumed.**
 Milestone **12** is the live row and is being built in another worktree; milestone **18** was scoped
@@ -242,7 +247,7 @@ bake left to place**, and the mechanical check is **owed with terraforming** rat
 
 ---
 
-## Open decisions this half owes — **1, 1b, 2, 3, 4 and 7 SETTLED; OPEN: 5, 6**
+## Open decisions this half owes — **1, 1b, 2, 3, 4, 7, 8 and 9 SETTLED; OPEN: 5, 6, 10**
 
 ⚠ **None is settled and none should be settled by argument if a measurement would settle it**
 ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
@@ -535,6 +540,67 @@ Cells** — naming the first farm Rule's yield readout, `rulesets/varied.toml`, 
 yield ratio at equal Sealing and pollution. ⚠ **The trigger is expected to fire**, and that is not a
 failure case.
 
+### 8. ✅ SETTLED 2026-08-24 — **what IS Woodland? It is a Tile count per Cell, and Sealing is its ceiling**
+
+🔴 **NEW, and the survey found it: the task's own subject had no disposition anywhere in the corpus.**
+✅ [`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md),
+with the user in the room. **A `(saved AND hashed)` count of wooded Tiles per Cell**, on a dense
+**`WoodlandCellTable`** of its own — Sealing's semantics in `TerrainCellTable`'s shape — and **bounded
+by `TilesInCell − Sealing`**.
+
+🔴 **The ADR was corrected hours after it was written, and about the table rather than the quantity.**
+Its first draft put the column on `LayerCellTable`, which is right about the *category* and wrong about
+the *address*: **F7** had already recorded that *"the Cell table's sparsity was load-bearing and stated
+nowhere"*, and **Woodland is the one quantity that exists where the city is not** — so that placement
+would make the table dense on every world. ⚠ **The cost is already measured and it is task 2's rather than this decision's** — `TerrainCellTable`'s header records whole-map Cell residency on `minimal.toml` taking the land value target pass from about **2.5 ms** to about **114 ms**, on a machine that was not quiet, so **no document may quote it** and what survives is the **ratio and the sign**. ⚠ **F7's 88 seconds is a different cost** and that same header says so — ***I quoted it anyway in the ADR's first correction block and had to withdraw it***, which is `plans/0012` **Cause 5** committed an hour after reading the rule against it.
+
+⚠ ***F8's third option, a second time in one milestone***: both candidates in the room were wrong again, and the answer was again a table of its own — **which task 2 had already decided, for the same reason, with the measurement attached.** ***The argument did not need re-deriving and the measurement did not need re-taking; both were in the file next door.***
+
+🔴 **Woodland was named in eleven places and given a disposition in none.** `CONTEXT.md` has a
+first-class entry, `adr/0022` decides its whole arc, `adr/0090` closes the generator's remit around it,
+and not one says whether it is a column, a flag, a Layer or a Building. ***That is the fourth artefact
+in this milestone named in many documents and defined in none*** — after precondition 1, decision 7's
+terrain enumeration, and **F8**'s column that lived in neither candidate. **The pattern is now the
+expected case rather than the surprise**, which is a finding about the milestone rather than about
+Woodland.
+
+⚠ **`CONTEXT.md` said *"Forest **Tiles**"* and the disposition is per **Cell**, so the entry is
+corrected rather than the design bent to it.** A bit per Tile is **268 million bits, 33 MB** saved and
+hashed at 16,384², for a quantity every consumer reads per Cell — and no ground quantity in this design
+is per Tile.
+
+✅ **The bound is the part that is not bookkeeping, and three things fall out of it.** Sealing clears
+forest **with no verb and no event**, which is what `adr/0091`'s closed set and `adr/0022`'s own
+amendment require; the extraction frontier migrates as arithmetic rather than as a system
+(`adr/0022:42`); and **Woodland area becomes a second reader of Sealing**. ⚠ **That last one does not
+ratify decision 5 and the trap is worth stating**: if 8b's rate is itself unratified, two unratified
+numbers are measuring each other. What the bound supplies is a **readout**, not a ratifier.
+
+### 9. ✅ SETTLED 2026-08-24 — **replanting does not ship here, and it is *undesigned* rather than unbuilt**
+
+`adr/0022:68` specifies replanting as *"a Rule and a land designation rather than a system"*. **There is
+no land designation in the build or in the design**: `adr/0091` closed the verb set at six with none of
+them clearing or designating ground, `01-player-experience.md` does not mention replanting anywhere —
+not in §5.4's dial table, not in the Policy chapter — and no Policy body, predicate or price exists.
+[`adr/0070`](../docs/adr/0070-an-unbuilt-mechanism-is-not-a-design-constraint.md) types that
+**undesigned**, whose answer is *design it*, and which is explicitly **not** the *refused* class that
+counts as evidence. ⚠ **Building a minimal version would author the designation by accident**, in a task
+whose subject is ground — the shape `01 §5.5` forbids by name. **Recorded so the absence is not later
+read as an omission**, which is decision 6's shape.
+
+### 10. What ratifies Woodland's regrowth cadence and rate? — *measurable*, and it is task 8b's
+
+🔴 **NEW, and it is the one `adr/0022` calls load-bearing by name.** `adr/0022:137`: *"the first
+response is more reboot levers, not faster regrowth; **regrowth speed is the load-bearing constant** and
+loosening it deletes the arc."* **It has never had an owner** — no ADR, no `plans/0002` §D row, no
+named ratifier, no Ruleset key, and `adr/0052` has never been applied to it. ***A hash-bearing constant
+an ADR calls load-bearing, carried for the life of the project by nothing but a sentence.***
+
+⚠ **Unlike decision 5, its quantity is answerable.** Woodland area against Sealing over a long run is a
+curve, it accumulates rather than being composed at the point of use, and 8a is what makes it exist. The
+machine and the world follow the usual form. **It stays open until 8a lands**, because a ratifier naming
+a quantity nothing computes is a category and not a name.
+
 ---
 
 ## Tasks
@@ -550,7 +616,8 @@ failure case.
 | **5** | ✅ **DONE 2026-08-23** (`6f9187c`). **Fertility** — the `throw` in `MapLayers.Fertility` is a composition at the point of use, `base − base·Sealing/1024 − w_p·pollution`, with `long` intermediates and saturation at the `int` bounds. Sets **one** §D1 row: `[layers] fertility_pollution_percent` = **4**, stated in `rulesets/varied.toml` only. ⚠ **It moves no State Hash and needs no re-baseline** — nothing is stored, nothing is scheduled, and no shipped file that a fixture loads was edited. 🔴 **It also has no consumer**, so the whole task is a producer nobody reads; see the note below | 2, 3 |
 | **6** | **Water Bodies** — the water graph, and a fifth `BinOwnerKind`. ⚠ **The downstream ordering is generator OUTPUT, not a height computation** (`adr/0156`): `CONTEXT.md` → Water Body states *an outflow rate to the next body downstream*, which is an **edge** | 2 |
 | **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires | 6 |
-| **8** | **Woodland and replanting** — regrowth on unsealed, unoccupied land | 2, 3 |
+| **8a** | ✅ **DONE 2026-08-24** — see **F10**. **Woodland is placed and cleared** — a `Saved<int>("woodland")` Tile count on a dense `WoodlandCellTable` of its own, placed by the generator, and **bounded by `TilesInCell − Sealing`** so that sealing clears forest with no verb and no event ([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md)). ⚠ **Authors no number and opens no §D row**, exactly as `TerrainGenerator` authors none. 🔴 Moves every State Hash. ⚠ **It has no consumer** — the Timber chain is unplaced — so it is **F9** a second time and is taken anyway | 2, 3, decision 8 |
+| **8b** | **Woodland's regrowth** — a cadence and a rate on unsealed, unoccupied land. 🔴 **This is `adr/0022:137`'s *"regrowth speed is the load-bearing constant"*, which has never had an owner**: no ADR, no §D row, no ratifier and no Ruleset key. **One §D1 row with a named machine, world and quantity** before it lands | 8a, decision 10 |
 | **9** | **Hazard Regions** — derived at generation, never read in a Tick. ⚠ **Floodplain depth is stored SPARSELY, where the floodplain is** (`adr/0156`), because `01 §5.2` spreads Flood *by depth* and a whole-map height field is what this milestone does not build | 2 |
 | **10** | **The long run** — 100k+ Ticks, no collection and no magnitude trending at steady state | all |
 
@@ -581,6 +648,9 @@ failure case.
   precondition 2 shows the first is what the other two rest on.
 - **A shipped Ruleset demonstrates varied terrain**, carries its own header saying what it exists to
   show, and is what decision 5's ratifiers are read against.
+- **Woodland is placed on a generated city, is bounded by Sealing, and the bound is an invariant** —
+  `Woodland + Sealing ≤ TilesInCell`, checked `O(1)` at the write site, which is where `02 §10` puts a
+  check of that frequency. ⚠ **8a stops there**: regrowth is 8b's and carries the rate.
 - **Every hash-bearing number written has a `plans/0002` §D1 row naming a machine, a world and a
   quantity** on the day it is written.
 - **There is something to look at** — a headless dump of the terrain and Fertility fields.
@@ -851,6 +921,82 @@ and Buildings before any test sees the world, and both Seal. A test that read *t
 and expected the Ruleset's number back failed for a reason with nothing to do with Fertility.
 `FertilityTests.UntouchedCellOf` is the fixture helper that has to exist, and its second half is the
 load-bearing one.
+
+### F10 — task 8a's subject had no disposition, its rate had no owner, and the generator's output had never been looked at
+
+**Three findings, and the middle one is the largest.**
+
+🔴 **Woodland was named in eleven places and given a disposition in none**, which is recorded in
+decision 8 and is *the fourth artefact in this milestone* with that shape — after precondition 1,
+decision 7 and **F8**. ***The pattern has stopped being a surprise and should now be the expected
+case***: a task specified in one line, in a milestone whose other tasks each needed three decisions,
+is a task nobody has costed rather than a task that is small.
+
+🔴 **`adr/0022:137` calls regrowth speed *"the load-bearing constant"* and it has never had an
+owner** — no ADR, no §D row, no named ratifier, no Ruleset key, and `adr/0052` never applied. It is
+now decision 10 and task 8b's. ***A hash-bearing constant an ADR calls load-bearing, carried for the
+life of the project by one sentence in one document.***
+
+🔴 **And the ADR was corrected hours after it was written, about the table.** See decision 8. The
+correction cost an hour and would have cost nothing: `TerrainCellTable`'s own header already carried
+both the argument and the measurement, so [`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+was paying out and nobody had read the payment. ⚠ **The first draft also quoted F7's 88 seconds into
+that correction block**, which the same header forbids by name — ***`plans/0012` Cause 5, committed an
+hour after reading the rule against it, by the author of the correction.*** Withdrawn the same
+sitting.
+
+### What the generator actually plants, which nobody had asked
+
+⚠ **`WoodlandGenerator` scales against `ValueNoise.Ceiling` — the range the sum *could* produce —
+rather than against the range a key realised, and that is the opposite of what `TerrainGenerator`
+does.** Terrain self-normalises so that *all five types exist* cannot become a property of the seed;
+Woodland must not, because `adr/0022:38` rests a design decision on *"a heavily forested seed"*.
+***The same noise, read two ways, and each reading has its reason.***
+
+🔴 **The realised output was measured and it is a band in the middle of the Cell, never the whole of
+it.** `WoodlandMeasurementTests`, five keys:
+
+| key | min | max | mean | cover | bare Cells | full Cells |
+|---|---|---|---|---|---|---|
+| `0x0001` | 119 | 857 | 522 | 51% | **0** | **0** |
+| `0x0002` | 174 | 824 | 456 | 44% | **0** | **0** |
+| `0xBEEF` | 271 | 824 | 542 | 52% | **0** | **0** |
+| `0xF0E5` | 146 | 748 | 457 | 44% | **0** | **0** |
+| `0x5EA1` | 253 | 908 | 531 | 51% | **0** | **0** |
+
+⚠ **Two consequences a reader needs and will not guess.** ***There is no bare ground anywhere on any
+world***, so every first Building clears forest and the *"clear for lumber now, or keep the forest"*
+decision `01 §3` puts in the opening exists in every Cell equally rather than being a siting question.
+And ***`adr/0022`'s "heavily forested seed" is weakly satisfied at best*** — cover spans **44% to 52%**
+across five keys, which is a difference nobody would feel. The per-Cell spread is real (119 to 908 is a
+**7.6× Timber yield difference**) and it is the spread rather than the total that carries the design.
+
+⚠ **Neither is a defect and both were derived rather than chosen**, which is why they are recorded here
+instead of being tuned away. A sum of uniforms concentrates; that is arithmetic. **Changing it means
+authoring a shape**, which is an `adr/0052` number and a decision this task deliberately does not take.
+🔴 **It is filed rather than fixed, and the trigger is the first consumer** — the Timber chain is
+unplaced, so nothing can yet say whether a uniformly half-wooded map plays badly.
+
+### The cost, and one test that predicted its own failure
+
+⚠ **`PopulateCommandTests.The_city_is_a_function_of_its_size_and_the_seed_reaches_only_the_ground`
+failed on the day 8a landed, and its own doc-comment had predicted exactly that** — *"a second table
+starting to draw fails it, which the hash comparison could no longer do at all."* Woodland is the
+second table. ***The test was written as a prediction and paid out as one***, and the exception list is
+now two tables asserted to move **separately**, because they draw on different `purpose_tag`s and one
+fold would pass whenever either moved.
+
+🔴 **Woodland is dense AND writable, so unlike terrain it cannot leave the Decide guard.**
+`World.TablesAPhaseCanWrite` excludes terrain because no phase writes it; `MapLayers.Seal` writes
+Woodland every time a Building is created, so excluding it would be the silent hole that document
+warns about. **Measured, `TerrainFoldCostTests`:** a Tick with the guard **on** went from **4.14 ms**
+(post-task-2, recorded in `World.cs`) to **4.92 ms** — about **+19%** — against **0.01 ms** with the
+guard off. ⚠ **The machine was not verified quiet and this reading names none**, so under
+[`adr/0106`](../docs/adr/0106-a-wall-clock-budget-names-a-machine-class-and-a-thread-count-or-it-is-not-a-budget.md)
+***no document may quote it***; what a spoiled reading still settles is the **ratio and the sign**, and
+those are that the guard's cost rose by about a fifth and nothing else moved. **A figure for
+[`0013`](0013-tick-budget.md) is a deliberate act on the reference machine and has not been taken.**
+
 
 ### F4 — the milestone's central term was named in six documents and defined in none, and the missing definition was load-bearing
 

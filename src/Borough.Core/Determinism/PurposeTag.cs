@@ -409,4 +409,26 @@ public enum PurposeTag : ulong
     /// </para>
     /// </remarks>
     TerrainType = 22,
+
+    /// <summary>
+    /// How much of a Cell is wooded, drawn once at world creation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0158</c>, milestone 24 task 8a. Keyed on <see cref="Space.CellGrid.Index"/> at
+    /// <see cref="Ticks.Zero"/>, the same <em>what sort of ground is this</em> shape
+    /// <see cref="TerrainType"/> uses.
+    /// </para>
+    /// <para>
+    /// <b>Its own tag rather than <see cref="TerrainType"/>'s, which this file predicted it would
+    /// need.</b> Woodland sits <em>on</em> terrain, so a shared tag would make every wooded Cell the
+    /// same terrain type as every other wooded Cell — the forest and the rock as one draw wearing two
+    /// names, which is a correlation nothing in the city could refute. ⚠ <b>The two fields are drawn
+    /// by the same machinery and calibrated oppositely, and that is deliberate</b>: terrain
+    /// self-normalises against the range the key realised, because <em>all five types exist</em> must
+    /// not be a property of the seed; Woodland does not, because <c>adr/0022</c> requires that
+    /// <em>a heavily forested seed</em> is a thing that can happen.
+    /// </para>
+    /// </remarks>
+    Woodland = 23,
 }

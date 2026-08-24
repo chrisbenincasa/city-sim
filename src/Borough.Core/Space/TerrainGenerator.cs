@@ -42,28 +42,6 @@ namespace Borough.Core.Space;
 public static class TerrainGenerator
 {
     /// <summary>
-    /// How many octaves the height field sums. <b>Derived: the map is a power of two Cells across.</b>
-    /// </summary>
-    /// <remarks>
-    /// Every scale from one Cell up to a quarter of the map, and no scale is preferred — a
-    /// <em>feature size</em> would be a chosen number, and this is the whole ladder instead.
-    /// </remarks>
-    private static int Octaves
-    {
-        get
-        {
-            int octaves = 0;
-
-            for (int cells = CellGrid.WorldCells; cells > 2; cells >>= 1)
-            {
-                octaves++;
-            }
-
-            return octaves;
-        }
-    }
-
-    /// <summary>
     /// Writes every Cell's terrain type. <b>A pure function of <paramref name="key"/>.</b>
     /// </summary>
     /// <param name="terrain">The dense per-Cell table. Every row is overwritten.</param>
@@ -72,7 +50,9 @@ public static class TerrainGenerator
     {
         ArgumentNullException.ThrowIfNull(terrain);
 
-        int[] height = Heights(key);
+        // The field is ValueNoise's and the BANDING below is this pass's -- see that class on why the
+        // two shipped callers read the same noise oppositely.
+        int[] height = ValueNoise.Field(key, PurposeTag.TerrainType);
 
         // The band edges come from the range this key actually produced rather than from the range
         // the sum COULD produce, and the difference is what makes the pass self-normalising. A sum of
@@ -118,90 +98,6 @@ public static class TerrainGenerator
                     : TerrainKind.Rock;
 
                 terrain.Set(new Cells(east), new Cells(north), kind);
-            }
-        }
-    }
-
-    /// <summary>
-    /// The height field, in arbitrary units. <b>A local of <see cref="LayInto"/> and never state.</b>
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>Summed value noise, coarse octaves loudest.</b> Octave <c>k</c> draws a lattice every
-    /// <c>1 &lt;&lt; k</c> Cells and contributes at amplitude <c>1 &lt;&lt; k</c>, so the map has
-    /// regional shape with fine detail on it rather than either alone. <b>The amplitude ladder is the
-    /// octave ladder</b> — it is not a chosen falloff.
-    /// </para>
-    /// <para>
-    /// <b>Interpolated rather than blocky, and it has to be.</b> Nearest-lattice sampling at the
-    /// coarsest octave would split the map into four quadrants of very different height with hard
-    /// edges, and a terrain boundary that is a straight line across the whole world is the one
-    /// artefact a player would read as a bug.
-    /// </para>
-    /// <para>
-    /// <b>The lattice is drawn once per octave rather than per Cell</b>: four corners per Cell per
-    /// octave would be about 9.4 million draws where this is about 350,000, and the values would be
-    /// identical.
-    /// </para>
-    /// </remarks>
-    private static int[] Heights(WorldKey key)
-    {
-        var height = new int[CellGrid.WorldCellCount];
-
-        for (int octave = 0; octave < Octaves; octave++)
-        {
-            // One past the last lattice point on each axis, because interpolating the final Cell of a
-            // span reads the corner beyond it.
-            int width = IntegerMath.ShiftRight(CellGrid.WorldCells, octave) + 2;
-            var lattice = new int[width * width];
-
-            for (int point = 0; point < lattice.Length; point++)
-            {
-                // The octave is in the id and not in the purpose tag. A tag names a DECISION and this
-                // is one decision -- what the ground is shaped like -- sampled at nine scales; a tag
-                // per octave would claim nine. Distinct ids are what make the draws independent.
-                ulong id = (ulong)IntegerMath.ShiftLeft((long)octave, 32) | (uint)point;
-
-                lattice[point] =
-                    (int)(Randomness.Draw(key, id, Ticks.Zero, PurposeTag.TerrainType) & 0xFF);
-            }
-
-            Accumulate(height, lattice, width, octave);
-        }
-
-        return height;
-    }
-
-    /// <summary>Adds one octave's bilinearly interpolated lattice into the running height field.</summary>
-    private static void Accumulate(int[] height, int[] lattice, int width, int octave)
-    {
-        int spacing = IntegerMath.ShiftLeft(1, octave);
-        int mask = spacing - 1;
-
-        for (int north = 0; north < CellGrid.WorldCells; north++)
-        {
-            int latticeNorth = IntegerMath.ShiftRight(north, octave);
-            int alongNorth = north & mask;
-            int backNorth = spacing - alongNorth;
-
-            for (int east = 0; east < CellGrid.WorldCells; east++)
-            {
-                int latticeEast = IntegerMath.ShiftRight(east, octave);
-                int alongEast = east & mask;
-                int backEast = spacing - alongEast;
-
-                int corner = (latticeNorth * width) + latticeEast;
-
-                int blend =
-                    (lattice[corner] * backEast * backNorth)
-                    + (lattice[corner + 1] * alongEast * backNorth)
-                    + (lattice[corner + width] * backEast * alongNorth)
-                    + (lattice[corner + width + 1] * alongEast * alongNorth);
-
-                // Divided by spacing squared to undo the weights, then scaled by the octave's own
-                // amplitude -- which is `spacing`. The two shifts cancel to one, and the arithmetic
-                // is exact because both are powers of two.
-                height[(north * CellGrid.WorldCells) + east] += IntegerMath.ShiftRight(blend, octave);
             }
         }
     }

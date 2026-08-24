@@ -112,6 +112,13 @@ public static class SyntheticCity
         // below reads it. ⚠ It computes a height field and keeps none of it (adr/0156).
         world.Layers.LayTerrain(key);
 
+        // The forest, on the ground and before the roads. adr/0158, milestone 24 task 8a. ⚠ THE
+        // ORDER AGAINST LayLand IS LOAD-BEARING and the order against LayTerrain is not: every Cell
+        // is unsealed at this instant, so the Sealing ceiling is trivially satisfied and this pass
+        // never consults it -- but run it after LayLand and it plants forest on top of the roads.
+        // MapLayers.Seal is what takes the forest back as the city arrives.
+        world.Layers.LayWoodland(key);
+
         LayLand(world, key);
         PeopleInto(world, key, now);
 

@@ -111,8 +111,16 @@ public sealed class PopulateCommandTests
     /// <para>
     /// <b>So the assertion moved from the State Hash to the tables under it</b>, and it is stronger
     /// for it: the old form said <em>nothing differs</em> and could only ever be relaxed to
-    /// <em>something differs</em>, where this one names the single table that may. A second table
-    /// starting to draw fails it, which the hash comparison could no longer do at all.
+    /// <em>something differs</em>, where this one names the tables that may. A second table starting
+    /// to draw fails it, which the hash comparison could no longer do at all.
+    /// </para>
+    /// <para>
+    /// ✅ <b>And a second table did start to draw, one milestone task later.</b> <c>adr/0158</c> makes
+    /// Woodland a <c>WorldKey</c>-derived column too, and this test failed on the day it landed —
+    /// ***the paragraph above was written as a prediction and paid out as one***. The exception list is
+    /// now two tables and each is asserted to move <em>separately</em>: they are drawn on different
+    /// <c>purpose_tag</c>s, so folding them together would pass whenever either one moved, which is the
+    /// exact correlation <c>PurposeTag.Woodland</c> exists to refuse.
     /// </para>
     /// </remarks>
     [Fact]
@@ -122,23 +130,36 @@ public sealed class PopulateCommandTests
         World second = Run(Log(Seed ^ 0xFFFF_FFFF_FFFF_FFFFUL)).World;
 
         Assert.Equal(
-            ExceptTerrain(first), ExceptTerrain(second));
+            ExceptGround(first), ExceptGround(second));
 
         Assert.NotEqual(
             Fold(first.Layers.Terrain.Rows), Fold(second.Layers.Terrain.Rows));
+
+        // Asserted separately rather than folded together with terrain, because the two are drawn on
+        // DIFFERENT purpose tags and a single comparison would pass if either one moved. That is the
+        // correlation PurposeTag.Woodland exists to refuse, and this is where it is checkable.
+        Assert.NotEqual(
+            Fold(first.Layers.Woodland.Rows), Fold(second.Layers.Woodland.Rows));
     }
 
     /// <summary>Every table's fold but the terrain one, in composition order.</summary>
-    private static ulong[] ExceptTerrain(World world)
+    private static ulong[] ExceptGround(World world)
     {
         var folds = new List<ulong>();
 
         foreach (Rows table in world.Tables)
         {
-            if (!ReferenceEquals(table, world.Layers.Terrain.Rows))
+            // The two tables the WorldKey is ALLOWED to reach, and the list is the assertion. Terrain
+            // joined at milestone 24 task 2 (adr/0157), Woodland at task 8a (adr/0158) -- and this
+            // method's own doc-comment predicted the second arrival before it happened: "a second
+            // table starting to draw fails it". It did, and the failure was the test working.
+            if (ReferenceEquals(table, world.Layers.Terrain.Rows)
+                || ReferenceEquals(table, world.Layers.Woodland.Rows))
             {
-                folds.Add(Fold(table));
+                continue;
             }
+
+            folds.Add(Fold(table));
         }
 
         return [.. folds];
