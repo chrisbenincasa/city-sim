@@ -15,12 +15,12 @@ fourth recurrence and the first that actually collided.
 
 ## Status
 
-🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3, 5, 6a and 8a are DONE.** ⚠ **Every decision this half owes is now SETTLED** (2026-08-24), so **tasks 4, 6b, 8b and 9 are all startable**. Task 3 was
+🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3, 4, 5, 6a and 8a are DONE.** ⚠ **Every decision this half owes is now SETTLED** (2026-08-24), so **tasks 6b, 8b and 9 are all startable**. Task 3 was
 CODE-COMPLETE and BLOCKED for one day — see F7; it was built ahead of task 2 because the Sealing write path needs
 no terrain, and running it turned up a whole-map cost that
-[`0002`](0002-open-questions.md) §C now owns. **Task 2 landed 2026-08-23** (`a23b46f`, re-baselined in `79efc64`) — **see F8**, whose finding is that the column's home was a third option neither candidate named. **Decisions 1, 1b, 2, 3, 4 and 7 are settled**
+[`0002`](0002-open-questions.md) §C now owns. **Task 2 landed 2026-08-23** (`a23b46f`, re-baselined in `79efc64`) — **see F8**, whose finding is that the column's home was a third option neither candidate named. **Decisions 1, 1b, 2, 3, 4 and 7 were settled first**
 ([`adr/0153`](../docs/adr/0153-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md)–[`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md));
-**5, 6 and 10 are open**. ⚠ **Task 8 was SPLIT 2026-08-24 into 8a and 8b** on the line task 3 and task 4
+~~**5, 6 and 10 are open**~~ — **all three closed 2026-08-24**. ⚠ **Task 8 was SPLIT 2026-08-24 into 8a and 8b** on the line task 3 and task 4
 are already split on — the write path without the rate — after the survey found the task's own subject
 had **no disposition anywhere in the corpus** and its rate had **no owner**
 ([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md),
@@ -735,7 +735,7 @@ task 6b's to answer**, and it is *arguable* rather than measurable.
 | **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0153`](../docs/adr/0153-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0154`](../docs/adr/0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
 | **2** | ✅ **DONE 2026-08-23** (`a23b46f`, re-baselined `79efc64`) — see **F8**. **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0154`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
 | **3** | ✅ **DONE 2026-08-23** (`1c9ebec`), built 2026-08-22 and blocked on a cost for one day — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
-| **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. ✅ **UNBLOCKED 2026-08-24 by decision 5**, whose ratifier is `evicted.toml` and Sealing's own trajectory. **Moves two `plans/0002` §D2 rows to §D1** on the day it writes the numbers | 3 |
+| **4** | ✅ **DONE 2026-08-24** — see **F12**. **Sealing's decay** — `LayerSchedule.Sealing` at **period `TICKS_PER_DAY`, offset 48**, `DecaySealing` scheduled in `MapLayers.Step`, and the rate keyed by terrain type as a `sealing_decay_tau` on each `[[terrain]]` table. 🔴 **The `[layers]` key is REFUSED rather than ignored**, naming where it went. 🔴 **It found a real defect**: integer exponential decay **stalls**, so the step is floored at one Tile and the tail is linear. **Moved ONE `plans/0002` §D2 row to §D1** — the other is task 8b's and stays. ⚠ **Moves no State Hash on any shipped world**, because `minimal.toml` and its ten siblings state no `[[terrain]]` and `varied.toml` is not a fixture; what moves is **`minimal.toml`'s Ruleset content fingerprint**, from a comment edit | 3 |
 | **5** | ✅ **DONE 2026-08-23** (`6f9187c`). **Fertility** — the `throw` in `MapLayers.Fertility` is a composition at the point of use, `base − base·Sealing/1024 − w_p·pollution`, with `long` intermediates and saturation at the `int` bounds. Sets **one** §D1 row: `[layers] fertility_pollution_percent` = **4**, stated in `rulesets/varied.toml` only. ⚠ **It moves no State Hash and needs no re-baseline** — nothing is stored, nothing is scheduled, and no shipped file that a fixture loads was edited. 🔴 **It also has no consumer**, so the whole task is a producer nobody reads; see the note below | 2, 3 |
 | **6a** | ✅ **DONE 2026-08-24** — see **F11**. **The water graph** — a sparse `WaterCellTable` of wet Cells with a dense `WaterResidency` beside it, and a `WaterBodyTable` whose one column is a `downstream` handle into itself. Laid by `WaterGenerator` from the **same height field terrain reads** (`adr/0156`, so **no new `PurposeTag`**), bounded by `[water] sea_level_percent` on a new shipped `rulesets/coastal.toml` ([`adr/0159`](../docs/adr/0159-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)). **Opens ONE §D1 row.** 🔴 Moves every State Hash. ⚠ **It has no consumer** — nothing reads a Water Body — so it is **F9** a third time and is taken anyway | 2, decision 11 |
 | **6b** | **A Water Body's Bin** — the capacity, the outflow rate and a **sixth** `BinOwnerKind`. ✅ **UNBLOCKED 2026-08-24 by decision 12** — the family question was a correction and not a design sitting: Waste is a **Good**, Sewage is a **Utility**, the split was already in `CONTEXT.md` → Resource, and two copies of one sentence named the wrong half. **No `ResourceFamily` change.** ⚠ **It still owes one *arguable* answer**: whether a Water Body's Bin holds exactly one Utility-family Resource, or whether `02:256`'s *"dumping"* puts a **Good** in it. ⚠ **It must take the two water tables back out of `_writableTables`**, because a Bin's level is a write. ⚠ **This row said *a fifth* `BinOwnerKind` and was correct on the day it was written** — milestone 27 landed `Business = 3` on `main`. ***A merge made a plan row stale without touching the plan.*** | 6a, decision 12 |
@@ -1217,3 +1217,72 @@ that check now exists on `main`, written by that session from this branch's sigh
 **`06` milestone 24's first half.** Ungated. Scoped out of sequence on 2026-08-22 because terrain has
 one producer and no upstream. The second half — **Shocks, Disasters, the Intensity Dial, Modes and the
 lock policy** — is **UNPLACED** pending 13, 15 and 16, and F2 is its record.
+
+### F12 — Sealing's decay had never run, and the operator waiting for it was broken
+
+**Task 4 scheduled a method with no callers and found it did not work.**
+
+`MapLayers.DecaySealing` shipped with milestone 9, correct-looking and never invoked: `MapLayers.Step`
+did not call it, `LayerSchedule.For` answered `Never` for `Layer.Sealing`, and every shipped Ruleset
+stated `[layers] sealing_decay_tau = 0`. **Three independent reasons for it to do nothing**, each
+documented as deliberate, and between them they hid that the arithmetic underneath was wrong.
+
+**The defect is that `value -= RoundDiv(value, tau)` never reaches zero.** The decrement rounds to
+nothing once the value falls below `tau ÷ 2`, so ground settles at a permanent residue. Measured before
+the fix: **tau 8 stalls at 3, tau 64 at 31, tau 600 at 299** — and **tau 2400 never moves at all**,
+because `RoundDiv(1024, 2400)` is zero on the *first* update and a fully-sealed Cell takes no first
+step. ***An endpoint stated in Days cannot be delivered by a curve that never arrives***, and
+`CONTEXT.md` → Sealing states one: *"floodplain may recover over hundreds of Days."*
+
+**Fixed by flooring the step at one Tile while the value is positive**, which makes the tail linear
+where the quantity is small and leaves it exponential where it is large.
+
+🔴 **And the paper derivation of what that costs was wrong, which is the second finding.** The caveat
+first written into three documents was *a tau is not a recovery time and the two differ by about
+7.4×* — from `tau × ln(1024) + tau ÷ 2`, which is the recovery time of a tau smaller than the residue
+and wrong for every value actually shipped. `SealingRecoveryMeasurementTests` was written to check it
+and refuted it on its first run: the real multiple is **tau-dependent**, `tau × ln(2 × TilesInCell ÷
+tau) + tau ÷ 2`, running from **4.1×** at tau 48 down to **2.9×** at tau 160. ⚠ **Floodplain's tau
+moved 32 → 48 in the same edit**, because the measurement put 32 at **143 Days** and `CONTEXT.md` says
+*hundreds of Days*. **Measured, from a Cell sealed to all 1,024 Tiles:**
+
+| type | tau | Days to bare ground | half gone at |
+|---|---|---|---|
+| `floodplain` | 48 | **197** | 33 |
+| `marsh` | 64 | **244** | 44 |
+| `ordinary` | 96 | **329** | 66 |
+| `thin_soil` | 160 | **468** | 112 |
+| `rock` | 0 | **never** | — |
+
+⚠ ***A multiplier derived rather than measured is a caveat that travels wrong***, which is `plans/0012`
+**Cause 5** happening to the clause written to prevent it. The three documents now say **quote the
+Days, never the tau**, and carry the table rather than a ratio.
+
+**Three things about how it was found are worth more than the fix.**
+
+⚠ **A stated absence is not the same as a tested one.** `sealing_decay_tau = 0` was *deliberate* and
+every Ruleset header explained it — and a deliberate zero exercises the same amount of code as a
+forgotten one. `adr/0152` even leaned on this key as its **precedent** for an admissible zero rate,
+citing a mechanism nobody had run. ***A precedent taken from an untested path carries the path's
+silence with it.***
+
+⚠ **The key had to MOVE, and a moved key is refused where it used to be.** `02 §2.4` keys the rate by
+terrain type, so a single `[layers]` global was always a placeholder for a lookup; the reconciliation
+was filed as task 4's by `adr/0157` and is discharged here. A file still writing the old key is
+**refused with a message naming `[[terrain]]`**, rather than having its stated rate silently ignored —
+which is `adr/0123`'s *present and permanently zero* failure arriving through a stale key instead of a
+stale term.
+
+⚠ **And the cadence was chosen in the unit the design states its intent in.** `adr/0044` makes a Layer
+cadence the designer's number; this one is **one Day** because `CONTEXT.md` says *hundreds of Days*, so
+the tau is a count of Days and nothing converts. ⚠ **That is a coincidence being relied on and it is
+flagged as one** in the §D1 row: the tau is authored as a raw count of updates rather than as a
+duration, so ***moving the Sealing period would silently rescale all five values*** — the
+`pollution_decay_ticks` trap (`plans/0015` decision owed 2) arriving at a second key and **not** dodged.
+
+**Routed on the day** (`adr/0073`): the stalled decay is fixed in `MapLayers` rather than worked around;
+the two doc-comments in `LayerSchedule` still quoting a **Day as 8,192 Ticks** — stale since `adr/0094`
+made it 2,048 — were corrected in passing, and they are `plans/0012` **Cause 1** in the one place the
+corpus checks cannot see, because ***every mechanical check in `tests/Borough.Tests/Corpus/` is
+document-to-document and a doc-comment is neither end of that.***
+

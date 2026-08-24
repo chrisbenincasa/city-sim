@@ -199,7 +199,7 @@ public sealed class LandValueSteadyStateTests
             }
         }
 
-        layers.Step(Ticks.Zero, graph);
+        layers.Step(Ticks.Zero, graph, TerrainRuleset.None);
 
         int composed = layers.Desirability(
             graph,

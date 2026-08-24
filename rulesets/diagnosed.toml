@@ -475,7 +475,7 @@ candidates    = 3
 # radius, so a live world's Layer cannot adopt a different one without being recomputed from sources
 # it no longer holds. It is also UNRATIFIED — the 1–10 km band is 10× wide (plans/0002 §D1).
 #
-# `sealing_decay_tau = 0` MEANS NEVER, AND IT IS A STATED ABSENCE. 02 §2.4 keys Sealing's decay by
+# SEALING'S DECAY RATE IS NOT HERE, AND `sealing_decay_tau` IS REFUSED IF YOU WRITE IT. 02 §2.4 keys
 
 # THE DESIRABILITY COMPOSITION -- FOUR NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
 # land value drifting toward a target whose first term is land value made it a GAIN of 1/(1 - w1) on
@@ -504,9 +504,11 @@ noise_range_metres            = 300
 noise_intensity_percent       = 400
 desirability_pollution_percent = 100
 desirability_noise_percent     = 100
-# terrain type; there is no terrain in Phase 1, so there is no key, so there is no rate to look up.
-# Zero is the conservative reading — Sealing only accumulates — and the bound is structural, because a
-# Cell cannot have more Tiles built on it than it has Tiles.
+# it by TERRAIN TYPE — rock may never recover, floodplain may recover over hundreds of Days — so it
+# is a `sealing_decay_tau` key on each [[terrain]] table and there is no global one. A file that
+# states no [[terrain]] heals NOWHERE, which is exactly what this file said by writing 0 here.
+# Milestone 24 task 4; the key is refused in [layers] rather than ignored, with a message naming
+# where it went.
 [layers]
 pollution_period      = 64
 pollution_offset      = 0
@@ -515,7 +517,6 @@ land_value_offset     = 16
 kernel_metres         = 1024
 pollution_decay_ticks = 2048
 land_value_tau        = 8
-sealing_decay_tau     = 0
 
 # The road network. plans/0020 (milestone 5a), and the first section here that describes the
 # *ground* rather than what happens on it. adr/0014: Streets snap to the grid, Arterials are

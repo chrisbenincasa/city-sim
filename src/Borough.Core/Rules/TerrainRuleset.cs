@@ -33,7 +33,17 @@ namespace Borough.Core.Rules;
 /// </para>
 /// </remarks>
 public readonly record struct TerrainRuleset(
-    bool Stated, int Ordinary, int Rock, int Floodplain, int Marsh, int ThinSoil)
+    bool Stated,
+    int Ordinary,
+    int Rock,
+    int Floodplain,
+    int Marsh,
+    int ThinSoil,
+    int OrdinaryDecayTau,
+    int RockDecayTau,
+    int FloodplainDecayTau,
+    int MarshDecayTau,
+    int ThinSoilDecayTau)
 {
     /// <summary>
     /// How many terrain types a Ruleset states, which is all of them.
@@ -47,10 +57,30 @@ public readonly record struct TerrainRuleset(
     /// </remarks>
     public const int Kinds = 5;
 
-    /// <summary>The five Base Fertilities, each Q16.16, from a file that states them.</summary>
+    /// <summary>The five Base Fertilities and the five decay rates, from a file that states them.</summary>
     public static TerrainRuleset From(
-        int ordinary, int rock, int floodplain, int marsh, int thinSoil) =>
-        new(true, ordinary, rock, floodplain, marsh, thinSoil);
+        int ordinary,
+        int rock,
+        int floodplain,
+        int marsh,
+        int thinSoil,
+        int ordinaryDecayTau,
+        int rockDecayTau,
+        int floodplainDecayTau,
+        int marshDecayTau,
+        int thinSoilDecayTau) =>
+        new(
+            true,
+            ordinary,
+            rock,
+            floodplain,
+            marsh,
+            thinSoil,
+            ordinaryDecayTau,
+            rockDecayTau,
+            floodplainDecayTau,
+            marshDecayTau,
+            thinSoilDecayTau);
 
     /// <summary>
     /// A Ruleset that says nothing about what its ground is worth.
@@ -87,6 +117,53 @@ public readonly record struct TerrainRuleset(
             TerrainKind.Floodplain => Floodplain,
             TerrainKind.Marsh => Marsh,
             TerrainKind.ThinSoil => ThinSoil,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+    }
+
+    /// <summary>
+    /// How many scheduled updates this ground takes to shed its Sealing. <b>Zero means never.</b>
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>adr/0044</c>, milestone 24 task 4. <b>Keyed by terrain type, which is what <c>02 §2.4</c> and
+    /// <c>CONTEXT.md</c> → Sealing have always said</b> — *"rock may never recover, floodplain may
+    /// recover over hundreds of Days"* — and what the single global <c>[layers] sealing_decay_tau</c>
+    /// could not express. That key is <b>gone</b>, not defaulted: a rate keyed by terrain type belongs
+    /// beside the terrain type.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>Zero is a real answer here and not an unset one.</b> It is <c>rock</c>'s answer, and it is
+    /// the state every shipped Ruleset was in before this task. A file stating <c>[[terrain]]</c>
+    /// states all five, so a type with no rate is refused rather than silently permanent.
+    /// </para>
+    /// <para>
+    /// <b>It counts UPDATES and not Ticks or Days</b>, so it is read against
+    /// <c>[layers] sealing_decay_period</c> and means nothing alone. ***A duration is the product of
+    /// the two***, which is why neither can be quoted without the other.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="kind"/> is not a terrain type.</exception>
+    /// <exception cref="InvalidOperationException">This Ruleset states no <c>[[terrain]]</c>.</exception>
+    public int SealingDecayTau(TerrainKind kind)
+    {
+        if (!Stated)
+        {
+            throw new InvalidOperationException(
+                "this Ruleset states no [[terrain]], so it has no Sealing decay rate to look up. A "
+                + "generated world still has terrain, but how fast its ground RECOVERS is keyed by "
+                + "terrain type (02 section 2.4), so a file that declines to describe its ground "
+                + "cannot say how fast that ground comes back. Its Sealing only accumulates, which is "
+                + "the state every shipped Ruleset was in before milestone 24 task 4. adr/0044.");
+        }
+
+        return kind switch
+        {
+            TerrainKind.Ordinary => OrdinaryDecayTau,
+            TerrainKind.Rock => RockDecayTau,
+            TerrainKind.Floodplain => FloodplainDecayTau,
+            TerrainKind.Marsh => MarshDecayTau,
+            TerrainKind.ThinSoil => ThinSoilDecayTau,
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
     }

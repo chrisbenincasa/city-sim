@@ -33,9 +33,18 @@ public enum Layer : byte
     /// The count of Tiles in a Cell ever built on. Stored per Cell and <b>not diffused</b>.
     /// </summary>
     /// <remarks>
-    /// A count, not a field: it has no kernel and no cadence, because it changes on build.
-    /// <see cref="LayerSchedule.IsDue"/> answers false for it forever, which is the honest answer
-    /// rather than a period nobody reads. Slice 6 task 6.
+    /// <para>
+    /// A count, not a field: <b>it has no kernel</b>, because nothing about one Cell's Sealing reaches
+    /// its neighbours. Slice 6 task 6.
+    /// </para>
+    /// <para>
+    /// ⚠ <b>It DOES have a cadence as of milestone 24 task 4, and this comment said it never would.</b>
+    /// It said <em>"no kernel and no cadence, because it changes on build"</em> — true of the write and
+    /// false of the read. Sealing goes up on build and comes back down on a schedule, because ground
+    /// recovering is a thing that happens over time whether or not anything is built that Tick
+    /// (<c>02 §2.4</c>, <c>CONTEXT.md</c> → Sealing). ***A quantity that only an event can raise still
+    /// needs a clock to lower it.***
+    /// </para>
     /// </remarks>
     Sealing = 2,
 }
@@ -53,7 +62,13 @@ public enum Layer : byte
 /// <param name="Offset">Which Tick of the cycle it fires on.</param>
 public readonly record struct LayerCadence(int Period, int Offset)
 {
-    /// <summary>A Layer with no schedule, recomputed by an event instead. Sealing's.</summary>
+    /// <summary>A Layer with no schedule, recomputed by an event instead.</summary>
+    /// <remarks>
+    /// ⚠ <b>Nothing uses it as of milestone 24 task 4.</b> This said <em>"Sealing's"</em> and Sealing
+    /// now has a cadence, so the value is kept as a reachable state rather than deleted — a Ruleset
+    /// cannot author it (a period below 1 is refused), which is what makes it a shape the code can
+    /// express and a file cannot.
+    /// </remarks>
     public static LayerCadence Never => default;
 
     /// <summary>Whether this Layer is recomputed on the given Tick.</summary>
@@ -95,10 +110,13 @@ public readonly struct LayerSchedule
 {
     /// <param name="industrialPollution">Pollution's cadence.</param>
     /// <param name="landValue">Land value's cadence.</param>
-    public LayerSchedule(LayerCadence industrialPollution, LayerCadence landValue)
+    /// <param name="sealing">Sealing's decay cadence. Milestone 24 task 4.</param>
+    public LayerSchedule(
+        LayerCadence industrialPollution, LayerCadence landValue, LayerCadence sealing)
     {
         IndustrialPollution = industrialPollution;
         LandValue = landValue;
+        Sealing = sealing;
     }
 
     /// <summary>
@@ -112,7 +130,8 @@ public readonly struct LayerSchedule
     /// </remarks>
     public static LayerSchedule Default { get; } = new(
         industrialPollution: new LayerCadence(Period: 64, Offset: 0),
-        landValue: new LayerCadence(Period: 256, Offset: 16));
+        landValue: new LayerCadence(Period: 256, Offset: 16),
+        sealing: new LayerCadence(Period: Ticks.PerDay, Offset: 48));
 
     /// <summary>Industrial pollution's cadence.</summary>
     public LayerCadence IndustrialPollution { get; }
@@ -120,12 +139,26 @@ public readonly struct LayerSchedule
     /// <summary>Land value's cadence.</summary>
     public LayerCadence LandValue { get; }
 
-    /// <summary>The cadence of one Layer. Sealing has none; it changes on build.</summary>
+    /// <summary>
+    /// Sealing's decay cadence. <b>A Day, and the unit is the argument.</b>
+    /// </summary>
+    /// <remarks>
+    /// <c>adr/0044</c> makes a Layer cadence <b>the designer's number and not the profiler's</b>, and
+    /// this one is the least arbitrary of the three: <c>CONTEXT.md</c> → Sealing states the intent in
+    /// <b>Days</b> — <em>"floodplain may recover over hundreds of Days"</em> — so the pass that
+    /// delivers it ticks in Days. ***A period in the unit the design states its intent in is a period
+    /// nobody has to convert to check.*** ⚠ <b>Offset 48</b>, which is congruent to neither 0 mod 64
+    /// nor 16 mod 256, so it lands on a Tick neither other Layer uses. That is the stagger and its
+    /// only required property.
+    /// </remarks>
+    public LayerCadence Sealing { get; }
+
+    /// <summary>The cadence of one Layer.</summary>
     public LayerCadence For(Layer layer) => layer switch
     {
         Layer.IndustrialPollution => IndustrialPollution,
         Layer.LandValue => LandValue,
-        Layer.Sealing => LayerCadence.Never,
+        Layer.Sealing => Sealing,
         _ => throw new ArgumentOutOfRangeException(nameof(layer)),
     };
 
@@ -147,15 +180,12 @@ public readonly struct LayerSchedule
 /// <param name="LandValueTau">
 /// How many scheduled updates land value takes to close the gap to its target. Larger is slower.
 /// </param>
-/// <param name="SealingDecayTau">
-/// How many updates Sealing takes to decay away. <b>Zero means never</b>, which is Phase 1's value.
-/// </param>
 /// <param name="PollutionTau">
 /// How many scheduled updates the environment takes to absorb a Cell's pollution source
 /// (<c>adr/0051</c>). <b>Zero means never</b>, which is the pre-<c>adr/0051</c> behaviour and is kept
 /// reachable only so the accumulating case can be written in a test and watched to fail.
 /// </param>
-public readonly record struct LayerRates(int LandValueTau, int SealingDecayTau, int PollutionTau)
+public readonly record struct LayerRates(int LandValueTau, int PollutionTau)
 {
     /// <summary>
     /// <b>Pollution's tau is derived rather than picked, and the derivation is the whole argument for
@@ -163,16 +193,17 @@ public readonly record struct LayerRates(int LandValueTau, int SealingDecayTau, 
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Sealing does not decay, and that is a stated absence rather than a guess.</b>
-    /// <c>02 §2.4</c> says Sealing decays at a Ruleset rate <b>keyed by terrain type</b> — rock may
-    /// never recover, floodplain may recover over hundreds of Days. There is no terrain in Phase 1, so
-    /// there is no key, so there is no rate to look one up with. <b>Zero is the conservative answer
-    /// rather than a placeholder</b>: it is the case where Sealing only accumulates, which is the one
-    /// <c>adr/0006</c> would object to if the bound were not structural — and it is, because a Cell
-    /// cannot have more Tiles built on it than it has Tiles.
+    /// ✅ <b>Sealing's rate left this type at milestone 24 task 4, and where it went is the point.</b>
+    /// This paragraph used to explain why it was a single global pinned at zero: <c>02 §2.4</c> keys
+    /// the rate <b>by terrain type</b>, there was no terrain in Phase 1, so there was no key to look
+    /// one up with. **There is terrain now**, so the rate lives on <c>[[terrain]]</c> beside the type
+    /// it is keyed by — <see cref="Rules.TerrainRuleset.SealingDecayTau"/> — and
+    /// <c>[layers] sealing_decay_tau</c> is <b>gone rather than defaulted</b>, refused at load with a
+    /// message naming where it moved. ***A stated absence is discharged by building the thing, not by
+    /// keeping the placeholder and changing its value.***
     /// </para>
     /// <para>
-    /// It is <b>128</b>, which is <c>TICKS_PER_DAY ÷ the pollution cadence</c> — 8192 ÷ 64 — so it is
+    /// It is <b>32</b>, which is <c>TICKS_PER_DAY ÷ the pollution cadence</c> — 2048 ÷ 64 — so it is
     /// <em>one Day, counted in the units the decay actually runs in</em>. That makes the designer-facing
     /// sentence "a shut-down factory's plume fades over about a Day", and it makes the number move
     /// correctly on its own if either constant it is built from ever changes. <c>adr/0044</c> is the
@@ -188,7 +219,6 @@ public readonly record struct LayerRates(int LandValueTau, int SealingDecayTau, 
     /// </remarks>
     public static LayerRates Default => From(
         landValueTau: 8,
-        sealingDecayTau: 0,
         pollutionDecayTicks: DefaultPollutionDecayTicks,
         pollutionPeriod: LayerSchedule.Default.IndustrialPollution.Period);
 
@@ -221,27 +251,32 @@ public readonly record struct LayerRates(int LandValueTau, int SealingDecayTau, 
     /// recommendation.</b> Days is closer to the designer sentence — <em>a shut-down factory's plume
     /// fades over about a Day</em> — but it is a unit nothing else in a Ruleset uses, and any value
     /// under a Day would need the quoted-decimal machinery to express. Ticks is what every rate and
-    /// interval in the file is already written in, and <c>8192</c> carries the comment <c>one Day</c>
+    /// interval in the file is already written in, and <c>2048</c> carries the comment <c>one Day</c>
     /// perfectly well.
     /// </para>
     /// <para>
-    /// <b>Rounded rather than refused when the division is inexact.</b> A decay of 8,192 Ticks at a
+    /// ⚠ <b>The two figures above said <c>128</c> and <c>8192</c> until 2026-08-24</b>, which is what
+    /// a Day was before <c>adr/0094</c> made it 2,048 Ticks. The derivation was right and survived the
+    /// move; the digits beside it did not, because a doc-comment is invisible to every mechanical check
+    /// in <c>tests/Borough.Tests/Corpus/</c> — those are document-to-document. <c>plans/0012</c>
+    /// <b>Cause 1</b>, found while task 4 was reading this type for a different reason.
+    /// </para>
+    /// <para>
+    /// <b>Rounded rather than refused when the division is inexact.</b> A decay of 2,048 Ticks at a
     /// period of 100 is 81.92 updates, and a designer who writes that has said something meaningful;
     /// refusing it would make the two numbers secretly coupled. <see cref="IntegerMath.RoundDiv"/>
     /// states the rounding, which is the project's standing answer to this shape.
     /// </para>
     /// </remarks>
     /// <param name="landValueTau">Land value's time constant, in scheduled updates.</param>
-    /// <param name="sealingDecayTau">Sealing's, in scheduled updates. Zero means never.</param>
     /// <param name="pollutionDecayTicks">
     /// How long a Cell's pollution source takes to be absorbed, <b>in Ticks</b>. Zero means never.
     /// </param>
     /// <param name="pollutionPeriod">The pollution cadence the decay will run at.</param>
     public static LayerRates From(
-        int landValueTau, int sealingDecayTau, int pollutionDecayTicks, int pollutionPeriod) =>
+        int landValueTau, int pollutionDecayTicks, int pollutionPeriod) =>
         new(
             landValueTau,
-            sealingDecayTau,
             pollutionDecayTicks <= 0 || pollutionPeriod <= 0
                 ? 0
                 : IntegerMath.RoundDiv(pollutionDecayTicks, pollutionPeriod));

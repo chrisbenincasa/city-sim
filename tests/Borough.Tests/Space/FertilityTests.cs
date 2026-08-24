@@ -40,7 +40,12 @@ public sealed class FertilityTests
 
     /// <summary>The five Base Fertilities <c>rulesets/varied.toml</c> states, as Q16.16.</summary>
     private static readonly TerrainRuleset Priced = TerrainRuleset.From(
-        Percent(100), Percent(20), Percent(100), Percent(50), Percent(60));
+        Percent(100), Percent(20), Percent(100), Percent(50), Percent(60),
+        ordinaryDecayTau: 96,
+        rockDecayTau: 0,
+        floodplainDecayTau: 48,
+        marshDecayTau: 64,
+        thinSoilDecayTau: 160);
 
     private static int Percent(int percent) => IntegerMath.RoundDiv(Fixed.FromInt(percent), 100);
 
@@ -211,7 +216,7 @@ public sealed class FertilityTests
         (Cells east, Cells north) = UntouchedCellOf(world, TerrainKind.Ordinary);
 
         world.Layers.EmitPollution(east, north, pollution);
-        world.Layers.Step(new Ticks(0), world.Roads);
+        world.Layers.Step(new Ticks(0), world.Roads, Priced);
 
         int weight = Percent(weightPercent);
         int measured = world.Layers.Pollution(east, north);
@@ -251,7 +256,7 @@ public sealed class FertilityTests
         // Cell sealed first would be read after one of them.
         world.Layers.EmitPollution(lightly, lightlyNorth, 1_000);
         world.Layers.EmitPollution(heavily, heavilyNorth, 40_000);
-        world.Layers.Step(new Ticks(0), world.Roads);
+        world.Layers.Step(new Ticks(0), world.Roads, Priced);
 
         world.Layers.Seal(lightly, lightlyNorth, CellGrid.TilesInCell);
         world.Layers.Seal(heavily, heavilyNorth, CellGrid.TilesInCell);
@@ -287,7 +292,7 @@ public sealed class FertilityTests
         (Cells east, Cells north) = UntouchedCellOf(world, TerrainKind.Ordinary);
 
         world.Layers.EmitPollution(east, north, 1_000_000);
-        world.Layers.Step(new Ticks(0), world.Roads);
+        world.Layers.Step(new Ticks(0), world.Roads, Priced);
 
         int fertility = world.Layers.Fertility(
             Priced, new FertilityWeights(int.MaxValue), east, north);

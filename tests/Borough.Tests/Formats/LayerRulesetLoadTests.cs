@@ -160,8 +160,9 @@ public sealed class LayerRulesetLoadTests
     [InlineData("land_value_period = 0", "expressible as a period")]
     [InlineData("land_value_tau = 0", "A time constant divides")]
     [InlineData("kernel_metres = 0", "no reach")]
-    [InlineData("sealing_decay_tau = -1", "scheduled updates")]
     [InlineData("pollution_decay_ticks = -1", "duration in Ticks")]
+    [InlineData("sealing_decay_period = 0", "expressible as a period")]
+    [InlineData("sealing_decay_offset = -1", "which Tick of the cycle")]
     public void A_Layer_number_outside_its_range_is_refused_by_name(string line, string because)
     {
         RulesetRefusal refusal = Refused($"""
@@ -172,6 +173,31 @@ public sealed class LayerRulesetLoadTests
             """);
 
         Assert.Contains(because, refusal.Reason, StringComparison.Ordinal);
+        Assert.Equal(6, refusal.Line);
+    }
+
+    /// <summary>
+    /// The key that <b>moved</b> is refused where it used to be, rather than quietly ignored.
+    /// </summary>
+    /// <remarks>
+    /// Milestone 24 task 4 keyed Sealing's decay rate by terrain type, so <c>sealing_decay_tau</c>
+    /// left <c>[layers]</c> for <c>[[terrain]]</c>. A file still carrying it <em>means</em> something
+    /// by it, and reading nothing would leave a designer's stated rate doing nothing with no way to
+    /// tell — the failure <c>adr/0123</c> is about, arriving through a stale key rather than a stale
+    /// term. So the refusal names where the key went.
+    /// </remarks>
+    [Fact]
+    public void The_layers_sealing_decay_tau_is_refused_and_the_refusal_says_where_it_went()
+    {
+        RulesetRefusal refusal = Refused($"""
+            {Nothing}
+
+            [layers]
+            sealing_decay_tau = 8
+            """);
+
+        Assert.Contains("has moved out of [layers]", refusal.Reason, StringComparison.Ordinal);
+        Assert.Contains("[[terrain]]", refusal.Reason, StringComparison.Ordinal);
         Assert.Equal(6, refusal.Line);
     }
 
@@ -366,7 +392,7 @@ public sealed class LayerRulesetLoadTests
 
         world.Adopt(
             Ruleset.Empty.WithLayers(new LayerRuleset(
-                new LayerSchedule(new LayerCadence(16, 1), new LayerCadence(64, 5)),
+                new LayerSchedule(new LayerCadence(16, 1), new LayerCadence(64, 5), LayerSchedule.Default.Sealing),
                 LayerRates.Default)),
             0x1111_1111_1111_1111UL,
             Ticks.Zero,

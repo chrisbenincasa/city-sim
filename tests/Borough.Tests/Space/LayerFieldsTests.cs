@@ -1,8 +1,10 @@
 using Borough.Core;
+using Borough.Core.Arithmetic;
 using Borough.Core.Determinism;
 using Borough.Core.Entities;
 using Borough.Core.Invariants;
 using Borough.Core.Quantities;
+using Borough.Core.Rules;
 using Borough.Core.Space;
 
 namespace Borough.Tests.Space;
@@ -142,37 +144,128 @@ public class LayerFieldsTests
         Assert.Equal(1_024, CellGrid.TilesInCell);
     }
 
-    /// <summary>Sealing does not decay in Phase 1, because its rate has no terrain type to key on.</summary>
+    /// <summary>
+    /// A Ruleset stating no <c>[[terrain]]</c> heals nowhere, which is every world before milestone 24.
+    /// </summary>
     [Fact]
-    public void Sealing_does_not_decay_at_the_default_rate()
+    public void Sealing_does_not_decay_where_the_Ruleset_states_no_terrain()
     {
         MapLayers layers = new(LayerRuleset.Default);
         Cells east = new(3);
         Cells north = new(4);
 
         layers.Seal(east, north, 500);
-        layers.DecaySealing();
+        layers.DecaySealing(TerrainRuleset.None);
 
-        Assert.Equal(0, LayerRates.Default.SealingDecayTau);
+        Assert.False(TerrainRuleset.None.Stated);
         Assert.Equal(500, layers.Sealing(east, north));
     }
 
-    /// <summary>And it does decay once a rate exists, which is what the operator is for.</summary>
+    /// <summary>And it decays at the rate its own terrain type states. <c>02 §2.4</c>.</summary>
     [Fact]
-    public void Sealing_decays_once_a_rate_is_supplied()
+    public void Sealing_decays_at_its_terrain_types_rate()
     {
-        MapLayers layers = new(new LayerRuleset(
-            LayerSchedule.Default,
-            new LayerRates(LandValueTau: 8, SealingDecayTau: 4, PollutionTau: 128)));
-
+        MapLayers layers = new(LayerRuleset.Default);
         Cells east = new(3);
         Cells north = new(4);
 
         layers.Seal(east, north, 1_000);
-        layers.DecaySealing();
+        layers.DecaySealing(Tau(ordinary: 4));
 
+        Assert.Equal(TerrainKind.Ordinary, layers.Terrain.At(east, north));
         Assert.Equal(750, layers.Sealing(east, north));
     }
+
+    /// <summary>A type stating zero never recovers, which is what <c>rock</c> is for.</summary>
+    [Fact]
+    public void Sealing_does_not_decay_where_its_terrain_type_states_zero()
+    {
+        MapLayers layers = new(LayerRuleset.Default);
+        Cells east = new(3);
+        Cells north = new(4);
+
+        layers.Seal(east, north, 500);
+        layers.DecaySealing(Tau(ordinary: 0));
+
+        Assert.Equal(500, layers.Sealing(east, north));
+    }
+
+    /// <summary>
+    /// 🔴 The regression: exponential decay in integers <b>stalls</b>, and the floor is what stops it.
+    /// </summary>
+    /// <remarks>
+    /// <c>value -= RoundDiv(value, tau)</c> rounds its decrement to zero once the value falls under
+    /// <c>tau ÷ 2</c>, so ground would settle at a permanent residue and never reach bare. Measured
+    /// before the fix: tau 8 stalled at 3. <c>CONTEXT.md</c> → Sealing states an endpoint —
+    /// <em>"floodplain may recover over hundreds of Days"</em> — and a curve that never arrives cannot
+    /// deliver one.
+    /// </remarks>
+    [Fact]
+    public void Sealing_reaches_bare_ground_rather_than_stalling_above_it()
+    {
+        MapLayers layers = new(LayerRuleset.Default);
+        Cells east = new(3);
+        Cells north = new(4);
+        TerrainRuleset terrain = Tau(ordinary: 8);
+
+        layers.Seal(east, north, CellGrid.TilesInCell);
+
+        for (int update = 0; update < 1_000; update++)
+        {
+            layers.DecaySealing(terrain);
+        }
+
+        Assert.Equal(0, layers.Sealing(east, north));
+    }
+
+    /// <summary>
+    /// 🔴 And a tau above twice the Cell moved <b>nothing at all</b>, which is the same defect at the
+    /// other end.
+    /// </summary>
+    /// <remarks>
+    /// <c>RoundDiv(1024, 2400)</c> is zero, so a fully-sealed Cell never took a first step. The floor
+    /// makes the whole band <c>1..2 × TilesInCell</c> — which is what the loader admits — do something.
+    /// </remarks>
+    [Fact]
+    public void Sealing_moves_even_where_the_tau_exceeds_the_Cell()
+    {
+        MapLayers layers = new(LayerRuleset.Default);
+        Cells east = new(3);
+        Cells north = new(4);
+
+        layers.Seal(east, north, CellGrid.TilesInCell);
+        layers.DecaySealing(Tau(ordinary: CellGrid.TilesInCell * 2));
+
+        Assert.Equal(CellGrid.TilesInCell - 1, layers.Sealing(east, north));
+    }
+
+    /// <summary>Sealing's own cadence, which it did not have before milestone 24 task 4.</summary>
+    [Fact]
+    public void Sealing_decays_on_its_cadence_and_not_on_another_Layers()
+    {
+        var world = new World(1_000, Ruleset.Empty);
+        Cells east = new(3);
+        Cells north = new(4);
+        LayerCadence cadence = world.Layers.Schedule.Sealing;
+
+        world.Layers.Seal(east, north, 1_000);
+        world.Layers.Step(new Ticks((ulong)cadence.Offset + 1), world.Roads, Tau(ordinary: 4));
+
+        Assert.Equal(1_000, world.Layers.Sealing(east, north));
+
+        world.Layers.Step(new Ticks((ulong)cadence.Offset), world.Roads, Tau(ordinary: 4));
+
+        Assert.Equal(750, world.Layers.Sealing(east, north));
+    }
+
+    /// <summary>A <c>[[terrain]]</c> table whose only interesting key is <c>ordinary</c>'s tau.</summary>
+    private static TerrainRuleset Tau(int ordinary) => TerrainRuleset.From(
+        Fixed.One, Fixed.One, Fixed.One, Fixed.One, Fixed.One,
+        ordinaryDecayTau: ordinary,
+        rockDecayTau: 0,
+        floodplainDecayTau: 0,
+        marshDecayTau: 0,
+        thinSoilDecayTau: 0);
 
     /// <summary>
     /// <c>adr/0051</c>: a Cell's pollution source is a stock the environment absorbs.
@@ -299,7 +392,7 @@ public class LayerFieldsTests
 
     private static MapLayers Layers(int pollutionTau) => new(new LayerRuleset(
         LayerSchedule.Default,
-        new LayerRates(LandValueTau: 8, SealingDecayTau: 0, PollutionTau: pollutionTau)));
+        new LayerRates(LandValueTau: 8, PollutionTau: pollutionTau)));
 
     /// <summary>
     /// The named holes fail loudly rather than returning zero.

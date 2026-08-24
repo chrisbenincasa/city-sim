@@ -11,6 +11,13 @@
 # is minimal.toml unchanged, and its reasoning lives there rather than being copied here -- a copied
 # comment is a second copy that drifts, which is plans/0012 Cause 1 by construction.
 #
+# ⚠ EACH OF THOSE TABLES NOW CARRIES TWO KEYS AND NOT ONE. Milestone 24 task 4 added
+# `sealing_decay_tau` beside `base_fertility_percent`: how long this ground takes to shed its Sealing.
+# It moved here out of `[layers]`, where it was one global pinned at zero because 02 §2.4 keys it BY
+# TERRAIN TYPE and there was no terrain to key it by. ⚠ THIS IS THEREFORE THE ONLY SHIPPED FILE IN
+# WHICH GROUND RECOVERS AT ALL -- the other fourteen state no `[[terrain]]`, so Sealing only ever
+# rises in them. Read that before reading anything into a Sealing figure from any other file.
+#
 # ⚠ IT DOES NOT MAKE THE TERRAIN VARIED. THE TERRAIN WAS ALWAYS VARIED. This is the sentence to read
 # before reading anything into a run on this file. TerrainGenerator places all five types on EVERY
 # world from the WorldKey alone, and the Ruleset does not shape that pass at all -- so `minimal.toml`
@@ -382,7 +389,7 @@ candidates    = 3
 # radius, so a live world's Layer cannot adopt a different one without being recomputed from sources
 # it no longer holds. It is also UNRATIFIED — the 1–10 km band is 10× wide (plans/0002 §D1).
 #
-# `sealing_decay_tau = 0` MEANS NEVER, AND IT IS A STATED ABSENCE. 02 §2.4 keys Sealing's decay by
+# SEALING'S DECAY RATE IS NOT HERE, AND `sealing_decay_tau` IS REFUSED IF YOU WRITE IT. 02 §2.4 keys
 
 # THE DESIRABILITY COMPOSITION -- FOUR NUMBERS, EVERY ONE UNRATIFIED. adr/0122 deleted `w1`, because
 # land value drifting toward a target whose first term is land value made it a GAIN of 1/(1 - w1) on
@@ -429,9 +436,11 @@ desirability_noise_percent     = 100
 # base x Sealing / 1024. Offering it as a key would invite a file to state that a fully paved Cell
 # still farms.
 fertility_pollution_percent    = 4
-# terrain type; there is no terrain in Phase 1, so there is no key, so there is no rate to look up.
-# Zero is the conservative reading — Sealing only accumulates — and the bound is structural, because a
-# Cell cannot have more Tiles built on it than it has Tiles.
+# it by TERRAIN TYPE — rock may never recover, floodplain may recover over hundreds of Days — so it
+# is a `sealing_decay_tau` key on each [[terrain]] table and there is no global one. A file that
+# states no [[terrain]] heals NOWHERE, which is exactly what this file said by writing 0 here.
+# Milestone 24 task 4; the key is refused in [layers] rather than ignored, with a message naming
+# where it went.
 [layers]
 pollution_period      = 64
 pollution_offset      = 0
@@ -440,7 +449,6 @@ land_value_offset     = 16
 kernel_metres         = 1024
 pollution_decay_ticks = 2048
 land_value_tau        = 8
-sealing_decay_tau     = 0
 
 # The road network. plans/0020 (milestone 5a), and the first section here that describes the
 # *ground* rather than what happens on it. adr/0014: Streets snap to the grid, Arterials are
@@ -812,23 +820,72 @@ arrive_early_max_minutes = 15
 # missing one is ground the world contains and this file values at nothing.
 #
 # 🔴 ALL FIVE ARE UNRATIFIED, share ONE plans/0002 §D1 row, and the ratifier is the first farm.
+#
+# ---------------------------------------------------------------------------------------------------
+# `sealing_decay_tau` IS THE SECOND KEY, AND MILESTONE 24 TASK 4 MOVED IT HERE FROM [layers]. It is
+# how long ground of this type takes to heal after it is built on and then left. It USED to be one
+# global number in [layers], pinned at 0 in every shipped file, because 02 §2.4 keys the rate BY
+# TERRAIN TYPE and there was no terrain to key it by. There is terrain now, so the key sits beside
+# the type it is keyed by, and [layers] refuses it.
+#
+# ⚠ IT IS A COUNT OF SCHEDULED UPDATES, AND SEALING'S CADENCE IS A DAY, so it is a count of DAYS.
+# That is the only reason the number below is readable against CONTEXT.md -> Sealing's stated intent,
+# which is written in Days: "floodplain may recover over hundreds of Days". A tau counted in some
+# other unit would be a number nobody could check against that sentence without converting first.
+#
+# ⚠ A TAU IS NOT A RECOVERY TIME, AND THE TWO ARE NOT EVEN IN A FIXED RATIO. The decay is exponential
+# with a floor of one Tile, so a fully-sealed Cell -- 1,024 Tiles -- empties in roughly
+# `tau * ln(2 * 1024 / tau) + tau/2` Days, which is a TAU-DEPENDENT multiple: 4.1x at 48 and 2.9x at
+# 160. MEASURED, by SealingRecoveryMeasurementTests, from a Cell sealed to all 1,024 Tiles:
+#
+#     ordinary    tau  96   ->  329 Days to bare ground   (half gone at  66)
+#     rock        tau   0   ->  never                     (      -        )
+#     floodplain  tau  48   ->  197 Days                  (half gone at  33)
+#     marsh       tau  64   ->  244 Days                  (half gone at  44)
+#     thin_soil   tau 160   ->  468 Days                  (half gone at 112)
+#
+# QUOTE THE DAYS, NEVER THE TAU. ⚠ The first draft of this block carried a flat 7.4x derived on paper
+# and the instrument refuted it on its first run -- and floodplain's tau went 32 -> 48 in the same
+# edit, because 143 Days is not "hundreds of Days". A multiplier derived rather than measured is a
+# caveat that travels wrong, which is the exact failure the caveat is about (plans/0012 Cause 5).
+#
+# ⚠ THE FLOOR OF ONE TILE IS A FIX AND NOT A ROUNDING CHOICE. Plain integer exponential decay STALLS:
+# the decrement rounds to zero once the value falls below tau/2, so ground would settle at a permanent
+# residue -- measured at 3 Tiles for tau 8, 299 for tau 600 -- and a tau above 2,048 would never move
+# a full Cell at all. An endpoint stated in Days cannot be delivered by a curve that never arrives.
+# MapLayers.DecaySealing carries the argument and LayerFieldsTests watches both ends of it.
+#
+# `rock = 0` MEANS NEVER, and it is the one value here that is stated rather than chosen:
+# CONTEXT.md -> Sealing says rock may never recover. Zero is reached by a type SAYING zero, not by a
+# default, so a file that omits the key is refused rather than quietly meaning never.
+#
+# 🔴 THE OTHER FOUR ARE UNRATIFIED AND SHARE ONE plans/0002 §D1 ROW. Only floodplain's is anchored on
+# anything -- the "hundreds of Days" sentence -- and the remaining three are ORDERED against it rather
+# than derived: marsh drains slower than floodplain, ordinary slower again, thin soil slowest of the
+# four because there is least soil to come back. ⚠ THE ORDER IS AN ARGUMENT AND THE SPACING IS NOT.
+# Nothing says thin soil should be six times floodplain rather than three.
 
 [[terrain]]
 name = "ordinary"
 base_fertility_percent = 100
+sealing_decay_tau = 96
 
 [[terrain]]
 name = "rock"
 base_fertility_percent = 20
+sealing_decay_tau = 0
 
 [[terrain]]
 name = "floodplain"
 base_fertility_percent = 100
+sealing_decay_tau = 48
 
 [[terrain]]
 name = "marsh"
 base_fertility_percent = 50
+sealing_decay_tau = 64
 
 [[terrain]]
 name = "thin_soil"
 base_fertility_percent = 60
+sealing_decay_tau = 160

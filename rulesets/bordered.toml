@@ -224,7 +224,6 @@ land_value_offset     = 16
 kernel_metres         = 1024
 pollution_decay_ticks = 2048
 land_value_tau        = 8
-sealing_decay_tau     = 0
 
 [roads]
 block_tiles                    = 32

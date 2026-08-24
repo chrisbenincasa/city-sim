@@ -355,11 +355,27 @@ public sealed class MapLayers
 
     /// <summary>Phase 5: recompute whichever Layers this Tick's cadence is due for.</summary>
     /// <remarks>
-    /// <b>Sealing is not here, and its absence is the schedule being honest.</b> It changes on build,
-    /// so <see cref="LayerSchedule.For"/> answers <see cref="LayerCadence.Never"/> for it rather than
-    /// carrying a period nobody reads.
+    /// <para>
+    /// ✅ <b>Sealing is here as of milestone 24 task 4, and it was not before.</b> This paragraph used
+    /// to say its absence was the schedule being honest — it changes on build, so it had no cadence.
+    /// It has one now, because <em>recovery</em> is not the same event as sealing: ground unbuilt on
+    /// heals whether or not anything is built anywhere, so the pass that heals it has to be on a clock
+    /// rather than at a write site. <c>02 §2.4</c>, <c>adr/0044</c>.
+    /// </para>
+    /// <para>
+    /// <b>Its cadence is a Day and the other two are not, which is deliberate.</b> The rate is stated
+    /// in Days by the design (<c>CONTEXT.md</c> → Sealing), so the pass ticks in Days and the tau is a
+    /// count of Days with nothing to convert. See <see cref="LayerSchedule.Sealing"/>.
+    /// </para>
     /// </remarks>
-    public void Step(Ticks tick, RoadGraph graph)
+    /// <param name="tick">The Tick being stepped.</param>
+    /// <param name="graph">The Road Graph land value's noise term reads.</param>
+    /// <param name="terrain">
+    /// The <c>[[terrain]]</c> table this world's Ruleset states. Sealing's recovery rate is keyed by
+    /// terrain type, so the pass cannot look one up without it; a Ruleset stating no
+    /// <c>[[terrain]]</c> heals nowhere, which is <see cref="TerrainRuleset.None"/>.
+    /// </param>
+    public void Step(Ticks tick, RoadGraph graph, TerrainRuleset terrain)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -381,6 +397,11 @@ public sealed class MapLayers
             // added to a lag that is already the point of the column.
             SetLandValueTargets(graph);
             DriftLandValue();
+        }
+
+        if (Schedule.IsDue(Layer.Sealing, tick))
+        {
+            DecaySealing(terrain);
         }
     }
 
@@ -576,31 +597,74 @@ public sealed class MapLayers
     public int Sealing(Cells east, Cells north) => Read(_cells.Sealing, east, north);
 
     /// <summary>
-    /// Decays Sealing by one step. <b>Not scheduled, because its rate has no key yet.</b>
+    /// Heals one scheduled step of Sealing everywhere, at the rate that Cell's terrain type states.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>02 §2.4</c>: Sealing decays at a Ruleset rate <b>keyed by terrain type</b> — rock may never
-    /// recover, floodplain may recover over hundreds of Days. There is no terrain in Phase 1, so there
-    /// is no key to look a rate up by, so <see cref="LayerRates.Default"/> sets the time constant to
-    /// zero and this does nothing. The operator exists so that the slice which adds terrain finds the
-    /// mechanism rather than inventing it beside the storage.
+    /// recover, floodplain may recover over hundreds of Days. ✅ <b>Milestone 24 task 4 supplied the
+    /// key.</b> Until then this read one global time constant pinned at zero, because there was no
+    /// terrain to key a rate by; the tau now comes from
+    /// <see cref="TerrainRuleset.SealingDecayTau"/>, one per type, looked up per Cell.
+    /// </para>
+    /// <para>
+    /// 🔴 <b>The step is floored at one Tile while the value is positive, and that floor is a fix
+    /// rather than a rounding preference.</b> <c>value -= RoundDiv(value, tau)</c> is exponential
+    /// decay in integers and it <em>stalls</em>: the decrement rounds to zero once
+    /// <c>value &lt; tau ÷ 2</c>, so ground settles at a permanent residue of about half the tau and
+    /// never reaches bare. Worse, a tau above <c>2 × </c><see cref="CellGrid.TilesInCell"/> subtracts
+    /// nothing on the <em>first</em> update, so a fully-sealed Cell never moves at all. Measured
+    /// before the fix: tau 8 stalled at 3, tau 64 at 31, tau 600 at 299, and tau 2400 never moved.
+    /// ***Nothing caught it because this method had no caller and every shipped file stated a tau of
+    /// zero*** — the shape <c>adr/0043</c> is about, a claim nobody had a machine for.
+    /// </para>
+    /// <para>
+    /// <b>The floor makes the tail linear rather than exponential and that is accepted, not
+    /// overlooked.</b> What the design states is an endpoint in Days — <em>"floodplain may recover
+    /// over hundreds of Days"</em> — and an exponential that never arrives cannot deliver an endpoint
+    /// at all. A curve that is exponential where the quantity is large and one Tile a Day where it is
+    /// small reaches bare ground in <c>tau × ln(TilesInCell) + tau ÷ 2</c> updates, which is a number
+    /// somebody can check against the sentence.
+    /// </para>
+    /// <para>
+    /// <b>Zero means never, and it is reached by a type stating it rather than by a default.</b> Rock
+    /// states 0 (<c>CONTEXT.md</c>: <em>rock may never recover</em>), and a Ruleset with no
+    /// <c>[[terrain]]</c> at all heals nowhere — which is what every world before this one did, so no
+    /// standing city changes shape because this method gained a caller.
+    /// </para>
     /// </remarks>
-    public void DecaySealing()
+    /// <param name="terrain">The <c>[[terrain]]</c> table this world's Ruleset states.</param>
+    public void DecaySealing(TerrainRuleset terrain)
     {
-        int tau = _ruleset.Rates.SealingDecayTau;
-
-        if (tau <= 0)
+        if (!terrain.Stated)
         {
             return;
         }
 
         for (int slot = 0; slot < _cells.Rows.SlotCount; slot++)
         {
-            if (_cells.Rows.IsLive(slot))
+            if (!_cells.Rows.IsLive(slot))
             {
-                int value = _cells.Sealing[slot];
-                _cells.Sealing[slot] = value - IntegerMath.RoundDiv(value, tau);
+                continue;
             }
+
+            int value = _cells.Sealing[slot];
+
+            if (value <= 0)
+            {
+                continue;
+            }
+
+            int tau = terrain.SealingDecayTau(_terrain.At(_cells.East[slot], _cells.North[slot]));
+
+            if (tau <= 0)
+            {
+                continue;
+            }
+
+            int step = IntegerMath.RoundDiv(value, tau);
+
+            _cells.Sealing[slot] = value - (step < 1 ? 1 : step);
         }
     }
 

@@ -81,7 +81,11 @@ refusing to farm**, and the difference is the one that ADR spent a section on.
   is free; renumbering the five is a re-baseline.
 - ⚠ **The decay rate keyed by the same type is task 4's and is NOT decided here.** `[layers]
   sealing_decay_tau` is a single global today and becomes per-type; that reconciliation is task 4's and
-  is filed as such.
+  is filed as such. ✅ **DONE 2026-08-24 by task 4**: the key is a `sealing_decay_tau` on each
+  `[[terrain]]` table, `[layers]` refuses the old one by name, and the five values are in
+  [`plans/0002`](../../plans/0002-open-questions.md) §D1 under one row. ⚠ **They are a SECOND five
+  numbers keyed off this enumeration and they do NOT share the farm ratifier above** — their quantity
+  is Days from demolition to bare ground, which is observable today.
 
 ## What would trigger revisiting
 

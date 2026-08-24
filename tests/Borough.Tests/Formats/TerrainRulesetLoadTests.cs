@@ -35,27 +35,34 @@ public sealed class TerrainRulesetLoadTests
         family = "good"
         """;
 
-    /// <summary>The five types with the Base Fertilities <c>rulesets/varied.toml</c> states.</summary>
+    /// <summary>
+    /// The five types with the two keys <c>rulesets/varied.toml</c> states for each.
+    /// </summary>
     private const string Ground = """
         [[terrain]]
         name = "ordinary"
         base_fertility_percent = 100
+        sealing_decay_tau = 96
 
         [[terrain]]
         name = "rock"
         base_fertility_percent = 20
+        sealing_decay_tau = 0
 
         [[terrain]]
         name = "floodplain"
         base_fertility_percent = 100
+        sealing_decay_tau = 48
 
         [[terrain]]
         name = "marsh"
         base_fertility_percent = 50
+        sealing_decay_tau = 64
 
         [[terrain]]
         name = "thin_soil"
         base_fertility_percent = 60
+        sealing_decay_tau = 160
         """;
 
     private static Ruleset Accepted(string toml)
@@ -185,7 +192,7 @@ public sealed class TerrainRulesetLoadTests
     public void Barren_ground_is_a_ruleset_a_file_may_write()
     {
         Ruleset ruleset = Accepted(
-            Excepting("rock", Table("rock", "base_fertility_percent = 0")));
+            Excepting("rock", Table("rock", "base_fertility_percent = 0\nsealing_decay_tau = 8")));
 
         Assert.True(ruleset.Terrain.Stated);
         Assert.Equal(0, ruleset.Terrain.BaseFertility(TerrainKind.Rock));
@@ -226,7 +233,7 @@ public sealed class TerrainRulesetLoadTests
     public void A_name_that_is_not_a_terrain_type_is_refused()
     {
         RulesetRefusal refusal = Refused(
-            Excepting("marsh", Table("swamp", "base_fertility_percent = 50")));
+            Excepting("marsh", Table("swamp", "base_fertility_percent = 50\nsealing_decay_tau = 8")));
 
         Assert.Contains("'swamp' is not a terrain type", refusal.Reason, StringComparison.Ordinal);
         Assert.Contains("thin_soil", refusal.Reason, StringComparison.Ordinal);
@@ -242,7 +249,7 @@ public sealed class TerrainRulesetLoadTests
     public void A_second_table_for_one_type_is_refused()
     {
         RulesetRefusal refusal = Refused(
-            $"{Nothing}\n\n{Ground}\n\n{Table("rock", "base_fertility_percent = 40")}");
+            $"{Nothing}\n\n{Ground}\n\n{Table("rock", "base_fertility_percent = 40\nsealing_decay_tau = 8")}");
 
         Assert.Contains("a second [[terrain]]", refusal.Reason, StringComparison.Ordinal);
         Assert.Contains("'rock'", refusal.Reason, StringComparison.Ordinal);
@@ -274,10 +281,68 @@ public sealed class TerrainRulesetLoadTests
     public void A_base_fertility_off_the_scale_is_refused(int percent)
     {
         RulesetRefusal refusal = Refused(
-            Excepting("thin_soil", Table("thin_soil", $"base_fertility_percent = {percent}")));
+            Excepting("thin_soil", Table("thin_soil", $"base_fertility_percent = {percent}\nsealing_decay_tau = 8")));
 
         Assert.Contains($"base_fertility_percent is {percent}", refusal.Reason, StringComparison.Ordinal);
         Assert.Contains("adr/0155", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The second key: how long this ground takes to shed its Sealing, in scheduled updates.
+    /// </summary>
+    /// <remarks>
+    /// Milestone 24 task 4. <c>02 §2.4</c> keys the rate <b>by terrain type</b>, so it sits beside
+    /// the type rather than in <c>[layers]</c> — where it lived as one global pinned at zero, and
+    /// where it is now refused by name.
+    /// </remarks>
+    [Theory]
+    [InlineData(TerrainKind.Ordinary, 96)]
+    [InlineData(TerrainKind.Rock, 0)]
+    [InlineData(TerrainKind.Floodplain, 48)]
+    [InlineData(TerrainKind.Marsh, 64)]
+    [InlineData(TerrainKind.ThinSoil, 160)]
+    public void A_stated_set_carries_every_sealing_decay_tau(TerrainKind kind, int tau)
+    {
+        Ruleset rules = Accepted($"{Nothing}\n\n{Ground}");
+
+        Assert.Equal(tau, rules.Terrain.SealingDecayTau(kind));
+    }
+
+    /// <summary>A table that states no decay rate is refused, exactly as an unpriced one is.</summary>
+    /// <remarks>
+    /// <b>Zero cannot double as unset and that is why the key is required</b>: zero means <em>never
+    /// recovers</em>, which is rock's real answer (<c>CONTEXT.md</c> → Sealing), so defaulting to it
+    /// would make every silence say <em>never</em> in the voice of a decision.
+    /// </remarks>
+    [Fact]
+    public void A_table_that_states_no_sealing_decay_tau_is_refused()
+    {
+        RulesetRefusal refusal = Refused(
+            Excepting("marsh", Table("marsh", "base_fertility_percent = 50")));
+
+        Assert.Contains("sealing_decay_tau", refusal.Reason, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 🔴 A tau past twice a Cell's Tile count is refused, and the ceiling is not arbitrary.
+    /// </summary>
+    /// <remarks>
+    /// The decay step is <c>value ÷ tau</c>, so above <c>2 × TilesInCell</c> that step rounds to
+    /// nothing on a <em>full</em> Cell — ***a rate so slow it is silently the same as zero***, which
+    /// is the one value a designer must not be able to write by accident. Zero itself is admissible
+    /// and means never, said out loud.
+    /// </remarks>
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(2_049)]
+    [InlineData(100_000)]
+    public void A_sealing_decay_tau_off_the_scale_is_refused(int tau)
+    {
+        RulesetRefusal refusal = Refused(Excepting(
+            "floodplain",
+            Table("floodplain", $"base_fertility_percent = 100\nsealing_decay_tau = {tau}")));
+
+        Assert.Contains($"sealing_decay_tau is {tau}", refusal.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>A misspelled section is refused, and the refusal lists <c>[[terrain]]</c>.</summary>

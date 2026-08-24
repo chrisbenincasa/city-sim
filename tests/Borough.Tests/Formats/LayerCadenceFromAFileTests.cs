@@ -158,7 +158,10 @@ public sealed class LayerCadenceFromAFileTests
         Assert.Equal(new LayerCadence(256, 16), rules.Layers.Schedule.LandValue);
         Assert.Equal(1_024, rules.Layers.Constants.IndustrialPollutionMetres);
         Assert.Equal(8, rules.Layers.Rates.LandValueTau);
-        Assert.Equal(0, rules.Layers.Rates.SealingDecayTau);
+
+        // Sealing's rate left [layers] at milestone 24 task 4 and is keyed by terrain type, so the
+        // golden Ruleset -- which states no [[terrain]] -- heals nowhere and has nothing to assert.
+        Assert.False(rules.Terrain.Stated);
 
         // One Day, counted in scheduled updates: Ticks.PerDay over a period of 64. It was the literal
         // 128 until the clock moved on 2026-08-13 (adr/0094); derived here so the next move is caught

@@ -2904,6 +2904,7 @@ public static class RulesetLoader
             int pollutionPeriod = Cadence("pollution", schedule.IndustrialPollution,
                 out int pollutionOffset);
             int landValuePeriod = Cadence("land_value", schedule.LandValue, out int landValueOffset);
+            int sealingPeriod = Cadence("sealing_decay", schedule.Sealing, out int sealingOffset);
 
             int metres = Number("kernel_metres", constants.IndustrialPollutionMetres, minimum: 1,
                 "A kernel with no reach is not a diffused field.");
@@ -2912,9 +2913,18 @@ public static class RulesetLoader
             int landValueTau = Number("land_value_tau", rates.LandValueTau, minimum: 1,
                 "A time constant divides, so 0 is not one; land value with no momentum is a period "
                 + "of 1 rather than a tau of 0.");
-            int sealingTau = Number("sealing_decay_tau", rates.SealingDecayTau, minimum: 0,
-                "It counts scheduled updates, and 0 means Sealing never decays — Phase 1's value, "
-                + "because there is no terrain to key a rate off yet.");
+            // The key MOVED and is refused where it used to be, rather than ignored. A file carrying
+            // it means something by it, and silently reading nothing would leave a designer's stated
+            // rate doing nothing with no way to tell. Milestone 24 task 4, adr/0044.
+            if (Find(_layersTable!, "sealing_decay_tau") is not null)
+            {
+                Refuse(LineOf("sealing_decay_tau"), null,
+                    "sealing_decay_tau has moved out of [layers]. It is keyed BY TERRAIN TYPE "
+                    + "(02 section 2.4: rock may never recover, floodplain may recover over hundreds "
+                    + "of Days), so it is now a key on each [[terrain]] table and there is no global "
+                    + "one. A file with no [[terrain]] has ground that never recovers, which is what "
+                    + "every shipped Ruleset said by writing 0 here.");
+            }
 
             // The desirability composition's four numbers. All authored as PERCENTS or METRES rather
             // than as Q16.16, because 02 §2.5 question 2 says author in domain units and because the
@@ -2972,8 +2982,9 @@ public static class RulesetLoader
             return new LayerRuleset(
                 new LayerSchedule(
                     new LayerCadence(pollutionPeriod, pollutionOffset),
-                    new LayerCadence(landValuePeriod, landValueOffset)),
-                LayerRates.From(landValueTau, sealingTau, decayTicks, pollutionPeriod),
+                    new LayerCadence(landValuePeriod, landValueOffset),
+                    new LayerCadence(sealingPeriod, sealingOffset)),
+                LayerRates.From(landValueTau, decayTicks, pollutionPeriod),
                 stated,
                 desirability,
                 fertility);
@@ -4001,6 +4012,11 @@ public static class RulesetLoader
             var fertilities = new int[TerrainRuleset.Kinds];
             Array.Fill(fertilities, Unstated);
 
+            // The same sentinel and the same reason: zero is rock's real answer -- never recovers --
+            // so no value in range can double as unset. Milestone 24 task 4, adr/0044.
+            var decays = new int[TerrainRuleset.Kinds];
+            Array.Fill(decays, Unstated);
+
             foreach (TableSyntaxBase table in _terrainTables)
             {
                 if (!TryString(table, "name", out string? name, required: true)
@@ -4042,6 +4058,30 @@ public static class RulesetLoader
                 }
 
                 fertilities[(int)kind] = IntegerMath.RoundDiv(Fixed.FromInt((int)percent), 100);
+
+                if (!TryInteger(table, "sealing_decay_tau", out long tau, required: true))
+                {
+                    continue;
+                }
+
+                // Refused below zero and above what the operator can express. Zero MEANS never and is
+                // rock's answer. The ceiling is not arbitrary: the decay step is value/tau, so a tau
+                // past twice a Cell's Tile count rounds that step to nothing on a FULL Cell and the
+                // ground never moves at all -- a rate so slow it is silently the same as zero, which
+                // is the one value a designer must not be able to write by accident.
+                if (tau is < 0 or > (CellGrid.TilesInCell * 2))
+                {
+                    Refuse(LineOf((SyntaxNodeBase?)Find(table, "sealing_decay_tau") ?? table), null,
+                        $"sealing_decay_tau is {tau} for '{name}'. It is how many scheduled updates "
+                        + "this ground takes to shed its Sealing, so it runs 0 to "
+                        + $"{CellGrid.TilesInCell * 2}. Zero means NEVER, which is a real answer and "
+                        + "is rock's. A value above the top would be slower than the operator can "
+                        + "represent and would read as never without saying so.");
+
+                    continue;
+                }
+
+                decays[(int)kind] = (int)tau;
             }
 
             // Reported per missing type rather than as one "some are missing", because the file's
@@ -4051,7 +4091,7 @@ public static class RulesetLoader
 
             for (int kind = 0; kind < fertilities.Length; kind++)
             {
-                if (fertilities[kind] != Unstated)
+                if (fertilities[kind] != Unstated && decays[kind] != Unstated)
                 {
                     continue;
                 }
@@ -4059,10 +4099,12 @@ public static class RulesetLoader
                 complete = false;
 
                 Refuse(LineOf(_terrainTables[0]), null,
-                    $"no [[terrain]] states '{SpellingOfTerrain((TerrainKind)kind)}'. A file that "
-                    + "prices its ground prices all of it: the generator places every terrain type "
-                    + "from the WorldKey whatever this file says, so an unstated one is ground the "
-                    + "world contains and this file values at nothing (adr/0157).");
+                    $"no [[terrain]] fully states '{SpellingOfTerrain((TerrainKind)kind)}' -- it "
+                    + "needs both base_fertility_percent and sealing_decay_tau. A file that prices "
+                    + "its ground prices all of it: the generator places every terrain type from the "
+                    + "WorldKey whatever this file says, so an unstated one is ground the world "
+                    + "contains and this file values at nothing (adr/0157), or ground whose recovery "
+                    + "rate nothing states (adr/0044).");
             }
 
             if (!complete || _refusals.Count > 0)
@@ -4075,7 +4117,12 @@ public static class RulesetLoader
                 fertilities[(int)TerrainKind.Rock],
                 fertilities[(int)TerrainKind.Floodplain],
                 fertilities[(int)TerrainKind.Marsh],
-                fertilities[(int)TerrainKind.ThinSoil]);
+                fertilities[(int)TerrainKind.ThinSoil],
+                decays[(int)TerrainKind.Ordinary],
+                decays[(int)TerrainKind.Rock],
+                decays[(int)TerrainKind.Floodplain],
+                decays[(int)TerrainKind.Marsh],
+                decays[(int)TerrainKind.ThinSoil]);
         }
 
         /// <summary>Resolves a <c>[[terrain]]</c> <c>name</c> to its <see cref="TerrainKind"/>.</summary>
