@@ -317,10 +317,13 @@ of it.
 > recorded gave a middling result. A whole-run counter cannot attribute contention to the measurement
 > inside it, however it is divided.
 
-**What the re-capture must control, and the first one is new**: nothing else running in this
-repository; then no desktop co-tenants; then root, for `performance`; then **three captures inside one
+**What the re-capture must control, and the first one is new**: nothing else running **on this
+machine**; then no desktop co-tenants; then root, for `performance`; then **three captures inside one
 quiet window**, reported as a range, because one capture is an assertion and two are an error bar only
-if the machine is the same twice.
+if the machine is the same twice. ⚠ **The first control read *in this repository* until 2026-08-24**,
+and it was widened because a machine carrying a compiler from an **unrelated project** at 603% would
+have passed it — ***cores are a property of the machine and not of the repository.***
+[`spike-results`](../docs/spike-results.md) → *S5 L6* owns the list.
 
 ---
 

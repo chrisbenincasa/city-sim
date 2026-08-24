@@ -192,8 +192,11 @@ which a host-tunable Cap would destroy.
 `03 §3.9`'s fallback tier stays an expectation rather than becoming an obligation. ⚠ **4 threads:
 bimodal between ~2.5× and ~3.9× on a contended machine, and still owed.** The supply-side multiple is
 therefore **at least 1.84× and plausibly near 4×**, and ⚠ **the 4× must not be quoted bare** — the
-re-capture's first control is *nothing else running in this repository*, because the interference was
-another session's test suite rather than anything on the desktop. `spike-results` → *S5 L6*.
+re-capture's first control is *nothing else running on this machine*, because the interference was
+another session's test suite rather than anything on the desktop. ⚠ **That control read *in this
+repository* until 2026-08-24 and was widened to the machine**, on a sighting of a 603% compiler
+belonging to an unrelated project: ***cores are a property of the machine, not of the repository.***
+`spike-results` → *S5 L6* owns the list.
 
 **A fallback tier below Microscopic is recorded as likely** in `03 §3.9` and in `plans/0002`, as an
 expectation with no design attached. Two things would retire it: the threading measurement coming back

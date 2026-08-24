@@ -263,8 +263,11 @@ going in circles. **The standing rule: an argument session runs when something c
 it, and never because it is available.**
 
 ⚠ **The three tracks contend — for conclusions, for cores, and for names.** A capture whose subject is
-parallelism names *nothing else running in this repository* as its first control.
-[`0012`](0012-corpus-audit.md) holds all three sightings.
+parallelism names *nothing else running on this machine* as its first control — ⚠ **widened from *in
+this repository* on 2026-08-24**, because ***cores are a property of the machine and not of the
+repository*** and the narrower wording would have passed a machine carrying an unrelated project's
+compiler at 603%. [`0012`](0012-corpus-audit.md) holds all three sightings;
+[`spike-results`](../docs/spike-results.md) → *S5 L6* owns the control list.
 
 | | Track | Task | Plan | Why this one |
 |---|---|---|---|---|
