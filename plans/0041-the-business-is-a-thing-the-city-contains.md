@@ -633,6 +633,111 @@ task 8's founder half. ***A phantom block on the task that turned out to be the 
 milestone 27's** — `06:99` places wages at milestone 15 and `Readouts.cs:69` agrees. Only `jobs` and
 shift hours move at task 7.
 
+## Task 7's survey — taken 2026-08-24, and the task is SMALLER than this document had it
+
+⚠ **Counted against the tree, not quoted.** ***A count of call sites sizes the work and settles
+nothing*** — the same caveat the census above carries, and this survey exists because **G1** found all
+three of the risk cell's numbers stale.
+
+### The 85 is 64 doc comments
+
+`grep -r Workplace src/` returns **85 lines across 24 files**. **Twenty-one are not comments**, and
+**four of those are string literals** — two headings in `CommuteDump`, one refusal message in
+`RulesetLoader`, and the `Invariant.CitizenIsInExactlyOneWorkplace` enum member. ***So the code surface
+naming `Workplace` is seventeen lines.*** ⚠ **This does not contradict the *33 sites assume a Workplace
+is a Building* figure**, which counts sites that assume it **without naming it** — `jobs` on the
+building kind, the worker list, `HasJob`. **Both are true and they count different things.** ***What is
+wrong is reading 85 as the size of the change.***
+
+### The one door, and it is the reason this is tractable
+
+**`World.Employ` (`World.cs:3966-3995`) is the only write onto `CitizenTable.Workplace`**, and its own
+doc comment says so: *"The one door onto `CitizenTable.Workplace`, and that is what the reverse index
+costs."* `World.cs:4107` clears it on the way out. ***So the signature change is one mutator and one
+clear***, and every other site is a **read** that follows the handle.
+
+### What does not exist yet, and is therefore the first piece of work
+
+🔴 **There is no `BusinessKindDefinition`.** Task 6 shipped the second namespace as **names only** —
+`Ruleset.BusinessKindKeys`, `BusinessKindKey(byte)`, `BusinessKindCount`, `DeclaresBusiness(byte)`
+(`Ruleset.cs:2566-2735`). **There is no member holding `jobs` or shift hours.** `RulesetShape.cs:217`
+already anticipates it in a comment — *"there is no `BusinessKindDefinition`… on that day this grows a
+shape check"* — ⚠ **and that comment is wrong about the wage** (`plans/0012`, Cause 4). ***Building
+`BusinessKindDefinition` is step one and nothing else can start before it.***
+
+### The hash move is ONE line, and it is exactly where G6 said
+
+`CommuteRoster.cs:186` — `ShiftStartOf(key, buildings.Rows.IdAt(workplace), definition)`. **The shift
+start is drawn on the *Building's* monotonic id.** Point it at the Business's and ***every Citizen in
+the city re-rolls their shift start***, so the Day's shape changes everywhere at once. **All four
+golden artefacts re-record** — `world-hash.txt`, both session traces, and the driving trace. ⚠ **Under
+[`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
+that costs nothing and must not be cited as a reason to defer, narrow or split**; what it buys is a
+commit whose subject explains it.
+
+### ✅ The spatial search does NOT change, and that was worth checking
+
+`EmploymentEngine.cs:352` samples **Buildings** — `BuildingsInCells.NthIn(box, …)` — and then asks
+`HasJob(building)`. ***The box is over Buildings because that is where locations live, and a Business
+has no location of its own.*** So the search becomes **sample a Building, then walk its Businesses**
+through `World.BuildingBusinesses`, which milestone 27 task 8 already uses. ⚠ **Only the employer's
+identity moves; the geometry is untouched** — which is **G7**'s *the search half is separable* holding
+up under inspection rather than being assumed.
+
+### What moves tables
+
+- **`BuildingTable.WorkerHead` / `WorkerTail`** (`BuildingTable.cs:34-35`, both `Derived`) → **`BusinessTable`**.
+  `CitizenTable.WorkerNext` stays where it is — it hangs off the Citizen and does not care what it
+  points into. `World.cs:1884-1889` clears all three; `World.cs:2167` composes the `IndexList`.
+- **`World.TryDeclaredJobs(byte kind, out int jobs)`** (`World.cs:3676`) reads `Rules.Kind(kind).Jobs`,
+  the **building** kind → reads the business kind. ⚠ **Its *derelict kind keeps its workers* rule is
+  load-bearing and must survive the move** — *"a designer deleting a paragraph must not sack a
+  District."*
+- **`World.HasJob(int buildingSlot)`** (`World.cs:3935`) → takes a Business slot.
+- **`Evidence.cs:57`** and **`CommuteDump.cs:423`** both read `Rules.Kind(kind).Jobs` for display.
+
+### 🔴 The survey's own finding — an unpremised Business employs nobody, and that is CORRECT
+
+**A Business with no premises has no location**, so the spatial search cannot find it and the commute
+roster cannot place a Trip to it. ⚠ **This lands directly on
+[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md)**,
+which makes the founder the Business's first worker — **and the founder founds it UNPREMISED**.
+
+***The existing code already produces the right answer and it should be left to.*** `CommuteRoster`'s
+hours lookup returns `false` the moment the workplace handle does not resolve to a Building
+(`CommuteRoster.cs:164-165`); after the move it resolves Business → premises, and an unpremised
+Business fails the second hop the same way. **So a founder is employed, is counted as employed, and
+makes no commute until placement tenants their Business.** ⚠ ***That is a legible story rather than a
+hole*** — they have a business and nowhere to work yet — and it falls out of a guard that already
+exists.
+
+🔴 **It does need deciding rather than discovering, and the decision is task 7's**: whether `Employ`
+**accepts** an unpremised Business at all. **Accepting is what `adr/0146` requires**; refusing would
+make the founder unrecordable until placement and put the founder link back to needing a column.
+✅ **`CommuteRoster.Add` tolerates it cleanly — READ, not assumed** (`CommuteRoster.cs:237-248`). It
+guards the whole body on `TryPhasesOf`, so a `false` inserts into neither bucket and writes no
+`CommuteBucket`. And `Employ`'s **remove-rewrite-add** order means `Remove` has already zeroed the
+bucket (`:283`), ***so an unrosterable founder ends at zero rather than stale*** — which is the value
+`Remove` itself treats as *not rostered*. **No new guard is needed anywhere.**
+
+### 🔴 And the survey's second finding — NOTHING RE-ROSTERS A WORKER WHEN THEIR EMPLOYER IS PLACED
+
+⚠ **This one is a gap the change CREATES, and it exists in no form today.** A founder employed by an
+unpremised Business is correctly unrostered. **When placement later tenants that Business into a
+Building, the Citizen's workplace becomes reachable — and nothing calls `Commutes.Add` at that
+moment.** ***So the founder would stay unrostered for ever, employed by a Business that now has
+premises, and never make a commute.***
+
+**It cannot happen today**, because a Workplace is a Building and a Building never stops having a
+location. ***The severable handle only ever goes one way — a demolition takes a workplace away, and
+nothing has ever given one back.*** ⚠ **Pointing the handle at a Business makes the reverse
+transition real for the first time**, because a Business acquires premises. **Task 7 owes a
+re-roster at the placement site**, and `Employ`'s own doc comment names the failure shape it would
+otherwise produce: *"a Building whose worker list disagrees with the Citizens pointing at it — and
+the disagreement is invisible, because the list is derived and therefore folds into no hash."*
+🔴 **This one would be invisible in the same way**: an unrostered worker makes no Trip, and no
+invariant counts Trips that should have happened.
+
 ## What decomposition found
 
 **G1 — 🔴 the risk cell states three numbers and all three have drifted.** `06:95` and `0003:250` say
