@@ -186,7 +186,7 @@ legal here. 🔴 **Splitting it moves the refusal count and `RefusalCountTests` 
 a saved `BusinessTable.Kind`, `World.CreateBusiness(premises, kind = 0)`, the migration walk
 (`RulesetMigration.BusinessKind`), two `RulesetShape` members, and
 [`rulesets/tenanted.toml`](../rulesets/tenanted.toml) — the fourteenth shipped file — guarded by
-`BusinessKindLoadTests`. **The whole assertion tier is green at 2,108.** Findings **G14**–**G23** below.
+`BusinessKindLoadTests`. **The whole assertion tier is green at 2,108.** Findings **G14**–**G24** below.
 
 ⚠ **There is no `BusinessKindDefinition` type and that is the decision, not an omission.** A
 `[[business]]` carries a `name` and nothing else, because `adr/0141` gives the trade `jobs`, shift hours
@@ -227,9 +227,19 @@ channel is a TRANSFER and issues nothing**, so **G8**'s already-miscounted map o
 
 - 🔴 **THREE numbers are owed, not one** — a founding band, an arrival band and a founding **rate**.
   `0002` §D2 holds one row and must become three. ⚠ **The rate has no precedent to copy.**
-- 🔴 **The founding TRIGGER is the open work**: which Household founds, on what condition. ⚠ **It must
-  not become a demand scalar** — there is no RCI meter and the Unplaced Pool is the only demand signal
-  the design admits — so the condition has to be a property a Household already has.
+- ✅ **The founding TRIGGER is settled by `adr/0145`'s own amendment, 2026-08-24**: ***a Household
+  founds on its own MEANS and never on the city's NEED.*** A pass on the placement interval draws a
+  bounded sample of **housed** Households; a drawn one founds if its balance covers the band, and the
+  band **moves** Bin to Bin. **Nothing consults how many shops exist** — a trigger that reads a
+  shortage is the RCI meter whatever it is called. The duration is authored and the sample derived
+  (`adr/0059`), the draw is with replacement (placement's shape, so `1/e` goes unlooked-at), and it
+  takes **`purpose_tag` 25**.
+- 🔴 **A CONSEQUENCE NEITHER ADR SHOWS ALONE, and it is the thing to watch in the balance run**
+  (**G24**): ***a founded Business that never finds premises EXPORTS its founder's money.*** Founding
+  is a transfer and conserves; `Depart` subtracts from `MoneySupply.Issued` when the give-up bound
+  expires. **So found-then-fail is a one-way leak of household wealth**, at a rate the founding
+  duration sets. Not obviously wrong — the entrepreneur emigrated with their capital — but ***the
+  founding duration is therefore not a free parameter.***
 - ✅ **`UnpremisedTable.Gate` should now be declared**, and the table's own sentence is what licenses
   it: it was omitted because *"a column meaningless for every one of its rows is worse than one
   meaningless for half of them"*, and with two channels it is meaningful for half.
@@ -427,6 +437,22 @@ balance too, so one declared scalar now belongs to two entities and the declarat
 ⚠ **G11 called this half *genuinely small* and it is not** — it read the entry points, which are small,
 and not the scope declaration, which is a fork. **Left open; it is task 9's to settle and it is likely
 an ADR** (0145–0149 are reserved to this milestone).
+
+**G24 — the source question was never a number, and the ledger had it typed as one for a day.**
+[`0039`](0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md) **V31** concluded
+*"question 3 is not 'what creates a Business' — it is 'what CAPITALISES one', and that is a number."*
+**Opening task 8 found there is no first line of code in that reading**: a band with nothing to draw it
+is not a source. ⚠ ***A question that changes type has not necessarily been answered; it may only have
+been narrowed*** — and the narrowing was recorded as a closure, so `0002` §D2 carried a *number* row
+while the *shape* it depended on was owned by nobody. Settled by
+[`adr/0145`](../docs/adr/0145-a-business-is-founded-by-a-household-or-arrives-through-a-gate-and-both-land-in-the-pool.md)
+and its amendment, both 2026-08-24, with the user in the room.
+
+🔴 **Settling it TRIPLED the ledger row rather than discharging it.** One band became a founding band,
+an arrival band and a founding duration — because *what a founder spends* and *what an immigrant
+carries* are different quantities with different arguments, which the single-channel reading had hidden.
+***A row that looks like one number because nobody has decided the shape is a row that will grow when
+somebody does.***
 
 ## What decomposition found
 

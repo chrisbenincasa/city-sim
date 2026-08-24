@@ -11,6 +11,8 @@ money; the gate channel is the Outside Connection, which [`adr/0024`](0024-money
 already names as money's only source.** ***Neither channel opens a new KIND of door.***
 `SOLVE THE ACTUAL PROBLEM` `UNIQUE INDIVIDUALS` `NO VERDICT`
 
+⚠ **AMENDED the same day by its own task, and the amendment is at the foot of this file**: *the founding trigger* — ***a Household founds on its own MEANS and never on the city's NEED***, because a trigger that reads a shortage is the RCI meter this design bans however it is spelled. 🔴 **The amendment also names a consequence neither this ADR nor `adr/0142` shows alone: a founded Business that never finds premises EXPORTS its founder's money.**
+
 **This answers the question [`adr/0142`](0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md)
 declined and [`plans/0039`](../../plans/0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md)
 **V31** reframed away.** `0142` settled the **sink** and says so in its own opening: *"What this ADR
@@ -123,3 +125,97 @@ gets built. It would also make every shop's existence a policy setting.
 - **The two channels producing indistinguishable cities.** If a founded shop and an immigrant shop
   behave identically at every point after creation, the second channel is paying for itself in numbers
   and ratifiers and buying nothing, and one of them should go.
+
+## Amendment — milestone 27 task 8: the founding trigger
+
+**Drafted 2026-08-24, before the pass was written.** The decision above left one thing open and named
+it the open work: ***which Household founds, and when.*** This settles it.
+
+> **A Household founds on its own means, and never on the city's need.** A pass on the placement
+> interval draws a bounded sample of **housed** Households; a drawn Household founds if its balance
+> covers the founding band, and the band **moves** from its Bin into the new Business's. ***Nothing in
+> the condition consults how many shops the city has, how many are vacant, or whether anything is
+> unsold.***
+
+### Why the condition is means and not need
+
+**Because *need* is the RCI meter under another name.** `CONTEXT.md` bans a demand scalar outright and
+the design's answer is that **the Unplaced Pool *is* the demand signal** — a *housing* signal, produced
+by a real queue of real Households. There is no commercial equivalent, and *"count the shops and found
+one when the count is low"* would not be a signal at all: it would be a thermostat, reading an
+aggregate nothing in the city computes for any other reason. ⚠ **A trigger that reads a shortage is a
+scalar however it is spelled.**
+
+**Means is what the actor can actually see**, which is
+[`adr/0017`](0017-agents-satisfice-they-never-optimise.md) and `BOUNDED KNOWLEDGE` arriving together.
+A family with savings opens a shop. It does not know whether the city needs one, and **some of them are
+wrong** — the shop finds no premises, waits, and leaves. ***That is `NO VERDICT` working: the mechanism
+admits more than one outcome, and which one it produces is downstream of whether the player supplied
+commercial premises.***
+
+### The shape, and every piece of it has a precedent
+
+- **A duration is authored and the count is derived** —
+  [`adr/0059`](0059-a-zone-rules-sample-is-a-revisit-period-so-the-ruleset-states-a-duration.md),
+  unchanged. The Ruleset states **how long it takes for every Household to reconsider founding once**,
+  and the engine derives `sample = ceil(Households × interval ÷ reconsider_ticks)`. ⚠ **Authoring a
+  count instead would make the felt quantity — the fraction of the city starting a business per cycle —
+  depend on the size of the city**, which is that ADR's whole argument and it transfers without
+  modification. 🔴 **So §D2's *founding rate* is a DURATION**, and that is a refinement of the row
+  rather than a fourth number.
+- **The sample is drawn with replacement**, exactly as `PlacementEngine` draws its pool, with the same
+  known consequence: about **`1/e`** of the population goes unlooked-at in any period. **That is a
+  rate and not coverage**, which is the correction `[placement] revisit_ticks` already carries.
+- **Housed Households only.** An unhoused Household is in the Unplaced Pool waiting for somewhere to
+  live; founding a shop from the queue is a claim about people this design has not made, and it would
+  put one Household in two pools at once.
+- **A new `purpose_tag`**, because reusing one correlates two decisions invisibly. ⚠ **Tag 25**, which
+  is reserved to this milestone against the concurrent branch.
+- **No new door.** The band moves Bin to Bin. `MoneySupply.Issued` is untouched and
+  `Invariant.MoneyIsConserved` needs no new case.
+
+### 🔴 The consequence neither ADR shows on its own
+
+***A founded Business that never finds premises EXPORTS its founder's money.*** The founding channel is
+a transfer, so the city's supply is unchanged at founding — but `World.Depart(Handle<Business>)`
+subtracts the balance from `MoneySupply.Issued` when the give-up bound expires
+([`adr/0142`](0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md)).
+**So found-then-fail is a one-way leak of household wealth out of the city**, and the rate at which it
+leaks is the founding duration.
+
+⚠ **This is emergent from combining this ADR with `0142` and is invisible in either alone**, which is
+why it is written here rather than left to be discovered in a balance run. **It is not obviously wrong**
+— the entrepreneur emigrated and took their capital, which is what `adr/0024`'s balance of payments is
+for — but it means ***the founding duration is not a free parameter***: set it short against a city with
+no commercial premises and the city bleeds. **`LEGIBLE CAUSE` requires this be visible**, so the
+founding pass counts foundings and the retirement pass already counts departures; the two read side by
+side are the diagnosis.
+
+### Rejected, for the trigger specifically
+
+**A bare balance threshold with no rate.** Every Household over the line founds on the same Tick, which
+is a step function rather than a mechanism — and then nothing founds again until balances have grown.
+***The city would get its commerce in pulses keyed to a number nobody chose to be a clock.***
+
+**A Life Stage gate.** `LifeStage` is a real column and would cost nothing to read, and it is rejected
+because tying entrepreneurship to a household's age is **a claim about people that this design has not
+made anywhere else**. If it is ever made, it belongs in `CONTEXT.md` first.
+
+**Founding driven by vacant commercial premises.** It looks like means rather than need and is not: it
+reads an aggregate over Buildings, so it is the demand scalar again — and it **re-couples shop supply
+to building supply**, which is the coupling
+[`adr/0069`](0069-placement-is-a-mechanism-of-its-own-and-construction-houses-nobody.md) exists to
+split apart.
+
+### What would trigger revisiting this amendment
+
+- **The export dominating.** If a balance run shows found-then-fail moving more money out of the city
+  than trade moves in, the founding duration is not merely mistuned — the channel is a wealth pump and
+  the give-up bound is the wrong sink for a Business that never traded at all.
+- **The sample showing up in the Tick budget.** The pass walks a derived fraction of *Households*, which
+  is the largest population in the city after Citizens. If [`plans/0013`](../../plans/0013-tick-budget.md)
+  ends up carrying a row for this that is not a rounding error, the condition needs an index rather than
+  a sample.
+- **Founding proving unobservable.** If every founded Business is placed immediately in every world that
+  ships, the two channels produce indistinguishable cities and the parent ADR's own third revisit
+  trigger fires.
