@@ -1535,6 +1535,34 @@ violation before the heading was corrected.
 
 ## Fixed in the sitting that found them
 
+**⚠ Cause 5 with no number in it — `adr/0145` argued from a table column that does not exist.** The
+ADR's `UNIQUE INDIVIDUALS` paragraph reads *"a Business founded by a named Household has a founder the
+player can inspect — the money came from somewhere the player can point at."* `BusinessTable` declares
+`building`, `kind`, `bin_head`, `bin_tail`, `balance`, `building_next` and `pool_slot`. **There is no
+founder.** `World.Found` moves the band and severs the link in the same statement. Written and
+contradicted by its own task's code **on the same day, 2026-08-24**; found the next sitting by reading
+the table. Banner and inline mark added to `0145`; repaired by
+[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md),
+which makes the claim true through the employment link rather than the column.
+
+⚠ **It generalises Cause 5 past quantities, which is why it is filed here rather than as a Cause 8.**
+This ledger's Cause 5 is *a number quoted away from the sentence that qualifies it*, and every prior
+sighting carried digits. ***This one carries none — the thing detached from its support is a
+CAPABILITY*** — but the mechanism is identical: an argument reached for a fact of the right *shape*,
+found a sentence that supplied it, and never checked that the sentence rested on anything. **The
+writing-side repair is also identical**: name the claim after what the build does, not after what the
+argument needs. ***A pillar is as quotable as a percentage and detaches the same way.***
+
+🔴 **Nothing mechanical could have caught it, and the reason is structural.** Every check in
+`tests/Borough.Tests/Corpus/` is document-to-document; `RefusalCountTests` is the sole document-to-code
+exception and it counts `Refuse(` sites in one file. ***A prose claim about a table's contents is
+invisible to all thirty-two***, so the only instrument that sees it is a reader who opens the table.
+**This is the same blind spot** [`plans/0041`](0041-the-business-is-a-thing-the-city-contains.md) **G29**
+found from the other side — `CitizenTable.Employment` is `Saved`, therefore hashed, and nothing in
+`src/` writes or reads it. **A saved column with no writer and a prose claim with no column are the
+same hole seen from two directions**, and neither has an owner.
+
+
 **⚠ Cause 2, in the table whose whole job is to be the enumeration.** Milestone 12 task 4 registered
 `Invariant.ADistrictCellNamesALiveDistrictAndBuiltGround` in the end-of-run tier and **did not add it to
 [`02 §10`](../docs/02-simulation-model.md)'s end-of-run row**, which lists the whole-world walks one by

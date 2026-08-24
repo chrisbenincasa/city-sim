@@ -13,6 +13,8 @@ already names as money's only source.** ***Neither channel opens a new KIND of d
 
 ⚠ **AMENDED the same day by its own task, and the amendment is at the foot of this file**: *the founding trigger* — ***a Household founds on its own MEANS and never on the city's NEED***, because a trigger that reads a shortage is the RCI meter this design bans however it is spelled. 🔴 **The amendment also names a consequence neither this ADR nor `adr/0142` shows alone: a founded Business that never finds premises EXPORTS its founder's money.**
 
+🔴 ⚠ **AMENDED AGAIN, 2026-08-24, by [`adr/0146`](0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md) — and it CORRECTS a claim made below.** The subject of founding moves from a **Household** to a **Citizen**: founding spends a Citizen's labour *and* the Household's money, and the founder becomes the Business's first worker. ***The paragraph headed "Why the founding channel matters more than it looks" is WRONG AS BUILT and is left standing under this banner*** — it argues that a founder is inspectable, and `BusinessTable` records no founder. `adr/0146` makes the sentence true through the employment link rather than through the column this ADR implied. Filed as [`plans/0012`](../../plans/0012-corpus-audit.md) **Cause 5**, [`plans/0041`](../../plans/0041-the-business-is-a-thing-the-city-contains.md) **G26**.
+
 **This answers the question [`adr/0142`](0142-an-unpremised-business-emigrates-so-the-sink-is-the-one-households-already-use.md)
 declined and [`plans/0039`](../../plans/0039-session-v-the-business-is-the-actor-and-the-building-is-premises.md)
 **V31** reframed away.** `0142` settled the **sink** and says so in its own opening: *"What this ADR
@@ -55,6 +57,8 @@ shape this design has already chosen once**, and the argument transfers without 
 connected city and a rich isolated one still get shops.***
 
 ### Why the founding channel matters more than it looks
+
+🔴 ⚠ **THE FIRST TWO SENTENCES OF THIS PARAGRAPH WERE FALSE ON THE DAY THEY WERE WRITTEN — see the banner at the head of this file.** `BusinessTable` declares no founder, so nothing could be inspected and nobody could point at anything. **The paragraph's CONCLUSION survives** — the founding channel is the one that makes a shop a thing a person did — and [`adr/0146`](0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md) is what makes it true.
 
 **It is the only one that makes a shop a thing a person did.** `UNIQUE INDIVIDUALS` is a pillar, and a
 Business founded by a named Household has a founder the player can inspect — the money came *from*

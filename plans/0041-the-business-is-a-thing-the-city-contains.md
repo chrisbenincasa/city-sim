@@ -487,6 +487,60 @@ correct, tested, green, and unbounded in the first world anybody wrote for it.
 builds the gate owes the give-up rule* is now two checks over two collections, and neither is reachable
 from the other. ***A rule stated once about one collection does not generalise itself.***
 
+**G26 — 🔴 `adr/0145` ARGUED FROM A COLUMN THAT DOES NOT EXIST, AND THE CODE SHIPPED THE SAME DAY
+WITHOUT IT.** The ADR's `UNIQUE INDIVIDUALS` paragraph reads *"a Business founded by a named Household
+has a founder the player can inspect — the money came from somewhere the player can point at."*
+`BusinessTable` declares seven columns — `building`, `kind`, `bin_head`, `bin_tail`, `balance`,
+`building_next`, `pool_slot` — and **not one records a founder**. `World.Found` moves the band and the
+link is severed in the same statement. ⚠ **Nobody can point at anything.** ***The sentence was written
+about the build the argument implied rather than the build the task produced***, which is
+[`adr/0093`](../docs/adr/0093-a-description-of-the-build-is-where-to-look-and-never-what-you-found.md)
+inverted — a description that is not where to look because there is nowhere to look. Filed to
+`plans/0012` **Cause 5**; repaired by
+[`adr/0146`](../docs/adr/0146-founding-costs-a-citizen-and-the-households-money-so-the-founder-is-the-first-worker.md),
+which makes the claim true through the **employment link** rather than the column.
+
+⚠ **It was not found by any corpus check and could not have been.** Every mechanical check in
+`tests/Borough.Tests/Corpus/` is document-to-document — `RefusalCountTests` is the sole exception and it
+counts one thing in one file. ***A prose claim about a table's contents is invisible to all of them***,
+so the only instrument that sees it is somebody reading the table.
+
+**G27 — the founder record and the workplace handle CANNOT BOTH be columns, and task 7 is what makes
+that true.** `World` builds `Citizens` at `World.cs:147` and `Businesses` at `:167`, so declaring
+`BusinessTable.Founder` as a handle into `citizens.Rows` works **today**, one line, on `Building`'s own
+Severable precedent. ⚠ **Task 7 repoints a workplace at a Business**, and then `CitizenTable` needs
+`Businesses` while `BusinessTable` needs `Citizens` — a **constructor cycle** in a single ordered pass.
+The corpus's standing answer is a handle one way and an intrusive list the other (`DwellingNext`,
+`WorkerNext`, `BuildingBusinesses`), so **exactly one may be the column**. ***Choosing the workplace
+makes the founder fall out for free and costs nothing***, which is why `adr/0146` declines the column.
+🔴 **Consequence for this document's task order: task 7 is now a PREREQUISITE of the founder record**,
+not parallel work — an unpremised Business has no Building, so a `Workplace` handle addressing
+`BuildingTable` cannot point at one.
+
+**G28 — the income half of the founding cost is `adr/0026` and is UNBUILT, so 27 must not approximate
+it.** The intent was *"the founder has a job that periodically has no income until the Business has
+income."* `Readouts.cs:69` states the position in its own doc comment: *"income is a **flow** that
+arrives with wages in milestone 15"*, `adr/0070`-classified **unbuilt**. ⚠ **And it is not merely
+unbuilt, it is DESIGNED** —
+[`adr/0026`](../docs/adr/0026-wages-are-posted-locally-and-never-cleared.md) *wages are posted locally
+and never cleared*, each Business adjusting its own wage by its own fill rate. ***So the described
+mechanism is `adr/0026` running on a Business with an empty Bin***, and `adr/0114` already built the
+Bin to be blamed and waited on. **Under `adr/0070` the answer is build wages at 15**, and a 27-shaped
+proxy would put a second, worse answer in front of an ADR that already exists. **27 ships the labour
+cost only**, which is real on its own: the founder is occupied and the employment pass will not hire
+them.
+
+**G29 — `CitizenTable.Employment` is SAVED, therefore HASHED, and nothing in `src/` writes or reads
+it.** Declared `_rows.Saved<byte>("employment")` at `CitizenTable.cs:68`. The only writer in the
+repository is `tests/Borough.Tests/Golden/GoldenFixtures.cs:510`, `(byte)(i % 3)` — an arbitrary value
+in a fixture, with no enum, no constant and no consumer anywhere. ⚠ **So the golden baseline covers a
+byte that means nothing**, and every State Hash containing it is folding a fixture's arithmetic.
+***This is the mirror image of the `car_park.segment_next` defect `DerivedRebuildAuditTests` caught at
+milestone 7***: that was a `Derived` column nothing rebuilt, this is a `Saved` column nothing writes,
+and **no test asks the second question**. `adr/0146` gives the column its first meaning, which is
+**defining** it rather than extending it. 🔴 **The general defect is unowned** — there is no audit that
+names saved columns with no simulation writer, and this one was found by grepping for something else.
+
 ## What decomposition found
 
 **G1 — 🔴 the risk cell states three numbers and all three have drifted.** `06:95` and `0003:250` say
