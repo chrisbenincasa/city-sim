@@ -140,6 +140,8 @@ public static class RulesetLoader
         private TableSyntaxBase? _householdsTable;
         private TableSyntaxBase? _trafficTable;
         private TableSyntaxBase? _parkingTable;
+
+        private TableSyntaxBase? _waterTable;
         private TableSyntaxBase? _districtsTable;
 
         private TableSyntaxBase? _marketTable;
@@ -191,6 +193,7 @@ public static class RulesetLoader
             TrafficRuleset traffic = ReadTraffic();
             ParkingRuleset parking = ReadParking();
             TerrainRuleset terrain = ReadTerrain();
+            WaterRuleset water = ReadWater();
             DistrictRuleset districts = ReadDistricts();
             MarketRuleset market = ReadMarket();
 
@@ -247,6 +250,7 @@ public static class RulesetLoader
                     HinterlandPrices = hinterlandPrices,
                     Parking = parking,
                     Terrain = terrain,
+                    Water = water,
                     Districts = districts,
                     Market = market,
                     ResourceKeys = Keys(_resources),
@@ -457,6 +461,22 @@ public static class RulesetLoader
                         }
 
                         _parkingTable = table;
+                        break;
+
+                    case "water":
+                        // Singular and optional, on [parking]'s reasoning exactly. There is one sea
+                        // level, so two tables stating it is ambiguous rather than additive -- and a
+                        // world with two seas at different heights is not a thing adr/0034's two
+                        // numbers can describe.
+                        if (_waterTable is not null)
+                        {
+                            Refuse(LineOf(table), null,
+                                "a second [water] is declared. There is one sea level, so two tables "
+                                + "of numbers for it is ambiguous rather than additive.");
+                            break;
+                        }
+
+                        _waterTable = table;
                         break;
 
                     case "districts":
@@ -3900,6 +3920,41 @@ public static class RulesetLoader
 
             return new ParkingRuleset((int)metres, (int)keeps);
         }
+
+        /// <summary>Reads <c>[water]</c>, or answers that the world has none.</summary>
+        private WaterRuleset ReadWater()
+        {
+            if (_waterTable is null)
+            {
+                return WaterRuleset.None;
+            }
+
+            if (!TryInteger(_waterTable, "sea_level_percent", out long percent, required: true))
+            {
+                return WaterRuleset.None;
+            }
+
+            // Refused at BOTH ends, and neither is a range check for its own sake. Zero puts the sea
+            // at the lowest Cell on the map, which is a world with no water -- a second spelling of
+            // the absent table, and a designer who wrote it would mean something the generator cannot
+            // hear. A hundred puts every Cell under it, which is not a city. adr/0159.
+            if (percent is < 1 or > 99)
+            {
+                Refuse(LineOfWater("sea_level_percent"), null,
+                    $"sea_level_percent is {percent}. It is how high the sea stands as a fraction of "
+                    + "the height range this world realised, so it must be between 1 and 99. Delete "
+                    + "the [water] table for an inland world with no coast at all; 100 would put the "
+                    + "whole map under water.");
+
+                return WaterRuleset.None;
+            }
+
+            return WaterRuleset.From((int)percent);
+        }
+
+        /// <summary>The line a <c>[water]</c> key is on, or the table's.</summary>
+        private int LineOfWater(string key) =>
+            LineOf((SyntaxNodeBase?)Find(_waterTable!, key) ?? _waterTable!);
 
         /// <summary>The line a <c>[parking]</c> key is on, or the table's.</summary>
         private int LineOfParking(string key) =>

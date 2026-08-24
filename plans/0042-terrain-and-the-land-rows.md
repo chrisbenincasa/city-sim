@@ -15,7 +15,7 @@ fourth recurrence and the first that actually collided.
 
 ## Status
 
-🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3, 5 and 8a are DONE.** **Task 4 still waits on decision 5**, and **task 8b on decision 10**. Task 3 was
+🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3, 5, 6a and 8a are DONE.** **Task 4 still waits on decision 5**, and **task 8b on decision 10**. Task 3 was
 CODE-COMPLETE and BLOCKED for one day — see F7; it was built ahead of task 2 because the Sealing write path needs
 no terrain, and running it turned up a whole-map cost that
 [`0002`](0002-open-questions.md) §C now owns. **Task 2 landed 2026-08-23** (`a23b46f`, re-baselined in `79efc64`) — **see F8**, whose finding is that the column's home was a third option neither candidate named. **Decisions 1, 1b, 2, 3, 4 and 7 are settled**
@@ -72,8 +72,11 @@ Neither side crosses into the other's range without saying so first. ⚠ **This 
 is the same convention that already failed** — the durable fix is a corpus check for duplicate
 document numbers across `plans/` and `docs/adr/`, which milestone 27 is filing in
 [`0012`](0012-corpus-audit.md) with this branch's sighting as the evidence. **The ADR half is the
-worse half**: an ADR is cited *by number in prose* in nine documents, so a duplicate makes nine
-sentences ambiguous while every link still opens and every check stays green.
+worse half**: an ADR is reached by a *number in a sentence* rather than by a link, so a duplicate
+makes those sentences ambiguous while every link still opens and every check stays green. ⚠ **This
+said *nine documents* and the estimate was checked rather than taken** — milestone 27 measured it and
+the figure lives in [`0012`](0012-corpus-audit.md), which owns it. ***Bare-number citation is the
+dominant form and not one form among several***, which is the half of the claim the guess got wrong.
 
 ---
 
@@ -274,7 +277,7 @@ bake left to place**, and the mechanical check is **owed with terraforming** rat
 
 ---
 
-## Open decisions this half owes — **1, 1b, 2, 3, 4, 7, 8 and 9 SETTLED; OPEN: 5, 6, 10**
+## Open decisions this half owes — **1, 1b, 2, 3, 4, 7, 8, 9 and 11 SETTLED; OPEN: 5, 6, 10, 12**
 
 ⚠ **None is settled and none should be settled by argument if a measurement would settle it**
 ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
@@ -630,6 +633,42 @@ a quantity nothing computes is a category and not a name.
 
 ---
 
+### 11. ✅ SETTLED 2026-08-24 — **where does water sit? A stated sea level, and it authors a number**
+
+**The recommendation was *basins only* and the user refused it.** Water fills depressions: priority-flood
+the height field, water where the filled level exceeds the ground, outflow where it spills. That authors
+**zero** numbers — no `plans/0002` §D row, no ratifier owed, nothing hash-bearing chosen — which under
+[`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md) is
+a real advantage rather than a tidy one.
+
+***It was refused because that world has no sea, no bay and no coast in it.*** `CONTEXT.md` → Water Body
+names all five — *"a pond, lake, river, bay or stretch of coast"* — and basins deliver the first two. On
+a map [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-across-it.md) sizes at
+65.5 km a side, a city on a coast is the reference case the design was written for.
+
+**So `[water] sea_level_percent` is stated, one key, optional, refused at both ends**
+([`adr/0159`](../docs/adr/0159-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)).
+⚠ **There is no coverage key and that absence is the decision** — a share is an outcome, and authoring it
+would make the generator solve for a number instead of laying a world. **One §D1 row.**
+
+### 12. What family is Waste? — *arguable*, and it is task 6b's
+
+🔴 **Blocked, and it is the only thing between the build and a Water Body's Bin.** The corpus answers four
+ways — `CONTEXT.md` → Water Body (*"the Waste family"*), `CONTEXT.md` → Resource (**Good**, moving as a
+Shipment), `04 §1` (*"service capacity … coverage rather than a Good"*) and `adr/0031`'s table (an escapee
+quoting `03 §1`'s *"production → flow → treatment"*) — and `ResourceFamily` has no `Waste` member.
+
+**[`docs/references.md`](../docs/references.md) §10 is the input and not the answer.** Four independent
+lineages — Maxis 1999 and 2003, Colossal Order 2015, 3Division 2019 — ship **two** waste mechanisms and
+put the seam on `adr/0031`'s own axis: refuse in a vehicle on the road network, liquid waste through a
+flow network. ***The finding is that the question is malformed***: `CONTEXT.md` → Resource is describing
+refuse, `CONTEXT.md` → Water Body is describing effluent, and one word is doing two jobs.
+
+⚠ **Typed *arguable*, so no measurement settles it** and a sitting does. ⚠ **It is not milestone 24's to
+settle alone** — whatever lands here writes `ResourceFamily`, which every Good in the build keys off.
+
+---
+
 ## Tasks
 
 ⚠ **Provisional below task 2**: decisions 1 and 2 change what tasks 3 onward build.
@@ -641,8 +680,9 @@ a quantity nothing computes is a category and not a name.
 | **3** | ✅ **DONE 2026-08-23** (`1c9ebec`), built 2026-08-22 and blocked on a cost for one day — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
 | **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. Two §D1 rows with named ratifiers | 3, decision 5 |
 | **5** | ✅ **DONE 2026-08-23** (`6f9187c`). **Fertility** — the `throw` in `MapLayers.Fertility` is a composition at the point of use, `base − base·Sealing/1024 − w_p·pollution`, with `long` intermediates and saturation at the `int` bounds. Sets **one** §D1 row: `[layers] fertility_pollution_percent` = **4**, stated in `rulesets/varied.toml` only. ⚠ **It moves no State Hash and needs no re-baseline** — nothing is stored, nothing is scheduled, and no shipped file that a fixture loads was edited. 🔴 **It also has no consumer**, so the whole task is a producer nobody reads; see the note below | 2, 3 |
-| **6** | **Water Bodies** — the water graph, and a **sixth** `BinOwnerKind`. ⚠ **This row said *fifth* and was correct on the day it was written** — milestone 27 landed `Business = 3` on `main`, so the live kinds are now `Building`, `Household`, `Business`, `Treasury` and `District`. ***A merge made a plan row stale without touching the plan.*** ⚠ **The downstream ordering is generator OUTPUT, not a height computation** (`adr/0156`): `CONTEXT.md` → Water Body states *an outflow rate to the next body downstream*, which is an **edge** | 2 |
-| **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires | 6 |
+| **6a** | ✅ **DONE 2026-08-24** — see **F11**. **The water graph** — a sparse `WaterCellTable` of wet Cells with a dense `WaterResidency` beside it, and a `WaterBodyTable` whose one column is a `downstream` handle into itself. Laid by `WaterGenerator` from the **same height field terrain reads** (`adr/0156`, so **no new `PurposeTag`**), bounded by `[water] sea_level_percent` on a new shipped `rulesets/coastal.toml` ([`adr/0159`](../docs/adr/0159-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)). **Opens ONE §D1 row.** 🔴 Moves every State Hash. ⚠ **It has no consumer** — nothing reads a Water Body — so it is **F9** a third time and is taken anyway | 2, decision 11 |
+| **6b** | **A Water Body's Bin** — the capacity, the outflow rate and a **sixth** `BinOwnerKind`. 🔴 **BLOCKED on what family Waste is**, which `CONTEXT.md` answers two ways two entries apart, `04 §1` a third way and `adr/0031`'s table a fourth; [`docs/references.md`](../docs/references.md) **§10** surveys the genre and finds the question malformed. ⚠ **It must take the two water tables back out of `_writableTables`**, because a Bin's level is a write. ⚠ **This row said *a fifth* `BinOwnerKind` and was correct on the day it was written** — milestone 27 landed `Business = 3` on `main`. ***A merge made a plan row stale without touching the plan.*** | 6a, decision 12 |
+| **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires. ⚠ **It depends on 6b and NOT on 6a**, and this row said *6* until 2026-08-24: `adr/0034`, `CONTEXT.md` → Water Body and `02:256` all make the term's intensity **the Bin's level**, so a shoreline term built on the graph alone would be present and permanently zero — the working-mechanism-that-says-something-false failure `adr/0123` exists to prevent | 6b |
 | **8a** | ✅ **DONE 2026-08-24** — see **F10**. **Woodland is placed and cleared** — a `Saved<int>("woodland")` Tile count on a dense `WoodlandCellTable` of its own, placed by the generator, and **bounded by `TilesInCell − Sealing`** so that sealing clears forest with no verb and no event ([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md)). ⚠ **Authors no number and opens no §D row**, exactly as `TerrainGenerator` authors none. 🔴 Moves every State Hash. ⚠ **It has no consumer** — the Timber chain is unplaced — so it is **F9** a second time and is taken anyway | 2, 3, decision 8 |
 | **8b** | **Woodland's regrowth** — a cadence and a rate on unsealed, unoccupied land. 🔴 **This is `adr/0022:137`'s *"regrowth speed is the load-bearing constant"*, which has never had an owner**: no ADR, no §D row, no ratifier and no Ruleset key. **One §D1 row with a named machine, world and quantity** before it lands | 8a, decision 10 |
 | **9** | **Hazard Regions** — derived at generation, never read in a Tick. ⚠ **Floodplain depth is stored SPARSELY, where the floodplain is** (`adr/0156`), because `01 §5.2` spreads Flood *by depth* and a whole-map height field is what this milestone does not build | 2 |
@@ -1061,6 +1101,51 @@ phases would go red on the generator. ✅ **Discharged by decision 3**, which re
 **state** and amended `adr/0021` in place: *terrain height is not state.* ⚠ **Nothing enforces phase
 discipline in this build anyway** — `TickPhase` is referenced by its own file and `Simulation.cs` and by
 nothing else, so a phase-shaped rule had no enforcer to be checkable by.
+
+### F11 — task 6's number was found by trying to avoid it, and two defects in the drainage were found by testing
+
+**The task was scoped as *the water graph and a `BinOwnerKind`* and neither half survived contact.**
+
+**The `BinOwnerKind` half is not 6a's at all.** A Water Body's Bin holds the Waste family
+(`CONTEXT.md` → Water Body, `adr/0034`), and **what family Waste is has four answers in the corpus**:
+`CONTEXT.md` → Water Body calls it a family of its own, `CONTEXT.md` → Resource puts it in **Good**,
+`04 §1` calls it *"service capacity … coverage rather than a Good"*, and `adr/0031`'s own table lists
+it among the four escapees quoting `03 §1`'s *"production → flow → treatment"*. **`ResourceFamily` has
+no `Waste` member and nothing declares `Utility` either.** So the Bin was split out as **6b** and
+[`docs/references.md`](../docs/references.md) **§10** was written: four independent lineages ship
+**two** waste mechanisms and put the seam on `adr/0031`'s own axis. ***The corpus's four answers are
+not four positions — one word is doing two jobs.***
+
+**The graph half needed a number, and the recommendation was to avoid it.** The offer was *basins
+only* — priority-flood the height field, no threshold, no §D row, no ratifier. **It was refused because
+that world has no sea, no bay and no coast**, all three of which `CONTEXT.md` names. `adr/0159` is the
+record; §D1 carries the row.
+
+🔴 **Two defects in the drainage walk were found by MEASURING and neither would have been found by
+argument.** This is the finding worth keeping.
+
+1. **The spill walk fell back into the body it came from.** A rim Cell is by construction the lowest
+   *dry* ground touching a body, so its lowest neighbour is almost always the body itself: the walk
+   descended straight back in, terminated at the body's deepest Cell, and reported *no downstream*.
+   The instrument said **60–70% of bodies drain nowhere**, which read as a property of the terrain and
+   was a property of the code. Excluding the source body **roughly doubled** the edge count.
+2. **The graph then had cycles in it.** Two basins spill into each other across a ridge and each walk
+   is individually correct. `WaterTests.Every_outflow_reaches_the_map_edge` caught it — an assertion
+   written *because reading the walk made it look plausible*, not because anything had failed. The fix
+   is a strict order on **spill elevation**, ties broken by Cell index.
+
+⚠ **After both fixes 35–60% of bodies are still endorheic, and that one is real.** A spill can descend
+into a *dry* hollow, and the model stops there; going further needs to know how full the hollow gets,
+which is a volume, which is a Bin. ***The coarseness and the blocked task are the same fact.***
+
+⚠ **The instrument was itself wrong first.** It counted *"draining off-map"* as one number, conflating
+the designed terminus with the coarseness — so the first reading looked like a clean result. Splitting
+the counter is what exposed both defects. ***A measurement that sums two causes reports neither.***
+
+**And the ordinals cost a message rather than a merge.** 6a needed `adr/0159`, one past the block
+reserved on 2026-08-24; the milestone 27 session was told before it was taken and agreed. The same
+protocol had already found that `PlanIdentityTests` cannot see two documents claiming one number —
+that check now exists on `main`, written by that session from this branch's sighting.
 
 ---
 

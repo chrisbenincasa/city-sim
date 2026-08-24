@@ -187,6 +187,16 @@ public sealed class World
         // rather than because nobody worked it out.
         DistrictPools = new Space.DistrictPoolTable(64, Districts, Bins);
 
+        // Water is sized from the MAP and never from the population, which is the one capacity hint
+        // in this constructor that has nothing to do with how many Citizens there are: a coastline is
+        // a property of the ground, and an empty world on a wet key has every wet Cell that a
+        // crowded one does. The body count starts at 8 for DistrictTable's reason -- a small table
+        // that grows -- and the Cell hint is a sixteenth of the map, which is a hint and not a claim
+        // about how much of a world is water. adr/0159 says why no key states that share.
+        Water = new Space.WaterBodyTable(8);
+        WaterCells = new Space.WaterCellTable(
+            IntegerMath.FloorDiv(Space.CellGrid.WorldCellCount, 16), Water);
+
         // The three Movement tables, and their capacity is deliberately NOT a function of population.
         //
         // plans/0021 -> "Decisions this slice must close" 3 is explicit about why: adr/0008 says the
@@ -312,11 +322,28 @@ public sealed class World
             // MapLayers.Seal writes this one every time a Building is created, so excluding it would
             // be the silent hole that document warns about rather than the narrowing it describes.
             Layers.Woodland.Rows,
+
+            // Appended for the same reason, milestone 24 task 6a. adr/0034 and adr/0159: the water
+            // graph is (saved AND hashed) because a save does not carry the WorldKey back into the
+            // generator, and adr/0021 makes water immutable -- so these two tables are written once,
+            // at world creation, and never again. Appending stays the one edit to this list that
+            // moves no row relative to another.
+            Water.Rows, WaterCells.Rows,
         ];
 
         // The same list minus the tables no Tick phase can write, for the Decide guard alone. See
         // TablesAPhaseCanWrite -- it is a subset of the COMPOSITION and never a second composition.
-        _writableTables = [.. _tables.Where(table => !ReferenceEquals(table, Layers.Terrain.Rows))];
+        // The water tables join terrain here, and on terrain's test rather than on a cost: adr/0021
+        // makes water generated once and immutable, so NO Tick phase can write either of them. If a
+        // phase ever does -- a Bin on a Water Body fills at task 6b, and a Bin's level is a write --
+        // it is that task's job to take the table back out of this exclusion, not to work around it.
+        _writableTables =
+        [
+            .. _tables.Where(table =>
+                !ReferenceEquals(table, Layers.Terrain.Rows)
+                && !ReferenceEquals(table, Water.Rows)
+                && !ReferenceEquals(table, WaterCells.Rows)),
+        ];
 
         WorldInvariants.RegisterAll(Invariants);
 
@@ -465,6 +492,23 @@ public sealed class World
 
     /// <summary>Which Bins are in which District's Pool. Saved, and the only thing that knows.</summary>
     public Space.DistrictPoolTable DistrictPools { get; }
+
+    /// <summary>
+    /// The Water Bodies and which one each drains into. <b>Generated once and never written again.</b>
+    /// </summary>
+    /// <remarks>
+    /// Here rather than on <c>MapLayers</c> — unlike terrain and Woodland, which are quantities of the
+    /// ground — because a Water Body is a thing the city <em>contains</em> and will own a Bin at task
+    /// 6b, which is <see cref="Districts"/>'s shape and not a Layer's. <c>adr/0034</c>,
+    /// <c>adr/0159</c>.
+    /// </remarks>
+    public Space.WaterBodyTable Water { get; }
+
+    /// <summary>Which Water Body covers each wet Cell. A body's extent, as rows.</summary>
+    public Space.WaterCellTable WaterCells { get; }
+
+    /// <summary>The Cell-to-water index. Derived, and rebuilt from the saved coordinates.</summary>
+    public Space.WaterResidency WaterInCells { get; } = new();
 
     /// <summary>Which Car Parks sit on which Segment — the Parking Shed query's supply index.</summary>
     /// <remarks>

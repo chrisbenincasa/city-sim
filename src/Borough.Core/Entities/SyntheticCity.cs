@@ -119,6 +119,16 @@ public static class SyntheticCity
         // MapLayers.Seal is what takes the forest back as the city arrives.
         world.Layers.LayWoodland(key);
 
+        // The water, between the ground and the roads. adr/0034, adr/0159, milestone 24 task 6a. ⚠
+        // THE ORDER AGAINST LayLand IS NOT LOAD-BEARING TODAY AND WILL BE: roads do not avoid water
+        // (adr/0021), so a lattice laid after this pass runs straight across a lake and nothing
+        // refuses it. That is the build being honest about what it has not decided rather than a
+        // defect -- a bridge is "a buildability exception plus a rendering variant, not a system"
+        // (adr/0021), and neither exists. It goes here so that the day something does read the
+        // water, the water is already there.
+        WaterGenerator.LayInto(
+            world.Water, world.WaterCells, world.WaterInCells, world.Rules.Water, key);
+
         LayLand(world, key);
         PeopleInto(world, key, now);
 

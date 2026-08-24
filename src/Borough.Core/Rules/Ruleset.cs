@@ -2288,6 +2288,16 @@ public sealed class Ruleset
     public TerrainRuleset Terrain { get; init; } = TerrainRuleset.None;
 
     /// <summary>
+    /// Where the sea stands — <c>[water]</c>, or <see cref="WaterRuleset.None"/> when unstated.
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>Absence means the world genuinely has no water in it</b>, which is the opposite polarity
+    /// to <see cref="Terrain"/> and the same as <see cref="Parking"/>'s. Every world has ground; not
+    /// every world has a coast. <c>adr/0159</c>.
+    /// </remarks>
+    public WaterRuleset Water { get; init; } = WaterRuleset.None;
+
+    /// <summary>
     /// <b>What a Segment costs to drive when other people are on it</b> — the <c>[traffic]</c> table
     /// (5c task 6).
     /// </summary>
@@ -2562,6 +2572,7 @@ public sealed class Ruleset
             Traffic = Traffic,
             Parking = Parking,
             Terrain = Terrain,
+            Water = Water,
             Policies = Policies,
             Hinterlands = Hinterlands,
             HinterlandPrices = HinterlandPrices,
