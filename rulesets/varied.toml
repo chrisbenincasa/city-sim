@@ -1,7 +1,7 @@
 # The varied Ruleset. It is `minimal.toml` WITH ITS GROUND PRICED, and it is the first shipped file in
 # which two Cells of the same city are worth different amounts to farm.
 #
-# Milestone 24 task 2 of plans/0041-terrain-and-the-land-rows.md. Its whole job is to be a world in
+# Milestone 24 task 2 of plans/0042-terrain-and-the-land-rows.md. Its whole job is to be a world in
 # which Base Fertility VARIES, because until it existed nothing could read a difference between two
 # Cells that terrain caused. adr/0157 ships five terrain types -- `ordinary`, `rock`, `floodplain`,
 # `marsh`, `thin_soil` -- and makes Base Fertility Ruleset data keyed by the type a Cell stores. This
