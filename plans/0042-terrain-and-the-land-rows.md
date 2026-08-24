@@ -15,7 +15,7 @@ fourth recurrence and the first that actually collided.
 
 ## Status
 
-🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3, 5, 6a and 8a are DONE.** **Task 4 still waits on decision 5**, and **task 8b on decision 10**. Task 3 was
+🔵 **SCOPED 2026-08-22, out of sequence, and SPLIT in the scoping.** **Tasks 1, 2, 3, 5, 6a and 8a are DONE.** ⚠ **Every decision this half owes is now SETTLED** (2026-08-24), so **tasks 4, 6b, 8b and 9 are all startable**. Task 3 was
 CODE-COMPLETE and BLOCKED for one day — see F7; it was built ahead of task 2 because the Sealing write path needs
 no terrain, and running it turned up a whole-map cost that
 [`0002`](0002-open-questions.md) §C now owns. **Task 2 landed 2026-08-23** (`a23b46f`, re-baselined in `79efc64`) — **see F8**, whose finding is that the column's home was a third option neither candidate named. **Decisions 1, 1b, 2, 3, 4 and 7 are settled**
@@ -277,7 +277,7 @@ bake left to place**, and the mechanical check is **owed with terraforming** rat
 
 ---
 
-## Open decisions this half owes — **1, 1b, 2, 3, 4, 7, 8, 9, 11 and 12 SETTLED; OPEN: 5, 6, 10**
+## Open decisions this half owes — ✅ **ALL TWELVE SETTLED.** 1, 1b, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 and 12
 
 ⚠ **None is settled and none should be settled by argument if a measurement would settle it**
 ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
@@ -508,31 +508,54 @@ Ruleset** — a column that is identically zero becomes non-zero — which under
 [`adr/0100`](../docs/adr/0100-moving-the-state-hash-costs-nothing-until-somebody-is-carrying-a-save.md)
 costs nothing and **must not be cited as a reason to defer, narrow or split this task.**
 
-### 5. What ratifies Sealing's decay cadence and rate? — *measurable*, and it needs `plans/0002` §D rows
+### 5. ✅ SETTLED 2026-08-24 — **the ratifier is Sealing's own trajectory, and the blocker was one level too far downstream**
 
-Two hash-bearing world-creation numbers under
-[`adr/0044`](../docs/adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md),
-each owing a **machine, a world and a quantity** under
-[`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md).
-⚠ **The world did not exist when this was written, and it does now.** `adr/0124` names *a world with
-varied terrain* as the ratifier's world; **`rulesets/varied.toml` shipped with task 2 on 2026-08-23**,
-and every world has varied terrain regardless, because the generator runs unconditionally and the
-Ruleset does not shape it (**F8**). ***So the world was part of the deliverable***, which is milestone
-12 task 1's lesson (`twinned.toml` was a WORLD and not code) arriving before this milestone instead of
-during it — **and that half is discharged.**
+**Two hash-bearing numbers under [`adr/0044`](../docs/adr/0044-the-map-layer-diffusion-cadence-is-the-designers-number-not-the-profilers.md)** — a cadence in
+`LayerSchedule.For` and a rate **keyed by terrain type** — each owing a machine, a world and a quantity
+under [`adr/0052`](../docs/adr/0052-a-hash-bearing-number-is-chosen-with-a-named-ratifier-or-not-at-all.md).
+The **world** half was discharged on 2026-08-23: `rulesets/varied.toml` ships, and every world has
+varied terrain anyway (**F8**).
 
-🔴 **What is still open is the ratifier, and it is the harder half.** Two numbers, each owing a
-machine, **a world** and a **quantity**. The world is now answerable. ⚠ **The quantity is not, and the
-reason is the one F9 recorded**: Sealing decays toward farmland recovering, `MapLayers.Fertility` is
-the only thing that reads Sealing against terrain, and **nothing reads Fertility** — so *how fast does
-land recover* has no readout to be measured at. ***A ratifier that names a quantity nothing computes is
-a category and not a name***, which is exactly what `adr/0052` was amended twice to refuse.
+🔴 **The quantity half was closed as unanswerable on 2026-08-23 and that was wrong.** The reasoning
+(`ec28329`) was: Sealing's decay is *about land recovering*, `MapLayers.Fertility` is Sealing's only
+reader against terrain, and **F9** found nothing reads Fertility — so *how fast does land recover* has
+no readout. ***That is true of FARMLAND recovering. It is not true of GROUND recovering, and the
+Ruleset key controls the second.***
 
-### 6. Does `adr/0021`'s **seed + edits** save ship here? — *arguable*. **Recommendation: no**
+`CONTEXT.md` → Sealing already states the design intent, **in units and in an ordering**: *"rock may
+never recover, floodplain may recover over hundreds of Days."* Sealing is a `Saved` column, demolition
+exists, and `rulesets/evicted.toml` cycles Buildings **by construction**. So the quantity is computable
+today with **nothing unbuilt anywhere in the path**.
 
-See precondition 3. Shipping it brings the generator version back and inverts a guard that currently
-works. **Recommendation: the baked column is `Saved`, the save carries it, `adr/0111` stands, and this
-decision is recorded so the absence is not later read as an omission.**
+✅ **Named ratifier: a long run on `rulesets/evicted.toml`, on the reference machine. Quantity: Days
+from a Cell's last demolition to its Sealing reaching zero, per terrain type.** ⚠ **Refuting in both
+directions** — every type recovering in the same time means the key is not keyed on anything, and rock
+recovering at all means it is too fast. **Two `plans/0002` §D2 rows opened; task 4 moves them to §D1 on
+the day it writes the numbers.** ✅ **Task 4 is UNBLOCKED.**
+
+⚠ **The lesson is not about Sealing.** ***A ratifier looked for one level downstream of the key it
+ratifies waits for a mechanism it does not need*** — the search went looking for the *consequence* of
+the decay (a farm yielding more) when the *effect* of the decay (ground unsealing) is what the number
+actually sets, is already observable, and is what `CONTEXT.md` states an intent about.
+
+### 6. ✅ SETTLED 2026-08-24 — **no. `adr/0111` stands, and the absent field is a decision**
+
+See precondition 3. **Nothing on the load path regenerates**, so a generator version buys nothing —
+and [`adr/0111`](../docs/adr/0111-a-save-that-re-derives-nothing-needs-neither-a-seed-nor-a-generator-version.md)
+states the trap that makes shipping one actively worse than not: ***a placeholder inverts the guard***,
+because a pinned number that agrees with itself defeats the refusal an absent one achieves through the
+format version.
+
+✅ **Terrain type, Woodland and the water graph are ordinary `Saved` columns; the save carries them;
+nothing regenerates on load; `adr/0111` holds unchanged.** **Recorded so that a later sitting reads the
+absent `SaveHeader` field as a decision and not as an omission**, which is the failure `adr/0111` was
+written against.
+
+⚠ **Precondition 3's wording is stale and the argument is not.** It says *"a baked suitability column"*,
+and there is no baked artefact since [`adr/0154`](../docs/adr/0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)
+half-superseded `adr/0124` — the Cell stores a **type** and Base Fertility is a Ruleset lookup. ***The
+column changed and the reasoning about the save did not***, because the argument never rested on what
+the column held, only on nothing regenerating from it.
 
 ### 7. ✅ SETTLED 2026-08-23 — **what terrain types ship, and does Base Fertility vary across them?**
 
@@ -618,20 +641,25 @@ counts as evidence. ⚠ **Building a minimal version would author the designatio
 whose subject is ground — the shape `01 §5.5` forbids by name. **Recorded so the absence is not later
 read as an omission**, which is decision 6's shape.
 
-### 10. What ratifies Woodland's regrowth cadence and rate? — *measurable*, and it is task 8b's
+### 10. ✅ SETTLED 2026-08-24 — **the ratifier is Woodland against Sealing over a long run**
 
-🔴 **NEW, and it is the one `adr/0022` calls load-bearing by name.** `adr/0022:137`: *"the first
-response is more reboot levers, not faster regrowth; **regrowth speed is the load-bearing constant** and
-loosening it deletes the arc."* **It has never had an owner** — no ADR, no `plans/0002` §D row, no
-named ratifier, no Ruleset key, and `adr/0052` has never been applied to it. ***A hash-bearing constant
-an ADR calls load-bearing, carried for the life of the project by nothing but a sentence.***
+🔴 **It is the one [`adr/0022`](../docs/adr/0022-land-is-a-stock-the-city-spends.md) calls load-bearing
+by name**: *"the first response is more reboot levers, not faster regrowth; **regrowth speed is the
+load-bearing constant** and loosening it deletes the arc."* **It had never had an owner** — no ADR, no
+`plans/0002` row, no named ratifier, no Ruleset key, and `adr/0052` had never been applied to it.
+***A hash-bearing constant an ADR calls load-bearing, carried for the life of the project by nothing
+but a sentence.***
 
-⚠ **Unlike decision 5, its quantity is answerable.** Woodland area against Sealing over a long run is a
-curve, it accumulates rather than being composed at the point of use, and 8a is what makes it exist. The
-machine and the world follow the usual form. **It stays open until 8a lands**, because a ratifier naming
-a quantity nothing computes is a category and not a name.
+**Its stated condition was *stays open until 8a lands*, and 8a landed 2026-08-24.** Woodland is now a
+`Saved` column that accumulates, so the quantity exists rather than being composed at the point of use.
 
----
+✅ **Named ratifier: milestone 24's long run, on a world stating the regrowth keys, on the reference
+machine. Quantity: total Woodland Tiles against total Sealing over 100k+ Ticks — does forest reach a
+steady state, and does cleared ground recover on a timescale a player feels?** ⚠ **Refuting in both
+directions** — regrowth so fast that clearing costs nothing **deletes `adr/0022`'s arc**, which is the
+failure that ADR names by name; so slow that a cleared map never recovers is a one-way ratchet, which
+is [`adr/0006`](../docs/adr/0006-no-collection-grows-with-elapsed-time.md)'s concern wearing the other
+sign. **One `plans/0002` §D2 row opened; task 8b moves it to §D1 on the day it writes the numbers.**
 
 ### 11. ✅ SETTLED 2026-08-24 — **where does water sit? A stated sea level, and it authors a number**
 
@@ -692,13 +720,13 @@ task 6b's to answer**, and it is *arguable* rather than measurable.
 | **1** | ✅ **DONE 2026-08-22** — `CONTEXT.md` gains **Terrain** and **Base Fertility**, the rename lands in `02 §2.3`, `04 §1` and `MapLayers`, `adr/0022` and `adr/0124` are amended rather than rewritten, and `06`'s row 24 is rewritten for the split ([`adr/0153`](../docs/adr/0153-milestone-24-is-two-milestones-because-a-dial-cannot-scale-a-figure-nothing-authors.md), [`adr/0154`](../docs/adr/0154-base-fertility-is-ruleset-data-keyed-by-terrain-type-and-the-old-name-invented-a-field.md)) | decisions 1, 2 |
 | **2** | ✅ **DONE 2026-08-23** (`a23b46f`, re-baselined `79efc64`) — see **F8**. **The terrain generator and the per-Cell terrain TYPE column** — `(saved AND hashed)`, from the `WorldKey`, with a `[terrain]` Ruleset table keying **Base Fertility** and the **Sealing decay rate** off the type, plus **a shipped Ruleset with varied terrain**. ⚠ **The column holds the type and nothing is baked** (`adr/0154`). ⚠ **The world is part of this task and not a follow-up** | 1, decision 3 |
 | **3** | ✅ **DONE 2026-08-23** (`1c9ebec`), built 2026-08-22 and blocked on a cost for one day — see F7. **The Sealing write path** — construction Seals, **at the point of laying and never reconstructed from a Segment's endpoints** ([`adr/0150`](../docs/adr/0150-sealing-authors-no-width-and-a-road-seals-where-it-is-laid-not-where-its-endpoints-are.md)). Touches the four `RoadGenerator.Layout` writers, `SyntheticCity.Subdivide` and `ZoneRuleEngine.Create`. ⚠ **Authors no number and opens no §D row.** Precondition 2's third blocker, and upstream of the two `adr/0124` names. 🔴 Moves every State Hash | 2 |
-| **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. Two §D1 rows with named ratifiers | 3, decision 5 |
+| **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. ✅ **UNBLOCKED 2026-08-24 by decision 5**, whose ratifier is `evicted.toml` and Sealing's own trajectory. **Moves two `plans/0002` §D2 rows to §D1** on the day it writes the numbers | 3 |
 | **5** | ✅ **DONE 2026-08-23** (`6f9187c`). **Fertility** — the `throw` in `MapLayers.Fertility` is a composition at the point of use, `base − base·Sealing/1024 − w_p·pollution`, with `long` intermediates and saturation at the `int` bounds. Sets **one** §D1 row: `[layers] fertility_pollution_percent` = **4**, stated in `rulesets/varied.toml` only. ⚠ **It moves no State Hash and needs no re-baseline** — nothing is stored, nothing is scheduled, and no shipped file that a fixture loads was edited. 🔴 **It also has no consumer**, so the whole task is a producer nobody reads; see the note below | 2, 3 |
 | **6a** | ✅ **DONE 2026-08-24** — see **F11**. **The water graph** — a sparse `WaterCellTable` of wet Cells with a dense `WaterResidency` beside it, and a `WaterBodyTable` whose one column is a `downstream` handle into itself. Laid by `WaterGenerator` from the **same height field terrain reads** (`adr/0156`, so **no new `PurposeTag`**), bounded by `[water] sea_level_percent` on a new shipped `rulesets/coastal.toml` ([`adr/0159`](../docs/adr/0159-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)). **Opens ONE §D1 row.** 🔴 Moves every State Hash. ⚠ **It has no consumer** — nothing reads a Water Body — so it is **F9** a third time and is taken anyway | 2, decision 11 |
 | **6b** | **A Water Body's Bin** — the capacity, the outflow rate and a **sixth** `BinOwnerKind`. ✅ **UNBLOCKED 2026-08-24 by decision 12** — the family question was a correction and not a design sitting: Waste is a **Good**, Sewage is a **Utility**, the split was already in `CONTEXT.md` → Resource, and two copies of one sentence named the wrong half. **No `ResourceFamily` change.** ⚠ **It still owes one *arguable* answer**: whether a Water Body's Bin holds exactly one Utility-family Resource, or whether `02:256`'s *"dumping"* puts a **Good** in it. ⚠ **It must take the two water tables back out of `_writableTables`**, because a Bin's level is a write. ⚠ **This row said *a fifth* `BinOwnerKind` and was correct on the day it was written** — milestone 27 landed `Business = 3` on `main`. ***A merge made a plan row stale without touching the plan.*** | 6a, decision 12 |
 | **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires. ⚠ **It depends on 6b and NOT on 6a**, and this row said *6* until 2026-08-24: `adr/0034`, `CONTEXT.md` → Water Body and `02:256` all make the term's intensity **the Bin's level**, so a shoreline term built on the graph alone would be present and permanently zero — the working-mechanism-that-says-something-false failure `adr/0123` exists to prevent | 6b |
 | **8a** | ✅ **DONE 2026-08-24** — see **F10**. **Woodland is placed and cleared** — a `Saved<int>("woodland")` Tile count on a dense `WoodlandCellTable` of its own, placed by the generator, and **bounded by `TilesInCell − Sealing`** so that sealing clears forest with no verb and no event ([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md)). ⚠ **Authors no number and opens no §D row**, exactly as `TerrainGenerator` authors none. 🔴 Moves every State Hash. ⚠ **It has no consumer** — the Timber chain is unplaced — so it is **F9** a second time and is taken anyway | 2, 3, decision 8 |
-| **8b** | **Woodland's regrowth** — a cadence and a rate on unsealed, unoccupied land. 🔴 **This is `adr/0022:137`'s *"regrowth speed is the load-bearing constant"*, which has never had an owner**: no ADR, no §D row, no ratifier and no Ruleset key. **One §D1 row with a named machine, world and quantity** before it lands | 8a, decision 10 |
+| **8b** | **Woodland's regrowth** — a cadence and a rate on unsealed, unoccupied land. 🔴 **This is `adr/0022`'s *"regrowth speed is the load-bearing constant"*, which had never had an owner**: no ADR, no §D row, no ratifier and no Ruleset key. ✅ **UNBLOCKED 2026-08-24 by decision 10** — its stated condition was *stays open until 8a lands*, and 8a landed. **One `plans/0002` §D2 row opened**, naming Woodland against Sealing over a long run; 8b moves it to §D1 on the day it writes the numbers | 8a |
 | **9** | **Hazard Regions** — derived at generation, never read in a Tick. ⚠ **Floodplain depth is stored SPARSELY, where the floodplain is** (`adr/0156`), because `01 §5.2` spreads Flood *by depth* and a whole-map height field is what this milestone does not build | 2 |
 | **10** | **The long run** — 100k+ Ticks, no collection and no magnitude trending at steady state | all |
 
