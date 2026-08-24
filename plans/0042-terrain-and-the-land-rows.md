@@ -48,6 +48,33 @@ second half is recorded in **F2** below and is **blocked on 13, 15 and 16**.
 **UNPLACED**. ⚠ **The trigger fired on the half `adr/0124` did not expect** — that ADR offered a *land
 systems on terrain* seam, and the seam turned out to be the **dial**.
 
+
+### Ordinals reserved against milestone 27 — agreed 2026-08-24
+
+⚠ **Two long-lived branches renumber the same corpus, and two of the four collisions this caused
+MERGED CLEANLY.** The merge of `main` into this branch collided on `PurposeTag` 22, `Invariant` 54,
+`plans/0041` and the `adr/0048` recount. Only the first conflicted. `Invariant` 54 was caught by the
+compiler's `CA1069`; the duplicate `plans/0041` was caught by **somebody looking**, because
+`PlanIdentityTests` compares a heading to *its own* filename and never to another file's.
+***A duplicate enum member is a duplicate declaration; a duplicate document number is two filenames
+that agree with themselves.***
+
+**The split, agreed with the milestone 27 session on 2026-08-24 and held on both sides:**
+
+| Ordinal | This branch | Milestone 27 |
+|---|---|---|
+| ADR | `0150`–`0158` | `0145`–`0149` |
+| `PurposeTag` | 23 `TerrainType`, 24 `Woodland` | 25 onward |
+| `Invariant` | 55 | 56 onward |
+| `plans` | `0042` | `0041` |
+
+Neither side crosses into the other's range without saying so first. ⚠ **This is a convention and it
+is the same convention that already failed** — the durable fix is a corpus check for duplicate
+document numbers across `plans/` and `docs/adr/`, which milestone 27 is filing in
+[`0012`](0012-corpus-audit.md) with this branch's sighting as the evidence. **The ADR half is the
+worse half**: an ADR is cited *by number in prose* in nine documents, so a duplicate makes nine
+sentences ambiguous while every link still opens and every check stays green.
+
 ---
 
 ## The named risk
