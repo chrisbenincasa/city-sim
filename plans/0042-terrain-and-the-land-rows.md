@@ -277,7 +277,7 @@ bake left to place**, and the mechanical check is **owed with terraforming** rat
 
 ---
 
-## Open decisions this half owes — **1, 1b, 2, 3, 4, 7, 8, 9 and 11 SETTLED; OPEN: 5, 6, 10, 12**
+## Open decisions this half owes — **1, 1b, 2, 3, 4, 7, 8, 9, 11 and 12 SETTLED; OPEN: 5, 6, 10**
 
 ⚠ **None is settled and none should be settled by argument if a measurement would settle it**
 ([`adr/0043`](../docs/adr/0043-a-claim-a-measurement-could-settle-must-not-be-settled-by-argument.md)).
@@ -651,21 +651,35 @@ a map [`adr/0089`](../docs/adr/0089-the-map-is-sized-by-how-many-commutes-fit-ac
 ⚠ **There is no coverage key and that absence is the decision** — a share is an outcome, and authoring it
 would make the generator solve for a number instead of laying a world. **One §D1 row.**
 
-### 12. What family is Waste? — *arguable*, and it is task 6b's
+### 12. ✅ SETTLED 2026-08-24 — **it was never four positions, and the split was already in the corpus**
 
-🔴 **Blocked, and it is the only thing between the build and a Water Body's Bin.** The corpus answers four
-ways — `CONTEXT.md` → Water Body (*"the Waste family"*), `CONTEXT.md` → Resource (**Good**, moving as a
-Shipment), `04 §1` (*"service capacity … coverage rather than a Good"*) and `adr/0031`'s table (an escapee
-quoting `03 §1`'s *"production → flow → treatment"*) — and `ResourceFamily` has no `Waste` member.
+**The question was *what family is Waste*, and the answer is that the corpus had already answered it and
+two sentences reached past the answer.** Of the four readings:
 
-**[`docs/references.md`](../docs/references.md) §10 is the input and not the answer.** Four independent
-lineages — Maxis 1999 and 2003, Colossal Order 2015, 3Division 2019 — ship **two** waste mechanisms and
-put the seam on `adr/0031`'s own axis: refuse in a vehicle on the road network, liquid waste through a
-flow network. ***The finding is that the question is malformed***: `CONTEXT.md` → Resource is describing
-refuse, `CONTEXT.md` → Water Body is describing effluent, and one word is doing two jobs.
+- `CONTEXT.md` → Water Body and [`adr/0034`](../docs/adr/0034-fields-are-sorted-by-source-geometry.md) §4
+  are the **same sentence, copied** — *"a Bin holding the Waste family"*. `plans/0012` **Cause 1**, and
+  **both were corrected** rather than filed, because the fix is one word and the debt ledger is for what
+  is owed rather than what is done.
+- `04 §1`'s *"service capacity … coverage rather than a Good"* is the **exact escapee**
+  [`adr/0031`](../docs/adr/0031-one-resource-abstraction-and-depth-not-count.md) quotes in its own table
+  and generalises away. ***Superseded prose is not a rival position***, and reading it as one is how the
+  count got to four.
+- `CONTEXT.md` → Resource is the live answer and it **already contains the split**: **Waste** is a
+  member of **Good**, **Sewage** is a member of **Utility**.
 
-⚠ **Typed *arguable*, so no measurement settles it** and a sitting does. ⚠ **It is not milestone 24's to
-settle alone** — whatever lands here writes `ResourceFamily`, which every Good in the build keys off.
+***So the seam [`docs/references.md`](../docs/references.md) §10 found four commercial lineages arriving
+at independently was already in this corpus, and the Water Body sentence named the wrong half of it.***
+A Water Body moves its contents **along an edge of the water graph**, which is a Utility's movement; a
+Good is by definition *a Resource whose movement between Districts requires a Vehicle*.
+
+✅ **No `ResourceFamily` member added and none needed. Task 6b is UNBLOCKED**, and it still owes its sixth
+`BinOwnerKind`, because a Bin's owner is a Water Body whatever family it holds.
+
+⚠ **One question was deliberately left open rather than settled here**: `02:256` gives water pollution two
+sources, *"dumping, runoff"*, and dumping is plausibly refuse — a **Good**. A Good sitting in a Water
+Body's Bin and moving downstream would be a Good moving with no Vehicle, contradicting the one axis
+`adr/0031` uses to define it. **Whether a Water Body's Bin holds exactly one Utility-family Resource is
+task 6b's to answer**, and it is *arguable* rather than measurable.
 
 ---
 
@@ -681,7 +695,7 @@ settle alone** — whatever lands here writes `ResourceFamily`, which every Good
 | **4** | **Sealing's decay** — a cadence in `LayerSchedule.For`, a rate keyed by terrain type, `DecaySealing` scheduled in `MapLayers.Step`. Two §D1 rows with named ratifiers | 3, decision 5 |
 | **5** | ✅ **DONE 2026-08-23** (`6f9187c`). **Fertility** — the `throw` in `MapLayers.Fertility` is a composition at the point of use, `base − base·Sealing/1024 − w_p·pollution`, with `long` intermediates and saturation at the `int` bounds. Sets **one** §D1 row: `[layers] fertility_pollution_percent` = **4**, stated in `rulesets/varied.toml` only. ⚠ **It moves no State Hash and needs no re-baseline** — nothing is stored, nothing is scheduled, and no shipped file that a fixture loads was edited. 🔴 **It also has no consumer**, so the whole task is a producer nobody reads; see the note below | 2, 3 |
 | **6a** | ✅ **DONE 2026-08-24** — see **F11**. **The water graph** — a sparse `WaterCellTable` of wet Cells with a dense `WaterResidency` beside it, and a `WaterBodyTable` whose one column is a `downstream` handle into itself. Laid by `WaterGenerator` from the **same height field terrain reads** (`adr/0156`, so **no new `PurposeTag`**), bounded by `[water] sea_level_percent` on a new shipped `rulesets/coastal.toml` ([`adr/0159`](../docs/adr/0159-a-sea-level-is-authored-ruleset-data-and-a-world-without-water-is-a-world-and-not-a-hole.md)). **Opens ONE §D1 row.** 🔴 Moves every State Hash. ⚠ **It has no consumer** — nothing reads a Water Body — so it is **F9** a third time and is taken anyway | 2, decision 11 |
-| **6b** | **A Water Body's Bin** — the capacity, the outflow rate and a **sixth** `BinOwnerKind`. 🔴 **BLOCKED on what family Waste is**, which `CONTEXT.md` answers two ways two entries apart, `04 §1` a third way and `adr/0031`'s table a fourth; [`docs/references.md`](../docs/references.md) **§10** surveys the genre and finds the question malformed. ⚠ **It must take the two water tables back out of `_writableTables`**, because a Bin's level is a write. ⚠ **This row said *a fifth* `BinOwnerKind` and was correct on the day it was written** — milestone 27 landed `Business = 3` on `main`. ***A merge made a plan row stale without touching the plan.*** | 6a, decision 12 |
+| **6b** | **A Water Body's Bin** — the capacity, the outflow rate and a **sixth** `BinOwnerKind`. ✅ **UNBLOCKED 2026-08-24 by decision 12** — the family question was a correction and not a design sitting: Waste is a **Good**, Sewage is a **Utility**, the split was already in `CONTEXT.md` → Resource, and two copies of one sentence named the wrong half. **No `ResourceFamily` change.** ⚠ **It still owes one *arguable* answer**: whether a Water Body's Bin holds exactly one Utility-family Resource, or whether `02:256`'s *"dumping"* puts a **Good** in it. ⚠ **It must take the two water tables back out of `_writableTables`**, because a Bin's level is a write. ⚠ **This row said *a fifth* `BinOwnerKind` and was correct on the day it was written** — milestone 27 landed `Business = 3` on `main`. ***A merge made a plan row stale without touching the plan.*** | 6a, decision 12 |
 | **7** | **Desirability's shoreline term** — `w₅`, and the caveat test `adr/0123` requires. ⚠ **It depends on 6b and NOT on 6a**, and this row said *6* until 2026-08-24: `adr/0034`, `CONTEXT.md` → Water Body and `02:256` all make the term's intensity **the Bin's level**, so a shoreline term built on the graph alone would be present and permanently zero — the working-mechanism-that-says-something-false failure `adr/0123` exists to prevent | 6b |
 | **8a** | ✅ **DONE 2026-08-24** — see **F10**. **Woodland is placed and cleared** — a `Saved<int>("woodland")` Tile count on a dense `WoodlandCellTable` of its own, placed by the generator, and **bounded by `TilesInCell − Sealing`** so that sealing clears forest with no verb and no event ([`adr/0158`](../docs/adr/0158-woodland-is-a-tile-count-per-cell-bounded-by-sealing-because-the-ground-has-one-budget-and-not-two.md)). ⚠ **Authors no number and opens no §D row**, exactly as `TerrainGenerator` authors none. 🔴 Moves every State Hash. ⚠ **It has no consumer** — the Timber chain is unplaced — so it is **F9** a second time and is taken anyway | 2, 3, decision 8 |
 | **8b** | **Woodland's regrowth** — a cadence and a rate on unsealed, unoccupied land. 🔴 **This is `adr/0022:137`'s *"regrowth speed is the load-bearing constant"*, which has never had an owner**: no ADR, no §D row, no ratifier and no Ruleset key. **One §D1 row with a named machine, world and quantity** before it lands | 8a, decision 10 |
@@ -1106,15 +1120,21 @@ nothing else, so a phase-shaped rule had no enforcer to be checkable by.
 
 **The task was scoped as *the water graph and a `BinOwnerKind`* and neither half survived contact.**
 
-**The `BinOwnerKind` half is not 6a's at all.** A Water Body's Bin holds the Waste family
-(`CONTEXT.md` → Water Body, `adr/0034`), and **what family Waste is has four answers in the corpus**:
+**The `BinOwnerKind` half is not 6a's at all.** `CONTEXT.md` → Water Body and `adr/0034` §4 both said
+a Water Body's Bin holds *"the Waste family"* — ⚠ **both corrected 2026-08-24, see decision 12** — and
+on the day 6a was scoped **what family Waste is appeared to have four answers in the corpus**:
 `CONTEXT.md` → Water Body calls it a family of its own, `CONTEXT.md` → Resource puts it in **Good**,
 `04 §1` calls it *"service capacity … coverage rather than a Good"*, and `adr/0031`'s own table lists
 it among the four escapees quoting `03 §1`'s *"production → flow → treatment"*. **`ResourceFamily` has
 no `Waste` member and nothing declares `Utility` either.** So the Bin was split out as **6b** and
 [`docs/references.md`](../docs/references.md) **§10** was written: four independent lineages ship
-**two** waste mechanisms and put the seam on `adr/0031`'s own axis. ***The corpus's four answers are
-not four positions — one word is doing two jobs.***
+**two** waste mechanisms and put the seam on `adr/0031`'s own axis.
+
+⚠ **The four answers turned out to be one split and two stale sentences, and 6b was unblocked the same
+day** — decision 12. ***The survey that found the seam is what made the corpus's own copy of it legible;
+the conflict was real to read and not real to resolve.*** **This is the finding to keep**: two copies of
+one wrong sentence, plus a quotation of superseded prose, read as a three-way disagreement for long
+enough to split a task around it.
 
 **The graph half needed a number, and the recommendation was to avoid it.** The offer was *basins
 only* — priority-flood the height field, no threshold, no §D row, no ratifier. **It was refused because

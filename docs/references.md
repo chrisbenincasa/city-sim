@@ -237,11 +237,20 @@ Absent until milestone 24's task 6 needed it, and the gap is the same shape as �
 sent me here is narrow and structural: [`adr/0031`](adr/0031-one-resource-abstraction-and-depth-not-count.md)
 distinguishes Resource families on **one axis — whether moving it between Districts requires a Vehicle**
 — and the corpus answers that question about Waste four different ways.
-[`CONTEXT.md`](../CONTEXT.md) → Water Body calls it *"the Waste family"*; `CONTEXT.md` → Resource puts it
+[`CONTEXT.md`](../CONTEXT.md) → Water Body called it *"the Waste family"*; `CONTEXT.md` → Resource puts it
 in the **Good** row, moving as a Shipment; [`04 §1`](04-economy-and-goods.md) calls it *"service capacity
 … coverage rather than a Good"*; and `adr/0031`'s own table lists it among the four escapees, quoting
 [`03 §1`](03-agent-architecture.md)'s *"production → flow → treatment"*. The build has no `Waste` member
 in `ResourceFamily` at all.
+
+> ⚠ **RESOLVED 2026-08-24, and this section is what resolved it — but not the way it expected.** The
+> four readings above are **not four positions**. Two are the *same sentence copied* — `CONTEXT.md` →
+> Water Body and `adr/0034` §4, both corrected on that date. One is superseded prose: `04 §1`'s
+> *"service capacity"* line is the exact escapee `adr/0031` quotes and generalises away. ***What
+> remains is a split the corpus already contained***: `CONTEXT.md` → Resource lists **Waste** under
+> **Good** and **Sewage** under **Utility**, which is the seam this section found four commercial
+> lineages arriving at independently. **No `ResourceFamily` member was added and none was needed.**
+> The section stands as written; only the count of live positions was wrong.
 
 **The finding is that the question is malformed, and the genre has known it for twenty-five years.**
 Every title below that models waste seriously ships **two** mechanisms, and the seam falls exactly on

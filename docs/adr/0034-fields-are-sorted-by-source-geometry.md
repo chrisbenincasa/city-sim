@@ -44,7 +44,10 @@ A Map Layer is a source field convolved with a bounded kernel. This is what make
 
 ### 4. Water bodies are Bins on the water graph
 
-Every Water Body is a Bin holding the Waste family with a **capacity** and an **outflow rate** to the next body downstream, terminating in a Hinterland. Those two numbers produce ponds, rivers and seas without a taxonomy of water types, and the body's level is the intensity of a **shoreline line source** onto adjacent land.
+Every Water Body is a Bin holding a **Utility-family** Resource with a **capacity** and an **outflow rate** to the next body downstream, terminating in a Hinterland.
+
+> ⚠ **Corrected 2026-08-24 by milestone 24 decision 12. It said *the Waste family*, and that was wrong twice.** There is no Waste family: [`0031`](0031-one-resource-abstraction-and-depth-not-count.md) leaves exactly three — Good, Utility and Money — and `CONTEXT.md` → Resource lists **Waste** as a member of **Good** and **Sewage** as a member of **Utility**. And the family named was the wrong one of the two: a Good is defined as *a Resource whose movement between Districts requires a Vehicle*, while what a Water Body does with its contents is move them **along an edge of the water graph** — which is a Utility's movement exactly. ⚠ **`CONTEXT.md` → Water Body carried the identical sentence and is corrected with it**; two copies of one claim is `plans/0012` **Cause 1**. ***The split this sentence reached past was already in the corpus***, and [`docs/references.md`](../references.md) §10 records four independent commercial lineages arriving at the same one.
+ Those two numbers produce ponds, rivers and seas without a taxonomy of water types, and the body's level is the intensity of a **shoreline line source** onto adjacent land.
 
 **Nothing is an infinite sink**, because the map holds only a section of the ocean and a section is bounded. Capacity decides whether pollution behaves as a *debt* (small body: accumulates, permanent) or a *rent* (large body: tracks throughput, recovers) — a gradient rather than two categories.
 
